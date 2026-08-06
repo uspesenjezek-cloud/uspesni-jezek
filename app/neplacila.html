@@ -26,41 +26,191 @@
     </header>
 
     <main class="app__vsebina">
-      <section class="kartica">
-        <h2 class="kartica__naslov">Dodaj novo zadevo</h2>
+      <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
+
+      <section class="dodaj-zadevo" id="obrazec" aria-label="Dodaj novo zadevo">
+        <h2 class="seznam-zadev__naslov">Dodaj novo zadevo</h2>
         <form class="obrazec" id="obrazec-neplacilo">
-          <div class="obrazec__polje">
-            <label for="ime-stranke">Ime stranke / dolžnika</label>
-            <input type="text" id="ime-stranke" name="ime" required />
-          </div>
+          <fieldset class="zadeva-obrazec__sklop zadeva-obrazec__sklop--dolznik">
+            <legend class="zadeva-obrazec__sklop-naslov">Dolžnik</legend>
 
-          <div class="obrazec__polje">
-            <label for="znesek-dolga">Znesek dolga (EUR)</label>
-            <input
-              type="number"
-              id="znesek-dolga"
-              name="znesek"
-              min="0"
-              step="0.01"
-              required
-            />
-          </div>
+            <div class="obrazec__polje">
+              <label for="ime-stranke">Ime in priimek</label>
+              <input type="text" id="ime-stranke" name="ime" required />
+            </div>
 
-          <div class="obrazec__polje">
-            <label for="opis-dolga">Opis / tip dolga</label>
-            <textarea id="opis-dolga" name="opis" rows="3"></textarea>
-          </div>
+            <div class="obrazec__polje">
+              <label for="telefon-dolznika">Mobilni telefon</label>
+              <input type="tel" id="telefon-dolznika" name="telefon" />
+            </div>
 
-          <div class="obrazec__polje">
-            <label for="datum-zapadlosti">Datum zapadlosti</label>
-            <input type="date" id="datum-zapadlosti" name="datum" required />
-          </div>
+            <div class="obrazec__polje">
+              <label for="email-dolznika">E-pošta</label>
+              <input type="email" id="email-dolznika" name="email" />
+            </div>
+
+            <p class="zadeva-obrazec__opozorilo">
+              Izpolni vsaj enega od teh dveh (telefon ali e-pošta).
+            </p>
+          </fieldset>
+
+          <fieldset class="zadeva-obrazec__sklop zadeva-obrazec__sklop--dolg">
+            <legend class="zadeva-obrazec__sklop-naslov">Dolg</legend>
+
+            <div class="zadeva-obrazec__polje-skatla">
+              <div class="obrazec__polje">
+                <label for="stevilka-racuna">Številka računa</label>
+                <input type="text" id="stevilka-racuna" name="stevilkaRacuna" />
+              </div>
+
+              <div class="zadeva-obrazec__podvrstica">
+                <div class="obrazec__polje">
+                  <label for="datum-izdaje">Datum izdaje računa</label>
+                  <input type="date" id="datum-izdaje" name="datumIzdaje" />
+                </div>
+
+                <div class="obrazec__polje">
+                  <label for="datum-zapadlosti">Datum zapadlosti</label>
+                  <input
+                    type="date"
+                    id="datum-zapadlosti"
+                    name="datum"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="obrazec__polje">
+                <label for="znesek-dolga">Znesek dolga (EUR)</label>
+                <input
+                  type="number"
+                  id="znesek-dolga"
+                  name="znesek"
+                  min="0"
+                  step="0.01"
+                  inputmode="decimal"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="obrazec__polje">
+              <label for="opis-dolga">Opis / tip dolga</label>
+              <textarea
+                id="opis-dolga"
+                name="opis"
+                rows="5"
+                required
+              ></textarea>
+            </div>
+
+            <div class="obrazec__polje">
+              <label id="priloga-naslov">Priloga računa (neobvezno, do 6 datotek)</label>
+              <p class="zadeva-obrazec__priloga-opis">
+                Naloži slike ali PDF-je računa, ali jih kar slikaj s telefonom.
+              </p>
+
+              <div class="zadeva-obrazec__priloga-gumbi" id="priloga-gumbi" role="group" aria-labelledby="priloga-naslov">
+                <label class="btn btn--obris zadeva-obrazec__priloga-gumb">
+                  📎 Naloži datoteke
+                  <input
+                    type="file"
+                    id="priloga-datoteka"
+                    accept="image/*,application/pdf"
+                    multiple
+                    hidden
+                  />
+                </label>
+                <label class="btn btn--obris zadeva-obrazec__priloga-gumb">
+                  📷 Slikaj
+                  <input
+                    type="file"
+                    id="priloga-fotoaparat"
+                    accept="image/*"
+                    capture
+                    hidden
+                  />
+                </label>
+              </div>
+
+              <p class="zadeva-obrazec__priloga-opis" id="priloga-limit-opozorilo" hidden>
+                Doseženih je največ 6 prilog - odstrani eno, da dodaš novo.
+              </p>
+
+              <div class="zadeva-obrazec__priloga-seznam" id="priloga-seznam"></div>
+            </div>
+          </fieldset>
 
           <button type="submit" class="btn btn--cta">Dodaj zadevo</button>
+
+          <p class="obrazec__sporocilo" id="zadeva-dodana-sporocilo" hidden>
+            <span class="obrazec__sporocilo-ikona" aria-hidden="true">✓</span>
+            Zadeva je bila uspešno dodana med odprte zadeve.
+          </p>
         </form>
       </section>
 
-      <section class="seznam-zadev" aria-label="Seznam neplačanih zadev">
+      <section class="zadeve-semafor" id="seznam" aria-label="Povzetek in filter zadev po statusu">
+        <p class="zadeve-semafor__skupaj">
+          <span aria-hidden="true">🗒</span> Odprtih dolgov:
+          <strong id="semafor-odprtih">0</strong>
+        </p>
+
+        <div class="zadeve-semafor__kartice">
+          <button
+            type="button"
+            class="zadeve-semafor__kartica zadeve-semafor__kartica--v-teku"
+            data-kategorija="v-teku"
+          >
+            <span class="zadeve-semafor__puscica" aria-hidden="true">›</span>
+            <span class="zadeve-semafor__glava">
+              <span class="zadeve-semafor__ikona-ovoj" aria-hidden="true">
+                <span class="zadeve-semafor__ikona">⏳</span>
+              </span>
+              <span class="zadeve-semafor__stevilo" id="semafor-v-teku-stevilo">0</span>
+            </span>
+            <span class="zadeve-semafor__naziv">Dolgovi v teku</span>
+            <span class="zadeve-semafor__crta" aria-hidden="true"></span>
+            <span class="zadeve-semafor__znesek" id="semafor-v-teku-znesek">0,00 €</span>
+          </button>
+
+          <button
+            type="button"
+            class="zadeve-semafor__kartica zadeve-semafor__kartica--odvetnik"
+            data-kategorija="odvetnik"
+          >
+            <span class="zadeve-semafor__puscica" aria-hidden="true">›</span>
+            <span class="zadeve-semafor__glava">
+              <span class="zadeve-semafor__ikona-ovoj" aria-hidden="true">
+                <span class="zadeve-semafor__ikona">⚖</span>
+              </span>
+              <span class="zadeve-semafor__stevilo" id="semafor-odvetnik-stevilo">0</span>
+            </span>
+            <span class="zadeve-semafor__naziv">Dolgovi predani odvetniku</span>
+            <span class="zadeve-semafor__crta" aria-hidden="true"></span>
+            <span class="zadeve-semafor__znesek" id="semafor-odvetnik-znesek">0,00 €</span>
+          </button>
+
+          <button
+            type="button"
+            class="zadeve-semafor__kartica zadeve-semafor__kartica--reseno"
+            data-kategorija="reseno"
+          >
+            <span class="zadeve-semafor__puscica" aria-hidden="true">›</span>
+            <span class="zadeve-semafor__glava">
+              <span class="zadeve-semafor__ikona-ovoj" aria-hidden="true">
+                <span class="zadeve-semafor__ikona">✓</span>
+              </span>
+              <span class="zadeve-semafor__stevilo" id="semafor-reseno-stevilo">0</span>
+            </span>
+            <span class="zadeve-semafor__naziv">Dolgovi rešeni</span>
+            <span class="zadeve-semafor__crta" aria-hidden="true"></span>
+            <span class="zadeve-semafor__znesek" id="semafor-reseno-znesek">0,00 €</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="seznam-zadev" id="seznam-vsebnik" aria-label="Seznam neplačanih zadev">
         <h2 class="seznam-zadev__naslov">Zadeve</h2>
         <div id="seznam-zadev-vsebina">
           <!-- Sem app.js izriše kartice zadev -->

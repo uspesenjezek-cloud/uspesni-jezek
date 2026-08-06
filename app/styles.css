@@ -29,9 +29,17 @@
   --pisava-telo: "Figtree", system-ui, sans-serif;
 
   --sirina-max: 480px;
-  --odmik: 1.25rem;
+  --odmik: 1rem;
   --odmik-sekcija: 2rem;
   --radius-gumb: 999px;
+
+  /* Zaobljenost in senca za sklope znotraj obrazca "Dodaj novo zadevo"
+     (glej razdelek OBRAZEC - SKLOPI spodaj). Namenoma zaobljeno, v
+     nasprotju z oglatimi karticami drugje v app-u, ker gre za obrazec z
+     več polji, kjer mehkejši videz olajša branje. */
+  --radius-obrazec: 1rem;
+  --radius-obrazec-notranji: 0.75rem;
+  --senca-obrazec: 0 10px 24px -14px rgba(26, 46, 36, 0.18);
 }
 
 /* ========== OSNOVA ========== */
@@ -178,6 +186,23 @@ a {
   font-size: 0.95rem;
 }
 
+/* Ovojnica za 2 ločena gumba na isti kartici (npr. "Preveri odprte
+   zadeve" + "Dodaj nov račun") - drug ob drugem, na zelo ozkih zaslonih
+   pa se, če se ne prilegata, samodejno prelomita drug pod drugega. */
+.kartica__gumbi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.kartica__gumbi .btn {
+  flex: 1 1 45%;
+  width: auto;
+  min-width: 9rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.9rem;
+}
+
 /* Kartica brez funkcije (placeholder kategorija na nivoju 2) - vizualno enaka,
    samo je <button> namesto <article>, zato mora "podedovati" osnovne stile. */
 .kartica--placeholder {
@@ -270,6 +295,19 @@ a {
   transform: translateY(-1px);
 }
 
+/* Obrobni gumb v barvi znamke (druga, manj poudarjena akcija poleg
+   .btn--cta na isti kartici, npr. "Dodaj nov račun" na zascita-posla.html) */
+.btn--obris {
+  background: transparent;
+  border: 1.5px solid var(--barva-znamka);
+  color: var(--barva-znamka);
+}
+
+.btn--obris:hover {
+  background: var(--barva-znamka);
+  color: var(--barva-na-temnem);
+}
+
 /* Manjši, manj izpostavljen gumb (npr. "Izbriši zadevo") */
 .btn--nevarnost-obris {
   width: auto;
@@ -289,6 +327,150 @@ a {
   width: auto;
   padding: 0.6rem 1rem;
   font-size: 0.85rem;
+}
+
+/* ========== SEMAFOR ZADEV (kartice na vrhu neplacila.html) ==========
+   3 klikljive kartice, ki prikažejo število in skupni znesek zadev po
+   kategoriji statusa (glej KATEGORIJA_SEMAFORJA_PO_STATUSU v app.js) in
+   hkrati delujejo kot filter za seznam zadev spodaj. Barve so vzete iz
+   že obstoječih spremenljivk (--status-opomin-1, --barva-nevarnost,
+   --status-reseno), brez novih barv - color-mix() naredi svetlejšo
+   različico za ozadje kartice/krogca. Vse 3 kartice morajo biti VEDNO
+   vidne hkrati v eni vrsti (tudi na ozkem mobilnem zaslonu) - zato so
+   enako široke (flex: 1) in se ne drsajo vodoravno; ime kategorije se
+   po potrebi prelomi v 2-3 vrstice namesto da bi se kartica raztegnila. */
+.zadeve-semafor__skupaj {
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--barva-besedilo-blago);
+}
+
+.zadeve-semafor__kartice {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.zadeve-semafor__kartica {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.75rem 0.5rem 0.65rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: var(--barva-povrsina);
+  border: 1.5px solid var(--barva-obroba);
+  border-radius: var(--radius-obrazec);
+  box-shadow: var(--senca-obrazec);
+  transition: opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.zadeve-semafor__puscica {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.5rem;
+  font-size: 1rem;
+  color: var(--barva-besedilo-blago);
+  opacity: 0.5;
+}
+
+.zadeve-semafor__glava {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.zadeve-semafor__ikona-ovoj {
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.zadeve-semafor__stevilo {
+  font-family: var(--pisava-naslov);
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.zadeve-semafor__naziv {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: var(--barva-besedilo-blago);
+}
+
+.zadeve-semafor__crta {
+  width: 100%;
+  height: 1px;
+  background: var(--barva-obroba);
+}
+
+.zadeve-semafor__znesek {
+  align-self: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* "V teku" - rumenkasta barva (--status-opomin-1) */
+.zadeve-semafor__kartica--v-teku {
+  border-color: var(--status-opomin-1);
+  background: color-mix(in srgb, var(--status-opomin-1) 6%, var(--barva-povrsina));
+}
+.zadeve-semafor__kartica--v-teku .zadeve-semafor__ikona-ovoj {
+  background: color-mix(in srgb, var(--status-opomin-1) 22%, var(--barva-povrsina));
+}
+.zadeve-semafor__kartica--v-teku .zadeve-semafor__stevilo,
+.zadeve-semafor__kartica--v-teku .zadeve-semafor__znesek {
+  color: var(--status-opomin-1);
+}
+
+/* "Predano odvetniku" - rdečkasta barva (--barva-nevarnost) */
+.zadeve-semafor__kartica--odvetnik {
+  border-color: var(--barva-nevarnost);
+  background: color-mix(in srgb, var(--barva-nevarnost) 6%, var(--barva-povrsina));
+}
+.zadeve-semafor__kartica--odvetnik .zadeve-semafor__ikona-ovoj {
+  background: color-mix(in srgb, var(--barva-nevarnost) 18%, var(--barva-povrsina));
+}
+.zadeve-semafor__kartica--odvetnik .zadeve-semafor__stevilo,
+.zadeve-semafor__kartica--odvetnik .zadeve-semafor__znesek {
+  color: var(--barva-nevarnost);
+}
+
+/* "Rešeno" - zelenkasta/turkizna barva (--status-reseno) */
+.zadeve-semafor__kartica--reseno {
+  border-color: var(--status-reseno);
+  background: color-mix(in srgb, var(--status-reseno) 6%, var(--barva-povrsina));
+}
+.zadeve-semafor__kartica--reseno .zadeve-semafor__ikona-ovoj {
+  background: color-mix(in srgb, var(--status-reseno) 18%, var(--barva-povrsina));
+}
+.zadeve-semafor__kartica--reseno .zadeve-semafor__stevilo,
+.zadeve-semafor__kartica--reseno .zadeve-semafor__znesek {
+  color: var(--status-reseno);
+}
+
+/* Ko je ena kartica izbrana (aktivna), preostali dve rahlo zbledita, da je
+   jasno razvidno, kateri filter je trenutno vklopljen. */
+.zadeve-semafor__kartica--aktivna {
+  box-shadow: 0 0 0 2px var(--barva-znamka);
+}
+
+.zadeve-semafor__kartice--filtrirano .zadeve-semafor__kartica:not(.zadeve-semafor__kartica--aktivna) {
+  opacity: 0.55;
 }
 
 /* ========== OBRAZEC (dodajanje nove zadeve) ========== */
@@ -323,7 +505,7 @@ a {
 
 .obrazec__polje textarea {
   resize: vertical;
-  min-height: 4.5rem;
+  min-height: 7rem;
   font-family: inherit;
 }
 
@@ -333,16 +515,241 @@ a {
   outline-offset: 1px;
 }
 
+/* ========== OBRAZEC - SKLOPI (npr. "Dolžnik" / "Dolg" na neplacila.html) ==========
+   En "sklop" je en zaobljen okvir z naslovom (npr. "Dolžnik"), ki vsebuje
+   več sorodnih polj obrazca skupaj. */
+.zadeva-obrazec__sklop {
+  /* <fieldset> ima v brskalniku poseben privzeti "min-width: min-content",
+     zato se sicer NE bi skrčil pod širino svoje najširše vsebine (npr. dveh
+     gumbov za prilogo drug ob drugem) - "width: 100%" + "min-width: 0"
+     poskrbita, da je sklop VEDNO enako širok kot njegov starš, ne glede na
+     to, kaj je znotraj (enako kot "width: 100%" na .kartica zgoraj). */
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--barva-povrsina);
+  border: 1px solid var(--barva-obroba);
+  border-radius: var(--radius-obrazec);
+  box-shadow: var(--senca-obrazec);
+}
+
+/* Naslov sklopa (npr. "Dolžnik", "Dolg") - <legend> ga privzeto postavi
+   čez zgornji rob okvirja, zato mu damo samo barvo/pisavo, ne pozicije. */
+.zadeva-obrazec__sklop-naslov {
+  padding: 0 0.4rem;
+  margin-left: -0.4rem;
+  font-family: var(--pisava-naslov);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--barva-znamka);
+}
+
+/* Kratko pojasnilo pod poljema telefon/e-pošta v sklopu "Dolžnik" */
+.zadeva-obrazec__opozorilo {
+  margin: -0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--barva-besedilo-blago);
+}
+
+/* Dve polji vedno drug ob drugem (npr. datuma) - namenoma NI mobile-first
+   (ne sklada se eno pod drugim na ozkih zaslonih), ker morata biti vedno
+   v paru zaradi jasnosti. Naslova polj se lahko na ozkih zaslonih prelomita
+   v dve vrstici, kar je pričakovano. */
+.zadeva-obrazec__podvrstica {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+}
+
+.zadeva-obrazec__podvrstica .obrazec__polje {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Manjša škatla za skupino polj znotraj sklopa "Dolg" (npr. datuma + znesek
+   skupaj, ali št. računa, ali opis) - vsaka taka škatla je vizualno svoja
+   "kartica" znotraj velikega sklopa, namesto da bi bilo vse "golo". */
+.zadeva-obrazec__polje-skatla {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--barva-ozadje);
+  border: 1px solid var(--barva-obroba);
+  border-radius: var(--radius-obrazec-notranji);
+}
+
+/* ========== PRILOGA RAČUNA (slika/PDF, glej "Priloga računa" v obrazcu) ==========
+   Dva gumba drug ob drugem ("Naloži datoteko" odpre navadnega izbirnika
+   datotek, "Slikaj" na mobilnem prek atributa capture takoj odpre
+   fotoaparat) - oba sta <label>, ki ovija skrit <input type="file">, zato
+   za odpiranje ni potreben noben JS. Sama datoteka se naloži v Supabase
+   Storage šele ob oddaji obrazca (glej pokaziIzbranoPrilogo v app.js). */
+.zadeva-obrazec__priloga-opis {
+  margin: -0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--barva-besedilo-blago);
+}
+
+.zadeva-obrazec__priloga-gumbi[hidden] {
+  display: none;
+}
+
+.zadeva-obrazec__priloga-gumbi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.15rem;
+}
+
+.zadeva-obrazec__priloga-gumb {
+  flex: 1 1 45%;
+  min-width: 9rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Seznam že izbranih prilog (do 6, glej NAJVEC_PRILOG v app.js) - vsaka
+   datoteka je svoja "kartica" (postavka) s klikljivim "✕" za odstranitev
+   pred oddajo obrazca. Prazen seznam preprosto ne zavzame prostora, zato
+   ne potrebuje posebnega "hidden" stanja. */
+.zadeva-obrazec__priloga-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.zadeva-obrazec__priloga-postavka {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--barva-znamka);
+  background: color-mix(in srgb, var(--barva-znamka) 8%, var(--barva-povrsina));
+  border: 1px solid var(--barva-znamka);
+  border-radius: var(--radius-obrazec-notranji);
+}
+
+.zadeva-obrazec__priloga-ime {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zadeva-obrazec__priloga-odstrani {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--barva-znamka);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
 .obrazec__napaka {
   margin: 0;
   font-size: 0.85rem;
   color: var(--barva-nevarnost);
 }
 
+/* Potrditveno sporočilo (npr. po uspešnem dodajanju zadeve) - "lebdeče"
+   obvestilo, pripeto na sredino zaslona (position: fixed), NE na mesto v
+   obrazcu - tako je vidno tudi, če je obrazec dolg in bi bilo sporočilo
+   pod gumbom sicer daleč izven vidnega dela zaslona. Priplava od spodnjega
+   roba zaslona navzgor do sredine in nato v skupno cca. 1 sekundi zbledi
+   (glej pokaziUspesnoDodano v app.js - časovnik tam mora ustrezati trajanju
+   spodnje animacije). */
+.obrazec__sporocilo[hidden] {
+  display: none;
+}
+
 .obrazec__sporocilo {
+  position: fixed;
+  left: 50%;
+  top: 100%;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   margin: 0;
-  font-size: 0.85rem;
+  padding: 0.9rem 1.1rem;
+  max-width: min(90vw, 26rem);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
   color: var(--barva-znamka);
+  background: color-mix(in srgb, var(--barva-znamka) 10%, var(--barva-povrsina));
+  border: 1px solid var(--barva-znamka);
+  border-radius: var(--radius-obrazec-notranji);
+  box-shadow: var(--senca-obrazec);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.obrazec__sporocilo-ikona {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: var(--barva-znamka);
+  color: var(--barva-na-temnem);
+  font-size: 1.05rem;
+}
+
+/* Ena sama animacija naredi vse: sporočilo se pojavi pri dnu zaslona,
+   "poleti" navzgor do sredine, tam kratek trenutek ostane, nato zbledi -
+   vse skupaj v cca. 1 sekundi, da uporabnik takoj vidi potrditev. */
+.obrazec__sporocilo--prikazano {
+  animation: obrazec-sporocilo-lebdi 1s ease-out forwards;
+}
+
+.obrazec__sporocilo--prikazano .obrazec__sporocilo-ikona {
+  animation: obrazec-sporocilo-ikona-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes obrazec-sporocilo-lebdi {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -10vh);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -45vh);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50vh);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -58vh);
+  }
+}
+
+@keyframes obrazec-sporocilo-ikona-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ========== PRIJAVA / REGISTRACIJA ========== */
@@ -462,4 +869,53 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
+}
+
+/* Priložene datoteke na kartici zadeve (slike/PDF-ji računa, glej
+   racun_datoteke_poti v sql/003_dodaj_racun_prilogo.sql) - razdelek se v
+   HTML doda samo, če zadeva ima vsaj eno prilogo (glej ustvariKartico v
+   app.js), zato tu ni potreben poseben "prazen" videz. */
+.zadeva__priloge {
+  margin-bottom: 0.85rem;
+}
+
+.zadeva__priloge-naslov {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--barva-besedilo-blago);
+}
+
+.zadeva__priloge-seznam {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Vsaka priloga je klikljiv gumb (ne samo prikaz) - ob kliku app.js
+   zahteva kratkotrajno podpisano povezavo in prilogo odpre v novem
+   zavihku (glej odpriPrilogo v app.js). */
+.zadeva__priloga-gumb {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 11rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--barva-znamka);
+  background: color-mix(in srgb, var(--barva-znamka) 8%, var(--barva-povrsina));
+  border: 1px solid var(--barva-znamka);
+  border-radius: var(--radius-obrazec-notranji);
+  cursor: pointer;
+}
+
+.zadeva__priloga-gumb:hover {
+  background: color-mix(in srgb, var(--barva-znamka) 16%, var(--barva-povrsina));
+}
+
+.zadeva__priloga-gumb-ime {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
