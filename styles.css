@@ -1,6 +1,8 @@
-/* ========== BARVE IN OSNOVNE NASTAVITVE ========== */
+/* ========== SPREMENLJIVKE (:root) ==========
+   Spremeni vrednosti tukaj – sekcije spodaj jih samo uporabljajo.
+   ============================================ */
 :root {
-  /* Barve – spremeni tukaj, ko boš imel končno paleto */
+  /* --- Barve --- */
   --barva-ozadje: #f2f6f3;
   --barva-ozadje-temnejse: #e4ece7;
   --barva-povrsina: #ffffff;
@@ -12,15 +14,86 @@
   --barva-cta-hover: #a51f1f;
   --barva-obroba: #c5d4cb;
   --barva-placeholder: #d8e4dd;
+  --barva-na-temnem: #ffffff;
 
+  /* --- Pisave --- */
   --pisava-naslov: "Bricolage Grotesque", system-ui, sans-serif;
   --pisava-telo: "Figtree", system-ui, sans-serif;
 
+  /* --- Velikosti pisave --- */
+  --pisava-telo-velikost: 1rem;
+  --pisava-nav-logo: 1.05rem;
+  --pisava-hero-znamka: 0.95rem;
+  --pisava-hero-naslov: 1.65rem;
+  --pisava-sekcija-naslov: 1.4rem;
+  --pisava-kartica-naslov: 1.1rem;
+  --pisava-kartica-opis: 0.95rem;
+  --pisava-cena-naslov: 1.35rem;
+  --pisava-gumb: 1rem;
+  --pisava-placeholder: 0.875rem;
+  --pisava-placeholder-ikona: 0.7rem;
+  --pisava-paketi: 0.9rem;
+  --pisava-footer-oznaka: 0.75rem;
+  --pisava-footer-social: 0.7rem;
+  --pisava-footer-copy: 0.8rem;
+
+  /* --- Širine --- */
   --sirina-max: 390px;
+  --sirina-max-sirsi: 480px;
+  --sirina-kartica: 100%;
+  --sirina-placeholder-ikona: 56px;
+
+  /* --- Splošni odmiki --- */
   --odmik: 1.25rem;
   --odmik-sekcija: 2.75rem;
+
+  /* --- Odmiki po sekcijah (padding / notranji razmiki) --- */
+  --odmik-nav-navpicno: 0.85rem;
+  --odmik-hero-zgoraj: 2rem;
+  --odmik-hero-spodaj: var(--odmik-sekcija);
+  --odmik-hero-znamka-spodaj: 0.5rem;
+  --odmik-hero-naslov-spodaj: 0.85rem;
+  --odmik-hero-opis-spodaj: 1.35rem;
+  --odmik-hero-gumb-spodaj: 1.5rem;
+  --odmik-uvod-spodaj: 1.5rem;
+  --odmik-stebri-spodaj: var(--odmik-sekcija);
+  --odmik-stebri-vrzel: 1rem;
+  --odmik-kartica-znotraj: 1.25rem;
+  --odmik-kartica-ikona-spodaj: 0.85rem;
+  --odmik-kartica-naslov-spodaj: 0.4rem;
+  --odmik-cena-zunaj-spodaj: 1rem;
+  --odmik-cena-znotraj: 1.75rem 1.25rem;
+  --odmik-cena-opis-spodaj: 1.25rem;
+  --odmik-paketi-zgoraj: 0.5rem;
+  --odmik-paketi-spodaj: var(--odmik-sekcija);
+  --odmik-paketi-znotraj: 1rem;
+  --odmik-zakaj-spodaj: var(--odmik-sekcija);
+  --odmik-zakaj-opis-spodaj: 1.25rem;
+  --odmik-footer-zgoraj: 2rem;
+  --odmik-footer-spodaj: 2.5rem;
+  --odmik-footer-blok: 1.5rem;
+  --odmik-footer-social-spodaj: 1.75rem;
+
+  /* --- Višine placeholderjev --- */
+  --visina-placeholder: 180px;
+  --visina-placeholder-hero: 200px;
+  --visina-placeholder-grafika: 140px;
+  --visina-placeholder-ikona: 56px;
+
+  /* --- Gumbi --- */
+  --gumb-padding: 0.85rem 1.5rem;
+
+  /* --- Border-radius (konsistentno poimenovanje) --- */
   --radius: 0.75rem;
   --radius-gumb: 999px;
+  --radius-ikona: 0.5rem;
+  --radius-logo: 0.4rem;
+  --radius-social: 50%;
+
+  /* --- Navigacija (velikosti elementov) --- */
+  --nav-logo-mark: 1.75rem;
+  --nav-toggle: 2.5rem;
+  --footer-social: 2.5rem;
 }
 
 /* ========== OSNOVA ========== */
@@ -39,7 +112,7 @@ body {
   max-width: var(--sirina-max);
   min-height: 100vh;
   font-family: var(--pisava-telo);
-  font-size: 1rem;
+  font-size: var(--pisava-telo-velikost);
   line-height: 1.55;
   color: var(--barva-besedilo);
   background:
@@ -81,9 +154,9 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.85rem 1.5rem;
+  padding: var(--gumb-padding);
   font-family: var(--pisava-telo);
-  font-size: 1rem;
+  font-size: var(--pisava-gumb);
   font-weight: 600;
   border: none;
   border-radius: var(--radius-gumb);
@@ -94,36 +167,67 @@ p {
 
 .btn--cta {
   background: var(--barva-cta);
-  color: #fff;
+  color: var(--barva-na-temnem);
 }
 
 .btn--cta:hover {
   background: var(--barva-cta-hover);
-  color: #fff;
+  color: var(--barva-na-temnem);
   text-decoration: none;
   transform: translateY(-1px);
 }
 
-/* ========== PLACEHOLDER POLJA ZA SLIKE ========== */
+/* ========== PLACEHOLDER POLJA ZA SLIKE ==========
+   Struktura v HTML:
+     <div class="placeholder-box [modifikator]">
+       <span class="placeholder-box__oznaka">Besedilo</span>
+     </div>
+   Kasneje zamenjaj vsebino z <img>, CSS ostane enak.
+   ================================================ */
 .placeholder-box {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   width: 100%;
-  min-height: 180px;
+  min-height: var(--visina-placeholder);
   background: var(--barva-placeholder);
   border: 2px dashed var(--barva-obroba);
   border-radius: var(--radius);
   color: var(--barva-besedilo-blago);
-  font-size: 0.875rem;
+  font-size: var(--pisava-placeholder);
   font-weight: 500;
 }
 
+/* Oznaka (besedilo) – skrij/odstrani, ko dodaš <img> */
+.placeholder-box__oznaka {
+  display: block;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+/* Ko zamenjaš oznako z <img>, slika zapolni polje */
+.placeholder-box > img {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.placeholder-box--hero {
+  min-height: var(--visina-placeholder-hero);
+}
+
+.placeholder-box--grafika {
+  min-height: var(--visina-placeholder-grafika);
+}
+
 .placeholder-box--ikona {
-  min-height: 56px;
-  width: 56px;
-  border-radius: 0.5rem;
-  font-size: 0.7rem;
+  width: var(--sirina-placeholder-ikona);
+  min-height: var(--visina-placeholder-ikona);
+  border-radius: var(--radius-ikona);
+  font-size: var(--pisava-placeholder-ikona);
 }
 
 /* ========== 1. NAVIGACIJA ========== */
@@ -136,7 +240,7 @@ p {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0.85rem var(--odmik);
+  padding: var(--odmik-nav-navpicno) var(--odmik);
   background: color-mix(in srgb, var(--barva-ozadje) 92%, transparent);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--barva-obroba);
@@ -150,7 +254,7 @@ p {
   text-decoration: none;
   font-family: var(--pisava-naslov);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: var(--pisava-nav-logo);
 }
 
 .nav__logo:hover {
@@ -158,9 +262,9 @@ p {
 }
 
 .nav__logo-mark {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.4rem;
+  width: var(--nav-logo-mark);
+  height: var(--nav-logo-mark);
+  border-radius: var(--radius-logo);
   background: var(--barva-znamka);
   /* Kasneje zamenjaj z logo sliko */
 }
@@ -169,8 +273,8 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--nav-toggle);
+  height: var(--nav-toggle);
   padding: 0;
   border: none;
   background: transparent;
@@ -254,44 +358,44 @@ p {
 
 /* ========== 2. HERO ========== */
 .hero {
-  padding: 2rem var(--odmik) var(--odmik-sekcija);
+  padding: var(--odmik-hero-zgoraj) var(--odmik) var(--odmik-hero-spodaj);
 }
 
 .hero__brand {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--odmik-hero-znamka-spodaj);
   font-family: var(--pisava-naslov);
-  font-size: 0.95rem;
+  font-size: var(--pisava-hero-znamka);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--barva-znamka);
 }
 
 .hero__title {
-  font-size: 1.65rem;
+  font-size: var(--pisava-hero-naslov);
   font-weight: 700;
-  margin-bottom: 0.85rem;
+  margin-bottom: var(--odmik-hero-naslov-spodaj);
 }
 
 .hero__opis {
-  margin-bottom: 1.35rem;
+  margin-bottom: var(--odmik-hero-opis-spodaj);
 }
 
 .hero .btn {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--odmik-hero-gumb-spodaj);
 }
 
-.hero__ilustracija .placeholder-box {
-  min-height: 200px;
+.hero__ilustracija {
+  width: 100%;
 }
 
 /* ========== 3. NASLOV STORITEV ========== */
 .sekcija-uvod {
-  padding: 0 var(--odmik) 1.5rem;
+  padding: 0 var(--odmik) var(--odmik-uvod-spodaj);
   text-align: center;
 }
 
 .sekcija-uvod__naslov {
-  font-size: 1.4rem;
+  font-size: var(--pisava-sekcija-naslov);
 }
 
 .sekcija-uvod__opis {
@@ -302,53 +406,54 @@ p {
 .stebri {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
-  padding: 0 var(--odmik) var(--odmik-sekcija);
+  gap: var(--odmik-stebri-vrzel);
+  padding: 0 var(--odmik) var(--odmik-stebri-spodaj);
 }
 
 .kartica {
-  padding: 1.25rem;
+  width: var(--sirina-kartica);
+  padding: var(--odmik-kartica-znotraj);
   background: var(--barva-povrsina);
   border: 1px solid var(--barva-obroba);
   border-radius: var(--radius);
 }
 
 .kartica__ikona {
-  margin-bottom: 0.85rem;
+  margin-bottom: var(--odmik-kartica-ikona-spodaj);
 }
 
 .kartica__naslov {
-  font-size: 1.1rem;
-  margin-bottom: 0.4rem;
+  font-size: var(--pisava-kartica-naslov);
+  margin-bottom: var(--odmik-kartica-naslov-spodaj);
 }
 
 .kartica__opis {
   margin-bottom: 0;
-  font-size: 0.95rem;
+  font-size: var(--pisava-kartica-opis);
 }
 
 /* ========== 5. CENA + CTA ========== */
 .cena {
-  margin: 0 var(--odmik) 1rem;
-  padding: 1.75rem 1.25rem;
+  margin: 0 var(--odmik) var(--odmik-cena-zunaj-spodaj);
+  padding: var(--odmik-cena-znotraj);
   text-align: center;
   background: var(--barva-znamka);
   border-radius: var(--radius);
-  color: #fff;
+  color: var(--barva-na-temnem);
 }
 
 .cena__naslov {
-  color: #fff;
-  font-size: 1.35rem;
+  color: var(--barva-na-temnem);
+  font-size: var(--pisava-cena-naslov);
 }
 
 .cena__opis {
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 1.25rem;
+  color: color-mix(in srgb, var(--barva-na-temnem) 85%, transparent);
+  margin-bottom: var(--odmik-cena-opis-spodaj);
 }
 
 .cena .btn--cta {
-  background: #fff;
+  background: var(--barva-na-temnem);
   color: var(--barva-cta);
 }
 
@@ -357,15 +462,16 @@ p {
   color: var(--barva-cta-hover);
 }
 
+/* ========== 5b. PAKETI (placeholder) ========== */
 .paketi {
-  padding: 0.5rem var(--odmik) var(--odmik-sekcija);
+  padding: var(--odmik-paketi-zgoraj) var(--odmik) var(--odmik-paketi-spodaj);
 }
 
 .paketi__opomba {
   margin: 0;
-  padding: 1rem;
+  padding: var(--odmik-paketi-znotraj);
   text-align: center;
-  font-size: 0.9rem;
+  font-size: var(--pisava-paketi);
   background: var(--barva-povrsina);
   border: 1px dashed var(--barva-obroba);
   border-radius: var(--radius);
@@ -373,45 +479,45 @@ p {
 
 /* ========== 6. ZAKAJ MI ========== */
 .zakaj {
-  padding: 0 var(--odmik) var(--odmik-sekcija);
+  padding: 0 var(--odmik) var(--odmik-zakaj-spodaj);
 }
 
 .zakaj__naslov {
-  font-size: 1.4rem;
+  font-size: var(--pisava-sekcija-naslov);
 }
 
 .zakaj__opis {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--odmik-zakaj-opis-spodaj);
 }
 
-.zakaj__grafika .placeholder-box {
-  min-height: 140px;
+.zakaj__grafika {
+  width: 100%;
 }
 
 /* ========== 7. FOOTER ========== */
 .footer {
-  padding: 2rem var(--odmik) 2.5rem;
+  padding: var(--odmik-footer-zgoraj) var(--odmik) var(--odmik-footer-spodaj);
   background: var(--barva-besedilo);
-  color: rgba(255, 255, 255, 0.85);
+  color: color-mix(in srgb, var(--barva-na-temnem) 85%, transparent);
 }
 
 .footer a {
-  color: #fff;
+  color: var(--barva-na-temnem);
 }
 
 .footer__oznaka {
   display: block;
   margin-bottom: 0.2rem;
-  font-size: 0.75rem;
+  font-size: var(--pisava-footer-oznaka);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: color-mix(in srgb, var(--barva-na-temnem) 55%, transparent);
 }
 
 .footer__kontakt,
 .footer__lokacije {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--odmik-footer-blok);
 }
 
 .footer__vrstica {
@@ -425,45 +531,39 @@ p {
 .footer__social {
   display: flex;
   gap: 0.65rem;
-  margin-bottom: 1.75rem;
+  margin-bottom: var(--odmik-footer-social-spodaj);
 }
 
 .footer__social-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 0.7rem;
+  width: var(--footer-social);
+  height: var(--footer-social);
+  border-radius: var(--radius-social);
+  background: color-mix(in srgb, var(--barva-na-temnem) 12%, transparent);
+  font-size: var(--pisava-footer-social);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-decoration: none;
 }
 
 .footer__social-link:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--barva-na-temnem) 22%, transparent);
   text-decoration: none;
 }
 
 .footer__copy {
   margin: 0;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: var(--pisava-footer-copy);
+  color: color-mix(in srgb, var(--barva-na-temnem) 45%, transparent);
 }
 
 /* ========== ŠIRŠI ZASLONI (kasneje, mobile ostane prioriteta) ========== */
 @media (min-width: 640px) {
-  body {
-    max-width: 480px;
-  }
-
-  .hero__title {
-    font-size: 1.85rem;
-  }
-
-  .stebri {
-    gap: 1.15rem;
+  :root {
+    --sirina-max: var(--sirina-max-sirsi);
+    --pisava-hero-naslov: 1.85rem;
+    --odmik-stebri-vrzel: 1.15rem;
   }
 }
