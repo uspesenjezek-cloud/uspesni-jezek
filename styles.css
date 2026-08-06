@@ -3,15 +3,15 @@
    ============================================ */
 :root {
   /* --- Barve --- */
-  --barva-ozadje: #f2f6f3;
+  --barva-ozadje: #fcf9f2;
   --barva-ozadje-temnejse: #e4ece7;
   --barva-povrsina: #ffffff;
   --barva-besedilo: #1a2e24;
   --barva-besedilo-blago: #4a5f54;
-  --barva-znamka: #1f5c45;
-  --barva-znamka-svetla: #2d7a5c;
-  --barva-cta: #c62828;
-  --barva-cta-hover: #a51f1f;
+  --barva-znamka: #3d7676;
+  --barva-znamka-svetla: #4d9494;
+  --barva-cta: #4d9494;
+  --barva-cta-hover: #3d7676;
   --barva-obroba: #c5d4cb;
   --barva-placeholder: #d8e4dd;
   --barva-na-temnem: #ffffff;
@@ -53,7 +53,7 @@
   --odmik-hero-spodaj: var(--odmik-sekcija);
   --odmik-hero-znamka-spodaj: 0.5rem;
   --odmik-hero-naslov-spodaj: 0.85rem;
-  --odmik-hero-opis-spodaj: 1.35rem;
+  --odmik-hero-opis-spodaj: 0.5rem;
   --odmik-hero-gumb-spodaj: 1.5rem;
   --odmik-uvod-spodaj: 1.5rem;
   --odmik-stebri-spodaj: var(--odmik-sekcija);
@@ -115,9 +115,7 @@ body {
   font-size: var(--pisava-telo-velikost);
   line-height: 1.55;
   color: var(--barva-besedilo);
-  background:
-    radial-gradient(ellipse 120% 60% at 50% -10%, #c8e0d4 0%, transparent 55%),
-    linear-gradient(180deg, var(--barva-ozadje) 0%, var(--barva-ozadje-temnejse) 100%);
+  background: var(--barva-ozadje);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -223,11 +221,13 @@ p {
   min-height: var(--visina-placeholder-grafika);
 }
 
-.placeholder-box--ikona {
-  width: var(--sirina-placeholder-ikona);
-  min-height: var(--visina-placeholder-ikona);
-  border-radius: var(--radius-ikona);
-  font-size: var(--pisava-placeholder-ikona);
+.placeholder-box--krog {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: none;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--barva-obroba);
 }
 
 /* ========== 1. NAVIGACIJA ========== */
@@ -381,11 +381,24 @@ p {
 }
 
 .hero .btn {
+  display: flex;
+  width: 100%;
   margin-bottom: var(--odmik-hero-gumb-spodaj);
 }
 
 .hero__ilustracija {
+  width: calc(100% + 2 * var(--odmik));
+  margin-left: calc(-1 * var(--odmik));
+  margin-top: -4.65rem;
+}
+
+.hero__ilustracija img {
   width: 100%;
+  height: auto;
+  display: block;
+  /* Postopen prehod na vrhu slike, da se zlije z ozadjem strani */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 50px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 50px);
 }
 
 /* ========== 3. NASLOV STORITEV ========== */
@@ -412,19 +425,67 @@ p {
 
 .kartica {
   width: var(--sirina-kartica);
-  padding: var(--odmik-kartica-znotraj);
+  padding: 0;
   background: var(--barva-povrsina);
   border: 1px solid var(--barva-obroba);
-  border-radius: var(--radius);
+  border-radius: 0;
+  box-shadow: 0 12px 24px -12px rgba(26, 46, 36, 0.15);
+  overflow: hidden;
 }
 
-.kartica__ikona {
-  margin-bottom: var(--odmik-kartica-ikona-spodaj);
+.kartica__ilustracija {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.kartica__ilustracija img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.kartica__spodaj {
+  width: 100%;
+  padding: var(--odmik-kartica-znotraj);
+}
+
+.kartica__naslov-vrstica {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: var(--odmik-kartica-naslov-spodaj);
 }
 
 .kartica__naslov {
   font-size: var(--pisava-kartica-naslov);
-  margin-bottom: var(--odmik-kartica-naslov-spodaj);
+  font-weight: 400;
+  margin: 0;
+}
+
+.kartica__naslov strong {
+  font-weight: 700;
+}
+
+.kartica__znacka {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--barva-znamka);
+  color: var(--barva-na-temnem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .kartica__opis {

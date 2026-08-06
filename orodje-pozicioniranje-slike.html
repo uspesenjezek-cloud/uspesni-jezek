@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pripomoček: pozicioniranje slike</title>
+    <style>
+      /* Ta stran NI del glavne strani (index.html) – je samo pripomoček
+         za urejanje slik, ki jih nato ročno shraniš v mapo images/. */
+      body {
+        margin: 0;
+        padding: 1.5rem;
+        font-family: system-ui, sans-serif;
+        background: #f2f6f3;
+        color: #1a2e24;
+        max-width: 480px;
+        margin-inline: auto;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .navodila {
+        font-size: 0.9rem;
+        color: #4a5f54;
+        margin-bottom: 1.25rem;
+        line-height: 1.5;
+      }
+
+      .navodila ol {
+        padding-left: 1.2rem;
+        margin: 0.5rem 0 0;
+      }
+
+      input[type="file"] {
+        margin-bottom: 1.25rem;
+      }
+
+      /* Kvadratni okvir – enake oblike kot .kartica__ilustracija na strani */
+      .okvir {
+        width: 100%;
+        max-width: 320px;
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        position: relative;
+        background: #ffffff;
+        border: 2px dashed #c5d4cb;
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+      }
+
+      .okvir.vlecem {
+        cursor: grabbing;
+      }
+
+      .okvir img {
+        position: absolute;
+        left: 0;
+        top: 0;
+        max-width: none;
+        pointer-events: none;
+      }
+
+      .okvir__prazno {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4a5f54;
+        font-size: 0.85rem;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .gumbi {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+
+      button {
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.65rem 1.1rem;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .btn-prenesi {
+        background: #1c5fd8;
+        color: #fff;
+      }
+
+      .btn-prenesi:disabled {
+        background: #a9b8c4;
+        cursor: not-allowed;
+      }
+
+      .btn-ponastavi {
+        background: #e4ece7;
+        color: #1a2e24;
+      }
+
+      .stanje {
+        font-size: 0.85rem;
+        color: #4a5f54;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Pozicioniranje slike v kvadratnem okvirju</h1>
+    <p class="navodila">
+      Ta stran je ločen pripomoček za urejanje slik – ni del tvoje spletne strani.
+      <ol>
+        <li>Naloži sliko (gumb spodaj).</li>
+        <li>Z miško klikni na sliko v okvirju in jo povleci, da nastaviš, kateri del naj bo viden.</li>
+        <li>Klikni "Prenesi obrezano sliko" – prenese se nova, že pravilno obrezana kvadratna slika.</li>
+        <li>Preneseno datoteko preimenuj (npr. <code>kartica-1.png</code>) in jo shrani v mapo <code>images</code> čez staro.</li>
+      </ol>
+    </p>
+
+    <input type="file" id="vhod-slika" accept="image/*" />
+
+    <div class="okvir" id="okvir">
+      <span class="okvir__prazno" id="okvir-prazno">Tukaj se prikaže slika, ko jo naložiš</span>
+      <img id="slika" alt="" />
+    </div>
+
+    <div class="gumbi">
+      <button class="btn-prenesi" id="gumb-prenesi" disabled>Prenesi obrezano sliko</button>
+      <button class="btn-ponastavi" id="gumb-ponastavi" disabled>Ponastavi položaj</button>
+    </div>
+
+    <p class="stanje" id="stanje"></p>
+
+    <script>
+      // Vse spremenljivke, ki opisujejo trenutno stanje slike v okvirju.
+      const okvir = document.getElementById("okvir");
+      const okvirPrazno = document.getElementById("okvir-prazno");
+      const slikaEl = document.getElementById("slika");
+      const vhodSlika = document.getElementById("vhod-slika");
+      const gumbPrenesi = document.getElementById("gumb-prenesi");
+      const gumbPonastavi = document.getElementById("gumb-ponastavi");
+      const stanjeEl = document.getElementById("stanje");
+
+      let naravnaSirina = 0;
+      let naravnaVisina = 0;
+      let merilo = 1; // koliko je prikazana slika povečana glede na naravno velikost
+      let odmikX = 0; // trenutni premik slike znotraj okvirja (v prikazanih pikslih)
+      let odmikY = 0;
+      let vlecem = false;
+      let zacetniX = 0;
+      let zacetniY = 0;
+      let zacetniOdmikX = 0;
+      let zacetniOdmikY = 0;
+
+      function velikostOkvirja() {
+        return okvir.clientWidth;
+      }
+
+      // Postavi sliko tako, da zapolni okvir (enako kot object-fit: cover),
+      // nato omogoči vlečenje znotraj te "preveč velike" slike.
+      function nastaviZacetnoMerilo() {
+        const velikost = velikostOkvirja();
+        merilo = Math.max(velikost / naravnaSirina, velikost / naravnaVisina);
+        const prikazanaSirina = naravnaSirina * merilo;
+        const prikazanaVisina = naravnaVisina * merilo;
+
+        slikaEl.style.width = prikazanaSirina + "px";
+        slikaEl.style.height = prikazanaVisina + "px";
+
+        // Na sredino
+        odmikX = (velikost - prikazanaSirina) / 2;
+        odmikY = (velikost - prikazanaVisina) / 2;
+        posodobiPolozaj();
+      }
+
+      function omejiOdmik() {
+        const velikost = velikostOkvirja();
+        const prikazanaSirina = naravnaSirina * merilo;
+        const prikazanaVisina = naravnaVisina * merilo;
+
+        // Slika ne sme "odkriti" praznega prostora ob robovih okvirja.
+        const minX = velikost - prikazanaSirina;
+        const minY = velikost - prikazanaVisina;
+        odmikX = Math.min(0, Math.max(minX, odmikX));
+        odmikY = Math.min(0, Math.max(minY, odmikY));
+      }
+
+      function posodobiPolozaj() {
+        omejiOdmik();
+        slikaEl.style.transform = `translate(${odmikX}px, ${odmikY}px)`;
+      }
+
+      vhodSlika.addEventListener("change", (dogodek) => {
+        const datoteka = dogodek.target.files[0];
+        if (!datoteka) return;
+
+        const bralnik = new FileReader();
+        bralnik.onload = () => {
+          slikaEl.src = bralnik.result;
+          slikaEl.onload = () => {
+            naravnaSirina = slikaEl.naturalWidth;
+            naravnaVisina = slikaEl.naturalHeight;
+            okvirPrazno.style.display = "none";
+            slikaEl.style.display = "block";
+            nastaviZacetnoMerilo();
+            gumbPrenesi.disabled = false;
+            gumbPonastavi.disabled = false;
+            stanjeEl.textContent = "Slika naložena – povleci jo znotraj okvirja.";
+          };
+        };
+        bralnik.readAsDataURL(datoteka);
+      });
+
+      // --- Vlečenje z miško ---
+      okvir.addEventListener("mousedown", (dogodek) => {
+        if (!slikaEl.src) return;
+        vlecem = true;
+        okvir.classList.add("vlecem");
+        zacetniX = dogodek.clientX;
+        zacetniY = dogodek.clientY;
+        zacetniOdmikX = odmikX;
+        zacetniOdmikY = odmikY;
+      });
+
+      window.addEventListener("mousemove", (dogodek) => {
+        if (!vlecem) return;
+        odmikX = zacetniOdmikX + (dogodek.clientX - zacetniX);
+        odmikY = zacetniOdmikY + (dogodek.clientY - zacetniY);
+        posodobiPolozaj();
+      });
+
+      window.addEventListener("mouseup", () => {
+        vlecem = false;
+        okvir.classList.remove("vlecem");
+      });
+
+      // --- Vlečenje na dotik (telefon/tablica) ---
+      okvir.addEventListener("touchstart", (dogodek) => {
+        if (!slikaEl.src) return;
+        const dotik = dogodek.touches[0];
+        vlecem = true;
+        zacetniX = dotik.clientX;
+        zacetniY = dotik.clientY;
+        zacetniOdmikX = odmikX;
+        zacetniOdmikY = odmikY;
+      });
+
+      okvir.addEventListener("touchmove", (dogodek) => {
+        if (!vlecem) return;
+        dogodek.preventDefault();
+        const dotik = dogodek.touches[0];
+        odmikX = zacetniOdmikX + (dotik.clientX - zacetniX);
+        odmikY = zacetniOdmikY + (dotik.clientY - zacetniY);
+        posodobiPolozaj();
+      }, { passive: false });
+
+      okvir.addEventListener("touchend", () => {
+        vlecem = false;
+      });
+
+      gumbPonastavi.addEventListener("click", () => {
+        nastaviZacetnoMerilo();
+        stanjeEl.textContent = "Položaj ponastavljen na sredino.";
+      });
+
+      // Izreže natanko tisti del slike, ki je viden v okvirju, in ga ponudi za prenos.
+      gumbPrenesi.addEventListener("click", () => {
+        const izhodnaVelikost = 800; // velikost prenesene slike v pikslih (kvadrat)
+        const platno = document.createElement("canvas");
+        platno.width = izhodnaVelikost;
+        platno.height = izhodnaVelikost;
+        const kontekst = platno.getContext("2d");
+
+        // Pretvori položaj/merilo iz prikaza nazaj v naravne piksle slike.
+        const velikostOkvira = velikostOkvirja();
+        const obreziX = -odmikX / merilo;
+        const obreziY = -odmikY / merilo;
+        const obreziVelikost = velikostOkvira / merilo;
+
+        kontekst.drawImage(
+          slikaEl,
+          obreziX,
+          obreziY,
+          obreziVelikost,
+          obreziVelikost,
+          0,
+          0,
+          izhodnaVelikost,
+          izhodnaVelikost
+        );
+
+        platno.toBlob((blob) => {
+          const povezava = document.createElement("a");
+          povezava.href = URL.createObjectURL(blob);
+          povezava.download = "obrezana-slika.png";
+          povezava.click();
+          stanjeEl.textContent = "Slika prenesena – shrani jo v mapo images.";
+        }, "image/png");
+      });
+
+      window.addEventListener("resize", () => {
+        if (slikaEl.src && naravnaSirina) {
+          nastaviZacetnoMerilo();
+        }
+      });
+    </script>
+  </body>
+</html>

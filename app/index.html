@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uspešni Jezek – Delovni portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3d7676" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body>
+    <header class="app__header">
+      <div class="app__header-vrstica">
+        <div>
+          <div class="app__logo-vrstica">
+            <span class="app__logo-mark" aria-hidden="true"></span>
+            <span class="app__logo-text">Uspešni Jezek</span>
+          </div>
+          <p class="app__podnapis">Vaš delovni portal</p>
+        </div>
+        <button type="button" class="app__odjava" id="gumb-odjava">
+          Odjava
+        </button>
+      </div>
+    </header>
+
+    <main class="app__vsebina">
+      <!-- 5 stebrov storitev. Vsak vodi na svojo podstran s kategorijami. -->
+      <nav class="stebri-seznam" aria-label="Stebri storitev">
+        <a class="steber-kartica" href="zascita-posla.html">
+          <span class="steber-kartica__naslov">Zaščita posla</span>
+          <div class="badge" aria-hidden="true"></div>
+        </a>
+
+        <a class="steber-kartica" href="ugled-optimizacija.html">
+          <span class="steber-kartica__naslov">Ugled in optimizacija</span>
+          <div class="badge" aria-hidden="true"></div>
+        </a>
+
+        <a class="steber-kartica" href="rast-priloznosti.html">
+          <span class="steber-kartica__naslov">Rast in priložnosti</span>
+          <div class="badge" aria-hidden="true"></div>
+        </a>
+
+        <a class="steber-kartica" href="skrb-stranke-delavci.html">
+          <span class="steber-kartica__naslov"
+            >Skrb za stranke ter delavce</span
+          >
+          <div class="badge" aria-hidden="true"></div>
+        </a>
+
+        <a class="steber-kartica" href="skupnost-obrtnikov.html">
+          <span class="steber-kartica__naslov">Skupnost obrtnikov</span>
+          <div class="badge" aria-hidden="true"></div>
+        </a>
+      </nav>
+    </main>
+
+    <script src="index.js"></script>
+  </body>
+</html>

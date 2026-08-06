@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Uspešni Jezek – partner za obrtnike</title>
+    <script>
+      // Supabase po potrditvi e-pošte (registracija v app-u) trenutno vedno
+      // preusmeri na to javno stran (ker e-poštna predloga uporablja Site
+      // URL), namesto na app/index.html. Tu to prestrežemo: če naslov v
+      // #delu URL-ja vsebuje "access_token=", uporabnika takoj preusmerimo
+      // v app in obdržimo isti # del naslova, da Supabase klient na app
+      // strani iz njega lahko prebere sejo.
+      if (window.location.hash.includes("access_token=")) {
+        window.location.replace("app/index.html" + window.location.hash);
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -52,14 +63,11 @@
             Placeholder: pomagamo obrtnikom urediti posel, ugled in stik s
             strankami – da se lahko osredotočite na delo, ne na admin.
           </p>
-          <a class="btn btn--cta" href="#cena">Preveri ponudbo</a>
         </div>
         <div class="hero__ilustracija">
-          <!-- Kasneje: zamenjaj vsebino z <img src="..." alt="..."> -->
-          <div class="placeholder-box placeholder-box--hero" role="img" aria-label="Prostor za hero ilustracijo">
-            <span class="placeholder-box__oznaka">Hero ilustracija</span>
-          </div>
+          <img src="images/hero.png" alt="Hero ilustracija" />
         </div>
+        <a class="btn btn--cta" href="#cena">Preveri ponudbo</a>
       </section>
 
       <!-- ========== 3. NASLOV STORITEV ========== -->
@@ -74,64 +82,84 @@
       <!-- ========== 4. PET KARTIC (STEBRİ) ========== -->
       <section class="stebri" id="storitve" aria-label="Pet stebrov ponudbe">
         <article class="kartica">
-          <div class="kartica__ikona" aria-hidden="true">
-            <!-- Kasneje: zamenjaj vsebino z <img src="..." alt=""> -->
-            <div class="placeholder-box placeholder-box--ikona">
-              <span class="placeholder-box__oznaka">Ikona</span>
-            </div>
+          <div class="kartica__ilustracija">
+            <img src="images/kartica-1.png" alt="Ilustracija: zaščita posla" />
           </div>
-          <h3 class="kartica__naslov">Zaščita posla</h3>
-          <p class="kartica__opis">
-            Placeholder: manj zamujenih plačil in jasnejši tok denarja.
-          </p>
+          <div class="kartica__spodaj">
+            <div class="kartica__naslov-vrstica">
+              <h3 class="kartica__naslov">Zaščita<br /><strong>posla</strong></h3>
+              <div class="kartica__znacka" aria-hidden="true">UJ</div>
+            </div>
+            <p class="kartica__opis">
+              Placeholder: manj zamujenih plačil in jasnejši tok denarja.
+            </p>
+          </div>
         </article>
 
         <article class="kartica">
-          <div class="kartica__ikona" aria-hidden="true">
-            <div class="placeholder-box placeholder-box--ikona">
-              <span class="placeholder-box__oznaka">Ikona</span>
-            </div>
+          <div class="kartica__ilustracija">
+            <img src="images/kartica-2.png" alt="Ilustracija: ugled in optimizacija" />
           </div>
-          <h3 class="kartica__naslov">Ugled in optimizacija</h3>
-          <p class="kartica__opis">
-            Placeholder: da vas stranke najdejo in zaupajo vašemu delu.
-          </p>
+          <div class="kartica__spodaj">
+            <div class="kartica__naslov-vrstica">
+              <h3 class="kartica__naslov">Ugled in<br /><strong>optimizacija</strong></h3>
+              <div class="kartica__znacka" aria-hidden="true">UJ</div>
+            </div>
+            <p class="kartica__opis">
+              Placeholder: da vas stranke najdejo in zaupajo vašemu delu.
+            </p>
+          </div>
         </article>
 
         <article class="kartica">
-          <div class="kartica__ikona" aria-hidden="true">
-            <div class="placeholder-box placeholder-box--ikona">
-              <span class="placeholder-box__oznaka">Ikona</span>
+          <div class="kartica__ilustracija">
+            <div class="placeholder-box placeholder-box--krog" role="img" aria-label="Prostor za ilustracijo">
+              <span class="placeholder-box__oznaka">Ilustracija</span>
             </div>
           </div>
-          <h3 class="kartica__naslov">Rast in priložnosti</h3>
-          <p class="kartica__opis">
-            Placeholder: orodja in vpogledi, ki odprejo nova naročila.
-          </p>
+          <div class="kartica__spodaj">
+            <div class="kartica__naslov-vrstica">
+              <h3 class="kartica__naslov">Rast in<br /><strong>priložnosti</strong></h3>
+              <div class="kartica__znacka" aria-hidden="true">UJ</div>
+            </div>
+            <p class="kartica__opis">
+              Placeholder: orodja in vpogledi, ki odprejo nova naročila.
+            </p>
+          </div>
         </article>
 
         <article class="kartica">
-          <div class="kartica__ikona" aria-hidden="true">
-            <div class="placeholder-box placeholder-box--ikona">
-              <span class="placeholder-box__oznaka">Ikona</span>
+          <div class="kartica__ilustracija">
+            <div class="placeholder-box placeholder-box--krog" role="img" aria-label="Prostor za ilustracijo">
+              <span class="placeholder-box__oznaka">Ilustracija</span>
             </div>
           </div>
-          <h3 class="kartica__naslov">Skrb za stranke in delavce</h3>
-          <p class="kartica__opis">
-            Placeholder: urejeni odnosi – od stranke do ekipe na terenu.
-          </p>
+          <div class="kartica__spodaj">
+            <div class="kartica__naslov-vrstica">
+              <h3 class="kartica__naslov">Skrb za<br /><strong>stranke in delavce</strong></h3>
+              <div class="kartica__znacka" aria-hidden="true">UJ</div>
+            </div>
+            <p class="kartica__opis">
+              Placeholder: urejeni odnosi – od stranke do ekipe na terenu.
+            </p>
+          </div>
         </article>
 
         <article class="kartica">
-          <div class="kartica__ikona" aria-hidden="true">
-            <div class="placeholder-box placeholder-box--ikona">
-              <span class="placeholder-box__oznaka">Ikona</span>
+          <div class="kartica__ilustracija">
+            <div class="placeholder-box placeholder-box--krog" role="img" aria-label="Prostor za ilustracijo">
+              <span class="placeholder-box__oznaka">Ilustracija</span>
             </div>
           </div>
-          <h3 class="kartica__naslov">Skupnost obrtnikov</h3>
-          <p class="kartica__opis">
-            Placeholder: prostor, kjer si obrtniki delijo izkušnje in nasvete.
-          </p>
+          <div class="kartica__spodaj">
+            <div class="kartica__naslov-vrstica">
+              <h3 class="kartica__naslov">Skupnost<br /><strong>obrtnikov</strong></h3>
+              <div class="kartica__znacka" aria-hidden="true">UJ</div>
+            </div>
+            <p class="kartica__opis">
+              Placeholder: prostor, kjer si obrtniki delijo izkušnje in nasvete.
+            </p>
+          </div>
         </article>
       </section>
 

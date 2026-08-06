@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ugled in optimizacija – Uspešni Jezek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3d7676" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body>
+    <header class="app__header">
+      <a class="app__nazaj" href="index.html">← Nazaj</a>
+      <h1 class="app__naslov-podstrani">Ugled in optimizacija</h1>
+    </header>
+
+    <main class="app__vsebina">
+      <div class="kartice-seznam">
+        <button
+          type="button"
+          class="kartica kartica--placeholder"
+          onclick="alert('Kmalu na voljo')"
+        >
+          <h2 class="kartica__naslov">Kategorija 1</h2>
+        </button>
+
+        <button
+          type="button"
+          class="kartica kartica--placeholder"
+          onclick="alert('Kmalu na voljo')"
+        >
+          <h2 class="kartica__naslov">Kategorija 2</h2>
+        </button>
+
+        <button
+          type="button"
+          class="kartica kartica--placeholder"
+          onclick="alert('Kmalu na voljo')"
+        >
+          <h2 class="kartica__naslov">Kategorija 3</h2>
+        </button>
+      </div>
+    </main>
+  </body>
+</html>

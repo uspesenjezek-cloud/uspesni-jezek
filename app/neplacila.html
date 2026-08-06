@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Opozarjanje na neplačila – Uspešni Jezek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3d7676" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body>
+    <header class="app__header">
+      <a class="app__nazaj" href="zascita-posla.html">← Nazaj</a>
+      <h1 class="app__naslov-podstrani">Opozarjanje na neplačila</h1>
+    </header>
+
+    <main class="app__vsebina">
+      <section class="kartica">
+        <h2 class="kartica__naslov">Dodaj novo zadevo</h2>
+        <form class="obrazec" id="obrazec-neplacilo">
+          <div class="obrazec__polje">
+            <label for="ime-stranke">Ime stranke / dolžnika</label>
+            <input type="text" id="ime-stranke" name="ime" required />
+          </div>
+
+          <div class="obrazec__polje">
+            <label for="znesek-dolga">Znesek dolga (EUR)</label>
+            <input
+              type="number"
+              id="znesek-dolga"
+              name="znesek"
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+
+          <div class="obrazec__polje">
+            <label for="opis-dolga">Opis / tip dolga</label>
+            <textarea id="opis-dolga" name="opis" rows="3"></textarea>
+          </div>
+
+          <div class="obrazec__polje">
+            <label for="datum-zapadlosti">Datum zapadlosti</label>
+            <input type="date" id="datum-zapadlosti" name="datum" required />
+          </div>
+
+          <button type="submit" class="btn btn--cta">Dodaj zadevo</button>
+        </form>
+      </section>
+
+      <section class="seznam-zadev" aria-label="Seznam neplačanih zadev">
+        <h2 class="seznam-zadev__naslov">Zadeve</h2>
+        <div id="seznam-zadev-vsebina">
+          <!-- Sem app.js izriše kartice zadev -->
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

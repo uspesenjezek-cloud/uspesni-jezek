@@ -1,0 +1,465 @@
+/* ========== SPREMENLJIVKE (:root) ==========
+   Ista paleta kot na javni strani (../styles.css), a v ločeni datoteki,
+   ker ima app svojo navigacijo in drugačen header.
+   Če spremeniš barve na glavni strani, jih ročno uskladi tudi tukaj.
+   ============================================ */
+:root {
+  --barva-ozadje: #fcf9f2;
+  --barva-povrsina: #ffffff;
+  --barva-besedilo: #1a2e24;
+  --barva-besedilo-blago: #4a5f54;
+  --barva-znamka: #3d7676;
+  --barva-znamka-svetla: #4d9494;
+  --barva-cta: #4d9494;
+  --barva-cta-hover: #3d7676;
+  --barva-obroba: #c5d4cb;
+  --barva-na-temnem: #ffffff;
+  --barva-nevarnost: #c62828;
+  --barva-nevarnost-hover: #a51f1f;
+
+  /* Barve značk za status zadeve - od "novo" do "rešeno" */
+  --status-nov: #94a3b8;
+  --status-opomin-1: #c9971a;
+  --status-opomin-2: #d97b3f;
+  --status-opomin-zadnji: #c62828;
+  --status-odvetnik: #7c4fd6;
+  --status-reseno: #3d7676;
+
+  --pisava-naslov: "Bricolage Grotesque", system-ui, sans-serif;
+  --pisava-telo: "Figtree", system-ui, sans-serif;
+
+  --sirina-max: 480px;
+  --odmik: 1.25rem;
+  --odmik-sekcija: 2rem;
+  --radius-gumb: 999px;
+}
+
+/* ========== OSNOVA ========== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0 auto;
+  max-width: var(--sirina-max);
+  min-height: 100vh;
+  font-family: var(--pisava-telo);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--barva-besedilo);
+  background: var(--barva-ozadje);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--pisava-naslov);
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+  color: var(--barva-besedilo);
+}
+
+p {
+  margin: 0 0 1rem;
+  color: var(--barva-besedilo-blago);
+}
+
+a {
+  color: var(--barva-znamka);
+}
+
+/* ========== HEADER (glava aplikacije) ========== */
+.app__header {
+  padding: 1.5rem var(--odmik) 1.25rem;
+  border-bottom: 1px solid var(--barva-obroba);
+}
+
+.app__logo-vrstica {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.app__logo-mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.4rem;
+  background: var(--barva-znamka);
+}
+
+.app__logo-text {
+  font-family: var(--pisava-naslov);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--barva-besedilo);
+}
+
+.app__podnapis {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--barva-besedilo-blago);
+}
+
+/* Vrstica v headerju, ki poleg logotipa nosi še gumb "Odjava" */
+.app__header-vrstica {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.app__odjava {
+  flex-shrink: 0;
+  padding: 0.4rem 0.85rem;
+  font-family: var(--pisava-telo);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--barva-besedilo-blago);
+  background: transparent;
+  border: 1px solid var(--barva-obroba);
+  border-radius: var(--radius-gumb);
+  cursor: pointer;
+}
+
+.app__odjava:hover {
+  color: var(--barva-nevarnost);
+  border-color: var(--barva-nevarnost);
+}
+
+/* Header na podstraneh (npr. neplacila.html) - ima gumb Nazaj namesto podnapisa */
+.app__nazaj {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--barva-znamka);
+  text-decoration: none;
+}
+
+.app__nazaj:hover {
+  text-decoration: underline;
+}
+
+.app__naslov-podstrani {
+  font-size: 1.3rem;
+}
+
+/* ========== GLAVNA VSEBINA ========== */
+.app__vsebina {
+  padding: var(--odmik-sekcija) var(--odmik);
+  display: flex;
+  flex-direction: column;
+  gap: var(--odmik-sekcija);
+}
+
+/* ========== KARTICA (enak vizualni jezik kot na javni strani) ========== */
+.kartica {
+  width: 100%;
+  padding: 1.25rem;
+  background: var(--barva-povrsina);
+  border: 1px solid var(--barva-obroba);
+  border-radius: 0;
+  box-shadow: 0 12px 24px -12px rgba(26, 46, 36, 0.15);
+}
+
+.kartica__naslov {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.kartica__opis {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+/* Kartica brez funkcije (placeholder kategorija na nivoju 2) - vizualno enaka,
+   samo je <button> namesto <article>, zato mora "podedovati" osnovne stile. */
+.kartica--placeholder {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Ovojnica za več kartic kategorij druga pod drugo na podstraneh nivoja 2 */
+.kartice-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ========== STEBRI (seznam na glavnem zaslonu, nivo 1) ========== */
+.stebri-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.steber-kartica {
+  position: relative;
+  display: block;
+  padding: 1rem 2.5rem 1rem 1.25rem;
+  background: var(--barva-povrsina);
+  border: 1px solid var(--barva-obroba);
+  border-radius: 0;
+  box-shadow: 0 12px 24px -12px rgba(26, 46, 36, 0.15);
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+
+.steber-kartica:hover {
+  transform: translateY(-1px);
+}
+
+.steber-kartica__naslov {
+  font-family: var(--pisava-naslov);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--barva-besedilo);
+}
+
+/* Bubble za štetje opozoril - za zdaj prazen in skrit, uporabimo ga kasneje */
+.steber-kartica .badge {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--barva-nevarnost);
+  color: var(--barva-na-temnem);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* ========== GUMBI (enaki kot na javni strani) ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  font-family: var(--pisava-telo);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-gumb);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn--cta {
+  background: var(--barva-cta);
+  color: var(--barva-na-temnem);
+}
+
+.btn--cta:hover {
+  background: var(--barva-cta-hover);
+  color: var(--barva-na-temnem);
+  transform: translateY(-1px);
+}
+
+/* Manjši, manj izpostavljen gumb (npr. "Izbriši zadevo") */
+.btn--nevarnost-obris {
+  width: auto;
+  background: transparent;
+  border: 1px solid var(--barva-nevarnost);
+  color: var(--barva-nevarnost);
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+}
+
+.btn--nevarnost-obris:hover {
+  background: var(--barva-nevarnost);
+  color: var(--barva-na-temnem);
+}
+
+.btn--majhen {
+  width: auto;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* ========== OBRAZEC (dodajanje nove zadeve) ========== */
+.obrazec {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.obrazec__polje {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.obrazec__polje label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--barva-besedilo);
+}
+
+.obrazec__polje input,
+.obrazec__polje textarea {
+  font-family: var(--pisava-telo);
+  font-size: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--barva-obroba);
+  border-radius: 0;
+  background: var(--barva-povrsina);
+  color: var(--barva-besedilo);
+}
+
+.obrazec__polje textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+  font-family: inherit;
+}
+
+.obrazec__polje input:focus,
+.obrazec__polje textarea:focus {
+  outline: 2px solid var(--barva-znamka);
+  outline-offset: 1px;
+}
+
+.obrazec__napaka {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--barva-nevarnost);
+}
+
+.obrazec__sporocilo {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--barva-znamka);
+}
+
+/* ========== PRIJAVA / REGISTRACIJA ========== */
+.prijava-preklop {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--barva-besedilo-blago);
+}
+
+.prijava-preklop a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.prijava-preklop a:hover {
+  text-decoration: underline;
+}
+
+/* ========== SEZNAM ZADEV ========== */
+.seznam-zadev__naslov {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.seznam-zadev__prazno {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--barva-besedilo-blago);
+  background: var(--barva-povrsina);
+  border: 1px dashed var(--barva-obroba);
+}
+
+.seznam-zadev__seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.zadeva {
+  padding: 1.1rem;
+  background: var(--barva-povrsina);
+  border: 1px solid var(--barva-obroba);
+  border-radius: 0;
+  box-shadow: 0 12px 24px -12px rgba(26, 46, 36, 0.15);
+}
+
+.zadeva__glava {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.zadeva__ime {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.zadeva__znesek {
+  font-weight: 700;
+  font-size: 1.05rem;
+  white-space: nowrap;
+  color: var(--barva-znamka);
+}
+
+.zadeva__opis {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.zadeva__datum {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--barva-besedilo-blago);
+}
+
+/* Barvna značka statusa */
+.zadeva__status {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--barva-na-temnem);
+  background: var(--status-nov);
+}
+
+.zadeva__status--nov {
+  background: var(--status-nov);
+}
+
+.zadeva__status--opomin-1 {
+  background: var(--status-opomin-1);
+}
+
+.zadeva__status--opomin-2 {
+  background: var(--status-opomin-2);
+}
+
+.zadeva__status--opomin-zadnji {
+  background: var(--status-opomin-zadnji);
+}
+
+.zadeva__status--odvetnik {
+  background: var(--status-odvetnik);
+}
+
+.zadeva__status--reseno {
+  background: var(--status-reseno);
+}
+
+.zadeva__akcije {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
