@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Uspešni Jezek – partner za obrtnike</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ========== 1. NAVIGACIJA ========== -->
+    <header class="nav" id="navigacija">
+      <a href="#" class="nav__logo" aria-label="Uspešni Jezek – domov">
+        <span class="nav__logo-mark" aria-hidden="true"></span>
+        <span class="nav__logo-text">Uspešni Jezek</span>
+      </a>
+
+      <button
+        class="nav__toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="nav-menu"
+        aria-label="Odpri meni"
+      >
+        <span class="nav__hamburger" aria-hidden="true"></span>
+      </button>
+
+      <nav class="nav__menu" id="nav-menu" hidden>
+        <ul class="nav__list">
+          <li><a href="#storitve">Storitve</a></li>
+          <li><a href="#cena">Cenik</a></li>
+          <li><a href="#zakaj-mi">O nas</a></li>
+          <li><a href="#footer">Kontakt</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <!-- ========== 2. HERO ========== -->
+      <section class="hero" id="hero" aria-labelledby="hero-naslov">
+        <div class="hero__content">
+          <p class="hero__brand">Uspešni Jezek</p>
+          <h1 class="hero__title" id="hero-naslov">
+            Obrtnik, ki ga stranke najdejo. Posel, ki teče brez skrbi.
+          </h1>
+          <p class="hero__opis">
+            Placeholder: pomagamo obrtnikom urediti posel, ugled in stik s
+            strankami – da se lahko osredotočite na delo, ne na admin.
+          </p>
+          <a class="btn btn--cta" href="#cena">Preveri ponudbo</a>
+        </div>
+        <div class="hero__ilustracija" role="img" aria-label="Prostor za hero ilustracijo">
+          <span class="placeholder-box">Hero ilustracija</span>
+        </div>
+      </section>
+
+      <!-- ========== 3. NASLOV STORITEV ========== -->
+      <section class="sekcija-uvod" id="storitve-uvod" aria-labelledby="storitve-naslov">
+        <h2 class="sekcija-uvod__naslov" id="storitve-naslov">Kaj ponujamo</h2>
+        <p class="sekcija-uvod__opis">
+          Placeholder: nismo prodajalec paketov – smo partner, ki teče z vami
+          skozi vsakdanje izzive obrtniškega posla.
+        </p>
+      </section>
+
+      <!-- ========== 4. PET KARTIC (STEBRİ) ========== -->
+      <section class="stebri" id="storitve" aria-label="Pet stebrov ponudbe">
+        <article class="kartica">
+          <div class="kartica__ikona" aria-hidden="true">
+            <span class="placeholder-box placeholder-box--ikona">Ikona</span>
+          </div>
+          <h3 class="kartica__naslov">Zaščita posla</h3>
+          <p class="kartica__opis">
+            Placeholder: manj zamujenih plačil in jasnejši tok denarja.
+          </p>
+        </article>
+
+        <article class="kartica">
+          <div class="kartica__ikona" aria-hidden="true">
+            <span class="placeholder-box placeholder-box--ikona">Ikona</span>
+          </div>
+          <h3 class="kartica__naslov">Ugled in optimizacija</h3>
+          <p class="kartica__opis">
+            Placeholder: da vas stranke najdejo in zaupajo vašemu delu.
+          </p>
+        </article>
+
+        <article class="kartica">
+          <div class="kartica__ikona" aria-hidden="true">
+            <span class="placeholder-box placeholder-box--ikona">Ikona</span>
+          </div>
+          <h3 class="kartica__naslov">Rast in priložnosti</h3>
+          <p class="kartica__opis">
+            Placeholder: orodja in vpogledi, ki odprejo nova naročila.
+          </p>
+        </article>
+
+        <article class="kartica">
+          <div class="kartica__ikona" aria-hidden="true">
+            <span class="placeholder-box placeholder-box--ikona">Ikona</span>
+          </div>
+          <h3 class="kartica__naslov">Skrb za stranke in delavce</h3>
+          <p class="kartica__opis">
+            Placeholder: urejeni odnosi – od stranke do ekipe na terenu.
+          </p>
+        </article>
+
+        <article class="kartica">
+          <div class="kartica__ikona" aria-hidden="true">
+            <span class="placeholder-box placeholder-box--ikona">Ikona</span>
+          </div>
+          <h3 class="kartica__naslov">Skupnost obrtnikov</h3>
+          <p class="kartica__opis">
+            Placeholder: prostor, kjer si obrtniki delijo izkušnje in nasvete.
+          </p>
+        </article>
+      </section>
+
+      <!-- ========== 5. CENA + CTA ========== -->
+      <section class="cena" id="cena" aria-labelledby="cena-naslov">
+        <h2 class="cena__naslov" id="cena-naslov">Cena paketov že od 199€</h2>
+        <p class="cena__opis">
+          Placeholder: izberi paket, ki ustreza velikosti tvojega posla.
+        </p>
+        <a class="btn btn--cta" href="#paketi">Preveri svoje pakete</a>
+      </section>
+
+      <!-- Placeholder cilj za gumb cenika (kasneje razdelani paketi) -->
+      <section class="paketi" id="paketi" aria-label="Paketi – placeholder">
+        <p class="paketi__opomba">
+          Placeholder: tukaj pridejo razdelani paketi s cenami od–do.
+        </p>
+      </section>
+
+      <!-- ========== 6. ZAKAJ MI ========== -->
+      <section class="zakaj" id="zakaj-mi" aria-labelledby="zakaj-naslov">
+        <h2 class="zakaj__naslov" id="zakaj-naslov">Zakaj mi</h2>
+        <p class="zakaj__opis">
+          Placeholder: nismo agencija, ki prodaja obljube. Smo realen partner –
+          poznamo ritme obrtniškega dela in stojimo ob strani, ko zmanjka časa
+          za administracijo. Skupaj gradimo posel, ki zdrži.
+        </p>
+        <div class="zakaj__grafika" role="img" aria-label="Prostor za manjšo grafiko">
+          <span class="placeholder-box">Manjša grafika</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========== 7. FOOTER ========== -->
+    <footer class="footer" id="footer">
+      <div class="footer__kontakt">
+        <p class="footer__vrstica">
+          <span class="footer__oznaka">E-pošta</span>
+          <a href="mailto:info@primer.si">info@primer.si</a>
+        </p>
+        <p class="footer__vrstica">
+          <span class="footer__oznaka">Telefon</span>
+          <a href="tel:+38640123456">+386 40 123 456</a>
+        </p>
+      </div>
+
+      <div class="footer__lokacije">
+        <p class="footer__oznaka">Lokacije</p>
+        <p>Slovenija · Nemčija</p>
+      </div>
+
+      <div class="footer__social" aria-label="Družbena omrežja">
+        <a href="#" class="footer__social-link" aria-label="Facebook (placeholder)">FB</a>
+        <a href="#" class="footer__social-link" aria-label="Instagram (placeholder)">IG</a>
+        <a href="#" class="footer__social-link" aria-label="LinkedIn (placeholder)">IN</a>
+      </div>
+
+      <p class="footer__copy">© Uspešni Jezek – placeholder</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
