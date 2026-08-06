@@ -1,0 +1,6 @@
+{
+  "uri": "ui://github-mcp-server/get-me",
+  "name": "get_me_ui",
+  "description": "MCP App UI for the get_me tool",
+  "mimeType": "text/html;profile=mcp-app"
+}

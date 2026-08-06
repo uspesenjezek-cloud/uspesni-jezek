@@ -1,0 +1,4 @@
+{
+  "name": "issue_to_fix_workflow",
+  "description": "Create an issue for a problem and then generate a pull request to fix it"
+}

@@ -1,0 +1,6 @@
+{
+  "uri": "ui://github-mcp-server/pr-write",
+  "name": "pr_write_ui",
+  "description": "MCP App UI for creating GitHub pull requests",
+  "mimeType": "text/html;profile=mcp-app"
+}

@@ -1,0 +1,6 @@
+{
+  "uri": "ui://github-mcp-server/pr-edit",
+  "name": "pr_edit_ui",
+  "description": "MCP App UI for editing GitHub pull requests",
+  "mimeType": "text/html;profile=mcp-app"
+}

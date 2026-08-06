@@ -1,0 +1,103 @@
+{
+  "name": "list_pull_requests",
+  "description": "List pull requests in a GitHub repository. If the user specifies an author, then DO NOT use this tool and use the search_pull_requests tool instead.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "base": {
+        "type": "string",
+        "description": "Filter by base branch"
+      },
+      "direction": {
+        "type": "string",
+        "description": "Sort direction",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "number",
+            "title",
+            "body",
+            "state",
+            "draft",
+            "merged",
+            "mergeable_state",
+            "html_url",
+            "user",
+            "labels",
+            "assignees",
+            "requested_reviewers",
+            "merged_by",
+            "head",
+            "base",
+            "additions",
+            "deletions",
+            "changed_files",
+            "commits",
+            "comments",
+            "created_at",
+            "updated_at",
+            "closed_at",
+            "merged_at",
+            "milestone"
+          ]
+        },
+        "description": "Subset of fields to return for each pull request. If omitted, all fields are returned. Use this to reduce response size when you only need specific fields; omitting 'body' in particular drops the largest per-result data."
+      },
+      "head": {
+        "type": "string",
+        "description": "Filter by head user/org and branch"
+      },
+      "owner": {
+        "type": "string",
+        "description": "Repository owner",
+        "x-mcp-header": "owner"
+      },
+      "page": {
+        "type": "number",
+        "description": "Page number for pagination (min 1)",
+        "minimum": 1
+      },
+      "perPage": {
+        "type": "number",
+        "description": "Results per page for pagination (min 1, max 100)",
+        "minimum": 1,
+        "maximum": 100
+      },
+      "repo": {
+        "type": "string",
+        "description": "Repository name",
+        "x-mcp-header": "repo"
+      },
+      "sort": {
+        "type": "string",
+        "description": "Sort by",
+        "enum": [
+          "created",
+          "updated",
+          "popularity",
+          "long-running"
+        ]
+      },
+      "state": {
+        "type": "string",
+        "description": "Filter by state",
+        "enum": [
+          "open",
+          "closed",
+          "all"
+        ]
+      }
+    },
+    "required": [
+      "owner",
+      "repo"
+    ]
+  }
+}

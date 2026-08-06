@@ -1,0 +1,6 @@
+{
+  "uri": "ui://github-mcp-server/issue-write",
+  "name": "issue_write_ui",
+  "description": "MCP App UI for creating and updating GitHub issues",
+  "mimeType": "text/html;profile=mcp-app"
+}

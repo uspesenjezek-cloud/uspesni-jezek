@@ -1,0 +1,334 @@
+{
+  "mode": "server",
+  "server": "cursor-app-control",
+  "serverStatus": "ready",
+  "serverDescription": "Controls the Cursor application itself (workspace root, projects, opening resources, automations, and local task drafts, user rules, chat title). See each tool description for usage.",
+  "tools": [
+    {
+      "tool": "create_project",
+      "description": "Create a new project at the given path. Creates the directory if it does not exist and initializes a git repository. Use this to bootstrap a new project before moving the agent to it with move_agent_to_root.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "description": "Absolute path where the new project should be created (e.g. \"/Users/name/projects/my-new-app\")",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "tool": "cursor_dialog",
+      "description": "Run Cursor-specific actions. Currently supports user rule operations with item=\"rule\", scope=\"user\", and action=\"list\", \"add\", \"update\", or \"remove\". Rule add/update accept content and optional title; update/remove accept id. Use this after asking the user what should be remembered, and list first to avoid duplicates.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "item": {
+                "description": "The Cursor item type to operate on. Only \"rule\" is currently supported.",
+                "type": "string",
+                "const": "rule"
+              },
+              "scope": {
+                "description": "The rule scope to operate on. Only \"user\" is currently supported.",
+                "type": "string",
+                "const": "user"
+              },
+              "action": {
+                "description": "List the personal rules shown in Cursor Settings.",
+                "type": "string",
+                "const": "list"
+              }
+            },
+            "required": [
+              "item",
+              "scope",
+              "action"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "item": {
+                "description": "The Cursor item type to operate on. Only \"rule\" is currently supported.",
+                "type": "string",
+                "const": "rule"
+              },
+              "scope": {
+                "description": "The rule scope to operate on. Only \"user\" is currently supported.",
+                "type": "string",
+                "const": "user"
+              },
+              "action": {
+                "description": "Add a new personal rule.",
+                "type": "string",
+                "const": "add"
+              },
+              "title": {
+                "description": "Optional short title for the personal rule.",
+                "type": "string",
+                "maxLength": 200
+              },
+              "content": {
+                "description": "The personal rule content to store.",
+                "type": "string",
+                "maxLength": 20000
+              }
+            },
+            "required": [
+              "item",
+              "scope",
+              "action",
+              "content"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "item": {
+                "description": "The Cursor item type to operate on. Only \"rule\" is currently supported.",
+                "type": "string",
+                "const": "rule"
+              },
+              "scope": {
+                "description": "The rule scope to operate on. Only \"user\" is currently supported.",
+                "type": "string",
+                "const": "user"
+              },
+              "action": {
+                "description": "Update an existing personal rule.",
+                "type": "string",
+                "const": "update"
+              },
+              "id": {
+                "description": "The personal rule id returned by a previous list or add operation.",
+                "type": "string",
+                "minLength": 1
+              },
+              "title": {
+                "description": "Optional short title for the personal rule.",
+                "type": "string",
+                "maxLength": 200
+              },
+              "content": {
+                "description": "The personal rule content to store.",
+                "type": "string",
+                "maxLength": 20000
+              }
+            },
+            "required": [
+              "item",
+              "scope",
+              "action",
+              "id",
+              "content"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "item": {
+                "description": "The Cursor item type to operate on. Only \"rule\" is currently supported.",
+                "type": "string",
+                "const": "rule"
+              },
+              "scope": {
+                "description": "The rule scope to operate on. Only \"user\" is currently supported.",
+                "type": "string",
+                "const": "user"
+              },
+              "action": {
+                "description": "Remove an existing personal rule.",
+                "type": "string",
+                "const": "remove"
+              },
+              "id": {
+                "description": "The personal rule id returned by a previous list or add operation.",
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "item",
+              "scope",
+              "action",
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "tool": "move_agent_to_cloned_root",
+      "description": "Move the current agent to a root workspace directory that is a verbatim clone of the current workspace (for example produced by `cursorfs-clone`) and is already on the agent's recorded branch. Skips the migration-path `git fetch` and ff-merge that `move_agent_to_root` performs. Use ONLY when you already know the target is a sibling clone of the current workspace on the same branch; otherwise use `move_agent_to_root`.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "rootPath": {
+                "description": "Absolute path to the directory that should become the agent root workspace (e.g. \"/Users/name/projects/my-app\")",
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "rootPath"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "rootPaths": {
+                "description": "Array of absolute paths used to create/switch to a multi-root workspace.",
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "rootPaths"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "tool": "move_agent_to_root",
+      "description": "Move the current agent to a new root workspace directory, updating the visible work surface and the default cwd for new terminals. ALWAYS call this immediately after creating or selecting a worktree that you intend to make changes in, before making any changes. Also use this whenever the conversation should continue from a different workspace root. If the destination was just produced by `cursorfs-clone` (under `~/.cursor/cursorfs-clone/...`), use `move_agent_to_cloned_root` instead — this generic tool runs `git fetch origin <branch>` against the destination and will fail with \"Remote branch not found on origin\" on local-only branches.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "rootPath": {
+                "description": "Absolute path to the directory that should become the agent root workspace (e.g. \"/Users/name/projects/my-app\")",
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "rootPath"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "rootPaths": {
+                "description": "Array of absolute paths used to create/switch to a multi-root workspace.",
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "rootPaths"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    {
+      "tool": "open_automation",
+      "description": "Open the Glass Automations UI, optionally opening an existing automation by automationId or starting a new automation from a templateId and/or structured prefillWorkflowData. Use this instead of opening cursor.com automation URLs or putting raw prefill data in cursor:// URLs. Calls with prefillWorkflowData require tool approval before the data is trusted by the form, and prefill data is sent only to the active Glass view.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "automationId": {
+            "description": "Optional existing automation id to open in the Automations UI.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "view": {
+            "description": "Which existing automation view to open. Defaults to edit. Requires automationId.",
+            "type": "string",
+            "enum": [
+              "edit",
+              "view",
+              "runs"
+            ]
+          },
+          "templateId": {
+            "description": "Optional automation template id to preselect in the new automation form.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "prefillWorkflowData": {
+            "description": "Optional workflow data JSON object used to prefill the new automation form. The payload is sent only to the active Glass view and is not put in a URL or browser storage.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "tool": "open_resource",
+      "description": "Open a resource by URI: files in the Glass editor panel (with line/column from URI fragment when applicable), terminals, output channels, or http(s) URLs through the default workbench opener. File URIs must be in the agent workspace or under the user ~/.cursor directory. Command and product-protocol URI schemes are not supported.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "uri": {
+            "description": "URI to open in Glass or through the default opener (e.g. file:///path/to/file.ts#L10, vscode-terminal:/workspaceId/3, output:channel-id, https://example.com)",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "uri"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "tool": "rename_chat",
+      "description": "Rename the current chat conversation tab title. Only call this when the user explicitly asks to rename the chat; never rename proactively. Uses the active conversation when composerId is not provided by the caller.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "title": {
+            "description": "New title for the current chat conversation.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
