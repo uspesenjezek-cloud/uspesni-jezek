@@ -1,0 +1,469 @@
+/* ========== BARVE IN OSNOVNE NASTAVITVE ========== */
+:root {
+  /* Barve – spremeni tukaj, ko boš imel končno paleto */
+  --barva-ozadje: #f2f6f3;
+  --barva-ozadje-temnejse: #e4ece7;
+  --barva-povrsina: #ffffff;
+  --barva-besedilo: #1a2e24;
+  --barva-besedilo-blago: #4a5f54;
+  --barva-znamka: #1f5c45;
+  --barva-znamka-svetla: #2d7a5c;
+  --barva-cta: #c62828;
+  --barva-cta-hover: #a51f1f;
+  --barva-obroba: #c5d4cb;
+  --barva-placeholder: #d8e4dd;
+
+  --pisava-naslov: "Bricolage Grotesque", system-ui, sans-serif;
+  --pisava-telo: "Figtree", system-ui, sans-serif;
+
+  --sirina-max: 390px;
+  --odmik: 1.25rem;
+  --odmik-sekcija: 2.75rem;
+  --radius: 0.75rem;
+  --radius-gumb: 999px;
+}
+
+/* ========== OSNOVA ========== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0 auto;
+  max-width: var(--sirina-max);
+  min-height: 100vh;
+  font-family: var(--pisava-telo);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--barva-besedilo);
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -10%, #c8e0d4 0%, transparent 55%),
+    linear-gradient(180deg, var(--barva-ozadje) 0%, var(--barva-ozadje-temnejse) 100%);
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--barva-znamka);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--pisava-naslov);
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+  color: var(--barva-besedilo);
+}
+
+p {
+  margin: 0 0 1rem;
+  color: var(--barva-besedilo-blago);
+}
+
+/* ========== GUMBI ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.5rem;
+  font-family: var(--pisava-telo);
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-gumb);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn--cta {
+  background: var(--barva-cta);
+  color: #fff;
+}
+
+.btn--cta:hover {
+  background: var(--barva-cta-hover);
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+/* ========== PLACEHOLDER POLJA ZA SLIKE ========== */
+.placeholder-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 180px;
+  background: var(--barva-placeholder);
+  border: 2px dashed var(--barva-obroba);
+  border-radius: var(--radius);
+  color: var(--barva-besedilo-blago);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.placeholder-box--ikona {
+  min-height: 56px;
+  width: 56px;
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+}
+
+/* ========== 1. NAVIGACIJA ========== */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.85rem var(--odmik);
+  background: color-mix(in srgb, var(--barva-ozadje) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--barva-obroba);
+}
+
+.nav__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--barva-znamka);
+  text-decoration: none;
+  font-family: var(--pisava-naslov);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.nav__logo:hover {
+  text-decoration: none;
+}
+
+.nav__logo-mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.4rem;
+  background: var(--barva-znamka);
+  /* Kasneje zamenjaj z logo sliko */
+}
+
+.nav__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav__hamburger,
+.nav__hamburger::before,
+.nav__hamburger::after {
+  display: block;
+  width: 1.35rem;
+  height: 2px;
+  background: var(--barva-besedilo);
+  border-radius: 1px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav__hamburger {
+  position: relative;
+}
+
+.nav__hamburger::before,
+.nav__hamburger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.nav__hamburger::before {
+  top: -6px;
+}
+
+.nav__hamburger::after {
+  top: 6px;
+}
+
+.nav.is-open .nav__hamburger {
+  background: transparent;
+}
+
+.nav.is-open .nav__hamburger::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.nav.is-open .nav__hamburger::after {
+  top: 0;
+  transform: rotate(-45deg);
+}
+
+.nav__menu {
+  flex-basis: 100%;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.nav__menu[hidden] {
+  display: none;
+}
+
+.nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.nav__list a {
+  display: block;
+  padding: 0.7rem 0.25rem;
+  font-weight: 500;
+  color: var(--barva-besedilo);
+  border-bottom: 1px solid var(--barva-obroba);
+  text-decoration: none;
+}
+
+.nav__list a:hover {
+  color: var(--barva-znamka);
+}
+
+/* ========== 2. HERO ========== */
+.hero {
+  padding: 2rem var(--odmik) var(--odmik-sekcija);
+}
+
+.hero__brand {
+  margin: 0 0 0.5rem;
+  font-family: var(--pisava-naslov);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--barva-znamka);
+}
+
+.hero__title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+}
+
+.hero__opis {
+  margin-bottom: 1.35rem;
+}
+
+.hero .btn {
+  margin-bottom: 1.5rem;
+}
+
+.hero__ilustracija .placeholder-box {
+  min-height: 200px;
+}
+
+/* ========== 3. NASLOV STORITEV ========== */
+.sekcija-uvod {
+  padding: 0 var(--odmik) 1.5rem;
+  text-align: center;
+}
+
+.sekcija-uvod__naslov {
+  font-size: 1.4rem;
+}
+
+.sekcija-uvod__opis {
+  margin-bottom: 0;
+}
+
+/* ========== 4. KARTICE / STEBRI ========== */
+.stebri {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 0 var(--odmik) var(--odmik-sekcija);
+}
+
+.kartica {
+  padding: 1.25rem;
+  background: var(--barva-povrsina);
+  border: 1px solid var(--barva-obroba);
+  border-radius: var(--radius);
+}
+
+.kartica__ikona {
+  margin-bottom: 0.85rem;
+}
+
+.kartica__naslov {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.kartica__opis {
+  margin-bottom: 0;
+  font-size: 0.95rem;
+}
+
+/* ========== 5. CENA + CTA ========== */
+.cena {
+  margin: 0 var(--odmik) 1rem;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  background: var(--barva-znamka);
+  border-radius: var(--radius);
+  color: #fff;
+}
+
+.cena__naslov {
+  color: #fff;
+  font-size: 1.35rem;
+}
+
+.cena__opis {
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 1.25rem;
+}
+
+.cena .btn--cta {
+  background: #fff;
+  color: var(--barva-cta);
+}
+
+.cena .btn--cta:hover {
+  background: #f5f5f5;
+  color: var(--barva-cta-hover);
+}
+
+.paketi {
+  padding: 0.5rem var(--odmik) var(--odmik-sekcija);
+}
+
+.paketi__opomba {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--barva-povrsina);
+  border: 1px dashed var(--barva-obroba);
+  border-radius: var(--radius);
+}
+
+/* ========== 6. ZAKAJ MI ========== */
+.zakaj {
+  padding: 0 var(--odmik) var(--odmik-sekcija);
+}
+
+.zakaj__naslov {
+  font-size: 1.4rem;
+}
+
+.zakaj__opis {
+  margin-bottom: 1.25rem;
+}
+
+.zakaj__grafika .placeholder-box {
+  min-height: 140px;
+}
+
+/* ========== 7. FOOTER ========== */
+.footer {
+  padding: 2rem var(--odmik) 2.5rem;
+  background: var(--barva-besedilo);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.footer a {
+  color: #fff;
+}
+
+.footer__oznaka {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.footer__kontakt,
+.footer__lokacije {
+  margin-bottom: 1.5rem;
+}
+
+.footer__vrstica {
+  margin-bottom: 0.85rem;
+}
+
+.footer__vrstica a {
+  font-weight: 500;
+}
+
+.footer__social {
+  display: flex;
+  gap: 0.65rem;
+  margin-bottom: 1.75rem;
+}
+
+.footer__social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.footer__social-link:hover {
+  background: rgba(255, 255, 255, 0.22);
+  text-decoration: none;
+}
+
+.footer__copy {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ========== ŠIRŠI ZASLONI (kasneje, mobile ostane prioriteta) ========== */
+@media (min-width: 640px) {
+  body {
+    max-width: 480px;
+  }
+
+  .hero__title {
+    font-size: 1.85rem;
+  }
+
+  .stebri {
+    gap: 1.15rem;
+  }
+}
