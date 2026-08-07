@@ -2294,7 +2294,7 @@ body.stran--samo-seznam #obrazec {
   outline-offset: 2px;
 }
 
-/* Skupni potrditveni / opozorilni modal (glej potrdiVprasanje v app.js) */
+/* Potrditev brisanja osnutka */
 .osnutek-modal[hidden] {
   display: none;
 }
@@ -2380,22 +2380,10 @@ body.stran--samo-seznam #obrazec {
   line-height: 1.45;
 }
 
-.osnutek-modal__opis[hidden] {
-  display: none;
-}
-
 .osnutek-modal__akcije {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-}
-
-.osnutek-modal__akcije--en-gumb {
-  grid-template-columns: 1fr;
-}
-
-.osnutek-modal__preklici[hidden] {
-  display: none;
 }
 
 .osnutek-modal__preklici,

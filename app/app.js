@@ -111,146 +111,39 @@ function posodobiDebtStepMarker(el, stanje, stevilka) {
   }
 }
 
-/* ---------- Skupni potrditveni / opozorilni modal (namesto confirm/alert) ---------- */
-
-const SVG_POTRDI_IKONA_TURKIZ =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>';
-const SVG_POTRDI_IKONA_NEVARNO =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
-
-let ujPotrdiZakljuci = null;
-
-function zagotoviPotrditveniModal() {
-  let modal = document.getElementById("uj-potrdi-modal");
-  if (modal) return modal;
-
-  modal = document.createElement("div");
-  modal.id = "uj-potrdi-modal";
-  modal.className = "osnutek-modal";
-  modal.hidden = true;
-  modal.innerHTML =
-    '<button type="button" class="osnutek-modal__backdrop" id="uj-potrdi-backdrop" aria-label="Zapri"></button>' +
-    '<div class="osnutek-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="uj-potrdi-naslov" aria-describedby="uj-potrdi-opis">' +
-    '<div class="osnutek-modal__vrh">' +
-    '<span class="osnutek-modal__ikona" id="uj-potrdi-ikona" aria-hidden="true"></span>' +
-    '<button type="button" class="osnutek-modal__zapri" id="uj-potrdi-zapri" aria-label="Zapri">' +
-    '<span aria-hidden="true">×</span></button></div>' +
-    '<h2 class="osnutek-modal__naslov" id="uj-potrdi-naslov"></h2>' +
-    '<p class="osnutek-modal__opis" id="uj-potrdi-opis"></p>' +
-    '<div class="osnutek-modal__akcije" id="uj-potrdi-akcije">' +
-    '<button type="button" class="osnutek-modal__preklici" id="uj-potrdi-preklici">Prekliči</button>' +
-    '<button type="button" class="osnutek-modal__potrdi" id="uj-potrdi-potrdi">Potrdi</button>' +
-    "</div></div>";
-  document.body.appendChild(modal);
-  return modal;
-}
-
-/**
- * Skupno potrditveno / opozorilno okno – vedno to, nikoli window.confirm/alert.
- * Primer: await potrdiVprasanje({ naslov, opis, potrdiBesedilo, stil: "primary"|"nevarno" })
- * Za samo opozorilo: samoEnGumb: true (en gumb »V redu«).
- * @returns {Promise<boolean>} true = potrjeno / V redu; false = preklic
- */
-function potrdiVprasanje(opcije) {
-  const nastavitve = opcije || {};
-  const naslov = nastavitve.naslov || "Potrditev";
-  const opis = nastavitve.opis || "";
-  const potrdiBesedilo = nastavitve.potrdiBesedilo || "Potrdi";
-  const prekliciBesedilo = nastavitve.prekliciBesedilo || "Prekliči";
-  const stil = nastavitve.stil === "nevarno" ? "nevarno" : "primary";
-  const samoEnGumb = Boolean(nastavitve.samoEnGumb);
-
-  const modal = zagotoviPotrditveniModal();
-  const naslovEl = document.getElementById("uj-potrdi-naslov");
-  const opisEl = document.getElementById("uj-potrdi-opis");
-  const ikonaEl = document.getElementById("uj-potrdi-ikona");
-  const akcijeEl = document.getElementById("uj-potrdi-akcije");
-  const preklici = document.getElementById("uj-potrdi-preklici");
-  const potrdi = document.getElementById("uj-potrdi-potrdi");
-  const zapri = document.getElementById("uj-potrdi-zapri");
-  const backdrop = document.getElementById("uj-potrdi-backdrop");
-
-  if (!naslovEl || !opisEl || !potrdi) return Promise.resolve(false);
-
-  if (typeof ujPotrdiZakljuci === "function") {
-    ujPotrdiZakljuci(false);
-  }
-
-  naslovEl.textContent = naslov;
-  opisEl.textContent = opis;
-  opisEl.hidden = !opis;
-  potrdi.textContent = potrdiBesedilo;
-  if (preklici) {
-    preklici.textContent = prekliciBesedilo;
-    preklici.hidden = samoEnGumb;
-  }
-  if (akcijeEl) {
-    akcijeEl.classList.toggle("osnutek-modal__akcije--en-gumb", samoEnGumb);
-  }
-  if (ikonaEl) {
-    ikonaEl.className =
-      "osnutek-modal__ikona" + (stil === "nevarno" ? "" : " osnutek-modal__ikona--turkiz");
-    ikonaEl.innerHTML = stil === "nevarno" ? SVG_POTRDI_IKONA_NEVARNO : SVG_POTRDI_IKONA_TURKIZ;
-  }
-  potrdi.className =
-    "osnutek-modal__potrdi" + (stil === "primary" ? " osnutek-modal__potrdi--primary" : "");
-
-  return new Promise((resolve) => {
-    function zakljuci(odgovor) {
-      if (ujPotrdiZakljuci !== zakljuci) return;
-      modal.hidden = true;
-      document.removeEventListener("keydown", obEscape);
-      if (preklici) preklici.removeEventListener("click", obPreklici);
-      potrdi.removeEventListener("click", obPotrdi);
-      if (zapri) zapri.removeEventListener("click", obPreklici);
-      if (backdrop) backdrop.removeEventListener("click", obPreklici);
-      ujPotrdiZakljuci = null;
-      resolve(odgovor);
-    }
-
-    function obPreklici() {
-      zakljuci(false);
-    }
-
-    function obPotrdi() {
-      zakljuci(true);
-    }
-
-    function obEscape(dogodek) {
-      if (dogodek.key === "Escape" && !modal.hidden) {
-        dogodek.preventDefault();
-        zakljuci(samoEnGumb ? true : false);
-      }
-    }
-
-    ujPotrdiZakljuci = zakljuci;
-    if (preklici) preklici.addEventListener("click", obPreklici);
-    potrdi.addEventListener("click", obPotrdi);
-    if (zapri) zapri.addEventListener("click", obPreklici);
-    if (backdrop) backdrop.addEventListener("click", obPreklici);
-    document.addEventListener("keydown", obEscape);
-
-    modal.hidden = false;
-    potrdi.focus();
-  });
-}
-
-/* Gumb »Izbriši osnutek« – uporabi skupni potrditveni modal. */
+/* Modal »Izbriši osnutek« (koraka 2 in 3). */
 function inicializirajIzbrisOsnutka() {
   const gumb = document.getElementById("gumb-izbrisi-osnutek");
-  if (!gumb) return;
+  const modal = document.getElementById("osnutek-modal");
+  if (!gumb || !modal) return;
 
-  gumb.addEventListener("click", async () => {
-    const potrjeno = await potrdiVprasanje({
-      naslov: "Izbrišem ta osnutek?",
-      opis: "Vneseni podatki in sporočilo bodo odstranjeni. Tega dejanja ni mogoče razveljaviti.",
-      potrdiBesedilo: "Izbriši osnutek",
-      stil: "nevarno",
-    });
-    if (!potrjeno) return;
+  const backdrop = document.getElementById("osnutek-modal-backdrop");
+  const zapri = document.getElementById("osnutek-modal-zapri");
+  const preklici = document.getElementById("osnutek-modal-preklici");
+  const potrdi = document.getElementById("osnutek-modal-potrdi");
+
+  function odpriModal() {
+    modal.hidden = false;
+    if (preklici) preklici.focus();
+  }
+
+  function zapriModal() {
+    modal.hidden = true;
+  }
+
+  function izbrisiOsnutek() {
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
     window.location.href = "neplacila.html#seznam";
+  }
+
+  gumb.addEventListener("click", odpriModal);
+  if (backdrop) backdrop.addEventListener("click", zapriModal);
+  if (zapri) zapri.addEventListener("click", zapriModal);
+  if (preklici) preklici.addEventListener("click", zapriModal);
+  if (potrdi) potrdi.addEventListener("click", izbrisiOsnutek);
+  document.addEventListener("keydown", (dogodek) => {
+    if (dogodek.key === "Escape" && !modal.hidden) zapriModal();
   });
 }
 
@@ -934,14 +827,11 @@ function inicializirajNeplacila() {
   }
 
   if (aiZajemGumbSlikaj && aiZajemFotoaparat) {
-    aiZajemGumbSlikaj.addEventListener("click", async () => {
+    aiZajemGumbSlikaj.addEventListener("click", () => {
       if (aiZajemUspeh && imaZeIzpolnjenaPoljaObrazca()) {
-        const potrjeno = await potrdiVprasanje({
-          naslov: "Zamenjam podatke?",
-          opis: "Trenutni vnos bo nadomeščen z novim branjem računa.",
-          potrdiBesedilo: "Zamenjaj",
-          stil: "primary",
-        });
+        const potrjeno = window.confirm(
+          "Želite zamenjati trenutne podatke z novim branjem računa?"
+        );
         if (!potrjeno) return;
       }
       aiZajemFotoaparat.click();
@@ -1916,6 +1806,68 @@ function inicializirajSporociloDolzniku() {
     return Number.isInteger(s) && s >= 1 && s <= 9 ? s : null;
   }
 
+  let stevilkaModalZakljuci = null;
+
+  function vprasanjeZamenjaveStevilke(nova, imePredloga) {
+    const modal = document.getElementById("stevilka-modal");
+    const naslovEl = document.getElementById("stevilka-modal-naslov");
+    const opisEl = document.getElementById("stevilka-modal-opis");
+    const preklici = document.getElementById("stevilka-modal-preklici");
+    const potrdi = document.getElementById("stevilka-modal-potrdi");
+    const zapri = document.getElementById("stevilka-modal-zapri");
+    const backdrop = document.getElementById("stevilka-modal-backdrop");
+
+    if (!modal || !naslovEl || !opisEl) return Promise.resolve(false);
+
+    // Če je modal že odprt, prejšnje vprašanje prekliči.
+    if (typeof stevilkaModalZakljuci === "function") {
+      stevilkaModalZakljuci(false);
+    }
+
+    naslovEl.textContent = "Številka " + nova + " je zasedena";
+    opisEl.textContent = "z »" + imePredloga + "«";
+
+    return new Promise((resolve) => {
+      function zakljuci(odgovor) {
+        if (stevilkaModalZakljuci !== zakljuci) return;
+        modal.hidden = true;
+        document.removeEventListener("keydown", obEscape);
+        if (preklici) preklici.removeEventListener("click", obPreklici);
+        if (potrdi) potrdi.removeEventListener("click", obPotrdi);
+        if (zapri) zapri.removeEventListener("click", obPreklici);
+        if (backdrop) backdrop.removeEventListener("click", obPreklici);
+        stevilkaModalZakljuci = null;
+        resolve(odgovor);
+      }
+
+      function obPreklici() {
+        zakljuci(false);
+      }
+
+      function obPotrdi() {
+        zakljuci(true);
+      }
+
+      function obEscape(dogodek) {
+        if (dogodek.key === "Escape" && !modal.hidden) {
+          dogodek.preventDefault();
+          zakljuci(false);
+        }
+      }
+
+      stevilkaModalZakljuci = zakljuci;
+      if (preklici) preklici.addEventListener("click", obPreklici);
+      if (potrdi) potrdi.addEventListener("click", obPotrdi);
+      if (zapri) zapri.addEventListener("click", obPreklici);
+      if (backdrop) backdrop.addEventListener("click", obPreklici);
+      document.addEventListener("keydown", obEscape);
+
+      modal.hidden = false;
+      if (potrdi) potrdi.focus();
+      else if (preklici) preklici.focus();
+    });
+  }
+
   async function nastaviStevilkoPredloga(predlogId, novaStevilka) {
     const id = String(predlogId);
     const nova = Math.max(1, Math.min(9, Number(novaStevilka) || 1));
@@ -1935,12 +1887,7 @@ function inicializirajSporociloDolzniku() {
 
     if (konflikt) {
       zapriVseStevilkeIzbire();
-      const potrjeno = await potrdiVprasanje({
-        naslov: "Številka " + nova + " je zasedena",
-        opis: "z »" + (konflikt.naslov || "predloga") + "«",
-        potrdiBesedilo: "Zamenjaj",
-        stil: "primary",
-      });
+      const potrjeno = await vprasanjeZamenjaveStevilke(nova, konflikt.naslov || "predloga");
       if (!potrjeno) return;
       nastavitvePredlogov.stevilke[id] = nova;
       if (trenutna != null) {
@@ -2190,18 +2137,15 @@ function inicializirajSporociloDolzniku() {
     zapriUrediModal();
   }
 
-  async function izbrisiOdprtPredlog() {
+  function izbrisiOdprtPredlog() {
     if (!odprtPredlog) return;
     if (odprtPredlog.jeNov) {
       zapriUrediModal();
       return;
     }
-    const potrjeno = await potrdiVprasanje({
-      naslov: "Odstranim predlogo?",
-      opis: "»" + odprtPredlog.naslov + "«",
-      potrdiBesedilo: "Odstrani",
-      stil: "nevarno",
-    });
+    const potrjeno = window.confirm(
+      "Ali res želite odstraniti predlogo »" + odprtPredlog.naslov + "«?"
+    );
     if (!potrjeno) return;
 
     const id = String(odprtPredlog.id);

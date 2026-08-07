@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-potrdi-modal" />
+    <link rel="stylesheet" href="styles.css?v=20260807-stevilka-modal" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -255,6 +255,81 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-potrdi-modal"></script>
+    <div class="osnutek-modal" id="osnutek-modal" hidden>
+      <button
+        type="button"
+        class="osnutek-modal__backdrop"
+        id="osnutek-modal-backdrop"
+        aria-label="Zapri"
+      ></button>
+      <div
+        class="osnutek-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="osnutek-modal-naslov"
+      >
+        <div class="osnutek-modal__vrh">
+          <span class="osnutek-modal__ikona" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+          </span>
+          <button type="button" class="osnutek-modal__zapri" id="osnutek-modal-zapri" aria-label="Zapri">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <h2 class="osnutek-modal__naslov" id="osnutek-modal-naslov">Izbrišem ta osnutek?</h2>
+        <p class="osnutek-modal__opis">
+          Vneseni podatki in sporočilo bodo odstranjeni. Tega dejanja ni mogoče razveljaviti.
+        </p>
+        <div class="osnutek-modal__akcije">
+          <button type="button" class="osnutek-modal__preklici" id="osnutek-modal-preklici">
+            Prekliči
+          </button>
+          <button type="button" class="osnutek-modal__potrdi" id="osnutek-modal-potrdi">
+            Izbriši osnutek
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="osnutek-modal" id="stevilka-modal" hidden>
+      <button
+        type="button"
+        class="osnutek-modal__backdrop"
+        id="stevilka-modal-backdrop"
+        aria-label="Zapri"
+      ></button>
+      <div
+        class="osnutek-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stevilka-modal-naslov"
+        aria-describedby="stevilka-modal-opis"
+      >
+        <div class="osnutek-modal__vrh">
+          <span class="osnutek-modal__ikona osnutek-modal__ikona--turkiz" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+          </span>
+          <button type="button" class="osnutek-modal__zapri" id="stevilka-modal-zapri" aria-label="Zapri">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <h2 class="osnutek-modal__naslov" id="stevilka-modal-naslov">Številka je zasedena</h2>
+        <p class="osnutek-modal__opis" id="stevilka-modal-opis"></p>
+        <div class="osnutek-modal__akcije">
+          <button type="button" class="osnutek-modal__preklici" id="stevilka-modal-preklici">
+            Prekliči
+          </button>
+          <button
+            type="button"
+            class="osnutek-modal__potrdi osnutek-modal__potrdi--primary"
+            id="stevilka-modal-potrdi"
+          >
+            Zamenjaj
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js?v=20260807-stevilka-modal"></script>
   </body>
 </html>
