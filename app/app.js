@@ -1619,8 +1619,47 @@ function inicializirajSporociloDolzniku() {
     modalPush.textContent = jePush ? "Push – vklopljen" : "Push – privzeta predloga";
   }
 
+  const modalDialog = modal ? modal.querySelector(".korak2-modal__dialog") : null;
+
+  function posodobiPozicijoUrediModala() {
+    if (!modal || modal.hidden || !modalDialog) return;
+    const vv = window.visualViewport;
+    if (vv) {
+      // Poravnaj dialog na vrh VIDNEGA dela (nad tipkovnico).
+      modalDialog.style.top = Math.round(vv.offsetTop + 8) + "px";
+      modalDialog.style.maxHeight = Math.max(160, Math.round(vv.height - 16)) + "px";
+    } else {
+      modalDialog.style.top = "12px";
+      modalDialog.style.maxHeight = "calc(100dvh - 24px)";
+    }
+    modalDialog.scrollTop = 0;
+  }
+
+  function pritrdiUrediModalNaVrh() {
+    posodobiPozicijoUrediModala();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", posodobiPozicijoUrediModala);
+      window.visualViewport.addEventListener("scroll", posodobiPozicijoUrediModala);
+    }
+    window.addEventListener("resize", posodobiPozicijoUrediModala);
+  }
+
+  function odstraniPritrditevUrediModala() {
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener("resize", posodobiPozicijoUrediModala);
+      window.visualViewport.removeEventListener("scroll", posodobiPozicijoUrediModala);
+    }
+    window.removeEventListener("resize", posodobiPozicijoUrediModala);
+    if (modalDialog) {
+      modalDialog.style.top = "";
+      modalDialog.style.maxHeight = "";
+      modalDialog.scrollTop = 0;
+    }
+  }
+
   function zapriUrediModal() {
     if (!modal) return;
+    odstraniPritrditevUrediModala();
     modal.hidden = true;
     odprtPredlog = null;
     if (modalNaslovVnos) modalNaslovVnos.value = "";
@@ -1641,8 +1680,25 @@ function inicializirajSporociloDolzniku() {
     }
     posodobiModalPushGumb();
     modal.hidden = false;
+    pritrdiUrediModalNaVrh();
+    // Fokus → tipkovnica; po kratkem zamiku ponovno poravnaj (iOS).
     if (modalNaslovVnos) modalNaslovVnos.focus();
     else modalUrejevalnik.focus();
+    requestAnimationFrame(posodobiPozicijoUrediModala);
+    setTimeout(posodobiPozicijoUrediModala, 280);
+  }
+
+  if (modalNaslovVnos) {
+    modalNaslovVnos.addEventListener("focus", () => {
+      setTimeout(posodobiPozicijoUrediModala, 50);
+      setTimeout(posodobiPozicijoUrediModala, 300);
+    });
+  }
+  if (modalUrejevalnik) {
+    modalUrejevalnik.addEventListener("focus", () => {
+      setTimeout(posodobiPozicijoUrediModala, 50);
+      setTimeout(posodobiPozicijoUrediModala, 300);
+    });
   }
 
   function shraniPredlogIzModala() {
