@@ -441,6 +441,7 @@ function inicializirajNeplacila() {
      ko uporabnik polje ročno spremeni, da ne zavaja glede izvora vrednosti. */
   function oznaciPoljeKotAiIzpolnjeno(polje) {
     if (!polje) return;
+    polje.classList.remove("obrazec__polje--ai-manjka");
     polje.classList.add("obrazec__polje--ai-izpolnjeno");
     const odstraniOznako = () => {
       polje.classList.remove("obrazec__polje--ai-izpolnjeno");
@@ -449,59 +450,90 @@ function inicializirajNeplacila() {
     polje.addEventListener("input", odstraniOznako);
   }
 
-  /* Prepiše SAMO polja, ki jih je AI dejansko prepoznal (ne piše čez polje,
-     če je AI vrnil null - glej zahtevo "če ne prepozna, pusti prazno" v
-     api/citaj-racun.js). Uporabnik lahko vsako vrednost pred oddajo obrazca
-     še vedno ročno popravi. */
+  /* Rumeno: AI podatka ni našel - obrtnik naj ga vnese ročno.
+     Oznaka izgine ob prvem ročnem vnosu (isto kot zelena). */
+  function oznaciPoljeKotAiManjka(polje) {
+    if (!polje) return;
+    polje.classList.remove("obrazec__polje--ai-izpolnjeno");
+    polje.classList.add("obrazec__polje--ai-manjka");
+    const odstraniOznako = () => {
+      polje.classList.remove("obrazec__polje--ai-manjka");
+      polje.removeEventListener("input", odstraniOznako);
+    };
+    polje.addEventListener("input", odstraniOznako);
+  }
+
+  /* Prepiše polja, ki jih je AI prepoznal (zeleno). Manjkajoča pomembna
+     polja označi rumeno (glej oznaciPoljeKotAiManjka). Telefon in e-pošta
+     sta izjema: zadošča eden od njiju - rumeno sta samo, če manjkata OBA. */
   function izpolniPoljaIzAI(podatki) {
     if (!podatki) return;
 
+    const naziv = document.getElementById("ime-stranke");
     if (podatki.naziv) {
-      const polje = document.getElementById("ime-stranke");
-      polje.value = podatki.naziv;
-      oznaciPoljeKotAiIzpolnjeno(polje);
+      naziv.value = podatki.naziv;
+      oznaciPoljeKotAiIzpolnjeno(naziv);
+    } else {
+      oznaciPoljeKotAiManjka(naziv);
     }
 
+    const znesek = document.getElementById("znesek-dolga");
     if (podatki.znesek != null && Number.isFinite(Number(podatki.znesek))) {
-      const polje = document.getElementById("znesek-dolga");
-      polje.value = Number(podatki.znesek).toFixed(2);
-      oznaciPoljeKotAiIzpolnjeno(polje);
+      znesek.value = Number(podatki.znesek).toFixed(2);
+      oznaciPoljeKotAiIzpolnjeno(znesek);
+    } else {
+      oznaciPoljeKotAiManjka(znesek);
     }
 
+    const datumIzdaje = document.getElementById("datum-izdaje");
     if (podatki.datum && /^\d{4}-\d{2}-\d{2}$/.test(podatki.datum)) {
-      const polje = document.getElementById("datum-izdaje");
-      polje.value = podatki.datum;
-      oznaciPoljeKotAiIzpolnjeno(polje);
+      datumIzdaje.value = podatki.datum;
+      oznaciPoljeKotAiIzpolnjeno(datumIzdaje);
+    } else {
+      oznaciPoljeKotAiManjka(datumIzdaje);
     }
 
+    const rokPlacila = document.getElementById("datum-zapadlosti");
     if (podatki.rokPlacila && /^\d{4}-\d{2}-\d{2}$/.test(podatki.rokPlacila)) {
-      const polje = document.getElementById("datum-zapadlosti");
-      polje.value = podatki.rokPlacila;
-      oznaciPoljeKotAiIzpolnjeno(polje);
+      rokPlacila.value = podatki.rokPlacila;
+      oznaciPoljeKotAiIzpolnjeno(rokPlacila);
+    } else {
+      oznaciPoljeKotAiManjka(rokPlacila);
     }
 
+    const stevilkaRacuna = document.getElementById("stevilka-racuna");
     if (podatki.stevilkaRacuna) {
-      const polje = document.getElementById("stevilka-racuna");
-      polje.value = podatki.stevilkaRacuna;
-      oznaciPoljeKotAiIzpolnjeno(polje);
+      stevilkaRacuna.value = podatki.stevilkaRacuna;
+      oznaciPoljeKotAiIzpolnjeno(stevilkaRacuna);
+    } else {
+      oznaciPoljeKotAiManjka(stevilkaRacuna);
     }
 
+    const opis = document.getElementById("opis-dolga");
     if (podatki.opis) {
-      const polje = document.getElementById("opis-dolga");
-      polje.value = podatki.opis;
-      oznaciPoljeKotAiIzpolnjeno(polje);
+      opis.value = podatki.opis;
+      oznaciPoljeKotAiIzpolnjeno(opis);
+    } else {
+      oznaciPoljeKotAiManjka(opis);
     }
 
-    if (podatki.telefon) {
-      const polje = document.getElementById("telefon-dolznika");
-      polje.value = podatki.telefon;
-      oznaciPoljeKotAiIzpolnjeno(polje);
-    }
+    const telefon = document.getElementById("telefon-dolznika");
+    const email = document.getElementById("email-dolznika");
+    const imaTelefon = Boolean(podatki.telefon);
+    const imaEmail = Boolean(podatki.email);
 
-    if (podatki.email) {
-      const polje = document.getElementById("email-dolznika");
-      polje.value = podatki.email;
-      oznaciPoljeKotAiIzpolnjeno(polje);
+    if (imaTelefon) {
+      telefon.value = podatki.telefon;
+      oznaciPoljeKotAiIzpolnjeno(telefon);
+    }
+    if (imaEmail) {
+      email.value = podatki.email;
+      oznaciPoljeKotAiIzpolnjeno(email);
+    }
+    // Zadošča eden od kontaktov - rumeno samo, če manjkata oba.
+    if (!imaTelefon && !imaEmail) {
+      oznaciPoljeKotAiManjka(telefon);
+      oznaciPoljeKotAiManjka(email);
     }
   }
 
@@ -923,13 +955,18 @@ function inicializirajNeplacila() {
     const semaforRazdelek = document.getElementById("seznam");
     const seznamRazdelek = document.getElementById("seznam-vsebnik");
 
+    document.body.classList.remove("stran--samo-obrazec", "stran--samo-seznam");
+
     if (idRazdelka === "seznam") {
       // Samo semafor + seznam zadev (gumb "Preveri odprte zadeve").
+      // Obrazec "Dodaj nov račun" mora biti popolnoma skrit.
+      document.body.classList.add("stran--samo-seznam");
       if (obrazecRazdelek) obrazecRazdelek.hidden = true;
       if (semaforRazdelek) semaforRazdelek.hidden = false;
       if (seznamRazdelek) seznamRazdelek.hidden = false;
     } else if (idRazdelka === "obrazec") {
       // Samo obrazec za dodajanje (gumb "Dodaj nov račun").
+      document.body.classList.add("stran--samo-obrazec");
       if (obrazecRazdelek) obrazecRazdelek.hidden = false;
       if (semaforRazdelek) semaforRazdelek.hidden = true;
       if (seznamRazdelek) seznamRazdelek.hidden = true;

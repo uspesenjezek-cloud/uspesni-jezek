@@ -23,6 +23,10 @@
      razvidno, da gre za samodejno (preverljivo, ne končno) vrednost. */
   --color-ai: #3f9d5e;
   --color-ai-soft: #eaf6ee;
+  /* Rumena oznaka: AI tega podatka ni našel na računu (glej
+     oznaciPoljeKotAiManjka v app.js) - obrtnik naj ga vnese ročno. */
+  --color-ai-manjka: #c9971a;
+  --color-ai-manjka-soft: #fff6e0;
 
   /* Starejša imena (združljivost z obstoječimi komponentami) */
   --barva-ozadje: var(--color-cream);
@@ -1227,9 +1231,17 @@ body.stran--samo-seznam #obrazec {
    (glej listener "input" tam), da ne zavaja, da je vrednost še vedno
    neprevrejena AI-jeva. */
 .obrazec__polje input.obrazec__polje--ai-izpolnjeno,
-.obrazec__polje textarea.obrazec__polje--ai-izpolnjeno {
+.obrazec__polje textarea.obrazec__polje--ai-izpolnjeno,
+.contact-input input.obrazec__polje--ai-izpolnjeno {
   border-color: var(--color-ai);
   background: var(--color-ai-soft);
+}
+
+.obrazec__polje input.obrazec__polje--ai-manjka,
+.obrazec__polje textarea.obrazec__polje--ai-manjka,
+.contact-input input.obrazec__polje--ai-manjka {
+  border-color: var(--color-ai-manjka);
+  background: var(--color-ai-manjka-soft);
 }
 
 /* ========== OBRAZEC (dodajanje nove zadeve) ========== */

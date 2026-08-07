@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-skrij-razdelke" />
+    <link rel="stylesheet" href="styles.css?v=20260807-skrij-razdelke-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -20,6 +20,15 @@
     <script src="auth-zascita.js"></script>
   </head>
   <body class="stran--neplacila">
+    <script>
+      /* Takoj ob nalaganju skrije napačen razdelek (pred app.js), da
+         pri #seznam ne utripne obrazec "Dodaj nov račun". */
+      (function () {
+        var h = location.hash.replace("#", "");
+        if (h === "seznam") document.body.classList.add("stran--samo-seznam");
+        else if (h === "obrazec") document.body.classList.add("stran--samo-obrazec");
+      })();
+    </script>
     <header class="app__header">
       <a class="app__nazaj" href="zascita-posla.html">← Nazaj</a>
       <h1 class="app__naslov-podstrani">Opozarjanje na neplačila</h1>
@@ -395,6 +404,6 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js?v=20260807-skrij-razdelke"></script>
+    <script src="app.js?v=20260807-skrij-razdelke-v2"></script>
   </body>
 </html>
