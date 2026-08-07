@@ -1015,56 +1015,81 @@ a {
 }
 
 /* ========== AI ZAJEM RAČUNA (glej "Naloži račun" v neplacila.html) ==========
-   Blok na vrhu koraka 1, PRED "Kdo vam dolguje?" - slika/PDF gre na
-   /api/citaj-racun (Vercel serverless funkcija), AI vrne JSON, s katerim
-   obdelajRacunZAI v app.js samodejno izpolni polja spodaj. Gumba ponovno
-   uporabita že obstoječ .priloga-akcija/.priloga-akcije videz (isti kot pri
-   "Priloži račun/Slikaj račun" v razdelku 2), da ne podvajam sloga. */
+   Blok na vrhu koraka 1 - isti vizualni jezik kot nekdanji uvod »Nov dolg«
+   (nežni gradient + kremni dekor). Status »AI bere …« se prikaže SAMO med
+   branjem, ne ves čas. */
 .ai-zajem {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  margin-bottom: 18px;
-  background: var(--color-cream);
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 16px;
+  overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-obrazec-notranji);
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-teal-soft) 0%, var(--color-surface) 78%);
 }
 
-.ai-zajem__glava {
+.ai-zajem__dekor {
+  position: absolute;
+  right: -28px;
+  bottom: -36px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--color-cream);
+  pointer-events: none;
+}
+
+.ai-zajem__uvod {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.ai-zajem__ikona {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  color: var(--color-ai);
-  background: var(--color-ai-soft);
-}
-
-.ai-zajem__ikona svg {
-  display: block;
+.ai-zajem__uvod-besedilo {
+  min-width: 0;
 }
 
 .ai-zajem__naslov {
   margin: 0;
-  font-size: 14px;
+  font-family: var(--pisava-naslov);
+  font-size: 22px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--color-text);
 }
 
 .ai-zajem__opis {
-  margin: 2px 0 0;
-  font-size: 13px;
+  margin: 0.3rem 0 0;
+  font-size: 15px;
   font-weight: 400;
   line-height: 1.45;
   color: var(--color-text-secondary);
+}
+
+.ai-zajem__korak {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 6px 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ai-zajem .priloga-akcije,
+.ai-zajem__predogled {
+  position: relative;
+  z-index: 1;
 }
 
 .ai-zajem__predogled {
@@ -1078,6 +1103,10 @@ a {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
+}
+
+.ai-zajem__predogled[hidden] {
+  display: none;
 }
 
 .ai-zajem__slicica {
@@ -1122,6 +1151,10 @@ a {
   gap: 6px;
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.ai-zajem__status[hidden] {
+  display: none;
 }
 
 .ai-zajem__status--napaka {

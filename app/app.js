@@ -382,8 +382,15 @@ function inicializirajNeplacila() {
   }
 
   function nastaviAiZajemStatus(besedilo, stanje) {
-    // stanje: "nalaganje" | "uspeh" | "napaka"
+    // stanje: "nalaganje" | "uspeh" | "napaka" | null (skrij status)
     if (!aiZajemStatus || !aiZajemStatusBesedilo) return;
+    if (!stanje) {
+      aiZajemStatus.hidden = true;
+      aiZajemStatusBesedilo.textContent = "";
+      if (aiZajemSpinner) aiZajemSpinner.hidden = true;
+      return;
+    }
+    aiZajemStatus.hidden = false;
     aiZajemStatusBesedilo.textContent = besedilo;
     aiZajemStatus.classList.remove("ai-zajem__status--uspeh", "ai-zajem__status--napaka");
     if (stanje === "uspeh") aiZajemStatus.classList.add("ai-zajem__status--uspeh");
@@ -423,6 +430,7 @@ function inicializirajNeplacila() {
     aiZajemSlicica.src = "";
     aiZajemDatotekaIkona.hidden = true;
     aiZajemIme.textContent = "";
+    nastaviAiZajemStatus("", null);
     if (aiZajemDatoteka) aiZajemDatoteka.value = "";
     if (aiZajemFotoaparat) aiZajemFotoaparat.value = "";
   }

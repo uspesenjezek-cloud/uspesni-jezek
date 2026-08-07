@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260807-ai-zajem" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -76,25 +76,15 @@
           </div>
 
           <div class="obrazec-kartica__vsebina">
-            <div class="obrazec-kartica__uvod">
-              <span class="obrazec-kartica__uvod-dekor" aria-hidden="true"></span>
-              <div class="obrazec-kartica__uvod-besedilo">
-                <h2 class="obrazec-kartica__naslov">Nov dolg</h2>
-                <p class="obrazec-kartica__podnaslov">Vnesite samo podatke, ki jih poznate.</p>
-              </div>
-              <span class="obrazec-kartica__korak">1 od 2</span>
-            </div>
-
             <form class="obrazec" id="obrazec-neplacilo">
               <div class="ai-zajem" id="ai-zajem">
-                <div class="ai-zajem__glava">
-                  <span class="ai-zajem__ikona" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/><circle cx="12" cy="12" r="3"/></svg>
-                  </span>
-                  <div>
-                    <p class="ai-zajem__naslov" id="ai-zajem-naslov">Naloži račun</p>
+                <span class="ai-zajem__dekor" aria-hidden="true"></span>
+                <div class="ai-zajem__uvod">
+                  <div class="ai-zajem__uvod-besedilo">
+                    <h2 class="ai-zajem__naslov" id="ai-zajem-naslov">Naloži račun</h2>
                     <p class="ai-zajem__opis">AI samodejno prebere in izpolni polja spodaj - preverite jih pred nadaljevanjem.</p>
                   </div>
+                  <span class="ai-zajem__korak">1 od 2</span>
                 </div>
 
                 <div class="priloga-akcije" id="ai-zajem-akcije">
@@ -134,9 +124,9 @@
                   </span>
                   <span class="ai-zajem__meta">
                     <span class="ai-zajem__ime" id="ai-zajem-ime"></span>
-                    <span class="ai-zajem__status" id="ai-zajem-status">
+                    <span class="ai-zajem__status" id="ai-zajem-status" hidden>
                       <span class="ai-zajem__spinner" aria-hidden="true"></span>
-                      <span id="ai-zajem-status-besedilo">AI bere račun …</span>
+                      <span id="ai-zajem-status-besedilo"></span>
                     </span>
                   </span>
                   <button type="button" class="ai-zajem__odstrani" id="ai-zajem-odstrani" aria-label="Odstrani in počisti">✕</button>
@@ -415,6 +405,6 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20260807-ai-zajem"></script>
   </body>
 </html>
