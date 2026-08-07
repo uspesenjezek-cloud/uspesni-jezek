@@ -93,7 +93,13 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-5",
-        max_tokens: 500,
+        max_tokens: 1024,
+        // Claude Sonnet 5 ima "thinking" privzeto vklopljen, thinking
+        // tokeni pa se štejejo v max_tokens - pri tako majhnem max_tokens
+        // bi lahko thinking porabil celotno rezervo, še preden model
+        // izpiše dejanski JSON odgovor. Ker za to enostavno nalogo
+        // razmišljanja ne potrebujemo, ga izklopimo.
+        thinking: { type: "disabled" },
         messages: [
           {
             role: "user",
@@ -105,6 +111,10 @@ module.exports = async function handler(req, res) {
 
     if (!odgovorAnthropic.ok) {
       const napakaBesedilo = await odgovorAnthropic.text().catch(() => "");
+      console.error(
+        "[citaj-racun] Anthropic API napaka, koda " + odgovorAnthropic.status + ":",
+        napakaBesedilo
+      );
       res.status(502).json({
         ok: false,
         napaka: "Klic na AI ni uspel (koda " + odgovorAnthropic.status + ").",
@@ -136,6 +146,14 @@ module.exports = async function handler(req, res) {
         .trim();
       razclenjenoJson = JSON.parse(ociscenoBesedilo);
     } catch (napakaParsanja) {
+      console.error(
+        "[citaj-racun] JSON.parse ni uspel:",
+        napakaParsanja,
+        "- surovo besedilo odgovora:",
+        besediloOdgovora,
+        "- celotno telo odgovora Anthropic:",
+        JSON.stringify(odgovorTelo)
+      );
       res.status(502).json({
         ok: false,
         napaka: "AI odgovora ni bilo mogoče razumeti kot JSON.",
@@ -159,6 +177,7 @@ module.exports = async function handler(req, res) {
       },
     });
   } catch (napaka) {
+    console.error("[citaj-racun] Nepričakovana napaka:", napaka);
     res.status(500).json({ ok: false, napaka: "Nepričakovana napaka pri branju računa." });
   }
 };

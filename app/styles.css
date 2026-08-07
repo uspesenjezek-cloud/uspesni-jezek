@@ -2080,3 +2080,580 @@ a {
 .lightbox__zapri:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* ========== KORAK 2: SESTAVI OPOMIN (neplacila-sporocilo.html) ========== */
+.stran--sporocilo {
+  --page-background: #eff4f4;
+  --surface: #ffffff;
+  --text-primary: #1a2e24;
+  --text-secondary: #536b64;
+  --border: #c5d4cb;
+  --primary: #4d9494;
+  --primary-strong: #3d7676;
+  --on-primary: #ffffff;
+  --soft-teal: #eff4f4;
+  --warm-surface: #fcf9f2;
+  --danger: #9d3a36;
+  --surface-shadow: rgba(26, 46, 36, 0.09);
+  --primary-shadow: rgba(77, 148, 148, 0.17);
+
+  max-width: none;
+  min-height: 100vh;
+  padding: 12px 12px 28px;
+  background: var(--page-background);
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.stran--sporocilo h1,
+.stran--sporocilo h2,
+.stran--sporocilo h3 {
+  font-weight: 500;
+}
+
+.korak2__nazaj {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  margin: 0 auto 10px;
+  max-width: 430px;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+
+.korak2 {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 14px 36px var(--surface-shadow);
+  overflow: hidden;
+}
+
+.korak2__glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.korak2__znamka {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.korak2__znamka-ikona {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: var(--on-primary);
+  background: var(--primary);
+}
+
+.korak2__znamka-ikona svg {
+  display: block;
+}
+
+.korak2__osnutek {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: var(--warm-surface);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.korak2__koraki {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 7px;
+  margin: 0 18px 22px;
+  padding-top: 18px;
+}
+
+.korak2__koraki-crta {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.korak2__koraki-crta--aktivna {
+  background: var(--primary);
+}
+
+.korak2__vsebina {
+  padding: 0 18px 8px;
+  min-width: 0;
+}
+
+.korak2__naslov-vrstica {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.korak2__naslov {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.korak2__podnaslov {
+  margin: 5px 0 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.korak2__oznaka {
+  flex-shrink: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary-strong);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.korak2__info {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 16px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--warm-surface);
+}
+
+.korak2__info-ikona {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--primary-strong);
+  background: var(--surface);
+}
+
+.korak2__info-besedilo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.korak2__seznam-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.predlogi-okvir {
+  position: relative;
+  max-height: 365px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: 0 5px 16px var(--surface-shadow);
+  overflow: hidden;
+}
+
+.predlogi-okvir__vsebina {
+  max-height: 365px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.predlogi-okvir__vsebina::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.predlogi-okvir__drsnik {
+  position: absolute;
+  right: 4px;
+  top: 9px;
+  bottom: 9px;
+  width: 4px;
+  pointer-events: none;
+}
+
+.predlogi-okvir__sled {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--soft-teal);
+}
+
+.predlogi-okvir__indikator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  min-height: 40px;
+  border-radius: 999px;
+  background: var(--primary);
+  will-change: transform;
+}
+
+.predlog-vrstica {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.predlog-vrstica:last-child {
+  border-bottom: none;
+}
+
+.predlog-vrstica__glava {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  padding: 12px;
+}
+
+.predlog-vrstica__ikona {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  color: var(--primary-strong);
+  background: var(--soft-teal);
+}
+
+.predlog-vrstica__ikona--krem {
+  background: var(--warm-surface);
+}
+
+.predlog-vrstica__ikona--temna {
+  color: var(--on-primary);
+  background: var(--primary-strong);
+}
+
+.predlog-vrstica__ikona svg {
+  display: block;
+}
+
+.predlog-vrstica__naslov {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.predlog-vrstica__zacetek {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.predlog-vrstica__gumbi {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.predlog-gumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.predlog-gumb svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.predlog-gumb--predogled {
+  color: var(--primary-strong);
+  background: var(--surface);
+  border: 1px solid var(--primary-strong);
+}
+
+.predlog-gumb--predogled[aria-expanded="true"] {
+  background: var(--soft-teal);
+}
+
+.predlog-gumb--izberi {
+  color: var(--on-primary);
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  box-shadow: 0 5px 12px var(--primary-shadow);
+}
+
+.predlog-gumb--izberi[aria-pressed="true"] {
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
+}
+
+.predlog-vrstica__predogled {
+  padding: 14px 14px 16px 58px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.predlog-vrstica__predogled[hidden] {
+  display: none;
+}
+
+.korak2__prehod {
+  margin: 15px 0 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.sporocilo-urejevalnik {
+  margin-top: 24px;
+  padding-top: 21px;
+  border-top: 1px solid var(--border);
+}
+
+.sporocilo-urejevalnik__glava {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.sporocilo-urejevalnik__naslov {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sporocilo-urejevalnik__pocisti {
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.sporocilo-urejevalnik__pocisti[hidden] {
+  display: none;
+}
+
+.sporocilo-urejevalnik__opis {
+  margin: 8px 0 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.sporocilo-urejevalnik__polje {
+  width: 100%;
+  min-height: 250px;
+  padding: 14px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text-primary);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.sporocilo-urejevalnik__polje:focus {
+  border-color: var(--primary);
+  outline: 3px solid rgba(77, 148, 148, 0.18);
+  outline-offset: 1px;
+}
+
+.sporocilo-urejevalnik__polje.sporocilo-urejevalnik__polje--polno {
+  border-color: var(--primary-strong);
+}
+
+.sporocilo-urejevalnik__status {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--primary-strong);
+}
+
+.sporocilo-urejevalnik__status[hidden] {
+  display: none;
+}
+
+.sporocilo-urejevalnik__opozorilo {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sporocilo-dodatki {
+  margin-top: 9px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sporocilo-dodatki__naslov {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sporocilo-dodatki__opis {
+  margin: 5px 0 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sporocilo-dodatki__gumbi {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.sporocilo-dodatek {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 84px;
+  padding: 10px 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.sporocilo-dodatek:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sporocilo-dodatek__ikona {
+  color: var(--primary-strong);
+}
+
+.sporocilo-dodatek[aria-pressed="true"] {
+  background: var(--soft-teal);
+  border-color: var(--primary-strong);
+}
+
+.korak2__noga {
+  padding: 12px 18px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.korak2__gumb-naprej {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--on-primary);
+  background: var(--primary);
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px var(--primary-shadow);
+  cursor: pointer;
+}
+
+.korak2__gumb-naprej:hover:not(:disabled) {
+  background: var(--primary-strong);
+}
+
+.korak2__gumb-naprej:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 330px) {
+  .predlog-vrstica__gumbi {
+    grid-column: 1 / -1;
+  }
+
+  .predlog-vrstica__predogled {
+    padding-left: 14px;
+  }
+
+  .sporocilo-dodatki__gumbi {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stran--sporocilo * {
+    scroll-behavior: auto !important;
+  }
+}
+
+

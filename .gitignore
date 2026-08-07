@@ -6,3 +6,6 @@ app/config.js
 .DS_Store
 Thumbs.db
 ngrok.exe
+
+.vercel
+.env*

@@ -1,4 +1,4 @@
-/* ==========================================================
+﻿/* ==========================================================
    app.js - skupna JS logika za delovni portal (app/*.html)
    Trenutno vsebuje logiko za Kat. 1: Opozarjanje na neplačila.
 
@@ -33,14 +33,16 @@ const CSS_RAZRED_STATUSA = {
   Rešeno: "reseno",
 };
 
-/* Ključ za začasno shranjevanje podatkov 1. koraka obrazca (vse razen
-   sporočila dolžniku) v sessionStorage, dokler obrtnik ne konča še 2.
-   (zadnjega) koraka na neplacila-sporocilo.html - glej inicializirajNeplacila
-   (shrani) in inicializirajSporociloDolzniku (prebere in na koncu izbriše). */
+/* Ključ za začasno shranjevanje podatkov 1. koraka obrazca v sessionStorage,
+   dokler obrtnik ne konča 3. koraka - glej inicializirajNeplacila (shrani)
+   in inicializirajPosiljanje (prebere in na koncu izbriše). */
 const KLJUC_SEJE_KORAK1_PODATKI = "neplacilo-korak1-podatki";
+/* Podatki 2. koraka (sporočilo + izbrani predlog/dodatki), dokler obrtnik
+   ne konča 3. koraka (neplacila-posiljanje.html). */
+const KLJUC_SEJE_KORAK2_PODATKI = "neplacilo-korak2-podatki";
 /* Ključ za "opomniček", da naj se ob vrnitvi na neplacila.html prikaže
    sporočilo o uspešno dodani zadevi (glej pokaziUspesnoDodano spodaj) -
-   ker se zadeva zdaj dejansko doda šele na 2. koraku, na prvi strani pa je
+   ker se zadeva zdaj dejansko doda šele na 3. koraku, na prvi strani pa je
    takrat ne moremo več prikazati neposredno. */
 const KLJUC_SEJE_ZADEVA_DODANA = "neplacilo-zadeva-dodana";
 
@@ -992,11 +994,9 @@ function inicializirajNeplacila() {
       return;
     }
 
-    // Zadeva se dejansko doda v bazo šele na 2. (zadnjem) koraku, potem ko
-    // obrtnik napiše še sporočilo dolžniku (glej neplacila-sporocilo.html
-    // in inicializirajSporociloDolzniku spodaj) - tu samo naložimo
-    // morebitne priloge (kot doslej) in vse podatke tega koraka začasno
-    // shranimo, da jih 2. korak lahko prebere.
+    // Zadeva se dejansko doda v bazo šele na 3. koraku (po sporočilu),
+    // glej neplacila-posiljanje.html - tu samo naložimo morebitne priloge
+    // in podatke 1. koraka začasno shranimo za naslednja koraka.
     const rezultatPrilog = await nalozitVsePriloge(izbranePrilogeDatoteke);
     if (rezultatPrilog.napaka) {
       pokaziNapako("Prilog ni bilo mogoče naložiti.", rezultatPrilog.napaka);
@@ -1043,267 +1043,540 @@ function inicializirajNeplacila() {
   osveziSeznam();
 }
 
+
+
 /* ---------- Logika strani neplacila-sporocilo.html (2. korak) ---------- */
+
+function formatirajZnesekDe(znesek) {
+  return (
+    Number(znesek).toLocaleString("de-DE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + " €"
+  );
+}
+
+function formatirajDatumDe(datumBesedilo) {
+  if (!datumBesedilo) return "";
+  const datum = new Date(datumBesedilo + "T12:00:00");
+  if (Number.isNaN(datum.getTime())) return datumBesedilo;
+  return datum.toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function izracunajNoviRok(datumZapadlosti) {
+  if (!datumZapadlosti) return "";
+  const datum = new Date(datumZapadlosti + "T12:00:00");
+  if (Number.isNaN(datum.getTime())) return "";
+  datum.setDate(datum.getDate() + 14);
+  return datum.toISOString().slice(0, 10);
+}
+
+function sestaviPredlogeSporocil(podatki) {
+  const invoiceNumber = (podatki.stevilkaRacuna || "").trim();
+  const amount = formatirajZnesekDe(podatki.znesek || 0);
+  const dueDate = formatirajDatumDe(podatki.datumZapadlosti);
+  const newDeadline = formatirajDatumDe(izracunajNoviRok(podatki.datumZapadlosti));
+  const iban = (podatki.iban || "").trim();
+
+  function vrstice(seznam) {
+    return seznam.filter(Boolean).join("\n");
+  }
+
+  return [
+    {
+      id: "vljuden",
+      naslov: "Vljuden opomin",
+      ikona: "hand-heart",
+      stilIkone: "krem",
+      besedilo: vrstice([
+        "Guten Tag,",
+        invoiceNumber
+          ? "ich möchte Sie freundlich an die noch offene Rechnung Nr. " +
+            invoiceNumber +
+            " über " +
+            amount +
+            " erinnern." +
+            (dueDate ? " Die Rechnung war am " + dueDate + " fällig." : "")
+          : "ich möchte Sie freundlich an die noch offene Rechnung über " +
+            amount +
+            " erinnern." +
+            (dueDate ? " Die Rechnung war am " + dueDate + " fällig." : ""),
+        "Bitte überweisen Sie den offenen Betrag zeitnah. Falls Sie bereits bezahlt haben, betrachten Sie diese Nachricht bitte als gegenstandslos.",
+        "Vielen Dank und freundliche Grüße",
+      ]),
+    },
+    {
+      id: "kratek",
+      naslov: "Kratek opomin",
+      ikona: "message-circle",
+      stilIkone: "",
+      besedilo: vrstice([
+        "Guten Tag,",
+        invoiceNumber
+          ? "die Rechnung Nr. " + invoiceNumber + " über " + amount + " ist noch offen. Bitte überweisen Sie den Betrag zeitnah."
+          : "die Rechnung über " + amount + " ist noch offen. Bitte überweisen Sie den Betrag zeitnah.",
+        "Sollte die Zahlung bereits erfolgt sein, können Sie diese Nachricht ignorieren.",
+        "Freundliche Grüße",
+      ]),
+    },
+    {
+      id: "jasen",
+      naslov: "Jasen poziv k plačilu",
+      ikona: "badge-euro",
+      stilIkone: "",
+      besedilo: vrstice([
+        "Guten Tag,",
+        invoiceNumber
+          ? "die Rechnung Nr. " +
+            invoiceNumber +
+            " über " +
+            amount +
+            (dueDate ? " ist seit dem " + dueDate + " fällig" : " ist fällig") +
+            " und bisher nicht beglichen."
+          : "die Rechnung über " +
+            amount +
+            (dueDate ? " ist seit dem " + dueDate + " fällig" : " ist fällig") +
+            " und bisher nicht beglichen.",
+        "Bitte überweisen Sie den offenen Betrag ohne weitere Verzögerung. Senden Sie uns anschließend gern eine kurze Zahlungsbestätigung.",
+        "Freundliche Grüße",
+      ]),
+    },
+    {
+      id: "novi-rok",
+      naslov: "Opomin z novim rokom",
+      ikona: "calendar-clock",
+      stilIkone: "krem",
+      besedilo: vrstice([
+        "Guten Tag,",
+        invoiceNumber
+          ? "für die Rechnung Nr. " + invoiceNumber + " über " + amount + " konnten wir noch keinen Zahlungseingang feststellen."
+          : "für die Rechnung über " + amount + " konnten wir noch keinen Zahlungseingang feststellen.",
+        newDeadline
+          ? "Bitte begleichen Sie den offenen Betrag bis spätestens " +
+            newDeadline +
+            ". Falls Sie bereits bezahlt haben, teilen Sie uns dies bitte kurz mit."
+          : "Bitte begleichen Sie den offenen Betrag zeitnah. Falls Sie bereits bezahlt haben, teilen Sie uns dies bitte kurz mit.",
+        "Vielen Dank und freundliche Grüße",
+      ]),
+    },
+    {
+      id: "obrocno",
+      naslov: "Ponudba obročnega plačila",
+      ikona: "calendar-range",
+      stilIkone: "",
+      besedilo: vrstice([
+        "Guten Tag,",
+        invoiceNumber
+          ? "die Rechnung Nr. " + invoiceNumber + " über " + amount + " ist weiterhin offen."
+          : "die Rechnung über " + amount + " ist weiterhin offen.",
+        "Falls Sie den Gesamtbetrag derzeit nicht vollständig begleichen können, melden Sie sich bitte bei uns. Wir können gemeinsam eine passende Ratenzahlung vereinbaren.",
+        "Freundliche Grüße",
+      ]),
+    },
+    {
+      id: "zadnji",
+      naslov: "Zadnji opomin",
+      ikona: "triangle-alert",
+      stilIkone: "temna",
+      besedilo: vrstice([
+        "Guten Tag,",
+        dueDate
+          ? "trotz Fälligkeit am " +
+            dueDate +
+            " und unserer bisherigen Erinnerung ist die Rechnung" +
+            (invoiceNumber ? " Nr. " + invoiceNumber : "") +
+            " über " +
+            amount +
+            " noch offen."
+          : "trotz unserer bisherigen Erinnerung ist die Rechnung" +
+            (invoiceNumber ? " Nr. " + invoiceNumber : "") +
+            " über " +
+            amount +
+            " noch offen.",
+        newDeadline
+          ? "Bitte begleichen Sie den Betrag bis spätestens " +
+            newDeadline +
+            ". Sollte bis dahin kein Zahlungseingang erfolgen, behalten wir uns weitere Schritte vor."
+          : "Bitte begleichen Sie den Betrag ohne weitere Verzögerung. Sollte kein Zahlungseingang erfolgen, behalten wir uns weitere Schritte vor.",
+        "Freundliche Grüße",
+      ]),
+    },
+  ].map((predlog) => ({
+    ...predlog,
+    // IBAN se uporabi samo v dodatkih, ne v osnovnih predlogih.
+    _iban: iban,
+    _newDeadline: newDeadline,
+    _invoiceNumber: invoiceNumber,
+  }));
+}
+
+function svgIkonaPredloga(ime) {
+  const skupno =
+    'xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  const ikone = {
+    "hand-heart":
+      "<svg " +
+      skupno +
+      '><path d="M11 14h2a2 2 0 0 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.13 3.75"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2.1 1.5 2.7L16 12Z"/></svg>',
+    "message-circle":
+      "<svg " +
+      skupno +
+      '><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.039.116 10 10 0 1 0-4.717-4.743Z"/></svg>',
+    "badge-euro":
+      "<svg " +
+      skupno +
+      '><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M7 12h5"/><path d="M15 9.4a4 4 0 1 0 0 5.2"/></svg>',
+    "calendar-clock":
+      "<svg " +
+      skupno +
+      '><path d="M16 14v2.2l1.6 1"/><path d="M16 2v4"/><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.5"/><path d="M3 10h5"/><path d="M8 2v4"/><circle cx="16" cy="16" r="6"/></svg>',
+    "calendar-range":
+      "<svg " +
+      skupno +
+      '><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M17 14h-6"/><path d="M13 18H9"/><path d="M9 14h.01"/><path d="M17 18h.01"/></svg>',
+    "triangle-alert":
+      "<svg " +
+      skupno +
+      '><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+  };
+  return ikone[ime] || ikone["message-circle"];
+}
 
 function inicializirajSporociloDolzniku() {
   const obrazec = document.getElementById("obrazec-sporocilo");
   const napaka = document.getElementById("splosna-napaka");
+  const seznam = document.getElementById("predlogi-seznam");
+  const okvir = document.getElementById("predlogi-okvir");
+  const indikator = document.getElementById("predlogi-indikator");
 
-  if (!obrazec) {
-    // Ta stran ne vsebuje obrazca za sporočilo dolžniku - ne naredi ničesar.
-    return;
-  }
+  if (!obrazec || !seznam) return;
 
   const podatkiKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
   if (!podatkiKorak1Json) {
-    // Obrtnik je prišel na to stran neposredno, brez da bi izpolnil 1.
-    // korak (npr. osvežil stran, prilepil povezavo) - podatkov o zadevi
-    // sploh nimamo, zato ga vrnemo nazaj na začetek.
     window.location.href = "neplacila.html#obrazec";
     return;
   }
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
+  const predlogi = sestaviPredlogeSporocil(podatkiKorak1);
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
-  const gumbPoslji = obrazec.querySelector("button[type=submit]");
+  const gumbNaprej = document.getElementById("gumb-naprej-posiljanje");
+  const gumbPocisti = document.getElementById("sporocilo-pocisti");
+  const statusPolja = document.getElementById("sporocilo-status");
+  const urejevalnik = document.getElementById("sporocilo-urejevalnik");
+  const dodatekRok = document.getElementById("dodatek-rok");
+  const dodatekObrocno = document.getElementById("dodatek-obrocno");
+  const dodatekTrr = document.getElementById("dodatek-trr");
+
+  let izbranPredlogId = null;
+  let odprtPredogledId = null;
+  const dodatki = { rok: false, obrocno: false, trr: false };
+  const zeliZmanjsanoGibanje = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function pokaziNapako(besedilo, tehnicniPodatki) {
-    napaka.textContent = tehnicniPodatki
-      ? besedilo + " (" + tehnicniPodatki + ")"
-      : besedilo;
+    if (!napaka) return;
+    napaka.textContent = tehnicniPodatki ? besedilo + " (" + tehnicniPodatki + ")" : besedilo;
     napaka.hidden = false;
-    napaka.scrollIntoView({ behavior: "smooth", block: "start" });
+    napaka.scrollIntoView({ behavior: zeliZmanjsanoGibanje ? "auto" : "smooth", block: "start" });
   }
 
   function skrijNapako() {
-    napaka.hidden = true;
+    if (napaka) napaka.hidden = true;
   }
 
-  /* Vstavi besedilo predloga (iz katerekoli skupine - sporočila ali
-     možnosti plačila) v okno sporočila - če je okno še prazno, ga samo
-     napolni, sicer besedilo doda na konec, tako da lahko obrtnik
-     sporočilo, ki ga že piše, s predlogom samo dopolni. */
-  function vstaviPredlogVSporocilo(besedilo) {
-    const obstojeceBesedilo = besediloPolje.value.replace(/\s+$/, "");
-    besediloPolje.value = obstojeceBesedilo
-      ? obstojeceBesedilo + " " + besedilo
-      : besedilo;
+  function posodobiDrsnik() {
+    if (!okvir || !indikator || !seznam) return;
+    const sledVisina = Math.max(0, okvir.clientHeight - 18);
+    const razmerje = seznam.clientHeight / Math.max(seznam.scrollHeight, 1);
+    const visina = Math.max(40, Math.min(sledVisina, sledVisina * razmerje));
+    const maxScroll = seznam.scrollHeight - seznam.clientHeight;
+    const maxTop = Math.max(0, sledVisina - visina);
+    const top = maxScroll > 0 ? (seznam.scrollTop / maxScroll) * maxTop : 0;
+    indikator.style.height = visina + "px";
+    indikator.style.transform = "translateY(" + top + "px)";
+  }
+
+  function posodobiStanjeUrejevalnika() {
+    const imaBesedilo = besediloPolje.value.trim().length > 0;
+    besediloPolje.classList.toggle("sporocilo-urejevalnik__polje--polno", imaBesedilo);
+    if (gumbPocisti) gumbPocisti.hidden = !imaBesedilo;
+    if (statusPolja) statusPolja.hidden = !imaBesedilo;
+    if (gumbNaprej) gumbNaprej.disabled = !imaBesedilo;
+    [dodatekRok, dodatekObrocno, dodatekTrr].forEach((gumb) => {
+      if (gumb) gumb.disabled = !imaBesedilo;
+    });
+  }
+
+  function resetirajDodatke() {
+    dodatki.rok = false;
+    dodatki.obrocno = false;
+    dodatki.trr = false;
+    if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "false");
+    if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "false");
+    if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
+  }
+
+  function zacetekBesedila(besedilo) {
+    return besedilo.replace(/\s+/g, " ").trim();
+  }
+
+  function zapriVsePredoglede() {
+    seznam.querySelectorAll(".predlog-vrstica__predogled").forEach((el) => {
+      el.hidden = true;
+    });
+    seznam.querySelectorAll(".predlog-gumb--predogled").forEach((gumb) => {
+      gumb.setAttribute("aria-expanded", "false");
+    });
+    odprtPredogledId = null;
+  }
+
+  function oznaciIzbranega(id) {
+    izbranPredlogId = id;
+    seznam.querySelectorAll(".predlog-gumb--izberi").forEach((gumb) => {
+      const jeIzbran = gumb.dataset.predlogId === id;
+      gumb.setAttribute("aria-pressed", jeIzbran ? "true" : "false");
+      gumb.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
+        (jeIzbran ? "Izbrano" : "Izberi");
+    });
+  }
+
+  function izrisiPredloge() {
+    seznam.innerHTML = "";
+
+    predlogi.forEach((predlog) => {
+      const vrstica = document.createElement("article");
+      vrstica.className = "predlog-vrstica";
+      vrstica.setAttribute("role", "listitem");
+      vrstica.dataset.predlogId = predlog.id;
+
+      const predogledId = "predogled-" + predlog.id;
+      const stilIkone =
+        predlog.stilIkone === "krem"
+          ? " predlog-vrstica__ikona--krem"
+          : predlog.stilIkone === "temna"
+            ? " predlog-vrstica__ikona--temna"
+            : "";
+
+      vrstica.innerHTML =
+        '<div class="predlog-vrstica__glava">' +
+        '<span class="predlog-vrstica__ikona' +
+        stilIkone +
+        '" aria-hidden="true">' +
+        svgIkonaPredloga(predlog.ikona) +
+        "</span>" +
+        "<div>" +
+        '<p class="predlog-vrstica__naslov"></p>' +
+        '<p class="predlog-vrstica__zacetek"></p>' +
+        '<div class="predlog-vrstica__gumbi">' +
+        '<button type="button" class="predlog-gumb predlog-gumb--predogled" aria-expanded="false" aria-controls="' +
+        predogledId +
+        '">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>' +
+        "Predogled</button>" +
+        '<button type="button" class="predlog-gumb predlog-gumb--izberi" aria-pressed="false" data-predlog-id="' +
+        predlog.id +
+        '">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
+        "Izberi</button>" +
+        "</div></div></div>" +
+        '<div class="predlog-vrstica__predogled" id="' +
+        predogledId +
+        '" hidden></div>';
+
+      vrstica.querySelector(".predlog-vrstica__naslov").textContent = predlog.naslov;
+      vrstica.querySelector(".predlog-vrstica__zacetek").textContent = zacetekBesedila(predlog.besedilo);
+      vrstica.querySelector(".predlog-vrstica__predogled").textContent = predlog.besedilo;
+
+      const gumbPredogled = vrstica.querySelector(".predlog-gumb--predogled");
+      const gumbIzberi = vrstica.querySelector(".predlog-gumb--izberi");
+      const predogledEl = vrstica.querySelector(".predlog-vrstica__predogled");
+
+      gumbPredogled.addEventListener("click", () => {
+        const jeOdprt = odprtPredogledId === predlog.id;
+        zapriVsePredoglede();
+        if (!jeOdprt) {
+          predogledEl.hidden = false;
+          gumbPredogled.setAttribute("aria-expanded", "true");
+          odprtPredogledId = predlog.id;
+        }
+        requestAnimationFrame(posodobiDrsnik);
+      });
+
+      gumbIzberi.addEventListener("click", () => {
+        resetirajDodatke();
+        besediloPolje.value = predlog.besedilo;
+        oznaciIzbranega(predlog.id);
+        posodobiStanjeUrejevalnika();
+        urejevalnik.scrollIntoView({
+          behavior: zeliZmanjsanoGibanje ? "auto" : "smooth",
+          block: "start",
+        });
+        besediloPolje.focus();
+      });
+
+      seznam.appendChild(vrstica);
+    });
+
+    requestAnimationFrame(posodobiDrsnik);
+  }
+
+  function dodajOdstavek(kljuc, besedilo, gumb) {
+    if (!besediloPolje.value.trim()) return;
+    if (dodatki[kljuc]) return;
+    const osnova = besediloPolje.value.replace(/\s+$/, "");
+    besediloPolje.value = osnova + "\n\n" + besedilo;
+    dodatki[kljuc] = true;
+    gumb.setAttribute("aria-pressed", "true");
+    posodobiStanjeUrejevalnika();
     besediloPolje.focus();
   }
 
-  /* Poveže eno "skupino" predlogov (predlogi sporočila ALI možnosti
-     plačila - obe uporabljata popolnoma enak vzorec, glej
-     .sporocilo-predlog v styles.css) z bazo: naloži obstoječe predloge te
-     kategorije (glej stolpec "kategorija" v tabeli sporocilo_predlogi),
-     izriše jih kot klikljive gumbe, in poveže obrazec "+ Dodaj predlog". */
-  function inicializirajSkupinoPredlogov(kategorija, elementi) {
-    const { seznam, gumbDodaj, novObrazec, novoBesedilo, gumbShrani, gumbPreklici, gumbUredi } =
-      elementi;
-
-    // Predlogi te kategorije, v trenutnem vrstnem redu - hranimo jih tukaj
-    // (ne samo v DOM-u), da lahko ob kliku na puščico "levo"/"desno" preprosto
-    // zamenjamo dva soseda v tem seznamu in celoten trak znova izrišemo.
-    let podatki = [];
-
-    function izrisiVse() {
-      seznam.innerHTML = "";
-      podatki.forEach((predlog, indeks) => izrisiPredlog(predlog, indeks));
-    }
-
-    /* Zamenja vrstni red predloga na "indeks" s sosedom na "sosednjiIndeks"
-       (levo = indeks-1, desno = indeks+1) - takoj posodobi prikaz, nato v
-       ozadju shrani zamenjan "vrstni_red" obeh predlogov v bazo. */
-    async function premakniPredlog(indeks, sosednjiIndeks) {
-      const predlogA = podatki[indeks];
-      const predlogB = podatki[sosednjiIndeks];
-      const vrstniRedA = predlogA.vrstni_red;
-      const vrstniRedB = predlogB.vrstni_red;
-
-      [podatki[indeks], podatki[sosednjiIndeks]] = [podatki[sosednjiIndeks], podatki[indeks]];
-      izrisiVse();
-
-      const [{ error: napakaA }, { error: napakaB }] = await Promise.all([
-        supabaseKlient
-          .from("sporocilo_predlogi")
-          .update({ vrstni_red: vrstniRedB })
-          .eq("id", predlogA.id),
-        supabaseKlient
-          .from("sporocilo_predlogi")
-          .update({ vrstni_red: vrstniRedA })
-          .eq("id", predlogB.id),
-      ]);
-
-      const napaka = napakaA || napakaB;
-      if (napaka) {
-        pokaziNapako("Vrstnega reda ni bilo mogoče shraniti.", napaka.message);
+  if (dodatekRok) {
+    dodatekRok.addEventListener("click", () => {
+      const noviRok = formatirajDatumDe(izracunajNoviRok(podatkiKorak1.datumZapadlosti));
+      if (!noviRok) {
+        pokaziNapako("Novega roka ni mogoče dodati, ker manjka rok plačila iz 1. koraka.");
         return;
       }
-
-      predlogA.vrstni_red = vrstniRedB;
-      predlogB.vrstni_red = vrstniRedA;
-    }
-
-    function izrisiPredlog(predlog, indeks) {
-      const ovoj = document.createElement("div");
-      ovoj.className = "sporocilo-predlog-ovoj";
-
-      if (predlog.priporoceno) {
-        const zvezdica = document.createElement("span");
-        zvezdica.className = "sporocilo-predlog-zvezdica";
-        zvezdica.textContent = "★";
-        zvezdica.title = "Priporočeno";
-        ovoj.appendChild(zvezdica);
-      }
-
-      const gumbPredlog = document.createElement("button");
-      gumbPredlog.type = "button";
-      gumbPredlog.className = "sporocilo-predlog";
-      gumbPredlog.textContent = predlog.besedilo;
-      gumbPredlog.addEventListener("click", () => vstaviPredlogVSporocilo(predlog.besedilo));
-      ovoj.appendChild(gumbPredlog);
-
-      const gumbBrisi = document.createElement("button");
-      gumbBrisi.type = "button";
-      gumbBrisi.className = "sporocilo-predlog-brisi";
-      gumbBrisi.textContent = "✕";
-      gumbBrisi.setAttribute("aria-label", "Izbriši predlog");
-      gumbBrisi.addEventListener("click", async () => {
-        if (!confirm("Ali res želiš izbrisati ta predlog?")) return;
-
-        const { error } = await supabaseKlient
-          .from("sporocilo_predlogi")
-          .delete()
-          .eq("id", predlog.id);
-
-        if (error) {
-          pokaziNapako("Predloga ni bilo mogoče izbrisati.", error.message);
-          return;
-        }
-
-        podatki = podatki.filter((p) => p.id !== predlog.id);
-        izrisiVse();
-      });
-      ovoj.appendChild(gumbBrisi);
-
-      const gumbLevo = document.createElement("button");
-      gumbLevo.type = "button";
-      gumbLevo.className = "sporocilo-predlog-premakni sporocilo-predlog-premakni--levo";
-      gumbLevo.textContent = "‹";
-      gumbLevo.setAttribute("aria-label", "Premakni predlog v levo");
-      gumbLevo.disabled = indeks === 0;
-      gumbLevo.addEventListener("click", () => premakniPredlog(indeks, indeks - 1));
-      ovoj.appendChild(gumbLevo);
-
-      const gumbDesno = document.createElement("button");
-      gumbDesno.type = "button";
-      gumbDesno.className = "sporocilo-predlog-premakni sporocilo-predlog-premakni--desno";
-      gumbDesno.textContent = "›";
-      gumbDesno.setAttribute("aria-label", "Premakni predlog v desno");
-      gumbDesno.disabled = indeks === podatki.length - 1;
-      gumbDesno.addEventListener("click", () => premakniPredlog(indeks, indeks + 1));
-      ovoj.appendChild(gumbDesno);
-
-      seznam.appendChild(ovoj);
-    }
-
-    async function nalozi() {
-      const { data, error } = await supabaseKlient
-        .from("sporocilo_predlogi")
-        .select("*")
-        .eq("kategorija", kategorija)
-        .order("vrstni_red", { ascending: true })
-        .order("ustvarjeno_at", { ascending: true });
-
-      if (error) {
-        pokaziNapako("Predlogov ni bilo mogoče naložiti.", error.message);
-        return;
-      }
-
-      podatki = data;
-      izrisiVse();
-    }
-
-    gumbDodaj.addEventListener("click", () => {
-      novObrazec.hidden = false;
-      gumbDodaj.hidden = true;
-      novoBesedilo.value = "";
-      novoBesedilo.focus();
+      dodajOdstavek(
+        "rok",
+        "Bitte begleichen Sie den offenen Betrag bis spätestens " + noviRok + ".",
+        dodatekRok
+      );
     });
-
-    gumbPreklici.addEventListener("click", () => {
-      novObrazec.hidden = true;
-      gumbDodaj.hidden = false;
-    });
-
-    gumbUredi.addEventListener("click", () => {
-      const urejanjeVklopljeno = seznam.classList.toggle("sporocilo-predlogi-seznam--urejanje");
-      gumbUredi.textContent = urejanjeVklopljeno ? "Končano" : "Uredi";
-      gumbUredi.classList.toggle("btn--aktiven", urejanjeVklopljeno);
-    });
-
-    gumbShrani.addEventListener("click", async () => {
-      const besedilo = novoBesedilo.value.trim();
-      if (!besedilo) return;
-
-      skrijNapako();
-
-      const {
-        data: { user },
-      } = await supabaseKlient.auth.getUser();
-
-      // Nov predlog gre vedno na konec seznama.
-      const vrstniRedNaKoncu =
-        podatki.length > 0 ? Math.max(...podatki.map((p) => p.vrstni_red)) + 1 : 1;
-
-      const { data, error } = await supabaseKlient
-        .from("sporocilo_predlogi")
-        .insert({
-          besedilo,
-          kategorija,
-          dodal_obrtnik_id: user ? user.id : null,
-          vrstni_red: vrstniRedNaKoncu,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        pokaziNapako("Predloga ni bilo mogoče shraniti.", error.message);
-        return;
-      }
-
-      podatki.push(data);
-      izrisiVse();
-      novObrazec.hidden = true;
-      gumbDodaj.hidden = false;
-    });
-
-    nalozi();
   }
 
-  inicializirajSkupinoPredlogov("sporocilo", {
-    seznam: document.getElementById("predlogi-seznam"),
-    gumbDodaj: document.getElementById("gumb-dodaj-predlog"),
-    novObrazec: document.getElementById("nov-predlog-obrazec"),
-    novoBesedilo: document.getElementById("nov-predlog-besedilo"),
-    gumbShrani: document.getElementById("gumb-shrani-predlog"),
-    gumbPreklici: document.getElementById("gumb-preklici-predlog"),
-    gumbUredi: document.getElementById("gumb-uredi-predlog"),
+  if (dodatekObrocno) {
+    dodatekObrocno.addEventListener("click", () => {
+      dodajOdstavek(
+        "obrocno",
+        "Falls Sie den Gesamtbetrag derzeit nicht vollständig begleichen können, können wir eine Ratenzahlung vereinbaren.",
+        dodatekObrocno
+      );
+    });
+  }
+
+  if (dodatekTrr) {
+    dodatekTrr.addEventListener("click", () => {
+      const iban = (podatkiKorak1.iban || "").trim();
+      const stevilka = (podatkiKorak1.stevilkaRacuna || "").trim();
+      if (!iban) {
+        pokaziNapako("TRR/IBAN še ni na voljo v podatkih zadeve - dodajte ga ročno v sporočilo.");
+        return;
+      }
+      const namen = stevilka || "Rechnung";
+      dodajOdstavek(
+        "trr",
+        "Bitte überweisen Sie den Betrag auf das Konto IBAN " +
+          iban +
+          " mit dem Verwendungszweck " +
+          namen +
+          ".",
+        dodatekTrr
+      );
+    });
+  }
+
+  if (gumbPocisti) {
+    gumbPocisti.addEventListener("click", () => {
+      besediloPolje.value = "";
+      izbranPredlogId = null;
+      resetirajDodatke();
+      oznaciIzbranega(null);
+      posodobiStanjeUrejevalnika();
+      besediloPolje.focus();
+    });
+  }
+
+  besediloPolje.addEventListener("input", () => {
+    skrijNapako();
+    posodobiStanjeUrejevalnika();
   });
 
-  inicializirajSkupinoPredlogov("placilo", {
-    seznam: document.getElementById("predlogi-placilo-seznam"),
-    gumbDodaj: document.getElementById("gumb-dodaj-predlog-placilo"),
-    novObrazec: document.getElementById("nov-predlog-placilo-obrazec"),
-    novoBesedilo: document.getElementById("nov-predlog-placilo-besedilo"),
-    gumbShrani: document.getElementById("gumb-shrani-predlog-placilo"),
-    gumbPreklici: document.getElementById("gumb-preklici-predlog-placilo"),
-    gumbUredi: document.getElementById("gumb-uredi-predlog-placilo"),
+  seznam.addEventListener("scroll", posodobiDrsnik);
+  window.addEventListener("resize", posodobiDrsnik);
+
+  obrazec.addEventListener("submit", (dogodek) => {
+    dogodek.preventDefault();
+    skrijNapako();
+    const sporocilo = besediloPolje.value.trim();
+    if (!sporocilo) {
+      gumbNaprej.disabled = true;
+      return;
+    }
+
+    sessionStorage.setItem(
+      KLJUC_SEJE_KORAK2_PODATKI,
+      JSON.stringify({
+        sporociloDolzniku: sporocilo,
+        izbranPredlogId,
+        dodatki: { ...dodatki },
+      })
+    );
+
+    window.location.href = "neplacila-posiljanje.html";
   });
+
+  // Obnovi morebiten osnutek iz 2. koraka (npr. po Nazaj s 3. koraka).
+  const osnutekKorak2Json = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
+  if (osnutekKorak2Json) {
+    try {
+      const osnutek = JSON.parse(osnutekKorak2Json);
+      if (osnutek.sporociloDolzniku) besediloPolje.value = osnutek.sporociloDolzniku;
+      if (osnutek.izbranPredlogId) izbranPredlogId = osnutek.izbranPredlogId;
+      if (osnutek.dodatki) {
+        dodatki.rok = Boolean(osnutek.dodatki.rok);
+        dodatki.obrocno = Boolean(osnutek.dodatki.obrocno);
+        dodatki.trr = Boolean(osnutek.dodatki.trr);
+        if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
+        if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
+        if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", String(dodatki.trr));
+      }
+    } catch (_napaka) {
+      // Pokvarjen osnutek - ignoriraj.
+    }
+  }
+
+  izrisiPredloge();
+  if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+  posodobiStanjeUrejevalnika();
+}
+
+/* ---------- Logika strani neplacila-posiljanje.html (3. korak - začasni stub) ---------- */
+
+function inicializirajPosiljanje() {
+  const obrazec = document.getElementById("obrazec-posiljanje");
+  const napaka = document.getElementById("splosna-napaka");
+  if (!obrazec) return;
+
+  const podatkiKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
+  const podatkiKorak2Json = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
+  if (!podatkiKorak1Json) {
+    window.location.href = "neplacila.html#obrazec";
+    return;
+  }
+  if (!podatkiKorak2Json) {
+    window.location.href = "neplacila-sporocilo.html";
+    return;
+  }
+
+  const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
+  const podatkiKorak2 = JSON.parse(podatkiKorak2Json);
+  const gumbShrani = document.getElementById("gumb-shrani-zadevo");
+
+  function pokaziNapako(besedilo, tehnicniPodatki) {
+    napaka.textContent = tehnicniPodatki ? besedilo + " (" + tehnicniPodatki + ")" : besedilo;
+    napaka.hidden = false;
+  }
 
   obrazec.addEventListener("submit", async (dogodek) => {
     dogodek.preventDefault();
-    skrijNapako();
-    gumbPoslji.disabled = true;
+    if (gumbShrani) gumbShrani.disabled = true;
 
     const { error } = await supabaseKlient.from("zadeve").insert({
       ime_dolznika: podatkiKorak1.imeDolznika,
@@ -1315,16 +1588,17 @@ function inicializirajSporociloDolzniku() {
       datum_zapadlosti: podatkiKorak1.datumZapadlosti,
       stevilka_racuna: podatkiKorak1.stevilkaRacuna,
       racun_datoteke_poti: podatkiKorak1.racunDatotekePoti,
-      sporocilo_dolzniku: besediloPolje.value.trim() || null,
+      sporocilo_dolzniku: podatkiKorak2.sporociloDolzniku || null,
     });
 
     if (error) {
-      gumbPoslji.disabled = false;
+      if (gumbShrani) gumbShrani.disabled = false;
       pokaziNapako("Zadeve ni bilo mogoče dodati.", error.message);
       return;
     }
 
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
     sessionStorage.setItem(KLJUC_SEJE_ZADEVA_DODANA, "1");
     window.location.href = "neplacila.html#seznam";
   });
@@ -1332,3 +1606,5 @@ function inicializirajSporociloDolzniku() {
 
 inicializirajNeplacila();
 inicializirajSporociloDolzniku();
+inicializirajPosiljanje();
+

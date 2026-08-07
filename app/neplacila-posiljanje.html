@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nastavi pošiljanje – Uspešni Jezek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Figtree:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260807-korak2" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#4d9494" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body class="stran--sporocilo">
+    <a class="korak2__nazaj" href="neplacila-sporocilo.html">← Nazaj</a>
+
+    <div class="korak2">
+      <header class="korak2__glava">
+        <p class="korak2__znamka">
+          <span class="korak2__znamka-ikona" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6"/><path d="M16 12H8"/><path d="M10 16H8"/></svg>
+          </span>
+          Terjatve
+        </p>
+        <p class="korak2__osnutek">Osnutek shranjen</p>
+      </header>
+
+      <div
+        class="korak2__koraki"
+        role="progressbar"
+        aria-valuemin="1"
+        aria-valuemax="3"
+        aria-valuenow="3"
+        aria-label="Korak 3 od 3"
+      >
+        <span class="korak2__koraki-crta korak2__koraki-crta--aktivna"></span>
+        <span class="korak2__koraki-crta korak2__koraki-crta--aktivna"></span>
+        <span class="korak2__koraki-crta korak2__koraki-crta--aktivna"></span>
+      </div>
+
+      <main class="korak2__vsebina">
+        <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
+
+        <div class="korak2__naslov-vrstica">
+          <div>
+            <h1 class="korak2__naslov">Nastavi pošiljanje</h1>
+            <p class="korak2__podnaslov">
+              Nastavitev časa in načina samodejnega pošiljanja SMS-sporočil pride v naslednji različici.
+            </p>
+          </div>
+          <span class="korak2__oznaka">3 od 3</span>
+        </div>
+
+        <p class="korak2__info" style="display: block; margin-bottom: 24px;">
+          Za zdaj lahko zadevo shranite z že sestavljenim sporočilom. Urnik pošiljanja bomo dodali kmalu.
+        </p>
+
+        <form id="obrazec-posiljanje">
+          <button type="submit" class="korak2__gumb-naprej" id="gumb-shrani-zadevo">
+            Shrani zadevo
+          </button>
+        </form>
+      </main>
+    </div>
+
+    <script src="app.js?v=20260807-korak2"></script>
+  </body>
+</html>
