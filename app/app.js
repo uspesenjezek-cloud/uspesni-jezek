@@ -1323,10 +1323,13 @@ function inicializirajSporociloDolzniku() {
   const modalShrani = document.getElementById("predogled-shrani");
   const modalZapri = document.getElementById("predogled-zapri");
   const modalBackdrop = document.getElementById("predogled-backdrop");
+  const modalStevilkaOvoj = document.getElementById("predogled-stevilka");
+  const modalStevilkeMreza = document.getElementById("predogled-stevilke-mreza");
 
   const NAJVEC_ZNAKOV = 1000;
   let izbranPredlogId = null;
   let odprtPredlog = null;
+  let modalIzbranaStevilka = 1;
   const dodatki = { rok: false, obrocno: false, trr: false };
   const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
   let casovnikOsnutka = null;
@@ -1652,6 +1655,38 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
+  function privzetaStevilkaZaNovPredlog() {
+    const zasedene = new Set(
+      predlogi.map((p) => Number(nastavitvePredlogov.stevilke[p.id]) || p.stevilka)
+    );
+    return najdiProstoStevilko(zasedene, 1) || 1;
+  }
+
+  function posodobiModalStevilkeUI() {
+    if (!modalStevilkeMreza) return;
+    modalStevilkeMreza.querySelectorAll(".korak2-modal__stevilka-izbira").forEach((gumb) => {
+      const n = Number(gumb.dataset.stevilka);
+      gumb.setAttribute("aria-selected", n === modalIzbranaStevilka ? "true" : "false");
+    });
+  }
+
+  function pripraviModalStevilke() {
+    if (!modalStevilkeMreza || modalStevilkeMreza.childElementCount > 0) return;
+    for (let n = 1; n <= 9; n++) {
+      const gumb = document.createElement("button");
+      gumb.type = "button";
+      gumb.className = "korak2-modal__stevilka-izbira";
+      gumb.dataset.stevilka = String(n);
+      gumb.setAttribute("role", "option");
+      gumb.textContent = String(n);
+      gumb.addEventListener("click", () => {
+        modalIzbranaStevilka = n;
+        posodobiModalStevilkeUI();
+      });
+      modalStevilkeMreza.appendChild(gumb);
+    }
+  }
+
   function zapriUrediModal() {
     if (!modal) return;
     odstraniPritrditevUrediModala();
@@ -1660,6 +1695,7 @@ function inicializirajSporociloDolzniku() {
     if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
     if (modalIzbrisi) modalIzbrisi.hidden = false;
+    if (modalStevilkaOvoj) modalStevilkaOvoj.hidden = true;
   }
 
   function odpriUrediModal(predlog) {
@@ -1672,6 +1708,16 @@ function inicializirajSporociloDolzniku() {
         predlog.jeNov || predlog.jeMoj ? "Shrani" : "Shrani kot nov predlog";
     }
     if (modalIzbrisi) modalIzbrisi.hidden = !!predlog.jeNov;
+
+    // Izbira številke pri novem predlogu (tudi pri »Shrani kot nov predlog«).
+    const prikaziStevilko = !!(predlog.jeNov || !predlog.jeMoj);
+    if (modalStevilkaOvoj) modalStevilkaOvoj.hidden = !prikaziStevilko;
+    if (prikaziStevilko) {
+      pripraviModalStevilke();
+      modalIzbranaStevilka = privzetaStevilkaZaNovPredlog();
+      posodobiModalStevilkeUI();
+    }
+
     modal.hidden = false;
     pritrdiUrediModalNaVrh();
     // Fokus → tipkovnica; po kratkem zamiku ponovno poravnaj (iOS).
@@ -1737,7 +1783,7 @@ function inicializirajSporociloDolzniku() {
       mojiPredlogi = [novPredlog, ...mojiPredlogi];
       shraniMojePredlogeVLocalStorage();
       sestaviSeznamPredlogov();
-      nastaviStevilkoPredloga(novPredlog.id, 1);
+      nastaviStevilkoPredloga(novPredlog.id, modalIzbranaStevilka);
       zapriUrediModal();
       return;
     }

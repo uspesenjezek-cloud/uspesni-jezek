@@ -3011,6 +3011,50 @@ body.stran--samo-seznam #obrazec {
   margin-top: 14px;
 }
 
+.korak2-modal__stevilka {
+  margin: 0 0 6px;
+}
+
+.korak2-modal__stevilka[hidden] {
+  display: none;
+}
+
+.korak2-modal__stevilke-mreza {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.korak2-modal__stevilka-izbira {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.korak2-modal__stevilka-izbira[aria-selected="true"] {
+  border-color: var(--teal-dark, #1f6b5c);
+  background: var(--teal-dark, #1f6b5c);
+  color: #fff;
+}
+
+.korak2-modal__stevilka-izbira:focus-visible {
+  outline: 2px solid var(--teal-dark, #1f6b5c);
+  outline-offset: 2px;
+}
+
 .korak2-modal__zapri {
   flex-shrink: 0;
   width: 30px;
