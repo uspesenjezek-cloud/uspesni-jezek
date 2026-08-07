@@ -585,9 +585,10 @@ a {
 
 /* ========== PRILOGA RAČUNA (slika/PDF, glej "Priloga računa" v obrazcu) ==========
    Dva gumba drug ob drugem ("Naloži datoteko" odpre navadnega izbirnika
-   datotek, "Slikaj" na mobilnem prek atributa capture takoj odpre
-   fotoaparat) - oba sta <label>, ki ovija skrit <input type="file">, zato
-   za odpiranje ni potreben noben JS. Sama datoteka se naloži v Supabase
+   datotek, "Slikaj" na mobilnem prek atributa capture="environment" takoj
+   odpre zadnjo (glavno) kamero) - oba sta <label>, ki ovija skrit
+   <input type="file">, zato za odpiranje ni potreben noben JS. Sama
+   datoteka se naloži v Supabase
    Storage šele ob oddaji obrazca (glej pokaziIzbranoPrilogo v app.js). */
 .zadeva-obrazec__priloga-opis {
   margin: -0.15rem 0 0;
