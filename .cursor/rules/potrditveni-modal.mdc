@@ -1,0 +1,46 @@
+---
+description: Vedno uporabi skupni stiliziran potrditveni modal namesto confirm/alert
+alwaysApply: true
+---
+
+# Potrditvena in opozorilna okna
+
+Za **vsa** potrditvena vprašanja in opozorila v aplikaciji:
+
+- **Nikoli** ne uporabljaj `window.confirm()`, `window.alert()` ali `window.prompt()`.
+- **Vedno** uporabi skupno funkcijo `potrdiVprasanje(...)` iz `app/app.js`.
+
+## Primeri
+
+```js
+// Potrditev (turkizna)
+const ok = await potrdiVprasanje({
+  naslov: "Zamenjam podatke?",
+  opis: "Kratek opis.",
+  potrdiBesedilo: "Zamenjaj",
+  stil: "primary",
+});
+
+// Nevarno dejanje (rdeča)
+const ok = await potrdiVprasanje({
+  naslov: "Odstranim predlogo?",
+  opis: "»Ime«",
+  potrdiBesedilo: "Odstrani",
+  stil: "nevarno",
+});
+
+// Samo opozorilo (en gumb)
+await potrdiVprasanje({
+  naslov: "Ni povezave",
+  opis: "Poskusite znova.",
+  potrdiBesedilo: "V redu",
+  samoEnGumb: true,
+  stil: "primary",
+});
+```
+
+## Stil
+
+- Isti videz kot obstoječi modal (razredi `.osnutek-modal*`, design tokens, zaobljeni robovi).
+- Besedilo naj bo kratko in minimalistično.
+- Ne dodajaj novega HTML modala na vsako stran – `#uj-potrdi-modal` se vstavi iz JS.
