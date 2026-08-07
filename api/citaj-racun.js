@@ -34,17 +34,29 @@ const DOVOLJENI_MEDIA_TIPI = [
 ];
 
 const NAVODILO_ZA_AI =
-  'Iz priloženega računa/dokumenta izlušči SAMO naslednje podatke: ' +
-  'naziv stranke ali podjetja oz. ime in priimek ("naziv"), ' +
-  'skupni znesek za plačilo kot število brez valute in brez ločil tisočic, z decimalno piko ("znesek"), ' +
-  'datum izdaje računa v obliki LLLL-MM-DD ("datum"), ' +
-  'rok plačila / valuta računa (Zahlungsziel, Fälligkeitsdatum, Due date) v obliki LLLL-MM-DD ("rokPlacila"), ' +
-  'številka računa (Rechnungsnummer, Invoice number, št. računa) ("stevilkaRacuna"), ' +
-  'kratek opis opravljenega dela ali blaga ("opis"), ' +
-  'telefonska številka stranke ali podjetja, če je navedena na dokumentu ("telefon"), ' +
-  'email naslov stranke ali podjetja, če je naveden na dokumentu ("email"). ' +
-  'Če katerega od teh podatkov na dokumentu ni ali ni čitljiv, nastavi to polje na null - ' +
-  'NIKOLI si ne izmišljuj ali ne ugibaj vrednosti. ' +
+  'Iz priloženega računa/dokumenta izlušči SAMO naslednje podatke. ' +
+  'POMEMBNO: pred izpolnjevanjem JSON-a PREGLEJ CELOTEN dokument - glavo (zgoraj), ' +
+  'telo (sredina) in nogo/opombe (spodaj). Ne sklepaj, da podatka ni, če si preveril ' +
+  'samo en očiten del dokumenta.\n\n' +
+  'Polja:\n' +
+  '- "naziv": naziv stranke ali podjetja oz. ime in priimek (prejemnik/dolžnik).\n' +
+  '- "znesek": skupni znesek za plačilo kot število brez valute in brez ločil tisočic, z decimalno piko.\n' +
+  '- "datum": datum izdaje računa v obliki LLLL-MM-DD.\n' +
+  '- "rokPlacila": rok plačila / valuta (Zahlungsziel, Fälligkeitsdatum, Due date, Rok plačila) v obliki LLLL-MM-DD.\n' +
+  '- "stevilkaRacuna": številka računa. Tipične oznake: "Št. računa", "Račun št.", "Številka računa", ' +
+  '"Invoice no.", "Invoice number", "Rechnungsnummer", "Rechnung Nr.", "Nr.", "Belegnr.". ' +
+  'Vrednost je pogosto alfanumerična (npr. "2026-0847", "R-12345", "RE2026/12") - prepiši jo TOČNO, ' +
+  'vključno z vezaji/poševnicami. Išči v glavi in blizu naslova dokumenta, pa tudi v telesu.\n' +
+  '- "opis": kratek opis opravljenega dela ali blaga.\n' +
+  '- "telefon": telefonska številka, če je navedena (izdajatelj ali prejemnik).\n' +
+  '- "email": e-poštni naslov v obliki ime@domena (npr. info@firma.si, name@firma.de). ' +
+  'Lahko je kjerkoli na dokumentu (izdajatelj ALI prejemnik) - v glavi, podpisu, nogi, ' +
+  'kontaktnem bloku ali opombah. POZORNO poišči znak @ po CELOTNEM dokumentu. ' +
+  'Če najdeš več e-poštnih naslovov, izberi tistega, ki najbolj verjetno pripada stranki/prejemniku; ' +
+  'če ni jasno, vrni prvega čitljivega.\n\n' +
+  'SELF-CHECK pred odgovorom: preden nastaviš "stevilkaRacuna" ali "email" (ali katerokoli drugo polje) ' +
+  'na null, še ENKRAT preglej celoten dokument. null uporabi SAMO, če podatka res ni ali ni čitljiv - ' +
+  'NIKOLI si ne izmišljuj ali ne ugibaj vrednosti.\n\n' +
   'Vrni SAMO veljaven JSON objekt s točno temi osmimi ključi ' +
   '(naziv, znesek, datum, rokPlacila, stevilkaRacuna, opis, telefon, email), ' +
   'brez dodatnega besedila pred ali za njim, brez oznak kode (```).';
@@ -99,6 +111,8 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: 1024,
+        // temperature 0: bolj deterministična ekstrakcija (manj "preskoči" vidne vrednosti).
+        temperature: 0,
         // Claude Sonnet 5 ima "thinking" privzeto vklopljen, thinking
         // tokeni pa se štejejo v max_tokens - pri tako majhnem max_tokens
         // bi lahko thinking porabil celotno rezervo, še preden model
