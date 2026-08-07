@@ -479,18 +479,19 @@ function inicializirajNeplacila() {
       polje.value = podatki.opis;
       oznaciPoljeKotAiIzpolnjeno(polje);
     }
-      if (podatki.telefon) {
-        const polje = document.getElementById("telefon-dolznika");
-        polje.value = podatki.telefon;
-        oznaciPoljeKotAiIzpolnjeno(polje);
-      }
-      if (podatki.email) {
-        const polje = document.getElementById("email-dolznika");
-        polje.value = podatki.email;
-        oznaciPoljeKotAiIzpolnjeno(polje);
-      }
-    
-  
+
+    if (podatki.telefon) {
+      const polje = document.getElementById("telefon-dolznika");
+      polje.value = podatki.telefon;
+      oznaciPoljeKotAiIzpolnjeno(polje);
+    }
+
+    if (podatki.email) {
+      const polje = document.getElementById("email-dolznika");
+      polje.value = podatki.email;
+      oznaciPoljeKotAiIzpolnjeno(polje);
+    }
+  }
 
   async function obdelajRacunZAi(datoteka) {
     pokaziAiZajemPredogled(datoteka);
