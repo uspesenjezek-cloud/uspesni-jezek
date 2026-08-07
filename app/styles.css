@@ -2608,12 +2608,60 @@ body.stran--samo-seznam #obrazec {
   display: block;
 }
 
+/* Predogled = obrnjena L (┐): vodoravna strehica + navpični trak ob desnem robu. */
 .predlog-gumb--predogled {
-  border: 1px solid var(--border);
-  background: var(--surface-soft);
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 50px;
+  min-height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--teal-dark);
-  /* Zgornji desni kot sledi zaobljenemu robu kartice; ostali koti ostanejo običajni. */
-  border-radius: 10px 999px 10px 10px;
+  overflow: visible;
+}
+
+.predlog-gumb--predogled__vodoravno {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  /* Zgornji desni kot sledi zaobljenosti kartice (14px). */
+  border-radius: 10px 13px 4px 10px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.predlog-gumb--predogled__navpicno {
+  position: absolute;
+  top: 14px;
+  right: 0;
+  bottom: 0;
+  width: 15px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 10px 6px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.predlog-gumb--predogled__vsebina {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 30px;
+  padding: 0 14px 0 4px;
+  box-sizing: border-box;
 }
 
 .predlog-gumb--uporabi {

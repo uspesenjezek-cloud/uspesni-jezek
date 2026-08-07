@@ -1590,8 +1590,11 @@ function inicializirajSporociloDolzniku() {
         '<p class="predlog-kartica__opis"></p>' +
         '<div class="predlog-kartica__akcije">' +
         '<button type="button" class="predlog-gumb predlog-gumb--predogled">' +
+        '<span class="predlog-gumb--predogled__vodoravno" aria-hidden="true"></span>' +
+        '<span class="predlog-gumb--predogled__navpicno" aria-hidden="true"></span>' +
+        '<span class="predlog-gumb--predogled__vsebina">' +
         ikonaOcesa +
-        "Predogled</button>" +
+        "Predogled</span></button>" +
         '<button type="button" class="predlog-gumb predlog-gumb--uporabi" aria-pressed="false" data-predlog-id="' +
         predlog.id +
         '">' +
