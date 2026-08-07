@@ -5,3 +5,4 @@ app/config.js
 # Sistemske datoteke
 .DS_Store
 Thumbs.db
+ngrok.exe
