@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-ai-zajem" />
+    <link rel="stylesheet" href="styles.css?v=20260807-koraki-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -39,27 +39,6 @@
       </p>
 
       <section class="dodaj-zadevo" id="obrazec" aria-label="Dodaj novo zadevo">
-        <div class="koraki-zavihki" role="tablist" aria-label="Koraki dodajanja zadeve">
-          <button
-            type="button"
-            class="koraki-zavihek koraki-zavihek--aktiven"
-            id="zavihek-korak-1"
-            role="tab"
-            aria-selected="true"
-          >
-            1 · Vnos dolga
-          </button>
-          <button
-            type="button"
-            class="koraki-zavihek"
-            id="zavihek-korak-2"
-            role="tab"
-            aria-selected="false"
-          >
-            2 · Sestavi opomin
-          </button>
-        </div>
-
         <div class="obrazec-kartica">
           <div class="obrazec-kartica__glava">
             <p class="obrazec-kartica__oznaka">
@@ -71,8 +50,19 @@
             <p class="obrazec-kartica__osnutek">Osnutek shranjen</p>
           </div>
 
-          <div class="obrazec-napredek" aria-hidden="true">
-            <div class="obrazec-napredek__crta" style="width: 70%"></div>
+          <div class="workflow-progress" aria-label="Napredek postopka">
+            <div class="workflow-progress__step is-current" aria-current="step">
+              <span class="workflow-progress__label">Vnos dolžnika</span>
+              <span class="workflow-progress__line"></span>
+            </div>
+            <div class="workflow-progress__step is-upcoming">
+              <span class="workflow-progress__label">Vnos sporočila</span>
+              <span class="workflow-progress__line"></span>
+            </div>
+            <div class="workflow-progress__step is-upcoming">
+              <span class="workflow-progress__label">Nastavi pošiljanje</span>
+              <span class="workflow-progress__line"></span>
+            </div>
           </div>
 
           <div class="obrazec-kartica__vsebina">
@@ -84,7 +74,7 @@
                     <h2 class="ai-zajem__naslov" id="ai-zajem-naslov">Naloži račun</h2>
                     <p class="ai-zajem__opis">AI samodejno prebere in izpolni polja spodaj - preverite jih pred nadaljevanjem.</p>
                   </div>
-                  <span class="ai-zajem__korak">1 od 2</span>
+                  <span class="ai-zajem__korak">1 od 3</span>
                 </div>
 
                 <div class="priloga-akcije" id="ai-zajem-akcije">

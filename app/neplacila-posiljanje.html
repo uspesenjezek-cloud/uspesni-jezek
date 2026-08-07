@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Figtree:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-korak2" />
+    <link rel="stylesheet" href="styles.css?v=20260807-koraki-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#4d9494" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -33,17 +33,19 @@
         <p class="korak2__osnutek">Osnutek shranjen</p>
       </header>
 
-      <div
-        class="korak2__koraki"
-        role="progressbar"
-        aria-valuemin="1"
-        aria-valuemax="3"
-        aria-valuenow="3"
-        aria-label="Korak 3 od 3"
-      >
-        <span class="korak2__koraki-crta korak2__koraki-crta--aktivna"></span>
-        <span class="korak2__koraki-crta korak2__koraki-crta--aktivna"></span>
-        <span class="korak2__koraki-crta korak2__koraki-crta--aktivna"></span>
+      <div class="workflow-progress" aria-label="Napredek postopka">
+        <div class="workflow-progress__step is-complete">
+          <span class="workflow-progress__label">Vnos dolžnika</span>
+          <span class="workflow-progress__line"></span>
+        </div>
+        <div class="workflow-progress__step is-complete">
+          <span class="workflow-progress__label">Vnos sporočila</span>
+          <span class="workflow-progress__line"></span>
+        </div>
+        <div class="workflow-progress__step is-current" aria-current="step">
+          <span class="workflow-progress__label">Nastavi pošiljanje</span>
+          <span class="workflow-progress__line"></span>
+        </div>
       </div>
 
       <main class="korak2__vsebina">
@@ -71,6 +73,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=20260807-korak2"></script>
+    <script src="app.js?v=20260807-koraki-v2"></script>
   </body>
 </html>

@@ -112,7 +112,6 @@ function inicializirajNeplacila() {
   const lightbox = document.getElementById("lightbox");
   const lightboxSlika = document.getElementById("lightbox-slika");
   const lightboxZapri = document.getElementById("lightbox-zapri");
-  const zavihekKorak2 = document.getElementById("zavihek-korak-2");
   let casovnikSporocilaSkritje = null;
   // Datoteke (slike/PDF-ji), ki jih je obrtnik izbral za priloge k zadevi -
   // dejansko se naložijo v Supabase Storage šele ob oddaji obrazca.
@@ -1021,19 +1020,8 @@ function inicializirajNeplacila() {
     window.location.href = "neplacila-sporocilo.html";
   });
 
-  /* Zavihek "2 · Sestavi opomin" je samo bližnjica do gumba "Naprej" na dnu
-     obrazca - requestSubmit() sproži IST "submit" dogodek zgoraj (torej
-     enako preverbo obveznih polj in enak potek), da za klik na zavihek ni
-     treba podvajati logike. */
-  if (zavihekKorak2) {
-    zavihekKorak2.addEventListener("click", () => {
-      obrazec.requestSubmit();
-    });
-  }
-
-  /* Če se obrtnik pravkar vrnil iz 2. koraka po uspešno dodani zadevi
-     (glej inicializirajSporociloDolzniku), prikaži isto potrditveno
-     sporočilo kot prej, ko se je zadeva dodajala neposredno tu. */
+  /* Če se obrtnik pravkar vrnil iz 3. koraka po uspešno dodani zadevi,
+     prikaži potrditveno sporočilo. */
   if (sessionStorage.getItem(KLJUC_SEJE_ZADEVA_DODANA)) {
     sessionStorage.removeItem(KLJUC_SEJE_ZADEVA_DODANA);
     pokaziUspesnoDodano();

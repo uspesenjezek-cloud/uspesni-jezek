@@ -38,10 +38,12 @@ const NAVODILO_ZA_AI =
   'naziv stranke ali podjetja oz. ime in priimek ("naziv"), ' +
   'skupni znesek za plačilo kot število brez valute in brez ločil tisočic, z decimalno piko ("znesek"), ' +
   'datum izdaje računa v obliki LLLL-MM-DD ("datum"), ' +
-  'kratek opis opravljenega dela ali blaga ("opis"). ' +
+  'kratek opis opravljenega dela ali blaga ("opis"), ' +
+  'telefonska številka stranke ali podjetja, če je navedena na dokumentu ("telefon"), ' +
+  'email naslov stranke ali podjetja, če je naveden na dokumentu ("email"). ' +
   'Če katerega od teh podatkov na dokumentu ni ali ni čitljiv, nastavi to polje na null - ' +
   'NIKOLI si ne izmišljuj ali ne ugibaj vrednosti. ' +
-  'Vrni SAMO veljaven JSON objekt s točno temi štirimi ključi (naziv, znesek, datum, opis), ' +
+  'Vrni SAMO veljaven JSON objekt s točno temi šestimi ključi (naziv, znesek, datum, opis, telefon, email), ' +
   'brez dodatnega besedila pred ali za njim, brez oznak kode (```).';
 
 module.exports = async function handler(req, res) {
@@ -174,6 +176,8 @@ module.exports = async function handler(req, res) {
             : null,
         datum: typeof razclenjenoJson.datum === "string" ? razclenjenoJson.datum.trim() : null,
         opis: typeof razclenjenoJson.opis === "string" ? razclenjenoJson.opis.trim() : null,
+        telefon: typeof razclenjenoJson.telefon === "string" ? razclenjenoJson.telefon.trim() : null,
+      email: typeof razclenjenoJson.email === "string" ? razclenjenoJson.email.trim() : null,
       },
     });
   } catch (napaka) {
