@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-vec-prilog" />
+    <link rel="stylesheet" href="styles.css?v=20260808-stepper-enovrsticni" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -57,7 +57,7 @@
 
       <section class="dodaj-zadevo" id="obrazec" aria-label="Dodaj novo zadevo">
         <div class="obrazec-kartica">
-          <nav class="debt-stepper debt-stepper--de" data-koraki-postopek aria-label="Koraki postopka">
+          <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
             <a
               href="neplacila.html#obrazec"
               class="debt-step debt-step--active"
@@ -65,16 +65,11 @@
               aria-current="step"
               aria-label="1 od 3: Vnos dolžnika – trenutno"
             >
-              <div class="debt-step__progress">
+              <span class="debt-step__content">
                 <span class="debt-step__number" aria-hidden="true">1</span>
-                <span class="debt-step__line" aria-hidden="true"></span>
-              </div>
-              <div class="debt-step__label">
-                <span class="debt-step__status" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                </span>
-                <span class="debt-step__text">Dolžnik</span>
-              </div>
+                <span class="debt-step__label">Dolžnik</span>
+              </span>
+              <span class="debt-step__line" aria-hidden="true"></span>
             </a>
             <a
               href="neplacila-sporocilo.html"
@@ -82,16 +77,11 @@
               data-korak="2"
               aria-label="2 od 3: Sporočilo – še ni začeto"
             >
-              <div class="debt-step__progress">
+              <span class="debt-step__content">
                 <span class="debt-step__number" aria-hidden="true">2</span>
-                <span class="debt-step__line" aria-hidden="true"></span>
-              </div>
-              <div class="debt-step__label">
-                <span class="debt-step__status" aria-hidden="true">
-                  <span class="debt-step__dot"></span>
-                </span>
-                <span class="debt-step__text">Sporočilo</span>
-              </div>
+                <span class="debt-step__label">Sporočilo</span>
+              </span>
+              <span class="debt-step__line" aria-hidden="true"></span>
             </a>
             <a
               href="neplacila-posiljanje.html"
@@ -99,16 +89,11 @@
               data-korak="3"
               aria-label="3 od 3: Pošiljanje – še ni začeto"
             >
-              <div class="debt-step__progress">
+              <span class="debt-step__content">
                 <span class="debt-step__number" aria-hidden="true">3</span>
-                <span class="debt-step__line" aria-hidden="true"></span>
-              </div>
-              <div class="debt-step__label">
-                <span class="debt-step__status" aria-hidden="true">
-                  <span class="debt-step__dot"></span>
-                </span>
-                <span class="debt-step__text">Pošiljanje</span>
-              </div>
+                <span class="debt-step__label">Pošiljanje</span>
+              </span>
+              <span class="debt-step__line" aria-hidden="true"></span>
             </a>
           </nav>
 
@@ -496,6 +481,6 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js?v=20260808-vec-prilog"></script>
+    <script src="app.js?v=20260808-stepper-enovrsticni"></script>
   </body>
 </html>

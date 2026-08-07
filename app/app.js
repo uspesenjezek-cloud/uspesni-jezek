@@ -77,38 +77,22 @@ const KORAKI_DE_STEPPERja = [
 ];
 
 function posodobiDebtStepMarker(el, stanje, stevilka) {
-  const status = el.querySelector(".debt-step__status");
-  if (status) {
-    // Številke v .debt-step__number ostanejo; status ikona je samo dekoracija.
-    if (stanje === "complete") {
-      status.innerHTML = SVG_KORAK_KLJUKICA;
-    } else if (stanje === "active") {
-      status.innerHTML = SVG_KORAK_PUSICA;
-    } else {
-      status.innerHTML = '<span class="debt-step__dot"></span>';
-    }
-    const meta = KORAKI_DE_STEPPERja[stevilka - 1];
-    if (meta) {
-      const statusBesedilo =
-        stanje === "complete"
-          ? "zaključeno"
-          : stanje === "active"
-            ? "trenutno"
-            : "še ni začeto";
-      el.setAttribute(
-        "aria-label",
-        stevilka + " od 3: " + meta.accessibleLabel + " – " + statusBesedilo
-      );
-    }
-    return;
-  }
+  // Številke vedno ostanejo številke (brez puščic, pik ali kljukic).
+  const stevilkaEl = el.querySelector(".debt-step__number");
+  if (stevilkaEl) stevilkaEl.textContent = String(stevilka);
 
-  const marker = el.querySelector(".debt-step__marker");
-  if (!marker) return;
-  if (stanje === "complete") {
-    marker.innerHTML = SVG_KORAK_KLJUKICA;
-  } else {
-    marker.textContent = String(stevilka);
+  const meta = KORAKI_DE_STEPPERja[stevilka - 1];
+  if (meta) {
+    const statusBesedilo =
+      stanje === "complete"
+        ? "zaključeno"
+        : stanje === "active"
+          ? "trenutno"
+          : "še ni začeto";
+    el.setAttribute(
+      "aria-label",
+      stevilka + " od 3: " + meta.accessibleLabel + " – " + statusBesedilo
+    );
   }
 }
 
