@@ -1367,6 +1367,10 @@ function inicializirajSporociloDolzniku() {
   function posodobiDrsnik() {
     if (!okvir || !indikator || !seznam) return;
     const maxScroll = seznam.scrollHeight - seznam.clientHeight;
+    const proportionalHeight = Math.round(
+      (seznam.clientHeight / Math.max(seznam.scrollHeight, 1)) * seznam.clientHeight
+    );
+    indikator.style.height = Math.max(60, proportionalHeight) + "px";
     const travel = Math.max(0, seznam.clientHeight - indikator.offsetHeight - 2);
     const ratio = maxScroll > 0 ? seznam.scrollTop / maxScroll : 0;
     indikator.style.transform = "translateY(" + Math.round(travel * ratio) + "px)";
@@ -1416,10 +1420,6 @@ function inicializirajSporociloDolzniku() {
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
   }
 
-  function zacetekBesedila(besedilo) {
-    return besedilo.replace(/\s+/g, " ").trim();
-  }
-
   function zapriPredogled() {
     if (!modal) return;
     modal.hidden = true;
@@ -1463,10 +1463,8 @@ function inicializirajSporociloDolzniku() {
         '" aria-hidden="true">' +
         svgIkonaPredloga(predlog.ikona) +
         "</span>" +
-        '<div class="predlog-kartica__besedilo">' +
         '<p class="predlog-kartica__naslov"></p>' +
         '<p class="predlog-kartica__opis"></p>' +
-        "</div>" +
         '<div class="predlog-kartica__akcije">' +
         '<button type="button" class="predlog-gumb predlog-gumb--predogled">' +
         ikonaOcesa +
@@ -1479,7 +1477,8 @@ function inicializirajSporociloDolzniku() {
         "</div>";
 
       kartica.querySelector(".predlog-kartica__naslov").textContent = predlog.naslov;
-      kartica.querySelector(".predlog-kartica__opis").textContent = zacetekBesedila(predlog.besedilo);
+      // Celotno besedilo predloga - kartica se dinamično podaljša.
+      kartica.querySelector(".predlog-kartica__opis").textContent = predlog.besedilo;
 
       kartica.querySelector(".predlog-gumb--predogled").addEventListener("click", () => {
         odpriPredogled(predlog);
@@ -1570,6 +1569,11 @@ function inicializirajSporociloDolzniku() {
 
   seznam.addEventListener("scroll", posodobiDrsnik);
   window.addEventListener("resize", posodobiDrsnik);
+  if (typeof ResizeObserver !== "undefined") {
+    const opazovalec = new ResizeObserver(() => posodobiDrsnik());
+    opazovalec.observe(seznam);
+    if (okvir) opazovalec.observe(okvir);
+  }
 
   obrazec.addEventListener("submit", (dogodek) => {
     dogodek.preventDefault();
