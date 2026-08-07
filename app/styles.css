@@ -2452,7 +2452,9 @@ body.stran--samo-seznam #obrazec {
   border: 0;
   border-radius: 0;
   background: transparent;
-  overflow: hidden;
+  /* visible: popover ne sme biti odrezan ob robu okvirja (mobilno). */
+  overflow: visible;
+  z-index: 2;
 }
 
 .stran--sporocilo .predlogi-okvir__vsebina {
@@ -2467,6 +2469,11 @@ body.stran--samo-seznam #obrazec {
   overscroll-behavior: contain;
   scroll-snap-type: y proximity;
   background: transparent;
+}
+
+/* Med odprtim popoverjem ne režemo vsebine (mobilno: popover ne izgine za robom). */
+.stran--sporocilo .predlogi-okvir__vsebina.predlogi-okvir__vsebina--popover-odprt {
+  overflow: visible;
 }
 
 .stran--sporocilo .predlogi-okvir__vsebina::-webkit-scrollbar {
@@ -2519,6 +2526,7 @@ body.stran--samo-seznam #obrazec {
   scroll-snap-align: start;
   box-sizing: border-box;
   overflow: visible;
+  z-index: 1;
 }
 
 .predlog-kartica--izbrana {
@@ -2526,12 +2534,17 @@ body.stran--samo-seznam #obrazec {
   background: var(--teal-pale);
 }
 
+/* Odprta kartica mora biti nad sosednjimi (sicer popover gre "pod" naslednje kartice). */
+.predlog-kartica--popover-odprt {
+  z-index: 40;
+}
+
 .predlog-kartica__stevilka-ovoj {
   grid-column: 1;
   grid-row: 1;
   position: relative;
   align-self: start;
-  z-index: 3;
+  z-index: 5;
 }
 
 .predlog-kartica__stevilka {
@@ -2568,13 +2581,16 @@ body.stran--samo-seznam #obrazec {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 6;
+  z-index: 50;
   width: max-content;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--white);
-  box-shadow: 0 8px 22px rgba(28, 45, 42, 0.14);
+  /* Močnejša senca – jasno ločen od kartic pod/za njim. */
+  box-shadow:
+    0 2px 6px rgba(28, 45, 42, 0.08),
+    0 12px 28px rgba(28, 45, 42, 0.22);
 }
 
 .predlog-kartica__stevilke-izbirnik[hidden] {

@@ -1540,6 +1540,10 @@ function inicializirajSporociloDolzniku() {
     seznam.querySelectorAll(".predlog-kartica__stevilka").forEach((gumb) => {
       gumb.setAttribute("aria-expanded", "false");
     });
+    seznam.querySelectorAll(".predlog-kartica--popover-odprt").forEach((kartica) => {
+      kartica.classList.remove("predlog-kartica--popover-odprt");
+    });
+    seznam.classList.remove("predlogi-okvir__vsebina--popover-odprt");
   }
 
   function nastaviStevilkoPredloga(predlogId, novaStevilka) {
@@ -1793,6 +1797,8 @@ function inicializirajSporociloDolzniku() {
         if (!jeOdprt) {
           izbirnik.hidden = false;
           gumbStevilke.setAttribute("aria-expanded", "true");
+          kartica.classList.add("predlog-kartica--popover-odprt");
+          seznam.classList.add("predlogi-okvir__vsebina--popover-odprt");
         }
       });
 
