@@ -78,6 +78,42 @@ function posodobiDebtStepMarker(el, stanje, stevilka) {
   }
 }
 
+/* Modal »Izbriši osnutek« (koraka 2 in 3). */
+function inicializirajIzbrisOsnutka() {
+  const gumb = document.getElementById("gumb-izbrisi-osnutek");
+  const modal = document.getElementById("osnutek-modal");
+  if (!gumb || !modal) return;
+
+  const backdrop = document.getElementById("osnutek-modal-backdrop");
+  const zapri = document.getElementById("osnutek-modal-zapri");
+  const preklici = document.getElementById("osnutek-modal-preklici");
+  const potrdi = document.getElementById("osnutek-modal-potrdi");
+
+  function odpriModal() {
+    modal.hidden = false;
+    if (preklici) preklici.focus();
+  }
+
+  function zapriModal() {
+    modal.hidden = true;
+  }
+
+  function izbrisiOsnutek() {
+    sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    window.location.href = "neplacila.html#seznam";
+  }
+
+  gumb.addEventListener("click", odpriModal);
+  if (backdrop) backdrop.addEventListener("click", zapriModal);
+  if (zapri) zapri.addEventListener("click", zapriModal);
+  if (preklici) preklici.addEventListener("click", zapriModal);
+  if (potrdi) potrdi.addEventListener("click", izbrisiOsnutek);
+  document.addEventListener("keydown", (dogodek) => {
+    if (dogodek.key === "Escape" && !modal.hidden) zapriModal();
+  });
+}
+
 /* Oznaci korake (current/complete/upcoming) in omogoči klik na že dosežene. */
 function inicializirajKorakePostopka(trenutniKorak) {
   const vsebnik = document.querySelector("[data-koraki-postopek]");
@@ -1423,6 +1459,7 @@ function inicializirajSporociloDolzniku() {
   }
 
   inicializirajKorakePostopka(2);
+  inicializirajIzbrisOsnutka();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const vgrajeniPredlogi = sestaviPredlogeSporocil(podatkiKorak1);
@@ -2233,6 +2270,7 @@ function inicializirajPosiljanje() {
   }
 
   inicializirajKorakePostopka(3);
+  inicializirajIzbrisOsnutka();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const podatkiKorak2 = JSON.parse(podatkiKorak2Json);
