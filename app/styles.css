@@ -4,18 +4,39 @@
    Če spremeniš barve na glavni strani, jih ročno uskladi tudi tukaj.
    ============================================ */
 :root {
-  --barva-ozadje: #fcf9f2;
-  --barva-povrsina: #ffffff;
-  --barva-besedilo: #1a2e24;
-  --barva-besedilo-blago: #4a5f54;
-  --barva-znamka: #3d7676;
-  --barva-znamka-svetla: #4d9494;
-  --barva-cta: #4d9494;
-  --barva-cta-hover: #3d7676;
-  --barva-obroba: #c5d4cb;
+  /* Skupni oblikovni sistem (obrazec neplačil in ostale app strani) */
+  --color-page: #ffffff;
+  --color-surface: #ffffff;
+  --color-teal-soft: #eff4f4;
+  --color-cream: #fcf9f2;
+  --color-primary: #4d9494;
+  --color-primary-strong: #3d7676;
+  --color-text: #1a2e24;
+  --color-text-secondary: #536b64;
+  --color-border: #c5d4cb;
+  --color-danger: #9d3a36;
+  --color-shadow: rgba(26, 46, 36, 0.09);
+  --color-primary-shadow: rgba(77, 148, 148, 0.20);
+  /* Uporabljeno SAMO za označbo polj, ki jih je samodejno izpolnil AI iz
+     slikanega/naloženega računa (glej "Naloži račun" v neplacila.html in
+     obdelajRacunZAI v app.js) - ločeno od --color-primary, da je jasno
+     razvidno, da gre za samodejno (preverljivo, ne končno) vrednost. */
+  --color-ai: #3f9d5e;
+  --color-ai-soft: #eaf6ee;
+
+  /* Starejša imena (združljivost z obstoječimi komponentami) */
+  --barva-ozadje: var(--color-cream);
+  --barva-povrsina: var(--color-surface);
+  --barva-besedilo: var(--color-text);
+  --barva-besedilo-blago: var(--color-text-secondary);
+  --barva-znamka: var(--color-primary-strong);
+  --barva-znamka-svetla: var(--color-primary);
+  --barva-cta: var(--color-primary);
+  --barva-cta-hover: var(--color-primary-strong);
+  --barva-obroba: var(--color-border);
   --barva-na-temnem: #ffffff;
-  --barva-nevarnost: #c62828;
-  --barva-nevarnost-hover: #a51f1f;
+  --barva-nevarnost: var(--color-danger);
+  --barva-nevarnost-hover: #7f2f2c;
 
   /* Barve značk za status zadeve - od "novo" do "rešeno" */
   --status-nov: #94a3b8;
@@ -37,9 +58,9 @@
      (glej razdelek OBRAZEC - SKLOPI spodaj). Namenoma zaobljeno, v
      nasprotju z oglatimi karticami drugje v app-u, ker gre za obrazec z
      več polji, kjer mehkejši videz olajša branje. */
-  --radius-obrazec: 1rem;
+  --radius-obrazec: 1.5rem;
   --radius-obrazec-notranji: 0.75rem;
-  --senca-obrazec: 0 10px 24px -14px rgba(26, 46, 36, 0.18);
+  --senca-obrazec: 0 14px 36px var(--color-shadow);
 }
 
 /* ========== OSNOVA ========== */
@@ -143,10 +164,11 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  margin-bottom: 0.5rem;
+  min-height: 44px;
+  margin-bottom: 0.35rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--barva-znamka);
+  color: var(--color-primary-strong);
   text-decoration: none;
 }
 
@@ -156,6 +178,30 @@ a {
 
 .app__naslov-podstrani {
   font-size: 1.3rem;
+}
+
+/* Stran "Opozarjanje na neplačila" - bela površina, ozek stolpec */
+.stran--neplacila {
+  max-width: 430px;
+  background: var(--color-page);
+  line-height: 1.45;
+}
+
+.stran--neplacila .app__header {
+  padding: 12px 16px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stran--neplacila .app__naslov-podstrani {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.stran--neplacila .app__vsebina {
+  padding: 18px 16px 28px;
+  gap: 1.25rem;
 }
 
 /* ========== GLAVNA VSEBINA ========== */
@@ -287,6 +333,10 @@ a {
 .btn--cta {
   background: var(--barva-cta);
   color: var(--barva-na-temnem);
+}
+
+.btn__puscica {
+  margin-left: 0.5rem;
 }
 
 .btn--cta:hover {
@@ -473,6 +523,659 @@ a {
   opacity: 0.55;
 }
 
+/* Element je viden bralnikom zaslona, a vizualno skrit - za oznake polj, ki
+   jih nadomesti skupen naslov nad več polji hkrati (npr. "Telefon ali
+   e-pošta" nad dvema poljema, glej .obrazec-razdelek__podnaslov spodaj). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ========== ZAVIHKA "KORAK 1/2" (glej neplacila.html) ==========
+   Prikaže, na katerem od dveh korakov dodajanja zadeve je obrtnik - klik na
+   "2 · Sestavi opomin" požene enako preverbo/oddajo kot glavni gumb na dnu
+   obrazca (glej zavihekKorak2 v inicializirajNeplacila v app.js), zato ne
+   gre za novo funkcijo, samo za dodatno bližnjico do iste. */
+.dodaj-zadevo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.koraki-zavihki {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  min-height: 52px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.koraki-zavihek {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 10px;
+  font-family: var(--pisava-telo);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.koraki-zavihek--aktiven {
+  color: #ffffff;
+  background: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ========== KARTICA OBRAZCA (glej neplacila.html, #obrazec) ==========
+   En sam "tekoč" okvir za celoten obrazec "Nov dolg" - v nasprotju s
+   .zadeva-obrazec__sklop spodaj (ki je bil prej uporabljen tu, zdaj pa še
+   vedno na neplacila-sporocilo.html) ni ločenih okvirjev za vsak sklop. */
+.obrazec-kartica {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: 0 14px 36px var(--color-shadow);
+  overflow: hidden;
+}
+
+.obrazec-kartica input,
+.obrazec-kartica textarea {
+  border-radius: 12px;
+}
+
+.obrazec-kartica__glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 16px 16px 12px;
+}
+
+.obrazec-kartica__oznaka {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-family: var(--pisava-naslov);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.obrazec-kartica__osnutek {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: var(--color-cream);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.obrazec-kartica__oznaka-ikona {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: var(--color-primary);
+}
+
+.obrazec-kartica__oznaka-ikona svg {
+  display: block;
+}
+
+.obrazec-napredek {
+  height: 4px;
+  margin: 0 16px 0;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.obrazec-napredek__crta {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: inherit;
+}
+
+.obrazec-kartica__vsebina {
+  padding: 16px;
+}
+
+.obrazec-kartica__uvod {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 18px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-teal-soft) 0%, var(--color-surface) 78%);
+}
+
+.obrazec-kartica__uvod-dekor {
+  position: absolute;
+  right: -28px;
+  bottom: -36px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--color-cream);
+  pointer-events: none;
+}
+
+.obrazec-kartica__uvod-besedilo {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.obrazec-kartica__naslov {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.obrazec-kartica__podnaslov {
+  margin: 0.3rem 0 0;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.obrazec-kartica__korak {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 6px 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Razdelek znotraj kartice (npr. "Kdo vam dolguje?") - naslov ima številko
+   v krogcu spredaj, ker gre za resnično zaporedje dveh korakov znotraj
+   istega obrazca, ne za okras. */
+.obrazec-razdelek {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Prva sekcija: razmiki do kontaktne skupine so na .contact-group, ne gap. */
+.obrazec-razdelek--dolznik {
+  gap: 14px;
+}
+
+.obrazec-razdelek--dolznik > .contact-group {
+  /* Starševski gap 14px + 2px = 16px od polja »Naziv« do legende. */
+  margin-top: 2px;
+}
+
+.obrazec-razdelek + .obrazec-razdelek {
+  margin-top: 20px;
+  padding-top: 22px;
+  padding-bottom: 22px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Skupina »Telefon ali e-pošta« – kompaktnejša kot ostala polja. */
+.contact-group {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.contact-group legend {
+  margin: 0 0 7px;
+  padding: 0;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.contact-inputs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.contact-input {
+  position: relative;
+  width: 100%;
+}
+
+.contact-input svg {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  width: 17px;
+  height: 17px;
+  transform: translateY(-50%);
+  color: var(--color-primary-strong);
+  pointer-events: none;
+}
+
+.contact-input input {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 12px 11px 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--pisava-telo);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.contact-input input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.contact-input input:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid rgba(77, 148, 148, 0.18);
+  outline-offset: 1px;
+}
+
+.contact-input input.obrazec__polje--napaka {
+  border-color: var(--color-danger);
+}
+
+.contact-error {
+  margin: 6px 0 0;
+  color: var(--color-danger);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.contact-error[hidden] {
+  display: none;
+}
+
+.contact-help {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.obrazec-razdelek__naslov {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.obrazec-razdelek__stevilka {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-family: var(--pisava-telo);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary-strong);
+  background: var(--color-teal-soft);
+}
+
+.obrazec-razdelek__podnaslov {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.obrazec-locilo {
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.obrazec__oznaka-opcijsko {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* Polje z majhno ikono na levi - ikona je samo vizualna (aria-hidden). */
+.obrazec__polje-z-ikono {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.obrazec__polje-ikona {
+  position: absolute;
+  left: 13px;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-strong);
+  pointer-events: none;
+}
+
+.obrazec__polje-ikona svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.obrazec__polje .obrazec__polje-z-ikono input {
+  width: 100%;
+  padding-left: 40px;
+}
+
+/* Preklop "Podjetje / Fizična oseba" - ZA ZDAJ SAMO VIZUALEN (glej klik v
+   app.js), ne shranjuje se nikamor. */
+.tip-dolznika-preklop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 4px;
+  min-height: 48px;
+  background: var(--color-teal-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 13px;
+}
+
+.tip-dolznika-preklop__gumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  font-family: var(--pisava-telo);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.tip-dolznika-preklop__gumb--aktiven {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 2px 7px var(--color-shadow);
+  font-weight: 600;
+}
+
+/* Dva enakovredna gumba za dodajanje računa (brez menija). */
+.priloga-blok__naslov-vrstica {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.priloga-blok__naslov {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.priloga-blok__opis {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.priloga-akcije {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.priloga-akcija {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 10px 12px;
+  font-family: var(--pisava-telo);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-strong);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.priloga-akcija__ikona {
+  display: flex;
+  color: var(--color-primary-strong);
+}
+
+.priloga-akcija__ikona svg {
+  display: block;
+}
+
+.priloga-akcija:hover,
+.priloga-akcija:active {
+  background: var(--color-teal-soft);
+  border-color: var(--color-primary);
+}
+
+@media (max-width: 349px) {
+  .priloga-akcije {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== AI ZAJEM RAČUNA (glej "Naloži račun" v neplacila.html) ==========
+   Blok na vrhu koraka 1, PRED "Kdo vam dolguje?" - slika/PDF gre na
+   /api/citaj-racun (Vercel serverless funkcija), AI vrne JSON, s katerim
+   obdelajRacunZAI v app.js samodejno izpolni polja spodaj. Gumba ponovno
+   uporabita že obstoječ .priloga-akcija/.priloga-akcije videz (isti kot pri
+   "Priloži račun/Slikaj račun" v razdelku 2), da ne podvajam sloga. */
+.ai-zajem {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-obrazec-notranji);
+}
+
+.ai-zajem__glava {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ai-zajem__ikona {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--color-ai);
+  background: var(--color-ai-soft);
+}
+
+.ai-zajem__ikona svg {
+  display: block;
+}
+
+.ai-zajem__naslov {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ai-zajem__opis {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.ai-zajem__predogled {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.ai-zajem__slicica {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--color-teal-soft);
+}
+
+.ai-zajem__datoteka-ikona {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--color-primary-strong);
+  background: var(--color-teal-soft);
+}
+
+.ai-zajem__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ai-zajem__ime {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ai-zajem__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.ai-zajem__status--napaka {
+  color: var(--color-danger);
+}
+
+.ai-zajem__status--uspeh {
+  color: var(--color-ai);
+}
+
+.ai-zajem__spinner {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: ai-zajem-vrtenje 0.7s linear infinite;
+}
+
+@keyframes ai-zajem-vrtenje {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-zajem__odstrani {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-primary-strong);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ai-zajem__odstrani:hover {
+  background: var(--color-teal-soft);
+}
+
+/* Polje, ki ga je pravkar samodejno izpolnil AI (glej izpolniPoljaIzAI v
+   app.js) - razred se odstrani takoj, ko uporabnik polje ročno spremeni
+   (glej listener "input" tam), da ne zavaja, da je vrednost še vedno
+   neprevrejena AI-jeva. */
+.obrazec__polje input.obrazec__polje--ai-izpolnjeno,
+.obrazec__polje textarea.obrazec__polje--ai-izpolnjeno {
+  border-color: var(--color-ai);
+  background: var(--color-ai-soft);
+}
+
 /* ========== OBRAZEC (dodajanje nove zadeve) ========== */
 .obrazec {
   display: flex;
@@ -480,39 +1183,93 @@ a {
   gap: 1rem;
 }
 
+/* Na koraku 1 razmike med sekcijama ureja .obrazec-razdelek, ne gap. */
+#obrazec-neplacilo {
+  gap: 0;
+}
+
 .obrazec__polje {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 7px;
 }
 
 .obrazec__polje label {
-  font-size: 0.85rem;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--barva-besedilo);
+  color: var(--color-text);
 }
 
 .obrazec__polje input,
 .obrazec__polje textarea {
+  width: 100%;
+  min-height: 48px;
   font-family: var(--pisava-telo);
-  font-size: 1rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--barva-obroba);
-  border-radius: 0;
-  background: var(--barva-povrsina);
-  color: var(--barva-besedilo);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.45;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .obrazec__polje textarea {
   resize: vertical;
-  min-height: 7rem;
+  min-height: 112px;
   font-family: inherit;
 }
 
 .obrazec__polje input:focus,
 .obrazec__polje textarea:focus {
-  outline: 2px solid var(--barva-znamka);
+  border-color: var(--color-primary);
+  outline: 3px solid rgba(77, 148, 148, 0.18);
   outline-offset: 1px;
+}
+
+.obrazec__polje input.obrazec__polje--napaka,
+.obrazec__polje textarea.obrazec__polje--napaka {
+  border-color: var(--color-danger);
+}
+
+.obrazec__polje-napaka {
+  margin: -4px 0 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-danger);
+}
+
+.obrazec__polje-napaka[hidden] {
+  display: none;
+}
+
+.obrazec__gumb-naprej {
+  margin-top: 8px;
+  min-height: 52px;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 14px;
+  background: var(--color-primary);
+  box-shadow: 0 8px 18px var(--color-primary-shadow);
+  transform: none;
+}
+
+.obrazec__gumb-naprej .btn__puscica {
+  display: inline-flex;
+  margin-left: 0;
+}
+
+.obrazec__gumb-naprej:hover {
+  background: var(--color-primary-strong);
+  transform: none;
+}
+
+.obrazec__gumb-naprej:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ========== OBRAZEC - SKLOPI (npr. "Dolžnik" / "Dolg" na neplacila.html) ==========
@@ -550,24 +1307,55 @@ a {
 
 /* Kratko pojasnilo pod poljema telefon/e-pošta v sklopu "Dolžnik" */
 .zadeva-obrazec__opozorilo {
-  margin: -0.5rem 0 0;
-  font-size: 0.8rem;
-  color: var(--barva-besedilo-blago);
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
 }
 
-/* Dve polji vedno drug ob drugem (npr. datuma) - namenoma NI mobile-first
-   (ne sklada se eno pod drugim na ozkih zaslonih), ker morata biti vedno
-   v paru zaradi jasnosti. Naslova polj se lahko na ozkih zaslonih prelomita
-   v dve vrstici, kar je pričakovano. */
+/* Datum izdaje + rok plačila - dve enaki koloni, vnosi poravnani. */
 .zadeva-obrazec__podvrstica {
-  display: flex;
-  flex-direction: row;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
 }
 
 .zadeva-obrazec__podvrstica .obrazec__polje {
-  flex: 1;
   min-width: 0;
+  height: 100%;
+}
+
+/* Enaka višina oznak, da sta datumski polji v isti liniji. */
+.zadeva-obrazec__podvrstica .obrazec__polje label {
+  min-height: 2.5em;
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0 0.35em;
+  line-height: 1.25;
+}
+
+.zadeva-obrazec__podvrstica .obrazec__polje-z-ikono,
+.zadeva-obrazec__podvrstica .obrazec__polje-z-ikono input {
+  width: 100%;
+  min-width: 0;
+}
+
+.zadeva-obrazec__podvrstica .obrazec__polje-z-ikono input[type="date"] {
+  font-size: 14px;
+  padding-right: 8px;
+}
+
+@media (max-width: 349px) {
+  .zadeva-obrazec__podvrstica {
+    grid-template-columns: 1fr;
+  }
+
+  .zadeva-obrazec__podvrstica .obrazec__polje label {
+    min-height: 0;
+  }
 }
 
 /* Manjša škatla za skupino polj znotraj sklopa "Dolg" (npr. datuma + znesek
@@ -583,79 +1371,93 @@ a {
   border-radius: var(--radius-obrazec-notranji);
 }
 
-/* ========== PRILOGA RAČUNA (slika/PDF, glej "Priloga računa" v obrazcu) ==========
-   Dva gumba drug ob drugem ("Naloži datoteko" odpre navadnega izbirnika
-   datotek, "Slikaj" na mobilnem prek atributa capture="environment" takoj
-   odpre zadnjo (glavno) kamero) - oba sta <label>, ki ovija skrit
-   <input type="file">, zato za odpiranje ni potreben noben JS. Sama
-   datoteka se naloži v Supabase
-   Storage šele ob oddaji obrazca (glej pokaziIzbranoPrilogo v app.js). */
+/* ========== PRILOGA RAČUNA (slika/PDF, glej "Račun" v obrazcu) ==========
+   Opozorilo, ko je doseženih največ 6 prilog (glej NAJVEC_PRILOG v app.js).
+   Gumba "Priloži račun" / "Slikaj račun" sta vedno vidna drug ob drugem. */
 .zadeva-obrazec__priloga-opis {
-  margin: -0.15rem 0 0;
-  font-size: 0.8rem;
-  color: var(--barva-besedilo-blago);
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
-.zadeva-obrazec__priloga-gumbi[hidden] {
-  display: none;
-}
-
-.zadeva-obrazec__priloga-gumbi {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.15rem;
-}
-
-.zadeva-obrazec__priloga-gumb {
-  flex: 1 1 45%;
-  min-width: 9rem;
-  padding: 0.65rem 0.9rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-/* Seznam že izbranih prilog (do 6, glej NAJVEC_PRILOG v app.js) - vsaka
-   datoteka je svoja "kartica" (postavka) s klikljivim "✕" za odstranitev
-   pred oddajo obrazca. Prazen seznam preprosto ne zavzame prostora, zato
-   ne potrebuje posebnega "hidden" stanja. */
 .zadeva-obrazec__priloga-seznam {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 8px;
 }
 
 .zadeva-obrazec__priloga-postavka {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 10px;
   margin: 0;
-  padding: 0.55rem 0.75rem;
-  font-size: 0.85rem;
-  color: var(--barva-znamka);
-  background: color-mix(in srgb, var(--barva-znamka) 8%, var(--barva-povrsina));
-  border: 1px solid var(--barva-znamka);
-  border-radius: var(--radius-obrazec-notranji);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-teal-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.zadeva-obrazec__priloga-ikona {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--color-primary-strong);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.zadeva-obrazec__priloga-ikona img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zadeva-obrazec__priloga-ikona svg {
+  display: block;
+}
+
+.zadeva-obrazec__priloga-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .zadeva-obrazec__priloga-ime {
-  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.zadeva-obrazec__priloga-velikost {
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
 .zadeva-obrazec__priloga-odstrani {
   flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1;
-  color: var(--barva-znamka);
+  color: var(--color-primary-strong);
   background: transparent;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
+}
+
+.zadeva-obrazec__priloga-odstrani:hover {
+  background: var(--color-surface);
 }
 
 .obrazec__napaka {
@@ -920,6 +1722,284 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ========== PREDLOGI SPOROČILA (glej neplacila-sporocilo.html) ==========
+   Vodoravno drsljiv "slider" trak vnaprej pripravljenih besedil (sporočilo
+   ali možnosti plačila - ista oblika za obe skupine, glej #predlogi-seznam
+   in #predlogi-placilo-seznam) - klik nanj besedilo vstavi v okno sporočila
+   (glej vstaviPredlogVSporocilo v app.js). Vsak predlog je enako širok, da
+   je iz delno odrezanega naslednjega predloga ob robu takoj razvidno, da
+   jih je še več - dodatno to nakazuje tudi vedno viden (barvan) drsni trak
+   pod seznamom. Nad seznamom je gumb "+ Dodaj predlog", ki odpre majhen
+   obrazec za vnos novega besedila (shrani se v skupno bazo predlogov). */
+.sporocilo-predlogi-gumbi {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+/* Gumb "Uredi" je aktiven (poudarjen), ko je za to skupino predlogov
+   vklopljeno urejanje (glej gumbUredi v app.js). */
+.sporocilo-predlogi-gumbi .btn--aktiven {
+  background: var(--barva-znamka);
+  color: var(--barva-na-temnem);
+}
+
+.sporocilo-predlogi-seznam {
+  display: flex;
+  flex-direction: row;
+  /* Med kartice damo več prostora kot je videti potrebno, ker zvezdica in
+     gumb "X" vsak segata malo v ta prostor (glej spodaj) - premajhna
+     razdalja bi ju stikala skupaj med dvema sosednjima karticama. */
+  gap: 1rem;
+  overflow-x: auto;
+  /* Zgornji/spodnji/stranski odmik naredi prostor za zvezdico/"X" (zgoraj)
+     in puščici za premikanje (spodaj), ki vsi malce segajo čez rob kartice
+     (glej .sporocilo-predlog-zvezdica, .sporocilo-predlog-brisi in
+     .sporocilo-predlog-premakni) - brez njega bi jih vodoravni drsni okvir
+     na robovih odrezal. */
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--barva-znamka) var(--barva-obroba);
+}
+
+.sporocilo-predlogi-seznam::-webkit-scrollbar {
+  height: 6px;
+}
+
+.sporocilo-predlogi-seznam::-webkit-scrollbar-track {
+  background: var(--barva-obroba);
+  border-radius: 999px;
+}
+
+.sporocilo-predlogi-seznam::-webkit-scrollbar-thumb {
+  background: var(--barva-znamka);
+  border-radius: 999px;
+}
+
+/* Ovoj okoli vsakega predloga - nosi širino/velikost namesto gumba samega,
+   da lahko poleg gumba (klik = vstavi besedilo) dodamo še zvezdico in gumb
+   "X" za brisanje, ki morata biti ločena elementa (gumb znotraj gumba ni
+   veljaven HTML). */
+.sporocilo-predlog-ovoj {
+  position: relative;
+  flex: 0 0 11rem;
+  width: 11rem;
+  scroll-snap-align: start;
+}
+
+.sporocilo-predlog {
+  /* Brez tega nekateri (predvsem mobilni) brskalniki gumb rišejo v svoji
+     posebni plasti, ki lahko prekrije zvezdico/gumb "X" ne glede na
+     z-index spodaj. */
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-family: var(--pisava-telo);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--barva-znamka);
+  background: color-mix(in srgb, var(--barva-znamka) 8%, var(--barva-povrsina));
+  border: 1px solid var(--barva-znamka);
+  border-radius: var(--radius-obrazec-notranji);
+  cursor: pointer;
+  /* Vsak predlog ima enako (nizko) višino, da trak ostane kompakten - če je
+     besedilo daljše od tega, se znotraj kartice pojavi navpični drsnik, da
+     se ga da prebrati v celoti, namesto da bi se ga obrezalo. */
+  display: block;
+  height: 4.6rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: normal;
+  overflow-wrap: break-word;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--barva-znamka) transparent;
+}
+
+.sporocilo-predlog::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Zvezdica v zgornjem desnem kotu - oznaka za predloge, ki jih priporoča
+   ekipa Uspešnega Jezeka (glej stolpec "priporoceno" v bazi). */
+.sporocilo-predlog-zvezdica {
+  position: absolute;
+  z-index: 1;
+  /* Spodnji rob kroga (top + height) je namenoma poravnan z notranjim
+     zgornjim odmikom kartice (glej "padding" pri .sporocilo-predlog) - tako
+     krog visi čez zgornji rob kartice, a ne sega v besedilo pod njim. */
+  top: -0.6rem;
+  right: -0.4rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #fff;
+  background: var(--barva-znamka);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--barva-povrsina);
+  pointer-events: none;
+}
+
+/* Gumb "X" za brisanje predloga - viden samo, ko je za to skupino vklopljen
+   način urejanja (glej .sporocilo-predlogi-seznam--urejanje spodaj). Je v
+   levem zgornjem kotu, ker je desni zaseden z zvezdico priporočenega
+   predloga (glej zgoraj). */
+.sporocilo-predlog-brisi {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  /* Enak razmislek kot pri zvezdici zgoraj - visi čez zgornji rob, ne
+     prekriva besedila. */
+  top: -0.6rem;
+  left: -0.4rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  line-height: 1;
+  color: #fff;
+  background: var(--barva-nevarnost);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--barva-povrsina);
+  cursor: pointer;
+}
+
+.sporocilo-predlogi-seznam--urejanje .sporocilo-predlog-brisi {
+  display: flex;
+}
+
+/* Puščici "premakni v levo"/"premakni v desno" - v spodnjih kotih kartice
+   (zgornja sta zasedena z zvezdico/gumbom "X" zgoraj), vidni samo v načinu
+   urejanja. Klik zamenja mesto s sosednjo kartico (glej premakniPredlog v
+   app.js) - na prvi/zadnji kartici je ustrezna puščica onemogočena. */
+.sporocilo-predlog-premakni {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  bottom: -0.6rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #fff;
+  background: var(--barva-znamka);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--barva-povrsina);
+  cursor: pointer;
+}
+
+.sporocilo-predlog-premakni--levo {
+  left: -0.4rem;
+}
+
+.sporocilo-predlog-premakni--desno {
+  right: -0.4rem;
+}
+
+.sporocilo-predlog-premakni:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sporocilo-predlogi-seznam--urejanje .sporocilo-predlog-premakni {
+  display: flex;
+}
+
+.sporocilo-predlog::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sporocilo-predlog::-webkit-scrollbar-thumb {
+  background: var(--barva-znamka);
+  border-radius: 999px;
+}
+
+.sporocilo-predlog:hover {
+  background: color-mix(in srgb, var(--barva-znamka) 16%, var(--barva-povrsina));
+}
+
+.sporocilo-nov-predlog[hidden] {
+  display: none;
+}
+
+.sporocilo-nov-predlog {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+/* Okno za sporočilo naj bo tesno pod predlogi zgoraj (manj presledka) in
+   večje, da je udobno pisati/dopolnjevati daljše sporočilo. */
+.obrazec__polje--sporocilo-besedilo {
+  margin-top: -0.6rem;
+}
+
+#sporocilo-besedilo {
+  min-height: 11rem;
+}
+
+.sporocilo-nov-predlog input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--pisava-telo);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--barva-obroba);
+  border-radius: var(--radius-obrazec-notranji);
+  background: var(--barva-povrsina);
+  color: var(--barva-besedilo);
+}
+
+.sporocilo-nov-predlog input:focus {
+  outline: 2px solid var(--barva-znamka);
+  outline-offset: 1px;
+}
+
+.sporocilo-nov-predlog__gumb {
+  flex-shrink: 0;
+  width: 2.6rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: var(--radius-obrazec-notranji);
+  cursor: pointer;
+}
+
+.sporocilo-nov-predlog__gumb--shrani {
+  background: var(--barva-cta);
+  color: var(--barva-na-temnem);
+}
+
+.sporocilo-nov-predlog__gumb--shrani:hover {
+  background: var(--barva-cta-hover);
+}
+
+.sporocilo-nov-predlog__gumb--preklici {
+  background: transparent;
+  border: 1px solid var(--barva-obroba);
+  color: var(--barva-besedilo-blago);
+}
+
+.sporocilo-nov-predlog__gumb--preklici:hover {
+  border-color: var(--barva-nevarnost);
+  color: var(--barva-nevarnost);
 }
 
 /* ========== LIGHTBOX (celozaslonski prikaz priloge - slike) ==========
