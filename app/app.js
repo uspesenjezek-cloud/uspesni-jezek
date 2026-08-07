@@ -67,8 +67,41 @@ function ugotoviMaxDosezenKorak() {
 
 const SVG_KORAK_KLJUKICA =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+const SVG_KORAK_PUSICA =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+
+const KORAKI_DE_STEPPERja = [
+  { id: 1, shortLabel: "Schuldner", accessibleLabel: "Schuldnerdaten" },
+  { id: 2, shortLabel: "Nachricht", accessibleLabel: "Nachricht" },
+  { id: 3, shortLabel: "Senden", accessibleLabel: "Senden" },
+];
 
 function posodobiDebtStepMarker(el, stanje, stevilka) {
+  const status = el.querySelector(".debt-step__status");
+  if (status) {
+    if (stanje === "complete") {
+      status.innerHTML = SVG_KORAK_KLJUKICA;
+    } else if (stanje === "active") {
+      status.innerHTML = SVG_KORAK_PUSICA;
+    } else {
+      status.innerHTML = '<span class="debt-step__dot"></span>';
+    }
+    const meta = KORAKI_DE_STEPPERja[stevilka - 1];
+    if (meta) {
+      const statusBesedilo =
+        stanje === "complete"
+          ? "abgeschlossen"
+          : stanje === "active"
+            ? "aktuell"
+            : "noch nicht begonnen";
+      el.setAttribute(
+        "aria-label",
+        stevilka + " von 3: " + meta.accessibleLabel + " – " + statusBesedilo
+      );
+    }
+    return;
+  }
+
   const marker = el.querySelector(".debt-step__marker");
   if (!marker) return;
   if (stanje === "complete") {

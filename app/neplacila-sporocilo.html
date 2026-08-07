@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-izbrisi-osnutek-v2" />
+    <link rel="stylesheet" href="styles.css?v=20260807-stepper-de" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -45,34 +45,58 @@
           </p>
         </header>
 
-        <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
-          <a href="neplacila.html#obrazec" class="debt-step debt-step--complete" data-korak="1">
-            <span class="debt-step__label">
-              <span class="debt-step__marker" aria-hidden="true">
+        <nav class="debt-stepper debt-stepper--de" data-koraki-postopek aria-label="Fortschritt">
+          <a
+            href="neplacila.html#obrazec"
+            class="debt-step debt-step--complete"
+            data-korak="1"
+            aria-label="1 von 3: Schuldnerdaten – abgeschlossen"
+          >
+            <div class="debt-step__progress">
+              <span class="debt-step__number" aria-hidden="true">1</span>
+              <span class="debt-step__line" aria-hidden="true"></span>
+            </div>
+            <div class="debt-step__label">
+              <span class="debt-step__status" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
               </span>
-              <span class="debt-step__text">Vnos dolžnika</span>
-            </span>
-            <span class="debt-step__line" aria-hidden="true"></span>
+              <span class="debt-step__text">Schuldner</span>
+            </div>
           </a>
           <a
             href="neplacila-sporocilo.html"
             class="debt-step debt-step--active"
             data-korak="2"
             aria-current="step"
+            aria-label="2 von 3: Nachricht – aktuell"
           >
-            <span class="debt-step__label">
-              <span class="debt-step__marker" aria-hidden="true">2</span>
-              <span class="debt-step__text">Vnos sporočila</span>
-            </span>
-            <span class="debt-step__line" aria-hidden="true"></span>
+            <div class="debt-step__progress">
+              <span class="debt-step__number" aria-hidden="true">2</span>
+              <span class="debt-step__line" aria-hidden="true"></span>
+            </div>
+            <div class="debt-step__label">
+              <span class="debt-step__status" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </span>
+              <span class="debt-step__text">Nachricht</span>
+            </div>
           </a>
-          <a href="neplacila-posiljanje.html" class="debt-step debt-step--upcoming" data-korak="3">
-            <span class="debt-step__label">
-              <span class="debt-step__marker" aria-hidden="true">3</span>
-              <span class="debt-step__text">Pošiljanje</span>
-            </span>
-            <span class="debt-step__line" aria-hidden="true"></span>
+          <a
+            href="neplacila-posiljanje.html"
+            class="debt-step debt-step--upcoming"
+            data-korak="3"
+            aria-label="3 von 3: Senden – noch nicht begonnen"
+          >
+            <div class="debt-step__progress">
+              <span class="debt-step__number" aria-hidden="true">3</span>
+              <span class="debt-step__line" aria-hidden="true"></span>
+            </div>
+            <div class="debt-step__label">
+              <span class="debt-step__status" aria-hidden="true">
+                <span class="debt-step__dot"></span>
+              </span>
+              <span class="debt-step__text">Senden</span>
+            </div>
           </a>
         </nav>
 
@@ -270,6 +294,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-izbrisi-osnutek-v2"></script>
+    <script src="app.js?v=20260807-stepper-de"></script>
   </body>
 </html>

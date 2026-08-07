@@ -2575,7 +2575,7 @@ body.stran--samo-seznam #obrazec {
 }
 
 @media (max-width: 360px) {
-  .debt-step__label {
+  .debt-stepper:not(.debt-stepper--de) .debt-step__label {
     min-height: 48px;
     flex-direction: column;
     gap: 3px;
@@ -2585,9 +2585,207 @@ body.stran--samo-seznam #obrazec {
     line-height: 1.15;
   }
 
-  .debt-step__text {
+  .debt-stepper:not(.debt-stepper--de) .debt-step__text {
     width: 100%;
     text-align: center;
+  }
+}
+
+/* Stepper DE (samo Vnos sporočila): fiksne številke + ločen status */
+.debt-stepper--de {
+  gap: 8px;
+  padding: 14px 18px 12px;
+}
+
+.debt-stepper--de .debt-step__progress {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.debt-stepper--de .debt-step__number {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  color: #5f7571;
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+}
+
+.debt-stepper--de .debt-step--active .debt-step__number {
+  color: #347d7e;
+}
+
+.debt-stepper--de .debt-step__line {
+  display: block;
+  width: 100%;
+  height: 3px;
+  margin: 0;
+  border-radius: 999px;
+  background: #c5d6d2;
+}
+
+.debt-stepper--de .debt-step--complete .debt-step__line {
+  height: 3px;
+  background: #8cbdb9;
+}
+
+.debt-stepper--de .debt-step--active .debt-step__line {
+  height: 4px;
+  background: #51999a;
+}
+
+.debt-stepper--de .debt-step--upcoming .debt-step__line {
+  height: 3px;
+  background: #c5d6d2;
+}
+
+.debt-stepper--de .debt-step__label {
+  display: flex;
+  min-width: 0;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: #5f7571;
+  font-size: 0.69rem;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  flex-direction: row;
+}
+
+.debt-stepper--de .debt-step__status {
+  display: grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid #c5d6d2;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #5f7571;
+  box-sizing: border-box;
+}
+
+.debt-stepper--de .debt-step__status svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.debt-stepper--de .debt-step__dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #a9c2bd;
+}
+
+.debt-stepper--de .debt-step--complete .debt-step__status {
+  border-color: #d9efed;
+  background: #eaf5f4;
+  color: #347d7e;
+}
+
+.debt-stepper--de .debt-step--complete .debt-step__label {
+  background: transparent;
+  color: #347d7e;
+  font-weight: 400;
+}
+
+.debt-stepper--de .debt-step--active .debt-step__label {
+  background: #eaf5f4;
+  color: #17322f;
+  font-weight: 500;
+}
+
+.debt-stepper--de .debt-step--active .debt-step__status {
+  border-color: #51999a;
+  background: #51999a;
+  color: #ffffff;
+}
+
+.debt-stepper--de .debt-step--upcoming .debt-step__status {
+  border-color: #c5d6d2;
+  background: #ffffff;
+  color: #5f7571;
+}
+
+.debt-stepper--de .debt-step--upcoming .debt-step__label {
+  background: transparent;
+  color: #5f7571;
+  font-weight: 400;
+}
+
+.debt-stepper--de .debt-step__label,
+.debt-stepper--de .debt-step__status,
+.debt-stepper--de .debt-step__line {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .debt-stepper--de .debt-step__label,
+  .debt-stepper--de .debt-step__status,
+  .debt-stepper--de .debt-step__line {
+    transition: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .debt-stepper--de {
+    gap: 6px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .debt-stepper--de .debt-step__progress {
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .debt-stepper--de .debt-step__number {
+    width: 14px;
+    height: 14px;
+    font-size: 0.64rem;
+  }
+
+  .debt-stepper--de .debt-step__label {
+    min-height: 28px;
+    gap: 4px;
+    padding: 4px 2px;
+    font-size: 0.67rem;
+    flex-direction: row;
+    border-radius: 999px;
+  }
+
+  .debt-stepper--de .debt-step__status {
+    flex-basis: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .debt-stepper--de .debt-step__status svg {
+    width: 11px;
+    height: 11px;
   }
 }
 
