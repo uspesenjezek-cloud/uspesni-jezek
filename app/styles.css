@@ -2622,28 +2622,28 @@ body.stran--samo-seznam #obrazec {
   right: 0;
   z-index: 2;
 
-  width: 124px;
-  min-height: 62px;
+  width: 88px;
+  min-height: 44px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
 
-  padding: 11px 14px;
+  padding: 7px 9px;
 
   border: 0;
   border-left: 1px solid #c5d6d2;
   border-bottom: 1px solid #c5d6d2;
 
   /* Zgornji desni rob sledi kartici, spodnji levi je močneje zaobljen. */
-  border-radius: 0 14px 0 26px;
+  border-radius: 0 14px 0 18px;
 
   background: #f3f8f7;
   color: #347d7e;
 
   font-family: inherit;
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
@@ -2651,9 +2651,9 @@ body.stran--samo-seznam #obrazec {
 }
 
 .predlog-kartica > .preview-button svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
 }
 
 .predlog-kartica > .preview-button:hover {
@@ -2984,9 +2984,9 @@ body.stran--samo-seznam #obrazec {
   }
 
   .predlog-kartica > .preview-button {
-    width: 104px;
-    padding-right: 8px;
-    padding-left: 8px;
+    width: 80px;
+    padding-right: 6px;
+    padding-left: 6px;
   }
 }
 
