@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Figtree:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-izbrisi-zindex" />
+    <link rel="stylesheet" href="styles.css?v=20260808-ocr-priloga" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#4d9494" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -41,12 +41,12 @@
         </p>
       </header>
 
-      <nav class="debt-stepper debt-stepper--de" data-koraki-postopek aria-label="Fortschritt">
+      <nav class="debt-stepper debt-stepper--de" data-koraki-postopek aria-label="Koraki postopka">
         <a
           href="neplacila.html#obrazec"
           class="debt-step debt-step--complete"
           data-korak="1"
-          aria-label="1 von 3: Schuldnerdaten – abgeschlossen"
+          aria-label="1 od 3: Vnos dolžnika – zaključeno"
         >
           <div class="debt-step__progress">
             <span class="debt-step__number" aria-hidden="true">1</span>
@@ -56,14 +56,14 @@
             <span class="debt-step__status" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
             </span>
-            <span class="debt-step__text">Schuldner</span>
+            <span class="debt-step__text">Dolžnik</span>
           </div>
         </a>
         <a
           href="neplacila-sporocilo.html"
           class="debt-step debt-step--complete"
           data-korak="2"
-          aria-label="2 von 3: Nachricht – abgeschlossen"
+          aria-label="2 od 3: Sporočilo – zaključeno"
         >
           <div class="debt-step__progress">
             <span class="debt-step__number" aria-hidden="true">2</span>
@@ -73,7 +73,7 @@
             <span class="debt-step__status" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
             </span>
-            <span class="debt-step__text">Nachricht</span>
+            <span class="debt-step__text">Sporočilo</span>
           </div>
         </a>
         <a
@@ -81,7 +81,7 @@
           class="debt-step debt-step--active"
           data-korak="3"
           aria-current="step"
-          aria-label="3 von 3: Senden – aktuell"
+          aria-label="3 od 3: Pošiljanje – trenutno"
         >
           <div class="debt-step__progress">
             <span class="debt-step__number" aria-hidden="true">3</span>
@@ -91,7 +91,7 @@
             <span class="debt-step__status" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </span>
-            <span class="debt-step__text">Senden</span>
+            <span class="debt-step__text">Pošiljanje</span>
           </div>
         </a>
       </nav>
@@ -113,6 +113,21 @@
           Za zdaj lahko zadevo shranite z že sestavljenim sporočilom. Urnik pošiljanja bomo dodali kmalu.
         </p>
 
+        <section class="priloga-posiljanje-info" id="priloga-posiljanje-info" hidden>
+          <h2 class="priloga-posiljanje-info__naslov">Račun za pošiljanje</h2>
+          <div class="priloga-posiljanje-info__kanali" id="priloga-posiljanje-kanali" hidden>
+            <label class="priloga-posiljanje-info__kanal">
+              <input type="radio" name="kanal-posiljanja" value="email" id="kanal-email" />
+              E-pošta
+            </label>
+            <label class="priloga-posiljanje-info__kanal">
+              <input type="radio" name="kanal-posiljanja" value="sms" id="kanal-sms" />
+              SMS
+            </label>
+          </div>
+          <p class="priloga-posiljanje-info__besedilo" id="priloga-posiljanje-besedilo" role="status"></p>
+        </section>
+
         <form id="obrazec-posiljanje">
           <button type="submit" class="korak2__gumb-naprej" id="gumb-shrani-zadevo">
             Shrani zadevo
@@ -122,6 +137,6 @@
     </div>
     </div>
 
-    <script src="app.js?v=20260808-izbrisi-zindex"></script>
+    <script src="app.js?v=20260808-ocr-priloga"></script>
   </body>
 </html>
