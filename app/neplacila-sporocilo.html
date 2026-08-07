@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-predlog-stevilke" />
+    <link rel="stylesheet" href="styles.css?v=20260807-uredi-modal" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -90,7 +90,7 @@
                 <span class="korak2-sklop__oznaka" id="predlogi-stevilo-oznaka">6 predlogov</span>
               </div>
               <p class="korak2-sklop__opis">
-                Predlog najprej preglejte ali ga neposredno uporabite.
+                Predlogo uredite ali jo neposredno uporabite.
               </p>
               <p class="korak2-sklop__obvestilo" id="predlogi-obvestilo" role="status" aria-live="polite" hidden></p>
 
@@ -138,65 +138,59 @@
           </button>
         </footer>
 
-        <!-- Modal predogleda predloga (absolutno nad panelom) -->
+        <!-- Modal urejanja predloga (absolutno nad panelom) -->
         <div class="korak2-modal" id="predogled-modal" hidden>
           <button
             type="button"
             class="korak2-modal__backdrop"
             id="predogled-backdrop"
-            aria-label="Zapri predogled"
+            aria-label="Zapri urejanje"
           ></button>
           <div
             class="korak2-modal__dialog"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="predogled-naslov"
+            aria-labelledby="predogled-naslov-oznaka"
           >
             <div class="korak2-modal__glava">
               <div class="korak2-modal__naslov-ovoj">
-                <h2 class="korak2-modal__naslov" id="predogled-naslov"></h2>
-                <label class="sr-only" for="predogled-naslov-vnos">Ime predloga</label>
+                <label class="korak2-modal__naslov-oznaka" id="predogled-naslov-oznaka" for="predogled-naslov-vnos">
+                  Ime predloga
+                </label>
                 <input
                   type="text"
                   id="predogled-naslov-vnos"
                   class="korak2-modal__naslov-vnos"
                   maxlength="80"
                   placeholder="Ime predloga"
-                  hidden
                 />
               </div>
               <div class="korak2-modal__glava-akcije">
-                <button type="button" class="korak2-modal__uredi" id="predogled-uredi">
-                  Uredi
-                </button>
                 <button type="button" class="korak2-modal__zapri" id="predogled-zapri" aria-label="Zapri">
                   <span aria-hidden="true">×</span>
                 </button>
               </div>
             </div>
-            <p class="korak2-modal__besedilo" id="predogled-besedilo"></p>
-            <div class="korak2-modal__ikone" id="predogled-ikone" hidden>
-              <p class="korak2-modal__ikone-naslov" id="predogled-ikone-naslov">Izberi ikono</p>
-              <div
-                class="korak2-modal__ikone-seznam"
-                id="predogled-ikone-seznam"
-                role="group"
-                aria-labelledby="predogled-ikone-naslov"
-              ></div>
-            </div>
-            <label class="sr-only" for="predogled-urejevalnik">Uredi besedilo predloga</label>
+            <label class="korak2-modal__polje-oznaka" for="predogled-urejevalnik">Besedilo</label>
             <textarea
               id="predogled-urejevalnik"
               class="korak2-modal__urejevalnik"
               maxlength="1000"
-              hidden
             ></textarea>
-            <div class="korak2-modal__urejanje-akcije" id="predogled-urejanje-akcije" hidden>
+            <div class="korak2-modal__opcije" id="predogled-opcije">
+              <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
+                Push – privzeta predloga
+              </button>
+              <button type="button" class="korak2-modal__izbrisi" id="predogled-izbrisi">
+                Izbriši predlogo
+              </button>
+            </div>
+            <div class="korak2-modal__urejanje-akcije" id="predogled-urejanje-akcije">
               <button type="button" class="korak2-modal__preklici" id="predogled-preklici">
                 Prekliči
               </button>
               <button type="button" class="korak2-modal__shrani" id="predogled-shrani">
-                Shrani kot nov predlog
+                Shrani
               </button>
             </div>
           </div>
@@ -204,6 +198,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-predlog-stevilke"></script>
+    <script src="app.js?v=20260807-uredi-modal"></script>
   </body>
 </html>

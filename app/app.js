@@ -1284,48 +1284,6 @@ function formatirajDatumSl(datumBesedilo) {
   });
 }
 
-/* Ikone, ki jih lahko uporabnik izbere pri shranjevanju lastnega predloga. */
-const PREDLOG_IKONE = [
-  "hand-heart",
-  "message-circle",
-  "badge-euro",
-  "calendar-clock",
-  "calendar-range",
-  "triangle-alert",
-];
-
-function svgIkonaPredloga(ime) {
-  const skupno =
-    'xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
-  const ikone = {
-    "hand-heart":
-      "<svg " +
-      skupno +
-      '><path d="M11 14h2a2 2 0 0 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.13 3.75"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2.1 1.5 2.7L16 12Z"/></svg>',
-    "message-circle":
-      "<svg " +
-      skupno +
-      '><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.039.116 10 10 0 1 0-4.717-4.743Z"/></svg>',
-    "badge-euro":
-      "<svg " +
-      skupno +
-      '><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="M7 12h5"/><path d="M15 9.4a4 4 0 1 0 0 5.2"/></svg>',
-    "calendar-clock":
-      "<svg " +
-      skupno +
-      '><path d="M16 14v2.2l1.6 1"/><path d="M16 2v4"/><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.5"/><path d="M3 10h5"/><path d="M8 2v4"/><circle cx="16" cy="16" r="6"/></svg>',
-    "calendar-range":
-      "<svg " +
-      skupno +
-      '><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M17 14h-6"/><path d="M13 18H9"/><path d="M9 14h.01"/><path d="M17 18h.01"/></svg>',
-    "triangle-alert":
-      "<svg " +
-      skupno +
-      '><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
-  };
-  return ikone[ime] || ikone["message-circle"];
-}
-
 function inicializirajSporociloDolzniku() {
   const obrazec = document.getElementById("obrazec-sporocilo");
   const napaka = document.getElementById("splosna-napaka");
@@ -1346,7 +1304,7 @@ function inicializirajSporociloDolzniku() {
   let predlogi = [...vgrajeniPredlogi];
   let kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA;
   let kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
-  let nastavitvePredlogov = { stevilke: {}, pushPredlogId: null };
+  let nastavitvePredlogov = { stevilke: {}, pushPredlogId: null, skritiIds: [] };
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
   const pomocPolja = document.getElementById("sporocilo-pomoc");
@@ -1358,31 +1316,25 @@ function inicializirajSporociloDolzniku() {
   const dodatekObrocno = document.getElementById("dodatek-obrocno");
   const dodatekTrr = document.getElementById("dodatek-trr");
   const modal = document.getElementById("predogled-modal");
-  const modalNaslov = document.getElementById("predogled-naslov");
   const modalNaslovVnos = document.getElementById("predogled-naslov-vnos");
-  const modalBesedilo = document.getElementById("predogled-besedilo");
   const modalUrejevalnik = document.getElementById("predogled-urejevalnik");
-  const modalIkone = document.getElementById("predogled-ikone");
-  const modalIkoneSeznam = document.getElementById("predogled-ikone-seznam");
-  const modalUredi = document.getElementById("predogled-uredi");
+  const modalPush = document.getElementById("predogled-push");
+  const modalIzbrisi = document.getElementById("predogled-izbrisi");
   const modalPreklici = document.getElementById("predogled-preklici");
   const modalShrani = document.getElementById("predogled-shrani");
-  const modalUrejanjeAkcije = document.getElementById("predogled-urejanje-akcije");
   const modalZapri = document.getElementById("predogled-zapri");
   const modalBackdrop = document.getElementById("predogled-backdrop");
 
   const NAJVEC_ZNAKOV = 1000;
   let izbranPredlogId = null;
   let odprtPredlog = null;
-  let modalVUrejanju = false;
-  let izbranaIkona = "message-circle";
   const dodatki = { rok: false, obrocno: false, trr: false };
   const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
   let casovnikOsnutka = null;
   const zeliZmanjsanoGibanje = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const ikonaOcesa =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ikonaSvincnika =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
   const ikonaKljukice =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
@@ -1487,7 +1439,7 @@ function inicializirajSporociloDolzniku() {
   function naloziNastavitvePredlogov() {
     try {
       const surovo = localStorage.getItem(kljucNastavitev);
-      if (!surovo) return { stevilke: {}, pushPredlogId: null };
+      if (!surovo) return { stevilke: {}, pushPredlogId: null, skritiIds: [] };
       const podatki = JSON.parse(surovo);
       return {
         stevilke:
@@ -1496,9 +1448,12 @@ function inicializirajSporociloDolzniku() {
             : {},
         pushPredlogId:
           podatki && typeof podatki.pushPredlogId === "string" ? podatki.pushPredlogId : null,
+        skritiIds: Array.isArray(podatki && podatki.skritiIds)
+          ? podatki.skritiIds.map(String)
+          : [],
       };
     } catch (_napaka) {
-      return { stevilke: {}, pushPredlogId: null };
+      return { stevilke: {}, pushPredlogId: null, skritiIds: [] };
     }
   }
 
@@ -1524,7 +1479,8 @@ function inicializirajSporociloDolzniku() {
   }
 
   function sestaviSeznamPredlogov() {
-    predlogi = [...mojiPredlogi, ...vgrajeniPredlogi];
+    const skriti = new Set(nastavitvePredlogov.skritiIds || []);
+    predlogi = [...mojiPredlogi, ...vgrajeniPredlogi].filter((p) => !skriti.has(p.id));
     const zasedene = new Set();
 
     predlogi.forEach((predlog, indeks) => {
@@ -1647,93 +1603,46 @@ function inicializirajSporociloDolzniku() {
     shraniNastavitvePredlogov();
     izrisiPredloge();
     if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+    if (modalPush && odprtPredlog && odprtPredlog.id === predlogId) {
+      modalPush.setAttribute("aria-pressed", vklop ? "true" : "false");
+    }
   }
 
-  function oznaciIzbranoIkono(ime) {
-    izbranaIkona = PREDLOG_IKONE.includes(ime) ? ime : "message-circle";
-    if (!modalIkoneSeznam) return;
-    modalIkoneSeznam.querySelectorAll(".korak2-modal__ikona-gumb").forEach((gumb) => {
-      const jeIzbrana = gumb.dataset.ikona === izbranaIkona;
-      gumb.setAttribute("aria-pressed", jeIzbrana ? "true" : "false");
-    });
+  function posodobiModalPushGumb() {
+    if (!modalPush || !odprtPredlog) return;
+    const jePush = nastavitvePredlogov.pushPredlogId === odprtPredlog.id;
+    modalPush.setAttribute("aria-pressed", jePush ? "true" : "false");
+    modalPush.textContent = jePush ? "Push – vklopljen" : "Push – privzeta predloga";
   }
 
-  function izrisiIzbireIkon() {
-    if (!modalIkoneSeznam) return;
-    modalIkoneSeznam.innerHTML = "";
-    PREDLOG_IKONE.forEach((ime) => {
-      const gumb = document.createElement("button");
-      gumb.type = "button";
-      gumb.className = "korak2-modal__ikona-gumb";
-      gumb.dataset.ikona = ime;
-      gumb.setAttribute("aria-label", "Ikona " + ime);
-      gumb.setAttribute("aria-pressed", "false");
-      gumb.innerHTML = svgIkonaPredloga(ime);
-      gumb.addEventListener("click", () => oznaciIzbranoIkono(ime));
-      modalIkoneSeznam.appendChild(gumb);
-    });
-  }
-
-  function nastaviNacinUrejanja(vklop) {
-    modalVUrejanju = vklop;
-    if (modalNaslov) modalNaslov.hidden = vklop;
-    if (modalNaslovVnos) modalNaslovVnos.hidden = !vklop;
-    if (modalBesedilo) modalBesedilo.hidden = vklop;
-    if (modalIkone) modalIkone.hidden = !vklop;
-    if (modalUrejevalnik) modalUrejevalnik.hidden = !vklop;
-    if (modalUrejanjeAkcije) modalUrejanjeAkcije.hidden = !vklop;
-    if (modalUredi) modalUredi.hidden = vklop;
-  }
-
-  function zapriPredogled() {
+  function zapriUrediModal() {
     if (!modal) return;
-    nastaviNacinUrejanja(false);
     modal.hidden = true;
     odprtPredlog = null;
-    izbranaIkona = "message-circle";
-    if (modalNaslov) modalNaslov.textContent = "";
     if (modalNaslovVnos) modalNaslovVnos.value = "";
-    if (modalBesedilo) modalBesedilo.textContent = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
+    if (modalPush) {
+      modalPush.setAttribute("aria-pressed", "false");
+      modalPush.textContent = "Push – privzeta predloga";
+    }
   }
 
-  function odpriPredogled(predlog) {
-    if (!modal || !modalNaslov || !modalBesedilo) return;
-    // Predogled namerno NE spreminja glavnega textarea polja.
+  function odpriUrediModal(predlog) {
+    if (!modal || !modalUrejevalnik) return;
     odprtPredlog = predlog;
-    izbranaIkona = predlog.ikona || "message-circle";
-    nastaviNacinUrejanja(false);
-    modalNaslov.textContent = predlog.naslov;
-    if (modalNaslovVnos) modalNaslovVnos.value = predlog.naslov;
-    modalBesedilo.textContent = predlog.besedilo;
-    if (modalUrejevalnik) modalUrejevalnik.value = predlog.besedilo;
+    if (modalNaslovVnos) modalNaslovVnos.value = predlog.naslov.slice(0, 80);
+    modalUrejevalnik.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
+    if (modalShrani) {
+      modalShrani.textContent = predlog.jeMoj ? "Shrani" : "Shrani kot nov predlog";
+    }
+    posodobiModalPushGumb();
     modal.hidden = false;
-  }
-
-  function vklopUrejanja() {
-    if (!odprtPredlog || !modalUrejevalnik) return;
-    if (modalNaslovVnos) modalNaslovVnos.value = odprtPredlog.naslov.slice(0, 80);
-    modalUrejevalnik.value = odprtPredlog.besedilo.slice(0, NAJVEC_ZNAKOV);
-    izbranaIkona = odprtPredlog.ikona || "message-circle";
-    izrisiIzbireIkon();
-    oznaciIzbranoIkono(izbranaIkona);
-    nastaviNacinUrejanja(true);
     if (modalNaslovVnos) modalNaslovVnos.focus();
     else modalUrejevalnik.focus();
   }
 
-  function prekliciUrejanje() {
-    if (!odprtPredlog) return;
-    if (modalNaslovVnos) modalNaslovVnos.value = odprtPredlog.naslov;
-    if (modalNaslov) modalNaslov.textContent = odprtPredlog.naslov;
-    if (modalUrejevalnik) modalUrejevalnik.value = odprtPredlog.besedilo;
-    if (modalBesedilo) modalBesedilo.textContent = odprtPredlog.besedilo;
-    izbranaIkona = odprtPredlog.ikona || "message-circle";
-    nastaviNacinUrejanja(false);
-  }
-
-  function shraniKotNovPredlog() {
-    if (!modalUrejevalnik) return;
+  function shraniPredlogIzModala() {
+    if (!modalUrejevalnik || !odprtPredlog) return;
     const naslov = (modalNaslovVnos ? modalNaslovVnos.value : "").trim().slice(0, 80);
     const besedilo = modalUrejevalnik.value.trim().slice(0, NAJVEC_ZNAKOV);
     if (!naslov) {
@@ -1746,21 +1655,64 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
+    if (odprtPredlog.jeMoj) {
+      mojiPredlogi = mojiPredlogi.map((p) =>
+        p.id === odprtPredlog.id ? { ...p, naslov, besedilo } : p
+      );
+      shraniMojePredlogeVLocalStorage();
+      sestaviSeznamPredlogov();
+      izrisiPredloge();
+      if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+      zapriUrediModal();
+      return;
+    }
+
+    // Vgrajena predloga: shrani kot novo (original ostane).
     const novPredlog = {
       id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
       naslov,
-      ikona: izbranaIkona || "message-circle",
+      ikona: odprtPredlog.ikona || "message-circle",
       stilIkone: "",
       besedilo,
       jeMoj: true,
     };
-
-    // Nov predlog gre na vrh (številka 1); original ostane nespremenjen.
     mojiPredlogi = [novPredlog, ...mojiPredlogi];
     shraniMojePredlogeVLocalStorage();
     sestaviSeznamPredlogov();
     nastaviStevilkoPredloga(novPredlog.id, 1);
-    zapriPredogled();
+    zapriUrediModal();
+  }
+
+  function izbrisiOdprtPredlog() {
+    if (!odprtPredlog) return;
+    const potrjeno = window.confirm(
+      "Ali res želite odstraniti predlogo »" + odprtPredlog.naslov + "«?"
+    );
+    if (!potrjeno) return;
+
+    const id = odprtPredlog.id;
+    if (odprtPredlog.jeMoj) {
+      mojiPredlogi = mojiPredlogi.filter((p) => p.id !== id);
+      shraniMojePredlogeVLocalStorage();
+    } else {
+      if (!Array.isArray(nastavitvePredlogov.skritiIds)) nastavitvePredlogov.skritiIds = [];
+      if (!nastavitvePredlogov.skritiIds.includes(id)) {
+        nastavitvePredlogov.skritiIds.push(id);
+      }
+    }
+
+    if (nastavitvePredlogov.pushPredlogId === id) {
+      nastavitvePredlogov.pushPredlogId = null;
+    }
+    delete nastavitvePredlogov.stevilke[id];
+    if (izbranPredlogId === id) izbranPredlogId = null;
+
+    shraniNastavitvePredlogov();
+    zapriUrediModal();
+    sestaviSeznamPredlogov();
+    izrisiPredloge();
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+    pokaziObvestiloPredlogov("Predloga je bila odstranjena.");
   }
 
   function oznaciIzbranega(id) {
@@ -1785,7 +1737,6 @@ function inicializirajSporociloDolzniku() {
       kartica.dataset.predlogId = predlog.id;
 
       const stilStevilke = indeks % 2 === 1 ? " predlog-kartica__stevilka--alt" : "";
-      const jePush = nastavitvePredlogov.pushPredlogId === predlog.id;
       const stevilka = predlog.stevilka || 1;
 
       kartica.innerHTML =
@@ -1797,22 +1748,21 @@ function inicializirajSporociloDolzniku() {
         '">' +
         stevilka +
         "</button>" +
-        '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do 9"></div>' +
+        '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do 9">' +
+        '<div class="predlog-kartica__stevilke-mreza"></div>' +
+        "</div>" +
         "</div>" +
         '<p class="predlog-kartica__naslov"></p>' +
         '<p class="predlog-kartica__opis"></p>' +
         '<button type="button" class="preview-button">' +
-        ikonaOcesa +
-        "<span>Predogled</span></button>" +
+        ikonaSvincnika +
+        "<span>Uredi</span></button>" +
         '<div class="predlog-kartica__akcije">' +
         '<button type="button" class="predlog-gumb predlog-gumb--uporabi" aria-pressed="false" data-predlog-id="' +
         predlog.id +
         '">' +
         ikonaKljukice +
         "Uporabi</button>" +
-        '<button type="button" class="predlog-gumb predlog-gumb--push" aria-pressed="' +
-        (jePush ? "true" : "false") +
-        '">Push</button>' +
         "</div>";
 
       kartica.querySelector(".predlog-kartica__naslov").textContent = predlog.naslov;
@@ -1820,6 +1770,7 @@ function inicializirajSporociloDolzniku() {
 
       const gumbStevilke = kartica.querySelector(".predlog-kartica__stevilka");
       const izbirnik = kartica.querySelector(".predlog-kartica__stevilke-izbirnik");
+      const mreza = kartica.querySelector(".predlog-kartica__stevilke-mreza");
 
       for (let n = 1; n <= 9; n++) {
         const gumbN = document.createElement("button");
@@ -1832,7 +1783,7 @@ function inicializirajSporociloDolzniku() {
           dogodek.stopPropagation();
           nastaviStevilkoPredloga(predlog.id, n);
         });
-        izbirnik.appendChild(gumbN);
+        mreza.appendChild(gumbN);
       }
 
       gumbStevilke.addEventListener("click", (dogodek) => {
@@ -1847,17 +1798,12 @@ function inicializirajSporociloDolzniku() {
 
       kartica.querySelector(".preview-button").addEventListener("click", () => {
         zapriVseStevilkeIzbire();
-        odpriPredogled(predlog);
+        odpriUrediModal(predlog);
       });
 
       kartica.querySelector(".predlog-gumb--uporabi").addEventListener("click", () => {
         zapriVseStevilkeIzbire();
         uporabiPredlog(predlog);
-      });
-
-      kartica.querySelector(".predlog-gumb--push").addEventListener("click", () => {
-        zapriVseStevilkeIzbire();
-        nastaviPushPredlog(predlog.id, !jePush);
       });
 
       seznam.appendChild(kartica);
@@ -1920,16 +1866,22 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
-  if (modalUredi) modalUredi.addEventListener("click", vklopUrejanja);
-  if (modalPreklici) modalPreklici.addEventListener("click", prekliciUrejanje);
-  if (modalShrani) modalShrani.addEventListener("click", shraniKotNovPredlog);
-  if (modalZapri) modalZapri.addEventListener("click", zapriPredogled);
-  if (modalBackdrop) modalBackdrop.addEventListener("click", zapriPredogled);
+  if (modalPush) {
+    modalPush.addEventListener("click", () => {
+      if (!odprtPredlog) return;
+      const jePush = nastavitvePredlogov.pushPredlogId === odprtPredlog.id;
+      nastaviPushPredlog(odprtPredlog.id, !jePush);
+      posodobiModalPushGumb();
+    });
+  }
+  if (modalIzbrisi) modalIzbrisi.addEventListener("click", izbrisiOdprtPredlog);
+  if (modalPreklici) modalPreklici.addEventListener("click", zapriUrediModal);
+  if (modalShrani) modalShrani.addEventListener("click", shraniPredlogIzModala);
+  if (modalZapri) modalZapri.addEventListener("click", zapriUrediModal);
+  if (modalBackdrop) modalBackdrop.addEventListener("click", zapriUrediModal);
   document.addEventListener("keydown", (dogodek) => {
     if (dogodek.key !== "Escape" || !modal || modal.hidden) return;
-    // V načinu urejanja Escape najprej prekliče urejanje; drugič zapre modal.
-    if (modalVUrejanju) prekliciUrejanje();
-    else zapriPredogled();
+    zapriUrediModal();
   });
 
   besediloPolje.addEventListener("input", () => {

@@ -2509,9 +2509,9 @@ body.stran--samo-seznam #obrazec {
   align-items: stretch;
   column-gap: 10px;
   row-gap: 6px;
-  height: 132px;
-  min-height: 132px;
-  max-height: 132px;
+  height: 116px;
+  min-height: 116px;
+  max-height: 116px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -2566,35 +2566,39 @@ body.stran--samo-seznam #obrazec {
 
 .predlog-kartica__stevilke-izbirnik {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 6;
-  display: grid;
-  grid-template-columns: repeat(3, 28px);
-  gap: 4px;
-  padding: 6px;
+  width: max-content;
+  padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--white);
-  box-shadow: 0 6px 18px rgba(28, 45, 42, 0.12);
+  box-shadow: 0 8px 22px rgba(28, 45, 42, 0.14);
 }
 
 .predlog-kartica__stevilke-izbirnik[hidden] {
   display: none;
 }
 
+.predlog-kartica__stevilke-mreza {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  gap: 6px;
+}
+
 .predlog-kartica__stevilka-izbira {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 42px;
+  height: 42px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -2745,10 +2749,10 @@ body.stran--samo-seznam #obrazec {
 .predlog-kartica__akcije .predlog-gumb--uporabi {
   width: auto;
   min-width: 92px;
-  min-height: 40px;
-  padding: 8px 10px;
+  min-height: 46px;
+  padding: 10px 10px;
   margin-right: 0;
-  margin-bottom: 0;
+  margin-bottom: 2px;
   border: 1px solid var(--teal);
   background: var(--teal);
   color: var(--white);
@@ -2758,31 +2762,6 @@ body.stran--samo-seznam #obrazec {
 .predlog-gumb--uporabi:hover {
   background: var(--teal-dark);
   border-color: var(--teal-dark);
-}
-
-.predlog-kartica__akcije .predlog-gumb--push {
-  width: auto;
-  min-width: 92px;
-  min-height: 28px;
-  padding: 4px 8px;
-  margin-right: 0;
-  margin-bottom: 2px;
-  border: 1px solid var(--border);
-  background: var(--white);
-  color: var(--muted);
-  font-size: 0.65rem;
-  font-weight: 500;
-}
-
-.predlog-kartica__akcije .predlog-gumb--push:hover {
-  border-color: var(--teal);
-  color: var(--teal-dark);
-}
-
-.predlog-kartica__akcije .predlog-gumb--push[aria-pressed="true"] {
-  border-color: var(--teal-dark);
-  background: var(--teal-pale);
-  color: var(--teal-dark);
 }
 
 .sporocilo-dodatki__gumbi {
@@ -2884,7 +2863,7 @@ body.stran--samo-seznam #obrazec {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .korak2-modal__naslov-ovoj {
@@ -2892,15 +2871,13 @@ body.stran--samo-seznam #obrazec {
   flex: 1;
 }
 
-.korak2-modal__naslov {
-  margin: 0;
-  font-size: 1rem;
+.korak2-modal__naslov-oznaka,
+.korak2-modal__polje-oznaka {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 0.72rem;
   font-weight: 500;
-  color: var(--text);
-}
-
-.korak2-modal__naslov[hidden] {
-  display: none;
+  color: var(--muted);
 }
 
 .korak2-modal__naslov-vnos {
@@ -2918,32 +2895,12 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-.korak2-modal__naslov-vnos[hidden] {
-  display: none;
-}
-
 .korak2-modal__glava-akcije {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-}
-
-.korak2-modal__uredi {
-  min-height: 32px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-soft);
-  color: var(--teal-dark);
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.korak2-modal__uredi[hidden] {
-  display: none;
+  margin-top: 18px;
 }
 
 .korak2-modal__zapri {
@@ -2961,71 +2918,11 @@ body.stran--samo-seznam #obrazec {
   cursor: pointer;
 }
 
-.korak2-modal__besedilo {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--text);
-  white-space: pre-wrap;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.korak2-modal__besedilo[hidden] {
-  display: none;
-}
-
-.korak2-modal__ikone {
-  margin: 0 0 12px;
-}
-
-.korak2-modal__ikone[hidden] {
-  display: none;
-}
-
-.korak2-modal__ikone-naslov {
-  margin: 0 0 8px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.korak2-modal__ikone-seznam {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.korak2-modal__ikona-gumb {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-soft);
-  color: var(--teal-dark);
-  cursor: pointer;
-}
-
-.korak2-modal__ikona-gumb svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-
-.korak2-modal__ikona-gumb[aria-pressed="true"] {
-  border-color: var(--teal-dark);
-  background: var(--teal-pale);
-  color: var(--teal-dark);
-}
-
 .korak2-modal__urejevalnik {
   display: block;
   width: 100%;
   min-height: 160px;
-  margin: 0;
+  margin: 0 0 12px;
   padding: 12px;
   border: 1px solid var(--border-strong);
   border-radius: 12px;
@@ -3038,8 +2935,59 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-.korak2-modal__urejevalnik[hidden] {
-  display: none;
+.korak2-modal__opcije {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.korak2-modal__push {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--teal);
+  border-radius: 10px;
+  background: var(--teal);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.korak2-modal__push:hover {
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
+}
+
+.korak2-modal__push[aria-pressed="true"] {
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
+}
+
+.korak2-modal__izbrisi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #d7b4b1;
+  border-radius: 10px;
+  background: #fff7f6;
+  color: #9d3a36;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.korak2-modal__izbrisi:hover {
+  background: #fdecea;
+  border-color: #c78d88;
 }
 
 .korak2-modal__urejanje-akcije {
@@ -3047,11 +2995,6 @@ body.stran--samo-seznam #obrazec {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 12px;
-}
-
-.korak2-modal__urejanje-akcije[hidden] {
-  display: none;
 }
 
 .korak2-modal__preklici {
@@ -3115,14 +3058,23 @@ body.stran--samo-seznam #obrazec {
     grid-template-rows: auto minmax(0, 1fr);
     column-gap: 8px;
     row-gap: 6px;
-    height: 132px;
-    min-height: 132px;
-    max-height: 132px;
+    height: 116px;
+    min-height: 116px;
+    max-height: 116px;
   }
 
   .predlog-kartica__stevilka {
     width: 32px;
     height: 32px;
+  }
+
+  .predlog-kartica__stevilke-mreza {
+    grid-template-columns: repeat(3, 40px);
+  }
+
+  .predlog-kartica__stevilka-izbira {
+    width: 40px;
+    height: 40px;
   }
 
   .predlog-gumb {
