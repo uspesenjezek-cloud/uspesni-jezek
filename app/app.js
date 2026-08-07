@@ -1311,6 +1311,7 @@ function inicializirajSporociloDolzniku() {
   const stevecPolja = document.getElementById("sporocilo-stevec");
   const osnutekStatus = document.getElementById("osnutek-status");
   const oznakaStevila = document.getElementById("predlogi-stevilo-oznaka");
+  const gumbDodajPredlog = document.getElementById("predlogi-dodaj");
   const predlogiObvestilo = document.getElementById("predlogi-obvestilo");
   const dodatekRok = document.getElementById("dodatek-rok");
   const dodatekObrocno = document.getElementById("dodatek-obrocno");
@@ -1517,7 +1518,11 @@ function inicializirajSporociloDolzniku() {
 
     if (oznakaStevila) {
       const n = predlogi.length;
-      oznakaStevila.textContent = n + (n === 1 ? " predlog" : " predlogov");
+      oznakaStevila.textContent = String(n);
+      oznakaStevila.setAttribute(
+        "aria-label",
+        n + (n === 1 ? " predlog" : " predlogov")
+      );
     }
     shraniNastavitvePredlogov();
   }
@@ -1654,16 +1659,19 @@ function inicializirajSporociloDolzniku() {
     odprtPredlog = null;
     if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
+    if (modalIzbrisi) modalIzbrisi.hidden = false;
   }
 
   function odpriUrediModal(predlog) {
     if (!modal || !modalUrejevalnik) return;
     odprtPredlog = predlog;
-    if (modalNaslovVnos) modalNaslovVnos.value = predlog.naslov.slice(0, 80);
-    modalUrejevalnik.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
+    if (modalNaslovVnos) modalNaslovVnos.value = (predlog.naslov || "").slice(0, 80);
+    modalUrejevalnik.value = (predlog.besedilo || "").slice(0, NAJVEC_ZNAKOV);
     if (modalShrani) {
-      modalShrani.textContent = predlog.jeMoj ? "Shrani" : "Shrani kot nov predlog";
+      modalShrani.textContent =
+        predlog.jeNov || predlog.jeMoj ? "Shrani" : "Shrani kot nov predlog";
     }
+    if (modalIzbrisi) modalIzbrisi.hidden = !!predlog.jeNov;
     modal.hidden = false;
     pritrdiUrediModalNaVrh();
     // Fokus → tipkovnica; po kratkem zamiku ponovno poravnaj (iOS).
@@ -1674,6 +1682,17 @@ function inicializirajSporociloDolzniku() {
     setTimeout(posodobiPozicijoUrediModala, 100);
     setTimeout(posodobiPozicijoUrediModala, 350);
     setTimeout(posodobiPozicijoUrediModala, 600);
+  }
+
+  function odpriNovPredlogModal() {
+    odpriUrediModal({
+      id: null,
+      naslov: "",
+      besedilo: "",
+      jeMoj: true,
+      jeNov: true,
+      ikona: "message-circle",
+    });
   }
 
   if (modalNaslovVnos) {
@@ -1705,36 +1724,40 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
-    if (odprtPredlog.jeMoj) {
-      mojiPredlogi = mojiPredlogi.map((p) =>
-        p.id === odprtPredlog.id ? { ...p, naslov, besedilo } : p
-      );
+    // Nov prazen predlog ali kopija vgrajenega → shrani med moje predloge.
+    if (odprtPredlog.jeNov || !odprtPredlog.jeMoj) {
+      const novPredlog = {
+        id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+        naslov,
+        ikona: odprtPredlog.ikona || "message-circle",
+        stilIkone: "",
+        besedilo,
+        jeMoj: true,
+      };
+      mojiPredlogi = [novPredlog, ...mojiPredlogi];
       shraniMojePredlogeVLocalStorage();
       sestaviSeznamPredlogov();
-      izrisiPredloge();
-      if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+      nastaviStevilkoPredloga(novPredlog.id, 1);
       zapriUrediModal();
       return;
     }
 
-    // Vgrajena predloga: shrani kot novo (original ostane).
-    const novPredlog = {
-      id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
-      naslov,
-      ikona: odprtPredlog.ikona || "message-circle",
-      stilIkone: "",
-      besedilo,
-      jeMoj: true,
-    };
-    mojiPredlogi = [novPredlog, ...mojiPredlogi];
+    mojiPredlogi = mojiPredlogi.map((p) =>
+      p.id === odprtPredlog.id ? { ...p, naslov, besedilo } : p
+    );
     shraniMojePredlogeVLocalStorage();
     sestaviSeznamPredlogov();
-    nastaviStevilkoPredloga(novPredlog.id, 1);
+    izrisiPredloge();
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
     zapriUrediModal();
   }
 
   function izbrisiOdprtPredlog() {
     if (!odprtPredlog) return;
+    if (odprtPredlog.jeNov) {
+      zapriUrediModal();
+      return;
+    }
     const potrjeno = window.confirm(
       "Ali res želite odstraniti predlogo »" + odprtPredlog.naslov + "«?"
     );
@@ -1915,6 +1938,7 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
+  if (gumbDodajPredlog) gumbDodajPredlog.addEventListener("click", odpriNovPredlogModal);
   if (modalIzbrisi) modalIzbrisi.addEventListener("click", izbrisiOdprtPredlog);
   if (modalShrani) modalShrani.addEventListener("click", shraniPredlogIzModala);
   if (modalZapri) modalZapri.addEventListener("click", zapriUrediModal);

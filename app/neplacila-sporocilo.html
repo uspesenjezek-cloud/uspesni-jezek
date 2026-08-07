@@ -87,7 +87,16 @@
             <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="predloge-naslov">
               <div class="korak2-sklop__glava">
                 <h2 class="korak2-sklop__naslov" id="predloge-naslov">Izberite predlogo</h2>
-                <span class="korak2-sklop__oznaka" id="predlogi-stevilo-oznaka">6 predlogov</span>
+                <div class="korak2-sklop__akcije">
+                  <span
+                    class="korak2-sklop__stevilo"
+                    id="predlogi-stevilo-oznaka"
+                    aria-label="0 predlogov"
+                  >0</span>
+                  <button type="button" class="korak2-sklop__dodaj" id="predlogi-dodaj">
+                    Dodaj predlogo
+                  </button>
+                </div>
               </div>
               <p class="korak2-sklop__opis">
                 Predlogo uredite ali jo neposredno uporabite.
@@ -195,6 +204,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-brez-push"></script>
+    <script src="app.js?v=20260807-dodaj-predlogo"></script>
   </body>
 </html>

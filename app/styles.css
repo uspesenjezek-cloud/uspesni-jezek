@@ -2391,6 +2391,43 @@ body.stran--samo-seznam #obrazec {
   gap: 12px;
 }
 
+.korak2-sklop__akcije {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.korak2-sklop__stevilo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.korak2-sklop__dodaj {
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.korak2-sklop__dodaj:hover {
+  background: var(--surface-2, #f3f4f2);
+}
+
 .korak2-sklop__oznaka {
   flex-shrink: 0;
   padding: 6px 10px;
