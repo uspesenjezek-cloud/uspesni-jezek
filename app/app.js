@@ -1711,6 +1711,25 @@ function inicializirajSporociloDolzniku() {
   const ikonaZvezdePrioriteta =
     '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
 
+  function htmlStevilkaZvezda() {
+    return (
+      '<span class="predlog-kartica__zvezda" aria-hidden="true">' +
+      ikonaZvezdePrioriteta +
+      '</span><span class="predlog-kartica__zvezda-cifra">1</span>'
+    );
+  }
+
+  /** Številka 1 povsod: rumena zvezda z »1« (kartica, popover, modal Uredi). */
+  function nastaviVsebinoStevilkeGumba(gumb, n, razredPrioriteta) {
+    if (Number(n) === 1) {
+      gumb.classList.add(razredPrioriteta);
+      gumb.innerHTML = htmlStevilkaZvezda();
+      gumb.setAttribute("aria-label", "Prioritetna številka 1 – privzeto sporočilo");
+    } else {
+      gumb.textContent = String(n);
+    }
+  }
+
   function pokaziNapako(besedilo, tehnicniPodatki) {
     if (!napaka) return;
     napaka.textContent = tehnicniPodatki ? besedilo + " (" + tehnicniPodatki + ")" : besedilo;
@@ -2097,7 +2116,7 @@ function inicializirajSporociloDolzniku() {
       gumb.className = "korak2-modal__stevilka-izbira";
       gumb.dataset.stevilka = String(n);
       gumb.setAttribute("role", "option");
-      gumb.textContent = String(n);
+      nastaviVsebinoStevilkeGumba(gumb, n, "korak2-modal__stevilka-izbira--prioriteta");
       gumb.addEventListener("click", () => {
         modalIzbranaStevilka = n;
         posodobiModalStevilkeUI();
@@ -2312,11 +2331,6 @@ function inicializirajSporociloDolzniku() {
         : indeks % 2 === 1
           ? " predlog-kartica__stevilka--alt"
           : "";
-      const vsebinaStevilke = jePrioriteta
-        ? '<span class="predlog-kartica__zvezda" aria-hidden="true">' +
-          ikonaZvezdePrioriteta +
-          '</span><span class="predlog-kartica__zvezda-cifra">1</span>'
-        : String(stevilka);
       const oznakaStevilke = jePrioriteta
         ? "Prioritetna predloga (številka 1) – privzeto sporočilo"
         : "Vrstni red predloge, trenutno " + stevilka;
@@ -2327,9 +2341,7 @@ function inicializirajSporociloDolzniku() {
         stilStevilke +
         '" aria-expanded="false" aria-haspopup="listbox" aria-label="' +
         oznakaStevilke +
-        '">' +
-        vsebinaStevilke +
-        "</button>" +
+        '"></button>' +
         '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do 9">' +
         '<div class="predlog-kartica__stevilke-mreza"></div>' +
         "</div>" +
@@ -2351,6 +2363,11 @@ function inicializirajSporociloDolzniku() {
       kartica.querySelector(".predlog-kartica__opis").textContent = predlog.besedilo;
 
       const gumbStevilke = kartica.querySelector(".predlog-kartica__stevilka");
+      nastaviVsebinoStevilkeGumba(
+        gumbStevilke,
+        stevilka,
+        "predlog-kartica__stevilka--prioriteta"
+      );
       const izbirnik = kartica.querySelector(".predlog-kartica__stevilke-izbirnik");
       const mreza = kartica.querySelector(".predlog-kartica__stevilke-mreza");
 
@@ -2360,7 +2377,11 @@ function inicializirajSporociloDolzniku() {
         gumbN.className = "predlog-kartica__stevilka-izbira";
         gumbN.setAttribute("role", "option");
         gumbN.setAttribute("aria-selected", n === stevilka ? "true" : "false");
-        gumbN.textContent = String(n);
+        nastaviVsebinoStevilkeGumba(
+          gumbN,
+          n,
+          "predlog-kartica__stevilka-izbira--prioriteta"
+        );
         gumbN.addEventListener("click", (dogodek) => {
           dogodek.stopPropagation();
           nastaviStevilkoPredloga(predlog.id, n);

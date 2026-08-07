@@ -3436,6 +3436,36 @@ body.stran--samo-seznam #obrazec {
   border-color: var(--teal);
 }
 
+.predlog-kartica__stevilka-izbira--prioriteta {
+  position: relative;
+  border-color: #e8b923;
+  background: #fffbeb;
+  color: #1a2e24;
+}
+
+.predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
+  color: #e8b923;
+}
+
+.predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda svg {
+  width: 46px;
+  height: 46px;
+}
+
+.predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
+  font-size: 0.95rem;
+}
+
+.predlog-kartica__stevilka-izbira--prioriteta[aria-selected="true"] {
+  border-color: #d4a017;
+  background: #fff3c4;
+  color: #1a2e24;
+}
+
+.predlog-kartica__stevilka-izbira--prioriteta:hover {
+  border-color: #d4a017;
+}
+
 .predlog-kartica__naslov {
   grid-column: 2;
   grid-row: 1;
@@ -3780,6 +3810,7 @@ body.stran--samo-seznam #obrazec {
 }
 
 .korak2-modal__stevilka-izbira {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3807,6 +3838,34 @@ body.stran--samo-seznam #obrazec {
 .korak2-modal__stevilka-izbira:focus-visible {
   outline: 2px solid var(--teal-dark, #1f6b5c);
   outline-offset: 2px;
+}
+
+.korak2-modal__stevilka-izbira--prioriteta {
+  border-color: #e8b923;
+  background: #fffbeb;
+  border-radius: 12px;
+  color: #1a2e24;
+}
+
+.korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
+  color: #e8b923;
+}
+
+.korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda svg {
+  width: 28px;
+  height: 28px;
+}
+
+.korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1a2e24;
+}
+
+.korak2-modal__stevilka-izbira--prioriteta[aria-selected="true"] {
+  border-color: #d4a017;
+  background: #fff3c4;
+  color: #1a2e24;
 }
 
 .korak2-modal__zapri {
