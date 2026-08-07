@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-modal-tipkovnica" />
+    <link rel="stylesheet" href="styles.css?v=20260807-modal-noga" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -152,52 +152,57 @@
             aria-modal="true"
             aria-labelledby="predogled-naslov-oznaka"
           >
-            <div class="korak2-modal__glava">
-              <div class="korak2-modal__naslov-ovoj">
-                <label class="korak2-modal__naslov-oznaka" id="predogled-naslov-oznaka" for="predogled-naslov-vnos">
-                  Ime predloga
-                </label>
-                <input
-                  type="text"
-                  id="predogled-naslov-vnos"
-                  class="korak2-modal__naslov-vnos"
-                  maxlength="80"
-                  placeholder="Ime predloga"
-                />
+            <div class="korak2-modal__telo">
+              <div class="korak2-modal__glava">
+                <div class="korak2-modal__naslov-ovoj">
+                  <label class="korak2-modal__naslov-oznaka" id="predogled-naslov-oznaka" for="predogled-naslov-vnos">
+                    Ime predloga
+                  </label>
+                  <input
+                    type="text"
+                    id="predogled-naslov-vnos"
+                    class="korak2-modal__naslov-vnos"
+                    maxlength="80"
+                    placeholder="Ime predloga"
+                  />
+                </div>
+                <div class="korak2-modal__glava-akcije">
+                  <button type="button" class="korak2-modal__zapri" id="predogled-zapri" aria-label="Zapri">
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </div>
               </div>
-              <div class="korak2-modal__glava-akcije">
-                <button type="button" class="korak2-modal__zapri" id="predogled-zapri" aria-label="Zapri">
-                  <span aria-hidden="true">×</span>
+              <label class="korak2-modal__polje-oznaka" for="predogled-urejevalnik">Besedilo</label>
+              <textarea
+                id="predogled-urejevalnik"
+                class="korak2-modal__urejevalnik"
+                maxlength="1000"
+              ></textarea>
+            </div>
+            <!-- Noga vedno vidna (tudi ob tipkovnici): Push, izbris, shrani -->
+            <div class="korak2-modal__noga">
+              <div class="korak2-modal__opcije" id="predogled-opcije">
+                <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
+                  Push
+                </button>
+                <button type="button" class="korak2-modal__izbrisi" id="predogled-izbrisi">
+                  Izbriši
                 </button>
               </div>
-            </div>
-            <label class="korak2-modal__polje-oznaka" for="predogled-urejevalnik">Besedilo</label>
-            <textarea
-              id="predogled-urejevalnik"
-              class="korak2-modal__urejevalnik"
-              maxlength="1000"
-            ></textarea>
-            <div class="korak2-modal__opcije" id="predogled-opcije">
-              <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
-                Push – privzeta predloga
-              </button>
-              <button type="button" class="korak2-modal__izbrisi" id="predogled-izbrisi">
-                Izbriši predlogo
-              </button>
-            </div>
-            <div class="korak2-modal__urejanje-akcije" id="predogled-urejanje-akcije">
-              <button type="button" class="korak2-modal__preklici" id="predogled-preklici">
-                Prekliči
-              </button>
-              <button type="button" class="korak2-modal__shrani" id="predogled-shrani">
-                Shrani
-              </button>
+              <div class="korak2-modal__urejanje-akcije" id="predogled-urejanje-akcije">
+                <button type="button" class="korak2-modal__preklici" id="predogled-preklici">
+                  Prekliči
+                </button>
+                <button type="button" class="korak2-modal__shrani" id="predogled-shrani">
+                  Shrani
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="app.js?v=20260807-modal-tipkovnica"></script>
+    <script src="app.js?v=20260807-modal-noga"></script>
   </body>
 </html>
