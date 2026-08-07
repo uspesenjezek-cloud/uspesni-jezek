@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Figtree:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-koraki-v4" />
+    <link rel="stylesheet" href="styles.css?v=20260807-koraki-klik" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#4d9494" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -33,20 +33,29 @@
         <p class="korak2__osnutek">Osnutek shranjen</p>
       </header>
 
-      <div class="workflow-progress" aria-label="Napredek postopka">
-        <div class="workflow-progress__step is-complete">
-          <span class="workflow-progress__label">Vnos dolžnika</span>
+      <nav class="workflow-progress" data-koraki-postopek aria-label="Napredek postopka">
+        <a href="neplacila.html#obrazec" class="workflow-progress__step is-complete" data-korak="1">
+          <span class="workflow-progress__glava">
+            <span class="workflow-progress__stevilo" aria-hidden="true">1</span>
+            <span class="workflow-progress__label">Vnos dolžnika</span>
+          </span>
           <span class="workflow-progress__line"></span>
-        </div>
-        <div class="workflow-progress__step is-complete">
-          <span class="workflow-progress__label">Vnos sporočila</span>
+        </a>
+        <a href="neplacila-sporocilo.html" class="workflow-progress__step is-complete" data-korak="2">
+          <span class="workflow-progress__glava">
+            <span class="workflow-progress__stevilo" aria-hidden="true">2</span>
+            <span class="workflow-progress__label">Vnos sporočila</span>
+          </span>
           <span class="workflow-progress__line"></span>
-        </div>
-        <div class="workflow-progress__step is-current" aria-current="step">
-          <span class="workflow-progress__label">Nastavi pošiljanje</span>
+        </a>
+        <a href="neplacila-posiljanje.html" class="workflow-progress__step is-current" data-korak="3" aria-current="step">
+          <span class="workflow-progress__glava">
+            <span class="workflow-progress__stevilo" aria-hidden="true">3</span>
+            <span class="workflow-progress__label">Pošiljanje</span>
+          </span>
           <span class="workflow-progress__line"></span>
-        </div>
-      </div>
+        </a>
+      </nav>
 
       <main class="korak2__vsebina">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
@@ -73,6 +82,6 @@
       </main>
     </div>
 
-    <script src="app.js?v=20260807-koraki-v2"></script>
+    <script src="app.js?v=20260807-koraki-klik"></script>
   </body>
 </html>

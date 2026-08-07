@@ -51,6 +51,61 @@ const KLJUC_MOJI_PREDLOGI_OSNOVA = "neplacilo-moji-predlogi";
 /* Vrstni red (številke 1–9) in skrite predloge – localStorage po uporabniku. */
 const KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = "neplacilo-predlogi-nastavitve";
 
+/* URL-ji treh korakov postopka (klikljiv kazalnik napredka). */
+const URL_KORAKI_POSTOPKA = {
+  1: "neplacila.html#obrazec",
+  2: "neplacila-sporocilo.html",
+  3: "neplacila-posiljanje.html",
+};
+
+/* Najvišji dosežen korak: 2, če obstaja korak 1 v seji; 3, če tudi korak 2. */
+function ugotoviMaxDosezenKorak() {
+  if (sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI)) return 3;
+  if (sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI)) return 2;
+  return 1;
+}
+
+/* Oznaci korake (current/complete/upcoming) in omogoči klik na že dosežene. */
+function inicializirajKorakePostopka(trenutniKorak) {
+  const vsebnik = document.querySelector("[data-koraki-postopek]");
+  if (!vsebnik) return;
+
+  const maxDosezen = Math.max(ugotoviMaxDosezenKorak(), trenutniKorak);
+
+  vsebnik.querySelectorAll("[data-korak]").forEach((el) => {
+    const n = Number(el.dataset.korak);
+    if (!Number.isInteger(n) || n < 1 || n > 3) return;
+
+    el.classList.remove("is-current", "is-complete", "is-upcoming", "is-clickable");
+    el.removeAttribute("aria-current");
+    el.removeAttribute("aria-disabled");
+    el.removeAttribute("tabindex");
+    if (URL_KORAKI_POSTOPKA[n]) el.setAttribute("href", URL_KORAKI_POSTOPKA[n]);
+
+    if (n === trenutniKorak) {
+      el.classList.add("is-current");
+      el.setAttribute("aria-current", "step");
+      el.setAttribute("aria-disabled", "true");
+      el.setAttribute("tabindex", "-1");
+    } else if (n <= maxDosezen) {
+      el.classList.add("is-complete", "is-clickable");
+    } else {
+      el.classList.add("is-upcoming");
+      el.setAttribute("aria-disabled", "true");
+      el.setAttribute("tabindex", "-1");
+    }
+  });
+
+  vsebnik.addEventListener("click", (dogodek) => {
+    const povezava = dogodek.target.closest("[data-korak]");
+    if (!povezava || !vsebnik.contains(povezava)) return;
+    const n = Number(povezava.dataset.korak);
+    if (n === trenutniKorak || n > maxDosezen) {
+      dogodek.preventDefault();
+    }
+  });
+}
+
 /* Poveže vsak status z eno od 3 kategorij za "semafor" na vrhu strani
    (glej .zadeve-semafor v styles.css). Semafor služi tudi kot filter za
    seznam zadev spodaj - glej aktivnaKategorija v inicializirajNeplacila. */
@@ -127,6 +182,30 @@ function inicializirajNeplacila() {
   if (!obrazec || !seznamVsebina) {
     // Ta stran ne vsebuje obrazca/seznama za neplačila - ne naredi ničesar.
     return;
+  }
+
+  inicializirajKorakePostopka(1);
+
+  // Ob vrnitvi s kasnejšega koraka napolni obrazec iz seje (brez prilog).
+  try {
+    const osnutekKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
+    if (osnutekKorak1Json) {
+      const osnutek = JSON.parse(osnutekKorak1Json);
+      const nastavi = (name, vrednost) => {
+        const polje = obrazec.elements.namedItem(name);
+        if (polje && vrednost != null && vrednost !== "") polje.value = vrednost;
+      };
+      nastavi("ime", osnutek.imeDolznika);
+      nastavi("telefon", osnutek.telefonDolznika);
+      nastavi("email", osnutek.emailDolznika);
+      nastavi("znesek", osnutek.znesek != null ? String(osnutek.znesek) : "");
+      nastavi("opis", osnutek.opisDolga);
+      nastavi("datumIzdaje", osnutek.datumIzdajeRacuna);
+      nastavi("datum", osnutek.datumZapadlosti);
+      nastavi("stevilkaRacuna", osnutek.stevilkaRacuna);
+    }
+  } catch (_napaka) {
+    /* prezri okvarjen osnutek */
   }
 
   // Vse zadeve, kot so bile nazadnje naložene iz baze (za filtriranje brez
@@ -1298,6 +1377,9 @@ function inicializirajSporociloDolzniku() {
     window.location.href = "neplacila.html#obrazec";
     return;
   }
+
+  inicializirajKorakePostopka(2);
+
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const vgrajeniPredlogi = sestaviPredlogeSporocil(podatkiKorak1);
   let mojiPredlogi = [];
@@ -2105,6 +2187,8 @@ function inicializirajPosiljanje() {
     window.location.href = "neplacila-sporocilo.html";
     return;
   }
+
+  inicializirajKorakePostopka(3);
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const podatkiKorak2 = JSON.parse(podatkiKorak2Json);

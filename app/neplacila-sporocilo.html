@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-brez-push" />
+    <link rel="stylesheet" href="styles.css?v=20260807-koraki-klik" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -40,20 +40,29 @@
           </p>
         </header>
 
-        <div class="korak2-koraki" aria-label="Napredek postopka">
-          <div class="korak2-koraki__korak is-complete">
-            <span class="korak2-koraki__besedilo">Vnos dolžnika</span>
-            <span class="korak2-koraki__crta"></span>
-          </div>
-          <div class="korak2-koraki__korak is-current" aria-current="step">
-            <span class="korak2-koraki__besedilo">Vnos sporočila</span>
-            <span class="korak2-koraki__crta"></span>
-          </div>
-          <div class="korak2-koraki__korak is-upcoming">
-            <span class="korak2-koraki__besedilo">Pošiljanje</span>
-            <span class="korak2-koraki__crta"></span>
-          </div>
-        </div>
+        <nav class="workflow-progress" data-koraki-postopek aria-label="Napredek postopka">
+          <a href="neplacila.html#obrazec" class="workflow-progress__step is-complete" data-korak="1">
+            <span class="workflow-progress__glava">
+              <span class="workflow-progress__stevilo" aria-hidden="true">1</span>
+              <span class="workflow-progress__label">Vnos dolžnika</span>
+            </span>
+            <span class="workflow-progress__line"></span>
+          </a>
+          <a href="neplacila-sporocilo.html" class="workflow-progress__step is-current" data-korak="2" aria-current="step">
+            <span class="workflow-progress__glava">
+              <span class="workflow-progress__stevilo" aria-hidden="true">2</span>
+              <span class="workflow-progress__label">Vnos sporočila</span>
+            </span>
+            <span class="workflow-progress__line"></span>
+          </a>
+          <a href="neplacila-posiljanje.html" class="workflow-progress__step is-upcoming" data-korak="3">
+            <span class="workflow-progress__glava">
+              <span class="workflow-progress__stevilo" aria-hidden="true">3</span>
+              <span class="workflow-progress__label">Pošiljanje</span>
+            </span>
+            <span class="workflow-progress__line"></span>
+          </a>
+        </nav>
 
         <main class="korak2__vsebina">
           <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
@@ -213,6 +222,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-modal-stevilka"></script>
+    <script src="app.js?v=20260807-koraki-klik"></script>
   </body>
 </html>
