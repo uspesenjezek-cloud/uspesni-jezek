@@ -22,7 +22,24 @@ $mimeTypes = @{
 }
 
 while ($true) {
-  $client = $listener.AcceptTcpClient()
+  # AcceptTcpClient() je bil prej KLICAN ZUNAJ try/catch spodaj - ce je vrgel
+  # izjemo (npr. ker je ngrok povezavo takoj prekinil, ali je $listener
+  # medtem nehal poslusati), je to podrlo CELO zanko in s tem streznik, ker
+  # nobena naslednja zahteva ni bila vec sprejeta (od tod ERR_NGROK_3004 -
+  # ngrok ni dobil NOBENEGA odgovora). Zdaj je klic v svojem try/catch, da
+  # ena spodletela povezava ne ustavi poslusanja naslednjih.
+  $client = $null
+  try {
+    $client = $listener.AcceptTcpClient()
+  } catch {
+    if (-not $listener.Server.IsBound) {
+      Write-Host "Poslusalec je ustavljen, streznik se zaustavlja."
+      break
+    }
+    Write-Host "Napaka pri sprejemanju povezave: $_"
+    continue
+  }
+
   try {
     $stream = $client.GetStream()
     # Ce brskalnik odpre povezavo, a takoj ne poslje zahteve (npr. "obticala"
@@ -33,6 +50,10 @@ while ($true) {
     $buffer = New-Object byte[] 8192
     $bytesRead = $stream.Read($buffer, 0, $buffer.Length)
     if ($bytesRead -eq 0) { continue }
+    # Prva vrstica zahteve (npr. "GET /prijava.html HTTP/1.1") je vse, kar
+    # nas zanima. Morebitne dodatne glave, ki jih doda ngrok (X-Forwarded-For,
+    # X-Forwarded-Proto ipd.), so v preostanku $requestText, a ker jih tu
+    # nikoli ne beremo, ne morejo povzrociti napake pri parsanju.
     $requestText = [System.Text.Encoding]::ASCII.GetString($buffer, 0, $bytesRead)
     $firstLine = ($requestText -split "`r`n")[0]
     $parts = $firstLine -split " "
@@ -42,6 +63,11 @@ while ($true) {
     $path = [System.Uri]::UnescapeDataString($path)
     $filePath = Join-Path $root ($path.TrimStart("/"))
 
+    # Content-Length spodaj vedno racunamo iz .Length dejanskega byte
+    # array-a (ne stringa pred UTF-8 enkodiranjem), da se natancno ujema s
+    # stevilom bajtov, ki jih dejansko poslje $stream.Write - ngrok kot
+    # strog HTTP/1.1 posrednik zahtevo zavrze kot nepopolno, ce se
+    # napovedana in dejanska dolzina telesa ne ujemata.
     if (Test-Path $filePath -PathType Leaf) {
       $ext = [System.IO.Path]::GetExtension($filePath).ToLower()
       $contentType = if ($mimeTypes.ContainsKey($ext)) { $mimeTypes[$ext] } else { "application/octet-stream" }
@@ -58,10 +84,15 @@ while ($true) {
       $stream.Write($headerBytes, 0, $headerBytes.Length)
       $stream.Write($bodyBytes, 0, $bodyBytes.Length)
     }
+    # Izrecen Flush pred zapiranjem zagotovi, da so VSI bajti (glave + telo)
+    # dejansko poslani preko TCP povezave, preden $client.Close() spodaj
+    # povezavo prekine - brez tega bi ngrok lahko dobil prekinjeno/nepopolno
+    # povezavo, ce zapiranje prehiti oddajo zadnjih bajtov v medpomnilniku.
+    $stream.Flush()
     $stream.Close()
   } catch {
     Write-Host "Napaka pri obdelavi zahteve: $_"
   } finally {
-    $client.Close()
+    if ($client -ne $null) { $client.Close() }
   }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "uspesni-jezek",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Statična spletna aplikacija za obrtnike (Slovenija/Nemčija) - Vercel build samo generira app/config.js iz environment variables, aplikacija sicer nima npm odvisnosti.",
+  "scripts": {
+    "build": "node scripts/generate-config.js"
+  }
+}

@@ -895,7 +895,8 @@ a {
 }
 
 /* Vsaka priloga je klikljiv gumb (ne samo prikaz) - ob kliku app.js
-   zahteva kratkotrajno podpisano povezavo in prilogo odpre v novem
+   zahteva kratkotrajno podpisano povezavo. Slike se prikažejo v
+   lightboxu (glej .lightbox spodaj), PDF-ji pa se odprejo v novem
    zavihku (glej odpriPrilogo v app.js). */
 .zadeva__priloga-gumb {
   display: flex;
@@ -919,4 +920,50 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ========== LIGHTBOX (celozaslonski prikaz priloge - slike) ==========
+   En sam ponovno uporabljen modal (glej #lightbox v neplacila.html) - ob
+   kliku na sliko priloge app.js samo nastavi src in ga prikaže (glej
+   odpriSlikoVLightboxu v app.js). Zapre se s klikom na X, klikom na temno
+   ozadje ali s tipko Escape. */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox__slika {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-obrazec-notranji);
+}
+
+.lightbox__zapri {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.lightbox__zapri:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

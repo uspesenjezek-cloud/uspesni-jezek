@@ -96,6 +96,9 @@ function inicializirajNeplacila() {
   const prilogaGumbiVsebnik = document.getElementById("priloga-gumbi");
   const prilogaSeznamVsebnik = document.getElementById("priloga-seznam");
   const prilogaLimitOpozorilo = document.getElementById("priloga-limit-opozorilo");
+  const lightbox = document.getElementById("lightbox");
+  const lightboxSlika = document.getElementById("lightbox-slika");
+  const lightboxZapri = document.getElementById("lightbox-zapri");
   let casovnikSporocilaSkritje = null;
   // Datoteke (slike/PDF-ji), ki jih je obrtnik izbral za priloge k zadevi -
   // dejansko se naložijo v Supabase Storage šele ob oddaji obrazca.
@@ -278,7 +281,7 @@ function inicializirajNeplacila() {
     return data;
   }
 
-  /* Odpre prilogo (sliko/PDF) v novem zavihku. Bucket "racuni-priloge" je
+  /* Odpre PDF prilogo v novem zavihku. Bucket "racuni-priloge" je
      ZASEBEN (glej sql/003_dodaj_racun_prilogo.sql), zato ne obstaja javna
      povezava do datotek - tik pred odpiranjem zato zahtevamo kratkotrajno
      "podpisano" povezavo (velja 60 sekund, dovolj za takojšen ogled, a ne
@@ -288,7 +291,9 @@ function inicializirajNeplacila() {
      Prazen zavihek odpremo TAKOJ, še preden dobimo povezavo - če bi
      počakali na odgovor od Supabase, bi brskalnik window.open() pogosto
      blokiral kot pojavno okno, ker takrat klic ne bi bil več neposredno
-     del uporabnikovega klika. */
+     del uporabnikovega klika. Slike gredo namesto tega v lightbox (glej
+     odpriSlikoVLightboxu spodaj) - tam ni popup blokatorja, ker se nič ne
+     odpre v novem zavihku. */
   async function odpriPrilogo(pot) {
     const novZavihek = window.open("", "_blank");
 
@@ -308,6 +313,40 @@ function inicializirajNeplacila() {
       // Če je brskalnik vseeno blokiral pojavno okno, odpremo v istem zavihku.
       window.location.href = data.signedUrl;
     }
+  }
+
+  function zapriLightbox() {
+    lightbox.hidden = true;
+    lightboxSlika.src = "";
+  }
+
+  lightboxZapri.addEventListener("click", zapriLightbox);
+
+  // Klik kjerkoli na temno ozadje zapre lightbox, klik na samo sliko pa ne
+  // (dogodek se ne razširi na .lightbox, ker slika ni ozadje samo).
+  lightbox.addEventListener("click", (dogodek) => {
+    if (dogodek.target === lightbox) zapriLightbox();
+  });
+
+  document.addEventListener("keydown", (dogodek) => {
+    if (dogodek.key === "Escape" && !lightbox.hidden) zapriLightbox();
+  });
+
+  /* Prikaže sliko priloge v celozaslonskem lightboxu namesto v novem
+     zavihku - glej #lightbox v neplacila.html. Modal je en sam, ponovno
+     uporabljen element: tu se mu samo nastavi src in ga prikaže. */
+  async function odpriSlikoVLightboxu(pot) {
+    const { data, error } = await supabaseKlient.storage
+      .from("racuni-priloge")
+      .createSignedUrl(pot, 60);
+
+    if (error || !data) {
+      pokaziNapako("Priloge ni bilo mogoče odpreti.", error && error.message);
+      return;
+    }
+
+    lightboxSlika.src = data.signedUrl;
+    lightbox.hidden = false;
   }
 
   function izrisiZadeve(zadeve) {
@@ -392,7 +431,13 @@ function inicializirajNeplacila() {
           '<span class="zadeva__priloga-gumb-ime"></span>';
         prilogaGumb.querySelector(".zadeva__priloga-gumb-ime").textContent =
           imeDatotekeIzPoti(pot);
-        prilogaGumb.addEventListener("click", () => odpriPrilogo(pot));
+        prilogaGumb.addEventListener("click", () => {
+          if (jePdfDatoteka(pot)) {
+            odpriPrilogo(pot);
+          } else {
+            odpriSlikoVLightboxu(pot);
+          }
+        });
         prilogeSeznam.appendChild(prilogaGumb);
       });
 
