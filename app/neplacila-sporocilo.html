@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-predlog-uredi" />
+    <link rel="stylesheet" href="styles.css?v=20260807-predlog-uredi-ime" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -152,7 +152,18 @@
             aria-labelledby="predogled-naslov"
           >
             <div class="korak2-modal__glava">
-              <h2 class="korak2-modal__naslov" id="predogled-naslov"></h2>
+              <div class="korak2-modal__naslov-ovoj">
+                <h2 class="korak2-modal__naslov" id="predogled-naslov"></h2>
+                <label class="sr-only" for="predogled-naslov-vnos">Ime predloga</label>
+                <input
+                  type="text"
+                  id="predogled-naslov-vnos"
+                  class="korak2-modal__naslov-vnos"
+                  maxlength="80"
+                  placeholder="Ime predloga"
+                  hidden
+                />
+              </div>
               <div class="korak2-modal__glava-akcije">
                 <button type="button" class="korak2-modal__uredi" id="predogled-uredi">
                   Uredi
@@ -183,6 +194,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-predlog-uredi"></script>
+    <script src="app.js?v=20260807-predlog-uredi-ime"></script>
   </body>
 </html>

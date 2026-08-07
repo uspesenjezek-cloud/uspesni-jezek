@@ -2727,11 +2727,39 @@ body.stran--samo-seznam #obrazec {
   margin-bottom: 12px;
 }
 
+.korak2-modal__naslov-ovoj {
+  min-width: 0;
+  flex: 1;
+}
+
 .korak2-modal__naslov {
   margin: 0;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text);
+}
+
+.korak2-modal__naslov[hidden] {
+  display: none;
+}
+
+.korak2-modal__naslov-vnos {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+.korak2-modal__naslov-vnos[hidden] {
+  display: none;
 }
 
 .korak2-modal__glava-akcije {

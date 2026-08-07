@@ -1344,6 +1344,7 @@ function inicializirajSporociloDolzniku() {
   const dodatekTrr = document.getElementById("dodatek-trr");
   const modal = document.getElementById("predogled-modal");
   const modalNaslov = document.getElementById("predogled-naslov");
+  const modalNaslovVnos = document.getElementById("predogled-naslov-vnos");
   const modalBesedilo = document.getElementById("predogled-besedilo");
   const modalUrejevalnik = document.getElementById("predogled-urejevalnik");
   const modalUredi = document.getElementById("predogled-uredi");
@@ -1475,6 +1476,8 @@ function inicializirajSporociloDolzniku() {
 
   function nastaviNacinUrejanja(vklop) {
     modalVUrejanju = vklop;
+    if (modalNaslov) modalNaslov.hidden = vklop;
+    if (modalNaslovVnos) modalNaslovVnos.hidden = !vklop;
     if (modalBesedilo) modalBesedilo.hidden = vklop;
     if (modalUrejevalnik) modalUrejevalnik.hidden = !vklop;
     if (modalUrejanjeAkcije) modalUrejanjeAkcije.hidden = !vklop;
@@ -1487,6 +1490,7 @@ function inicializirajSporociloDolzniku() {
     modal.hidden = true;
     odprtPredlog = null;
     if (modalNaslov) modalNaslov.textContent = "";
+    if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalBesedilo) modalBesedilo.textContent = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
   }
@@ -1497,6 +1501,7 @@ function inicializirajSporociloDolzniku() {
     odprtPredlog = predlog;
     nastaviNacinUrejanja(false);
     modalNaslov.textContent = predlog.naslov;
+    if (modalNaslovVnos) modalNaslovVnos.value = predlog.naslov;
     modalBesedilo.textContent = predlog.besedilo;
     if (modalUrejevalnik) modalUrejevalnik.value = predlog.besedilo;
     modal.hidden = false;
@@ -1504,13 +1509,17 @@ function inicializirajSporociloDolzniku() {
 
   function vklopUrejanja() {
     if (!odprtPredlog || !modalUrejevalnik) return;
+    if (modalNaslovVnos) modalNaslovVnos.value = odprtPredlog.naslov.slice(0, 80);
     modalUrejevalnik.value = odprtPredlog.besedilo.slice(0, NAJVEC_ZNAKOV);
     nastaviNacinUrejanja(true);
-    modalUrejevalnik.focus();
+    if (modalNaslovVnos) modalNaslovVnos.focus();
+    else modalUrejevalnik.focus();
   }
 
   function prekliciUrejanje() {
     if (!odprtPredlog) return;
+    if (modalNaslovVnos) modalNaslovVnos.value = odprtPredlog.naslov;
+    if (modalNaslov) modalNaslov.textContent = odprtPredlog.naslov;
     if (modalUrejevalnik) modalUrejevalnik.value = odprtPredlog.besedilo;
     if (modalBesedilo) modalBesedilo.textContent = odprtPredlog.besedilo;
     nastaviNacinUrejanja(false);
@@ -1518,16 +1527,21 @@ function inicializirajSporociloDolzniku() {
 
   function shraniKotNovPredlog() {
     if (!modalUrejevalnik) return;
+    const naslov = (modalNaslovVnos ? modalNaslovVnos.value : "").trim().slice(0, 80);
     const besedilo = modalUrejevalnik.value.trim().slice(0, NAJVEC_ZNAKOV);
+    if (!naslov) {
+      pokaziNapako("Vnesite ime predloga.");
+      if (modalNaslovVnos) modalNaslovVnos.focus();
+      return;
+    }
     if (!besedilo) {
       pokaziNapako("Predloga ne sme biti prazna.");
       return;
     }
 
-    const stevilka = mojiPredlogi.length + 1;
     const novPredlog = {
       id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
-      naslov: "Moj predlog " + stevilka,
+      naslov,
       ikona: "message-circle",
       stilIkone: "",
       besedilo,
