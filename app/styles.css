@@ -2881,6 +2881,52 @@ body.stran--samo-seznam #obrazec {
   display: none;
 }
 
+.korak2-modal__ikone {
+  margin: 0 0 12px;
+}
+
+.korak2-modal__ikone[hidden] {
+  display: none;
+}
+
+.korak2-modal__ikone-naslov {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.korak2-modal__ikone-seznam {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.korak2-modal__ikona-gumb {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+
+.korak2-modal__ikona-gumb svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.korak2-modal__ikona-gumb[aria-pressed="true"] {
+  border-color: var(--teal-dark);
+  background: var(--teal-pale);
+  color: var(--teal-dark);
+}
+
 .korak2-modal__urejevalnik {
   display: block;
   width: 100%;

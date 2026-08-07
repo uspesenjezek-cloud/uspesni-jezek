@@ -1282,6 +1282,16 @@ function formatirajDatumSl(datumBesedilo) {
   });
 }
 
+/* Ikone, ki jih lahko uporabnik izbere pri shranjevanju lastnega predloga. */
+const PREDLOG_IKONE = [
+  "hand-heart",
+  "message-circle",
+  "badge-euro",
+  "calendar-clock",
+  "calendar-range",
+  "triangle-alert",
+];
+
 function svgIkonaPredloga(ime) {
   const skupno =
     'xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
@@ -1347,6 +1357,8 @@ function inicializirajSporociloDolzniku() {
   const modalNaslovVnos = document.getElementById("predogled-naslov-vnos");
   const modalBesedilo = document.getElementById("predogled-besedilo");
   const modalUrejevalnik = document.getElementById("predogled-urejevalnik");
+  const modalIkone = document.getElementById("predogled-ikone");
+  const modalIkoneSeznam = document.getElementById("predogled-ikone-seznam");
   const modalUredi = document.getElementById("predogled-uredi");
   const modalPreklici = document.getElementById("predogled-preklici");
   const modalShrani = document.getElementById("predogled-shrani");
@@ -1358,6 +1370,7 @@ function inicializirajSporociloDolzniku() {
   let izbranPredlogId = null;
   let odprtPredlog = null;
   let modalVUrejanju = false;
+  let izbranaIkona = "message-circle";
   const dodatki = { rok: false, obrocno: false, trr: false };
   const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
   let casovnikOsnutka = null;
@@ -1474,11 +1487,37 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
+  function oznaciIzbranoIkono(ime) {
+    izbranaIkona = PREDLOG_IKONE.includes(ime) ? ime : "message-circle";
+    if (!modalIkoneSeznam) return;
+    modalIkoneSeznam.querySelectorAll(".korak2-modal__ikona-gumb").forEach((gumb) => {
+      const jeIzbrana = gumb.dataset.ikona === izbranaIkona;
+      gumb.setAttribute("aria-pressed", jeIzbrana ? "true" : "false");
+    });
+  }
+
+  function izrisiIzbireIkon() {
+    if (!modalIkoneSeznam) return;
+    modalIkoneSeznam.innerHTML = "";
+    PREDLOG_IKONE.forEach((ime) => {
+      const gumb = document.createElement("button");
+      gumb.type = "button";
+      gumb.className = "korak2-modal__ikona-gumb";
+      gumb.dataset.ikona = ime;
+      gumb.setAttribute("aria-label", "Ikona " + ime);
+      gumb.setAttribute("aria-pressed", "false");
+      gumb.innerHTML = svgIkonaPredloga(ime);
+      gumb.addEventListener("click", () => oznaciIzbranoIkono(ime));
+      modalIkoneSeznam.appendChild(gumb);
+    });
+  }
+
   function nastaviNacinUrejanja(vklop) {
     modalVUrejanju = vklop;
     if (modalNaslov) modalNaslov.hidden = vklop;
     if (modalNaslovVnos) modalNaslovVnos.hidden = !vklop;
     if (modalBesedilo) modalBesedilo.hidden = vklop;
+    if (modalIkone) modalIkone.hidden = !vklop;
     if (modalUrejevalnik) modalUrejevalnik.hidden = !vklop;
     if (modalUrejanjeAkcije) modalUrejanjeAkcije.hidden = !vklop;
     if (modalUredi) modalUredi.hidden = vklop;
@@ -1489,6 +1528,7 @@ function inicializirajSporociloDolzniku() {
     nastaviNacinUrejanja(false);
     modal.hidden = true;
     odprtPredlog = null;
+    izbranaIkona = "message-circle";
     if (modalNaslov) modalNaslov.textContent = "";
     if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalBesedilo) modalBesedilo.textContent = "";
@@ -1499,6 +1539,7 @@ function inicializirajSporociloDolzniku() {
     if (!modal || !modalNaslov || !modalBesedilo) return;
     // Predogled namerno NE spreminja glavnega textarea polja.
     odprtPredlog = predlog;
+    izbranaIkona = predlog.ikona || "message-circle";
     nastaviNacinUrejanja(false);
     modalNaslov.textContent = predlog.naslov;
     if (modalNaslovVnos) modalNaslovVnos.value = predlog.naslov;
@@ -1511,6 +1552,9 @@ function inicializirajSporociloDolzniku() {
     if (!odprtPredlog || !modalUrejevalnik) return;
     if (modalNaslovVnos) modalNaslovVnos.value = odprtPredlog.naslov.slice(0, 80);
     modalUrejevalnik.value = odprtPredlog.besedilo.slice(0, NAJVEC_ZNAKOV);
+    izbranaIkona = odprtPredlog.ikona || "message-circle";
+    izrisiIzbireIkon();
+    oznaciIzbranoIkono(izbranaIkona);
     nastaviNacinUrejanja(true);
     if (modalNaslovVnos) modalNaslovVnos.focus();
     else modalUrejevalnik.focus();
@@ -1522,6 +1566,7 @@ function inicializirajSporociloDolzniku() {
     if (modalNaslov) modalNaslov.textContent = odprtPredlog.naslov;
     if (modalUrejevalnik) modalUrejevalnik.value = odprtPredlog.besedilo;
     if (modalBesedilo) modalBesedilo.textContent = odprtPredlog.besedilo;
+    izbranaIkona = odprtPredlog.ikona || "message-circle";
     nastaviNacinUrejanja(false);
   }
 
@@ -1542,7 +1587,7 @@ function inicializirajSporociloDolzniku() {
     const novPredlog = {
       id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
       naslov,
-      ikona: "message-circle",
+      ikona: izbranaIkona || "message-circle",
       stilIkone: "",
       besedilo,
       jeMoj: true,
