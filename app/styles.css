@@ -2294,7 +2294,7 @@ body.stran--samo-seznam #obrazec {
   outline-offset: 2px;
 }
 
-/* Potrditev brisanja osnutka */
+/* Skupni potrditveni / opozorilni modal (glej potrdiVprasanje v app.js) */
 .osnutek-modal[hidden] {
   display: none;
 }
@@ -2348,6 +2348,11 @@ body.stran--samo-seznam #obrazec {
   color: #8f4540;
 }
 
+.osnutek-modal__ikona--turkiz {
+  background: rgba(77, 148, 148, 0.14);
+  color: var(--color-primary-strong);
+}
+
 .osnutek-modal__zapri {
   display: grid;
   place-items: center;
@@ -2380,10 +2385,22 @@ body.stran--samo-seznam #obrazec {
   line-height: 1.45;
 }
 
+.osnutek-modal__opis[hidden] {
+  display: none;
+}
+
 .osnutek-modal__akcije {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.osnutek-modal__akcije--en-gumb {
+  grid-template-columns: 1fr;
+}
+
+.osnutek-modal__preklici[hidden] {
+  display: none;
 }
 
 .osnutek-modal__preklici,
@@ -2413,6 +2430,14 @@ body.stran--samo-seznam #obrazec {
 
 .osnutek-modal__potrdi:hover {
   background: #864039;
+}
+
+.osnutek-modal__potrdi--primary {
+  background: var(--color-primary);
+}
+
+.osnutek-modal__potrdi--primary:hover {
+  background: var(--color-primary-strong);
 }
 
 .korak2 {
