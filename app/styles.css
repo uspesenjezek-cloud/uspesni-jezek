@@ -2497,18 +2497,20 @@ body.stran--samo-seznam #obrazec {
 .predlog-kartica {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 92px;
-  grid-template-rows: auto auto;
-  align-items: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
   column-gap: 10px;
   row-gap: 6px;
+  height: 116px;
   min-height: 116px;
-  height: auto;
+  max-height: 116px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--white);
   scroll-snap-align: start;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .predlog-kartica--izbrana {
@@ -2553,27 +2555,35 @@ body.stran--samo-seznam #obrazec {
   text-align: left;
 }
 
+/* Opis ima fiksno višino znotraj kartice; predolg tekst se scrolla tu. */
 .predlog-kartica__opis {
   grid-column: 1 / 3;
   grid-row: 2;
-  align-self: start;
-  display: block;
+  align-self: stretch;
+  min-height: 0;
   margin: 0;
+  padding-right: 2px;
   font-size: 0.7rem;
   line-height: 1.42;
   color: var(--muted);
   text-align: left;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+  scrollbar-width: thin;
 }
 
 .predlog-kartica__akcije {
   grid-column: 3;
   grid-row: 1 / 3;
-  align-self: start;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 6px;
+  min-height: 0;
 }
 
 .predlog-gumb {
@@ -2774,11 +2784,12 @@ body.stran--samo-seznam #obrazec {
 
   .predlog-kartica {
     grid-template-columns: 32px minmax(0, 1fr) 84px;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto minmax(0, 1fr);
     column-gap: 8px;
     row-gap: 6px;
+    height: 116px;
     min-height: 116px;
-    height: auto;
+    max-height: 116px;
   }
 
   .predlog-gumb {
