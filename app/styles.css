@@ -3278,7 +3278,7 @@ body.stran--samo-seznam #obrazec {
 .predlog-kartica {
   position: relative;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 92px;
+  grid-template-columns: 40px minmax(0, 1fr) 92px;
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
   column-gap: 10px;
@@ -3331,11 +3331,13 @@ body.stran--samo-seznam #obrazec {
   background: var(--teal-pale);
 }
 
-/* Številka 1 = prioriteta / privzeto sporočilo: rumena zvezda z «1». */
+/* Številka 1 = prioriteta / privzeto sporočilo: večja rumena zvezda, zelena »1«. */
 .predlog-kartica__stevilka--prioriteta {
   position: relative;
+  width: 40px;
+  height: 40px;
   background: transparent;
-  color: #1a2e24;
+  color: var(--teal-dark);
   border-radius: 0;
 }
 
@@ -3355,17 +3357,21 @@ body.stran--samo-seznam #obrazec {
 
 .predlog-kartica__zvezda svg {
   display: block;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
 }
 
 .predlog-kartica__zvezda-cifra {
   position: relative;
   z-index: 1;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  font-weight: 800;
   line-height: 1;
-  color: #1a2e24;
+  color: var(--teal-dark);
+  text-shadow:
+    0 0 2px #fff,
+    0 0 3px #fffbeb,
+    0 1px 0 #fff;
 }
 
 .predlog-kartica__stevilka:hover {
@@ -3400,7 +3406,7 @@ body.stran--samo-seznam #obrazec {
 
 .predlog-kartica__stevilke-mreza {
   display: grid;
-  grid-template-columns: repeat(3, 52px);
+  grid-template-columns: repeat(3, 58px);
   gap: 8px;
 }
 
@@ -3438,9 +3444,11 @@ body.stran--samo-seznam #obrazec {
 
 .predlog-kartica__stevilka-izbira--prioriteta {
   position: relative;
+  width: 58px;
+  height: 58px;
   border-color: #e8b923;
   background: #fffbeb;
-  color: #1a2e24;
+  color: var(--teal-dark);
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
@@ -3448,18 +3456,20 @@ body.stran--samo-seznam #obrazec {
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda svg {
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
-  font-size: 0.95rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--teal-dark);
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta[aria-selected="true"] {
   border-color: #d4a017;
   background: #fff3c4;
-  color: #1a2e24;
+  color: var(--teal-dark);
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta:hover {
@@ -3844,7 +3854,8 @@ body.stran--samo-seznam #obrazec {
   border-color: #e8b923;
   background: #fffbeb;
   border-radius: 12px;
-  color: #1a2e24;
+  color: var(--teal-dark);
+  min-height: 38px;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
@@ -3852,20 +3863,23 @@ body.stran--samo-seznam #obrazec {
 }
 
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda svg {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #1a2e24;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--teal-dark);
+  text-shadow:
+    0 0 2px #fff,
+    0 0 3px #fffbeb;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta[aria-selected="true"] {
   border-color: #d4a017;
   background: #fff3c4;
-  color: #1a2e24;
+  color: var(--teal-dark);
 }
 
 .korak2-modal__zapri {
@@ -3984,7 +3998,7 @@ body.stran--samo-seznam #obrazec {
   }
 
   .predlog-kartica {
-    grid-template-columns: 32px minmax(0, 1fr) 84px;
+    grid-template-columns: 38px minmax(0, 1fr) 84px;
     grid-template-rows: auto minmax(0, 1fr);
     column-gap: 8px;
     row-gap: 6px;
@@ -3996,6 +4010,16 @@ body.stran--samo-seznam #obrazec {
   .predlog-kartica__stevilka {
     width: 32px;
     height: 32px;
+  }
+
+  .predlog-kartica__stevilka--prioriteta {
+    width: 38px;
+    height: 38px;
+  }
+
+  .predlog-kartica__stevilka--prioriteta .predlog-kartica__zvezda svg {
+    width: 38px;
+    height: 38px;
   }
 
   .predlog-kartica__stevilke-mreza {
