@@ -2883,8 +2883,10 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-/* Zgoraj: ime + besedilo (scroll). Spodaj: gumbi vedno vidni. */
+/* Zgoraj: ime + večje besedilo. Spodaj: gumbi vedno vidni. */
 .korak2-modal__telo {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
@@ -2894,6 +2896,8 @@ body.stran--samo-seznam #obrazec {
 
 .korak2-modal__noga {
   flex: 0 0 auto;
+  display: grid;
+  gap: 8px;
   padding-top: 10px;
   margin-top: 8px;
   border-top: 1px solid var(--border);
@@ -2963,53 +2967,38 @@ body.stran--samo-seznam #obrazec {
 .korak2-modal__urejevalnik {
   display: block;
   width: 100%;
-  min-height: 72px;
-  max-height: 160px;
+  flex: 1 1 auto;
+  min-height: 180px;
   margin: 0;
-  padding: 10px 12px;
+  padding: 12px;
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   background: var(--white);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   line-height: 1.5;
   resize: vertical;
   box-sizing: border-box;
 }
 
-.korak2-modal__opcije {
+.korak2-modal__vrsta {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
-.korak2-modal__push {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+.korak2-modal__preklici {
   min-height: 40px;
-  padding: 8px 8px;
-  border: 1px solid var(--teal);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--teal);
-  color: var(--white);
+  background: var(--surface-soft);
+  color: var(--teal-dark);
   font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
-}
-
-.korak2-modal__push:hover {
-  background: var(--teal-dark);
-  border-color: var(--teal-dark);
-}
-
-.korak2-modal__push[aria-pressed="true"] {
-  background: var(--teal-dark);
-  border-color: var(--teal-dark);
 }
 
 .korak2-modal__izbrisi {
@@ -3024,7 +3013,7 @@ body.stran--samo-seznam #obrazec {
   background: #fff7f6;
   color: #9d3a36;
   font-family: inherit;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
 }
@@ -3034,36 +3023,57 @@ body.stran--samo-seznam #obrazec {
   border-color: #c78d88;
 }
 
-.korak2-modal__urejanje-akcije {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+/* Zlati Push z zvezdico – levo; Shrani desno. */
+.korak2-modal__push {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #c49a3c;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f6e2a0 0%, #e0b54d 100%);
+  color: #5c4310;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset;
 }
 
-.korak2-modal__preklici {
-  min-height: 36px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-soft);
-  color: var(--teal-dark);
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
+.korak2-modal__push-zvezdica {
+  font-size: 1.05rem;
+  line-height: 1;
+  color: #8a6414;
+}
+
+.korak2-modal__push:hover {
+  background: linear-gradient(180deg, #f0d78c 0%, #d4a84b 100%);
+  border-color: #b8862d;
+}
+
+.korak2-modal__push[aria-pressed="true"] {
+  background: linear-gradient(180deg, #efcf6e 0%, #c9962a 100%);
+  border-color: #a67c1f;
+  box-shadow: 0 0 0 2px rgba(201, 150, 42, 0.28);
 }
 
 .korak2-modal__shrani {
-  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--teal);
   border-radius: 10px;
   background: var(--teal);
   color: var(--white);
   font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
 }
 

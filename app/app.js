@@ -1616,7 +1616,8 @@ function inicializirajSporociloDolzniku() {
     if (!modalPush || !odprtPredlog) return;
     const jePush = nastavitvePredlogov.pushPredlogId === odprtPredlog.id;
     modalPush.setAttribute("aria-pressed", jePush ? "true" : "false");
-    modalPush.textContent = jePush ? "Push vklopljen" : "Push";
+    const oznaka = modalPush.querySelector(".korak2-modal__push-besedilo");
+    if (oznaka) oznaka.textContent = jePush ? "Push vklopljen" : "Push";
   }
 
   const modalDialog = modal ? modal.querySelector(".korak2-modal__dialog") : null;
@@ -1627,7 +1628,7 @@ function inicializirajSporociloDolzniku() {
     if (vv) {
       // Poravnaj dialog na vrh VIDNEGA dela; višina dovolj velika, da noga (Push/Izbriši) ostane vidna.
       modalDialog.style.top = Math.round(vv.offsetTop + 8) + "px";
-      modalDialog.style.maxHeight = Math.max(260, Math.round(vv.height - 16)) + "px";
+      modalDialog.style.maxHeight = Math.max(300, Math.round(vv.height - 16)) + "px";
     } else {
       modalDialog.style.top = "12px";
       modalDialog.style.maxHeight = "calc(100dvh - 24px)";
@@ -1665,7 +1666,8 @@ function inicializirajSporociloDolzniku() {
     if (modalUrejevalnik) modalUrejevalnik.value = "";
     if (modalPush) {
       modalPush.setAttribute("aria-pressed", "false");
-      modalPush.textContent = "Push";
+      const oznaka = modalPush.querySelector(".korak2-modal__push-besedilo");
+      if (oznaka) oznaka.textContent = "Push";
     }
   }
 

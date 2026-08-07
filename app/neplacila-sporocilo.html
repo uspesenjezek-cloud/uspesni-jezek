@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-modal-noga" />
+    <link rel="stylesheet" href="styles.css?v=20260807-modal-layout" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -179,19 +179,20 @@
                 maxlength="1000"
               ></textarea>
             </div>
-            <!-- Noga vedno vidna (tudi ob tipkovnici): Push, izbris, shrani -->
+            <!-- Noga: Izbriši desno; spodaj zlati Push ★ + Shrani -->
             <div class="korak2-modal__noga">
-              <div class="korak2-modal__opcije" id="predogled-opcije">
-                <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
-                  Push
+              <div class="korak2-modal__vrsta korak2-modal__vrsta--izbrisi">
+                <button type="button" class="korak2-modal__preklici" id="predogled-preklici">
+                  Prekliči
                 </button>
                 <button type="button" class="korak2-modal__izbrisi" id="predogled-izbrisi">
                   Izbriši
                 </button>
               </div>
-              <div class="korak2-modal__urejanje-akcije" id="predogled-urejanje-akcije">
-                <button type="button" class="korak2-modal__preklici" id="predogled-preklici">
-                  Prekliči
+              <div class="korak2-modal__vrsta korak2-modal__vrsta--glavna" id="predogled-opcije">
+                <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
+                  <span class="korak2-modal__push-zvezdica" aria-hidden="true">★</span>
+                  <span class="korak2-modal__push-besedilo">Push</span>
                 </button>
                 <button type="button" class="korak2-modal__shrani" id="predogled-shrani">
                   Shrani
@@ -203,6 +204,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-modal-noga"></script>
+    <script src="app.js?v=20260807-modal-layout"></script>
   </body>
 </html>
