@@ -3337,7 +3337,7 @@ body.stran--samo-seznam #obrazec {
   width: 40px;
   height: 40px;
   background: transparent;
-  color: var(--teal-dark);
+  color: #fff;
   border-radius: 0;
 }
 
@@ -3367,11 +3367,7 @@ body.stran--samo-seznam #obrazec {
   font-size: 0.92rem;
   font-weight: 800;
   line-height: 1;
-  color: var(--teal-dark);
-  text-shadow:
-    0 0 2px #fff,
-    0 0 3px #fffbeb,
-    0 1px 0 #fff;
+  color: #fff;
 }
 
 .predlog-kartica__stevilka:hover {
@@ -3446,9 +3442,9 @@ body.stran--samo-seznam #obrazec {
   position: relative;
   width: 58px;
   height: 58px;
-  border-color: #e8b923;
-  background: #fffbeb;
-  color: var(--teal-dark);
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
@@ -3463,17 +3459,17 @@ body.stran--samo-seznam #obrazec {
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
   font-size: 1.15rem;
   font-weight: 800;
-  color: var(--teal-dark);
+  color: #fff;
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta[aria-selected="true"] {
-  border-color: #d4a017;
-  background: #fff3c4;
-  color: var(--teal-dark);
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta:hover {
-  border-color: #d4a017;
+  border-color: transparent;
 }
 
 .predlog-kartica__naslov {
@@ -3851,10 +3847,10 @@ body.stran--samo-seznam #obrazec {
 }
 
 .korak2-modal__stevilka-izbira--prioriteta {
-  border-color: #e8b923;
-  background: #fffbeb;
+  border-color: transparent;
+  background: transparent;
   border-radius: 12px;
-  color: var(--teal-dark);
+  color: #fff;
   min-height: 38px;
 }
 
@@ -3870,16 +3866,13 @@ body.stran--samo-seznam #obrazec {
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
   font-size: 0.88rem;
   font-weight: 800;
-  color: var(--teal-dark);
-  text-shadow:
-    0 0 2px #fff,
-    0 0 3px #fffbeb;
+  color: #fff;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta[aria-selected="true"] {
-  border-color: #d4a017;
-  background: #fff3c4;
-  color: var(--teal-dark);
+  border-color: transparent;
+  background: transparent;
+  color: #fff;
 }
 
 .korak2-modal__zapri {
