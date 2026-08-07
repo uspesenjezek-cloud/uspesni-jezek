@@ -512,20 +512,22 @@ function inicializirajNeplacila() {
      api/citaj-racun.js) - Anthropic API ključ je SAMO tam, na strežniku,
      nikoli v tej datoteki, ker bi bil sicer javno viden vsakomur. Ta klic
      zato deluje SAMO na Vercel deployu, ne v lokalnem serve.ps1 razvoju. */
-  const aiZajemGumbPriloziti = document.getElementById("ai-zajem-gumb-priloziti");
   const aiZajemGumbSlikaj = document.getElementById("ai-zajem-gumb-slikaj");
+  const aiZajemGumbBesedilo = document.getElementById("ai-zajem-gumb-besedilo");
   const aiZajemDatoteka = document.getElementById("ai-zajem-datoteka");
   const aiZajemFotoaparat = document.getElementById("ai-zajem-fotoaparat");
-  const aiZajemPredogled = document.getElementById("ai-zajem-predogled");
-  const aiZajemSlicica = document.getElementById("ai-zajem-slicica");
-  const aiZajemDatotekaIkona = document.getElementById("ai-zajem-datoteka-ikona");
-  const aiZajemIme = document.getElementById("ai-zajem-ime");
+  const aiZajemNaslov = document.getElementById("ai-zajem-naslov");
+  const aiZajemOpis = document.getElementById("ai-zajem-opis");
+  const aiZajemIkona = document.getElementById("ai-zajem-ikona");
   const aiZajemStatus = document.getElementById("ai-zajem-status");
   const aiZajemStatusBesedilo = document.getElementById("ai-zajem-status-besedilo");
   const aiZajemSpinner = aiZajemStatus ? aiZajemStatus.querySelector(".ai-zajem__spinner") : null;
-  const aiZajemOdstrani = document.getElementById("ai-zajem-odstrani");
   const NAJVECJA_VELIKOST_AI_PDF_B = 3 * 1024 * 1024; // 3 MB - glej api/citaj-racun.js za razlog
-  let aiZajemPredoglejUrl = null;
+  const SVG_AI_SKEN =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>';
+  const SVG_AI_KLJUKICA =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  let aiZajemUspeh = false;
 
   /* Zmanjša sliko na največ 1600 px na daljši stranici in jo ponovno
      zakodira kot JPEG (kakovost 0.82) - fotografije s telefona so lahko
@@ -597,39 +599,81 @@ function inicializirajNeplacila() {
     if (aiZajemSpinner) aiZajemSpinner.hidden = stanje !== "nalaganje";
   }
 
-  function pokaziAiZajemPredogled(datoteka) {
-    if (aiZajemPredoglejUrl) {
-      URL.revokeObjectURL(aiZajemPredoglejUrl);
-      aiZajemPredoglejUrl = null;
-    }
+  function nastaviAiZajemGumb(besedilo, onemogocen) {
+    if (aiZajemGumbBesedilo) aiZajemGumbBesedilo.textContent = besedilo;
+    if (aiZajemGumbSlikaj) aiZajemGumbSlikaj.disabled = !!onemogocen;
+  }
 
-    aiZajemIme.textContent = datoteka.name;
-    if (datoteka.type && datoteka.type.startsWith("image/")) {
-      aiZajemPredoglejUrl = URL.createObjectURL(datoteka);
-      aiZajemSlicica.src = aiZajemPredoglejUrl;
-      aiZajemSlicica.hidden = false;
-      aiZajemDatotekaIkona.hidden = true;
-    } else {
-      aiZajemSlicica.hidden = true;
-      aiZajemSlicica.src = "";
-      aiZajemDatotekaIkona.hidden = false;
-    }
+  function imaZeIzpolnjenaPoljaObrazca() {
+    const ime = (document.getElementById("ime-stranke") || {}).value || "";
+    const znesek = (document.getElementById("znesek-dolga") || {}).value || "";
+    const opis = (document.getElementById("opis-dolga") || {}).value || "";
+    return Boolean(ime.trim() || znesek.trim() || opis.trim());
+  }
 
-    aiZajemPredogled.hidden = false;
-    nastaviAiZajemStatus("AI bere račun …", "nalaganje");
+  function pripraviAiZajemZaBranje() {
+    if (aiZajemNaslov) aiZajemNaslov.textContent = "Samodejno izpolnite podatke";
+    if (aiZajemOpis) {
+      aiZajemOpis.textContent =
+        "Slikajte račun in podatke bomo vnesli v spodnja polja. Račun se hkrati shrani kot priloga.";
+    }
+    if (aiZajemIkona) {
+      aiZajemIkona.classList.remove("ai-zajem__ikona--uspeh");
+      aiZajemIkona.innerHTML = SVG_AI_SKEN;
+    }
+    nastaviAiZajemStatus("Berem podatke …", "nalaganje");
+    nastaviAiZajemGumb("Berem podatke …", true);
+  }
+
+  function pokaziAiZajemUspeh(podatki, imeDatoteke) {
+    aiZajemUspeh = true;
+    const stevilka = podatki && podatki.stevilkaRacuna ? String(podatki.stevilkaRacuna) : "";
+    if (aiZajemNaslov) aiZajemNaslov.textContent = "Podatki so uspešno prebrani";
+    if (aiZajemOpis) {
+      aiZajemOpis.textContent = stevilka
+        ? "Račun " + stevilka + " je shranjen kot priloga. Spodnje podatke še preverite."
+        : "Račun" +
+          (imeDatoteke ? " (" + imeDatoteke + ")" : "") +
+          " je shranjen kot priloga. Spodnje podatke še preverite.";
+    }
+    if (aiZajemIkona) {
+      aiZajemIkona.classList.add("ai-zajem__ikona--uspeh");
+      aiZajemIkona.innerHTML = SVG_AI_KLJUKICA;
+    }
+    nastaviAiZajemStatus("", null);
+    nastaviAiZajemGumb("Slikaj račun znova", false);
+  }
+
+  function pokaziAiZajemNapako(sporocilo) {
+    if (aiZajemNaslov) aiZajemNaslov.textContent = "Samodejno izpolnite podatke";
+    if (aiZajemOpis) {
+      aiZajemOpis.textContent =
+        "Slikajte račun in podatke bomo vnesli v spodnja polja. Račun se hkrati shrani kot priloga.";
+    }
+    if (aiZajemIkona) {
+      aiZajemIkona.classList.remove("ai-zajem__ikona--uspeh");
+      aiZajemIkona.innerHTML = SVG_AI_SKEN;
+    }
+    nastaviAiZajemStatus(
+      sporocilo || "Podatkov ni bilo mogoče jasno prebrati. Poskusite račun fotografirati znova.",
+      "napaka"
+    );
+    nastaviAiZajemGumb("Poskusi znova", false);
   }
 
   function pocistiAiZajem() {
-    if (aiZajemPredoglejUrl) {
-      URL.revokeObjectURL(aiZajemPredoglejUrl);
-      aiZajemPredoglejUrl = null;
+    aiZajemUspeh = false;
+    if (aiZajemNaslov) aiZajemNaslov.textContent = "Samodejno izpolnite podatke";
+    if (aiZajemOpis) {
+      aiZajemOpis.textContent =
+        "Slikajte račun in podatke bomo vnesli v spodnja polja. Račun se hkrati shrani kot priloga.";
     }
-    aiZajemPredogled.hidden = true;
-    aiZajemSlicica.hidden = true;
-    aiZajemSlicica.src = "";
-    aiZajemDatotekaIkona.hidden = true;
-    aiZajemIme.textContent = "";
+    if (aiZajemIkona) {
+      aiZajemIkona.classList.remove("ai-zajem__ikona--uspeh");
+      aiZajemIkona.innerHTML = SVG_AI_SKEN;
+    }
     nastaviAiZajemStatus("", null);
+    nastaviAiZajemGumb("Slikaj račun za vnos podatkov", false);
     if (aiZajemDatoteka) aiZajemDatoteka.value = "";
     if (aiZajemFotoaparat) aiZajemFotoaparat.value = "";
   }
@@ -736,7 +780,7 @@ function inicializirajNeplacila() {
   }
 
   async function obdelajRacunZAi(datoteka) {
-    pokaziAiZajemPredogled(datoteka);
+    pripraviAiZajemZaBranje();
 
     try {
       let mediaType;
@@ -769,25 +813,29 @@ function inicializirajNeplacila() {
       }
 
       izpolniPoljaIzAI(telo.podatki);
-      nastaviAiZajemStatus("Podatki so prepoznani - preverite jih spodaj.", "uspeh");
+      pokaziAiZajemUspeh(telo.podatki, datoteka.name);
 
-      // Slikan/naložen račun postane tudi dejanska priloga zadeve, da ga ni
-      // treba v razdelku 2 nalagati/slikati še enkrat.
+      // Slikan račun postane tudi priloga zadeve (brez drugega slikanja spodaj).
       dodajIzbranePriloge([datoteka]);
     } catch (napakaAi) {
-      nastaviAiZajemStatus(
-        napakaAi && napakaAi.message ? napakaAi.message : "Prišlo je do napake pri branju računa - podatke vnesite ročno.",
-        "napaka"
+      pokaziAiZajemNapako(
+        napakaAi && napakaAi.message
+          ? napakaAi.message
+          : "Podatkov ni bilo mogoče jasno prebrati. Poskusite račun fotografirati znova."
       );
     }
   }
 
-  if (aiZajemGumbPriloziti && aiZajemDatoteka) {
-    aiZajemGumbPriloziti.addEventListener("click", () => aiZajemDatoteka.click());
-  }
-
   if (aiZajemGumbSlikaj && aiZajemFotoaparat) {
-    aiZajemGumbSlikaj.addEventListener("click", () => aiZajemFotoaparat.click());
+    aiZajemGumbSlikaj.addEventListener("click", () => {
+      if (aiZajemUspeh && imaZeIzpolnjenaPoljaObrazca()) {
+        const potrjeno = window.confirm(
+          "Želite zamenjati trenutne podatke z novim branjem računa?"
+        );
+        if (!potrjeno) return;
+      }
+      aiZajemFotoaparat.click();
+    });
   }
 
   if (aiZajemDatoteka) {
@@ -800,10 +848,6 @@ function inicializirajNeplacila() {
     aiZajemFotoaparat.addEventListener("change", () => {
       if (aiZajemFotoaparat.files[0]) obdelajRacunZAi(aiZajemFotoaparat.files[0]);
     });
-  }
-
-  if (aiZajemOdstrani) {
-    aiZajemOdstrani.addEventListener("click", pocistiAiZajem);
   }
 
   /* Naloži eno datoteko v Supabase Storage (bucket "racuni-priloge", glej

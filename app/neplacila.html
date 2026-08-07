@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-brez-osnutek" />
+    <link rel="stylesheet" href="styles.css?v=20260807-korak1-poenostavitev" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -57,15 +57,6 @@
 
       <section class="dodaj-zadevo" id="obrazec" aria-label="Dodaj novo zadevo">
         <div class="obrazec-kartica">
-          <div class="obrazec-kartica__glava">
-            <p class="obrazec-kartica__oznaka">
-              <span class="obrazec-kartica__oznaka-ikona" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6"/><path d="M16 12H8"/><path d="M10 16H8"/></svg>
-              </span>
-              Terjatve
-            </p>
-          </div>
-
           <nav class="debt-stepper debt-stepper--de" data-koraki-postopek aria-label="Fortschritt">
             <a
               href="neplacila.html#obrazec"
@@ -121,65 +112,68 @@
             </a>
           </nav>
 
+          <header class="korak-glava">
+            <div class="korak-glava__levo">
+              <span class="korak-glava__ikona" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+              </span>
+              <div class="korak-glava__besedilo">
+                <p class="korak-glava__meta">Korak 1 od 3</p>
+                <h2 class="korak-glava__naslov">Vnos dolžnika</h2>
+              </div>
+            </div>
+            <p class="korak-glava__osnutek">Osnutek shranjen</p>
+          </header>
+
           <div class="obrazec-kartica__vsebina">
             <form class="obrazec" id="obrazec-neplacilo">
               <div class="ai-zajem" id="ai-zajem">
-                <span class="ai-zajem__dekor" aria-hidden="true"></span>
-                <div class="ai-zajem__uvod">
+                <div class="ai-zajem__vrh">
+                  <span class="ai-zajem__ikona" id="ai-zajem-ikona" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>
+                  </span>
                   <div class="ai-zajem__uvod-besedilo">
-                    <h2 class="ai-zajem__naslov" id="ai-zajem-naslov">Naloži račun</h2>
-                    <p class="ai-zajem__opis">AI samodejno prebere in izpolni polja spodaj - preverite jih pred nadaljevanjem.</p>
+                    <h2 class="ai-zajem__naslov" id="ai-zajem-naslov">Samodejno izpolnite podatke</h2>
+                    <p class="ai-zajem__opis" id="ai-zajem-opis">
+                      Slikajte račun in podatke bomo vnesli v spodnja polja. Račun se hkrati shrani kot priloga.
+                    </p>
+                    <p class="ai-zajem__status" id="ai-zajem-status" role="status" aria-live="polite" hidden>
+                      <span class="ai-zajem__spinner" aria-hidden="true"></span>
+                      <span id="ai-zajem-status-besedilo"></span>
+                    </p>
                   </div>
                 </div>
 
-                <div class="priloga-akcije" id="ai-zajem-akcije">
-                  <button type="button" class="priloga-akcija" id="ai-zajem-gumb-priloziti">
-                    <span class="priloga-akcija__ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
-                    </span>
-                    Naloži datoteko
-                  </button>
-                  <button type="button" class="priloga-akcija" id="ai-zajem-gumb-slikaj">
-                    <span class="priloga-akcija__ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                    </span>
-                    Slikaj račun
-                  </button>
-                  <input
-                    type="file"
-                    id="ai-zajem-datoteka"
-                    accept="image/*,application/pdf"
-                    hidden
-                    aria-labelledby="ai-zajem-naslov"
-                  />
-                  <input
-                    type="file"
-                    id="ai-zajem-fotoaparat"
-                    accept="image/*"
-                    capture="environment"
-                    hidden
-                    aria-label="Slikaj račun za AI branje"
-                  />
-                </div>
-                <p class="ai-zajem__namig">
-                  Za najboljšo prepoznavo zajemi jasno, dobro osvetljeno sliko celotnega računa.
-                </p>
-
-                <div class="ai-zajem__predogled" id="ai-zajem-predogled" hidden>
-                  <img class="ai-zajem__slicica" id="ai-zajem-slicica" alt="" hidden />
-                  <span class="ai-zajem__datoteka-ikona" id="ai-zajem-datoteka-ikona" hidden aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                <button type="button" class="ai-zajem__gumb-glavni" id="ai-zajem-gumb-slikaj">
+                  <span class="ai-zajem__gumb-ikona" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                   </span>
-                  <span class="ai-zajem__meta">
-                    <span class="ai-zajem__ime" id="ai-zajem-ime"></span>
-                    <span class="ai-zajem__status" id="ai-zajem-status" hidden>
-                      <span class="ai-zajem__spinner" aria-hidden="true"></span>
-                      <span id="ai-zajem-status-besedilo"></span>
-                    </span>
-                  </span>
-                  <button type="button" class="ai-zajem__odstrani" id="ai-zajem-odstrani" aria-label="Odstrani in počisti">✕</button>
-                </div>
+                  <span id="ai-zajem-gumb-besedilo">Slikaj račun za vnos podatkov</span>
+                </button>
+                <input
+                  type="file"
+                  id="ai-zajem-fotoaparat"
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                  aria-label="Slikaj račun za vnos podatkov"
+                />
+                <!-- Skrit vhod za PDF (brez vidnega gumba) – ohranja obstoječo API pot. -->
+                <input
+                  type="file"
+                  id="ai-zajem-datoteka"
+                  accept="image/*,application/pdf"
+                  hidden
+                  aria-hidden="true"
+                  tabindex="-1"
+                />
               </div>
+
+              <p class="obrazec-locilo" role="separator">
+                <span class="obrazec-locilo__crta" aria-hidden="true"></span>
+                <span class="obrazec-locilo__besedilo">ali podatke vnesite ročno spodaj</span>
+                <span class="obrazec-locilo__crta" aria-hidden="true"></span>
+              </p>
 
               <div class="obrazec-razdelek obrazec-razdelek--dolznik">
                 <h3 class="obrazec-razdelek__naslov">
@@ -319,7 +313,7 @@
                     <span class="obrazec__oznaka-opcijsko">ni obvezen</span>
                   </div>
                   <p class="priloga-blok__opis" id="priloga-opis">
-                    Dodajte PDF ali fotografijo oziroma račun fotografirajte s telefonom.
+                    Če ste račun že slikali zgoraj, je priložen samodejno. Po želji lahko dodate še PDF ali drugo datoteko.
                   </p>
 
                   <div class="priloga-akcije" id="priloga-gumbi">
@@ -331,12 +325,13 @@
                       <span class="priloga-akcija__ikona" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
                       </span>
-                      Priloži račun
+                      Priloži datoteko
                     </button>
                     <button
                       type="button"
                       class="priloga-akcija"
                       id="priloga-gumb-slikaj"
+                      hidden
                     >
                       <span class="priloga-akcija__ikona" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -489,6 +484,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-brez-osnutek"></script>
+    <script src="app.js?v=20260807-korak1-poenostavitev"></script>
   </body>
 </html>
