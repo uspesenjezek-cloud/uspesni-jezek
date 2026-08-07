@@ -1684,11 +1684,16 @@ function inicializirajSporociloDolzniku() {
       const surovo = localStorage.getItem(kljucNastavitev);
       if (!surovo) return { stevilke: {}, skritiIds: [] };
       const podatki = JSON.parse(surovo);
+      const suroveStevilke =
+        podatki && podatki.stevilke && typeof podatki.stevilke === "object"
+          ? podatki.stevilke
+          : {};
+      const stevilke = {};
+      Object.keys(suroveStevilke).forEach((k) => {
+        stevilke[String(k)] = Number(suroveStevilke[k]);
+      });
       return {
-        stevilke:
-          podatki && podatki.stevilke && typeof podatki.stevilke === "object"
-            ? podatki.stevilke
-            : {},
+        stevilke,
         skritiIds: Array.isArray(podatki && podatki.skritiIds)
           ? podatki.skritiIds.map(String)
           : [],
@@ -1720,13 +1725,16 @@ function inicializirajSporociloDolzniku() {
   }
 
   function sestaviSeznamPredlogov() {
-    const skriti = new Set(nastavitvePredlogov.skritiIds || []);
-    predlogi = [...mojiPredlogi, ...vgrajeniPredlogi].filter((p) => !skriti.has(p.id));
+    const skriti = new Set((nastavitvePredlogov.skritiIds || []).map(String));
+    predlogi = [...mojiPredlogi, ...vgrajeniPredlogi].filter(
+      (p) => !skriti.has(String(p.id))
+    );
     const zasedene = new Set();
 
     predlogi.forEach((predlog, indeks) => {
       predlog._indeks = indeks;
-      const stevilka = Number(nastavitvePredlogov.stevilke[predlog.id]);
+      const id = String(predlog.id);
+      const stevilka = Number(nastavitvePredlogov.stevilke[id]);
       if (
         Number.isInteger(stevilka) &&
         stevilka >= 1 &&
@@ -1742,18 +1750,21 @@ function inicializirajSporociloDolzniku() {
 
     predlogi.forEach((predlog) => {
       if (predlog.stevilka != null) return;
-      const zelena = Number(nastavitvePredlogov.stevilke[predlog.id]);
+      const id = String(predlog.id);
+      const zelena = Number(nastavitvePredlogov.stevilke[id]);
       const od = Number.isInteger(zelena) && zelena >= 1 && zelena <= 9 ? zelena : 1;
       const prosta = najdiProstoStevilko(zasedene, od);
       // Če so vse številke 1–9 zasedene (več kot 9 predlogov), pusti želeno / 9.
       predlog.stevilka = prosta != null ? prosta : Number.isInteger(zelena) ? zelena : 9;
-      nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
+      nastavitvePredlogov.stevilke[id] = predlog.stevilka;
       if (prosta != null) zasedene.add(prosta);
     });
 
     // Počisti nastavitve za predloge, ki jih ni več.
     Object.keys(nastavitvePredlogov.stevilke).forEach((id) => {
-      if (!predlogi.some((p) => p.id === id)) delete nastavitvePredlogov.stevilke[id];
+      if (!predlogi.some((p) => String(p.id) === String(id))) {
+        delete nastavitvePredlogov.stevilke[id];
+      }
     });
     predlogi.sort((a, b) => {
       if (a.stevilka !== b.stevilka) return a.stevilka - b.stevilka;
@@ -1784,40 +1795,63 @@ function inicializirajSporociloDolzniku() {
     seznam.classList.remove("predlogi-okvir__vsebina--popover-odprt");
   }
 
+  function najdiStevilkoPredloga(predlogId) {
+    const id = String(predlogId);
+    const izNastavitev = Number(nastavitvePredlogov.stevilke[id]);
+    if (Number.isInteger(izNastavitev) && izNastavitev >= 1 && izNastavitev <= 9) {
+      return izNastavitev;
+    }
+    const izSeznama = predlogi.find((p) => String(p.id) === id);
+    const s = izSeznama ? Number(izSeznama.stevilka) : NaN;
+    return Number.isInteger(s) && s >= 1 && s <= 9 ? s : null;
+  }
+
   function nastaviStevilkoPredloga(predlogId, novaStevilka) {
     const id = String(predlogId);
     const nova = Math.max(1, Math.min(9, Number(novaStevilka) || 1));
-    const konflikt = predlogi.find(
-      (p) => String(p.id) !== id && Number(nastavitvePredlogov.stevilke[p.id]) === nova
-    );
+    const trenutna = najdiStevilkoPredloga(id);
 
-    nastavitvePredlogov.stevilke[id] = nova;
+    if (trenutna === nova) {
+      zapriVseStevilkeIzbire();
+      return;
+    }
+
+    const konflikt = predlogi.find((p) => {
+      if (String(p.id) === id) return false;
+      const s =
+        Number(nastavitvePredlogov.stevilke[String(p.id)]) || Number(p.stevilka);
+      return s === nova;
+    });
 
     if (konflikt) {
-      const zasedene = new Set(
-        predlogi
-          .filter((p) => p.id !== konflikt.id)
-          .map((p) => Number(nastavitvePredlogov.stevilke[p.id]) || p.stevilka)
+      const potrjeno = window.confirm(
+        "Številka " +
+          nova +
+          " je že zasedena s predlogom »" +
+          konflikt.naslov +
+          "«. Ali želite zamenjati vrstni red?\n\n" +
+          "Da = zamenjaj · Prekliči = ostane kot je."
       );
-      zasedene.add(nova);
-      const prosta = najdiProstoStevilko(zasedene, nova + 1);
-      if (prosta != null) {
-        nastavitvePredlogov.stevilke[String(konflikt.id)] = prosta;
-        pokaziObvestiloPredlogov(
-          "Številka " +
-            nova +
-            " je bila zasedena – predloga »" +
-            konflikt.naslov +
-            "« je premaknjena na " +
-            prosta +
-            "."
-        );
-      } else {
-        pokaziObvestiloPredlogov(
-          "Številka " + nova + " je zasedena – vrstni red ohranja prejšnji položaj."
-        );
+      if (!potrjeno) {
+        zapriVseStevilkeIzbire();
+        return;
       }
+      nastavitvePredlogov.stevilke[id] = nova;
+      if (trenutna != null) {
+        nastavitvePredlogov.stevilke[String(konflikt.id)] = trenutna;
+      } else {
+        const zasedene = new Set(
+          predlogi
+            .filter((p) => String(p.id) !== String(konflikt.id))
+            .map((p) => Number(nastavitvePredlogov.stevilke[String(p.id)]) || p.stevilka)
+        );
+        zasedene.add(nova);
+        const prosta = najdiProstoStevilko(zasedene, 1);
+        if (prosta != null) nastavitvePredlogov.stevilke[String(konflikt.id)] = prosta;
+      }
+      pokaziObvestiloPredlogov("Vrstni red zamenjan z »" + konflikt.naslov + "«.");
     } else {
+      nastavitvePredlogov.stevilke[id] = nova;
       pokaziObvestiloPredlogov("");
     }
 
@@ -1899,7 +1933,9 @@ function inicializirajSporociloDolzniku() {
 
   function privzetaStevilkaZaNovPredlog() {
     const zasedene = new Set(
-      predlogi.map((p) => Number(nastavitvePredlogov.stevilke[p.id]) || p.stevilka)
+      predlogi.map(
+        (p) => Number(nastavitvePredlogov.stevilke[String(p.id)]) || p.stevilka
+      )
     );
     return najdiProstoStevilko(zasedene, 1) || 1;
   }
@@ -1957,7 +1993,9 @@ function inicializirajSporociloDolzniku() {
     if (predlog.jeNov) {
       modalIzbranaStevilka = privzetaStevilkaZaNovPredlog();
     } else {
-      const trenutna = Number(predlog.stevilka || nastavitvePredlogov.stevilke[predlog.id]);
+      const trenutna = Number(
+        predlog.stevilka || nastavitvePredlogov.stevilke[String(predlog.id)]
+      );
       modalIzbranaStevilka =
         Number.isInteger(trenutna) && trenutna >= 1 && trenutna <= 9
           ? trenutna
@@ -2057,9 +2095,9 @@ function inicializirajSporociloDolzniku() {
     );
     if (!potrjeno) return;
 
-    const id = odprtPredlog.id;
+    const id = String(odprtPredlog.id);
     if (odprtPredlog.jeMoj) {
-      mojiPredlogi = mojiPredlogi.filter((p) => p.id !== id);
+      mojiPredlogi = mojiPredlogi.filter((p) => String(p.id) !== id);
       shraniMojePredlogeVLocalStorage();
     } else {
       if (!Array.isArray(nastavitvePredlogov.skritiIds)) nastavitvePredlogov.skritiIds = [];
@@ -2069,7 +2107,7 @@ function inicializirajSporociloDolzniku() {
     }
 
     delete nastavitvePredlogov.stevilke[id];
-    if (izbranPredlogId === id) izbranPredlogId = null;
+    if (String(izbranPredlogId) === id) izbranPredlogId = null;
 
     shraniNastavitvePredlogov();
     zapriUrediModal();
@@ -2132,35 +2170,18 @@ function inicializirajSporociloDolzniku() {
       kartica.querySelector(".predlog-kartica__naslov").textContent = predlog.naslov;
       kartica.querySelector(".predlog-kartica__opis").textContent = predlog.besedilo;
 
-      const gumbStevilke = kartica.querySelector(".predlog-kartica__stevilka");
-      const izbirnik = kartica.querySelector(".predlog-kartica__stevilke-izbirnik");
       const mreza = kartica.querySelector(".predlog-kartica__stevilke-mreza");
 
       for (let n = 1; n <= 9; n++) {
         const gumbN = document.createElement("button");
         gumbN.type = "button";
         gumbN.className = "predlog-kartica__stevilka-izbira";
+        gumbN.dataset.stevilka = String(n);
         gumbN.setAttribute("role", "option");
         gumbN.setAttribute("aria-selected", n === stevilka ? "true" : "false");
         gumbN.textContent = String(n);
-        gumbN.addEventListener("click", (dogodek) => {
-          dogodek.stopPropagation();
-          nastaviStevilkoPredloga(predlog.id, n);
-        });
         mreza.appendChild(gumbN);
       }
-
-      gumbStevilke.addEventListener("click", (dogodek) => {
-        dogodek.stopPropagation();
-        const jeOdprt = !izbirnik.hidden;
-        zapriVseStevilkeIzbire();
-        if (!jeOdprt) {
-          izbirnik.hidden = false;
-          gumbStevilke.setAttribute("aria-expanded", "true");
-          kartica.classList.add("predlog-kartica--popover-odprt");
-          seznam.classList.add("predlogi-okvir__vsebina--popover-odprt");
-        }
-      });
 
       kartica.querySelector(".preview-button").addEventListener("click", () => {
         zapriVseStevilkeIzbire();
@@ -2302,6 +2323,26 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
+  function migrirajStarePredlogeCeTreba(uid) {
+    if (!uid) return;
+    try {
+      const novKljucMoji = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
+      const novKljucNas = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA + "-" + uid;
+      const staroMoji = localStorage.getItem(KLJUC_MOJI_PREDLOGI_OSNOVA);
+      const novoMoji = localStorage.getItem(novKljucMoji);
+      if (staroMoji && (!novoMoji || novoMoji === "[]")) {
+        localStorage.setItem(novKljucMoji, staroMoji);
+      }
+      const staroNas = localStorage.getItem(KLJUC_PREDLOGI_NASTAVITVE_OSNOVA);
+      const novoNas = localStorage.getItem(novKljucNas);
+      if (staroNas && !novoNas) {
+        localStorage.setItem(novKljucNas, staroNas);
+      }
+    } catch (_napaka) {
+      // localStorage ni na voljo – ignoriraj.
+    }
+  }
+
   function zagonSPredlogi() {
     mojiPredlogi = naloziMojePredlogeIzLocalStorage();
     nastavitvePredlogov = naloziNastavitvePredlogov();
@@ -2311,29 +2352,64 @@ function inicializirajSporociloDolzniku() {
     posodobiStanjeUrejevalnika();
   }
 
+  // En klik na seznamu: odpri izbirnik / izberi številko (deluje tudi za moje predloge).
+  seznam.addEventListener("click", (dogodek) => {
+    const gumbN = dogodek.target.closest(".predlog-kartica__stevilka-izbira");
+    if (gumbN && seznam.contains(gumbN)) {
+      dogodek.preventDefault();
+      dogodek.stopPropagation();
+      const kartica = gumbN.closest(".predlog-kartica");
+      const id = kartica && kartica.dataset.predlogId;
+      const n = Number(gumbN.dataset.stevilka || gumbN.textContent);
+      if (id && n >= 1 && n <= 9) nastaviStevilkoPredloga(id, n);
+      return;
+    }
+
+    const gumbStevilke = dogodek.target.closest(".predlog-kartica__stevilka");
+    if (gumbStevilke && seznam.contains(gumbStevilke)) {
+      dogodek.preventDefault();
+      dogodek.stopPropagation();
+      const kartica = gumbStevilke.closest(".predlog-kartica");
+      const izbirnik =
+        kartica && kartica.querySelector(".predlog-kartica__stevilke-izbirnik");
+      if (!izbirnik) return;
+      const jeOdprt = !izbirnik.hidden;
+      zapriVseStevilkeIzbire();
+      if (!jeOdprt) {
+        izbirnik.hidden = false;
+        gumbStevilke.setAttribute("aria-expanded", "true");
+        kartica.classList.add("predlog-kartica--popover-odprt");
+        seznam.classList.add("predlogi-okvir__vsebina--popover-odprt");
+      }
+    }
+  });
+
   document.addEventListener("click", (dogodek) => {
     if (!dogodek.target.closest(".predlog-kartica__stevilka-ovoj")) {
       zapriVseStevilkeIzbire();
     }
   });
 
-  // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
-  zagonSPredlogi();
-  if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
-    supabaseKlient.auth
-      .getSession()
-      .then(({ data }) => {
-        const uid = data && data.session && data.session.user && data.session.user.id;
-        if (uid) {
-          kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
-          kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA + "-" + uid;
-        }
-        zagonSPredlogi();
-      })
-      .catch(() => {
-        zagonSPredlogi();
-      });
+  // Počakaj na uid, nato enkrat naloži – brez dvojnega zagona, ki lahko zbriše številke.
+  async function zagonSKljuci() {
+    let uid = null;
+    try {
+      if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
+        const { data } = await supabaseKlient.auth.getSession();
+        uid = data && data.session && data.session.user && data.session.user.id;
+      }
+    } catch (_napaka) {
+      uid = null;
+    }
+    if (uid) {
+      migrirajStarePredlogeCeTreba(uid);
+      kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
+      kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA + "-" + uid;
+    }
+    zagonSPredlogi();
   }
+
+  zagonSKljuci();
 }
 
 /* ---------- Logika strani neplacila-posiljanje.html (3. korak - začasni stub) ---------- */
