@@ -2612,6 +2612,8 @@ body.stran--samo-seznam #obrazec {
   border: 1px solid var(--border);
   background: var(--surface-soft);
   color: var(--teal-dark);
+  /* Zgornji desni kot sledi zaobljenemu robu kartice; ostali koti ostanejo običajni. */
+  border-radius: 10px 999px 10px 10px;
 }
 
 .predlog-gumb--uporabi {
