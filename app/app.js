@@ -65,22 +65,66 @@ function ugotoviMaxDosezenKorak() {
   return 1;
 }
 
+const SVG_KORAK_KLJUKICA =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
+function posodobiDebtStepMarker(el, stanje, stevilka) {
+  const marker = el.querySelector(".debt-step__marker");
+  if (!marker) return;
+  if (stanje === "complete") {
+    marker.innerHTML = SVG_KORAK_KLJUKICA;
+  } else {
+    marker.textContent = String(stevilka);
+  }
+}
+
 /* Oznaci korake (current/complete/upcoming) in omogoči klik na že dosežene. */
 function inicializirajKorakePostopka(trenutniKorak) {
   const vsebnik = document.querySelector("[data-koraki-postopek]");
   if (!vsebnik) return;
 
   const maxDosezen = Math.max(ugotoviMaxDosezenKorak(), trenutniKorak);
+  const jeDebtStepper = vsebnik.classList.contains("debt-stepper");
 
   vsebnik.querySelectorAll("[data-korak]").forEach((el) => {
     const n = Number(el.dataset.korak);
     if (!Number.isInteger(n) || n < 1 || n > 3) return;
 
-    el.classList.remove("is-current", "is-complete", "is-upcoming", "is-clickable");
+    el.classList.remove(
+      "is-current",
+      "is-complete",
+      "is-upcoming",
+      "is-clickable",
+      "debt-step--complete",
+      "debt-step--active",
+      "debt-step--upcoming"
+    );
     el.removeAttribute("aria-current");
     el.removeAttribute("aria-disabled");
     el.removeAttribute("tabindex");
     if (URL_KORAKI_POSTOPKA[n]) el.setAttribute("href", URL_KORAKI_POSTOPKA[n]);
+
+    if (jeDebtStepper) {
+      if (n === trenutniKorak) {
+        el.classList.add("debt-step--active");
+        el.setAttribute("aria-current", "step");
+        el.setAttribute("aria-disabled", "true");
+        el.setAttribute("tabindex", "-1");
+        posodobiDebtStepMarker(el, "active", n);
+      } else if (n < trenutniKorak) {
+        el.classList.add("debt-step--complete", "is-clickable");
+        posodobiDebtStepMarker(el, "complete", n);
+      } else if (n <= maxDosezen) {
+        el.classList.add("debt-step--upcoming", "is-clickable");
+        posodobiDebtStepMarker(el, "upcoming", n);
+      } else {
+        el.classList.add("debt-step--upcoming");
+        el.setAttribute("aria-disabled", "true");
+        el.setAttribute("tabindex", "-1");
+        posodobiDebtStepMarker(el, "upcoming", n);
+      }
+      return;
+    }
 
     if (n === trenutniKorak) {
       el.classList.add("is-current");
