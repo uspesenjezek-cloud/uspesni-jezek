@@ -111,8 +111,6 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: 1024,
-        // temperature 0: bolj deterministična ekstrakcija (manj "preskoči" vidne vrednosti).
-        temperature: 0,
         // Claude Sonnet 5 ima "thinking" privzeto vklopljen, thinking
         // tokeni pa se štejejo v max_tokens - pri tako majhnem max_tokens
         // bi lahko thinking porabil celotno rezervo, še preden model
