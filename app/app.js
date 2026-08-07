@@ -1588,13 +1588,10 @@ function inicializirajSporociloDolzniku() {
         "</span>" +
         '<p class="predlog-kartica__naslov"></p>' +
         '<p class="predlog-kartica__opis"></p>' +
-        '<div class="predlog-kartica__akcije">' +
-        '<button type="button" class="predlog-gumb predlog-gumb--predogled">' +
-        '<span class="predlog-gumb--predogled__vodoravno" aria-hidden="true"></span>' +
-        '<span class="predlog-gumb--predogled__navpicno" aria-hidden="true"></span>' +
-        '<span class="predlog-gumb--predogled__vsebina">' +
+        '<button type="button" class="preview-button">' +
         ikonaOcesa +
-        "Predogled</span></button>" +
+        "<span>Predogled</span></button>" +
+        '<div class="predlog-kartica__akcije">' +
         '<button type="button" class="predlog-gumb predlog-gumb--uporabi" aria-pressed="false" data-predlog-id="' +
         predlog.id +
         '">' +
@@ -1606,7 +1603,7 @@ function inicializirajSporociloDolzniku() {
       // Celotno besedilo predloga - kartica se dinamično podaljša.
       kartica.querySelector(".predlog-kartica__opis").textContent = predlog.besedilo;
 
-      kartica.querySelector(".predlog-gumb--predogled").addEventListener("click", () => {
+      kartica.querySelector(".preview-button").addEventListener("click", () => {
         odpriPredogled(predlog);
       });
 
