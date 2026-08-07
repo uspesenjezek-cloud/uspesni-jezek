@@ -126,13 +126,21 @@ module.exports = async function handler(req, res) {
     try {
       // Claude občasno vseeno obda JSON s ```json ... ``` kodnim blokom
       // kljub izrecnemu navodilu - to tu odstranimo pred JSON.parse.
+      // Presledki/nove vrstice pred oznako (npr. "\n```json") in po njej
+      // se prav tako pojavljajo, zato najprej obrežemo, nato odstranimo
+      // oznake, nato spet obrežemo, preden poskusimo razčleniti JSON.
       const ociscenoBesedilo = besediloOdgovora
-        .replace(/^```(json)?/i, "")
-        .replace(/```$/, "")
+        .trim()
+        .replace(/^```(json)?\s*/i, "")
+        .replace(/\s*```$/i, "")
         .trim();
       razclenjenoJson = JSON.parse(ociscenoBesedilo);
     } catch (napakaParsanja) {
-      res.status(502).json({ ok: false, napaka: "AI odgovora ni bilo mogoče razumeti kot JSON." });
+      res.status(502).json({
+        ok: false,
+        napaka: "AI odgovora ni bilo mogoče razumeti kot JSON.",
+        surovoBesedilo: besediloOdgovora.slice(0, 2000),
+      });
       return;
     }
 
