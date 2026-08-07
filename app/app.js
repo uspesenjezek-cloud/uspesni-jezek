@@ -2498,12 +2498,30 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
+  function najdiPredlogStevilka1() {
+    return predlogi.find((p) => Number(p.stevilka) === 1) || predlogi[0] || null;
+  }
+
   function zagonSPredlogi() {
     mojiPredlogi = naloziMojePredlogeIzLocalStorage();
     nastavitvePredlogov = naloziNastavitvePredlogov();
     sestaviSeznamPredlogov();
     izrisiPredloge();
-    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+
+    if (izbranPredlogId) {
+      // Osnutek / predhodna izbira – samo obnovi zeleno obrobo.
+      oznaciIzbranega(izbranPredlogId);
+    } else {
+      // Privzeto: predloga s številko 1 (prva v vrstnem redu).
+      const privzeti = najdiPredlogStevilka1();
+      if (privzeti) {
+        if (!besediloPolje.value.trim()) {
+          uporabiPredlog(privzeti);
+        } else {
+          oznaciIzbranega(privzeti.id);
+        }
+      }
+    }
     posodobiStanjeUrejevalnika();
   }
 
