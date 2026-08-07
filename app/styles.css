@@ -2302,7 +2302,8 @@ body.stran--samo-seznam #obrazec {
 .osnutek-modal:not([hidden]) {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  /* Nad urejevalnim modalom predloge (.korak2-modal = 100). */
+  z-index: 120;
   display: grid;
   place-items: center;
   padding: 18px;

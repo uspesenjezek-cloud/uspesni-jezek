@@ -2176,13 +2176,24 @@ function inicializirajSporociloDolzniku() {
       zapriUrediModal();
       return;
     }
+
+    // Odstrani fokus s textarea (iOS tipkovnica) in začasno ustavi
+    // visualViewport-resize, da se urejevalnik ne raztegne čez zaslon
+    // medtem ko čakamo na potrditveni modal (ki mora biti zgoraj).
+    if (modalUrejevalnik) modalUrejevalnik.blur();
+    if (modalNaslovVnos) modalNaslovVnos.blur();
+    odstraniPritrditevUrediModala();
+
     const potrjeno = await potrdiVprasanje({
       naslov: "Odstranim predlogo?",
       opis: "»" + odprtPredlog.naslov + "«",
       potrdiBesedilo: "Odstrani",
       stil: "nevarno",
     });
-    if (!potrjeno) return;
+    if (!potrjeno) {
+      if (modal && !modal.hidden) pritrdiUrediModalNaVrh();
+      return;
+    }
 
     const id = odprtPredlog.id;
     if (odprtPredlog.jeMoj) {
@@ -2360,12 +2371,21 @@ function inicializirajSporociloDolzniku() {
   }
 
   if (gumbDodajPredlog) gumbDodajPredlog.addEventListener("click", odpriNovPredlogModal);
-  if (modalIzbrisi) modalIzbrisi.addEventListener("click", izbrisiOdprtPredlog);
+  if (modalIzbrisi) {
+    modalIzbrisi.addEventListener("click", (dogodek) => {
+      dogodek.preventDefault();
+      dogodek.stopPropagation();
+      izbrisiOdprtPredlog();
+    });
+  }
   if (modalShrani) modalShrani.addEventListener("click", shraniPredlogIzModala);
   if (modalZapri) modalZapri.addEventListener("click", zapriUrediModal);
   if (modalBackdrop) modalBackdrop.addEventListener("click", zapriUrediModal);
   document.addEventListener("keydown", (dogodek) => {
     if (dogodek.key !== "Escape" || !modal || modal.hidden) return;
+    // Escape naj najprej zapre potrditveni modal, ne urejevalnika.
+    const potrdiModal = document.getElementById("uj-potrdi-modal");
+    if (potrdiModal && !potrdiModal.hidden) return;
     zapriUrediModal();
   });
 
