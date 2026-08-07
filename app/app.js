@@ -1895,17 +1895,58 @@ function inicializirajSporociloDolzniku() {
     shraniNastavitvePredlogov();
   }
 
+  function vrniStevilkeIzbirnikDomov(izbirnik) {
+    if (!izbirnik) return;
+    izbirnik.classList.remove("predlog-kartica__stevilke-izbirnik--plavajoč");
+    izbirnik.style.top = "";
+    izbirnik.style.left = "";
+    izbirnik.hidden = true;
+    if (izbirnik._domov && izbirnik.parentElement !== izbirnik._domov) {
+      izbirnik._domov.appendChild(izbirnik);
+    }
+  }
+
+  function pozicionirajStevilkeIzbirnik(izbirnik, gumbStevilke) {
+    const rect = gumbStevilke.getBoundingClientRect();
+    const rob = 8;
+    const sirina = izbirnik.offsetWidth;
+    const visina = izbirnik.offsetHeight;
+    let top = rect.bottom + 6;
+    let left = rect.left;
+
+    // Če spodaj ni prostora, odpri nad krogom.
+    if (top + visina > window.innerHeight - rob) {
+      top = Math.max(rob, rect.top - visina - 6);
+    }
+    // Ob ozkem zaslonu drži znotraj viewporta.
+    if (left + sirina > window.innerWidth - rob) {
+      left = Math.max(rob, window.innerWidth - sirina - rob);
+    }
+    if (left < rob) left = rob;
+
+    izbirnik.style.top = Math.round(top) + "px";
+    izbirnik.style.left = Math.round(left) + "px";
+  }
+
+  function odpriStevilkeIzbirnik(gumbStevilke, izbirnik) {
+    const ovoj = gumbStevilke.closest(".predlog-kartica__stevilka-ovoj");
+    if (!ovoj || !izbirnik) return;
+
+    izbirnik._domov = ovoj;
+    document.body.appendChild(izbirnik);
+    izbirnik.hidden = false;
+    izbirnik.classList.add("predlog-kartica__stevilke-izbirnik--plavajoč");
+    pozicionirajStevilkeIzbirnik(izbirnik, gumbStevilke);
+    gumbStevilke.setAttribute("aria-expanded", "true");
+  }
+
   function zapriVseStevilkeIzbire() {
-    seznam.querySelectorAll(".predlog-kartica__stevilke-izbirnik").forEach((el) => {
-      el.hidden = true;
+    document.querySelectorAll(".predlog-kartica__stevilke-izbirnik").forEach((el) => {
+      vrniStevilkeIzbirnikDomov(el);
     });
     seznam.querySelectorAll(".predlog-kartica__stevilka").forEach((gumb) => {
       gumb.setAttribute("aria-expanded", "false");
     });
-    seznam.querySelectorAll(".predlog-kartica--popover-odprt").forEach((kartica) => {
-      kartica.classList.remove("predlog-kartica--popover-odprt");
-    });
-    seznam.classList.remove("predlogi-okvir__vsebina--popover-odprt");
   }
 
   function nastaviStevilkoPredloga(predlogId, novaStevilka) {
@@ -2230,6 +2271,7 @@ function inicializirajSporociloDolzniku() {
   }
 
   function izrisiPredloge() {
+    zapriVseStevilkeIzbire();
     seznam.innerHTML = "";
 
     predlogi.forEach((predlog, indeks) => {
@@ -2290,14 +2332,11 @@ function inicializirajSporociloDolzniku() {
 
       gumbStevilke.addEventListener("click", (dogodek) => {
         dogodek.stopPropagation();
-        const jeOdprt = !izbirnik.hidden;
+        const jeOdprt =
+          !izbirnik.hidden &&
+          izbirnik.classList.contains("predlog-kartica__stevilke-izbirnik--plavajoč");
         zapriVseStevilkeIzbire();
-        if (!jeOdprt) {
-          izbirnik.hidden = false;
-          gumbStevilke.setAttribute("aria-expanded", "true");
-          kartica.classList.add("predlog-kartica--popover-odprt");
-          seznam.classList.add("predlogi-okvir__vsebina--popover-odprt");
-        }
+        if (!jeOdprt) odpriStevilkeIzbirnik(gumbStevilke, izbirnik);
       });
 
       kartica.querySelector(".preview-button").addEventListener("click", () => {
@@ -2398,8 +2437,18 @@ function inicializirajSporociloDolzniku() {
     shraniOsnutekLokalno();
   });
 
-  seznam.addEventListener("scroll", posodobiDrsnik);
-  window.addEventListener("resize", posodobiDrsnik);
+  seznam.addEventListener(
+    "scroll",
+    () => {
+      posodobiDrsnik();
+      zapriVseStevilkeIzbire();
+    },
+    { passive: true }
+  );
+  window.addEventListener("resize", () => {
+    posodobiDrsnik();
+    zapriVseStevilkeIzbire();
+  });
   if (typeof ResizeObserver !== "undefined") {
     const opazovalec = new ResizeObserver(() => posodobiDrsnik());
     opazovalec.observe(seznam);
@@ -2459,9 +2508,13 @@ function inicializirajSporociloDolzniku() {
   }
 
   document.addEventListener("click", (dogodek) => {
-    if (!dogodek.target.closest(".predlog-kartica__stevilka-ovoj")) {
-      zapriVseStevilkeIzbire();
+    if (
+      dogodek.target.closest(".predlog-kartica__stevilka-ovoj") ||
+      dogodek.target.closest(".predlog-kartica__stevilke-izbirnik")
+    ) {
+      return;
     }
+    zapriVseStevilkeIzbire();
   });
 
   // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
