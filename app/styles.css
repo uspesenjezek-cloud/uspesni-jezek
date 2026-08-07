@@ -1416,8 +1416,53 @@ body.stran--samo-seznam #obrazec {
 }
 
 .racun-posiljanje__prazno[hidden],
-.racun-posiljanje__kartica[hidden] {
+.racun-posiljanje__polno[hidden],
+.racun-posiljanje__dodaj-se[hidden],
+.racun-posiljanje__limit[hidden] {
   display: none;
+}
+
+.racun-posiljanje__polno {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.racun-posiljanje__seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.racun-posiljanje__kartica {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.racun-posiljanje__datoteka-meta {
+  min-width: 0;
+}
+
+.racun-posiljanje__datoteka-velikost {
+  margin: 2px 0 0;
+  color: #718580;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.racun-posiljanje__dodaj-se-naslov {
+  margin: 0 0 8px;
+  color: #5f746f;
+  font-size: 0.75rem;
+}
+
+.racun-posiljanje__limit {
+  margin: 0;
+  color: #667b76;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .racun-posiljanje__ikona,

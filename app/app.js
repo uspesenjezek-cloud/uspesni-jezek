@@ -410,13 +410,12 @@ function inicializirajNeplacila() {
   let casovnikSporocilaSkritje = null;
   // Datoteke (slike/PDF-ji), ki jih je obrtnik izbral za priloge k zadevi -
   // dejansko se naložijo v Supabase Storage šele ob oddaji obrazca.
-  /* Priloga za pošiljanje (ena datoteka) + izvor (ocr | manual_attachment). */
+  /* Priloge za pošiljanje: { file, origin: "ocr" | "manual_attachment" }. */
   let izbranePrilogeDatoteke = [];
   let ocrSourceFile = null;
-  let messageAttachmentFile = null;
-  let attachmentOrigin = null;
+  let messageAttachments = [];
   let shouldSendAttachment = true;
-  const NAJVEC_PRILOG = 1;
+  const NAJVEC_PRILOG = 6;
   const NAJVECJA_VELIKOST_PRILOGE_B = 10 * 1024 * 1024; // 10 MB - enako kot v sql/003
 
   if (!obrazec || !seznamVsebina) {
@@ -506,56 +505,103 @@ function inicializirajNeplacila() {
   }
 
   const racunPrazno = document.getElementById("racun-posiljanje-prazno");
-  const racunKartica = document.getElementById("racun-posiljanje-kartica");
-  const racunIme = document.getElementById("racun-posiljanje-ime");
-  const racunIzvor = document.getElementById("racun-posiljanje-izvor");
+  const racunPolno = document.getElementById("racun-posiljanje-polno");
+  const racunSeznam = document.getElementById("racun-posiljanje-seznam");
+  const racunDodajSe = document.getElementById("racun-posiljanje-dodaj-se");
   const racunStikalo = document.getElementById("racun-posiljanje-stikalo");
   const racunStikaloPomoc = document.getElementById("racun-posiljanje-stikalo-pomoc");
-  const racunZamenjaj = document.getElementById("racun-posiljanje-zamenjaj");
-  const racunOdstrani = document.getElementById("racun-posiljanje-odstrani");
+  const prilogaLimitOpozoriloEl = document.getElementById("priloga-limit-opozorilo");
 
   function sinhronizirajPrilogeZaNalaganje() {
-    izbranePrilogeDatoteke = messageAttachmentFile ? [messageAttachmentFile] : [];
+    izbranePrilogeDatoteke = messageAttachments.map((p) => p.file);
+  }
+
+  function besediloIzvoraPriloge(izvor) {
+    return izvor === "ocr"
+      ? "Dodano pri samodejnem vnosu podatkov"
+      : "Dodano samo kot priloga";
   }
 
   function izrisiIzbranePriloge() {
     sinhronizirajPrilogeZaNalaganje();
-    const ima = Boolean(messageAttachmentFile);
+    const ima = messageAttachments.length > 0;
+    const dosezenaMeja = messageAttachments.length >= NAJVEC_PRILOG;
     if (racunPrazno) racunPrazno.hidden = ima;
-    if (racunKartica) racunKartica.hidden = !ima;
-    if (!ima) return;
-    if (racunIme) racunIme.textContent = messageAttachmentFile.name;
-    if (racunIzvor) {
-      racunIzvor.textContent =
-        attachmentOrigin === "ocr"
-          ? "Dodano pri samodejnem vnosu podatkov"
-          : "Dodano samo kot priloga";
+    if (racunPolno) racunPolno.hidden = !ima;
+    if (racunDodajSe) racunDodajSe.hidden = dosezenaMeja;
+    if (prilogaLimitOpozoriloEl) prilogaLimitOpozoriloEl.hidden = !dosezenaMeja;
+    if (racunSeznam) {
+      racunSeznam.innerHTML = "";
+      messageAttachments.forEach((priloga, indeks) => {
+        const vrstica = document.createElement("div");
+        vrstica.className = "racun-posiljanje__kartica";
+        vrstica.setAttribute("role", "listitem");
+
+        const datotekaBlok = document.createElement("div");
+        datotekaBlok.className = "racun-posiljanje__datoteka";
+        datotekaBlok.innerHTML =
+          '<span class="racun-posiljanje__datoteka-ikona" aria-hidden="true">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>' +
+          "</span>";
+
+        const meta = document.createElement("div");
+        meta.className = "racun-posiljanje__datoteka-meta";
+        const ime = document.createElement("p");
+        ime.className = "racun-posiljanje__datoteka-ime";
+        ime.textContent = priloga.file.name;
+        const izvor = document.createElement("p");
+        izvor.className = "racun-posiljanje__datoteka-izvor";
+        izvor.textContent = besediloIzvoraPriloge(priloga.origin);
+        const velikost = document.createElement("p");
+        velikost.className = "racun-posiljanje__datoteka-velikost";
+        velikost.textContent = formatirajVelikostDatoteke(priloga.file.size);
+        meta.appendChild(ime);
+        meta.appendChild(izvor);
+        if (velikost.textContent) meta.appendChild(velikost);
+        datotekaBlok.appendChild(meta);
+
+        const odstrani = document.createElement("button");
+        odstrani.type = "button";
+        odstrani.className = "racun-posiljanje__akcija racun-posiljanje__akcija--odstrani";
+        odstrani.setAttribute("aria-label", "Odstrani " + priloga.file.name);
+        odstrani.textContent = "Odstrani";
+        odstrani.addEventListener("click", () => {
+          messageAttachments.splice(indeks, 1);
+          izrisiIzbranePriloge();
+        });
+
+        vrstica.appendChild(datotekaBlok);
+        vrstica.appendChild(odstrani);
+        racunSeznam.appendChild(vrstica);
+      });
     }
     if (racunStikalo) racunStikalo.checked = shouldSendAttachment;
     if (racunStikaloPomoc) {
+      const vec = messageAttachments.length > 1;
       racunStikaloPomoc.textContent = shouldSendAttachment
-        ? "Račun bo dodan končnemu sporočilu."
-        : "Račun ostane shranjen, vendar ne bo poslan.";
+        ? vec
+          ? "Računi bodo dodani končnemu sporočilu."
+          : "Račun bo dodan končnemu sporočilu."
+        : vec
+          ? "Računi ostanejo shranjeni, vendar ne bodo poslani."
+          : "Račun ostane shranjen, vendar ne bo poslan.";
     }
-  }
-
-  function nastaviPrilogoZaPosiljanje(datoteka, izvor) {
-    messageAttachmentFile = datoteka || null;
-    attachmentOrigin = datoteka ? izvor : null;
-    if (datoteka) shouldSendAttachment = true;
-    sinhronizirajPrilogeZaNalaganje();
-    izrisiIzbranePriloge();
   }
 
   function dodajIzbranePriloge(datoteke, izvor) {
     const seznam = Array.from(datoteke || []);
     if (!seznam.length) return;
-    nastaviPrilogoZaPosiljanje(seznam[0], izvor || "manual_attachment");
+    const izvorPriloge = izvor || "manual_attachment";
+    for (const datoteka of seznam) {
+      if (messageAttachments.length >= NAJVEC_PRILOG) break;
+      messageAttachments.push({ file: datoteka, origin: izvorPriloge });
+    }
+    if (seznam.length) shouldSendAttachment = true;
+    izrisiIzbranePriloge();
   }
 
   function pocistiIzbranePriloge() {
-    messageAttachmentFile = null;
-    attachmentOrigin = null;
+    messageAttachments = [];
     shouldSendAttachment = true;
     izbranePrilogeDatoteke = [];
     if (gumbPrilogaDatoteka) gumbPrilogaDatoteka.value = "";
@@ -564,39 +610,33 @@ function inicializirajNeplacila() {
   }
 
   /* Spodnji widget: samo priloga – BREZ OCR. */
-  const prilogaGumbPriloziti = document.getElementById("priloga-gumb-priloziti");
-  const prilogaGumbSlikaj = document.getElementById("priloga-gumb-slikaj");
-
-  if (gumbPrilogaDatoteka && gumbPrilogaFotoaparat) {
+  if (gumbPrilogaDatoteka) {
     gumbPrilogaDatoteka.addEventListener("change", () => {
-      if (gumbPrilogaDatoteka.files[0]) {
+      if (gumbPrilogaDatoteka.files && gumbPrilogaDatoteka.files.length) {
         dodajIzbranePriloge(gumbPrilogaDatoteka.files, "manual_attachment");
       }
       gumbPrilogaDatoteka.value = "";
     });
-
+  }
+  if (gumbPrilogaFotoaparat) {
     gumbPrilogaFotoaparat.addEventListener("change", () => {
-      if (gumbPrilogaFotoaparat.files[0]) {
+      if (gumbPrilogaFotoaparat.files && gumbPrilogaFotoaparat.files.length) {
         dodajIzbranePriloge(gumbPrilogaFotoaparat.files, "manual_attachment");
       }
       gumbPrilogaFotoaparat.value = "";
     });
   }
 
-  if (prilogaGumbPriloziti && gumbPrilogaDatoteka) {
-    prilogaGumbPriloziti.addEventListener("click", () => gumbPrilogaDatoteka.click());
-  }
-  if (prilogaGumbSlikaj && gumbPrilogaFotoaparat) {
-    prilogaGumbSlikaj.addEventListener("click", () => gumbPrilogaFotoaparat.click());
-  }
-  if (racunZamenjaj && gumbPrilogaDatoteka) {
-    racunZamenjaj.addEventListener("click", () => gumbPrilogaDatoteka.click());
-  }
-  if (racunOdstrani) {
-    racunOdstrani.addEventListener("click", () => {
-      pocistiIzbranePriloge();
+  document.querySelectorAll("[data-priloga-uvozi]").forEach((gumb) => {
+    gumb.addEventListener("click", () => {
+      if (gumbPrilogaDatoteka) gumbPrilogaDatoteka.click();
     });
-  }
+  });
+  document.querySelectorAll("[data-priloga-slikaj]").forEach((gumb) => {
+    gumb.addEventListener("click", () => {
+      if (gumbPrilogaFotoaparat) gumbPrilogaFotoaparat.click();
+    });
+  });
   if (racunStikalo) {
     racunStikalo.addEventListener("change", () => {
       shouldSendAttachment = racunStikalo.checked;
@@ -797,19 +837,26 @@ function inicializirajNeplacila() {
 
   async function poOcrUspehuNastaviPrilogo(datoteka) {
     ocrSourceFile = datoteka;
-    if (!messageAttachmentFile || attachmentOrigin === "ocr") {
-      nastaviPrilogoZaPosiljanje(datoteka, "ocr");
+    const ocrIndeks = messageAttachments.findIndex((p) => p.origin === "ocr");
+    if (ocrIndeks >= 0) {
+      messageAttachments[ocrIndeks] = { file: datoteka, origin: "ocr" };
+      shouldSendAttachment = true;
+      izrisiIzbranePriloge();
       return;
     }
-    // Spodaj je druga (ročna) priloga – vprašaj pred zamenjavo.
-    const zamenjajPrilogo = await potrdiVprasanje({
-      naslov: "Zamenjam prilogo?",
+    if (messageAttachments.length === 0) {
+      dodajIzbranePriloge([datoteka], "ocr");
+      return;
+    }
+    // Spodaj so že ročne priloge – vprašaj pred dodajanjem.
+    const dodajKotPrilogo = await potrdiVprasanje({
+      naslov: "Dodam tudi kot prilogo?",
       opis: "Želite novi račun uporabiti tudi kot prilogo za pošiljanje?",
-      potrdiBesedilo: "Da, uporabi",
-      prekliciBesedilo: "Ne, obdrži trenutno",
+      potrdiBesedilo: "Da, dodaj",
+      prekliciBesedilo: "Ne, obdrži trenutne",
       stil: "primary",
     });
-    if (zamenjajPrilogo) nastaviPrilogoZaPosiljanje(datoteka, "ocr");
+    if (dodajKotPrilogo) dodajIzbranePriloge([datoteka], "ocr");
   }
 
   /* Označi polje kot samodejno izpolnjeno (bled zelen border, glej
@@ -1468,8 +1515,8 @@ function inicializirajNeplacila() {
         datumZapadlosti,
         stevilkaRacuna: podatki.get("stevilkaRacuna").trim() || null,
         racunDatotekePoti: rezultatPrilog.poti,
-        shouldSendAttachment: Boolean(messageAttachmentFile) && shouldSendAttachment,
-        attachmentOrigin: messageAttachmentFile ? attachmentOrigin : null,
+        shouldSendAttachment: messageAttachments.length > 0 && shouldSendAttachment,
+        attachmentOrigins: messageAttachments.map((p) => p.origin),
       })
     );
 
