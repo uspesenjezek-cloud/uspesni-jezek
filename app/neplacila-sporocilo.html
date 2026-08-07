@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-besedilo-robovi" />
+    <link rel="stylesheet" href="styles.css?v=20260807-modal-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -179,20 +179,16 @@
                 maxlength="1000"
               ></textarea>
             </div>
-            <!-- Noga: Izbriši desno; spodaj zlati Push ★ + Shrani -->
-            <div class="korak2-modal__noga">
-              <div class="korak2-modal__vrsta korak2-modal__vrsta--izbrisi">
-                <button type="button" class="korak2-modal__preklici" id="predogled-preklici">
-                  Prekliči
-                </button>
+            <div class="korak2-modal__noga" id="predogled-opcije">
+              <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
+                <span class="korak2-modal__push-zvezdica" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.5l2.9 5.88 6.5.95-4.7 4.58 1.11 6.47L12 17.77l-5.81 3.06 1.11-6.47-4.7-4.58 6.5-.95L12 2.5z"/></svg>
+                </span>
+                <span class="korak2-modal__push-besedilo">Push – privzeta predloga</span>
+              </button>
+              <div class="korak2-modal__vrsta">
                 <button type="button" class="korak2-modal__izbrisi" id="predogled-izbrisi">
                   Izbriši
-                </button>
-              </div>
-              <div class="korak2-modal__vrsta korak2-modal__vrsta--glavna" id="predogled-opcije">
-                <button type="button" class="korak2-modal__push" id="predogled-push" aria-pressed="false">
-                  <span class="korak2-modal__push-zvezdica" aria-hidden="true">★</span>
-                  <span class="korak2-modal__push-besedilo">Push</span>
                 </button>
                 <button type="button" class="korak2-modal__shrani" id="predogled-shrani">
                   Shrani
@@ -204,6 +200,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260807-besedilo-robovi"></script>
+    <script src="app.js?v=20260807-modal-v2"></script>
   </body>
 </html>

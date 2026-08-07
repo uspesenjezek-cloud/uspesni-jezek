@@ -1320,7 +1320,6 @@ function inicializirajSporociloDolzniku() {
   const modalUrejevalnik = document.getElementById("predogled-urejevalnik");
   const modalPush = document.getElementById("predogled-push");
   const modalIzbrisi = document.getElementById("predogled-izbrisi");
-  const modalPreklici = document.getElementById("predogled-preklici");
   const modalShrani = document.getElementById("predogled-shrani");
   const modalZapri = document.getElementById("predogled-zapri");
   const modalBackdrop = document.getElementById("predogled-backdrop");
@@ -1617,7 +1616,7 @@ function inicializirajSporociloDolzniku() {
     const jePush = nastavitvePredlogov.pushPredlogId === odprtPredlog.id;
     modalPush.setAttribute("aria-pressed", jePush ? "true" : "false");
     const oznaka = modalPush.querySelector(".korak2-modal__push-besedilo");
-    if (oznaka) oznaka.textContent = jePush ? "Push vklopljen" : "Push";
+    if (oznaka) oznaka.textContent = jePush ? "Push vklopljen" : "Push – privzeta predloga";
   }
 
   const modalDialog = modal ? modal.querySelector(".korak2-modal__dialog") : null;
@@ -1628,7 +1627,7 @@ function inicializirajSporociloDolzniku() {
     if (vv) {
       // Poravnaj dialog na vrh VIDNEGA dela; višina dovolj velika, da noga (Push/Izbriši) ostane vidna.
       modalDialog.style.top = Math.round(vv.offsetTop + 8) + "px";
-      modalDialog.style.maxHeight = Math.max(340, Math.round(vv.height - 16)) + "px";
+      modalDialog.style.maxHeight = Math.max(360, Math.round(vv.height - 16)) + "px";
     } else {
       modalDialog.style.top = "12px";
       modalDialog.style.maxHeight = "calc(100dvh - 24px)";
@@ -1667,7 +1666,7 @@ function inicializirajSporociloDolzniku() {
     if (modalPush) {
       modalPush.setAttribute("aria-pressed", "false");
       const oznaka = modalPush.querySelector(".korak2-modal__push-besedilo");
-      if (oznaka) oznaka.textContent = "Push";
+      if (oznaka) oznaka.textContent = "Push – privzeta predloga";
     }
   }
 
@@ -1938,7 +1937,6 @@ function inicializirajSporociloDolzniku() {
     });
   }
   if (modalIzbrisi) modalIzbrisi.addEventListener("click", izbrisiOdprtPredlog);
-  if (modalPreklici) modalPreklici.addEventListener("click", zapriUrediModal);
   if (modalShrani) modalShrani.addEventListener("click", shraniPredlogIzModala);
   if (modalZapri) modalZapri.addEventListener("click", zapriUrediModal);
   if (modalBackdrop) modalBackdrop.addEventListener("click", zapriUrediModal);
