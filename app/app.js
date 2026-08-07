@@ -1695,6 +1695,9 @@ function inicializirajSporociloDolzniku() {
   let izbranPredlogId = null;
   let odprtPredlog = null;
   let modalIzbranaStevilka = 1;
+  /* true = sporočilo sledi predlogi s številko 1 (privzeta izbira). */
+  let slediPrivzetiStevilki1 = true;
+  let obnovljenOsnutekSporocila = false;
   const dodatki = { rok: false, obrocno: false, trr: false };
   const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
   let casovnikOsnutka = null;
@@ -1989,13 +1992,19 @@ function inicializirajSporociloDolzniku() {
     shraniNastavitvePredlogov();
     sestaviSeznamPredlogov();
     izrisiPredloge();
-    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+    // Če še sledimo privzetemu vrstnemu redu: nova št. 1 → novo besedilo zgoraj.
+    if (slediPrivzetiStevilki1) {
+      uporabiPredlogStevilka1(true);
+    } else if (izbranPredlogId) {
+      oznaciIzbranega(izbranPredlogId);
+    }
   }
 
   function uporabiPredlog(predlog) {
     resetirajDodatke();
     besediloPolje.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
     oznaciIzbranega(predlog.id);
+    slediPrivzetiStevilki1 = Number(predlog.stevilka) === 1;
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
   }
@@ -2496,6 +2505,7 @@ function inicializirajSporociloDolzniku() {
       const osnutek = JSON.parse(osnutekKorak2Json);
       if (osnutek.sporociloDolzniku) {
         besediloPolje.value = String(osnutek.sporociloDolzniku).slice(0, NAJVEC_ZNAKOV);
+        obnovljenOsnutekSporocila = Boolean(String(osnutek.sporociloDolzniku).trim());
       }
       if (osnutek.izbranPredlogId) izbranPredlogId = osnutek.izbranPredlogId;
       if (osnutek.dodatki) {
@@ -2515,14 +2525,18 @@ function inicializirajSporociloDolzniku() {
     return predlogi.find((p) => Number(p.stevilka) === 1) || predlogi[0] || null;
   }
 
-  function uporabiPrivzetiPredlogStevilka1() {
+  /**
+   * Predloga s številko 1 = privzeto sporočilo zgoraj + zelena označba.
+   * vsiliBesedilo: true → vedno prepiši polje; false → polje samo če je prazno.
+   */
+  function uporabiPredlogStevilka1(vsiliBesedilo) {
     const privzeti = najdiPredlogStevilka1();
     if (!privzeti) return;
-    // Če je textarea prazen, vloži besedilo predloge #1; sicer samo zelena obroba.
-    if (!besediloPolje.value.trim()) {
+    if (vsiliBesedilo || !besediloPolje.value.trim()) {
       uporabiPredlog(privzeti);
     } else {
       oznaciIzbranega(privzeti.id);
+      slediPrivzetiStevilki1 = true;
     }
   }
 
@@ -2532,10 +2546,17 @@ function inicializirajSporociloDolzniku() {
     sestaviSeznamPredlogov();
     izrisiPredloge();
 
-    // Stari/neveljavni id v osnutku ne sme preprečiti privzete izbire (#1).
-    if (!jeVeljavenIzbranPredlog(izbranPredlogId)) {
+    if (jeVeljavenIzbranPredlog(izbranPredlogId)) {
+      const izbran = predlogi.find((p) => String(p.id) === String(izbranPredlogId));
+      slediPrivzetiStevilki1 = Boolean(izbran && Number(izbran.stevilka) === 1);
+    } else {
       izbranPredlogId = null;
-      uporabiPrivzetiPredlogStevilka1();
+      slediPrivzetiStevilki1 = true;
+    }
+
+    if (slediPrivzetiStevilki1) {
+      // Svež vnos: vedno vstavi besedilo #1. Obnovljen osnutek: obdrži besedilo, označi #1.
+      uporabiPredlogStevilka1(!obnovljenOsnutekSporocila);
     } else {
       oznaciIzbranega(izbranPredlogId);
     }
