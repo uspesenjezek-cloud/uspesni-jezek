@@ -3,16 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sestavi opomin – Uspešni Jezek</title>
+    <meta name="color-scheme" content="light only" />
+    <title>Vnos sporočila – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&family=Figtree:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-koraki-v4" />
+    <link rel="stylesheet" href="styles.css?v=20260807-vnos-sporocila" />
     <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#4d9494" />
+    <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -20,137 +21,150 @@
     <script src="auth-zascita.js"></script>
   </head>
   <body class="stran--sporocilo">
-    <a class="korak2__nazaj" href="neplacila.html#obrazec">← Nazaj</a>
+    <div class="korak2-ovoj">
+      <a class="korak2__nazaj" href="neplacila.html#obrazec">
+        <span aria-hidden="true">←</span>
+        Nazaj
+      </a>
 
-    <div class="korak2" id="korak2">
-      <header class="korak2__glava">
-        <p class="korak2__znamka">
-          <span class="korak2__znamka-ikona" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6"/><path d="M16 12H8"/><path d="M10 16H8"/></svg>
-          </span>
-          Terjatve
-        </p>
-        <p class="korak2__osnutek">Osnutek shranjen</p>
-      </header>
-
-      <div class="workflow-progress" aria-label="Napredek postopka">
-        <div class="workflow-progress__step is-complete">
-          <span class="workflow-progress__label">Vnos dolžnika</span>
-          <span class="workflow-progress__line"></span>
-        </div>
-        <div class="workflow-progress__step is-current" aria-current="step">
-          <span class="workflow-progress__label">Vnos sporočila</span>
-          <span class="workflow-progress__line"></span>
-        </div>
-        <div class="workflow-progress__step is-upcoming">
-          <span class="workflow-progress__label">Nastavi pošiljanje</span>
-          <span class="workflow-progress__line"></span>
-        </div>
-      </div>
-
-      <main class="korak2__vsebina">
-        <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
-
-        <div class="korak2__naslov-vrstica">
-          <div>
-            <h1 class="korak2__naslov">Predlogi sporočila</h1>
-            <p class="korak2__podnaslov">Odprite predlog in preverite celotno besedilo.</p>
-          </div>
-          <span class="korak2__oznaka">2 od 3</span>
-        </div>
-
-        <div class="korak2__info">
-          <span class="korak2__info-ikona" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
-          </span>
-          <p class="korak2__info-besedilo">
-            Predlog je samo osnova. Pred pošiljanjem ga lahko poljubno uredite in ga sami potrdite.
+      <div class="korak2" id="korak2">
+        <header class="korak2__glava">
+          <p class="korak2__znamka">
+            <span class="korak2__znamka-ikona" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+            </span>
+            Terjatve
           </p>
-        </div>
-
-        <div class="korak2__seznam-meta">
-          <span>6 predlogov</span>
-          <span>Pomaknite za več</span>
-        </div>
-
-        <div class="predlogi-okvir" id="predlogi-okvir">
-          <div class="predlogi-okvir__vsebina" id="predlogi-seznam" role="list">
-            <!-- Sem app.js izriše 6 predlogov -->
-          </div>
-          <div class="predlogi-okvir__drsnik" aria-hidden="true">
-            <div class="predlogi-okvir__sled"></div>
-            <div class="predlogi-okvir__indikator" id="predlogi-indikator"></div>
-          </div>
-        </div>
-
-        <p class="korak2__prehod">Nadaljujte spodaj v istem koraku</p>
-
-        <section class="sporocilo-urejevalnik" id="sporocilo-urejevalnik" aria-labelledby="sporocilo-naslov">
-          <div class="sporocilo-urejevalnik__glava">
-            <h2 class="sporocilo-urejevalnik__naslov" id="sporocilo-naslov">Sporočilo dolžniku</h2>
-            <button type="button" class="sporocilo-urejevalnik__pocisti" id="sporocilo-pocisti" hidden>
-              Počisti
-            </button>
-          </div>
-          <p class="sporocilo-urejevalnik__opis">
-            Besedilo napišite sami ali zgoraj izberite predlog. Vstavljeno besedilo lahko vedno spremenite.
+          <p class="korak2__osnutek" id="osnutek-status" role="status" aria-live="polite">
+            Osnutek shranjen
           </p>
+        </header>
+
+        <div class="korak2-koraki" aria-label="Napredek postopka">
+          <div class="korak2-koraki__korak is-complete">
+            <span class="korak2-koraki__besedilo">Vnos dolžnika</span>
+            <span class="korak2-koraki__crta"></span>
+          </div>
+          <div class="korak2-koraki__korak is-current" aria-current="step">
+            <span class="korak2-koraki__besedilo">Vnos sporočila</span>
+            <span class="korak2-koraki__crta"></span>
+          </div>
+          <div class="korak2-koraki__korak is-upcoming">
+            <span class="korak2-koraki__besedilo">Pošiljanje</span>
+            <span class="korak2-koraki__crta"></span>
+          </div>
+        </div>
+
+        <main class="korak2__vsebina">
+          <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
           <form id="obrazec-sporocilo">
-            <label class="sr-only" for="sporocilo-besedilo">Sporočilo dolžniku</label>
-            <textarea
-              id="sporocilo-besedilo"
-              name="sporocilo"
-              class="sporocilo-urejevalnik__polje"
-              placeholder="Tukaj bo vaše sporočilo dolžniku …"
-            ></textarea>
+            <section class="korak2-sklop" aria-labelledby="sporocilo-naslov">
+              <h1 class="korak2-sklop__naslov" id="sporocilo-naslov">Sporočilo dolžniku</h1>
+              <p class="korak2-sklop__opis">
+                Napišite sporočilo ali spodaj izberite predlog. Besedilo lahko nato poljubno uredite.
+              </p>
 
-            <p class="sporocilo-urejevalnik__status" id="sporocilo-status" aria-live="polite" hidden>
-              Besedilo je pripravljeno za nadaljevanje. Še enkrat ga preverite.
-            </p>
+              <label class="sr-only" for="sporocilo-besedilo">Sporočilo dolžniku</label>
+              <textarea
+                id="sporocilo-besedilo"
+                name="sporocilo"
+                class="korak2-textarea"
+                maxlength="1000"
+                placeholder="Tukaj napišite svoje sporočilo dolžniku …"
+              ></textarea>
 
-            <p class="sporocilo-urejevalnik__opozorilo">
-              Pred pošiljanjem preverite znesek, številko računa, rok plačila in vsebino sporočila.
-            </p>
+              <div class="korak2-textarea-meta">
+                <p class="korak2-textarea-meta__pomoc" id="sporocilo-pomoc">
+                  Izberite predlog ali napišite svoje sporočilo
+                </p>
+                <p class="korak2-textarea-meta__stevec" id="sporocilo-stevec" aria-live="polite">
+                  0/1000
+                </p>
+              </div>
+            </section>
 
-            <div class="sporocilo-dodatki">
-              <h3 class="sporocilo-dodatki__naslov">Dodajte v sporočilo</h3>
-              <p class="sporocilo-dodatki__opis">Izbrane podatke dodamo na konec vašega besedila.</p>
+            <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="predloge-naslov">
+              <div class="korak2-sklop__glava">
+                <h2 class="korak2-sklop__naslov" id="predloge-naslov">Izberite predlogo</h2>
+                <span class="korak2-sklop__oznaka">6 predlogov</span>
+              </div>
+              <p class="korak2-sklop__opis">
+                Predlog najprej preglejte ali ga neposredno uporabite.
+              </p>
+
+              <p class="korak2-pomik-namig">Pomaknite za več ↕</p>
+
+              <div class="predlogi-okvir" id="predlogi-okvir">
+                <div class="predlogi-okvir__vsebina" id="predlogi-seznam" role="list">
+                  <!-- Sem app.js izriše 6 predlogov -->
+                </div>
+                <div class="predlogi-okvir__drsnik" aria-hidden="true">
+                  <div class="predlogi-okvir__sled"></div>
+                  <div class="predlogi-okvir__indikator" id="predlogi-indikator"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="dodatki-naslov">
+              <h2 class="korak2-sklop__naslov" id="dodatki-naslov">Dodajte v sporočilo</h2>
+              <p class="korak2-sklop__opis">Izbrani podatki se dodajo na konec besedila.</p>
               <div class="sporocilo-dodatki__gumbi" role="group" aria-label="Dodatki v sporočilo">
-                <button type="button" class="sporocilo-dodatek" id="dodatek-rok" aria-pressed="false" disabled>
+                <button type="button" class="sporocilo-dodatek" id="dodatek-rok" aria-pressed="false">
                   <span class="sporocilo-dodatek__ikona" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M12 14v4"/><path d="M10 16h4"/></svg>
                   </span>
                   Rok plačila
                 </button>
-                <button type="button" class="sporocilo-dodatek" id="dodatek-obrocno" aria-pressed="false" disabled>
+                <button type="button" class="sporocilo-dodatek" id="dodatek-obrocno" aria-pressed="false">
                   <span class="sporocilo-dodatek__ikona" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11h10"/><path d="M7 15h6"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
                   </span>
                   Obročno plačilo
                 </button>
-                <button type="button" class="sporocilo-dodatek" id="dodatek-trr" aria-pressed="false" disabled>
+                <button type="button" class="sporocilo-dodatek" id="dodatek-trr" aria-pressed="false">
                   <span class="sporocilo-dodatek__ikona" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
                   </span>
                   TRR
                 </button>
               </div>
-            </div>
+            </section>
           </form>
-        </section>
-      </main>
+        </main>
 
-      <footer class="korak2__noga">
-        <button type="submit" form="obrazec-sporocilo" class="korak2__gumb-naprej" id="gumb-naprej-posiljanje" disabled>
-          Naprej: nastavi pošiljanje
-          <span aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </span>
-        </button>
-      </footer>
+        <footer class="korak2__noga">
+          <button type="submit" form="obrazec-sporocilo" class="korak2__gumb-naprej" id="gumb-naprej-posiljanje">
+            Nadaljuj na pošiljanje →
+          </button>
+        </footer>
+
+        <!-- Modal predogleda predloga (absolutno nad panelom) -->
+        <div class="korak2-modal" id="predogled-modal" hidden>
+          <button
+            type="button"
+            class="korak2-modal__backdrop"
+            id="predogled-backdrop"
+            aria-label="Zapri predogled"
+          ></button>
+          <div
+            class="korak2-modal__dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="predogled-naslov"
+          >
+            <div class="korak2-modal__glava">
+              <h2 class="korak2-modal__naslov" id="predogled-naslov"></h2>
+              <button type="button" class="korak2-modal__zapri" id="predogled-zapri" aria-label="Zapri">
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+            <p class="korak2-modal__besedilo" id="predogled-besedilo"></p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script src="app.js?v=20260807-koraki-v2"></script>
+    <script src="app.js?v=20260807-vnos-sporocila"></script>
   </body>
 </html>

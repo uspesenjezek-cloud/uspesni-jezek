@@ -1201,7 +1201,7 @@ function sestaviPredlogeSporocil(podatki) {
     },
     {
       id: "novi-rok",
-      naslov: "Opomin z novim rokom",
+      naslov: "Prijazen opomnik",
       ikona: "calendar-clock",
       stilIkone: "krem",
       besedilo: vrstice([
@@ -1218,24 +1218,10 @@ function sestaviPredlogeSporocil(podatki) {
       ]),
     },
     {
-      id: "obrocno",
-      naslov: "Ponudba obročnega plačila",
-      ikona: "calendar-range",
-      stilIkone: "",
-      besedilo: vrstice([
-        "Guten Tag,",
-        invoiceNumber
-          ? "die Rechnung Nr. " + invoiceNumber + " über " + amount + " ist weiterhin offen."
-          : "die Rechnung über " + amount + " ist weiterhin offen.",
-        "Falls Sie den Gesamtbetrag derzeit nicht vollständig begleichen können, melden Sie sich bitte bei uns. Wir können gemeinsam eine passende Ratenzahlung vereinbaren.",
-        "Freundliche Grüße",
-      ]),
-    },
-    {
       id: "zadnji",
       naslov: "Zadnji opomin",
       ikona: "triangle-alert",
-      stilIkone: "temna",
+      stilIkone: "",
       besedilo: vrstice([
         "Guten Tag,",
         dueDate
@@ -1259,6 +1245,20 @@ function sestaviPredlogeSporocil(podatki) {
         "Freundliche Grüße",
       ]),
     },
+    {
+      id: "obrocno",
+      naslov: "Obročno plačilo",
+      ikona: "calendar-range",
+      stilIkone: "",
+      besedilo: vrstice([
+        "Guten Tag,",
+        invoiceNumber
+          ? "die Rechnung Nr. " + invoiceNumber + " über " + amount + " ist weiterhin offen."
+          : "die Rechnung über " + amount + " ist weiterhin offen.",
+        "Falls Sie den Gesamtbetrag derzeit nicht vollständig begleichen können, melden Sie sich bitte bei uns. Wir können gemeinsam eine passende Ratenzahlung vereinbaren.",
+        "Freundliche Grüße",
+      ]),
+    },
   ].map((predlog) => ({
     ...predlog,
     // IBAN se uporabi samo v dodatkih, ne v osnovnih predlogih.
@@ -1266,6 +1266,17 @@ function sestaviPredlogeSporocil(podatki) {
     _newDeadline: newDeadline,
     _invoiceNumber: invoiceNumber,
   }));
+}
+
+function formatirajDatumSl(datumBesedilo) {
+  if (!datumBesedilo) return "";
+  const datum = new Date(datumBesedilo + "T12:00:00");
+  if (Number.isNaN(datum.getTime())) return datumBesedilo;
+  return datum.toLocaleDateString("sl-SI", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  });
 }
 
 function svgIkonaPredloga(ime) {
@@ -1318,18 +1329,29 @@ function inicializirajSporociloDolzniku() {
   const predlogi = sestaviPredlogeSporocil(podatkiKorak1);
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
-  const gumbNaprej = document.getElementById("gumb-naprej-posiljanje");
-  const gumbPocisti = document.getElementById("sporocilo-pocisti");
-  const statusPolja = document.getElementById("sporocilo-status");
-  const urejevalnik = document.getElementById("sporocilo-urejevalnik");
+  const pomocPolja = document.getElementById("sporocilo-pomoc");
+  const stevecPolja = document.getElementById("sporocilo-stevec");
+  const osnutekStatus = document.getElementById("osnutek-status");
   const dodatekRok = document.getElementById("dodatek-rok");
   const dodatekObrocno = document.getElementById("dodatek-obrocno");
   const dodatekTrr = document.getElementById("dodatek-trr");
+  const modal = document.getElementById("predogled-modal");
+  const modalNaslov = document.getElementById("predogled-naslov");
+  const modalBesedilo = document.getElementById("predogled-besedilo");
+  const modalZapri = document.getElementById("predogled-zapri");
+  const modalBackdrop = document.getElementById("predogled-backdrop");
 
+  const NAJVEC_ZNAKOV = 1000;
   let izbranPredlogId = null;
-  let odprtPredogledId = null;
   const dodatki = { rok: false, obrocno: false, trr: false };
+  const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
+  let casovnikOsnutka = null;
   const zeliZmanjsanoGibanje = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const ikonaOcesa =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+  const ikonaKljukice =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
   function pokaziNapako(besedilo, tehnicniPodatki) {
     if (!napaka) return;
@@ -1344,31 +1366,51 @@ function inicializirajSporociloDolzniku() {
 
   function posodobiDrsnik() {
     if (!okvir || !indikator || !seznam) return;
-    const sledVisina = Math.max(0, okvir.clientHeight - 18);
-    const razmerje = seznam.clientHeight / Math.max(seznam.scrollHeight, 1);
-    const visina = Math.max(40, Math.min(sledVisina, sledVisina * razmerje));
     const maxScroll = seznam.scrollHeight - seznam.clientHeight;
-    const maxTop = Math.max(0, sledVisina - visina);
-    const top = maxScroll > 0 ? (seznam.scrollTop / maxScroll) * maxTop : 0;
-    indikator.style.height = visina + "px";
-    indikator.style.transform = "translateY(" + top + "px)";
+    const travel = Math.max(0, seznam.clientHeight - indikator.offsetHeight - 2);
+    const ratio = maxScroll > 0 ? seznam.scrollTop / maxScroll : 0;
+    indikator.style.transform = "translateY(" + Math.round(travel * ratio) + "px)";
   }
 
   function posodobiStanjeUrejevalnika() {
+    const dolzina = besediloPolje.value.length;
     const imaBesedilo = besediloPolje.value.trim().length > 0;
-    besediloPolje.classList.toggle("sporocilo-urejevalnik__polje--polno", imaBesedilo);
-    if (gumbPocisti) gumbPocisti.hidden = !imaBesedilo;
-    if (statusPolja) statusPolja.hidden = !imaBesedilo;
-    if (gumbNaprej) gumbNaprej.disabled = !imaBesedilo;
-    [dodatekRok, dodatekObrocno, dodatekTrr].forEach((gumb) => {
-      if (gumb) gumb.disabled = !imaBesedilo;
-    });
+    if (stevecPolja) stevecPolja.textContent = dolzina + "/" + NAJVEC_ZNAKOV;
+    if (pomocPolja) {
+      pomocPolja.textContent = imaBesedilo
+        ? "Besedilo lahko poljubno uredite"
+        : "Izberite predlog ali napišite svoje sporočilo";
+    }
+  }
+
+  function oznaciShranjevanje() {
+    if (!osnutekStatus) return;
+    osnutekStatus.textContent = "Shranjevanje …";
+    if (casovnikOsnutka) clearTimeout(casovnikOsnutka);
+    casovnikOsnutka = setTimeout(() => {
+      osnutekStatus.textContent = "Osnutek shranjen";
+    }, 420);
+  }
+
+  function shraniOsnutekLokalno() {
+    oznaciShranjevanje();
+    sessionStorage.setItem(
+      KLJUC_SEJE_KORAK2_PODATKI,
+      JSON.stringify({
+        sporociloDolzniku: besediloPolje.value,
+        izbranPredlogId,
+        dodatki: { ...dodatki },
+      })
+    );
   }
 
   function resetirajDodatke() {
     dodatki.rok = false;
     dodatki.obrocno = false;
     dodatki.trr = false;
+    dodatekBesedila.rok = "";
+    dodatekBesedila.obrocno = "";
+    dodatekBesedila.trr = "";
     if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "false");
     if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "false");
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
@@ -1378,178 +1420,152 @@ function inicializirajSporociloDolzniku() {
     return besedilo.replace(/\s+/g, " ").trim();
   }
 
-  function zapriVsePredoglede() {
-    seznam.querySelectorAll(".predlog-vrstica__predogled").forEach((el) => {
-      el.hidden = true;
-    });
-    seznam.querySelectorAll(".predlog-gumb--predogled").forEach((gumb) => {
-      gumb.setAttribute("aria-expanded", "false");
-    });
-    odprtPredogledId = null;
+  function zapriPredogled() {
+    if (!modal) return;
+    modal.hidden = true;
+    if (modalNaslov) modalNaslov.textContent = "";
+    if (modalBesedilo) modalBesedilo.textContent = "";
+  }
+
+  function odpriPredogled(predlog) {
+    if (!modal || !modalNaslov || !modalBesedilo) return;
+    modalNaslov.textContent = predlog.naslov;
+    modalBesedilo.textContent = predlog.besedilo;
+    modal.hidden = false;
   }
 
   function oznaciIzbranega(id) {
     izbranPredlogId = id;
-    seznam.querySelectorAll(".predlog-gumb--izberi").forEach((gumb) => {
-      const jeIzbran = gumb.dataset.predlogId === id;
-      gumb.setAttribute("aria-pressed", jeIzbran ? "true" : "false");
-      gumb.innerHTML =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
-        (jeIzbran ? "Izbrano" : "Izberi");
+    seznam.querySelectorAll(".predlog-kartica").forEach((kartica) => {
+      const jeIzbrana = kartica.dataset.predlogId === id;
+      kartica.classList.toggle("predlog-kartica--izbrana", jeIzbrana);
+      const gumb = kartica.querySelector(".predlog-gumb--uporabi");
+      if (!gumb) return;
+      gumb.setAttribute("aria-pressed", jeIzbrana ? "true" : "false");
+      gumb.innerHTML = ikonaKljukice + (jeIzbrana ? "Izbrano" : "Uporabi");
     });
   }
 
   function izrisiPredloge() {
     seznam.innerHTML = "";
 
-    predlogi.forEach((predlog) => {
-      const vrstica = document.createElement("article");
-      vrstica.className = "predlog-vrstica";
-      vrstica.setAttribute("role", "listitem");
-      vrstica.dataset.predlogId = predlog.id;
+    predlogi.forEach((predlog, indeks) => {
+      const kartica = document.createElement("article");
+      kartica.className = "predlog-kartica";
+      kartica.setAttribute("role", "listitem");
+      kartica.dataset.predlogId = predlog.id;
 
-      const predogledId = "predogled-" + predlog.id;
-      const stilIkone =
-        predlog.stilIkone === "krem"
-          ? " predlog-vrstica__ikona--krem"
-          : predlog.stilIkone === "temna"
-            ? " predlog-vrstica__ikona--temna"
-            : "";
+      const stilIkone = indeks % 2 === 1 ? " predlog-kartica__ikona--alt" : "";
 
-      vrstica.innerHTML =
-        '<div class="predlog-vrstica__glava">' +
-        '<span class="predlog-vrstica__ikona' +
+      kartica.innerHTML =
+        '<span class="predlog-kartica__ikona' +
         stilIkone +
         '" aria-hidden="true">' +
         svgIkonaPredloga(predlog.ikona) +
         "</span>" +
-        "<div>" +
-        '<p class="predlog-vrstica__naslov"></p>' +
-        '<p class="predlog-vrstica__zacetek"></p>' +
-        '<div class="predlog-vrstica__gumbi">' +
-        '<button type="button" class="predlog-gumb predlog-gumb--predogled" aria-expanded="false" aria-controls="' +
-        predogledId +
-        '">' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>' +
+        '<div class="predlog-kartica__besedilo">' +
+        '<p class="predlog-kartica__naslov"></p>' +
+        '<p class="predlog-kartica__opis"></p>' +
+        "</div>" +
+        '<div class="predlog-kartica__akcije">' +
+        '<button type="button" class="predlog-gumb predlog-gumb--predogled">' +
+        ikonaOcesa +
         "Predogled</button>" +
-        '<button type="button" class="predlog-gumb predlog-gumb--izberi" aria-pressed="false" data-predlog-id="' +
+        '<button type="button" class="predlog-gumb predlog-gumb--uporabi" aria-pressed="false" data-predlog-id="' +
         predlog.id +
         '">' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' +
-        "Izberi</button>" +
-        "</div></div></div>" +
-        '<div class="predlog-vrstica__predogled" id="' +
-        predogledId +
-        '" hidden></div>';
+        ikonaKljukice +
+        "Uporabi</button>" +
+        "</div>";
 
-      vrstica.querySelector(".predlog-vrstica__naslov").textContent = predlog.naslov;
-      vrstica.querySelector(".predlog-vrstica__zacetek").textContent = zacetekBesedila(predlog.besedilo);
-      vrstica.querySelector(".predlog-vrstica__predogled").textContent = predlog.besedilo;
+      kartica.querySelector(".predlog-kartica__naslov").textContent = predlog.naslov;
+      kartica.querySelector(".predlog-kartica__opis").textContent = zacetekBesedila(predlog.besedilo);
 
-      const gumbPredogled = vrstica.querySelector(".predlog-gumb--predogled");
-      const gumbIzberi = vrstica.querySelector(".predlog-gumb--izberi");
-      const predogledEl = vrstica.querySelector(".predlog-vrstica__predogled");
-
-      gumbPredogled.addEventListener("click", () => {
-        const jeOdprt = odprtPredogledId === predlog.id;
-        zapriVsePredoglede();
-        if (!jeOdprt) {
-          predogledEl.hidden = false;
-          gumbPredogled.setAttribute("aria-expanded", "true");
-          odprtPredogledId = predlog.id;
-        }
-        requestAnimationFrame(posodobiDrsnik);
+      kartica.querySelector(".predlog-gumb--predogled").addEventListener("click", () => {
+        odpriPredogled(predlog);
       });
 
-      gumbIzberi.addEventListener("click", () => {
+      kartica.querySelector(".predlog-gumb--uporabi").addEventListener("click", () => {
         resetirajDodatke();
-        besediloPolje.value = predlog.besedilo;
+        besediloPolje.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
         oznaciIzbranega(predlog.id);
         posodobiStanjeUrejevalnika();
-        urejevalnik.scrollIntoView({
-          behavior: zeliZmanjsanoGibanje ? "auto" : "smooth",
-          block: "start",
-        });
-        besediloPolje.focus();
+        shraniOsnutekLokalno();
       });
 
-      seznam.appendChild(vrstica);
+      seznam.appendChild(kartica);
     });
 
     requestAnimationFrame(posodobiDrsnik);
   }
 
-  function dodajOdstavek(kljuc, besedilo, gumb) {
-    if (!besediloPolje.value.trim()) return;
-    if (dodatki[kljuc]) return;
-    const osnova = besediloPolje.value.replace(/\s+$/, "");
-    besediloPolje.value = osnova + "\n\n" + besedilo;
-    dodatki[kljuc] = true;
-    gumb.setAttribute("aria-pressed", "true");
+  function preklopiDodatek(kljuc, besedilo, gumb) {
+    if (dodatki[kljuc]) {
+      const vzorec = "\n\n" + dodatekBesedila[kljuc];
+      if (besediloPolje.value.includes(vzorec)) {
+        besediloPolje.value = besediloPolje.value.replace(vzorec, "");
+      } else if (besediloPolje.value.includes(dodatekBesedila[kljuc])) {
+        besediloPolje.value = besediloPolje.value.replace(dodatekBesedila[kljuc], "").trim();
+      }
+      dodatki[kljuc] = false;
+      dodatekBesedila[kljuc] = "";
+      gumb.setAttribute("aria-pressed", "false");
+    } else {
+      const osnova = besediloPolje.value.replace(/\s+$/, "");
+      const novo = osnova ? osnova + "\n\n" + besedilo : besedilo;
+      besediloPolje.value = novo.slice(0, NAJVEC_ZNAKOV);
+      dodatki[kljuc] = true;
+      dodatekBesedila[kljuc] = besedilo;
+      gumb.setAttribute("aria-pressed", "true");
+    }
     posodobiStanjeUrejevalnika();
+    shraniOsnutekLokalno();
     besediloPolje.focus();
   }
 
   if (dodatekRok) {
     dodatekRok.addEventListener("click", () => {
-      const noviRok = formatirajDatumDe(izracunajNoviRok(podatkiKorak1.datumZapadlosti));
-      if (!noviRok) {
-        pokaziNapako("Novega roka ni mogoče dodati, ker manjka rok plačila iz 1. koraka.");
+      const rok =
+        formatirajDatumSl(podatkiKorak1.datumZapadlosti) ||
+        formatirajDatumSl(izracunajNoviRok(podatkiKorak1.datumZapadlosti));
+      if (!rok) {
+        pokaziNapako("Roka plačila ni mogoče dodati, ker manjka datum iz 1. koraka.");
         return;
       }
-      dodajOdstavek(
-        "rok",
-        "Bitte begleichen Sie den offenen Betrag bis spätestens " + noviRok + ".",
-        dodatekRok
-      );
+      preklopiDodatek("rok", "Rok plačila: " + rok + ".", dodatekRok);
     });
   }
 
   if (dodatekObrocno) {
     dodatekObrocno.addEventListener("click", () => {
-      dodajOdstavek(
-        "obrocno",
-        "Falls Sie den Gesamtbetrag derzeit nicht vollständig begleichen können, können wir eine Ratenzahlung vereinbaren.",
-        dodatekObrocno
-      );
+      preklopiDodatek("obrocno", "Možno je obročno plačilo po dogovoru.", dodatekObrocno);
     });
   }
 
   if (dodatekTrr) {
     dodatekTrr.addEventListener("click", () => {
       const iban = (podatkiKorak1.iban || "").trim();
-      const stevilka = (podatkiKorak1.stevilkaRacuna || "").trim();
       if (!iban) {
         pokaziNapako("TRR/IBAN še ni na voljo v podatkih zadeve - dodajte ga ročno v sporočilo.");
         return;
       }
-      const namen = stevilka || "Rechnung";
-      dodajOdstavek(
-        "trr",
-        "Bitte überweisen Sie den Betrag auf das Konto IBAN " +
-          iban +
-          " mit dem Verwendungszweck " +
-          namen +
-          ".",
-        dodatekTrr
-      );
+      preklopiDodatek("trr", "TRR: " + iban + ".", dodatekTrr);
     });
   }
 
-  if (gumbPocisti) {
-    gumbPocisti.addEventListener("click", () => {
-      besediloPolje.value = "";
-      izbranPredlogId = null;
-      resetirajDodatke();
-      oznaciIzbranega(null);
-      posodobiStanjeUrejevalnika();
-      besediloPolje.focus();
-    });
-  }
+  if (modalZapri) modalZapri.addEventListener("click", zapriPredogled);
+  if (modalBackdrop) modalBackdrop.addEventListener("click", zapriPredogled);
+  document.addEventListener("keydown", (dogodek) => {
+    if (dogodek.key === "Escape" && modal && !modal.hidden) zapriPredogled();
+  });
 
   besediloPolje.addEventListener("input", () => {
     skrijNapako();
+    if (besediloPolje.value.length > NAJVEC_ZNAKOV) {
+      besediloPolje.value = besediloPolje.value.slice(0, NAJVEC_ZNAKOV);
+    }
     posodobiStanjeUrejevalnika();
+    shraniOsnutekLokalno();
   });
 
   seznam.addEventListener("scroll", posodobiDrsnik);
@@ -1560,7 +1576,7 @@ function inicializirajSporociloDolzniku() {
     skrijNapako();
     const sporocilo = besediloPolje.value.trim();
     if (!sporocilo) {
-      gumbNaprej.disabled = true;
+      pokaziNapako("Najprej napišite sporočilo ali uporabite predlog.");
       return;
     }
 
@@ -1581,7 +1597,9 @@ function inicializirajSporociloDolzniku() {
   if (osnutekKorak2Json) {
     try {
       const osnutek = JSON.parse(osnutekKorak2Json);
-      if (osnutek.sporociloDolzniku) besediloPolje.value = osnutek.sporociloDolzniku;
+      if (osnutek.sporociloDolzniku) {
+        besediloPolje.value = String(osnutek.sporociloDolzniku).slice(0, NAJVEC_ZNAKOV);
+      }
       if (osnutek.izbranPredlogId) izbranPredlogId = osnutek.izbranPredlogId;
       if (osnutek.dodatki) {
         dodatki.rok = Boolean(osnutek.dodatki.rok);
