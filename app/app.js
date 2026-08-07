@@ -1624,16 +1624,32 @@ function inicializirajSporociloDolzniku() {
   function posodobiPozicijoUrediModala() {
     if (!modal || modal.hidden || !modalDialog) return;
     const vv = window.visualViewport;
+    const rob = 8;
+
     if (vv) {
-      // Višina = VIDNI del (nad tipkovnico) – ne večja od tipkovnice!
-      const vidnaVisina = Math.max(180, Math.round(vv.height - 12));
-      modalDialog.style.top = Math.round(vv.offsetTop + 6) + "px";
-      modalDialog.style.maxHeight = vidnaVisina + "px";
-      modalDialog.style.height = vidnaVisina + "px";
+      // iOS: dialog = fixed na visualViewport (nad tipkovnico).
+      const top = Math.round(vv.offsetTop + rob);
+      const left = Math.round(vv.offsetLeft + rob);
+      const width = Math.max(260, Math.round(vv.width - rob * 2));
+      const height = Math.max(200, Math.round(vv.height - rob * 2));
+
+      modalDialog.style.position = "fixed";
+      modalDialog.style.top = top + "px";
+      modalDialog.style.left = left + "px";
+      modalDialog.style.right = "auto";
+      modalDialog.style.width = width + "px";
+      modalDialog.style.height = height + "px";
+      modalDialog.style.maxHeight = height + "px";
+      modalDialog.style.maxWidth = width + "px";
     } else {
+      modalDialog.style.position = "fixed";
       modalDialog.style.top = "8px";
-      modalDialog.style.maxHeight = "calc(100dvh - 16px)";
+      modalDialog.style.left = "14px";
+      modalDialog.style.right = "14px";
+      modalDialog.style.width = "";
       modalDialog.style.height = "";
+      modalDialog.style.maxHeight = "min(50dvh, 55vh)";
+      modalDialog.style.maxWidth = "";
     }
   }
 
@@ -1653,9 +1669,14 @@ function inicializirajSporociloDolzniku() {
     }
     window.removeEventListener("resize", posodobiPozicijoUrediModala);
     if (modalDialog) {
+      modalDialog.style.position = "";
       modalDialog.style.top = "";
-      modalDialog.style.maxHeight = "";
+      modalDialog.style.left = "";
+      modalDialog.style.right = "";
+      modalDialog.style.width = "";
       modalDialog.style.height = "";
+      modalDialog.style.maxHeight = "";
+      modalDialog.style.maxWidth = "";
       modalDialog.scrollTop = 0;
     }
   }
@@ -1689,19 +1710,24 @@ function inicializirajSporociloDolzniku() {
     if (modalNaslovVnos) modalNaslovVnos.focus();
     else modalUrejevalnik.focus();
     requestAnimationFrame(posodobiPozicijoUrediModala);
-    setTimeout(posodobiPozicijoUrediModala, 280);
+    // iOS tipkovnica se odpre z zamikom – večkrat poravnaj.
+    setTimeout(posodobiPozicijoUrediModala, 100);
+    setTimeout(posodobiPozicijoUrediModala, 350);
+    setTimeout(posodobiPozicijoUrediModala, 600);
   }
 
   if (modalNaslovVnos) {
     modalNaslovVnos.addEventListener("focus", () => {
       setTimeout(posodobiPozicijoUrediModala, 50);
       setTimeout(posodobiPozicijoUrediModala, 300);
+      setTimeout(posodobiPozicijoUrediModala, 600);
     });
   }
   if (modalUrejevalnik) {
     modalUrejevalnik.addEventListener("focus", () => {
       setTimeout(posodobiPozicijoUrediModala, 50);
       setTimeout(posodobiPozicijoUrediModala, 300);
+      setTimeout(posodobiPozicijoUrediModala, 600);
     });
   }
 

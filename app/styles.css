@@ -2885,15 +2885,16 @@ body.stran--samo-seznam #obrazec {
 }
 
 .korak2-modal__dialog {
-  position: absolute;
+  /* fixed: JS nastavi top/left/width/height iz visualViewport (iOS tipkovnica). */
+  position: fixed;
   z-index: 11;
   top: 8px;
   left: 14px;
   right: 14px;
   display: flex;
   flex-direction: column;
-  /* Višina = vidni del (JS nastavi glede na visualViewport / tipkovnico). */
-  max-height: calc(100dvh - 16px);
+  /* Rezerva pred JS: dvh + zgornja meja ~pol zaslona. */
+  max-height: min(50dvh, 55vh, calc(100dvh - 16px));
   padding: 10px 12px 10px;
   border: 1px solid var(--border-strong);
   border-radius: 14px;
@@ -2903,7 +2904,7 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-/* Scroll: ime + besedilo + Push. Noga z Izbriši/Shrani ostane zunaj. */
+/* Scroll: samo ime + besedilo. */
 .korak2-modal__telo {
   display: flex;
   flex-direction: column;
@@ -2915,14 +2916,12 @@ body.stran--samo-seznam #obrazec {
   gap: 0;
 }
 
-/* Fiksna noga – vedno vidna nad tipkovnico. */
+/* Noga vedno v dialogu (Push + Izbriši/Shrani) – ne scrolla stran. */
 .korak2-modal__noga {
   flex: 0 0 auto;
-  position: sticky;
-  bottom: 0;
   z-index: 2;
   display: grid;
-  gap: 0;
+  gap: 6px;
   padding-top: 8px;
   margin-top: 6px;
   border-top: 1px solid var(--border);
@@ -2961,7 +2960,8 @@ body.stran--samo-seznam #obrazec {
   background: var(--white);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.88rem;
+  /* 16px: Safari ne naredi auto-zooma ob fokusu. */
+  font-size: 16px;
   font-weight: 400;
   box-sizing: border-box;
 }
@@ -2993,20 +2993,20 @@ body.stran--samo-seznam #obrazec {
 .korak2-modal__urejevalnik {
   display: block;
   width: 100%;
-  flex: 0 1 auto;
-  min-height: 88px;
-  height: 120px;
-  max-height: min(140px, 28dvh);
-  margin: 0 0 8px;
+  flex: 1 1 auto;
+  min-height: 72px;
+  max-height: min(120px, 28dvh);
+  margin: 0;
   padding: 10px;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   background: var(--white);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.84rem;
+  /* 16px: Safari ne naredi auto-zooma ob fokusu. */
+  font-size: 16px;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.45;
   resize: none;
   overflow-x: hidden;
   overflow-y: auto;
@@ -3014,14 +3014,12 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-/* Push pod besedilom (v telesu); Izbriši/Shrani v nogi. */
 .korak2-modal__push {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   width: 100%;
-  flex: 0 0 auto;
   min-height: 36px;
   margin: 0;
   padding: 7px 10px;
