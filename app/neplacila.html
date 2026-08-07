@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-debt-stepper-v2" />
+    <link rel="stylesheet" href="styles.css?v=20260807-izbrisi-osnutek-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -30,7 +30,15 @@
       })();
     </script>
     <header class="app__header">
-      <a class="app__nazaj" href="zascita-posla.html">← Nazaj</a>
+      <div class="korak2__vrh korak2__vrh--neplacila">
+        <a class="app__nazaj" href="zascita-posla.html">
+          <span aria-hidden="true">←</span>
+          Nazaj
+        </a>
+        <button type="button" class="korak2__izbrisi-osnutek" id="gumb-izbrisi-osnutek">
+          Izbriši osnutek
+        </button>
+      </div>
       <h1 class="app__naslov-podstrani">Opozarjanje na neplačila</h1>
     </header>
 
@@ -420,6 +428,42 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js?v=20260807-debt-stepper-v2"></script>
+    <div class="osnutek-modal" id="osnutek-modal" hidden>
+      <button
+        type="button"
+        class="osnutek-modal__backdrop"
+        id="osnutek-modal-backdrop"
+        aria-label="Zapri"
+      ></button>
+      <div
+        class="osnutek-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="osnutek-modal-naslov"
+      >
+        <div class="osnutek-modal__vrh">
+          <span class="osnutek-modal__ikona" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+          </span>
+          <button type="button" class="osnutek-modal__zapri" id="osnutek-modal-zapri" aria-label="Zapri">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <h2 class="osnutek-modal__naslov" id="osnutek-modal-naslov">Izbrišem ta osnutek?</h2>
+        <p class="osnutek-modal__opis">
+          Vneseni podatki in sporočilo bodo odstranjeni. Tega dejanja ni mogoče razveljaviti.
+        </p>
+        <div class="osnutek-modal__akcije">
+          <button type="button" class="osnutek-modal__preklici" id="osnutek-modal-preklici">
+            Prekliči
+          </button>
+          <button type="button" class="osnutek-modal__potrdi" id="osnutek-modal-potrdi">
+            Izbriši osnutek
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js?v=20260807-izbrisi-osnutek-v2"></script>
   </body>
 </html>

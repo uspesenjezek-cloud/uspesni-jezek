@@ -265,6 +265,7 @@ function inicializirajNeplacila() {
   }
 
   inicializirajKorakePostopka(1);
+  inicializirajIzbrisOsnutka();
 
   // Ob vrnitvi s kasnejšega koraka napolni obrazec iz seje (brez prilog).
   try {

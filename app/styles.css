@@ -192,8 +192,12 @@ a {
 }
 
 .stran--neplacila .app__header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   padding: 12px 16px 18px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-page, #fff);
 }
 
 .stran--neplacila .app__naslov-podstrani {
@@ -2165,12 +2169,31 @@ body.stran--samo-seznam #obrazec {
 }
 
 .korak2__vrh {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin: 0 0 16px;
-  padding: 0 8px;
+  padding: 8px;
+  background: var(--page, #f2f7f6);
+  box-sizing: border-box;
+}
+
+.stran--neplacila .korak2__vrh--neplacila {
+  margin: 0 0 10px;
+  padding: 0;
+  background: transparent;
+}
+
+.stran--neplacila .korak2__vrh--neplacila .app__nazaj {
+  margin: 0;
+  min-height: 0;
+  padding: 4px 0;
+  font-size: 0.8rem;
+  font-weight: 400;
 }
 
 .korak2__nazaj {
