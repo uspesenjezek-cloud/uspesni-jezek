@@ -48,6 +48,8 @@ const KLJUC_SEJE_ZADEVA_DODANA = "neplacilo-zadeva-dodana";
 /* Uporabniško shranjeni predlogi sporočil (localStorage, po obrtniku).
    Kasneje lahko pride sinhronizacija s Supabase - glej modal Predogled. */
 const KLJUC_MOJI_PREDLOGI_OSNOVA = "neplacilo-moji-predlogi";
+/* Vrstni red (številke 1–9) in Push-privzeta predloga – localStorage po uporabniku. */
+const KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = "neplacilo-predlogi-nastavitve";
 
 /* Poveže vsak status z eno od 3 kategorij za "semafor" na vrhu strani
    (glej .zadeve-semafor v styles.css). Semafor služi tudi kot filter za
@@ -1343,12 +1345,15 @@ function inicializirajSporociloDolzniku() {
   let mojiPredlogi = [];
   let predlogi = [...vgrajeniPredlogi];
   let kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA;
+  let kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
+  let nastavitvePredlogov = { stevilke: {}, pushPredlogId: null };
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
   const pomocPolja = document.getElementById("sporocilo-pomoc");
   const stevecPolja = document.getElementById("sporocilo-stevec");
   const osnutekStatus = document.getElementById("osnutek-status");
   const oznakaStevila = document.getElementById("predlogi-stevilo-oznaka");
+  const predlogiObvestilo = document.getElementById("predlogi-obvestilo");
   const dodatekRok = document.getElementById("dodatek-rok");
   const dodatekObrocno = document.getElementById("dodatek-obrocno");
   const dodatekTrr = document.getElementById("dodatek-trr");
@@ -1479,12 +1484,169 @@ function inicializirajSporociloDolzniku() {
     localStorage.setItem(kljucMojihPredlogov, JSON.stringify(zaShraniti));
   }
 
+  function naloziNastavitvePredlogov() {
+    try {
+      const surovo = localStorage.getItem(kljucNastavitev);
+      if (!surovo) return { stevilke: {}, pushPredlogId: null };
+      const podatki = JSON.parse(surovo);
+      return {
+        stevilke:
+          podatki && podatki.stevilke && typeof podatki.stevilke === "object"
+            ? podatki.stevilke
+            : {},
+        pushPredlogId:
+          podatki && typeof podatki.pushPredlogId === "string" ? podatki.pushPredlogId : null,
+      };
+    } catch (_napaka) {
+      return { stevilke: {}, pushPredlogId: null };
+    }
+  }
+
+  function shraniNastavitvePredlogov() {
+    localStorage.setItem(kljucNastavitev, JSON.stringify(nastavitvePredlogov));
+  }
+
+  function pokaziObvestiloPredlogov(besedilo) {
+    if (!predlogiObvestilo) return;
+    predlogiObvestilo.textContent = besedilo;
+    predlogiObvestilo.hidden = !besedilo;
+  }
+
+  function najdiProstoStevilko(zasedene, zeliOd) {
+    const zacetek = Math.max(1, Math.min(9, Number(zeliOd) || 1));
+    for (let n = zacetek; n <= 9; n++) {
+      if (!zasedene.has(n)) return n;
+    }
+    for (let n = 1; n < zacetek; n++) {
+      if (!zasedene.has(n)) return n;
+    }
+    return null;
+  }
+
   function sestaviSeznamPredlogov() {
     predlogi = [...mojiPredlogi, ...vgrajeniPredlogi];
+    const zasedene = new Set();
+
+    predlogi.forEach((predlog, indeks) => {
+      predlog._indeks = indeks;
+      const stevilka = Number(nastavitvePredlogov.stevilke[predlog.id]);
+      if (
+        Number.isInteger(stevilka) &&
+        stevilka >= 1 &&
+        stevilka <= 9 &&
+        !zasedene.has(stevilka)
+      ) {
+        predlog.stevilka = stevilka;
+        zasedene.add(stevilka);
+      } else {
+        predlog.stevilka = null;
+      }
+    });
+
+    predlogi.forEach((predlog) => {
+      if (predlog.stevilka != null) return;
+      const zelena = Number(nastavitvePredlogov.stevilke[predlog.id]);
+      const od = Number.isInteger(zelena) && zelena >= 1 && zelena <= 9 ? zelena : 1;
+      const prosta = najdiProstoStevilko(zasedene, od);
+      // Če so vse številke 1–9 zasedene (več kot 9 predlogov), pusti želeno / 9.
+      predlog.stevilka = prosta != null ? prosta : Number.isInteger(zelena) ? zelena : 9;
+      nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
+      if (prosta != null) zasedene.add(prosta);
+    });
+
+    // Počisti nastavitve za predloge, ki jih ni več.
+    Object.keys(nastavitvePredlogov.stevilke).forEach((id) => {
+      if (!predlogi.some((p) => p.id === id)) delete nastavitvePredlogov.stevilke[id];
+    });
+    if (
+      nastavitvePredlogov.pushPredlogId &&
+      !predlogi.some((p) => p.id === nastavitvePredlogov.pushPredlogId)
+    ) {
+      nastavitvePredlogov.pushPredlogId = null;
+    }
+
+    predlogi.sort((a, b) => {
+      if (a.stevilka !== b.stevilka) return a.stevilka - b.stevilka;
+      return a._indeks - b._indeks;
+    });
+
     if (oznakaStevila) {
       const n = predlogi.length;
       oznakaStevila.textContent = n + (n === 1 ? " predlog" : " predlogov");
     }
+    shraniNastavitvePredlogov();
+  }
+
+  function zapriVseStevilkeIzbire() {
+    seznam.querySelectorAll(".predlog-kartica__stevilke-izbirnik").forEach((el) => {
+      el.hidden = true;
+    });
+    seznam.querySelectorAll(".predlog-kartica__stevilka").forEach((gumb) => {
+      gumb.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function nastaviStevilkoPredloga(predlogId, novaStevilka) {
+    const nova = Math.max(1, Math.min(9, Number(novaStevilka) || 1));
+    const konflikt = predlogi.find(
+      (p) => p.id !== predlogId && Number(nastavitvePredlogov.stevilke[p.id]) === nova
+    );
+
+    nastavitvePredlogov.stevilke[predlogId] = nova;
+
+    if (konflikt) {
+      const zasedene = new Set(
+        predlogi
+          .filter((p) => p.id !== konflikt.id)
+          .map((p) => Number(nastavitvePredlogov.stevilke[p.id]) || p.stevilka)
+      );
+      zasedene.add(nova);
+      const prosta = najdiProstoStevilko(zasedene, nova + 1);
+      if (prosta != null) {
+        nastavitvePredlogov.stevilke[konflikt.id] = prosta;
+        pokaziObvestiloPredlogov(
+          "Številka " +
+            nova +
+            " je bila zasedena – predloga »" +
+            konflikt.naslov +
+            "« je premaknjena na " +
+            prosta +
+            "."
+        );
+      } else {
+        pokaziObvestiloPredlogov(
+          "Številka " + nova + " je zasedena – vrstni red ohranja prejšnji položaj."
+        );
+      }
+    } else {
+      pokaziObvestiloPredlogov("");
+    }
+
+    shraniNastavitvePredlogov();
+    sestaviSeznamPredlogov();
+    izrisiPredloge();
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+  }
+
+  function uporabiPredlog(predlog) {
+    resetirajDodatke();
+    besediloPolje.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
+    oznaciIzbranega(predlog.id);
+    posodobiStanjeUrejevalnika();
+    shraniOsnutekLokalno();
+  }
+
+  function nastaviPushPredlog(predlogId, vklop) {
+    if (vklop) {
+      nastavitvePredlogov.pushPredlogId = predlogId;
+      const predlog = predlogi.find((p) => p.id === predlogId);
+      if (predlog) uporabiPredlog(predlog);
+    } else if (nastavitvePredlogov.pushPredlogId === predlogId) {
+      nastavitvePredlogov.pushPredlogId = null;
+    }
+    shraniNastavitvePredlogov();
+    izrisiPredloge();
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
   }
 
   function oznaciIzbranoIkono(ime) {
@@ -1593,12 +1755,11 @@ function inicializirajSporociloDolzniku() {
       jeMoj: true,
     };
 
-    // Nov predlog gre na vrh; original ostane nespremenjen.
+    // Nov predlog gre na vrh (številka 1); original ostane nespremenjen.
     mojiPredlogi = [novPredlog, ...mojiPredlogi];
     shraniMojePredlogeVLocalStorage();
     sestaviSeznamPredlogov();
-    izrisiPredloge();
-    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+    nastaviStevilkoPredloga(novPredlog.id, 1);
     zapriPredogled();
   }
 
@@ -1623,14 +1784,21 @@ function inicializirajSporociloDolzniku() {
       kartica.setAttribute("role", "listitem");
       kartica.dataset.predlogId = predlog.id;
 
-      const stilIkone = indeks % 2 === 1 ? " predlog-kartica__ikona--alt" : "";
+      const stilStevilke = indeks % 2 === 1 ? " predlog-kartica__stevilka--alt" : "";
+      const jePush = nastavitvePredlogov.pushPredlogId === predlog.id;
+      const stevilka = predlog.stevilka || 1;
 
       kartica.innerHTML =
-        '<span class="predlog-kartica__ikona' +
-        stilIkone +
-        '" aria-hidden="true">' +
-        svgIkonaPredloga(predlog.ikona) +
-        "</span>" +
+        '<div class="predlog-kartica__stevilka-ovoj">' +
+        '<button type="button" class="predlog-kartica__stevilka' +
+        stilStevilke +
+        '" aria-expanded="false" aria-haspopup="listbox" aria-label="Vrstni red predloge, trenutno ' +
+        stevilka +
+        '">' +
+        stevilka +
+        "</button>" +
+        '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do 9"></div>' +
+        "</div>" +
         '<p class="predlog-kartica__naslov"></p>' +
         '<p class="predlog-kartica__opis"></p>' +
         '<button type="button" class="preview-button">' +
@@ -1642,22 +1810,54 @@ function inicializirajSporociloDolzniku() {
         '">' +
         ikonaKljukice +
         "Uporabi</button>" +
+        '<button type="button" class="predlog-gumb predlog-gumb--push" aria-pressed="' +
+        (jePush ? "true" : "false") +
+        '">Push</button>' +
         "</div>";
 
       kartica.querySelector(".predlog-kartica__naslov").textContent = predlog.naslov;
-      // Celotno besedilo predloga - kartica se dinamično podaljša.
       kartica.querySelector(".predlog-kartica__opis").textContent = predlog.besedilo;
 
+      const gumbStevilke = kartica.querySelector(".predlog-kartica__stevilka");
+      const izbirnik = kartica.querySelector(".predlog-kartica__stevilke-izbirnik");
+
+      for (let n = 1; n <= 9; n++) {
+        const gumbN = document.createElement("button");
+        gumbN.type = "button";
+        gumbN.className = "predlog-kartica__stevilka-izbira";
+        gumbN.setAttribute("role", "option");
+        gumbN.setAttribute("aria-selected", n === stevilka ? "true" : "false");
+        gumbN.textContent = String(n);
+        gumbN.addEventListener("click", (dogodek) => {
+          dogodek.stopPropagation();
+          nastaviStevilkoPredloga(predlog.id, n);
+        });
+        izbirnik.appendChild(gumbN);
+      }
+
+      gumbStevilke.addEventListener("click", (dogodek) => {
+        dogodek.stopPropagation();
+        const jeOdprt = !izbirnik.hidden;
+        zapriVseStevilkeIzbire();
+        if (!jeOdprt) {
+          izbirnik.hidden = false;
+          gumbStevilke.setAttribute("aria-expanded", "true");
+        }
+      });
+
       kartica.querySelector(".preview-button").addEventListener("click", () => {
+        zapriVseStevilkeIzbire();
         odpriPredogled(predlog);
       });
 
       kartica.querySelector(".predlog-gumb--uporabi").addEventListener("click", () => {
-        resetirajDodatke();
-        besediloPolje.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
-        oznaciIzbranega(predlog.id);
-        posodobiStanjeUrejevalnika();
-        shraniOsnutekLokalno();
+        zapriVseStevilkeIzbire();
+        uporabiPredlog(predlog);
+      });
+
+      kartica.querySelector(".predlog-gumb--push").addEventListener("click", () => {
+        zapriVseStevilkeIzbire();
+        nastaviPushPredlog(predlog.id, !jePush);
       });
 
       seznam.appendChild(kartica);
@@ -1792,24 +1992,58 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
-  function zagonSPredlogi() {
+  // Push ne sme prepisati že obnovljenega osnutka.
+  const imaOsnutekBesedila = besediloPolje.value.trim().length > 0;
+  let pushZeUporabljen = false;
+
+  function zagonSPredlogi(moznoUporabiPush) {
     mojiPredlogi = naloziMojePredlogeIzLocalStorage();
+    nastavitvePredlogov = naloziNastavitvePredlogov();
     sestaviSeznamPredlogov();
     izrisiPredloge();
-    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+
+    if (
+      moznoUporabiPush &&
+      !pushZeUporabljen &&
+      !imaOsnutekBesedila &&
+      nastavitvePredlogov.pushPredlogId
+    ) {
+      const pushPredlog = predlogi.find((p) => p.id === nastavitvePredlogov.pushPredlogId);
+      if (pushPredlog) {
+        uporabiPredlog(pushPredlog);
+        pushZeUporabljen = true;
+      }
+    } else if (izbranPredlogId) {
+      oznaciIzbranega(izbranPredlogId);
+    }
+
     posodobiStanjeUrejevalnika();
   }
 
+  document.addEventListener("click", (dogodek) => {
+    if (!dogodek.target.closest(".predlog-kartica__stevilka-ovoj")) {
+      zapriVseStevilkeIzbire();
+    }
+  });
+
   // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
-  zagonSPredlogi();
+  zagonSPredlogi(false);
   if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
-    supabaseKlient.auth.getSession().then(({ data }) => {
-      const uid = data && data.session && data.session.user && data.session.user.id;
-      if (uid) kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
-      zagonSPredlogi();
-    }).catch(() => {
-      // Ostanejo vgrajeni predlogi.
-    });
+    supabaseKlient.auth
+      .getSession()
+      .then(({ data }) => {
+        const uid = data && data.session && data.session.user && data.session.user.id;
+        if (uid) {
+          kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
+          kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA + "-" + uid;
+        }
+        zagonSPredlogi(true);
+      })
+      .catch(() => {
+        zagonSPredlogi(true);
+      });
+  } else {
+    zagonSPredlogi(true);
   }
 }
 

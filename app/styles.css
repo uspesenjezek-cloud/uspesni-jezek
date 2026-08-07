@@ -2371,6 +2371,13 @@ body.stran--samo-seznam #obrazec {
   color: var(--muted);
 }
 
+.korak2-sklop__obvestilo {
+  margin: -4px 0 10px;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #8a6a2f;
+}
+
 .korak2-sklop--locen {
   margin-top: 24px;
   padding-top: 22px;
@@ -2502,16 +2509,16 @@ body.stran--samo-seznam #obrazec {
   align-items: stretch;
   column-gap: 10px;
   row-gap: 6px;
-  height: 116px;
-  min-height: 116px;
-  max-height: 116px;
+  height: 132px;
+  min-height: 132px;
+  max-height: 132px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--white);
   scroll-snap-align: start;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .predlog-kartica--izbrana {
@@ -2519,25 +2526,87 @@ body.stran--samo-seznam #obrazec {
   background: var(--teal-pale);
 }
 
-.predlog-kartica__ikona {
+.predlog-kartica__stevilka-ovoj {
   grid-column: 1;
   grid-row: 1;
+  position: relative;
+  align-self: start;
+  z-index: 3;
+}
+
+.predlog-kartica__stevilka {
   display: grid;
   place-items: center;
   width: 34px;
   height: 34px;
+  padding: 0;
+  border: 0;
   border-radius: 10px;
   background: var(--surface-warm);
   color: var(--teal-dark);
-  align-self: start;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
 }
 
-.predlog-kartica__ikona--alt {
+.predlog-kartica__stevilka--alt {
   background: var(--teal-pale);
 }
 
-.predlog-kartica__ikona svg {
-  display: block;
+.predlog-kartica__stevilka:hover {
+  filter: brightness(0.97);
+}
+
+.predlog-kartica__stevilka:focus-visible {
+  outline: 2px solid var(--teal-dark);
+  outline-offset: 2px;
+}
+
+.predlog-kartica__stevilke-izbirnik {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: 0 6px 18px rgba(28, 45, 42, 0.12);
+}
+
+.predlog-kartica__stevilke-izbirnik[hidden] {
+  display: none;
+}
+
+.predlog-kartica__stevilka-izbira {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.predlog-kartica__stevilka-izbira[aria-selected="true"] {
+  border-color: var(--teal-dark);
+  background: var(--teal-pale);
+  color: var(--teal-dark);
+}
+
+.predlog-kartica__stevilka-izbira:hover {
+  border-color: var(--teal);
 }
 
 .predlog-kartica__naslov {
@@ -2676,10 +2745,10 @@ body.stran--samo-seznam #obrazec {
 .predlog-kartica__akcije .predlog-gumb--uporabi {
   width: auto;
   min-width: 92px;
-  min-height: 46px; /* +~20 % glede na 38px */
-  padding: 10px 10px;
+  min-height: 40px;
+  padding: 8px 10px;
   margin-right: 0;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   border: 1px solid var(--teal);
   background: var(--teal);
   color: var(--white);
@@ -2689,6 +2758,31 @@ body.stran--samo-seznam #obrazec {
 .predlog-gumb--uporabi:hover {
   background: var(--teal-dark);
   border-color: var(--teal-dark);
+}
+
+.predlog-kartica__akcije .predlog-gumb--push {
+  width: auto;
+  min-width: 92px;
+  min-height: 28px;
+  padding: 4px 8px;
+  margin-right: 0;
+  margin-bottom: 2px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.predlog-kartica__akcije .predlog-gumb--push:hover {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+}
+
+.predlog-kartica__akcije .predlog-gumb--push[aria-pressed="true"] {
+  border-color: var(--teal-dark);
+  background: var(--teal-pale);
+  color: var(--teal-dark);
 }
 
 .sporocilo-dodatki__gumbi {
@@ -3021,9 +3115,14 @@ body.stran--samo-seznam #obrazec {
     grid-template-rows: auto minmax(0, 1fr);
     column-gap: 8px;
     row-gap: 6px;
-    height: 116px;
-    min-height: 116px;
-    max-height: 116px;
+    height: 132px;
+    min-height: 132px;
+    max-height: 132px;
+  }
+
+  .predlog-kartica__stevilka {
+    width: 32px;
+    height: 32px;
   }
 
   .predlog-gumb {
