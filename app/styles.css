@@ -3297,9 +3297,15 @@ body.stran--samo-seznam #obrazec {
 }
 
 .predlog-kartica--izbrana {
-  border: 1px solid var(--teal);
+  border: 2px solid var(--teal);
   background: var(--teal-pale);
   box-shadow: none;
+}
+
+/* Izbrana predloga: tudi krog s številko v zeleni. */
+.predlog-kartica--izbrana .predlog-kartica__stevilka {
+  background: var(--teal);
+  color: #fff;
 }
 
 .predlog-kartica__stevilka-ovoj {

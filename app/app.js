@@ -2259,15 +2259,22 @@ function inicializirajSporociloDolzniku() {
   }
 
   function oznaciIzbranega(id) {
-    izbranPredlogId = id;
+    izbranPredlogId = id == null ? null : String(id);
     seznam.querySelectorAll(".predlog-kartica").forEach((kartica) => {
-      const jeIzbrana = kartica.dataset.predlogId === id;
+      const jeIzbrana =
+        izbranPredlogId != null &&
+        String(kartica.dataset.predlogId) === izbranPredlogId;
       kartica.classList.toggle("predlog-kartica--izbrana", jeIzbrana);
       const gumb = kartica.querySelector(".predlog-gumb--uporabi");
       if (!gumb) return;
       gumb.setAttribute("aria-pressed", jeIzbrana ? "true" : "false");
       gumb.innerHTML = ikonaKljukice + (jeIzbrana ? "Izbrano" : "Uporabi");
     });
+  }
+
+  function jeVeljavenIzbranPredlog(id) {
+    if (id == null || id === "") return false;
+    return predlogi.some((p) => String(p.id) === String(id));
   }
 
   function izrisiPredloge() {
@@ -2278,7 +2285,13 @@ function inicializirajSporociloDolzniku() {
       const kartica = document.createElement("article");
       kartica.className = "predlog-kartica";
       kartica.setAttribute("role", "listitem");
-      kartica.dataset.predlogId = predlog.id;
+      kartica.dataset.predlogId = String(predlog.id);
+      if (
+        izbranPredlogId != null &&
+        String(predlog.id) === String(izbranPredlogId)
+      ) {
+        kartica.classList.add("predlog-kartica--izbrana");
+      }
 
       const stilStevilke = indeks % 2 === 1 ? " predlog-kartica__stevilka--alt" : "";
       const stevilka = predlog.stevilka || 1;
@@ -2502,25 +2515,29 @@ function inicializirajSporociloDolzniku() {
     return predlogi.find((p) => Number(p.stevilka) === 1) || predlogi[0] || null;
   }
 
+  function uporabiPrivzetiPredlogStevilka1() {
+    const privzeti = najdiPredlogStevilka1();
+    if (!privzeti) return;
+    // Če je textarea prazen, vloži besedilo predloge #1; sicer samo zelena obroba.
+    if (!besediloPolje.value.trim()) {
+      uporabiPredlog(privzeti);
+    } else {
+      oznaciIzbranega(privzeti.id);
+    }
+  }
+
   function zagonSPredlogi() {
     mojiPredlogi = naloziMojePredlogeIzLocalStorage();
     nastavitvePredlogov = naloziNastavitvePredlogov();
     sestaviSeznamPredlogov();
     izrisiPredloge();
 
-    if (izbranPredlogId) {
-      // Osnutek / predhodna izbira – samo obnovi zeleno obrobo.
-      oznaciIzbranega(izbranPredlogId);
+    // Stari/neveljavni id v osnutku ne sme preprečiti privzete izbire (#1).
+    if (!jeVeljavenIzbranPredlog(izbranPredlogId)) {
+      izbranPredlogId = null;
+      uporabiPrivzetiPredlogStevilka1();
     } else {
-      // Privzeto: predloga s številko 1 (prva v vrstnem redu).
-      const privzeti = najdiPredlogStevilka1();
-      if (privzeti) {
-        if (!besediloPolje.value.trim()) {
-          uporabiPredlog(privzeti);
-        } else {
-          oznaciIzbranega(privzeti.id);
-        }
-      }
+      oznaciIzbranega(izbranPredlogId);
     }
     posodobiStanjeUrejevalnika();
   }
