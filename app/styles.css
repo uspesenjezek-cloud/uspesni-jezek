@@ -2459,16 +2459,24 @@ body.stran--samo-seznam #obrazec {
 
 .stran--sporocilo .predlogi-okvir__vsebina {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   height: 310px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 11px;
+  /* Notranji odmik, da zeleni rob/outline ob izbiri ni odrezan. */
+  padding: 6px 11px 6px 6px;
   scrollbar-width: none;
   -ms-overflow-style: none;
   overscroll-behavior: contain;
   scroll-snap-type: y proximity;
   background: transparent;
+}
+
+/* V odrezanih vsebnikih outline navznoter, da se vidi v celoti. */
+.stran--sporocilo .predlogi-okvir__vsebina :focus-visible,
+.stran--sporocilo .sporocilo-dodatek:focus-visible,
+.stran--sporocilo .korak2-modal :focus-visible {
+  outline-offset: -2px;
 }
 
 /* Med odprtim popoverjem ne režemo vsebine (mobilno: popover ne izgine za robom). */
@@ -2532,6 +2540,7 @@ body.stran--samo-seznam #obrazec {
 .predlog-kartica--izbrana {
   border-color: var(--teal-dark);
   background: var(--teal-pale);
+  box-shadow: inset 0 0 0 1px var(--teal-dark);
 }
 
 /* Odprta kartica mora biti nad sosednjimi (sicer popover gre "pod" naslednje kartice). */
@@ -2574,7 +2583,7 @@ body.stran--samo-seznam #obrazec {
 
 .predlog-kartica__stevilka:focus-visible {
   outline: 2px solid var(--teal-dark);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .predlog-kartica__stevilke-izbirnik {
@@ -2583,10 +2592,11 @@ body.stran--samo-seznam #obrazec {
   left: 0;
   z-index: 50;
   width: max-content;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--white);
+  overflow: visible;
   /* Močnejša senca – jasno ločen od kartic pod/za njim. */
   box-shadow:
     0 2px 6px rgba(28, 45, 42, 0.08),
@@ -2623,6 +2633,12 @@ body.stran--samo-seznam #obrazec {
   border-color: var(--teal-dark);
   background: var(--teal-pale);
   color: var(--teal-dark);
+  box-shadow: inset 0 0 0 1px var(--teal-dark);
+}
+
+.predlog-kartica__stevilka-izbira:focus-visible {
+  outline: 2px solid var(--teal-dark);
+  outline-offset: -2px;
 }
 
 .predlog-kartica__stevilka-izbira:hover {
@@ -2784,6 +2800,7 @@ body.stran--samo-seznam #obrazec {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  padding: 3px;
 }
 
 .stran--sporocilo .sporocilo-dodatek {
@@ -2802,6 +2819,7 @@ body.stran--samo-seznam #obrazec {
   font-weight: 400;
   text-align: center;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .stran--sporocilo .sporocilo-dodatek__ikona {
@@ -2812,6 +2830,7 @@ body.stran--samo-seznam #obrazec {
   border-color: var(--teal-dark);
   background: var(--teal-pale);
   color: var(--teal-dark);
+  box-shadow: inset 0 0 0 1px var(--teal-dark);
 }
 
 .korak2__noga {
@@ -2968,16 +2987,16 @@ body.stran--samo-seznam #obrazec {
   display: block;
   width: 100%;
   flex: 1 1 auto;
-  min-height: 180px;
+  min-height: 260px;
   margin: 0;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--border-strong);
   border-radius: 12px;
   background: var(--white);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.88rem;
-  line-height: 1.5;
+  font-size: 0.92rem;
+  line-height: 1.55;
   resize: vertical;
   box-sizing: border-box;
 }

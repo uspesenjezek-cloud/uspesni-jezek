@@ -1628,7 +1628,7 @@ function inicializirajSporociloDolzniku() {
     if (vv) {
       // Poravnaj dialog na vrh VIDNEGA dela; višina dovolj velika, da noga (Push/Izbriši) ostane vidna.
       modalDialog.style.top = Math.round(vv.offsetTop + 8) + "px";
-      modalDialog.style.maxHeight = Math.max(300, Math.round(vv.height - 16)) + "px";
+      modalDialog.style.maxHeight = Math.max(340, Math.round(vv.height - 16)) + "px";
     } else {
       modalDialog.style.top = "12px";
       modalDialog.style.maxHeight = "calc(100dvh - 24px)";
