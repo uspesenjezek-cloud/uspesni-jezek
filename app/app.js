@@ -474,6 +474,18 @@ function inicializirajNeplacila() {
       oznaciPoljeKotAiIzpolnjeno(polje);
     }
 
+    if (podatki.rokPlacila && /^\d{4}-\d{2}-\d{2}$/.test(podatki.rokPlacila)) {
+      const polje = document.getElementById("datum-zapadlosti");
+      polje.value = podatki.rokPlacila;
+      oznaciPoljeKotAiIzpolnjeno(polje);
+    }
+
+    if (podatki.stevilkaRacuna) {
+      const polje = document.getElementById("stevilka-racuna");
+      polje.value = podatki.stevilkaRacuna;
+      oznaciPoljeKotAiIzpolnjeno(polje);
+    }
+
     if (podatki.opis) {
       const polje = document.getElementById("opis-dolga");
       polje.value = podatki.opis;
@@ -912,8 +924,13 @@ function inicializirajNeplacila() {
     const seznamRazdelek = document.getElementById("seznam-vsebnik");
 
     if (idRazdelka === "seznam") {
+      // Samo semafor + seznam zadev (gumb "Preveri odprte zadeve").
       if (obrazecRazdelek) obrazecRazdelek.hidden = true;
+      if (semaforRazdelek) semaforRazdelek.hidden = false;
+      if (seznamRazdelek) seznamRazdelek.hidden = false;
     } else if (idRazdelka === "obrazec") {
+      // Samo obrazec za dodajanje (gumb "Dodaj nov račun").
+      if (obrazecRazdelek) obrazecRazdelek.hidden = false;
       if (semaforRazdelek) semaforRazdelek.hidden = true;
       if (seznamRazdelek) seznamRazdelek.hidden = true;
     }

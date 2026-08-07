@@ -551,6 +551,29 @@ a {
   min-width: 0;
 }
 
+/* display: flex zgoraj bi sicer prepisal privzeti [hidden] (display: none)
+   iz brskalnika - zato mora skritje razdelkov (#obrazec / #seznam /
+   #seznam-vsebnik) biti eksplicitno. */
+.dodaj-zadevo[hidden],
+.zadeve-semafor[hidden],
+.seznam-zadev[hidden] {
+  display: none !important;
+}
+
+/* Ločitev "Dodaj nov račun" (#obrazec) in "Preveri odprte zadeve"
+   (#seznam) - deluje že pred JS (brez utripa celotne strani). */
+body:has(#obrazec:target) #seznam,
+body:has(#obrazec:target) #seznam-vsebnik,
+body.stran--samo-obrazec #seznam,
+body.stran--samo-obrazec #seznam-vsebnik {
+  display: none !important;
+}
+
+body:has(#seznam:target) #obrazec,
+body.stran--samo-seznam #obrazec {
+  display: none !important;
+}
+
 .koraki-zavihki {
   display: grid;
   grid-template-columns: 1fr 1fr;
