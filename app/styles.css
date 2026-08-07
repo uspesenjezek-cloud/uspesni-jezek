@@ -2887,22 +2887,23 @@ body.stran--samo-seznam #obrazec {
 .korak2-modal__dialog {
   position: absolute;
   z-index: 11;
-  top: 12px;
-  left: 18px;
-  right: 18px;
+  top: 8px;
+  left: 14px;
+  right: 14px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100dvh - 24px);
-  padding: 14px;
+  /* Višina = vidni del (JS nastavi glede na visualViewport / tipkovnico). */
+  max-height: calc(100dvh - 16px);
+  padding: 10px 12px 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--white);
   box-shadow: 0 18px 40px var(--shadow);
   overflow: hidden;
   box-sizing: border-box;
 }
 
-/* Zgoraj: ime + večje besedilo. Spodaj: gumbi vedno vidni. */
+/* Scroll: ime + besedilo + Push. Noga z Izbriši/Shrani ostane zunaj. */
 .korak2-modal__telo {
   display: flex;
   flex-direction: column;
@@ -2911,14 +2912,19 @@ body.stran--samo-seznam #obrazec {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  gap: 0;
 }
 
+/* Fiksna noga – vedno vidna nad tipkovnico. */
 .korak2-modal__noga {
   flex: 0 0 auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: grid;
-  gap: 8px;
-  padding-top: 10px;
-  margin-top: 8px;
+  gap: 0;
+  padding-top: 8px;
+  margin-top: 6px;
   border-top: 1px solid var(--border);
   background: var(--white);
 }
@@ -2927,8 +2933,8 @@ body.stran--samo-seznam #obrazec {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .korak2-modal__naslov-ovoj {
@@ -2939,8 +2945,8 @@ body.stran--samo-seznam #obrazec {
 .korak2-modal__naslov-oznaka,
 .korak2-modal__polje-oznaka {
   display: block;
-  margin: 0 0 6px;
-  font-size: 0.72rem;
+  margin: 0 0 3px;
+  font-size: 0.68rem;
   font-weight: 500;
   color: var(--muted);
 }
@@ -2949,13 +2955,13 @@ body.stran--samo-seznam #obrazec {
   display: block;
   width: 100%;
   margin: 0;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--white);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 400;
   box-sizing: border-box;
 }
@@ -2965,59 +2971,66 @@ body.stran--samo-seznam #obrazec {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .korak2-modal__zapri {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface-soft);
   color: var(--teal-dark);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
 }
 
+/* Omejena višina + notranji scroll – ne potiska gumbov ven. */
 .korak2-modal__urejevalnik {
   display: block;
   width: 100%;
-  flex: 1 1 auto;
-  min-height: 300px;
-  margin: 0;
-  padding: 14px;
+  flex: 0 1 auto;
+  min-height: 88px;
+  height: 120px;
+  max-height: min(140px, 28dvh);
+  margin: 0 0 8px;
+  padding: 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--white);
   color: var(--text);
   font-family: inherit;
   font-size: 0.84rem;
   font-weight: 400;
-  line-height: 1.55;
-  resize: vertical;
+  line-height: 1.5;
+  resize: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
-/* Push pod besedilom (polna širina), nato Izbriši | Shrani. */
+/* Push pod besedilom (v telesu); Izbriši/Shrani v nogi. */
 .korak2-modal__push {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  min-height: 42px;
+  flex: 0 0 auto;
+  min-height: 36px;
   margin: 0;
-  padding: 9px 14px;
+  padding: 7px 10px;
   border: 1px solid #d4b06a;
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(180deg, #fff6d6 0%, #f0d48a 55%, #e4c06a 100%);
   color: #6b4e14;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   box-shadow:
@@ -3059,14 +3072,14 @@ body.stran--samo-seznam #obrazec {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 42px;
-  padding: 8px 8px;
+  min-height: 40px;
+  padding: 8px 6px;
   border: 1px solid #d7b4b1;
   border-radius: 10px;
   background: #fff7f6;
   color: #9d3a36;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 400;
   cursor: pointer;
 }
@@ -3081,14 +3094,14 @@ body.stran--samo-seznam #obrazec {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 42px;
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 8px 8px;
   border: 1px solid var(--teal);
   border-radius: 10px;
   background: var(--teal);
   color: var(--white);
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
 }

@@ -1625,12 +1625,15 @@ function inicializirajSporociloDolzniku() {
     if (!modal || modal.hidden || !modalDialog) return;
     const vv = window.visualViewport;
     if (vv) {
-      // Poravnaj dialog na vrh VIDNEGA dela; višina dovolj velika, da noga (Push/Izbriši) ostane vidna.
-      modalDialog.style.top = Math.round(vv.offsetTop + 8) + "px";
-      modalDialog.style.maxHeight = Math.max(360, Math.round(vv.height - 16)) + "px";
+      // Višina = VIDNI del (nad tipkovnico) – ne večja od tipkovnice!
+      const vidnaVisina = Math.max(180, Math.round(vv.height - 12));
+      modalDialog.style.top = Math.round(vv.offsetTop + 6) + "px";
+      modalDialog.style.maxHeight = vidnaVisina + "px";
+      modalDialog.style.height = vidnaVisina + "px";
     } else {
-      modalDialog.style.top = "12px";
-      modalDialog.style.maxHeight = "calc(100dvh - 24px)";
+      modalDialog.style.top = "8px";
+      modalDialog.style.maxHeight = "calc(100dvh - 16px)";
+      modalDialog.style.height = "";
     }
   }
 
@@ -1652,6 +1655,7 @@ function inicializirajSporociloDolzniku() {
     if (modalDialog) {
       modalDialog.style.top = "";
       modalDialog.style.maxHeight = "";
+      modalDialog.style.height = "";
       modalDialog.scrollTop = 0;
     }
   }
