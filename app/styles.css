@@ -2734,6 +2734,30 @@ body.stran--samo-seznam #obrazec {
   color: var(--text);
 }
 
+.korak2-modal__glava-akcije {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.korak2-modal__uredi {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--teal-dark);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.korak2-modal__uredi[hidden] {
+  display: none;
+}
+
 .korak2-modal__zapri {
   flex-shrink: 0;
   width: 32px;
@@ -2755,6 +2779,76 @@ body.stran--samo-seznam #obrazec {
   line-height: 1.5;
   color: var(--text);
   white-space: pre-wrap;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.korak2-modal__besedilo[hidden] {
+  display: none;
+}
+
+.korak2-modal__urejevalnik {
+  display: block;
+  width: 100%;
+  min-height: 160px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.korak2-modal__urejevalnik[hidden] {
+  display: none;
+}
+
+.korak2-modal__urejanje-akcije {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.korak2-modal__urejanje-akcije[hidden] {
+  display: none;
+}
+
+.korak2-modal__preklici {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--teal-dark);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.korak2-modal__shrani {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--teal);
+  border-radius: 10px;
+  background: var(--teal);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.korak2-modal__shrani:hover {
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
 }
 
 .stran--sporocilo .obrazec__napaka {

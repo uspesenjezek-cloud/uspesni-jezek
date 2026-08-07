@@ -45,6 +45,9 @@ const KLJUC_SEJE_KORAK2_PODATKI = "neplacilo-korak2-podatki";
    ker se zadeva zdaj dejansko doda šele na 3. koraku, na prvi strani pa je
    takrat ne moremo več prikazati neposredno. */
 const KLJUC_SEJE_ZADEVA_DODANA = "neplacilo-zadeva-dodana";
+/* Uporabniško shranjeni predlogi sporočil (localStorage, po obrtniku).
+   Kasneje lahko pride sinhronizacija s Supabase - glej modal Predogled. */
+const KLJUC_MOJI_PREDLOGI_OSNOVA = "neplacilo-moji-predlogi";
 
 /* Poveže vsak status z eno od 3 kategorij za "semafor" na vrhu strani
    (glej .zadeve-semafor v styles.css). Semafor služi tudi kot filter za
@@ -1326,23 +1329,34 @@ function inicializirajSporociloDolzniku() {
     return;
   }
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
-  const predlogi = sestaviPredlogeSporocil(podatkiKorak1);
+  const vgrajeniPredlogi = sestaviPredlogeSporocil(podatkiKorak1);
+  let mojiPredlogi = [];
+  let predlogi = [...vgrajeniPredlogi];
+  let kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA;
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
   const pomocPolja = document.getElementById("sporocilo-pomoc");
   const stevecPolja = document.getElementById("sporocilo-stevec");
   const osnutekStatus = document.getElementById("osnutek-status");
+  const oznakaStevila = document.getElementById("predlogi-stevilo-oznaka");
   const dodatekRok = document.getElementById("dodatek-rok");
   const dodatekObrocno = document.getElementById("dodatek-obrocno");
   const dodatekTrr = document.getElementById("dodatek-trr");
   const modal = document.getElementById("predogled-modal");
   const modalNaslov = document.getElementById("predogled-naslov");
   const modalBesedilo = document.getElementById("predogled-besedilo");
+  const modalUrejevalnik = document.getElementById("predogled-urejevalnik");
+  const modalUredi = document.getElementById("predogled-uredi");
+  const modalPreklici = document.getElementById("predogled-preklici");
+  const modalShrani = document.getElementById("predogled-shrani");
+  const modalUrejanjeAkcije = document.getElementById("predogled-urejanje-akcije");
   const modalZapri = document.getElementById("predogled-zapri");
   const modalBackdrop = document.getElementById("predogled-backdrop");
 
   const NAJVEC_ZNAKOV = 1000;
   let izbranPredlogId = null;
+  let odprtPredlog = null;
+  let modalVUrejanju = false;
   const dodatki = { rok: false, obrocno: false, trr: false };
   const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
   let casovnikOsnutka = null;
@@ -1420,18 +1434,113 @@ function inicializirajSporociloDolzniku() {
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
   }
 
+  function naloziMojePredlogeIzLocalStorage() {
+    try {
+      const surovo = localStorage.getItem(kljucMojihPredlogov);
+      if (!surovo) return [];
+      const seznam = JSON.parse(surovo);
+      if (!Array.isArray(seznam)) return [];
+      return seznam
+        .filter((p) => p && typeof p.besedilo === "string" && p.besedilo.trim())
+        .map((p) => ({
+          id: String(p.id || "moj-" + Date.now()),
+          naslov: String(p.naslov || "Moj predlog"),
+          ikona: p.ikona || "message-circle",
+          stilIkone: "",
+          besedilo: String(p.besedilo).slice(0, NAJVEC_ZNAKOV),
+          jeMoj: true,
+        }));
+    } catch (_napaka) {
+      return [];
+    }
+  }
+
+  function shraniMojePredlogeVLocalStorage() {
+    const zaShraniti = mojiPredlogi.map((p) => ({
+      id: p.id,
+      naslov: p.naslov,
+      ikona: p.ikona || "message-circle",
+      besedilo: p.besedilo,
+    }));
+    localStorage.setItem(kljucMojihPredlogov, JSON.stringify(zaShraniti));
+  }
+
+  function sestaviSeznamPredlogov() {
+    predlogi = [...mojiPredlogi, ...vgrajeniPredlogi];
+    if (oznakaStevila) {
+      const n = predlogi.length;
+      oznakaStevila.textContent = n + (n === 1 ? " predlog" : " predlogov");
+    }
+  }
+
+  function nastaviNacinUrejanja(vklop) {
+    modalVUrejanju = vklop;
+    if (modalBesedilo) modalBesedilo.hidden = vklop;
+    if (modalUrejevalnik) modalUrejevalnik.hidden = !vklop;
+    if (modalUrejanjeAkcije) modalUrejanjeAkcije.hidden = !vklop;
+    if (modalUredi) modalUredi.hidden = vklop;
+  }
+
   function zapriPredogled() {
     if (!modal) return;
+    nastaviNacinUrejanja(false);
     modal.hidden = true;
+    odprtPredlog = null;
     if (modalNaslov) modalNaslov.textContent = "";
     if (modalBesedilo) modalBesedilo.textContent = "";
+    if (modalUrejevalnik) modalUrejevalnik.value = "";
   }
 
   function odpriPredogled(predlog) {
     if (!modal || !modalNaslov || !modalBesedilo) return;
+    // Predogled namerno NE spreminja glavnega textarea polja.
+    odprtPredlog = predlog;
+    nastaviNacinUrejanja(false);
     modalNaslov.textContent = predlog.naslov;
     modalBesedilo.textContent = predlog.besedilo;
+    if (modalUrejevalnik) modalUrejevalnik.value = predlog.besedilo;
     modal.hidden = false;
+  }
+
+  function vklopUrejanja() {
+    if (!odprtPredlog || !modalUrejevalnik) return;
+    modalUrejevalnik.value = odprtPredlog.besedilo.slice(0, NAJVEC_ZNAKOV);
+    nastaviNacinUrejanja(true);
+    modalUrejevalnik.focus();
+  }
+
+  function prekliciUrejanje() {
+    if (!odprtPredlog) return;
+    if (modalUrejevalnik) modalUrejevalnik.value = odprtPredlog.besedilo;
+    if (modalBesedilo) modalBesedilo.textContent = odprtPredlog.besedilo;
+    nastaviNacinUrejanja(false);
+  }
+
+  function shraniKotNovPredlog() {
+    if (!modalUrejevalnik) return;
+    const besedilo = modalUrejevalnik.value.trim().slice(0, NAJVEC_ZNAKOV);
+    if (!besedilo) {
+      pokaziNapako("Predloga ne sme biti prazna.");
+      return;
+    }
+
+    const stevilka = mojiPredlogi.length + 1;
+    const novPredlog = {
+      id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      naslov: "Moj predlog " + stevilka,
+      ikona: "message-circle",
+      stilIkone: "",
+      besedilo,
+      jeMoj: true,
+    };
+
+    // Nov predlog gre na vrh; original ostane nespremenjen.
+    mojiPredlogi = [novPredlog, ...mojiPredlogi];
+    shraniMojePredlogeVLocalStorage();
+    sestaviSeznamPredlogov();
+    izrisiPredloge();
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+    zapriPredogled();
   }
 
   function oznaciIzbranega(id) {
@@ -1552,10 +1661,16 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
+  if (modalUredi) modalUredi.addEventListener("click", vklopUrejanja);
+  if (modalPreklici) modalPreklici.addEventListener("click", prekliciUrejanje);
+  if (modalShrani) modalShrani.addEventListener("click", shraniKotNovPredlog);
   if (modalZapri) modalZapri.addEventListener("click", zapriPredogled);
   if (modalBackdrop) modalBackdrop.addEventListener("click", zapriPredogled);
   document.addEventListener("keydown", (dogodek) => {
-    if (dogodek.key === "Escape" && modal && !modal.hidden) zapriPredogled();
+    if (dogodek.key !== "Escape" || !modal || modal.hidden) return;
+    // V načinu urejanja Escape najprej prekliče urejanje; drugič zapre modal.
+    if (modalVUrejanju) prekliciUrejanje();
+    else zapriPredogled();
   });
 
   besediloPolje.addEventListener("input", () => {
@@ -1618,9 +1733,25 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
-  izrisiPredloge();
-  if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
-  posodobiStanjeUrejevalnika();
+  function zagonSPredlogi() {
+    mojiPredlogi = naloziMojePredlogeIzLocalStorage();
+    sestaviSeznamPredlogov();
+    izrisiPredloge();
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+    posodobiStanjeUrejevalnika();
+  }
+
+  // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
+  zagonSPredlogi();
+  if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
+    supabaseKlient.auth.getSession().then(({ data }) => {
+      const uid = data && data.session && data.session.user && data.session.user.id;
+      if (uid) kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
+      zagonSPredlogi();
+    }).catch(() => {
+      // Ostanejo vgrajeni predlogi.
+    });
+  }
 }
 
 /* ---------- Logika strani neplacila-posiljanje.html (3. korak - začasni stub) ---------- */
