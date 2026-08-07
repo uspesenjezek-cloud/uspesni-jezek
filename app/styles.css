@@ -3297,15 +3297,9 @@ body.stran--samo-seznam #obrazec {
 }
 
 .predlog-kartica--izbrana {
-  border: 2px solid var(--teal);
+  border: 1px solid var(--teal);
   background: var(--teal-pale);
   box-shadow: none;
-}
-
-/* Izbrana predloga: tudi krog s številko v zeleni. */
-.predlog-kartica--izbrana .predlog-kartica__stevilka {
-  background: var(--teal);
-  color: #fff;
 }
 
 .predlog-kartica__stevilka-ovoj {
@@ -3335,6 +3329,43 @@ body.stran--samo-seznam #obrazec {
 
 .predlog-kartica__stevilka--alt {
   background: var(--teal-pale);
+}
+
+/* Številka 1 = prioriteta / privzeto sporočilo: rumena zvezda z «1». */
+.predlog-kartica__stevilka--prioriteta {
+  position: relative;
+  background: transparent;
+  color: #1a2e24;
+  border-radius: 0;
+}
+
+.predlog-kartica__stevilka--prioriteta:hover {
+  filter: none;
+  opacity: 0.92;
+}
+
+.predlog-kartica__zvezda {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #e8b923;
+  pointer-events: none;
+}
+
+.predlog-kartica__zvezda svg {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+
+.predlog-kartica__zvezda-cifra {
+  position: relative;
+  z-index: 1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #1a2e24;
 }
 
 .predlog-kartica__stevilka:hover {

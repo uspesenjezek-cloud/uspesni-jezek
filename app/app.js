@@ -1707,6 +1707,9 @@ function inicializirajSporociloDolzniku() {
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
   const ikonaKljukice =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  /* Rumena zvezda za predlogo s številko 1 (prioriteta / privzeto sporočilo). */
+  const ikonaZvezdePrioriteta =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
 
   function pokaziNapako(besedilo, tehnicniPodatki) {
     if (!napaka) return;
@@ -2302,17 +2305,30 @@ function inicializirajSporociloDolzniku() {
         kartica.classList.add("predlog-kartica--izbrana");
       }
 
-      const stilStevilke = indeks % 2 === 1 ? " predlog-kartica__stevilka--alt" : "";
       const stevilka = predlog.stevilka || 1;
+      const jePrioriteta = Number(stevilka) === 1;
+      const stilStevilke = jePrioriteta
+        ? " predlog-kartica__stevilka--prioriteta"
+        : indeks % 2 === 1
+          ? " predlog-kartica__stevilka--alt"
+          : "";
+      const vsebinaStevilke = jePrioriteta
+        ? '<span class="predlog-kartica__zvezda" aria-hidden="true">' +
+          ikonaZvezdePrioriteta +
+          '</span><span class="predlog-kartica__zvezda-cifra">1</span>'
+        : String(stevilka);
+      const oznakaStevilke = jePrioriteta
+        ? "Prioritetna predloga (številka 1) – privzeto sporočilo"
+        : "Vrstni red predloge, trenutno " + stevilka;
 
       kartica.innerHTML =
         '<div class="predlog-kartica__stevilka-ovoj">' +
         '<button type="button" class="predlog-kartica__stevilka' +
         stilStevilke +
-        '" aria-expanded="false" aria-haspopup="listbox" aria-label="Vrstni red predloge, trenutno ' +
-        stevilka +
+        '" aria-expanded="false" aria-haspopup="listbox" aria-label="' +
+        oznakaStevilke +
         '">' +
-        stevilka +
+        vsebinaStevilke +
         "</button>" +
         '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do 9">' +
         '<div class="predlog-kartica__stevilke-mreza"></div>' +
