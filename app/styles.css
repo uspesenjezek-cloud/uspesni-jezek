@@ -2612,26 +2612,26 @@ body.stran--samo-seznam #obrazec {
 /* Zavihek Predogled – pripet na zgornji desni rob kartice. */
 .predlog-kartica > .preview-button {
   position: absolute;
-  top: 1px;
-  right: 1px;
+  top: 0;
+  right: 0;
   z-index: 2;
 
-  width: 110px;
-  min-height: 54px;
+  width: 118px;
+  min-height: 58px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
 
-  padding: 8px 10px;
+  padding: 9px 12px;
 
   border: 0;
   border-left: 1px solid #c5d6d2;
   border-bottom: 1px solid #c5d6d2;
 
   /* Zgornji desni rob sledi kartici, spodnji levi je močneje zaobljen. */
-  border-radius: 0 12px 0 24px;
+  border-radius: 0 14px 0 26px;
 
   background: #f3f8f7;
   color: #347d7e;
@@ -2971,9 +2971,9 @@ body.stran--samo-seznam #obrazec {
   }
 
   .predlog-kartica > .preview-button {
-    width: 98px;
-    padding-right: 6px;
-    padding-left: 6px;
+    width: 104px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 }
 
