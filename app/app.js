@@ -1785,12 +1785,13 @@ function inicializirajSporociloDolzniku() {
   }
 
   function nastaviStevilkoPredloga(predlogId, novaStevilka) {
+    const id = String(predlogId);
     const nova = Math.max(1, Math.min(9, Number(novaStevilka) || 1));
     const konflikt = predlogi.find(
-      (p) => p.id !== predlogId && Number(nastavitvePredlogov.stevilke[p.id]) === nova
+      (p) => String(p.id) !== id && Number(nastavitvePredlogov.stevilke[p.id]) === nova
     );
 
-    nastavitvePredlogov.stevilke[predlogId] = nova;
+    nastavitvePredlogov.stevilke[id] = nova;
 
     if (konflikt) {
       const zasedene = new Set(
@@ -1801,7 +1802,7 @@ function inicializirajSporociloDolzniku() {
       zasedene.add(nova);
       const prosta = najdiProstoStevilko(zasedene, nova + 1);
       if (prosta != null) {
-        nastavitvePredlogov.stevilke[konflikt.id] = prosta;
+        nastavitvePredlogov.stevilke[String(konflikt.id)] = prosta;
         pokaziObvestiloPredlogov(
           "Številka " +
             nova +
@@ -1950,14 +1951,19 @@ function inicializirajSporociloDolzniku() {
     }
     if (modalIzbrisi) modalIzbrisi.hidden = !!predlog.jeNov;
 
-    // Izbira številke pri novem predlogu (tudi pri »Shrani kot nov predlog«).
-    const prikaziStevilko = !!(predlog.jeNov || !predlog.jeMoj);
-    if (modalStevilkaOvoj) modalStevilkaOvoj.hidden = !prikaziStevilko;
-    if (prikaziStevilko) {
-      pripraviModalStevilke();
+    // Številka 1–9: vedno (novi, moji in vgrajeni) – kartica + modal.
+    if (modalStevilkaOvoj) modalStevilkaOvoj.hidden = false;
+    pripraviModalStevilke();
+    if (predlog.jeNov) {
       modalIzbranaStevilka = privzetaStevilkaZaNovPredlog();
-      posodobiModalStevilkeUI();
+    } else {
+      const trenutna = Number(predlog.stevilka || nastavitvePredlogov.stevilke[predlog.id]);
+      modalIzbranaStevilka =
+        Number.isInteger(trenutna) && trenutna >= 1 && trenutna <= 9
+          ? trenutna
+          : privzetaStevilkaZaNovPredlog();
     }
+    posodobiModalStevilkeUI();
 
     modal.hidden = false;
     pritrdiUrediModalNaVrh();
@@ -2029,12 +2035,13 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
+    const idMojega = String(odprtPredlog.id);
     mojiPredlogi = mojiPredlogi.map((p) =>
-      p.id === odprtPredlog.id ? { ...p, naslov, besedilo } : p
+      p.id === idMojega ? { ...p, naslov, besedilo } : p
     );
     shraniMojePredlogeVLocalStorage();
     sestaviSeznamPredlogov();
-    izrisiPredloge();
+    nastaviStevilkoPredloga(idMojega, modalIzbranaStevilka);
     if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
     zapriUrediModal();
   }
