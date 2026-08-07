@@ -2622,7 +2622,8 @@ body.stran--samo-seznam #obrazec {
   right: 0;
   z-index: 2;
 
-  width: 88px;
+  /* Širina usklajena z levim robom gumba Uporabi (~92px + odmik). */
+  width: 98px;
   min-height: 44px;
 
   display: inline-flex;
@@ -2984,7 +2985,7 @@ body.stran--samo-seznam #obrazec {
   }
 
   .predlog-kartica > .preview-button {
-    width: 80px;
+    width: 90px;
     padding-right: 6px;
     padding-left: 6px;
   }
