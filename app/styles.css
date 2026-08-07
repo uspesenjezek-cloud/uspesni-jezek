@@ -2916,7 +2916,7 @@ body.stran--samo-seznam #obrazec {
   gap: 0;
 }
 
-/* Noga vedno v dialogu (Push + Izbriši/Shrani) – ne scrolla stran. */
+/* Noga vedno v dialogu (Izbriši/Shrani) – ne scrolla stran. */
 .korak2-modal__noga {
   flex: 0 0 auto;
   z-index: 2;
@@ -2989,13 +2989,13 @@ body.stran--samo-seznam #obrazec {
   cursor: pointer;
 }
 
-/* Omejena višina + notranji scroll – ne potiska gumbov ven. */
+/* Večji okvir (brez Push) + notranji scroll. */
 .korak2-modal__urejevalnik {
   display: block;
   width: 100%;
   flex: 1 1 auto;
-  min-height: 72px;
-  max-height: min(120px, 28dvh);
+  min-height: 120px;
+  max-height: none;
   margin: 0;
   padding: 10px;
   border: 1px solid var(--border-strong);
@@ -3012,51 +3012,6 @@ body.stran--samo-seznam #obrazec {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
-}
-
-.korak2-modal__push {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 36px;
-  margin: 0;
-  padding: 7px 10px;
-  border: 1px solid #d4b06a;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #fff6d6 0%, #f0d48a 55%, #e4c06a 100%);
-  color: #6b4e14;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.65) inset,
-    0 2px 8px rgba(180, 140, 50, 0.18);
-}
-
-.korak2-modal__push-zvezdica {
-  display: inline-flex;
-  color: #c9a227;
-  line-height: 0;
-}
-
-.korak2-modal__push-zvezdica svg {
-  display: block;
-}
-
-.korak2-modal__push:hover {
-  background: linear-gradient(180deg, #fff0c2 0%, #ebcb78 55%, #d9b45a 100%);
-  border-color: #c9a24a;
-}
-
-.korak2-modal__push[aria-pressed="true"] {
-  background: linear-gradient(180deg, #ffe9a8 0%, #e0b84f 55%, #d0a43c 100%);
-  border-color: #b8922e;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.55) inset,
-    0 0 0 2px rgba(201, 162, 39, 0.28);
 }
 
 .korak2-modal__vrsta {

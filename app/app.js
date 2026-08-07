@@ -48,7 +48,7 @@ const KLJUC_SEJE_ZADEVA_DODANA = "neplacilo-zadeva-dodana";
 /* Uporabniško shranjeni predlogi sporočil (localStorage, po obrtniku).
    Kasneje lahko pride sinhronizacija s Supabase - glej modal Predogled. */
 const KLJUC_MOJI_PREDLOGI_OSNOVA = "neplacilo-moji-predlogi";
-/* Vrstni red (številke 1–9) in Push-privzeta predloga – localStorage po uporabniku. */
+/* Vrstni red (številke 1–9) in skrite predloge – localStorage po uporabniku. */
 const KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = "neplacilo-predlogi-nastavitve";
 
 /* Poveže vsak status z eno od 3 kategorij za "semafor" na vrhu strani
@@ -1304,7 +1304,7 @@ function inicializirajSporociloDolzniku() {
   let predlogi = [...vgrajeniPredlogi];
   let kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA;
   let kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
-  let nastavitvePredlogov = { stevilke: {}, pushPredlogId: null, skritiIds: [] };
+  let nastavitvePredlogov = { stevilke: {}, skritiIds: [] };
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
   const pomocPolja = document.getElementById("sporocilo-pomoc");
@@ -1318,7 +1318,6 @@ function inicializirajSporociloDolzniku() {
   const modal = document.getElementById("predogled-modal");
   const modalNaslovVnos = document.getElementById("predogled-naslov-vnos");
   const modalUrejevalnik = document.getElementById("predogled-urejevalnik");
-  const modalPush = document.getElementById("predogled-push");
   const modalIzbrisi = document.getElementById("predogled-izbrisi");
   const modalShrani = document.getElementById("predogled-shrani");
   const modalZapri = document.getElementById("predogled-zapri");
@@ -1438,21 +1437,19 @@ function inicializirajSporociloDolzniku() {
   function naloziNastavitvePredlogov() {
     try {
       const surovo = localStorage.getItem(kljucNastavitev);
-      if (!surovo) return { stevilke: {}, pushPredlogId: null, skritiIds: [] };
+      if (!surovo) return { stevilke: {}, skritiIds: [] };
       const podatki = JSON.parse(surovo);
       return {
         stevilke:
           podatki && podatki.stevilke && typeof podatki.stevilke === "object"
             ? podatki.stevilke
             : {},
-        pushPredlogId:
-          podatki && typeof podatki.pushPredlogId === "string" ? podatki.pushPredlogId : null,
         skritiIds: Array.isArray(podatki && podatki.skritiIds)
           ? podatki.skritiIds.map(String)
           : [],
       };
     } catch (_napaka) {
-      return { stevilke: {}, pushPredlogId: null, skritiIds: [] };
+      return { stevilke: {}, skritiIds: [] };
     }
   }
 
@@ -1513,13 +1510,6 @@ function inicializirajSporociloDolzniku() {
     Object.keys(nastavitvePredlogov.stevilke).forEach((id) => {
       if (!predlogi.some((p) => p.id === id)) delete nastavitvePredlogov.stevilke[id];
     });
-    if (
-      nastavitvePredlogov.pushPredlogId &&
-      !predlogi.some((p) => p.id === nastavitvePredlogov.pushPredlogId)
-    ) {
-      nastavitvePredlogov.pushPredlogId = null;
-    }
-
     predlogi.sort((a, b) => {
       if (a.stevilka !== b.stevilka) return a.stevilka - b.stevilka;
       return a._indeks - b._indeks;
@@ -1595,30 +1585,6 @@ function inicializirajSporociloDolzniku() {
     shraniOsnutekLokalno();
   }
 
-  function nastaviPushPredlog(predlogId, vklop) {
-    if (vklop) {
-      nastavitvePredlogov.pushPredlogId = predlogId;
-      const predlog = predlogi.find((p) => p.id === predlogId);
-      if (predlog) uporabiPredlog(predlog);
-    } else if (nastavitvePredlogov.pushPredlogId === predlogId) {
-      nastavitvePredlogov.pushPredlogId = null;
-    }
-    shraniNastavitvePredlogov();
-    izrisiPredloge();
-    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
-    if (modalPush && odprtPredlog && odprtPredlog.id === predlogId) {
-      modalPush.setAttribute("aria-pressed", vklop ? "true" : "false");
-    }
-  }
-
-  function posodobiModalPushGumb() {
-    if (!modalPush || !odprtPredlog) return;
-    const jePush = nastavitvePredlogov.pushPredlogId === odprtPredlog.id;
-    modalPush.setAttribute("aria-pressed", jePush ? "true" : "false");
-    const oznaka = modalPush.querySelector(".korak2-modal__push-besedilo");
-    if (oznaka) oznaka.textContent = jePush ? "Push vklopljen" : "Push – privzeta predloga";
-  }
-
   const modalDialog = modal ? modal.querySelector(".korak2-modal__dialog") : null;
 
   function posodobiPozicijoUrediModala() {
@@ -1688,11 +1654,6 @@ function inicializirajSporociloDolzniku() {
     odprtPredlog = null;
     if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
-    if (modalPush) {
-      modalPush.setAttribute("aria-pressed", "false");
-      const oznaka = modalPush.querySelector(".korak2-modal__push-besedilo");
-      if (oznaka) oznaka.textContent = "Push – privzeta predloga";
-    }
   }
 
   function odpriUrediModal(predlog) {
@@ -1703,7 +1664,6 @@ function inicializirajSporociloDolzniku() {
     if (modalShrani) {
       modalShrani.textContent = predlog.jeMoj ? "Shrani" : "Shrani kot nov predlog";
     }
-    posodobiModalPushGumb();
     modal.hidden = false;
     pritrdiUrediModalNaVrh();
     // Fokus → tipkovnica; po kratkem zamiku ponovno poravnaj (iOS).
@@ -1791,9 +1751,6 @@ function inicializirajSporociloDolzniku() {
       }
     }
 
-    if (nastavitvePredlogov.pushPredlogId === id) {
-      nastavitvePredlogov.pushPredlogId = null;
-    }
     delete nastavitvePredlogov.stevilke[id];
     if (izbranPredlogId === id) izbranPredlogId = null;
 
@@ -1958,14 +1915,6 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
-  if (modalPush) {
-    modalPush.addEventListener("click", () => {
-      if (!odprtPredlog) return;
-      const jePush = nastavitvePredlogov.pushPredlogId === odprtPredlog.id;
-      nastaviPushPredlog(odprtPredlog.id, !jePush);
-      posodobiModalPushGumb();
-    });
-  }
   if (modalIzbrisi) modalIzbrisi.addEventListener("click", izbrisiOdprtPredlog);
   if (modalShrani) modalShrani.addEventListener("click", shraniPredlogIzModala);
   if (modalZapri) modalZapri.addEventListener("click", zapriUrediModal);
@@ -2035,31 +1984,12 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
-  // Push ne sme prepisati že obnovljenega osnutka.
-  const imaOsnutekBesedila = besediloPolje.value.trim().length > 0;
-  let pushZeUporabljen = false;
-
-  function zagonSPredlogi(moznoUporabiPush) {
+  function zagonSPredlogi() {
     mojiPredlogi = naloziMojePredlogeIzLocalStorage();
     nastavitvePredlogov = naloziNastavitvePredlogov();
     sestaviSeznamPredlogov();
     izrisiPredloge();
-
-    if (
-      moznoUporabiPush &&
-      !pushZeUporabljen &&
-      !imaOsnutekBesedila &&
-      nastavitvePredlogov.pushPredlogId
-    ) {
-      const pushPredlog = predlogi.find((p) => p.id === nastavitvePredlogov.pushPredlogId);
-      if (pushPredlog) {
-        uporabiPredlog(pushPredlog);
-        pushZeUporabljen = true;
-      }
-    } else if (izbranPredlogId) {
-      oznaciIzbranega(izbranPredlogId);
-    }
-
+    if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
     posodobiStanjeUrejevalnika();
   }
 
@@ -2070,7 +2000,7 @@ function inicializirajSporociloDolzniku() {
   });
 
   // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
-  zagonSPredlogi(false);
+  zagonSPredlogi();
   if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
     supabaseKlient.auth
       .getSession()
@@ -2080,13 +2010,11 @@ function inicializirajSporociloDolzniku() {
           kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA + "-" + uid;
           kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA + "-" + uid;
         }
-        zagonSPredlogi(true);
+        zagonSPredlogi();
       })
       .catch(() => {
-        zagonSPredlogi(true);
+        zagonSPredlogi();
       });
-  } else {
-    zagonSPredlogi(true);
   }
 }
 
