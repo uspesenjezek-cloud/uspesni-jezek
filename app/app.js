@@ -1806,7 +1806,69 @@ function inicializirajSporociloDolzniku() {
     return Number.isInteger(s) && s >= 1 && s <= 9 ? s : null;
   }
 
-  function nastaviStevilkoPredloga(predlogId, novaStevilka) {
+  let stevilkaModalZakljuci = null;
+
+  function vprasanjeZamenjaveStevilke(nova, imePredloga) {
+    const modal = document.getElementById("stevilka-modal");
+    const naslovEl = document.getElementById("stevilka-modal-naslov");
+    const opisEl = document.getElementById("stevilka-modal-opis");
+    const preklici = document.getElementById("stevilka-modal-preklici");
+    const potrdi = document.getElementById("stevilka-modal-potrdi");
+    const zapri = document.getElementById("stevilka-modal-zapri");
+    const backdrop = document.getElementById("stevilka-modal-backdrop");
+
+    if (!modal || !naslovEl || !opisEl) return Promise.resolve(false);
+
+    // Če je modal že odprt, prejšnje vprašanje prekliči.
+    if (typeof stevilkaModalZakljuci === "function") {
+      stevilkaModalZakljuci(false);
+    }
+
+    naslovEl.textContent = "Številka " + nova + " je zasedena";
+    opisEl.textContent = "z »" + imePredloga + "«";
+
+    return new Promise((resolve) => {
+      function zakljuci(odgovor) {
+        if (stevilkaModalZakljuci !== zakljuci) return;
+        modal.hidden = true;
+        document.removeEventListener("keydown", obEscape);
+        if (preklici) preklici.removeEventListener("click", obPreklici);
+        if (potrdi) potrdi.removeEventListener("click", obPotrdi);
+        if (zapri) zapri.removeEventListener("click", obPreklici);
+        if (backdrop) backdrop.removeEventListener("click", obPreklici);
+        stevilkaModalZakljuci = null;
+        resolve(odgovor);
+      }
+
+      function obPreklici() {
+        zakljuci(false);
+      }
+
+      function obPotrdi() {
+        zakljuci(true);
+      }
+
+      function obEscape(dogodek) {
+        if (dogodek.key === "Escape" && !modal.hidden) {
+          dogodek.preventDefault();
+          zakljuci(false);
+        }
+      }
+
+      stevilkaModalZakljuci = zakljuci;
+      if (preklici) preklici.addEventListener("click", obPreklici);
+      if (potrdi) potrdi.addEventListener("click", obPotrdi);
+      if (zapri) zapri.addEventListener("click", obPreklici);
+      if (backdrop) backdrop.addEventListener("click", obPreklici);
+      document.addEventListener("keydown", obEscape);
+
+      modal.hidden = false;
+      if (potrdi) potrdi.focus();
+      else if (preklici) preklici.focus();
+    });
+  }
+
+  async function nastaviStevilkoPredloga(predlogId, novaStevilka) {
     const id = String(predlogId);
     const nova = Math.max(1, Math.min(9, Number(novaStevilka) || 1));
     const trenutna = najdiStevilkoPredloga(id);
@@ -1824,18 +1886,9 @@ function inicializirajSporociloDolzniku() {
     });
 
     if (konflikt) {
-      const potrjeno = window.confirm(
-        "Številka " +
-          nova +
-          " je že zasedena s predlogom »" +
-          konflikt.naslov +
-          "«. Ali želite zamenjati vrstni red?\n\n" +
-          "Da = zamenjaj · Prekliči = ostane kot je."
-      );
-      if (!potrjeno) {
-        zapriVseStevilkeIzbire();
-        return;
-      }
+      zapriVseStevilkeIzbire();
+      const potrjeno = await vprasanjeZamenjaveStevilke(nova, konflikt.naslov || "predloga");
+      if (!potrjeno) return;
       nastavitvePredlogov.stevilke[id] = nova;
       if (trenutna != null) {
         nastavitvePredlogov.stevilke[String(konflikt.id)] = trenutna;

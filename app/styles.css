@@ -2415,6 +2415,19 @@ body.stran--samo-seznam #obrazec {
   background: #864039;
 }
 
+.osnutek-modal__ikona--turkiz {
+  background: rgba(77, 148, 148, 0.14);
+  color: var(--color-primary-strong);
+}
+
+.osnutek-modal__potrdi--primary {
+  background: var(--color-primary);
+}
+
+.osnutek-modal__potrdi--primary:hover {
+  background: var(--color-primary-strong);
+}
+
 .korak2 {
   position: relative;
   width: 100%;
