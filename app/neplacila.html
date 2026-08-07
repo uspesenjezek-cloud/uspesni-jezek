@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260807-koraki-klik" />
+    <link rel="stylesheet" href="styles.css?v=20260807-debt-stepper-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -59,27 +59,32 @@
             <p class="obrazec-kartica__osnutek">Osnutek shranjen</p>
           </div>
 
-          <nav class="workflow-progress" data-koraki-postopek aria-label="Napredek postopka">
-            <a href="neplacila.html#obrazec" class="workflow-progress__step is-current" data-korak="1" aria-current="step">
-              <span class="workflow-progress__glava">
-                <span class="workflow-progress__stevilo" aria-hidden="true">1</span>
-                <span class="workflow-progress__label">Vnos dolžnika</span>
+          <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
+            <a
+              href="neplacila.html#obrazec"
+              class="debt-step debt-step--active"
+              data-korak="1"
+              aria-current="step"
+            >
+              <span class="debt-step__label">
+                <span class="debt-step__marker" aria-hidden="true">1</span>
+                <span class="debt-step__text">Vnos dolžnika</span>
               </span>
-              <span class="workflow-progress__line"></span>
+              <span class="debt-step__line" aria-hidden="true"></span>
             </a>
-            <a href="neplacila-sporocilo.html" class="workflow-progress__step is-upcoming" data-korak="2">
-              <span class="workflow-progress__glava">
-                <span class="workflow-progress__stevilo" aria-hidden="true">2</span>
-                <span class="workflow-progress__label">Vnos sporočila</span>
+            <a href="neplacila-sporocilo.html" class="debt-step debt-step--upcoming" data-korak="2">
+              <span class="debt-step__label">
+                <span class="debt-step__marker" aria-hidden="true">2</span>
+                <span class="debt-step__text">Vnos sporočila</span>
               </span>
-              <span class="workflow-progress__line"></span>
+              <span class="debt-step__line" aria-hidden="true"></span>
             </a>
-            <a href="neplacila-posiljanje.html" class="workflow-progress__step is-upcoming" data-korak="3">
-              <span class="workflow-progress__glava">
-                <span class="workflow-progress__stevilo" aria-hidden="true">3</span>
-                <span class="workflow-progress__label">Pošiljanje</span>
+            <a href="neplacila-posiljanje.html" class="debt-step debt-step--upcoming" data-korak="3">
+              <span class="debt-step__label">
+                <span class="debt-step__marker" aria-hidden="true">3</span>
+                <span class="debt-step__text">Pošiljanje</span>
               </span>
-              <span class="workflow-progress__line"></span>
+              <span class="debt-step__line" aria-hidden="true"></span>
             </a>
           </nav>
 
@@ -415,6 +420,6 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js?v=20260807-koraki-klik"></script>
+    <script src="app.js?v=20260807-debt-stepper-v2"></script>
   </body>
 </html>

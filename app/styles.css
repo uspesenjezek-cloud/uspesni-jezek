@@ -2236,8 +2236,8 @@ body.stran--samo-seznam #obrazec {
   white-space: nowrap;
 }
 
-/* Stepper samo na zaslonu »Vnos sporočila« (.stran--sporocilo) */
-.stran--sporocilo .debt-stepper {
+/* Enoten stepper postopka (koraki 1–3) */
+.debt-stepper {
   --step-text: #17322f;
   --step-muted: #5f7571;
   --step-border: #c5d6d2;
@@ -2257,7 +2257,7 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-.stran--sporocilo .debt-step {
+.debt-step {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -2273,17 +2273,17 @@ body.stran--samo-seznam #obrazec {
   -webkit-tap-highlight-color: transparent;
 }
 
-.stran--sporocilo .debt-step.is-clickable {
+.debt-step.is-clickable {
   cursor: pointer;
 }
 
-.stran--sporocilo .debt-step.is-clickable:focus-visible {
+.debt-step.is-clickable:focus-visible {
   outline: 3px solid #347d7e;
   outline-offset: 2px;
   border-radius: 10px;
 }
 
-.stran--sporocilo .debt-step__label {
+.debt-step__label {
   display: flex;
   min-width: 0;
   min-height: 28px;
@@ -2302,7 +2302,7 @@ body.stran--samo-seznam #obrazec {
   white-space: nowrap;
 }
 
-.stran--sporocilo .debt-step__text {
+.debt-step__text {
   display: block;
   min-width: 0;
   overflow: hidden;
@@ -2310,7 +2310,7 @@ body.stran--samo-seznam #obrazec {
   white-space: nowrap;
 }
 
-.stran--sporocilo .debt-step__marker {
+.debt-step__marker {
   display: grid;
   flex: 0 0 20px;
   width: 20px;
@@ -2326,7 +2326,7 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
-.stran--sporocilo .debt-step__marker svg {
+.debt-step__marker svg {
   width: 12px;
   height: 12px;
   fill: none;
@@ -2336,7 +2336,7 @@ body.stran--samo-seznam #obrazec {
   stroke-linejoin: round;
 }
 
-.stran--sporocilo .debt-step__line {
+.debt-step__line {
   display: block;
   width: 100%;
   height: 3px;
@@ -2345,59 +2345,59 @@ body.stran--samo-seznam #obrazec {
   background: #c5d6d2;
 }
 
-.stran--sporocilo .debt-step--complete .debt-step__marker {
+.debt-step--complete .debt-step__marker {
   border-color: #d9efed;
   background: #eaf5f4;
   color: #347d7e;
 }
 
-.stran--sporocilo .debt-step--complete .debt-step__label {
+.debt-step--complete .debt-step__label {
   background: transparent;
   color: #347d7e;
   font-weight: 400;
 }
 
-.stran--sporocilo .debt-step--complete .debt-step__line {
+.debt-step--complete .debt-step__line {
   height: 3px;
   background: #8cbdb9;
 }
 
-.stran--sporocilo .debt-step--active .debt-step__label {
+.debt-step--active .debt-step__label {
   background: #eaf5f4;
   color: #17322f;
   font-weight: 500;
 }
 
-.stran--sporocilo .debt-step--active .debt-step__marker {
+.debt-step--active .debt-step__marker {
   border-color: #51999a;
   background: #51999a;
   color: #ffffff;
 }
 
-.stran--sporocilo .debt-step--active .debt-step__line {
+.debt-step--active .debt-step__line {
   height: 4px;
   background: #51999a;
 }
 
-.stran--sporocilo .debt-step--upcoming .debt-step__marker {
+.debt-step--upcoming .debt-step__marker {
   border-color: #c5d6d2;
   background: #ffffff;
   color: #5f7571;
 }
 
-.stran--sporocilo .debt-step--upcoming .debt-step__label {
+.debt-step--upcoming .debt-step__label {
   background: transparent;
   color: #5f7571;
   font-weight: 400;
 }
 
-.stran--sporocilo .debt-step--upcoming .debt-step__line {
+.debt-step--upcoming .debt-step__line {
   height: 3px;
   background: #c5d6d2;
 }
 
 @media (max-width: 360px) {
-  .stran--sporocilo .debt-step__label {
+  .debt-step__label {
     min-height: 48px;
     flex-direction: column;
     gap: 3px;
@@ -2407,7 +2407,7 @@ body.stran--samo-seznam #obrazec {
     line-height: 1.15;
   }
 
-  .stran--sporocilo .debt-step__text {
+  .debt-step__text {
     width: 100%;
     text-align: center;
   }
