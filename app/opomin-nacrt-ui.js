@@ -1045,6 +1045,8 @@
       var znesekTekst = ctx.znesekTekst;
       var kategorijaTekst = ctx.kategorijaTekst;
       var tonOznaka = ctx.tonOznaka || "—";
+      var predlogaOznaka = ctx.predlogaOznaka || "Ni izbrana";
+      var predlogaPriporocena = Boolean(ctx.predlogaPriporocena);
       var smsBesedilo = ctx.smsBesedilo || "";
       var smsMeta = ctx.smsMeta || "";
       var imaSms = Boolean(String(smsBesedilo).trim());
@@ -1069,7 +1071,7 @@
         "</span>" +
         "</div>" +
         "</div>" +
-        '<div class="step-primary-settings step-primary-settings--samo-ton">' +
+        '<div class="step-primary-settings">' +
         '<button type="button" class="step-setting-tile" data-vsebina="ton" aria-label="Spremeni ton sporočila. Trenutno: ' +
         esc(tonOznaka) +
         '.">' +
@@ -1081,6 +1083,23 @@
         '<span class="step-setting-tile__value">' +
         esc(tonOznaka) +
         "</span>" +
+        "</span>" +
+        '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
+        "</button>" +
+        '<button type="button" class="step-setting-tile" data-vsebina="predloga" aria-label="Spremeni predlogo. Trenutno: ' +
+        esc(predlogaOznaka) +
+        '.">' +
+        '<span class="step-setting-tile__icon" aria-hidden="true">' +
+        IKONA_DOKUMENT +
+        "</span>" +
+        '<span class="step-setting-tile__content">' +
+        '<span class="step-setting-tile__label">Predloga</span>' +
+        '<span class="step-setting-tile__value">' +
+        esc(predlogaOznaka) +
+        "</span>" +
+        (predlogaPriporocena
+          ? '<span class="template-recommended-badge">Priporočeno</span>'
+          : "") +
         "</span>" +
         '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
         "</button>" +
@@ -1118,10 +1137,13 @@
         esc(smsMeta) +
         "</span>" +
         "</div>" +
+        '<div class="sms-preview__ovoj">' +
         '<div class="sms-preview__viewport" role="region" aria-label="Predogled SMS sporočila" tabindex="0">' +
         (imaSms
           ? esc(smsBesedilo)
           : '<span class="sms-preview__prazno">Sporočilo še ni sestavljeno.</span>') +
+        "</div>" +
+        '<span class="sms-preview__fade" aria-hidden="true"></span>' +
         "</div>" +
         '<p class="sms-preview__caption">Celotno sporočilo uredite pri pregledu koraka.</p>' +
         "</div>" +
@@ -1302,11 +1324,17 @@
         var znesekTekst = formatEurIzCentov(plan.amountCents);
         var kategorijaTekst = kategorijaDolgaIzCentov(plan.amountCents);
         var tonOznaka = N.oznakaTona(step.toneId || plan.toneId);
+        var predlogaOznaka = imePredloge(step, k2);
+        var predlogaPriporocena =
+          !step.templateSelectionMode ||
+          step.templateSelectionMode === "automatic";
 
         vsebinaHtml = htmlVsebinaKoraka({
           znesekTekst: znesekTekst,
           kategorijaTekst: kategorijaTekst,
           tonOznaka: tonOznaka,
+          predlogaOznaka: predlogaOznaka,
+          predlogaPriporocena: predlogaPriporocena,
           rokStanje: rokAktiven ? "Vključeno" : "Izklopljeno",
           obrocnoStanje: obrocAktiven ? "Vključeno" : "Izklopljeno",
           trrStanje: trrAktiven ? "Vključeno" : "Izklopljeno",
@@ -1395,7 +1423,7 @@
         '<span class="opomin-nacrt__info-ikona" aria-hidden="true">' +
         IKONA_INFO +
         "</span>" +
-        "<p>Potrjeni koraki se bodo poslali samodejno po časovnici. Načrt se ustavi ob plačilu ali odgovoru dolžnika.</p>" +
+        "<p>Potrjeni koraki se bodo poslali samodejno po časovnici.<br />Načrt se ustavi ob plačilu ali odgovoru dolžnika.</p>" +
         "</div>" +
         '<p class="opomin-nacrt__opozorilo-sivo">Potrditev koraka še ne pošlje sporočila.</p>' +
         '<footer class="opomin-nacrt__noga">' +
@@ -1498,7 +1526,7 @@
             opts.potrdiVprasanje({
               naslov: "Kmalu na voljo",
               opis:
-                "Urejanje tona po korakih pride v naslednji različici. Rok, obročno in TRR pa lahko že urejate tukaj.",
+                "Urejanje tona in predloge po korakih pride v naslednji različici. Rok, obročno in TRR pa lahko že urejate tukaj.",
               potrdiBesedilo: "V redu",
               samoEnGumb: true,
               stil: "primary",
@@ -1506,6 +1534,25 @@
           }
         });
       });
+
+      var smsViewport = opts.glavniEl.querySelector(".sms-preview__viewport");
+      var smsOvoj = opts.glavniEl.querySelector(".sms-preview__ovoj");
+      if (smsViewport && smsOvoj) {
+        function posodobiSmsFade() {
+          var naDnu =
+            smsViewport.scrollTop + smsViewport.clientHeight >=
+            smsViewport.scrollHeight - 4;
+          if (naDnu) smsOvoj.classList.add("is-at-bottom");
+          else smsOvoj.classList.remove("is-at-bottom");
+          if (smsViewport.scrollHeight <= smsViewport.clientHeight + 2) {
+            smsOvoj.classList.add("is-at-bottom");
+          }
+        }
+        smsViewport.addEventListener("scroll", posodobiSmsFade, {
+          passive: true,
+        });
+        posodobiSmsFade();
+      }
 
       var shraniOsnutek = opts.glavniEl.querySelector("#opomin-shrani-osnutek");
       if (shraniOsnutek) {
