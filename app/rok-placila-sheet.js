@@ -65,6 +65,9 @@
     var hitroDnevi = document.getElementById("rok-sheet-hitro-dnevi");
     var hitroTedni = document.getElementById("rok-sheet-hitro-tedni");
     var hitroMeseci = document.getElementById("rok-sheet-hitro-meseci");
+    var povzetekDatum = document.getElementById("rok-sheet-povzetek-datum");
+    var povzetekRel = document.getElementById("rok-sheet-povzetek-rel");
+    var povzetekKoledar = document.getElementById("rok-sheet-povzetek-koledar");
 
     var odprt = false;
     var osnutek = null;
@@ -311,6 +314,7 @@
       preveriDatum();
       pocistiHitriIzbor();
       posodobiHitriIzhodisce();
+      posodobiIzbraniPovzetek();
     }
 
     function preveriDatum() {
@@ -399,7 +403,89 @@
     function oznakaMesecev(n) {
       if (n === 1) return "1 mesec";
       if (n === 2) return "2 meseca";
-      return n + " mesece";
+      return n + " meseci";
+    }
+
+    function formatDolgDatum(yyyyMmDd) {
+      var deli = String(yyyyMmDd || "").split("-");
+      if (deli.length !== 3) {
+        return UJ.formatirajDatumZaPrikaz(yyyyMmDd, "sl") || "—";
+      }
+      var leto = Number(deli[0]);
+      var mesec = Number(deli[1]);
+      var dan = Number(deli[2]);
+      if (!leto || !mesec || !dan) {
+        return UJ.formatirajDatumZaPrikaz(yyyyMmDd, "sl") || "—";
+      }
+      try {
+        return new Intl.DateTimeFormat("sl-SI", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(new Date(leto, mesec - 1, dan));
+      } catch (e) {
+        return UJ.formatirajDatumZaPrikaz(yyyyMmDd, "sl") || "—";
+      }
+    }
+
+    function razlikaKoledarskihDni(od, doDatuma) {
+      var a = String(od || "").split("-").map(Number);
+      var b = String(doDatuma || "").split("-").map(Number);
+      if (a.length !== 3 || b.length !== 3) return null;
+      var da = new Date(a[0], a[1] - 1, a[2]);
+      var db = new Date(b[0], b[1] - 1, b[2]);
+      if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return null;
+      return Math.round((db - da) / 86400000);
+    }
+
+    function relativniOpisRoka(deadline) {
+      if (!deadline) return "";
+      var i;
+      for (i = 1; i <= 4; i++) {
+        if (datumZaHitriIzbor("days", i) === deadline) {
+          return "čez " + oznakaDni(i);
+        }
+      }
+      for (i = 1; i <= 4; i++) {
+        if (datumZaHitriIzbor("weeks", i) === deadline) {
+          return "čez " + oznakaTednov(i);
+        }
+      }
+      for (i = 1; i <= 3; i++) {
+        if (datumZaHitriIzbor("months", i) === deadline) {
+          return "čez " + oznakaMesecev(i);
+        }
+      }
+      if (
+        osnutek &&
+        osnutek.mode === "automatic" &&
+        osnutek.termDays != null &&
+        Number(osnutek.termDays) > 0
+      ) {
+        return "čez " + oznakaDni(Number(osnutek.termDays));
+      }
+      var d = razlikaKoledarskihDni(bazaZaHitriIzbirnik(), deadline);
+      if (d == null) return "";
+      if (d === 0) return "danes";
+      if (d === 1) return "čez 1 dan";
+      if (d > 1) return "čez " + d + " dni";
+      if (d === -1) return "1 dan nazaj";
+      return Math.abs(d) + " dni nazaj";
+    }
+
+    function posodobiIzbraniPovzetek() {
+      if (!povzetekDatum) return;
+      var deadline =
+        (osnutek && osnutek.deadlineDate) ||
+        (datumPolje && datumPolje.value) ||
+        "";
+      if (!deadline) {
+        povzetekDatum.textContent = "—";
+        if (povzetekRel) povzetekRel.textContent = "";
+        return;
+      }
+      povzetekDatum.textContent = formatDolgDatum(deadline);
+      if (povzetekRel) povzetekRel.textContent = relativniOpisRoka(deadline);
     }
 
     function bazaZaHitriIzbirnik() {
@@ -460,37 +546,44 @@
       posodobiHitriIzhodisce();
       if (!osnutek) {
         pocistiHitriIzbor();
+        posodobiIzbraniPovzetek();
         return;
       }
       if (osnutek.mode === "automatic") {
         pocistiHitriIzbor();
+        posodobiIzbraniPovzetek();
         return;
       }
       var deadline = osnutek.deadlineDate || (datumPolje && datumPolje.value) || "";
       if (!deadline) {
         pocistiHitriIzbor();
+        posodobiIzbraniPovzetek();
         return;
       }
       var i;
       for (i = 1; i <= 4; i++) {
         if (datumZaHitriIzbor("days", i) === deadline) {
           oznaciHitriGumb("days", i);
+          posodobiIzbraniPovzetek();
           return;
         }
       }
       for (i = 1; i <= 4; i++) {
         if (datumZaHitriIzbor("weeks", i) === deadline) {
           oznaciHitriGumb("weeks", i);
+          posodobiIzbraniPovzetek();
           return;
         }
       }
       for (i = 1; i <= 3; i++) {
         if (datumZaHitriIzbor("months", i) === deadline) {
           oznaciHitriGumb("months", i);
+          posodobiIzbraniPovzetek();
           return;
         }
       }
       pocistiHitriIzbor();
+      posodobiIzbraniPovzetek();
     }
 
     function uporabiHitriIzbor(enota, n) {
@@ -510,6 +603,7 @@
       oznaciRokPriporociloSpremenjeno();
       posodobiPomoc();
       preveriDatum();
+      posodobiIzbraniPovzetek();
     }
 
     function zgradiHitriGrid(grid, enota, odN, doN, oznakaFn) {
@@ -521,7 +615,7 @@
           b.className = "rok-sheet__hitro-gumb";
           b.dataset.enota = enota;
           b.dataset.n = String(st);
-          b.textContent = String(st);
+          b.textContent = oznakaFn(st);
           b.setAttribute("role", "option");
           b.setAttribute("aria-selected", "false");
           b.setAttribute("aria-label", oznakaFn(st));
@@ -1026,6 +1120,21 @@
         }
         preveriDatum();
         syncHitriIzbirnikIzDatuma();
+      });
+    }
+
+    if (povzetekKoledar && datumPolje) {
+      povzetekKoledar.addEventListener("click", function () {
+        if (typeof datumPolje.showPicker === "function") {
+          try {
+            datumPolje.showPicker();
+            return;
+          } catch (e) {
+            /* fallback spodaj */
+          }
+        }
+        datumPolje.focus();
+        datumPolje.click();
       });
     }
 

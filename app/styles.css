@@ -5200,8 +5200,16 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 /* Rok: fiksna višina panela – ne skače ob priporočilu / hitrem izbirniku / napaki. */
 #rok-sheet .rok-sheet__panel {
+  --rok-text: #213d3e;
+  --rok-muted: #607777;
+  --rok-teal: #5fa8aa;
+  --rok-teal-soft: #f1f8f8;
+  --rok-teal-icon: #eaf5f5;
+  --rok-border: #c9dada;
+  --rok-summary-bg: #f5fafa;
   height: min(92dvh, 92vh);
   max-height: min(92dvh, 92vh);
+  border-radius: 24px 24px 0 0;
 }
 
 #rok-sheet .rok-sheet__rocaj,
@@ -5212,6 +5220,64 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 #rok-sheet .rok-sheet__napaka {
   min-height: 1.35em;
+}
+
+#rok-sheet .rok-sheet__naslov {
+  color: var(--rok-text);
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#rok-sheet .rok-sheet__zapri {
+  width: 40px;
+  height: 40px;
+  color: var(--rok-muted);
+  font-size: 1.35rem;
+}
+
+#rok-sheet .recommendation-host {
+  margin: 0 0 28px;
+}
+
+#rok-sheet .recommendation-card {
+  padding: 20px;
+  border-radius: 22px;
+}
+
+#rok-sheet .recommendation-card__star {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(229, 169, 0, 0.14);
+  font-size: 1.15rem;
+}
+
+#rok-sheet .recommendation-card__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+#rok-sheet .recommendation-card__description {
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+#rok-sheet .recommendation-card__actions {
+  gap: 12px;
+  margin-top: 16px;
+}
+
+#rok-sheet .recommendation-card__button {
+  min-height: 52px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+}
+
+#rok-sheet .recommendation-card__button--ignore {
+  background: #ffffff;
 }
 
 .rok-sheet__rocaj {
@@ -5461,14 +5527,18 @@ body.obrocno-sheet-odprt .korak2__noga {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 4px 0 16px;
+  margin: 8px 0 20px;
   cursor: pointer;
 }
 
 .rok-sheet__stikalo-besedilo {
   color: #243d3d;
-  font-size: 0.92rem;
-  font-weight: 400;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+#rok-sheet .rok-sheet__stikalo-besedilo {
+  color: var(--rok-text);
 }
 
 .rok-sheet__stikalo input {
@@ -5513,84 +5583,231 @@ body.obrocno-sheet-odprt .korak2__noga {
   display: block;
   margin: 0 0 8px;
   color: #243d3d;
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+#rok-sheet .rok-sheet__oznaka {
+  color: var(--rok-text);
 }
 
 /* Hitra izbira: 3 kartice v vrsti, mreža gumbov znotraj */
 .rok-sheet__hitro {
-  margin: 0 0 14px;
+  margin: 0 0 20px;
 }
 
 .rok-sheet__hitro-naslov {
   margin: 0 0 4px;
-  color: #243d3d;
-  font-size: 0.92rem;
-  font-weight: 650;
+  color: #213d3e;
+  font-size: 1.35rem;
+  font-weight: 700;
   line-height: 1.25;
 }
 
 .rok-sheet__hitro-izhodisce {
-  margin: 0 0 10px;
-  color: var(--muted, #718585);
-  font-size: 0.8rem;
+  margin: 0 0 16px;
+  color: #607777;
+  font-size: 0.95rem;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .rok-sheet__hitro-mreza {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .rok-sheet__hitro-kartica {
   min-width: 0;
-  padding: 8px 6px;
-  border: 1px solid var(--border, #c4d7d5);
-  border-radius: 12px;
+  padding: 12px 8px;
+  border: 1px solid #c9dada;
+  border-radius: 18px;
   background: #ffffff;
   box-sizing: border-box;
 }
 
+.rok-sheet__hitro-kartica-glava {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  min-width: 0;
+}
+
+.rok-sheet__hitro-kartica-ikona {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f1f8f8;
+  color: #5fa8aa;
+}
+
+.rok-sheet__hitro-kartica-ikona svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
 .rok-sheet__hitro-kartica-naslov {
-  margin: 0 0 6px;
-  color: #243d3d;
-  font-size: 0.72rem;
+  margin: 0;
+  min-width: 0;
+  color: #213d3e;
+  font-size: 0.95rem;
   font-weight: 650;
-  text-align: center;
   line-height: 1.2;
 }
 
 .rok-sheet__hitro-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .rok-sheet__hitro-gumb {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 34px;
+  min-height: 48px;
   margin: 0;
-  padding: 0;
-  border: 1px solid #c4d7d5;
-  border-radius: 10px;
+  padding: 6px 4px;
+  border: 1px solid #c9dada;
+  border-radius: 14px;
   background: #ffffff;
-  color: #243d3d;
+  color: #213d3e;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
   box-sizing: border-box;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .rok-sheet__hitro-gumb[aria-selected="true"] {
-  border-color: #5aa3a5;
-  background: #5aa3a5;
+  border: 2px solid #5fa8aa;
+  background: #f1f8f8;
+  color: #213d3e;
+  padding: 5px 3px;
+}
+
+.rok-sheet__hitro-gumb[aria-selected="true"]::after {
+  content: "✓";
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #5fa8aa;
   color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(33, 61, 62, 0.16);
+}
+
+.rok-sheet__hitro-gumb:focus-visible {
+  outline: 2px solid #5fa8aa;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .rok-sheet__hitro-gumb:hover {
+    background: #f7fbfb;
+    border-color: #5fa8aa;
+  }
+}
+
+/* Povzetek izbranega roka */
+.rok-sheet__povzetek {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 16px;
+  border: 1px solid #c9dada;
+  border-radius: 20px;
+  background: #f5fafa;
+  box-sizing: border-box;
+}
+
+.rok-sheet__povzetek-ikona {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #eaf5f5;
+  color: #5fa8aa;
+}
+
+.rok-sheet__povzetek-ikona svg {
+  display: block;
+}
+
+.rok-sheet__povzetek-tekst {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rok-sheet__povzetek-oznaka {
+  margin: 0 0 2px;
+  color: #607777;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.rok-sheet__povzetek-datum {
+  margin: 0;
+  color: #5fa8aa;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.rok-sheet__povzetek-rel {
+  margin: 2px 0 0;
+  color: #607777;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.rok-sheet__povzetek-rel:empty {
+  display: none;
+}
+
+.rok-sheet__povzetek-koledar {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #5fa8aa;
+  cursor: pointer;
+}
+
+.rok-sheet__povzetek-koledar:focus-visible {
+  outline: 2px solid #5fa8aa;
+  outline-offset: 2px;
 }
 
 @media (max-width: 360px) {
@@ -5599,12 +5816,55 @@ body.obrocno-sheet-odprt .korak2__noga {
   }
 
   .rok-sheet__hitro-kartica {
-    padding: 6px 4px;
+    padding: 8px 5px;
+  }
+
+  .rok-sheet__hitro-kartica-ikona {
+    width: 28px;
+    height: 28px;
+  }
+
+  .rok-sheet__hitro-kartica-ikona svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .rok-sheet__hitro-kartica-naslov {
+    font-size: 0.82rem;
   }
 
   .rok-sheet__hitro-gumb {
-    min-height: 30px;
-    font-size: 0.8rem;
+    min-height: 42px;
+    font-size: 0.7rem;
+  }
+
+  .rok-sheet__povzetek {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .rok-sheet__povzetek-ikona {
+    width: 42px;
+    height: 42px;
+  }
+
+  .rok-sheet__povzetek-datum {
+    font-size: 1.1rem;
+  }
+}
+
+@media (min-width: 400px) {
+  .rok-sheet__hitro-mreza {
+    gap: 12px;
+  }
+
+  .rok-sheet__hitro-kartica {
+    padding: 14px 10px;
+  }
+
+  .rok-sheet__hitro-gumb {
+    min-height: 54px;
+    font-size: 0.88rem;
   }
 }
 
@@ -5644,12 +5904,12 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__datum {
   width: 100%;
-  min-height: 48px;
-  padding: 10px 40px 10px 12px;
-  border: 1px solid #c4d7d5;
-  border-radius: 12px;
+  min-height: 56px;
+  padding: 12px 48px 12px 14px;
+  border: 1px solid #c9dada;
+  border-radius: 16px;
   background: #ffffff;
-  color: #243d3d;
+  color: #213d3d;
   font: inherit;
   font-size: 16px;
   box-sizing: border-box;
@@ -5663,21 +5923,21 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__datum-ikona {
   position: absolute;
-  right: 12px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #5aa3a5;
+  color: #5fa8aa;
   pointer-events: none;
 }
 
 .rok-sheet__pomoc {
   display: flex;
   align-items: flex-start;
-  gap: 5px;
-  margin: 0 0 6px;
+  gap: 6px;
+  margin: 0 0 8px;
   color: #6a7f7a;
-  font-size: 0.75rem;
-  line-height: 1.35;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .rok-sheet__pomoc--priporoceno {
@@ -5687,9 +5947,9 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__pomoc-zvezda {
   flex-shrink: 0;
-  color: #e8b923;
-  font-size: 0.78rem;
-  line-height: 1.35;
+  color: #e5a900;
+  font-size: 0.95rem;
+  line-height: 1.4;
   text-shadow: 0 0 0 #c9a227;
 }
 
@@ -5747,36 +6007,36 @@ body.obrocno-sheet-odprt .korak2__noga {
 .rok-sheet__noga-vrsta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .rok-sheet__noga {
   flex-shrink: 0;
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid #dce7e4;
   background: #ffffff;
 }
 
 .rok-sheet__gumb {
-  min-height: 46px;
+  min-height: 52px;
   margin: 0;
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .rok-sheet__gumb--obris {
-  border: 1px solid #5aa3a5;
+  border: 1px solid #5fa8aa;
   background: #ffffff;
-  color: #347d7e;
+  color: #5fa8aa;
 }
 
 .rok-sheet__gumb--primarni {
-  border: 1px solid #5aa3a5;
-  background: #5aa3a5;
+  border: 1px solid #5fa8aa;
+  background: #5fa8aa;
   color: #ffffff;
 }
 
