@@ -451,7 +451,7 @@
           return "čez " + oznakaTednov(i);
         }
       }
-      for (i = 1; i <= 3; i++) {
+      for (i = 1; i <= 4; i++) {
         if (datumZaHitriIzbor("months", i) === deadline) {
           return "čez " + oznakaMesecev(i);
         }
@@ -575,7 +575,7 @@
           return;
         }
       }
-      for (i = 1; i <= 3; i++) {
+      for (i = 1; i <= 4; i++) {
         if (datumZaHitriIzbor("months", i) === deadline) {
           oznaciHitriGumb("months", i);
           posodobiIzbraniPovzetek();
@@ -615,7 +615,7 @@
           b.className = "rok-sheet__hitro-gumb";
           b.dataset.enota = enota;
           b.dataset.n = String(st);
-          b.textContent = oznakaFn(st);
+          b.textContent = String(st);
           b.setAttribute("role", "option");
           b.setAttribute("aria-selected", "false");
           b.setAttribute("aria-label", oznakaFn(st));
@@ -630,7 +630,7 @@
     function zgradiHitriIzbirnik() {
       zgradiHitriGrid(hitroDnevi, "days", 1, 4, oznakaDni);
       zgradiHitriGrid(hitroTedni, "weeks", 1, 4, oznakaTednov);
-      zgradiHitriGrid(hitroMeseci, "months", 1, 3, oznakaMesecev);
+      zgradiHitriGrid(hitroMeseci, "months", 1, 4, oznakaMesecev);
     }
 
     function napolniUiIzOsnutka() {
