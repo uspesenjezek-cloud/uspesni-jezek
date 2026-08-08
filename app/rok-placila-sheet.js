@@ -621,6 +621,27 @@
       }
     }
 
+    /** Zapri brez onClose – npr. ob zaprtju urejevalnika predloge. */
+    function zapriNaSilo() {
+      pendingOnClose = null;
+      odprt = false;
+      zapiranjeDovoljeno = false;
+      forsiraPriporocilo = false;
+      forsiraToneId = null;
+      forsiraTermDays = null;
+      osnutek = null;
+      osnutekPrivzetih = null;
+      if (casovnikZapiranja) {
+        window.clearTimeout(casovnikZapiranja);
+        casovnikZapiranja = null;
+      }
+      document.removeEventListener("keydown", onKeydown, true);
+      skrijUrediPrivzeto();
+      nastaviNapako(false);
+      if (sheet) sheet.hidden = true;
+      document.body.classList.remove("rok-sheet-odprt");
+    }
+
     function ugotoviJezik() {
       var pd = ctx.getPaymentDeadline();
       if (pd && pd.messageLanguage) return pd.messageLanguage;
@@ -878,7 +899,7 @@
       });
     }
 
-    return { odpri: odpriSheet, zapri: zapriSheet };
+    return { odpri: odpriSheet, zapri: zapriSheet, zapriNaSilo: zapriNaSilo };
   }
 
   root.inicializirajRokPlacilaSheet = inicializirajRokPlacilaSheet;

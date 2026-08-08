@@ -2930,6 +2930,39 @@ function inicializirajSporociloDolzniku() {
     return "Predlagani";
   }
 
+  function ocistiSheetLockPoUrediModalu() {
+    predlogaSheetAktiven = false;
+    predlogaSheetSaved = false;
+    predlogaDraftDeadline = null;
+    predlogaDraftPlan = null;
+    modalDodatkiKlikPavzaDo = 0;
+    if (modalDodatkiPavzaCasovnik) {
+      clearTimeout(modalDodatkiPavzaCasovnik);
+      modalDodatkiPavzaCasovnik = null;
+    }
+    if (modal) modal.classList.remove("template-editor--sheet-pavza");
+    // Zapri sheete brez onClose (brez shranjevanja osnutka) in odkleni scroll.
+    try {
+      if (obrocnoSheetApi && typeof obrocnoSheetApi.zapriNaSilo === "function") {
+        obrocnoSheetApi.zapriNaSilo();
+      }
+    } catch (_e) {
+      /* ignore */
+    }
+    try {
+      if (rokSheetApi && typeof rokSheetApi.zapriNaSilo === "function") {
+        rokSheetApi.zapriNaSilo();
+      }
+    } catch (_e2) {
+      /* ignore */
+    }
+    document.body.classList.remove("obrocno-sheet-odprt", "rok-sheet-odprt");
+    const obEl = document.getElementById("obrocno-sheet");
+    if (obEl) obEl.hidden = true;
+    const rokEl = document.getElementById("rok-sheet");
+    if (rokEl) rokEl.hidden = true;
+  }
+
   async function zapriUrediModal(opcije) {
     if (!modal) return;
     const vsili = Boolean(opcije && opcije.vsili);
@@ -2943,6 +2976,7 @@ function inicializirajSporociloDolzniku() {
       });
       if (!zavrzi) return;
     }
+    ocistiSheetLockPoUrediModalu();
     odstraniPritrditevUrediModala();
     modal.hidden = true;
     odkleniOzadjeZaUrediModal();
@@ -2950,9 +2984,6 @@ function inicializirajSporociloDolzniku() {
     odprtPredlog = null;
     originalTemplateSnapshot = null;
     recommendationSnapshot = null;
-    predlogaSheetAktiven = false;
-    predlogaDraftDeadline = null;
-    predlogaDraftPlan = null;
     if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
     if (modalIzbrisi) modalIzbrisi.hidden = false;

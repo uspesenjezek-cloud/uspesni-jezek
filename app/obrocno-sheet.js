@@ -192,6 +192,22 @@
       window.scrollTo(0, scrollY);
     }
 
+    /** Zapri brez onClose – npr. ob zaprtju urejevalnika predloge. */
+    function zapriNaSilo() {
+      pendingOnClose = null;
+      forsiraPriporocilo = false;
+      forsiraToneId = null;
+      odprt = false;
+      if (sheet) sheet.hidden = true;
+      izklopiViewportPoslusalce();
+      if (scrollFokusCasovnik) clearTimeout(scrollFokusCasovnik);
+      osnutek = null;
+      draftEnabled = false;
+      originalEnabled = false;
+      originalPlan = null;
+      odkleniOzadje();
+    }
+
     function premakniKarticoVVidno(el) {
       if (!el) return;
       if (scrollFokusCasovnik) clearTimeout(scrollFokusCasovnik);
@@ -1634,7 +1650,12 @@
       }
     });
 
-    return { odpri: odpri, zapri: zapriSheet, posodobiZunanjoKartico: posodobiZunanjoKartico };
+    return {
+      odpri: odpri,
+      zapri: zapriSheet,
+      zapriNaSilo: zapriNaSilo,
+      posodobiZunanjoKartico: posodobiZunanjoKartico,
+    };
   }
 
   root.inicializirajObrocnoSheet = inicializirajObrocnoSheet;

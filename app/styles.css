@@ -5004,10 +5004,12 @@ body.obrocno-sheet-odprt .korak2__noga {
   pointer-events: none;
 }
 
-/* Mobilni celozaslonski urejevalnik Obročno (≤600px) */
+/* Mobilni celozaslonski urejevalnik Obročno (≤600px).
+   z-index mora biti ≥ urejevalnika predloge (2000), sicer sheet ostane
+   zadaj in body.obrocno-sheet-odprt zaklene scroll za vedno. */
 @media (max-width: 600px) {
   .obrocno-sheet:not([hidden]) {
-    z-index: 1000;
+    z-index: 2100;
   }
 
   .obrocno-sheet .rok-sheet__backdrop {
@@ -5094,10 +5096,10 @@ body.obrocno-sheet-odprt .korak2__noga {
   touch-action: none;
 }
 
-/* Obročno mora biti nad »Nadaljuj na pošiljanje« (tudi znotraj ≤600px). */
+/* Obročno: isto kot Rok (nad urejevalnikom predloge in korak2 nogo). */
 @media (max-width: 600px) {
   .rok-sheet.obrocno-sheet:not([hidden]) {
-    z-index: 1000;
+    z-index: 2100;
   }
 }
 
@@ -5677,7 +5679,7 @@ body.rok-sheet-odprt {
 
 body.template-editor-odprt {
   overflow: hidden !important;
-  touch-action: none;
+  /* Brez touch-action: none – na iOS zlomi scroll v .template-editor__content. */
 }
 
 .template-editor:not([hidden]) {
@@ -5694,8 +5696,9 @@ body.template-editor-odprt {
   overflow: hidden;
 }
 
-/* Kratek čas po zaprtju Roka/Obročnega: tap ne sme zadeti kartic dodatkov. */
-.template-editor.template-editor--sheet-pavza {
+/* Kratek čas po zaprtju sheeta: samo kartice dodatkov, ne celoten scroll. */
+.template-editor.template-editor--sheet-pavza .template-addons,
+.template-editor.template-editor--sheet-pavza .template-addons .sporocilo-dodatek {
   pointer-events: none !important;
 }
 
@@ -5755,6 +5758,7 @@ body.template-editor-odprt {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 16px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
