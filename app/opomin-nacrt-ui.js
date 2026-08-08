@@ -128,6 +128,32 @@
     return d.toISOString();
   }
 
+  function dneviOdDanes(iso) {
+    var d = iso ? new Date(iso) : new Date();
+    if (Number.isNaN(d.getTime())) d = new Date();
+    var baza = new Date();
+    baza.setHours(12, 0, 0, 0);
+    var t = new Date(d);
+    t.setHours(12, 0, 0, 0);
+    return Math.max(0, Math.round((t.getTime() - baza.getTime()) / 86400000));
+  }
+
+  function isoIzDniOdDanes(dnevi, ohraniUroIso) {
+    var baza = new Date();
+    var ura = 12;
+    var min = 0;
+    if (ohraniUroIso) {
+      var stari = new Date(ohraniUroIso);
+      if (!Number.isNaN(stari.getTime())) {
+        ura = stari.getHours();
+        min = stari.getMinutes();
+      }
+    }
+    baza.setHours(ura, min, 0, 0);
+    baza.setDate(baza.getDate() + Math.max(0, Number(dnevi) || 0));
+    return baza.toISOString();
+  }
+
   function isoZaDatetimeLocal(iso) {
     var d = iso ? new Date(iso) : new Date();
     if (Number.isNaN(d.getTime())) d = new Date();
@@ -256,6 +282,9 @@
     var pokaziZakaj = false;
     var casSheetShiftFollowing = true;
     var casSheetIndex = null;
+    /* "trenutni" = čas tega koraka; "naslednji" = razmik do naslednjega */
+    var casSheetNacin = "trenutni";
+    var casSheetBaseIndex = null;
 
     /* Delovne kopije dodatkov (isti sheeti kot na 2. koraku). */
     var k2Seja = opts.podatkiKorak2 || {};
@@ -564,6 +593,10 @@
 
     function zagotoviCasSheet() {
       var el = document.getElementById("opomin-cas-sheet");
+      if (el && !document.getElementById("opomin-cas-sheet-dnevi")) {
+        el.remove();
+        el = null;
+      }
       if (el) return el;
       el = document.createElement("div");
       el.id = "opomin-cas-sheet";
@@ -578,10 +611,18 @@
         '<button type="button" class="opomin-cas-sheet__zapri" id="opomin-cas-sheet-zapri" aria-label="Zapri"><span aria-hidden="true">×</span></button>' +
         "</div>" +
         '<div class="opomin-cas-sheet__telo">' +
-        '<label class="opomin-cas-sheet__oznaka" for="opomin-cas-sheet-datum">Datum</label>' +
-        '<input type="date" id="opomin-cas-sheet-datum" class="opomin-cas-sheet__input" />' +
+        '<p class="opomin-cas-sheet__namig">Zgoraj dnevi in ura · spodaj točen datum</p>' +
+        '<label class="opomin-cas-sheet__oznaka" id="opomin-cas-sheet-dnevi-label" for="opomin-cas-sheet-dnevi">Dnevi</label>' +
+        '<div class="opomin-nacrt__dnevi-krmilnik">' +
+        '<button type="button" class="opomin-nacrt__dnevi-btn" id="opomin-cas-sheet-dnevi-minus" aria-label="Manj dni">−</button>' +
+        '<input type="number" id="opomin-cas-sheet-dnevi" class="opomin-nacrt__dnevi-input" min="0" max="365" step="1" value="0" aria-label="Število dni" />' +
+        '<button type="button" class="opomin-nacrt__dnevi-btn" id="opomin-cas-sheet-dnevi-plus" aria-label="Več dni">+</button>' +
+        '<span class="opomin-nacrt__dnevi-enota">dni</span>' +
+        "</div>" +
         '<label class="opomin-cas-sheet__oznaka" for="opomin-cas-sheet-ura">Ura</label>' +
         '<input type="time" id="opomin-cas-sheet-ura" class="opomin-cas-sheet__input" />' +
+        '<label class="opomin-cas-sheet__oznaka" for="opomin-cas-sheet-datum">Datum</label>' +
+        '<input type="date" id="opomin-cas-sheet-datum" class="opomin-cas-sheet__input" />' +
         '<div class="opomin-cas-sheet__stikalo-ovoj" id="opomin-cas-sheet-stikalo-ovoj">' +
         '<button type="button" class="opomin-nacrt__switch opomin-nacrt__switch--on" id="opomin-cas-sheet-shift" role="switch" aria-checked="true" aria-label="Prestavi tudi naslednje korake">' +
         '<span class="opomin-nacrt__switch-gumb" aria-hidden="true"></span></button>' +
@@ -601,18 +642,75 @@
       function zapri() {
         el.hidden = true;
         casSheetIndex = null;
+        casSheetBaseIndex = null;
+        casSheetNacin = "trenutni";
         document.documentElement.classList.remove("uj-modal-odprt");
         document.body.classList.remove("uj-modal-odprt");
       }
 
-      function osveziPredogled() {
+      function preberiIsoIzPolj() {
         var datumEl = document.getElementById("opomin-cas-sheet-datum");
         var uraEl = document.getElementById("opomin-cas-sheet-ura");
+        if (!datumEl || !uraEl) return null;
+        return isoIzDateInTime(datumEl.value, uraEl.value);
+      }
+
+      function syncDatumIzDni() {
+        var dneviEl = document.getElementById("opomin-cas-sheet-dnevi");
+        var datumEl = document.getElementById("opomin-cas-sheet-datum");
+        var uraEl = document.getElementById("opomin-cas-sheet-ura");
+        if (!dneviEl || !datumEl || !uraEl || casSheetIndex == null) return;
+        var dnevi = Math.max(0, Math.round(Number(dneviEl.value) || 0));
+        dneviEl.value = String(dnevi);
+        var ura = uraEl.value || "12:00";
+        if (casSheetNacin === "naslednji") {
+          var bazaStep = N.najdiKorak(plan, casSheetBaseIndex);
+          var osnovni = bazaStep
+            ? new Date(bazaStep.sendAt || bazaStep.scheduledAt)
+            : new Date();
+          if (Number.isNaN(osnovni.getTime())) osnovni = new Date();
+          var nov = new Date(osnovni.getTime());
+          nov.setDate(nov.getDate() + dnevi);
+          datumEl.value = isoZaDateInput(nov.toISOString());
+          var ure = String(ura).split(":").map(Number);
+          nov.setHours(ure[0] || 0, ure[1] || 0, 0, 0);
+        } else {
+          var iso = isoIzDniOdDanes(dnevi, null);
+          datumEl.value = isoZaDateInput(iso);
+          var ure2 = String(ura).split(":").map(Number);
+          var d2 = new Date(iso);
+          d2.setHours(ure2[0] || 0, ure2[1] || 0, 0, 0);
+          datumEl.value = isoZaDateInput(d2.toISOString());
+        }
+      }
+
+      function syncDneviIzDatuma() {
+        var dneviEl = document.getElementById("opomin-cas-sheet-dnevi");
+        var datumEl = document.getElementById("opomin-cas-sheet-datum");
+        var uraEl = document.getElementById("opomin-cas-sheet-ura");
+        if (!dneviEl || !datumEl || !uraEl || !datumEl.value) return;
+        var iso = isoIzDateInTime(datumEl.value, uraEl.value || "12:00");
+        if (!iso) return;
+        if (casSheetNacin === "naslednji") {
+          var bazaStep = N.najdiKorak(plan, casSheetBaseIndex);
+          var osnovniIso =
+            (bazaStep && (bazaStep.sendAt || bazaStep.scheduledAt)) || null;
+          var raz =
+            typeof N.koledarskiDneviMed === "function"
+              ? N.koledarskiDneviMed(osnovniIso, iso)
+              : dneviOdDanes(iso);
+          dneviEl.value = String(Math.max(0, Number(raz) || 0));
+        } else {
+          dneviEl.value = String(dneviOdDanes(iso));
+        }
+      }
+
+      function osveziPredogled() {
         var predogled = document.getElementById("opomin-cas-sheet-predogled");
         var napakaEl = document.getElementById("opomin-cas-sheet-napaka");
         var shraniBtn = document.getElementById("opomin-cas-sheet-shrani");
-        if (!datumEl || !uraEl || casSheetIndex == null) return;
-        var iso = isoIzDateInTime(datumEl.value, uraEl.value);
+        if (casSheetIndex == null) return;
+        var iso = preberiIsoIzPolj();
         var v = N.validirajCasKoraka
           ? N.validirajCasKoraka(
               plan,
@@ -690,22 +788,63 @@
         });
       }
 
-      ["opomin-cas-sheet-datum", "opomin-cas-sheet-ura"].forEach(function (id) {
-        var input = el.querySelector("#" + id);
-        if (input) {
-          input.addEventListener("input", osveziPredogled);
-          input.addEventListener("change", osveziPredogled);
-        }
-      });
+      var dneviMinus = el.querySelector("#opomin-cas-sheet-dnevi-minus");
+      var dneviPlus = el.querySelector("#opomin-cas-sheet-dnevi-plus");
+      var dneviInput = el.querySelector("#opomin-cas-sheet-dnevi");
+      if (dneviMinus) {
+        dneviMinus.addEventListener("click", function () {
+          if (!dneviInput) return;
+          dneviInput.value = String(
+            Math.max(0, (Number(dneviInput.value) || 0) - 1)
+          );
+          syncDatumIzDni();
+          osveziPredogled();
+        });
+      }
+      if (dneviPlus) {
+        dneviPlus.addEventListener("click", function () {
+          if (!dneviInput) return;
+          dneviInput.value = String(
+            Math.min(365, (Number(dneviInput.value) || 0) + 1)
+          );
+          syncDatumIzDni();
+          osveziPredogled();
+        });
+      }
+      if (dneviInput) {
+        dneviInput.addEventListener("input", function () {
+          syncDatumIzDni();
+          osveziPredogled();
+        });
+        dneviInput.addEventListener("change", function () {
+          syncDatumIzDni();
+          osveziPredogled();
+        });
+      }
+
+      var uraEl = el.querySelector("#opomin-cas-sheet-ura");
+      if (uraEl) {
+        uraEl.addEventListener("input", osveziPredogled);
+        uraEl.addEventListener("change", osveziPredogled);
+      }
+      var datumEl = el.querySelector("#opomin-cas-sheet-datum");
+      if (datumEl) {
+        datumEl.addEventListener("input", function () {
+          syncDneviIzDatuma();
+          osveziPredogled();
+        });
+        datumEl.addEventListener("change", function () {
+          syncDneviIzDatuma();
+          osveziPredogled();
+        });
+      }
 
       el.querySelector("#opomin-cas-sheet-shrani").addEventListener(
         "click",
         function () {
-          var datumEl = document.getElementById("opomin-cas-sheet-datum");
-          var uraEl = document.getElementById("opomin-cas-sheet-ura");
           var shraniBtn = document.getElementById("opomin-cas-sheet-shrani");
-          if (!datumEl || !uraEl || casSheetIndex == null) return;
-          var iso = isoIzDateInTime(datumEl.value, uraEl.value);
+          if (casSheetIndex == null) return;
+          var iso = preberiIsoIzPolj();
           var v = N.validirajCasKoraka(
             plan,
             casSheetIndex,
@@ -728,16 +867,29 @@
 
       el._ujOsveziPredogled = osveziPredogled;
       el._ujZapri = zapri;
+      el._ujSyncDneviIzDatuma = syncDneviIzDatuma;
       return el;
     }
 
-    function odpriCasSheet(index) {
-      var step = N.najdiKorak(plan, index);
+    function odpriCasSheet(index, nacin) {
+      var nacinOdprtja = nacin === "naslednji" ? "naslednji" : "trenutni";
+      var baseIndex = Number(index);
+      var targetIndex =
+        nacinOdprtja === "naslednji" ? baseIndex + 1 : baseIndex;
+      var step = N.najdiKorak(plan, targetIndex);
       if (!step || (N.jeKorakPremakljiv && !N.jeKorakPremakljiv(step))) return;
+      if (nacinOdprtja === "naslednji") {
+        var baza = N.najdiKorak(plan, baseIndex);
+        if (!baza) return;
+      }
+
       var sheet = zagotoviCasSheet();
-      casSheetIndex = index;
+      casSheetNacin = nacinOdprtja;
+      casSheetBaseIndex = baseIndex;
+      casSheetIndex = targetIndex;
       casSheetShiftFollowing = true;
-      var imaNaslednje = Boolean(N.najdiKorak(plan, index + 1));
+
+      var imaNaslednje = Boolean(N.najdiKorak(plan, targetIndex + 1));
       var stikaloOvoj = document.getElementById("opomin-cas-sheet-stikalo-ovoj");
       if (stikaloOvoj) stikaloOvoj.hidden = !imaNaslednje;
       var shiftBtn = document.getElementById("opomin-cas-sheet-shift");
@@ -745,16 +897,48 @@
         shiftBtn.classList.add("opomin-nacrt__switch--on");
         shiftBtn.setAttribute("aria-checked", "true");
       }
+
+      var naslov = document.getElementById("opomin-cas-sheet-naslov");
+      var dneviLabel = document.getElementById("opomin-cas-sheet-dnevi-label");
+      if (naslov) {
+        naslov.textContent =
+          nacinOdprtja === "naslednji"
+            ? "Spremeni razmik do naslednjega"
+            : "Spremeni čas koraka";
+      }
+      if (dneviLabel) {
+        dneviLabel.textContent =
+          nacinOdprtja === "naslednji"
+            ? "Razmik do naslednjega koraka"
+            : "Čez koliko dni od danes";
+      }
+
       var iso = step.sendAt || step.scheduledAt;
       var datumEl = document.getElementById("opomin-cas-sheet-datum");
       var uraEl = document.getElementById("opomin-cas-sheet-ura");
+      var dneviEl = document.getElementById("opomin-cas-sheet-dnevi");
       if (datumEl) datumEl.value = isoZaDateInput(iso);
       if (uraEl) uraEl.value = isoZaTimeInput(iso);
+      if (dneviEl) {
+        if (nacinOdprtja === "naslednji") {
+          var bazaStep = N.najdiKorak(plan, baseIndex);
+          var raz =
+            typeof N.koledarskiDneviMed === "function"
+              ? N.koledarskiDneviMed(
+                  bazaStep && (bazaStep.sendAt || bazaStep.scheduledAt),
+                  iso
+                )
+              : 0;
+          dneviEl.value = String(Math.max(0, Number(raz) || 0));
+        } else {
+          dneviEl.value = String(dneviOdDanes(iso));
+        }
+      }
+
       sheet.hidden = false;
       document.documentElement.classList.add("uj-modal-odprt");
       document.body.classList.add("uj-modal-odprt");
       if (sheet._ujOsveziPredogled) sheet._ujOsveziPredogled();
-      var naslov = document.getElementById("opomin-cas-sheet-naslov");
       if (naslov) naslov.focus();
     }
 
@@ -851,6 +1035,13 @@
         "</div>";
 
       if (naslednji && !jeManual) {
+        var naslednjiPremakljiv =
+          typeof N.jeKorakPremakljiv === "function"
+            ? N.jeKorakPremakljiv(naslednji)
+            : naslednji.status !== "sent";
+        var oznakaRazmik = N.oznakaCezDni
+          ? N.oznakaCezDni(Math.max(0, razmikNaslednji))
+          : "Čez " + Math.max(0, razmikNaslednji) + " dni";
         casKarticaHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
           '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
@@ -862,13 +1053,15 @@
           esc(formatCasPolno(naslednji.sendAt || naslednji.scheduledAt)) +
           "</span>" +
           "</span>" +
-          '<span class="opomin-nacrt__cas-znacka">' +
-          esc(
-            N.oznakaCezDni
-              ? N.oznakaCezDni(Math.max(0, razmikNaslednji))
-              : "Čez " + Math.max(0, razmikNaslednji) + " dni"
-          ) +
-          "</span>" +
+          (naslednjiPremakljiv
+            ? '<button type="button" class="opomin-nacrt__gumb-dnevi" id="opomin-spremeni-razmik" aria-label="Spremeni razmik: ' +
+              esc(oznakaRazmik) +
+              '">' +
+              esc(oznakaRazmik) +
+              "</button>"
+            : '<span class="opomin-nacrt__cas-znacka">' +
+              esc(oznakaRazmik) +
+              "</span>") +
           "</div>";
       } else if (!naslednji) {
         casKarticaHtml +=
@@ -1151,7 +1344,14 @@
       var spremeni = opts.glavniEl.querySelector("#opomin-spremeni-cas");
       if (spremeni) {
         spremeni.addEventListener("click", function () {
-          odpriCasSheet(step.index);
+          odpriCasSheet(step.index, "trenutni");
+        });
+      }
+
+      var spremeniRazmik = opts.glavniEl.querySelector("#opomin-spremeni-razmik");
+      if (spremeniRazmik) {
+        spremeniRazmik.addEventListener("click", function () {
+          odpriCasSheet(step.index, "naslednji");
         });
       }
 
