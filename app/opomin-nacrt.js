@@ -566,21 +566,6 @@
     if (plan.keepStageIntervals) {
       (plan.steps || []).forEach(function (s) {
         if (s.index <= step.index) return;
-        if (s.deliveryMode === "manual") {
-          /* Ročni: samo priporočeni datum opozorila. */
-          if (s.sendAt) {
-            var d = new Date(s.sendAt);
-            d.setTime(d.getTime() + deltaMs);
-            s.sendAt = d.toISOString();
-            s.scheduledOffsetDays = Math.max(
-              0,
-              Math.round((d.getTime() - baza.getTime()) / 86400000)
-            );
-            s.offsetDays = s.scheduledOffsetDays;
-          }
-          oznaciNeedsReview(s);
-          return;
-        }
         if (s.sendAt) {
           var dn = new Date(s.sendAt);
           dn.setTime(dn.getTime() + deltaMs);
@@ -596,7 +581,71 @@
     }
 
     var last = plan.steps[plan.steps.length - 1];
-    plan.totalDurationDays = last ? last.scheduledOffsetDays : plan.totalDurationDays;
+    plan.totalDurationDays = last
+      ? last.scheduledOffsetDays
+      : plan.totalDurationDays;
+    return osveziPlanStatus(plan);
+  }
+
+  /**
+   * Nastavi razmik (v dnevih) od koraka index do naslednjega.
+   * Ob keepStageIntervals premakne tudi vse poznejše korake.
+   */
+  function posodobiRazmikDoNaslednjega(plan, index, noviDneviRazmika) {
+    var step = najdiKorak(plan, index);
+    var naslednji = najdiKorak(plan, Number(index) + 1);
+    if (!step || !naslednji) return plan;
+
+    var dnevi = Math.max(0, Math.round(Number(noviDneviRazmika)));
+    if (!Number.isFinite(dnevi)) return plan;
+
+    var baza = new Date();
+    baza.setHours(12, 0, 0, 0);
+
+    var staroOffset = Number(naslednji.scheduledOffsetDays) || 0;
+    var novOffset = (Number(step.scheduledOffsetDays) || 0) + dnevi;
+    var deltaDni = novOffset - staroOffset;
+
+    var osnovniSend = step.sendAt
+      ? new Date(step.sendAt)
+      : new Date(baza.getTime() + (Number(step.scheduledOffsetDays) || 0) * 86400000);
+    if (Number.isNaN(osnovniSend.getTime())) osnovniSend = new Date(baza);
+
+    var novSend = new Date(osnovniSend.getTime() + dnevi * 86400000);
+    /* Ohrani uro naslednjega, če že obstaja. */
+    if (naslednji.sendAt) {
+      var stari = new Date(naslednji.sendAt);
+      if (!Number.isNaN(stari.getTime())) {
+        novSend.setHours(stari.getHours(), stari.getMinutes(), 0, 0);
+      }
+    }
+
+    naslednji.sendAt = novSend.toISOString();
+    naslednji.scheduledOffsetDays = novOffset;
+    naslednji.offsetDays = novOffset;
+    oznaciNeedsReview(naslednji);
+
+    if (plan.keepStageIntervals && deltaDni !== 0) {
+      (plan.steps || []).forEach(function (s) {
+        if (s.index <= naslednji.index) return;
+        s.scheduledOffsetDays =
+          (Number(s.scheduledOffsetDays) || 0) + deltaDni;
+        s.offsetDays = s.scheduledOffsetDays;
+        if (s.sendAt) {
+          var d = new Date(s.sendAt);
+          d.setDate(d.getDate() + deltaDni);
+          s.sendAt = d.toISOString();
+        } else {
+          s.sendAt = privzetiSendAt(s.scheduledOffsetDays);
+        }
+        oznaciNeedsReview(s);
+      });
+    }
+
+    var last = plan.steps[plan.steps.length - 1];
+    plan.totalDurationDays = last
+      ? last.scheduledOffsetDays
+      : plan.totalDurationDays;
     return osveziPlanStatus(plan);
   }
 
@@ -645,6 +694,7 @@
     potrdiKorak: potrdiKorak,
     nastaviKeepIntervals: nastaviKeepIntervals,
     posodobiCasKoraka: posodobiCasKoraka,
+    posodobiRazmikDoNaslednjega: posodobiRazmikDoNaslednjega,
     oznaciAktiviran: oznaciAktiviran,
     izracunajPlanStatus: izracunajPlanStatus,
     prviNepotrjenSmsIndex: prviNepotrjenSmsIndex,
