@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-vsebina-koraka-v2" />
+    <link rel="stylesheet" href="styles.css?v=20260808-priloge-sync" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -468,6 +468,11 @@
 
     <!-- Samo-branje predogled predloge (klik na kartico) -->
 
+    <div class="lightbox" id="lightbox" hidden>
+      <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri">✕</button>
+      <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
+    </div>
+
     <script src="rok-placila-utils.js?v=20260808-opomin-vsebina"></script>
     <script src="rok-placila-sheet.js?v=20260808-opomin-vsebina"></script>
     <script src="obrocno-utils.js?v=20260808-opomin-vsebina"></script>
@@ -478,6 +483,6 @@
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
     <script src="opomin-nacrt.js?v=20260808-vsebina-koraka"></script>
     <script src="opomin-nacrt-ui.js?v=20260808-vsebina-koraka-v2"></script>
-    <script src="app.js?v=20260808-korak3-priloge"></script>
+    <script src="app.js?v=20260808-priloge-sync"></script>
   </body>
 </html>

@@ -911,8 +911,25 @@ function imeDatotekeIzPoti(pot) {
   return zadnjiDel.replace(/^\d+-[a-z0-9]+-/i, "");
 }
 
-function jePdfDatoteka(pot) {
-  return pot.toLowerCase().endsWith(".pdf");
+function jePdfDatoteka(potAliIme) {
+  return String(potAliIme || "")
+    .toLowerCase()
+    .endsWith(".pdf");
+}
+
+function jeSlikaPoImenu(ime) {
+  return /\.(jpe?g|png|gif|webp|bmp)$/i.test(String(ime || ""));
+}
+
+const SVG_PRILOGA_PDF =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+
+async function ustvariSignedUrlPriloge(pot, sekunde) {
+  const { data, error } = await supabaseKlient.storage
+    .from("racuni-priloge")
+    .createSignedUrl(pot, sekunde || 60);
+  if (error || !data) return { napaka: (error && error.message) || "Ni povezave." };
+  return { url: data.signedUrl };
 }
 
 function naslednjiStatus(trenutniStatus) {
@@ -941,9 +958,10 @@ function inicializirajNeplacila() {
   const lightboxSlika = document.getElementById("lightbox-slika");
   const lightboxZapri = document.getElementById("lightbox-zapri");
   let casovnikSporocilaSkritje = null;
+  let lightboxObjectUrl = null;
   // Datoteke (slike/PDF-ji), ki jih je obrtnik izbral za priloge k zadevi -
   // dejansko se naložijo v Supabase Storage šele ob oddaji obrazca.
-  /* Priloge za pošiljanje: { file, origin: "ocr" | "manual_attachment" }. */
+  /* Priloge: { file?, pot?, ime?, origin: "ocr" | "manual_attachment" }. */
   let izbranePrilogeDatoteke = [];
   let ocrSourceFile = null;
   let messageAttachments = [];
@@ -959,11 +977,14 @@ function inicializirajNeplacila() {
   inicializirajWizardProgressHeader(1);
   inicializirajIzbrisOsnutka();
 
-  // Ob vrnitvi s kasnejšega koraka napolni obrazec iz seje (brez prilog).
+  // Ob vrnitvi s kasnejšega koraka napolni obrazec iz seje.
+  // Priloge obnovimo pozneje (ko so helperji pripravljeni).
+  let osnutekKorak1ZaPriloge = null;
   try {
     const osnutekKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
     if (osnutekKorak1Json) {
       const osnutek = JSON.parse(osnutekKorak1Json);
+      osnutekKorak1ZaPriloge = osnutek;
       const nastavi = (name, vrednost) => {
         const polje = obrazec.elements.namedItem(name);
         if (polje && vrednost != null && vrednost !== "") polje.value = vrednost;
@@ -1046,13 +1067,100 @@ function inicializirajNeplacila() {
   const prilogaLimitOpozoriloEl = document.getElementById("priloga-limit-opozorilo");
 
   function sinhronizirajPrilogeZaNalaganje() {
-    izbranePrilogeDatoteke = messageAttachments.map((p) => p.file);
+    /* Samo nove File datoteke grejo v upload; že naložene imajo `pot`. */
+    izbranePrilogeDatoteke = messageAttachments
+      .filter((p) => p && p.file)
+      .map((p) => p.file);
   }
 
   function besediloIzvoraPriloge(izvor) {
     return izvor === "ocr"
       ? "Dodano pri samodejnem vnosu podatkov"
       : "Dodano samo kot priloga";
+  }
+
+  function imePrilogeZaPrikaz(priloga) {
+    if (!priloga) return "Priloga";
+    if (priloga.file && priloga.file.name) return priloga.file.name;
+    if (priloga.ime) return priloga.ime;
+    if (priloga.pot) return imeDatotekeIzPoti(String(priloga.pot));
+    return "Priloga";
+  }
+
+  function trenutnePotiPrilogZaSejo() {
+    const poti = [];
+    const origins = [];
+    messageAttachments.forEach((p) => {
+      if (p && p.pot) {
+        poti.push(String(p.pot));
+        origins.push(p.origin || "manual_attachment");
+      }
+    });
+    return { poti, origins };
+  }
+
+  function syncPrilogeVSejoKorak1() {
+    const obstojeci = preberiObstojeciOsnutekKorak1();
+    const { poti, origins } = trenutnePotiPrilogZaSejo();
+    sessionStorage.setItem(
+      KLJUC_SEJE_KORAK1_PODATKI,
+      JSON.stringify({
+        ...obstojeci,
+        racunDatotekePoti: poti,
+        attachmentOrigins: origins,
+        shouldSendAttachment: shouldSendAttachment,
+      })
+    );
+  }
+
+  function obnoviPrilogeIzSeje(osnutek) {
+    const p = osnutek || {};
+    const poti = Array.isArray(p.racunDatotekePoti) ? p.racunDatotekePoti : [];
+    const origins = Array.isArray(p.attachmentOrigins) ? p.attachmentOrigins : [];
+    messageAttachments = poti.map((pot, i) => ({
+      pot: String(pot),
+      origin: origins[i] || "manual_attachment",
+      ime: imeDatotekeIzPoti(String(pot)),
+    }));
+    if (typeof p.shouldSendAttachment === "boolean") {
+      shouldSendAttachment = p.shouldSendAttachment;
+    } else {
+      shouldSendAttachment = true;
+    }
+    sinhronizirajPrilogeZaNalaganje();
+  }
+
+  async function sestaviPotiInIzvorePrilogZaOddajo() {
+    const poti = [];
+    const origins = [];
+    const noveDatoteke = [];
+    const metaNovih = [];
+
+    messageAttachments.forEach((p) => {
+      if (p && p.file) {
+        metaNovih.push({
+          indeks: poti.length,
+          origin: p.origin || "manual_attachment",
+        });
+        poti.push(null);
+        origins.push(p.origin || "manual_attachment");
+        noveDatoteke.push(p.file);
+      } else if (p && p.pot) {
+        poti.push(String(p.pot));
+        origins.push(p.origin || "manual_attachment");
+      }
+    });
+
+    if (noveDatoteke.length) {
+      const rezultat = await nalozitVsePriloge(noveDatoteke);
+      if (rezultat.napaka) return { napaka: rezultat.napaka };
+      metaNovih.forEach((m, i) => {
+        poti[m.indeks] = rezultat.poti[i];
+        origins[m.indeks] = m.origin;
+      });
+    }
+
+    return { poti, origins };
   }
 
   function izrisiIzbranePriloge() {
@@ -1064,46 +1172,101 @@ function inicializirajNeplacila() {
     if (racunDodajSe) racunDodajSe.hidden = dosezenaMeja;
     if (prilogaLimitOpozoriloEl) prilogaLimitOpozoriloEl.hidden = !dosezenaMeja;
     if (racunSeznam) {
+      racunSeznam.querySelectorAll("img[data-object-url]").forEach((img) => {
+        try {
+          URL.revokeObjectURL(img.getAttribute("data-object-url"));
+        } catch (_e) {
+          /* prezri */
+        }
+      });
       racunSeznam.innerHTML = "";
       messageAttachments.forEach((priloga, indeks) => {
+        const ime = imePrilogeZaPrikaz(priloga);
+        const jePdf =
+          (priloga.file &&
+            (priloga.file.type === "application/pdf" ||
+              jePdfDatoteka(priloga.file.name))) ||
+          (priloga.pot && jePdfDatoteka(priloga.pot));
+        const jeSlika =
+          !jePdf &&
+          ((priloga.file &&
+            ((priloga.file.type && priloga.file.type.startsWith("image/")) ||
+              jeSlikaPoImenu(priloga.file.name))) ||
+            (priloga.pot && jeSlikaPoImenu(priloga.pot)));
+
         const vrstica = document.createElement("div");
         vrstica.className = "racun-posiljanje__kartica";
         vrstica.setAttribute("role", "listitem");
 
-        const datotekaBlok = document.createElement("div");
-        datotekaBlok.className = "racun-posiljanje__datoteka";
-        datotekaBlok.innerHTML =
-          '<span class="racun-posiljanje__datoteka-ikona" aria-hidden="true">' +
-          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>' +
-          "</span>";
+        const predogledGumb = document.createElement("button");
+        predogledGumb.type = "button";
+        predogledGumb.className = "racun-posiljanje__datoteka racun-posiljanje__datoteka--klik";
+        predogledGumb.setAttribute("aria-label", "Predogled: " + ime);
+
+        const thumb = document.createElement("span");
+        thumb.className = "racun-posiljanje__datoteka-ikona";
+        thumb.setAttribute("aria-hidden", "true");
+        if (jeSlika && priloga.file) {
+          const img = document.createElement("img");
+          const url = URL.createObjectURL(priloga.file);
+          img.src = url;
+          img.alt = "";
+          img.setAttribute("data-object-url", url);
+          img.className = "racun-posiljanje__thumb";
+          thumb.classList.add("racun-posiljanje__datoteka-ikona--thumb");
+          thumb.appendChild(img);
+        } else if (jeSlika && priloga.pot) {
+          thumb.classList.add("racun-posiljanje__datoteka-ikona--thumb");
+          thumb.innerHTML = '<span class="racun-posiljanje__thumb-skeleton"></span>';
+          ustvariSignedUrlPriloge(priloga.pot, 120).then((r) => {
+            if (!r.url || !thumb.isConnected) return;
+            const img = document.createElement("img");
+            img.src = r.url;
+            img.alt = "";
+            img.className = "racun-posiljanje__thumb";
+            thumb.innerHTML = "";
+            thumb.appendChild(img);
+          });
+        } else {
+          thumb.innerHTML = SVG_PRILOGA_PDF;
+        }
 
         const meta = document.createElement("div");
         meta.className = "racun-posiljanje__datoteka-meta";
-        const ime = document.createElement("p");
-        ime.className = "racun-posiljanje__datoteka-ime";
-        ime.textContent = priloga.file.name;
+        const imeEl = document.createElement("p");
+        imeEl.className = "racun-posiljanje__datoteka-ime";
+        imeEl.textContent = ime;
         const izvor = document.createElement("p");
         izvor.className = "racun-posiljanje__datoteka-izvor";
         izvor.textContent = besediloIzvoraPriloge(priloga.origin);
-        const velikost = document.createElement("p");
-        velikost.className = "racun-posiljanje__datoteka-velikost";
-        velikost.textContent = formatirajVelikostDatoteke(priloga.file.size);
-        meta.appendChild(ime);
+        meta.appendChild(imeEl);
         meta.appendChild(izvor);
-        if (velikost.textContent) meta.appendChild(velikost);
-        datotekaBlok.appendChild(meta);
+        if (priloga.file && priloga.file.size != null) {
+          const velikost = document.createElement("p");
+          velikost.className = "racun-posiljanje__datoteka-velikost";
+          velikost.textContent = formatirajVelikostDatoteke(priloga.file.size);
+          if (velikost.textContent) meta.appendChild(velikost);
+        }
+
+        predogledGumb.appendChild(thumb);
+        predogledGumb.appendChild(meta);
+        predogledGumb.addEventListener("click", () => {
+          odpriPredogledPriloge(priloga);
+        });
 
         const odstrani = document.createElement("button");
         odstrani.type = "button";
         odstrani.className = "racun-posiljanje__akcija racun-posiljanje__akcija--odstrani";
-        odstrani.setAttribute("aria-label", "Odstrani " + priloga.file.name);
+        odstrani.setAttribute("aria-label", "Odstrani " + ime);
         odstrani.textContent = "Odstrani";
         odstrani.addEventListener("click", () => {
           messageAttachments.splice(indeks, 1);
+          if (messageAttachments.length === 0) shouldSendAttachment = true;
+          syncPrilogeVSejoKorak1();
           izrisiIzbranePriloge();
         });
 
-        vrstica.appendChild(datotekaBlok);
+        vrstica.appendChild(predogledGumb);
         vrstica.appendChild(odstrani);
         racunSeznam.appendChild(vrstica);
       });
@@ -1121,6 +1284,42 @@ function inicializirajNeplacila() {
     }
   }
 
+  function odpriPredogledPriloge(priloga) {
+    if (!priloga) return;
+    const ime = imePrilogeZaPrikaz(priloga);
+    const jePdf =
+      (priloga.file &&
+        (priloga.file.type === "application/pdf" ||
+          jePdfDatoteka(priloga.file.name))) ||
+      (priloga.pot && jePdfDatoteka(priloga.pot));
+    if (jePdf) {
+      if (priloga.pot) {
+        odpriPrilogo(priloga.pot);
+        return;
+      }
+      if (priloga.file) {
+        const url = URL.createObjectURL(priloga.file);
+        window.open(url, "_blank");
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      return;
+    }
+    if (priloga.pot) {
+      odpriSlikoVLightboxu(priloga.pot);
+      return;
+    }
+    if (priloga.file && lightbox && lightboxSlika) {
+      if (lightboxObjectUrl) {
+        URL.revokeObjectURL(lightboxObjectUrl);
+        lightboxObjectUrl = null;
+      }
+      lightboxObjectUrl = URL.createObjectURL(priloga.file);
+      lightboxSlika.src = lightboxObjectUrl;
+      lightboxSlika.alt = ime;
+      lightbox.hidden = false;
+    }
+  }
+
   function dodajIzbranePriloge(datoteke, izvor) {
     const seznam = Array.from(datoteke || []);
     if (!seznam.length) return;
@@ -1130,6 +1329,7 @@ function inicializirajNeplacila() {
       messageAttachments.push({ file: datoteka, origin: izvorPriloge });
     }
     if (seznam.length) shouldSendAttachment = true;
+    syncPrilogeVSejoKorak1();
     izrisiIzbranePriloge();
   }
 
@@ -1139,6 +1339,7 @@ function inicializirajNeplacila() {
     izbranePrilogeDatoteke = [];
     if (gumbPrilogaDatoteka) gumbPrilogaDatoteka.value = "";
     if (gumbPrilogaFotoaparat) gumbPrilogaFotoaparat.value = "";
+    syncPrilogeVSejoKorak1();
     izrisiIzbranePriloge();
   }
 
@@ -1173,8 +1374,12 @@ function inicializirajNeplacila() {
   if (racunStikalo) {
     racunStikalo.addEventListener("change", () => {
       shouldSendAttachment = racunStikalo.checked;
+      syncPrilogeVSejoKorak1();
       izrisiIzbranePriloge();
     });
+  }
+  if (osnutekKorak1ZaPriloge) {
+    obnoviPrilogeIzSeje(osnutekKorak1ZaPriloge);
   }
   izrisiIzbranePriloge();
 
@@ -1384,6 +1589,7 @@ function inicializirajNeplacila() {
     if (ocrIndeks >= 0) {
       messageAttachments[ocrIndeks] = { file: datoteka, origin: "ocr" };
       shouldSendAttachment = true;
+      syncPrilogeVSejoKorak1();
       izrisiIzbranePriloge();
       return;
     }
@@ -1673,56 +1879,58 @@ function inicializirajNeplacila() {
      odpre v novem zavihku. */
   async function odpriPrilogo(pot) {
     const novZavihek = window.open("", "_blank");
+    const rezultat = await ustvariSignedUrlPriloge(pot, 60);
 
-    const { data, error } = await supabaseKlient.storage
-      .from("racuni-priloge")
-      .createSignedUrl(pot, 60);
-
-    if (error || !data) {
+    if (rezultat.napaka || !rezultat.url) {
       if (novZavihek) novZavihek.close();
-      pokaziNapako("Priloge ni bilo mogoče odpreti.", error && error.message);
+      pokaziNapako("Priloge ni bilo mogoče odpreti.", rezultat.napaka);
       return;
     }
 
     if (novZavihek) {
-      novZavihek.location.href = data.signedUrl;
+      novZavihek.location.href = rezultat.url;
     } else {
-      // Če je brskalnik vseeno blokiral pojavno okno, odpremo v istem zavihku.
-      window.location.href = data.signedUrl;
+      window.location.href = rezultat.url;
     }
   }
 
   function zapriLightbox() {
+    if (!lightbox) return;
     lightbox.hidden = true;
-    lightboxSlika.src = "";
+    if (lightboxSlika) {
+      lightboxSlika.src = "";
+      lightboxSlika.alt = "Priloga računa";
+    }
+    if (lightboxObjectUrl) {
+      URL.revokeObjectURL(lightboxObjectUrl);
+      lightboxObjectUrl = null;
+    }
   }
 
-  lightboxZapri.addEventListener("click", zapriLightbox);
+  if (lightboxZapri) lightboxZapri.addEventListener("click", zapriLightbox);
 
-  // Klik kjerkoli na temno ozadje zapre lightbox, klik na samo sliko pa ne
-  // (dogodek se ne razširi na .lightbox, ker slika ni ozadje samo).
-  lightbox.addEventListener("click", (dogodek) => {
-    if (dogodek.target === lightbox) zapriLightbox();
-  });
+  if (lightbox) {
+    lightbox.addEventListener("click", (dogodek) => {
+      if (dogodek.target === lightbox) zapriLightbox();
+    });
+  }
 
   document.addEventListener("keydown", (dogodek) => {
-    if (dogodek.key === "Escape" && !lightbox.hidden) zapriLightbox();
+    if (dogodek.key === "Escape" && lightbox && !lightbox.hidden) zapriLightbox();
   });
 
-  /* Prikaže sliko priloge v celozaslonskem lightboxu namesto v novem
-     zavihku - glej #lightbox v neplacila.html. Modal je en sam, ponovno
-     uporabljen element: tu se mu samo nastavi src in ga prikaže. */
   async function odpriSlikoVLightboxu(pot) {
-    const { data, error } = await supabaseKlient.storage
-      .from("racuni-priloge")
-      .createSignedUrl(pot, 60);
-
-    if (error || !data) {
-      pokaziNapako("Priloge ni bilo mogoče odpreti.", error && error.message);
+    if (!lightbox || !lightboxSlika) return;
+    const rezultat = await ustvariSignedUrlPriloge(pot, 60);
+    if (rezultat.napaka || !rezultat.url) {
+      pokaziNapako("Priloge ni bilo mogoče odpreti.", rezultat.napaka);
       return;
     }
-
-    lightboxSlika.src = data.signedUrl;
+    if (lightboxObjectUrl) {
+      URL.revokeObjectURL(lightboxObjectUrl);
+      lightboxObjectUrl = null;
+    }
+    lightboxSlika.src = rezultat.url;
     lightbox.hidden = false;
   }
 
@@ -2045,16 +2253,21 @@ function inicializirajNeplacila() {
         datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
         datumZapadlosti: podatki.get("datum") || null,
         stevilkaRacuna: String(podatki.get("stevilkaRacuna") || "").trim() || null,
-        racunDatotekePoti: Array.isArray(obstojeci.racunDatotekePoti)
-          ? obstojeci.racunDatotekePoti
-          : [],
-        shouldSendAttachment:
-          typeof obstojeci.shouldSendAttachment === "boolean"
-            ? obstojeci.shouldSendAttachment
-            : true,
-        attachmentOrigins: Array.isArray(obstojeci.attachmentOrigins)
-          ? obstojeci.attachmentOrigins
-          : [],
+        racunDatotekePoti: (() => {
+          const izSeje = trenutnePotiPrilogZaSejo();
+          if (izSeje.poti.length) return izSeje.poti;
+          return Array.isArray(obstojeci.racunDatotekePoti)
+            ? obstojeci.racunDatotekePoti
+            : [];
+        })(),
+        shouldSendAttachment: shouldSendAttachment,
+        attachmentOrigins: (() => {
+          const izSeje = trenutnePotiPrilogZaSejo();
+          if (izSeje.origins.length) return izSeje.origins;
+          return Array.isArray(obstojeci.attachmentOrigins)
+            ? obstojeci.attachmentOrigins
+            : [];
+        })(),
       })
     );
   }
@@ -2111,9 +2324,9 @@ function inicializirajNeplacila() {
     }
 
     // Zadeva se dejansko doda v bazo šele na 3. koraku (po sporočilu),
-    // glej neplacila-posiljanje.html - tu samo naložimo morebitne priloge
-    // in podatke 1. koraka začasno shranimo za naslednja koraka.
-    const rezultatPrilog = await nalozitVsePriloge(izbranePrilogeDatoteke);
+    // glej neplacila-posiljanje.html - tu naložimo nove priloge in ohranimo
+    // že naložene poti iz seje (da se ob vrnitvi na korak 1 ne pobrišejo).
+    const rezultatPrilog = await sestaviPotiInIzvorePrilogZaOddajo();
     if (rezultatPrilog.napaka) {
       pokaziNapako("Prilog ni bilo mogoče naložiti.", rezultatPrilog.napaka);
       return;
@@ -2137,8 +2350,9 @@ function inicializirajNeplacila() {
       datumZapadlosti,
       stevilkaRacuna: podatki.get("stevilkaRacuna").trim() || null,
       racunDatotekePoti: rezultatPrilog.poti,
-      shouldSendAttachment: messageAttachments.length > 0 && shouldSendAttachment,
-      attachmentOrigins: messageAttachments.map((p) => p.origin),
+      shouldSendAttachment:
+        rezultatPrilog.poti.length > 0 && shouldSendAttachment,
+      attachmentOrigins: rezultatPrilog.origins,
     };
 
     const novHash = hashKorak1Podatkov(noviKorak1);
@@ -5634,36 +5848,63 @@ function inicializirajPosiljanje() {
     if (!k3Seznam) return;
     k3Seznam.innerHTML = "";
     poti.forEach((pot, indeks) => {
+      const potStr = String(pot);
+      const imeBesedilo = imeDatotekeIzPoti(potStr);
+      const jePdf = jePdfDatoteka(potStr);
+      const jeSlika = !jePdf && jeSlikaPoImenu(potStr);
+
       const vrstica = document.createElement("div");
       vrstica.className = "racun-posiljanje__kartica";
       vrstica.setAttribute("role", "listitem");
 
-      const datotekaBlok = document.createElement("div");
-      datotekaBlok.className = "racun-posiljanje__datoteka";
-      datotekaBlok.innerHTML =
-        '<span class="racun-posiljanje__datoteka-ikona" aria-hidden="true">' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>' +
-        "</span>";
+      const predogledGumb = document.createElement("button");
+      predogledGumb.type = "button";
+      predogledGumb.className =
+        "racun-posiljanje__datoteka racun-posiljanje__datoteka--klik";
+      predogledGumb.setAttribute("aria-label", "Predogled: " + imeBesedilo);
+
+      const thumb = document.createElement("span");
+      thumb.className = "racun-posiljanje__datoteka-ikona";
+      thumb.setAttribute("aria-hidden", "true");
+      if (jeSlika) {
+        thumb.classList.add("racun-posiljanje__datoteka-ikona--thumb");
+        thumb.innerHTML = '<span class="racun-posiljanje__thumb-skeleton"></span>';
+        ustvariSignedUrlPriloge(potStr, 120).then((r) => {
+          if (!r.url || !thumb.isConnected) return;
+          const img = document.createElement("img");
+          img.src = r.url;
+          img.alt = "";
+          img.className = "racun-posiljanje__thumb";
+          thumb.innerHTML = "";
+          thumb.appendChild(img);
+        });
+      } else {
+        thumb.innerHTML = SVG_PRILOGA_PDF;
+      }
 
       const meta = document.createElement("div");
       meta.className = "racun-posiljanje__datoteka-meta";
       const ime = document.createElement("p");
       ime.className = "racun-posiljanje__datoteka-ime";
-      ime.textContent = imeDatotekeIzPoti(String(pot));
+      ime.textContent = imeBesedilo;
       const izvor = document.createElement("p");
       izvor.className = "racun-posiljanje__datoteka-izvor";
-      izvor.textContent = besediloIzvoraPrilogeK3(origins[indeks] || "manual_attachment");
+      izvor.textContent = besediloIzvoraPrilogeK3(
+        origins[indeks] || "manual_attachment"
+      );
       meta.appendChild(ime);
       meta.appendChild(izvor);
-      datotekaBlok.appendChild(meta);
+      predogledGumb.appendChild(thumb);
+      predogledGumb.appendChild(meta);
+      predogledGumb.addEventListener("click", () => {
+        if (jePdf) odpriPrilogoK3(potStr);
+        else odpriSlikoVLightboxuK3(potStr);
+      });
 
       const odstrani = document.createElement("button");
       odstrani.type = "button";
       odstrani.className = "racun-posiljanje__akcija racun-posiljanje__akcija--odstrani";
-      odstrani.setAttribute(
-        "aria-label",
-        "Odstrani " + imeDatotekeIzPoti(String(pot))
-      );
+      odstrani.setAttribute("aria-label", "Odstrani " + imeBesedilo);
       odstrani.textContent = "Odstrani";
       odstrani.addEventListener("click", () => {
         podatkiKorak1.racunDatotekePoti.splice(indeks, 1);
@@ -5678,10 +5919,38 @@ function inicializirajPosiljanje() {
         izrisiKorak3Priloge();
       });
 
-      vrstica.appendChild(datotekaBlok);
+      vrstica.appendChild(predogledGumb);
       vrstica.appendChild(odstrani);
       k3Seznam.appendChild(vrstica);
     });
+  }
+
+  async function odpriPrilogoK3(pot) {
+    const novZavihek = window.open("", "_blank");
+    const rezultat = await ustvariSignedUrlPriloge(pot, 60);
+    if (rezultat.napaka || !rezultat.url) {
+      if (novZavihek) novZavihek.close();
+      pokaziK3Napako("Priloge ni bilo mogoče odpreti.");
+      return;
+    }
+    if (novZavihek) novZavihek.location.href = rezultat.url;
+    else window.location.href = rezultat.url;
+  }
+
+  async function odpriSlikoVLightboxuK3(pot) {
+    const lb = document.getElementById("lightbox");
+    const lbSlika = document.getElementById("lightbox-slika");
+    if (!lb || !lbSlika) {
+      odpriPrilogoK3(pot);
+      return;
+    }
+    const rezultat = await ustvariSignedUrlPriloge(pot, 60);
+    if (rezultat.napaka || !rezultat.url) {
+      pokaziK3Napako("Priloge ni bilo mogoče odpreti.");
+      return;
+    }
+    lbSlika.src = rezultat.url;
+    lb.hidden = false;
   }
 
   async function nalozitEnoPrilogoK3(datoteka, obrtnikId) {
@@ -5775,6 +6044,24 @@ function inicializirajPosiljanje() {
 
   izrisiKorak3Priloge();
   posodobiBesediloPrilogeZaKanal();
+
+  const lightboxK3 = document.getElementById("lightbox");
+  const lightboxSlikaK3 = document.getElementById("lightbox-slika");
+  const lightboxZapriK3 = document.getElementById("lightbox-zapri");
+  function zapriLightboxK3() {
+    if (!lightboxK3) return;
+    lightboxK3.hidden = true;
+    if (lightboxSlikaK3) lightboxSlikaK3.src = "";
+  }
+  if (lightboxZapriK3) lightboxZapriK3.addEventListener("click", zapriLightboxK3);
+  if (lightboxK3) {
+    lightboxK3.addEventListener("click", (e) => {
+      if (e.target === lightboxK3) zapriLightboxK3();
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lightboxK3 && !lightboxK3.hidden) zapriLightboxK3();
+  });
 
   if (!window.UJOpominNacrtUI || !window.UJOpominNacrt) {
     pokaziNapako(
