@@ -1619,7 +1619,15 @@ function inicializirajNeplacila() {
         imeDolznika,
         telefonDolznika,
         emailDolznika,
-        znesek: parseFloat(podatki.get("znesek")) || 0,
+        znesek: (() => {
+          const raw = podatki.get("znesek");
+          if (window.UJObrocno) {
+            const c = window.UJObrocno.eurosToCents(raw);
+            return c != null ? c / 100 : 0;
+          }
+          const n = Number(String(raw || "").replace(",", "."));
+          return Number.isFinite(n) ? n : 0;
+        })(),
         opisDolga,
         datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
         datumZapadlosti,

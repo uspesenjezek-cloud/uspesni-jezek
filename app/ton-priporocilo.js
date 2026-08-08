@@ -390,7 +390,21 @@
 
   function eurosToCents(euros) {
     if (euros == null || euros === "") return null;
-    var n = Number(euros);
+    // Enak parser kot Obročno (vejica/pika), da "75,64" ne pade na NaN.
+    if (root.UJObrocno && typeof root.UJObrocno.eurosToCents === "function") {
+      return root.UJObrocno.eurosToCents(euros);
+    }
+    if (typeof euros === "number") {
+      if (!Number.isFinite(euros)) return null;
+      return Math.round(euros * 100);
+    }
+    var raw = String(euros)
+      .trim()
+      .replace(/\s/g, "")
+      .replace(/\u00a0/g, "")
+      .replace(/€/g, "")
+      .replace(",", ".");
+    var n = Number(raw);
     if (!Number.isFinite(n)) return null;
     return Math.round(n * 100);
   }

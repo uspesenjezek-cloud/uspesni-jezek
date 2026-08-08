@@ -361,8 +361,12 @@
       var existing = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
       if (existing && existing.enabled && UJ.jePlanUporaben(existing, total)) {
         osnutek = klon(existing);
+        // Vedno svež znesek iz 1. koraka (ne zaupaj shranjenemu totalDebtCents).
         osnutek.totalDebtCents = total;
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
+        if (UJ.vsotaCents(osnutek.installments) !== total) {
+          osnutek = UJ.enakomernoRazdeli(osnutek);
+        }
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
       } else {
         // Stari/pokvarjen načrt zavrzi – vedno svež predlog iz koraka 1.
@@ -370,11 +374,16 @@
           ctx.setInstallmentPlan(null);
         }
         if (ctx.dodatki) ctx.dodatki.obrocno = false;
+        if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = "";
+        if (ctx.gumbObrocno) {
+          ctx.gumbObrocno.setAttribute("aria-pressed", "false");
+        }
         osnutek = sveziPredlog(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
       }
 
-      if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(osnutek.totalDebtCents);
+      // Glava: vedno izračun iz koraka 1, ne iz morebitno pokvarjenega plana.
+      if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(total);
       napolniOpozorilo();
       izrisi();
 

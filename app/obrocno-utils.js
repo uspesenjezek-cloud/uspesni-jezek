@@ -399,6 +399,8 @@
     var expected = Math.round(Number(expectedTotalCents));
     if (!Number.isFinite(expected) || expected <= 0) return false;
     if (Math.round(Number(plan.totalDebtCents)) !== expected) return false;
+    // Vsota vrstic mora biti enaka dolgu (sicer je plan iz stare/pokvarjene seje).
+    if (vsotaCents(plan.installments) !== expected) return false;
     var v = validatePlan(plan);
     return Boolean(v && v.ok);
   }
