@@ -94,6 +94,13 @@ select {
   font-size: 16px;
 }
 
+/* Korak 1: dodatno zakleni 16px proti morebitnim ožjim pravilom. */
+#obrazec-neplacilo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+#obrazec-neplacilo textarea,
+#obrazec-neplacilo select {
+  font-size: 16px !important;
+}
+
 h1,
 h2,
 h3 {
