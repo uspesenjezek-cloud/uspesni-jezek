@@ -5380,20 +5380,55 @@ function inicializirajSporociloDolzniku() {
         nastaviIzbranTon(toneState.selectedToneId, true);
         shraniOsnutekLokalno();
       },
-      onShowReasonDetail: (razlaga) => {
-        if (razlaga && Array.isArray(razlaga.odstavki)) {
+      onShowReasonDetail: (podrobnosti) => {
+        const payload =
+          podrobnosti && typeof podrobnosti === "object" ? podrobnosti : null;
+        const razlaga =
+          payload && payload.razlaga
+            ? payload.razlaga
+            : payload && Array.isArray(payload.odstavki)
+              ? payload
+              : null;
+        const jeRocno = Boolean(payload && payload.jeRocno);
+        const naslov =
+          (razlaga && razlaga.naslov) ||
+          "Zakaj priporočamo ta ton?";
+        const odstavki = razlaga && Array.isArray(razlaga.odstavki)
+          ? razlaga.odstavki
+          : null;
+        const opis =
+          !odstavki && typeof podrobnosti === "string" ? podrobnosti : "";
+
+        if (jeRocno) {
           potrdiVprasanje({
-            naslov: razlaga.naslov || "Zakaj priporočamo ta ton?",
-            odstavki: razlaga.odstavki,
-            potrdiBesedilo: "Razumem",
-            samoEnGumb: true,
+            naslov,
+            odstavki,
+            opis,
+            potrdiBesedilo: "Uporabi priporočeni ton",
+            prekliciBesedilo: "Razumem",
             stil: "primary",
+          }).then((ok) => {
+            if (!ok || !window.UJTonPriporocilo) return;
+            toneState = window.UJTonPriporocilo.resetToRecommended(toneState);
+            nastaviIzbranTon(toneState.selectedToneId, true);
+            shraniOsnutekLokalno();
+            if (tonWidgetApi && typeof tonWidgetApi.osvezi === "function") {
+              tonWidgetApi.osvezi();
+            }
+            if (
+              tonWidgetApi &&
+              typeof tonWidgetApi.scrollToSelected === "function"
+            ) {
+              tonWidgetApi.scrollToSelected();
+            }
           });
           return;
         }
+
         potrdiVprasanje({
-          naslov: "Zakaj priporočamo ta ton?",
-          opis: typeof razlaga === "string" ? razlaga : "",
+          naslov,
+          odstavki,
+          opis,
           potrdiBesedilo: "Razumem",
           samoEnGumb: true,
           stil: "primary",

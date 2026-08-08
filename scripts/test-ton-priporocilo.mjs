@@ -133,9 +133,40 @@ test("Ikone tonov", () => {
   });
 });
 
-test("UI glava: naslov in značka ločena", () => {
-  assert.ok(cssSrc.includes("flex-direction: column"));
-  assert.ok(htmlSrc.includes("ton-widget__glava-desno"));
+test("64.648 € + 7 dni → Zelo visok dolg, Kratka zamuda, Odločen", () => {
+  const r = rec(7, 6464800);
+  assert.equal(r.debtCategory, "veryHigh");
+  assert.equal(r.debtCategoryLabel, "Zelo visok dolg");
+  assert.equal(r.overdueCategory, "short");
+  assert.equal(r.recommendedToneId, "firm");
+  assert.match(r.timingLabel, /Zamuda 7 dni/);
+  assert.match(r.timingLabel, /Kratka zamuda/);
+});
+
+test("6000 € + 45 dni → Zelo visok dolg, Strog", () => {
+  const r = rec(45, 600000);
+  assert.equal(r.debtCategory, "veryHigh");
+  assert.equal(r.recommendedToneId, "strict");
+});
+
+test("UI: nova struktura tone widgeta", () => {
+  assert.ok(htmlSrc.includes("tone-recommendation-section"));
+  assert.ok(htmlSrc.includes("debt-summary"));
+  assert.ok(htmlSrc.includes("overdue-status"));
+  assert.ok(htmlSrc.includes("tone-carousel"));
+  assert.ok(htmlSrc.includes("tone-reason-row"));
+  assert.ok(!htmlSrc.includes("Ton sporočila</h"));
+  assert.ok(!htmlSrc.includes(">Predlagano<"));
+  assert.ok(cssSrc.includes(".tone-reason-row"));
+  assert.ok(widgetSrc.includes("tone-option__recommended-star"));
+});
+
+test("Modal razlaga: pridevnik in čas zamude", () => {
+  const r = rec(7, 6464800);
+  const m = UJ.sestaviRazlagoZaModal(r);
+  assert.match(m.naslov, /odločen/);
+  assert.equal(m.odstavki[1].naslov, "Čas zamude");
+  assert.match(m.odstavki[1].besedilo, /kratko zamudo/);
 });
 
 test("Predloge: 3×6", () => {

@@ -190,6 +190,8 @@
       return new Intl.NumberFormat("sl-SI", {
         style: "currency",
         currency: "EUR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       }).format(eur);
     } catch (_e) {
       return (
@@ -270,6 +272,26 @@
   /**
    * Strukturirana razlaga za modal »Zakaj?«.
    */
+  var OVERDUE_CATEGORY_PHRASE = {
+    notDue: "brez zamude",
+    dueToday: "da račun zapade danes",
+    short: "kratko zamudo",
+    medium: "srednjo zamudo",
+    long: "dolgo zamudo",
+    veryLong: "zelo dolgo zamudo",
+  };
+
+  var TONE_REASON_ADJECTIVES = {
+    friendly: "prijazen",
+    firm: "odločen",
+    strict: "strog",
+  };
+
+  function pridevnikTonaZaRazlago(toneId) {
+    var id = normalizirajTonId(toneId);
+    return TONE_REASON_ADJECTIVES[id] || "ta";
+  }
+
   function sestaviRazlagoZaModal(recommendation) {
     var r = recommendation || {};
     var znesekBlok;
@@ -283,24 +305,27 @@
           : ".");
     }
 
-    var datumBlok;
+    var casBlok;
+    var overdueCat =
+      r.overdueCategory || getOverdueCategory(r.overdueDays);
     if (r.missingDue) {
-      datumBlok = "Datum zapadlosti ni določen.";
+      casBlok = "Datum zapadlosti ni določen.";
     } else if (r.overdueDays != null && r.overdueDays < 0) {
-      datumBlok = "Račun še ni zapadel, zato zamude še ni.";
+      casBlok = "Račun še ni zapadel, zato zamude še ni.";
     } else if (r.overdueDays === 0) {
-      datumBlok = "Račun zapade danes.";
+      casBlok = "Račun zapade danes.";
     } else {
-      datumBlok =
+      casBlok =
         "Račun zamuja " +
         slovenskaDniBeseda(r.overdueDays) +
-        " (" +
-        (r.timingLabel || "") +
-        ").";
+        (OVERDUE_CATEGORY_PHRASE[overdueCat]
+          ? ", kar pomeni " + OVERDUE_CATEGORY_PHRASE[overdueCat] + "."
+          : ".");
     }
 
     var ton = najdiTonPoId(r.recommendedToneId);
     var toneLabel = ton ? ton.labelSl.toLowerCase() : "ustrezni";
+    var pridevnik = pridevnikTonaZaRazlago(r.recommendedToneId);
     var debtLower = r.debtCategoryLabel
       ? r.debtCategoryLabel.toLowerCase()
       : "";
@@ -324,11 +349,13 @@
         ".";
     } else if (r.overdueDays != null) {
       priporociloBlok =
-        "Predlagamo " +
+        "Zaradi " +
+        (debtLower || "tega dolga") +
+        " in " +
+        (OVERDUE_CATEGORY_PHRASE[overdueCat] || "zamude") +
+        " priporočamo " +
         toneLabel +
-        " ton zaradi zamude" +
-        (debtLower ? " in kategorije »" + r.debtCategoryLabel + "«" : "") +
-        ".";
+        " ton.";
     } else {
       priporociloBlok =
         r.reasonDetailText ||
@@ -337,10 +364,10 @@
     }
 
     return {
-      naslov: "Zakaj priporočamo ta ton?",
+      naslov: "Zakaj priporočamo " + pridevnik + " ton?",
       odstavki: [
         { naslov: "Znesek dolga", besedilo: znesekBlok },
-        { naslov: "Datum zapadlosti", besedilo: datumBlok },
+        { naslov: "Čas zamude", besedilo: casBlok },
         { naslov: "Priporočilo", besedilo: priporociloBlok },
       ],
     };
