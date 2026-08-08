@@ -1988,6 +1988,8 @@ function inicializirajSporociloDolzniku() {
   let odprtPredlog = null;
   let predogledPredlog = null;
   let predogledScrollY = 0;
+  let predogledZapriCasovnik = null;
+  let predogledZapriHandler = null;
   let modalIzbranaStevilka = 1;
   /** Začetno stanje ob odprtju – za zavržene spremembe. */
   let originalTemplateSnapshot = null;
@@ -3066,16 +3068,68 @@ function inicializirajSporociloDolzniku() {
     window.scrollTo(0, predogledScrollY || 0);
   }
 
-  function zapriPredlogaPredogled() {
+  function predogledZeliAnimacijo() {
+    return !(
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function ocistiPredogledZapiranje() {
+    if (predogledZapriCasovnik != null) {
+      clearTimeout(predogledZapriCasovnik);
+      predogledZapriCasovnik = null;
+    }
+    if (predogledZapriHandler && predlogaPredogled) {
+      const panel = predlogaPredogled.querySelector(".predloga-predogled__panel");
+      if (panel) panel.removeEventListener("transitionend", predogledZapriHandler);
+      predogledZapriHandler = null;
+    }
+  }
+
+  function zapriPredlogaPredogled(opcije) {
     if (!predlogaPredogled || predlogaPredogled.hidden) return;
-    predlogaPredogled.hidden = true;
-    predogledPredlog = null;
-    odkleniOzadjeZaPredogled();
+    const takoj = Boolean(opcije && opcije.takoj);
+
+    const dokoncaj = () => {
+      ocistiPredogledZapiranje();
+      if (predlogaPredogled.hidden) return;
+      predlogaPredogled.classList.remove("predloga-predogled--odprt");
+      predlogaPredogled.hidden = true;
+      predogledPredlog = null;
+      odkleniOzadjeZaPredogled();
+    };
+
+    if (
+      takoj ||
+      !predogledZeliAnimacijo() ||
+      !predlogaPredogled.classList.contains("predloga-predogled--odprt")
+    ) {
+      dokoncaj();
+      return;
+    }
+
+    ocistiPredogledZapiranje();
+    const panel = predlogaPredogled.querySelector(".predloga-predogled__panel");
+    predogledZapriHandler = (dogodek) => {
+      if (dogodek.target !== panel) return;
+      if (
+        dogodek.propertyName !== "opacity" &&
+        dogodek.propertyName !== "transform"
+      ) {
+        return;
+      }
+      dokoncaj();
+    };
+    if (panel) panel.addEventListener("transitionend", predogledZapriHandler);
+    predlogaPredogled.classList.remove("predloga-predogled--odprt");
+    predogledZapriCasovnik = setTimeout(dokoncaj, 280);
   }
 
   function odpriPredlogaPredogled(predlog) {
     if (!predlogaPredogled || !predlog) return;
     zapriVseStevilkeIzbire();
+    ocistiPredogledZapiranje();
     predogledPredlog = predlog;
     if (predlogaPredogledNaslov) {
       predlogaPredogledNaslov.textContent = predlog.naslov || "Predloga";
@@ -3084,8 +3138,14 @@ function inicializirajSporociloDolzniku() {
       predlogaPredogledBesedilo.textContent = predlog.besedilo || "";
     }
     posodobiPredogledUporabiGumb();
+    predlogaPredogled.classList.remove("predloga-predogled--odprt");
     predlogaPredogled.hidden = false;
     zakleniOzadjeZaPredogled();
+    void predlogaPredogled.offsetWidth;
+    requestAnimationFrame(() => {
+      if (!predlogaPredogled || predlogaPredogled.hidden) return;
+      predlogaPredogled.classList.add("predloga-predogled--odprt");
+    });
     if (
       predlogaPredogledNaslov &&
       typeof predlogaPredogledNaslov.focus === "function"
@@ -4160,7 +4220,7 @@ function inicializirajSporociloDolzniku() {
     predlogaPredogledUredi.addEventListener("click", () => {
       const predlog = predogledPredlog;
       if (!predlog) return;
-      zapriPredlogaPredogled();
+      zapriPredlogaPredogled({ takoj: true });
       odpriUrediModal(predlog);
     });
   }
