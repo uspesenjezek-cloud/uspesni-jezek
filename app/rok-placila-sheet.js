@@ -432,29 +432,13 @@
 
     function vsiHitriGumbi() {
       var seznam = [];
-      [hitroDnevi, hitroTedni, hitroMeseci].forEach(function (tir) {
-        if (!tir) return;
-        tir.querySelectorAll(".rok-sheet__hitro-gumb").forEach(function (b) {
+      [hitroDnevi, hitroTedni, hitroMeseci].forEach(function (grid) {
+        if (!grid) return;
+        grid.querySelectorAll(".rok-sheet__hitro-gumb").forEach(function (b) {
           seznam.push(b);
         });
       });
       return seznam;
-    }
-
-    /** Samo vodoravni scroll tira – ne scrollIntoView (ta potegne cel sheet). */
-    function scrollHitriGumbVTir(b) {
-      var tir = b && b.closest ? b.closest(".rok-sheet__hitro-tir") : null;
-      if (!tir) return;
-      var cilj =
-        b.offsetLeft - (tir.clientWidth - b.offsetWidth) / 2;
-      if (cilj < 0) cilj = 0;
-      var max = Math.max(0, tir.scrollWidth - tir.clientWidth);
-      if (cilj > max) cilj = max;
-      try {
-        tir.scrollTo({ left: cilj, behavior: "smooth" });
-      } catch (_e) {
-        tir.scrollLeft = cilj;
-      }
     }
 
     function oznaciHitriGumb(enota, n) {
@@ -462,7 +446,6 @@
         var sel =
           b.dataset.enota === enota && Number(b.dataset.n) === Number(n);
         b.setAttribute("aria-selected", sel ? "true" : "false");
-        if (sel) scrollHitriGumbVTir(b);
       });
     }
 
@@ -489,13 +472,13 @@
         return;
       }
       var i;
-      for (i = 1; i <= 9; i++) {
+      for (i = 1; i <= 4; i++) {
         if (datumZaHitriIzbor("days", i) === deadline) {
           oznaciHitriGumb("days", i);
           return;
         }
       }
-      for (i = 1; i <= 8; i++) {
+      for (i = 1; i <= 4; i++) {
         if (datumZaHitriIzbor("weeks", i) === deadline) {
           oznaciHitriGumb("weeks", i);
           return;
@@ -529,8 +512,8 @@
       preveriDatum();
     }
 
-    function zgradiHitriTir(tir, enota, odN, doN, oznakaFn) {
-      if (!tir || tir.childElementCount) return;
+    function zgradiHitriGrid(grid, enota, odN, doN, oznakaFn) {
+      if (!grid || grid.childElementCount) return;
       for (var n = odN; n <= doN; n++) {
         (function (st) {
           var b = document.createElement("button");
@@ -538,22 +521,22 @@
           b.className = "rok-sheet__hitro-gumb";
           b.dataset.enota = enota;
           b.dataset.n = String(st);
-          b.textContent = oznakaFn(st);
+          b.textContent = String(st);
           b.setAttribute("role", "option");
           b.setAttribute("aria-selected", "false");
           b.setAttribute("aria-label", oznakaFn(st));
           b.addEventListener("click", function () {
             uporabiHitriIzbor(enota, st);
           });
-          tir.appendChild(b);
+          grid.appendChild(b);
         })(n);
       }
     }
 
     function zgradiHitriIzbirnik() {
-      zgradiHitriTir(hitroDnevi, "days", 1, 9, oznakaDni);
-      zgradiHitriTir(hitroTedni, "weeks", 1, 8, oznakaTednov);
-      zgradiHitriTir(hitroMeseci, "months", 1, 3, oznakaMesecev);
+      zgradiHitriGrid(hitroDnevi, "days", 1, 4, oznakaDni);
+      zgradiHitriGrid(hitroTedni, "weeks", 1, 4, oznakaTednov);
+      zgradiHitriGrid(hitroMeseci, "months", 1, 3, oznakaMesecev);
     }
 
     function napolniUiIzOsnutka() {

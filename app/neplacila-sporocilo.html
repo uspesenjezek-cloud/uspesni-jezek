@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-mozna-min" />
+    <link rel="stylesheet" href="styles.css?v=20260808-hitro-grid" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -470,47 +470,47 @@
         <div class="rok-sheet__telo">
           <div id="rok-sheet-recommendation" class="recommendation-host"></div>
 
-          <section class="rok-sheet__hitro" id="rok-sheet-hitro" aria-label="Hitri izbirnik roka">
+          <section class="rok-sheet__hitro" id="rok-sheet-hitro" aria-label="Hitra izbira">
+            <h3 class="rok-sheet__hitro-naslov">Hitra izbira</h3>
             <p class="rok-sheet__hitro-izhodisce" id="rok-sheet-hitro-izhodisce">
               Od danes: —
             </p>
 
-            <div class="rok-sheet__hitro-vrsta">
-              <p class="rok-sheet__oznaka" id="rok-sheet-hitro-dnevi-oznaka">Dnevi</p>
-              <div class="rok-sheet__hitro-ovoj">
+            <div class="rok-sheet__hitro-mreza" role="group" aria-label="Hitra izbira obdobja">
+              <div class="rok-sheet__hitro-kartica">
+                <p class="rok-sheet__hitro-kartica-naslov" id="rok-sheet-hitro-dnevi-oznaka">
+                  Dnevi
+                </p>
                 <div
-                  class="rok-sheet__hitro-tir"
+                  class="rok-sheet__hitro-grid"
                   id="rok-sheet-hitro-dnevi"
                   role="listbox"
                   aria-labelledby="rok-sheet-hitro-dnevi-oznaka"
                 ></div>
-                <span class="rok-sheet__hitro-chevron" aria-hidden="true">›</span>
               </div>
-            </div>
 
-            <div class="rok-sheet__hitro-vrsta">
-              <p class="rok-sheet__oznaka" id="rok-sheet-hitro-tedni-oznaka">Tedni</p>
-              <div class="rok-sheet__hitro-ovoj">
+              <div class="rok-sheet__hitro-kartica">
+                <p class="rok-sheet__hitro-kartica-naslov" id="rok-sheet-hitro-tedni-oznaka">
+                  Tedni
+                </p>
                 <div
-                  class="rok-sheet__hitro-tir"
+                  class="rok-sheet__hitro-grid"
                   id="rok-sheet-hitro-tedni"
                   role="listbox"
                   aria-labelledby="rok-sheet-hitro-tedni-oznaka"
                 ></div>
-                <span class="rok-sheet__hitro-chevron" aria-hidden="true">›</span>
               </div>
-            </div>
 
-            <div class="rok-sheet__hitro-vrsta">
-              <p class="rok-sheet__oznaka" id="rok-sheet-hitro-meseci-oznaka">Meseci</p>
-              <div class="rok-sheet__hitro-ovoj">
+              <div class="rok-sheet__hitro-kartica">
+                <p class="rok-sheet__hitro-kartica-naslov" id="rok-sheet-hitro-meseci-oznaka">
+                  Meseci
+                </p>
                 <div
-                  class="rok-sheet__hitro-tir"
+                  class="rok-sheet__hitro-grid"
                   id="rok-sheet-hitro-meseci"
                   role="listbox"
                   aria-labelledby="rok-sheet-hitro-meseci-oznaka"
                 ></div>
-                <span class="rok-sheet__hitro-chevron" aria-hidden="true">›</span>
               </div>
             </div>
           </section>
@@ -693,7 +693,7 @@
     </div>
 
     <script src="rok-placila-utils.js?v=20260808-mozna-prezri"></script>
-    <script src="rok-placila-sheet.js?v=20260808-mozna-prezri"></script>
+    <script src="rok-placila-sheet.js?v=20260808-hitro-grid"></script>
     <script src="obrocno-utils.js?v=20260808-mozna-prezri"></script>
     <script src="obrocno-sheet.js?v=20260808-mozna-prezri"></script>
     <script src="ton-priporocilo.js?v=20260808-mozna-prezri"></script>
