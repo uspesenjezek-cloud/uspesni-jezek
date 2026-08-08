@@ -5171,7 +5171,7 @@ body.obrocno-sheet-odprt .korak2__noga {
 }
 
 .rok-sheet__priporocilo-razlaga {
-  margin: 0 0 14px;
+  margin: 0 0 8px;
   padding: 10px 12px;
   border: 1px solid #e0c35a;
   border-radius: 12px;
@@ -5190,6 +5190,35 @@ body.obrocno-sheet-odprt .korak2__noga {
 .rok-sheet__priporocilo-razlaga strong {
   font-weight: 700;
   color: #4a3d12;
+}
+
+.rok-sheet__uporabi-priporoceno {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #c9a227;
+  border-radius: 12px;
+  background: #f5d76e;
+  color: #4a3d12;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.rok-sheet__uporabi-priporoceno:hover,
+.rok-sheet__uporabi-priporoceno:focus-visible {
+  background: #efc84a;
+  border-color: #a88412;
+}
+
+.rok-sheet__uporabi-priporoceno[hidden] {
+  display: none !important;
 }
 
 .rok-sheet__stikalo {

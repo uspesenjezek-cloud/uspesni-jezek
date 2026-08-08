@@ -54,6 +54,9 @@
     var razlagaPriporocila = document.getElementById(
       "obrocno-sheet-priporocilo-razlaga"
     );
+    var gumbUporabiPriporoceno = document.getElementById(
+      "obrocno-sheet-uporabi-priporoceno"
+    );
 
     var odprt = false;
     var osnutek = null;
@@ -214,12 +217,20 @@
       return null;
     }
 
+    function nastaviVidnostGumbaPriporoceno(pokazi) {
+      if (gumbUporabiPriporoceno) gumbUporabiPriporoceno.hidden = !pokazi;
+    }
+
     function posodobiRazlagoPriporocila() {
-      if (!razlagaPriporocila) return;
+      if (!razlagaPriporocila) {
+        nastaviVidnostGumbaPriporoceno(false);
+        return;
+      }
       var api = root.UJTonDodatkiPriporocila;
       if (!api || typeof api.sestaviPriporocila !== "function") {
         razlagaPriporocila.hidden = true;
         razlagaPriporocila.innerHTML = "";
+        nastaviVidnostGumbaPriporoceno(false);
         return;
       }
       var vhodOsnova =
@@ -236,10 +247,27 @@
       if (p && p.obrocnoHtml) {
         razlagaPriporocila.innerHTML = p.obrocnoHtml;
         razlagaPriporocila.hidden = false;
+        nastaviVidnostGumbaPriporoceno(true);
       } else {
         razlagaPriporocila.innerHTML = "";
         razlagaPriporocila.hidden = true;
+        nastaviVidnostGumbaPriporoceno(false);
       }
+    }
+
+    /** En klik: vklop + število/roki iz predlogObrocnegaZaTon (brez shranjevanja). */
+    function uporabiPriporoceno() {
+      var total =
+        typeof ctx.getTotalDebtCents === "function"
+          ? ctx.getTotalDebtCents()
+          : 0;
+      if (!Number.isFinite(total) || total <= 0) return;
+      osnutek = sveziPredlogIzPriporocila(total);
+      osnutek = UJ.uskladiSteviloVrstic(osnutek);
+      draftEnabled = true;
+      napolniOpozorilo();
+      posodobiVklopUi();
+      izrisi();
     }
 
     function zgradiStevilke() {
@@ -991,9 +1019,7 @@
      * Predlog iz »Možna priporočila« – število/roki iz predlogObrocnegaZaTon.
      */
     function sveziPredlogIzPriporocila(total) {
-      var tonId =
-        forsiraToneId ||
-        (typeof ctx.getToneId === "function" ? ctx.getToneId() : null);
+      var tonId = tonZaRazlago();
       var predlog =
         Rok && typeof Rok.predlogObrocnegaZaTon === "function"
           ? Rok.predlogObrocnegaZaTon(tonId)
@@ -1107,6 +1133,7 @@
         UJ.jePlanUporaben(existing, total);
 
       if (forsiraPriporocilo) {
+        // Preglej: priporočilo že pripravljeno in vključeno.
         osnutek = sveziPredlogIzPriporocila(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         draftEnabled = true;
@@ -1120,7 +1147,8 @@
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
         draftEnabled = true;
       } else {
-        osnutek = sveziPredlog(total);
+        // Enak vir kot razlaga/★ (predlogObrocnegaZaTon), ne stari getInstallmentSuggestion.
+        osnutek = sveziPredlogIzPriporocila(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         draftEnabled = false;
       }
@@ -1367,6 +1395,11 @@
       vklop.addEventListener("click", function () {
         if (!odprt) return;
         preklopiVklop();
+      });
+    }
+    if (gumbUporabiPriporoceno) {
+      gumbUporabiPriporoceno.addEventListener("click", function () {
+        uporabiPriporoceno();
       });
     }
     if (backdrop) backdrop.addEventListener("click", poskusiZapri);

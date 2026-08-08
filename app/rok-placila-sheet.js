@@ -51,6 +51,9 @@
     var pomocBesedilo = document.getElementById("rok-sheet-pomoc-besedilo");
     var pomocZvezda = document.getElementById("rok-sheet-pomoc-zvezda");
     var razlagaPriporocila = document.getElementById("rok-sheet-priporocilo-razlaga");
+    var gumbUporabiPriporoceno = document.getElementById(
+      "rok-sheet-uporabi-priporoceno"
+    );
     var napaka = document.getElementById("rok-sheet-napaka");
     var urediPovezava = document.getElementById("rok-sheet-uredi-privzeto");
     var urediPanel = document.getElementById("rok-sheet-uredi-privzeto-panel");
@@ -112,12 +115,20 @@
       return null;
     }
 
+    function nastaviVidnostGumbaPriporoceno(pokazi) {
+      if (gumbUporabiPriporoceno) gumbUporabiPriporoceno.hidden = !pokazi;
+    }
+
     function posodobiRazlagoPriporocila() {
-      if (!razlagaPriporocila) return;
+      if (!razlagaPriporocila) {
+        nastaviVidnostGumbaPriporoceno(false);
+        return;
+      }
       var api = root.UJTonDodatkiPriporocila;
       if (!api || typeof api.sestaviPriporocila !== "function") {
         razlagaPriporocila.hidden = true;
         razlagaPriporocila.innerHTML = "";
+        nastaviVidnostGumbaPriporoceno(false);
         return;
       }
       var vhodOsnova =
@@ -134,10 +145,44 @@
       if (p && p.rokHtml) {
         razlagaPriporocila.innerHTML = p.rokHtml;
         razlagaPriporocila.hidden = false;
+        nastaviVidnostGumbaPriporoceno(true);
       } else {
         razlagaPriporocila.innerHTML = "";
         razlagaPriporocila.hidden = true;
+        nastaviVidnostGumbaPriporoceno(false);
       }
+    }
+
+    /** En klik: automatic + dnevi tona + datum (brez shranjevanja). */
+    function uporabiPriporoceno() {
+      if (!osnutek) return;
+      var tonId = tonZaRazlago();
+      var days = priporoceniDneviZaTon();
+      if (days == null && typeof ctx.getDneviZaTon === "function" && tonId) {
+        days = Number(ctx.getDneviZaTon(tonId));
+      }
+      if (!Number.isFinite(days) || days <= 0) days = 14;
+
+      var linked = Number(osnutek.linkedProposalNumber);
+      if (!(linked >= 1 && linked <= 9)) {
+        linked = Number(ctx.stevilkaIzbranegaPredloga()) || 1;
+      }
+      if (!(linked >= 1 && linked <= 9)) linked = 1;
+
+      var base = ctx.bazaDatumaPosiljanja();
+      osnutek.mode = "automatic";
+      osnutek.linkedProposalNumber = linked;
+      osnutek.linkedToneId = tonId || osnutek.linkedToneId || null;
+      osnutek.termDays = days;
+      osnutek.baseSendDate = base;
+      osnutek.deadlineDate = UJ.izracunajRok(base, days);
+
+      if (samodejno) samodejno.checked = true;
+      if (datumPolje) datumPolje.value = osnutek.deadlineDate;
+      oznaciStevilko(linked);
+      posodobiPomoc();
+      preveriDatum();
+      skrijUrediPrivzeto();
     }
 
     function nastaviPomocZvezdo(pokazi) {
@@ -678,6 +723,11 @@
     }
     if (shrani) shrani.addEventListener("click", function () { shraniInDodaj(); });
     if (odstrani) odstrani.addEventListener("click", function () { odstraniRok(); });
+    if (gumbUporabiPriporoceno) {
+      gumbUporabiPriporoceno.addEventListener("click", function () {
+        uporabiPriporoceno();
+      });
+    }
 
     if (samodejno) {
       samodejno.addEventListener("change", function () {
