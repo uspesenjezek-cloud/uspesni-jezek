@@ -2971,18 +2971,12 @@ function inicializirajSporociloDolzniku() {
     );
   }
 
-  /** Osveži besedila v panelu »Možna priporočila« (vir: ton + zamuda + znesek). */
+  /**
+   * Razlaga priporočil je v sheetih (ne na glavni strani).
+   * Funkcija ostane zaradi klicev ob menjavi tona / shrani.
+   */
   function posodobiNamigeTonaDodatkov() {
-    if (!window.UJTonDodatkiPriporocila) return;
-    const priporocila = window.UJTonDodatkiPriporocila.sestaviPriporocila({
-      toneId: tonZaPriporocila(),
-      overdueDays: dniZamudeZaPriporocila(),
-      amountCents: znesekDolgaVCentih(),
-    });
-    const rokEl = document.getElementById("priporocilo-rok-besedilo");
-    const obrocnoEl = document.getElementById("priporocilo-obrocno-besedilo");
-    if (rokEl) rokEl.innerHTML = priporocila.rokHtml;
-    if (obrocnoEl) obrocnoEl.innerHTML = priporocila.obrocnoHtml;
+    /* namerno prazno – kompaktni seznam Rok/Obročno + Preglej */
   }
 
   /** Po uspešnem shrani iz Preglej → nazaj na razdelek priporočil. */

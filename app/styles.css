@@ -4318,7 +4318,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-priporocila__panel {
-  padding: 12px 14px;
+  padding: 8px 12px;
   border: 1px solid #e0c35a;
   border-radius: 14px;
   background: #fff9e6;
@@ -4326,8 +4326,8 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-priporocila__sklop + .ton-priporocila__sklop {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid #ead78a;
 }
 
@@ -4336,7 +4336,6 @@ body.stran--samo-seznam #neplacila-obrazec {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 4px;
 }
 
 .ton-priporocila__naslov {
@@ -4345,19 +4344,6 @@ body.stran--samo-seznam #neplacila-obrazec {
   font-size: 0.82rem;
   font-weight: 700;
   min-width: 0;
-}
-
-.ton-priporocila__besedilo {
-  margin: 0;
-  color: #4a3d12;
-  font-size: 0.84rem;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.ton-priporocila__besedilo strong {
-  font-weight: 700;
-  color: #3d320e;
 }
 
 .ton-priporocila__preglej {
