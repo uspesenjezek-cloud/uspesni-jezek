@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-wizard-shell" />
+    <link rel="stylesheet" href="styles.css?v=20260808-obrazec-scroll" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -22,11 +22,18 @@
   <body class="stran--neplacila">
     <script>
       /* Takoj ob nalaganju skrije napačen razdelek (pred app.js), da
-         pri #seznam ne utripne obrazec "Dodaj nov račun". */
+         pri #seznam ne utripne obrazec "Dodaj nov račun".
+         Pri #obrazec dodamo tudi stran--sporocilo (isti shell kot koraka 2/3)
+         in onemogočimo samodejni scroll na sidro pod topbarjem. */
       (function () {
         var h = location.hash.replace("#", "");
-        if (h === "seznam") document.body.classList.add("stran--samo-seznam");
-        else if (h === "obrazec") document.body.classList.add("stran--samo-obrazec");
+        if (h === "seznam") {
+          document.body.classList.add("stran--samo-seznam");
+        } else if (h === "obrazec") {
+          document.body.classList.add("stran--samo-obrazec", "stran--sporocilo");
+          if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+          window.scrollTo(0, 0);
+        }
       })();
     </script>
     <div class="korak2-ovoj wizard-shell">
@@ -425,6 +432,18 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js?v=20260808-odstranjen-naslov"></script>
+    <script>
+      /* Brskalnik lahko po izrisu #obrazec še enkrat scrolla na sidro –
+         vrnemo na vrh, da je postavitev enaka korakoma 2 in 3. */
+      (function () {
+        if (location.hash.replace("#", "") !== "obrazec") return;
+        if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+        window.scrollTo(0, 0);
+        requestAnimationFrame(function () {
+          window.scrollTo(0, 0);
+        });
+      })();
+    </script>
+    <script src="app.js?v=20260808-obrazec-scroll"></script>
   </body>
 </html>

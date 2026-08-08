@@ -205,20 +205,8 @@ a {
   gap: 1.25rem;
 }
 
-/* Korak 1 (#obrazec): isti shell/tokeni kot .stran--sporocilo (koraka 2 in 3) */
-.stran--neplacila.stran--samo-obrazec {
-  --page: #f2f7f6;
-  --surface: #ffffff;
-  --border: #c5d6d2;
-  --shadow: rgba(25, 62, 57, 0.12);
-
-  max-width: none;
-  min-height: 100vh;
-  padding: 8px 12px 28px;
-  background: var(--page);
-  box-sizing: border-box;
-}
-
+/* Korak 1 (#obrazec): shell prevzame .stran--sporocilo (doda JS).
+   Tu samo skrijemo seznam – brez lastnega padding/max-width, da ni razlike z 2/3. */
 .stran--neplacila.stran--samo-obrazec .neplacila-seznam-vsebina {
   display: none !important;
 }
@@ -229,11 +217,6 @@ a {
 
 @media (max-width: 370px) {
   .stran--neplacila .app__vsebina {
-    padding-left: 7px;
-    padding-right: 7px;
-  }
-
-  .stran--neplacila.stran--samo-obrazec {
     padding-left: 7px;
     padding-right: 7px;
   }

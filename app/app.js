@@ -1473,20 +1473,25 @@ function inicializirajNeplacila() {
     if (idRazdelka === "seznam") {
       // Samo semafor + seznam zadev (gumb "Preveri odprte zadeve").
       // Obrazec "Dodaj nov račun" mora biti popolnoma skrit.
+      document.body.classList.remove("stran--sporocilo");
       document.body.classList.add("stran--samo-seznam");
       if (obrazecRazdelek) obrazecRazdelek.hidden = true;
       if (semaforRazdelek) semaforRazdelek.hidden = false;
       if (seznamRazdelek) seznamRazdelek.hidden = false;
+      // Seznam je spodaj – scroll do njega je smiseln.
+      if (semaforRazdelek) {
+        semaforRazdelek.scrollIntoView({ behavior: "auto", block: "start" });
+      }
     } else if (idRazdelka === "obrazec") {
       // Samo obrazec za dodajanje (gumb "Dodaj nov račun").
-      document.body.classList.add("stran--samo-obrazec");
+      // stran--sporocilo = isti shell kot koraka 2 in 3 (brez skoka postavitve).
+      document.body.classList.add("stran--samo-obrazec", "stran--sporocilo");
       if (obrazecRazdelek) obrazecRazdelek.hidden = false;
       if (semaforRazdelek) semaforRazdelek.hidden = true;
       if (seznamRazdelek) seznamRazdelek.hidden = true;
+      // #obrazec je panel POD topbarjem – ne scrollaj nanj (sicer skok glede na 2/3).
+      window.scrollTo(0, 0);
     }
-
-    const razdelek = document.getElementById(idRazdelka);
-    if (razdelek) razdelek.scrollIntoView({ behavior: "auto", block: "start" });
   }
 
   async function osveziSeznam() {
