@@ -116,16 +116,20 @@
       if (ctx.gumbObrocno) {
         ctx.gumbObrocno.setAttribute("aria-pressed", aktiven ? "true" : "false");
       }
-      if (dodatekObrocnoStanje) {
+      var stanjeEl =
+        (ctx.gumbObrocno &&
+          ctx.gumbObrocno.querySelector(".sporocilo-dodatek__stanje")) ||
+        dodatekObrocnoStanje;
+      if (stanjeEl) {
         if (!aktiven) {
-          dodatekObrocnoStanje.textContent = "Izklopljeno";
+          stanjeEl.textContent = "Izklopljeno";
         } else {
           var n =
             planOrNull.installmentCount ||
             (planOrNull.installments && planOrNull.installments.length) ||
             0;
           var interval = besediloIntervala(planOrNull.intervalType);
-          dodatekObrocnoStanje.textContent = interval
+          stanjeEl.textContent = interval
             ? n + " obrokov • " + interval
             : n + " obrokov";
         }

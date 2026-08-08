@@ -2626,6 +2626,11 @@ body.stran--samo-seznam #neplacila-obrazec {
   --white: #ffffff;
   --overlay: rgba(18, 48, 44, 0.2);
   --shadow: rgba(25, 62, 57, 0.12);
+  --recommendation-border: #c9a227;
+  --recommendation-background: #fff9e6;
+  --recommendation-primary-text: #6a5410;
+  --template-viewport-height: 100dvh;
+  --template-viewport-top: 0px;
 
   color-scheme: light only;
   max-width: none;
@@ -2748,8 +2753,8 @@ body.stran--samo-seznam #neplacila-obrazec {
 .osnutek-modal:not([hidden]) {
   position: fixed;
   inset: 0;
-  /* Nad urejevalnim modalom predloge (.korak2-modal = 100). */
-  z-index: 120;
+  /* Nad urejevalnikom predloge (2000) in sheeti (2100). */
+  z-index: 2200;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -5070,8 +5075,8 @@ body.obrocno-sheet-odprt .korak2__noga {
   display: block;
   position: fixed;
   inset: 0;
-  /* Nad .korak2-modal (100) in potrditvenim modalom (120). */
-  z-index: 200;
+  /* Nad urejevalnikom predloge (2000) in potrditvenim modalom (120). */
+  z-index: 2100;
   overflow: hidden;
   overscroll-behavior: none;
   /* Overlay ne sprejema horizontalnega swipe-a. */
@@ -5512,369 +5517,412 @@ body.rok-sheet-odprt {
   background: var(--teal-dark);
 }
 
-.korak2-modal[hidden] {
+/* ========== Celozaslonski urejevalnik predloge ========== */
+.template-editor[hidden] {
+  display: none !important;
+}
+
+body.template-editor-odprt {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+.template-editor:not([hidden]) {
+  position: fixed;
+  top: var(--template-viewport-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: var(--template-viewport-height, 100dvh);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.template-editor__backdrop {
   display: none;
 }
 
-/* Fixed na viewport – ob tipkovnici ostane na vrhu vidnega dela (JS + visualViewport). */
-.korak2-modal:not([hidden]) {
-  display: block;
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-}
-
-.korak2-modal__backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: var(--overlay);
-  cursor: pointer;
-}
-
-.korak2-modal__dialog {
-  /* fixed: JS nastavi top/left/width/height iz visualViewport (iOS tipkovnica). */
-  position: fixed;
-  z-index: 11;
-  top: 8px;
-  left: 14px;
-  right: 14px;
-  display: flex;
-  flex-direction: column;
-  /* Rezerva pred JS: dvh + zgornja meja ~pol zaslona. */
-  max-height: min(50dvh, 55vh, calc(100dvh - 16px));
-  padding: 10px 12px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  background: var(--white);
-  box-shadow: 0 18px 40px var(--shadow);
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-/* Scroll: samo ime + besedilo. */
-.korak2-modal__telo {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  gap: 0;
-}
-
-/* Noga vedno v dialogu (Izbriši/Shrani) – ne scrolla stran. */
-.korak2-modal__noga {
-  flex: 0 0 auto;
-  z-index: 2;
+.template-editor__shell {
   display: grid;
-  gap: 6px;
-  padding-top: 8px;
-  margin-top: 6px;
-  border-top: 1px solid var(--border);
-  background: var(--white);
-}
-
-.korak2-modal__glava {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.korak2-modal__naslov-ovoj {
-  min-width: 0;
-  flex: 1;
-}
-
-.korak2-modal__naslov-oznaka,
-.korak2-modal__polje-oznaka {
-  display: block;
-  margin: 0 0 3px;
-  font-size: 0.68rem;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.korak2-modal__naslov-vnos {
-  display: block;
+  grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
-  margin: 0;
-  padding: 7px 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: 9px;
-  background: var(--white);
-  color: var(--text);
-  font-family: inherit;
-  /* 16px: Safari ne naredi auto-zooma ob fokusu. */
-  font-size: 16px;
-  font-weight: 400;
-  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  background: #ffffff;
+  overflow: hidden;
 }
 
-.korak2-modal__glava-akcije {
+.template-editor__header {
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-top: 14px;
+  justify-content: space-between;
+  min-height: 62px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #ffffff;
 }
 
-.korak2-modal__stevilka {
-  margin: 0 0 6px;
+.template-editor__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
-.korak2-modal__stevilka[hidden] {
-  display: none;
-}
-
-.korak2-modal__stevilke-mreza {
-  display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.korak2-modal__stevilka-izbira {
-  position: relative;
+.template-editor__zapri {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  aspect-ratio: 1;
-  min-height: 32px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
+  width: 44px;
+  height: 44px;
+  margin: 0 -8px 0 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.7rem;
   line-height: 1;
   cursor: pointer;
 }
 
-.korak2-modal__stevilka-izbira[aria-selected="true"] {
-  border-color: var(--teal-dark, #1f6b5c);
-  background: var(--teal-dark, #1f6b5c);
-  color: #fff;
+.template-editor__content {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
 }
 
-.korak2-modal__stevilka-izbira:focus-visible {
-  outline: 2px solid var(--teal-dark, #1f6b5c);
-  outline-offset: 2px;
-}
-
-.korak2-modal__stevilka-izbira--prioriteta {
-  border-color: transparent;
-  background: transparent;
+.suggest-tone-button {
+  width: 100%;
+  min-height: 46px;
+  margin: 0 0 10px;
+  border: 1px solid var(--recommendation-border);
   border-radius: 12px;
+  background: var(--recommendation-background);
+  color: var(--recommendation-primary-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.suggest-tone-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.template-editor__hint {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.template-editor__priporocilo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--recommendation-border);
+  border-radius: 12px;
+  background: var(--recommendation-background);
+}
+
+.template-editor__priporocilo-tekst {
+  margin: 0;
+  color: var(--recommendation-primary-text);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.template-editor__priporocilo-opis {
+  display: block;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.template-editor__razveljavi {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--recommendation-primary-text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.template-editor__label {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.template-editor__ime {
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.template-editor__ime:focus,
+.template-body-textarea:focus {
+  border-color: var(--teal);
+  outline: 2px solid var(--teal);
+  outline-offset: 0;
+}
+
+.template-editor__stevilka {
+  margin: 0 0 14px;
+}
+
+.template-editor__stevilka[hidden] {
+  display: none;
+}
+
+.template-editor__stevilke,
+.korak2-modal__stevilke-mreza {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.korak2-modal__stevilka-izbira {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.korak2-modal__stevilka-izbira[aria-selected="true"] {
+  border-color: var(--teal);
+  background: var(--teal);
   color: #fff;
-  min-height: 38px;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
+  position: absolute;
+  top: -2px;
+  right: -2px;
   color: #e8b923;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda svg {
-  width: 34px;
-  height: 34px;
+  width: 14px;
+  height: 14px;
 }
 
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: #fff;
+  font-size: 0.55rem;
 }
 
-.korak2-modal__stevilka-izbira--prioriteta[aria-selected="true"] {
-  border-color: transparent;
-  background: transparent;
-  color: #fff;
-}
-
-.korak2-modal__zapri {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface-soft);
-  color: var(--teal-dark);
-  font-size: 1.2rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-/* Večji okvir (brez Push) + notranji scroll. */
-.korak2-modal__urejevalnik {
-  display: block;
+.template-body-textarea {
   width: 100%;
-  flex: 1 1 auto;
-  min-height: 88px;
-  max-height: none;
+  min-height: 320px;
+  max-height: 60dvh;
   margin: 0;
-  padding: 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: var(--white);
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
   color: var(--text);
-  font-family: inherit;
-  /* 16px: Safari ne naredi auto-zooma ob fokusu. */
+  font: inherit;
   font-size: 16px;
-  font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.48;
   resize: none;
-  overflow-x: hidden;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
-.korak2-modal__placila {
-  flex: 0 0 auto;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border, #d5e0df);
+.template-editor__stevec-vrsta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 18px;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
-.korak2-modal__placila-opis {
+.template-editor__dodatki {
+  margin: 0 0 20px;
+}
+
+.template-editor__opis {
   margin: 0 0 10px;
-  color: var(--muted, #718585);
-  font-size: 0.75rem;
+  color: var(--muted);
+  font-size: 0.78rem;
   line-height: 1.35;
 }
 
-.korak2-modal__placila-vrsta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.korak2-modal__placila-stikalo {
-  display: inline-flex;
-  align-items: center;
+.template-addons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  min-width: 0;
-  color: var(--text, #243d3d);
-  font-size: 0.88rem;
-  font-weight: 500;
-  cursor: pointer;
+  padding: 0;
 }
 
-.korak2-modal__placila-stikalo input {
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: var(--teal, #5aa3a5);
-}
-
-.korak2-modal__placila-dnevi-ovoj {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted, #718585);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
-.korak2-modal__placila-dnevi {
-  width: 3.4rem;
-  min-height: 34px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-strong, #c5d4d2);
-  border-radius: 8px;
+.template-editor .sporocilo-dodatek {
+  position: relative;
+  min-height: 86px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
   background: var(--white);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
   text-align: center;
+  cursor: pointer;
   box-sizing: border-box;
 }
 
-.korak2-modal__placila-dnevi:disabled {
-  opacity: 0.45;
+.template-editor .sporocilo-dodatek__naslov {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.15;
 }
 
-.korak2-modal__placila-priporoceno {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  margin-top: 4px;
-  padding: 8px 10px;
-  border: 1px solid #c9a227;
-  border-radius: 10px;
-  background: #fff9e6;
-  color: #6a5410;
+.template-editor .sporocilo-dodatek__stanje {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: 0.85;
+}
+
+.template-editor .sporocilo-dodatek[aria-pressed="true"] {
+  border: 1px solid var(--teal);
+  background: var(--teal-pale);
+  color: var(--teal-dark);
+}
+
+.template-editor .sporocilo-dodatek[aria-pressed="true"] .sporocilo-dodatek__stanje {
+  color: var(--teal-dark);
+  opacity: 1;
+}
+
+.template-editor__actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.template-editor__shrani {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--teal);
+  color: #fff;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.template-editor__shrani:hover {
+  background: var(--teal-dark);
+}
+
+.template-editor__izbrisi {
+  min-height: 46px;
+  border: 1px solid #e0b4b0;
+  border-radius: 12px;
+  background: #fff5f4;
+  color: #9b3b34;
+  font: inherit;
+  font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.korak2-modal__placila-priporoceno:hover,
-.korak2-modal__placila-priporoceno:focus-visible {
-  background: #fff3c4;
-}
-
-.korak2-modal__vrsta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.korak2-modal__izbrisi {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 6px;
-  border: 1px solid #d7b4b1;
-  border-radius: 10px;
-  background: #fff7f6;
-  color: #9d3a36;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 400;
+.template-editor__preklici {
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.korak2-modal__izbrisi:hover {
-  background: #fdecea;
-  border-color: #c78d88;
-}
+@media (min-width: 601px) {
+  .template-editor:not([hidden]) {
+    display: grid;
+    place-items: center;
+    inset: 0;
+    top: 0;
+    height: 100dvh;
+    background: transparent;
+  }
 
-.korak2-modal__shrani {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 8px;
-  border: 1px solid var(--teal);
-  border-radius: 10px;
-  background: var(--teal);
-  color: var(--white);
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-}
+  .template-editor__backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--overlay);
+    cursor: pointer;
+  }
 
-.korak2-modal__shrani:hover {
-  background: var(--teal-dark);
-  border-color: var(--teal-dark);
+  .template-editor__shell {
+    position: relative;
+    z-index: 1;
+    width: min(720px, calc(100vw - 32px));
+    height: min(920px, calc(100dvh - 32px));
+    margin: auto;
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    box-shadow: 0 18px 40px var(--shadow);
+  }
 }
 
 .stran--sporocilo .obrazec__napaka {

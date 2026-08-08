@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-payment-k4" />
+    <link rel="stylesheet" href="styles.css?v=20260808-template-editor-1" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -236,130 +236,188 @@
           </button>
         </footer>
 
-        <!-- Modal urejanja predloga (absolutno nad panelom) -->
-        <div class="korak2-modal" id="predogled-modal" hidden>
+        <!-- Celozaslonski urejevalnik predloge (JS ga premakne v document.body) -->
+        <div class="template-editor" id="predogled-modal" hidden>
           <button
             type="button"
-            class="korak2-modal__backdrop"
+            class="template-editor__backdrop"
             id="predogled-backdrop"
             aria-label="Zapri urejanje"
           ></button>
           <div
-            class="korak2-modal__dialog"
+            class="template-editor__shell"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="predogled-naslov-oznaka"
+            aria-labelledby="predogled-naslov-glava"
+            id="predogled-dialog"
           >
-            <div class="korak2-modal__telo">
-              <div class="korak2-modal__glava">
-                <div class="korak2-modal__naslov-ovoj">
-                  <label class="korak2-modal__naslov-oznaka" id="predogled-naslov-oznaka" for="predogled-naslov-vnos">
-                    Ime predloga
-                  </label>
-                  <input
-                    type="text"
-                    id="predogled-naslov-vnos"
-                    class="korak2-modal__naslov-vnos"
-                    maxlength="80"
-                    placeholder="Ime predloga"
-                  />
-                </div>
-                <div class="korak2-modal__glava-akcije">
-                  <button type="button" class="korak2-modal__zapri" id="predogled-zapri" aria-label="Zapri">
-                    <span aria-hidden="true">×</span>
-                  </button>
-                </div>
+            <header class="template-editor__header">
+              <h2 class="template-editor__title" id="predogled-naslov-glava">
+                Uredi predlogo
+              </h2>
+              <button
+                type="button"
+                class="template-editor__zapri"
+                id="predogled-zapri"
+                aria-label="Zapri"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </header>
+
+            <div class="template-editor__content" id="predogled-vsebina">
+              <button
+                type="button"
+                class="suggest-tone-button"
+                id="predogled-predlagaj-ton"
+              >
+                ★ Predlagaj ton
+              </button>
+              <p class="template-editor__hint" id="predogled-predlagaj-ton-hint" hidden>
+                Najprej vnesite besedilo predloge.
+              </p>
+              <div
+                class="template-editor__priporocilo"
+                id="predogled-priporocilo-vrstica"
+                hidden
+              >
+                <p class="template-editor__priporocilo-tekst">
+                  <span id="predogled-priporocilo-naslov">★ Predlagani ton</span>
+                  <span class="template-editor__priporocilo-opis">
+                    Nastavitve predloge so posodobljene.
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  class="template-editor__razveljavi"
+                  id="predogled-razveljavi-priporocilo"
+                >
+                  Razveljavi
+                </button>
               </div>
-              <div class="korak2-modal__stevilka" id="predogled-stevilka" hidden>
-                <span class="korak2-modal__polje-oznaka" id="predogled-stevilka-oznaka">Številka</span>
+
+              <label class="template-editor__label" for="predogled-naslov-vnos">
+                Ime predloge
+              </label>
+              <input
+                type="text"
+                id="predogled-naslov-vnos"
+                class="template-editor__ime"
+                maxlength="80"
+                placeholder="Jasen poziv"
+                autocomplete="off"
+              />
+
+              <div class="template-editor__stevilka" id="predogled-stevilka" hidden>
+                <span class="template-editor__label" id="predogled-stevilka-oznaka"
+                  >Številka</span
+                >
                 <div
-                  class="korak2-modal__stevilke-mreza"
+                  class="template-editor__stevilke"
                   id="predogled-stevilke-mreza"
                   role="listbox"
                   aria-labelledby="predogled-stevilka-oznaka"
                 ></div>
               </div>
-              <label class="korak2-modal__polje-oznaka" for="predogled-urejevalnik">Besedilo</label>
+
+              <label class="template-editor__label" for="predogled-urejevalnik"
+                >Besedilo</label
+              >
               <textarea
                 id="predogled-urejevalnik"
-                class="korak2-modal__urejevalnik"
+                class="template-body-textarea"
                 maxlength="1000"
               ></textarea>
+              <div class="template-editor__stevec-vrsta">
+                <span>Besedilo predloge</span>
+                <span id="predogled-stevec">0/1000</span>
+              </div>
 
-              <div class="korak2-modal__placila" id="predogled-placila">
-                <p class="korak2-modal__polje-oznaka" id="predogled-placila-oznaka">
-                  Ob uporabi predloge
+              <section
+                class="template-editor__dodatki"
+                id="predogled-placila"
+                aria-labelledby="predogled-placila-oznaka"
+              >
+                <h3 class="template-editor__label" id="predogled-placila-oznaka">
+                  Dodatki predloge
+                </h3>
+                <p class="template-editor__opis">
+                  Te nastavitve se uporabijo vsakič, ko izberete to predlogo.
                 </p>
-                <p class="korak2-modal__placila-opis">
-                  Nastavitve se uveljavijo, ko kliknete »Uporabi« na tej predlogi.
-                </p>
-
-                <div class="korak2-modal__placila-vrsta">
-                  <label class="korak2-modal__placila-stikalo">
-                    <input type="checkbox" id="predogled-rok-enabled" />
-                    <span>Rok plačila</span>
-                  </label>
-                  <label class="korak2-modal__placila-dnevi-ovoj">
-                    <span class="sr-only">Število dni</span>
-                    <input
-                      type="number"
-                      id="predogled-rok-dnevi"
-                      class="korak2-modal__placila-dnevi"
-                      min="1"
-                      max="365"
-                      step="1"
-                      value="14"
-                      inputmode="numeric"
-                    />
-                    <span>dni</span>
-                  </label>
+                <div
+                  class="sporocilo-dodatki__gumbi template-addons"
+                  role="group"
+                  aria-label="Dodatki predloge"
+                >
+                  <button
+                    type="button"
+                    class="sporocilo-dodatek"
+                    id="predogled-dodatek-rok"
+                    aria-pressed="false"
+                  >
+                    <span class="sporocilo-dodatek__ikona" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M12 14v4"/><path d="M10 16h4"/></svg>
+                    </span>
+                    <span class="sporocilo-dodatek__naslov">Rok plačila</span>
+                    <span class="sporocilo-dodatek__stanje" id="predogled-dodatek-rok-stanje"
+                      >Izklopljeno</span
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    class="sporocilo-dodatek"
+                    id="predogled-dodatek-obrocno"
+                    aria-pressed="false"
+                  >
+                    <span class="sporocilo-dodatek__ikona" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11h10"/><path d="M7 15h6"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+                    </span>
+                    <span class="sporocilo-dodatek__naslov">Obročno plačilo</span>
+                    <span
+                      class="sporocilo-dodatek__stanje"
+                      id="predogled-dodatek-obrocno-stanje"
+                      >Izklopljeno</span
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    class="sporocilo-dodatek"
+                    id="predogled-dodatek-trr"
+                    aria-pressed="false"
+                  >
+                    <span class="sporocilo-dodatek__ikona" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                    </span>
+                    <span class="sporocilo-dodatek__naslov">TRR</span>
+                    <span class="sporocilo-dodatek__stanje" id="predogled-dodatek-trr-stanje"
+                      >Izklopljeno</span
+                    >
+                  </button>
                 </div>
+              </section>
 
-                <div class="korak2-modal__placila-vrsta">
-                  <label class="korak2-modal__placila-stikalo">
-                    <input type="checkbox" id="predogled-obrocno-enabled" />
-                    <span>Obročno plačilo</span>
-                  </label>
-                  <label class="korak2-modal__placila-dnevi-ovoj">
-                    <span class="sr-only">Število obrokov</span>
-                    <input
-                      type="number"
-                      id="predogled-obrocno-st"
-                      class="korak2-modal__placila-dnevi"
-                      min="1"
-                      max="20"
-                      step="1"
-                      value="4"
-                      inputmode="numeric"
-                    />
-                    <span>obrokov</span>
-                  </label>
-                </div>
-
-                <div class="korak2-modal__placila-vrsta">
-                  <label class="korak2-modal__placila-stikalo">
-                    <input type="checkbox" id="predogled-trr-enabled" />
-                    <span>TRR</span>
-                  </label>
-                </div>
-
+              <div class="template-editor__actions" id="predogled-opcije">
                 <button
                   type="button"
-                  class="korak2-modal__placila-priporoceno"
-                  id="predogled-placila-priporoceno"
+                  class="template-editor__shrani"
+                  id="predogled-shrani"
                 >
-                  ★ Predlagaj glede na ton
+                  Shrani spremembe
                 </button>
-              </div>
-            </div>
-            <!-- Vedno vidna noga: Izbriši | Shrani (tudi z tipkovnico) -->
-            <div class="korak2-modal__noga" id="predogled-opcije">
-              <div class="korak2-modal__vrsta">
-                <button type="button" class="korak2-modal__izbrisi" id="predogled-izbrisi">
-                  Izbriši
+                <button
+                  type="button"
+                  class="template-editor__izbrisi"
+                  id="predogled-izbrisi"
+                >
+                  Izbriši predlogo
                 </button>
-                <button type="button" class="korak2-modal__shrani" id="predogled-shrani">
-                  Shrani
+                <button
+                  type="button"
+                  class="template-editor__preklici"
+                  id="predogled-preklici"
+                  hidden
+                >
+                  Prekliči
                 </button>
               </div>
             </div>
@@ -628,15 +686,15 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-payment-k4"></script>
-    <script src="rok-placila-sheet.js?v=20260808-payment-k4"></script>
-    <script src="obrocno-utils.js?v=20260808-payment-k4"></script>
-    <script src="obrocno-sheet.js?v=20260808-payment-k4"></script>
-    <script src="ton-priporocilo.js?v=20260808-payment-k4"></script>
-    <script src="ton-predloge.js?v=20260808-payment-k4"></script>
-    <script src="ton-widget.js?v=20260808-payment-k4"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-payment-k4"></script>
-    <script src="predloga-payment-settings.js?v=20260808-payment-k4"></script>
-    <script src="app.js?v=20260808-payment-k4"></script>
+    <script src="rok-placila-utils.js?v=20260808-template-editor-1"></script>
+    <script src="rok-placila-sheet.js?v=20260808-template-editor-1"></script>
+    <script src="obrocno-utils.js?v=20260808-template-editor-1"></script>
+    <script src="obrocno-sheet.js?v=20260808-template-editor-1"></script>
+    <script src="ton-priporocilo.js?v=20260808-template-editor-1"></script>
+    <script src="ton-predloge.js?v=20260808-template-editor-1"></script>
+    <script src="ton-widget.js?v=20260808-template-editor-1"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-template-editor-1"></script>
+    <script src="predloga-payment-settings.js?v=20260808-template-editor-1"></script>
+    <script src="app.js?v=20260808-template-editor-1"></script>
   </body>
 </html>
