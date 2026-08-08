@@ -205,19 +205,22 @@ a {
   gap: 1.25rem;
 }
 
-/* Korak 1 (#obrazec): isto mehko ozadje strani kot koraka 2 in 3 */
+/* Korak 1 (#obrazec): isto ohišje in ozadje kot koraka 2 in 3 */
 .stran--neplacila.stran--samo-obrazec {
+  max-width: none;
+  min-height: 100vh;
+  padding: 8px 12px 28px;
   background: #f2f7f6;
-}
-
-.stran--neplacila.stran--samo-obrazec .app__header {
-  padding: 8px 12px 0;
-  background: #f2f7f6;
+  box-sizing: border-box;
 }
 
 .stran--neplacila.stran--samo-obrazec .app__vsebina {
-  padding-top: 8px;
-  padding-bottom: 28px;
+  padding: 0;
+  gap: 1.25rem;
+}
+
+.stran--neplacila.stran--samo-seznam .wizard-shell {
+  max-width: 430px;
 }
 
 @media (max-width: 370px) {
@@ -226,9 +229,13 @@ a {
     padding-right: 7px;
   }
 
-  .stran--neplacila.stran--samo-obrazec .app__header {
+  .stran--neplacila.stran--samo-obrazec {
     padding-left: 7px;
     padding-right: 7px;
+  }
+
+  .stran--neplacila.stran--samo-obrazec .app__vsebina {
+    padding: 0;
   }
 }
 
@@ -2664,14 +2671,19 @@ body.stran--samo-seznam #obrazec {
   outline-offset: 2px;
 }
 
-.korak2-ovoj {
+.korak2-ovoj,
+.wizard-shell {
   width: 100%;
   max-width: 410px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
-/* Enoten vrh: Nazaj levo, Izbriši osnutek desno (koraki 1–3, vzorec = korak 1) */
-.korak2__vrh {
+/*
+  Skupni vrh postopka (koraki 1–3):
+  .wizard-topbar / __nazaj / __izbrisi – edini stil za Nazaj + Izbriši osnutek.
+*/
+.wizard-topbar {
   position: sticky;
   top: 0;
   z-index: 40;
@@ -2679,20 +2691,14 @@ body.stran--samo-seznam #obrazec {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
   margin: 0 0 8px;
   padding: 0;
-  background: transparent;
+  background: #f2f7f6;
   box-sizing: border-box;
 }
 
-.stran--neplacila .korak2__vrh--neplacila {
-  margin: 0;
-  padding: 0;
-  background: transparent;
-}
-
-.korak2__nazaj,
-.stran--neplacila .korak2__vrh--neplacila .app__nazaj {
+.wizard-topbar__nazaj {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2702,7 +2708,7 @@ body.stran--samo-seznam #obrazec {
   border: 0;
   background: transparent;
   color: #347d7c;
-  font-family: inherit;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 13px;
   font-weight: 400;
   line-height: 1.2;
@@ -2711,36 +2717,44 @@ body.stran--samo-seznam #obrazec {
   -webkit-tap-highlight-color: transparent;
 }
 
-.korak2__nazaj:hover,
-.stran--neplacila .korak2__vrh--neplacila .app__nazaj:hover {
-  text-decoration: none;
+.wizard-topbar__nazaj:hover {
   color: #2f6f6e;
+  text-decoration: none;
 }
 
-.korak2__izbrisi-osnutek {
+.wizard-topbar__nazaj:focus-visible {
+  outline: 3px solid #347d7c;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.wizard-topbar__izbrisi {
   flex-shrink: 0;
   margin: 0;
+  min-height: 32px;
   padding: 7px 12px;
   border: 0;
   border-radius: 10px;
   background: #9a4a44;
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.72rem;
+  color: #ffffff;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.korak2__izbrisi-osnutek:hover {
+.wizard-topbar__izbrisi:hover {
   background: #864039;
 }
 
-.korak2__izbrisi-osnutek:focus-visible {
+.wizard-topbar__izbrisi:focus-visible {
   outline: 3px solid #9a4a44;
   outline-offset: 2px;
 }
+
 
 /* Skupni potrditveni / opozorilni modal (glej potrdiVprasanje v app.js) */
 .osnutek-modal[hidden] {

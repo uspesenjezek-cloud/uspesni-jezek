@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-vrh-gumbi" />
+    <link rel="stylesheet" href="styles.css?v=20260808-wizard-topbar" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -29,17 +29,16 @@
         else if (h === "obrazec") document.body.classList.add("stran--samo-obrazec");
       })();
     </script>
-    <header class="app__header">
-      <div class="korak2__vrh korak2__vrh--neplacila">
-        <a class="app__nazaj" href="zascita-posla.html">
+    <div class="wizard-shell">
+      <div class="wizard-topbar">
+        <a class="wizard-topbar__nazaj" href="zascita-posla.html">
           <span aria-hidden="true">←</span>
           Nazaj
         </a>
-        <button type="button" class="korak2__izbrisi-osnutek" id="gumb-izbrisi-osnutek">
+        <button type="button" class="wizard-topbar__izbrisi" id="gumb-izbrisi-osnutek">
           Izbriši osnutek
         </button>
       </div>
-    </header>
 
     <main class="app__vsebina">
       <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
@@ -423,6 +422,7 @@
         </div>
       </section>
     </main>
+    </div>
 
     <div class="lightbox" id="lightbox" hidden>
       <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri">✕</button>
