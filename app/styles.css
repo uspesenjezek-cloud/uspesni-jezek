@@ -4400,69 +4400,100 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrocno-sheet__seznam {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin: 0 0 10px;
 }
 
-/*
-  Ena vodoravna vrstica (mockup): naslov(+Ročno) | znesek | datum | ×
-  Grid + 100% širina, da × ne pade ven (panel ima overflow-x: hidden).
-*/
+/* Kartica obroka: glava + polji (ne stisnjena ena vrstica) */
 .obrocno-sheet__vrstica {
-  display: grid;
-  grid-template-columns: 3.4rem minmax(0, 1.05fr) minmax(0, 1.2fr) 1.75rem;
-  align-items: center;
-  column-gap: 6px;
   width: 100%;
   max-width: 100%;
-  padding: 8px 4px 8px 8px;
+  padding: 14px 16px;
   border: 1px solid var(--border, #c4d7d5);
-  border-radius: 14px;
+  border-radius: 16px;
   background: #ffffff;
   box-sizing: border-box;
 }
 
+.obrocno-sheet__vrstica-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .obrocno-sheet__vrstica-levo {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
 .obrocno-sheet__vrstica-naslov {
   color: var(--text, #243d3d);
-  font-size: 0.78rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  line-height: 1.15;
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .obrocno-sheet__rocno {
   display: inline-flex;
-  padding: 1px 5px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: var(--teal-pale, #eaf4f3);
   color: var(--teal-dark, #243d3d);
-  font-size: 0.58rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  line-height: 1.3;
+}
+
+.obrocno-sheet__vrstica-polja {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 10px;
+}
+
+@media (max-width: 369px) {
+  .obrocno-sheet__vrstica-polja {
+    grid-template-columns: 1fr;
+  }
+}
+
+.obrocno-sheet__polje-oznaka {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--muted, #718585);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.obrocno-sheet__money-ovoj {
+  position: relative;
+  width: 100%;
 }
 
 .obrocno-sheet__znesek {
   width: 100%;
   min-width: 0;
-  min-height: 40px;
-  padding: 0 6px;
+  min-height: 44px;
+  padding: 0 2rem 0 10px;
   border: 1px solid var(--border, #c4d7d5);
   border-radius: 12px;
   background: #ffffff;
   color: var(--text, #243d3d);
   font: inherit;
-  /* ≥16px: iOS Safari sicer ob fokusu samodejno poveča zoom. */
   font-size: 16px;
   box-sizing: border-box;
+}
+
+.obrocno-sheet__money-eur {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted, #718585);
+  font-size: 16px;
+  pointer-events: none;
 }
 
 .obrocno-sheet__znesek--rocno,
@@ -4472,81 +4503,90 @@ body.stran--samo-seznam #neplacila-obrazec {
   box-shadow: 0 0 0 1px var(--teal, #5aa3a5);
 }
 
+.obrocno-sheet__znesek--napaka {
+  border-color: #b42318 !important;
+  box-shadow: 0 0 0 1px #b42318 !important;
+}
+
 .obrocno-sheet__datum-ovoj {
   position: relative;
   width: 100%;
-  min-width: 0;
 }
 
-.obrocno-sheet__datum {
+.obrocno-sheet__datum-prikaz {
   width: 100%;
-  min-width: 0;
-  min-height: 40px;
-  /* Dovolj prostora za ikono – sicer iOS »13 Aug 2026« gre pod koledar. */
-  padding: 0 2rem 0 4px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 44px 0 10px;
   border: 1px solid var(--border, #c4d7d5);
   border-radius: 12px;
   background: #ffffff;
   color: var(--text, #243d3d);
   font: inherit;
   font-size: 16px;
-  line-height: 1.2;
+  text-align: left;
   box-sizing: border-box;
+  cursor: pointer;
 }
 
-.obrocno-sheet__datum:focus {
+.obrocno-sheet__datum-prikaz:focus {
   outline: none;
   border-color: var(--teal, #5aa3a5);
   box-shadow: 0 0 0 1px var(--teal, #5aa3a5);
 }
 
+.obrocno-sheet__datum-skrit {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .obrocno-sheet__datum-ikona {
   position: absolute;
-  right: 6px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 24px;
+  height: 24px;
   color: var(--teal, #5aa3a5);
   pointer-events: none;
 }
 
 .obrocno-sheet__datum-ikona svg {
   display: block;
-  width: 14px;
-  height: 14px;
-}
-
-/* Native indicator neviden, a pokrije celo polje za klik. */
-.obrocno-sheet__datum::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+  width: 18px;
+  height: 18px;
 }
 
 .obrocno-sheet__odstrani-vrstico {
-  width: 1.75rem;
-  height: 40px;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: #8a9a97;
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
-  justify-self: end;
 }
 
-.obrocno-sheet__odstrani-vrstico:hover,
-.obrocno-sheet__odstrani-vrstico:focus-visible {
+.obrocno-sheet__odstrani-vrstico:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.obrocno-sheet__odstrani-vrstico:hover:not(:disabled),
+.obrocno-sheet__odstrani-vrstico:focus-visible:not(:disabled) {
   color: #b42318;
 }
 
@@ -4611,6 +4651,91 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: none !important;
 }
 
+/* Ozadje zaklenjeno med odprtim Obročno modalom */
+body.obrocno-sheet-odprt {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+body.obrocno-sheet-odprt .korak2__noga {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Mobilni celozaslonski urejevalnik Obročno (≤600px) */
+@media (max-width: 600px) {
+  .obrocno-sheet:not([hidden]) {
+    z-index: 1000;
+  }
+
+  .obrocno-sheet .rok-sheet__backdrop {
+    background: #ffffff;
+  }
+
+  .obrocno-sheet .rok-sheet__panel {
+    inset: auto;
+    top: var(--visual-viewport-top, 0px);
+    left: 0;
+    right: 0;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    height: var(--visual-viewport-height, 100dvh);
+    max-height: none;
+    margin: 0;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .obrocno-sheet .rok-sheet__rocaj {
+    display: none;
+  }
+
+  .obrocno-sheet .rok-sheet__glava {
+    position: relative;
+    z-index: 2;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px;
+    border-bottom: 1px solid var(--border, #c4d7d5);
+    background: #ffffff;
+  }
+
+  .obrocno-sheet .rok-sheet__telo {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 16px 0;
+    touch-action: pan-y;
+  }
+
+  .obrocno-sheet .rok-sheet__noga {
+    position: relative;
+    z-index: 2;
+    margin: 0 -16px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border, #c4d7d5);
+    background: rgba(255, 255, 255, 0.96);
+  }
+}
+
+@media (max-width: 380px) {
+  .obrocno-sheet .rok-sheet__noga-vrsta {
+    flex-direction: column;
+  }
+
+  .obrocno-sheet .rok-sheet__noga-vrsta .rok-sheet__gumb {
+    width: 100%;
+  }
+}
+
 /* ========== Bottom sheet: Rok plačila ========== */
 .rok-sheet[hidden] {
   display: none !important;
@@ -4626,6 +4751,13 @@ body.stran--samo-seznam #neplacila-obrazec {
   overscroll-behavior: none;
   /* Overlay ne sprejema horizontalnega swipe-a. */
   touch-action: none;
+}
+
+/* Obročno mora biti nad »Nadaljuj na pošiljanje« (tudi znotraj ≤600px). */
+@media (max-width: 600px) {
+  .rok-sheet.obrocno-sheet:not([hidden]) {
+    z-index: 1000;
+  }
 }
 
 .rok-sheet__backdrop {

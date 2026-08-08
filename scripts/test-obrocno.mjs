@@ -174,6 +174,14 @@ test("eurosToCents podpira vejico", () => {
   assert.equal(UJ.formatCentsSl(7564), "75,64 €");
 });
 
+test("Urejanje zneska: editable / filtriraj / polje / datum SL", () => {
+  assert.equal(UJ.formatCentsEditable(1293520), "12935,20");
+  assert.equal(UJ.formatCentsPolje(1293520), "12.935,20");
+  assert.equal(UJ.filtrirajZnesekVnos("12a935,2088"), "12935,20");
+  assert.equal(UJ.filtrirajZnesekVnos("50.5"), "50,5");
+  assert.equal(UJ.formatDateSl("2026-08-13"), "13. 8. 2026");
+});
+
 test("jePlanUporaben zavrne neusklajen dolg / 1 vrstico", () => {
   let plan = UJ.getInstallmentSuggestion({
     totalDebtCents: 7564,

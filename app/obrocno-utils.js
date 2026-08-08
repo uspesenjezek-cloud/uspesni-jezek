@@ -115,6 +115,44 @@
     );
   }
 
+  /** Prikaz v polju (brez €): 12.935,20 */
+  function formatCentsPolje(cents) {
+    return formatCentsSl(cents).replace(/\s*€\s*$/, "").trim();
+  }
+
+  /** Urejanje med fokusom (brez tisočic): 12935,20 */
+  function formatCentsEditable(cents) {
+    var n = Math.round(Number(cents) || 0);
+    var sign = n < 0 ? "-" : "";
+    n = Math.abs(n);
+    var whole = Math.floor(n / 100);
+    var frac = String(n % 100).padStart(2, "0");
+    return sign + whole + "," + frac;
+  }
+
+  /** Med tipkanjem: samo številke + ena vejica, max 2 decimalni. */
+  function filtrirajZnesekVnos(raw) {
+    var s = String(raw || "")
+      .replace(/[^\d.,]/g, "")
+      .replace(/\./g, ",");
+    var first = s.indexOf(",");
+    if (first !== -1) {
+      s =
+        s.slice(0, first + 1) + s.slice(first + 1).replace(/,/g, "");
+      var parts = s.split(",");
+      if (parts[1] != null) parts[1] = parts[1].slice(0, 2);
+      s = parts.join(",");
+    }
+    return s;
+  }
+
+  /** SL prikaz datuma: 13. 8. 2026 */
+  function formatDateSl(yyyyMmDd) {
+    var dt = parseLocalYYYYMMDD(yyyyMmDd);
+    if (!dt) return yyyyMmDd || "";
+    return dt.getDate() + ". " + (dt.getMonth() + 1) + ". " + dt.getFullYear();
+  }
+
   /**
    * Sprejme 50 / 50,0 / 50,00 / 50.00 / 1.234,56 → cents ali null.
    * Podpira vejico in piko kot decimalno ločilo.
@@ -817,6 +855,10 @@
     izracunajDniZamude: izracunajDniZamude,
     eurosToCents: eurosToCents,
     formatCentsSl: formatCentsSl,
+    formatCentsPolje: formatCentsPolje,
+    formatCentsEditable: formatCentsEditable,
+    filtrirajZnesekVnos: filtrirajZnesekVnos,
+    formatDateSl: formatDateSl,
     parseAmountToCents: parseAmountToCents,
     splitCentsEvenly: splitCentsEvenly,
     vsotaCents: vsotaCents,
