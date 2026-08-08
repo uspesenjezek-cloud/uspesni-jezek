@@ -1061,13 +1061,13 @@
         '<div class="debt-summary__main">' +
         '<span class="debt-summary__label">Dolg</span>' +
         '<span class="debt-summary__amount">' +
-        esc(znesekTekst || "Ni določen") +
+        esc(znesekTekst || "—") +
         "</span>" +
         "</div>" +
         '<div class="debt-summary__category">' +
         '<span class="debt-summary__category-label">Kategorija</span>' +
         '<span class="debt-summary__category-value">' +
-        esc(kategorijaTekst || "Ni določena") +
+        esc(kategorijaTekst || "—") +
         "</span>" +
         "</div>" +
         "</div>" +
@@ -1332,9 +1332,9 @@
           tonOznaka: tonOznaka,
           predlogaOznaka: predlogaOznaka,
           predlogaPriporocena: predlogaPriporocena,
-          rokStanje: rokAktiven ? "Vključeno" : "Izklopljeno",
-          obrocnoStanje: obrocAktiven ? "Vključeno" : "Izklopljeno",
-          trrStanje: trrAktiven ? "Vključeno" : "Izklopljeno",
+          rokStanje: rokAktiven ? "Vklopljeno" : "Izklopljeno",
+          obrocnoStanje: obrocAktiven ? "Vklopljeno" : "Izklopljeno",
+          trrStanje: trrAktiven ? "Vklopljeno" : "Izklopljeno",
           smsBesedilo: smsBesedilo,
           smsMeta: smsMeta,
         });
