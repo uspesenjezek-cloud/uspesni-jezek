@@ -26,10 +26,6 @@
     var backdrop = document.getElementById("obrocno-sheet-backdrop");
     var naslov = document.getElementById("obrocno-sheet-naslov");
     var gumbZapri = document.getElementById("obrocno-sheet-zapri");
-    var vklop = document.getElementById("obrocno-sheet-vklop");
-    var vklopOpis = document.getElementById("obrocno-sheet-vklop-opis");
-    var vklopStanje = document.getElementById("obrocno-sheet-vklop-stanje");
-    var vklopPomoc = document.getElementById("obrocno-sheet-vklop-pomoc");
     var nastavitve = document.getElementById("obrocno-sheet-nastavitve");
     var znacka = document.getElementById("obrocno-sheet-znacka");
     var znesekEl = document.getElementById("obrocno-sheet-znesek");
@@ -48,6 +44,7 @@
     var enakomerno = document.getElementById("obrocno-sheet-enakomerno");
     var preklici = document.getElementById("obrocno-sheet-preklici");
     var shrani = document.getElementById("obrocno-sheet-shrani");
+    var odstrani = document.getElementById("obrocno-sheet-odstrani");
     var nogaGlobal = document.getElementById("obrocno-sheet-noga-global");
     var editAkcije = document.getElementById("obrocno-sheet-edit-akcije");
     var editPreklici = document.getElementById("obrocno-sheet-edit-preklici");
@@ -483,57 +480,18 @@
     }
 
     function posodobiVklopUi() {
-      if (vklop) {
-        vklop.setAttribute("aria-checked", draftEnabled ? "true" : "false");
-        vklop.setAttribute("aria-label", "Vključi/Izključi obročno plačilo");
-      }
-      if (vklopStanje) {
-        vklopStanje.textContent = draftEnabled ? "Vključeno" : "Izklopljeno";
-      }
-      if (vklopOpis) {
-        vklopOpis.textContent = draftEnabled
-          ? "Razdelite dolg na več plačil."
-          : "Vključite, če želite ponuditi obroke.";
-      }
-
-      var shranjen = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
-      var total =
-        typeof ctx.getTotalDebtCents === "function"
-          ? ctx.getTotalDebtCents()
-          : 0;
-      var imaShranjen =
-        shranjen &&
-        shranjen.enabled &&
-        UJ.jePlanUporaben(shranjen, total);
-      var pokaziPomoc = !draftEnabled && (originalEnabled || imaShranjen);
-      if (vklopPomoc) vklopPomoc.hidden = !pokaziPomoc;
-
+      /* Nastavitve so vedno aktivne – vklop je samo spodnji gumb. */
+      draftEnabled = true;
       if (nastavitve) {
-        nastavitve.classList.toggle(
-          "obrocno-sheet__nastavitve--disabled",
-          !draftEnabled
-        );
+        nastavitve.classList.remove("obrocno-sheet__nastavitve--disabled");
       }
-      nastaviKontroleOnemogocene(!draftEnabled);
+      nastaviKontroleOnemogocene(false);
+      if (odstrani) odstrani.hidden = !originalEnabled;
       posodobiPovzetek();
     }
 
-    function preklopiVklop() {
-      draftEnabled = !draftEnabled;
-      if (draftEnabled) {
-        var total =
-          typeof ctx.getTotalDebtCents === "function"
-            ? ctx.getTotalDebtCents()
-            : 0;
-        // Ne uporabljaj starega getInstallmentSuggestion (pogosto napačno 3).
-        osnutek = sveziPredlogIzPriporocila(total);
-        osnutek = UJ.uskladiSteviloVrstic(osnutek);
-        osnutek = zagotoviPriporocenoStevilo(osnutek);
-        osnutek = uporabiRokOkno(osnutek, true);
-      }
-      oznaciObrocnoPriporociloSpremenjeno();
-      posodobiVklopUi();
-      izrisi();
+    function besediloShraniGumba() {
+      return originalEnabled ? "Shrani spremembe" : "Vklopi obročno plačilo";
     }
 
     async function spremeniStevilo(st) {
@@ -606,7 +564,7 @@
       if (shrani && !shranjevanje) {
         var lahkoShrani = !draftEnabled || v.ok;
         shrani.disabled = !lahkoShrani;
-        shrani.textContent = "Shrani spremembe";
+        shrani.textContent = besediloShraniGumba();
         if (draftEnabled && !v.ok && sporociloNapake) {
           shrani.setAttribute("aria-describedby", "obrocno-sheet-napaka-noga");
           shrani.title = sporociloNapake;
@@ -1346,7 +1304,7 @@
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         draftEnabled = true;
       } else if (opts.predlogaNacin) {
-        // Uredi predlogo: osnutek za predogled, vklop/št./interval iz paketa.
+        // Uredi predlogo: osnutek za predogled, št./interval iz paketa.
         // Ne uporabljaj jePlanUporaben (znesek dolga ≠ paket; paket hrani le št./interval).
         osnutek = sveziPredlogIzPriporocila(total);
         var st = Number(opts.zacetnoStevilo);
@@ -1357,8 +1315,8 @@
           osnutek = UJ.nastaviRazmik(osnutek, String(opts.zacetnoInterval));
         }
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
-        draftEnabled = Boolean(opts.zacetnoEnabled);
-        osnutek.enabled = draftEnabled;
+        draftEnabled = true;
+        osnutek.enabled = Boolean(opts.zacetnoEnabled);
       } else if (existingUporaben) {
         osnutek = klon(existing);
         osnutek.totalDebtCents = total;
@@ -1372,7 +1330,7 @@
         // Enak vir kot razlaga/★ (predlogObrocnegaZaTon), ne stari getInstallmentSuggestion.
         osnutek = sveziPredlogIzPriporocila(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
-        draftEnabled = false;
+        draftEnabled = true;
       }
 
       // Pri predlogi ohrani shranjeno št.; sicer uskladi z ★ / tonom.
@@ -1517,38 +1475,6 @@
     async function shraniPlan() {
       if (shranjevanje) return;
 
-      if (!draftEnabled) {
-        shranjevanje = true;
-        if (shrani) {
-          shrani.disabled = true;
-          shrani.textContent = "Shranjujem …";
-        }
-        if (preklici) preklici.disabled = true;
-        try {
-          odstraniAddonIzBesedila();
-          if (ctx.dodatki) ctx.dodatki.obrocno = false;
-          if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = "";
-          if (ctx.setInstallmentPlan) ctx.setInstallmentPlan(null);
-          posodobiZunanjoKartico(null);
-          if (typeof ctx.posodobiStanjeUrejevalnika === "function") {
-            ctx.posodobiStanjeUrejevalnika();
-          }
-          if (typeof ctx.shraniOsnutekLokalno === "function") {
-            ctx.shraniOsnutekLokalno();
-          }
-          // Izklop ni »uspešno shrani priporočilo« za vrnitev na panel.
-          zapriSheet(true, { shranjeno: false });
-        } finally {
-          shranjevanje = false;
-          if (preklici) preklici.disabled = false;
-          if (shrani) {
-            shrani.disabled = false;
-            shrani.textContent = "Shrani spremembe";
-          }
-        }
-        return;
-      }
-
       if (!osnutek) return;
       osnutek = UJ.osveziAddon(osnutek, jezikAddon());
       var v = UJ.validatePlan(osnutek);
@@ -1626,7 +1552,43 @@
         if (preklici) preklici.disabled = false;
         if (shrani) {
           shrani.disabled = false;
-          shrani.textContent = "Shrani spremembe";
+          shrani.textContent = besediloShraniGumba();
+        }
+      }
+    }
+
+    async function odstraniObrocno() {
+      if (shranjevanje) return;
+      var ok = await ctx.potrdiVprasanje({
+        naslov: "Odstranim obročno plačilo?",
+        opis: "Dodatek o obrokih bo odstranjen iz sporočila.",
+        potrdiBesedilo: "Odstrani",
+        stil: "nevarno",
+      });
+      if (!ok) return;
+
+      shranjevanje = true;
+      if (odstrani) odstrani.disabled = true;
+      if (shrani) shrani.disabled = true;
+      try {
+        odstraniAddonIzBesedila();
+        if (ctx.dodatki) ctx.dodatki.obrocno = false;
+        if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = "";
+        if (ctx.setInstallmentPlan) ctx.setInstallmentPlan(null);
+        posodobiZunanjoKartico(null);
+        if (typeof ctx.posodobiStanjeUrejevalnika === "function") {
+          ctx.posodobiStanjeUrejevalnika();
+        }
+        if (typeof ctx.shraniOsnutekLokalno === "function") {
+          ctx.shraniOsnutekLokalno();
+        }
+        zapriSheet(true, { shranjeno: false });
+      } finally {
+        shranjevanje = false;
+        if (odstrani) odstrani.disabled = false;
+        if (shrani) {
+          shrani.disabled = false;
+          shrani.textContent = besediloShraniGumba();
         }
       }
     }
@@ -1644,12 +1606,6 @@
       zapriSheet(false);
     }
 
-    if (vklop) {
-      vklop.addEventListener("click", function () {
-        if (!odprt) return;
-        preklopiVklop();
-      });
-    }
     if (backdrop) backdrop.addEventListener("click", poskusiZapri);
     if (gumbZapri) {
       gumbZapri.addEventListener("click", function (ev) {
@@ -1678,6 +1634,13 @@
           return;
         }
         shraniPlan();
+      });
+    }
+    if (odstrani) {
+      odstrani.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        odstraniObrocno();
       });
     }
     if (editPreklici) {

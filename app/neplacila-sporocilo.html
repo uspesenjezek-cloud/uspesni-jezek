@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok-obrocno" />
+    <link rel="stylesheet" href="styles.css?v=20260808-obrocno-brez-vklop" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -648,28 +648,6 @@
         </div>
         <div class="rok-sheet__telo">
           <div id="obrocno-sheet-recommendation" class="recommendation-host"></div>
-          <button
-            type="button"
-            class="obrocno-sheet__vklop"
-            id="obrocno-sheet-vklop"
-            role="switch"
-            aria-checked="false"
-            aria-label="Vključi obročno plačilo"
-          >
-            <span class="obrocno-sheet__vklop-levo">
-              <span class="obrocno-sheet__vklop-naslov">Obročno plačilo</span>
-              <span class="obrocno-sheet__vklop-opis" id="obrocno-sheet-vklop-opis">
-                Vključite, če želite ponuditi obroke.
-              </span>
-            </span>
-            <span class="obrocno-sheet__vklop-desno">
-              <span class="obrocno-sheet__vklop-tir" aria-hidden="true"></span>
-              <span class="obrocno-sheet__vklop-stanje" id="obrocno-sheet-vklop-stanje">Izklopljeno</span>
-            </span>
-          </button>
-          <p class="obrocno-sheet__vklop-pomoc" id="obrocno-sheet-vklop-pomoc" hidden>
-            Obročno plačilo bo po shranjevanju odstranjeno iz sporočila.
-          </p>
 
           <div class="obrocno-sheet__nastavitve" id="obrocno-sheet-nastavitve">
             <div class="obrocno-sheet__znesek-kartica">
@@ -744,9 +722,12 @@
               Prekliči
             </button>
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="obrocno-sheet-shrani">
-              Shrani spremembe
+              Vklopi obročno plačilo
             </button>
           </div>
+          <button type="button" class="rok-sheet__odstrani" id="obrocno-sheet-odstrani" hidden>
+            Odstrani obročno iz sporočila
+          </button>
           <div class="obrocno-sheet__edit-akcije" id="obrocno-sheet-edit-akcije" hidden>
             <button
               type="button"
@@ -814,8 +795,8 @@
 
     <script src="rok-placila-utils.js?v=20260808-predogled"></script>
     <script src="rok-placila-sheet.js?v=20260808-rok-fix"></script>
-    <script src="obrocno-utils.js?v=20260808-rok-obrocno"></script>
-    <script src="obrocno-sheet.js?v=20260808-rok-obrocno"></script>
+    <script src="obrocno-utils.js?v=20260808-obrocno-brez-vklop"></script>
+    <script src="obrocno-sheet.js?v=20260808-obrocno-brez-vklop"></script>
     <script src="ton-priporocilo.js?v=20260808-predogled"></script>
     <script src="ton-predloge.js?v=20260808-predogled"></script>
     <script src="ton-widget.js?v=20260808-predogled"></script>
