@@ -34,18 +34,19 @@ const p = api.sestaviPriporocila({
 assert(p.toneId === "friendly", "tone");
 assert(p.termDays === rok.dneviZaTon("friendly"), "days sync");
 assert(p.installments === rok.predlogObrocnegaZaTon("friendly").installments, "inst");
-assert(p.rokText.includes("14 dni"), "rok 14");
-assert(p.obrocnoText.includes("4 obroki"), "4 obroki");
+assert(p.rokValueLabel === "14 dni", "rok badge");
+assert(p.obrocnoValueLabel === "4 obroki", "obrocno badge");
+assert(p.rokText.includes("kratka") || p.rokText.length > 20, "rok opis");
 assert(p.obrocnoText.includes("višjem znesku"), "znesek dodatek");
-assert(p.rokHtml.includes("<strong>14 dni</strong>"), "html bold");
+assert(!p.rokText.includes("14 dni"), "opis brez vrednosti");
 
 const s = api.sestaviPriporocila({
   toneId: "strict",
   overdueDays: null,
   amountCents: 5000,
 });
-assert(s.rokText.includes("3 dni"), "strict rok");
-assert(s.obrocnoText.includes("2 obroka"), "strict obrocno");
+assert(s.rokValueLabel === "3 dni", "strict rok badge");
+assert(s.obrocnoValueLabel === "2 obroka", "strict obrocno badge");
 assert(s.obrocnoText.includes("nizkem znesku"), "nizek");
 
 console.log("OK test-ton-dodatki-priporocila");

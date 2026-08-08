@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok-brez-povezi" />
+    <link rel="stylesheet" href="styles.css?v=20260808-rec-card-1" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -452,19 +452,7 @@
         </div>
 
         <div class="rok-sheet__telo">
-          <p
-            class="rok-sheet__priporocilo-razlaga"
-            id="rok-sheet-priporocilo-razlaga"
-            hidden
-          ></p>
-          <button
-            type="button"
-            class="rok-sheet__uporabi-priporoceno"
-            id="rok-sheet-uporabi-priporoceno"
-            hidden
-          >
-            ★ Uporabi priporočeno
-          </button>
+          <div id="rok-sheet-recommendation" class="recommendation-host"></div>
           <label class="rok-sheet__stikalo">
             <span class="rok-sheet__stikalo-besedilo">Samodejni rok</span>
             <input type="checkbox" id="rok-sheet-samodejno" checked />
@@ -528,19 +516,7 @@
           </button>
         </div>
         <div class="rok-sheet__telo">
-          <p
-            class="rok-sheet__priporocilo-razlaga"
-            id="obrocno-sheet-priporocilo-razlaga"
-            hidden
-          ></p>
-          <button
-            type="button"
-            class="rok-sheet__uporabi-priporoceno"
-            id="obrocno-sheet-uporabi-priporoceno"
-            hidden
-          >
-            ★ Uporabi priporočeno
-          </button>
+          <div id="obrocno-sheet-recommendation" class="recommendation-host"></div>
           <button
             type="button"
             class="obrocno-sheet__vklop"
@@ -654,15 +630,16 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-rok-brez-povezi"></script>
-    <script src="rok-placila-sheet.js?v=20260808-rok-brez-povezi"></script>
-    <script src="obrocno-utils.js?v=20260808-rok-brez-povezi"></script>
-    <script src="obrocno-sheet.js?v=20260808-rok-brez-povezi"></script>
-    <script src="ton-priporocilo.js?v=20260808-rok-brez-povezi"></script>
-    <script src="ton-predloge.js?v=20260808-rok-brez-povezi"></script>
-    <script src="ton-widget.js?v=20260808-rok-brez-povezi"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-rok-brez-povezi"></script>
-    <script src="predloga-payment-settings.js?v=20260808-rok-brez-povezi"></script>
-    <script src="app.js?v=20260808-rok-brez-povezi"></script>
+    <script src="rok-placila-utils.js?v=20260808-rec-card-1"></script>
+    <script src="rok-placila-sheet.js?v=20260808-rec-card-1"></script>
+    <script src="obrocno-utils.js?v=20260808-rec-card-1"></script>
+    <script src="obrocno-sheet.js?v=20260808-rec-card-1"></script>
+    <script src="ton-priporocilo.js?v=20260808-rec-card-1"></script>
+    <script src="ton-predloge.js?v=20260808-rec-card-1"></script>
+    <script src="ton-widget.js?v=20260808-rec-card-1"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-rec-card-1"></script>
+    <script src="recommendation-card.js?v=20260808-rec-card-1"></script>
+    <script src="predloga-payment-settings.js?v=20260808-rec-card-1"></script>
+    <script src="app.js?v=20260808-rec-card-1"></script>
   </body>
 </html>

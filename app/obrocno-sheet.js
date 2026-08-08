@@ -51,11 +51,8 @@
     var live = document.getElementById("obrocno-sheet-live");
     var undoEl = document.getElementById("obrocno-sheet-undo");
     var dodatekObrocnoStanje = document.getElementById("dodatek-obrocno-stanje");
-    var razlagaPriporocila = document.getElementById(
-      "obrocno-sheet-priporocilo-razlaga"
-    );
-    var gumbUporabiPriporoceno = document.getElementById(
-      "obrocno-sheet-uporabi-priporoceno"
+    var recommendationHost = document.getElementById(
+      "obrocno-sheet-recommendation"
     );
 
     var odprt = false;
@@ -79,6 +76,9 @@
     var forsiraPriporocilo = false;
     var forsiraToneId = null;
     var pendingOnClose = null;
+    var recCard = null;
+    var previousSettingsSnapshot = null;
+    var appliedRecommendationKey = null;
 
     function klon(o) {
       return o ? JSON.parse(JSON.stringify(o)) : null;
@@ -249,20 +249,37 @@
       return UJ.osveziAddon(plan, jezikAddon());
     }
 
-    function nastaviVidnostGumbaPriporoceno(pokazi) {
-      if (gumbUporabiPriporoceno) gumbUporabiPriporoceno.hidden = !pokazi;
+    function posnetekOsnutkaObrocno() {
+      return {
+        draftEnabled: draftEnabled,
+        osnutek: osnutek ? klon(osnutek) : null,
+      };
+    }
+
+    function obnoviOsnutekObrocno(snap) {
+      if (!snap) return;
+      draftEnabled = Boolean(snap.draftEnabled);
+      osnutek = snap.osnutek ? klon(snap.osnutek) : null;
+      napolniOpozorilo();
+      posodobiVklopUi();
+      izrisi();
+    }
+
+    function oznaciObrocnoPriporociloSpremenjeno() {
+      if (!recCard) return;
+      if (recCard.getStatus() === "applied") {
+        appliedRecommendationKey = null;
+        recCard.setStatus("modified");
+      }
     }
 
     function posodobiRazlagoPriporocila() {
-      if (!razlagaPriporocila) {
-        nastaviVidnostGumbaPriporoceno(false);
-        return;
-      }
+      zagotoviRecCard();
+      if (!recCard) return;
       var api = root.UJTonDodatkiPriporocila;
+      var RC = root.UJRecommendationCard;
       if (!api || typeof api.sestaviPriporocila !== "function") {
-        razlagaPriporocila.hidden = true;
-        razlagaPriporocila.innerHTML = "";
-        nastaviVidnostGumbaPriporoceno(false);
+        recCard.setContent({ valueLabel: "", description: "" });
         return;
       }
       var vhodOsnova =
@@ -276,14 +293,39 @@
       };
       if (forsiraToneId) vhod.toneId = forsiraToneId;
       var p = api.sestaviPriporocila(vhod);
-      if (p && p.obrocnoHtml) {
-        razlagaPriporocila.innerHTML = p.obrocnoHtml;
-        razlagaPriporocila.hidden = false;
-        nastaviVidnostGumbaPriporoceno(true);
-      } else {
-        razlagaPriporocila.innerHTML = "";
-        razlagaPriporocila.hidden = true;
-        nastaviVidnostGumbaPriporoceno(false);
+      var count = p && p.installments != null ? p.installments : 4;
+      var valueLabel =
+        (p && p.obrocnoValueLabel) ||
+        (api.oznakaObrokov ? api.oznakaObrokov(count) : count + " obrokov");
+      var hash =
+        RC && typeof RC.contextHash === "function"
+          ? RC.contextHash({
+              kind: "obrocno",
+              toneId: vhod.toneId,
+              overdueDays: vhod.overdueDays,
+              amountCents: vhod.amountCents,
+              installments: count,
+              sendDate:
+                typeof ctx.bazaDatumaPosiljanja === "function"
+                  ? ctx.bazaDatumaPosiljanja()
+                  : "",
+            })
+          : String(count) + "|" + vhod.toneId;
+      recCard.setContent({
+        valueLabel: valueLabel,
+        description: (p && p.obrocnoText) || "",
+        contextHash: hash,
+        applyAriaLabel: "Uporabi priporočilo za " + valueLabel,
+        ignoreAriaLabel: "Prezri priporočilo za obročno plačilo",
+      });
+      if (
+        recCard.getStatus() === "applied" &&
+        appliedRecommendationKey &&
+        appliedRecommendationKey !== hash
+      ) {
+        recCard.setStatus("visible");
+        appliedRecommendationKey = null;
+        previousSettingsSnapshot = null;
       }
     }
 
@@ -301,6 +343,28 @@
       napolniOpozorilo();
       posodobiVklopUi();
       izrisi();
+      if (recCard) appliedRecommendationKey = recCard.getContextHash();
+    }
+
+    function zagotoviRecCard() {
+      if (recCard || !recommendationHost || !root.UJRecommendationCard) return;
+      recCard = root.UJRecommendationCard.mount(recommendationHost, {
+        id: "obrocno",
+        onApply: function () {
+          previousSettingsSnapshot = posnetekOsnutkaObrocno();
+          uporabiPriporoceno();
+        },
+        onUndo: function () {
+          obnoviOsnutekObrocno(previousSettingsSnapshot);
+          previousSettingsSnapshot = null;
+          appliedRecommendationKey = null;
+        },
+        onReapply: function () {
+          previousSettingsSnapshot = posnetekOsnutkaObrocno();
+          uporabiPriporoceno();
+        },
+        onIgnore: function () {},
+      });
     }
 
     function zgradiStevilke() {
@@ -428,6 +492,7 @@
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         osnutek = zagotoviPriporocenoStevilo(osnutek);
       }
+      oznaciObrocnoPriporociloSpremenjeno();
       posodobiVklopUi();
       izrisi();
     }
@@ -454,6 +519,7 @@
       }
       osnutek = UJ.nastaviSteviloObrokov(osnutek, st);
       osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+      oznaciObrocnoPriporociloSpremenjeno();
       izrisi();
     }
 
@@ -1197,7 +1263,12 @@
 
       if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(total);
       napolniOpozorilo();
+      previousSettingsSnapshot = null;
+      appliedRecommendationKey = null;
       posodobiRazlagoPriporocila();
+      if (recCard && recCard.getStatus() !== "ignored") {
+        recCard.setStatus("visible");
+      }
       posodobiVklopUi();
       izrisi();
 
@@ -1431,11 +1502,6 @@
         preklopiVklop();
       });
     }
-    if (gumbUporabiPriporoceno) {
-      gumbUporabiPriporoceno.addEventListener("click", function () {
-        uporabiPriporoceno();
-      });
-    }
     if (backdrop) backdrop.addEventListener("click", poskusiZapri);
     if (gumbZapri) {
       gumbZapri.addEventListener("click", function (ev) {
@@ -1506,6 +1572,7 @@
         if (!osnutek || !draftEnabled) return;
         osnutek = UJ.nastaviRazmik(osnutek, razmik.value);
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        oznaciObrocnoPriporociloSpremenjeno();
         izrisi();
       });
     }

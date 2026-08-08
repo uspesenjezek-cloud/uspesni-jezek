@@ -32,85 +32,100 @@
     return "visok";
   }
 
+  /* Opisi brez ponavljanja vrednosti (vrednost gre v značko kartice). */
   var ROK_BESEDILA = {
     friendly: {
       ni_zapadlo:
-        "Priporočamo daljši rok plačila (**14 dni**). Račun še ni zapadel – prijazen ton pusti dovolj časa brez pritiska.",
+        "Račun še ni zapadel. Prijazen ton dopušča nekoliko daljši rok plačila.",
       kratka:
-        "Priporočamo daljši rok plačila (**14 dni**). Zamuda je še kratka, zato je smiselnejši prijazen opomin z dovolj časa za poravnavo.",
+        "Zamuda je še kratka. Prijazen ton pusti dovolj časa za poravnavo brez pritiska.",
       srednja:
-        "Priporočamo rok plačila **14 dni**. Kljub srednji zamudi prijazen ton ostaja sodelujoč – rok naj bo jasen, a ne preoster.",
+        "Kljub srednji zamudi prijazen ton ostaja sodelujoč – rok naj bo jasen, a ne preoster.",
       dolga:
-        "Priporočamo rok plačila **14 dni**. Tudi pri daljši zamudi prijazen ton ohranja prostor za dogovor; rok naj bo jasen.",
+        "Tudi pri daljši zamudi prijazen ton ohranja prostor za dogovor; rok naj bo jasen.",
     },
     firm: {
       ni_zapadlo:
-        "Priporočamo krajši rok plačila (**7 dni**). Čeprav račun še ni zapadel, odločen ton zahteva jasen in bližnji rok.",
+        "Čeprav račun še ni zapadel, odločen ton zahteva jasen in bližnji rok.",
       kratka:
-        "Priporočamo krajši rok plačila (**7 dni**), ker je opomin že bolj odločen in pričakuje hitrejši odziv.",
+        "Opomin je že bolj odločen in pričakuje hitrejši odziv.",
       srednja:
-        "Priporočamo rok plačila **7 dni**. Srednja zamuda in odločen ton zahtevata krajši, jasen rok.",
+        "Srednja zamuda in odločen ton zahtevata krajši, jasen rok.",
       dolga:
-        "Priporočamo rok plačila **7 dni**. Pri daljši zamudi odločen ton drži pritisk z jasnim, kratkim rokom.",
+        "Pri daljši zamudi odločen ton drži pritisk z jasnim, kratkim rokom.",
     },
     strict: {
       ni_zapadlo:
-        "Priporočamo najkrajši rok plačila (**3 dni**). Strog ton že pred zapadlostjo sporoča, da je rok zavezujoč.",
+        "Strog ton že pred zapadlostjo sporoča, da je rok zavezujoč.",
       kratka:
-        "Priporočamo najkrajši rok plačila (**3 dni**), ker gre za strog opomin z jasnim pričakovanjem hitrega plačila.",
+        "Strog opomin pričakuje hitro plačilo z jasnim, kratkim rokom.",
       srednja:
-        "Priporočamo rok plačila **3 dni**. Srednja zamuda in strog ton zahtevata zelo kratek, nedvoumen rok.",
+        "Srednja zamuda in strog ton zahtevata zelo kratek, nedvoumen rok.",
       dolga:
-        "Priporočamo rok plačila **3 dni**. Pri dolgi zamudi strog ton pusti le kratek rok za takojšnje ukrepanje.",
+        "Pri dolgi zamudi strog ton pusti le kratek rok za takojšnje ukrepanje.",
     },
   };
 
   var OBROCNO_BESEDILA = {
     friendly: {
       ni_zapadlo:
-        "Priporočamo obročno plačilo (**4 obroki**). Tudi pred zapadlostjo lahko več manjših zneskov olajša dogovor.",
+        "Tudi pred zapadlostjo lahko večji znesek olajša dogovor.",
       kratka:
-        "Priporočamo obročno plačilo (**4 obroki**). Pri kratki zamudi in prijaznem tonu so manjši obroki pogosto lažji kot enkratni znesek.",
+        "Pri kratki zamudi in prijaznem tonu so manjši obroki pogosto lažji kot enkratni znesek.",
       srednja:
-        "Priporočamo obročno plačilo (**4 obroki**). Pri srednji zamudi razdelitev dolga poveča možnost, da dolžnik začne odplačevati.",
+        "Pri srednji zamudi razdelitev dolga poveča možnost, da dolžnik začne odplačevati.",
       dolga:
-        "Priporočamo obročno plačilo (**4 obroki**). Pri daljši zamudi realen načrt v več obrokih pogosto pomaga prebiti zastoj.",
+        "Pri daljši zamudi realen načrt v več obrokih pogosto pomaga prebiti zastoj.",
     },
     firm: {
       ni_zapadlo:
-        "Priporočamo kratko obročno (**2 obroka**). Odločen ton ostaja jasen, a še vedno omogoča plačilo v dveh korakih.",
+        "Odločen ton ostaja jasen, a še vedno omogoča plačilo v manj korakih.",
       kratka:
-        "Priporočamo obročno plačilo (**2 obroka**). Krajši načrt se ujema z odločnim tonom in pričakovanjem hitrejše ureditve.",
+        "Krajši načrt se ujema z odločnim tonom in pričakovanjem hitrejše ureditve.",
       srednja:
-        "Priporočamo obročno plačilo (**2 obroka**). Pri srednji zamudi dva jasna obroka držita pritisk, a olajšata poravnavo.",
+        "Pri srednji zamudi kratek načrt drži pritisk, a olajša poravnavo.",
       dolga:
-        "Priporočamo obročno plačilo (**2 obroka**). Pri daljši zamudi kratek obročni načrt pokaže odločnost in še vedno ponudi pot do plačila.",
+        "Pri daljši zamudi kratek obročni načrt pokaže odločnost in še vedno ponudi pot do plačila.",
     },
     strict: {
       ni_zapadlo:
-        "Priporočamo zelo kratek obročni načrt (**2 obroka**). Strog ton dopušča le omejeno razdelitev, ne dolgega odloga.",
+        "Strog ton dopušča le omejeno razdelitev, ne dolgega odloga.",
       kratka:
-        "Priporočamo obročno plačilo (**2 obroka**). Pri strogem opominu sta obroka malo, a jasna – lažje kot celoten znesek naenkrat.",
+        "Pri strogem opominu so obroki malo, a jasni – lažje kot celoten znesek naenkrat.",
       srednja:
-        "Priporočamo obročno plačilo (**2 obroka**). Srednja zamuda in strog ton: kratek načrt, brez dolgega raztezanja.",
+        "Srednja zamuda in strog ton: kratek načrt, brez dolgega raztezanja.",
       dolga:
-        "Priporočamo obročno plačilo (**2 obroka**). Pri dolgi zamudi strog ton ohrani pritisk; dva obroka sta zadnja praktična možnost pred zaostritvijo.",
+        "Pri dolgi zamudi strog ton ohrani pritisk; kratek načrt je zadnja praktična možnost pred zaostritvijo.",
     },
   };
 
   var ZNESEK_DODATEK = {
-    nizek: "Pri nizkem znesku obročno ni nujno, a ga lahko vseeno ponudite.",
+    nizek: "Pri nizkem znesku obročno plačilo ni nujno.",
     srednji: "Pri tem znesku so manjši obroki pogosto bolj izvedljivi.",
     visok: "Pri višjem znesku je obročno plačilo še posebej smiselno.",
   };
 
-  /** **krepko** → <strong> za varen prikaz (samo naše predloge). */
   function oblikujHtml(besedilo) {
     return String(besedilo || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+
+  function oznakaDni(n) {
+    var d = Number(n);
+    if (!Number.isFinite(d) || d <= 0) d = 14;
+    return d + " dni";
+  }
+
+  function oznakaObrokov(n) {
+    var c = Number(n);
+    if (!Number.isFinite(c) || c < 1) c = 4;
+    if (c === 1) return "1 obrok";
+    if (c === 2) return "2 obroka";
+    if (c === 3 || c === 4) return c + " obroki";
+    return c + " obrokov";
   }
 
   /**
@@ -122,11 +137,13 @@
     var zamuda = razvrstiZamudo(vhod && vhod.overdueDays);
     var znesek = razvrstiZnesek(vhod && vhod.amountCents);
 
-    var days = Rok && typeof Rok.dneviZaTon === "function" ? Rok.dneviZaTon(ton) : null;
+    var days =
+      Rok && typeof Rok.dneviZaTon === "function" ? Rok.dneviZaTon(ton) : 14;
     var predlog =
       Rok && typeof Rok.predlogObrocnegaZaTon === "function"
         ? Rok.predlogObrocnegaZaTon(ton)
         : null;
+    var installments = predlog && predlog.installments ? predlog.installments : 4;
 
     var rok = (ROK_BESEDILA[ton] && ROK_BESEDILA[ton][zamuda]) || ROK_BESEDILA.friendly.kratka;
     var obrocnoOsnova =
@@ -134,14 +151,14 @@
       OBROCNO_BESEDILA.friendly.kratka;
     var obrocno = obrocnoOsnova + " " + ZNESEK_DODATEK[znesek];
 
-    // Če se dnevi/št. obrokov iz utils razlikujejo od vpisanih v besedilu,
-    // še vedno uporabimo potrjena besedila (so usklajena s privzetimi vrednostmi).
     return {
       toneId: ton,
       zamuda: zamuda,
       znesek: znesek,
       termDays: days,
-      installments: predlog ? predlog.installments : null,
+      installments: installments,
+      rokValueLabel: oznakaDni(days),
+      obrocnoValueLabel: oznakaObrokov(installments),
       rokText: rok,
       obrocnoText: obrocno,
       rokHtml: oblikujHtml(rok),
@@ -155,6 +172,8 @@
     razvrstiZnesek: razvrstiZnesek,
     sestaviPriporocila: sestaviPriporocila,
     oblikujHtml: oblikujHtml,
+    oznakaDni: oznakaDni,
+    oznakaObrokov: oznakaObrokov,
   };
 
   root.UJTonDodatkiPriporocila = api;

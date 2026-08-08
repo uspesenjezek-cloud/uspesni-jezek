@@ -50,10 +50,7 @@
     var pomoc = document.getElementById("rok-sheet-pomoc");
     var pomocBesedilo = document.getElementById("rok-sheet-pomoc-besedilo");
     var pomocZvezda = document.getElementById("rok-sheet-pomoc-zvezda");
-    var razlagaPriporocila = document.getElementById("rok-sheet-priporocilo-razlaga");
-    var gumbUporabiPriporoceno = document.getElementById(
-      "rok-sheet-uporabi-priporoceno"
-    );
+    var recommendationHost = document.getElementById("rok-sheet-recommendation");
     var napaka = document.getElementById("rok-sheet-napaka");
     var urediPovezava = document.getElementById("rok-sheet-uredi-privzeto");
     var urediPanel = document.getElementById("rok-sheet-uredi-privzeto-panel");
@@ -79,6 +76,9 @@
     var forsiraToneId = null;
     var forsiraTermDays = null;
     var pendingOnClose = null;
+    var recCard = null;
+    var previousSettingsSnapshot = null;
+    var appliedRecommendationKey = null;
 
     function klon(obj) {
       return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -115,20 +115,35 @@
       return null;
     }
 
-    function nastaviVidnostGumbaPriporoceno(pokazi) {
-      if (gumbUporabiPriporoceno) gumbUporabiPriporoceno.hidden = !pokazi;
+    function posnetekOsnutkaRoka() {
+      return osnutek ? klon(osnutek) : null;
+    }
+
+    function obnoviOsnutekRoka(snap) {
+      if (!snap) return;
+      osnutek = klon(snap);
+      if (samodejno) samodejno.checked = osnutek.mode !== "manual";
+      if (datumPolje) datumPolje.value = osnutek.deadlineDate || "";
+      posodobiPomoc();
+      preveriDatum();
+      skrijUrediPrivzeto();
+    }
+
+    function oznaciRokPriporociloSpremenjeno() {
+      if (!recCard) return;
+      if (recCard.getStatus() === "applied") {
+        appliedRecommendationKey = null;
+        recCard.setStatus("modified");
+      }
     }
 
     function posodobiRazlagoPriporocila() {
-      if (!razlagaPriporocila) {
-        nastaviVidnostGumbaPriporoceno(false);
-        return;
-      }
+      zagotoviRecCard();
+      if (!recCard) return;
       var api = root.UJTonDodatkiPriporocila;
+      var RC = root.UJRecommendationCard;
       if (!api || typeof api.sestaviPriporocila !== "function") {
-        razlagaPriporocila.hidden = true;
-        razlagaPriporocila.innerHTML = "";
-        nastaviVidnostGumbaPriporoceno(false);
+        recCard.setContent({ valueLabel: "", description: "" });
         return;
       }
       var vhodOsnova =
@@ -142,14 +157,40 @@
       };
       if (forsiraToneId) vhod.toneId = forsiraToneId;
       var p = api.sestaviPriporocila(vhod);
-      if (p && p.rokHtml) {
-        razlagaPriporocila.innerHTML = p.rokHtml;
-        razlagaPriporocila.hidden = false;
-        nastaviVidnostGumbaPriporoceno(true);
-      } else {
-        razlagaPriporocila.innerHTML = "";
-        razlagaPriporocila.hidden = true;
-        nastaviVidnostGumbaPriporoceno(false);
+      var days = priporoceniDneviZaTon();
+      if (days == null) days = p && p.termDays != null ? p.termDays : 14;
+      var valueLabel =
+        (p && p.rokValueLabel) ||
+        (api.oznakaDni ? api.oznakaDni(days) : days + " dni");
+      var hash =
+        RC && typeof RC.contextHash === "function"
+          ? RC.contextHash({
+              kind: "rok",
+              toneId: vhod.toneId,
+              overdueDays: vhod.overdueDays,
+              amountCents: vhod.amountCents,
+              termDays: days,
+              sendDate: ctx.bazaDatumaPosiljanja(),
+              priority: ctx.stevilkaIzbranegaPredloga
+                ? ctx.stevilkaIzbranegaPredloga()
+                : 1,
+            })
+          : String(days) + "|" + vhod.toneId;
+      recCard.setContent({
+        valueLabel: valueLabel,
+        description: (p && p.rokText) || "",
+        contextHash: hash,
+        applyAriaLabel: "Uporabi priporočilo za rok plačila " + valueLabel,
+        ignoreAriaLabel: "Prezri priporočilo za rok plačila",
+      });
+      if (
+        recCard.getStatus() === "applied" &&
+        appliedRecommendationKey &&
+        appliedRecommendationKey !== hash
+      ) {
+        recCard.setStatus("visible");
+        appliedRecommendationKey = null;
+        previousSettingsSnapshot = null;
       }
     }
 
@@ -183,6 +224,28 @@
       posodobiPomoc();
       preveriDatum();
       skrijUrediPrivzeto();
+      if (recCard) appliedRecommendationKey = recCard.getContextHash();
+    }
+
+    function zagotoviRecCard() {
+      if (recCard || !recommendationHost || !root.UJRecommendationCard) return;
+      recCard = root.UJRecommendationCard.mount(recommendationHost, {
+        id: "rok",
+        onApply: function () {
+          previousSettingsSnapshot = posnetekOsnutkaRoka();
+          uporabiPriporoceno();
+        },
+        onUndo: function () {
+          obnoviOsnutekRoka(previousSettingsSnapshot);
+          previousSettingsSnapshot = null;
+          appliedRecommendationKey = null;
+        },
+        onReapply: function () {
+          previousSettingsSnapshot = posnetekOsnutkaRoka();
+          uporabiPriporoceno();
+        },
+        onIgnore: function () {},
+      });
     }
 
     function nastaviPomocZvezdo(pokazi) {
@@ -469,7 +532,12 @@
         prejsnjiFokus = document.activeElement;
         napolniOsnutekObOdprtju();
         napolniUiIzOsnutka();
+        previousSettingsSnapshot = null;
+        appliedRecommendationKey = null;
         posodobiRazlagoPriporocila();
+        if (recCard && recCard.getStatus() !== "ignored") {
+          recCard.setStatus("visible");
+        }
 
         // Predogled aktivnega gumba – commit šele ob shrani.
         ctx.gumbRok.setAttribute("aria-pressed", "true");
@@ -721,11 +789,6 @@
     }
     if (shrani) shrani.addEventListener("click", function () { shraniInDodaj(); });
     if (odstrani) odstrani.addEventListener("click", function () { odstraniRok(); });
-    if (gumbUporabiPriporoceno) {
-      gumbUporabiPriporoceno.addEventListener("click", function () {
-        uporabiPriporoceno();
-      });
-    }
 
     if (samodejno) {
       samodejno.addEventListener("change", function () {
@@ -736,6 +799,7 @@
         } else {
           osnutek.mode = "manual";
           posodobiPomoc();
+          oznaciRokPriporociloSpremenjeno();
         }
       });
     }
@@ -746,6 +810,7 @@
         osnutek.mode = "manual";
         if (samodejno) samodejno.checked = false;
         osnutek.deadlineDate = datumPolje.value;
+        oznaciRokPriporociloSpremenjeno();
         posodobiPomoc();
         preveriDatum();
       });
