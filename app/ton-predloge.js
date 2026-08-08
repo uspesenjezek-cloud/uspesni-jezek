@@ -1,35 +1,19 @@
 /* ========== Predloge sporočil po tonih ==========
-   v1: DE = 5×6 sistemskih predlog; SL/EN struktura pripravljena (prazno).
+   v1: DE = 3×6 sistemskih predlog; SL/EN struktura pripravljena (prazno).
    window.UJTonPredloge / module.exports
    ============================================ */
 (function (root) {
   "use strict";
 
-  var TONE_IDS = [
-    "very_friendly",
-    "friendly",
-    "neutral",
-    "firm",
-    "strict",
-  ];
+  var TONE_IDS = ["friendly", "firm", "strict"];
 
   var NASLOVI_TONOV_SL = {
-    very_friendly: "zelo prijazen ton",
     friendly: "prijazen ton",
-    neutral: "nevtralen ton",
     firm: "odločen ton",
     strict: "strog ton",
   };
 
   var NASLOVI_PREDLOG_SL = {
-    very_friendly: [
-      "Prijazen uvod",
-      "Mehak opomnik",
-      "Vljudna prošnja",
-      "Skupaj najdemo rešitev",
-      "Kratek prijazen sporočil",
-      "Obročno – prijazno",
-    ],
     friendly: [
       "Vljuden opomin",
       "Prijazen opomnik",
@@ -37,14 +21,6 @@
       "Novi rok – prijazno",
       "Prošnja za potrditev",
       "Obročno plačilo",
-    ],
-    neutral: [
-      "Jasen poziv",
-      "Standardni opomin",
-      "Obvestilo o zapadlosti",
-      "Rok za plačilo",
-      "Kratek nevtralen",
-      "Možnost obrokov",
     ],
     firm: [
       "Odločen poziv",
@@ -115,53 +91,12 @@
     };
   }
 
-  /** Besedila DE: 6 različic na ton (tone-appropriate). */
+  /** Besedila DE: 6 različic na ton. */
   function besedilaDe(toneId, ctx) {
     var r = ctx.racun;
     var due = ctx.dueDate;
     var nd = ctx.newDeadline;
     var map = {
-      very_friendly: [
-        vrstice([
-          "Guten Tag,",
-          "hoffentlich geht es Ihnen gut. Ich möchte Sie ganz freundlich an die noch offene " +
-            r +
-            " erinnern." +
-            (due ? " Die Rechnung war am " + due + " fällig." : ""),
-          "Wenn Sie den Betrag in den nächsten Tagen überweisen, ist alles in Ordnung. Falls Sie bereits bezahlt haben, danke ich Ihnen und Sie können diese Nachricht ignorieren.",
-          "Herzliche Grüße",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "eine kurze, freundliche Erinnerung: " + r + " ist noch offen.",
-          "Bitte überweisen Sie den Betrag, sobald es Ihnen möglich ist. Bei Fragen melden Sie sich gerne.",
-          "Vielen Dank und freundliche Grüße",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "dürfte ich Sie höflich bitten, die offene " + r + " zeitnah zu begleichen?",
-          "Falls etwas unklar ist oder Sie Unterstützung brauchen, schreiben Sie mir bitte kurz.",
-          "Freundliche Grüße",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "bei der " + r + " fehlt uns noch der Zahlungseingang.",
-          "Lassen Sie uns gemeinsam eine passende Lösung finden – auch eine Ratenzahlung ist möglich.",
-          "Herzliche Grüße",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "kurze Erinnerung zur offenen " + r + ". Bitte überweisen Sie den Betrag in Ruhe, sobald möglich.",
-          "Vielen Dank!",
-          "Freundliche Grüße",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "die " + r + " ist noch offen. Falls der Gesamtbetrag gerade schwierig ist, können wir gerne eine Ratenzahlung vereinbaren.",
-          "Melden Sie sich einfach kurz bei mir.",
-          "Herzliche Grüße",
-        ]),
-      ],
       friendly: [
         vrstice([
           "Guten Tag,",
@@ -198,7 +133,9 @@
         ]),
         vrstice([
           "Guten Tag,",
-          "bitte bestätigen Sie kurz, ob die Zahlung zur " + r + " bereits unterwegs ist – oder überweisen Sie den Betrag in den kommenden Tagen.",
+          "bitte bestätigen Sie kurz, ob die Zahlung zur " +
+            r +
+            " bereits unterwegs ist – oder überweisen Sie den Betrag in den kommenden Tagen.",
           "Vielen Dank für Ihre Rückmeldung.",
           "Freundliche Grüße",
         ]),
@@ -207,45 +144,6 @@
           "die " + r + " ist weiterhin offen.",
           "Falls Sie den Gesamtbetrag derzeit nicht vollständig begleichen können, melden Sie sich bitte bei uns. Wir können gemeinsam eine passende Ratenzahlung vereinbaren.",
           "Freundliche Grüße",
-        ]),
-      ],
-      neutral: [
-        vrstice([
-          "Guten Tag,",
-          "die " +
-            r +
-            (due ? " ist seit dem " + due + " fällig" : " ist fällig") +
-            " und bisher nicht beglichen.",
-          "Bitte überweisen Sie den offenen Betrag ohne weitere Verzögerung. Senden Sie uns anschließend gern eine kurze Zahlungsbestätigung.",
-          "Freundliche Grüße",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "hiermit erinnern wir an die offene " + r + ".",
-          "Bitte begleichen Sie den Betrag und teilen Sie uns den Zahlungstermin mit, falls nötig.",
-          "Mit freundlichen Grüßen",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "die " + r + " ist überfällig." + (due ? " Fälligkeit: " + due + "." : ""),
-          "Bitte gleichen Sie den offenen Betrag aus.",
-          "Mit freundlichen Grüßen",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "bitte begleichen Sie die " + r + (nd ? " bis spätestens " + nd : " zeitnah") + ".",
-          "Bei bereits erfolgter Zahlung ignorieren Sie diese Nachricht.",
-          "Mit freundlichen Grüßen",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "kurze Mitteilung: " + r + " ist noch offen. Bitte überweisen Sie den Betrag.",
-          "Mit freundlichen Grüßen",
-        ]),
-        vrstice([
-          "Guten Tag,",
-          "die " + r + " ist offen. Auf Wunsch prüfen wir eine Ratenzahlung – bitte melden Sie sich dazu kurz.",
-          "Mit freundlichen Grüßen",
         ]),
       ],
       firm: [
@@ -263,7 +161,9 @@
           "Guten Tag,",
           "dies ist eine erneute, deutliche Erinnerung zur " + r + ".",
           nd
-            ? "Zahlen Sie bitte bis " + nd + ", andernfalls behalten wir uns weitere Schritte vor."
+            ? "Zahlen Sie bitte bis " +
+              nd +
+              ", andernfalls behalten wir uns weitere Schritte vor."
             : "Zahlen Sie bitte unverzüglich, andernfalls behalten wir uns weitere Schritte vor.",
           "Mit freundlichen Grüßen",
         ]),
@@ -286,7 +186,9 @@
         ]),
         vrstice([
           "Guten Tag,",
-          "die " + r + " ist überfällig. Eine kurze Ratenzahlung ist nur nach sofortiger Rückmeldung möglich.",
+          "die " +
+            r +
+            " ist überfällig. Eine kurze Ratenzahlung ist nur nach sofortiger Rückmeldung möglich.",
           "Melden Sie sich noch heute.",
           "Mit freundlichen Grüßen",
         ]),
@@ -314,7 +216,9 @@
         ]),
         vrstice([
           "Guten Tag,",
-          "die " + r + " ist seit längerem unbezahlt. Dies ist die letzte Frist zur Begleichung.",
+          "die " +
+            r +
+            " ist seit längerem unbezahlt. Dies ist die letzte Frist zur Begleichung.",
           nd ? "Zahlung bis " + nd + " erforderlich." : "Sofortige Zahlung erforderlich.",
           "Mit freundlichen Grüßen",
         ]),
@@ -331,19 +235,20 @@
         ]),
         vrstice([
           "Guten Tag,",
-          "bei der " + r + " bleibt nur noch eine kurzfristige Ratenzahlung möglich – ausschließlich nach sofortiger schriftlicher Zusage.",
+          "bei der " +
+            r +
+            " bleibt nur noch eine kurzfristige Ratenzahlung möglich – ausschließlich nach sofortiger schriftlicher Zusage.",
           "Ohne Rückmeldung behalten wir uns weitere Schritte vor.",
           "Mit freundlichen Grüßen",
         ]),
       ],
     };
-    return map[toneId] || map.neutral;
+    return map[toneId] || map.friendly;
   }
 
   function sestaviSistemskePredloge(podatki, jezik) {
     var lang = jezik || "de";
     if (lang !== "de") {
-      // SL/EN: struktura pripravljena, v1 prazno.
       return [];
     }
     var ctx = kontekstIzPodatkov(podatki);
@@ -372,7 +277,10 @@
   }
 
   function filtrirajPredloge(seznam, toneId, language) {
-    var ton = toneId || "neutral";
+    var ton = toneId || "friendly";
+    if (root.UJTonPriporocilo && typeof root.UJTonPriporocilo.normalizirajTonId === "function") {
+      ton = root.UJTonPriporocilo.normalizirajTonId(ton);
+    }
     var lang = language || "de";
     return (seznam || []).filter(function (p) {
       if (!p) return false;
@@ -404,12 +312,28 @@
   }
 
   function naslovRazdelkaZaTon(toneId) {
-    var del = NASLOVI_TONOV_SL[toneId] || "izbrani ton";
+    var id = toneId;
+    if (root.UJTonPriporocilo && typeof root.UJTonPriporocilo.normalizirajTonId === "function") {
+      id = root.UJTonPriporocilo.normalizirajTonId(toneId);
+    }
+    var del = NASLOVI_TONOV_SL[id] || "izbrani ton";
     return "Predloge za " + del;
   }
 
   function imaPredlogeZaJezik(seznam, toneId, language) {
     return filtrirajPredloge(seznam, toneId, language).length > 0;
+  }
+
+  /** Privzeta (zvezdica) predloga znotraj seznama za ton. */
+  function najdiPrivzetoPredlogo(seznam) {
+    var sortirano = sortirajPredlogeZaTon(seznam);
+    return (
+      sortirano.find(function (p) {
+        return p.isRecommended;
+      }) ||
+      sortirano[0] ||
+      null
+    );
   }
 
   var api = {
@@ -420,6 +344,7 @@
     sortirajPredlogeZaTon: sortirajPredlogeZaTon,
     naslovRazdelkaZaTon: naslovRazdelkaZaTon,
     imaPredlogeZaJezik: imaPredlogeZaJezik,
+    najdiPrivzetoPredlogo: najdiPrivzetoPredlogo,
   };
 
   root.UJTonPredloge = api;

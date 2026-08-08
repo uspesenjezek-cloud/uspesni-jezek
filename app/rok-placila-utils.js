@@ -21,12 +21,11 @@
 
   /**
    * Privzeti dodatni rok po tonu sporočila (glavni način).
-   * Zelo prijazen = daljši rok … Strog = najkrajši.
+   * Prijazen = daljši rok … Strog = najkrajši.
+   * Stari ID-ji (very_friendly, neutral) se pred lookupom normalizirajo.
    */
   var PRIVZETI_DNEVI_PO_TONU = {
-    very_friendly: 21,
     friendly: 14,
-    neutral: 10,
     firm: 7,
     strict: 3,
   };
@@ -36,22 +35,31 @@
    * Ne vsebuje UI – samo podatki.
    */
   var PRIVZETI_OBROCNI_PO_TONU = {
-    very_friendly: { installments: 6, firstDelayDays: 14, gapDays: 30 },
     friendly: { installments: 4, firstDelayDays: 10, gapDays: 21 },
-    neutral: { installments: 3, firstDelayDays: 7, gapDays: 21 },
     firm: { installments: 2, firstDelayDays: 5, gapDays: 14 },
     strict: { installments: 2, firstDelayDays: 3, gapDays: 7 },
   };
 
+  function normalizirajTonZaRok(toneId) {
+    if (root.UJTonPriporocilo && typeof root.UJTonPriporocilo.normalizirajTonId === "function") {
+      return root.UJTonPriporocilo.normalizirajTonId(toneId);
+    }
+    if (toneId === "very_friendly") return "friendly";
+    if (toneId === "neutral") return "firm";
+    return toneId || "friendly";
+  }
+
   function dneviZaTon(toneId) {
-    var d = PRIVZETI_DNEVI_PO_TONU[toneId];
-    return Number.isFinite(d) ? d : PRIVZETI_DNEVI_PO_TONU.neutral;
+    var id = normalizirajTonZaRok(toneId);
+    var d = PRIVZETI_DNEVI_PO_TONU[id];
+    return Number.isFinite(d) ? d : PRIVZETI_DNEVI_PO_TONU.friendly;
   }
 
   function predlogObrocnegaZaTon(toneId) {
-    var p = PRIVZETI_OBROCNI_PO_TONU[toneId] || PRIVZETI_OBROCNI_PO_TONU.neutral;
+    var id = normalizirajTonZaRok(toneId);
+    var p = PRIVZETI_OBROCNI_PO_TONU[id] || PRIVZETI_OBROCNI_PO_TONU.friendly;
     return {
-      toneId: toneId || "neutral",
+      toneId: id,
       installments: p.installments,
       firstDelayDays: p.firstDelayDays,
       gapDays: p.gapDays,

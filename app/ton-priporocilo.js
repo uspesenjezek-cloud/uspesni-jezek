@@ -5,60 +5,52 @@
 (function (root) {
   "use strict";
 
-  /** Pet tonov: 1 = najbolj prijazen … 5 = najstrožji. */
+  /** Trije toni: 1 = prijazen … 3 = strog. */
   var TONI = [
-    {
-      id: "very_friendly",
-      key: "very_friendly",
-      order: 1,
-      labelSl: "Zelo prijazen",
-      iconKey: "smile-heart",
-    },
     {
       id: "friendly",
       key: "friendly",
-      order: 2,
+      order: 1,
       labelSl: "Prijazen",
       iconKey: "smile",
     },
     {
-      id: "neutral",
-      key: "neutral",
-      order: 3,
-      labelSl: "Nevtralen",
-      iconKey: "message",
-    },
-    {
       id: "firm",
       key: "firm",
-      order: 4,
+      order: 2,
       labelSl: "Odločen",
       iconKey: "shield",
     },
     {
       id: "strict",
       key: "strict",
-      order: 5,
+      order: 3,
       labelSl: "Strog",
       iconKey: "alert",
     },
   ];
+
+  /** Stari ID-ji (5 tonov) → novi (3). */
+  var STARI_TON_PRESLIKAVA = {
+    very_friendly: "friendly",
+    friendly: "friendly",
+    neutral: "firm",
+    firm: "firm",
+    strict: "strict",
+  };
 
   /**
    * Nastavljiva politika (poznejše urejanje na enem mestu).
    * Čas = glavni dejavnik; znesek sme premakniti največ za 1 stopnjo.
    */
   var PRIVZETA_POLITIKA = {
-    // overdueDays (null = še ni zapadlo / negativen) → indeks 1–5
+    // overdueDays → order 1–3
     casovnaPravila: [
       { maxOverdueDays: -1, toneOrder: 1 }, // še ni zapadlo
-      { maxOverdueDays: 7, toneOrder: 1 }, // 0–7
-      { maxOverdueDays: 14, toneOrder: 2 }, // 8–14
-      { maxOverdueDays: 30, toneOrder: 3 }, // 15–30
-      { maxOverdueDays: 60, toneOrder: 4 }, // 31–60
-      { maxOverdueDays: Infinity, toneOrder: 5 }, // >60
+      { maxOverdueDays: 14, toneOrder: 1 }, // 0–14 → Prijazen
+      { maxOverdueDays: 45, toneOrder: 2 }, // 15–45 → Odločen
+      { maxOverdueDays: Infinity, toneOrder: 3 }, // >45 → Strog
     ],
-    // Premik +1 stopnja samo ob pogojih:
     znesekPravila: [
       { maxCents: 10000, shift: 0 }, // do 100 €
       { maxCents: 50000, shift: 0 }, // do 500 €
@@ -70,7 +62,7 @@
       {
         maxCents: Infinity,
         shift: 1,
-        minOverdueDays: 0, // že zapadel (overdueDays >= 0)
+        minOverdueDays: 0,
         requireOverdue: true,
       },
     ],
@@ -111,11 +103,11 @@
   }
 
   function najdiTonPoOrder(order) {
-    var o = Math.max(1, Math.min(5, Number(order) || 3));
+    var o = Math.max(1, Math.min(3, Number(order) || 1));
     for (var i = 0; i < TONI.length; i++) {
       if (TONI[i].order === o) return TONI[i];
     }
-    return TONI[2];
+    return TONI[0];
   }
 
   function najdiTonPoId(id) {
@@ -125,9 +117,15 @@
     return null;
   }
 
+  /** Preslika stari/neveljavni ID v veljavnega (friendly|firm|strict). */
+  function normalizirajTonId(id) {
+    if (!id) return "friendly";
+    var mapped = STARI_TON_PRESLIKAVA[id] || id;
+    return najdiTonPoId(mapped) ? mapped : "friendly";
+  }
+
   function orderIzCasa(overdueDays, politika) {
     var pravila = (politika && politika.casovnaPravila) || PRIVZETA_POLITIKA.casovnaPravila;
-    // še ni zapadlo
     if (overdueDays == null || overdueDays < 0) {
       return 1;
     }
@@ -136,7 +134,7 @@
       if (p.maxOverdueDays < 0) continue;
       if (overdueDays <= p.maxOverdueDays) return p.toneOrder;
     }
-    return 5;
+    return 3;
   }
 
   function premikZaradiZneska(totalDebtCents, overdueDays, politika) {
@@ -169,8 +167,7 @@
     if (overdueDays < 0) return "Še ni zapadlo";
     if (overdueDays === 0) return "Zapade danes";
     if (overdueDays <= 14) return "Krajša zamuda";
-    if (overdueDays <= 30) return "Zmerna zamuda";
-    if (overdueDays <= 60) return "Daljša zamuda";
+    if (overdueDays <= 45) return "Zmerna zamuda";
     return "Dolga zamuda";
   }
 
@@ -194,7 +191,7 @@
       codes.push("missing_both");
       shortText = "Priporočilo ni popolno – manjkata znesek in rok plačila.";
       detailText =
-        "Ker manjkata znesek in rok plačila, uporabimo varen nevtralen ton.";
+        "Ker manjkata znesek in rok plačila, uporabimo varen prijazen ton.";
       return { codes: codes, shortText: shortText, detailText: detailText };
     }
     if (ctx.missingDue) {
@@ -281,13 +278,13 @@
     var amountShifted = false;
 
     if (missingDue) {
-      order = 3; // varen nevtralen
+      order = 1; // varen prijazen
     } else {
       order = orderIzCasa(overdueDays, politika);
       if (!missingAmount) {
         var shift = premikZaradiZneska(totalDebtCents, overdueDays, politika);
         if (shift > 0) {
-          order = Math.min(5, order + shift);
+          order = Math.min(3, order + shift);
           amountShifted = true;
         }
       }
@@ -299,7 +296,7 @@
       amountShifted = false;
     }
 
-    order = Math.max(1, Math.min(5, order));
+    order = Math.max(1, Math.min(3, order));
     var ton = najdiTonPoOrder(order);
     var amountLabel = missingAmount ? "" : formatirajZnesekEur(totalDebtCents);
     var razlog = sestaviRazlog({
@@ -336,7 +333,12 @@
   function applyRecommendationToState(prevState, recommendation) {
     var prev = prevState || {};
     var isOverridden = Boolean(prev.isOverridden);
-    var selectedToneId = prev.selectedToneId || null;
+    var selectedToneId = prev.selectedToneId
+      ? normalizirajTonId(prev.selectedToneId)
+      : null;
+    var appliedToneId = prev.appliedToneId
+      ? normalizirajTonId(prev.appliedToneId)
+      : null;
 
     if (!isOverridden || !selectedToneId || !najdiTonPoId(selectedToneId)) {
       selectedToneId = recommendation.recommendedToneId;
@@ -348,7 +350,7 @@
     return {
       recommendedToneId: recommendation.recommendedToneId,
       selectedToneId: selectedToneId,
-      appliedToneId: prev.appliedToneId || null,
+      appliedToneId: appliedToneId,
       isOverridden: isOverridden,
       reasonCodes: recommendation.reasonCodes,
       reasonText: recommendation.reasonText,
@@ -367,7 +369,7 @@
   function resetToRecommended(state) {
     var s = state || {};
     return Object.assign({}, s, {
-      selectedToneId: s.recommendedToneId,
+      selectedToneId: normalizirajTonId(s.recommendedToneId),
       isOverridden: false,
     });
   }
@@ -375,11 +377,13 @@
   /** Ročna izbira tona. */
   function selectTone(state, toneId) {
     var s = state || {};
-    var ton = najdiTonPoId(toneId);
+    var id = normalizirajTonId(toneId);
+    var ton = najdiTonPoId(id);
     if (!ton) return s;
+    var recommended = normalizirajTonId(s.recommendedToneId);
     return Object.assign({}, s, {
       selectedToneId: ton.id,
-      isOverridden: ton.id !== s.recommendedToneId,
+      isOverridden: ton.id !== recommended,
     });
   }
 
@@ -393,12 +397,14 @@
   var api = {
     TONI: TONI,
     PRIVZETA_POLITIKA: PRIVZETA_POLITIKA,
+    STARI_TON_PRESLIKAVA: STARI_TON_PRESLIKAVA,
     formatLocalYYYYMMDD: formatLocalYYYYMMDD,
     parseLocalYYYYMMDD: parseLocalYYYYMMDD,
     danesYYYYMMDD: danesYYYYMMDD,
     izracunajDniZamude: izracunajDniZamude,
     oznakaCasovnosti: oznakaCasovnosti,
     formatirajZnesekEur: formatirajZnesekEur,
+    normalizirajTonId: normalizirajTonId,
     najdiTonPoId: najdiTonPoId,
     najdiTonPoOrder: najdiTonPoOrder,
     getRecommendedTone: getRecommendedTone,

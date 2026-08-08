@@ -51,6 +51,7 @@
     var startX = 0;
     var scrollCasovnik = null;
     var tihoScrollanje = false;
+    var menjavaVTeku = false;
 
     rootEl.hidden = false;
 
@@ -59,8 +60,12 @@
     }
 
     function indeksTona(toneId) {
+      var id =
+        typeof UJ.normalizirajTonId === "function"
+          ? UJ.normalizirajTonId(toneId)
+          : toneId;
       for (var i = 0; i < UJ.TONI.length; i++) {
-        if (UJ.TONI[i].id === toneId) return i;
+        if (UJ.TONI[i].id === id) return i;
       }
       return 0;
     }
@@ -159,18 +164,56 @@
     }
 
     function izberiTon(toneId, scrollaj) {
-      if (!toneId) return;
-      var s = stanje();
-      if (s.selectedToneId === toneId && !scrollaj) {
+      if (!toneId || menjavaVTeku) return;
+      var id =
+        typeof UJ.normalizirajTonId === "function"
+          ? UJ.normalizirajTonId(toneId)
+          : toneId;
+      var prevId = stanje().selectedToneId;
+      if (prevId === id) {
         osveziUi();
+        if (scrollaj) scrollToTone(id, true);
         return;
       }
-      if (typeof ctx.onToneSelected === "function") {
-        ctx.onToneSelected(toneId);
+
+      function poUspehu() {
+        menjavaVTeku = false;
+        osveziUi();
+        if (scrollaj !== false) scrollToTone(id, false);
+        sporociBralniku();
       }
-      osveziUi();
-      if (scrollaj !== false) scrollToTone(toneId, true);
-      sporociBralniku();
+
+      function poZavrnitvi() {
+        menjavaVTeku = false;
+        osveziUi();
+        scrollToTone(prevId, true);
+        sporociBralniku();
+      }
+
+      if (typeof ctx.onToneSelected !== "function") {
+        poUspehu();
+        return;
+      }
+
+      menjavaVTeku = true;
+      var rez = ctx.onToneSelected(id);
+      if (rez && typeof rez.then === "function") {
+        rez.then(
+          function (ok) {
+            if (ok === false) poZavrnitvi();
+            else poUspehu();
+          },
+          function () {
+            poZavrnitvi();
+          }
+        );
+        return;
+      }
+      if (rez === false) {
+        poZavrnitvi();
+        return;
+      }
+      poUspehu();
     }
 
     function karticaNaIndeksu(i) {
@@ -334,10 +377,39 @@
     if (desno) desno.addEventListener("click", function () { premakniZa(1); });
     if (ponastavi) {
       ponastavi.addEventListener("click", function () {
-        if (typeof ctx.onReset === "function") ctx.onReset();
-        osveziUi();
-        scrollToTone(stanje().selectedToneId, false);
-        sporociBralniku();
+        var recId = stanje().recommendedToneId || "friendly";
+        if (typeof ctx.onReset === "function") {
+          // Če onReset obstaja, naj sam uredi stanje; sicer izberi priporočeni ton.
+          var rez = ctx.onReset();
+          if (rez && typeof rez.then === "function") {
+            menjavaVTeku = true;
+            rez.then(
+              function (ok) {
+                menjavaVTeku = false;
+                if (ok === false) {
+                  osveziUi();
+                  scrollToTone(stanje().selectedToneId, true);
+                  return;
+                }
+                osveziUi();
+                scrollToTone(stanje().selectedToneId || recId, false);
+                sporociBralniku();
+              },
+              function () {
+                menjavaVTeku = false;
+                osveziUi();
+                scrollToTone(stanje().selectedToneId, true);
+              }
+            );
+            return;
+          }
+          if (rez === false) return;
+          osveziUi();
+          scrollToTone(stanje().selectedToneId || recId, false);
+          sporociBralniku();
+          return;
+        }
+        izberiTon(recId, true);
       });
     }
     if (razlagaInfo) {

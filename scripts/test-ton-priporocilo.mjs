@@ -1,5 +1,5 @@
 /**
- * Enotski testi: priporočilo tona sporočila.
+ * Enotski testi: priporočilo tona sporočila (3 toni).
  * Zagon: node scripts/test-ton-priporocilo.mjs
  */
 import assert from "node:assert/strict";
@@ -10,6 +10,7 @@ import path from "node:path";
 const require = createRequire(import.meta.url);
 const root = path.dirname(fileURLToPath(import.meta.url));
 const UJ = require(path.join(root, "..", "app", "ton-priporocilo.js"));
+const Predloge = require(path.join(root, "..", "app", "ton-predloge.js"));
 
 let ok = 0;
 function test(ime, fn) {
@@ -28,7 +29,6 @@ function rec(overdueDays, cents, due) {
   const evaluationDate = "2026-08-08";
   let originalDueDate = due;
   if (originalDueDate == null && overdueDays != null) {
-    // due = evaluation - overdueDays
     const dt = UJ.parseLocalYYYYMMDD(evaluationDate);
     dt.setDate(dt.getDate() - overdueDays);
     originalDueDate = UJ.formatLocalYYYYMMDD(dt);
@@ -41,20 +41,20 @@ function rec(overdueDays, cents, due) {
   });
 }
 
-test("1. Račun še ni zapadel → Zelo prijazen", () => {
-  assert.equal(rec(-5, 7564).recommendedToneId, "very_friendly");
+test("1. Račun še ni zapadel → Prijazen", () => {
+  assert.equal(rec(-5, 7564).recommendedToneId, "friendly");
 });
 
-test("2. 5 dni zamude → Zelo prijazen", () => {
-  assert.equal(rec(5, 7564).recommendedToneId, "very_friendly");
+test("2. 5 dni zamude → Prijazen", () => {
+  assert.equal(rec(5, 7564).recommendedToneId, "friendly");
 });
 
 test("3. 10 dni zamude → Prijazen", () => {
   assert.equal(rec(10, 7564).recommendedToneId, "friendly");
 });
 
-test("4. 20 dni zamude → Nevtralen", () => {
-  assert.equal(rec(20, 7564).recommendedToneId, "neutral");
+test("4. 20 dni zamude → Odločen", () => {
+  assert.equal(rec(20, 7564).recommendedToneId, "firm");
 });
 
 test("5. 45 dni zamude → Odločen", () => {
@@ -66,23 +66,23 @@ test("6. 90 dni zamude → Strog", () => {
 });
 
 test("7. Visok znesek premakne največ za eno stopnjo", () => {
-  // 20 dni = nevtralen (3); znesek >1500€ in zapadel → +1 = firm (4), ne strict
+  // 20 dni = firm (2); znesek >1500€ in zapadel → +1 = strict (3)
   const r = rec(20, 200000);
-  assert.equal(r.recommendedToneId, "firm");
+  assert.equal(r.recommendedToneId, "strict");
 });
 
 test("8. Visok znesek pred zapadlostjo ne povzroči strogega tona", () => {
   const r = rec(-3, 500000);
-  assert.equal(r.recommendedToneId, "very_friendly");
+  assert.equal(r.recommendedToneId, "friendly");
 });
 
-test("9. Manjkajoči rok → varen nevtralni ton", () => {
+test("9. Manjkajoči rok → varen prijazen ton", () => {
   const r = UJ.getRecommendedTone({
     totalDebtCents: 7564,
     originalDueDate: null,
     evaluationDate: "2026-08-08",
   });
-  assert.equal(r.recommendedToneId, "neutral");
+  assert.equal(r.recommendedToneId, "friendly");
   assert.ok(r.reasonText.includes("Rok plačila ni vnesen"));
 });
 
@@ -134,6 +134,28 @@ test("12. Ponastavitev vrne priporočeni ton", () => {
   state = UJ.resetToRecommended(state);
   assert.equal(state.selectedToneId, "friendly");
   assert.equal(state.isOverridden, false);
+});
+
+test("13. Preslikava starih tonov", () => {
+  assert.equal(UJ.normalizirajTonId("very_friendly"), "friendly");
+  assert.equal(UJ.normalizirajTonId("neutral"), "firm");
+  assert.equal(UJ.normalizirajTonId("friendly"), "friendly");
+  assert.equal(UJ.TONI.length, 3);
+});
+
+test("14. Sistemske predloge: 3×6 = 18, privzeta je ★", () => {
+  const vsi = Predloge.sestaviSistemskePredloge(
+    { znesek: 75.64, stevilkaRacuna: "1", datumZapadlosti: "2026-07-29" },
+    "de"
+  );
+  assert.equal(vsi.length, 18);
+  const firm = Predloge.sortirajPredlogeZaTon(
+    Predloge.filtrirajPredloge(vsi, "firm", "de")
+  );
+  assert.equal(firm.length, 6);
+  assert.equal(firm[0].isRecommended, true);
+  const privzeta = Predloge.najdiPrivzetoPredlogo(firm);
+  assert.equal(privzeta.id, firm[0].id);
 });
 
 test("Sprejemni: 75,64 € + krajša zamuda → Prijazen", () => {

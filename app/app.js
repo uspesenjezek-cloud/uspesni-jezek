@@ -1887,8 +1887,14 @@ function inicializirajSporociloDolzniku() {
           prev,
           tonPriporociloRezultat
         );
-        if (prev.appliedToneId) toneState.appliedToneId = prev.appliedToneId;
-        izbranTonId = toneState.selectedToneId || izbranTonId;
+        if (prev.appliedToneId) {
+          toneState.appliedToneId = window.UJTonPriporocilo.normalizirajTonId(
+            prev.appliedToneId
+          );
+        }
+        izbranTonId = window.UJTonPriporocilo.normalizirajTonId(
+          toneState.selectedToneId || izbranTonId
+        );
       }
     }
   } catch (_e) {
@@ -2792,7 +2798,7 @@ function inicializirajSporociloDolzniku() {
           ? " predlog-kartica__stevilka--alt"
           : "";
       const oznakaStevilke = jePriporocena
-        ? "Priporočena predloga (številka " + stevilka + ")"
+        ? "Privzeta predloga (zvezdica, številka " + stevilka + ")"
         : "Vrstni red predloge znotraj tona, trenutno " + stevilka;
 
       kartica.innerHTML =
@@ -2810,7 +2816,7 @@ function inicializirajSporociloDolzniku() {
         "</div>" +
         '<p class="predlog-kartica__naslov"></p>' +
         (jePriporocena
-          ? '<span class="predlog-kartica__znacka-priporoceno">Priporočeno</span>'
+          ? '<span class="predlog-kartica__znacka-priporoceno predlog-kartica__znacka-priporoceno--zvezda" aria-label="Privzeta predloga">★</span>'
           : "") +
         '<p class="predlog-kartica__opis"></p>' +
         '<button type="button" class="preview-button">' +
@@ -3040,7 +3046,7 @@ function inicializirajSporociloDolzniku() {
         },
         getToneId: () => aktivniTonZaDodatke(),
         getDneviZaTon: (toneId) =>
-          window.UJRokPlacila ? window.UJRokPlacila.dneviZaTon(toneId) : 10,
+          window.UJRokPlacila ? window.UJRokPlacila.dneviZaTon(toneId) : 14,
         onAfterChange: () => posodobiNamigeTonaDodatkov(),
         stevilkaIzbranegaPredloga,
         bazaDatumaPosiljanja,
@@ -3231,21 +3237,17 @@ function inicializirajSporociloDolzniku() {
       ) {
         pokaziObvestiloPredlogov("");
       }
-      return;
-    }
-    if (!toneState.appliedToneId || toneState.appliedToneId !== toneState.selectedToneId) {
-      pokaziObvestiloPredlogov(
-        "Izberite predlogo, da uporabite ta ton v sporočilu."
-      );
     }
   }
 
-  /** Menjava tona osveži seznam predlog – ne prepiše glavnega sporočila. */
+  /** Menjava tona osveži seznam predlog (vstavitev besedila ureja klicatelj). */
   function nastaviIzbranTon(toneId, osveziSeznam) {
     if (!toneId) return;
-    izbranTonId = String(toneId);
+    izbranTonId = window.UJTonPriporocilo
+      ? window.UJTonPriporocilo.normalizirajTonId(toneId)
+      : String(toneId);
     if (window.UJTonPriporocilo) {
-      toneState = window.UJTonPriporocilo.selectTone(toneState, toneId);
+      toneState = window.UJTonPriporocilo.selectTone(toneState, izbranTonId);
     } else {
       toneState.selectedToneId = izbranTonId;
     }
@@ -3260,6 +3262,41 @@ function inicializirajSporociloDolzniku() {
       posodobiObvestiloNeuporabljenegaTona();
       posodobiNamigeTonaDodatkov();
     }
+  }
+
+  /** Potrditev pred prepisom, če je uporabnik ročno uredil sporočilo. */
+  async function potrdiPrepisSporocilaZaradiTona() {
+    if (!(sporociloRocnoUrejeno && besediloPolje.value.trim().length > 0)) {
+      return true;
+    }
+    return potrdiVprasanje({
+      naslov: "Zamenjam besedilo?",
+      opis:
+        "Sprememba tona bo zamenjala trenutno urejeno besedilo s privzeto predlogo. Želite nadaljevati?",
+      potrdiBesedilo: "Zamenjaj",
+      prekliciBesedilo: "Prekliči",
+      stil: "primary",
+    });
+  }
+
+  /** Izberi ton + takoj vstavi privzeto (★) predlogo tega tona. */
+  async function uporabiTonInPrivzetoPredlogo(toneId) {
+    const cilj = window.UJTonPriporocilo
+      ? window.UJTonPriporocilo.normalizirajTonId(toneId)
+      : String(toneId);
+    if (cilj === izbranTonId && toneState.appliedToneId === cilj) {
+      return true;
+    }
+    const potrjeno = await potrdiPrepisSporocilaZaradiTona();
+    if (!potrjeno) return false;
+
+    nastaviIzbranTon(cilj, true);
+    const privzeti = najdiPredlogStevilka1();
+    if (privzeti) {
+      await uporabiPredlog(privzeti, { tiho: true });
+    }
+    shraniOsnutekLokalno();
+    return true;
   }
   window.__ujNastaviIzbranTon = nastaviIzbranTon;
   window.__ujPredlogObrocnegaZaTon = function () {
@@ -3327,17 +3364,11 @@ function inicializirajSporociloDolzniku() {
         toneState = s;
       },
       recommendation: tonPriporociloRezultat,
-      onToneSelected: (toneId) => {
-        nastaviIzbranTon(toneId, true);
-        shraniOsnutekLokalno();
-      },
-      onReset: () => {
-        if (!window.UJTonPriporocilo) return;
-        // Samo ton/seznam – glavnega sporočila ne prepišemo.
-        toneState = window.UJTonPriporocilo.resetToRecommended(toneState);
-        nastaviIzbranTon(toneState.selectedToneId, true);
-        shraniOsnutekLokalno();
-      },
+      onToneSelected: (toneId) => uporabiTonInPrivzetoPredlogo(toneId),
+      onReset: () =>
+        uporabiTonInPrivzetoPredlogo(
+          toneState.recommendedToneId || "friendly"
+        ),
     });
     posodobiObvestiloNeuporabljenegaTona();
     posodobiNamigeTonaDodatkov();
