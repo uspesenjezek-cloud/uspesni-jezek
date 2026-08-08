@@ -289,10 +289,20 @@
           input.classList.remove("obrocno-sheet__znesek--napaka");
         }
 
-        var prikaz = art.querySelector(".obrocno-sheet__datum-prikaz");
-        var skrit = art.querySelector(".obrocno-sheet__datum-skrit");
-        if (prikaz) prikaz.textContent = UJ.formatDateSl(row.dueDate);
-        if (skrit && document.activeElement !== skrit) skrit.value = row.dueDate || "";
+        var besedilo = art.querySelector(".obrocno-sheet__datum-besedilo");
+        var native = art.querySelector(".obrocno-sheet__datum-native");
+        var ovoj = art.querySelector(".obrocno-sheet__datum-ovoj");
+        if (besedilo) besedilo.textContent = UJ.formatDateSl(row.dueDate);
+        if (native) {
+          if (document.activeElement !== native) {
+            native.value = row.dueDate || "";
+          }
+          var idx = Number(art.dataset.index);
+          if (Number.isFinite(idx)) {
+            native.min = minDatumZaObrok(idx);
+          }
+        }
+        if (ovoj) ovoj.classList.remove("obrocno-sheet__datum-ovoj--napaka");
 
         var x = art.querySelector(".obrocno-sheet__odstrani-vrstico");
         if (x) {
@@ -304,16 +314,32 @@
       posodobiPovzetek();
     }
 
+    function minDatumZaObrok(index) {
+      if (!osnutek) return UJ.danesYYYYMMDD();
+      if (index <= 0) {
+        var danes = UJ.danesYYYYMMDD();
+        var first =
+          osnutek.installments[0] && osnutek.installments[0].dueDate;
+        // Če je shranjeni datum pred danes, ne dviguj min nad value (iOS picker).
+        if (first && first < danes) return first;
+        return danes;
+      }
+      var prev = osnutek.installments[index - 1];
+      if (!prev || !prev.dueDate) return UJ.danesYYYYMMDD();
+      return UJ.dodajKoledarskeDni(prev.dueDate, 1);
+    }
+
     function izrisiVrstice() {
       if (!seznam || !osnutek) return;
       osnutek = UJ.uskladiSteviloVrstic(osnutek);
       seznam.innerHTML = "";
       var samoDva = (osnutek.installments || []).length <= UJ.MIN_OBROKOV;
 
-      (osnutek.installments || []).forEach(function (row) {
+      (osnutek.installments || []).forEach(function (row, index) {
         var art = document.createElement("article");
         art.className = "obrocno-sheet__vrstica";
         art.dataset.id = row.id;
+        art.dataset.index = String(index);
 
         var glava = document.createElement("div");
         glava.className = "obrocno-sheet__vrstica-glava";
@@ -405,60 +431,57 @@
         var datumOvoj = document.createElement("div");
         datumOvoj.className = "obrocno-sheet__datum-ovoj";
 
-        var prikaz = document.createElement("button");
-        prikaz.type = "button";
+        // Vizualni prikaz (ne sprejema klika) + prosojen native date čez celo polje.
+        var prikaz = document.createElement("div");
         prikaz.className = "obrocno-sheet__datum-prikaz";
-        prikaz.textContent = UJ.formatDateSl(row.dueDate);
-        prikaz.setAttribute(
-          "aria-label",
-          "Izberi datum " + row.order + ". obroka"
-        );
-
-        var skrit = document.createElement("input");
-        skrit.type = "date";
-        skrit.className = "obrocno-sheet__datum-skrit";
-        skrit.value = row.dueDate || "";
-        skrit.tabIndex = -1;
-        skrit.setAttribute("aria-hidden", "true");
-
-        prikaz.addEventListener("click", function () {
-          premakniKarticoVVidno(art);
-          try {
-            if (typeof skrit.showPicker === "function") skrit.showPicker();
-            else {
-              skrit.focus();
-              skrit.click();
-            }
-          } catch (_e) {
-            skrit.focus();
-            skrit.click();
-          }
-        });
-        skrit.addEventListener("change", function () {
-          if (!skrit.value) return;
-          osnutek = UJ.nastaviDatum(osnutek, row.id, skrit.value);
-          osnutek = UJ.osveziAddon(osnutek, jezikAddon());
-          if (razmik) razmik.value = osnutek.intervalType;
-          // Datumi se lahko premaknejo – osveži prikaze, ne uniči tipkovnice zneska.
-          if (document.activeElement && document.activeElement.classList.contains("obrocno-sheet__znesek")) {
-            osveziVrsticeBrezFokusa();
-          } else {
-            izrisi();
-          }
-        });
-        skrit.addEventListener("focus", function () {
-          premakniKarticoVVidno(art);
-        });
-
+        prikaz.setAttribute("aria-hidden", "true");
+        var datumBesedilo = document.createElement("span");
+        datumBesedilo.className = "obrocno-sheet__datum-besedilo";
+        datumBesedilo.textContent = UJ.formatDateSl(row.dueDate);
         var datumIkona = document.createElement("span");
         datumIkona.className = "obrocno-sheet__datum-ikona";
-        datumIkona.setAttribute("aria-hidden", "true");
         datumIkona.innerHTML =
           '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>';
+        prikaz.appendChild(datumBesedilo);
+        prikaz.appendChild(datumIkona);
+
+        var native = document.createElement("input");
+        native.type = "date";
+        native.className = "obrocno-sheet__datum-native";
+        native.value = row.dueDate || "";
+        native.min = minDatumZaObrok(index);
+        native.setAttribute("aria-label", "Datum " + row.order + ". obroka");
+
+        native.addEventListener("focus", function () {
+          premakniKarticoVVidno(art);
+        });
+        native.addEventListener("change", function () {
+          var iso = native.value;
+          if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+
+          var minDov = minDatumZaObrok(index);
+          if (iso < minDov || (index > 0 && iso <= osnutek.installments[index - 1].dueDate)) {
+            datumOvoj.classList.add("obrocno-sheet__datum-ovoj--napaka");
+            native.value = row.dueDate || "";
+            sporoci("Datum obroka mora biti poznejši od prejšnjega obroka.");
+            if (napaka) {
+              napaka.hidden = false;
+              napaka.textContent =
+                "Datum obroka mora biti poznejši od prejšnjega obroka.";
+            }
+            return;
+          }
+
+          datumOvoj.classList.remove("obrocno-sheet__datum-ovoj--napaka");
+          osnutek = UJ.nastaviDatum(osnutek, row.id, iso);
+          osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+          if (razmik) razmik.value = osnutek.intervalType;
+          // Osveži prikaze (ISO v value, SL v besedilu) – modal ostane odprt.
+          osveziVrsticeBrezFokusa();
+        });
 
         datumOvoj.appendChild(prikaz);
-        datumOvoj.appendChild(skrit);
-        datumOvoj.appendChild(datumIkona);
+        datumOvoj.appendChild(native);
         datumBlok.appendChild(datumOznaka);
         datumBlok.appendChild(datumOvoj);
 

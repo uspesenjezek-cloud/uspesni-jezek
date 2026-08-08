@@ -627,7 +627,7 @@
     if (!soDatumiNarascajoci(plan)) {
       errors.push({
         code: "dates",
-        message: "Datumi obrokov morajo biti naraščajoči.",
+        message: "Datum obroka mora biti poznejši od prejšnjega obroka.",
       });
     }
     var minFirst = najmanjsiPrviDatum(
