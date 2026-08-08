@@ -168,6 +168,12 @@
       urediPanel.hidden = false;
     }
 
+    function posodobiDatumVidez(vklopljen) {
+      if (!datumPolje) return;
+      if (vklopljen) datumPolje.classList.add("rok-sheet__datum--vklopljen");
+      else datumPolje.classList.remove("rok-sheet__datum--vklopljen");
+    }
+
     function napolniUiIzOsnutka() {
       if (!osnutek) return;
       zgradiStevilke();
@@ -179,10 +185,32 @@
       skrijUrediPrivzeto();
 
       var ze = Boolean(ctx.getPaymentDeadline() && ctx.getPaymentDeadline().enabled);
+      posodobiDatumVidez(ze);
       if (shrani) {
         shrani.textContent = ze ? "Shrani spremembe" : "Shrani in dodaj";
       }
       if (odstrani) odstrani.hidden = !ze;
+    }
+
+    /** Privzeto stanje widgeta (po Izklopi / pred novim vnosom). */
+    function resetirajOsnutekNaPrivzeto() {
+      osnutekPrivzetih = klon(ctx.getPrivzetiDnevi());
+      var linked = ctx.stevilkaIzbranegaPredloga();
+      if (!(linked >= 1 && linked <= 9)) linked = 1;
+      var base = ctx.bazaDatumaPosiljanja();
+      var days = Number(osnutekPrivzetih[linked]) || 5;
+      osnutek = {
+        enabled: false,
+        mode: "automatic",
+        linkedProposalNumber: linked,
+        termDays: days,
+        deadlineDate: UJ.izracunajRok(base, days),
+        baseSendDate: base,
+        insertedText: "",
+        messageLanguage: "sl",
+      };
+      napolniUiIzOsnutka();
+      posodobiDatumVidez(false);
     }
 
     function napolniOsnutekObOdprtju() {
@@ -411,12 +439,9 @@
       }
     }
 
-    async function odstraniRok() {
+    async function odstraniRokIzSporocilaCeObstaja() {
       var trenutni = ctx.getPaymentDeadline();
-      if (!trenutni || !trenutni.enabled) {
-        zapriSheet(false);
-        return;
-      }
+      if (!trenutni || !trenutni.enabled) return true;
       var rez = UJ.odstraniSistemskoVrstico(
         ctx.besediloPolje.value,
         trenutni.insertedText || ""
@@ -428,17 +453,37 @@
           potrdiBesedilo: "Deaktiviraj",
           stil: "nevarno",
         });
-        if (!potrdi) return;
+        if (!potrdi) return false;
       } else {
         ctx.besediloPolje.value = String(rez.besedilo).slice(0, ctx.najvecZnakov);
       }
       ctx.setPaymentDeadline(null);
       ctx.dodatki.rok = false;
       ctx.dodatekBesedila.rok = "";
-      ctx.gumbRok.setAttribute("aria-pressed", "false");
-      predOgledPressed = false;
       ctx.posodobiStanjeUrejevalnika();
       ctx.shraniOsnutekLokalno();
+      return true;
+    }
+
+    async function odstraniRok() {
+      zapiranjeDovoljeno = true;
+      var ok = await odstraniRokIzSporocilaCeObstaja();
+      if (!ok) return;
+      predOgledPressed = false;
+      ctx.gumbRok.setAttribute("aria-pressed", "false");
+      posodobiDatumVidez(false);
+      zapriSheet(true);
+    }
+
+    /** Izklopi: reset UI + odstrani rok (če obstaja) + zapri. */
+    async function izklopiRok() {
+      zapiranjeDovoljeno = true;
+      var ok = await odstraniRokIzSporocilaCeObstaja();
+      if (!ok) return;
+      resetirajOsnutekNaPrivzeto();
+      predOgledPressed = false;
+      ctx.gumbRok.setAttribute("aria-pressed", "false");
+      posodobiDatumVidez(false);
       zapriSheet(true);
     }
 
@@ -465,8 +510,7 @@
     }
     if (preklici) {
       preklici.addEventListener("click", function () {
-        zapiranjeDovoljeno = true;
-        zapriSheet(false);
+        izklopiRok();
       });
     }
     if (shrani) shrani.addEventListener("click", function () { shraniInDodaj(); });

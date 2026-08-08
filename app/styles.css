@@ -4182,6 +4182,12 @@ body.stran--samo-seznam #neplacila-obrazec {
   box-sizing: border-box;
 }
 
+/* Rok uspešno shranjen / vklopljen – enaka zelena kot AI polja. */
+.rok-sheet__datum.rok-sheet__datum--vklopljen {
+  border-color: var(--color-ai);
+  background: var(--color-ai-soft);
+}
+
 .rok-sheet__datum-ikona {
   position: absolute;
   right: 12px;
