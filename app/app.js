@@ -2044,6 +2044,27 @@ function inicializirajSporociloDolzniku() {
     );
   }
 
+  function posodobiObrocnoKarticoStanje(plan) {
+    const stanjeEl = document.getElementById("dodatek-obrocno-stanje");
+    if (!stanjeEl) return;
+    if (!plan || !plan.enabled) {
+      stanjeEl.textContent = "Izklopljeno";
+      return;
+    }
+    const n =
+      plan.installmentCount ||
+      (Array.isArray(plan.installments) ? plan.installments.length : 0);
+    const interval =
+      plan.intervalType === "weekly"
+        ? "tedensko"
+        : plan.intervalType === "biweekly"
+          ? "vsaka 2 tedna"
+          : plan.intervalType === "monthly"
+            ? "mesečno"
+            : "";
+    stanjeEl.textContent = interval ? n + " obrokov • " + interval : n + " obrokov";
+  }
+
   function resetirajDodatke() {
     dodatki.rok = false;
     dodatki.obrocno = false;
@@ -2055,6 +2076,7 @@ function inicializirajSporociloDolzniku() {
     if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "false");
     if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "false");
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
+    posodobiObrocnoKarticoStanje(null);
   }
 
   function naloziMojePredlogeIzLocalStorage() {
@@ -3279,7 +3301,12 @@ function inicializirajSporociloDolzniku() {
           (Boolean(osnutek.dodatki.obrocno) && Boolean(installmentPlan));
         dodatki.trr = Boolean(osnutek.dodatki.trr);
         if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
-        if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
+        if (dodatekObrocno) {
+          dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
+          posodobiObrocnoKarticoStanje(
+            dodatki.obrocno && installmentPlan ? installmentPlan : null
+          );
+        }
         if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", String(dodatki.trr));
       } else if (paymentDeadline && paymentDeadline.enabled && dodatekRok) {
         dodatekRok.setAttribute("aria-pressed", "true");

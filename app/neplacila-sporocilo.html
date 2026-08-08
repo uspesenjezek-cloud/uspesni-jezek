@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-obrocno-date" />
+    <link rel="stylesheet" href="styles.css?v=20260808-obrocno-vklop" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -180,7 +180,8 @@
                   <span class="sporocilo-dodatek__ikona" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11h10"/><path d="M7 15h6"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
                   </span>
-                  Obročno plačilo
+                  <span class="sporocilo-dodatek__naslov">Obročno plačilo</span>
+                  <span class="sporocilo-dodatek__stanje" id="dodatek-obrocno-stanje">Izklopljeno</span>
                 </button>
                 <button type="button" class="sporocilo-dodatek" id="dodatek-trr" aria-pressed="false">
                   <span class="sporocilo-dodatek__ikona" aria-hidden="true">
@@ -391,86 +392,126 @@
           </button>
         </div>
         <div class="rok-sheet__telo">
-          <div class="obrocno-sheet__znesek-kartica">
-            <div>
-              <p class="rok-sheet__oznaka">Znesek dolga</p>
-              <p class="obrocno-sheet__znesek-vrednost" id="obrocno-sheet-znesek">—</p>
+          <button
+            type="button"
+            class="obrocno-sheet__vklop"
+            id="obrocno-sheet-vklop"
+            role="switch"
+            aria-checked="false"
+            aria-label="Vključi obročno plačilo"
+          >
+            <span class="obrocno-sheet__vklop-levo">
+              <span class="obrocno-sheet__vklop-naslov">Obročno plačilo</span>
+              <span class="obrocno-sheet__vklop-opis" id="obrocno-sheet-vklop-opis">
+                Vključite, če želite ponuditi obroke.
+              </span>
+            </span>
+            <span class="obrocno-sheet__vklop-desno">
+              <span class="obrocno-sheet__vklop-tir" aria-hidden="true"></span>
+              <span class="obrocno-sheet__vklop-stanje" id="obrocno-sheet-vklop-stanje">Izklopljeno</span>
+            </span>
+          </button>
+          <p class="obrocno-sheet__vklop-pomoc" id="obrocno-sheet-vklop-pomoc" hidden>
+            Obročno plačilo bo po shranjevanju odstranjeno iz sporočila.
+          </p>
+
+          <div class="obrocno-sheet__nastavitve" id="obrocno-sheet-nastavitve">
+            <div class="obrocno-sheet__znesek-kartica">
+              <div>
+                <p class="rok-sheet__oznaka">Znesek dolga</p>
+                <p class="obrocno-sheet__znesek-vrednost" id="obrocno-sheet-znesek">—</p>
+              </div>
+              <span class="obrocno-sheet__znacka" id="obrocno-sheet-znacka">Samodejni predlog</span>
             </div>
-            <span class="obrocno-sheet__znacka" id="obrocno-sheet-znacka">Samodejni predlog</span>
-          </div>
-          <p class="obrocno-sheet__opozorilo" id="obrocno-sheet-opozorilo" hidden></p>
+            <p class="obrocno-sheet__opozorilo" id="obrocno-sheet-opozorilo" hidden></p>
 
-          <p class="rok-sheet__oznaka" id="obrocno-sheet-stevilo-oznaka">Število obrokov</p>
-          <div class="obrocno-sheet__stevilke-ovoj">
-            <div
-              class="obrocno-sheet__stevilke"
-              id="obrocno-sheet-stevilke"
-              role="listbox"
-              aria-labelledby="obrocno-sheet-stevilo-oznaka"
-            ></div>
-            <span class="obrocno-sheet__stevilke-chevron" aria-hidden="true">›</span>
-          </div>
-          <p class="obrocno-sheet__stevilke-pomoc">do 20</p>
+            <div class="obrocno-sheet__stevilo-vrsta">
+              <p class="rok-sheet__oznaka" id="obrocno-sheet-stevilo-oznaka">Število obrokov</p>
+              <p class="obrocno-sheet__stevilke-pomoc">do 20</p>
+            </div>
+            <div class="obrocno-sheet__stevilke-ovoj">
+              <div
+                class="obrocno-sheet__stevilke"
+                id="obrocno-sheet-stevilke"
+                role="listbox"
+                aria-labelledby="obrocno-sheet-stevilo-oznaka"
+              ></div>
+              <span class="obrocno-sheet__stevilke-chevron" aria-hidden="true">›</span>
+            </div>
 
-          <div class="obrocno-sheet__razmik-vrsta">
-            <label class="rok-sheet__oznaka" for="obrocno-sheet-razmik">Razmik med obroki</label>
-          </div>
-          <select class="obrocno-sheet__razmik" id="obrocno-sheet-razmik">
-            <option value="weekly">Vsak teden</option>
-            <option value="biweekly">Vsaka 2 tedna</option>
-            <option value="monthly" selected>Vsak mesec</option>
-            <option value="custom">Datume nastavim ročno</option>
-          </select>
+            <div class="obrocno-sheet__razmik-vrsta">
+              <label class="rok-sheet__oznaka" for="obrocno-sheet-razmik">Razmik med obroki</label>
+            </div>
+            <select class="obrocno-sheet__razmik" id="obrocno-sheet-razmik">
+              <option value="weekly">Vsak teden</option>
+              <option value="biweekly">Vsaka 2 tedna</option>
+              <option value="monthly" selected>Vsak mesec</option>
+              <option value="custom">Datume nastavim ročno</option>
+            </select>
 
-          <div class="obrocno-sheet__nacrt-glava">
-            <p class="rok-sheet__oznaka">Načrt obrokov</p>
-            <button type="button" class="rok-sheet__povezava" id="obrocno-sheet-enakomerno">
-              Enakomerno razdeli
-            </button>
-          </div>
-          <div class="obrocno-sheet__seznam" id="obrocno-sheet-seznam"></div>
-          <p class="obrocno-sheet__skupaj" id="obrocno-sheet-skupaj">Skupaj —</p>
-          <p class="rok-sheet__napaka" id="obrocno-sheet-napaka" hidden></p>
-          <p class="obrocno-sheet__undo-vrsta" id="obrocno-sheet-undo" hidden>
-            <button type="button" class="rok-sheet__povezava">Razveljavi</button>
-          </p>
+            <div class="obrocno-sheet__nacrt-glava">
+              <p class="rok-sheet__oznaka">Načrt obrokov</p>
+              <button type="button" class="rok-sheet__povezava" id="obrocno-sheet-enakomerno">
+                Enakomerno razdeli
+              </button>
+            </div>
+            <div class="obrocno-sheet__seznam" id="obrocno-sheet-seznam"></div>
+            <p class="obrocno-sheet__skupaj" id="obrocno-sheet-skupaj">Skupaj —</p>
+            <p class="rok-sheet__napaka" id="obrocno-sheet-napaka" hidden></p>
+            <p class="obrocno-sheet__undo-vrsta" id="obrocno-sheet-undo" hidden>
+              <button type="button" class="rok-sheet__povezava">Razveljavi</button>
+            </p>
 
-          <h3 class="obrocno-sheet__addon-naslov">Dodatek k glavnemu sporočilu</h3>
-          <p class="obrocno-sheet__addon-pomoc">
-            To besedilo bo dodano na konec glavnega sporočila.
-          </p>
-          <div class="obrocno-sheet__addon" id="obrocno-sheet-addon" aria-live="polite"></div>
+            <h3 class="obrocno-sheet__addon-naslov">Dodatek k glavnemu sporočilu</h3>
+            <p class="obrocno-sheet__addon-pomoc">
+              To besedilo bo dodano na konec glavnega sporočila.
+            </p>
+            <div class="obrocno-sheet__addon" id="obrocno-sheet-addon" aria-live="polite"></div>
+          </div>
           <p class="sr-only" id="obrocno-sheet-live" aria-live="polite"></p>
         </div>
-        <div class="rok-sheet__noga">
+        <div class="rok-sheet__noga" id="obrocno-sheet-noga">
           <p
             class="rok-sheet__napaka obrocno-sheet__napaka-noga"
             id="obrocno-sheet-napaka-noga"
             role="alert"
             hidden
           ></p>
-          <div class="rok-sheet__noga-vrsta">
+          <div class="rok-sheet__noga-vrsta" id="obrocno-sheet-noga-global">
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="obrocno-sheet-preklici">
               Prekliči
             </button>
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="obrocno-sheet-shrani">
-              Shrani in dodaj
+              Shrani spremembe
             </button>
           </div>
-          <button type="button" class="rok-sheet__odstrani" id="obrocno-sheet-odstrani" hidden>
-            Odstrani obročno plačilo iz sporočila
-          </button>
+          <div class="obrocno-sheet__edit-akcije" id="obrocno-sheet-edit-akcije" hidden>
+            <button
+              type="button"
+              class="obrocno-sheet__edit-gumb obrocno-sheet__edit-gumb--obris"
+              id="obrocno-sheet-edit-preklici"
+            >
+              Prekliči
+            </button>
+            <button
+              type="button"
+              class="obrocno-sheet__edit-gumb obrocno-sheet__edit-gumb--ok"
+              id="obrocno-sheet-edit-ok"
+            >
+              V redu
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-obrocno-date"></script>
-    <script src="rok-placila-sheet.js?v=20260808-obrocno-date"></script>
-    <script src="obrocno-utils.js?v=20260808-obrocno-date"></script>
-    <script src="obrocno-sheet.js?v=20260808-obrocno-date"></script>
-    <script src="ton-priporocilo.js?v=20260808-obrocno-date"></script>
-    <script src="ton-predloge.js?v=20260808-obrocno-date"></script>
-    <script src="ton-widget.js?v=20260808-obrocno-date"></script>
-    <script src="app.js?v=20260808-obrocno-date"></script>
+    <script src="rok-placila-utils.js?v=20260808-obrocno-vklop"></script>
+    <script src="rok-placila-sheet.js?v=20260808-obrocno-vklop"></script>
+    <script src="obrocno-utils.js?v=20260808-obrocno-vklop"></script>
+    <script src="obrocno-sheet.js?v=20260808-obrocno-vklop"></script>
+    <script src="ton-priporocilo.js?v=20260808-obrocno-vklop"></script>
+    <script src="ton-predloge.js?v=20260808-obrocno-vklop"></script>
+    <script src="ton-widget.js?v=20260808-obrocno-vklop"></script>
+    <script src="app.js?v=20260808-obrocno-vklop"></script>
   </body>
 </html>

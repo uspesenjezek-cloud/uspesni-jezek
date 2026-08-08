@@ -4036,6 +4036,25 @@ body.stran--samo-seznam #neplacila-obrazec {
   box-shadow: none;
 }
 
+.stran--sporocilo .sporocilo-dodatek__naslov {
+  display: block;
+  line-height: 1.15;
+}
+
+.stran--sporocilo .sporocilo-dodatek__stanje {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: 0.85;
+}
+
+.stran--sporocilo .sporocilo-dodatek[aria-pressed="true"] .sporocilo-dodatek__stanje {
+  color: var(--teal-dark);
+  opacity: 1;
+}
+
 /* ========== Kompaktni widget: Ton sporočila ========== */
 .ton-widget[hidden] {
   display: none !important;
@@ -4280,13 +4299,127 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 /* ========== Bottom sheet: Obročno plačilo (dodatki na rok-sheet) ========== */
+
+/* Vklop / izklop */
+.obrocno-sheet__vklop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 14px;
+  background: #f7fafa;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.obrocno-sheet__vklop[aria-checked="true"] {
+  border-color: var(--teal, #5aa3a5);
+  background: var(--teal-pale, #eaf4f3);
+}
+
+.obrocno-sheet__vklop-levo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.obrocno-sheet__vklop-naslov {
+  color: var(--text, #243d3d);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__vklop-opis {
+  color: var(--muted, #718585);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.obrocno-sheet__vklop-desno {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.obrocno-sheet__vklop-tir {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: #c5d0ce;
+  transition: background 0.15s ease;
+}
+
+.obrocno-sheet__vklop-tir::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease;
+}
+
+.obrocno-sheet__vklop[aria-checked="true"] .obrocno-sheet__vklop-tir {
+  background: var(--teal, #5aa3a5);
+}
+
+.obrocno-sheet__vklop[aria-checked="true"] .obrocno-sheet__vklop-tir::after {
+  transform: translateX(18px);
+}
+
+.obrocno-sheet__vklop-stanje {
+  color: var(--muted, #718585);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__vklop[aria-checked="true"] .obrocno-sheet__vklop-stanje {
+  color: var(--teal-dark, #243d3d);
+}
+
+.obrocno-sheet__vklop-pomoc {
+  margin: 0 0 12px;
+  color: var(--muted, #718585);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.obrocno-sheet__vklop-pomoc[hidden] {
+  display: none !important;
+}
+
+.obrocno-sheet__nastavitve--disabled {
+  opacity: 0.48;
+  filter: grayscale(0.35);
+  pointer-events: none;
+  user-select: none;
+}
+
 .obrocno-sheet__znesek-kartica {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
-  padding: 12px 14px;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 14px;
   border: 1px solid var(--border, #c4d7d5);
   border-radius: 14px;
   background: var(--teal-pale, #eaf4f3);
@@ -4295,21 +4428,22 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrocno-sheet__znesek-vrednost {
   margin: 0;
   color: var(--text, #243d3d);
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 600;
+  line-height: 1.15;
 }
 
 .obrocno-sheet__znacka {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 2px 8px;
+  min-height: 22px;
+  padding: 2px 7px;
   border-radius: 999px;
   border: 1px solid var(--teal, #5aa3a5);
   background: #ffffff;
   color: var(--teal-dark, #243d3d);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 600;
 }
 
@@ -4327,9 +4461,21 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: none !important;
 }
 
+.obrocno-sheet__stevilo-vrsta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.obrocno-sheet__stevilo-vrsta .rok-sheet__oznaka {
+  margin: 0;
+}
+
 .obrocno-sheet__stevilke-ovoj {
   position: relative;
-  margin: 0 0 4px;
+  margin: 0 0 16px;
 }
 
 .obrocno-sheet__stevilke {
@@ -4348,10 +4494,11 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .obrocno-sheet__stevilka {
-  flex: 0 0 44px;
-  width: 44px;
-  min-height: 44px;
-  border-radius: 12px;
+  flex: 0 0 50px;
+  width: 50px;
+  min-height: 50px;
+  border-radius: 999px;
+  font-size: 1.05rem;
 }
 
 .obrocno-sheet__stevilke-chevron {
@@ -4366,15 +4513,23 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .obrocno-sheet__stevilke-pomoc {
-  margin: 0 0 14px;
+  margin: 0;
   color: var(--muted, #718585);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-align: right;
+}
+
+.obrocno-sheet__razmik-vrsta {
+  margin: 0 0 8px;
+}
+
+.obrocno-sheet__razmik-vrsta .rok-sheet__oznaka {
+  margin: 0;
 }
 
 .obrocno-sheet__razmik {
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   margin: 0 0 16px;
   padding: 0 12px;
   border: 1px solid var(--border, #c4d7d5);
@@ -4400,19 +4555,23 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrocno-sheet__seznam {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin: 0 0 10px;
+  gap: 10px;
+  margin: 0 0 8px;
 }
 
-/* Kartica obroka: glava + polji (ne stisnjena ena vrstica) */
+/* Kompaktna kartica obroka */
 .obrocno-sheet__vrstica {
   width: 100%;
   max-width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--border, #c4d7d5);
   border-radius: 16px;
   background: #ffffff;
   box-sizing: border-box;
+}
+
+.obrocno-sheet__vrstica--urejanje {
+  border-color: var(--teal, #5aa3a5);
 }
 
 .obrocno-sheet__vrstica-glava {
@@ -4420,7 +4579,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  min-height: 32px;
+  margin-bottom: 8px;
 }
 
 .obrocno-sheet__vrstica-levo {
@@ -4432,7 +4592,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .obrocno-sheet__vrstica-naslov {
   color: var(--text, #243d3d);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -4443,17 +4603,17 @@ body.stran--samo-seznam #neplacila-obrazec {
   border-radius: 999px;
   background: var(--teal-pale, #eaf4f3);
   color: var(--teal-dark, #243d3d);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
 }
 
 .obrocno-sheet__vrstica-polja {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: 10px;
 }
 
-@media (max-width: 369px) {
+@media (max-width: 359px) {
   .obrocno-sheet__vrstica-polja {
     grid-template-columns: 1fr;
   }
@@ -4461,10 +4621,11 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .obrocno-sheet__polje-oznaka {
   display: block;
-  margin: 0 0 4px;
+  margin: 0 0 5px;
   color: var(--muted, #718585);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .obrocno-sheet__money-ovoj {
@@ -4472,10 +4633,21 @@ body.stran--samo-seznam #neplacila-obrazec {
   width: 100%;
 }
 
+.obrocno-sheet__znesek-napaka-vrstica {
+  margin: 6px 0 0;
+  color: #b42318;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.obrocno-sheet__znesek-napaka-vrstica[hidden] {
+  display: none !important;
+}
+
 .obrocno-sheet__znesek {
   width: 100%;
   min-width: 0;
-  min-height: 44px;
+  min-height: 48px;
   padding: 0 2rem 0 10px;
   border: 1px solid var(--border, #c4d7d5);
   border-radius: 12px;
@@ -4512,7 +4684,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrocno-sheet__datum-ovoj {
   position: relative;
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .obrocno-sheet__datum-prikaz {
@@ -4520,10 +4692,10 @@ body.stran--samo-seznam #neplacila-obrazec {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 52px;
-  padding: 0 14px 0 14px;
+  min-height: 48px;
+  padding: 0 12px;
   border: 1px solid var(--border, #c4d7d5);
-  border-radius: 14px;
+  border-radius: 12px;
   background: #ffffff;
   color: var(--text, #243d3d);
   font-size: 16px;
@@ -4581,13 +4753,13 @@ body.stran--samo-seznam #neplacila-obrazec {
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
-  margin: 0;
+  margin: -6px -8px -6px 0;
   padding: 0;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: #8a9a97;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -4625,12 +4797,12 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrocno-sheet__addon-naslov {
   margin: 16px 0 4px;
   color: var(--text, #243d3d);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
 .obrocno-sheet__addon-pomoc {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: var(--muted, #718585);
   font-size: 0.8rem;
   line-height: 1.35;
@@ -4661,6 +4833,59 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .obrocno-sheet__napaka-noga[hidden] {
   display: none !important;
+}
+
+.obrocno-sheet .rok-sheet__gumb {
+  min-height: 46px;
+}
+
+.obrocno-sheet__edit-akcije {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 0;
+}
+
+.obrocno-sheet__edit-akcije[hidden] {
+  display: none !important;
+}
+
+.obrocno-sheet__edit-gumb {
+  min-width: 96px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.obrocno-sheet__edit-gumb--obris {
+  border: 1px solid var(--teal, #5aa3a5);
+  background: #ffffff;
+  color: var(--teal, #5aa3a5);
+}
+
+.obrocno-sheet__edit-gumb--ok {
+  border: 1px solid var(--teal, #5aa3a5);
+  background: var(--teal, #5aa3a5);
+  color: #ffffff;
+}
+
+.obrocno-sheet__edit-gumb--ok:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.obrocno-sheet--ureja-znesek #obrocno-sheet-noga-global {
+  display: none !important;
+}
+
+.obrocno-sheet--ureja-znesek #obrocno-sheet-edit-akcije {
+  display: flex !important;
 }
 
 /* Ozadje zaklenjeno med odprtim Obročno modalom */
@@ -4732,9 +4957,9 @@ body.obrocno-sheet-odprt .korak2__noga {
     position: relative;
     z-index: 2;
     margin: 0 -16px;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--border, #c4d7d5);
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(255, 255, 255, 0.97);
   }
 }
 

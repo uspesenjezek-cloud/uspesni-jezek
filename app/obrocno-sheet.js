@@ -26,6 +26,11 @@
     var backdrop = document.getElementById("obrocno-sheet-backdrop");
     var naslov = document.getElementById("obrocno-sheet-naslov");
     var gumbZapri = document.getElementById("obrocno-sheet-zapri");
+    var vklop = document.getElementById("obrocno-sheet-vklop");
+    var vklopOpis = document.getElementById("obrocno-sheet-vklop-opis");
+    var vklopStanje = document.getElementById("obrocno-sheet-vklop-stanje");
+    var vklopPomoc = document.getElementById("obrocno-sheet-vklop-pomoc");
+    var nastavitve = document.getElementById("obrocno-sheet-nastavitve");
     var znacka = document.getElementById("obrocno-sheet-znacka");
     var znesekEl = document.getElementById("obrocno-sheet-znesek");
     var opozorilo = document.getElementById("obrocno-sheet-opozorilo");
@@ -39,9 +44,13 @@
     var enakomerno = document.getElementById("obrocno-sheet-enakomerno");
     var preklici = document.getElementById("obrocno-sheet-preklici");
     var shrani = document.getElementById("obrocno-sheet-shrani");
-    var odstrani = document.getElementById("obrocno-sheet-odstrani");
+    var nogaGlobal = document.getElementById("obrocno-sheet-noga-global");
+    var editAkcije = document.getElementById("obrocno-sheet-edit-akcije");
+    var editPreklici = document.getElementById("obrocno-sheet-edit-preklici");
+    var editOk = document.getElementById("obrocno-sheet-edit-ok");
     var live = document.getElementById("obrocno-sheet-live");
     var undoEl = document.getElementById("obrocno-sheet-undo");
+    var dodatekObrocnoStanje = document.getElementById("dodatek-obrocno-stanje");
 
     var odprt = false;
     var osnutek = null;
@@ -53,6 +62,13 @@
     var undoCasovnik = null;
     var scrollY = 0;
     var scrollFokusCasovnik = null;
+    var draftEnabled = false;
+    var originalEnabled = false;
+    var originalPlan = null;
+    var editingInstallmentId = null;
+    var editSnapshotCents = null;
+    var editInputEl = null;
+    var potrjujemUrejanje = false;
 
     function klon(o) {
       return o ? JSON.parse(JSON.stringify(o)) : null;
@@ -68,6 +84,42 @@
         return Rok.ugotoviJezikSporocila(ctx.besediloPolje.value);
       }
       return "de";
+    }
+
+    function besediloIntervala(type) {
+      if (type === "weekly") return "tedensko";
+      if (type === "biweekly") return "vsaka 2 tedna";
+      if (type === "monthly") return "mesečno";
+      return "";
+    }
+
+    /** Posodobi gumb in stanje na glavni strani (samo ob Shrani / Prekliči). */
+    function posodobiZunanjoKartico(planOrNull) {
+      var total =
+        typeof ctx.getTotalDebtCents === "function"
+          ? ctx.getTotalDebtCents()
+          : 0;
+      var aktiven =
+        planOrNull &&
+        planOrNull.enabled &&
+        UJ.jePlanUporaben(planOrNull, total);
+      if (ctx.gumbObrocno) {
+        ctx.gumbObrocno.setAttribute("aria-pressed", aktiven ? "true" : "false");
+      }
+      if (dodatekObrocnoStanje) {
+        if (!aktiven) {
+          dodatekObrocnoStanje.textContent = "Izklopljeno";
+        } else {
+          var n =
+            planOrNull.installmentCount ||
+            (planOrNull.installments && planOrNull.installments.length) ||
+            0;
+          var interval = besediloIntervala(planOrNull.intervalType);
+          dodatekObrocnoStanje.textContent = interval
+            ? n + " obrokov • " + interval
+            : n + " obrokov";
+        }
+      }
     }
 
     function posodobiVisualViewport() {
@@ -146,6 +198,7 @@
         b.setAttribute("aria-label", "Izberi " + n + " obrokov");
         b.dataset.n = String(n);
         b.addEventListener("click", function (ev) {
+          if (!draftEnabled) return;
           var st = Number(ev.currentTarget.dataset.n);
           spremeniStevilo(st);
         });
@@ -164,8 +217,94 @@
       });
     }
 
+    function nastaviKontroleOnemogocene(onemogocene) {
+      if (stevilke) {
+        stevilke.querySelectorAll("button").forEach(function (b) {
+          b.disabled = onemogocene;
+          b.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+        });
+      }
+      if (razmik) {
+        razmik.disabled = onemogocene;
+        razmik.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+      }
+      if (enakomerno) {
+        enakomerno.disabled = onemogocene;
+        enakomerno.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+      }
+      if (seznam) {
+        seznam.querySelectorAll(".obrocno-sheet__znesek").forEach(function (inp) {
+          inp.disabled = onemogocene;
+          inp.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+        });
+        seznam.querySelectorAll(".obrocno-sheet__datum-native").forEach(function (inp) {
+          inp.disabled = onemogocene;
+          inp.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+        });
+        var samoDva =
+          osnutek &&
+          (osnutek.installments || []).length <= UJ.MIN_OBROKOV;
+        seznam.querySelectorAll(".obrocno-sheet__odstrani-vrstico").forEach(function (b) {
+          b.disabled = onemogocene || samoDva;
+        });
+      }
+    }
+
+    function posodobiVklopUi() {
+      if (vklop) {
+        vklop.setAttribute("aria-checked", draftEnabled ? "true" : "false");
+        vklop.setAttribute("aria-label", "Vključi/Izključi obročno plačilo");
+      }
+      if (vklopStanje) {
+        vklopStanje.textContent = draftEnabled ? "Vključeno" : "Izklopljeno";
+      }
+      if (vklopOpis) {
+        vklopOpis.textContent = draftEnabled
+          ? "Razdelite dolg na več plačil."
+          : "Vključite, če želite ponuditi obroke.";
+      }
+
+      var shranjen = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
+      var total =
+        typeof ctx.getTotalDebtCents === "function"
+          ? ctx.getTotalDebtCents()
+          : 0;
+      var imaShranjen =
+        shranjen &&
+        shranjen.enabled &&
+        UJ.jePlanUporaben(shranjen, total);
+      var pokaziPomoc = !draftEnabled && (originalEnabled || imaShranjen);
+      if (vklopPomoc) vklopPomoc.hidden = !pokaziPomoc;
+
+      if (nastavitve) {
+        nastavitve.classList.toggle(
+          "obrocno-sheet__nastavitve--disabled",
+          !draftEnabled
+        );
+      }
+      nastaviKontroleOnemogocene(!draftEnabled);
+      posodobiPovzetek();
+    }
+
+    function preklopiVklop() {
+      draftEnabled = !draftEnabled;
+      if (draftEnabled && !osnutek) {
+        var total =
+          typeof ctx.getTotalDebtCents === "function"
+            ? ctx.getTotalDebtCents()
+            : 0;
+        osnutek = sveziPredlog(total);
+        osnutek = UJ.uskladiSteviloVrstic(osnutek);
+      }
+      if (draftEnabled && osnutek) {
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+      }
+      posodobiVklopUi();
+      izrisi();
+    }
+
     async function spremeniStevilo(st) {
-      if (!osnutek) return;
+      if (!osnutek || !draftEnabled) return;
       var current = osnutek.installmentCount;
       if (st === current) return;
       if (st < current) {
@@ -189,32 +328,27 @@
       izrisi();
     }
 
-    function besediloShraniGumba() {
-      var shranjen = ctx.getInstallmentPlan && ctx.getInstallmentPlan();
-      var shranjenOk =
-        shranjen &&
-        shranjen.enabled &&
-        UJ.jePlanUporaben(shranjen, osnutek ? osnutek.totalDebtCents : 0);
-      return shranjenOk ? "Shrani spremembe" : "Shrani in dodaj";
-    }
-
     function posodobiPovzetek() {
       if (!osnutek) return;
-      var v = UJ.validatePlan(osnutek);
+      var v = draftEnabled ? UJ.validatePlan(osnutek) : { ok: true, errors: [], warnings: [] };
       if (skupaj) {
         var sum = UJ.vsotaCents(osnutek.installments);
         skupaj.textContent =
           "Skupaj " +
           UJ.formatCentsSl(sum) +
-          (sum === osnutek.totalDebtCents ? "" : " / " + UJ.formatCentsSl(osnutek.totalDebtCents));
+          (sum === osnutek.totalDebtCents
+            ? ""
+            : " / " + UJ.formatCentsSl(osnutek.totalDebtCents));
         skupaj.classList.toggle("obrocno-sheet__skupaj--ok", v.ok);
         skupaj.classList.toggle("obrocno-sheet__skupaj--napaka", !v.ok);
       }
       var sporociloNapake = "";
-      if (!v.ok && v.errors.length) {
-        sporociloNapake = "Shranjevanje ni mogoče: " + v.errors[0].message;
-      } else if (v.warnings.length) {
-        sporociloNapake = v.warnings[0].message;
+      if (draftEnabled) {
+        if (!v.ok && v.errors.length) {
+          sporociloNapake = "Shranjevanje ni mogoče: " + v.errors[0].message;
+        } else if (v.warnings.length) {
+          sporociloNapake = v.warnings[0].message;
+        }
       }
       if (napaka) {
         if (sporociloNapake) {
@@ -227,7 +361,7 @@
       }
       var napakaNoga = document.getElementById("obrocno-sheet-napaka-noga");
       if (napakaNoga) {
-        if (!v.ok && sporociloNapake) {
+        if (draftEnabled && !v.ok && sporociloNapake) {
           napakaNoga.hidden = false;
           napakaNoga.textContent = sporociloNapake;
         } else {
@@ -236,9 +370,10 @@
         }
       }
       if (shrani && !shranjevanje) {
-        shrani.disabled = !v.ok;
-        shrani.textContent = besediloShraniGumba();
-        if (!v.ok && sporociloNapake) {
+        var lahkoShrani = !draftEnabled || v.ok;
+        shrani.disabled = !lahkoShrani;
+        shrani.textContent = "Shrani spremembe";
+        if (draftEnabled && !v.ok && sporociloNapake) {
           shrani.setAttribute("aria-describedby", "obrocno-sheet-napaka-noga");
           shrani.title = sporociloNapake;
         } else {
@@ -251,12 +386,170 @@
         znacka.textContent =
           osnutek.source === "custom" ? "Prilagojen načrt" : "Samodejni predlog";
       }
-      var shranjen = ctx.getInstallmentPlan && ctx.getInstallmentPlan();
-      var shranjenOk =
-        shranjen &&
-        shranjen.enabled &&
-        UJ.jePlanUporaben(shranjen, osnutek.totalDebtCents);
-      if (odstrani) odstrani.hidden = !shranjenOk;
+    }
+
+    function preostaliDolgZaRocni(id) {
+      var total = Math.round(Number(osnutek.totalDebtCents) || 0);
+      var drugi = 0;
+      (osnutek.installments || []).forEach(function (r) {
+        if (r.id === id) return;
+        if (r.amountMode === "manual") drugi += Number(r.amountCents) || 0;
+      });
+      return total - drugi;
+    }
+
+    function maxDovoljenZnesek(id, cents) {
+      var maxDovoljeno = preostaliDolgZaRocni(id);
+      var autoOstane = (osnutek.installments || []).filter(function (r) {
+        return r.id !== id && r.amountMode !== "manual";
+      }).length;
+      return autoOstane > 0 ? maxDovoljeno - autoOstane : maxDovoljeno;
+    }
+
+    function napakaPodZneskomEl() {
+      if (!editInputEl) return null;
+      var blok = editInputEl.closest
+        ? editInputEl.closest(".obrocno-sheet__vrstica-polja")
+        : null;
+      if (!blok) return null;
+      var prviStolpec = blok.firstElementChild;
+      return prviStolpec
+        ? prviStolpec.querySelector(".obrocno-sheet__znesek-napaka-vrstica")
+        : null;
+    }
+
+    function pocistiNapakoUrejanja() {
+      if (editInputEl) {
+        editInputEl.classList.remove("obrocno-sheet__znesek--napaka");
+      }
+      var errEl = napakaPodZneskomEl();
+      if (errEl) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+      }
+    }
+
+    function prikaziNapakoUrejanja(sporocilo) {
+      if (editInputEl) {
+        editInputEl.classList.add("obrocno-sheet__znesek--napaka");
+      }
+      var errEl = napakaPodZneskomEl();
+      if (errEl) {
+        errEl.hidden = false;
+        errEl.textContent = sporocilo;
+      }
+    }
+
+    function validateEditAmount() {
+      var rez = { ok: false, message: "" };
+      if (!editInputEl || !osnutek || !editingInstallmentId) {
+        if (editOk) editOk.disabled = true;
+        return rez;
+      }
+      var raw = String(editInputEl.value || "").trim();
+      if (!raw) {
+        rez.message = "Vnesite znesek.";
+        if (editOk) editOk.disabled = true;
+        return rez;
+      }
+      var cents = UJ.parseAmountToCents(raw);
+      if (cents == null || cents <= 0) {
+        rez.message = "Neveljaven znesek.";
+        if (editOk) editOk.disabled = true;
+        return rez;
+      }
+      var maxZnesek = maxDovoljenZnesek(editingInstallmentId, cents);
+      if (cents > maxZnesek) {
+        rez.message = "Znesek obroka presega preostali dolg.";
+        if (editOk) editOk.disabled = true;
+        return rez;
+      }
+      rez.ok = true;
+      if (editOk) editOk.disabled = false;
+      return rez;
+    }
+
+    function izhodIzUrejanjaZneska() {
+      if (editInputEl) {
+        editInputEl.classList.remove("obrocno-sheet__znesek--napaka");
+      }
+      var art =
+        seznam && editingInstallmentId
+          ? seznam.querySelector('[data-id="' + editingInstallmentId + '"]')
+          : null;
+      if (art) art.classList.remove("obrocno-sheet__vrstica--urejanje");
+      sheet.classList.remove("obrocno-sheet--ureja-znesek");
+      if (editAkcije) editAkcije.hidden = true;
+      if (nogaGlobal) nogaGlobal.hidden = false;
+      editingInstallmentId = null;
+      editSnapshotCents = null;
+      editInputEl = null;
+    }
+
+    function prekliciUrejanjeZneska(brezBlur) {
+      if (!editingInstallmentId || !editInputEl) {
+        izhodIzUrejanjaZneska();
+        return;
+      }
+      var input = editInputEl;
+      input.value = UJ.formatCentsPolje(editSnapshotCents);
+      pocistiNapakoUrejanja();
+      izhodIzUrejanjaZneska();
+      if (!brezBlur) {
+        potrjujemUrejanje = true;
+        input.blur();
+      }
+    }
+
+    function potrdiUrejanjeZneska() {
+      if (!editInputEl || !osnutek || !editingInstallmentId) return;
+      var input = editInputEl;
+      var id = editingInstallmentId;
+      var raw = String(input.value || "").trim();
+      if (!raw) {
+        prikaziNapakoUrejanja("Vnesite znesek.");
+        return;
+      }
+      var cents = UJ.parseAmountToCents(raw);
+      if (cents == null || cents <= 0) {
+        prikaziNapakoUrejanja("Vnesite veljaven znesek.");
+        return;
+      }
+      var maxZnesek = maxDovoljenZnesek(id, cents);
+      if (cents > maxZnesek) {
+        prikaziNapakoUrejanja("Znesek obroka presega preostali dolg.");
+        return;
+      }
+      if (Number.isFinite(editSnapshotCents) && cents === editSnapshotCents) {
+        prekliciUrejanjeZneska(false);
+        return;
+      }
+      osnutek = UJ.nastaviRocniZnesek(osnutek, id, cents);
+      osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+      pocistiNapakoUrejanja();
+      osveziVrsticeBrezFokusa();
+      potrjujemUrejanje = true;
+      input.blur();
+      izhodIzUrejanjaZneska();
+      sporoci("Zneski preračunani.");
+    }
+
+    function vstopiVUrejanjeZneska(row, znesek, art) {
+      if (editingInstallmentId && editingInstallmentId !== row.id) {
+        prekliciUrejanjeZneska(true);
+      }
+      editingInstallmentId = row.id;
+      editSnapshotCents = Number(znesek.dataset.zacetniCenti) || 0;
+      editInputEl = znesek;
+      sheet.classList.add("obrocno-sheet--ureja-znesek");
+      art.classList.add("obrocno-sheet__vrstica--urejanje");
+      if (editAkcije) editAkcije.hidden = false;
+      if (nogaGlobal) nogaGlobal.hidden = true;
+      znesek.value = UJ.formatCentsEditable(editSnapshotCents);
+      znesek.classList.remove("obrocno-sheet__znesek--napaka");
+      pocistiNapakoUrejanja();
+      validateEditAmount();
+      premakniKarticoVVidno(art);
     }
 
     /** Posodobi prikaze zneskov/datumov brez uničenja fokusa. */
@@ -285,7 +578,10 @@
         if (input && document.activeElement !== input) {
           input.value = UJ.formatCentsPolje(row.amountCents);
           input.dataset.zacetniCenti = String(row.amountCents);
-          input.classList.toggle("obrocno-sheet__znesek--rocno", row.amountMode === "manual");
+          input.classList.toggle(
+            "obrocno-sheet__znesek--rocno",
+            row.amountMode === "manual"
+          );
           input.classList.remove("obrocno-sheet__znesek--napaka");
         }
 
@@ -307,7 +603,7 @@
         var x = art.querySelector(".obrocno-sheet__odstrani-vrstico");
         if (x) {
           var samoDva = (osnutek.installments || []).length <= UJ.MIN_OBROKOV;
-          x.disabled = samoDva;
+          x.disabled = !draftEnabled || samoDva;
           x.setAttribute("aria-label", "Odstrani " + row.order + ". obrok");
         }
       });
@@ -320,7 +616,6 @@
         var danes = UJ.danesYYYYMMDD();
         var first =
           osnutek.installments[0] && osnutek.installments[0].dueDate;
-        // Če je shranjeni datum pred danes, ne dviguj min nad value (iOS picker).
         if (first && first < danes) return first;
         return danes;
       }
@@ -331,9 +626,13 @@
 
     function izrisiVrstice() {
       if (!seznam || !osnutek) return;
+      if (editingInstallmentId) {
+        prekliciUrejanjeZneska(true);
+      }
       osnutek = UJ.uskladiSteviloVrstic(osnutek);
       seznam.innerHTML = "";
       var samoDva = (osnutek.installments || []).length <= UJ.MIN_OBROKOV;
+      var onemogocene = !draftEnabled;
 
       (osnutek.installments || []).forEach(function (row, index) {
         var art = document.createElement("article");
@@ -362,7 +661,7 @@
         x.className = "obrocno-sheet__odstrani-vrstico";
         x.setAttribute("aria-label", "Odstrani " + row.order + ". obrok");
         x.textContent = "×";
-        x.disabled = samoDva;
+        x.disabled = onemogocene || samoDva;
         x.addEventListener("click", function () {
           odstraniVrstico(row.id);
         });
@@ -392,26 +691,34 @@
         znesek.setAttribute("aria-label", "Znesek " + row.order + ". obroka");
         znesek.dataset.zacetniCenti = String(row.amountCents);
         znesek.dataset.installmentId = row.id;
+        znesek.disabled = onemogocene;
+        if (onemogocene) znesek.setAttribute("aria-disabled", "true");
 
         znesek.addEventListener("focus", function () {
-          znesek.value = UJ.formatCentsEditable(Number(znesek.dataset.zacetniCenti));
-          znesek.classList.remove("obrocno-sheet__znesek--napaka");
-          try {
-            znesek.select();
-          } catch (_e) {}
-          premakniKarticoVVidno(art);
+          if (!draftEnabled) {
+            znesek.blur();
+            return;
+          }
+          vstopiVUrejanjeZneska(row, znesek, art);
         });
         znesek.addEventListener("input", function () {
           var next = UJ.filtrirajZnesekVnos(znesek.value);
           if (next !== znesek.value) znesek.value = next;
+          validateEditAmount();
         });
         znesek.addEventListener("blur", function () {
-          potrdiZnesek(row.id, znesek);
+          if (potrjujemUrejanje) {
+            potrjujemUrejanje = false;
+            return;
+          }
+          if (editingInstallmentId === row.id) {
+            prekliciUrejanjeZneska(true);
+          }
         });
         znesek.addEventListener("keydown", function (ev) {
           if (ev.key === "Enter") {
             ev.preventDefault();
-            znesek.blur();
+            potrdiUrejanjeZneska();
           }
         });
 
@@ -421,8 +728,14 @@
         eur.textContent = "€";
         moneyOvoj.appendChild(znesek);
         moneyOvoj.appendChild(eur);
+
+        var napakaVrstica = document.createElement("p");
+        napakaVrstica.className = "obrocno-sheet__znesek-napaka-vrstica";
+        napakaVrstica.hidden = true;
+
         znesekBlok.appendChild(znesekOznaka);
         znesekBlok.appendChild(moneyOvoj);
+        znesekBlok.appendChild(napakaVrstica);
 
         var datumBlok = document.createElement("div");
         var datumOznaka = document.createElement("span");
@@ -431,7 +744,6 @@
         var datumOvoj = document.createElement("div");
         datumOvoj.className = "obrocno-sheet__datum-ovoj";
 
-        // Vizualni prikaz (ne sprejema klika) + prosojen native date čez celo polje.
         var prikaz = document.createElement("div");
         prikaz.className = "obrocno-sheet__datum-prikaz";
         prikaz.setAttribute("aria-hidden", "true");
@@ -451,16 +763,23 @@
         native.value = row.dueDate || "";
         native.min = minDatumZaObrok(index);
         native.setAttribute("aria-label", "Datum " + row.order + ". obroka");
+        native.disabled = onemogocene;
+        if (onemogocene) native.setAttribute("aria-disabled", "true");
 
         native.addEventListener("focus", function () {
+          if (!draftEnabled) return;
           premakniKarticoVVidno(art);
         });
         native.addEventListener("change", function () {
+          if (!draftEnabled) return;
           var iso = native.value;
           if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
 
           var minDov = minDatumZaObrok(index);
-          if (iso < minDov || (index > 0 && iso <= osnutek.installments[index - 1].dueDate)) {
+          if (
+            iso < minDov ||
+            (index > 0 && iso <= osnutek.installments[index - 1].dueDate)
+          ) {
             datumOvoj.classList.add("obrocno-sheet__datum-ovoj--napaka");
             native.value = row.dueDate || "";
             sporoci("Datum obroka mora biti poznejši od prejšnjega obroka.");
@@ -476,7 +795,6 @@
           osnutek = UJ.nastaviDatum(osnutek, row.id, iso);
           osnutek = UJ.osveziAddon(osnutek, jezikAddon());
           if (razmik) razmik.value = osnutek.intervalType;
-          // Osveži prikaze (ISO v value, SL v besedilu) – modal ostane odprt.
           osveziVrsticeBrezFokusa();
         });
 
@@ -494,66 +812,8 @@
       });
     }
 
-    function preostaliDolgZaRocni(id, predlaganiCenti) {
-      var total = Math.round(Number(osnutek.totalDebtCents) || 0);
-      var drugi = 0;
-      (osnutek.installments || []).forEach(function (r) {
-        if (r.id === id) return;
-        if (r.amountMode === "manual") drugi += Number(r.amountCents) || 0;
-      });
-      return total - drugi;
-    }
-
-    function potrdiZnesek(id, input) {
-      if (!osnutek) return;
-      var raw = String(input.value || "").trim();
-      if (!raw) {
-        input.value = UJ.formatCentsPolje(Number(input.dataset.zacetniCenti) || 0);
-        input.classList.remove("obrocno-sheet__znesek--napaka");
-        return;
-      }
-      var cents = UJ.parseAmountToCents(raw);
-      if (cents == null || cents <= 0) {
-        input.classList.add("obrocno-sheet__znesek--napaka");
-        sporoci("Neveljaven znesek.");
-        input.value = UJ.formatCentsPolje(Number(input.dataset.zacetniCenti) || 0);
-        return;
-      }
-      var zacetni = Number(input.dataset.zacetniCenti);
-      if (Number.isFinite(zacetni) && cents === zacetni) {
-        input.value = UJ.formatCentsPolje(cents);
-        input.classList.remove("obrocno-sheet__znesek--napaka");
-        return;
-      }
-
-      var maxDovoljeno = preostaliDolgZaRocni(id, cents);
-      var autoOstane = (osnutek.installments || []).filter(function (r) {
-        return r.id !== id && r.amountMode !== "manual";
-      }).length;
-      // Če ostanejo samodejni obroki, mora ostati vsaj 1 cent na vsakega.
-      var maxZnesek = autoOstane > 0 ? maxDovoljeno - autoOstane : maxDovoljeno;
-      if (cents > maxZnesek) {
-        input.classList.add("obrocno-sheet__znesek--napaka");
-        sporoci("Znesek obroka presega preostali dolg.");
-        if (napaka) {
-          napaka.hidden = false;
-          napaka.textContent = "Znesek obroka presega preostali dolg.";
-        }
-        input.value = UJ.formatCentsPolje(zacetni);
-        return;
-      }
-
-      osnutek = UJ.nastaviRocniZnesek(osnutek, id, cents);
-      osnutek = UJ.osveziAddon(osnutek, jezikAddon());
-      input.dataset.zacetniCenti = String(cents);
-      input.value = UJ.formatCentsPolje(cents);
-      input.classList.add("obrocno-sheet__znesek--rocno");
-      input.classList.remove("obrocno-sheet__znesek--napaka");
-      osveziVrsticeBrezFokusa();
-      sporoci("Zneski preračunani.");
-    }
-
     function odstraniVrstico(id) {
+      if (!draftEnabled) return;
       var rez = UJ.odstraniObrok(osnutek, id);
       if (!rez.ok) {
         if (rez.code === "min_two") {
@@ -585,6 +845,7 @@
       posodobiStevilkeUi();
       if (razmik && osnutek) razmik.value = osnutek.intervalType;
       izrisiVrstice();
+      nastaviKontroleOnemogocene(!draftEnabled);
       posodobiPovzetek();
     }
 
@@ -635,7 +896,12 @@
       }
 
       var existing = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
-      if (existing && existing.enabled && UJ.jePlanUporaben(existing, total)) {
+      var existingUporaben =
+        existing &&
+        existing.enabled &&
+        UJ.jePlanUporaben(existing, total);
+
+      if (existingUporaben) {
         osnutek = klon(existing);
         osnutek.totalDebtCents = total;
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
@@ -643,21 +909,24 @@
           osnutek = UJ.enakomernoRazdeli(osnutek);
         }
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        draftEnabled = true;
       } else {
-        if (existing && typeof ctx.setInstallmentPlan === "function") {
-          ctx.setInstallmentPlan(null);
-        }
-        if (ctx.dodatki) ctx.dodatki.obrocno = false;
-        if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = "";
-        if (ctx.gumbObrocno) {
-          ctx.gumbObrocno.setAttribute("aria-pressed", "false");
-        }
         osnutek = sveziPredlog(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
+        draftEnabled = false;
       }
+
+      originalEnabled = Boolean(existingUporaben);
+      originalPlan = existing ? klon(existing) : null;
+
+      editingInstallmentId = null;
+      editSnapshotCents = null;
+      editInputEl = null;
+      potrjujemUrejanje = false;
 
       if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(total);
       napolniOpozorilo();
+      posodobiVklopUi();
       izrisi();
 
       prejsnjiFokus = document.activeElement;
@@ -671,29 +940,27 @@
       casovnikZapiranja = setTimeout(function () {
         zapiranjeDovoljeno = true;
       }, 400);
-      if (ctx.gumbObrocno) ctx.gumbObrocno.setAttribute("aria-pressed", "true");
       window.setTimeout(function () {
         if (naslov) naslov.focus();
       }, 10);
     }
 
     function zapriSheet(brezObnove) {
+      if (editingInstallmentId) {
+        prekliciUrejanjeZneska(true);
+      }
       odprt = false;
       if (sheet) sheet.hidden = true;
       izklopiViewportPoslusalce();
       odkleniOzadje();
       if (scrollFokusCasovnik) clearTimeout(scrollFokusCasovnik);
       osnutek = null;
+      draftEnabled = false;
+      originalEnabled = false;
+      originalPlan = null;
       if (!brezObnove) {
         var plan = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
-        var total =
-          typeof ctx.getTotalDebtCents === "function"
-            ? ctx.getTotalDebtCents()
-            : 0;
-        var aktiven = plan && plan.enabled && UJ.jePlanUporaben(plan, total);
-        if (ctx.gumbObrocno) {
-          ctx.gumbObrocno.setAttribute("aria-pressed", aktiven ? "true" : "false");
-        }
+        posodobiZunanjoKartico(plan);
       }
       if (prejsnjiFokus && typeof prejsnjiFokus.focus === "function") {
         try {
@@ -742,7 +1009,40 @@
     }
 
     async function shraniPlan() {
-      if (!osnutek || shranjevanje) return;
+      if (shranjevanje) return;
+
+      if (!draftEnabled) {
+        shranjevanje = true;
+        if (shrani) {
+          shrani.disabled = true;
+          shrani.textContent = "Shranjujem …";
+        }
+        if (preklici) preklici.disabled = true;
+        try {
+          odstraniAddonIzBesedila();
+          if (ctx.dodatki) ctx.dodatki.obrocno = false;
+          if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = "";
+          if (ctx.setInstallmentPlan) ctx.setInstallmentPlan(null);
+          posodobiZunanjoKartico(null);
+          if (typeof ctx.posodobiStanjeUrejevalnika === "function") {
+            ctx.posodobiStanjeUrejevalnika();
+          }
+          if (typeof ctx.shraniOsnutekLokalno === "function") {
+            ctx.shraniOsnutekLokalno();
+          }
+          zapriSheet(true);
+        } finally {
+          shranjevanje = false;
+          if (preklici) preklici.disabled = false;
+          if (shrani) {
+            shrani.disabled = false;
+            shrani.textContent = "Shrani spremembe";
+          }
+        }
+        return;
+      }
+
+      if (!osnutek) return;
       osnutek = UJ.osveziAddon(osnutek, jezikAddon());
       var v = UJ.validatePlan(osnutek);
       if (!v.ok) {
@@ -752,14 +1052,14 @@
 
       var rok = ctx.getPaymentDeadline ? ctx.getPaymentDeadline() : null;
       if (rok && rok.enabled) {
-        var ok = await ctx.potrdiVprasanje({
+        var okRok = await ctx.potrdiVprasanje({
           naslov: "Nadomestim rok plačila?",
           opis:
             "Obročno plačilo bo nadomestilo enkratni rok plačila. Želite nadaljevati?",
           potrdiBesedilo: "Nadaljuj",
           stil: "primary",
         });
-        if (!ok) return;
+        if (!okRok) return;
         if (rok.insertedText && Rok) {
           var r = Rok.posodobiSistemskoVrstico(
             ctx.besediloPolje.value,
@@ -806,7 +1106,7 @@
         if (ctx.dodatki) ctx.dodatki.obrocno = true;
         if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = osnutek.addonText;
         if (ctx.setInstallmentPlan) ctx.setInstallmentPlan(klon(osnutek));
-        if (ctx.gumbObrocno) ctx.gumbObrocno.setAttribute("aria-pressed", "true");
+        posodobiZunanjoKartico(klon(osnutek));
         if (typeof ctx.posodobiStanjeUrejevalnika === "function") {
           ctx.posodobiStanjeUrejevalnika();
         }
@@ -819,31 +1119,9 @@
         if (preklici) preklici.disabled = false;
         if (shrani) {
           shrani.disabled = false;
-          shrani.textContent = besediloShraniGumba();
+          shrani.textContent = "Shrani spremembe";
         }
       }
-    }
-
-    async function odstraniPlan() {
-      var ok = await ctx.potrdiVprasanje({
-        naslov: "Odstranim obročno plačilo?",
-        opis: "Dodatek bo odstranjen iz sporočila.",
-        potrdiBesedilo: "Odstrani",
-        stil: "nevarno",
-      });
-      if (!ok) return;
-      odstraniAddonIzBesedila();
-      if (ctx.dodatki) ctx.dodatki.obrocno = false;
-      if (ctx.dodatekBesedila) ctx.dodatekBesedila.obrocno = "";
-      if (ctx.setInstallmentPlan) ctx.setInstallmentPlan(null);
-      if (ctx.gumbObrocno) ctx.gumbObrocno.setAttribute("aria-pressed", "false");
-      if (typeof ctx.posodobiStanjeUrejevalnika === "function") {
-        ctx.posodobiStanjeUrejevalnika();
-      }
-      if (typeof ctx.shraniOsnutekLokalno === "function") {
-        ctx.shraniOsnutekLokalno();
-      }
-      zapriSheet(true);
     }
 
     zgradiStevilke();
@@ -858,6 +1136,12 @@
       zapriSheet(false);
     }
 
+    if (vklop) {
+      vklop.addEventListener("click", function () {
+        if (!odprt) return;
+        preklopiVklop();
+      });
+    }
     if (backdrop) backdrop.addEventListener("click", poskusiZapri);
     if (gumbZapri) {
       gumbZapri.addEventListener("click", function (ev) {
@@ -888,10 +1172,23 @@
         shraniPlan();
       });
     }
-    if (odstrani) odstrani.addEventListener("click", function () { odstraniPlan(); });
+    if (editPreklici) {
+      editPreklici.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        prekliciUrejanjeZneska(false);
+      });
+    }
+    if (editOk) {
+      editOk.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        potrdiUrejanjeZneska();
+      });
+    }
     if (enakomerno) {
       enakomerno.addEventListener("click", async function () {
-        if (!osnutek) return;
+        if (!osnutek || !draftEnabled) return;
         var imaRocne = osnutek.installments.some(function (r) {
           return r.amountMode === "manual";
         });
@@ -911,7 +1208,7 @@
     }
     if (razmik) {
       razmik.addEventListener("change", function () {
-        if (!osnutek) return;
+        if (!osnutek || !draftEnabled) return;
         osnutek = UJ.nastaviRazmik(osnutek, razmik.value);
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
         izrisi();
@@ -919,7 +1216,7 @@
     }
     if (undoEl) {
       undoEl.addEventListener("click", function () {
-        if (!undoPaket || !osnutek) return;
+        if (!undoPaket || !osnutek || !draftEnabled) return;
         osnutek = UJ.razveljaviOdstranitev(osnutek, undoPaket);
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
         undoPaket = null;
@@ -934,11 +1231,15 @@
       if (!odprt) return;
       if (ev.key === "Escape") {
         ev.preventDefault();
-        zapriSheet(false);
+        if (editingInstallmentId) {
+          prekliciUrejanjeZneska(false);
+        } else {
+          zapriSheet(false);
+        }
       }
     });
 
-    return { odpri: odpri, zapri: zapriSheet };
+    return { odpri: odpri, zapri: zapriSheet, posodobiZunanjoKartico: posodobiZunanjoKartico };
   }
 
   root.inicializirajObrocnoSheet = inicializirajObrocnoSheet;
