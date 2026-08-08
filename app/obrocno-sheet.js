@@ -182,8 +182,7 @@
         art.className = "obrocno-sheet__vrstica";
         art.dataset.id = row.id;
 
-        var glava = document.createElement("div");
-        glava.className = "obrocno-sheet__vrstica-glava";
+        // Ena vodoravna vrstica (mockup): naslov | znesek | datum | ×
         var levo = document.createElement("div");
         levo.className = "obrocno-sheet__vrstica-levo";
         var naslovV = document.createElement("span");
@@ -196,26 +195,15 @@
           badge.textContent = "Ročno";
           levo.appendChild(badge);
         }
-        glava.appendChild(levo);
-        var x = document.createElement("button");
-        x.type = "button";
-        x.className = "obrocno-sheet__odstrani-vrstico";
-        x.setAttribute("aria-label", "Odstrani " + row.order + ". obrok");
-        x.textContent = "×";
-        x.addEventListener("click", function () {
-          odstraniVrstico(row.id);
-        });
-        glava.appendChild(x);
-        art.appendChild(glava);
-
-        var polja = document.createElement("div");
-        polja.className = "obrocno-sheet__vrstica-polja";
 
         var znesek = document.createElement("input");
         znesek.type = "text";
         znesek.inputMode = "decimal";
         znesek.className = "obrocno-sheet__znesek";
-        znesek.value = UJ.formatCentsSl(row.amountCents).replace(" €", "");
+        if (row.amountMode === "manual") {
+          znesek.className += " obrocno-sheet__znesek--rocno";
+        }
+        znesek.value = UJ.formatCentsSl(row.amountCents);
         znesek.setAttribute("aria-label", "Znesek " + row.order + ". obroka");
         znesek.addEventListener("blur", function () {
           potrdiZnesek(row.id, znesek);
@@ -240,11 +228,27 @@
           if (razmik) razmik.value = osnutek.intervalType;
           izrisi();
         });
+        var datumIkona = document.createElement("span");
+        datumIkona.className = "obrocno-sheet__datum-ikona";
+        datumIkona.setAttribute("aria-hidden", "true");
+        datumIkona.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>';
         datumOvoj.appendChild(datum);
+        datumOvoj.appendChild(datumIkona);
 
-        polja.appendChild(znesek);
-        polja.appendChild(datumOvoj);
-        art.appendChild(polja);
+        var x = document.createElement("button");
+        x.type = "button";
+        x.className = "obrocno-sheet__odstrani-vrstico";
+        x.setAttribute("aria-label", "Odstrani " + row.order + ". obrok");
+        x.textContent = "×";
+        x.addEventListener("click", function () {
+          odstraniVrstico(row.id);
+        });
+
+        art.appendChild(levo);
+        art.appendChild(znesek);
+        art.appendChild(datumOvoj);
+        art.appendChild(x);
         seznam.appendChild(art);
       });
     }

@@ -4404,82 +4404,139 @@ body.stran--samo-seznam #neplacila-obrazec {
   margin: 0 0 10px;
 }
 
+/* Ena vodoravna vrstica: naslov(+Ročno) | znesek | datum | × */
 .obrocno-sheet__vrstica {
-  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 8px 10px;
   border: 1px solid var(--border, #c4d7d5);
   border-radius: 14px;
   background: #ffffff;
-}
-
-.obrocno-sheet__vrstica-glava {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .obrocno-sheet__vrstica-levo {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  width: 3.6rem;
+  min-width: 3.6rem;
 }
 
 .obrocno-sheet__vrstica-naslov {
   color: var(--text, #243d3d);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .obrocno-sheet__rocno {
   display: inline-flex;
-  padding: 2px 7px;
+  padding: 1px 6px;
   border-radius: 999px;
   background: var(--teal-pale, #eaf4f3);
   color: var(--teal-dark, #243d3d);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
+  line-height: 1.3;
+}
+
+.obrocno-sheet__znesek {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text, #243d3d);
+  font: inherit;
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+.obrocno-sheet__znesek--rocno,
+.obrocno-sheet__znesek:focus {
+  outline: none;
+  border-color: var(--teal, #5aa3a5);
+  box-shadow: 0 0 0 1px var(--teal, #5aa3a5);
+}
+
+.obrocno-sheet__datum-ovoj {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.obrocno-sheet__datum {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 26px 0 6px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text, #243d3d);
+  font: inherit;
+  font-size: 0.78rem;
+  box-sizing: border-box;
+}
+
+.obrocno-sheet__datum:focus {
+  outline: none;
+  border-color: var(--teal, #5aa3a5);
+  box-shadow: 0 0 0 1px var(--teal, #5aa3a5);
+}
+
+.obrocno-sheet__datum-ikona {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--teal, #5aa3a5);
+  pointer-events: none;
+}
+
+.obrocno-sheet__datum-ikona svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+/* Skrij podvojeni native koledar, kjer je mogoče – ostane naša ikona. */
+.obrocno-sheet__datum::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 }
 
 .obrocno-sheet__odstrani-vrstico {
-  width: 36px;
-  height: 36px;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 40px;
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: #8a9a97;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
 }
 
-.obrocno-sheet__vrstica-polja {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-}
-
-.obrocno-sheet__znesek,
-.obrocno-sheet__datum {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border, #c4d7d5);
-  border-radius: 12px;
-  background: #ffffff;
-  color: var(--text, #243d3d);
-  font: inherit;
-  font-size: 0.92rem;
-  box-sizing: border-box;
-}
-
-.obrocno-sheet__znesek:focus {
-  outline: 2px solid var(--teal, #5aa3a5);
-  outline-offset: 1px;
-  border-color: var(--teal, #5aa3a5);
+.obrocno-sheet__odstrani-vrstico:hover,
+.obrocno-sheet__odstrani-vrstico:focus-visible {
+  color: #b42318;
 }
 
 .obrocno-sheet__skupaj {
