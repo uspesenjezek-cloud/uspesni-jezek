@@ -6900,365 +6900,752 @@ body.template-editor-odprt {
   }
 }
 
-/* ========== NAČRT OPOMINJANJA (korak 3) ==========
-   Turkizna semantika (ne zlata / --priporocila-*). */
+/* ========== NAČRT OPOMINJANJA (korak 3) – vsebina pod skupno glavo ==========
+   Brez drugega čarovnika / naslova »Pošiljanje« / zunanjega okvirja. */
+.korak2__vsebina--opomin {
+  padding: 0;
+}
+
 .opomin-nacrt[hidden],
 .opomin-nacrt-potrdi[hidden] {
   display: none !important;
 }
 
-.opomin-nacrt__naslov-vrstica {
+.opomin-nacrt,
+.opomin-nacrt-potrdi {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.opomin-nacrt__vsebina,
+.opomin-nacrt-potrdi__vsebina {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .opomin-nacrt__opozorilo {
-  margin: 0 0 14px;
+  margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--status-opomin-1) 45%, var(--border));
-  background: color-mix(in srgb, var(--status-opomin-1) 12%, var(--white));
+  border: 1px solid #e5c86a;
+  background: #fff8e6;
   color: #7a5a10;
   font-size: 0.88rem;
   line-height: 1.4;
 }
 
-.opomin-nacrt__napredek {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  margin: 8px 0 16px;
+.opomin-nacrt__povzetek {
+  padding: 16px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 17px;
+  background: #ffffff;
+  box-sizing: border-box;
 }
 
-.opomin-nacrt__krog {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
+.opomin-nacrt__povzetek-naslov {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-primary, #183a3a);
+  line-height: 1.3;
+}
+
+.opomin-nacrt__povzetek-vrednost {
+  margin: 5px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #183a3a);
+  line-height: 1.2;
+}
+
+.opomin-nacrt__povzetek-vrstica {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.opomin-nacrt__povzetek-znacke {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.opomin-nacrt__chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  min-height: 28px;
+  padding: 4px 10px;
   border-radius: 999px;
-  border: 2px solid var(--border);
-  background: var(--white);
-  color: var(--teal-dark);
-  font-size: 0.95rem;
+  font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  padding: 0;
+  line-height: 1.2;
 }
 
-.opomin-nacrt__krog:focus-visible {
-  outline: 3px solid var(--teal-dark);
+.opomin-nacrt__chip--teal {
+  background: #e6f4f3;
+  color: #10797d;
+}
+
+.opomin-nacrt__chip--beige {
+  background: #f8f3e9;
+  color: #806f54;
+}
+
+.opomin-nacrt__povezava {
+  margin: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--teal, #159195);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.opomin-nacrt__povezava:focus-visible {
+  outline: 2px solid var(--teal, #159195);
   outline-offset: 2px;
 }
 
-.opomin-nacrt__krog--osnutek {
-  border-color: var(--border);
-  background: var(--white);
+.opomin-nacrt__zakaj {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f4f8f7;
+  color: var(--text-muted, #718483);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.opomin-nacrt__krog--pregled {
-  border-color: var(--status-opomin-1);
-  background: color-mix(in srgb, var(--status-opomin-1) 18%, var(--white));
-  color: #7a5a10;
-}
-
-.opomin-nacrt__krog--potrjen {
-  border-color: var(--teal);
-  background: var(--teal);
-  color: var(--white);
-}
-
-.opomin-nacrt__krog--zaklenjen {
-  border-color: var(--border-strong, #b8c4c4);
-  background: var(--surface-soft, #f3f6f6);
-  color: #5a6b6b;
-}
-
-.opomin-nacrt__krog--aktiven {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 35%, transparent);
-}
-
-.opomin-nacrt__krog-crta {
-  width: 18px;
-  height: 2px;
-  background: var(--border);
-  flex: 0 0 18px;
-}
-
-.opomin-nacrt__zavihki {
+.opomin-nacrt__napredek-vrstica {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.opomin-nacrt__napredek-tekst {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #183a3a);
+}
+
+.opomin-nacrt__pike {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opomin-nacrt__pika {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1.5px solid #c9d9d7;
+  background: #ffffff;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.opomin-nacrt__pika--potrjen {
+  border-color: var(--teal, #159195);
+  background: var(--teal, #159195);
+}
+
+.opomin-nacrt__pika--pregled {
+  border-color: #d4a017;
+  background: #fff4ce;
+}
+
+.opomin-nacrt__pika--izbran {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal, #159195) 35%, transparent);
+}
+
+.opomin-nacrt__carousel-ovoj {
+  position: relative;
+}
+
+.opomin-nacrt__carousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(96px, 28%);
+  gap: 8px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 5px;
-  margin-bottom: 10px;
-  background: var(--surface-soft, #f3f6f6);
-  border: 1px solid var(--border);
-  border-radius: 16px;
   scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  padding-bottom: 2px;
 }
 
-.opomin-nacrt__zavihki::-webkit-scrollbar {
+.opomin-nacrt__carousel::-webkit-scrollbar {
   display: none;
 }
 
-.opomin-nacrt__zavihek {
-  flex: 1 0 auto;
-  min-height: 40px;
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 11px;
-  background: transparent;
-  color: var(--color-text-secondary, #5a6b6b);
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
+.opomin-nacrt__carousel-puscica {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(to right, transparent, #ffffff 40%);
+  color: #9aa8a7;
+  font-size: 1.2rem;
+  pointer-events: none;
 }
 
-.opomin-nacrt__zavihek--aktiven {
-  background: var(--teal);
-  color: var(--white);
-  font-weight: 600;
-}
-
-.opomin-nacrt__zavihek:focus-visible {
-  outline: 3px solid var(--teal-dark);
-  outline-offset: 1px;
-}
-
-.opomin-nacrt__cas {
-  margin: 0 0 14px;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary, #5a6b6b);
-  line-height: 1.4;
-}
-
-.opomin-nacrt__kartica {
-  margin: 0 0 16px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid var(--teal);
-  background: var(--teal-pale);
-}
-
-.opomin-nacrt__kartica-oznaka {
-  margin: 0 0 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--teal-dark);
-}
-
-.opomin-nacrt__kartica-predogled {
-  margin: 0 0 12px;
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: var(--color-text, #1f2a2a);
-}
-
-.opomin-nacrt__kartica-vrstica {
+.opomin-nacrt__stage {
+  min-height: 118px;
+  padding: 12px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 15px;
+  background: #ffffff;
+  scroll-snap-align: start;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary, #183a3a);
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.opomin-nacrt__stage:focus-visible {
+  outline: 3px solid var(--teal, #159195);
+  outline-offset: 2px;
+}
+
+.opomin-nacrt__stage-st {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: #eef4f3;
+  color: var(--teal-dark, #10797d);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.opomin-nacrt__stage-naslov {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.opomin-nacrt__stage-cas {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--text-muted, #718483);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.opomin-nacrt__stage--izbran {
+  background: var(--teal, #159195);
+  border-color: var(--teal, #159195);
+  color: #ffffff;
+}
+
+.opomin-nacrt__stage--izbran .opomin-nacrt__stage-st {
+  background: #ffffff;
+  color: var(--teal, #159195);
+  border-radius: 999px;
+}
+
+.opomin-nacrt__stage--izbran .opomin-nacrt__stage-cas {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.opomin-nacrt__izbran-glava {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.opomin-nacrt__kartica-ikona {
+.opomin-nacrt__izbran-naslov {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary, #183a3a);
+}
+
+.opomin-nacrt__status-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #f8f3e9;
+  color: #806f54;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.opomin-nacrt__status-badge--confirmed {
+  background: #e6f4f3;
+  color: #10797d;
+}
+
+.opomin-nacrt__status-badge--needs_review {
+  background: #fff4ce;
+  color: #8a6a10;
+}
+
+.opomin-nacrt__cas-kartica,
+.opomin-nacrt__rocni {
+  padding: 14px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 15px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.opomin-nacrt__sekcija-naslov {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #183a3a);
+}
+
+.opomin-nacrt__cas-vrstica {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--divider, #dde7e5);
+  box-sizing: border-box;
+}
+
+.opomin-nacrt__cas-vrstica--zadnja,
+.opomin-nacrt__cas-vrstica:last-child {
+  border-bottom: 0;
+}
+
+.opomin-nacrt__cas-ikona {
+  flex-shrink: 0;
+  color: var(--teal, #159195);
+  display: grid;
+  place-items: center;
+}
+
+.opomin-nacrt__cas-tekst {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text-primary, #183a3a);
+  line-height: 1.35;
+}
+
+.opomin-nacrt__gumb-spremeni {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--teal, #159195);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--teal-dark, #10797d);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.opomin-nacrt__gumb-spremeni:focus-visible {
+  outline: 2px solid var(--teal, #159195);
+  outline-offset: 2px;
+}
+
+.opomin-nacrt__cas-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--divider, #dde7e5);
+}
+
+.opomin-nacrt__cas-picker-label {
+  font-size: 13px;
+  color: var(--text-muted, #718483);
+}
+
+.opomin-nacrt__cas-input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.opomin-nacrt__cas-picker-akcije {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+}
+
+.opomin-nacrt__gumb-majhen {
+  min-height: 44px !important;
+  font-size: 0.9rem !important;
+}
+
+.opomin-nacrt__switch {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #c9d9d7;
+  cursor: pointer;
+  padding: 0;
+}
+
+.opomin-nacrt__switch--on {
+  background: var(--teal, #159195);
+}
+
+.opomin-nacrt__switch-gumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  transition: transform 160ms ease;
+}
+
+.opomin-nacrt__switch--on .opomin-nacrt__switch-gumb {
+  transform: translateX(20px);
+}
+
+.opomin-nacrt__switch:focus-visible {
+  outline: 2px solid var(--teal, #159195);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opomin-nacrt__switch-gumb {
+    transition: none;
+  }
+}
+
+.opomin-nacrt__vsebina-kartica {
+  padding: 8px;
+  border: 1px solid #9fcfcd;
+  border-radius: 15px;
+  background: #e6f4f3;
+  box-sizing: border-box;
+}
+
+.opomin-nacrt__vsebina-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.opomin-nacrt__vsebina-vrstica {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.opomin-nacrt__vsebina-vrstica:focus-visible {
+  outline: 2px solid var(--teal, #159195);
+  outline-offset: 1px;
+}
+
+.opomin-nacrt__vsebina-levo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.opomin-nacrt__vsebina-ikona {
+  color: var(--teal, #159195);
+  font-size: 14px;
+}
+
+.opomin-nacrt__vsebina-naslov {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #183a3a);
+  white-space: nowrap;
+}
+
+.opomin-nacrt__vsebina-desno {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.opomin-nacrt__vsebina-vrednost {
+  font-size: 13px;
+  color: var(--text-muted, #718483);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opomin-nacrt__mini-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #d8efed;
+  color: #10797d;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.opomin-nacrt__chevron {
+  color: #9aa8a7;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.opomin-nacrt__sms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.opomin-nacrt__sms-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #183a3a);
+}
+
+.opomin-nacrt__sms-meta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted, #718483);
+}
+
+.opomin-nacrt__sms-predogled {
+  position: relative;
+  max-height: 116px;
+  padding: 14px 22px 14px 14px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 15px;
+  background: #ffffff;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-primary, #183a3a);
+  white-space: pre-wrap;
+  scrollbar-color: var(--teal, #159195) #eef4f3;
+  box-sizing: border-box;
+}
+
+.opomin-nacrt__sms-predogled::-webkit-scrollbar {
+  width: 6px;
+}
+
+.opomin-nacrt__sms-predogled::-webkit-scrollbar-thumb {
+  background: var(--teal, #159195);
+  border-radius: 999px;
+}
+
+.opomin-nacrt__sms-opomba {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted, #718483);
+  line-height: 1.4;
+}
+
+.opomin-nacrt__rocni-ikona {
   width: 40px;
   height: 40px;
   display: grid;
   place-items: center;
   margin-bottom: 8px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--teal) 12%, var(--white));
-  color: var(--teal-dark);
+  background: #eef4f3;
+  color: var(--teal-dark, #10797d);
 }
 
-.opomin-nacrt__kartica-naslov {
+.opomin-nacrt__rocni-naslov {
   margin: 0 0 6px;
   font-size: 1rem;
-  font-weight: 600;
-  color: var(--teal-dark);
+  font-weight: 700;
 }
 
-.opomin-nacrt__kartica-tekst {
-  margin: 0 0 12px;
+.opomin-nacrt__rocni-tekst {
+  margin: 0;
   font-size: 0.9rem;
   line-height: 1.45;
-  color: var(--color-text-secondary, #5a6b6b);
+  color: var(--text-muted, #718483);
 }
 
-.opomin-nacrt__znacka {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  background: var(--white);
-  color: #5a6b6b;
+.opomin-nacrt__info {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #e6f4f3;
+  color: var(--text-primary, #183a3a);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
-.opomin-nacrt__znacka--confirmed {
-  border-color: var(--teal);
-  background: color-mix(in srgb, var(--teal) 14%, var(--white));
-  color: var(--teal-dark);
+.opomin-nacrt__info p {
+  margin: 0;
 }
 
-.opomin-nacrt__znacka--needs_review {
-  border-color: var(--status-opomin-1);
-  background: color-mix(in srgb, var(--status-opomin-1) 14%, var(--white));
-  color: #7a5a10;
+.opomin-nacrt__info-ikona {
+  flex-shrink: 0;
+  color: var(--teal, #159195);
+  margin-top: 1px;
 }
 
-.opomin-nacrt__znacka--draft {
-  border-color: var(--border);
-}
-
-.opomin-nacrt__znacka--zaklenjen {
-  border-color: var(--border-strong, #b8c4c4);
-}
-
-.opomin-nacrt__gumb-uredi {
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--teal);
-  color: var(--white);
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.opomin-nacrt__gumb-uredi:hover {
-  background: var(--teal-dark);
-}
-
-.opomin-nacrt__gumb-uredi:focus-visible {
-  outline: 3px solid var(--teal-dark);
-  outline-offset: 2px;
-}
-
-.opomin-nacrt__opombe {
-  margin: 0 0 88px;
-  padding-left: 1.2rem;
-  font-size: 0.85rem;
-  line-height: 1.45;
-  color: var(--color-text-secondary, #5a6b6b);
-}
-
-.opomin-nacrt__opombe li + li {
-  margin-top: 4px;
+.opomin-nacrt__opozorilo-sivo {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted, #718483);
 }
 
 .opomin-nacrt__noga {
-  position: sticky;
-  bottom: 0;
-  z-index: 20;
-  margin: 0 -4px;
-  padding: 12px 4px calc(12px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(
-    to top,
-    var(--white) 70%,
-    color-mix(in srgb, var(--white) 85%, transparent)
-  );
-}
-
-.opomin-nacrt__noga--dva {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  padding: 4px 0 calc(8px + env(safe-area-inset-bottom, 0px));
 }
 
-.opomin-nacrt__mvp-opomba {
-  margin: 0 0 8px;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  color: var(--color-text-secondary, #5a6b6b);
+.opomin-nacrt__noga--stolpec {
+  margin-top: 8px;
+}
+
+.opomin-nacrt__noga .korak2__gumb-naprej {
+  min-height: 56px;
+  border-radius: 15px;
+  width: 100%;
+}
+
+.opomin-nacrt__shrani-osnutek {
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--teal, #159195);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
   text-align: center;
 }
 
-.opomin-nacrt__cta--cakaj {
-  background: color-mix(in srgb, var(--teal) 45%, #9bb);
-  cursor: pointer;
-}
-
-.opomin-nacrt__gumb-sekundarni {
-  min-height: 50px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--white);
-  color: var(--teal-dark);
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.opomin-nacrt__gumb-sekundarni:focus-visible,
-.korak2__gumb-naprej:focus-visible {
-  outline: 3px solid var(--teal-dark);
+.opomin-nacrt__shrani-osnutek:focus-visible {
+  outline: 2px solid var(--teal, #159195);
   outline-offset: 2px;
 }
 
-.korak2__gumb-naprej:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.opomin-nacrt__gumb-sekundarni {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #c9d9d7);
+  background: #ffffff;
+  color: var(--teal-dark, #10797d);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .opomin-nacrt__gsm {
   margin: 8px 0 0;
   font-size: 0.82rem;
-  color: var(--color-text-secondary, #5a6b6b);
-}
-
-.opomin-nacrt__gsm--opozorilo {
-  color: #9a6b10;
-  font-weight: 500;
-}
-
-.opomin-nacrt-potrdi__glava {
-  margin-bottom: 14px;
+  color: var(--text-muted, #718483);
 }
 
 .opomin-nacrt-potrdi__nazaj {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin: 0 0 8px;
-  padding: 6px 0;
+  margin: 0;
+  padding: 8px 0;
+  min-height: 44px;
   border: 0;
   background: transparent;
-  color: var(--teal-dark);
-  font-family: inherit;
+  color: var(--teal-dark, #10797d);
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
 }
 
+.opomin-nacrt-potrdi__naslov {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #183a3a);
+}
+
+.opomin-nacrt-potrdi__podnaslov {
+  margin: -6px 0 0;
+  font-size: 14px;
+  color: var(--text-muted, #718483);
+}
+
 .opomin-nacrt-potrdi__readonly {
-  margin: 0 0 16px;
+  margin: 0;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--surface-soft, #f3f6f6);
+  border: 1px solid var(--border, #c9d9d7);
+  background: #f4f8f7;
   font-size: 0.9rem;
   line-height: 1.45;
-  color: var(--color-text, #1f2a2a);
+  color: var(--text-primary, #183a3a);
 }
 
 .opomin-nacrt-potrdi__readonly p {
@@ -7272,27 +7659,27 @@ body.template-editor-odprt {
 .opomin-nacrt-potrdi__label {
   display: inline-block;
   min-width: 6.5rem;
-  color: var(--color-text-secondary, #5a6b6b);
+  color: var(--text-muted, #718483);
   font-weight: 500;
 }
 
 .opomin-nacrt-potrdi__sms-label {
   display: block;
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--teal-dark);
+  color: var(--teal-dark, #10797d);
 }
 
 .opomin-nacrt-potrdi__sms {
   width: 100%;
   min-height: 180px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border, #c9d9d7);
   border-radius: 14px;
-  background: var(--white);
-  color: var(--color-text, #1f2a2a);
-  font-family: inherit;
+  background: #ffffff;
+  color: var(--text-primary, #183a3a);
+  font: inherit;
   font-size: 1rem;
   line-height: 1.45;
   resize: vertical;
@@ -7300,31 +7687,29 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt-potrdi__sms:focus {
-  outline: 3px solid color-mix(in srgb, var(--teal) 45%, transparent);
-  border-color: var(--teal);
+  outline: 3px solid color-mix(in srgb, var(--teal, #159195) 45%, transparent);
+  border-color: var(--teal, #159195);
 }
 
-.opomin-nacrt-potrdi .opomin-nacrt__noga {
-  margin-top: 16px;
+.korak2__gumb-naprej:focus-visible {
+  outline: 3px solid var(--teal-dark, #10797d);
+  outline-offset: 2px;
+}
+
+.korak2__gumb-naprej:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 @media (max-width: 360px) {
-  .opomin-nacrt__krog {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
-    font-size: 0.85rem;
+  .opomin-nacrt__carousel {
+    grid-auto-columns: minmax(92px, 30%);
   }
 
-  .opomin-nacrt__krog-crta {
-    width: 12px;
-    flex-basis: 12px;
-  }
-
-  .opomin-nacrt__zavihek {
-    font-size: 0.76rem;
-    padding: 8px 10px;
+  .opomin-nacrt__vsebina-vrednost {
+    max-width: 90px;
   }
 }
+
 
 
