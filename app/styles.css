@@ -4296,6 +4296,9 @@ body.stran--samo-seznam #neplacila-obrazec {
   align-items: stretch;
   gap: 8px;
   margin: 0 0 10px;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .ton-priporocila[hidden] {
@@ -4330,8 +4333,38 @@ body.stran--samo-seznam #neplacila-obrazec {
   box-sizing: border-box;
 }
 
+.ton-priporocila__sklop {
+  overflow: hidden;
+  transition:
+    opacity 200ms ease,
+    height 200ms ease,
+    transform 200ms ease,
+    margin 200ms ease;
+}
+
 .ton-priporocila__sklop[hidden] {
   display: none !important;
+}
+
+.ton-priporocila__sklop--odhajaj {
+  opacity: 0;
+  transform: translateY(-6px);
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  pointer-events: none;
+}
+
+.ton-priporocila--odhajaj {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ton-priporocila__sklop,
+  .ton-priporocila {
+    transition: none;
+  }
 }
 
 .ton-priporocila__kartica {
