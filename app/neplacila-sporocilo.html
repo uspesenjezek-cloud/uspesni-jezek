@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok-fixed" />
+    <link rel="stylesheet" href="styles.css?v=20260808-mozna-prezri" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -169,6 +169,42 @@
             <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="dodatki-naslov">
               <h2 class="korak2-sklop__naslov" id="dodatki-naslov">Dodajte v sporočilo</h2>
               <p class="korak2-sklop__opis">Izbrani podatki se dodajo na konec besedila.</p>
+
+              <div class="ton-priporocila" id="ton-dodatki-namigi">
+                <p class="ton-priporocila__naslov-razdelka" id="mozna-priporocila-naslov">
+                  <span class="ton-priporocila__zvezda" aria-hidden="true">★</span>
+                  Možna priporočila
+                </p>
+                <div class="ton-priporocila__panel" id="panel-mozna-priporocila">
+                  <div class="ton-priporocila__sklop" id="sklop-priporocilo-rok">
+                    <div class="ton-priporocila__vrsta">
+                      <p class="ton-priporocila__naslov">Rok plačila</p>
+                      <div class="ton-priporocila__akcije">
+                        <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-rok">
+                          Preglej
+                        </button>
+                        <button type="button" class="ton-priporocila__prezri" id="gumb-prezri-rok">
+                          Prezri
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="ton-priporocila__sklop" id="sklop-priporocilo-obrocno">
+                    <div class="ton-priporocila__vrsta">
+                      <p class="ton-priporocila__naslov">Obročno plačilo</p>
+                      <div class="ton-priporocila__akcije">
+                        <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-obrocno">
+                          Preglej
+                        </button>
+                        <button type="button" class="ton-priporocila__prezri" id="gumb-prezri-obrocno">
+                          Prezri
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="sporocilo-dodatki__gumbi" role="group" aria-label="Dodatki v sporočilo">
                 <button
                   type="button"
@@ -201,30 +237,6 @@
                   </span>
                   TRR
                 </button>
-              </div>
-              <div class="ton-priporocila" id="ton-dodatki-namigi">
-                <p class="ton-priporocila__naslov-razdelka" id="mozna-priporocila-naslov">
-                  <span class="ton-priporocila__zvezda" aria-hidden="true">★</span>
-                  Možna priporočila
-                </p>
-                <div class="ton-priporocila__panel" id="panel-mozna-priporocila">
-                  <div class="ton-priporocila__sklop">
-                    <div class="ton-priporocila__vrsta">
-                      <p class="ton-priporocila__naslov">Rok plačila</p>
-                      <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-rok">
-                        Preglej
-                      </button>
-                    </div>
-                  </div>
-                  <div class="ton-priporocila__sklop">
-                    <div class="ton-priporocila__vrsta">
-                      <p class="ton-priporocila__naslov">Obročno plačilo</p>
-                      <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-obrocno">
-                        Preglej
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </section>
           </form>
@@ -680,16 +692,16 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-rok-fixed"></script>
-    <script src="rok-placila-sheet.js?v=20260808-rok-fixed"></script>
-    <script src="obrocno-utils.js?v=20260808-rok-fixed"></script>
-    <script src="obrocno-sheet.js?v=20260808-rok-fixed"></script>
-    <script src="ton-priporocilo.js?v=20260808-rok-fixed"></script>
-    <script src="ton-predloge.js?v=20260808-rok-fixed"></script>
-    <script src="ton-widget.js?v=20260808-rok-fixed"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-rok-fixed"></script>
-    <script src="recommendation-card.js?v=20260808-rok-fixed"></script>
-    <script src="predloga-payment-settings.js?v=20260808-rok-fixed"></script>
-    <script src="app.js?v=20260808-rok-fixed"></script>
+    <script src="rok-placila-utils.js?v=20260808-mozna-prezri"></script>
+    <script src="rok-placila-sheet.js?v=20260808-mozna-prezri"></script>
+    <script src="obrocno-utils.js?v=20260808-mozna-prezri"></script>
+    <script src="obrocno-sheet.js?v=20260808-mozna-prezri"></script>
+    <script src="ton-priporocilo.js?v=20260808-mozna-prezri"></script>
+    <script src="ton-predloge.js?v=20260808-mozna-prezri"></script>
+    <script src="ton-widget.js?v=20260808-mozna-prezri"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-mozna-prezri"></script>
+    <script src="recommendation-card.js?v=20260808-mozna-prezri"></script>
+    <script src="predloga-payment-settings.js?v=20260808-mozna-prezri"></script>
+    <script src="app.js?v=20260808-mozna-prezri"></script>
   </body>
 </html>

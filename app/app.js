@@ -2073,6 +2073,22 @@ function inicializirajSporociloDolzniku() {
     ? window.UJRokPlacila.naloziPrivzeteDni()
     : { 1: 3, 2: 5, 3: 7, 4: 10, 5: 14, 6: 21, 7: 30, 8: 45, 9: 60 };
 
+  /** Prezrtja blokov v »Možna priporočila« (reset ob spremembi tona). */
+  let priporocilaPrezrta = {
+    rok: false,
+    obrocno: false,
+    tonObPrezrtju: null,
+  };
+
+  function normalizirajPriporocilaPrezrta(raw) {
+    const v = raw && typeof raw === "object" ? raw : {};
+    return {
+      rok: Boolean(v.rok),
+      obrocno: Boolean(v.obrocno),
+      tonObPrezrtju: v.tonObPrezrtju ? String(v.tonObPrezrtju) : null,
+    };
+  }
+
   function shraniOsnutekLokalno() {
     oznaciShranjevanje();
     // Osnutek (textarea/predloga) – NE označi koraka kot izpolnjenega.
@@ -2090,6 +2106,7 @@ function inicializirajSporociloDolzniku() {
         installmentPlan: installmentPlan,
         toneRecommendation: { ...toneState },
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
+        priporocilaPrezrta: { ...priporocilaPrezrta },
         potrjen: zePotrjen,
       })
     );
@@ -3633,7 +3650,13 @@ function inicializirajSporociloDolzniku() {
 
   const gumbPreglejRok = document.getElementById("gumb-preglej-rok");
   const gumbPreglejObrocno = document.getElementById("gumb-preglej-obrocno");
+  const gumbPrezriRok = document.getElementById("gumb-prezri-rok");
+  const gumbPrezriObrocno = document.getElementById("gumb-prezri-obrocno");
   const ovojMoznaPriporocila = document.getElementById("ton-dodatki-namigi");
+  const sklopPriporociloRok = document.getElementById("sklop-priporocilo-rok");
+  const sklopPriporociloObrocno = document.getElementById(
+    "sklop-priporocilo-obrocno"
+  );
   let rokSheetApi = null;
   let obrocnoSheetApi = null;
 
@@ -3666,12 +3689,46 @@ function inicializirajSporociloDolzniku() {
     );
   }
 
-  /**
-   * Razlaga priporočil je v sheetih (ne na glavni strani).
-   * Funkcija ostane zaradi klicev ob menjavi tona / shrani.
-   */
+  function preveriResetPrezrtjaObTonu() {
+    const ton = tonZaPriporocila();
+    if (
+      !(priporocilaPrezrta.rok || priporocilaPrezrta.obrocno) ||
+      !priporocilaPrezrta.tonObPrezrtju ||
+      !ton
+    ) {
+      return;
+    }
+    if (String(priporocilaPrezrta.tonObPrezrtju) !== String(ton)) {
+      priporocilaPrezrta = {
+        rok: false,
+        obrocno: false,
+        tonObPrezrtju: null,
+      };
+    }
+  }
+
   function posodobiNamigeTonaDodatkov() {
-    /* namerno prazno – kompaktni seznam Rok/Obročno + Preglej */
+    preveriResetPrezrtjaObTonu();
+    if (sklopPriporociloRok) {
+      sklopPriporociloRok.hidden = Boolean(priporocilaPrezrta.rok);
+    }
+    if (sklopPriporociloObrocno) {
+      sklopPriporociloObrocno.hidden = Boolean(priporocilaPrezrta.obrocno);
+    }
+    if (ovojMoznaPriporocila) {
+      ovojMoznaPriporocila.hidden =
+        Boolean(priporocilaPrezrta.rok) &&
+        Boolean(priporocilaPrezrta.obrocno);
+    }
+  }
+
+  function prezriPriporocilo(vrsta) {
+    const ton = tonZaPriporocila();
+    if (vrsta === "rok") priporocilaPrezrta.rok = true;
+    if (vrsta === "obrocno") priporocilaPrezrta.obrocno = true;
+    priporocilaPrezrta.tonObPrezrtju = ton || null;
+    posodobiNamigeTonaDodatkov();
+    shraniOsnutekLokalno();
   }
 
   /** Po uspešnem shrani iz Preglej → nazaj na razdelek priporočil. */
@@ -3888,6 +3945,10 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
+  if (gumbPrezriRok) {
+    gumbPrezriRok.addEventListener("click", () => prezriPriporocilo("rok"));
+  }
+
   if (gumbPreglejObrocno) {
     gumbPreglejObrocno.addEventListener("click", () => {
       if (!obrocnoSheetApi || typeof obrocnoSheetApi.odpri !== "function") {
@@ -3904,6 +3965,12 @@ function inicializirajSporociloDolzniku() {
         });
       }, 0);
     });
+  }
+
+  if (gumbPrezriObrocno) {
+    gumbPrezriObrocno.addEventListener("click", () =>
+      prezriPriporocilo("obrocno")
+    );
   }
 
   if (dodatekTrr) {
@@ -4037,6 +4104,7 @@ function inicializirajSporociloDolzniku() {
         installmentPlan: installmentPlan,
         toneRecommendation: { ...toneState },
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
+        priporocilaPrezrta: { ...priporocilaPrezrta },
         potrjen: true,
       })
     );
@@ -4105,6 +4173,11 @@ function inicializirajSporociloDolzniku() {
         sporociloRocnoUrejeno = osnutek.sporociloRocnoUrejeno;
       } else if (obnovljenOsnutekSporocila) {
         sporociloRocnoUrejeno = true;
+      }
+      if (osnutek.priporocilaPrezrta) {
+        priporocilaPrezrta = normalizirajPriporocilaPrezrta(
+          osnutek.priporocilaPrezrta
+        );
       }
       if (obnovljenOsnutekSporocila) {
         zadnjeUporabljenoBesediloPredloge = "";

@@ -4306,13 +4306,17 @@ body.stran--samo-seznam #neplacila-obrazec {
   cursor: pointer;
 }
 
-/* Priporočila pod dodatki – vedno vidna, brez accordion. */
+/* Priporočila nad karticami dodatkov – vedno vidna, brez accordion. */
 .ton-priporocila {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
-  margin-top: 10px;
+  margin: 0 0 14px;
+}
+
+.ton-priporocila[hidden] {
+  display: none !important;
 }
 
 .ton-priporocila__naslov-razdelka {
@@ -4334,14 +4338,18 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-priporocila__panel {
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #e0c35a;
   border-radius: 14px;
   background: #fff9e6;
   box-sizing: border-box;
 }
 
-.ton-priporocila__sklop + .ton-priporocila__sklop {
+.ton-priporocila__sklop[hidden] {
+  display: none !important;
+}
+
+.ton-priporocila__sklop:not([hidden]) ~ .ton-priporocila__sklop:not([hidden]) {
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px solid #ead78a;
@@ -4362,16 +4370,47 @@ body.stran--samo-seznam #neplacila-obrazec {
   min-width: 0;
 }
 
-.ton-priporocila__preglej {
+.ton-priporocila__akcije {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.ton-priporocila__preglej {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin: 0;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid #5aa3a5;
+  border-radius: 999px;
+  background: #5aa3a5;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ton-priporocila__preglej:hover,
+.ton-priporocila__preglej:focus-visible {
+  background: #4a9294;
+  border-color: #4a9294;
+  color: #ffffff;
+}
+
+.ton-priporocila__prezri {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-height: 36px;
   padding: 6px 12px;
-  border: 1px solid #c9a227;
-  border-radius: 10px;
-  background: #fff;
+  border: 1px solid #d0c089;
+  border-radius: 999px;
+  background: transparent;
   color: #6a5410;
   font: inherit;
   font-size: 0.8rem;
@@ -4379,10 +4418,10 @@ body.stran--samo-seznam #neplacila-obrazec {
   cursor: pointer;
 }
 
-.ton-priporocila__preglej:hover,
-.ton-priporocila__preglej:focus-visible {
+.ton-priporocila__prezri:hover,
+.ton-priporocila__prezri:focus-visible {
   background: #fff3c4;
-  border-color: #a88412;
+  border-color: #c9a227;
   color: #4a3d12;
 }
 
