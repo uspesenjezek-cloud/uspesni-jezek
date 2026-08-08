@@ -1963,10 +1963,31 @@ function inicializirajSporociloDolzniku() {
     "predogled-razveljavi-priporocilo"
   );
   const modalVsebina = document.getElementById("predogled-vsebina");
+  const predlogaPredogled = document.getElementById("predloga-predogled");
+  const predlogaPredogledNaslov = document.getElementById(
+    "predloga-predogled-naslov"
+  );
+  const predlogaPredogledBesedilo = document.getElementById(
+    "predloga-predogled-besedilo"
+  );
+  const predlogaPredogledZapri = document.getElementById(
+    "predloga-predogled-zapri"
+  );
+  const predlogaPredogledBackdrop = document.getElementById(
+    "predloga-predogled-backdrop"
+  );
+  const predlogaPredogledUredi = document.getElementById(
+    "predloga-predogled-uredi"
+  );
+  const predlogaPredogledUporabi = document.getElementById(
+    "predloga-predogled-uporabi"
+  );
 
   const NAJVEC_ZNAKOV = 1000;
   let izbranPredlogId = null;
   let odprtPredlog = null;
+  let predogledPredlog = null;
+  let predogledScrollY = 0;
   let modalIzbranaStevilka = 1;
   /** Začetno stanje ob odprtju – za zavržene spremembe. */
   let originalTemplateSnapshot = null;
@@ -2643,7 +2664,7 @@ function inicializirajSporociloDolzniku() {
         prekliciBesedilo: "Prekliči",
         stil: "primary",
       });
-      if (!potrjeno) return;
+      if (!potrjeno) return false;
     }
 
     const PPS = window.UJPredlogaPaymentSettings;
@@ -2672,6 +2693,7 @@ function inicializirajSporociloDolzniku() {
 
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
+    return true;
   }
 
   const modalDialog = modal
@@ -3010,6 +3032,66 @@ function inicializirajSporociloDolzniku() {
     if (modalPreklici) modalPreklici.hidden = true;
     if (modalStevilkaOvoj) modalStevilkaOvoj.hidden = true;
     if (modalPriporociloVrstica) modalPriporociloVrstica.hidden = true;
+  }
+
+  function posodobiPredogledUporabiGumb() {
+    if (!predlogaPredogledUporabi || !predogledPredlog) return;
+    const jeIzbrana =
+      izbranPredlogId != null &&
+      String(predogledPredlog.id) === String(izbranPredlogId);
+    predlogaPredogledUporabi.setAttribute(
+      "aria-pressed",
+      jeIzbrana ? "true" : "false"
+    );
+    predlogaPredogledUporabi.textContent = jeIzbrana ? "Izbrano" : "Uporabi";
+  }
+
+  function zakleniOzadjeZaPredogled() {
+    predogledScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.classList.add("predloga-predogled-odprt");
+    document.body.style.position = "fixed";
+    document.body.style.top = "-" + predogledScrollY + "px";
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+
+  function odkleniOzadjeZaPredogled() {
+    document.body.classList.remove("predloga-predogled-odprt");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, predogledScrollY || 0);
+  }
+
+  function zapriPredlogaPredogled() {
+    if (!predlogaPredogled || predlogaPredogled.hidden) return;
+    predlogaPredogled.hidden = true;
+    predogledPredlog = null;
+    odkleniOzadjeZaPredogled();
+  }
+
+  function odpriPredlogaPredogled(predlog) {
+    if (!predlogaPredogled || !predlog) return;
+    zapriVseStevilkeIzbire();
+    predogledPredlog = predlog;
+    if (predlogaPredogledNaslov) {
+      predlogaPredogledNaslov.textContent = predlog.naslov || "Predloga";
+    }
+    if (predlogaPredogledBesedilo) {
+      predlogaPredogledBesedilo.textContent = predlog.besedilo || "";
+    }
+    posodobiPredogledUporabiGumb();
+    predlogaPredogled.hidden = false;
+    zakleniOzadjeZaPredogled();
+    if (
+      predlogaPredogledNaslov &&
+      typeof predlogaPredogledNaslov.focus === "function"
+    ) {
+      predlogaPredogledNaslov.focus();
+    }
   }
 
   function odpriUrediModal(predlog) {
@@ -3492,6 +3574,9 @@ function inicializirajSporociloDolzniku() {
       gumb.setAttribute("aria-pressed", jeIzbrana ? "true" : "false");
       gumb.innerHTML = ikonaKljukice + (jeIzbrana ? "Izbrano" : "Uporabi");
     });
+    if (predlogaPredogled && !predlogaPredogled.hidden) {
+      posodobiPredogledUporabiGumb();
+    }
   }
 
   function jeVeljavenIzbranPredlog(id) {
@@ -3609,14 +3694,27 @@ function inicializirajSporociloDolzniku() {
         if (!jeOdprt) odpriStevilkeIzbirnik(gumbStevilke, izbirnik);
       });
 
-      kartica.querySelector(".preview-button").addEventListener("click", () => {
+      kartica.querySelector(".preview-button").addEventListener("click", (dogodek) => {
+        dogodek.stopPropagation();
         zapriVseStevilkeIzbire();
         odpriUrediModal(predlog);
       });
 
-      kartica.querySelector(".predlog-gumb--uporabi").addEventListener("click", () => {
+      kartica.querySelector(".predlog-gumb--uporabi").addEventListener("click", (dogodek) => {
+        dogodek.stopPropagation();
         zapriVseStevilkeIzbire();
         uporabiPredlog(predlog, { tiho: false });
+      });
+
+      kartica.addEventListener("click", (dogodek) => {
+        if (
+          dogodek.target.closest(
+            "button, a, .predlog-kartica__stevilka-ovoj, .predlog-kartica__akcije, .preview-button"
+          )
+        ) {
+          return;
+        }
+        odpriPredlogaPredogled(predlog);
       });
 
       seznam.appendChild(kartica);
@@ -4035,12 +4133,45 @@ function inicializirajSporociloDolzniku() {
   }
 
   document.addEventListener("keydown", (dogodek) => {
-    if (dogodek.key !== "Escape" || !modal || modal.hidden) return;
-    // Escape naj najprej zapre potrditveni modal, ne urejevalnika.
+    if (dogodek.key !== "Escape") return;
     const potrdiModal = document.getElementById("uj-potrdi-modal");
     if (potrdiModal && !potrdiModal.hidden) return;
+    if (predlogaPredogled && !predlogaPredogled.hidden) {
+      dogodek.preventDefault();
+      zapriPredlogaPredogled();
+      return;
+    }
+    if (!modal || modal.hidden) return;
+    // Escape naj najprej zapre potrditveni modal, ne urejevalnika.
     zapriUrediModal();
   });
+
+  if (predlogaPredogledZapri) {
+    predlogaPredogledZapri.addEventListener("click", () => {
+      zapriPredlogaPredogled();
+    });
+  }
+  if (predlogaPredogledBackdrop) {
+    predlogaPredogledBackdrop.addEventListener("click", () => {
+      zapriPredlogaPredogled();
+    });
+  }
+  if (predlogaPredogledUredi) {
+    predlogaPredogledUredi.addEventListener("click", () => {
+      const predlog = predogledPredlog;
+      if (!predlog) return;
+      zapriPredlogaPredogled();
+      odpriUrediModal(predlog);
+    });
+  }
+  if (predlogaPredogledUporabi) {
+    predlogaPredogledUporabi.addEventListener("click", async () => {
+      const predlog = predogledPredlog;
+      if (!predlog) return;
+      const uspelo = await uporabiPredlog(predlog, { tiho: false });
+      if (uspelo) zapriPredlogaPredogled();
+    });
+  }
 
   besediloPolje.addEventListener("input", () => {
     skrijNapako();
