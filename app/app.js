@@ -2191,20 +2191,56 @@ function inicializirajSporociloDolzniku() {
     ? window.UJRokPlacila.naloziPrivzeteDni()
     : { 1: 3, 2: 5, 3: 7, 4: 10, 5: 14, 6: 21, 7: 30, 8: 45, 9: 60 };
 
-  /** Prezrtja blokov v »Možna priporočila« (reset ob spremembi tona). */
+  /** Prezrtja blokov v »Možna priporočila«.
+   * Ponastavi se ob: (1) Uporabi druge predloge, (2) spremembi zneska/datuma/računa.
+   * Ne več samo ob menjavi tona. */
   let priporocilaPrezrta = {
     rok: false,
     obrocno: false,
-    tonObPrezrtju: null,
+    predlogIdObPrezrtju: null,
+    kontekstDolgaObPrezrtju: null,
   };
+
+  function praznoPriporocilaPrezrta() {
+    return {
+      rok: false,
+      obrocno: false,
+      predlogIdObPrezrtju: null,
+      kontekstDolgaObPrezrtju: null,
+    };
+  }
 
   function normalizirajPriporocilaPrezrta(raw) {
     const v = raw && typeof raw === "object" ? raw : {};
     return {
       rok: Boolean(v.rok),
       obrocno: Boolean(v.obrocno),
-      tonObPrezrtju: v.tonObPrezrtju ? String(v.tonObPrezrtju) : null,
+      predlogIdObPrezrtju: v.predlogIdObPrezrtju
+        ? String(v.predlogIdObPrezrtju)
+        : null,
+      kontekstDolgaObPrezrtju:
+        v.kontekstDolgaObPrezrtju != null
+          ? String(v.kontekstDolgaObPrezrtju)
+          : null,
     };
+  }
+
+  function kontekstDolgaZaPriporocila() {
+    const p = podatkiKorak1 || {};
+    const poti = Array.isArray(p.racunDatotekePoti)
+      ? p.racunDatotekePoti.map(String).slice().sort().join("|")
+      : "";
+    return [
+      String(p.znesek ?? ""),
+      String(p.datumZapadlosti ?? ""),
+      String(p.datumIzdajeRacuna ?? ""),
+      String(p.stevilkaRacuna ?? ""),
+      poti,
+    ].join("::");
+  }
+
+  function ponastaviPriporocilaPrezrta() {
+    priporocilaPrezrta = praznoPriporocilaPrezrta();
   }
 
   function shraniOsnutekLokalno() {
@@ -2758,6 +2794,15 @@ function inicializirajSporociloDolzniku() {
         stil: "primary",
       });
       if (!potrjeno) return false;
+    }
+
+    /* Druga predloga (ne ista kot trenutno izbrana) → ponovno pokaži prezrta priporočila. */
+    const prejsnjiPredlogId = izbranPredlogId;
+    if (
+      (priporocilaPrezrta.rok || priporocilaPrezrta.obrocno) &&
+      String(prejsnjiPredlogId || "") !== String(predlog.id)
+    ) {
+      ponastaviPriporocilaPrezrta();
     }
 
     const PPS = window.UJPredlogaPaymentSettings;
@@ -3996,21 +4041,14 @@ function inicializirajSporociloDolzniku() {
     );
   }
 
-  function preveriResetPrezrtjaObTonu() {
-    const ton = tonZaPriporocila();
+  function preveriResetPrezrtjaObKontekstuDolga() {
+    if (!(priporocilaPrezrta.rok || priporocilaPrezrta.obrocno)) return;
+    if (priporocilaPrezrta.kontekstDolgaObPrezrtju == null) return;
     if (
-      !(priporocilaPrezrta.rok || priporocilaPrezrta.obrocno) ||
-      !priporocilaPrezrta.tonObPrezrtju ||
-      !ton
+      String(priporocilaPrezrta.kontekstDolgaObPrezrtju) !==
+      kontekstDolgaZaPriporocila()
     ) {
-      return;
-    }
-    if (String(priporocilaPrezrta.tonObPrezrtju) !== String(ton)) {
-      priporocilaPrezrta = {
-        rok: false,
-        obrocno: false,
-        tonObPrezrtju: null,
-      };
+      ponastaviPriporocilaPrezrta();
     }
   }
 
@@ -4025,7 +4063,7 @@ function inicializirajSporociloDolzniku() {
   }
 
   function posodobiNamigeTonaDodatkov() {
-    preveriResetPrezrtjaObTonu();
+    preveriResetPrezrtjaObKontekstuDolga();
     if (sklopPriporociloRok) {
       if (!priporocilaPrezrta.rok) resetirajSklopPriporocilaAnimacijo(sklopPriporociloRok);
       sklopPriporociloRok.hidden = Boolean(priporocilaPrezrta.rok);
@@ -4107,10 +4145,12 @@ function inicializirajSporociloDolzniku() {
   }
 
   function prezriPriporocilo(vrsta) {
-    const ton = tonZaPriporocila();
     if (vrsta === "rok") priporocilaPrezrta.rok = true;
     if (vrsta === "obrocno") priporocilaPrezrta.obrocno = true;
-    priporocilaPrezrta.tonObPrezrtju = ton || null;
+    priporocilaPrezrta.predlogIdObPrezrtju = izbranPredlogId
+      ? String(izbranPredlogId)
+      : null;
+    priporocilaPrezrta.kontekstDolgaObPrezrtju = kontekstDolgaZaPriporocila();
 
     const sklop =
       vrsta === "rok" ? sklopPriporociloRok : sklopPriporociloObrocno;
