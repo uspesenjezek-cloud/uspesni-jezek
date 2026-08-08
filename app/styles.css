@@ -205,8 +205,28 @@ a {
   gap: 1.25rem;
 }
 
+/* Korak 1 (#obrazec): isto mehko ozadje strani kot koraka 2 in 3 */
+.stran--neplacila.stran--samo-obrazec {
+  background: #f2f7f6;
+}
+
+.stran--neplacila.stran--samo-obrazec .app__header {
+  padding: 8px 12px 0;
+  background: #f2f7f6;
+}
+
+.stran--neplacila.stran--samo-obrazec .app__vsebina {
+  padding-top: 8px;
+  padding-bottom: 28px;
+}
+
 @media (max-width: 370px) {
   .stran--neplacila .app__vsebina {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .stran--neplacila.stran--samo-obrazec .app__header {
     padding-left: 7px;
     padding-right: 7px;
   }
@@ -1061,12 +1081,17 @@ body.stran--samo-seznam #obrazec {
   box-sizing: border-box;
 }
 
+/* Ikona + »Korak X od 3« + naslov: enako mehko turkizno ozadje na vseh 3 korakih */
 .korak-glava__levo {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
   flex: 1;
+  padding: 6px 10px 6px 6px;
+  border-radius: 12px;
+  background: #eaf5f4;
+  box-sizing: border-box;
 }
 
 .korak-glava__ikona {
@@ -2614,7 +2639,7 @@ body.stran--samo-seznam #obrazec {
   color-scheme: light only;
   max-width: none;
   min-height: 100vh;
-  padding: 12px 12px 28px;
+  padding: 8px 12px 28px;
   background: var(--page) !important;
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -2653,8 +2678,8 @@ body.stran--samo-seznam #obrazec {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin: 0 0 16px;
-  padding: 8px;
+  margin: 0 0 8px;
+  padding: 4px 8px;
   background: var(--page, #f2f7f6);
   box-sizing: border-box;
 }
