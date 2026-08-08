@@ -3972,6 +3972,326 @@ body.stran--samo-seznam #neplacila-obrazec {
   box-shadow: none;
 }
 
+/* ========== Bottom sheet: Rok plačila ========== */
+.rok-sheet[hidden] {
+  display: none !important;
+}
+
+.rok-sheet:not([hidden]) {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+}
+
+.rok-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(18, 48, 44, 0.35);
+  cursor: pointer;
+}
+
+.rok-sheet__panel {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 410px;
+  max-height: min(90dvh, 90vh);
+  padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--border, #c4d7d5);
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -10px 32px rgba(25, 62, 57, 0.16);
+  box-sizing: border-box;
+}
+
+.rok-sheet__rocaj {
+  width: 40px;
+  height: 4px;
+  margin: 10px auto 6px;
+  border-radius: 999px;
+  background: #cfdad7;
+}
+
+.rok-sheet__glava {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+
+.rok-sheet__naslov {
+  margin: 0;
+  color: #243d3d;
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.rok-sheet__zapri {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #5f7571;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.rok-sheet__telo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.rok-sheet__stikalo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 16px;
+  cursor: pointer;
+}
+
+.rok-sheet__stikalo-besedilo {
+  color: #243d3d;
+  font-size: 0.92rem;
+  font-weight: 400;
+}
+
+.rok-sheet__stikalo input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.rok-sheet__stikalo-tir {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  background: #c5d6d2;
+  transition: background-color 160ms ease;
+}
+
+.rok-sheet__stikalo-tir::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 160ms ease;
+}
+
+.rok-sheet__stikalo input:checked + .rok-sheet__stikalo-tir {
+  background: #5aa3a5;
+}
+
+.rok-sheet__stikalo input:checked + .rok-sheet__stikalo-tir::after {
+  transform: translateX(18px);
+}
+
+.rok-sheet__oznaka {
+  display: block;
+  margin: 0 0 8px;
+  color: #243d3d;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.rok-sheet__stevilke {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 16px;
+}
+
+.rok-sheet__stevilka {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #c4d7d5;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #243d3d;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  aspect-ratio: 1;
+}
+
+.rok-sheet__stevilka[aria-selected="true"] {
+  border-color: #5aa3a5;
+  background: #5aa3a5;
+  color: #ffffff;
+}
+
+.rok-sheet__datum-ovoj {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.rok-sheet__datum {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #c4d7d5;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #243d3d;
+  font: inherit;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.rok-sheet__datum-ikona {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #5aa3a5;
+  pointer-events: none;
+}
+
+.rok-sheet__pomoc {
+  margin: 0 0 6px;
+  color: #6a7f7a;
+  font-size: 0.75rem;
+}
+
+.rok-sheet__napaka {
+  margin: 0 0 8px;
+  color: #9d3a36;
+  font-size: 0.78rem;
+}
+
+.rok-sheet__napaka[hidden] {
+  display: none !important;
+}
+
+.rok-sheet__povezava {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #347d7e;
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rok-sheet__uredi-privzeto {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid #c4d7d5;
+  border-radius: 12px;
+  background: #eaf4f3;
+}
+
+.rok-sheet__uredi-privzeto[hidden] {
+  display: none !important;
+}
+
+.rok-sheet__dnevi {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid #c4d7d5;
+  border-radius: 10px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.rok-sheet__uredi-akcije,
+.rok-sheet__noga-vrsta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.rok-sheet__noga {
+  flex-shrink: 0;
+  padding-top: 10px;
+  border-top: 1px solid #dce7e4;
+  background: #ffffff;
+}
+
+.rok-sheet__gumb {
+  min-height: 46px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rok-sheet__gumb--obris {
+  border: 1px solid #5aa3a5;
+  background: #ffffff;
+  color: #347d7e;
+}
+
+.rok-sheet__gumb--primarni {
+  border: 1px solid #5aa3a5;
+  background: #5aa3a5;
+  color: #ffffff;
+}
+
+.rok-sheet__gumb--primarni:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rok-sheet__odstrani {
+  display: block;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: #9d3a36;
+  font: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rok-sheet__odstrani[hidden] {
+  display: none !important;
+}
+
+body.rok-sheet-odprt {
+  overflow: hidden;
+}
+
 .korak2__noga {
   padding: 14px 18px 18px;
   border-top: 1px solid var(--border);

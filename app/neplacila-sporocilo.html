@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-korak-krogci" />
+    <link rel="stylesheet" href="styles.css?v=20260808-rok2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -163,6 +163,99 @@
           </button>
         </footer>
 
+        <!-- Bottom sheet: Nastavi rok plačila -->
+        <div class="rok-sheet" id="rok-sheet" hidden>
+          <button
+            type="button"
+            class="rok-sheet__backdrop"
+            id="rok-sheet-backdrop"
+            aria-label="Zapri nastavitve roka"
+          ></button>
+          <div
+            class="rok-sheet__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rok-sheet-naslov"
+            id="rok-sheet-panel"
+          >
+            <div class="rok-sheet__rocaj" aria-hidden="true"></div>
+            <div class="rok-sheet__glava">
+              <h2 class="rok-sheet__naslov" id="rok-sheet-naslov" tabindex="-1">
+                Nastavi rok plačila
+              </h2>
+              <button type="button" class="rok-sheet__zapri" id="rok-sheet-zapri" aria-label="Zapri">
+                ✕
+              </button>
+            </div>
+
+            <div class="rok-sheet__telo">
+              <label class="rok-sheet__stikalo">
+                <span class="rok-sheet__stikalo-besedilo">Samodejno glede na predlog</span>
+                <input type="checkbox" id="rok-sheet-samodejno" checked />
+                <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
+              </label>
+
+              <p class="rok-sheet__oznaka" id="rok-sheet-predlogi-oznaka">Poveži s predlogom</p>
+              <div
+                class="rok-sheet__stevilke"
+                id="rok-sheet-stevilke"
+                role="group"
+                aria-labelledby="rok-sheet-predlogi-oznaka"
+              ></div>
+
+              <label class="rok-sheet__oznaka" for="rok-sheet-datum">Rok plačila</label>
+              <div class="rok-sheet__datum-ovoj">
+                <input type="date" class="rok-sheet__datum" id="rok-sheet-datum" required />
+                <span class="rok-sheet__datum-ikona" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                </span>
+              </div>
+              <p class="rok-sheet__pomoc" id="rok-sheet-pomoc">Privzeto: 5 dni od pošiljanja</p>
+              <p class="rok-sheet__napaka" id="rok-sheet-napaka" hidden>
+                Rok plačila ne sme biti pred datumom pošiljanja.
+              </p>
+              <button type="button" class="rok-sheet__povezava" id="rok-sheet-uredi-privzeto">
+                Uredi privzeto
+              </button>
+
+              <div class="rok-sheet__uredi-privzeto" id="rok-sheet-uredi-privzeto-panel" hidden>
+                <p class="rok-sheet__oznaka" id="rok-sheet-privzeto-naslov">Privzeti rok za predlog 2</p>
+                <label class="rok-sheet__oznaka" for="rok-sheet-dnevi">Število dni</label>
+                <input
+                  type="number"
+                  class="rok-sheet__dnevi"
+                  id="rok-sheet-dnevi"
+                  min="1"
+                  max="365"
+                  step="1"
+                />
+                <div class="rok-sheet__uredi-akcije">
+                  <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="rok-sheet-privzeto-preklici">
+                    Prekliči urejanje
+                  </button>
+                  <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="rok-sheet-privzeto-potrdi">
+                    Potrdi
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="rok-sheet__noga">
+              <div class="rok-sheet__noga-vrsta">
+                <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="rok-sheet-preklici">
+                  Prekliči
+                </button>
+                <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="rok-sheet-shrani">
+                  Shrani in dodaj
+                </button>
+              </div>
+              <button type="button" class="rok-sheet__odstrani" id="rok-sheet-odstrani" hidden>
+                Odstrani rok iz sporočila
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Modal urejanja predloga (absolutno nad panelom) -->
         <div class="korak2-modal" id="predogled-modal" hidden>
           <button
@@ -229,6 +322,8 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260808-korak2-potrjen"></script>
+    <script src="rok-placila-utils.js?v=20260808-rok2"></script>
+    <script src="rok-placila-sheet.js?v=20260808-rok2"></script>
+    <script src="app.js?v=20260808-rok2"></script>
   </body>
 </html>

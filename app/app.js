@@ -1954,6 +1954,11 @@ function inicializirajSporociloDolzniku() {
     }, 420);
   }
 
+  let paymentDeadline = null;
+  let privzetiDneviRoka = window.UJRokPlacila
+    ? window.UJRokPlacila.naloziPrivzeteDni()
+    : { 1: 3, 2: 5, 3: 7, 4: 10, 5: 14, 6: 21, 7: 30, 8: 45, 9: 60 };
+
   function shraniOsnutekLokalno() {
     oznaciShranjevanje();
     // Osnutek (textarea/predloga) – NE označi koraka kot izpolnjenega.
@@ -1966,6 +1971,8 @@ function inicializirajSporociloDolzniku() {
         sporociloDolzniku: besediloPolje.value,
         izbranPredlogId,
         dodatki: { ...dodatki },
+        dodatekBesedila: { ...dodatekBesedila },
+        paymentDeadline: paymentDeadline,
         potrjen: zePotrjen,
       })
     );
@@ -2205,14 +2212,111 @@ function inicializirajSporociloDolzniku() {
       uporabiPredlogStevilka1(true);
     } else if (izbranPredlogId) {
       oznaciIzbranega(izbranPredlogId);
+      syncRokPoMenjaviPredloga();
     }
   }
 
+  function stevilkaIzbranegaPredloga() {
+    if (!izbranPredlogId) return 1;
+    const p = predlogi.find((x) => String(x.id) === String(izbranPredlogId));
+    const n = Number(p && p.stevilka);
+    return n >= 1 && n <= 9 ? n : 1;
+  }
+
+  function bazaDatumaPosiljanja() {
+    // Načrtovanega pošiljanja še ni – uporabi današnji lokalni datum.
+    return window.UJRokPlacila
+      ? window.UJRokPlacila.danesYYYYMMDD()
+      : new Date().toISOString().slice(0, 10);
+  }
+
+  /** Samodejni rok: ob menjavi številke/predloga posodobi vrstico. */
+  function syncRokPoMenjaviPredloga() {
+    const UJ = window.UJRokPlacila;
+    if (!UJ || !paymentDeadline || !paymentDeadline.enabled) return;
+    if (paymentDeadline.mode !== "automatic") return;
+    const linked = stevilkaIzbranegaPredloga();
+    const days = Number(privzetiDneviRoka[linked]) || 5;
+    const base = bazaDatumaPosiljanja();
+    const deadline = UJ.izracunajRok(base, days);
+    const jezik =
+      paymentDeadline.messageLanguage || UJ.ugotoviJezikSporocila(besediloPolje.value);
+    const vrstica = UJ.sestaviVrsticoRoka(deadline, jezik);
+    const rez = UJ.posodobiSistemskoVrstico(
+      besediloPolje.value,
+      paymentDeadline.insertedText || "",
+      vrstica,
+      true
+    );
+    if (!rez.ok) return;
+    besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
+    paymentDeadline = {
+      ...paymentDeadline,
+      linkedProposalNumber: linked,
+      termDays: days,
+      deadlineDate: deadline,
+      baseSendDate: base,
+      insertedText: vrstica,
+      messageLanguage: jezik,
+    };
+    dodatekBesedila.rok = vrstica;
+    dodatki.rok = true;
+    if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
+    posodobiStanjeUrejevalnika();
+    shraniOsnutekLokalno();
+  }
+
   function uporabiPredlog(predlog) {
+    const UJ = window.UJRokPlacila;
+    const rokAktivno = Boolean(paymentDeadline && paymentDeadline.enabled);
+    const mode = rokAktivno ? paymentDeadline.mode : null;
+    const manualDate = rokAktivno ? paymentDeadline.deadlineDate : null;
+    const termDaysObstojeci = rokAktivno ? Number(paymentDeadline.termDays) : null;
+
     resetirajDodatke();
     besediloPolje.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
     oznaciIzbranega(predlog.id);
     slediPrivzetiStevilki1 = Number(predlog.stevilka) === 1;
+
+    if (rokAktivno && UJ) {
+      const linked =
+        Number(predlog.stevilka) >= 1 && Number(predlog.stevilka) <= 9
+          ? Number(predlog.stevilka)
+          : 1;
+      const base = bazaDatumaPosiljanja();
+      let days;
+      let deadline;
+      let modeOut;
+      if (mode === "manual" && manualDate) {
+        modeOut = "manual";
+        deadline = manualDate;
+        days = termDaysObstojeci || Number(privzetiDneviRoka[linked]) || 5;
+      } else {
+        modeOut = "automatic";
+        days = Number(privzetiDneviRoka[linked]) || 5;
+        deadline = UJ.izracunajRok(base, days);
+      }
+      const jezik = UJ.ugotoviJezikSporocila(besediloPolje.value);
+      const vrstica = UJ.sestaviVrsticoRoka(deadline, jezik);
+      const rez = UJ.posodobiSistemskoVrstico(besediloPolje.value, "", vrstica, true);
+      besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
+      paymentDeadline = {
+        enabled: true,
+        mode: modeOut,
+        linkedProposalNumber: linked,
+        termDays: days,
+        deadlineDate: deadline,
+        baseSendDate: base,
+        insertedText: vrstica,
+        messageLanguage: jezik,
+      };
+      dodatekBesedila.rok = vrstica;
+      dodatki.rok = true;
+      if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
+    } else {
+      paymentDeadline = null;
+    }
+
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
   }
@@ -2624,16 +2728,27 @@ function inicializirajSporociloDolzniku() {
     besediloPolje.focus();
   }
 
-  if (dodatekRok) {
-    dodatekRok.addEventListener("click", () => {
-      const rok =
-        formatirajDatumSl(podatkiKorak1.datumZapadlosti) ||
-        formatirajDatumSl(izracunajNoviRok(podatkiKorak1.datumZapadlosti));
-      if (!rok) {
-        pokaziNapako("Roka plačila ni mogoče dodati, ker manjka datum iz 1. koraka.");
-        return;
-      }
-      preklopiDodatek("rok", "Rok plačila: " + rok + ".", dodatekRok);
+  if (typeof window.inicializirajRokPlacilaSheet === "function" && dodatekRok) {
+    window.inicializirajRokPlacilaSheet({
+      gumbRok: dodatekRok,
+      besediloPolje,
+      najvecZnakov: NAJVEC_ZNAKOV,
+      getPaymentDeadline: () => paymentDeadline,
+      setPaymentDeadline: (v) => {
+        paymentDeadline = v;
+      },
+      getPrivzetiDnevi: () => privzetiDneviRoka,
+      setPrivzetiDnevi: (v) => {
+        privzetiDneviRoka = v;
+      },
+      stevilkaIzbranegaPredloga,
+      bazaDatumaPosiljanja,
+      dodatki,
+      dodatekBesedila,
+      posodobiStanjeUrejevalnika,
+      shraniOsnutekLokalno,
+      potrdiVprasanje,
+      pokaziNapako,
     });
   }
 
@@ -2716,6 +2831,8 @@ function inicializirajSporociloDolzniku() {
         sporociloDolzniku: sporocilo,
         izbranPredlogId,
         dodatki: { ...dodatki },
+        dodatekBesedila: { ...dodatekBesedila },
+        paymentDeadline: paymentDeadline,
         potrjen: true,
       })
     );
@@ -2733,13 +2850,27 @@ function inicializirajSporociloDolzniku() {
         obnovljenOsnutekSporocila = Boolean(String(osnutek.sporociloDolzniku).trim());
       }
       if (osnutek.izbranPredlogId) izbranPredlogId = osnutek.izbranPredlogId;
+      if (osnutek.dodatekBesedila) {
+        dodatekBesedila.rok = String(osnutek.dodatekBesedila.rok || "");
+        dodatekBesedila.obrocno = String(osnutek.dodatekBesedila.obrocno || "");
+        dodatekBesedila.trr = String(osnutek.dodatekBesedila.trr || "");
+      }
+      if (osnutek.paymentDeadline && osnutek.paymentDeadline.enabled) {
+        paymentDeadline = osnutek.paymentDeadline;
+        dodatki.rok = true;
+        if (!dodatekBesedila.rok && paymentDeadline.insertedText) {
+          dodatekBesedila.rok = String(paymentDeadline.insertedText);
+        }
+      }
       if (osnutek.dodatki) {
-        dodatki.rok = Boolean(osnutek.dodatki.rok);
+        dodatki.rok = Boolean(osnutek.dodatki.rok) || Boolean(paymentDeadline && paymentDeadline.enabled);
         dodatki.obrocno = Boolean(osnutek.dodatki.obrocno);
         dodatki.trr = Boolean(osnutek.dodatki.trr);
         if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
         if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
         if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", String(dodatki.trr));
+      } else if (paymentDeadline && paymentDeadline.enabled && dodatekRok) {
+        dodatekRok.setAttribute("aria-pressed", "true");
       }
     } catch (_napaka) {
       // Pokvarjen osnutek - ignoriraj.
