@@ -2728,28 +2728,36 @@ function inicializirajSporociloDolzniku() {
     besediloPolje.focus();
   }
 
-  if (typeof window.inicializirajRokPlacilaSheet === "function" && dodatekRok) {
-    window.inicializirajRokPlacilaSheet({
-      gumbRok: dodatekRok,
-      besediloPolje,
-      najvecZnakov: NAJVEC_ZNAKOV,
-      getPaymentDeadline: () => paymentDeadline,
-      setPaymentDeadline: (v) => {
-        paymentDeadline = v;
-      },
-      getPrivzetiDnevi: () => privzetiDneviRoka,
-      setPrivzetiDnevi: (v) => {
-        privzetiDneviRoka = v;
-      },
-      stevilkaIzbranegaPredloga,
-      bazaDatumaPosiljanja,
-      dodatki,
-      dodatekBesedila,
-      posodobiStanjeUrejevalnika,
-      shraniOsnutekLokalno,
-      potrdiVprasanje,
-      pokaziNapako,
-    });
+  if (dodatekRok) {
+    if (typeof window.inicializirajRokPlacilaSheet === "function") {
+      window.inicializirajRokPlacilaSheet({
+        gumbRok: dodatekRok,
+        besediloPolje,
+        najvecZnakov: NAJVEC_ZNAKOV,
+        getPaymentDeadline: () => paymentDeadline,
+        setPaymentDeadline: (v) => {
+          paymentDeadline = v;
+        },
+        getPrivzetiDnevi: () => privzetiDneviRoka,
+        setPrivzetiDnevi: (v) => {
+          privzetiDneviRoka = v;
+        },
+        stevilkaIzbranegaPredloga,
+        bazaDatumaPosiljanja,
+        dodatki,
+        dodatekBesedila,
+        posodobiStanjeUrejevalnika,
+        shraniOsnutekLokalno,
+        potrdiVprasanje,
+        pokaziNapako,
+      });
+    } else {
+      dodatekRok.addEventListener("click", () => {
+        pokaziNapako(
+          "Nastavitve roka plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+        );
+      });
+    }
   }
 
   if (dodatekObrocno) {

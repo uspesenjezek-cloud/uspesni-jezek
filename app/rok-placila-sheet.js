@@ -24,7 +24,21 @@
   function inicializirajRokPlacilaSheet(ctx) {
     var UJ = root.UJRokPlacila;
     var sheet = document.getElementById("rok-sheet");
-    if (!UJ || !sheet || !ctx || !ctx.gumbRok) return;
+    if (!UJ || !sheet || !ctx || !ctx.gumbRok) {
+      if (ctx && ctx.gumbRok && typeof ctx.pokaziNapako === "function") {
+        ctx.gumbRok.addEventListener("click", function () {
+          ctx.pokaziNapako(
+            "Nastavitve roka plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+          );
+        });
+      }
+      return;
+    }
+
+    // Vedno na body – sicer overflow:hidden na .korak2 odreže panel.
+    if (sheet.parentElement !== document.body) {
+      document.body.appendChild(sheet);
+    }
 
     var backdrop = document.getElementById("rok-sheet-backdrop");
     var panel = document.getElementById("rok-sheet-panel");
