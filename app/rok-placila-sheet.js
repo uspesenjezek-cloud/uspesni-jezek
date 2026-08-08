@@ -76,6 +76,8 @@
     var forsiraToneId = null;
     var forsiraTermDays = null;
     var pendingOnClose = null;
+    /** Po zaprtju: ne odpri takoj znova (ghost-click / fokus na gumbu). */
+    var ignoreOpenUntil = 0;
     var recCard = null;
     var previousSettingsSnapshot = null;
     var appliedRecommendationKey = null;
@@ -601,10 +603,14 @@
       var cb = pendingOnClose;
       pendingOnClose = null;
       var shranjeno = Boolean(meta && meta.shranjeno);
-      if (ctx.gumbRok && typeof ctx.gumbRok.focus === "function") {
-        ctx.gumbRok.focus();
-      } else if (prejsnjiFokus && prejsnjiFokus.focus) {
-        prejsnjiFokus.focus();
+      ignoreOpenUntil = Date.now() + 450;
+      var nadPredlogo = document.body.classList.contains("template-editor-odprt");
+      if (!nadPredlogo) {
+        if (ctx.gumbRok && typeof ctx.gumbRok.focus === "function") {
+          ctx.gumbRok.focus();
+        } else if (prejsnjiFokus && prejsnjiFokus.focus) {
+          prejsnjiFokus.focus();
+        }
       }
       if (typeof cb === "function") {
         try {
@@ -763,8 +769,13 @@
     ctx.gumbRok.addEventListener("click", function (dogodek) {
       dogodek.preventDefault();
       dogodek.stopPropagation();
+      if (Date.now() < ignoreOpenUntil) return;
       // Po koncu trenutnega tipa – sicer mobilni brskalnik tap prestavi na backdrop.
-      window.setTimeout(odpriSheet, 0);
+      window.setTimeout(function () {
+        if (Date.now() < ignoreOpenUntil) return;
+        if (odprt) return;
+        odpriSheet();
+      }, 0);
     });
 
     if (backdrop) {

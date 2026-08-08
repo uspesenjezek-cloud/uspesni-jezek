@@ -1977,6 +1977,9 @@ function inicializirajSporociloDolzniku() {
   let predlogaSheetSaved = false;
   let predlogaDraftDeadline = null;
   let predlogaDraftPlan = null;
+  /** Po zaprtju sheeta: blokiraj ghost-click na dodatke (sicer se odpre Obročno). */
+  let modalDodatkiKlikPavzaDo = 0;
+  let modalDodatkiPavzaCasovnik = null;
   const predlogaSheetBesedilo = { value: "" };
   const predlogaDraftDodatki = { rok: false, obrocno: false, trr: false };
   const predlogaDraftDodatekBesedila = { rok: "", obrocno: "", trr: "" };
@@ -3034,7 +3037,36 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
+  function pavzirajKlikeNaModalDodatke(ms) {
+    const delay = Number(ms) > 0 ? Number(ms) : 450;
+    modalDodatkiKlikPavzaDo = Date.now() + delay;
+    if (modal) modal.classList.add("template-editor--sheet-pavza");
+    if (modalDodatkiPavzaCasovnik) clearTimeout(modalDodatkiPavzaCasovnik);
+    modalDodatkiPavzaCasovnik = setTimeout(() => {
+      modalDodatkiPavzaCasovnik = null;
+      if (Date.now() >= modalDodatkiKlikPavzaDo && modal) {
+        modal.classList.remove("template-editor--sheet-pavza");
+      }
+    }, delay);
+  }
+
+  function modalDodatkiKlikDovoljen() {
+    return Date.now() >= modalDodatkiKlikPavzaDo;
+  }
+
+  function poZaprtjuSheetaNadPredlogo() {
+    pavzirajKlikeNaModalDodatke(450);
+    if (modalNaslovGlava && typeof modalNaslovGlava.focus === "function") {
+      try {
+        modalNaslovGlava.focus();
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+  }
+
   function odpriModalDodatekRok() {
+    if (!modalDodatkiKlikDovoljen()) return;
     if (!rokSheetApi || typeof rokSheetApi.odpri !== "function") {
       pokaziNapako(
         "Nastavitve roka plačila se niso naložile. Osvežite stran (Ctrl+F5)."
@@ -3103,12 +3135,14 @@ function inicializirajSporociloDolzniku() {
           predlogaSheetSaved = false;
           predlogaDraftDeadline = null;
           if (installmentPlan) posodobiObrocnoKarticoStanje(installmentPlan);
+          poZaprtjuSheetaNadPredlogo();
         },
       });
     }, 0);
   }
 
   function odpriModalDodatekObrocno() {
+    if (!modalDodatkiKlikDovoljen()) return;
     if (!obrocnoSheetApi || typeof obrocnoSheetApi.odpri !== "function") {
       pokaziNapako(
         "Nastavitve obročnega plačila se niso naložile. Osvežite stran (Ctrl+F5)."
@@ -3179,12 +3213,14 @@ function inicializirajSporociloDolzniku() {
           else if (dodatekObrocno) {
             dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
           }
+          poZaprtjuSheetaNadPredlogo();
         },
       });
     }, 0);
   }
 
   function preklopiModalTrr() {
+    if (!modalDodatkiKlikDovoljen()) return;
     if (!odprtPredlog) return;
     const cur =
       normalizirajPaymentSettingsPredloge(odprtPredlog.paymentSettings) ||

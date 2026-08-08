@@ -5694,6 +5694,11 @@ body.template-editor-odprt {
   overflow: hidden;
 }
 
+/* Kratek čas po zaprtju Roka/Obročnega: tap ne sme zadeti kartic dodatkov. */
+.template-editor.template-editor--sheet-pavza {
+  pointer-events: none !important;
+}
+
 .template-editor__backdrop {
   display: none;
 }

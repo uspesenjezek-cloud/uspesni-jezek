@@ -76,6 +76,8 @@
     var forsiraPriporocilo = false;
     var forsiraToneId = null;
     var pendingOnClose = null;
+    /** Po zaprtju: ne odpri takoj znova (ghost-click / fokus na gumbu). */
+    var ignoreOpenUntil = 0;
     var recCard = null;
     var previousSettingsSnapshot = null;
     var appliedRecommendationKey = null;
@@ -1340,14 +1342,18 @@
       var cb = pendingOnClose;
       pendingOnClose = null;
       var shranjeno = Boolean(meta && meta.shranjeno);
-      if (prejsnjiFokus && typeof prejsnjiFokus.focus === "function") {
-        try {
-          prejsnjiFokus.focus();
-        } catch (_e) {
-          if (ctx.gumbObrocno) ctx.gumbObrocno.focus();
+      ignoreOpenUntil = Date.now() + 450;
+      var nadPredlogo = document.body.classList.contains("template-editor-odprt");
+      if (!nadPredlogo) {
+        if (prejsnjiFokus && typeof prejsnjiFokus.focus === "function") {
+          try {
+            prejsnjiFokus.focus();
+          } catch (_e) {
+            if (ctx.gumbObrocno) ctx.gumbObrocno.focus();
+          }
+        } else if (ctx.gumbObrocno) {
+          ctx.gumbObrocno.focus();
         }
-      } else if (ctx.gumbObrocno) {
-        ctx.gumbObrocno.focus();
       }
       if (typeof cb === "function") {
         try {
@@ -1514,6 +1520,7 @@
 
     ctx.gumbObrocno.addEventListener("click", function () {
       if (odprt) return;
+      if (Date.now() < ignoreOpenUntil) return;
       odpri();
     });
 
