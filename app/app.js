@@ -58,18 +58,35 @@ const URL_KORAKI_POSTOPKA = {
   3: "neplacila-posiljanje.html",
 };
 
-/* Najvišji dosežen korak: 2, če obstaja korak 1 v seji; 3, če tudi korak 2. */
+/* Prebere sejo 2. koraka (osnutek ali potrjeno). */
+function preberiKorak2Sejo() {
+  try {
+    const surovo = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
+    if (!surovo) return null;
+    const podatki = JSON.parse(surovo);
+    return podatki && typeof podatki === "object" ? podatki : null;
+  } catch (_napaka) {
+    return null;
+  }
+}
+
+/* Najvišji dosežen korak: 2, če obstaja korak 1; 3 šele po potrditvi koraka 2. */
 function ugotoviMaxDosezenKorak() {
-  if (sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI)) return 3;
+  if (jeKorakIzpolnjen(2)) return 3;
   if (sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI)) return 2;
   return 1;
 }
 
-/* Korak je »izpolnjen«, ko so njegovi podatki shranjeni v seji
-   (uspešen Naprej na naslednji korak). Korak 3 ob shrani zadevo počisti sejo. */
+/* Korak je »izpolnjen« šele po uspešnem kliku Naprej (ne ob osnutku).
+   Korak 1: zapis v sejo ob submitu obrazca.
+   Korak 2: zapis z zastavico potrjen:true ob »Nadaljuj na pošiljanje«.
+   Korak 3: po »Shrani zadevo« se seja počisti – krogec 3 v čarovniku ne ostane. */
 function jeKorakIzpolnjen(stevilka) {
   if (stevilka === 1) return Boolean(sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI));
-  if (stevilka === 2) return Boolean(sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI));
+  if (stevilka === 2) {
+    const podatki = preberiKorak2Sejo();
+    return Boolean(podatki && podatki.potrjen === true);
+  }
   return false;
 }
 
@@ -1939,12 +1956,17 @@ function inicializirajSporociloDolzniku() {
 
   function shraniOsnutekLokalno() {
     oznaciShranjevanje();
+    // Osnutek (textarea/predloga) – NE označi koraka kot izpolnjenega.
+    // Zastavico potrjen ohranimo, če je uporabnik že uspešno nadaljeval na 3.
+    const obstojeci = preberiKorak2Sejo();
+    const zePotrjen = Boolean(obstojeci && obstojeci.potrjen === true);
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK2_PODATKI,
       JSON.stringify({
         sporociloDolzniku: besediloPolje.value,
         izbranPredlogId,
         dodatki: { ...dodatki },
+        potrjen: zePotrjen,
       })
     );
   }
@@ -2687,12 +2709,14 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
+    // Šele ta uspešen submit označi korak 2 kot izpolnjen (potrjen: true).
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK2_PODATKI,
       JSON.stringify({
         sporociloDolzniku: sporocilo,
         izbranPredlogId,
         dodatki: { ...dodatki },
+        potrjen: true,
       })
     );
 
