@@ -5719,7 +5719,7 @@ body.rok-sheet-odprt {
   display: block;
   width: 100%;
   flex: 1 1 auto;
-  min-height: 120px;
+  min-height: 88px;
   max-height: none;
   margin: 0;
   padding: 10px;
@@ -5737,6 +5737,94 @@ body.rok-sheet-odprt {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
+}
+
+.korak2-modal__placila {
+  flex: 0 0 auto;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #d5e0df);
+}
+
+.korak2-modal__placila-opis {
+  margin: 0 0 10px;
+  color: var(--muted, #718585);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.korak2-modal__placila-vrsta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.korak2-modal__placila-stikalo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text, #243d3d);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.korak2-modal__placila-stikalo input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--teal, #5aa3a5);
+}
+
+.korak2-modal__placila-dnevi-ovoj {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted, #718585);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.korak2-modal__placila-dnevi {
+  width: 3.4rem;
+  min-height: 34px;
+  padding: 4px 6px;
+  border: 1px solid var(--border-strong, #c5d4d2);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.korak2-modal__placila-dnevi:disabled {
+  opacity: 0.45;
+}
+
+.korak2-modal__placila-priporoceno {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #c9a227;
+  border-radius: 10px;
+  background: #fff9e6;
+  color: #6a5410;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.korak2-modal__placila-priporoceno:hover,
+.korak2-modal__placila-priporoceno:focus-visible {
+  background: #fff3c4;
 }
 
 .korak2-modal__vrsta {

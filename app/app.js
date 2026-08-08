@@ -1931,11 +1931,24 @@ function inicializirajSporociloDolzniku() {
   const modalBackdrop = document.getElementById("predogled-backdrop");
   const modalStevilkaOvoj = document.getElementById("predogled-stevilka");
   const modalStevilkeMreza = document.getElementById("predogled-stevilke-mreza");
+  const modalPlacila = document.getElementById("predogled-placila");
+  const modalRokEnabled = document.getElementById("predogled-rok-enabled");
+  const modalRokDnevi = document.getElementById("predogled-rok-dnevi");
+  const modalObrocnoEnabled = document.getElementById("predogled-obrocno-enabled");
+  const modalObrocnoSt = document.getElementById("predogled-obrocno-st");
+  const modalTrrEnabled = document.getElementById("predogled-trr-enabled");
+  const modalPlacilaPriporoceno = document.getElementById(
+    "predogled-placila-priporoceno"
+  );
 
   const NAJVEC_ZNAKOV = 1000;
   let izbranPredlogId = null;
   let odprtPredlog = null;
   let modalIzbranaStevilka = 1;
+  /** true = uporabnik je spremenil plačilni paket v modalu. */
+  let modalPaymentTouched = false;
+  /** true = predloga je ob odprtju že imela paymentSettings. */
+  let modalPaymentHadPackage = false;
   /* true = sporočilo sledi predlogi s številko 1 (privzeta izbira). */
   let slediPrivzetiStevilki1 = true;
   let obnovljenOsnutekSporocila = false;
@@ -2079,6 +2092,13 @@ function inicializirajSporociloDolzniku() {
     posodobiObrocnoKarticoStanje(null);
   }
 
+  function normalizirajPaymentSettingsPredloge(raw) {
+    if (window.UJPredlogaPaymentSettings) {
+      return window.UJPredlogaPaymentSettings.normalizirajPaymentSettings(raw);
+    }
+    return raw == null ? null : raw;
+  }
+
   function naloziMojePredlogeIzLocalStorage() {
     try {
       const surovo = localStorage.getItem(kljucMojihPredlogov);
@@ -2099,6 +2119,7 @@ function inicializirajSporociloDolzniku() {
           source: "user",
           order: Number(p.order) || null,
           isRecommended: false,
+          paymentSettings: normalizirajPaymentSettingsPredloge(p.paymentSettings),
         }));
     } catch (_napaka) {
       return [];
@@ -2115,6 +2136,7 @@ function inicializirajSporociloDolzniku() {
       language: p.language || jezikPredlog,
       order: p.order || null,
       source: "user",
+      paymentSettings: normalizirajPaymentSettingsPredloge(p.paymentSettings),
     }));
     localStorage.setItem(kljucMojihPredlogov, JSON.stringify(zaShraniti));
   }
@@ -2416,6 +2438,142 @@ function inicializirajSporociloDolzniku() {
     shraniOsnutekLokalno();
   }
 
+  function stevilkaPredlogeZaPaket(predlog) {
+    const n = Number(predlog && predlog.stevilka);
+    return n >= 1 && n <= 9 ? n : 1;
+  }
+
+  function znesekCentovZaPaket() {
+    if (window.UJObrocno) {
+      const c = window.UJObrocno.eurosToCents(podatkiKorak1.znesek);
+      return c != null && c > 0 ? c : 0;
+    }
+    return 0;
+  }
+
+  function vstaviDodatekVBesedilo(vrstica) {
+    const UJ = window.UJRokPlacila;
+    if (UJ && typeof UJ.posodobiSistemskoVrstico === "function") {
+      const rez = UJ.posodobiSistemskoVrstico(
+        besediloPolje.value,
+        "",
+        vrstica,
+        true
+      );
+      besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
+      return;
+    }
+    const osnova = String(besediloPolje.value || "").replace(/\s+$/, "");
+    besediloPolje.value = (osnova ? osnova + "\n\n" + vrstica : vrstica).slice(
+      0,
+      NAJVEC_ZNAKOV
+    );
+  }
+
+  /**
+   * Uveljavi paymentSettings predloge (recept → sveži dodatki).
+   * Kliče se samo, če paket obstaja (po resetu dodatkov).
+   */
+  function uveljaviPaymentSettingsPredloge(predlog, paketRaw) {
+    const PPS = window.UJPredlogaPaymentSettings;
+    const navodilo = PPS
+      ? PPS.pripraviUveljavitev(paketRaw)
+      : (() => {
+          const p = normalizirajPaymentSettingsPredloge(paketRaw);
+          return p
+            ? {
+                resetDodatke: true,
+                rok: p.rok.enabled
+                  ? { termDays: p.rok.termDays, mode: "automatic" }
+                  : null,
+                obrocno: p.obrocno.enabled
+                  ? {
+                      installmentCount: p.obrocno.installmentCount,
+                      intervalType: p.obrocno.intervalType,
+                    }
+                  : null,
+                trr: Boolean(p.trr.enabled),
+              }
+            : null;
+        })();
+    if (!navodilo) return;
+
+    resetirajDodatke();
+    paymentDeadline = null;
+
+    const UJ = window.UJRokPlacila;
+    const UJO = window.UJObrocno;
+    const linked = stevilkaPredlogeZaPaket(predlog);
+    const tonId = predlog.toneId || izbranTonId || null;
+
+    if (navodilo.rok && UJ) {
+      const base = bazaDatumaPosiljanja();
+      const days = Number(navodilo.rok.termDays) || 14;
+      const deadline = UJ.izracunajRok(base, days);
+      const jezik = UJ.ugotoviJezikSporocila(besediloPolje.value);
+      const vrstica = UJ.sestaviVrsticoRoka(deadline, jezik);
+      vstaviDodatekVBesedilo(vrstica);
+      paymentDeadline = {
+        enabled: true,
+        mode: "automatic",
+        linkedProposalNumber: linked,
+        linkedToneId: tonId,
+        termDays: days,
+        deadlineDate: deadline,
+        baseSendDate: base,
+        insertedText: vrstica,
+        messageLanguage: jezik,
+      };
+      dodatekBesedila.rok = vrstica;
+      dodatki.rok = true;
+      if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
+    }
+
+    if (navodilo.obrocno && UJO) {
+      const total = znesekCentovZaPaket();
+      if (total > 0) {
+        const jezik = UJ
+          ? UJ.ugotoviJezikSporocila(besediloPolje.value)
+          : "de";
+        let plan = UJO.getInstallmentSuggestion({
+          totalDebtCents: total,
+          originalDueDate: podatkiKorak1.datumZapadlosti || null,
+          plannedSendDate: bazaDatumaPosiljanja(),
+          linkedProposalNumber: linked,
+          toneId: tonId,
+          language: jezik,
+        });
+        plan = UJO.nastaviSteviloObrokov(
+          plan,
+          Number(navodilo.obrocno.installmentCount) || 2
+        );
+        if (navodilo.obrocno.intervalType) {
+          plan = UJO.nastaviRazmik(plan, navodilo.obrocno.intervalType);
+        }
+        plan = UJO.osveziAddon(plan, jezik);
+        plan.enabled = true;
+        const vrstica = plan.addonText || "";
+        if (vrstica) vstaviDodatekVBesedilo(vrstica);
+        installmentPlan = plan;
+        dodatekBesedila.obrocno = vrstica;
+        dodatki.obrocno = true;
+        if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "true");
+        posodobiObrocnoKarticoStanje(plan);
+      }
+    }
+
+    if (navodilo.trr) {
+      const iban = (podatkiKorak1.iban || "").trim();
+      if (iban) {
+        const vrstica = "TRR: " + iban + ".";
+        vstaviDodatekVBesedilo(vrstica);
+        dodatekBesedila.trr = vrstica;
+        dodatki.trr = true;
+        if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "true");
+      }
+    }
+  }
+
   async function uporabiPredlog(predlog, opcije) {
     const tiho = Boolean(opcije && opcije.tiho);
     if (
@@ -2433,55 +2591,20 @@ function inicializirajSporociloDolzniku() {
       if (!potrjeno) return;
     }
 
-    const UJ = window.UJRokPlacila;
-    const rokAktivno = Boolean(paymentDeadline && paymentDeadline.enabled);
-    const mode = rokAktivno ? paymentDeadline.mode : null;
-    const manualDate = rokAktivno ? paymentDeadline.deadlineDate : null;
-    const termDaysObstojeci = rokAktivno ? Number(paymentDeadline.termDays) : null;
+    const PPS = window.UJPredlogaPaymentSettings;
+    const navodilo = PPS
+      ? PPS.pripraviUveljavitev(predlog.paymentSettings)
+      : normalizirajPaymentSettingsPredloge(predlog.paymentSettings);
 
-    resetirajDodatke();
-    besediloPolje.value = predlog.besedilo.slice(0, NAJVEC_ZNAKOV);
+    besediloPolje.value = String(predlog.besedilo || "").slice(0, NAJVEC_ZNAKOV);
     oznaciIzbranega(predlog.id);
     slediPrivzetiStevilki1 = Number(predlog.stevilka) === 1;
 
-    if (rokAktivno && UJ) {
-      const linked =
-        Number(predlog.stevilka) >= 1 && Number(predlog.stevilka) <= 9
-          ? Number(predlog.stevilka)
-          : 1;
-      const base = bazaDatumaPosiljanja();
-      let days;
-      let deadline;
-      let modeOut;
-      if (mode === "manual" && manualDate) {
-        modeOut = "manual";
-        deadline = manualDate;
-        days = termDaysObstojeci || Number(privzetiDneviRoka[linked]) || 5;
-      } else {
-        modeOut = "automatic";
-        days = Number(privzetiDneviRoka[linked]) || 5;
-        deadline = UJ.izracunajRok(base, days);
-      }
-      const jezik = UJ.ugotoviJezikSporocila(besediloPolje.value);
-      const vrstica = UJ.sestaviVrsticoRoka(deadline, jezik);
-      const rez = UJ.posodobiSistemskoVrstico(besediloPolje.value, "", vrstica, true);
-      besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
-      paymentDeadline = {
-        enabled: true,
-        mode: modeOut,
-        linkedProposalNumber: linked,
-        termDays: days,
-        deadlineDate: deadline,
-        baseSendDate: base,
-        insertedText: vrstica,
-        messageLanguage: jezik,
-      };
-      dodatekBesedila.rok = vrstica;
-      dodatki.rok = true;
-      if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
-    } else {
-      paymentDeadline = null;
+    if (navodilo) {
+      // S paketom: počisti dodatke in uveljavi recept te predloge.
+      uveljaviPaymentSettingsPredloge(predlog, predlog.paymentSettings);
     }
+    // Brez paketa: dodatkov (rok/obročno/TRR) ne spreminjaj.
 
     toneState.appliedToneId = predlog.toneId || izbranTonId;
     if (predlog.toneId && predlog.toneId !== izbranTonId) {
@@ -2595,15 +2718,126 @@ function inicializirajSporociloDolzniku() {
     odstraniPritrditevUrediModala();
     modal.hidden = true;
     odprtPredlog = null;
+    modalPaymentTouched = false;
+    modalPaymentHadPackage = false;
     if (modalNaslovVnos) modalNaslovVnos.value = "";
     if (modalUrejevalnik) modalUrejevalnik.value = "";
     if (modalIzbrisi) modalIzbrisi.hidden = false;
     if (modalStevilkaOvoj) modalStevilkaOvoj.hidden = true;
   }
 
+  function tonZaModalPlacila() {
+    return (
+      (odprtPredlog && odprtPredlog.toneId) ||
+      tonZaPriporocila() ||
+      izbranTonId ||
+      "friendly"
+    );
+  }
+
+  function zacetniPaketZaModal() {
+    if (
+      window.UJPredlogaPaymentSettings &&
+      typeof window.UJPredlogaPaymentSettings.zacetniPaketZaUrejanje === "function"
+    ) {
+      return window.UJPredlogaPaymentSettings.zacetniPaketZaUrejanje(
+        tonZaModalPlacila()
+      );
+    }
+    return {
+      version: 1,
+      rok: { enabled: false, mode: "automatic", termDays: 14 },
+      obrocno: {
+        enabled: false,
+        installmentCount: 4,
+        intervalType: "monthly",
+      },
+      trr: { enabled: false },
+    };
+  }
+
+  function napolniModalPlacilaIzPaketa(paket) {
+    const p = normalizirajPaymentSettingsPredloge(paket) || zacetniPaketZaModal();
+    if (modalRokEnabled) modalRokEnabled.checked = Boolean(p.rok.enabled);
+    if (modalRokDnevi) modalRokDnevi.value = String(p.rok.termDays || 14);
+    if (modalObrocnoEnabled) {
+      modalObrocnoEnabled.checked = Boolean(p.obrocno.enabled);
+    }
+    if (modalObrocnoSt) {
+      modalObrocnoSt.value = String(p.obrocno.installmentCount || 4);
+    }
+    if (modalTrrEnabled) modalTrrEnabled.checked = Boolean(p.trr.enabled);
+    posodobiModalPlacilaDisabled();
+  }
+
+  function posodobiModalPlacilaDisabled() {
+    if (modalRokDnevi) {
+      modalRokDnevi.disabled = !(modalRokEnabled && modalRokEnabled.checked);
+    }
+    if (modalObrocnoSt) {
+      modalObrocnoSt.disabled = !(
+        modalObrocnoEnabled && modalObrocnoEnabled.checked
+      );
+    }
+  }
+
+  /** Preberi UI → paymentSettings na odprtPredlog. */
+  function preberiModalPlacilaVOdprtPredlog() {
+    if (!odprtPredlog) return;
+    const rokOn = Boolean(modalRokEnabled && modalRokEnabled.checked);
+    let obOn = Boolean(modalObrocnoEnabled && modalObrocnoEnabled.checked);
+    if (rokOn && obOn) obOn = false;
+    odprtPredlog.paymentSettings = normalizirajPaymentSettingsPredloge({
+      version: 1,
+      rok: {
+        enabled: rokOn,
+        mode: "automatic",
+        termDays: Number(modalRokDnevi && modalRokDnevi.value) || 14,
+      },
+      obrocno: {
+        enabled: obOn,
+        installmentCount: Number(modalObrocnoSt && modalObrocnoSt.value) || 2,
+        intervalType:
+          (odprtPredlog.paymentSettings &&
+            odprtPredlog.paymentSettings.obrocno &&
+            odprtPredlog.paymentSettings.obrocno.intervalType) ||
+          "monthly",
+      },
+      trr: { enabled: Boolean(modalTrrEnabled && modalTrrEnabled.checked) },
+    });
+  }
+
+  function oznaciModalPaymentTouched() {
+    modalPaymentTouched = true;
+    // Rok in obročno se izključujeta.
+    if (
+      modalRokEnabled &&
+      modalObrocnoEnabled &&
+      modalRokEnabled.checked &&
+      modalObrocnoEnabled.checked
+    ) {
+      if (document.activeElement === modalObrocnoEnabled) {
+        modalRokEnabled.checked = false;
+      } else {
+        modalObrocnoEnabled.checked = false;
+      }
+    }
+    preberiModalPlacilaVOdprtPredlog();
+    posodobiModalPlacilaDisabled();
+  }
+
   function odpriUrediModal(predlog) {
     if (!modal || !modalUrejevalnik) return;
-    odprtPredlog = predlog;
+    const obstojeciPaket = normalizirajPaymentSettingsPredloge(
+      predlog.paymentSettings
+    );
+    modalPaymentHadPackage = obstojeciPaket != null;
+    modalPaymentTouched = false;
+    // Klon – paymentSettings urejamo na odprtPredlog, commit ob Shrani.
+    odprtPredlog = {
+      ...predlog,
+      paymentSettings: obstojeciPaket || zacetniPaketZaModal(),
+    };
     if (modalNaslovVnos) modalNaslovVnos.value = (predlog.naslov || "").slice(0, 80);
     modalUrejevalnik.value = (predlog.besedilo || "").slice(0, NAJVEC_ZNAKOV);
     if (modalShrani) {
@@ -2625,6 +2859,8 @@ function inicializirajSporociloDolzniku() {
           : privzetaStevilkaZaNovPredlog();
     }
     posodobiModalStevilkeUI();
+    napolniModalPlacilaIzPaketa(odprtPredlog.paymentSettings);
+    if (modalPlacila) modalPlacila.hidden = false;
 
     modal.hidden = false;
     pritrdiUrediModalNaVrh();
@@ -2678,6 +2914,13 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
+    preberiModalPlacilaVOdprtPredlog();
+    // Paket shrani samo če je že obstajal ali ga je uporabnik spremenil.
+    const paymentSettingsZaShraniti =
+      modalPaymentHadPackage || modalPaymentTouched
+        ? normalizirajPaymentSettingsPredloge(odprtPredlog.paymentSettings)
+        : null;
+
     // Nov prazen predlog ali kopija vgrajenega → shrani med moje predloge.
     if (odprtPredlog.jeNov || !odprtPredlog.jeMoj) {
       const novPredlog = {
@@ -2692,6 +2935,7 @@ function inicializirajSporociloDolzniku() {
         source: "user",
         isRecommended: false,
         order: Number(modalIzbranaStevilka) || null,
+        paymentSettings: paymentSettingsZaShraniti,
       };
       mojiPredlogi = [novPredlog, ...mojiPredlogi];
       shraniMojePredlogeVLocalStorage();
@@ -2710,6 +2954,7 @@ function inicializirajSporociloDolzniku() {
             besedilo,
             toneId: p.toneId || izbranTonId,
             language: p.language || jezikPredlog,
+            paymentSettings: paymentSettingsZaShraniti,
           }
         : p
     );
@@ -3160,6 +3405,37 @@ function inicializirajSporociloDolzniku() {
   if (modalShrani) modalShrani.addEventListener("click", shraniPredlogIzModala);
   if (modalZapri) modalZapri.addEventListener("click", zapriUrediModal);
   if (modalBackdrop) modalBackdrop.addEventListener("click", zapriUrediModal);
+
+  [
+    modalRokEnabled,
+    modalRokDnevi,
+    modalObrocnoEnabled,
+    modalObrocnoSt,
+    modalTrrEnabled,
+  ].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("change", oznaciModalPaymentTouched);
+    el.addEventListener("input", oznaciModalPaymentTouched);
+  });
+  if (modalPlacilaPriporoceno) {
+    modalPlacilaPriporoceno.addEventListener("click", () => {
+      if (!odprtPredlog) return;
+      modalPaymentTouched = true;
+      let paket = null;
+      if (
+        window.UJPredlogaPaymentSettings &&
+        typeof window.UJPredlogaPaymentSettings.paketIzTona === "function"
+      ) {
+        paket = window.UJPredlogaPaymentSettings.paketIzTona(tonZaModalPlacila());
+      }
+      if (!paket) {
+        paket = zacetniPaketZaModal();
+        paket.rok.enabled = true;
+      }
+      odprtPredlog.paymentSettings = paket;
+      napolniModalPlacilaIzPaketa(paket);
+    });
+  }
   document.addEventListener("keydown", (dogodek) => {
     if (dogodek.key !== "Escape" || !modal || modal.hidden) return;
     // Escape naj najprej zapre potrditveni modal, ne urejevalnika.

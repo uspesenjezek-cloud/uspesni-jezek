@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-obrocno-1" />
+    <link rel="stylesheet" href="styles.css?v=20260808-payment-k4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -285,6 +285,72 @@
                 class="korak2-modal__urejevalnik"
                 maxlength="1000"
               ></textarea>
+
+              <div class="korak2-modal__placila" id="predogled-placila">
+                <p class="korak2-modal__polje-oznaka" id="predogled-placila-oznaka">
+                  Ob uporabi predloge
+                </p>
+                <p class="korak2-modal__placila-opis">
+                  Nastavitve se uveljavijo, ko kliknete »Uporabi« na tej predlogi.
+                </p>
+
+                <div class="korak2-modal__placila-vrsta">
+                  <label class="korak2-modal__placila-stikalo">
+                    <input type="checkbox" id="predogled-rok-enabled" />
+                    <span>Rok plačila</span>
+                  </label>
+                  <label class="korak2-modal__placila-dnevi-ovoj">
+                    <span class="sr-only">Število dni</span>
+                    <input
+                      type="number"
+                      id="predogled-rok-dnevi"
+                      class="korak2-modal__placila-dnevi"
+                      min="1"
+                      max="365"
+                      step="1"
+                      value="14"
+                      inputmode="numeric"
+                    />
+                    <span>dni</span>
+                  </label>
+                </div>
+
+                <div class="korak2-modal__placila-vrsta">
+                  <label class="korak2-modal__placila-stikalo">
+                    <input type="checkbox" id="predogled-obrocno-enabled" />
+                    <span>Obročno plačilo</span>
+                  </label>
+                  <label class="korak2-modal__placila-dnevi-ovoj">
+                    <span class="sr-only">Število obrokov</span>
+                    <input
+                      type="number"
+                      id="predogled-obrocno-st"
+                      class="korak2-modal__placila-dnevi"
+                      min="1"
+                      max="20"
+                      step="1"
+                      value="4"
+                      inputmode="numeric"
+                    />
+                    <span>obrokov</span>
+                  </label>
+                </div>
+
+                <div class="korak2-modal__placila-vrsta">
+                  <label class="korak2-modal__placila-stikalo">
+                    <input type="checkbox" id="predogled-trr-enabled" />
+                    <span>TRR</span>
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  class="korak2-modal__placila-priporoceno"
+                  id="predogled-placila-priporoceno"
+                >
+                  ★ Predlagaj glede na ton
+                </button>
+              </div>
             </div>
             <!-- Vedno vidna noga: Izbriši | Shrani (tudi z tipkovnico) -->
             <div class="korak2-modal__noga" id="predogled-opcije">
@@ -562,14 +628,15 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-obrocno-1"></script>
-    <script src="rok-placila-sheet.js?v=20260808-obrocno-1"></script>
-    <script src="obrocno-utils.js?v=20260808-obrocno-1"></script>
-    <script src="obrocno-sheet.js?v=20260808-obrocno-1"></script>
-    <script src="ton-priporocilo.js?v=20260808-obrocno-1"></script>
-    <script src="ton-predloge.js?v=20260808-obrocno-1"></script>
-    <script src="ton-widget.js?v=20260808-obrocno-1"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-obrocno-1"></script>
-    <script src="app.js?v=20260808-obrocno-1"></script>
+    <script src="rok-placila-utils.js?v=20260808-payment-k4"></script>
+    <script src="rok-placila-sheet.js?v=20260808-payment-k4"></script>
+    <script src="obrocno-utils.js?v=20260808-payment-k4"></script>
+    <script src="obrocno-sheet.js?v=20260808-payment-k4"></script>
+    <script src="ton-priporocilo.js?v=20260808-payment-k4"></script>
+    <script src="ton-predloge.js?v=20260808-payment-k4"></script>
+    <script src="ton-widget.js?v=20260808-payment-k4"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-payment-k4"></script>
+    <script src="predloga-payment-settings.js?v=20260808-payment-k4"></script>
+    <script src="app.js?v=20260808-payment-k4"></script>
   </body>
 </html>
