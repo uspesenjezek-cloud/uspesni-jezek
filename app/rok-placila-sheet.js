@@ -67,7 +67,7 @@
     var hitroMeseci = document.getElementById("rok-sheet-hitro-meseci");
     var povzetekDatum = document.getElementById("rok-sheet-povzetek-datum");
     var povzetekRel = document.getElementById("rok-sheet-povzetek-rel");
-    var povzetekKoledar = document.getElementById("rok-sheet-povzetek-koledar");
+    var povzetekRocno = document.getElementById("rok-sheet-povzetek-rocno");
 
     var odprt = false;
     var osnutek = null;
@@ -586,8 +586,31 @@
       posodobiIzbraniPovzetek();
     }
 
+    function jeHitriGumbIzbran(enota, n) {
+      var gumbi = vsiHitriGumbi();
+      for (var i = 0; i < gumbi.length; i++) {
+        var b = gumbi[i];
+        if (
+          b.dataset.enota === enota &&
+          Number(b.dataset.n) === Number(n) &&
+          b.getAttribute("aria-selected") === "true"
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     function uporabiHitriIzbor(enota, n) {
       if (!osnutek) return;
+      // Drugi klik na isto številko = prekliči izbiro → nazaj na samodejni rok.
+      if (jeHitriGumbIzbran(enota, n)) {
+        if (samodejno) samodejno.checked = true;
+        osnutek.mode = "automatic";
+        preracunajSamodejno();
+        oznaciRokPriporociloSpremenjeno();
+        return;
+      }
       var rok = datumZaHitriIzbor(enota, n);
       if (!rok) return;
       var base = bazaZaHitriIzbirnik();
@@ -1123,8 +1146,8 @@
       });
     }
 
-    if (povzetekKoledar && datumPolje) {
-      povzetekKoledar.addEventListener("click", function () {
+    if (povzetekRocno && datumPolje) {
+      povzetekRocno.addEventListener("click", function () {
         if (typeof datumPolje.showPicker === "function") {
           try {
             datumPolje.showPicker();

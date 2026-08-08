@@ -5790,24 +5790,42 @@ body.obrocno-sheet-odprt .korak2__noga {
   display: none;
 }
 
-.rok-sheet__povzetek-koledar {
+.rok-sheet__povzetek-rocno {
   flex: 0 0 auto;
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
+  min-height: 40px;
   margin: 0;
-  padding: 0;
-  border: 0;
+  padding: 8px 14px;
+  border: 1px solid #5fa8aa;
   border-radius: 12px;
-  background: transparent;
+  background: #ffffff;
   color: #5fa8aa;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
-.rok-sheet__povzetek-koledar:focus-visible {
+.rok-sheet__povzetek-rocno:hover {
+  background: #f1f8f8;
+}
+
+.rok-sheet__povzetek-rocno:focus-visible {
   outline: 2px solid #5fa8aa;
   outline-offset: 2px;
+}
+
+/* Datum ostane v DOM (showPicker / validacija), UI je skrit. */
+.rok-sheet__datum-skrito {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 360px) {

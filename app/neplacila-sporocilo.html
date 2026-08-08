@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok-ui" />
+    <link rel="stylesheet" href="styles.css?v=20260808-rok-rocno" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -545,11 +545,10 @@
             </div>
             <button
               type="button"
-              class="rok-sheet__povzetek-koledar"
-              id="rok-sheet-povzetek-koledar"
-              aria-label="Odpri izbiro datuma"
+              class="rok-sheet__povzetek-rocno"
+              id="rok-sheet-povzetek-rocno"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+              Ročno
             </button>
           </section>
 
@@ -559,12 +558,10 @@
             <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
           </label>
 
-          <label class="rok-sheet__oznaka" for="rok-sheet-datum">Rok plačila</label>
-          <div class="rok-sheet__datum-ovoj">
+          <!-- Skrito: ročna izbira datuma prek gumba »Ročno« v povzetku. -->
+          <div class="rok-sheet__datum-skrito">
+            <label class="sr-only" for="rok-sheet-datum">Rok plačila</label>
             <input type="date" class="rok-sheet__datum" id="rok-sheet-datum" required />
-            <span class="rok-sheet__datum-ikona" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-            </span>
           </div>
           <p class="rok-sheet__pomoc" id="rok-sheet-pomoc">
             <span class="rok-sheet__pomoc-zvezda" id="rok-sheet-pomoc-zvezda" hidden aria-hidden="true">★</span>
@@ -776,7 +773,7 @@
     </div>
 
     <script src="rok-placila-utils.js?v=20260808-predogled"></script>
-    <script src="rok-placila-sheet.js?v=20260808-rok-ui2"></script>
+    <script src="rok-placila-sheet.js?v=20260808-rok-rocno"></script>
     <script src="obrocno-utils.js?v=20260808-predogled"></script>
     <script src="obrocno-sheet.js?v=20260808-predogled"></script>
     <script src="ton-priporocilo.js?v=20260808-predogled"></script>
