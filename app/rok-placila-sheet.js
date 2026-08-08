@@ -68,6 +68,11 @@
     /* Na telefonu isti tap, ki odpre sheet, pogosto zadene še backdrop in ga takoj zapre. */
     var zapiranjeDovoljeno = false;
     var casovnikZapiranja = null;
+    /** Odprtje iz »Možna priporočila« → forsira predlog glede na ton. */
+    var forsiraPriporocilo = false;
+    var forsiraToneId = null;
+    var forsiraTermDays = null;
+    var pendingOnClose = null;
 
     function klon(obj) {
       return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -90,8 +95,13 @@
     }
 
     function dneviIzTonaAliPredloga() {
-      if (typeof ctx.getDneviZaTon === "function" && typeof ctx.getToneId === "function") {
-        var tonId = ctx.getToneId();
+      if (forsiraPriporocilo && Number.isFinite(Number(forsiraTermDays))) {
+        return Number(forsiraTermDays);
+      }
+      if (typeof ctx.getDneviZaTon === "function") {
+        var tonId =
+          (forsiraPriporocilo && forsiraToneId) ||
+          (typeof ctx.getToneId === "function" ? ctx.getToneId() : null);
         if (tonId) {
           var dTon = Number(ctx.getDneviZaTon(tonId));
           if (Number.isFinite(dTon) && dTon > 0) return dTon;
@@ -239,6 +249,26 @@
       osnutekPrivzetih = klon(ctx.getPrivzetiDnevi());
       var base = ctx.bazaDatumaPosiljanja();
       var daysFallback = Number(osnutekPrivzetih[linked]) || 5;
+      // Iz »Možna priporočila«: vedno sveži predlog (ne star shranjen rok).
+      if (forsiraPriporocilo) {
+        var tonId =
+          forsiraToneId ||
+          (typeof ctx.getToneId === "function" ? ctx.getToneId() : null);
+        var daysPriporocilo = dneviIzTonaAliPredloga() || daysFallback;
+        osnutek = {
+          enabled: false,
+          mode: "automatic",
+          linkedProposalNumber: linked,
+          linkedToneId: tonId || null,
+          termDays: daysPriporocilo,
+          deadlineDate: UJ.izracunajRok(base, daysPriporocilo),
+          baseSendDate: base,
+          insertedText: (obstojeci && obstojeci.insertedText) || "",
+          messageLanguage:
+            (obstojeci && obstojeci.messageLanguage) || "sl",
+        };
+        return;
+      }
 
       if (obstojeci && obstojeci.enabled) {
         osnutek = klon(obstojeci);
@@ -302,8 +332,25 @@
       }
     }
 
-    function odpriSheet() {
+    /**
+     * @param {{
+     *   izPriporocil?: boolean,
+     *   toneId?: string,
+     *   termDays?: number,
+     *   onClose?: (r: { shranjeno: boolean }) => void
+     * }} [opcije]
+     */
+    function odpriSheet(opcije) {
       if (odprt) return;
+      var opts = opcije || {};
+      forsiraPriporocilo = Boolean(opts.izPriporocil);
+      forsiraToneId = opts.toneId ? String(opts.toneId) : null;
+      forsiraTermDays =
+        opts.termDays != null && Number.isFinite(Number(opts.termDays))
+          ? Number(opts.termDays)
+          : null;
+      pendingOnClose =
+        typeof opts.onClose === "function" ? opts.onClose : null;
       try {
         predOgledPressed = ctx.gumbRok.getAttribute("aria-pressed") === "true";
         prejsnjiFokus = document.activeElement;
@@ -331,6 +378,10 @@
           else if (samodejno) samodejno.focus();
         }, 10);
       } catch (napaka) {
+        forsiraPriporocilo = false;
+        forsiraToneId = null;
+        forsiraTermDays = null;
+        pendingOnClose = null;
         if (typeof ctx.pokaziNapako === "function") {
           ctx.pokaziNapako(
             "Odpiranje roka plačila ni uspelo. Osvežite stran.",
@@ -340,7 +391,11 @@
       }
     }
 
-    function zapriSheet(shraniSpremembe) {
+    /**
+     * @param {boolean} shraniSpremembe
+     * @param {{ shranjeno?: boolean }} [meta]
+     */
+    function zapriSheet(shraniSpremembe, meta) {
       if (!odprt) return;
       if (!shraniSpremembe && !zapiranjeDovoljeno) return;
       if (!shraniSpremembe) {
@@ -352,6 +407,9 @@
       document.body.classList.remove("rok-sheet-odprt");
       odprt = false;
       zapiranjeDovoljeno = false;
+      forsiraPriporocilo = false;
+      forsiraToneId = null;
+      forsiraTermDays = null;
       if (casovnikZapiranja) {
         window.clearTimeout(casovnikZapiranja);
         casovnikZapiranja = null;
@@ -359,10 +417,20 @@
       document.removeEventListener("keydown", onKeydown, true);
       skrijUrediPrivzeto();
       nastaviNapako(false);
+      var cb = pendingOnClose;
+      pendingOnClose = null;
+      var shranjeno = Boolean(meta && meta.shranjeno);
       if (ctx.gumbRok && typeof ctx.gumbRok.focus === "function") {
         ctx.gumbRok.focus();
       } else if (prejsnjiFokus && prejsnjiFokus.focus) {
         prejsnjiFokus.focus();
+      }
+      if (typeof cb === "function") {
+        try {
+          cb({ shranjeno: shranjeno });
+        } catch (_e) {
+          /* ignore */
+        }
       }
     }
 
@@ -426,12 +494,13 @@
 
         ctx.besediloPolje.value = String(rez.besedilo).slice(0, ctx.najvecZnakov);
         var tonId =
-          typeof ctx.getToneId === "function" ? ctx.getToneId() : null;
+          osnutek.linkedToneId ||
+          (typeof ctx.getToneId === "function" ? ctx.getToneId() : null);
         var novo = {
           enabled: true,
           mode: osnutek.mode === "manual" ? "manual" : "automatic",
           linkedProposalNumber: Number(osnutek.linkedProposalNumber) || 1,
-          linkedToneId: tonId || osnutek.linkedToneId || null,
+          linkedToneId: tonId || null,
           termDays: Number(osnutek.termDays) || 5,
           deadlineDate: osnutek.deadlineDate,
           baseSendDate: osnutek.baseSendDate || ctx.bazaDatumaPosiljanja(),
@@ -446,7 +515,7 @@
         ctx.posodobiStanjeUrejevalnika();
         ctx.shraniOsnutekLokalno();
         if (typeof ctx.onAfterChange === "function") ctx.onAfterChange();
-        zapriSheet(true);
+        zapriSheet(true, { shranjeno: true });
       } catch (_e) {
         if (typeof ctx.pokaziNapako === "function") {
           ctx.pokaziNapako("Shranjevanje roka plačila ni uspelo. Poskusite znova.");
@@ -614,6 +683,8 @@
         skrijUrediPrivzeto();
       });
     }
+
+    return { odpri: odpriSheet, zapri: zapriSheet };
   }
 
   root.inicializirajRokPlacilaSheet = inicializirajRokPlacilaSheet;

@@ -70,6 +70,9 @@
     var editInputEl = null;
     var potrjujemUrejanje = false;
     var preklicujemUrejanje = false;
+    var forsiraPriporocilo = false;
+    var forsiraToneId = null;
+    var pendingOnClose = null;
 
     function klon(o) {
       return o ? JSON.parse(JSON.stringify(o)) : null;
@@ -919,12 +922,111 @@
       });
     }
 
-    function odpri() {
+    /**
+     * Predlog iz »Možna priporočila« – število/roki iz predlogObrocnegaZaTon.
+     */
+    function sveziPredlogIzPriporocila(total) {
+      var tonId =
+        forsiraToneId ||
+        (typeof ctx.getToneId === "function" ? ctx.getToneId() : null);
+      var predlog =
+        Rok && typeof Rok.predlogObrocnegaZaTon === "function"
+          ? Rok.predlogObrocnegaZaTon(tonId)
+          : { installments: 2, firstDelayDays: 7, gapDays: 14 };
+      var planned =
+        typeof ctx.bazaDatumaPosiljanja === "function"
+          ? ctx.bazaDatumaPosiljanja()
+          : UJ.danesYYYYMMDD();
+      var original =
+        typeof ctx.getOriginalDueDate === "function"
+          ? ctx.getOriginalDueDate()
+          : null;
+      var minFirst = UJ.najmanjsiPrviDatum(original, planned);
+      var delay = Number(predlog.firstDelayDays) || 7;
+      var firstDue = UJ.dodajKoledarskeDni(minFirst, delay);
+      if (firstDue < minFirst) firstDue = minFirst;
+
+      var count = Math.max(
+        UJ.MIN_OBROKOV,
+        Math.min(UJ.MAX_OBROKOV, Number(predlog.installments) || 2)
+      );
+      var gap = Number(predlog.gapDays) || 14;
+      var intervalType = "custom";
+      if (gap === 7) intervalType = "weekly";
+      else if (gap === 14) intervalType = "biweekly";
+      else if (gap >= 28 && gap <= 31) intervalType = "monthly";
+
+      var amounts = UJ.splitCentsEvenly(total, count);
+      var installments = amounts.map(function (cents, idx) {
+        return {
+          id: "prip-" + idx + "-" + String(Date.now()),
+          order: idx + 1,
+          amountCents: cents,
+          amountMode: "automatic",
+          dueDate: firstDue,
+        };
+      });
+      if (intervalType === "custom") {
+        for (var i = 1; i < installments.length; i++) {
+          installments[i].dueDate = UJ.dodajKoledarskeDni(
+            installments[i - 1].dueDate,
+            gap
+          );
+        }
+      }
+
+      var plan = {
+        enabled: false,
+        source: "suggested",
+        totalDebtCents: total,
+        linkedProposalNumber:
+          typeof ctx.stevilkaIzbranegaPredloga === "function"
+            ? ctx.stevilkaIzbranegaPredloga()
+            : null,
+        priority: null,
+        overdueDaysSnapshot: null,
+        originalDueDate: original,
+        plannedSendDate: planned,
+        firstDueDate: firstDue,
+        intervalType: intervalType,
+        installmentCount: count,
+        installments: installments,
+        totalCents: total,
+        addonText: "",
+        addonLanguage: jezikAddon(),
+        addonManuallyEdited: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (intervalType !== "custom") {
+        plan = UJ.preracunajDatume(plan);
+      }
+      plan = UJ.osveziAddon(plan, jezikAddon());
+      return plan;
+    }
+
+    /**
+     * @param {{
+     *   izPriporocil?: boolean,
+     *   toneId?: string,
+     *   onClose?: (r: { shranjeno: boolean }) => void
+     * }} [opcije]
+     */
+    function odpri(opcije) {
+      var opts = opcije || {};
+      forsiraPriporocilo = Boolean(opts.izPriporocil);
+      forsiraToneId = opts.toneId ? String(opts.toneId) : null;
+      pendingOnClose =
+        typeof opts.onClose === "function" ? opts.onClose : null;
+
       var total =
         typeof ctx.getTotalDebtCents === "function"
           ? ctx.getTotalDebtCents()
           : 0;
       if (!Number.isFinite(total) || total <= 0) {
+        forsiraPriporocilo = false;
+        forsiraToneId = null;
+        pendingOnClose = null;
         if (typeof ctx.pokaziNapako === "function") {
           ctx.pokaziNapako(
             "Znesek dolga ni na voljo. Preverite vnos v prvem koraku."
@@ -939,7 +1041,11 @@
         existing.enabled &&
         UJ.jePlanUporaben(existing, total);
 
-      if (existingUporaben) {
+      if (forsiraPriporocilo) {
+        osnutek = sveziPredlogIzPriporocila(total);
+        osnutek = UJ.uskladiSteviloVrstic(osnutek);
+        draftEnabled = true;
+      } else if (existingUporaben) {
         osnutek = klon(existing);
         osnutek.totalDebtCents = total;
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
@@ -983,7 +1089,11 @@
       }, 10);
     }
 
-    function zapriSheet(brezObnove) {
+    /**
+     * @param {boolean} [brezObnove]
+     * @param {{ shranjeno?: boolean }} [meta]
+     */
+    function zapriSheet(brezObnove, meta) {
       if (editingInstallmentId) {
         prekliciUrejanjeZneska(true);
       }
@@ -996,10 +1106,15 @@
       draftEnabled = false;
       originalEnabled = false;
       originalPlan = null;
+      forsiraPriporocilo = false;
+      forsiraToneId = null;
       if (!brezObnove) {
         var plan = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
         posodobiZunanjoKartico(plan);
       }
+      var cb = pendingOnClose;
+      pendingOnClose = null;
+      var shranjeno = Boolean(meta && meta.shranjeno);
       if (prejsnjiFokus && typeof prejsnjiFokus.focus === "function") {
         try {
           prejsnjiFokus.focus();
@@ -1008,6 +1123,13 @@
         }
       } else if (ctx.gumbObrocno) {
         ctx.gumbObrocno.focus();
+      }
+      if (typeof cb === "function") {
+        try {
+          cb({ shranjeno: shranjeno });
+        } catch (_e) {
+          /* ignore */
+        }
       }
     }
 
@@ -1068,7 +1190,8 @@
           if (typeof ctx.shraniOsnutekLokalno === "function") {
             ctx.shraniOsnutekLokalno();
           }
-          zapriSheet(true);
+          // Izklop ni »uspešno shrani priporočilo« za vrnitev na panel.
+          zapriSheet(true, { shranjeno: false });
         } finally {
           shranjevanje = false;
           if (preklici) preklici.disabled = false;
@@ -1151,7 +1274,7 @@
         if (typeof ctx.shraniOsnutekLokalno === "function") {
           ctx.shraniOsnutekLokalno();
         }
-        zapriSheet(true);
+        zapriSheet(true, { shranjeno: true });
       } finally {
         shranjevanje = false;
         if (preklici) preklici.disabled = false;

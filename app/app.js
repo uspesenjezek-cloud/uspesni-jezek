@@ -2938,6 +2938,11 @@ function inicializirajSporociloDolzniku() {
 
   const gumbMoznaPriporocila = document.getElementById("gumb-mozna-priporocila");
   const panelMoznaPriporocila = document.getElementById("panel-mozna-priporocila");
+  const gumbPreglejRok = document.getElementById("gumb-preglej-rok");
+  const gumbPreglejObrocno = document.getElementById("gumb-preglej-obrocno");
+  const ovojMoznaPriporocila = document.getElementById("ton-dodatki-namigi");
+  let rokSheetApi = null;
+  let obrocnoSheetApi = null;
 
   function aktivniTonZaDodatke() {
     return toneState.appliedToneId || toneState.selectedToneId || izbranTonId;
@@ -2982,9 +2987,34 @@ function inicializirajSporociloDolzniku() {
     if (obrocnoEl) obrocnoEl.innerHTML = priporocila.obrocnoHtml;
   }
 
+  function odpriPanelMoznaPriporocila() {
+    if (!panelMoznaPriporocila || !gumbMoznaPriporocila) return;
+    posodobiNamigeTonaDodatkov();
+    panelMoznaPriporocila.hidden = false;
+    gumbMoznaPriporocila.setAttribute("aria-expanded", "true");
+  }
+
+  /** Po uspešnem shrani iz Preglej → nazaj na razdelek priporočil. */
+  function vrniNaMoznaPriporocila(fokusGumb) {
+    odpriPanelMoznaPriporocila();
+    const cilj = ovojMoznaPriporocila || gumbMoznaPriporocila;
+    if (cilj && typeof cilj.scrollIntoView === "function") {
+      window.setTimeout(() => {
+        cilj.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const fokus = fokusGumb || gumbMoznaPriporocila;
+        if (fokus && typeof fokus.focus === "function") fokus.focus();
+      }, 50);
+    }
+  }
+
+  function onCloseIzPriporocil(rezultat, fokusGumb) {
+    if (!rezultat || !rezultat.shranjeno) return;
+    vrniNaMoznaPriporocila(fokusGumb);
+  }
+
   if (dodatekRok) {
     if (typeof window.inicializirajRokPlacilaSheet === "function") {
-      window.inicializirajRokPlacilaSheet({
+      rokSheetApi = window.inicializirajRokPlacilaSheet({
         gumbRok: dodatekRok,
         besediloPolje,
         najvecZnakov: NAJVEC_ZNAKOV,
@@ -3029,7 +3059,7 @@ function inicializirajSporociloDolzniku() {
 
   if (dodatekObrocno) {
     if (typeof window.inicializirajObrocnoSheet === "function") {
-      window.inicializirajObrocnoSheet({
+      obrocnoSheetApi = window.inicializirajObrocnoSheet({
         gumbObrocno: dodatekObrocno,
         gumbRok: dodatekRok,
         besediloPolje,
@@ -3078,6 +3108,49 @@ function inicializirajSporociloDolzniku() {
         );
       });
     }
+  }
+
+  if (gumbPreglejRok) {
+    gumbPreglejRok.addEventListener("click", () => {
+      if (!rokSheetApi || typeof rokSheetApi.odpri !== "function") {
+        pokaziNapako(
+          "Nastavitve roka plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+        );
+        return;
+      }
+      const tonId = tonZaPriporocila();
+      const termDays = window.UJRokPlacila
+        ? window.UJRokPlacila.dneviZaTon(tonId)
+        : 14;
+      odpriPanelMoznaPriporocila();
+      window.setTimeout(() => {
+        rokSheetApi.odpri({
+          izPriporocil: true,
+          toneId: tonId,
+          termDays: termDays,
+          onClose: (rez) => onCloseIzPriporocil(rez, gumbPreglejRok),
+        });
+      }, 0);
+    });
+  }
+
+  if (gumbPreglejObrocno) {
+    gumbPreglejObrocno.addEventListener("click", () => {
+      if (!obrocnoSheetApi || typeof obrocnoSheetApi.odpri !== "function") {
+        pokaziNapako(
+          "Nastavitve obročnega plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+        );
+        return;
+      }
+      odpriPanelMoznaPriporocila();
+      window.setTimeout(() => {
+        obrocnoSheetApi.odpri({
+          izPriporocil: true,
+          toneId: tonZaPriporocila(),
+          onClose: (rez) => onCloseIzPriporocil(rez, gumbPreglejObrocno),
+        });
+      }, 0);
+    });
   }
 
   if (dodatekTrr) {
