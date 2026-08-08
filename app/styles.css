@@ -4279,6 +4279,255 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: none !important;
 }
 
+/* ========== Bottom sheet: Obročno plačilo (dodatki na rok-sheet) ========== */
+.obrocno-sheet__znesek-kartica {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 14px;
+  background: var(--teal-pale, #eaf4f3);
+}
+
+.obrocno-sheet__znesek-vrednost {
+  margin: 0;
+  color: var(--text, #243d3d);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__znacka {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--teal, #5aa3a5);
+  background: #ffffff;
+  color: var(--teal-dark, #243d3d);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__opozorilo {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff6e8;
+  color: #6a4b16;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.obrocno-sheet__opozorilo[hidden] {
+  display: none !important;
+}
+
+.obrocno-sheet__stevilke-ovoj {
+  position: relative;
+  margin: 0 0 4px;
+}
+
+.obrocno-sheet__stevilke {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 2px 28px 2px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.obrocno-sheet__stevilke::-webkit-scrollbar {
+  display: none;
+}
+
+.obrocno-sheet__stevilka {
+  flex: 0 0 44px;
+  width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.obrocno-sheet__stevilke-chevron {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--teal, #5aa3a5);
+  font-size: 1.2rem;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.obrocno-sheet__stevilke-pomoc {
+  margin: 0 0 14px;
+  color: var(--muted, #718585);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.obrocno-sheet__razmik {
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 16px;
+  padding: 0 12px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text, #243d3d);
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.obrocno-sheet__nacrt-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.obrocno-sheet__nacrt-glava .rok-sheet__oznaka {
+  margin: 0;
+}
+
+.obrocno-sheet__seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.obrocno-sheet__vrstica {
+  padding: 10px 12px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.obrocno-sheet__vrstica-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.obrocno-sheet__vrstica-levo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.obrocno-sheet__vrstica-naslov {
+  color: var(--text, #243d3d);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__rocno {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--teal-pale, #eaf4f3);
+  color: var(--teal-dark, #243d3d);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__odstrani-vrstico {
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #8a9a97;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.obrocno-sheet__vrstica-polja {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.obrocno-sheet__znesek,
+.obrocno-sheet__datum {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text, #243d3d);
+  font: inherit;
+  font-size: 0.92rem;
+  box-sizing: border-box;
+}
+
+.obrocno-sheet__znesek:focus {
+  outline: 2px solid var(--teal, #5aa3a5);
+  outline-offset: 1px;
+  border-color: var(--teal, #5aa3a5);
+}
+
+.obrocno-sheet__skupaj {
+  margin: 0 0 8px;
+  color: var(--text, #243d3d);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__skupaj--ok::after {
+  content: " ✓";
+  color: var(--teal, #5aa3a5);
+}
+
+.obrocno-sheet__skupaj--napaka {
+  color: #b42318;
+}
+
+.obrocno-sheet__undo-vrsta[hidden] {
+  display: none !important;
+}
+
+.obrocno-sheet__addon-naslov {
+  margin: 16px 0 4px;
+  color: var(--text, #243d3d);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.obrocno-sheet__addon-pomoc {
+  margin: 0 0 8px;
+  color: var(--muted, #718585);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.obrocno-sheet__addon {
+  margin: 0 0 8px;
+  padding: 12px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 12px;
+  background: #f7fbfb;
+  color: var(--text, #243d3d);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
 /* ========== Bottom sheet: Rok plačila ========== */
 .rok-sheet[hidden] {
   display: none !important;

@@ -2009,6 +2009,7 @@ function inicializirajSporociloDolzniku() {
   }
 
   let paymentDeadline = null;
+  let installmentPlan = null;
   let privzetiDneviRoka = window.UJRokPlacila
     ? window.UJRokPlacila.naloziPrivzeteDni()
     : { 1: 3, 2: 5, 3: 7, 4: 10, 5: 14, 6: 21, 7: 30, 8: 45, 9: 60 };
@@ -2027,6 +2028,7 @@ function inicializirajSporociloDolzniku() {
         dodatki: { ...dodatki },
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
+        installmentPlan: installmentPlan,
         toneRecommendation: { ...toneState },
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         potrjen: zePotrjen,
@@ -2041,6 +2043,7 @@ function inicializirajSporociloDolzniku() {
     dodatekBesedila.rok = "";
     dodatekBesedila.obrocno = "";
     dodatekBesedila.trr = "";
+    installmentPlan = null;
     if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "false");
     if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "false");
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
@@ -3070,9 +3073,51 @@ function inicializirajSporociloDolzniku() {
   }
 
   if (dodatekObrocno) {
-    dodatekObrocno.addEventListener("click", () => {
-      preklopiDodatek("obrocno", "Možno je obročno plačilo po dogovoru.", dodatekObrocno);
-    });
+    if (typeof window.inicializirajObrocnoSheet === "function") {
+      window.inicializirajObrocnoSheet({
+        gumbObrocno: dodatekObrocno,
+        gumbRok: dodatekRok,
+        besediloPolje,
+        najvecZnakov: NAJVEC_ZNAKOV,
+        dodatki,
+        dodatekBesedila,
+        getInstallmentPlan: () => installmentPlan,
+        setInstallmentPlan: (v) => {
+          installmentPlan = v;
+        },
+        getPaymentDeadline: () => paymentDeadline,
+        setPaymentDeadline: (v) => {
+          paymentDeadline = v;
+        },
+        getTotalDebtCents: () => {
+          if (window.UJObrocno) {
+            return window.UJObrocno.eurosToCents(podatkiKorak1.znesek) || 0;
+          }
+          const n = Number(podatkiKorak1.znesek);
+          return Number.isFinite(n) ? Math.round(n * 100) : 0;
+        },
+        getOriginalDueDate: () => podatkiKorak1.datumZapadlosti || null,
+        getToneId: () => aktivniTonZaDodatke(),
+        getJezik: () => {
+          if (window.UJRokPlacila) {
+            return window.UJRokPlacila.ugotoviJezikSporocila(besediloPolje.value);
+          }
+          return "de";
+        },
+        stevilkaIzbranegaPredloga,
+        bazaDatumaPosiljanja,
+        posodobiStanjeUrejevalnika,
+        shraniOsnutekLokalno,
+        potrdiVprasanje,
+        pokaziNapako,
+      });
+    } else {
+      dodatekObrocno.addEventListener("click", () => {
+        pokaziNapako(
+          "Nastavitve obročnega plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+        );
+      });
+    }
   }
 
   if (dodatekTrr) {
@@ -3116,6 +3161,14 @@ function inicializirajSporociloDolzniku() {
     } else if (besediloPolje.value.trim()) {
       sporociloRocnoUrejeno = true;
     }
+    if (
+      installmentPlan &&
+      installmentPlan.enabled &&
+      dodatekBesedila.obrocno &&
+      !besediloPolje.value.includes(dodatekBesedila.obrocno)
+    ) {
+      installmentPlan.addonManuallyEdited = true;
+    }
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
   });
@@ -3156,6 +3209,7 @@ function inicializirajSporociloDolzniku() {
         dodatki: { ...dodatki },
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
+        installmentPlan: installmentPlan,
         toneRecommendation: { ...toneState },
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         potrjen: true,
@@ -3187,9 +3241,18 @@ function inicializirajSporociloDolzniku() {
           dodatekBesedila.rok = String(paymentDeadline.insertedText);
         }
       }
+      if (osnutek.installmentPlan && osnutek.installmentPlan.enabled) {
+        installmentPlan = osnutek.installmentPlan;
+        dodatki.obrocno = true;
+        if (!dodatekBesedila.obrocno && installmentPlan.addonText) {
+          dodatekBesedila.obrocno = String(installmentPlan.addonText);
+        }
+      }
       if (osnutek.dodatki) {
         dodatki.rok = Boolean(osnutek.dodatki.rok) || Boolean(paymentDeadline && paymentDeadline.enabled);
-        dodatki.obrocno = Boolean(osnutek.dodatki.obrocno);
+        dodatki.obrocno =
+          Boolean(osnutek.dodatki.obrocno) ||
+          Boolean(installmentPlan && installmentPlan.enabled);
         dodatki.trr = Boolean(osnutek.dodatki.trr);
         if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
         if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
