@@ -55,8 +55,8 @@
 
   function visinaSeznama(steviloVrstic) {
     if (steviloVrstic <= 0) return 0;
-    if (steviloVrstic === 1) return 68;
-    return 102;
+    if (steviloVrstic === 1) return 54;
+    return 81;
   }
 
   function imaSmsKanal(priloge) {

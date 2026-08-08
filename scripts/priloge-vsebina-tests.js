@@ -48,9 +48,9 @@ test("števec ready ne šteje uploading", () => {
 });
 
 test("višina seznama 1 / 2+", () => {
-  assert(PV.visinaSeznama(1) === 68);
-  assert(PV.visinaSeznama(2) === 102);
-  assert(PV.visinaSeznama(5) === 102);
+  assert(PV.visinaSeznama(1) === 54);
+  assert(PV.visinaSeznama(2) === 81);
+  assert(PV.visinaSeznama(5) === 81);
 });
 
 test("SMS povezava samo če je SMS kanal", () => {

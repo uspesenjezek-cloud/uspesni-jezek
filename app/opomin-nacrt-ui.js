@@ -1215,8 +1215,8 @@
         PV && PV.visinaSeznama
           ? PV.visinaSeznama(priloge.length)
           : priloge.length <= 1
-            ? 68
-            : 102;
+            ? 54
+            : 81;
       var seznamRazred =
         "vk-priloge-seznam" +
         (priloge.length === 1 ? " vk-priloge-seznam--ena" : "");
@@ -1306,6 +1306,7 @@
           aria: "Nastavi TRR. Trenutno: " + (ctx.trrStanje || "Izklopljeno"),
         }) +
         "</div>" +
+        '<div class="vk-sporocilo-priloge">' +
         '<div class="sms-preview">' +
         '<div class="sms-preview__header">' +
         '<span class="sms-preview__title">SMS</span>' +
@@ -1313,10 +1314,12 @@
         esc(smsMeta) +
         "</span>" +
         "</div>" +
+        '<div class="sms-preview__okno">' +
         '<div class="sms-preview__viewport" role="region" aria-label="Predogled SMS sporočila" tabindex="0">' +
         (imaSms
           ? esc(smsBesedilo)
           : '<span class="sms-preview__prazno">Sporočilo še ni sestavljeno.</span>') +
+        "</div>" +
         "</div>" +
         '<p class="sms-preview__caption">Celotno sporočilo uredite pri pregledu koraka.</p>' +
         "</div>" +
@@ -1363,6 +1366,7 @@
         esc(accept) +
         '" multiple hidden aria-label="Uvozi račun" />' +
         '<input type="file" id="vk-priloge-kamera" accept="image/*" capture="environment" hidden aria-label="Slikaj račun" />' +
+        "</div>" +
         "</section>"
       );
     }
