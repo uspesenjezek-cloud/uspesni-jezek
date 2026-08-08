@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok-fix" />
+    <link rel="stylesheet" href="styles.css?v=20260808-mozna-ui" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -177,30 +177,66 @@
                 </p>
                 <div class="ton-priporocila__panel" id="panel-mozna-priporocila">
                   <div class="ton-priporocila__sklop" id="sklop-priporocilo-rok">
-                    <div class="ton-priporocila__vrsta">
-                      <p class="ton-priporocila__naslov">Rok plačila</p>
+                    <article class="ton-priporocila__kartica" aria-labelledby="priporocilo-rok-naslov">
+                      <div class="ton-priporocila__ikona" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                      </div>
+                      <div class="ton-priporocila__vsebina">
+                        <p class="ton-priporocila__naslov" id="priporocilo-rok-naslov">Rok plačila</p>
+                        <p class="ton-priporocila__opis">
+                          Dodaj opomnik za rok plačila z jasno navedenim datumom.
+                        </p>
+                      </div>
                       <div class="ton-priporocila__akcije">
-                        <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-rok">
+                        <button
+                          type="button"
+                          class="ton-priporocila__preglej"
+                          id="gumb-preglej-rok"
+                          aria-label="Preglej priporočilo za rok plačila"
+                        >
                           Preglej
                         </button>
-                        <button type="button" class="ton-priporocila__prezri" id="gumb-prezri-rok">
-                          Prezri
+                        <button
+                          type="button"
+                          class="ton-priporocila__prezri"
+                          id="gumb-prezri-rok"
+                          aria-label="Odstrani priporočilo"
+                        >
+                          <span aria-hidden="true">×</span>
                         </button>
                       </div>
-                    </div>
+                    </article>
                   </div>
                   <div class="ton-priporocila__sklop" id="sklop-priporocilo-obrocno">
-                    <div class="ton-priporocila__vrsta">
-                      <p class="ton-priporocila__naslov">Obročno plačilo</p>
+                    <article class="ton-priporocila__kartica" aria-labelledby="priporocilo-obrocno-naslov">
+                      <div class="ton-priporocila__ikona" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                      </div>
+                      <div class="ton-priporocila__vsebina">
+                        <p class="ton-priporocila__naslov" id="priporocilo-obrocno-naslov">Obročno plačilo</p>
+                        <p class="ton-priporocila__opis">
+                          Dodaj informacije o obročnem plačilu in številu obrokov.
+                        </p>
+                      </div>
                       <div class="ton-priporocila__akcije">
-                        <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-obrocno">
+                        <button
+                          type="button"
+                          class="ton-priporocila__preglej"
+                          id="gumb-preglej-obrocno"
+                          aria-label="Preglej priporočilo za obročno plačilo"
+                        >
                           Preglej
                         </button>
-                        <button type="button" class="ton-priporocila__prezri" id="gumb-prezri-obrocno">
-                          Prezri
+                        <button
+                          type="button"
+                          class="ton-priporocila__prezri"
+                          id="gumb-prezri-obrocno"
+                          aria-label="Odstrani priporočilo"
+                        >
+                          <span aria-hidden="true">×</span>
                         </button>
                       </div>
-                    </div>
+                    </article>
                   </div>
                 </div>
               </div>
