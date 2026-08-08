@@ -30,6 +30,24 @@ test("1–2. Enakomerna delitev 75,64 € / 5", () => {
   assert.equal(parts.reduce((a, b) => a + b, 0), 7564);
 });
 
+test("5000 € / 3: prvi ročno 3000 € → 1000 × 2", () => {
+  let plan = UJ.getInstallmentSuggestion({
+    totalDebtCents: 500000,
+    priority: 5,
+    plannedSendDate: "2026-08-08",
+    language: "sl",
+  });
+  plan = UJ.nastaviSteviloObrokov(plan, 3);
+  plan = UJ.nastaviRocniZnesek(plan, plan.installments[0].id, 300000);
+  assert.equal(plan.installments[0].amountMode, "manual");
+  assert.deepEqual(
+    plan.installments.map((r) => r.amountCents),
+    [300000, 100000, 100000]
+  );
+  assert.equal(UJ.vsotaCents(plan.installments), 500000);
+  assert.equal(UJ.validatePlan(plan).ok, true);
+});
+
 test("3–4. Ročni prvi 50 € → 6,41 × 4", () => {
   let plan = UJ.getInstallmentSuggestion({
     totalDebtCents: 7564,
