@@ -5198,18 +5198,11 @@ body.obrocno-sheet-odprt .korak2__noga {
   touch-action: pan-y;
 }
 
-/* Rok: fiksna višina panela – ne skače ob priporočilu / hitrem izbirniku / napaki. */
+/* Rok: fiksna višina panela – ne skače ob priporočilu / hitrem izbirniku / napaki.
+   Tipografija/gumbi: ista merila kot Obročno (.rok-sheet__naslov, .recommendation-card, …). */
 #rok-sheet .rok-sheet__panel {
-  --rok-text: #213d3e;
-  --rok-muted: #607777;
-  --rok-teal: #5fa8aa;
-  --rok-teal-soft: #f1f8f8;
-  --rok-teal-icon: #eaf5f5;
-  --rok-border: #c9dada;
-  --rok-summary-bg: #f5fafa;
   height: min(92dvh, 92vh);
   max-height: min(92dvh, 92vh);
-  border-radius: 24px 24px 0 0;
 }
 
 #rok-sheet .rok-sheet__rocaj,
@@ -5220,64 +5213,6 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 #rok-sheet .rok-sheet__napaka {
   min-height: 1.35em;
-}
-
-#rok-sheet .rok-sheet__naslov {
-  color: var(--rok-text);
-  font-size: 1.55rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-#rok-sheet .rok-sheet__zapri {
-  width: 40px;
-  height: 40px;
-  color: var(--rok-muted);
-  font-size: 1.35rem;
-}
-
-#rok-sheet .recommendation-host {
-  margin: 0 0 28px;
-}
-
-#rok-sheet .recommendation-card {
-  padding: 20px;
-  border-radius: 22px;
-}
-
-#rok-sheet .recommendation-card__star {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(229, 169, 0, 0.14);
-  font-size: 1.15rem;
-}
-
-#rok-sheet .recommendation-card__title {
-  font-size: 1.15rem;
-  font-weight: 700;
-}
-
-#rok-sheet .recommendation-card__description {
-  font-size: 1rem;
-  line-height: 1.45;
-}
-
-#rok-sheet .recommendation-card__actions {
-  gap: 12px;
-  margin-top: 16px;
-}
-
-#rok-sheet .recommendation-card__button {
-  min-height: 52px;
-  border-radius: 14px;
-  font-size: 0.95rem;
-}
-
-#rok-sheet .recommendation-card__button--ignore {
-  background: #ffffff;
 }
 
 .rok-sheet__rocaj {
@@ -5527,18 +5462,14 @@ body.obrocno-sheet-odprt .korak2__noga {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 8px 0 20px;
+  margin: 4px 0 16px;
   cursor: pointer;
 }
 
 .rok-sheet__stikalo-besedilo {
   color: #243d3d;
-  font-size: 1.05rem;
-  font-weight: 500;
-}
-
-#rok-sheet .rok-sheet__stikalo-besedilo {
-  color: var(--rok-text);
+  font-size: 0.92rem;
+  font-weight: 400;
 }
 
 .rok-sheet__stikalo input {
@@ -5583,46 +5514,42 @@ body.obrocno-sheet-odprt .korak2__noga {
   display: block;
   margin: 0 0 8px;
   color: #243d3d;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 500;
 }
 
-#rok-sheet .rok-sheet__oznaka {
-  color: var(--rok-text);
-}
-
-/* Hitra izbira: 3 kartice v vrsti, mreža gumbov znotraj */
+/* Hitra izbira: 3 kartice – merila usklajena z Obročnim sheetom */
 .rok-sheet__hitro {
-  margin: 0 0 20px;
+  margin: 0 0 14px;
 }
 
 .rok-sheet__hitro-naslov {
   margin: 0 0 4px;
-  color: #213d3e;
-  font-size: 1.35rem;
-  font-weight: 700;
+  color: #243d3d;
+  font-size: 0.92rem;
+  font-weight: 650;
   line-height: 1.25;
 }
 
 .rok-sheet__hitro-izhodisce {
-  margin: 0 0 16px;
-  color: #607777;
-  font-size: 0.95rem;
+  margin: 0 0 10px;
+  color: var(--muted, #718585);
+  font-size: 0.78rem;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .rok-sheet__hitro-mreza {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .rok-sheet__hitro-kartica {
   min-width: 0;
-  padding: 12px 8px;
-  border: 1px solid #c9dada;
-  border-radius: 18px;
+  padding: 8px 6px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 12px;
   background: #ffffff;
   box-sizing: border-box;
 }
@@ -5630,8 +5557,8 @@ body.obrocno-sheet-odprt .korak2__noga {
 .rok-sheet__hitro-kartica-glava {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
+  gap: 6px;
+  margin: 0 0 6px;
   min-width: 0;
 }
 
@@ -5639,24 +5566,24 @@ body.obrocno-sheet-odprt .korak2__noga {
   flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: #f1f8f8;
-  color: #5fa8aa;
+  background: #eaf4f3;
+  color: #5aa3a5;
 }
 
 .rok-sheet__hitro-kartica-ikona svg {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 .rok-sheet__hitro-kartica-naslov {
   margin: 0;
   min-width: 0;
-  color: #213d3e;
-  font-size: 0.95rem;
+  color: #243d3d;
+  font-size: 0.72rem;
   font-weight: 650;
   line-height: 1.2;
 }
@@ -5664,7 +5591,7 @@ body.obrocno-sheet-odprt .korak2__noga {
 .rok-sheet__hitro-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 5px;
 }
 
 .rok-sheet__hitro-gumb {
@@ -5673,15 +5600,15 @@ body.obrocno-sheet-odprt .korak2__noga {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 48px;
+  min-height: 34px;
   margin: 0;
-  padding: 6px 4px;
-  border: 1px solid #c9dada;
-  border-radius: 14px;
+  padding: 0;
+  border: 1px solid #c4d7d5;
+  border-radius: 10px;
   background: #ffffff;
-  color: #213d3e;
+  color: #243d3d;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.15;
   text-align: center;
@@ -5694,39 +5621,37 @@ body.obrocno-sheet-odprt .korak2__noga {
 }
 
 .rok-sheet__hitro-gumb[aria-selected="true"] {
-  border: 2px solid #5fa8aa;
-  background: #f1f8f8;
-  color: #213d3e;
-  padding: 5px 3px;
+  border: 1.5px solid #5aa3a5;
+  background: #eaf4f3;
+  color: #243d3d;
 }
 
 .rok-sheet__hitro-gumb[aria-selected="true"]::after {
   content: "✓";
   position: absolute;
-  top: -7px;
-  right: -7px;
+  top: -5px;
+  right: -5px;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #5fa8aa;
+  background: #5aa3a5;
   color: #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(33, 61, 62, 0.16);
 }
 
 .rok-sheet__hitro-gumb:focus-visible {
-  outline: 2px solid #5fa8aa;
+  outline: 2px solid #5aa3a5;
   outline-offset: 2px;
 }
 
 @media (hover: hover) {
   .rok-sheet__hitro-gumb:hover {
     background: #f7fbfb;
-    border-color: #5fa8aa;
+    border-color: #5aa3a5;
   }
 }
 
@@ -5734,12 +5659,12 @@ body.obrocno-sheet-odprt .korak2__noga {
 .rok-sheet__povzetek {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 24px;
-  padding: 16px;
-  border: 1px solid #c9dada;
-  border-radius: 20px;
-  background: #f5fafa;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid var(--border, #c4d7d5);
+  border-radius: 14px;
+  background: #eaf4f3;
   box-sizing: border-box;
 }
 
@@ -5747,15 +5672,17 @@ body.obrocno-sheet-odprt .korak2__noga {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #eaf5f5;
-  color: #5fa8aa;
+  background: #ffffff;
+  color: #5aa3a5;
 }
 
 .rok-sheet__povzetek-ikona svg {
   display: block;
+  width: 18px;
+  height: 18px;
 }
 
 .rok-sheet__povzetek-tekst {
@@ -5765,24 +5692,24 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__povzetek-oznaka {
   margin: 0 0 2px;
-  color: #607777;
-  font-size: 0.9rem;
+  color: var(--muted, #718585);
+  font-size: 0.78rem;
   font-weight: 500;
   line-height: 1.3;
 }
 
 .rok-sheet__povzetek-datum {
   margin: 0;
-  color: #5fa8aa;
-  font-size: 1.25rem;
-  font-weight: 700;
+  color: #5aa3a5;
+  font-size: 1rem;
+  font-weight: 650;
   line-height: 1.25;
 }
 
 .rok-sheet__povzetek-rel {
   margin: 2px 0 0;
-  color: #607777;
-  font-size: 0.9rem;
+  color: var(--muted, #718585);
+  font-size: 0.78rem;
   line-height: 1.3;
 }
 
@@ -5792,26 +5719,26 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__povzetek-rocno {
   flex: 0 0 auto;
-  min-height: 40px;
+  min-height: 36px;
   margin: 0;
-  padding: 8px 14px;
-  border: 1px solid #5fa8aa;
-  border-radius: 12px;
+  padding: 6px 12px;
+  border: 1px solid #5aa3a5;
+  border-radius: 10px;
   background: #ffffff;
-  color: #5fa8aa;
+  color: #347d7e;
   font: inherit;
-  font-size: 0.9rem;
-  font-weight: 650;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
   box-sizing: border-box;
 }
 
 .rok-sheet__povzetek-rocno:hover {
-  background: #f1f8f8;
+  background: #f3faf9;
 }
 
 .rok-sheet__povzetek-rocno:focus-visible {
-  outline: 2px solid #5fa8aa;
+  outline: 2px solid #5aa3a5;
   outline-offset: 2px;
 }
 
@@ -5834,55 +5761,36 @@ body.obrocno-sheet-odprt .korak2__noga {
   }
 
   .rok-sheet__hitro-kartica {
-    padding: 8px 5px;
+    padding: 6px 4px;
   }
 
   .rok-sheet__hitro-kartica-ikona {
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
   }
 
   .rok-sheet__hitro-kartica-ikona svg {
-    width: 15px;
-    height: 15px;
-  }
-
-  .rok-sheet__hitro-kartica-naslov {
-    font-size: 0.82rem;
+    width: 12px;
+    height: 12px;
   }
 
   .rok-sheet__hitro-gumb {
-    min-height: 42px;
-    font-size: 0.7rem;
+    min-height: 30px;
+    font-size: 0.8rem;
   }
 
   .rok-sheet__povzetek {
-    padding: 12px;
-    gap: 10px;
+    padding: 10px;
+    gap: 8px;
   }
 
   .rok-sheet__povzetek-ikona {
-    width: 42px;
-    height: 42px;
+    width: 32px;
+    height: 32px;
   }
 
   .rok-sheet__povzetek-datum {
-    font-size: 1.1rem;
-  }
-}
-
-@media (min-width: 400px) {
-  .rok-sheet__hitro-mreza {
-    gap: 12px;
-  }
-
-  .rok-sheet__hitro-kartica {
-    padding: 14px 10px;
-  }
-
-  .rok-sheet__hitro-gumb {
-    min-height: 54px;
-    font-size: 0.88rem;
+    font-size: 0.95rem;
   }
 }
 
@@ -5922,12 +5830,12 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__datum {
   width: 100%;
-  min-height: 56px;
-  padding: 12px 48px 12px 14px;
-  border: 1px solid #c9dada;
-  border-radius: 16px;
+  min-height: 48px;
+  padding: 10px 40px 10px 12px;
+  border: 1px solid #c4d7d5;
+  border-radius: 12px;
   background: #ffffff;
-  color: #213d3d;
+  color: #243d3d;
   font: inherit;
   font-size: 16px;
   box-sizing: border-box;
@@ -5941,21 +5849,21 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__datum-ikona {
   position: absolute;
-  right: 16px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #5fa8aa;
+  color: #5aa3a5;
   pointer-events: none;
 }
 
 .rok-sheet__pomoc {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  margin: 0 0 8px;
+  gap: 5px;
+  margin: 0 0 6px;
   color: #6a7f7a;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
 
 .rok-sheet__pomoc--priporoceno {
@@ -5965,9 +5873,9 @@ body.obrocno-sheet-odprt .korak2__noga {
 
 .rok-sheet__pomoc-zvezda {
   flex-shrink: 0;
-  color: #e5a900;
-  font-size: 0.95rem;
-  line-height: 1.4;
+  color: #e8b923;
+  font-size: 0.78rem;
+  line-height: 1.35;
   text-shadow: 0 0 0 #c9a227;
 }
 
@@ -6025,36 +5933,36 @@ body.obrocno-sheet-odprt .korak2__noga {
 .rok-sheet__noga-vrsta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .rok-sheet__noga {
   flex-shrink: 0;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid #dce7e4;
   background: #ffffff;
 }
 
 .rok-sheet__gumb {
-  min-height: 52px;
+  min-height: 46px;
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 16px;
+  padding: 8px 12px;
+  border-radius: 12px;
   font: inherit;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .rok-sheet__gumb--obris {
-  border: 1px solid #5fa8aa;
+  border: 1px solid #5aa3a5;
   background: #ffffff;
-  color: #5fa8aa;
+  color: #347d7e;
 }
 
 .rok-sheet__gumb--primarni {
-  border: 1px solid #5fa8aa;
-  background: #5fa8aa;
+  border: 1px solid #5aa3a5;
+  background: #5aa3a5;
   color: #ffffff;
 }
 
