@@ -37,6 +37,171 @@ const CSS_RAZRED_STATUSA = {
    dokler obrtnik ne konča 3. koraka - glej inicializirajNeplacila (shrani)
    in inicializirajPosiljanje (prebere in na koncu izbriše). */
 const KLJUC_SEJE_KORAK1_PODATKI = "neplacilo-korak1-podatki";
+
+/* ---------- Kanali pošiljanja (SMS / e-pošta) ---------- */
+function normalizirajKanale(k) {
+  return {
+    sms: Boolean(k && k.sms),
+    email: Boolean(k && k.email),
+  };
+}
+
+function kopirajKanale(k) {
+  return normalizirajKanale(k);
+}
+
+function razpolozljiviKanaliIzKontaktov(telefon, email) {
+  return {
+    sms: Boolean(String(telefon || "").trim()),
+    email: Boolean(String(email || "").trim()),
+  };
+}
+
+function privzetiKanaliIzKontaktov(telefon, email) {
+  return razpolozljiviKanaliIzKontaktov(telefon, email);
+}
+
+function zagotoviVsajEnKanal(kanali, razpolozljivi) {
+  const raz = razpolozljivi || { sms: true, email: true };
+  const k = {
+    sms: Boolean(kanali && kanali.sms) && Boolean(raz.sms),
+    email: Boolean(kanali && kanali.email) && Boolean(raz.email),
+  };
+  if (!k.sms && !k.email) {
+    if (raz.sms) k.sms = true;
+    else if (raz.email) k.email = true;
+  }
+  return k;
+}
+
+function pocistiKanaleGledeNaKontakte(kanali, razpolozljivi) {
+  return zagotoviVsajEnKanal(kanali, razpolozljivi);
+}
+
+function oznakaSegmentaKanalov(kanali) {
+  const k = normalizirajKanale(kanali);
+  if (k.sms && k.email) return "oboje";
+  if (k.sms) return "sms";
+  if (k.email) return "email";
+  return "";
+}
+
+function kanaliIzSegmenta(vrednost) {
+  if (vrednost === "oboje") return { sms: true, email: true };
+  if (vrednost === "sms") return { sms: true, email: false };
+  if (vrednost === "email") return { sms: false, email: true };
+  return { sms: false, email: false };
+}
+
+/** Segment SMS / E-pošta / Oboje (ali zaklenjena oznaka, če je na voljo samo en kanal). */
+function ustvariKanalSegment(opts) {
+  opts = opts || {};
+  const raz =
+    opts.razpolozljivi ||
+    razpolozljiviKanaliIzKontaktov(opts.telefon, opts.email);
+  const k = zagotoviVsajEnKanal(opts.kanali, raz);
+  const wrap = document.createElement("div");
+  wrap.className = "kanal-segment";
+  wrap.setAttribute("role", "group");
+  wrap.setAttribute("aria-label", opts.ariaLabel || "Kanal pošiljanja");
+
+  const opcije = [];
+  if (raz.sms) opcije.push({ id: "sms", label: "SMS" });
+  if (raz.email) opcije.push({ id: "email", label: "E-pošta" });
+  if (raz.sms && raz.email) opcije.push({ id: "oboje", label: "Oboje" });
+
+  if (opcije.length === 0) {
+    const prazno = document.createElement("span");
+    prazno.className = "kanal-segment__prazno";
+    prazno.textContent = "Ni kontakta";
+    wrap.appendChild(prazno);
+    return wrap;
+  }
+
+  if (opcije.length === 1) {
+    const badge = document.createElement("span");
+    badge.className = "kanal-segment__samo";
+    badge.textContent = opcije[0].label;
+    wrap.appendChild(badge);
+    return wrap;
+  }
+
+  const name =
+    opts.name || "kanal-seg-" + Math.random().toString(36).slice(2, 9);
+  let aktivna = oznakaSegmentaKanalov(k);
+  if (!aktivna || !opcije.some((o) => o.id === aktivna)) {
+    aktivna = raz.sms && raz.email ? "oboje" : opcije[0].id;
+  }
+
+  opcije.forEach((op) => {
+    const label = document.createElement("label");
+    label.className = "kanal-segment__opcija";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = name;
+    input.value = op.id;
+    input.checked = aktivna === op.id;
+    input.addEventListener("change", () => {
+      if (!input.checked || typeof opts.onChange !== "function") return;
+      opts.onChange(kanaliIzSegmenta(op.id));
+    });
+    const span = document.createElement("span");
+    span.textContent = op.label;
+    label.appendChild(input);
+    label.appendChild(span);
+    wrap.appendChild(label);
+  });
+  return wrap;
+}
+
+function uskladiAttachmentKanaleVKorak1(k1) {
+  if (!k1 || typeof k1 !== "object") return k1;
+  const poti = Array.isArray(k1.racunDatotekePoti) ? k1.racunDatotekePoti : [];
+  const raz = razpolozljiviKanaliIzKontaktov(
+    k1.telefonDolznika,
+    k1.emailDolznika
+  );
+  const priv = zagotoviVsajEnKanal(
+    k1.privzetiKanali ||
+      privzetiKanaliIzKontaktov(k1.telefonDolznika, k1.emailDolznika),
+    raz
+  );
+  k1.privzetiKanali = priv;
+  if (!Array.isArray(k1.attachmentKanali)) k1.attachmentKanali = [];
+  while (k1.attachmentKanali.length < poti.length) {
+    k1.attachmentKanali.push(kopirajKanale(priv));
+  }
+  k1.attachmentKanali = k1.attachmentKanali
+    .slice(0, poti.length)
+    .map((k) => pocistiKanaleGledeNaKontakte(k, raz));
+  return k1;
+}
+
+function povzetekKanalovPrilog(attachmentKanali) {
+  const seznam = Array.isArray(attachmentKanali) ? attachmentKanali : [];
+  if (!seznam.length) return "";
+  let sms = 0;
+  let email = 0;
+  seznam.forEach((k) => {
+    if (k && k.sms) sms += 1;
+    if (k && k.email) email += 1;
+  });
+  const deli = [];
+  if (email) {
+    deli.push(
+      email === 1 ? "1 priloga po e-pošti" : email + " prilog po e-pošti"
+    );
+  }
+  if (sms) {
+    deli.push(
+      sms === 1
+        ? "1 priloga po SMS (povezava)"
+        : sms + " prilog po SMS (povezava)"
+    );
+  }
+  return deli.join(", ") + ".";
+}
+
 /* Podatki 2. koraka (sporočilo + izbrani predlog/dodatki), dokler obrtnik
    ne konča 3. koraka (neplacila-posiljanje.html). */
 const KLJUC_SEJE_KORAK2_PODATKI = "neplacilo-korak2-podatki";
@@ -1090,24 +1255,39 @@ function inicializirajNeplacila() {
   function trenutnePotiPrilogZaSejo() {
     const poti = [];
     const origins = [];
+    const kanali = [];
     messageAttachments.forEach((p) => {
       if (p && p.pot) {
         poti.push(String(p.pot));
         origins.push(p.origin || "manual_attachment");
+        kanali.push(
+          kopirajKanale(
+            p.kanali ||
+              (typeof trenutniPrivzetiKanali === "function"
+                ? trenutniPrivzetiKanali()
+                : { sms: true, email: true })
+          )
+        );
       }
     });
-    return { poti, origins };
+    return { poti, origins, kanali };
   }
 
   function syncPrilogeVSejoKorak1() {
     const obstojeci = preberiObstojeciOsnutekKorak1();
-    const { poti, origins } = trenutnePotiPrilogZaSejo();
+    const { poti, origins, kanali } = trenutnePotiPrilogZaSejo();
+    const priv =
+      typeof trenutniPrivzetiKanali === "function"
+        ? trenutniPrivzetiKanali()
+        : obstojeci.privzetiKanali || { sms: false, email: false };
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK1_PODATKI,
       JSON.stringify({
         ...obstojeci,
         racunDatotekePoti: poti,
         attachmentOrigins: origins,
+        attachmentKanali: kanali,
+        privzetiKanali: priv,
         shouldSendAttachment: shouldSendAttachment,
       })
     );
@@ -1117,10 +1297,24 @@ function inicializirajNeplacila() {
     const p = osnutek || {};
     const poti = Array.isArray(p.racunDatotekePoti) ? p.racunDatotekePoti : [];
     const origins = Array.isArray(p.attachmentOrigins) ? p.attachmentOrigins : [];
+    const kanaliArr = Array.isArray(p.attachmentKanali) ? p.attachmentKanali : [];
+    const raz = razpolozljiviKanaliIzKontaktov(
+      p.telefonDolznika,
+      p.emailDolznika
+    );
+    const priv = zagotoviVsajEnKanal(
+      p.privzetiKanali ||
+        privzetiKanaliIzKontaktov(p.telefonDolznika, p.emailDolznika),
+      raz
+    );
     messageAttachments = poti.map((pot, i) => ({
       pot: String(pot),
       origin: origins[i] || "manual_attachment",
       ime: imeDatotekeIzPoti(String(pot)),
+      kanali: pocistiKanaleGledeNaKontakte(
+        kanaliArr[i] || priv,
+        raz
+      ),
     }));
     if (typeof p.shouldSendAttachment === "boolean") {
       shouldSendAttachment = p.shouldSendAttachment;
@@ -1133,21 +1327,30 @@ function inicializirajNeplacila() {
   async function sestaviPotiInIzvorePrilogZaOddajo() {
     const poti = [];
     const origins = [];
+    const kanali = [];
     const noveDatoteke = [];
     const metaNovih = [];
+    const priv =
+      typeof trenutniPrivzetiKanali === "function"
+        ? trenutniPrivzetiKanali()
+        : { sms: true, email: true };
 
     messageAttachments.forEach((p) => {
+      const k = kopirajKanale(p.kanali || priv);
       if (p && p.file) {
         metaNovih.push({
           indeks: poti.length,
           origin: p.origin || "manual_attachment",
+          kanali: k,
         });
         poti.push(null);
         origins.push(p.origin || "manual_attachment");
+        kanali.push(k);
         noveDatoteke.push(p.file);
       } else if (p && p.pot) {
         poti.push(String(p.pot));
         origins.push(p.origin || "manual_attachment");
+        kanali.push(k);
       }
     });
 
@@ -1157,10 +1360,11 @@ function inicializirajNeplacila() {
       metaNovih.forEach((m, i) => {
         poti[m.indeks] = rezultat.poti[i];
         origins[m.indeks] = m.origin;
+        kanali[m.indeks] = m.kanali;
       });
     }
 
-    return { poti, origins };
+    return { poti, origins, kanali };
   }
 
   function izrisiIzbranePriloge() {
@@ -1324,9 +1528,24 @@ function inicializirajNeplacila() {
     const seznam = Array.from(datoteke || []);
     if (!seznam.length) return;
     const izvorPriloge = izvor || "manual_attachment";
+    const telEl = document.getElementById("telefon-dolznika");
+    const emailEl = document.getElementById("email-dolznika");
+    const tel = telEl ? String(telEl.value || "").trim() : "";
+    const email = emailEl ? String(emailEl.value || "").trim() : "";
+    const raz = razpolozljiviKanaliIzKontaktov(tel, email);
+    const priv = zagotoviVsajEnKanal(
+      typeof trenutniPrivzetiKanali === "function"
+        ? trenutniPrivzetiKanali()
+        : { sms: false, email: false },
+      raz
+    );
     for (const datoteka of seznam) {
       if (messageAttachments.length >= NAJVEC_PRILOG) break;
-      messageAttachments.push({ file: datoteka, origin: izvorPriloge });
+      messageAttachments.push({
+        file: datoteka,
+        origin: izvorPriloge,
+        kanali: kopirajKanale(priv),
+      });
     }
     if (seznam.length) shouldSendAttachment = true;
     syncPrilogeVSejoKorak1();
@@ -1587,7 +1806,17 @@ function inicializirajNeplacila() {
 
     const ocrIndeks = messageAttachments.findIndex((p) => p.origin === "ocr");
     if (ocrIndeks >= 0) {
-      messageAttachments[ocrIndeks] = { file: datoteka, origin: "ocr" };
+      const stari = messageAttachments[ocrIndeks];
+      messageAttachments[ocrIndeks] = {
+        file: datoteka,
+        origin: "ocr",
+        kanali: kopirajKanale(
+          (stari && stari.kanali) ||
+            (typeof trenutniPrivzetiKanali === "function"
+              ? trenutniPrivzetiKanali()
+              : { sms: false, email: false })
+        ),
+      };
       shouldSendAttachment = true;
       syncPrilogeVSejoKorak1();
       izrisiIzbranePriloge();
@@ -1694,6 +1923,9 @@ function inicializirajNeplacila() {
     if (!imaTelefon && !imaEmail) {
       oznaciPoljeKotAiManjka(telefon);
       oznaciPoljeKotAiManjka(email);
+    }
+    if (typeof posodobiKontaktneKljukice === "function") {
+      posodobiKontaktneKljukice();
     }
   }
 
@@ -2204,8 +2436,90 @@ function inicializirajNeplacila() {
   const napakaKontakt = document.getElementById("napaka-kontakt");
   const poljeTelefon = document.getElementById("telefon-dolznika");
   const poljeEmail = document.getElementById("email-dolznika");
+  const kljukicaSms = document.getElementById("kanal-privzeto-sms");
+  const kljukicaEmail = document.getElementById("kanal-privzeto-email");
+  let smsRocnoIzklop = false;
+  let emailRocnoIzklop = false;
   let casovnikOsnutkaKorak1 = null;
   let casovnikOznakeOsnutkaKorak1 = null;
+
+  function trenutniPrivzetiKanali() {
+    return {
+      sms: Boolean(kljukicaSms && !kljukicaSms.disabled && kljukicaSms.checked),
+      email: Boolean(
+        kljukicaEmail && !kljukicaEmail.disabled && kljukicaEmail.checked
+      ),
+    };
+  }
+
+  function posodobiKontaktneKljukice() {
+    const tel = poljeTelefon ? String(poljeTelefon.value || "").trim() : "";
+    const email = poljeEmail ? String(poljeEmail.value || "").trim() : "";
+
+    if (kljukicaSms) {
+      kljukicaSms.disabled = !tel;
+      if (!tel) {
+        kljukicaSms.checked = false;
+        smsRocnoIzklop = false;
+      } else if (!smsRocnoIzklop) {
+        kljukicaSms.checked = true;
+      }
+    }
+    if (kljukicaEmail) {
+      kljukicaEmail.disabled = !email;
+      if (!email) {
+        kljukicaEmail.checked = false;
+        emailRocnoIzklop = false;
+      } else if (!emailRocnoIzklop) {
+        kljukicaEmail.checked = true;
+      }
+    }
+  }
+
+  function obnoviKontaktneKljukiceIzOsnutka(osnutek) {
+    const p = osnutek || {};
+    const tel = String(
+      p.telefonDolznika || (poljeTelefon && poljeTelefon.value) || ""
+    ).trim();
+    const email = String(
+      p.emailDolznika || (poljeEmail && poljeEmail.value) || ""
+    ).trim();
+    const priv =
+      p.privzetiKanali || privzetiKanaliIzKontaktov(tel, email);
+    smsRocnoIzklop = Boolean(tel) && priv.sms === false;
+    emailRocnoIzklop = Boolean(email) && priv.email === false;
+    if (kljukicaSms) {
+      kljukicaSms.disabled = !tel;
+      kljukicaSms.checked = Boolean(tel) && Boolean(priv.sms);
+    }
+    if (kljukicaEmail) {
+      kljukicaEmail.disabled = !email;
+      kljukicaEmail.checked = Boolean(email) && Boolean(priv.email);
+    }
+  }
+
+  if (kljukicaSms) {
+    kljukicaSms.addEventListener("change", () => {
+      const tel = poljeTelefon ? String(poljeTelefon.value || "").trim() : "";
+      if (!tel) return;
+      smsRocnoIzklop = !kljukicaSms.checked;
+      narociShranjevanjeOsnutkaKorak1();
+    });
+  }
+  if (kljukicaEmail) {
+    kljukicaEmail.addEventListener("change", () => {
+      const email = poljeEmail ? String(poljeEmail.value || "").trim() : "";
+      if (!email) return;
+      emailRocnoIzklop = !kljukicaEmail.checked;
+      narociShranjevanjeOsnutkaKorak1();
+    });
+  }
+
+  if (osnutekKorak1ZaPriloge) {
+    obnoviKontaktneKljukiceIzOsnutka(osnutekKorak1ZaPriloge);
+  } else {
+    posodobiKontaktneKljukice();
+  }
 
   function oznaciShranjevanjeKorak1() {
     const statusEl = document.getElementById("osnutek-status");
@@ -2242,6 +2556,22 @@ function inicializirajNeplacila() {
     oznaciShranjevanjeKorak1();
     const podatki = new FormData(obrazec);
     const obstojeci = preberiObstojeciOsnutekKorak1();
+    const izSeje = trenutnePotiPrilogZaSejo();
+    const poti = izSeje.poti.length
+      ? izSeje.poti
+      : Array.isArray(obstojeci.racunDatotekePoti)
+        ? obstojeci.racunDatotekePoti
+        : [];
+    const origins = izSeje.origins.length
+      ? izSeje.origins
+      : Array.isArray(obstojeci.attachmentOrigins)
+        ? obstojeci.attachmentOrigins
+        : [];
+    const kanali = izSeje.kanali.length
+      ? izSeje.kanali
+      : Array.isArray(obstojeci.attachmentKanali)
+        ? obstojeci.attachmentKanali
+        : [];
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK1_PODATKI,
       JSON.stringify({
@@ -2253,21 +2583,11 @@ function inicializirajNeplacila() {
         datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
         datumZapadlosti: podatki.get("datum") || null,
         stevilkaRacuna: String(podatki.get("stevilkaRacuna") || "").trim() || null,
-        racunDatotekePoti: (() => {
-          const izSeje = trenutnePotiPrilogZaSejo();
-          if (izSeje.poti.length) return izSeje.poti;
-          return Array.isArray(obstojeci.racunDatotekePoti)
-            ? obstojeci.racunDatotekePoti
-            : [];
-        })(),
+        racunDatotekePoti: poti,
         shouldSendAttachment: shouldSendAttachment,
-        attachmentOrigins: (() => {
-          const izSeje = trenutnePotiPrilogZaSejo();
-          if (izSeje.origins.length) return izSeje.origins;
-          return Array.isArray(obstojeci.attachmentOrigins)
-            ? obstojeci.attachmentOrigins
-            : [];
-        })(),
+        attachmentOrigins: origins,
+        attachmentKanali: kanali.slice(0, poti.length),
+        privzetiKanali: trenutniPrivzetiKanali(),
       })
     );
   }
@@ -2295,10 +2615,16 @@ function inicializirajNeplacila() {
   }
 
   if (poljeTelefon) {
-    poljeTelefon.addEventListener("input", skrijNapakoKontakta);
+    poljeTelefon.addEventListener("input", () => {
+      skrijNapakoKontakta();
+      posodobiKontaktneKljukice();
+    });
   }
   if (poljeEmail) {
-    poljeEmail.addEventListener("input", skrijNapakoKontakta);
+    poljeEmail.addEventListener("input", () => {
+      skrijNapakoKontakta();
+      posodobiKontaktneKljukice();
+    });
   }
 
   obrazec.addEventListener("input", narociShranjevanjeOsnutkaKorak1);
@@ -2353,6 +2679,16 @@ function inicializirajNeplacila() {
       shouldSendAttachment:
         rezultatPrilog.poti.length > 0 && shouldSendAttachment,
       attachmentOrigins: rezultatPrilog.origins,
+      attachmentKanali: (rezultatPrilog.kanali || []).map((k) =>
+        pocistiKanaleGledeNaKontakte(
+          k,
+          razpolozljiviKanaliIzKontaktov(telefonDolznika, emailDolznika)
+        )
+      ),
+      privzetiKanali: zagotoviVsajEnKanal(
+        trenutniPrivzetiKanali(),
+        razpolozljiviKanaliIzKontaktov(telefonDolznika, emailDolznika)
+      ),
     };
 
     const novHash = hashKorak1Podatkov(noviKorak1);
@@ -2596,6 +2932,39 @@ function inicializirajSporociloDolzniku() {
   pokaziKratkoObvestiloCeObstaja();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
+  uskladiAttachmentKanaleVKorak1(podatkiKorak1);
+  sessionStorage.setItem(
+    KLJUC_SEJE_KORAK1_PODATKI,
+    JSON.stringify(podatkiKorak1)
+  );
+  let podatkiKorak2LokalniKanali = null;
+  try {
+    const k2zacetek = preberiKorak2Sejo();
+    const razZacetek = razpolozljiviKanaliIzKontaktov(
+      podatkiKorak1.telefonDolznika,
+      podatkiKorak1.emailDolznika
+    );
+    if (k2zacetek && k2zacetek.sporociloKanali) {
+      podatkiKorak2LokalniKanali = pocistiKanaleGledeNaKontakte(
+        k2zacetek.sporociloKanali,
+        razZacetek
+      );
+    } else {
+      podatkiKorak2LokalniKanali = pocistiKanaleGledeNaKontakte(
+        podatkiKorak1.privzetiKanali ||
+          privzetiKanaliIzKontaktov(
+            podatkiKorak1.telefonDolznika,
+            podatkiKorak1.emailDolznika
+          ),
+        razZacetek
+      );
+    }
+  } catch (_e) {
+    podatkiKorak2LokalniKanali = privzetiKanaliIzKontaktov(
+      podatkiKorak1.telefonDolznika,
+      podatkiKorak1.emailDolznika
+    );
+  }
   /* Če fingerprint še manjka (stare seje), nastavi iz trenutnega koraka 1. */
   if (!preberiKorak1Fingerprint()) {
     shraniKorak1Fingerprint(podatkiKorak1);
@@ -2910,6 +3279,23 @@ function inicializirajSporociloDolzniku() {
     // Zastavico potrjen ohranimo, če je uporabnik že uspešno nadaljeval na 3.
     const obstojeci = preberiKorak2Sejo();
     const zePotrjen = Boolean(obstojeci && obstojeci.potrjen === true);
+    const raz = razpolozljiviKanaliIzKontaktov(
+      podatkiKorak1.telefonDolznika,
+      podatkiKorak1.emailDolznika
+    );
+    let sporociloKanali =
+      (obstojeci && obstojeci.sporociloKanali) || podatkiKorak2LokalniKanali;
+    if (!sporociloKanali) {
+      sporociloKanali = kopirajKanale(
+        podatkiKorak1.privzetiKanali ||
+          privzetiKanaliIzKontaktov(
+            podatkiKorak1.telefonDolznika,
+            podatkiKorak1.emailDolznika
+          )
+      );
+    }
+    sporociloKanali = pocistiKanaleGledeNaKontakte(sporociloKanali, raz);
+    podatkiKorak2LokalniKanali = sporociloKanali;
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK2_PODATKI,
       JSON.stringify({
@@ -2923,6 +3309,7 @@ function inicializirajSporociloDolzniku() {
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         priporocilaPrezrta: { ...priporocilaPrezrta },
         potrjen: zePotrjen,
+        sporociloKanali: sporociloKanali,
       })
     );
   }
@@ -5274,6 +5661,19 @@ function inicializirajSporociloDolzniku() {
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         priporocilaPrezrta: { ...priporocilaPrezrta },
         potrjen: true,
+        sporociloKanali: pocistiKanaleGledeNaKontakte(
+          podatkiKorak2LokalniKanali ||
+            (preberiKorak2Sejo() && preberiKorak2Sejo().sporociloKanali) ||
+            podatkiKorak1.privzetiKanali ||
+            privzetiKanaliIzKontaktov(
+              podatkiKorak1.telefonDolznika,
+              podatkiKorak1.emailDolznika
+            ),
+          razpolozljiviKanaliIzKontaktov(
+            podatkiKorak1.telefonDolznika,
+            podatkiKorak1.emailDolznika
+          )
+        ),
       })
     );
 
@@ -5571,6 +5971,15 @@ function inicializirajSporociloDolzniku() {
         priporocilaPrezrta: { ...priporocilaPrezrta },
         potrjen: Boolean(k2.potrjen),
         osveziObIstemRacunu: false,
+        sporociloKanali: pocistiKanaleGledeNaKontakte(
+          podatkiKorak2LokalniKanali ||
+            k2.sporociloKanali ||
+            podatkiKorak1.privzetiKanali,
+          razpolozljiviKanaliIzKontaktov(
+            podatkiKorak1.telefonDolznika,
+            podatkiKorak1.emailDolznika
+          )
+        ),
       })
     );
     najOsvezimObIstemRacunu = false;
@@ -5702,11 +6111,35 @@ function inicializirajPosiljanje() {
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const podatkiKorak2 = JSON.parse(podatkiKorak2Json);
+  uskladiAttachmentKanaleVKorak1(podatkiKorak1);
+  const razKanali = razpolozljiviKanaliIzKontaktov(
+    podatkiKorak1.telefonDolznika,
+    podatkiKorak1.emailDolznika
+  );
+  podatkiKorak2.sporociloKanali = pocistiKanaleGledeNaKontakte(
+    podatkiKorak2.sporociloKanali ||
+      podatkiKorak1.privzetiKanali ||
+      privzetiKanaliIzKontaktov(
+        podatkiKorak1.telefonDolznika,
+        podatkiKorak1.emailDolznika
+      ),
+    razKanali
+  );
+  sessionStorage.setItem(
+    KLJUC_SEJE_KORAK1_PODATKI,
+    JSON.stringify(podatkiKorak1)
+  );
+  sessionStorage.setItem(
+    KLJUC_SEJE_KORAK2_PODATKI,
+    JSON.stringify(podatkiKorak2)
+  );
+
   const prilogaInfo = document.getElementById("priloga-posiljanje-info");
   const prilogaBesedilo = document.getElementById("priloga-posiljanje-besedilo");
-  const prilogaKanali = document.getElementById("priloga-posiljanje-kanali");
-  const kanalEmail = document.getElementById("kanal-email");
-  const kanalSms = document.getElementById("kanal-sms");
+  const sporociloKanaliEl = document.getElementById("sporocilo-kanali");
+  const sporociloKanaliSegment = document.getElementById(
+    "sporocilo-kanali-segment"
+  );
 
   function pokaziNapako(besedilo, tehnicniPodatki) {
     if (!napaka) return;
@@ -5716,7 +6149,42 @@ function inicializirajPosiljanje() {
     napaka.hidden = false;
   }
 
-  /* Prikaz priloge glede na kanal (e-pošta = PDF, SMS = varna povezava). */
+  function shraniKorak2KanaleVSejo() {
+    sessionStorage.setItem(
+      KLJUC_SEJE_KORAK2_PODATKI,
+      JSON.stringify(podatkiKorak2)
+    );
+  }
+
+  function izrisiSegmentSporocila() {
+    if (!sporociloKanaliSegment) return;
+    sporociloKanaliSegment.innerHTML = "";
+    const raz = razpolozljiviKanaliIzKontaktov(
+      podatkiKorak1.telefonDolznika,
+      podatkiKorak1.emailDolznika
+    );
+    podatkiKorak2.sporociloKanali = pocistiKanaleGledeNaKontakte(
+      podatkiKorak2.sporociloKanali,
+      raz
+    );
+    sporociloKanaliSegment.appendChild(
+      ustvariKanalSegment({
+        kanali: podatkiKorak2.sporociloKanali,
+        razpolozljivi: raz,
+        name: "sporocilo-kanal-seg",
+        ariaLabel: "Kanal glavnega sporočila",
+        onChange: (k) => {
+          podatkiKorak2.sporociloKanali = pocistiKanaleGledeNaKontakte(k, raz);
+          shraniKorak2KanaleVSejo();
+        },
+      })
+    );
+    if (sporociloKanaliEl) {
+      sporociloKanaliEl.hidden = !raz.sms && !raz.email;
+    }
+  }
+
+  /* Povzetek prilog glede na kanale posameznih datotek. */
   function posodobiBesediloPrilogeZaKanal() {
     if (!prilogaInfo || !prilogaBesedilo) return;
     const imaPrilogo =
@@ -5728,40 +6196,12 @@ function inicializirajPosiljanje() {
       return;
     }
     prilogaInfo.hidden = false;
-    const imaEmail = Boolean(podatkiKorak1.emailDolznika);
-    const imaTelefon = Boolean(podatkiKorak1.telefonDolznika);
-    if (prilogaKanali) prilogaKanali.hidden = !(imaEmail && imaTelefon);
-    let kanal = "email";
-    if (kanalSms && kanalSms.checked) kanal = "sms";
-    else if (kanalEmail && kanalEmail.checked) kanal = "email";
-    else if (!imaEmail && imaTelefon) kanal = "sms";
-    if (kanalEmail) {
-      kanalEmail.disabled = !imaEmail;
-      if (imaEmail && !imaTelefon) kanalEmail.checked = true;
-    }
-    if (kanalSms) {
-      kanalSms.disabled = !imaTelefon;
-      if (imaTelefon && !imaEmail) kanalSms.checked = true;
-    }
-    if (
-      imaEmail &&
-      imaTelefon &&
-      kanalEmail &&
-      kanalSms &&
-      !kanalEmail.checked &&
-      !kanalSms.checked
-    ) {
-      kanalEmail.checked = true;
-      kanal = "email";
-    }
+    uskladiAttachmentKanaleVKorak1(podatkiKorak1);
+    const povzetek = povzetekKanalovPrilog(podatkiKorak1.attachmentKanali);
     prilogaBesedilo.textContent =
-      kanal === "sms"
-        ? "Dolžnik bo prejel varno povezavo do računa."
-        : "Račun bo priložen e-poštnemu sporočilu kot PDF.";
+      povzetek ||
+      "Priloge bodo poslane glede na izbrane kanale pri vsaki datoteki.";
   }
-
-  if (kanalEmail) kanalEmail.addEventListener("change", posodobiBesediloPrilogeZaKanal);
-  if (kanalSms) kanalSms.addEventListener("change", posodobiBesediloPrilogeZaKanal);
 
   /* ---------- Upravljanje prilog računa na koraku 3 ---------- */
   const NAJVEC_PRILOG_K3 = 6;
@@ -5825,8 +6265,14 @@ function inicializirajPosiljanje() {
   }
 
   function izrisiKorak3Priloge() {
+    uskladiAttachmentKanaleVKorak1(podatkiKorak1);
     const poti = podatkiKorak1.racunDatotekePoti;
     const origins = podatkiKorak1.attachmentOrigins || [];
+    const kanaliArr = podatkiKorak1.attachmentKanali || [];
+    const raz = razpolozljiviKanaliIzKontaktov(
+      podatkiKorak1.telefonDolznika,
+      podatkiKorak1.emailDolznika
+    );
     const ima = poti.length > 0;
     const meja = poti.length >= NAJVEC_PRILOG_K3;
     if (k3Prazno) k3Prazno.hidden = ima;
@@ -5856,6 +6302,9 @@ function inicializirajPosiljanje() {
       const vrstica = document.createElement("div");
       vrstica.className = "racun-posiljanje__kartica";
       vrstica.setAttribute("role", "listitem");
+
+      const glava = document.createElement("div");
+      glava.className = "racun-posiljanje__kartica-glava";
 
       const predogledGumb = document.createElement("button");
       predogledGumb.type = "button";
@@ -5911,6 +6360,9 @@ function inicializirajPosiljanje() {
         if (Array.isArray(podatkiKorak1.attachmentOrigins)) {
           podatkiKorak1.attachmentOrigins.splice(indeks, 1);
         }
+        if (Array.isArray(podatkiKorak1.attachmentKanali)) {
+          podatkiKorak1.attachmentKanali.splice(indeks, 1);
+        }
         if (podatkiKorak1.racunDatotekePoti.length === 0) {
           podatkiKorak1.shouldSendAttachment = true;
         }
@@ -5919,10 +6371,33 @@ function inicializirajPosiljanje() {
         izrisiKorak3Priloge();
       });
 
-      vrstica.appendChild(predogledGumb);
-      vrstica.appendChild(odstrani);
+      glava.appendChild(predogledGumb);
+      glava.appendChild(odstrani);
+      vrstica.appendChild(glava);
+
+      const kanaliPriloge = pocistiKanaleGledeNaKontakte(
+        kanaliArr[indeks] || podatkiKorak1.privzetiKanali,
+        raz
+      );
+      podatkiKorak1.attachmentKanali[indeks] = kanaliPriloge;
+      vrstica.appendChild(
+        ustvariKanalSegment({
+          kanali: kanaliPriloge,
+          razpolozljivi: raz,
+          name: "priloga-kanal-" + indeks,
+          ariaLabel: "Kanal za " + imeBesedilo,
+          onChange: (k) => {
+            podatkiKorak1.attachmentKanali[indeks] =
+              pocistiKanaleGledeNaKontakte(k, raz);
+            shraniKorak1PrilogeVSejo();
+            posodobiBesediloPrilogeZaKanal();
+          },
+        })
+      );
+
       k3Seznam.appendChild(vrstica);
     });
+    posodobiBesediloPrilogeZaKanal();
   }
 
   async function odpriPrilogoK3(pot) {
@@ -6003,6 +6478,25 @@ function inicializirajPosiljanje() {
         podatkiKorak1.attachmentOrigins = [];
       }
       podatkiKorak1.attachmentOrigins.push("manual_attachment");
+      if (!Array.isArray(podatkiKorak1.attachmentKanali)) {
+        podatkiKorak1.attachmentKanali = [];
+      }
+      const raz = razpolozljiviKanaliIzKontaktov(
+        podatkiKorak1.telefonDolznika,
+        podatkiKorak1.emailDolznika
+      );
+      podatkiKorak1.attachmentKanali.push(
+        kopirajKanale(
+          zagotoviVsajEnKanal(
+            podatkiKorak1.privzetiKanali ||
+              privzetiKanaliIzKontaktov(
+                podatkiKorak1.telefonDolznika,
+                podatkiKorak1.emailDolznika
+              ),
+            raz
+          )
+        )
+      );
       podatkiKorak1.shouldSendAttachment = true;
     }
     shraniKorak1PrilogeVSejo();
@@ -6042,6 +6536,7 @@ function inicializirajPosiljanje() {
     });
   }
 
+  izrisiSegmentSporocila();
   izrisiKorak3Priloge();
   posodobiBesediloPrilogeZaKanal();
 

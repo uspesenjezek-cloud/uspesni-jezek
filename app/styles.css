@@ -830,12 +830,51 @@ body.stran--samo-seznam #neplacila-obrazec {
 .contact-inputs {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 10px;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .contact-input {
   position: relative;
   width: 100%;
+}
+
+.contact-kanal {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin: 0;
+  padding: 0 2px;
+  color: #355654;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.contact-kanal input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #2f8f8e;
+}
+
+.contact-kanal input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.contact-kanal:has(input:disabled) {
+  color: #8a9b98;
+  cursor: not-allowed;
 }
 
 .contact-input svg {
@@ -1470,9 +1509,114 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .racun-posiljanje__kartica {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.racun-posiljanje__kartica-glava {
+  display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
+}
+
+.kanal-segment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.kanal-segment__opcija {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+.kanal-segment__opcija input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.kanal-segment__opcija span {
+  display: block;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #9ccfcd;
+  border-radius: 999px;
+  background: #fff;
+  color: #355654;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.kanal-segment__opcija input:checked + span {
+  border-color: #2f8f8e;
+  background: #e7f5f4;
+  color: #146f6e;
+}
+
+.kanal-segment__opcija input:focus-visible + span {
+  outline: 3px solid rgba(50, 148, 147, 0.22);
+  outline-offset: 2px;
+}
+
+.kanal-segment__samo,
+.kanal-segment__prazno {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e7f5f4;
+  color: #146f6e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kanal-segment__prazno {
+  background: #f3f5f4;
+  color: #7a8b88;
+}
+
+.sporocilo-kanali {
+  margin: 0 0 14px;
+  padding: 14px;
+  border: 1px solid #c6d8d4;
+  border-radius: 14px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.sporocilo-kanali[hidden] {
+  display: none !important;
+}
+
+.sporocilo-kanali__naslov {
+  margin: 0 0 4px;
+  color: #173633;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sporocilo-kanali__opis {
+  margin: 0 0 10px;
+  color: #5f746f;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.sporocilo-kanali__segment {
+  width: 100%;
 }
 
 .racun-posiljanje__datoteka-meta {
@@ -5053,10 +5197,11 @@ body.uj-modal-odprt {
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: var(--muted, #5f7571);
+  color: #17322f !important;
+  -webkit-text-fill-color: #17322f;
   font: inherit;
-  font-size: 1rem;
-  font-weight: 400;
+  font-size: 1.25rem;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   text-decoration: none;
@@ -5066,19 +5211,22 @@ body.uj-modal-odprt {
     color 120ms ease;
 }
 
-.ton-priporocila__prezri span {
+.ton-priporocila__prezri svg {
   display: block;
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
-  line-height: 16px;
-  text-align: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ton-priporocila__prezri svg path {
+  fill: #17322f !important;
 }
 
 .ton-priporocila__prezri:hover,
 .ton-priporocila__prezri:focus-visible {
   background: rgba(92, 112, 108, 0.07);
-  color: var(--text, #17322f);
+  color: #17322f !important;
+  -webkit-text-fill-color: #17322f;
   outline: none;
 }
 
@@ -5955,8 +6103,9 @@ body.obrocno-sheet-odprt .korak2__noga {
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: #5f7571;
+  color: #243d3d;
   font-size: 1.1rem;
+  font-weight: 700;
   cursor: pointer;
 }
 

@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-vsebina-nowrap" />
+    <link rel="stylesheet" href="styles.css?v=20260808-kanali" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -76,17 +76,13 @@
 
         <section class="priloga-posiljanje-info" id="priloga-posiljanje-info" hidden>
           <h2 class="priloga-posiljanje-info__naslov">Račun za pošiljanje</h2>
-          <div class="priloga-posiljanje-info__kanali" id="priloga-posiljanje-kanali" hidden>
-            <label class="priloga-posiljanje-info__kanal">
-              <input type="radio" name="kanal-posiljanja" value="email" id="kanal-email" />
-              E-pošta
-            </label>
-            <label class="priloga-posiljanje-info__kanal">
-              <input type="radio" name="kanal-posiljanja" value="sms" id="kanal-sms" />
-              SMS
-            </label>
-          </div>
           <p class="priloga-posiljanje-info__besedilo" id="priloga-posiljanje-besedilo" role="status"></p>
+        </section>
+
+        <section class="sporocilo-kanali" id="sporocilo-kanali" aria-label="Kanali glavnega sporočila">
+          <h2 class="sporocilo-kanali__naslov">Glavno sporočilo</h2>
+          <p class="sporocilo-kanali__opis">Kam naj gre besedilo opomina.</p>
+          <div class="sporocilo-kanali__segment" id="sporocilo-kanali-segment"></div>
         </section>
 
         <section
@@ -483,6 +479,6 @@
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
     <script src="opomin-nacrt.js?v=20260808-vsebina-koraka"></script>
     <script src="opomin-nacrt-ui.js?v=20260808-vsebina-nowrap"></script>
-    <script src="app.js?v=20260808-priloge-sync"></script>
+    <script src="app.js?v=20260808-kanali"></script>
   </body>
 </html>

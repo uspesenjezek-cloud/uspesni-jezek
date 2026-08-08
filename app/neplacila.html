@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-priloge-sync" />
+    <link rel="stylesheet" href="styles.css?v=20260808-kanali" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -186,30 +186,42 @@
                   <legend>Telefon ali e-pošta</legend>
 
                   <div class="contact-inputs">
-                    <label class="sr-only" for="telefon-dolznika">Mobilni telefon</label>
-                    <div class="contact-input">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
-                      <input
-                        id="telefon-dolznika"
-                        name="telefon"
-                        type="tel"
-                        inputmode="tel"
-                        autocomplete="tel"
-                        placeholder="Mobilni telefon"
-                      />
+                    <div class="contact-field">
+                      <label class="sr-only" for="telefon-dolznika">Mobilni telefon</label>
+                      <div class="contact-input">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
+                        <input
+                          id="telefon-dolznika"
+                          name="telefon"
+                          type="tel"
+                          inputmode="tel"
+                          autocomplete="tel"
+                          placeholder="Mobilni telefon"
+                        />
+                      </div>
+                      <label class="contact-kanal" for="kanal-privzeto-sms">
+                        <input type="checkbox" id="kanal-privzeto-sms" disabled />
+                        <span>SMS</span>
+                      </label>
                     </div>
 
-                    <label class="sr-only" for="email-dolznika">E-pošta</label>
-                    <div class="contact-input">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
-                      <input
-                        id="email-dolznika"
-                        name="email"
-                        type="email"
-                        inputmode="email"
-                        autocomplete="email"
-                        placeholder="E-pošta (ni obvezna)"
-                      />
+                    <div class="contact-field">
+                      <label class="sr-only" for="email-dolznika">E-pošta</label>
+                      <div class="contact-input">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                        <input
+                          id="email-dolznika"
+                          name="email"
+                          type="email"
+                          inputmode="email"
+                          autocomplete="email"
+                          placeholder="E-pošta (ni obvezna)"
+                        />
+                      </div>
+                      <label class="contact-kanal" for="kanal-privzeto-email">
+                        <input type="checkbox" id="kanal-privzeto-email" disabled />
+                        <span>E-pošta</span>
+                      </label>
                     </div>
                   </div>
 
@@ -479,6 +491,6 @@
         window.addEventListener("pageshow", naVrhCeObrazec);
       })();
     </script>
-    <script src="app.js?v=20260808-priloge-sync"></script>
+    <script src="app.js?v=20260808-kanali"></script>
   </body>
 </html>
