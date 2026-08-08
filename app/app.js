@@ -2111,26 +2111,29 @@ function inicializirajSporociloDolzniku() {
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
   const ikonaKljukice =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
-  /* Rumena zvezda za predlogo s številko 1 (prioriteta / privzeto sporočilo). */
+  /* Mala rumena zvezda (zgoraj levo) pri številki 1 – cifra »1« ostane glavna. */
   const ikonaZvezdePrioriteta =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
+    '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
 
   function htmlStevilkaZvezda() {
     return (
+      '<span class="predlog-kartica__zvezda-cifra">1</span>' +
       '<span class="predlog-kartica__zvezda" aria-hidden="true">' +
       ikonaZvezdePrioriteta +
-      '</span><span class="predlog-kartica__zvezda-cifra">1</span>'
+      "</span>"
     );
   }
 
-  /** Številka 1 povsod: rumena zvezda z »1« (kartica, popover, modal Uredi). */
+  /** Številka 1: vidna »1« + mala zvezda zgoraj levo. */
   function nastaviVsebinoStevilkeGumba(gumb, n, razredPrioriteta) {
     if (Number(n) === 1) {
       gumb.classList.add(razredPrioriteta);
       gumb.innerHTML = htmlStevilkaZvezda();
       gumb.setAttribute("aria-label", "Prioritetna številka 1 – privzeto sporočilo");
     } else {
+      gumb.classList.remove(razredPrioriteta);
       gumb.textContent = String(n);
+      gumb.removeAttribute("aria-label");
     }
   }
 
@@ -2284,6 +2287,9 @@ function inicializirajSporociloDolzniku() {
           source: "user",
           order: Number(p.order) || null,
           isRecommended: false,
+          overridesSystemId: p.overridesSystemId
+            ? String(p.overridesSystemId)
+            : null,
           paymentSettings: normalizirajPaymentSettingsPredloge(p.paymentSettings),
         }));
     } catch (_napaka) {
@@ -2301,9 +2307,21 @@ function inicializirajSporociloDolzniku() {
       language: p.language || jezikPredlog,
       order: p.order || null,
       source: "user",
+      overridesSystemId: p.overridesSystemId || null,
       paymentSettings: normalizirajPaymentSettingsPredloge(p.paymentSettings),
     }));
     localStorage.setItem(kljucMojihPredlogov, JSON.stringify(zaShraniti));
+  }
+
+  function skrijSistemskoPredlogo(systemId) {
+    if (!systemId) return;
+    if (!Array.isArray(nastavitvePredlogov.skritiIds)) {
+      nastavitvePredlogov.skritiIds = [];
+    }
+    const sid = String(systemId);
+    if (!nastavitvePredlogov.skritiIds.includes(sid)) {
+      nastavitvePredlogov.skritiIds.push(sid);
+    }
   }
 
   function naloziNastavitvePredlogov() {
@@ -3264,9 +3282,7 @@ function inicializirajSporociloDolzniku() {
     posodobiPredlagajTonGumb();
 
     if (modalShrani) {
-      if (predlog.jeNov) modalShrani.textContent = "Shrani predlogo";
-      else if (predlog.jeMoj) modalShrani.textContent = "Shrani spremembe";
-      else modalShrani.textContent = "Shrani kot kopijo";
+      modalShrani.textContent = predlog.jeNov ? "Shrani predlogo" : "Spremeni";
     }
     if (modalIzbrisi) {
       modalIzbrisi.hidden = !!predlog.jeNov;
@@ -3621,11 +3637,15 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
-    const paymentSettingsZaShraniti = normalizirajPaymentSettingsPredloge(
-      odprtPredlog.paymentSettings || zacetniPaketZaModal()
-    );
+    const paymentSettingsZaShraniti =
+      normalizirajPaymentSettingsPredloge(
+        odprtPredlog.paymentSettings || zacetniPaketZaModal()
+      ) || zacetniPaketZaModal();
+    const toneZaShraniti = odprtPredlog.toneId || izbranTonId;
+    const orderZaShraniti = Number(modalIzbranaStevilka) || null;
 
-    if (odprtPredlog.jeNov || !odprtPredlog.jeMoj) {
+    // Nova predloga
+    if (odprtPredlog.jeNov) {
       const novPredlog = {
         id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
         naslov,
@@ -3633,11 +3653,12 @@ function inicializirajSporociloDolzniku() {
         stilIkone: "",
         besedilo,
         jeMoj: true,
-        toneId: odprtPredlog.toneId || izbranTonId,
+        toneId: toneZaShraniti,
         language: jezikPredlog,
         source: "user",
         isRecommended: false,
-        order: Number(modalIzbranaStevilka) || null,
+        order: orderZaShraniti,
+        overridesSystemId: null,
         paymentSettings: paymentSettingsZaShraniti,
       };
       mojiPredlogi = [novPredlog, ...mojiPredlogi];
@@ -3648,6 +3669,63 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
+    // Sistemska predloga → shrani kot uporabniški override (skrij izvirnik, ne kopijo poleg)
+    if (!odprtPredlog.jeMoj) {
+      const systemId = String(odprtPredlog.id);
+      const obstojeci = mojiPredlogi.find(
+        (p) => String(p.overridesSystemId || "") === systemId
+      );
+      let idZaStevilko;
+      if (obstojeci) {
+        idZaStevilko = obstojeci.id;
+        mojiPredlogi = mojiPredlogi.map((p) =>
+          p.id === obstojeci.id
+            ? {
+                ...p,
+                naslov,
+                besedilo,
+                toneId: toneZaShraniti,
+                language: jezikPredlog,
+                order: orderZaShraniti,
+                overridesSystemId: systemId,
+                paymentSettings: paymentSettingsZaShraniti,
+              }
+            : p
+        );
+      } else {
+        const novPredlog = {
+          id: "moj-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+          naslov,
+          ikona: odprtPredlog.ikona || "message-circle",
+          stilIkone: "",
+          besedilo,
+          jeMoj: true,
+          toneId: toneZaShraniti,
+          language: jezikPredlog,
+          source: "user",
+          isRecommended: Boolean(odprtPredlog.isRecommended),
+          order: orderZaShraniti,
+          overridesSystemId: systemId,
+          paymentSettings: paymentSettingsZaShraniti,
+        };
+        mojiPredlogi = [novPredlog, ...mojiPredlogi];
+        idZaStevilko = novPredlog.id;
+      }
+      skrijSistemskoPredlogo(systemId);
+      if (String(izbranPredlogId) === systemId) {
+        izbranPredlogId = idZaStevilko;
+      }
+      delete nastavitvePredlogov.stevilke[systemId];
+      shraniMojePredlogeVLocalStorage();
+      shraniNastavitvePredlogov();
+      sestaviSeznamPredlogov();
+      nastaviStevilkoPredloga(idZaStevilko, modalIzbranaStevilka);
+      if (izbranPredlogId) oznaciIzbranega(izbranPredlogId);
+      zapriUrediModal({ vsili: true });
+      return;
+    }
+
+    // Obstajajoča moja predloga → overwrite
     const idMojega = odprtPredlog.id;
     mojiPredlogi = mojiPredlogi.map((p) =>
       p.id === idMojega
@@ -3655,8 +3733,9 @@ function inicializirajSporociloDolzniku() {
             ...p,
             naslov,
             besedilo,
-            toneId: odprtPredlog.toneId || p.toneId || izbranTonId,
+            toneId: toneZaShraniti || p.toneId || izbranTonId,
             language: p.language || jezikPredlog,
+            order: orderZaShraniti,
             paymentSettings: paymentSettingsZaShraniti,
           }
         : p
