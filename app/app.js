@@ -40,6 +40,8 @@ const KLJUC_SEJE_KORAK1_PODATKI = "neplacilo-korak1-podatki";
 /* Podatki 2. koraka (sporočilo + izbrani predlog/dodatki), dokler obrtnik
    ne konča 3. koraka (neplacila-posiljanje.html). */
 const KLJUC_SEJE_KORAK2_PODATKI = "neplacilo-korak2-podatki";
+/* Fingerprint koraka 1 ob zadnjem nadaljevanju na 2/3 – ločen od live osnutka. */
+const KLJUC_SEJE_KORAK1_FINGERPRINT = "neplacilo-korak1-fingerprint";
 /* Ključ za "opomniček", da naj se ob vrnitvi na neplacila.html prikaže
    sporočilo o uspešno dodani zadevi (glej pokaziUspesnoDodano spodaj) -
    ker se zadeva zdaj dejansko doda šele na 3. koraku, na prvi strani pa je
@@ -68,6 +70,77 @@ function preberiKorak2Sejo() {
   } catch (_napaka) {
     return null;
   }
+}
+
+/** Hash relevantnih polj koraka 1 (za zaznavo sprememb po obisku 2/3). */
+function hashKorak1Podatkov(p) {
+  if (!p || typeof p !== "object") return "";
+  const poti = Array.isArray(p.racunDatotekePoti)
+    ? p.racunDatotekePoti.map(String).slice().sort().join("|")
+    : "";
+  const origins = Array.isArray(p.attachmentOrigins)
+    ? p.attachmentOrigins.map(String).join("|")
+    : "";
+  const znesek = Number(p.znesek);
+  const s = [
+    String(p.imeDolznika || "").trim(),
+    String(p.telefonDolznika || "").trim(),
+    String(p.emailDolznika || "").trim(),
+    Number.isFinite(znesek) ? znesek.toFixed(2) : "0.00",
+    String(p.opisDolga || "").trim(),
+    String(p.datumIzdajeRacuna || ""),
+    String(p.datumZapadlosti || ""),
+    String(p.stevilkaRacuna || ""),
+    poti,
+    p.shouldSendAttachment === false ? "0" : "1",
+    origins,
+  ].join("::");
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(16) + ":" + s.length;
+}
+
+function preberiKorak1Fingerprint() {
+  return sessionStorage.getItem(KLJUC_SEJE_KORAK1_FINGERPRINT) || "";
+}
+
+function shraniKorak1Fingerprint(podatkiAliHash) {
+  const h =
+    typeof podatkiAliHash === "string"
+      ? podatkiAliHash
+      : hashKorak1Podatkov(podatkiAliHash);
+  if (h) sessionStorage.setItem(KLJUC_SEJE_KORAK1_FINGERPRINT, h);
+}
+
+function imaSejoKorakov2ali3() {
+  if (sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI)) return true;
+  if (sessionStorage.getItem("neplacilo-korak3-nacrt")) return true;
+  return false;
+}
+
+function pocistiSejoKorakov2in3() {
+  sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+  if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
+    window.UJOpominNacrt.pocistiOsnutek();
+  } else {
+    sessionStorage.removeItem("neplacilo-korak3-nacrt");
+  }
+}
+
+/** Ob »Nadaljuj kot isti račun«: ohrani izbire, označi osvežitev na koraku 2. */
+function oznaciKorak2ZaOsvezitevObIstemRacunu() {
+  const k2 = preberiKorak2Sejo();
+  if (!k2) return;
+  k2.osveziObIstemRacunu = true;
+  k2.priporocilaPrezrta = {
+    rok: false,
+    obrocno: false,
+    predlogIdObPrezrtju: null,
+    kontekstDolgaObPrezrtju: null,
+  };
+  sessionStorage.setItem(KLJUC_SEJE_KORAK2_PODATKI, JSON.stringify(k2));
 }
 
 /* Najvišji dosežen korak: 2, če obstaja korak 1; 3 šele po potrditvi koraka 2. */
@@ -226,7 +299,21 @@ let ujPotrdiZakljuci = null;
 
 function zagotoviPotrditveniModal() {
   let modal = document.getElementById("uj-potrdi-modal");
-  if (modal) return modal;
+  if (modal) {
+    if (!document.getElementById("uj-potrdi-drugi")) {
+      const akcije = document.getElementById("uj-potrdi-akcije");
+      const potrdi = document.getElementById("uj-potrdi-potrdi");
+      if (akcije && potrdi) {
+        const drugi = document.createElement("button");
+        drugi.type = "button";
+        drugi.className = "osnutek-modal__potrdi osnutek-modal__potrdi--secondary";
+        drugi.id = "uj-potrdi-drugi";
+        drugi.hidden = true;
+        akcije.insertBefore(drugi, potrdi);
+      }
+    }
+    return modal;
+  }
 
   modal = document.createElement("div");
   modal.id = "uj-potrdi-modal";
@@ -243,6 +330,7 @@ function zagotoviPotrditveniModal() {
     '<p class="osnutek-modal__opis" id="uj-potrdi-opis"></p>' +
     '<div class="osnutek-modal__akcije" id="uj-potrdi-akcije">' +
     '<button type="button" class="osnutek-modal__preklici" id="uj-potrdi-preklici">Prekliči</button>' +
+    '<button type="button" class="osnutek-modal__potrdi osnutek-modal__potrdi--secondary" id="uj-potrdi-drugi" hidden></button>' +
     '<button type="button" class="osnutek-modal__potrdi" id="uj-potrdi-potrdi">Potrdi</button>' +
     "</div></div>";
   document.body.appendChild(modal);
@@ -253,7 +341,10 @@ function zagotoviPotrditveniModal() {
  * Skupno potrditveno / opozorilno okno – vedno to, nikoli window.confirm/alert.
  * Primer: await potrdiVprasanje({ naslov, opis, potrdiBesedilo, stil: "primary"|"nevarno" })
  * Za samo opozorilo: samoEnGumb: true (en gumb »V redu«).
- * @returns {Promise<boolean>} true = potrjeno / V redu; false = preklic
+ * Dve izbiri: dvaIzbira: true, drugiBesedilo: "…" → Promise<"isti"|"nov"|false>
+ *   (privzeto: potrdiBesedilo = "Nadaljuj kot isti račun" → "isti",
+ *    drugiBesedilo = "Začni kot nov račun" → "nov")
+ * @returns {Promise<boolean|"isti"|"nov">}
  */
 function potrdiVprasanje(opcije) {
   const nastavitve = opcije || {};
@@ -261,8 +352,10 @@ function potrdiVprasanje(opcije) {
   const opis = nastavitve.opis || "";
   const potrdiBesedilo = nastavitve.potrdiBesedilo || "Potrdi";
   const prekliciBesedilo = nastavitve.prekliciBesedilo || "Prekliči";
+  const drugiBesedilo = nastavitve.drugiBesedilo || "";
   const stil = nastavitve.stil === "nevarno" ? "nevarno" : "primary";
   const samoEnGumb = Boolean(nastavitve.samoEnGumb);
+  const dvaIzbira = Boolean(nastavitve.dvaIzbira);
 
   const modal = zagotoviPotrditveniModal();
   const naslovEl = document.getElementById("uj-potrdi-naslov");
@@ -271,6 +364,7 @@ function potrdiVprasanje(opcije) {
   const akcijeEl = document.getElementById("uj-potrdi-akcije");
   const preklici = document.getElementById("uj-potrdi-preklici");
   const potrdi = document.getElementById("uj-potrdi-potrdi");
+  const drugi = document.getElementById("uj-potrdi-drugi");
   const zapri = document.getElementById("uj-potrdi-zapri");
   const backdrop = document.getElementById("uj-potrdi-backdrop");
 
@@ -286,10 +380,20 @@ function potrdiVprasanje(opcije) {
   potrdi.textContent = potrdiBesedilo;
   if (preklici) {
     preklici.textContent = prekliciBesedilo;
-    preklici.hidden = samoEnGumb;
+    preklici.hidden = samoEnGumb || dvaIzbira;
+  }
+  if (drugi) {
+    if (dvaIzbira) {
+      drugi.hidden = false;
+      drugi.textContent = drugiBesedilo || "Druga možnost";
+    } else {
+      drugi.hidden = true;
+      drugi.textContent = "";
+    }
   }
   if (akcijeEl) {
-    akcijeEl.classList.toggle("osnutek-modal__akcije--en-gumb", samoEnGumb);
+    akcijeEl.classList.toggle("osnutek-modal__akcije--en-gumb", samoEnGumb && !dvaIzbira);
+    akcijeEl.classList.toggle("osnutek-modal__akcije--dve-izbiri", dvaIzbira);
   }
   if (ikonaEl) {
     ikonaEl.className =
@@ -297,7 +401,10 @@ function potrdiVprasanje(opcije) {
     ikonaEl.innerHTML = stil === "nevarno" ? SVG_POTRDI_IKONA_NEVARNO : SVG_POTRDI_IKONA_TURKIZ;
   }
   potrdi.className =
-    "osnutek-modal__potrdi" + (stil === "primary" ? " osnutek-modal__potrdi--primary" : "");
+    "osnutek-modal__potrdi" + (stil === "primary" || dvaIzbira ? " osnutek-modal__potrdi--primary" : "");
+  if (drugi) {
+    drugi.className = "osnutek-modal__potrdi osnutek-modal__potrdi--secondary";
+  }
 
   return new Promise((resolve) => {
     function zakljuci(odgovor) {
@@ -306,6 +413,7 @@ function potrdiVprasanje(opcije) {
       document.removeEventListener("keydown", obEscape);
       if (preklici) preklici.removeEventListener("click", obPreklici);
       potrdi.removeEventListener("click", obPotrdi);
+      if (drugi) drugi.removeEventListener("click", obDrugi);
       if (zapri) zapri.removeEventListener("click", obPreklici);
       if (backdrop) backdrop.removeEventListener("click", obPreklici);
       ujPotrdiZakljuci = null;
@@ -317,19 +425,24 @@ function potrdiVprasanje(opcije) {
     }
 
     function obPotrdi() {
-      zakljuci(true);
+      zakljuci(dvaIzbira ? "isti" : true);
+    }
+
+    function obDrugi() {
+      zakljuci("nov");
     }
 
     function obEscape(dogodek) {
       if (dogodek.key === "Escape" && !modal.hidden) {
         dogodek.preventDefault();
-        zakljuci(samoEnGumb ? true : false);
+        zakljuci(samoEnGumb && !dvaIzbira ? true : false);
       }
     }
 
     ujPotrdiZakljuci = zakljuci;
     if (preklici) preklici.addEventListener("click", obPreklici);
     potrdi.addEventListener("click", obPotrdi);
+    if (drugi && dvaIzbira) drugi.addEventListener("click", obDrugi);
     if (zapri) zapri.addEventListener("click", obPreklici);
     if (backdrop) backdrop.addEventListener("click", obPreklici);
     document.addEventListener("keydown", obEscape);
@@ -354,6 +467,7 @@ function inicializirajIzbrisOsnutka() {
     if (!potrjeno) return;
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_KORAK1_FINGERPRINT);
     if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
       window.UJOpominNacrt.pocistiOsnutek();
     } else {
@@ -1705,31 +1819,52 @@ function inicializirajNeplacila() {
       return;
     }
 
-    sessionStorage.setItem(
-      KLJUC_SEJE_KORAK1_PODATKI,
-      JSON.stringify({
-        imeDolznika,
-        telefonDolznika,
-        emailDolznika,
-        znesek: (() => {
-          const raw = podatki.get("znesek");
-          if (window.UJObrocno) {
-            const c = window.UJObrocno.eurosToCents(raw);
-            return c != null ? c / 100 : 0;
-          }
-          const n = Number(String(raw || "").replace(",", "."));
-          return Number.isFinite(n) ? n : 0;
-        })(),
-        opisDolga,
-        datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
-        datumZapadlosti,
-        stevilkaRacuna: podatki.get("stevilkaRacuna").trim() || null,
-        racunDatotekePoti: rezultatPrilog.poti,
-        shouldSendAttachment: messageAttachments.length > 0 && shouldSendAttachment,
-        attachmentOrigins: messageAttachments.map((p) => p.origin),
-      })
-    );
+    const noviKorak1 = {
+      imeDolznika,
+      telefonDolznika,
+      emailDolznika,
+      znesek: (() => {
+        const raw = podatki.get("znesek");
+        if (window.UJObrocno) {
+          const c = window.UJObrocno.eurosToCents(raw);
+          return c != null ? c / 100 : 0;
+        }
+        const n = Number(String(raw || "").replace(",", "."));
+        return Number.isFinite(n) ? n : 0;
+      })(),
+      opisDolga,
+      datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
+      datumZapadlosti,
+      stevilkaRacuna: podatki.get("stevilkaRacuna").trim() || null,
+      racunDatotekePoti: rezultatPrilog.poti,
+      shouldSendAttachment: messageAttachments.length > 0 && shouldSendAttachment,
+      attachmentOrigins: messageAttachments.map((p) => p.origin),
+    };
 
+    const novHash = hashKorak1Podatkov(noviKorak1);
+    const starHash = preberiKorak1Fingerprint();
+    const imaKasnejse = imaSejoKorakov2ali3();
+
+    if (imaKasnejse && starHash && novHash !== starHash) {
+      const izbira = await potrdiVprasanje({
+        naslov: "Podatki dolžnika so se spremenili",
+        opis:
+          "Že imaš sestavljeno sporočilo ali načrt. Kaj želiš narediti?",
+        dvaIzbira: true,
+        potrdiBesedilo: "Nadaljuj kot isti račun",
+        drugiBesedilo: "Začni kot nov račun",
+        stil: "primary",
+      });
+      if (!izbira) return;
+      if (izbira === "nov") {
+        pocistiSejoKorakov2in3();
+      } else if (izbira === "isti") {
+        oznaciKorak2ZaOsvezitevObIstemRacunu();
+      }
+    }
+
+    sessionStorage.setItem(KLJUC_SEJE_KORAK1_PODATKI, JSON.stringify(noviKorak1));
+    shraniKorak1Fingerprint(novHash);
     window.location.href = "neplacila-sporocilo.html";
   });
 
@@ -1945,6 +2080,11 @@ function inicializirajSporociloDolzniku() {
   inicializirajIzbrisOsnutka();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
+  /* Če fingerprint še manjka (stare seje), nastavi iz trenutnega koraka 1. */
+  if (!preberiKorak1Fingerprint()) {
+    shraniKorak1Fingerprint(podatkiKorak1);
+  }
+  let najOsvezimObIstemRacunu = false;
   /* Ton sporočila: priporočilo + izbira (widget Faza C; osnutek Faza D). */
   let jezikPredlog = "de";
   let tonPriporociloRezultat = null;
@@ -4593,6 +4733,7 @@ function inicializirajSporociloDolzniku() {
   if (osnutekKorak2Json) {
     try {
       const osnutek = JSON.parse(osnutekKorak2Json);
+      najOsvezimObIstemRacunu = Boolean(osnutek.osveziObIstemRacunu);
       if (osnutek.sporociloDolzniku) {
         besediloPolje.value = String(osnutek.sporociloDolzniku).slice(0, NAJVEC_ZNAKOV);
         obnovljenOsnutekSporocila = Boolean(String(osnutek.sporociloDolzniku).trim());
@@ -4611,14 +4752,53 @@ function inicializirajSporociloDolzniku() {
         }
       }
       if (osnutek.installmentPlan && osnutek.installmentPlan.enabled) {
+        let plan = osnutek.installmentPlan;
         const sveziCenti = window.UJObrocno
           ? window.UJObrocno.eurosToCents(podatkiKorak1.znesek)
           : null;
         if (
+          najOsvezimObIstemRacunu &&
           sveziCenti != null &&
-          window.UJObrocno.jePlanUporaben(osnutek.installmentPlan, sveziCenti)
+          sveziCenti > 0 &&
+          window.UJObrocno
         ) {
-          installmentPlan = osnutek.installmentPlan;
+          const stariObrocniDodatek =
+            dodatekBesedila.obrocno || plan.addonText || "";
+          plan = { ...plan, totalDebtCents: sveziCenti, totalCents: sveziCenti };
+          plan.originalDueDate =
+            podatkiKorak1.datumZapadlosti || plan.originalDueDate || null;
+          plan = window.UJObrocno.enakomernoRazdeli(plan);
+          if (typeof window.UJObrocno.osveziAddon === "function") {
+            plan = window.UJObrocno.osveziAddon(
+              plan,
+              plan.addonLanguage || "de"
+            );
+          }
+          const noviObrocniDodatek = plan.addonText || "";
+          if (
+            stariObrocniDodatek &&
+            noviObrocniDodatek &&
+            stariObrocniDodatek !== noviObrocniDodatek &&
+            window.UJRokPlacila &&
+            typeof window.UJRokPlacila.posodobiSistemskoVrstico === "function"
+          ) {
+            const rez = window.UJRokPlacila.posodobiSistemskoVrstico(
+              besediloPolje.value,
+              stariObrocniDodatek,
+              noviObrocniDodatek,
+              true
+            );
+            if (rez && rez.ok) {
+              besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
+            }
+          }
+          if (dodatekBesedila) dodatekBesedila.obrocno = noviObrocniDodatek;
+        }
+        if (
+          sveziCenti != null &&
+          window.UJObrocno.jePlanUporaben(plan, sveziCenti)
+        ) {
+          installmentPlan = plan;
           dodatki.obrocno = true;
           if (!dodatekBesedila.obrocno && installmentPlan.addonText) {
             dodatekBesedila.obrocno = String(installmentPlan.addonText);
@@ -4654,7 +4834,9 @@ function inicializirajSporociloDolzniku() {
       } else if (obnovljenOsnutekSporocila) {
         sporociloRocnoUrejeno = true;
       }
-      if (osnutek.priporocilaPrezrta) {
+      if (najOsvezimObIstemRacunu) {
+        priporocilaPrezrta = praznoPriporocilaPrezrta();
+      } else if (osnutek.priporocilaPrezrta) {
         priporocilaPrezrta = normalizirajPriporocilaPrezrta(
           osnutek.priporocilaPrezrta
         );
@@ -4774,6 +4956,73 @@ function inicializirajSporociloDolzniku() {
 
   // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
   zagonSPredlogi();
+
+  /* Po spremembi koraka 1 z »isti račun«: osveži predlogo/rok/priporočila. */
+  if (najOsvezimObIstemRacunu) {
+    priporocilaPrezrta = praznoPriporocilaPrezrta();
+    if (!sporociloRocnoUrejeno) {
+      /* Samo sveže besedilo predloge – ohrani že vklopljene dodatke. */
+      let svezaPredloga = null;
+      if (jeVeljavenIzbranPredlog(izbranPredlogId)) {
+        svezaPredloga = predlogi.find(
+          (p) => String(p.id) === String(izbranPredlogId)
+        );
+      }
+      if (!svezaPredloga) {
+        svezaPredloga = najdiPredlogStevilka1();
+      }
+      if (svezaPredloga) {
+        besediloPolje.value = String(svezaPredloga.besedilo || "").slice(
+          0,
+          NAJVEC_ZNAKOV
+        );
+        oznaciIzbranega(svezaPredloga.id);
+        slediPrivzetiStevilki1 = Number(svezaPredloga.stevilka) === 1;
+        zadnjeUporabljenoBesediloPredloge = besediloPolje.value;
+        sporociloRocnoUrejeno = false;
+        if (dodatki.rok && dodatekBesedila.rok) {
+          vstaviDodatekVBesedilo(dodatekBesedila.rok);
+        }
+        if (dodatki.obrocno && dodatekBesedila.obrocno) {
+          vstaviDodatekVBesedilo(dodatekBesedila.obrocno);
+        }
+        if (dodatki.trr && dodatekBesedila.trr) {
+          vstaviDodatekVBesedilo(dodatekBesedila.trr);
+        }
+      }
+    }
+    if (
+      paymentDeadline &&
+      paymentDeadline.enabled &&
+      paymentDeadline.mode === "automatic"
+    ) {
+      syncRokPoMenjaviPredloga();
+    }
+    if (installmentPlan && installmentPlan.enabled) {
+      posodobiObrocnoKarticoStanje(installmentPlan);
+    }
+    posodobiNamigeTonaDodatkov();
+    posodobiStanjeUrejevalnika();
+    const k2 = preberiKorak2Sejo() || {};
+    sessionStorage.setItem(
+      KLJUC_SEJE_KORAK2_PODATKI,
+      JSON.stringify({
+        ...k2,
+        sporociloDolzniku: besediloPolje.value,
+        izbranPredlogId,
+        dodatki: { ...dodatki },
+        dodatekBesedila: { ...dodatekBesedila },
+        paymentDeadline,
+        installmentPlan,
+        toneRecommendation: { ...toneState },
+        sporociloRocnoUrejeno,
+        priporocilaPrezrta: { ...priporocilaPrezrta },
+        potrjen: Boolean(k2.potrjen),
+        osveziObIstemRacunu: false,
+      })
+    );
+    najOsvezimObIstemRacunu = false;
+  }
 
   let tonWidgetApi = null;
   if (typeof window.inicializirajTonWidget === "function" && window.UJTonPriporocilo) {
@@ -4947,6 +5196,7 @@ function inicializirajPosiljanje() {
 
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_KORAK1_FINGERPRINT);
     if (window.UJOpominNacrt.pocistiOsnutek) {
       window.UJOpominNacrt.pocistiOsnutek();
     }

@@ -2877,7 +2877,30 @@ body.stran--samo-seznam #neplacila-obrazec {
   grid-template-columns: 1fr;
 }
 
-.osnutek-modal__preklici[hidden] {
+.osnutek-modal__akcije--dve-izbiri {
+  grid-template-columns: 1fr;
+}
+
+.osnutek-modal__akcije--dve-izbiri .osnutek-modal__potrdi--secondary {
+  order: 2;
+}
+
+.osnutek-modal__akcije--dve-izbiri .osnutek-modal__potrdi--primary {
+  order: 1;
+}
+
+.osnutek-modal__potrdi--secondary {
+  border: 1px solid #d0d8d5;
+  background: #f4f6f5;
+  color: #17322f;
+}
+
+.osnutek-modal__potrdi--secondary:hover {
+  background: #e8eeec;
+}
+
+.osnutek-modal__preklici[hidden],
+.osnutek-modal__potrdi[hidden] {
   display: none;
 }
 
