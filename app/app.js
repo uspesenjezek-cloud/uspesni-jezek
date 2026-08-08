@@ -354,6 +354,11 @@ function inicializirajIzbrisOsnutka() {
     if (!potrjeno) return;
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
+      window.UJOpominNacrt.pocistiOsnutek();
+    } else {
+      sessionStorage.removeItem("neplacilo-korak3-nacrt");
+    }
     window.location.href = "neplacila.html#seznam";
   });
 }
@@ -4753,12 +4758,16 @@ function inicializirajSporociloDolzniku() {
   }
 }
 
-/* ---------- Logika strani neplacila-posiljanje.html (3. korak - začasni stub) ---------- */
+/* ---------- Logika strani neplacila-posiljanje.html (3. korak) ----------
+   Avtomatiziran "Načrt opominjanja" (SMS koraki 1–3 + ročni korak 4).
+   To NI isto kot ročni "Pošlji naslednji opomin" (posljiOpomin) na
+   neplacila.html — tisti samo napreduje status že obstoječe zadeve. */
 
 function inicializirajPosiljanje() {
-  const obrazec = document.getElementById("obrazec-posiljanje");
+  const glavniEl = document.getElementById("opomin-nacrt-glavni");
+  const potrditevEl = document.getElementById("opomin-nacrt-potrditev");
   const napaka = document.getElementById("splosna-napaka");
-  if (!obrazec) return;
+  if (!glavniEl || !potrditevEl) return;
 
   const podatkiKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
   const podatkiKorak2Json = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
@@ -4776,7 +4785,6 @@ function inicializirajPosiljanje() {
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const podatkiKorak2 = JSON.parse(podatkiKorak2Json);
-  const gumbShrani = document.getElementById("gumb-shrani-zadevo");
   const prilogaInfo = document.getElementById("priloga-posiljanje-info");
   const prilogaBesedilo = document.getElementById("priloga-posiljanje-besedilo");
   const prilogaKanali = document.getElementById("priloga-posiljanje-kanali");
@@ -4784,7 +4792,10 @@ function inicializirajPosiljanje() {
   const kanalSms = document.getElementById("kanal-sms");
 
   function pokaziNapako(besedilo, tehnicniPodatki) {
-    napaka.textContent = tehnicniPodatki ? besedilo + " (" + tehnicniPodatki + ")" : besedilo;
+    if (!napaka) return;
+    napaka.textContent = tehnicniPodatki
+      ? besedilo + " (" + tehnicniPodatki + ")"
+      : besedilo;
     napaka.hidden = false;
   }
 
@@ -4815,7 +4826,14 @@ function inicializirajPosiljanje() {
       kanalSms.disabled = !imaTelefon;
       if (imaTelefon && !imaEmail) kanalSms.checked = true;
     }
-    if (imaEmail && imaTelefon && kanalEmail && kanalSms && !kanalEmail.checked && !kanalSms.checked) {
+    if (
+      imaEmail &&
+      imaTelefon &&
+      kanalEmail &&
+      kanalSms &&
+      !kanalEmail.checked &&
+      !kanalSms.checked
+    ) {
       kanalEmail.checked = true;
       kanal = "email";
     }
@@ -4829,9 +4847,23 @@ function inicializirajPosiljanje() {
   if (kanalSms) kanalSms.addEventListener("change", posodobiBesediloPrilogeZaKanal);
   posodobiBesediloPrilogeZaKanal();
 
-  obrazec.addEventListener("submit", async (dogodek) => {
-    dogodek.preventDefault();
-    if (gumbShrani) gumbShrani.disabled = true;
+  if (!window.UJOpominNacrtUI || !window.UJOpominNacrt) {
+    pokaziNapako(
+      "Načrt opominjanja se ni naložil. Osvežite stran (Ctrl+F5)."
+    );
+    return;
+  }
+
+  async function aktivirajNacrt(plan) {
+    /* Shrani zadevo + opomin_nacrt. Dejansko SMS pošiljanje še ni v MVP. */
+    const korak1Sms =
+      plan &&
+      Array.isArray(plan.steps) &&
+      plan.steps.find((s) => Number(s.index) === 1);
+    const sporociloZaZadevo =
+      (korak1Sms && korak1Sms.finalMessage) ||
+      podatkiKorak2.sporociloDolzniku ||
+      null;
 
     const { error } = await supabaseKlient.from("zadeve").insert({
       ime_dolznika: podatkiKorak1.imeDolznika,
@@ -4843,19 +4875,31 @@ function inicializirajPosiljanje() {
       datum_zapadlosti: podatkiKorak1.datumZapadlosti,
       stevilka_racuna: podatkiKorak1.stevilkaRacuna,
       racun_datoteke_poti: podatkiKorak1.racunDatotekePoti,
-      sporocilo_dolzniku: podatkiKorak2.sporociloDolzniku || null,
+      sporocilo_dolzniku: sporociloZaZadevo,
+      opomin_nacrt: plan,
     });
 
     if (error) {
-      if (gumbShrani) gumbShrani.disabled = false;
-      pokaziNapako("Zadeve ni bilo mogoče dodati.", error.message);
-      return;
+      throw new Error(error.message || "Napaka pri shranjevanju zadeve.");
     }
 
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    if (window.UJOpominNacrt.pocistiOsnutek) {
+      window.UJOpominNacrt.pocistiOsnutek();
+    }
     sessionStorage.setItem(KLJUC_SEJE_ZADEVA_DODANA, "1");
     window.location.href = "neplacila.html#seznam";
+  }
+
+  window.UJOpominNacrtUI.inicializiraj({
+    glavniEl,
+    potrditevEl,
+    podatkiKorak1,
+    podatkiKorak2,
+    pokaziNapako,
+    aktivirajNacrt,
+    potrdiVprasanje,
   });
 }
 

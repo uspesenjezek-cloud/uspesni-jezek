@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light only" />
-    <title>Nastavi pošiljanje – Uspešni Jezek</title>
+    <title>Načrt opominjanja – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-korak1-fix" />
+    <link rel="stylesheet" href="styles.css?v=20260808-opomin-nacrt" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -64,7 +64,7 @@
             </span>
             <div class="korak-glava__besedilo">
               <p class="korak-glava__meta">Korak 3 od 3</p>
-              <h2 class="korak-glava__naslov">Pošiljanje</h2>
+              <h2 class="korak-glava__naslov">Načrt opominjanja</h2>
             </div>
           </div>
           <p class="korak-glava__osnutek" id="osnutek-status" role="status" aria-live="polite">Osnutek shranjen</p>
@@ -73,20 +73,6 @@
 
       <main class="korak2__vsebina">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
-
-        <div class="korak2__naslov-vrstica">
-          <div>
-            <h1 class="korak2__naslov">Nastavi pošiljanje</h1>
-            <p class="korak2__podnaslov">
-              Nastavitev časa in načina samodejnega pošiljanja SMS-sporočil pride v naslednji različici.
-            </p>
-          </div>
-          <span class="korak2__oznaka">3 od 3</span>
-        </div>
-
-        <p class="korak2__info" style="display: block; margin-bottom: 24px;">
-          Za zdaj lahko zadevo shranite z že sestavljenim sporočilom. Urnik pošiljanja bomo dodali kmalu.
-        </p>
 
         <section class="priloga-posiljanje-info" id="priloga-posiljanje-info" hidden>
           <h2 class="priloga-posiljanje-info__naslov">Račun za pošiljanje</h2>
@@ -103,15 +89,19 @@
           <p class="priloga-posiljanje-info__besedilo" id="priloga-posiljanje-besedilo" role="status"></p>
         </section>
 
-        <form id="obrazec-posiljanje">
-          <button type="submit" class="korak2__gumb-naprej" id="gumb-shrani-zadevo">
-            Shrani zadevo
-          </button>
-        </form>
+        <!-- Glavni zaslon načrta (JS) -->
+        <div id="opomin-nacrt-glavni" class="opomin-nacrt"></div>
+
+        <!-- Potrditveni zaslon za en SMS korak (JS) -->
+        <div id="opomin-nacrt-potrditev" class="opomin-nacrt-potrdi" hidden></div>
       </main>
     </div>
     </div>
 
-    <script src="app.js?v=20260808-p0-syntax"></script>
+    <script src="ton-dodatki-priporocila.js"></script>
+    <script src="gsm7-stevec.js"></script>
+    <script src="opomin-nacrt.js"></script>
+    <script src="opomin-nacrt-ui.js"></script>
+    <script src="app.js?v=20260808-opomin-nacrt"></script>
   </body>
 </html>
