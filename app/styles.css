@@ -2670,6 +2670,7 @@ body.stran--samo-seznam #obrazec {
   margin: 0 auto;
 }
 
+/* Enoten vrh: Nazaj levo, Izbriši osnutek desno (koraki 1–3, vzorec = korak 1) */
 .korak2__vrh {
   position: sticky;
   top: 0;
@@ -2679,8 +2680,8 @@ body.stran--samo-seznam #obrazec {
   justify-content: space-between;
   gap: 10px;
   margin: 0 0 8px;
-  padding: 4px 8px;
-  background: var(--page, #f2f7f6);
+  padding: 0;
+  background: transparent;
   box-sizing: border-box;
 }
 
@@ -2690,32 +2691,30 @@ body.stran--samo-seznam #obrazec {
   background: transparent;
 }
 
+.korak2__nazaj,
 .stran--neplacila .korak2__vrh--neplacila .app__nazaj {
-  margin: 0;
-  min-height: 36px;
-  padding: 4px 0;
-  gap: 6px;
-  color: #347d7c;
-  font-size: 13px;
-  font-weight: 400;
-  background: transparent;
-  border: 0;
-}
-
-.korak2__nazaj {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin: 0;
+  min-height: 36px;
   padding: 4px 0;
   border: 0;
   background: transparent;
-  color: var(--teal-dark);
+  color: #347d7c;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 400;
+  line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.korak2__nazaj:hover,
+.stran--neplacila .korak2__vrh--neplacila .app__nazaj:hover {
+  text-decoration: none;
+  color: #2f6f6e;
 }
 
 .korak2__izbrisi-osnutek {
