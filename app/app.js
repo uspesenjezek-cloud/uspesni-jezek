@@ -1370,6 +1370,16 @@ function inicializirajNeplacila() {
 
   async function poOcrUspehuNastaviPrilogo(datoteka) {
     ocrSourceFile = datoteka;
+
+    const shraniKotPrilogo = await potrdiVprasanje({
+      naslov: "Shranim tudi kot prilogo?",
+      opis: "Želite ta račun poslati tudi dolžniku (PDF ali povezava v SMS)?",
+      potrdiBesedilo: "Da, shrani kot prilogo",
+      prekliciBesedilo: "Ne, samo podatki",
+      stil: "primary",
+    });
+    if (!shraniKotPrilogo) return;
+
     const ocrIndeks = messageAttachments.findIndex((p) => p.origin === "ocr");
     if (ocrIndeks >= 0) {
       messageAttachments[ocrIndeks] = { file: datoteka, origin: "ocr" };
@@ -1377,19 +1387,7 @@ function inicializirajNeplacila() {
       izrisiIzbranePriloge();
       return;
     }
-    if (messageAttachments.length === 0) {
-      dodajIzbranePriloge([datoteka], "ocr");
-      return;
-    }
-    // Spodaj so že ročne priloge – vprašaj pred dodajanjem.
-    const dodajKotPrilogo = await potrdiVprasanje({
-      naslov: "Dodam tudi kot prilogo?",
-      opis: "Želite novi račun uporabiti tudi kot prilogo za pošiljanje?",
-      potrdiBesedilo: "Da, dodaj",
-      prekliciBesedilo: "Ne, obdrži trenutne",
-      stil: "primary",
-    });
-    if (dodajKotPrilogo) dodajIzbranePriloge([datoteka], "ocr");
+    dodajIzbranePriloge([datoteka], "ocr");
   }
 
   /* Označi polje kot samodejno izpolnjeno (bled zelen border, glej
