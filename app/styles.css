@@ -7357,17 +7357,25 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__vsebina-kartica {
-  padding: 8px;
+  padding: 10px 8px 8px;
   border: 1px solid #9fcfcd;
   border-radius: 15px;
   background: #e6f4f3;
   box-sizing: border-box;
 }
 
+.opomin-nacrt__vsebina-kartica .opomin-nacrt__sekcija-naslov {
+  margin: 0 6px 8px;
+}
+
 .opomin-nacrt__vsebina-seznam {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(159, 207, 205, 0.55);
 }
 
 .opomin-nacrt__vsebina-vrstica {
@@ -7375,11 +7383,12 @@ body.template-editor-odprt {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 46px;
+  min-height: 48px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 12px;
+  border-bottom: 1px solid #e7efee;
+  border-radius: 0;
   background: #ffffff;
   color: inherit;
   font: inherit;
@@ -7388,25 +7397,40 @@ body.template-editor-odprt {
   box-sizing: border-box;
 }
 
+.opomin-nacrt__vsebina-vrstica:last-child {
+  border-bottom: 0;
+}
+
 .opomin-nacrt__vsebina-vrstica:focus-visible {
   outline: 2px solid var(--teal, #159195);
-  outline-offset: 1px;
+  outline-offset: -2px;
+  z-index: 1;
 }
 
 .opomin-nacrt__vsebina-levo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
 .opomin-nacrt__vsebina-ikona {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
   color: var(--teal, #159195);
-  font-size: 14px;
+}
+
+.opomin-nacrt__vsebina-ikona svg {
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
 .opomin-nacrt__vsebina-naslov {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #183a3a);
   white-space: nowrap;
@@ -7415,16 +7439,32 @@ body.template-editor-odprt {
 .opomin-nacrt__vsebina-desno {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 
 .opomin-nacrt__vsebina-vrednost {
   font-size: 13px;
   color: var(--text-muted, #718483);
-  max-width: 120px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.opomin-nacrt__vrednost-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #d8efed;
+  color: #10797d;
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -7442,8 +7482,9 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__chevron {
+  flex-shrink: 0;
   color: #9aa8a7;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   line-height: 1;
 }
 

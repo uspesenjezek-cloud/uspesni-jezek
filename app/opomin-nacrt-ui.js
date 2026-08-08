@@ -20,6 +20,21 @@
   var IKONA_INFO =
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
 
+  var IKONA_TON =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>';
+
+  var IKONA_PREDLOGA =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+
+  var IKONA_ROK =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>';
+
+  var IKONA_OBROCNO =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>';
+
+  var IKONA_TRR =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>';
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -144,9 +159,275 @@
     var pokaziZakaj = false;
     var pokaziCasPicker = false;
 
-    function shrani() {
+    /* Delovne kopije dodatkov (isti sheeti kot na 2. koraku). */
+    var k2Seja = opts.podatkiKorak2 || {};
+    var paymentDeadline = k2Seja.paymentDeadline || null;
+    var installmentPlan = k2Seja.installmentPlan || null;
+    var dodatki = {
+      rok: Boolean(k2Seja.dodatki && k2Seja.dodatki.rok) ||
+        Boolean(paymentDeadline && paymentDeadline.enabled),
+      obrocno:
+        Boolean(k2Seja.dodatki && k2Seja.dodatki.obrocno) ||
+        Boolean(installmentPlan && installmentPlan.enabled),
+      trr: Boolean(k2Seja.dodatki && k2Seja.dodatki.trr),
+    };
+    var dodatekBesedila = {
+      rok: (k2Seja.dodatekBesedila && k2Seja.dodatekBesedila.rok) || "",
+      obrocno: (k2Seja.dodatekBesedila && k2Seja.dodatekBesedila.obrocno) || "",
+      trr: (k2Seja.dodatekBesedila && k2Seja.dodatekBesedila.trr) || "",
+    };
+    var privzetiDneviRoka = { 1: 5, 2: 7, 3: 10, 4: 14, 5: 14, 6: 14, 7: 14, 8: 14, 9: 14 };
+    var rokSheetApi = null;
+    var obrocnoSheetApi = null;
+    var bridgeBesedilo = document.getElementById("opomin-bridge-besedilo");
+    var bridgeRok = document.getElementById("opomin-bridge-rok");
+    var bridgeObrocno = document.getElementById("opomin-bridge-obrocno");
+
+    function syncStageDodatki() {
+      var step = N.najdiKorak(plan, aktivenIndex);
+      if (!step) return;
+      step.paymentDeadline = {
+        enabled: Boolean(paymentDeadline && paymentDeadline.enabled),
+        days:
+          paymentDeadline && paymentDeadline.termDays != null
+            ? Number(paymentDeadline.termDays)
+            : null,
+      };
+      step.installment = {
+        enabled: Boolean(installmentPlan && installmentPlan.enabled),
+        planId: installmentPlan && installmentPlan.id ? String(installmentPlan.id) : null,
+        count:
+          installmentPlan && installmentPlan.installmentCount != null
+            ? Number(installmentPlan.installmentCount)
+            : null,
+      };
+      var iban = String(
+        (opts.podatkiKorak1 && opts.podatkiKorak1.iban) || ""
+      ).trim();
+      step.bankTransfer = {
+        enabled: Boolean(dodatki.trr),
+        accountId: null,
+        accountLabel: dodatki.trr ? "Privzeti" : null,
+        ibanLastFour: iban ? iban.slice(-4) : null,
+      };
+      if (step.status === "confirmed") {
+        step.status = "needs_review";
+        step.confirmedAt = null;
+        step.snapshotHash = null;
+        step.confirmedSnapshotHash = null;
+        step.messageNeedsReview = true;
+      }
+    }
+
+    function syncKorak2Sejo() {
+      try {
+        var raw = sessionStorage.getItem("neplacilo-korak2-podatki");
+        var k2 = raw ? JSON.parse(raw) : Object.assign({}, opts.podatkiKorak2 || {});
+        k2.paymentDeadline = paymentDeadline;
+        k2.installmentPlan = installmentPlan;
+        k2.dodatki = {
+          rok: Boolean(dodatki.rok),
+          obrocno: Boolean(dodatki.obrocno),
+          trr: Boolean(dodatki.trr),
+        };
+        k2.dodatekBesedila = {
+          rok: dodatekBesedila.rok || "",
+          obrocno: dodatekBesedila.obrocno || "",
+          trr: dodatekBesedila.trr || "",
+        };
+        sessionStorage.setItem("neplacilo-korak2-podatki", JSON.stringify(k2));
+        opts.podatkiKorak2 = k2;
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+
+    function bazaDatumaPosiljanja() {
+      var d = new Date();
+      var m = String(d.getMonth() + 1).padStart(2, "0");
+      var day = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + m + "-" + day;
+    }
+
+    function znesekCentov() {
+      if (root.UJObrocno) {
+        var c = root.UJObrocno.eurosToCents(
+          opts.podatkiKorak1 && opts.podatkiKorak1.znesek
+        );
+        return c != null && c > 0 ? c : 0;
+      }
+      return 0;
+    }
+
+    function shraniVse() {
+      syncStageDodatki();
+      syncKorak2Sejo();
       N.shraniOsnutek(plan);
     }
+
+    function shrani() {
+      shraniVse();
+    }
+
+    function inicializirajSheete() {
+      if (
+        bridgeRok &&
+        typeof root.inicializirajRokPlacilaSheet === "function"
+      ) {
+        rokSheetApi = root.inicializirajRokPlacilaSheet({
+          gumbRok: bridgeRok,
+          get besediloPolje() {
+            return bridgeBesedilo;
+          },
+          najvecZnakov: 1000,
+          getPaymentDeadline: function () {
+            return paymentDeadline;
+          },
+          setPaymentDeadline: function (v) {
+            paymentDeadline = v;
+            dodatki.rok = Boolean(v && v.enabled);
+            if (v && v.insertedText) dodatekBesedila.rok = String(v.insertedText);
+            if (bridgeRok) {
+              bridgeRok.setAttribute(
+                "aria-pressed",
+                dodatki.rok ? "true" : "false"
+              );
+            }
+          },
+          getPrivzetiDnevi: function () {
+            return privzetiDneviRoka;
+          },
+          setPrivzetiDnevi: function (v) {
+            privzetiDneviRoka = v || privzetiDneviRoka;
+          },
+          getToneId: function () {
+            var s = N.najdiKorak(plan, aktivenIndex);
+            return (s && s.toneId) || plan.toneId || "friendly";
+          },
+          getToneIdZaPriporocila: function () {
+            return plan.toneId || "friendly";
+          },
+          getPriporociloVhod: function () {
+            return {
+              toneId: plan.toneId || "friendly",
+              overdueDays: plan.overdueDays || 0,
+              amountCents: plan.amountCents || znesekCentov(),
+            };
+          },
+          getDneviZaTon: function (toneId) {
+            return root.UJRokPlacila
+              ? root.UJRokPlacila.dneviZaTon(toneId)
+              : 14;
+          },
+          onAfterChange: function () {},
+          stevilkaIzbranegaPredloga: function () {
+            return 1;
+          },
+          bazaDatumaPosiljanja: bazaDatumaPosiljanja,
+          get dodatki() {
+            return dodatki;
+          },
+          get dodatekBesedila() {
+            return dodatekBesedila;
+          },
+          posodobiStanjeUrejevalnika: function () {},
+          shraniOsnutekLokalno: function () {
+            shraniVse();
+          },
+          potrdiVprasanje: opts.potrdiVprasanje,
+          pokaziNapako: opts.pokaziNapako,
+        });
+      }
+
+      if (
+        bridgeObrocno &&
+        typeof root.inicializirajObrocnoSheet === "function"
+      ) {
+        obrocnoSheetApi = root.inicializirajObrocnoSheet({
+          gumbObrocno: bridgeObrocno,
+          gumbRok: bridgeRok,
+          get besediloPolje() {
+            return bridgeBesedilo;
+          },
+          najvecZnakov: 1000,
+          get dodatki() {
+            return dodatki;
+          },
+          get dodatekBesedila() {
+            return dodatekBesedila;
+          },
+          getInstallmentPlan: function () {
+            return installmentPlan;
+          },
+          setInstallmentPlan: function (v) {
+            installmentPlan = v;
+            dodatki.obrocno = Boolean(v && v.enabled);
+            if (v && v.addonText) dodatekBesedila.obrocno = String(v.addonText);
+          },
+          getPaymentDeadline: function () {
+            return paymentDeadline;
+          },
+          setPaymentDeadline: function (v) {
+            paymentDeadline = v;
+            dodatki.rok = Boolean(v && v.enabled);
+          },
+          getTotalDebtCents: znesekCentov,
+          getOriginalDueDate: function () {
+            return (
+              (opts.podatkiKorak1 && opts.podatkiKorak1.datumZapadlosti) || null
+            );
+          },
+          getToneId: function () {
+            var s = N.najdiKorak(plan, aktivenIndex);
+            return (s && s.toneId) || plan.toneId || "friendly";
+          },
+          getToneIdZaPriporocila: function () {
+            return plan.toneId || "friendly";
+          },
+          getPriporociloVhod: function () {
+            return {
+              toneId: plan.toneId || "friendly",
+              overdueDays: plan.overdueDays || 0,
+              amountCents: plan.amountCents || znesekCentov(),
+            };
+          },
+          getJezik: function () {
+            return "de";
+          },
+          stevilkaIzbranegaPredloga: function () {
+            return 1;
+          },
+          bazaDatumaPosiljanja: bazaDatumaPosiljanja,
+          posodobiStanjeUrejevalnika: function () {},
+          shraniOsnutekLokalno: function () {
+            shraniVse();
+          },
+          potrdiVprasanje: opts.potrdiVprasanje,
+          pokaziNapako: opts.pokaziNapako,
+        });
+      }
+
+      if (bridgeBesedilo) {
+        var s1 = N.najdiKorak(plan, 1);
+        bridgeBesedilo.value =
+          (s1 && (s1.finalMessage || s1.generatedMessage)) ||
+          (k2Seja.sporociloDolzniku || "");
+      }
+      if (bridgeRok) {
+        bridgeRok.setAttribute(
+          "aria-pressed",
+          paymentDeadline && paymentDeadline.enabled ? "true" : "false"
+        );
+      }
+      if (bridgeObrocno) {
+        bridgeObrocno.setAttribute(
+          "aria-pressed",
+          installmentPlan && installmentPlan.enabled ? "true" : "false"
+        );
+      }
+    }
+
+    inicializirajSheete();
 
     function potrjeniCount() {
       return N.steviloPotrjenih ? N.steviloPotrjenih(plan) : 0;
@@ -185,26 +466,37 @@
       return "";
     }
 
-    function vrsticaVsebine(ikona, naslov, vrednost, badge, dataAkcija) {
+    function vrsticaVsebine(o) {
+      o = o || {};
+      var vrednostHtml = "";
+      if (o.vrednostKotPill && o.vrednost) {
+        vrednostHtml =
+          '<span class="opomin-nacrt__vrednost-pill">' +
+          esc(o.vrednost) +
+          "</span>";
+      } else if (o.vrednost) {
+        vrednostHtml =
+          '<span class="opomin-nacrt__vsebina-vrednost">' +
+          esc(o.vrednost) +
+          "</span>";
+      }
       return (
         '<button type="button" class="opomin-nacrt__vsebina-vrstica" data-vsebina="' +
-        esc(dataAkcija) +
+        esc(o.akcija || "") +
         '">' +
         '<span class="opomin-nacrt__vsebina-levo">' +
         '<span class="opomin-nacrt__vsebina-ikona" aria-hidden="true">' +
-        ikona +
+        (o.ikona || "") +
         "</span>" +
         '<span class="opomin-nacrt__vsebina-naslov">' +
-        esc(naslov) +
+        esc(o.naslov || "") +
         "</span>" +
         "</span>" +
         '<span class="opomin-nacrt__vsebina-desno">' +
-        (badge
-          ? '<span class="opomin-nacrt__mini-badge">' + esc(badge) + "</span>"
+        vrednostHtml +
+        (o.badge
+          ? '<span class="opomin-nacrt__mini-badge">' + esc(o.badge) + "</span>"
           : "") +
-        '<span class="opomin-nacrt__vsebina-vrednost">' +
-        esc(vrednost) +
-        "</span>" +
         '<span class="opomin-nacrt__chevron" aria-hidden="true">›</span>' +
         "</span>" +
         "</button>"
@@ -284,43 +576,80 @@
 
       var vsebinaHtml = "";
       if (!jeManual) {
-        var rokVal =
-          step.paymentDeadline && step.paymentDeadline.enabled
-            ? step.paymentDeadline.days != null
-              ? step.paymentDeadline.days + " dni"
-              : "Vklopljeno"
-            : "Izklopljeno";
-        var trrVal =
-          step.bankTransfer && step.bankTransfer.enabled
-            ? (step.bankTransfer.accountLabel || "Privzeti") +
-              (step.bankTransfer.ibanLastFour
-                ? " • …" + step.bankTransfer.ibanLastFour
-                : "")
-            : "Izklopljeno";
+        var rokAktiven =
+          (paymentDeadline && paymentDeadline.enabled) ||
+          (step.paymentDeadline && step.paymentDeadline.enabled);
+        var rokDnevi =
+          (paymentDeadline && paymentDeadline.termDays != null
+            ? paymentDeadline.termDays
+            : null) ||
+          (step.paymentDeadline && step.paymentDeadline.days != null
+            ? step.paymentDeadline.days
+            : null);
+        var rokVal = rokAktiven
+          ? rokDnevi != null
+            ? rokDnevi + " dni"
+            : "Vklopljeno"
+          : "Izklopljeno";
+
+        var planObroc =
+          installmentPlan && installmentPlan.enabled
+            ? installmentPlan
+            : null;
+        var obrocVal = planObroc
+          ? (planObroc.installmentCount ||
+              (planObroc.installments && planObroc.installments.length) ||
+              "?") + " obroki"
+          : "Izklopljeno";
+
+        var iban = String(
+          (opts.podatkiKorak1 && opts.podatkiKorak1.iban) || ""
+        ).trim();
+        var iban4 = iban ? iban.slice(-4) : "";
+        var trrAktiven = Boolean(
+          dodatki.trr ||
+            (step.bankTransfer && step.bankTransfer.enabled)
+        );
+        var trrVal = trrAktiven
+          ? "Privzeti" + (iban4 ? " • …" + iban4 : "")
+          : "Izklopljeno";
+
         vsebinaHtml =
           '<section class="opomin-nacrt__vsebina-kartica" aria-label="Vsebina koraka">' +
           '<h3 class="opomin-nacrt__sekcija-naslov">Vsebina koraka</h3>' +
           '<div class="opomin-nacrt__vsebina-seznam">' +
-          vrsticaVsebine("☺", "Ton sporočila", N.oznakaTona(step.toneId || plan.toneId), null, "ton") +
-          vrsticaVsebine(
-            "▤",
-            "Predloga",
-            imePredloge(step, k2),
-            "Priporočeno",
-            "predloga"
-          ) +
-          vrsticaVsebine("▣", "Rok plačila", rokVal, null, "rok");
-        if (step.installment && step.installment.enabled) {
-          vsebinaHtml += vrsticaVsebine(
-            "▤",
-            "Obročno plačilo",
-            (step.installment.count || "?") + " obroki",
-            null,
-            "obrocno"
-          );
-        }
-        vsebinaHtml +=
-          vrsticaVsebine("▭", "TRR", trrVal, null, "trr") +
+          vrsticaVsebine({
+            ikona: IKONA_TON,
+            naslov: "Ton sporočila",
+            vrednost: N.oznakaTona(step.toneId || plan.toneId),
+            vrednostKotPill: true,
+            akcija: "ton",
+          }) +
+          vrsticaVsebine({
+            ikona: IKONA_PREDLOGA,
+            naslov: "Predloga",
+            vrednost: imePredloge(step, k2),
+            badge: "Priporočeno",
+            akcija: "predloga",
+          }) +
+          vrsticaVsebine({
+            ikona: IKONA_ROK,
+            naslov: "Rok plačila",
+            vrednost: rokVal,
+            akcija: "rok",
+          }) +
+          vrsticaVsebine({
+            ikona: IKONA_OBROCNO,
+            naslov: "Obročno plačilo",
+            vrednost: obrocVal,
+            akcija: "obrocno",
+          }) +
+          vrsticaVsebine({
+            ikona: IKONA_TRR,
+            naslov: "TRR",
+            vrednost: trrVal,
+            akcija: "trr",
+          }) +
           "</div></section>";
 
         vsebinaHtml +=
@@ -547,15 +876,67 @@
 
       opts.glavniEl.querySelectorAll("[data-vsebina]").forEach(function (btn) {
         btn.addEventListener("click", function () {
-          if (typeof opts.potrdiVprasanje !== "function") return;
-          opts.potrdiVprasanje({
-            naslov: "Nastavitev koraka",
-            opis:
-              "Vrednosti so iz 2. koraka. Podrobno urejanje na tem zaslonu pride v naslednji različici — pri pregledu koraka lahko urediš SMS.",
-            potrdiBesedilo: "V redu",
-            samoEnGumb: true,
-            stil: "primary",
-          });
+          var akcija = btn.getAttribute("data-vsebina");
+          if (akcija === "rok") {
+            if (rokSheetApi && typeof rokSheetApi.odpri === "function") {
+              rokSheetApi.odpri({
+                toneId: (step && step.toneId) || plan.toneId,
+                onClose: function () {
+                  shraniVse();
+                  izrisiGlavni();
+                },
+              });
+            } else if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(
+                "Nastavitve roka plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+              );
+            }
+            return;
+          }
+          if (akcija === "obrocno") {
+            if (obrocnoSheetApi && typeof obrocnoSheetApi.odpri === "function") {
+              obrocnoSheetApi.odpri({
+                toneId: (step && step.toneId) || plan.toneId,
+                onClose: function () {
+                  shraniVse();
+                  izrisiGlavni();
+                },
+              });
+            } else if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(
+                "Nastavitve obročnega plačila se niso naložile. Osvežite stran (Ctrl+F5)."
+              );
+            }
+            return;
+          }
+          if (akcija === "trr") {
+            var iban = String(
+              (opts.podatkiKorak1 && opts.podatkiKorak1.iban) || ""
+            ).trim();
+            if (!iban) {
+              if (typeof opts.pokaziNapako === "function") {
+                opts.pokaziNapako(
+                  "TRR/IBAN še ni na voljo v podatkih zadeve – dodajte ga v prvem koraku ali ročno v sporočilo."
+                );
+              }
+              return;
+            }
+            dodatki.trr = !dodatki.trr;
+            dodatekBesedila.trr = dodatki.trr ? "TRR: " + iban + "." : "";
+            shraniVse();
+            izrisiGlavni();
+            return;
+          }
+          if (typeof opts.potrdiVprasanje === "function") {
+            opts.potrdiVprasanje({
+              naslov: "Kmalu na voljo",
+              opis:
+                "Urejanje tona in predloge po korakih pride v naslednji različici. Rok, obročno in TRR pa lahko že urejate tukaj.",
+              potrdiBesedilo: "V redu",
+              samoEnGumb: true,
+              stil: "primary",
+            });
+          }
         });
       });
 
