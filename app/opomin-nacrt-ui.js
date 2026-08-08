@@ -1137,13 +1137,10 @@
         esc(smsMeta) +
         "</span>" +
         "</div>" +
-        '<div class="sms-preview__ovoj">' +
         '<div class="sms-preview__viewport" role="region" aria-label="Predogled SMS sporočila" tabindex="0">' +
         (imaSms
           ? esc(smsBesedilo)
           : '<span class="sms-preview__prazno">Sporočilo še ni sestavljeno.</span>') +
-        "</div>" +
-        '<span class="sms-preview__fade" aria-hidden="true"></span>' +
         "</div>" +
         '<p class="sms-preview__caption">Celotno sporočilo uredite pri pregledu koraka.</p>' +
         "</div>" +
@@ -1423,7 +1420,7 @@
         '<span class="opomin-nacrt__info-ikona" aria-hidden="true">' +
         IKONA_INFO +
         "</span>" +
-        "<p>Potrjeni koraki se bodo poslali samodejno po časovnici.<br />Načrt se ustavi ob plačilu ali odgovoru dolžnika.</p>" +
+        "<p>Potrjeni koraki se bodo poslali samodejno po časovnici. Načrt se ustavi ob plačilu ali odgovoru dolžnika.</p>" +
         "</div>" +
         '<p class="opomin-nacrt__opozorilo-sivo">Potrditev koraka še ne pošlje sporočila.</p>' +
         '<footer class="opomin-nacrt__noga">' +
@@ -1534,25 +1531,6 @@
           }
         });
       });
-
-      var smsViewport = opts.glavniEl.querySelector(".sms-preview__viewport");
-      var smsOvoj = opts.glavniEl.querySelector(".sms-preview__ovoj");
-      if (smsViewport && smsOvoj) {
-        function posodobiSmsFade() {
-          var naDnu =
-            smsViewport.scrollTop + smsViewport.clientHeight >=
-            smsViewport.scrollHeight - 4;
-          if (naDnu) smsOvoj.classList.add("is-at-bottom");
-          else smsOvoj.classList.remove("is-at-bottom");
-          if (smsViewport.scrollHeight <= smsViewport.clientHeight + 2) {
-            smsOvoj.classList.add("is-at-bottom");
-          }
-        }
-        smsViewport.addEventListener("scroll", posodobiSmsFade, {
-          passive: true,
-        });
-        posodobiSmsFade();
-      }
 
       var shraniOsnutek = opts.glavniEl.querySelector("#opomin-shrani-osnutek");
       if (shraniOsnutek) {
