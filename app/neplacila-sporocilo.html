@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-preglej" />
+    <link rel="stylesheet" href="styles.css?v=20260808-priporocila-vedno" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -203,35 +203,28 @@
                 </button>
               </div>
               <div class="ton-priporocila" id="ton-dodatki-namigi">
-                <button
-                  type="button"
-                  class="ton-priporocila__gumb"
-                  id="gumb-mozna-priporocila"
-                  aria-expanded="false"
-                  aria-controls="panel-mozna-priporocila"
-                >
+                <p class="ton-priporocila__naslov-razdelka" id="mozna-priporocila-naslov">
                   <span class="ton-priporocila__zvezda" aria-hidden="true">★</span>
                   Možna priporočila
-                  <span class="ton-priporocila__chevron" aria-hidden="true">▾</span>
-                </button>
-                <div
-                  class="ton-priporocila__panel"
-                  id="panel-mozna-priporocila"
-                  hidden
-                >
+                </p>
+                <div class="ton-priporocila__panel" id="panel-mozna-priporocila">
                   <div class="ton-priporocila__sklop">
-                    <p class="ton-priporocila__naslov">Rok plačila</p>
+                    <div class="ton-priporocila__vrsta">
+                      <p class="ton-priporocila__naslov">Rok plačila</p>
+                      <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-rok">
+                        Preglej
+                      </button>
+                    </div>
                     <p class="ton-priporocila__besedilo" id="priporocilo-rok-besedilo"></p>
-                    <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-rok">
-                      Preglej
-                    </button>
                   </div>
                   <div class="ton-priporocila__sklop">
-                    <p class="ton-priporocila__naslov">Obročno plačilo</p>
+                    <div class="ton-priporocila__vrsta">
+                      <p class="ton-priporocila__naslov">Obročno plačilo</p>
+                      <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-obrocno">
+                        Preglej
+                      </button>
+                    </div>
                     <p class="ton-priporocila__besedilo" id="priporocilo-obrocno-besedilo"></p>
-                    <button type="button" class="ton-priporocila__preglej" id="gumb-preglej-obrocno">
-                      Preglej
-                    </button>
                   </div>
                 </div>
               </div>
@@ -542,14 +535,14 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-preglej"></script>
-    <script src="rok-placila-sheet.js?v=20260808-preglej"></script>
-    <script src="obrocno-utils.js?v=20260808-preglej"></script>
-    <script src="obrocno-sheet.js?v=20260808-preglej"></script>
-    <script src="ton-priporocilo.js?v=20260808-preglej"></script>
-    <script src="ton-predloge.js?v=20260808-preglej"></script>
-    <script src="ton-widget.js?v=20260808-preglej"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-preglej"></script>
-    <script src="app.js?v=20260808-preglej"></script>
+    <script src="rok-placila-utils.js?v=20260808-priporocila-vedno"></script>
+    <script src="rok-placila-sheet.js?v=20260808-priporocila-vedno"></script>
+    <script src="obrocno-utils.js?v=20260808-priporocila-vedno"></script>
+    <script src="obrocno-sheet.js?v=20260808-priporocila-vedno"></script>
+    <script src="ton-priporocilo.js?v=20260808-priporocila-vedno"></script>
+    <script src="ton-predloge.js?v=20260808-priporocila-vedno"></script>
+    <script src="ton-widget.js?v=20260808-priporocila-vedno"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-priporocila-vedno"></script>
+    <script src="app.js?v=20260808-priporocila-vedno"></script>
   </body>
 </html>

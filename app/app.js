@@ -2936,8 +2936,6 @@ function inicializirajSporociloDolzniku() {
     besediloPolje.focus();
   }
 
-  const gumbMoznaPriporocila = document.getElementById("gumb-mozna-priporocila");
-  const panelMoznaPriporocila = document.getElementById("panel-mozna-priporocila");
   const gumbPreglejRok = document.getElementById("gumb-preglej-rok");
   const gumbPreglejObrocno = document.getElementById("gumb-preglej-obrocno");
   const ovojMoznaPriporocila = document.getElementById("ton-dodatki-namigi");
@@ -2987,22 +2985,14 @@ function inicializirajSporociloDolzniku() {
     if (obrocnoEl) obrocnoEl.innerHTML = priporocila.obrocnoHtml;
   }
 
-  function odpriPanelMoznaPriporocila() {
-    if (!panelMoznaPriporocila || !gumbMoznaPriporocila) return;
-    posodobiNamigeTonaDodatkov();
-    panelMoznaPriporocila.hidden = false;
-    gumbMoznaPriporocila.setAttribute("aria-expanded", "true");
-  }
-
   /** Po uspešnem shrani iz Preglej → nazaj na razdelek priporočil. */
   function vrniNaMoznaPriporocila(fokusGumb) {
-    odpriPanelMoznaPriporocila();
-    const cilj = ovojMoznaPriporocila || gumbMoznaPriporocila;
+    posodobiNamigeTonaDodatkov();
+    const cilj = ovojMoznaPriporocila || fokusGumb;
     if (cilj && typeof cilj.scrollIntoView === "function") {
       window.setTimeout(() => {
         cilj.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        const fokus = fokusGumb || gumbMoznaPriporocila;
-        if (fokus && typeof fokus.focus === "function") fokus.focus();
+        if (fokusGumb && typeof fokusGumb.focus === "function") fokusGumb.focus();
       }, 50);
     }
   }
@@ -3046,15 +3036,6 @@ function inicializirajSporociloDolzniku() {
         );
       });
     }
-  }
-
-  if (gumbMoznaPriporocila && panelMoznaPriporocila) {
-    gumbMoznaPriporocila.addEventListener("click", () => {
-      const odprt = panelMoznaPriporocila.hidden;
-      if (odprt) posodobiNamigeTonaDodatkov();
-      panelMoznaPriporocila.hidden = !odprt;
-      gumbMoznaPriporocila.setAttribute("aria-expanded", odprt ? "true" : "false");
-    });
   }
 
   if (dodatekObrocno) {
@@ -3122,7 +3103,6 @@ function inicializirajSporociloDolzniku() {
       const termDays = window.UJRokPlacila
         ? window.UJRokPlacila.dneviZaTon(tonId)
         : 14;
-      odpriPanelMoznaPriporocila();
       window.setTimeout(() => {
         rokSheetApi.odpri({
           izPriporocil: true,
@@ -3142,7 +3122,6 @@ function inicializirajSporociloDolzniku() {
         );
         return;
       }
-      odpriPanelMoznaPriporocila();
       window.setTimeout(() => {
         obrocnoSheetApi.odpri({
           izPriporocil: true,

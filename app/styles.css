@@ -4290,7 +4290,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   cursor: pointer;
 }
 
-/* Diskretni namigi pod dodatki (rok/obročno glede na ton) – ne spreminja kartic. */
+/* Priporočila pod dodatki – vedno vidna, brez accordion. */
 .ton-priporocila {
   display: flex;
   flex-direction: column;
@@ -4299,42 +4299,22 @@ body.stran--samo-seznam #neplacila-obrazec {
   margin-top: 10px;
 }
 
-.ton-priporocila__gumb {
+.ton-priporocila__naslov-razdelka {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  align-self: flex-start;
   margin: 0;
   padding: 4px 2px;
-  border: 0;
-  background: transparent;
   color: #c9a227;
-  font: inherit;
   font-size: 0.84rem;
   font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.ton-priporocila__gumb:hover,
-.ton-priporocila__gumb:focus-visible {
-  color: #a88412;
+  line-height: 1.3;
 }
 
 .ton-priporocila__zvezda {
   color: #e8b923;
   font-size: 0.9rem;
   line-height: 1;
-}
-
-.ton-priporocila__chevron {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  transition: transform 0.15s ease;
-}
-
-.ton-priporocila__gumb[aria-expanded="true"] .ton-priporocila__chevron {
-  transform: rotate(180deg);
 }
 
 .ton-priporocila__panel {
@@ -4345,21 +4325,26 @@ body.stran--samo-seznam #neplacila-obrazec {
   box-sizing: border-box;
 }
 
-.ton-priporocila__panel[hidden] {
-  display: none !important;
-}
-
 .ton-priporocila__sklop + .ton-priporocila__sklop {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #ead78a;
 }
 
+.ton-priporocila__vrsta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
 .ton-priporocila__naslov {
-  margin: 0 0 4px;
+  margin: 0;
   color: #6a5410;
   font-size: 0.82rem;
   font-weight: 700;
+  min-width: 0;
 }
 
 .ton-priporocila__besedilo {
@@ -4376,17 +4361,18 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-priporocila__preglej {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 10px;
-  padding: 8px 14px;
+  margin: 0;
+  padding: 6px 12px;
   border: 1px solid #c9a227;
   border-radius: 10px;
   background: #fff;
   color: #6a5410;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 }
