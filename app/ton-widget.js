@@ -1,29 +1,29 @@
-/* ========== Widget Ton sporočila (vrtiljak) ==========
+/* ========== Kompaktni widget Ton sporočila (pills) ==========
    window.inicializirajTonWidget(ctx)
    ============================================ */
 (function (root) {
   "use strict";
 
   var IKONE_SVG = {
-    "smile-heart":
-      '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+    "smile-plus":
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h4"/><path d="M18 3v4"/></svg>',
     smile:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
-    message:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
+    meh:
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="8" x2="16" y1="15" y2="15"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
     shield:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
-    alert:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+    "circle-alert":
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
   };
 
   /**
    * @param {object} ctx
    * @param {() => object} ctx.getState
    * @param {(s: object) => void} ctx.setState
-   * @param {object} ctx.recommendation – rezultat getRecommendedTone
-   * @param {(toneId: string) => void} ctx.onToneSelected
-   * @param {() => void} ctx.onReset
+   * @param {object} ctx.recommendation
+   * @param {(toneId: string) => void|Promise<boolean>} ctx.onToneSelected
+   * @param {() => void|Promise<boolean>} [ctx.onReset]
    * @param {(detail: string) => void} [ctx.onShowReasonDetail]
    */
   function inicializirajTonWidget(ctx) {
@@ -32,16 +32,11 @@
     if (!UJ || !rootEl || !ctx) return;
 
     var tir = document.getElementById("ton-tir");
-    var pike = document.getElementById("ton-pike");
-    var levo = document.getElementById("ton-puscica-levo");
-    var desno = document.getElementById("ton-puscica-desno");
-    var znacka = document.getElementById("ton-predlagani-znacka");
-    var razlaga = document.getElementById("ton-razlaga");
-    var razlagaInfo = document.getElementById("ton-razlaga-info");
     var znesekZnacka = document.getElementById("ton-znesek-znacka");
     var casZnacka = document.getElementById("ton-cas-znacka");
+    var metaPika = rootEl.querySelector(".ton-widget__meta-pika");
+    var zakaj = document.getElementById("ton-zakaj");
     var overrideEl = document.getElementById("ton-override");
-    var overrideBesedilo = document.getElementById("ton-override-besedilo");
     var ponastavi = document.getElementById("ton-ponastavi");
     var ariaLive = document.getElementById("ton-aria-live");
     var tabpanel = document.getElementById("ton-tabpanel-predloge");
@@ -51,91 +46,63 @@
     var startX = 0;
     var scrollCasovnik = null;
     var tihoScrollanje = false;
-    var menjavaVTeku = false;
 
     rootEl.hidden = false;
+    rootEl.classList.remove("ton-widget--skeleton");
 
     function stanje() {
       return ctx.getState() || {};
     }
 
     function indeksTona(toneId) {
-      var id =
-        typeof UJ.normalizirajTonId === "function"
-          ? UJ.normalizirajTonId(toneId)
-          : toneId;
       for (var i = 0; i < UJ.TONI.length; i++) {
-        if (UJ.TONI[i].id === id) return i;
+        if (UJ.TONI[i].id === toneId) return i;
       }
       return 0;
+    }
+
+    function podrobniRazlog() {
+      var s = stanje();
+      var rec = ctx.recommendation || {};
+      return (
+        s.reasonDetailText ||
+        rec.reasonDetailText ||
+        s.reasonText ||
+        rec.reasonText ||
+        "Ton je predlagan glede na znesek in zapadlost računa."
+      );
     }
 
     function posodobiGlavo() {
       var s = stanje();
       var rec = ctx.recommendation || {};
-      var recTon = UJ.najdiTonPoId(s.recommendedToneId) || rec.tone;
-      if (znacka && recTon) znacka.textContent = recTon.labelSl;
-      if (razlaga) {
-        razlaga.textContent =
-          s.reasonText || rec.reasonText || "Predlagano glede na znesek in zapadlost računa.";
-      }
-      if (razlagaInfo) {
-        var detail = s.reasonDetailText || rec.reasonDetailText || "";
-        razlagaInfo.hidden = !detail || detail === (s.reasonText || rec.reasonText);
-        razlagaInfo.dataset.detail = detail;
-      }
+      var amount = s.amountLabel || rec.amountLabel || "";
+      var timing = s.timingLabel || rec.timingLabel || "";
+
       if (znesekZnacka) {
-        var amount = s.amountLabel || rec.amountLabel || "";
         znesekZnacka.textContent = amount;
         znesekZnacka.hidden = !amount;
       }
       if (casZnacka) {
-        var timing = s.timingLabel || rec.timingLabel || "";
         casZnacka.textContent = timing;
         casZnacka.hidden = !timing;
       }
-      if (overrideEl && overrideBesedilo) {
-        if (s.isOverridden) {
-          var sel = UJ.najdiTonPoId(s.selectedToneId);
-          overrideEl.hidden = false;
-          overrideBesedilo.textContent =
-            "Sistem predlaga: " +
-            (recTon ? recTon.labelSl : "—") +
-            "\nRočno izbrano: " +
-            (sel ? sel.labelSl : "—");
-        } else {
-          overrideEl.hidden = true;
-        }
+      if (metaPika) metaPika.hidden = !(amount && timing);
+
+      if (overrideEl) {
+        overrideEl.hidden = !s.isOverridden;
       }
     }
 
-    function posodobiPuscice() {
-      var idx = indeksTona(stanje().selectedToneId);
-      if (levo) levo.disabled = idx <= 0;
-      if (desno) desno.disabled = idx >= UJ.TONI.length - 1;
-    }
-
-    function posodobiPike() {
-      if (!pike) return;
-      var idx = indeksTona(stanje().selectedToneId);
-      pike.querySelectorAll(".ton-widget__pika").forEach(function (p, i) {
-        p.classList.toggle("ton-widget__pika--aktivna", i === idx);
-        p.setAttribute("aria-selected", i === idx ? "true" : "false");
-      });
-    }
-
-    function posodobiKartice() {
+    function posodobiGumbe() {
       if (!tir) return;
       var s = stanje();
-      tir.querySelectorAll(".ton-widget__kartica").forEach(function (kartica) {
-        var id = kartica.dataset.toneId;
+      tir.querySelectorAll(".ton-widget__gumb").forEach(function (gumb) {
+        var id = gumb.dataset.toneId;
         var izbrana = id === s.selectedToneId;
-        var predlagana = id === s.recommendedToneId;
-        kartica.classList.toggle("ton-widget__kartica--izbrana", izbrana);
-        kartica.setAttribute("aria-selected", izbrana ? "true" : "false");
-        kartica.tabIndex = izbrana ? 0 : -1;
-        var badge = kartica.querySelector(".ton-widget__kartica-predlagano");
-        if (badge) badge.hidden = !predlagana;
+        gumb.classList.toggle("ton-widget__gumb--izbran", izbrana);
+        gumb.setAttribute("aria-selected", izbrana ? "true" : "false");
+        gumb.tabIndex = izbrana ? 0 : -1;
       });
     }
 
@@ -158,97 +125,55 @@
 
     function osveziUi() {
       posodobiGlavo();
-      posodobiKartice();
-      posodobiPike();
-      posodobiPuscice();
-    }
-
-    function izberiTon(toneId, scrollaj) {
-      if (!toneId || menjavaVTeku) return;
-      var id =
-        typeof UJ.normalizirajTonId === "function"
-          ? UJ.normalizirajTonId(toneId)
-          : toneId;
-      var prevId = stanje().selectedToneId;
-      if (prevId === id) {
-        osveziUi();
-        if (scrollaj) scrollToTone(id, true);
-        return;
-      }
-
-      function poUspehu() {
-        menjavaVTeku = false;
-        osveziUi();
-        if (scrollaj !== false) scrollToTone(id, false);
-        sporociBralniku();
-      }
-
-      function poZavrnitvi() {
-        menjavaVTeku = false;
-        osveziUi();
-        scrollToTone(prevId, true);
-        sporociBralniku();
-      }
-
-      if (typeof ctx.onToneSelected !== "function") {
-        poUspehu();
-        return;
-      }
-
-      menjavaVTeku = true;
-      var rez = ctx.onToneSelected(id);
-      if (rez && typeof rez.then === "function") {
-        rez.then(
-          function (ok) {
-            if (ok === false) poZavrnitvi();
-            else poUspehu();
-          },
-          function () {
-            poZavrnitvi();
-          }
-        );
-        return;
-      }
-      if (rez === false) {
-        poZavrnitvi();
-        return;
-      }
-      poUspehu();
-    }
-
-    function karticaNaIndeksu(i) {
-      if (!tir) return null;
-      return tir.querySelectorAll(".ton-widget__kartica")[i] || null;
+      posodobiGumbe();
     }
 
     function scrollToTone(toneId, instant) {
-      var idx = indeksTona(toneId);
-      var kartica = karticaNaIndeksu(idx);
-      if (!kartica || !tir) return;
+      if (!tir) return;
+      var gumb = tir.querySelector(
+        '.ton-widget__gumb[data-tone-id="' + toneId + '"]'
+      );
+      if (!gumb) return;
       tihoScrollanje = true;
       var cilj =
-        kartica.offsetLeft - (tir.clientWidth / 2 - kartica.offsetWidth / 2);
+        gumb.offsetLeft - (tir.clientWidth / 2 - gumb.offsetWidth / 2);
       tir.scrollTo({
         left: Math.max(0, cilj),
         behavior: instant ? "auto" : "smooth",
       });
       window.setTimeout(function () {
         tihoScrollanje = false;
-      }, instant ? 50 : 350);
+      }, instant ? 50 : 320);
     }
 
-    function najblizjaKartica() {
+    function izberiTon(toneId, scrollaj) {
+      if (!toneId) return;
+      var s = stanje();
+      if (s.selectedToneId === toneId) {
+        osveziUi();
+        if (scrollaj) scrollToTone(toneId, true);
+        return;
+      }
+      if (typeof ctx.onToneSelected === "function") {
+        ctx.onToneSelected(toneId);
+      }
+      osveziUi();
+      if (scrollaj !== false) scrollToTone(toneId, false);
+      sporociBralniku();
+    }
+
+    function najblizjiGumb() {
       if (!tir) return null;
       var sredisce = tir.scrollLeft + tir.clientWidth / 2;
-      var kartice = tir.querySelectorAll(".ton-widget__kartica");
+      var gumbi = tir.querySelectorAll(".ton-widget__gumb");
       var naj = null;
       var najRazlika = Infinity;
-      kartice.forEach(function (k) {
-        var c = k.offsetLeft + k.offsetWidth / 2;
+      gumbi.forEach(function (g) {
+        var c = g.offsetLeft + g.offsetWidth / 2;
         var d = Math.abs(c - sredisce);
         if (d < najRazlika) {
           najRazlika = d;
-          naj = k;
+          naj = g;
         }
       });
       return naj;
@@ -256,9 +181,9 @@
 
     function potrdiTonPoScrollu() {
       if (tihoScrollanje) return;
-      var k = najblizjaKartica();
-      if (!k) return;
-      var id = k.dataset.toneId;
+      var g = najblizjiGumb();
+      if (!g) return;
+      var id = g.dataset.toneId;
       if (id && id !== stanje().selectedToneId) {
         izberiTon(id, false);
       } else {
@@ -266,27 +191,32 @@
       }
     }
 
-    function zgradiKartice() {
-      if (!tir || !pike) return;
-      tir.innerHTML = "";
-      pike.innerHTML = "";
-      UJ.TONI.forEach(function (ton, i) {
-        var kartica = document.createElement("button");
-        kartica.type = "button";
-        kartica.className = "ton-widget__kartica";
-        kartica.dataset.toneId = ton.id;
-        kartica.setAttribute("role", "tab");
-        kartica.setAttribute("aria-controls", "ton-tabpanel-predloge");
-        kartica.id = "ton-tab-" + ton.id;
-        kartica.innerHTML =
-          '<span class="ton-widget__kartica-ikona">' +
-          (IKONE_SVG[ton.iconKey] || IKONE_SVG.message) +
-          "</span>" +
-          '<span class="ton-widget__kartica-naziv"></span>' +
-          '<span class="ton-widget__kartica-predlagano" hidden>Predlagano</span>';
-        kartica.querySelector(".ton-widget__kartica-naziv").textContent = ton.labelSl;
+    function premakniZa(delta) {
+      var idx = indeksTona(stanje().selectedToneId) + delta;
+      idx = Math.max(0, Math.min(UJ.TONI.length - 1, idx));
+      izberiTon(UJ.TONI[idx].id, true);
+    }
 
-        kartica.addEventListener("click", function (ev) {
+    function zgradiGumbe() {
+      if (!tir) return;
+      tir.innerHTML = "";
+      UJ.TONI.forEach(function (ton) {
+        if (ton.active === false) return;
+        var gumb = document.createElement("button");
+        gumb.type = "button";
+        gumb.className = "ton-widget__gumb";
+        gumb.dataset.toneId = ton.id;
+        gumb.setAttribute("role", "tab");
+        gumb.setAttribute("aria-controls", "ton-tabpanel-predloge");
+        gumb.id = "ton-tab-" + ton.id;
+        gumb.innerHTML =
+          '<span class="ton-widget__gumb-ikona" aria-hidden="true">' +
+          (IKONE_SVG[ton.iconKey] || IKONE_SVG.smile) +
+          "</span>" +
+          '<span class="ton-widget__gumb-naziv"></span>';
+        gumb.querySelector(".ton-widget__gumb-naziv").textContent = ton.labelSl;
+
+        gumb.addEventListener("click", function (ev) {
           if (potegPremaknil) {
             ev.preventDefault();
             potegPremaknil = false;
@@ -295,24 +225,27 @@
           izberiTon(ton.id, true);
         });
 
-        tir.appendChild(kartica);
-
-        var pika = document.createElement("button");
-        pika.type = "button";
-        pika.className = "ton-widget__pika";
-        pika.setAttribute("aria-label", "Ton: " + ton.labelSl);
-        pika.setAttribute("aria-selected", "false");
-        pika.addEventListener("click", function () {
-          izberiTon(ton.id, true);
+        gumb.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            izberiTon(ton.id, true);
+          } else if (ev.key === "ArrowLeft") {
+            ev.preventDefault();
+            premakniZa(-1);
+          } else if (ev.key === "ArrowRight") {
+            ev.preventDefault();
+            premakniZa(1);
+          } else if (ev.key === "Home") {
+            ev.preventDefault();
+            izberiTon(UJ.TONI[0].id, true);
+          } else if (ev.key === "End") {
+            ev.preventDefault();
+            izberiTon(UJ.TONI[UJ.TONI.length - 1].id, true);
+          }
         });
-        pike.appendChild(pika);
-      });
-    }
 
-    function premakniZa(delta) {
-      var idx = indeksTona(stanje().selectedToneId) + delta;
-      idx = Math.max(0, Math.min(UJ.TONI.length - 1, idx));
-      izberiTon(UJ.TONI[idx].id, true);
+        tir.appendChild(gumb);
+      });
     }
 
     if (tir) {
@@ -355,67 +288,11 @@
       tir.addEventListener("pointercancel", function () {
         potegAktiven = false;
       });
-
-      tir.addEventListener("keydown", function (ev) {
-        if (ev.key === "ArrowLeft") {
-          ev.preventDefault();
-          premakniZa(-1);
-        } else if (ev.key === "ArrowRight") {
-          ev.preventDefault();
-          premakniZa(1);
-        } else if (ev.key === "Home") {
-          ev.preventDefault();
-          izberiTon(UJ.TONI[0].id, true);
-        } else if (ev.key === "End") {
-          ev.preventDefault();
-          izberiTon(UJ.TONI[UJ.TONI.length - 1].id, true);
-        }
-      });
     }
 
-    if (levo) levo.addEventListener("click", function () { premakniZa(-1); });
-    if (desno) desno.addEventListener("click", function () { premakniZa(1); });
-    if (ponastavi) {
-      ponastavi.addEventListener("click", function () {
-        var recId = stanje().recommendedToneId || "friendly";
-        if (typeof ctx.onReset === "function") {
-          // Če onReset obstaja, naj sam uredi stanje; sicer izberi priporočeni ton.
-          var rez = ctx.onReset();
-          if (rez && typeof rez.then === "function") {
-            menjavaVTeku = true;
-            rez.then(
-              function (ok) {
-                menjavaVTeku = false;
-                if (ok === false) {
-                  osveziUi();
-                  scrollToTone(stanje().selectedToneId, true);
-                  return;
-                }
-                osveziUi();
-                scrollToTone(stanje().selectedToneId || recId, false);
-                sporociBralniku();
-              },
-              function () {
-                menjavaVTeku = false;
-                osveziUi();
-                scrollToTone(stanje().selectedToneId, true);
-              }
-            );
-            return;
-          }
-          if (rez === false) return;
-          osveziUi();
-          scrollToTone(stanje().selectedToneId || recId, false);
-          sporociBralniku();
-          return;
-        }
-        izberiTon(recId, true);
-      });
-    }
-    if (razlagaInfo) {
-      razlagaInfo.addEventListener("click", function () {
-        var detail = razlagaInfo.dataset.detail || "";
-        if (!detail) return;
+    if (zakaj) {
+      zakaj.addEventListener("click", function () {
+        var detail = podrobniRazlog();
         if (typeof ctx.onShowReasonDetail === "function") {
           ctx.onShowReasonDetail(detail);
         } else if (typeof root.potrdiVprasanje === "function") {
@@ -430,10 +307,24 @@
       });
     }
 
-    zgradiKartice();
+    if (ponastavi) {
+      ponastavi.addEventListener("click", function () {
+        if (typeof ctx.onReset === "function") {
+          ctx.onReset();
+        } else {
+          izberiTon(stanje().recommendedToneId || "very_friendly", true);
+          return;
+        }
+        osveziUi();
+        scrollToTone(stanje().selectedToneId, false);
+        sporociBralniku();
+      });
+    }
+
+    zgradiGumbe();
     osveziUi();
     window.requestAnimationFrame(function () {
-      scrollToTone(stanje().selectedToneId || "friendly", true);
+      scrollToTone(stanje().selectedToneId || "very_friendly", true);
       sporociBralniku();
     });
 
@@ -442,8 +333,10 @@
       scrollToSelected: function () {
         scrollToTone(stanje().selectedToneId, false);
       },
+      IKONE_SVG: IKONE_SVG,
     };
   }
 
   root.inicializirajTonWidget = inicializirajTonWidget;
+  root.UJTonWidgetIkone = IKONE_SVG;
 })(typeof globalThis !== "undefined" ? globalThis : this);

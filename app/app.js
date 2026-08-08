@@ -1887,14 +1887,8 @@ function inicializirajSporociloDolzniku() {
           prev,
           tonPriporociloRezultat
         );
-        if (prev.appliedToneId) {
-          toneState.appliedToneId = window.UJTonPriporocilo.normalizirajTonId(
-            prev.appliedToneId
-          );
-        }
-        izbranTonId = window.UJTonPriporocilo.normalizirajTonId(
-          toneState.selectedToneId || izbranTonId
-        );
+        if (prev.appliedToneId) toneState.appliedToneId = prev.appliedToneId;
+        izbranTonId = toneState.selectedToneId || izbranTonId;
       }
     }
   } catch (_e) {
@@ -2768,7 +2762,7 @@ function inicializirajSporociloDolzniku() {
       prazno.className = "korak2-sklop__opis";
       prazno.setAttribute("role", "status");
       prazno.textContent = window.UJTonPredloge
-        ? "Za ta ton in jezik trenutno ni predlog. Dodajte svojo predlogo."
+        ? "Za ta ton v izbranem jeziku še ni predlog."
         : "Ni predlog.";
       seznam.appendChild(prazno);
       requestAnimationFrame(posodobiDrsnik);
@@ -2798,7 +2792,7 @@ function inicializirajSporociloDolzniku() {
           ? " predlog-kartica__stevilka--alt"
           : "";
       const oznakaStevilke = jePriporocena
-        ? "Privzeta predloga (zvezdica, številka " + stevilka + ")"
+        ? "Priporočena predloga (številka " + stevilka + ")"
         : "Vrstni red predloge znotraj tona, trenutno " + stevilka;
 
       kartica.innerHTML =
@@ -2816,7 +2810,7 @@ function inicializirajSporociloDolzniku() {
         "</div>" +
         '<p class="predlog-kartica__naslov"></p>' +
         (jePriporocena
-          ? '<span class="predlog-kartica__znacka-priporoceno predlog-kartica__znacka-priporoceno--zvezda" aria-label="Privzeta predloga">★</span>'
+          ? '<span class="predlog-kartica__znacka-priporoceno">Priporočeno</span>'
           : "") +
         '<p class="predlog-kartica__opis"></p>' +
         '<button type="button" class="preview-button">' +
@@ -3227,33 +3221,36 @@ function inicializirajSporociloDolzniku() {
 
   function posodobiObvestiloNeuporabljenegaTona() {
     if (!predlogiObvestilo) return;
-    if (
-      toneState.appliedToneId &&
-      toneState.selectedToneId &&
-      toneState.appliedToneId === toneState.selectedToneId
-    ) {
-      if (
-        predlogiObvestilo.textContent.indexOf("Izberite predlogo") !== -1
-      ) {
+    const selected = toneState.selectedToneId || izbranTonId;
+    const applied = toneState.appliedToneId || null;
+    if (applied && selected && applied === selected) {
+      if (predlogiObvestilo.textContent.indexOf("Izberite predlogo") !== -1) {
         pokaziObvestiloPredlogov("");
       }
+      return;
+    }
+    if (!applied || applied !== selected) {
+      pokaziObvestiloPredlogov(
+        "Izberite predlogo, da uporabite novi ton v sporočilu."
+      );
     }
   }
 
-  /** Menjava tona osveži seznam predlog (vstavitev besedila ureja klicatelj). */
+  /** Menjava tona osveži seznam predlog – ne prepiše glavnega sporočila. */
   function nastaviIzbranTon(toneId, osveziSeznam) {
     if (!toneId) return;
-    izbranTonId = window.UJTonPriporocilo
-      ? window.UJTonPriporocilo.normalizirajTonId(toneId)
-      : String(toneId);
+    izbranTonId = String(toneId);
     if (window.UJTonPriporocilo) {
-      toneState = window.UJTonPriporocilo.selectTone(toneState, izbranTonId);
+      toneState = window.UJTonPriporocilo.selectTone(toneState, toneId);
     } else {
       toneState.selectedToneId = izbranTonId;
+      toneState.isOverridden =
+        toneState.selectedToneId !== toneState.recommendedToneId;
     }
     if (osveziSeznam !== false) {
       sestaviSeznamPredlogov();
       izrisiPredloge();
+      if (seznam) seznam.scrollTop = 0;
       if (jeVeljavenIzbranPredlog(izbranPredlogId)) {
         oznaciIzbranega(izbranPredlogId);
       } else {
@@ -3262,41 +3259,6 @@ function inicializirajSporociloDolzniku() {
       posodobiObvestiloNeuporabljenegaTona();
       posodobiNamigeTonaDodatkov();
     }
-  }
-
-  /** Potrditev pred prepisom, če je uporabnik ročno uredil sporočilo. */
-  async function potrdiPrepisSporocilaZaradiTona() {
-    if (!(sporociloRocnoUrejeno && besediloPolje.value.trim().length > 0)) {
-      return true;
-    }
-    return potrdiVprasanje({
-      naslov: "Zamenjam besedilo?",
-      opis:
-        "Sprememba tona bo zamenjala trenutno urejeno besedilo s privzeto predlogo. Želite nadaljevati?",
-      potrdiBesedilo: "Zamenjaj",
-      prekliciBesedilo: "Prekliči",
-      stil: "primary",
-    });
-  }
-
-  /** Izberi ton + takoj vstavi privzeto (★) predlogo tega tona. */
-  async function uporabiTonInPrivzetoPredlogo(toneId) {
-    const cilj = window.UJTonPriporocilo
-      ? window.UJTonPriporocilo.normalizirajTonId(toneId)
-      : String(toneId);
-    if (cilj === izbranTonId && toneState.appliedToneId === cilj) {
-      return true;
-    }
-    const potrjeno = await potrdiPrepisSporocilaZaradiTona();
-    if (!potrjeno) return false;
-
-    nastaviIzbranTon(cilj, true);
-    const privzeti = najdiPredlogStevilka1();
-    if (privzeti) {
-      await uporabiPredlog(privzeti, { tiho: true });
-    }
-    shraniOsnutekLokalno();
-    return true;
   }
   window.__ujNastaviIzbranTon = nastaviIzbranTon;
   window.__ujPredlogObrocnegaZaTon = function () {
@@ -3364,11 +3326,16 @@ function inicializirajSporociloDolzniku() {
         toneState = s;
       },
       recommendation: tonPriporociloRezultat,
-      onToneSelected: (toneId) => uporabiTonInPrivzetoPredlogo(toneId),
-      onReset: () =>
-        uporabiTonInPrivzetoPredlogo(
-          toneState.recommendedToneId || "friendly"
-        ),
+      onToneSelected: (toneId) => {
+        nastaviIzbranTon(toneId, true);
+        shraniOsnutekLokalno();
+      },
+      onReset: () => {
+        if (!window.UJTonPriporocilo) return;
+        toneState = window.UJTonPriporocilo.resetToRecommended(toneState);
+        nastaviIzbranTon(toneState.selectedToneId, true);
+        shraniOsnutekLokalno();
+      },
     });
     posodobiObvestiloNeuporabljenegaTona();
     posodobiNamigeTonaDodatkov();
