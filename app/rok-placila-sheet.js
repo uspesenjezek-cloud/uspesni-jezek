@@ -441,22 +441,28 @@
       return seznam;
     }
 
+    /** Samo vodoravni scroll tira – ne scrollIntoView (ta potegne cel sheet). */
+    function scrollHitriGumbVTir(b) {
+      var tir = b && b.closest ? b.closest(".rok-sheet__hitro-tir") : null;
+      if (!tir) return;
+      var cilj =
+        b.offsetLeft - (tir.clientWidth - b.offsetWidth) / 2;
+      if (cilj < 0) cilj = 0;
+      var max = Math.max(0, tir.scrollWidth - tir.clientWidth);
+      if (cilj > max) cilj = max;
+      try {
+        tir.scrollTo({ left: cilj, behavior: "smooth" });
+      } catch (_e) {
+        tir.scrollLeft = cilj;
+      }
+    }
+
     function oznaciHitriGumb(enota, n) {
       vsiHitriGumbi().forEach(function (b) {
         var sel =
           b.dataset.enota === enota && Number(b.dataset.n) === Number(n);
         b.setAttribute("aria-selected", sel ? "true" : "false");
-        if (sel) {
-          try {
-            b.scrollIntoView({
-              inline: "center",
-              block: "nearest",
-              behavior: "smooth",
-            });
-          } catch (_e) {
-            /* ignore */
-          }
-        }
+        if (sel) scrollHitriGumbVTir(b);
       });
     }
 

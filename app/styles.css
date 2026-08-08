@@ -5145,6 +5145,22 @@ body.obrocno-sheet-odprt .korak2__noga {
   touch-action: pan-y;
 }
 
+/* Rok: fiksna višina panela – ne skače ob priporočilu / hitrem izbirniku / napaki. */
+#rok-sheet .rok-sheet__panel {
+  height: min(92dvh, 92vh);
+  max-height: min(92dvh, 92vh);
+}
+
+#rok-sheet .rok-sheet__rocaj,
+#rok-sheet .rok-sheet__glava,
+#rok-sheet .rok-sheet__noga {
+  flex-shrink: 0;
+}
+
+#rok-sheet .rok-sheet__napaka {
+  min-height: 1.35em;
+}
+
 .rok-sheet__rocaj {
   width: 40px;
   height: 4px;
