@@ -69,6 +69,7 @@
     var editSnapshotCents = null;
     var editInputEl = null;
     var potrjujemUrejanje = false;
+    var preklicujemUrejanje = false;
 
     function klon(o) {
       return o ? JSON.parse(JSON.stringify(o)) : null;
@@ -501,42 +502,74 @@
       }
     }
 
-    function potrdiUrejanjeZneska() {
-      if (!editInputEl || !osnutek || !editingInstallmentId) return;
+    /**
+     * Potrdi ročni znesek (V redu / Enter / Done / blur).
+     * @param {{ obBlurju?: boolean }} opts
+     *   obBlurju: ob neveljavnem vnosu povrni staro vrednost (ne zadrži tipkovnice).
+     * @returns {boolean} ali je potrditev uspela
+     */
+    function potrdiUrejanjeZneska(opts) {
+      opts = opts || {};
+      if (!editInputEl || !osnutek || !editingInstallmentId) return false;
       var input = editInputEl;
       var id = editingInstallmentId;
       var raw = String(input.value || "").trim();
       if (!raw) {
+        if (opts.obBlurju) {
+          prekliciUrejanjeZneska(true);
+          return false;
+        }
         prikaziNapakoUrejanja("Vnesite znesek.");
-        return;
+        return false;
       }
       var cents = UJ.parseAmountToCents(raw);
       if (cents == null || cents <= 0) {
+        if (opts.obBlurju) {
+          prekliciUrejanjeZneska(true);
+          return false;
+        }
         prikaziNapakoUrejanja("Vnesite veljaven znesek.");
-        return;
+        return false;
       }
       var maxZnesek = maxDovoljenZnesek(id, cents);
       if (cents > maxZnesek) {
+        if (opts.obBlurju) {
+          prekliciUrejanjeZneska(true);
+          sporoci("Znesek obroka presega preostali dolg.");
+          return false;
+        }
         prikaziNapakoUrejanja("Znesek obroka presega preostali dolg.");
-        return;
+        return false;
       }
       if (Number.isFinite(editSnapshotCents) && cents === editSnapshotCents) {
-        prekliciUrejanjeZneska(false);
-        return;
+        // Brez spremembe – samo zapri urejanje z oblikovanim prikazom.
+        input.value = UJ.formatCentsPolje(cents);
+        pocistiNapakoUrejanja();
+        if (!opts.obBlurju) {
+          potrjujemUrejanje = true;
+          input.blur();
+        }
+        izhodIzUrejanjaZneska();
+        return true;
       }
       osnutek = UJ.nastaviRocniZnesek(osnutek, id, cents);
       osnutek = UJ.osveziAddon(osnutek, jezikAddon());
       pocistiNapakoUrejanja();
-      osveziVrsticeBrezFokusa();
-      potrjujemUrejanje = true;
-      input.blur();
+      // Najprej zapusti urejanje, nato osveži vse vrstice (vključno s to).
+      if (!opts.obBlurju) {
+        potrjujemUrejanje = true;
+        input.blur();
+      }
       izhodIzUrejanjaZneska();
+      osveziVrsticeBrezFokusa();
       sporoci("Zneski preračunani.");
+      return true;
     }
 
     function vstopiVUrejanjeZneska(row, znesek, art) {
+      // Ob preklopu na drug obrok najprej potrdi trenutnega (ne zavrzi!).
       if (editingInstallmentId && editingInstallmentId !== row.id) {
-        prekliciUrejanjeZneska(true);
+        potrdiUrejanjeZneska({ obBlurju: true });
       }
       editingInstallmentId = row.id;
       editSnapshotCents = Number(znesek.dataset.zacetniCenti) || 0;
@@ -711,8 +744,13 @@
             potrjujemUrejanje = false;
             return;
           }
+          if (preklicujemUrejanje) {
+            preklicujemUrejanje = false;
+            return;
+          }
+          // Done / klik izven polja = potrdi (ne zavrzi).
           if (editingInstallmentId === row.id) {
-            prekliciUrejanjeZneska(true);
+            potrdiUrejanjeZneska({ obBlurju: true });
           }
         });
         znesek.addEventListener("keydown", function (ev) {
@@ -1173,16 +1211,17 @@
       });
     }
     if (editPreklici) {
-      editPreklici.addEventListener("click", function (ev) {
+      // mousedown pred blur-jem inputa – sicer bi blur najprej potrdil.
+      editPreklici.addEventListener("mousedown", function (ev) {
         ev.preventDefault();
-        ev.stopPropagation();
+        preklicujemUrejanje = true;
         prekliciUrejanjeZneska(false);
+        preklicujemUrejanje = false;
       });
     }
     if (editOk) {
-      editOk.addEventListener("click", function (ev) {
+      editOk.addEventListener("mousedown", function (ev) {
         ev.preventDefault();
-        ev.stopPropagation();
         potrdiUrejanjeZneska();
       });
     }
