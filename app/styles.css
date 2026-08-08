@@ -3341,6 +3341,21 @@ body.uj-modal-odprt {
   line-height: 1.45;
 }
 
+.korak3-priloge {
+  margin: 0 0 14px;
+}
+
+.korak3-priloge__napaka {
+  margin: 8px 0 0;
+  color: #b42318;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.korak3-priloge__napaka[hidden] {
+  display: none !important;
+}
+
 .debt-step {
   display: flex;
   min-width: 0;
@@ -8279,6 +8294,10 @@ body.template-editor-odprt {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.step-primary-settings--samo-ton {
+  grid-template-columns: 1fr;
 }
 
 .step-setting-tile {

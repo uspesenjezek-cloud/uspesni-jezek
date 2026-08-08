@@ -1045,8 +1045,6 @@
       var znesekTekst = ctx.znesekTekst;
       var kategorijaTekst = ctx.kategorijaTekst;
       var tonOznaka = ctx.tonOznaka || "—";
-      var predlogaOznaka = ctx.predlogaOznaka || "Ni izbrana";
-      var predlogaPriporocena = Boolean(ctx.predlogaPriporocena);
       var smsBesedilo = ctx.smsBesedilo || "";
       var smsMeta = ctx.smsMeta || "";
       var imaSms = Boolean(String(smsBesedilo).trim());
@@ -1071,7 +1069,7 @@
         "</span>" +
         "</div>" +
         "</div>" +
-        '<div class="step-primary-settings">' +
+        '<div class="step-primary-settings step-primary-settings--samo-ton">' +
         '<button type="button" class="step-setting-tile" data-vsebina="ton" aria-label="Spremeni ton sporočila. Trenutno: ' +
         esc(tonOznaka) +
         '.">' +
@@ -1083,23 +1081,6 @@
         '<span class="step-setting-tile__value">' +
         esc(tonOznaka) +
         "</span>" +
-        "</span>" +
-        '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
-        "</button>" +
-        '<button type="button" class="step-setting-tile" data-vsebina="predloga" aria-label="Spremeni predlogo. Trenutno: ' +
-        esc(predlogaOznaka) +
-        '.">' +
-        '<span class="step-setting-tile__icon" aria-hidden="true">' +
-        IKONA_DOKUMENT +
-        "</span>" +
-        '<span class="step-setting-tile__content">' +
-        '<span class="step-setting-tile__label">Predloga</span>' +
-        '<span class="step-setting-tile__value">' +
-        esc(predlogaOznaka) +
-        "</span>" +
-        (predlogaPriporocena
-          ? '<span class="template-recommended-badge">Priporočeno</span>'
-          : "") +
         "</span>" +
         '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
         "</button>" +
@@ -1321,17 +1302,11 @@
         var znesekTekst = formatEurIzCentov(plan.amountCents);
         var kategorijaTekst = kategorijaDolgaIzCentov(plan.amountCents);
         var tonOznaka = N.oznakaTona(step.toneId || plan.toneId);
-        var predlogaOznaka = imePredloge(step, k2);
-        var predlogaPriporocena =
-          !step.templateSelectionMode ||
-          step.templateSelectionMode === "automatic";
 
         vsebinaHtml = htmlVsebinaKoraka({
           znesekTekst: znesekTekst,
           kategorijaTekst: kategorijaTekst,
           tonOznaka: tonOznaka,
-          predlogaOznaka: predlogaOznaka,
-          predlogaPriporocena: predlogaPriporocena,
           rokStanje: rokAktiven ? "Vključeno" : "Izklopljeno",
           obrocnoStanje: obrocAktiven ? "Vključeno" : "Izklopljeno",
           trrStanje: trrAktiven ? "Vključeno" : "Izklopljeno",
@@ -1523,7 +1498,7 @@
             opts.potrdiVprasanje({
               naslov: "Kmalu na voljo",
               opis:
-                "Urejanje tona in predloge po korakih pride v naslednji različici. Rok, obročno in TRR pa lahko že urejate tukaj.",
+                "Urejanje tona po korakih pride v naslednji različici. Rok, obročno in TRR pa lahko že urejate tukaj.",
               potrdiBesedilo: "V redu",
               samoEnGumb: true,
               stil: "primary",

@@ -5548,6 +5548,232 @@ function inicializirajPosiljanje() {
 
   if (kanalEmail) kanalEmail.addEventListener("change", posodobiBesediloPrilogeZaKanal);
   if (kanalSms) kanalSms.addEventListener("change", posodobiBesediloPrilogeZaKanal);
+
+  /* ---------- Upravljanje prilog računa na koraku 3 ---------- */
+  const NAJVEC_PRILOG_K3 = 6;
+  const NAJVECJA_VELIKOST_PRILOGE_K3_B = 10 * 1024 * 1024;
+  const k3Prazno = document.getElementById("korak3-priloge-prazno");
+  const k3Polno = document.getElementById("korak3-priloge-polno");
+  const k3Seznam = document.getElementById("korak3-priloge-seznam");
+  const k3DodajSe = document.getElementById("korak3-priloge-dodaj-se");
+  const k3Limit = document.getElementById("korak3-priloge-limit");
+  const k3Stikalo = document.getElementById("korak3-priloge-stikalo");
+  const k3StikaloPomoc = document.getElementById("korak3-priloge-stikalo-pomoc");
+  const k3Napaka = document.getElementById("korak3-priloge-napaka");
+  const k3Datoteka = document.getElementById("korak3-priloge-datoteka");
+  const k3Foto = document.getElementById("korak3-priloge-fotoaparat");
+
+  if (!Array.isArray(podatkiKorak1.racunDatotekePoti)) {
+    podatkiKorak1.racunDatotekePoti = [];
+  }
+  if (!Array.isArray(podatkiKorak1.attachmentOrigins)) {
+    podatkiKorak1.attachmentOrigins = podatkiKorak1.racunDatotekePoti.map(
+      () => "manual_attachment"
+    );
+  }
+  while (podatkiKorak1.attachmentOrigins.length < podatkiKorak1.racunDatotekePoti.length) {
+    podatkiKorak1.attachmentOrigins.push("manual_attachment");
+  }
+  if (typeof podatkiKorak1.shouldSendAttachment !== "boolean") {
+    podatkiKorak1.shouldSendAttachment = podatkiKorak1.racunDatotekePoti.length > 0;
+  }
+
+  function pokaziK3Napako(besedilo) {
+    if (!k3Napaka) return;
+    if (!besedilo) {
+      k3Napaka.hidden = true;
+      k3Napaka.textContent = "";
+      return;
+    }
+    k3Napaka.textContent = besedilo;
+    k3Napaka.hidden = false;
+  }
+
+  function shraniKorak1PrilogeVSejo() {
+    sessionStorage.setItem(
+      KLJUC_SEJE_KORAK1_PODATKI,
+      JSON.stringify(podatkiKorak1)
+    );
+    if (typeof shraniKorak1Fingerprint === "function") {
+      try {
+        shraniKorak1Fingerprint(podatkiKorak1);
+      } catch (_e) {
+        /* fingerprint ni nujen za priloge */
+      }
+    }
+    posodobiBesediloPrilogeZaKanal();
+  }
+
+  function besediloIzvoraPrilogeK3(izvor) {
+    return izvor === "ocr"
+      ? "Dodano pri samodejnem vnosu podatkov"
+      : "Dodano samo kot priloga";
+  }
+
+  function izrisiKorak3Priloge() {
+    const poti = podatkiKorak1.racunDatotekePoti;
+    const origins = podatkiKorak1.attachmentOrigins || [];
+    const ima = poti.length > 0;
+    const meja = poti.length >= NAJVEC_PRILOG_K3;
+    if (k3Prazno) k3Prazno.hidden = ima;
+    if (k3Polno) k3Polno.hidden = !ima;
+    if (k3DodajSe) k3DodajSe.hidden = meja;
+    if (k3Limit) k3Limit.hidden = !meja;
+    if (k3Stikalo) k3Stikalo.checked = podatkiKorak1.shouldSendAttachment !== false;
+    if (k3StikaloPomoc) {
+      const vec = poti.length > 1;
+      const poslji = podatkiKorak1.shouldSendAttachment !== false;
+      k3StikaloPomoc.textContent = poslji
+        ? vec
+          ? "Računi bodo dodani končnemu sporočilu."
+          : "Račun bo dodan končnemu sporočilu."
+        : vec
+          ? "Računi ostanejo shranjeni, vendar ne bodo poslani."
+          : "Račun ostane shranjen, vendar ne bo poslan.";
+    }
+    if (!k3Seznam) return;
+    k3Seznam.innerHTML = "";
+    poti.forEach((pot, indeks) => {
+      const vrstica = document.createElement("div");
+      vrstica.className = "racun-posiljanje__kartica";
+      vrstica.setAttribute("role", "listitem");
+
+      const datotekaBlok = document.createElement("div");
+      datotekaBlok.className = "racun-posiljanje__datoteka";
+      datotekaBlok.innerHTML =
+        '<span class="racun-posiljanje__datoteka-ikona" aria-hidden="true">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>' +
+        "</span>";
+
+      const meta = document.createElement("div");
+      meta.className = "racun-posiljanje__datoteka-meta";
+      const ime = document.createElement("p");
+      ime.className = "racun-posiljanje__datoteka-ime";
+      ime.textContent = imeDatotekeIzPoti(String(pot));
+      const izvor = document.createElement("p");
+      izvor.className = "racun-posiljanje__datoteka-izvor";
+      izvor.textContent = besediloIzvoraPrilogeK3(origins[indeks] || "manual_attachment");
+      meta.appendChild(ime);
+      meta.appendChild(izvor);
+      datotekaBlok.appendChild(meta);
+
+      const odstrani = document.createElement("button");
+      odstrani.type = "button";
+      odstrani.className = "racun-posiljanje__akcija racun-posiljanje__akcija--odstrani";
+      odstrani.setAttribute(
+        "aria-label",
+        "Odstrani " + imeDatotekeIzPoti(String(pot))
+      );
+      odstrani.textContent = "Odstrani";
+      odstrani.addEventListener("click", () => {
+        podatkiKorak1.racunDatotekePoti.splice(indeks, 1);
+        if (Array.isArray(podatkiKorak1.attachmentOrigins)) {
+          podatkiKorak1.attachmentOrigins.splice(indeks, 1);
+        }
+        if (podatkiKorak1.racunDatotekePoti.length === 0) {
+          podatkiKorak1.shouldSendAttachment = true;
+        }
+        pokaziK3Napako("");
+        shraniKorak1PrilogeVSejo();
+        izrisiKorak3Priloge();
+      });
+
+      vrstica.appendChild(datotekaBlok);
+      vrstica.appendChild(odstrani);
+      k3Seznam.appendChild(vrstica);
+    });
+  }
+
+  async function nalozitEnoPrilogoK3(datoteka, obrtnikId) {
+    if (datoteka.size > NAJVECJA_VELIKOST_PRILOGE_K3_B) {
+      return {
+        napaka: 'Datoteka "' + datoteka.name + '" je prevelika (največ 10 MB).',
+      };
+    }
+    const varnoIme = datoteka.name.replace(/[^a-zA-Z0-9.\-]/g, "_");
+    const pot =
+      obrtnikId +
+      "/" +
+      Date.now() +
+      "-" +
+      Math.random().toString(36).slice(2, 8) +
+      "-" +
+      varnoIme;
+    const { data, error } = await supabaseKlient.storage
+      .from("racuni-priloge")
+      .upload(pot, datoteka);
+    if (error) return { napaka: error.message };
+    return { pot: data.path };
+  }
+
+  async function dodajPrilogeK3(datoteke) {
+    const seznam = Array.from(datoteke || []);
+    if (!seznam.length) return;
+    pokaziK3Napako("");
+    const preostalo = NAJVEC_PRILOG_K3 - podatkiKorak1.racunDatotekePoti.length;
+    if (preostalo <= 0) {
+      pokaziK3Napako("Doseženo je največje število računov (6).");
+      return;
+    }
+    const zaNalaganje = seznam.slice(0, preostalo);
+    const {
+      data: { user },
+    } = await supabaseKlient.auth.getUser();
+    if (!user) {
+      pokaziK3Napako("Za dodajanje prilog morate biti prijavljeni.");
+      return;
+    }
+    for (const datoteka of zaNalaganje) {
+      const rezultat = await nalozitEnoPrilogoK3(datoteka, user.id);
+      if (rezultat.napaka) {
+        pokaziK3Napako(rezultat.napaka);
+        break;
+      }
+      podatkiKorak1.racunDatotekePoti.push(rezultat.pot);
+      if (!Array.isArray(podatkiKorak1.attachmentOrigins)) {
+        podatkiKorak1.attachmentOrigins = [];
+      }
+      podatkiKorak1.attachmentOrigins.push("manual_attachment");
+      podatkiKorak1.shouldSendAttachment = true;
+    }
+    shraniKorak1PrilogeVSejo();
+    izrisiKorak3Priloge();
+  }
+
+  function poveziGumbK3(gumbId, inputEl) {
+    const gumb = document.getElementById(gumbId);
+    if (!gumb || !inputEl) return;
+    gumb.addEventListener("click", () => inputEl.click());
+  }
+
+  poveziGumbK3("korak3-priloge-slikaj", k3Foto);
+  poveziGumbK3("korak3-priloge-slikaj-se", k3Foto);
+  poveziGumbK3("korak3-priloge-uvozi", k3Datoteka);
+  poveziGumbK3("korak3-priloge-uvozi-se", k3Datoteka);
+
+  if (k3Datoteka) {
+    k3Datoteka.addEventListener("change", () => {
+      dodajPrilogeK3(k3Datoteka.files).finally(() => {
+        k3Datoteka.value = "";
+      });
+    });
+  }
+  if (k3Foto) {
+    k3Foto.addEventListener("change", () => {
+      dodajPrilogeK3(k3Foto.files).finally(() => {
+        k3Foto.value = "";
+      });
+    });
+  }
+  if (k3Stikalo) {
+    k3Stikalo.addEventListener("change", () => {
+      podatkiKorak1.shouldSendAttachment = k3Stikalo.checked;
+      shraniKorak1PrilogeVSejo();
+      izrisiKorak3Priloge();
+    });
+  }
+
+  izrisiKorak3Priloge();
   posodobiBesediloPrilogeZaKanal();
 
   if (!window.UJOpominNacrtUI || !window.UJOpominNacrt) {
