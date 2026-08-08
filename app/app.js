@@ -3700,9 +3700,6 @@ function inicializirajSporociloDolzniku() {
         "</div>" +
         "</div>" +
         '<p class="predlog-kartica__naslov"></p>' +
-        (jePriporocena
-          ? '<span class="predlog-kartica__znacka-priporoceno">Priporočeno</span>'
-          : "") +
         '<p class="predlog-kartica__opis"></p>' +
         '<button type="button" class="preview-button">' +
         ikonaSvincnika +

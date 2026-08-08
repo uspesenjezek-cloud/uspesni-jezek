@@ -3856,39 +3856,6 @@ body.stran--samo-seznam #neplacila-obrazec {
   text-align: left;
 }
 
-/* Značka privzete predloge znotraj tona (zvezdica; ne spreminja višine kartice). */
-.predlog-kartica__znacka-priporoceno {
-  position: absolute;
-  top: 6px;
-  right: 102px;
-  z-index: 2;
-  max-width: 88px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: var(--teal-pale, #eaf4f3);
-  border: 1px solid var(--teal, #5aa3a5);
-  color: var(--teal-dark, #243d3d);
-  font-size: 0.65rem;
-  font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.predlog-kartica__znacka-priporoceno--zvezda {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  max-width: none;
-  padding: 2px 7px;
-  color: #c9a227;
-  font-size: 0.85rem;
-  line-height: 1;
-  border-color: #e0c35a;
-  background: #fff9e6;
-}
-
 /* Opis: max. 3 vrstice + …; scroll samo na seznamu kartic (ne znotraj kartice). */
 .predlog-kartica__opis {
   grid-column: 1 / 3;
