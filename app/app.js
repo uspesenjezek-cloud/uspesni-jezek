@@ -2269,22 +2269,27 @@ function inicializirajSporociloDolzniku() {
   function posodobiObrocnoKarticoStanje(plan) {
     const stanjeEl = document.getElementById("dodatek-obrocno-stanje");
     if (!stanjeEl) return;
-    if (!plan || !plan.enabled) {
-      stanjeEl.textContent = "Izklopljeno";
-      return;
+    stanjeEl.textContent = plan && plan.enabled ? "Vklopljeno" : "Izklopljeno";
+  }
+
+  function formatRokDatumZaKartico(deadline) {
+    if (!deadline || !deadline.enabled || !deadline.deadlineDate) return "";
+    if (window.UJRokPlacila && window.UJRokPlacila.formatirajDatumZaPrikaz) {
+      return (
+        window.UJRokPlacila.formatirajDatumZaPrikaz(
+          deadline.deadlineDate,
+          "sl"
+        ) || String(deadline.deadlineDate)
+      );
     }
-    const n =
-      plan.installmentCount ||
-      (Array.isArray(plan.installments) ? plan.installments.length : 0);
-    const interval =
-      plan.intervalType === "weekly"
-        ? "tedensko"
-        : plan.intervalType === "biweekly"
-          ? "vsaka 2 tedna"
-          : plan.intervalType === "monthly"
-            ? "mesečno"
-            : "";
-    stanjeEl.textContent = interval ? n + " obrokov • " + interval : n + " obrokov";
+    return String(deadline.deadlineDate);
+  }
+
+  function posodobiRokKarticoStanje(deadline) {
+    const stanjeEl = document.getElementById("dodatek-rok-stanje");
+    if (!stanjeEl) return;
+    const datum = formatRokDatumZaKartico(deadline);
+    stanjeEl.textContent = datum || "Izklopljeno";
   }
 
   function resetirajDodatke() {
@@ -2299,6 +2304,7 @@ function inicializirajSporociloDolzniku() {
     if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "false");
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
     posodobiObrocnoKarticoStanje(null);
+    posodobiRokKarticoStanje(null);
   }
 
   function normalizirajPaymentSettingsPredloge(raw) {
@@ -2639,6 +2645,7 @@ function inicializirajSporociloDolzniku() {
     dodatekBesedila.rok = vrstica;
     dodatki.rok = true;
     if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
+    posodobiRokKarticoStanje(paymentDeadline);
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
   }
@@ -2732,6 +2739,7 @@ function inicializirajSporociloDolzniku() {
       dodatekBesedila.rok = vrstica;
       dodatki.rok = true;
       if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
+      posodobiRokKarticoStanje(paymentDeadline);
     }
 
     if (navodilo.obrocno && UJO) {
@@ -3009,7 +3017,7 @@ function inicializirajSporociloDolzniku() {
     }
     if (modalDodatekRokStanje) {
       modalDodatekRokStanje.textContent = p.rok.enabled
-        ? p.rok.termDays + " dni"
+        ? "Vklopljeno"
         : "Izklopljeno";
     }
 
@@ -3020,14 +3028,9 @@ function inicializirajSporociloDolzniku() {
       );
     }
     if (modalDodatekObrocnoStanje) {
-      if (!p.obrocno.enabled) {
-        modalDodatekObrocnoStanje.textContent = "Izklopljeno";
-      } else {
-        const int = oznakaIntervala(p.obrocno.intervalType);
-        modalDodatekObrocnoStanje.textContent = int
-          ? p.obrocno.installmentCount + " obroki • " + int
-          : p.obrocno.installmentCount + " obroki";
-      }
+      modalDodatekObrocnoStanje.textContent = p.obrocno.enabled
+        ? "Vklopljeno"
+        : "Izklopljeno";
     }
 
     if (modalDodatekTrr) {
@@ -4191,7 +4194,10 @@ function inicializirajSporociloDolzniku() {
           if (predlogaSheetAktiven) {
             predlogaDraftDeadline = v;
             predlogaSheetSaved = true;
-          } else paymentDeadline = v;
+          } else {
+            paymentDeadline = v;
+            posodobiRokKarticoStanje(paymentDeadline);
+          }
         },
         getPrivzetiDnevi: () => privzetiDneviRoka,
         setPrivzetiDnevi: (v) => {
@@ -4215,7 +4221,10 @@ function inicializirajSporociloDolzniku() {
         getDneviZaTon: (toneId) =>
           window.UJRokPlacila ? window.UJRokPlacila.dneviZaTon(toneId) : 14,
         onAfterChange: () => {
-          if (!predlogaSheetAktiven) posodobiNamigeTonaDodatkov();
+          if (!predlogaSheetAktiven) {
+            posodobiRokKarticoStanje(paymentDeadline);
+            posodobiNamigeTonaDodatkov();
+          }
         },
         stevilkaIzbranegaPredloga: () =>
           predlogaSheetAktiven
@@ -4287,7 +4296,16 @@ function inicializirajSporociloDolzniku() {
           if (predlogaSheetAktiven) {
             predlogaDraftDeadline = v;
             predlogaSheetSaved = true;
-          } else paymentDeadline = v;
+          } else {
+            paymentDeadline = v;
+            posodobiRokKarticoStanje(paymentDeadline);
+            if (dodatekRok) {
+              dodatekRok.setAttribute(
+                "aria-pressed",
+                paymentDeadline && paymentDeadline.enabled ? "true" : "false"
+              );
+            }
+          }
         },
         getTotalDebtCents: () => {
           let c = 0;
@@ -4617,6 +4635,9 @@ function inicializirajSporociloDolzniku() {
           (Boolean(osnutek.dodatki.obrocno) && Boolean(installmentPlan));
         dodatki.trr = Boolean(osnutek.dodatki.trr);
         if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
+        posodobiRokKarticoStanje(
+          dodatki.rok && paymentDeadline ? paymentDeadline : null
+        );
         if (dodatekObrocno) {
           dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));
           posodobiObrocnoKarticoStanje(
@@ -4626,6 +4647,7 @@ function inicializirajSporociloDolzniku() {
         if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", String(dodatki.trr));
       } else if (paymentDeadline && paymentDeadline.enabled && dodatekRok) {
         dodatekRok.setAttribute("aria-pressed", "true");
+        posodobiRokKarticoStanje(paymentDeadline);
       }
       if (typeof osnutek.sporociloRocnoUrejeno === "boolean") {
         sporociloRocnoUrejeno = osnutek.sporociloRocnoUrejeno;

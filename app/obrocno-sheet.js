@@ -124,18 +124,7 @@
           ctx.gumbObrocno.querySelector(".sporocilo-dodatek__stanje")) ||
         dodatekObrocnoStanje;
       if (stanjeEl) {
-        if (!aktiven) {
-          stanjeEl.textContent = "Izklopljeno";
-        } else {
-          var n =
-            planOrNull.installmentCount ||
-            (planOrNull.installments && planOrNull.installments.length) ||
-            0;
-          var interval = besediloIntervala(planOrNull.intervalType);
-          stanjeEl.textContent = interval
-            ? n + " obrokov • " + interval
-            : n + " obrokov";
-        }
+        stanjeEl.textContent = aktiven ? "Vklopljeno" : "Izklopljeno";
       }
     }
 
