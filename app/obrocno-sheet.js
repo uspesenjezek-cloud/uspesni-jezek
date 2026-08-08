@@ -207,14 +207,42 @@
       );
     }
 
-    function priporocenoSteviloObrokov() {
+    /** Isti ton kot v Možna priporočila (neutral → firm, sicer friendly). */
+    function normaliziranTonZaObrocno() {
       var tonId = tonZaRazlago();
+      if (
+        root.UJTonDodatkiPriporocila &&
+        typeof root.UJTonDodatkiPriporocila.normalizirajTon === "function"
+      ) {
+        return root.UJTonDodatkiPriporocila.normalizirajTon(tonId);
+      }
+      if (tonId === "strict" || tonId === "firm" || tonId === "friendly") {
+        return tonId;
+      }
+      if (tonId === "neutral") return "firm";
+      return "friendly";
+    }
+
+    function priporocenoSteviloObrokov() {
+      var tonId = normaliziranTonZaObrocno();
       if (Rok && typeof Rok.predlogObrocnegaZaTon === "function") {
         var p = Rok.predlogObrocnegaZaTon(tonId);
         var n = p && Number(p.installments);
         if (Number.isFinite(n) && n >= UJ.MIN_OBROKOV) return n;
       }
       return null;
+    }
+
+    /** Ob odprtju vedno uskladi št. obrokov s priporočilom tona. */
+    function zagotoviPriporocenoStevilo(plan) {
+      if (!plan) return plan;
+      var n = priporocenoSteviloObrokov();
+      if (n == null) return plan;
+      var trenutno = Number(plan.installmentCount);
+      var len = (plan.installments && plan.installments.length) || 0;
+      if (trenutno === n && len === n) return plan;
+      plan = UJ.nastaviSteviloObrokov(plan, n);
+      return UJ.osveziAddon(plan, jezikAddon());
     }
 
     function nastaviVidnostGumbaPriporoceno(pokazi) {
@@ -264,6 +292,7 @@
       if (!Number.isFinite(total) || total <= 0) return;
       osnutek = sveziPredlogIzPriporocila(total);
       osnutek = UJ.uskladiSteviloVrstic(osnutek);
+      osnutek = zagotoviPriporocenoStevilo(osnutek);
       draftEnabled = true;
       napolniOpozorilo();
       posodobiVklopUi();
@@ -385,16 +414,15 @@
 
     function preklopiVklop() {
       draftEnabled = !draftEnabled;
-      if (draftEnabled && !osnutek) {
+      if (draftEnabled) {
         var total =
           typeof ctx.getTotalDebtCents === "function"
             ? ctx.getTotalDebtCents()
             : 0;
-        osnutek = sveziPredlog(total);
+        // Ne uporabljaj starega getInstallmentSuggestion (pogosto napačno 3).
+        osnutek = sveziPredlogIzPriporocila(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
-      }
-      if (draftEnabled && osnutek) {
-        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        osnutek = zagotoviPriporocenoStevilo(osnutek);
       }
       posodobiVklopUi();
       izrisi();
@@ -1019,7 +1047,7 @@
      * Predlog iz »Možna priporočila« – število/roki iz predlogObrocnegaZaTon.
      */
     function sveziPredlogIzPriporocila(total) {
-      var tonId = tonZaRazlago();
+      var tonId = normaliziranTonZaObrocno();
       var predlog =
         Rok && typeof Rok.predlogObrocnegaZaTon === "function"
           ? Rok.predlogObrocnegaZaTon(tonId)
@@ -1152,6 +1180,9 @@
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         draftEnabled = false;
       }
+
+      // Vedno uskladi izbrano št. z ★ / predlogObrocnegaZaTon (tudi pri starem shranjenem načrtu).
+      osnutek = zagotoviPriporocenoStevilo(osnutek);
 
       originalEnabled = Boolean(existingUporaben);
       originalPlan = existing ? klon(existing) : null;
