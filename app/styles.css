@@ -205,22 +205,9 @@ a {
   gap: 1.25rem;
 }
 
-/* Korak 1 (#obrazec): shell prevzame .stran--sporocilo (doda JS).
-   Tu samo skrijemo seznam – brez lastnega padding/max-width, da ni razlike z 2/3. */
-.stran--neplacila.stran--samo-obrazec .neplacila-seznam-vsebina {
+/* Korak 1 (#obrazec): body = stran--sporocilo (kot 2/3). Tu samo skrij seznam. */
+body.stran--samo-obrazec .neplacila-seznam-vsebina {
   display: none !important;
-}
-
-/* Sidro za URL #obrazec – na vrhu ohišja, ne zavzame prostora v postavitvi. */
-.wizard-hash-sidro {
-  display: block;
-  width: 0;
-  height: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  outline: none;
 }
 
 .stran--neplacila.stran--samo-seznam .wizard-shell {
@@ -590,19 +577,14 @@ a {
   display: none !important;
 }
 
-/* Ločitev "Dodaj nov račun" (#obrazec) in "Preveri odprte zadeve"
-   (#seznam) - deluje že pred JS (brez utripa celotne strani).
-   Panel obrazca = #neplacila-obrazec; #obrazec je samo hash-sidro na vrhu. */
-body:has(#obrazec:target) #seznam,
-body:has(#obrazec:target) #seznam-vsebnik,
-body:has(#obrazec:target) .neplacila-seznam-vsebina,
+/* Ločitev obrazca (#obrazec v URL) in seznama (#seznam) – prek body razredov.
+   Hash #obrazec nima več DOM sidra (brez scrolla); skritje = stran--samo-*. */
 body.stran--samo-obrazec #seznam,
 body.stran--samo-obrazec #seznam-vsebnik,
 body.stran--samo-obrazec .neplacila-seznam-vsebina {
   display: none !important;
 }
 
-body:has(#seznam:target) #neplacila-obrazec,
 body.stran--samo-seznam #neplacila-obrazec {
   display: none !important;
 }

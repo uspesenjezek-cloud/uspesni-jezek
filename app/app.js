@@ -1464,33 +1464,25 @@ function inicializirajNeplacila() {
     const idRazdelka = window.location.hash.replace("#", "");
     if (!idRazdelka) return;
 
-    // Panel obrazca (ne hash-sidro #obrazec na vrhu ohišja).
     const obrazecRazdelek = document.getElementById("neplacila-obrazec");
     const semaforRazdelek = document.getElementById("seznam");
     const seznamRazdelek = document.getElementById("seznam-vsebnik");
 
-    document.body.classList.remove("stran--samo-obrazec", "stran--samo-seznam");
-
     if (idRazdelka === "seznam") {
       // Samo semafor + seznam zadev (gumb "Preveri odprte zadeve").
-      // Obrazec "Dodaj nov račun" mora biti popolnoma skrit.
-      document.body.classList.remove("stran--sporocilo");
-      document.body.classList.add("stran--samo-seznam");
+      document.body.className = "stran--neplacila stran--samo-seznam";
       if (obrazecRazdelek) obrazecRazdelek.hidden = true;
       if (semaforRazdelek) semaforRazdelek.hidden = false;
       if (seznamRazdelek) seznamRazdelek.hidden = false;
-      // Seznam je spodaj – scroll do njega je smiseln.
       if (semaforRazdelek) {
         semaforRazdelek.scrollIntoView({ behavior: "auto", block: "start" });
       }
     } else if (idRazdelka === "obrazec") {
-      // Samo obrazec za dodajanje (gumb "Dodaj nov račun").
-      // stran--sporocilo = isti shell kot koraka 2 in 3 (brez skoka postavitve).
-      document.body.classList.add("stran--samo-obrazec", "stran--sporocilo");
+      // Enako kot koraka 2/3: samo stran--sporocilo (+ skrij seznam).
+      document.body.className = "stran--sporocilo stran--samo-obrazec";
       if (obrazecRazdelek) obrazecRazdelek.hidden = false;
       if (semaforRazdelek) semaforRazdelek.hidden = true;
       if (seznamRazdelek) seznamRazdelek.hidden = true;
-      // Hash #obrazec je sidro na vrhu; ob refreshu še enkrat na scrollY=0.
       window.scrollTo(0, 0);
     }
   }
