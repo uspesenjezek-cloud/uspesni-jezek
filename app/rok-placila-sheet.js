@@ -168,7 +168,7 @@
       urediPanel.hidden = false;
     }
 
-    function fokusniUiIzOsnutka() {
+    function napolniUiIzOsnutka() {
       if (!osnutek) return;
       zgradiStevilke();
       if (samodejno) samodejno.checked = osnutek.mode !== "manual";
@@ -185,7 +185,7 @@
       if (odstrani) odstrani.hidden = !ze;
     }
 
-    function fokusniOsnutekObOdprtju() {
+    function napolniOsnutekObOdprtju() {
       var obstojeci = ctx.getPaymentDeadline();
       var linked = obstojeci && obstojeci.linkedProposalNumber
         ? Number(obstojeci.linkedProposalNumber)
