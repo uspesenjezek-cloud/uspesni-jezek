@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok-scale" />
+    <link rel="stylesheet" href="styles.css?v=20260808-rok-fix" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -543,13 +543,16 @@
               <p class="rok-sheet__povzetek-datum" id="rok-sheet-povzetek-datum">—</p>
               <p class="rok-sheet__povzetek-rel" id="rok-sheet-povzetek-rel"></p>
             </div>
-            <button
-              type="button"
-              class="rok-sheet__povzetek-rocno"
-              id="rok-sheet-povzetek-rocno"
-            >
-              Ročno
-            </button>
+            <div class="rok-sheet__povzetek-rocno-ovoj">
+              <span class="rok-sheet__povzetek-rocno" aria-hidden="true">Ročno</span>
+              <input
+                type="date"
+                class="rok-sheet__datum rok-sheet__datum--rocno"
+                id="rok-sheet-datum"
+                required
+                aria-label="Ročno nastavi rok plačila"
+              />
+            </div>
           </section>
 
           <label class="rok-sheet__stikalo">
@@ -558,11 +561,6 @@
             <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
           </label>
 
-          <!-- Skrito: ročna izbira datuma prek gumba »Ročno« v povzetku. -->
-          <div class="rok-sheet__datum-skrito">
-            <label class="sr-only" for="rok-sheet-datum">Rok plačila</label>
-            <input type="date" class="rok-sheet__datum" id="rok-sheet-datum" required />
-          </div>
           <p class="rok-sheet__pomoc" id="rok-sheet-pomoc">
             <span class="rok-sheet__pomoc-zvezda" id="rok-sheet-pomoc-zvezda" hidden aria-hidden="true">★</span>
             <span id="rok-sheet-pomoc-besedilo">Privzeto: 5 dni od pošiljanja</span>
@@ -773,7 +771,7 @@
     </div>
 
     <script src="rok-placila-utils.js?v=20260808-predogled"></script>
-    <script src="rok-placila-sheet.js?v=20260808-rok-rocno"></script>
+    <script src="rok-placila-sheet.js?v=20260808-rok-fix"></script>
     <script src="obrocno-utils.js?v=20260808-predogled"></script>
     <script src="obrocno-sheet.js?v=20260808-predogled"></script>
     <script src="ton-priporocilo.js?v=20260808-predogled"></script>

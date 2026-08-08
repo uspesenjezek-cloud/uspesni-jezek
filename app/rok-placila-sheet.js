@@ -67,7 +67,6 @@
     var hitroMeseci = document.getElementById("rok-sheet-hitro-meseci");
     var povzetekDatum = document.getElementById("rok-sheet-povzetek-datum");
     var povzetekRel = document.getElementById("rok-sheet-povzetek-rel");
-    var povzetekRocno = document.getElementById("rok-sheet-povzetek-rocno");
 
     var odprt = false;
     var osnutek = null;
@@ -1125,6 +1124,15 @@
     }
 
     if (datumPolje) {
+      // Klik na prosojen date input nad »Ročno« → takoj ročni način.
+      datumPolje.addEventListener("focus", function () {
+        if (!osnutek) return;
+        osnutek.mode = "manual";
+        if (samodejno) samodejno.checked = false;
+        oznaciRokPriporociloSpremenjeno();
+        posodobiPomoc();
+        syncHitriIzbirnikIzDatuma();
+      });
       datumPolje.addEventListener("change", function () {
         if (!osnutek) return;
         osnutek.mode = "manual";
@@ -1143,21 +1151,6 @@
         }
         preveriDatum();
         syncHitriIzbirnikIzDatuma();
-      });
-    }
-
-    if (povzetekRocno && datumPolje) {
-      povzetekRocno.addEventListener("click", function () {
-        if (typeof datumPolje.showPicker === "function") {
-          try {
-            datumPolje.showPicker();
-            return;
-          } catch (e) {
-            /* fallback spodaj */
-          }
-        }
-        datumPolje.focus();
-        datumPolje.click();
       });
     }
 
