@@ -165,8 +165,10 @@
     }
 
     function zakleniOzadje() {
-      scrollY = window.scrollY || window.pageYOffset || 0;
       document.body.classList.add("obrocno-sheet-odprt");
+      // Nad urejevalnikom predloge ne prepiši njegovega scroll locka.
+      if (document.body.classList.contains("template-editor-odprt")) return;
+      scrollY = window.scrollY || window.pageYOffset || 0;
       document.body.style.position = "fixed";
       document.body.style.top = "-" + scrollY + "px";
       document.body.style.left = "0";
@@ -177,6 +179,8 @@
 
     function odkleniOzadje() {
       document.body.classList.remove("obrocno-sheet-odprt");
+      // Urejevalnik predloge še drži lock – ne briši body stilov.
+      if (document.body.classList.contains("template-editor-odprt")) return;
       document.body.style.position = "";
       document.body.style.top = "";
       document.body.style.left = "";
@@ -1197,6 +1201,10 @@
      * @param {{
      *   izPriporocil?: boolean,
      *   toneId?: string,
+     *   predlogaNacin?: boolean,
+     *   zacetnoEnabled?: boolean,
+     *   zacetnoStevilo?: number|null,
+     *   zacetnoInterval?: string|null,
      *   onClose?: (r: { shranjeno: boolean }) => void
      * }} [opcije]
      */
@@ -1234,6 +1242,20 @@
         osnutek = sveziPredlogIzPriporocila(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         draftEnabled = true;
+      } else if (opts.predlogaNacin) {
+        // Uredi predlogo: osnutek za predogled, vklop/št./interval iz paketa.
+        // Ne uporabljaj jePlanUporaben (znesek dolga ≠ paket; paket hrani le št./interval).
+        osnutek = sveziPredlogIzPriporocila(total);
+        var st = Number(opts.zacetnoStevilo);
+        if (Number.isFinite(st) && st >= 2) {
+          osnutek = UJ.nastaviSteviloObrokov(osnutek, st);
+        }
+        if (opts.zacetnoInterval) {
+          osnutek = UJ.nastaviRazmik(osnutek, String(opts.zacetnoInterval));
+        }
+        osnutek = UJ.uskladiSteviloVrstic(osnutek);
+        draftEnabled = Boolean(opts.zacetnoEnabled);
+        osnutek.enabled = draftEnabled;
       } else if (existingUporaben) {
         osnutek = klon(existing);
         osnutek.totalDebtCents = total;
@@ -1250,10 +1272,14 @@
         draftEnabled = false;
       }
 
-      // Vedno uskladi izbrano št. z ★ / predlogObrocnegaZaTon (tudi pri starem shranjenem načrtu).
-      osnutek = zagotoviPriporocenoStevilo(osnutek);
+      // Pri predlogi ohrani shranjeno št.; sicer uskladi z ★ / tonom.
+      if (!opts.predlogaNacin) {
+        osnutek = zagotoviPriporocenoStevilo(osnutek);
+      }
 
-      originalEnabled = Boolean(existingUporaben);
+      originalEnabled = opts.predlogaNacin
+        ? Boolean(opts.zacetnoEnabled)
+        : Boolean(existingUporaben);
       originalPlan = existing ? klon(existing) : null;
 
       editingInstallmentId = null;

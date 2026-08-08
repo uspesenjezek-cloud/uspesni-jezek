@@ -3124,29 +3124,22 @@ function inicializirajSporociloDolzniku() {
     predlogaSheetBesedilo.value = (modalUrejevalnik && modalUrejevalnik.value) || "";
     predlogaDraftDodatki.obrocno = false;
     predlogaDraftDodatekBesedila.obrocno = "";
+    // Osnutek naredi sheet v predlogaNacin (ne zgolj jePlanUporaben + fiksen 10000 €).
     predlogaDraftPlan = null;
-    if (p.obrocno.enabled && window.UJObrocno) {
-      let plan = window.UJObrocno.getInstallmentSuggestion({
-        totalDebtCents: 10000,
-        plannedSendDate: bazaDatumaPosiljanja(),
-        toneId: tonZaModalPlacila(),
-        language: "sl",
-      });
-      plan = window.UJObrocno.nastaviSteviloObrokov(
-        plan,
-        Number(p.obrocno.installmentCount) || 2
-      );
-      if (p.obrocno.intervalType) {
-        plan = window.UJObrocno.nastaviRazmik(plan, p.obrocno.intervalType);
-      }
-      plan = window.UJObrocno.osveziAddon(plan, "sl");
-      plan.enabled = true;
-      predlogaDraftPlan = plan;
-    }
 
     window.setTimeout(() => {
       obrocnoSheetApi.odpri({
         toneId: tonZaModalPlacila(),
+        predlogaNacin: true,
+        zacetnoEnabled: Boolean(p.obrocno && p.obrocno.enabled),
+        zacetnoStevilo:
+          p.obrocno && p.obrocno.enabled
+            ? Number(p.obrocno.installmentCount) || 2
+            : null,
+        zacetnoInterval:
+          p.obrocno && p.obrocno.enabled
+            ? p.obrocno.intervalType || "monthly"
+            : null,
         onClose: () => {
           if (predlogaSheetSaved) {
             const plan = predlogaDraftPlan;
