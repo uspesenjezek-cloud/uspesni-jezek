@@ -3983,6 +3983,10 @@ body.stran--samo-seznam #neplacila-obrazec {
   inset: 0;
   /* Nad .korak2-modal (100) in potrditvenim modalom (120). */
   z-index: 200;
+  overflow: hidden;
+  overscroll-behavior: none;
+  /* Overlay ne sprejema horizontalnega swipe-a. */
+  touch-action: none;
 }
 
 .rok-sheet__backdrop {
@@ -3993,13 +3997,16 @@ body.stran--samo-seznam #neplacila-obrazec {
   border: 0;
   background: rgba(18, 48, 44, 0.35);
   cursor: pointer;
+  touch-action: none;
 }
 
 .rok-sheet__panel {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
+  /* Centriranje brez transform – transform + touch na iOS pogosto »vleče« panel levo/desno. */
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -4012,6 +4019,10 @@ body.stran--samo-seznam #neplacila-obrazec {
   background: #ffffff;
   box-shadow: 0 -10px 32px rgba(25, 62, 57, 0.16);
   box-sizing: border-box;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  /* Samo navpično drsenje vsebine; horizontalni gesti so izključeni. */
+  touch-action: pan-y;
 }
 
 .rok-sheet__rocaj {
@@ -4055,8 +4066,11 @@ body.stran--samo-seznam #neplacila-obrazec {
 .rok-sheet__telo {
   flex: 1 1 auto;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding-bottom: 8px;
 }
 
@@ -4291,6 +4305,9 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 body.rok-sheet-odprt {
   overflow: hidden;
+  overscroll-behavior: none;
+  /* Prepreči horizontalni »rubber-band« ozadja med odprtim sheetom. */
+  touch-action: none;
 }
 
 .korak2__noga {
