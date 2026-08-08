@@ -403,7 +403,24 @@ function zagotoviPotrditveniModal() {
         drugi.className = "osnutek-modal__potrdi osnutek-modal__potrdi--secondary";
         drugi.id = "uj-potrdi-drugi";
         drugi.hidden = true;
-        akcije.insertBefore(drugi, potrdi);
+        /* Isti račun (potrdi) pred novim računom (drugi) – dostopnost. */
+        if (potrdi.nextSibling) {
+          akcije.insertBefore(drugi, potrdi.nextSibling);
+        } else {
+          akcije.appendChild(drugi);
+        }
+      }
+    } else {
+      const akcije = document.getElementById("uj-potrdi-akcije");
+      const potrdi = document.getElementById("uj-potrdi-potrdi");
+      const drugiObstojeci = document.getElementById("uj-potrdi-drugi");
+      if (
+        akcije &&
+        potrdi &&
+        drugiObstojeci &&
+        potrdi.nextElementSibling !== drugiObstojeci
+      ) {
+        akcije.insertBefore(drugiObstojeci, potrdi.nextSibling);
       }
     }
     return modal;
@@ -425,8 +442,8 @@ function zagotoviPotrditveniModal() {
     '<p class="osnutek-modal__opis" id="uj-potrdi-opis"></p>' +
     '<div class="osnutek-modal__akcije" id="uj-potrdi-akcije">' +
     '<button type="button" class="osnutek-modal__preklici" id="uj-potrdi-preklici">Prekliči</button>' +
-    '<button type="button" class="osnutek-modal__potrdi osnutek-modal__potrdi--secondary" id="uj-potrdi-drugi" hidden></button>' +
     '<button type="button" class="osnutek-modal__potrdi" id="uj-potrdi-potrdi">Potrdi</button>' +
+    '<button type="button" class="osnutek-modal__potrdi osnutek-modal__potrdi--secondary" id="uj-potrdi-drugi" hidden></button>' +
     "</div></div>";
   document.body.appendChild(modal);
   return modal;
@@ -590,28 +607,44 @@ function potrdiVprasanje(opcije) {
 
   return new Promise((resolve) => {
     let zakljuceno = false;
+    let historyPushed = false;
 
     function oznaciNalaganje(gumb) {
       if (!dvaIzbira || !gumb) return;
       potrdi.disabled = true;
       if (drugi) drugi.disabled = true;
+      if (zapri) zapri.disabled = true;
       const spinner = gumb.querySelector(".osnutek-modal__opcija-nalaganje");
       if (spinner) spinner.hidden = false;
       gumb.classList.add("osnutek-modal__opcija--nalaganje");
     }
 
-    function zakljuci(odgovor) {
+    function zakljuci(odgovor, izPopstate) {
       if (ujPotrdiZakljuci !== zakljuci || zakljuceno) return;
       zakljuceno = true;
       modal.hidden = true;
       modal.classList.remove("osnutek-modal--sprememba-podatkov");
       odkleniOzadjeMedModalom();
-      document.removeEventListener("keydown", obEscape);
+      document.removeEventListener("keydown", obTipkovnica);
+      window.removeEventListener("popstate", obPopstate);
       if (preklici) preklici.removeEventListener("click", obPreklici);
       potrdi.removeEventListener("click", obPotrdi);
       if (drugi) drugi.removeEventListener("click", obDrugi);
-      if (zapri) zapri.removeEventListener("click", obPreklici);
+      if (zapri) {
+        zapri.disabled = false;
+        zapri.removeEventListener("click", obPreklici);
+      }
       if (backdrop) backdrop.removeEventListener("click", obPreklici);
+      if (historyPushed && !izPopstate) {
+        historyPushed = false;
+        try {
+          history.back();
+        } catch (_e) {
+          /* ignore */
+        }
+      } else {
+        historyPushed = false;
+      }
       ujPotrdiZakljuci = null;
       if (
         ujPotrdiPrejsnjiFokus &&
@@ -643,10 +676,48 @@ function potrdiVprasanje(opcije) {
       zakljuci("nov");
     }
 
-    function obEscape(dogodek) {
-      if (dogodek.key === "Escape" && !modal.hidden) {
+    function obPopstate() {
+      zakljuci(false, true);
+    }
+
+    function fokusabilniVDialogu() {
+      if (!dialogEl) return [];
+      return Array.prototype.slice
+        .call(
+          dialogEl.querySelectorAll(
+            'button:not([hidden]):not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        )
+        .filter((el) => {
+          if (el.closest("[hidden]")) return false;
+          const stil = window.getComputedStyle(el);
+          return stil.display !== "none" && stil.visibility !== "hidden";
+        });
+    }
+
+    function obTipkovnica(dogodek) {
+      if (modal.hidden) return;
+      if (dogodek.key === "Escape") {
         dogodek.preventDefault();
         zakljuci(samoEnGumb && !dvaIzbira ? true : false);
+        return;
+      }
+      if (dogodek.key !== "Tab" || !dialogEl) return;
+      const seznam = fokusabilniVDialogu();
+      if (!seznam.length) return;
+      const prvi = seznam[0];
+      const zadnji = seznam[seznam.length - 1];
+      if (dogodek.shiftKey) {
+        if (document.activeElement === prvi || !dialogEl.contains(document.activeElement)) {
+          dogodek.preventDefault();
+          zadnji.focus();
+        }
+      } else if (
+        document.activeElement === zadnji ||
+        !dialogEl.contains(document.activeElement)
+      ) {
+        dogodek.preventDefault();
+        prvi.focus();
       }
     }
 
@@ -656,12 +727,27 @@ function potrdiVprasanje(opcije) {
     if (drugi && dvaIzbira) drugi.addEventListener("click", obDrugi);
     if (zapri) zapri.addEventListener("click", obPreklici);
     if (backdrop) backdrop.addEventListener("click", obPreklici);
-    document.addEventListener("keydown", obEscape);
+    document.addEventListener("keydown", obTipkovnica);
+
+    if (dvaIzbira) {
+      try {
+        history.pushState({ ujPotrdiModal: true }, "");
+        historyPushed = true;
+        window.addEventListener("popstate", obPopstate);
+      } catch (_e) {
+        historyPushed = false;
+      }
+    }
 
     zakleniOzadjeMedModalom();
     modal.hidden = false;
     if (dvaIzbira) {
-      potrdi.focus();
+      naslovEl.setAttribute("tabindex", "-1");
+      try {
+        naslovEl.focus({ preventScroll: true });
+      } catch (_e) {
+        potrdi.focus();
+      }
     } else {
       potrdi.focus();
     }
