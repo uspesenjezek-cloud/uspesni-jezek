@@ -4730,12 +4730,14 @@ function inicializirajSporociloDolzniku() {
 
   if (gumbPreglejRok) {
     gumbPreglejRok.addEventListener("click", () => {
+      if (gumbPreglejRok.disabled) return;
       if (!rokSheetApi || typeof rokSheetApi.odpri !== "function") {
         pokaziNapako(
           "Nastavitve roka plačila se niso naložile. Osvežite stran (Ctrl+F5)."
         );
         return;
       }
+      gumbPreglejRok.disabled = true;
       const tonId = tonZaPriporocila();
       const termDays = window.UJRokPlacila
         ? window.UJRokPlacila.dneviZaTon(tonId)
@@ -4745,8 +4747,14 @@ function inicializirajSporociloDolzniku() {
           izPriporocil: true,
           toneId: tonId,
           termDays: termDays,
-          onClose: (rez) => onCloseIzPriporocil(rez, "rok"),
+          onClose: (rez) => {
+            gumbPreglejRok.disabled = false;
+            onCloseIzPriporocil(rez, "rok");
+          },
         });
+        if (!document.body.classList.contains("rok-sheet-odprt")) {
+          gumbPreglejRok.disabled = false;
+        }
       }, 0);
     });
   }
@@ -4757,18 +4765,26 @@ function inicializirajSporociloDolzniku() {
 
   if (gumbPreglejObrocno) {
     gumbPreglejObrocno.addEventListener("click", () => {
+      if (gumbPreglejObrocno.disabled) return;
       if (!obrocnoSheetApi || typeof obrocnoSheetApi.odpri !== "function") {
         pokaziNapako(
           "Nastavitve obročnega plačila se niso naložile. Osvežite stran (Ctrl+F5)."
         );
         return;
       }
+      gumbPreglejObrocno.disabled = true;
       window.setTimeout(() => {
         obrocnoSheetApi.odpri({
           izPriporocil: true,
           toneId: tonZaPriporocila(),
-          onClose: (rez) => onCloseIzPriporocil(rez, "obrocno"),
+          onClose: (rez) => {
+            gumbPreglejObrocno.disabled = false;
+            onCloseIzPriporocil(rez, "obrocno");
+          },
         });
+        if (!document.body.classList.contains("obrocno-sheet-odprt")) {
+          gumbPreglejObrocno.disabled = false;
+        }
       }, 0);
     });
   }
