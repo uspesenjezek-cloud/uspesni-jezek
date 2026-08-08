@@ -44,6 +44,18 @@
   var IKONA_DOKUMENT =
     '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>';
 
+  var IKONA_SPONKA =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>';
+
+  var IKONA_KAMERA =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
+
+  var IKONA_UVOZI =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>';
+
+  var IKONA_SLIKA =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -324,6 +336,49 @@
     /* "trenutni" = čas tega koraka; "naslednji" = razmik do naslednjega */
     var casSheetNacin = "trenutni";
     var casSheetBaseIndex = null;
+
+    var PV = root.UJPrilogeVsebina;
+    var prilogeKoraka =
+      PV && PV.izSejeVPriloge
+        ? PV.izSejeVPriloge(opts.podatkiKorak1 || {})
+        : [];
+    var prilogeNapaka = "";
+    var undoPriloga = null;
+    var undoTimer = null;
+    var smsPaketZeton =
+      "p" +
+      String((plan && plan.id) || Date.now())
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .slice(0, 10);
+
+    function sinhronizirajPrilogeVKorak1() {
+      if (!PV || !opts.podatkiKorak1) return;
+      var paket = PV.prilogeVSejo(prilogeKoraka);
+      Object.assign(opts.podatkiKorak1, paket);
+      try {
+        sessionStorage.setItem(
+          "neplacilo-korak1-podatki",
+          JSON.stringify(opts.podatkiKorak1)
+        );
+      } catch (_e) {
+        /* prezri */
+      }
+      if (typeof opts.onPrilogeSpremenjene === "function") {
+        opts.onPrilogeSpremenjene(opts.podatkiKorak1);
+      }
+    }
+
+    function privzetiKanaliNovePriloge() {
+      var k1 = opts.podatkiKorak1 || {};
+      var k2 = opts.podatkiKorak2 || {};
+      var sk = k2.sporociloKanali || k1.privzetiKanali || {};
+      return PV.privzetiKanaliZaNovoPrilogo({
+        imaTelefon: Boolean(k1.telefonDolznika),
+        imaEmail: Boolean(k1.emailDolznika),
+        korakSms: sk.sms !== false,
+        korakEmail: sk.email !== false,
+      });
+    }
 
     /* Delovne kopije dodatkov (isti sheeti kot na 2. koraku). */
     var k2Seja = opts.podatkiKorak2 || {};
@@ -1040,8 +1095,109 @@
       );
     }
 
+    function htmlKanalGumb(vrsta, vkljucen, onemogocen, imeDatoteke) {
+      var jeSms = vrsta === "sms";
+      var label = jeSms ? "SMS" : "E-pošta";
+      var razredi = "vk-kanal-gumb";
+      if (onemogocen) razredi += " vk-kanal-gumb--disabled";
+      else if (vkljucen) {
+        razredi += jeSms ? " vk-kanal-gumb--sms-on" : " vk-kanal-gumb--email-on";
+      }
+      var aria =
+        (jeSms ? "Pošlji račun " : "Pošlji račun ") +
+        imeDatoteke +
+        (jeSms ? " prek SMS-a" : " po e-pošti");
+      return (
+        '<button type="button" class="' +
+        razredi +
+        '" data-kanal="' +
+        vrsta +
+        '" aria-pressed="' +
+        (vkljucen ? "true" : "false") +
+        '"' +
+        (onemogocen
+          ? ' disabled aria-disabled="true" title="' +
+            esc(
+              jeSms
+                ? "Dolžnik nima telefonske številke."
+                : "Dolžnik nima e-poštnega naslova."
+            ) +
+            '"'
+          : "") +
+        ' aria-label="' +
+        esc(aria) +
+        '">' +
+        (vkljucen && !onemogocen ? "✓ " : "") +
+        label +
+        "</button>"
+      );
+    }
+
+    function htmlPrilogaVrstica(p, imaTel, imaEmail) {
+      var PV = root.UJPrilogeVsebina;
+      var ime = p.originalFileName || "Račun";
+      var jePdf =
+        (p.mimeType && p.mimeType.indexOf("pdf") >= 0) ||
+        /\.pdf$/i.test(ime);
+      var kanali = p.deliveryChannels || {};
+      var nalaga =
+        p.status === "uploading" || p.status === "processing";
+      var napaka = p.status === "error";
+      var velikostTekst = "";
+      if (nalaga) {
+        velikostTekst =
+          p.progress != null && p.progress < 100
+            ? "Nalaganje " + Math.round(p.progress) + " %"
+            : "Obdelujem …";
+      } else if (napaka) {
+        velikostTekst = "Nalaganje ni uspelo.";
+      } else if (PV && PV.formatVelikost && p.sizeBytes != null) {
+        velikostTekst = PV.formatVelikost(p.sizeBytes);
+      }
+      var smsOn = Boolean(kanali.sms) && imaTel && !nalaga && !napaka;
+      var emailOn = Boolean(kanali.email) && imaEmail && !nalaga && !napaka;
+      return (
+        '<div class="vk-priloga-vrstica" data-priloga-id="' +
+        esc(p.id) +
+        '" role="listitem">' +
+        '<span class="vk-priloga-vrstica__ikona" aria-hidden="true">' +
+        (jePdf ? IKONA_DOKUMENT : IKONA_SLIKA) +
+        "</span>" +
+        '<div class="vk-priloga-vrstica__meta">' +
+        '<p class="vk-priloga-vrstica__ime">' +
+        esc(ime) +
+        "</p>" +
+        '<p class="vk-priloga-vrstica__velikost' +
+        (napaka ? " vk-priloga-vrstica__velikost--napaka" : "") +
+        '">' +
+        esc(velikostTekst) +
+        (napaka
+          ? ' <button type="button" class="vk-priloga-ponovi" data-priloga-ponovi="' +
+            esc(p.id) +
+            '">Poskusi znova</button>'
+          : "") +
+        "</p>" +
+        (!imaTel && !imaEmail && p.status === "ready"
+          ? '<p class="vk-priloga-vrstica__velikost--napaka">Dodajte telefon ali e-pošto dolžnika.</p>'
+          : "") +
+        "</div>" +
+        '<div class="vk-priloga-kanali">' +
+        htmlKanalGumb("sms", smsOn, !imaTel || nalaga || napaka, ime) +
+        htmlKanalGumb("email", emailOn, !imaEmail || nalaga || napaka, ime) +
+        "</div>" +
+        '<button type="button" class="vk-priloga-vrstica__odstrani" data-priloga-odstrani="' +
+        esc(p.id) +
+        '" aria-label="Odstrani račun ' +
+        esc(ime) +
+        '">×</button>' +
+        "</div>"
+      );
+    }
+
     function htmlVsebinaKoraka(ctx) {
       ctx = ctx || {};
+      var PV = root.UJPrilogeVsebina;
+      var K = root.UJPrilogeKonstante || {};
       var znesekTekst = ctx.znesekTekst;
       var kategorijaTekst = ctx.kategorijaTekst;
       var tonOznaka = ctx.tonOznaka || "—";
@@ -1050,6 +1206,26 @@
       var smsBesedilo = ctx.smsBesedilo || "";
       var smsMeta = ctx.smsMeta || "";
       var imaSms = Boolean(String(smsBesedilo).trim());
+      var priloge = ctx.priloge || [];
+      var imaTel = Boolean(ctx.imaTelefon);
+      var imaEmail = Boolean(ctx.imaEmail);
+      var readyN = PV ? PV.stevecReady(priloge) : 0;
+      var nalagaN = PV ? PV.stevecNalaga(priloge) : 0;
+      var visina =
+        PV && PV.visinaSeznama
+          ? PV.visinaSeznama(priloge.length)
+          : priloge.length <= 1
+            ? 68
+            : 102;
+      var seznamRazred =
+        "vk-priloge-seznam" +
+        (priloge.length === 1 ? " vk-priloge-seznam--ena" : "");
+      var vrsticeHtml = priloge
+        .map(function (p) {
+          return htmlPrilogaVrstica(p, imaTel, imaEmail);
+        })
+        .join("");
+      var accept = K.ACCEPT_ATTR || "image/*,application/pdf";
 
       return (
         '<section class="step-content-card" aria-label="Vsebina koraka">' +
@@ -1144,6 +1320,49 @@
         "</div>" +
         '<p class="sms-preview__caption">Celotno sporočilo uredite pri pregledu koraka.</p>' +
         "</div>" +
+        '<div class="vk-dodaj-racun" role="group" aria-label="Dodaj račun">' +
+        '<span class="vk-dodaj-racun__ikona" aria-hidden="true">' +
+        IKONA_SPONKA +
+        "</span>" +
+        '<span class="vk-dodaj-racun__naslov">Dodaj račun</span>' +
+        '<button type="button" class="vk-dodaj-racun__gumb" id="vk-priloge-slikaj" aria-label="Slikaj račun">' +
+        IKONA_KAMERA +
+        " Slikaj</button>" +
+        '<button type="button" class="vk-dodaj-racun__gumb" id="vk-priloge-uvozi" aria-label="Uvozi račun">' +
+        IKONA_UVOZI +
+        " Uvozi</button>" +
+        "</div>" +
+        '<div class="vk-priloge-glava"' +
+        (priloge.length ? "" : " hidden") +
+        ">" +
+        '<p class="vk-priloge-glava__naslov">Priloženi računi</p>' +
+        '<span class="vk-priloge-glava__stevilo" aria-label="Število priloženih računov">' +
+        readyN +
+        "</span>" +
+        "</div>" +
+        (nalagaN
+          ? '<p class="vk-priloge-glava__meta">' +
+            readyN +
+            " priloženi · " +
+            nalagaN +
+            " se nalaga</p>"
+          : '<p class="vk-priloge-glava__meta" hidden></p>') +
+        '<div class="' +
+        seznamRazred +
+        '" id="vk-priloge-seznam" role="list" style="height:' +
+        visina +
+        'px;max-height:' +
+        visina +
+        'px"' +
+        (priloge.length ? "" : " hidden") +
+        ">" +
+        vrsticeHtml +
+        "</div>" +
+        '<p class="vk-priloge-napaka" id="vk-priloge-napaka" hidden></p>' +
+        '<input type="file" id="vk-priloge-datoteka" accept="' +
+        esc(accept) +
+        '" multiple hidden aria-label="Uvozi račun" />' +
+        '<input type="file" id="vk-priloge-kamera" accept="image/*" capture="environment" hidden aria-label="Slikaj račun" />' +
         "</section>"
       );
     }
@@ -1302,7 +1521,11 @@
         })
         .join("");
 
-      var smsBesedilo = step.finalMessage || step.generatedMessage || "";
+      var smsOsnova = step.finalMessage || step.generatedMessage || "";
+      var smsBesedilo =
+        PV && PV.sestaviSmsZPrilogami
+          ? PV.sestaviSmsZPrilogami(smsOsnova, prilogeKoraka, smsPaketZeton)
+          : smsOsnova;
       var smsMeta = gsmLabel(Gsm, smsBesedilo);
 
       var vsebinaHtml = "";
@@ -1337,6 +1560,13 @@
           trrStanje: trrAktiven ? "Vklopljeno" : "Izklopljeno",
           smsBesedilo: smsBesedilo,
           smsMeta: smsMeta,
+          priloge: prilogeKoraka,
+          imaTelefon: Boolean(
+            opts.podatkiKorak1 && opts.podatkiKorak1.telefonDolznika
+          ),
+          imaEmail: Boolean(
+            opts.podatkiKorak1 && opts.podatkiKorak1.emailDolznika
+          ),
         });
       } else {
         vsebinaHtml =
@@ -1536,6 +1766,7 @@
       if (shraniOsnutek) {
         shraniOsnutek.addEventListener("click", function () {
           shrani();
+          sinhronizirajPrilogeVKorak1();
           if (typeof opts.potrdiVprasanje === "function") {
             opts.potrdiVprasanje({
               naslov: "Osnutek shranjen",
@@ -1548,9 +1779,33 @@
         });
       }
 
+      poveziPrilogeDogodke();
+
       var cta = opts.glavniEl.querySelector("#opomin-nacrt-cta");
       if (cta) {
         cta.addEventListener("click", function () {
+          var k1 = opts.podatkiKorak1 || {};
+          var valid =
+            PV && PV.vsePrilogeVeljavneZaPotrditev
+              ? PV.vsePrilogeVeljavneZaPotrditev(
+                  prilogeKoraka,
+                  Boolean(k1.telefonDolznika),
+                  Boolean(k1.emailDolznika)
+                )
+              : { ok: true };
+          if (!valid.ok) {
+            prilogeNapaka = valid.razlog || "Preverite priloge računov.";
+            if (typeof opts.potrdiVprasanje === "function") {
+              opts.potrdiVprasanje({
+                naslov: "Priloge niso pripravljene",
+                opis: prilogeNapaka,
+                potrdiBesedilo: "V redu",
+                samoEnGumb: true,
+                stil: "primary",
+              });
+            }
+            return;
+          }
           if (ready) {
             aktiviraj();
             return;
@@ -1567,6 +1822,215 @@
           pokaziPotrditev(step.index);
         });
       }
+    }
+
+    function pokaziPrilogeNapako(tekst) {
+      prilogeNapaka = tekst || "";
+      var el = opts.glavniEl.querySelector("#vk-priloge-napaka");
+      if (!el) return;
+      if (!prilogeNapaka) {
+        el.hidden = true;
+        el.textContent = "";
+        return;
+      }
+      el.hidden = false;
+      el.textContent = prilogeNapaka;
+    }
+
+    function pokaziUndoToast(priloga) {
+      var obstojeci = document.getElementById("vk-undo-toast");
+      if (obstojeci) obstojeci.remove();
+      var toast = document.createElement("div");
+      toast.id = "vk-undo-toast";
+      toast.className = "vk-undo-toast";
+      toast.setAttribute("role", "status");
+      toast.innerHTML =
+        "<span>Račun je odstranjen.</span>" +
+        '<button type="button" id="vk-undo-btn">Razveljavi</button>';
+      document.body.appendChild(toast);
+      clearTimeout(undoTimer);
+      undoPriloga = priloga;
+      document.getElementById("vk-undo-btn").addEventListener("click", function () {
+        if (undoPriloga) {
+          prilogeKoraka.push(undoPriloga);
+          undoPriloga = null;
+          sinhronizirajPrilogeVKorak1();
+          izrisiGlavni();
+        }
+        toast.remove();
+        clearTimeout(undoTimer);
+      });
+      undoTimer = setTimeout(function () {
+        undoPriloga = null;
+        toast.remove();
+      }, 5000);
+    }
+
+    async function dodajDatotekePrilog(fileList) {
+      var files = Array.prototype.slice.call(fileList || []);
+      if (!files.length || !PV) return;
+      pokaziPrilogeNapako("");
+      var k1 = opts.podatkiKorak1 || {};
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var v = PV.validirajDatoteko(file, prilogeKoraka);
+        if (v.napaka) {
+          pokaziPrilogeNapako(v.napaka);
+          continue;
+        }
+        var imeLower = String(file.name || "").toLowerCase();
+        var tipLower = String(file.type || "").toLowerCase();
+        if (
+          tipLower.indexOf("heic") >= 0 ||
+          tipLower.indexOf("heif") >= 0 ||
+          /\.heic$|\.heif$/i.test(imeLower)
+        ) {
+          pokaziPrilogeNapako(
+            "HEIC/HEIF fotografije trenutno niso pretvorjene. Izvozite kot JPG ali PNG."
+          );
+          continue;
+        }
+        var id = PV.novId();
+        var kanali = privzetiKanaliNovePriloge();
+        var temp = {
+          id: id,
+          originalFileName: file.name || "Račun",
+          mimeType: file.type || "",
+          sizeBytes: file.size,
+          storagePath: null,
+          status: "uploading",
+          deliveryChannels: kanali,
+          origin: "manual_attachment",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          progress: 10,
+          _file: file,
+        };
+        prilogeKoraka.push(temp);
+        izrisiGlavni();
+        try {
+          if (typeof opts.naloziPrilogo === "function") {
+            temp.status = "processing";
+            temp.progress = 45;
+            izrisiGlavni();
+            var rez = await opts.naloziPrilogo(file);
+            if (rez && rez.napaka) throw new Error(rez.napaka);
+            temp.storagePath = rez.pot;
+            temp.status = "ready";
+            temp.progress = 100;
+            temp.updatedAt = new Date().toISOString();
+            delete temp._file;
+          } else {
+            temp.storagePath = "local/" + id + "/" + (file.name || "racun");
+            temp.status = "ready";
+            temp.progress = 100;
+          }
+        } catch (err) {
+          temp.status = "error";
+          temp.progress = 0;
+          temp.napaka = (err && err.message) || "Nalaganje ni uspelo.";
+          pokaziPrilogeNapako(temp.napaka);
+        }
+        sinhronizirajPrilogeVKorak1();
+        izrisiGlavni();
+      }
+    }
+
+    function poveziPrilogeDogodke() {
+      var kamera = opts.glavniEl.querySelector("#vk-priloge-kamera");
+      var datoteka = opts.glavniEl.querySelector("#vk-priloge-datoteka");
+      var gumbSlikaj = opts.glavniEl.querySelector("#vk-priloge-slikaj");
+      var gumbUvozi = opts.glavniEl.querySelector("#vk-priloge-uvozi");
+      if (gumbSlikaj && kamera) {
+        gumbSlikaj.addEventListener("click", function () {
+          kamera.click();
+        });
+      }
+      if (gumbUvozi && datoteka) {
+        gumbUvozi.addEventListener("click", function () {
+          datoteka.click();
+        });
+      }
+      if (kamera) {
+        kamera.addEventListener("change", function () {
+          dodajDatotekePrilog(kamera.files);
+          kamera.value = "";
+        });
+      }
+      if (datoteka) {
+        datoteka.addEventListener("change", function () {
+          dodajDatotekePrilog(datoteka.files);
+          datoteka.value = "";
+        });
+      }
+
+      opts.glavniEl.querySelectorAll("[data-priloga-odstrani]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = btn.getAttribute("data-priloga-odstrani");
+          var idx = prilogeKoraka.findIndex(function (p) {
+            return p.id === id;
+          });
+          if (idx < 0) return;
+          var odstranjen = prilogeKoraka.splice(idx, 1)[0];
+          sinhronizirajPrilogeVKorak1();
+          izrisiGlavni();
+          pokaziUndoToast(odstranjen);
+        });
+      });
+
+      opts.glavniEl.querySelectorAll(".vk-priloga-vrstica").forEach(function (vrstica) {
+        var id = vrstica.getAttribute("data-priloga-id");
+        var p = prilogeKoraka.find(function (x) {
+          return x.id === id;
+        });
+        if (!p) return;
+        vrstica.querySelectorAll("[data-kanal]").forEach(function (gumb) {
+          gumb.addEventListener("click", function () {
+            if (gumb.disabled) {
+              var kanal = gumb.getAttribute("data-kanal");
+              if (typeof opts.potrdiVprasanje === "function") {
+                opts.potrdiVprasanje({
+                  naslov:
+                    kanal === "sms"
+                      ? "Dolžnik nima telefonske številke."
+                      : "Dolžnik nima e-poštnega naslova.",
+                  potrdiBesedilo: "V redu",
+                  samoEnGumb: true,
+                  stil: "primary",
+                });
+              }
+              return;
+            }
+            var kanal = gumb.getAttribute("data-kanal");
+            var prej = {
+              sms: Boolean(p.deliveryChannels && p.deliveryChannels.sms),
+              email: Boolean(p.deliveryChannels && p.deliveryChannels.email),
+            };
+            var novo = {
+              sms: prej.sms,
+              email: prej.email,
+            };
+            novo[kanal] = !novo[kanal];
+            if (!novo.sms && !novo.email) {
+              if (typeof opts.potrdiVprasanje === "function") {
+                opts.potrdiVprasanje({
+                  naslov: "Vsaj en kanal mora biti izbran",
+                  potrdiBesedilo: "V redu",
+                  samoEnGumb: true,
+                  stil: "primary",
+                });
+              }
+              return;
+            }
+            p.deliveryChannels = novo;
+            p.updatedAt = new Date().toISOString();
+            sinhronizirajPrilogeVKorak1();
+            izrisiGlavni();
+          });
+        });
+      });
+
+      if (prilogeNapaka) pokaziPrilogeNapako(prilogeNapaka);
     }
 
     function izrisiPotrditev(step) {

@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-kanali" />
+    <link rel="stylesheet" href="styles.css?v=20260808-vk-priloge" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -74,109 +74,7 @@
       <main class="korak2__vsebina korak2__vsebina--opomin">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
-        <section class="priloga-posiljanje-info" id="priloga-posiljanje-info" hidden>
-          <h2 class="priloga-posiljanje-info__naslov">Račun za pošiljanje</h2>
-          <p class="priloga-posiljanje-info__besedilo" id="priloga-posiljanje-besedilo" role="status"></p>
-        </section>
-
-        <section class="sporocilo-kanali" id="sporocilo-kanali" aria-label="Kanali glavnega sporočila">
-          <h2 class="sporocilo-kanali__naslov">Glavno sporočilo</h2>
-          <p class="sporocilo-kanali__opis">Kam naj gre besedilo opomina.</p>
-          <div class="sporocilo-kanali__segment" id="sporocilo-kanali-segment"></div>
-        </section>
-
-        <section
-          class="racun-posiljanje korak3-priloge"
-          id="korak3-priloge"
-          aria-labelledby="korak3-priloge-naslov"
-        >
-          <div class="racun-posiljanje__glava">
-            <div>
-              <h3 class="racun-posiljanje__naslov" id="korak3-priloge-naslov">
-                Priloge računa
-              </h3>
-              <p class="racun-posiljanje__opis">
-                PDF ali slike, ki jih dolžnik prejme z opominom.
-              </p>
-            </div>
-            <span class="racun-posiljanje__neobvezno">Neobvezno</span>
-          </div>
-
-          <div class="racun-posiljanje__prazno" id="korak3-priloge-prazno">
-            <span class="racun-posiljanje__ikona" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
-            </span>
-            <p class="racun-posiljanje__prazno-besedilo">Račun še ni dodan.</p>
-            <div class="racun-posiljanje__gumbi">
-              <button type="button" class="racun-posiljanje__gumb" id="korak3-priloge-slikaj">
-                <span aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                </span>
-                Slikaj
-              </button>
-              <button type="button" class="racun-posiljanje__gumb" id="korak3-priloge-uvozi">
-                <span aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-                </span>
-                Uvozi
-              </button>
-            </div>
-          </div>
-
-          <div class="racun-posiljanje__polno" id="korak3-priloge-polno" hidden>
-            <div class="racun-posiljanje__seznam" id="korak3-priloge-seznam" role="list"></div>
-            <div class="racun-posiljanje__dodaj-se" id="korak3-priloge-dodaj-se">
-              <p class="racun-posiljanje__dodaj-se-naslov">Dodaj še račun</p>
-              <div class="racun-posiljanje__gumbi">
-                <button type="button" class="racun-posiljanje__gumb" id="korak3-priloge-slikaj-se">
-                  <span aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                  </span>
-                  Slikaj
-                </button>
-                <button type="button" class="racun-posiljanje__gumb" id="korak3-priloge-uvozi-se">
-                  <span aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-                  </span>
-                  Uvozi
-                </button>
-              </div>
-            </div>
-            <p class="racun-posiljanje__limit" id="korak3-priloge-limit" hidden>
-              Doseženo je največje število računov (6).
-            </p>
-            <label class="racun-posiljanje__stikalo">
-              <span class="racun-posiljanje__stikalo-besedilo">
-                <span class="racun-posiljanje__stikalo-naslov">Pošlji račun dolžniku</span>
-                <span class="racun-posiljanje__stikalo-pomoc" id="korak3-priloge-stikalo-pomoc">
-                  Račun bo dodan končnemu sporočilu.
-                </span>
-              </span>
-              <input type="checkbox" id="korak3-priloge-stikalo" checked />
-              <span class="racun-posiljanje__stikalo-ui" aria-hidden="true"></span>
-            </label>
-          </div>
-
-          <input
-            type="file"
-            id="korak3-priloge-datoteka"
-            accept="image/*,application/pdf"
-            multiple
-            hidden
-            aria-label="Uvozi račun za pošiljanje"
-          />
-          <input
-            type="file"
-            id="korak3-priloge-fotoaparat"
-            accept="image/*"
-            capture="environment"
-            hidden
-            aria-label="Slikaj račun za pošiljanje"
-          />
-          <p class="korak3-priloge__napaka" id="korak3-priloge-napaka" hidden></p>
-        </section>
-
-        <!-- Glavni zaslon načrta (JS) -->
+        <!-- Glavni zaslon načrta (JS) – priloge so znotraj »Vsebina koraka« -->
         <div id="opomin-nacrt-glavni" class="opomin-nacrt"></div>
 
         <!-- Potrditveni zaslon za en SMS korak (JS) -->
@@ -469,6 +367,8 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
+    <script src="priloge-konstante.js?v=20260808-vk-priloge"></script>
+    <script src="priloge-vsebina.js?v=20260808-vk-priloge"></script>
     <script src="rok-placila-utils.js?v=20260808-opomin-vsebina"></script>
     <script src="rok-placila-sheet.js?v=20260808-opomin-vsebina"></script>
     <script src="obrocno-utils.js?v=20260808-opomin-vsebina"></script>
@@ -478,7 +378,7 @@
     <script src="ton-priporocilo.js?v=20260808-vsebina-koraka"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
     <script src="opomin-nacrt.js?v=20260808-vsebina-koraka"></script>
-    <script src="opomin-nacrt-ui.js?v=20260808-vsebina-nowrap"></script>
-    <script src="app.js?v=20260808-kanali"></script>
+    <script src="opomin-nacrt-ui.js?v=20260808-vk-priloge"></script>
+    <script src="app.js?v=20260808-vk-priloge"></script>
   </body>
 </html>

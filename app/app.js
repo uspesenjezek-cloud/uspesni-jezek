@@ -5445,6 +5445,9 @@ function inicializirajSporociloDolzniku() {
   }
 
   if (gumbPrezriRok) {
+    gumbPrezriRok.innerHTML =
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#111111" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/></svg>';
+    gumbPrezriRok.style.color = "#111111";
     gumbPrezriRok.addEventListener("click", () => prezriPriporocilo("rok"));
   }
 
@@ -5475,6 +5478,9 @@ function inicializirajSporociloDolzniku() {
   }
 
   if (gumbPrezriObrocno) {
+    gumbPrezriObrocno.innerHTML =
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#111111" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/></svg>';
+    gumbPrezriObrocno.style.color = "#111111";
     gumbPrezriObrocno.addEventListener("click", () =>
       prezriPriporocilo("obrocno")
     );
@@ -6134,13 +6140,6 @@ function inicializirajPosiljanje() {
     JSON.stringify(podatkiKorak2)
   );
 
-  const prilogaInfo = document.getElementById("priloga-posiljanje-info");
-  const prilogaBesedilo = document.getElementById("priloga-posiljanje-besedilo");
-  const sporociloKanaliEl = document.getElementById("sporocilo-kanali");
-  const sporociloKanaliSegment = document.getElementById(
-    "sporocilo-kanali-segment"
-  );
-
   function pokaziNapako(besedilo, tehnicniPodatki) {
     if (!napaka) return;
     napaka.textContent = tehnicniPodatki
@@ -6149,294 +6148,22 @@ function inicializirajPosiljanje() {
     napaka.hidden = false;
   }
 
-  function shraniKorak2KanaleVSejo() {
-    sessionStorage.setItem(
-      KLJUC_SEJE_KORAK2_PODATKI,
-      JSON.stringify(podatkiKorak2)
-    );
-  }
-
-  function izrisiSegmentSporocila() {
-    if (!sporociloKanaliSegment) return;
-    sporociloKanaliSegment.innerHTML = "";
-    const raz = razpolozljiviKanaliIzKontaktov(
-      podatkiKorak1.telefonDolznika,
-      podatkiKorak1.emailDolznika
-    );
-    podatkiKorak2.sporociloKanali = pocistiKanaleGledeNaKontakte(
-      podatkiKorak2.sporociloKanali,
-      raz
-    );
-    sporociloKanaliSegment.appendChild(
-      ustvariKanalSegment({
-        kanali: podatkiKorak2.sporociloKanali,
-        razpolozljivi: raz,
-        name: "sporocilo-kanal-seg",
-        ariaLabel: "Kanal glavnega sporočila",
-        onChange: (k) => {
-          podatkiKorak2.sporociloKanali = pocistiKanaleGledeNaKontakte(k, raz);
-          shraniKorak2KanaleVSejo();
-        },
-      })
-    );
-    if (sporociloKanaliEl) {
-      sporociloKanaliEl.hidden = !raz.sms && !raz.email;
+  async function naloziPrilogoZaVsebinoKoraka(datoteka) {
+    const K = window.UJPrilogeKonstante || {};
+    const maxOne = K.MAX_FILE_SIZE_BYTES || 10 * 1024 * 1024;
+    if (datoteka.size > maxOne) {
+      return { napaka: "Datoteka je večja od dovoljene velikosti." };
     }
-  }
-
-  /* Povzetek prilog glede na kanale posameznih datotek. */
-  function posodobiBesediloPrilogeZaKanal() {
-    if (!prilogaInfo || !prilogaBesedilo) return;
-    const imaPrilogo =
-      Array.isArray(podatkiKorak1.racunDatotekePoti) &&
-      podatkiKorak1.racunDatotekePoti.length > 0;
-    const poslji = podatkiKorak1.shouldSendAttachment !== false;
-    if (!imaPrilogo || !poslji) {
-      prilogaInfo.hidden = true;
-      return;
+    if (K.jeMimeDovoljen && !K.jeMimeDovoljen(datoteka.type, datoteka.name)) {
+      return { napaka: "Ta vrsta datoteke ni podprta." };
     }
-    prilogaInfo.hidden = false;
-    uskladiAttachmentKanaleVKorak1(podatkiKorak1);
-    const povzetek = povzetekKanalovPrilog(podatkiKorak1.attachmentKanali);
-    prilogaBesedilo.textContent =
-      povzetek ||
-      "Priloge bodo poslane glede na izbrane kanale pri vsaki datoteki.";
-  }
-
-  /* ---------- Upravljanje prilog računa na koraku 3 ---------- */
-  const NAJVEC_PRILOG_K3 = 6;
-  const NAJVECJA_VELIKOST_PRILOGE_K3_B = 10 * 1024 * 1024;
-  const k3Prazno = document.getElementById("korak3-priloge-prazno");
-  const k3Polno = document.getElementById("korak3-priloge-polno");
-  const k3Seznam = document.getElementById("korak3-priloge-seznam");
-  const k3DodajSe = document.getElementById("korak3-priloge-dodaj-se");
-  const k3Limit = document.getElementById("korak3-priloge-limit");
-  const k3Stikalo = document.getElementById("korak3-priloge-stikalo");
-  const k3StikaloPomoc = document.getElementById("korak3-priloge-stikalo-pomoc");
-  const k3Napaka = document.getElementById("korak3-priloge-napaka");
-  const k3Datoteka = document.getElementById("korak3-priloge-datoteka");
-  const k3Foto = document.getElementById("korak3-priloge-fotoaparat");
-
-  if (!Array.isArray(podatkiKorak1.racunDatotekePoti)) {
-    podatkiKorak1.racunDatotekePoti = [];
-  }
-  if (!Array.isArray(podatkiKorak1.attachmentOrigins)) {
-    podatkiKorak1.attachmentOrigins = podatkiKorak1.racunDatotekePoti.map(
-      () => "manual_attachment"
-    );
-  }
-  while (podatkiKorak1.attachmentOrigins.length < podatkiKorak1.racunDatotekePoti.length) {
-    podatkiKorak1.attachmentOrigins.push("manual_attachment");
-  }
-  if (typeof podatkiKorak1.shouldSendAttachment !== "boolean") {
-    podatkiKorak1.shouldSendAttachment = podatkiKorak1.racunDatotekePoti.length > 0;
-  }
-
-  function pokaziK3Napako(besedilo) {
-    if (!k3Napaka) return;
-    if (!besedilo) {
-      k3Napaka.hidden = true;
-      k3Napaka.textContent = "";
-      return;
-    }
-    k3Napaka.textContent = besedilo;
-    k3Napaka.hidden = false;
-  }
-
-  function shraniKorak1PrilogeVSejo() {
-    sessionStorage.setItem(
-      KLJUC_SEJE_KORAK1_PODATKI,
-      JSON.stringify(podatkiKorak1)
-    );
-    if (typeof shraniKorak1Fingerprint === "function") {
-      try {
-        shraniKorak1Fingerprint(podatkiKorak1);
-      } catch (_e) {
-        /* fingerprint ni nujen za priloge */
-      }
-    }
-    posodobiBesediloPrilogeZaKanal();
-  }
-
-  function besediloIzvoraPrilogeK3(izvor) {
-    return izvor === "ocr"
-      ? "Dodano pri samodejnem vnosu podatkov"
-      : "Dodano samo kot priloga";
-  }
-
-  function izrisiKorak3Priloge() {
-    uskladiAttachmentKanaleVKorak1(podatkiKorak1);
-    const poti = podatkiKorak1.racunDatotekePoti;
-    const origins = podatkiKorak1.attachmentOrigins || [];
-    const kanaliArr = podatkiKorak1.attachmentKanali || [];
-    const raz = razpolozljiviKanaliIzKontaktov(
-      podatkiKorak1.telefonDolznika,
-      podatkiKorak1.emailDolznika
-    );
-    const ima = poti.length > 0;
-    const meja = poti.length >= NAJVEC_PRILOG_K3;
-    if (k3Prazno) k3Prazno.hidden = ima;
-    if (k3Polno) k3Polno.hidden = !ima;
-    if (k3DodajSe) k3DodajSe.hidden = meja;
-    if (k3Limit) k3Limit.hidden = !meja;
-    if (k3Stikalo) k3Stikalo.checked = podatkiKorak1.shouldSendAttachment !== false;
-    if (k3StikaloPomoc) {
-      const vec = poti.length > 1;
-      const poslji = podatkiKorak1.shouldSendAttachment !== false;
-      k3StikaloPomoc.textContent = poslji
-        ? vec
-          ? "Računi bodo dodani končnemu sporočilu."
-          : "Račun bo dodan končnemu sporočilu."
-        : vec
-          ? "Računi ostanejo shranjeni, vendar ne bodo poslani."
-          : "Račun ostane shranjen, vendar ne bo poslan.";
-    }
-    if (!k3Seznam) return;
-    k3Seznam.innerHTML = "";
-    poti.forEach((pot, indeks) => {
-      const potStr = String(pot);
-      const imeBesedilo = imeDatotekeIzPoti(potStr);
-      const jePdf = jePdfDatoteka(potStr);
-      const jeSlika = !jePdf && jeSlikaPoImenu(potStr);
-
-      const vrstica = document.createElement("div");
-      vrstica.className = "racun-posiljanje__kartica";
-      vrstica.setAttribute("role", "listitem");
-
-      const glava = document.createElement("div");
-      glava.className = "racun-posiljanje__kartica-glava";
-
-      const predogledGumb = document.createElement("button");
-      predogledGumb.type = "button";
-      predogledGumb.className =
-        "racun-posiljanje__datoteka racun-posiljanje__datoteka--klik";
-      predogledGumb.setAttribute("aria-label", "Predogled: " + imeBesedilo);
-
-      const thumb = document.createElement("span");
-      thumb.className = "racun-posiljanje__datoteka-ikona";
-      thumb.setAttribute("aria-hidden", "true");
-      if (jeSlika) {
-        thumb.classList.add("racun-posiljanje__datoteka-ikona--thumb");
-        thumb.innerHTML = '<span class="racun-posiljanje__thumb-skeleton"></span>';
-        ustvariSignedUrlPriloge(potStr, 120).then((r) => {
-          if (!r.url || !thumb.isConnected) return;
-          const img = document.createElement("img");
-          img.src = r.url;
-          img.alt = "";
-          img.className = "racun-posiljanje__thumb";
-          thumb.innerHTML = "";
-          thumb.appendChild(img);
-        });
-      } else {
-        thumb.innerHTML = SVG_PRILOGA_PDF;
-      }
-
-      const meta = document.createElement("div");
-      meta.className = "racun-posiljanje__datoteka-meta";
-      const ime = document.createElement("p");
-      ime.className = "racun-posiljanje__datoteka-ime";
-      ime.textContent = imeBesedilo;
-      const izvor = document.createElement("p");
-      izvor.className = "racun-posiljanje__datoteka-izvor";
-      izvor.textContent = besediloIzvoraPrilogeK3(
-        origins[indeks] || "manual_attachment"
-      );
-      meta.appendChild(ime);
-      meta.appendChild(izvor);
-      predogledGumb.appendChild(thumb);
-      predogledGumb.appendChild(meta);
-      predogledGumb.addEventListener("click", () => {
-        if (jePdf) odpriPrilogoK3(potStr);
-        else odpriSlikoVLightboxuK3(potStr);
-      });
-
-      const odstrani = document.createElement("button");
-      odstrani.type = "button";
-      odstrani.className = "racun-posiljanje__akcija racun-posiljanje__akcija--odstrani";
-      odstrani.setAttribute("aria-label", "Odstrani " + imeBesedilo);
-      odstrani.textContent = "Odstrani";
-      odstrani.addEventListener("click", () => {
-        podatkiKorak1.racunDatotekePoti.splice(indeks, 1);
-        if (Array.isArray(podatkiKorak1.attachmentOrigins)) {
-          podatkiKorak1.attachmentOrigins.splice(indeks, 1);
-        }
-        if (Array.isArray(podatkiKorak1.attachmentKanali)) {
-          podatkiKorak1.attachmentKanali.splice(indeks, 1);
-        }
-        if (podatkiKorak1.racunDatotekePoti.length === 0) {
-          podatkiKorak1.shouldSendAttachment = true;
-        }
-        pokaziK3Napako("");
-        shraniKorak1PrilogeVSejo();
-        izrisiKorak3Priloge();
-      });
-
-      glava.appendChild(predogledGumb);
-      glava.appendChild(odstrani);
-      vrstica.appendChild(glava);
-
-      const kanaliPriloge = pocistiKanaleGledeNaKontakte(
-        kanaliArr[indeks] || podatkiKorak1.privzetiKanali,
-        raz
-      );
-      podatkiKorak1.attachmentKanali[indeks] = kanaliPriloge;
-      vrstica.appendChild(
-        ustvariKanalSegment({
-          kanali: kanaliPriloge,
-          razpolozljivi: raz,
-          name: "priloga-kanal-" + indeks,
-          ariaLabel: "Kanal za " + imeBesedilo,
-          onChange: (k) => {
-            podatkiKorak1.attachmentKanali[indeks] =
-              pocistiKanaleGledeNaKontakte(k, raz);
-            shraniKorak1PrilogeVSejo();
-            posodobiBesediloPrilogeZaKanal();
-          },
-        })
-      );
-
-      k3Seznam.appendChild(vrstica);
-    });
-    posodobiBesediloPrilogeZaKanal();
-  }
-
-  async function odpriPrilogoK3(pot) {
-    const novZavihek = window.open("", "_blank");
-    const rezultat = await ustvariSignedUrlPriloge(pot, 60);
-    if (rezultat.napaka || !rezultat.url) {
-      if (novZavihek) novZavihek.close();
-      pokaziK3Napako("Priloge ni bilo mogoče odpreti.");
-      return;
-    }
-    if (novZavihek) novZavihek.location.href = rezultat.url;
-    else window.location.href = rezultat.url;
-  }
-
-  async function odpriSlikoVLightboxuK3(pot) {
-    const lb = document.getElementById("lightbox");
-    const lbSlika = document.getElementById("lightbox-slika");
-    if (!lb || !lbSlika) {
-      odpriPrilogoK3(pot);
-      return;
-    }
-    const rezultat = await ustvariSignedUrlPriloge(pot, 60);
-    if (rezultat.napaka || !rezultat.url) {
-      pokaziK3Napako("Priloge ni bilo mogoče odpreti.");
-      return;
-    }
-    lbSlika.src = rezultat.url;
-    lb.hidden = false;
-  }
-
-  async function nalozitEnoPrilogoK3(datoteka, obrtnikId) {
-    if (datoteka.size > NAJVECJA_VELIKOST_PRILOGE_K3_B) {
-      return {
-        napaka: 'Datoteka "' + datoteka.name + '" je prevelika (največ 10 MB).',
-      };
-    }
+    const {
+      data: { user },
+    } = await supabaseKlient.auth.getUser();
+    if (!user) return { napaka: "Za dodajanje prilog morate biti prijavljeni." };
     const varnoIme = datoteka.name.replace(/[^a-zA-Z0-9.\-]/g, "_");
     const pot =
-      obrtnikId +
+      user.id +
       "/" +
       Date.now() +
       "-" +
@@ -6450,118 +6177,8 @@ function inicializirajPosiljanje() {
     return { pot: data.path };
   }
 
-  async function dodajPrilogeK3(datoteke) {
-    const seznam = Array.from(datoteke || []);
-    if (!seznam.length) return;
-    pokaziK3Napako("");
-    const preostalo = NAJVEC_PRILOG_K3 - podatkiKorak1.racunDatotekePoti.length;
-    if (preostalo <= 0) {
-      pokaziK3Napako("Doseženo je največje število računov (6).");
-      return;
-    }
-    const zaNalaganje = seznam.slice(0, preostalo);
-    const {
-      data: { user },
-    } = await supabaseKlient.auth.getUser();
-    if (!user) {
-      pokaziK3Napako("Za dodajanje prilog morate biti prijavljeni.");
-      return;
-    }
-    for (const datoteka of zaNalaganje) {
-      const rezultat = await nalozitEnoPrilogoK3(datoteka, user.id);
-      if (rezultat.napaka) {
-        pokaziK3Napako(rezultat.napaka);
-        break;
-      }
-      podatkiKorak1.racunDatotekePoti.push(rezultat.pot);
-      if (!Array.isArray(podatkiKorak1.attachmentOrigins)) {
-        podatkiKorak1.attachmentOrigins = [];
-      }
-      podatkiKorak1.attachmentOrigins.push("manual_attachment");
-      if (!Array.isArray(podatkiKorak1.attachmentKanali)) {
-        podatkiKorak1.attachmentKanali = [];
-      }
-      const raz = razpolozljiviKanaliIzKontaktov(
-        podatkiKorak1.telefonDolznika,
-        podatkiKorak1.emailDolznika
-      );
-      podatkiKorak1.attachmentKanali.push(
-        kopirajKanale(
-          zagotoviVsajEnKanal(
-            podatkiKorak1.privzetiKanali ||
-              privzetiKanaliIzKontaktov(
-                podatkiKorak1.telefonDolznika,
-                podatkiKorak1.emailDolznika
-              ),
-            raz
-          )
-        )
-      );
-      podatkiKorak1.shouldSendAttachment = true;
-    }
-    shraniKorak1PrilogeVSejo();
-    izrisiKorak3Priloge();
-  }
-
-  function poveziGumbK3(gumbId, inputEl) {
-    const gumb = document.getElementById(gumbId);
-    if (!gumb || !inputEl) return;
-    gumb.addEventListener("click", () => inputEl.click());
-  }
-
-  poveziGumbK3("korak3-priloge-slikaj", k3Foto);
-  poveziGumbK3("korak3-priloge-slikaj-se", k3Foto);
-  poveziGumbK3("korak3-priloge-uvozi", k3Datoteka);
-  poveziGumbK3("korak3-priloge-uvozi-se", k3Datoteka);
-
-  if (k3Datoteka) {
-    k3Datoteka.addEventListener("change", () => {
-      dodajPrilogeK3(k3Datoteka.files).finally(() => {
-        k3Datoteka.value = "";
-      });
-    });
-  }
-  if (k3Foto) {
-    k3Foto.addEventListener("change", () => {
-      dodajPrilogeK3(k3Foto.files).finally(() => {
-        k3Foto.value = "";
-      });
-    });
-  }
-  if (k3Stikalo) {
-    k3Stikalo.addEventListener("change", () => {
-      podatkiKorak1.shouldSendAttachment = k3Stikalo.checked;
-      shraniKorak1PrilogeVSejo();
-      izrisiKorak3Priloge();
-    });
-  }
-
-  izrisiSegmentSporocila();
-  izrisiKorak3Priloge();
-  posodobiBesediloPrilogeZaKanal();
-
-  const lightboxK3 = document.getElementById("lightbox");
-  const lightboxSlikaK3 = document.getElementById("lightbox-slika");
-  const lightboxZapriK3 = document.getElementById("lightbox-zapri");
-  function zapriLightboxK3() {
-    if (!lightboxK3) return;
-    lightboxK3.hidden = true;
-    if (lightboxSlikaK3) lightboxSlikaK3.src = "";
-  }
-  if (lightboxZapriK3) lightboxZapriK3.addEventListener("click", zapriLightboxK3);
-  if (lightboxK3) {
-    lightboxK3.addEventListener("click", (e) => {
-      if (e.target === lightboxK3) zapriLightboxK3();
-    });
-  }
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && lightboxK3 && !lightboxK3.hidden) zapriLightboxK3();
-  });
-
   if (!window.UJOpominNacrtUI || !window.UJOpominNacrt) {
-    pokaziNapako(
-      "Načrt opominjanja se ni naložil. Osvežite stran (Ctrl+F5)."
-    );
+    pokaziNapako("Načrt opominjanja se ni naložil. Osvežite stran (Ctrl+F5).");
     return;
   }
 
@@ -6612,6 +6229,14 @@ function inicializirajPosiljanje() {
     pokaziNapako,
     aktivirajNacrt,
     potrdiVprasanje,
+    naloziPrilogo: naloziPrilogoZaVsebinoKoraka,
+    onPrilogeSpremenjene: function (k1) {
+      Object.assign(podatkiKorak1, k1);
+      sessionStorage.setItem(
+        KLJUC_SEJE_KORAK1_PODATKI,
+        JSON.stringify(podatkiKorak1)
+      );
+    },
   });
 }
 

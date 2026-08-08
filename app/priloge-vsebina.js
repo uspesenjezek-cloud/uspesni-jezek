@@ -1,0 +1,228 @@
+/**
+ * Pomožne funkcije za priloge v »Vsebina koraka« (brez DOM).
+ * Uporablja jih UI in testi.
+ */
+(function (root) {
+  "use strict";
+
+  var K = root.UJPrilogeKonstante || {};
+
+  function novId() {
+    return (
+      "att-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.random().toString(36).slice(2, 8)
+    );
+  }
+
+  function formatVelikost(bajti) {
+    if (!Number.isFinite(bajti) || bajti < 0) return "";
+    if (bajti < 1024) return bajti + " B";
+    if (bajti < 1024 * 1024) return Math.round(bajti / 1024) + " KB";
+    return (bajti / (1024 * 1024)).toFixed(1).replace(".", ",") + " MB";
+  }
+
+  function privzetiKanaliZaNovoPrilogo(opts) {
+    opts = opts || {};
+    var imaTel = Boolean(opts.imaTelefon);
+    var imaEmail = Boolean(opts.imaEmail);
+    var korakSms = opts.korakSms !== false;
+    var korakEmail = opts.korakEmail !== false;
+    var sms = imaTel && korakSms;
+    var email = imaEmail && korakEmail;
+    if (!sms && !email) {
+      if (imaTel) sms = true;
+      else if (imaEmail) email = true;
+    }
+    return { sms: sms, email: email };
+  }
+
+  function stevecReady(priloge) {
+    return (priloge || []).filter(function (p) {
+      return p && p.status === "ready";
+    }).length;
+  }
+
+  function stevecNalaga(priloge) {
+    return (priloge || []).filter(function (p) {
+      return (
+        p &&
+        (p.status === "uploading" || p.status === "processing")
+      );
+    }).length;
+  }
+
+  function visinaSeznama(steviloVrstic) {
+    if (steviloVrstic <= 0) return 0;
+    if (steviloVrstic === 1) return 68;
+    return 102;
+  }
+
+  function imaSmsKanal(priloge) {
+    return (priloge || []).some(function (p) {
+      return (
+        p &&
+        p.status === "ready" &&
+        p.deliveryChannels &&
+        p.deliveryChannels.sms
+      );
+    });
+  }
+
+  /** Ena kratka varna povezava za vse SMS-račune (predogled / stub). */
+  function smsDodatekPovezave(priloge, zeton) {
+    if (!imaSmsKanal(priloge)) return "";
+    var t = zeton || "predogled";
+    return (
+      "\n\nRačune lahko varno pregledate tukaj: https://uj.link/r/" + t
+    );
+  }
+
+  function sestaviSmsZPrilogami(osnova, priloge, zeton) {
+    var base = String(osnova || "");
+    var dodatek = smsDodatekPovezave(priloge, zeton);
+    // Odstrani morebitni stari uj.link dodatek
+    base = base.replace(
+      /\n\nRačune lahko varno pregledate tukaj: https:\/\/uj\.link\/r\/\S+/g,
+      ""
+    );
+    return base + dodatek;
+  }
+
+  function validirajDatoteko(file, obstojeci) {
+    var maxN = K.MAX_ATTACHMENTS_PER_STEP || 10;
+    var maxOne = K.MAX_FILE_SIZE_BYTES || 10 * 1024 * 1024;
+    var maxTot = K.MAX_TOTAL_ATTACHMENT_BYTES || 25 * 1024 * 1024;
+    var seznam = obstojeci || [];
+    if (seznam.length >= maxN) {
+      return { napaka: "Dodate lahko največ " + maxN + " računov." };
+    }
+    if (!file) return { napaka: "Datoteke ni bilo mogoče prebrati." };
+    if (
+      K.jeMimeDovoljen &&
+      !K.jeMimeDovoljen(file.type, file.name)
+    ) {
+      return { napaka: "Ta vrsta datoteke ni podprta." };
+    }
+    if (file.size > maxOne) {
+      return { napaka: "Datoteka je večja od dovoljene velikosti." };
+    }
+    var skupaj = seznam.reduce(function (s, p) {
+      return s + (Number(p.sizeBytes) || 0);
+    }, 0);
+    if (skupaj + file.size > maxTot) {
+      return { napaka: "Datoteka je večja od dovoljene velikosti." };
+    }
+    return { ok: true };
+  }
+
+  function prilogaImaVeljavenKanal(p, imaTel, imaEmail) {
+    if (!p || p.status !== "ready") return true;
+    var c = p.deliveryChannels || {};
+    var sms = Boolean(c.sms) && imaTel;
+    var email = Boolean(c.email) && imaEmail;
+    return sms || email;
+  }
+
+  function vsePrilogeVeljavneZaPotrditev(priloge, imaTel, imaEmail) {
+    var list = priloge || [];
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p.status === "uploading" || p.status === "processing") {
+        return { ok: false, razlog: "Počakajte, da se vsi računi naložijo." };
+      }
+      if (p.status === "error") {
+        return {
+          ok: false,
+          razlog: "Odstranite ali ponovno naložite neuspele račune.",
+        };
+      }
+      if (p.status === "ready" && !prilogaImaVeljavenKanal(p, imaTel, imaEmail)) {
+        return {
+          ok: false,
+          razlog: "Vsak račun mora imeti vsaj en kanal (SMS ali e-pošta).",
+        };
+      }
+    }
+    return { ok: true };
+  }
+
+  function izSejeVPriloge(k1) {
+    var poti = (k1 && k1.racunDatotekePoti) || [];
+    var origins = (k1 && k1.attachmentOrigins) || [];
+    var kanali = (k1 && k1.attachmentKanali) || [];
+    var meta = (k1 && k1.attachmentMeta) || [];
+    return poti.map(function (pot, i) {
+      var m = meta[i] || {};
+      var k = kanali[i] || { sms: true, email: true };
+      return {
+        id: m.id || novId(),
+        originalFileName:
+          m.originalFileName ||
+          String(pot).split("/").pop() ||
+          "Račun",
+        mimeType: m.mimeType || "",
+        sizeBytes: m.sizeBytes != null ? m.sizeBytes : null,
+        storagePath: String(pot),
+        status: "ready",
+        deliveryChannels: {
+          sms: Boolean(k.sms),
+          email: Boolean(k.email),
+        },
+        origin: origins[i] || "manual_attachment",
+        createdAt: m.createdAt || null,
+        updatedAt: m.updatedAt || null,
+        progress: 100,
+      };
+    });
+  }
+
+  function prilogeVSejo(priloge) {
+    var ready = (priloge || []).filter(function (p) {
+      return p && p.status === "ready" && p.storagePath;
+    });
+    return {
+      racunDatotekePoti: ready.map(function (p) {
+        return p.storagePath;
+      }),
+      attachmentOrigins: ready.map(function (p) {
+        return p.origin || "manual_attachment";
+      }),
+      attachmentKanali: ready.map(function (p) {
+        return {
+          sms: Boolean(p.deliveryChannels && p.deliveryChannels.sms),
+          email: Boolean(p.deliveryChannels && p.deliveryChannels.email),
+        };
+      }),
+      attachmentMeta: ready.map(function (p) {
+        return {
+          id: p.id,
+          originalFileName: p.originalFileName,
+          mimeType: p.mimeType,
+          sizeBytes: p.sizeBytes,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        };
+      }),
+      shouldSendAttachment: ready.length > 0,
+    };
+  }
+
+  root.UJPrilogeVsebina = {
+    novId: novId,
+    formatVelikost: formatVelikost,
+    privzetiKanaliZaNovoPrilogo: privzetiKanaliZaNovoPrilogo,
+    stevecReady: stevecReady,
+    stevecNalaga: stevecNalaga,
+    visinaSeznama: visinaSeznama,
+    imaSmsKanal: imaSmsKanal,
+    smsDodatekPovezave: smsDodatekPovezave,
+    sestaviSmsZPrilogami: sestaviSmsZPrilogami,
+    validirajDatoteko: validirajDatoteko,
+    prilogaImaVeljavenKanal: prilogaImaVeljavenKanal,
+    vsePrilogeVeljavneZaPotrditev: vsePrilogeVeljavneZaPotrditev,
+    izSejeVPriloge: izSejeVPriloge,
+    prilogeVSejo: prilogeVSejo,
+  };
+})(typeof window !== "undefined" ? window : globalThis);
