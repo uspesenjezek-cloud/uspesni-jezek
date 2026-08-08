@@ -6,7 +6,7 @@
 
   var KLJUC_PRIVZETIH = "neplacilo-rok-placila-privzeti";
 
-  /** Privzeti koledarski dnevi od pošiljanja po številki predloga 1–9. */
+  /** Privzeti koledarski dnevi od pošiljanja po številki predloga 1–9 (stari način). */
   var PRIVZETI_DNEVI = {
     1: 3,
     2: 5,
@@ -18,6 +18,81 @@
     8: 45,
     9: 60,
   };
+
+  /**
+   * Privzeti dodatni rok po tonu sporočila (glavni način).
+   * Zelo prijazen = daljši rok … Strog = najkrajši.
+   */
+  var PRIVZETI_DNEVI_PO_TONU = {
+    very_friendly: 21,
+    friendly: 14,
+    neutral: 10,
+    firm: 7,
+    strict: 3,
+  };
+
+  /**
+   * Predlog obročnega načrta po tonu (hook za poznejši widget).
+   * Ne vsebuje UI – samo podatki.
+   */
+  var PRIVZETI_OBROCNI_PO_TONU = {
+    very_friendly: { installments: 6, firstDelayDays: 14, gapDays: 30 },
+    friendly: { installments: 4, firstDelayDays: 10, gapDays: 21 },
+    neutral: { installments: 3, firstDelayDays: 7, gapDays: 21 },
+    firm: { installments: 2, firstDelayDays: 5, gapDays: 14 },
+    strict: { installments: 2, firstDelayDays: 3, gapDays: 7 },
+  };
+
+  function dneviZaTon(toneId) {
+    var d = PRIVZETI_DNEVI_PO_TONU[toneId];
+    return Number.isFinite(d) ? d : PRIVZETI_DNEVI_PO_TONU.neutral;
+  }
+
+  function predlogObrocnegaZaTon(toneId) {
+    var p = PRIVZETI_OBROCNI_PO_TONU[toneId] || PRIVZETI_OBROCNI_PO_TONU.neutral;
+    return {
+      toneId: toneId || "neutral",
+      installments: p.installments,
+      firstDelayDays: p.firstDelayDays,
+      gapDays: p.gapDays,
+    };
+  }
+
+  function sestaviBesediloObrocnegaPredloga(toneId, jezik) {
+    var p = predlogObrocnegaZaTon(toneId);
+    var j = jezik || "de";
+    if (j === "sl") {
+      return (
+        "Možno je obročno plačilo: " +
+        p.installments +
+        " obrokov, prvi obrok čez " +
+        p.firstDelayDays +
+        " dni (razmik " +
+        p.gapDays +
+        " dni)."
+      );
+    }
+    if (j === "en") {
+      return (
+        "Installment payment possible: " +
+        p.installments +
+        " installments, first due in " +
+        p.firstDelayDays +
+        " days (every " +
+        p.gapDays +
+        " days)."
+      );
+    }
+    return (
+      "Ratenzahlung möglich: " +
+      p.installments +
+      " Raten, erste Rate in " +
+      p.firstDelayDays +
+      " Tagen (Abstand " +
+      p.gapDays +
+      " Tage)."
+    );
+  }
 
   function klonPrivzetih() {
     var o = {};
@@ -219,6 +294,11 @@
   var api = {
     KLJUC_PRIVZETIH: KLJUC_PRIVZETIH,
     PRIVZETI_DNEVI: PRIVZETI_DNEVI,
+    PRIVZETI_DNEVI_PO_TONU: PRIVZETI_DNEVI_PO_TONU,
+    PRIVZETI_OBROCNI_PO_TONU: PRIVZETI_OBROCNI_PO_TONU,
+    dneviZaTon: dneviZaTon,
+    predlogObrocnegaZaTon: predlogObrocnegaZaTon,
+    sestaviBesediloObrocnegaPredloga: sestaviBesediloObrocnegaPredloga,
     klonPrivzetih: klonPrivzetih,
     formatLocalYYYYMMDD: formatLocalYYYYMMDD,
     parseLocalYYYYMMDD: parseLocalYYYYMMDD,

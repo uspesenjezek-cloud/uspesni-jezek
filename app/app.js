@@ -1845,12 +1845,64 @@ function inicializirajSporociloDolzniku() {
   inicializirajIzbrisOsnutka();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
-  const vgrajeniPredlogi = sestaviPredlogeSporocil(podatkiKorak1);
+  /* Ton sporočila: priporočilo + izbira (widget Faza C; osnutek Faza D). */
+  let jezikPredlog = "de";
+  let tonPriporociloRezultat = null;
+  let toneState = {
+    recommendedToneId: "friendly",
+    selectedToneId: "friendly",
+    appliedToneId: null,
+    isOverridden: false,
+    reasonCodes: [],
+    reasonText: "",
+    reasonDetailText: "",
+    amountCentsSnapshot: null,
+    amountLabel: "",
+    originalDueDateSnapshot: null,
+    evaluationDate: null,
+    overdueDays: null,
+    timingLabel: null,
+    calculatedAt: null,
+  };
+  if (window.UJTonPriporocilo) {
+    tonPriporociloRezultat = window.UJTonPriporocilo.getRecommendedTone({
+      totalDebtCents: window.UJTonPriporocilo.eurosToCents(podatkiKorak1.znesek),
+      originalDueDate: podatkiKorak1.datumZapadlosti || null,
+      evaluationDate: window.UJTonPriporocilo.danesYYYYMMDD(),
+    });
+    toneState = window.UJTonPriporocilo.applyRecommendationToState(
+      null,
+      tonPriporociloRezultat
+    );
+  }
+  let izbranTonId = toneState.selectedToneId || "friendly";
+  /* Zgodnja obnova tona iz osnutka (priporočilo sveže, ročna izbira ohranjena). */
+  try {
+    const osnutekTonJson = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
+    if (osnutekTonJson && window.UJTonPriporocilo && tonPriporociloRezultat) {
+      const osnutekTon = JSON.parse(osnutekTonJson);
+      if (osnutekTon && osnutekTon.toneRecommendation) {
+        const prev = osnutekTon.toneRecommendation;
+        toneState = window.UJTonPriporocilo.applyRecommendationToState(
+          prev,
+          tonPriporociloRezultat
+        );
+        if (prev.appliedToneId) toneState.appliedToneId = prev.appliedToneId;
+        izbranTonId = toneState.selectedToneId || izbranTonId;
+      }
+    }
+  } catch (_e) {
+    /* ignoriraj pokvarjen osnutek tona */
+  }
+  const vgrajeniPredlogi = window.UJTonPredloge
+    ? window.UJTonPredloge.sestaviSistemskePredloge(podatkiKorak1, jezikPredlog)
+    : sestaviPredlogeSporocil(podatkiKorak1);
   let mojiPredlogi = [];
-  let predlogi = [...vgrajeniPredlogi];
+  let predlogi = [];
   let kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA;
   let kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
   let nastavitvePredlogov = { stevilke: {}, skritiIds: [] };
+  const NAJVEC_STEVILK_V_TONU = 6;
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
   const pomocPolja = document.getElementById("sporocilo-pomoc");
@@ -1879,6 +1931,8 @@ function inicializirajSporociloDolzniku() {
   /* true = sporočilo sledi predlogi s številko 1 (privzeta izbira). */
   let slediPrivzetiStevilki1 = true;
   let obnovljenOsnutekSporocila = false;
+  let sporociloRocnoUrejeno = false;
+  let zadnjeUporabljenoBesediloPredloge = "";
   const dodatki = { rok: false, obrocno: false, trr: false };
   const dodatekBesedila = { rok: "", obrocno: "", trr: "" };
   let casovnikOsnutka = null;
@@ -1973,6 +2027,8 @@ function inicializirajSporociloDolzniku() {
         dodatki: { ...dodatki },
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
+        toneRecommendation: { ...toneState },
+        sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         potrjen: zePotrjen,
       })
     );
@@ -2005,6 +2061,11 @@ function inicializirajSporociloDolzniku() {
           stilIkone: "",
           besedilo: String(p.besedilo).slice(0, NAJVEC_ZNAKOV),
           jeMoj: true,
+          toneId: p.toneId || null,
+          language: p.language || jezikPredlog,
+          source: "user",
+          order: Number(p.order) || null,
+          isRecommended: false,
         }));
     } catch (_napaka) {
       return [];
@@ -2017,6 +2078,10 @@ function inicializirajSporociloDolzniku() {
       naslov: p.naslov,
       ikona: p.ikona || "message-circle",
       besedilo: p.besedilo,
+      toneId: p.toneId || izbranTonId,
+      language: p.language || jezikPredlog,
+      order: p.order || null,
+      source: "user",
     }));
     localStorage.setItem(kljucMojihPredlogov, JSON.stringify(zaShraniti));
   }
@@ -2050,9 +2115,12 @@ function inicializirajSporociloDolzniku() {
     predlogiObvestilo.hidden = !besedilo;
   }
 
-  function najdiProstoStevilko(zasedene, zeliOd) {
-    const zacetek = Math.max(1, Math.min(9, Number(zeliOd) || 1));
-    for (let n = zacetek; n <= 9; n++) {
+  function najdiProstoStevilko(zasedene, zeliOd, maxStevilk) {
+    const maxN =
+      maxStevilk ||
+      (window.UJTonPredloge ? NAJVEC_STEVILK_V_TONU : 9);
+    const zacetek = Math.max(1, Math.min(maxN, Number(zeliOd) || 1));
+    for (let n = zacetek; n <= maxN; n++) {
       if (!zasedene.has(n)) return n;
     }
     for (let n = 1; n < zacetek; n++) {
@@ -2061,46 +2129,94 @@ function inicializirajSporociloDolzniku() {
     return null;
   }
 
+  function posodobiNaslovPredlogZaTon() {
+    const naslovEl = document.getElementById("predloge-naslov");
+    if (!naslovEl) return;
+    if (window.UJTonPredloge) {
+      naslovEl.textContent = window.UJTonPredloge.naslovRazdelkaZaTon(izbranTonId);
+    } else {
+      naslovEl.textContent = "Izberite predlogo";
+    }
+  }
+
   function sestaviSeznamPredlogov() {
     const skriti = new Set(nastavitvePredlogov.skritiIds || []);
-    predlogi = [...mojiPredlogi, ...vgrajeniPredlogi].filter((p) => !skriti.has(p.id));
-    const zasedene = new Set();
+    const vsi = [...mojiPredlogi, ...vgrajeniPredlogi].filter((p) => !skriti.has(p.id));
 
-    predlogi.forEach((predlog, indeks) => {
-      predlog._indeks = indeks;
-      const stevilka = Number(nastavitvePredlogov.stevilke[predlog.id]);
-      if (
-        Number.isInteger(stevilka) &&
-        stevilka >= 1 &&
-        stevilka <= 9 &&
-        !zasedene.has(stevilka)
-      ) {
-        predlog.stevilka = stevilka;
-        zasedene.add(stevilka);
-      } else {
-        predlog.stevilka = null;
-      }
-    });
+    if (window.UJTonPredloge) {
+      const filtrirani = window.UJTonPredloge.filtrirajPredloge(
+        vsi,
+        izbranTonId,
+        jezikPredlog
+      );
+      predlogi = window.UJTonPredloge.sortirajPredlogeZaTon(filtrirani);
+      // Uporabniške / stare predloge: dopolni stevilko 1–6 znotraj tona.
+      const zasedene = new Set(
+        predlogi.map((p) => Number(p.stevilka)).filter((n) => n >= 1 && n <= NAJVEC_STEVILK_V_TONU)
+      );
+      predlogi.forEach((predlog, indeks) => {
+        if (predlog.source === "system" && predlog.order) {
+          predlog.stevilka = Number(predlog.order);
+          nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
+          return;
+        }
+        const zelena = Number(nastavitvePredlogov.stevilke[predlog.id]);
+        if (
+          Number.isInteger(zelena) &&
+          zelena >= 1 &&
+          zelena <= NAJVEC_STEVILK_V_TONU &&
+          !zasedene.has(zelena)
+        ) {
+          predlog.stevilka = zelena;
+          zasedene.add(zelena);
+        } else {
+          const prosta = najdiProstoStevilko(zasedene, indeks + 1);
+          predlog.stevilka = prosta != null ? prosta : indeks + 1;
+          nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
+          if (prosta != null) zasedene.add(prosta);
+        }
+      });
+      predlogi.sort((a, b) => {
+        if (Boolean(a.isRecommended) !== Boolean(b.isRecommended)) {
+          return a.isRecommended ? -1 : 1;
+        }
+        return (a.stevilka || 99) - (b.stevilka || 99);
+      });
+    } else {
+      // Fallback brez ton-modula (stari način 1–9).
+      predlogi = vsi;
+      const zasedene = new Set();
+      predlogi.forEach((predlog, indeks) => {
+        predlog._indeks = indeks;
+        const stevilka = Number(nastavitvePredlogov.stevilke[predlog.id]);
+        if (
+          Number.isInteger(stevilka) &&
+          stevilka >= 1 &&
+          stevilka <= 9 &&
+          !zasedene.has(stevilka)
+        ) {
+          predlog.stevilka = stevilka;
+          zasedene.add(stevilka);
+        } else {
+          predlog.stevilka = null;
+        }
+      });
+      predlogi.forEach((predlog) => {
+        if (predlog.stevilka != null) return;
+        const zelena = Number(nastavitvePredlogov.stevilke[predlog.id]);
+        const od = Number.isInteger(zelena) && zelena >= 1 && zelena <= 9 ? zelena : 1;
+        const prosta = najdiProstoStevilko(zasedene, od, 9);
+        predlog.stevilka = prosta != null ? prosta : 9;
+        nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
+        if (prosta != null) zasedene.add(prosta);
+      });
+      predlogi.sort((a, b) => {
+        if (a.stevilka !== b.stevilka) return a.stevilka - b.stevilka;
+        return a._indeks - b._indeks;
+      });
+    }
 
-    predlogi.forEach((predlog) => {
-      if (predlog.stevilka != null) return;
-      const zelena = Number(nastavitvePredlogov.stevilke[predlog.id]);
-      const od = Number.isInteger(zelena) && zelena >= 1 && zelena <= 9 ? zelena : 1;
-      const prosta = najdiProstoStevilko(zasedene, od);
-      // Če so vse številke 1–9 zasedene (več kot 9 predlogov), pusti želeno / 9.
-      predlog.stevilka = prosta != null ? prosta : Number.isInteger(zelena) ? zelena : 9;
-      nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
-      if (prosta != null) zasedene.add(prosta);
-    });
-
-    // Počisti nastavitve za predloge, ki jih ni več.
-    Object.keys(nastavitvePredlogov.stevilke).forEach((id) => {
-      if (!predlogi.some((p) => p.id === id)) delete nastavitvePredlogov.stevilke[id];
-    });
-    predlogi.sort((a, b) => {
-      if (a.stevilka !== b.stevilka) return a.stevilka - b.stevilka;
-      return a._indeks - b._indeks;
-    });
+    posodobiNaslovPredlogZaTon();
 
     if (oznakaStevila) {
       const n = predlogi.length;
@@ -2169,7 +2285,8 @@ function inicializirajSporociloDolzniku() {
 
   function nastaviStevilkoPredloga(predlogId, novaStevilka) {
     const id = String(predlogId);
-    const nova = Math.max(1, Math.min(9, Number(novaStevilka) || 1));
+    const maxN = window.UJTonPredloge ? NAJVEC_STEVILK_V_TONU : 9;
+    const nova = Math.max(1, Math.min(maxN, Number(novaStevilka) || 1));
     const konflikt = predlogi.find(
       (p) => String(p.id) !== id && Number(nastavitvePredlogov.stevilke[p.id]) === nova
     );
@@ -2266,7 +2383,23 @@ function inicializirajSporociloDolzniku() {
     shraniOsnutekLokalno();
   }
 
-  function uporabiPredlog(predlog) {
+  async function uporabiPredlog(predlog, opcije) {
+    const tiho = Boolean(opcije && opcije.tiho);
+    if (
+      !tiho &&
+      sporociloRocnoUrejeno &&
+      besediloPolje.value.trim().length > 0
+    ) {
+      const potrjeno = await potrdiVprasanje({
+        naslov: "Zamenjam besedilo?",
+        opis: "Uporaba predloge bo zamenjala trenutno urejeno besedilo. Želite nadaljevati?",
+        potrdiBesedilo: "Uporabi predlogo",
+        prekliciBesedilo: "Prekliči",
+        stil: "primary",
+      });
+      if (!potrjeno) return;
+    }
+
     const UJ = window.UJRokPlacila;
     const rokAktivno = Boolean(paymentDeadline && paymentDeadline.enabled);
     const mode = rokAktivno ? paymentDeadline.mode : null;
@@ -2316,6 +2449,15 @@ function inicializirajSporociloDolzniku() {
     } else {
       paymentDeadline = null;
     }
+
+    toneState.appliedToneId = predlog.toneId || izbranTonId;
+    if (predlog.toneId && predlog.toneId !== izbranTonId) {
+      nastaviIzbranTon(predlog.toneId, false);
+    }
+    zadnjeUporabljenoBesediloPredloge = besediloPolje.value;
+    sporociloRocnoUrejeno = false;
+    posodobiObvestiloNeuporabljenegaTona();
+    posodobiNamigeTonaDodatkov();
 
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
@@ -2512,6 +2654,11 @@ function inicializirajSporociloDolzniku() {
         stilIkone: "",
         besedilo,
         jeMoj: true,
+        toneId: odprtPredlog.toneId || izbranTonId,
+        language: jezikPredlog,
+        source: "user",
+        isRecommended: false,
+        order: Number(modalIzbranaStevilka) || null,
       };
       mojiPredlogi = [novPredlog, ...mojiPredlogi];
       shraniMojePredlogeVLocalStorage();
@@ -2523,7 +2670,15 @@ function inicializirajSporociloDolzniku() {
 
     const idMojega = String(odprtPredlog.id);
     mojiPredlogi = mojiPredlogi.map((p) =>
-      p.id === idMojega ? { ...p, naslov, besedilo } : p
+      p.id === idMojega
+        ? {
+            ...p,
+            naslov,
+            besedilo,
+            toneId: p.toneId || izbranTonId,
+            language: p.language || jezikPredlog,
+          }
+        : p
     );
     shraniMojePredlogeVLocalStorage();
     sestaviSeznamPredlogov();
@@ -2602,6 +2757,20 @@ function inicializirajSporociloDolzniku() {
     zapriVseStevilkeIzbire();
     seznam.innerHTML = "";
 
+    if (!predlogi.length) {
+      const prazno = document.createElement("p");
+      prazno.className = "korak2-sklop__opis";
+      prazno.setAttribute("role", "status");
+      prazno.textContent = window.UJTonPredloge
+        ? "Za ta ton in jezik trenutno ni predlog. Dodajte svojo predlogo."
+        : "Ni predlog.";
+      seznam.appendChild(prazno);
+      requestAnimationFrame(posodobiDrsnik);
+      return;
+    }
+
+    const maxStevilk = window.UJTonPredloge ? NAJVEC_STEVILK_V_TONU : 9;
+
     predlogi.forEach((predlog, indeks) => {
       const kartica = document.createElement("article");
       kartica.className = "predlog-kartica";
@@ -2615,15 +2784,16 @@ function inicializirajSporociloDolzniku() {
       }
 
       const stevilka = predlog.stevilka || 1;
-      const jePrioriteta = Number(stevilka) === 1;
+      const jePriporocena = Boolean(predlog.isRecommended);
+      const jePrioriteta = jePriporocena || Number(stevilka) === 1;
       const stilStevilke = jePrioriteta
         ? " predlog-kartica__stevilka--prioriteta"
         : indeks % 2 === 1
           ? " predlog-kartica__stevilka--alt"
           : "";
-      const oznakaStevilke = jePrioriteta
-        ? "Prioritetna predloga (številka 1) – privzeto sporočilo"
-        : "Vrstni red predloge, trenutno " + stevilka;
+      const oznakaStevilke = jePriporocena
+        ? "Priporočena predloga (številka " + stevilka + ")"
+        : "Vrstni red predloge znotraj tona, trenutno " + stevilka;
 
       kartica.innerHTML =
         '<div class="predlog-kartica__stevilka-ovoj">' +
@@ -2632,11 +2802,16 @@ function inicializirajSporociloDolzniku() {
         '" aria-expanded="false" aria-haspopup="listbox" aria-label="' +
         oznakaStevilke +
         '"></button>' +
-        '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do 9">' +
+        '<div class="predlog-kartica__stevilke-izbirnik" hidden role="listbox" aria-label="Izberi številko od 1 do ' +
+        maxStevilk +
+        '">' +
         '<div class="predlog-kartica__stevilke-mreza"></div>' +
         "</div>" +
         "</div>" +
         '<p class="predlog-kartica__naslov"></p>' +
+        (jePriporocena
+          ? '<span class="predlog-kartica__znacka-priporoceno">Priporočeno</span>'
+          : "") +
         '<p class="predlog-kartica__opis"></p>' +
         '<button type="button" class="preview-button">' +
         ikonaSvincnika +
@@ -2661,7 +2836,7 @@ function inicializirajSporociloDolzniku() {
       const izbirnik = kartica.querySelector(".predlog-kartica__stevilke-izbirnik");
       const mreza = kartica.querySelector(".predlog-kartica__stevilke-mreza");
 
-      for (let n = 1; n <= 9; n++) {
+      for (let n = 1; n <= maxStevilk; n++) {
         const gumbN = document.createElement("button");
         gumbN.type = "button";
         gumbN.className = "predlog-kartica__stevilka-izbira";
@@ -2695,7 +2870,7 @@ function inicializirajSporociloDolzniku() {
 
       kartica.querySelector(".predlog-gumb--uporabi").addEventListener("click", () => {
         zapriVseStevilkeIzbire();
-        uporabiPredlog(predlog);
+        uporabiPredlog(predlog, { tiho: false });
       });
 
       seznam.appendChild(kartica);
@@ -2728,6 +2903,127 @@ function inicializirajSporociloDolzniku() {
     besediloPolje.focus();
   }
 
+  const gumbPosodobiRokTon = document.getElementById("gumb-posodobi-rok-ton");
+  const gumbPredlogObrocnoTon = document.getElementById("gumb-predlog-obrocno-ton");
+
+  function aktivniTonZaDodatke() {
+    return toneState.appliedToneId || toneState.selectedToneId || izbranTonId;
+  }
+
+  function posodobiNamigeTonaDodatkov() {
+    const tonId = aktivniTonZaDodatke();
+    if (gumbPredlogObrocnoTon) {
+      gumbPredlogObrocnoTon.hidden = !tonId || !window.UJRokPlacila;
+    }
+    if (!gumbPosodobiRokTon) return;
+    if (!paymentDeadline || !paymentDeadline.enabled || !window.UJRokPlacila) {
+      gumbPosodobiRokTon.hidden = true;
+      return;
+    }
+    const linked = paymentDeadline.linkedToneId || null;
+    const rocno = paymentDeadline.mode === "manual";
+    const drugTon = Boolean(tonId && linked && linked !== tonId);
+    const brezTona = Boolean(tonId && !linked);
+    gumbPosodobiRokTon.hidden = !(rocno || drugTon || brezTona);
+  }
+
+  function posodobiRokGledeNaTon() {
+    const UJ = window.UJRokPlacila;
+    if (!UJ || !paymentDeadline || !paymentDeadline.enabled) return;
+    const tonId = aktivniTonZaDodatke();
+    const days = UJ.dneviZaTon(tonId);
+    const base = bazaDatumaPosiljanja();
+    const deadline = UJ.izracunajRok(base, days);
+    const jezik =
+      paymentDeadline.messageLanguage || UJ.ugotoviJezikSporocila(besediloPolje.value);
+    const vrstica = UJ.sestaviVrsticoRoka(deadline, jezik);
+    const rez = UJ.posodobiSistemskoVrstico(
+      besediloPolje.value,
+      paymentDeadline.insertedText || "",
+      vrstica,
+      true
+    );
+    if (!rez.ok) {
+      pokaziNapako(
+        "Roka ni mogoče samodejno posodobiti, ker je vrstica ročno spremenjena. Odprite Rok plačila."
+      );
+      return;
+    }
+    besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
+    paymentDeadline = {
+      ...paymentDeadline,
+      mode: "automatic",
+      linkedToneId: tonId,
+      termDays: days,
+      deadlineDate: deadline,
+      baseSendDate: base,
+      insertedText: vrstica,
+      messageLanguage: jezik,
+    };
+    dodatekBesedila.rok = vrstica;
+    dodatki.rok = true;
+    if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
+    posodobiStanjeUrejevalnika();
+    shraniOsnutekLokalno();
+    posodobiNamigeTonaDodatkov();
+  }
+
+  async function prikaziPredlogObrocnegaZaTon() {
+    const UJ = window.UJRokPlacila;
+    if (!UJ) return;
+    const tonId = aktivniTonZaDodatke();
+    const jezik = UJ.ugotoviJezikSporocila
+      ? UJ.ugotoviJezikSporocila(besediloPolje.value)
+      : "de";
+    const predlog = UJ.predlogObrocnegaZaTon(tonId);
+    const vrstica = UJ.sestaviBesediloObrocnegaPredloga(tonId, jezik);
+    const opis =
+      "Predlog za trenutni ton: " +
+      predlog.installments +
+      " obrokov, prvi čez " +
+      predlog.firstDelayDays +
+      " dni, razmik " +
+      predlog.gapDays +
+      " dni.\n\n»" +
+      vrstica +
+      "«";
+    const ok = await potrdiVprasanje({
+      naslov: "Predlog obročnega plačila",
+      opis: opis,
+      potrdiBesedilo: "Dodaj v sporočilo",
+      prekliciBesedilo: "Zapri",
+      stil: "primary",
+    });
+    if (!ok) return;
+    if (dodatki.obrocno && dodatekBesedila.obrocno) {
+      const zamenjaj = await potrdiVprasanje({
+        naslov: "Zamenjam obročno vrstico?",
+        opis: "V sporočilu je že besedilo o obročnem plačilu. Zamenjam ga s predlogom glede na ton?",
+        potrdiBesedilo: "Zamenjaj",
+        stil: "primary",
+      });
+      if (!zamenjaj) return;
+      const stara = dodatekBesedila.obrocno;
+      if (besediloPolje.value.includes(stara)) {
+        besediloPolje.value = besediloPolje.value.split(stara).join(vrstica);
+      } else {
+        const osnova = besediloPolje.value.replace(/\s+$/, "");
+        besediloPolje.value = (osnova ? osnova + "\n\n" + vrstica : vrstica).slice(
+          0,
+          NAJVEC_ZNAKOV
+        );
+      }
+      dodatekBesedila.obrocno = vrstica;
+    } else {
+      preklopiDodatek("obrocno", vrstica, dodatekObrocno);
+      return;
+    }
+    dodatki.obrocno = true;
+    if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "true");
+    posodobiStanjeUrejevalnika();
+    shraniOsnutekLokalno();
+  }
+
   if (dodatekRok) {
     if (typeof window.inicializirajRokPlacilaSheet === "function") {
       window.inicializirajRokPlacilaSheet({
@@ -2742,6 +3038,10 @@ function inicializirajSporociloDolzniku() {
         setPrivzetiDnevi: (v) => {
           privzetiDneviRoka = v;
         },
+        getToneId: () => aktivniTonZaDodatke(),
+        getDneviZaTon: (toneId) =>
+          window.UJRokPlacila ? window.UJRokPlacila.dneviZaTon(toneId) : 10,
+        onAfterChange: () => posodobiNamigeTonaDodatkov(),
         stevilkaIzbranegaPredloga,
         bazaDatumaPosiljanja,
         dodatki,
@@ -2758,6 +3058,15 @@ function inicializirajSporociloDolzniku() {
         );
       });
     }
+  }
+
+  if (gumbPosodobiRokTon) {
+    gumbPosodobiRokTon.addEventListener("click", () => posodobiRokGledeNaTon());
+  }
+  if (gumbPredlogObrocnoTon) {
+    gumbPredlogObrocnoTon.addEventListener("click", () => {
+      prikaziPredlogObrocnegaZaTon();
+    });
   }
 
   if (dodatekObrocno) {
@@ -2801,6 +3110,12 @@ function inicializirajSporociloDolzniku() {
     if (besediloPolje.value.length > NAJVEC_ZNAKOV) {
       besediloPolje.value = besediloPolje.value.slice(0, NAJVEC_ZNAKOV);
     }
+    if (zadnjeUporabljenoBesediloPredloge) {
+      sporociloRocnoUrejeno =
+        besediloPolje.value.trim() !== zadnjeUporabljenoBesediloPredloge.trim();
+    } else if (besediloPolje.value.trim()) {
+      sporociloRocnoUrejeno = true;
+    }
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
   });
@@ -2841,6 +3156,8 @@ function inicializirajSporociloDolzniku() {
         dodatki: { ...dodatki },
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
+        toneRecommendation: { ...toneState },
+        sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         potrjen: true,
       })
     );
@@ -2880,14 +3197,76 @@ function inicializirajSporociloDolzniku() {
       } else if (paymentDeadline && paymentDeadline.enabled && dodatekRok) {
         dodatekRok.setAttribute("aria-pressed", "true");
       }
+      if (typeof osnutek.sporociloRocnoUrejeno === "boolean") {
+        sporociloRocnoUrejeno = osnutek.sporociloRocnoUrejeno;
+      } else if (obnovljenOsnutekSporocila) {
+        sporociloRocnoUrejeno = true;
+      }
+      if (obnovljenOsnutekSporocila) {
+        zadnjeUporabljenoBesediloPredloge = "";
+      }
     } catch (_napaka) {
       // Pokvarjen osnutek - ignoriraj.
     }
   }
 
   function najdiPredlogStevilka1() {
-    return predlogi.find((p) => Number(p.stevilka) === 1) || predlogi[0] || null;
+    return (
+      predlogi.find((p) => p.isRecommended) ||
+      predlogi.find((p) => Number(p.stevilka) === 1) ||
+      predlogi[0] ||
+      null
+    );
   }
+
+  function posodobiObvestiloNeuporabljenegaTona() {
+    if (!predlogiObvestilo) return;
+    if (
+      toneState.appliedToneId &&
+      toneState.selectedToneId &&
+      toneState.appliedToneId === toneState.selectedToneId
+    ) {
+      if (
+        predlogiObvestilo.textContent.indexOf("Izberite predlogo") !== -1
+      ) {
+        pokaziObvestiloPredlogov("");
+      }
+      return;
+    }
+    if (!toneState.appliedToneId || toneState.appliedToneId !== toneState.selectedToneId) {
+      pokaziObvestiloPredlogov(
+        "Izberite predlogo, da uporabite ta ton v sporočilu."
+      );
+    }
+  }
+
+  /** Menjava tona osveži seznam predlog – ne prepiše glavnega sporočila. */
+  function nastaviIzbranTon(toneId, osveziSeznam) {
+    if (!toneId) return;
+    izbranTonId = String(toneId);
+    if (window.UJTonPriporocilo) {
+      toneState = window.UJTonPriporocilo.selectTone(toneState, toneId);
+    } else {
+      toneState.selectedToneId = izbranTonId;
+    }
+    if (osveziSeznam !== false) {
+      sestaviSeznamPredlogov();
+      izrisiPredloge();
+      if (jeVeljavenIzbranPredlog(izbranPredlogId)) {
+        oznaciIzbranega(izbranPredlogId);
+      } else {
+        izbranPredlogId = null;
+      }
+      posodobiObvestiloNeuporabljenegaTona();
+      posodobiNamigeTonaDodatkov();
+    }
+  }
+  window.__ujNastaviIzbranTon = nastaviIzbranTon;
+  window.__ujPredlogObrocnegaZaTon = function () {
+    return window.UJRokPlacila
+      ? window.UJRokPlacila.predlogObrocnegaZaTon(aktivniTonZaDodatke())
+      : null;
+  };
 
   /**
    * Predloga s številko 1 = privzeto sporočilo zgoraj + zelena označba.
@@ -2897,7 +3276,7 @@ function inicializirajSporociloDolzniku() {
     const privzeti = najdiPredlogStevilka1();
     if (!privzeti) return;
     if (vsiliBesedilo || !besediloPolje.value.trim()) {
-      uporabiPredlog(privzeti);
+      uporabiPredlog(privzeti, { tiho: true });
     } else {
       oznaciIzbranega(privzeti.id);
       slediPrivzetiStevilki1 = true;
@@ -2939,6 +3318,36 @@ function inicializirajSporociloDolzniku() {
 
   // Najprej prikaži vgrajene, nato (ko poznamo user id) naloži tudi moje predloge.
   zagonSPredlogi();
+
+  let tonWidgetApi = null;
+  if (typeof window.inicializirajTonWidget === "function" && window.UJTonPriporocilo) {
+    tonWidgetApi = window.inicializirajTonWidget({
+      getState: () => toneState,
+      setState: (s) => {
+        toneState = s;
+      },
+      recommendation: tonPriporociloRezultat,
+      onToneSelected: (toneId) => {
+        nastaviIzbranTon(toneId, true);
+        shraniOsnutekLokalno();
+      },
+      onReset: () => {
+        if (!window.UJTonPriporocilo) return;
+        // Samo ton/seznam – glavnega sporočila ne prepišemo.
+        toneState = window.UJTonPriporocilo.resetToRecommended(toneState);
+        nastaviIzbranTon(toneState.selectedToneId, true);
+        shraniOsnutekLokalno();
+      },
+    });
+    posodobiObvestiloNeuporabljenegaTona();
+    posodobiNamigeTonaDodatkov();
+    if (tonWidgetApi && typeof tonWidgetApi.osvezi === "function") {
+      tonWidgetApi.osvezi();
+    }
+  } else {
+    posodobiNamigeTonaDodatkov();
+  }
+
   if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
     supabaseKlient.auth
       .getSession()

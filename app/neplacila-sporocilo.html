@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-rok7" />
+    <link rel="stylesheet" href="styles.css?v=20260808-ton-e1" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -74,6 +74,72 @@
         <main class="korak2__vsebina">
           <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
+          <!-- Widget: Ton sporočila (brez teksta »Povlecite levo ali desno«) -->
+          <section class="ton-widget" id="ton-widget" aria-labelledby="ton-widget-naslov" hidden>
+            <h2 class="ton-widget__naslov" id="ton-widget-naslov">Ton sporočila</h2>
+
+            <div class="ton-widget__priporocilo">
+              <div class="ton-widget__priporocilo-vrsta">
+                <span class="ton-widget__oznaka">Predlagani ton</span>
+                <span class="ton-widget__znacka-ton" id="ton-predlagani-znacka">—</span>
+              </div>
+              <p class="ton-widget__razlaga" id="ton-razlaga">
+                Predlagano glede na znesek in zapadlost računa.
+              </p>
+              <button
+                type="button"
+                class="ton-widget__razlaga-info"
+                id="ton-razlaga-info"
+                aria-label="Podrobnejši razlog priporočila"
+                hidden
+              >
+                ⓘ
+              </button>
+              <div class="ton-widget__podatki" id="ton-podatki">
+                <span class="ton-widget__podatek" id="ton-znesek-znacka" hidden></span>
+                <span class="ton-widget__podatek" id="ton-cas-znacka" hidden></span>
+              </div>
+              <div class="ton-widget__override" id="ton-override" hidden>
+                <p class="ton-widget__override-besedilo" id="ton-override-besedilo"></p>
+                <button type="button" class="ton-widget__ponastavi" id="ton-ponastavi">
+                  Ponastavi na priporočeno
+                </button>
+              </div>
+            </div>
+
+            <p class="ton-widget__izberi-naslov" id="ton-izberi-naslov">Izberite ton sporočila</p>
+
+            <div class="ton-widget__vrtiljak">
+              <button
+                type="button"
+                class="ton-widget__puscica ton-widget__puscica--levo"
+                id="ton-puscica-levo"
+                aria-label="Prejšnji ton"
+              >
+                ‹
+              </button>
+              <div class="ton-widget__tir-ovoj">
+                <div
+                  class="ton-widget__tir"
+                  id="ton-tir"
+                  role="tablist"
+                  aria-label="Toni sporočila"
+                ></div>
+              </div>
+              <button
+                type="button"
+                class="ton-widget__puscica ton-widget__puscica--desno"
+                id="ton-puscica-desno"
+                aria-label="Naslednji ton"
+              >
+                ›
+              </button>
+            </div>
+
+            <div class="ton-widget__pike" id="ton-pike" role="tablist" aria-label="Indikator tona"></div>
+            <p class="sr-only" id="ton-aria-live" aria-live="polite"></p>
+          </section>
+
           <form id="obrazec-sporocilo">
             <section class="korak2-sklop" aria-labelledby="sporocilo-naslov">
               <h1 class="korak2-sklop__naslov" id="sporocilo-naslov">Sporočilo dolžniku</h1>
@@ -100,7 +166,12 @@
               </div>
             </section>
 
-            <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="predloge-naslov">
+            <section
+              class="korak2-sklop korak2-sklop--locen"
+              aria-labelledby="predloge-naslov"
+              id="ton-tabpanel-predloge"
+              role="tabpanel"
+            >
               <div class="korak2-sklop__glava">
                 <h2 class="korak2-sklop__naslov" id="predloge-naslov">Izberite predlogo</h2>
                 <div class="korak2-sklop__akcije">
@@ -151,6 +222,14 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
                   </span>
                   TRR
+                </button>
+              </div>
+              <div class="ton-dodatki-namigi" id="ton-dodatki-namigi">
+                <button type="button" class="ton-dodatki-namig" id="gumb-posodobi-rok-ton" hidden>
+                  Posodobi rok glede na novi ton
+                </button>
+                <button type="button" class="ton-dodatki-namig" id="gumb-predlog-obrocno-ton" hidden>
+                  Prikaži novi predlog glede na ton
                 </button>
               </div>
             </section>
@@ -322,8 +401,11 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-rok7"></script>
-    <script src="rok-placila-sheet.js?v=20260808-rok7"></script>
-    <script src="app.js?v=20260808-rok7"></script>
+    <script src="rok-placila-utils.js?v=20260808-ton-e1"></script>
+    <script src="rok-placila-sheet.js?v=20260808-ton-e1"></script>
+    <script src="ton-priporocilo.js?v=20260808-ton-e1"></script>
+    <script src="ton-predloge.js?v=20260808-ton-e1"></script>
+    <script src="ton-widget.js?v=20260808-ton-e1"></script>
+    <script src="app.js?v=20260808-ton-e1"></script>
   </body>
 </html>

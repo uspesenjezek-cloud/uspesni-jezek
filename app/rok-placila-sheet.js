@@ -89,10 +89,25 @@
       pomoc.textContent = "Privzeto: " + d + " dni od pošiljanja";
     }
 
+    function dneviIzTonaAliPredloga() {
+      if (typeof ctx.getDneviZaTon === "function" && typeof ctx.getToneId === "function") {
+        var tonId = ctx.getToneId();
+        if (tonId) {
+          var dTon = Number(ctx.getDneviZaTon(tonId));
+          if (Number.isFinite(dTon) && dTon > 0) return dTon;
+        }
+      }
+      var n = Number(osnutek && osnutek.linkedProposalNumber) || 1;
+      return (
+        Number(osnutekPrivzetih && osnutekPrivzetih[n]) ||
+        Number(ctx.getPrivzetiDnevi()[n]) ||
+        5
+      );
+    }
+
     function preracunajSamodejno() {
       if (!osnutek || osnutek.mode !== "automatic") return;
-      var n = Number(osnutek.linkedProposalNumber) || 1;
-      var days = Number(osnutekPrivzetih[n]) || Number(ctx.getPrivzetiDnevi()[n]) || 5;
+      var days = dneviIzTonaAliPredloga();
       var base = ctx.bazaDatumaPosiljanja();
       osnutek.termDays = days;
       osnutek.baseSendDate = base;
@@ -198,17 +213,18 @@
       var linked = ctx.stevilkaIzbranegaPredloga();
       if (!(linked >= 1 && linked <= 9)) linked = 1;
       var base = ctx.bazaDatumaPosiljanja();
-      var days = Number(osnutekPrivzetih[linked]) || 5;
       osnutek = {
         enabled: false,
         mode: "automatic",
         linkedProposalNumber: linked,
-        termDays: days,
-        deadlineDate: UJ.izracunajRok(base, days),
+        termDays: 5,
+        deadlineDate: "",
         baseSendDate: base,
         insertedText: "",
         messageLanguage: "sl",
       };
+      osnutek.termDays = dneviIzTonaAliPredloga();
+      osnutek.deadlineDate = UJ.izracunajRok(base, osnutek.termDays);
       napolniUiIzOsnutka();
       posodobiDatumVidez(false);
     }
@@ -222,13 +238,13 @@
 
       osnutekPrivzetih = klon(ctx.getPrivzetiDnevi());
       var base = ctx.bazaDatumaPosiljanja();
-      var days = Number(osnutekPrivzetih[linked]) || 5;
+      var daysFallback = Number(osnutekPrivzetih[linked]) || 5;
 
       if (obstojeci && obstojeci.enabled) {
         osnutek = klon(obstojeci);
         if (!osnutek.linkedProposalNumber) osnutek.linkedProposalNumber = linked;
         if (osnutek.mode === "automatic") {
-          osnutek.termDays = Number(osnutekPrivzetih[osnutek.linkedProposalNumber]) || days;
+          osnutek.termDays = dneviIzTonaAliPredloga() || daysFallback;
           osnutek.baseSendDate = base;
           osnutek.deadlineDate = UJ.izracunajRok(base, osnutek.termDays);
         } else {
@@ -239,12 +255,14 @@
           enabled: false,
           mode: "automatic",
           linkedProposalNumber: linked,
-          termDays: days,
-          deadlineDate: UJ.izracunajRok(base, days),
+          termDays: daysFallback,
+          deadlineDate: "",
           baseSendDate: base,
           insertedText: "",
           messageLanguage: "sl",
         };
+        osnutek.termDays = dneviIzTonaAliPredloga() || daysFallback;
+        osnutek.deadlineDate = UJ.izracunajRok(base, osnutek.termDays);
       }
     }
 
@@ -407,10 +425,13 @@
         }
 
         ctx.besediloPolje.value = String(rez.besedilo).slice(0, ctx.najvecZnakov);
+        var tonId =
+          typeof ctx.getToneId === "function" ? ctx.getToneId() : null;
         var novo = {
           enabled: true,
           mode: osnutek.mode === "manual" ? "manual" : "automatic",
           linkedProposalNumber: Number(osnutek.linkedProposalNumber) || 1,
+          linkedToneId: tonId || osnutek.linkedToneId || null,
           termDays: Number(osnutek.termDays) || 5,
           deadlineDate: osnutek.deadlineDate,
           baseSendDate: osnutek.baseSendDate || ctx.bazaDatumaPosiljanja(),
@@ -424,6 +445,7 @@
         predOgledPressed = true;
         ctx.posodobiStanjeUrejevalnika();
         ctx.shraniOsnutekLokalno();
+        if (typeof ctx.onAfterChange === "function") ctx.onAfterChange();
         zapriSheet(true);
       } catch (_e) {
         if (typeof ctx.pokaziNapako === "function") {
@@ -462,6 +484,7 @@
       ctx.dodatekBesedila.rok = "";
       ctx.posodobiStanjeUrejevalnika();
       ctx.shraniOsnutekLokalno();
+      if (typeof ctx.onAfterChange === "function") ctx.onAfterChange();
       return true;
     }
 
