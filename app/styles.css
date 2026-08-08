@@ -4528,6 +4528,21 @@ body.stran--samo-seznam #neplacila-obrazec {
   white-space: pre-wrap;
 }
 
+.obrocno-sheet__napaka-noga {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #b42318;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.obrocno-sheet__napaka-noga[hidden] {
+  display: none !important;
+}
+
 /* ========== Bottom sheet: Rok plačila ========== */
 .rok-sheet[hidden] {
   display: none !important;

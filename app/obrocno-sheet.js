@@ -26,7 +26,7 @@
     var backdrop = document.getElementById("obrocno-sheet-backdrop");
     var panel = document.getElementById("obrocno-sheet-panel");
     var naslov = document.getElementById("obrocno-sheet-naslov");
-    var zapri = document.getElementById("obrocno-sheet-zapri");
+    var gumbZapri = document.getElementById("obrocno-sheet-zapri");
     var znacka = document.getElementById("obrocno-sheet-znacka");
     var znesekEl = document.getElementById("obrocno-sheet-znesek");
     var opozorilo = document.getElementById("obrocno-sheet-opozorilo");
@@ -130,19 +130,42 @@
         skupaj.classList.toggle("obrocno-sheet__skupaj--ok", v.ok);
         skupaj.classList.toggle("obrocno-sheet__skupaj--napaka", !v.ok);
       }
+      var sporociloNapake = "";
+      if (!v.ok && v.errors.length) {
+        sporociloNapake =
+          "Shranjevanje ni mogoče: " + v.errors[0].message;
+      } else if (v.warnings.length) {
+        sporociloNapake = v.warnings[0].message;
+      }
       if (napaka) {
-        if (!v.ok && v.errors.length) {
+        if (sporociloNapake) {
           napaka.hidden = false;
-          napaka.textContent = v.errors[0].message;
-        } else if (v.warnings.length) {
-          napaka.hidden = false;
-          napaka.textContent = v.warnings[0].message;
+          napaka.textContent = sporociloNapake;
         } else {
           napaka.hidden = true;
           napaka.textContent = "";
         }
       }
-      if (shrani) shrani.disabled = !v.ok || shranjevanje;
+      var napakaNoga = document.getElementById("obrocno-sheet-napaka-noga");
+      if (napakaNoga) {
+        if (!v.ok && sporociloNapake) {
+          napakaNoga.hidden = false;
+          napakaNoga.textContent = sporociloNapake;
+        } else {
+          napakaNoga.hidden = true;
+          napakaNoga.textContent = "";
+        }
+      }
+      if (shrani) {
+        shrani.disabled = !v.ok || shranjevanje;
+        if (!v.ok && sporociloNapake) {
+          shrani.setAttribute("aria-describedby", "obrocno-sheet-napaka-noga");
+          shrani.title = sporociloNapake;
+        } else {
+          shrani.removeAttribute("aria-describedby");
+          shrani.removeAttribute("title");
+        }
+      }
       if (addon) addon.textContent = osnutek.addonText || "";
       if (znacka) {
         znacka.textContent =
@@ -152,8 +175,9 @@
 
     function izrisiVrstice() {
       if (!seznam || !osnutek) return;
+      osnutek = UJ.uskladiSteviloVrstic(osnutek);
       seznam.innerHTML = "";
-      osnutek.installments.forEach(function (row) {
+      (osnutek.installments || []).forEach(function (row) {
         var art = document.createElement("article");
         art.className = "obrocno-sheet__vrstica";
         art.dataset.id = row.id;
@@ -268,15 +292,19 @@
     }
 
     function izrisi() {
+      if (osnutek) osnutek = UJ.uskladiSteviloVrstic(osnutek);
       posodobiStevilkeUi();
       if (razmik && osnutek) razmik.value = osnutek.intervalType;
       izrisiVrstice();
       posodobiPovzetek();
       var shranjen = ctx.getInstallmentPlan && ctx.getInstallmentPlan();
-      if (odstrani) odstrani.hidden = !(shranjen && shranjen.enabled);
+      var shranjenOk =
+        shranjen &&
+        shranjen.enabled &&
+        UJ.jePlanUporaben(shranjen, osnutek ? osnutek.totalDebtCents : 0);
+      if (odstrani) odstrani.hidden = !shranjenOk;
       if (shrani) {
-        shrani.textContent =
-          shranjen && shranjen.enabled ? "Shrani spremembe" : "Shrani in dodaj";
+        shrani.textContent = shranjenOk ? "Shrani spremembe" : "Shrani in dodaj";
       }
     }
 
@@ -292,33 +320,56 @@
       }
     }
 
+    function sveziPredlog(total) {
+      return UJ.getInstallmentSuggestion({
+        totalDebtCents: total,
+        originalDueDate:
+          typeof ctx.getOriginalDueDate === "function"
+            ? ctx.getOriginalDueDate()
+            : null,
+        plannedSendDate:
+          typeof ctx.bazaDatumaPosiljanja === "function"
+            ? ctx.bazaDatumaPosiljanja()
+            : UJ.danesYYYYMMDD(),
+        linkedProposalNumber:
+          typeof ctx.stevilkaIzbranegaPredloga === "function"
+            ? ctx.stevilkaIzbranegaPredloga()
+            : null,
+        toneId: typeof ctx.getToneId === "function" ? ctx.getToneId() : null,
+        language: jezikAddon(),
+      });
+    }
+
     function odpri() {
       var total =
         typeof ctx.getTotalDebtCents === "function"
           ? ctx.getTotalDebtCents()
           : 0;
-      var existing = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
-      if (existing && existing.enabled) {
-        osnutek = klon(existing);
-      } else {
-        osnutek = UJ.getInstallmentSuggestion({
-          totalDebtCents: total,
-          originalDueDate:
-            typeof ctx.getOriginalDueDate === "function"
-              ? ctx.getOriginalDueDate()
-              : null,
-          plannedSendDate:
-            typeof ctx.bazaDatumaPosiljanja === "function"
-              ? ctx.bazaDatumaPosiljanja()
-              : UJ.danesYYYYMMDD(),
-          linkedProposalNumber:
-            typeof ctx.stevilkaIzbranegaPredloga === "function"
-              ? ctx.stevilkaIzbranegaPredloga()
-              : null,
-          toneId: typeof ctx.getToneId === "function" ? ctx.getToneId() : null,
-          language: jezikAddon(),
-        });
+      if (!Number.isFinite(total) || total <= 0) {
+        if (typeof ctx.pokaziNapako === "function") {
+          ctx.pokaziNapako(
+            "Znesek dolga ni na voljo. Preverite vnos v prvem koraku."
+          );
+        }
+        return;
       }
+
+      var existing = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
+      if (existing && existing.enabled && UJ.jePlanUporaben(existing, total)) {
+        osnutek = klon(existing);
+        osnutek.totalDebtCents = total;
+        osnutek = UJ.uskladiSteviloVrstic(osnutek);
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+      } else {
+        // Stari/pokvarjen načrt zavrzi – vedno svež predlog iz koraka 1.
+        if (existing && typeof ctx.setInstallmentPlan === "function") {
+          ctx.setInstallmentPlan(null);
+        }
+        if (ctx.dodatki) ctx.dodatki.obrocno = false;
+        osnutek = sveziPredlog(total);
+        osnutek = UJ.uskladiSteviloVrstic(osnutek);
+      }
+
       if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(osnutek.totalDebtCents);
       napolniOpozorilo();
       izrisi();
@@ -332,30 +383,34 @@
       casovnikZapiranja = setTimeout(function () {
         zapiranjeDovoljeno = true;
       }, 400);
-      // Začasno aktivna kartica
       if (ctx.gumbObrocno) ctx.gumbObrocno.setAttribute("aria-pressed", "true");
       window.setTimeout(function () {
         if (naslov) naslov.focus();
       }, 10);
     }
 
-    function zapri(brezObnove) {
-      if (!odprt) return;
+    function zapriSheet(brezObnove) {
       odprt = false;
-      sheet.hidden = true;
+      if (sheet) sheet.hidden = true;
       document.body.style.overflow = "";
       osnutek = null;
       if (!brezObnove) {
         var plan = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
+        var total =
+          typeof ctx.getTotalDebtCents === "function"
+            ? ctx.getTotalDebtCents()
+            : 0;
+        var aktiven = plan && plan.enabled && UJ.jePlanUporaben(plan, total);
         if (ctx.gumbObrocno) {
-          ctx.gumbObrocno.setAttribute(
-            "aria-pressed",
-            plan && plan.enabled ? "true" : "false"
-          );
+          ctx.gumbObrocno.setAttribute("aria-pressed", aktiven ? "true" : "false");
         }
       }
       if (prejsnjiFokus && typeof prejsnjiFokus.focus === "function") {
-        prejsnjiFokus.focus();
+        try {
+          prejsnjiFokus.focus();
+        } catch (_e) {
+          if (ctx.gumbObrocno) ctx.gumbObrocno.focus();
+        }
       } else if (ctx.gumbObrocno) {
         ctx.gumbObrocno.focus();
       }
@@ -466,7 +521,7 @@
         if (typeof ctx.shraniOsnutekLokalno === "function") {
           ctx.shraniOsnutekLokalno();
         }
-        zapri(true);
+        zapriSheet(true);
       } finally {
         shranjevanje = false;
       }
@@ -491,7 +546,7 @@
       if (typeof ctx.shraniOsnutekLokalno === "function") {
         ctx.shraniOsnutekLokalno();
       }
-      zapri(true);
+      zapriSheet(true);
     }
 
     zgradiStevilke();
@@ -503,13 +558,39 @@
 
     function poskusiZapri() {
       if (!zapiranjeDovoljeno) return;
-      zapri(false);
+      zapriSheet(false);
     }
 
     if (backdrop) backdrop.addEventListener("click", poskusiZapri);
-    if (zapri) zapri.addEventListener("click", function () { zapri(false); });
-    if (preklici) preklici.addEventListener("click", function () { zapri(false); });
-    if (shrani) shrani.addEventListener("click", function () { shraniPlan(); });
+    if (gumbZapri) {
+      gumbZapri.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        zapriSheet(false);
+      });
+    }
+    if (preklici) {
+      preklici.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        zapriSheet(false);
+      });
+    }
+    if (shrani) {
+      shrani.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (shrani.disabled) {
+          posodobiPovzetek();
+          var noga = document.getElementById("obrocno-sheet-napaka-noga");
+          if (noga && !noga.hidden) {
+            noga.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          }
+          return;
+        }
+        shraniPlan();
+      });
+    }
     if (odstrani) odstrani.addEventListener("click", function () { odstraniPlan(); });
     if (enakomerno) {
       enakomerno.addEventListener("click", async function () {
@@ -556,11 +637,11 @@
       if (!odprt) return;
       if (ev.key === "Escape") {
         ev.preventDefault();
-        zapri(false);
+        zapriSheet(false);
       }
     });
 
-    return { odpri: odpri, zapri: zapri };
+    return { odpri: odpri, zapri: zapriSheet };
   }
 
   root.inicializirajObrocnoSheet = inicializirajObrocnoSheet;

@@ -104,13 +104,6 @@
     return Math.round((evalDt.getTime() - due.getTime()) / 86400000);
   }
 
-  function eurosToCents(euros) {
-    if (euros == null || euros === "") return null;
-    var n = Number(euros);
-    if (!Number.isFinite(n)) return null;
-    return Math.round(n * 100);
-  }
-
   function formatCentsSl(cents) {
     var n = Number(cents) || 0;
     var eur = n / 100;
@@ -122,30 +115,43 @@
     );
   }
 
-  /** Sprejme 50 / 50,0 / 50.00 → cents ali null. */
+  /**
+   * Sprejme 50 / 50,0 / 50,00 / 50.00 / 1.234,56 → cents ali null.
+   * Podpira vejico in piko kot decimalno ločilo.
+   */
   function parseAmountToCents(vnos) {
-    var s = String(vnos || "")
-      .trim()
-      .replace(/\s/g, "")
-      .replace(/€/g, "")
-      .replace(/\./g, "")
-      .replace(",", ".");
-    // Če je bil format z decimalno piko kot ločilo (50.00) – popravi
+    if (typeof vnos === "number") {
+      if (!Number.isFinite(vnos)) return null;
+      return Math.round(vnos * 100);
+    }
     var raw = String(vnos || "")
       .trim()
       .replace(/\s/g, "")
+      .replace(/\u00a0/g, "")
       .replace(/€/g, "");
+    if (!raw) return null;
+    var s;
     if (/^\d+[.,]\d{1,2}$/.test(raw) || /^\d+$/.test(raw)) {
       s = raw.replace(",", ".");
-    } else if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(raw)) {
+    } else if (/^\d{1,3}(\.\d{3})+,\d{1,2}$/.test(raw)) {
+      // 1.234,56
       s = raw.replace(/\./g, "").replace(",", ".");
-    } else if (/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(raw)) {
+    } else if (/^\d{1,3}(,\d{3})+\.\d{1,2}$/.test(raw)) {
+      // 1,234.56
       s = raw.replace(/,/g, "");
+    } else {
+      return null;
     }
     if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
     var n = Number(s);
     if (!Number.isFinite(n)) return null;
     return Math.round(n * 100);
+  }
+
+  /** Evri (number ali niz z vejico/piko) → centi. */
+  function eurosToCents(euros) {
+    if (euros == null || euros === "") return null;
+    return parseAmountToCents(euros);
   }
 
   /**
@@ -365,6 +371,36 @@
     oštevilci(plan);
     plan.updatedAt = new Date().toISOString();
     return plan;
+  }
+
+  /** Zagotovi installmentCount === installments.length (2–20). */
+  function uskladiSteviloVrstic(plan) {
+    if (!plan) return plan;
+    var len = Array.isArray(plan.installments) ? plan.installments.length : 0;
+    var n = Number(plan.installmentCount);
+    if (!Number.isFinite(n) || n < MIN_OBROKOV) n = len || MIN_OBROKOV;
+    n = Math.max(MIN_OBROKOV, Math.min(MAX_OBROKOV, Math.round(n)));
+    if (len !== n) {
+      return nastaviSteviloObrokov(plan, n);
+    }
+    oštevilci(plan);
+    return plan;
+  }
+
+  /**
+   * Ali je shranjeni načrt varen za prikaz glede na svež dolg.
+   * Če totalDebtCents ni enak ali struktura ne drži – zavrzi.
+   */
+  function jePlanUporaben(plan, expectedTotalCents) {
+    if (!plan || !Array.isArray(plan.installments)) return false;
+    if (plan.installments.length < MIN_OBROKOV) return false;
+    if (plan.installments.length > MAX_OBROKOV) return false;
+    if (plan.installments.length !== Number(plan.installmentCount)) return false;
+    var expected = Math.round(Number(expectedTotalCents));
+    if (!Number.isFinite(expected) || expected <= 0) return false;
+    if (Math.round(Number(plan.totalDebtCents)) !== expected) return false;
+    var v = validatePlan(plan);
+    return Boolean(v && v.ok);
   }
 
   function nastaviRocniZnesek(plan, installmentId, amountCents) {
@@ -786,6 +822,8 @@
     preracunajDatume: preracunajDatume,
     getInstallmentSuggestion: getInstallmentSuggestion,
     nastaviSteviloObrokov: nastaviSteviloObrokov,
+    uskladiSteviloVrstic: uskladiSteviloVrstic,
+    jePlanUporaben: jePlanUporaben,
     nastaviRocniZnesek: nastaviRocniZnesek,
     enakomernoRazdeli: enakomernoRazdeli,
     odstraniObrok: odstraniObrok,

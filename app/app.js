@@ -3091,10 +3091,15 @@ function inicializirajSporociloDolzniku() {
         },
         getTotalDebtCents: () => {
           if (window.UJObrocno) {
-            return window.UJObrocno.eurosToCents(podatkiKorak1.znesek) || 0;
+            const c = window.UJObrocno.eurosToCents(podatkiKorak1.znesek);
+            return c != null && c > 0 ? c : 0;
           }
-          const n = Number(podatkiKorak1.znesek);
-          return Number.isFinite(n) ? Math.round(n * 100) : 0;
+          const c2 = Number(
+            String(podatkiKorak1.znesek || "")
+              .replace(/\s/g, "")
+              .replace(",", ".")
+          );
+          return Number.isFinite(c2) ? Math.round(c2 * 100) : 0;
         },
         getOriginalDueDate: () => podatkiKorak1.datumZapadlosti || null,
         getToneId: () => aktivniTonZaDodatke(),
@@ -3242,17 +3247,28 @@ function inicializirajSporociloDolzniku() {
         }
       }
       if (osnutek.installmentPlan && osnutek.installmentPlan.enabled) {
-        installmentPlan = osnutek.installmentPlan;
-        dodatki.obrocno = true;
-        if (!dodatekBesedila.obrocno && installmentPlan.addonText) {
-          dodatekBesedila.obrocno = String(installmentPlan.addonText);
+        const sveziCenti = window.UJObrocno
+          ? window.UJObrocno.eurosToCents(podatkiKorak1.znesek)
+          : null;
+        if (
+          sveziCenti != null &&
+          window.UJObrocno.jePlanUporaben(osnutek.installmentPlan, sveziCenti)
+        ) {
+          installmentPlan = osnutek.installmentPlan;
+          dodatki.obrocno = true;
+          if (!dodatekBesedila.obrocno && installmentPlan.addonText) {
+            dodatekBesedila.obrocno = String(installmentPlan.addonText);
+          }
+        } else {
+          // Pokvarjen/neusklajen načrt – zavrzi (nov predlog ob odprtju sheet-a).
+          installmentPlan = null;
         }
       }
       if (osnutek.dodatki) {
         dodatki.rok = Boolean(osnutek.dodatki.rok) || Boolean(paymentDeadline && paymentDeadline.enabled);
         dodatki.obrocno =
-          Boolean(osnutek.dodatki.obrocno) ||
-          Boolean(installmentPlan && installmentPlan.enabled);
+          Boolean(installmentPlan && installmentPlan.enabled) ||
+          (Boolean(osnutek.dodatki.obrocno) && Boolean(installmentPlan));
         dodatki.trr = Boolean(osnutek.dodatki.trr);
         if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
         if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", String(dodatki.obrocno));

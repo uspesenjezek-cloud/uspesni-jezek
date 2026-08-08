@@ -167,6 +167,58 @@ test("20. Skupaj = dolg", () => {
   assert.equal(v.ok, true);
 });
 
+test("eurosToCents podpira vejico", () => {
+  assert.equal(UJ.eurosToCents("75,64"), 7564);
+  assert.equal(UJ.eurosToCents("75.64"), 7564);
+  assert.equal(UJ.eurosToCents(75.64), 7564);
+  assert.equal(UJ.formatCentsSl(7564), "75,64 €");
+});
+
+test("jePlanUporaben zavrne neusklajen dolg / 1 vrstico", () => {
+  let plan = UJ.getInstallmentSuggestion({
+    totalDebtCents: 7564,
+    priority: 5,
+    plannedSendDate: "2026-08-08",
+  });
+  plan = UJ.nastaviSteviloObrokov(plan, 5);
+  plan.enabled = true;
+  assert.equal(UJ.jePlanUporaben(plan, 7564), true);
+  assert.equal(UJ.jePlanUporaben(plan, 9999), false);
+  plan.installments = plan.installments.slice(0, 1);
+  plan.installmentCount = 5;
+  assert.equal(UJ.jePlanUporaben(plan, 7564), false);
+  plan = UJ.uskladiSteviloVrstic({
+    totalDebtCents: 7564,
+    installmentCount: 5,
+    installments: [{ id: "a", order: 1, amountCents: 100, amountMode: "automatic", dueDate: "2026-08-28" }],
+    intervalType: "monthly",
+    firstDueDate: "2026-08-28",
+  });
+  assert.equal(plan.installments.length, 5);
+  assert.equal(plan.installmentCount, 5);
+});
+
+test("Sprejemni: 75,64 € / 5 obrokov", () => {
+  const cents = UJ.eurosToCents("75,64");
+  assert.equal(cents, 7564);
+  let plan = UJ.getInstallmentSuggestion({
+    totalDebtCents: cents,
+    priority: 5,
+    plannedSendDate: "2026-08-08",
+    originalDueDate: "2026-07-01",
+    language: "sl",
+  });
+  plan = UJ.nastaviSteviloObrokov(plan, 5);
+  plan = UJ.uskladiSteviloVrstic(plan);
+  assert.equal(UJ.formatCentsSl(plan.totalDebtCents), "75,64 €");
+  assert.equal(plan.installments.length, 5);
+  assert.deepEqual(
+    plan.installments.map((r) => r.amountCents),
+    [1513, 1513, 1513, 1513, 1512]
+  );
+  assert.equal(UJ.validatePlan(plan).ok, true);
+});
+
 test("Addon SL s 50 €", () => {
   let plan = UJ.getInstallmentSuggestion({
     totalDebtCents: 7564,
