@@ -4332,14 +4332,8 @@ body.stran--samo-seznam #neplacila-obrazec {
    handlerji v app.js ostanejo NESPREMENJENI: ovojMoznaPriporocila,
    sklopPriporociloRok/Obrocno, gumbPreglejRok/Obrocno, gumbPrezriRok/Obrocno).
 
-   Postavitev kartice je NAMENOMA vedno v dveh vrsticah (ikona+naslov+opis
-   zgoraj, akcije spodaj na svoji vrstici, poravnane desno) - ne samo pri
-   ozkih zaslonih. Poskusil sem tudi eno vrstico (ikona | vsebina | akcije)
-   za širše zaslone, a z dostopnostno zahtevano velikostjo gumbov (44×44px,
-   glej .ton-priporocila__preglej/__prezri spodaj) in večjo ikono (52px) se
-   na mobilnih širinah 320-430px stolpec z besedilom stisne na komaj 60-100px
-   in besedilo grdo prelomi - ta app je izrecno mobile-first (360-430px), zato
-   je dvo-vrstična postavitev EDINA, ne samo ozek-zaslon posebni primer. */
+   Kompaktna ENA vrstica: ikona | vsebina | akcije. Gumbi Preglej/X so
+   namenoma pod 44px (sekundarne akcije) – prioriteta je kompaktnost. */
 .ton-priporocila {
   --priporocila-cream: #fffbf0;
   --priporocila-cream-hover: #fff7e4;
@@ -4386,7 +4380,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 .ton-priporocila__panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -4429,18 +4423,16 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .ton-priporocila__kartica {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    "ikona vsebina"
-    "akcije akcije";
-  column-gap: 14px;
-  row-gap: 12px;
-  align-items: start;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "ikona vsebina akcije";
+  column-gap: 10px;
+  row-gap: 0;
+  align-items: center;
   width: 100%;
   margin: 0;
-  padding: 18px;
+  padding: 8px 10px;
   border: 1px solid var(--priporocila-border);
-  border-radius: 22px;
+  border-radius: 16px;
   background: var(--priporocila-cream);
   box-shadow: 0 1px 3px rgba(33, 61, 62, 0.06);
   box-sizing: border-box;
@@ -4460,8 +4452,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   grid-area: ikona;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--priporocila-gold-soft);
   color: var(--priporocila-gold);
@@ -4469,8 +4461,8 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .ton-priporocila__ikona svg {
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 15px;
+  height: 15px;
 }
 
 .ton-priporocila__vsebina {
@@ -4482,27 +4474,29 @@ body.stran--samo-seznam #neplacila-obrazec {
 .ton-priporocila__naslov {
   margin: 0;
   color: var(--priporocila-text);
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.25;
 }
 
 .ton-priporocila__opis {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--priporocila-muted);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Akcije so NAMENOMA na svoji, celovrstični podvrstici (glej razlago pri
-   .ton-priporocila__kartica zgoraj) - poravnane desno, kot par gumbov. */
 .ton-priporocila__akcije {
   grid-area: akcije;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .ton-priporocila__preglej {
@@ -4510,14 +4504,14 @@ body.stran--samo-seznam #neplacila-obrazec {
   align-items: center;
   justify-content: center;
   margin: 0;
-  min-height: 44px;
-  padding: 0 20px;
+  min-height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--priporocila-border);
   border-radius: 999px;
   background: #ffffff;
   color: #6a5410;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   box-sizing: border-box;
@@ -4544,16 +4538,16 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 14px;
+  border-radius: 10px;
   background: transparent;
   color: var(--priporocila-gold);
   font: inherit;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 400;
   line-height: 1;
   cursor: pointer;
@@ -4578,18 +4572,23 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 @media (max-width: 340px) {
   .ton-priporocila__kartica {
-    padding: 16px;
-    column-gap: 12px;
+    padding: 7px 8px;
+    column-gap: 8px;
   }
 
   .ton-priporocila__ikona {
-    width: 44px;
-    height: 44px;
+    width: 28px;
+    height: 28px;
   }
 
   .ton-priporocila__ikona svg {
-    width: 20px;
-    height: 20px;
+    width: 13px;
+    height: 13px;
+  }
+
+  .ton-priporocila__preglej {
+    padding: 0 10px;
+    font-size: 0.78rem;
   }
 }
 
