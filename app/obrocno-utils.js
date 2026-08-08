@@ -4,7 +4,7 @@
 (function (root) {
   "use strict";
 
-  var MIN_OBROKOV = 2;
+  var MIN_OBROKOV = 1;
   var MAX_OBROKOV = 20;
   var PRIPOROCEN_MIN_CENTS = 1000; // 10 €
 
@@ -470,7 +470,7 @@
 
   function odstraniObrok(plan, installmentId) {
     if ((plan.installments || []).length <= MIN_OBROKOV) {
-      return { ok: false, code: "min_two", plan: plan };
+      return { ok: false, code: "min_count", plan: plan };
     }
     var removed = null;
     var idx = -1;
@@ -562,9 +562,8 @@
     var rows = plan.installments || [];
     if (rows.length < MIN_OBROKOV) {
       errors.push({
-        code: "min_two",
-        message:
-          "Obročno plačilo mora vsebovati najmanj dva obroka. Za enkratno plačilo uporabite možnost »Rok plačila«.",
+        code: "min_count",
+        message: "Načrt mora vsebovati najmanj en obrok.",
       });
     }
     if (rows.length > MAX_OBROKOV) {

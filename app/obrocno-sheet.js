@@ -978,11 +978,10 @@
       if (!draftEnabled) return;
       var rez = UJ.odstraniObrok(osnutek, id);
       if (!rez.ok) {
-        if (rez.code === "min_two") {
+        if (rez.code === "min_count" || rez.code === "min_two") {
           ctx.potrdiVprasanje({
-            naslov: "Najmanj dva obroka",
-            opis:
-              "Obročno plačilo mora vsebovati najmanj dva obroka. Za enkratno plačilo uporabite možnost »Rok plačila«.",
+            naslov: "Najmanj en obrok",
+            opis: "Načrt mora vsebovati najmanj en obrok.",
             potrdiBesedilo: "V redu",
             samoEnGumb: true,
             stil: "primary",
