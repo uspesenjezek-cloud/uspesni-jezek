@@ -4460,7 +4460,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   background: #ffffff;
   color: var(--text, #243d3d);
   font: inherit;
-  font-size: 0.78rem;
+  /* ≥16px: iOS Safari sicer ob fokusu samodejno poveča zoom. */
+  font-size: 16px;
   box-sizing: border-box;
 }
 
@@ -4488,7 +4489,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   background: #ffffff;
   color: var(--text, #243d3d);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 16px;
   line-height: 1.2;
   box-sizing: border-box;
 }

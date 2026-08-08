@@ -199,12 +199,15 @@
         var znesek = document.createElement("input");
         znesek.type = "text";
         znesek.inputMode = "decimal";
+        znesek.setAttribute("enterkeyhint", "done");
+        znesek.autocomplete = "off";
         znesek.className = "obrocno-sheet__znesek";
         if (row.amountMode === "manual") {
           znesek.className += " obrocno-sheet__znesek--rocno";
         }
         znesek.value = UJ.formatCentsSl(row.amountCents);
         znesek.setAttribute("aria-label", "Znesek " + row.order + ". obroka");
+        znesek.dataset.zacetniCenti = String(row.amountCents);
         znesek.addEventListener("blur", function () {
           potrdiZnesek(row.id, znesek);
         });
@@ -258,6 +261,12 @@
       if (cents == null || cents <= 0) {
         sporoci("Neveljaven znesek.");
         izrisi();
+        return;
+      }
+      var zacetni = Number(input.dataset.zacetniCenti);
+      // Brez spremembe: samo uredi prikaz, ne prerisuj celotnega lista (manj skokov).
+      if (Number.isFinite(zacetni) && cents === zacetni) {
+        input.value = UJ.formatCentsSl(cents);
         return;
       }
       osnutek = UJ.nastaviRocniZnesek(osnutek, id, cents);
