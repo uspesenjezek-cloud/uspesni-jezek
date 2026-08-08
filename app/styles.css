@@ -205,18 +205,22 @@ a {
   gap: 1.25rem;
 }
 
-/* Korak 1 (#obrazec): isto ohišje in ozadje kot koraka 2 in 3 */
+/* Korak 1 (#obrazec): isti shell/tokeni kot .stran--sporocilo (koraka 2 in 3) */
 .stran--neplacila.stran--samo-obrazec {
+  --page: #f2f7f6;
+  --surface: #ffffff;
+  --border: #c5d6d2;
+  --shadow: rgba(25, 62, 57, 0.12);
+
   max-width: none;
   min-height: 100vh;
   padding: 8px 12px 28px;
-  background: #f2f7f6;
+  background: var(--page);
   box-sizing: border-box;
 }
 
-.stran--neplacila.stran--samo-obrazec .app__vsebina {
-  padding: 0;
-  gap: 1.25rem;
+.stran--neplacila.stran--samo-obrazec .neplacila-seznam-vsebina {
+  display: none !important;
 }
 
 .stran--neplacila.stran--samo-seznam .wizard-shell {
@@ -232,10 +236,6 @@ a {
   .stran--neplacila.stran--samo-obrazec {
     padding-left: 7px;
     padding-right: 7px;
-  }
-
-  .stran--neplacila.stran--samo-obrazec .app__vsebina {
-    padding: 0;
   }
 }
 
@@ -599,8 +599,10 @@ a {
    (#seznam) - deluje že pred JS (brez utripa celotne strani). */
 body:has(#obrazec:target) #seznam,
 body:has(#obrazec:target) #seznam-vsebnik,
+body:has(#obrazec:target) .neplacila-seznam-vsebina,
 body.stran--samo-obrazec #seznam,
-body.stran--samo-obrazec #seznam-vsebnik {
+body.stran--samo-obrazec #seznam-vsebnik,
+body.stran--samo-obrazec .neplacila-seznam-vsebina {
   display: none !important;
 }
 
@@ -661,7 +663,9 @@ body.stran--samo-seznam #obrazec {
 }
 
 .obrazec-kartica input,
-.obrazec-kartica textarea {
+.obrazec-kartica textarea,
+#obrazec .obrazec input,
+#obrazec .obrazec textarea {
   border-radius: 12px;
 }
 
@@ -1086,6 +1090,8 @@ body.stran--samo-seznam #obrazec {
   border-bottom: 1px solid #dce7e4;
   background: #ffffff;
   box-sizing: border-box;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 /* Ikona + »Korak X od 3« + naslov: enako mehko turkizno ozadje na vseh 3 korakih */
@@ -2979,6 +2985,8 @@ body.stran--samo-seznam #obrazec {
   border-bottom: 1px solid #dce7e4;
   box-sizing: border-box;
   background: var(--step-surface);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 @media (max-width: 370px) {

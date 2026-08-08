@@ -7,10 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-wizard-topbar" />
+    <link rel="stylesheet" href="styles.css?v=20260808-wizard-shell" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -29,7 +29,7 @@
         else if (h === "obrazec") document.body.classList.add("stran--samo-obrazec");
       })();
     </script>
-    <div class="wizard-shell">
+    <div class="korak2-ovoj wizard-shell">
       <div class="wizard-topbar">
         <a class="wizard-topbar__nazaj" href="zascita-posla.html">
           <span aria-hidden="true">←</span>
@@ -40,24 +40,13 @@
         </button>
       </div>
 
-    <main class="app__vsebina">
-      <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
+      <!-- Enaka struktura kot koraka 2 in 3: topbar → .korak2 → zavihki → vsebina -->
+      <div class="korak2" id="obrazec" aria-label="Dodaj novo zadevo">
+        <div data-wizard-progress-header data-korak="1"></div>
 
-      <!-- Izven obeh razdelkov spodaj (ne v #obrazec, ne v #seznam), da se
-           prikaže ne glede na to, kateri od njiju je trenutno skrit glede
-           na #obrazec/#seznam v naslovu (glej prilagodiPrikazGledeNaFragment
-           v app.js) - obrtnik se namreč po 2. koraku (neplacila-sporocilo.html)
-           vrne sem na #seznam, kjer je #obrazec skrit. -->
-      <p class="obrazec__sporocilo" id="zadeva-dodana-sporocilo" hidden>
-        <span class="obrazec__sporocilo-ikona" aria-hidden="true">✓</span>
-        Zadeva je bila uspešno dodana med odprte zadeve.
-      </p>
+        <main class="korak2__vsebina">
+          <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
-      <section class="dodaj-zadevo" id="obrazec" aria-label="Dodaj novo zadevo">
-        <div class="obrazec-kartica">
-          <div data-wizard-progress-header data-korak="1"></div>
-
-          <div class="obrazec-kartica__vsebina">
             <form class="obrazec" id="obrazec-neplacilo">
               <div class="ai-zajem" id="ai-zajem">
                 <div class="ai-zajem__zacetek" id="ai-zajem-zacetek">
@@ -351,9 +340,16 @@
                 </span>
               </button>
             </form>
-          </div>
-        </div>
-      </section>
+        </main>
+      </div>
+
+      <!-- Seznam odprtih zadev (#seznam) – ločen od čarovnika; skrit pri #obrazec.
+           Sporočilo o uspehu je izven #obrazec, da ostane vidno tudi na #seznam. -->
+      <main class="app__vsebina neplacila-seznam-vsebina">
+      <p class="obrazec__sporocilo" id="zadeva-dodana-sporocilo" hidden>
+        <span class="obrazec__sporocilo-ikona" aria-hidden="true">✓</span>
+        Zadeva je bila uspešno dodana med odprte zadeve.
+      </p>
 
       <section class="zadeve-semafor" id="seznam" aria-label="Povzetek in filter zadev po statusu">
         <p class="zadeve-semafor__skupaj">
