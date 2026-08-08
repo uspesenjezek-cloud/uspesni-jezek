@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="sl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light only" />
-    <title>Naï¿½rt opominjanja ï¿½ Uspeï¿½ni Jezek</title>
+    <title>Načrt opominjanja – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -24,35 +24,35 @@
     <div class="korak2-ovoj wizard-shell">
       <div class="wizard-topbar">
         <a class="wizard-topbar__nazaj" href="neplacila-sporocilo.html">
-          <span aria-hidden="true">ï¿½</span>
+          <span aria-hidden="true">←</span>
           Nazaj
         </a>
         <button type="button" class="wizard-topbar__izbrisi" id="gumb-izbrisi-osnutek">
-          Izbriï¿½i osnutek
+          Izbriši osnutek
         </button>
       </div>
 
     <div class="korak2">
       <div data-wizard-progress-header data-korak="3">
         <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
-          <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 3: Vnos dolï¿½nika">
+          <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 3: Vnos dolžnika">
             <span class="debt-step__content">
               <span class="debt-step__number" aria-hidden="true">1</span>
-              <span class="debt-step__label">Dolï¿½nik</span>
+              <span class="debt-step__label">Dolžnik</span>
             </span>
             <span class="debt-step__line" aria-hidden="true"></span>
           </a>
-          <a href="neplacila-sporocilo.html" class="debt-step" data-korak="2" aria-label="2 od 3: Vnos sporoï¿½ila">
+          <a href="neplacila-sporocilo.html" class="debt-step" data-korak="2" aria-label="2 od 3: Vnos sporočila">
             <span class="debt-step__content">
               <span class="debt-step__number" aria-hidden="true">2</span>
-              <span class="debt-step__label">Sporoï¿½ilo</span>
+              <span class="debt-step__label">Sporočilo</span>
             </span>
             <span class="debt-step__line" aria-hidden="true"></span>
           </a>
-          <a href="neplacila-posiljanje.html" class="debt-step" data-korak="3" aria-label="3 od 3: Poï¿½iljanje">
+          <a href="neplacila-posiljanje.html" class="debt-step" data-korak="3" aria-label="3 od 3: Pošiljanje">
             <span class="debt-step__content">
               <span class="debt-step__number" aria-hidden="true">3</span>
-              <span class="debt-step__label">Poï¿½iljanje</span>
+              <span class="debt-step__label">Pošiljanje</span>
             </span>
             <span class="debt-step__line" aria-hidden="true"></span>
           </a>
@@ -64,7 +64,7 @@
             </span>
             <div class="korak-glava__besedilo">
               <p class="korak-glava__meta">Korak 3 od 3</p>
-              <h2 class="korak-glava__naslov">Naï¿½rt opominjanja</h2>
+              <h2 class="korak-glava__naslov">Načrt opominjanja</h2>
             </div>
           </div>
           <p class="korak-glava__osnutek" id="osnutek-status" role="status" aria-live="polite">Osnutek shranjen</p>
@@ -75,11 +75,11 @@
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
         <section class="priloga-posiljanje-info" id="priloga-posiljanje-info" hidden>
-          <h2 class="priloga-posiljanje-info__naslov">Raï¿½un za poï¿½iljanje</h2>
+          <h2 class="priloga-posiljanje-info__naslov">Račun za pošiljanje</h2>
           <div class="priloga-posiljanje-info__kanali" id="priloga-posiljanje-kanali" hidden>
             <label class="priloga-posiljanje-info__kanal">
               <input type="radio" name="kanal-posiljanja" value="email" id="kanal-email" />
-              E-poï¿½ta
+              E-pošta
             </label>
             <label class="priloga-posiljanje-info__kanal">
               <input type="radio" name="kanal-posiljanja" value="sms" id="kanal-sms" />
@@ -89,7 +89,7 @@
           <p class="priloga-posiljanje-info__besedilo" id="priloga-posiljanje-besedilo" role="status"></p>
         </section>
 
-        <!-- Glavni zaslon naï¿½rta (JS) -->
+        <!-- Glavni zaslon načrta (JS) -->
         <div id="opomin-nacrt-glavni" class="opomin-nacrt"></div>
 
         <!-- Potrditveni zaslon za en SMS korak (JS) -->
