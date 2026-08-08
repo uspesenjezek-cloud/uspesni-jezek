@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-obrazec-scroll" />
+    <link rel="stylesheet" href="styles.css?v=20260808-hash-sidro" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -37,6 +37,10 @@
       })();
     </script>
     <div class="korak2-ovoj wizard-shell">
+      <!-- URL #obrazec kaže sem (višina 0 na vrhu), ne na panel – sicer mobilni
+           hard refresh scrolla panel pod topbarjem in vsebina zgleda spuščena. -->
+      <span id="obrazec" class="wizard-hash-sidro" tabindex="-1" aria-hidden="true"></span>
+
       <div class="wizard-topbar">
         <a class="wizard-topbar__nazaj" href="zascita-posla.html">
           <span aria-hidden="true">←</span>
@@ -48,7 +52,7 @@
       </div>
 
       <!-- Enaka struktura kot koraka 2 in 3: topbar → .korak2 → zavihki → vsebina -->
-      <div class="korak2" id="obrazec" aria-label="Dodaj novo zadevo">
+      <div class="korak2" id="neplacila-obrazec" aria-label="Dodaj novo zadevo">
         <div data-wizard-progress-header data-korak="1"></div>
 
         <main class="korak2__vsebina">
@@ -351,7 +355,7 @@
       </div>
 
       <!-- Seznam odprtih zadev (#seznam) – ločen od čarovnika; skrit pri #obrazec.
-           Sporočilo o uspehu je izven #obrazec, da ostane vidno tudi na #seznam. -->
+           Sporočilo o uspehu je izven panela, da ostane vidno tudi na #seznam. -->
       <main class="app__vsebina neplacila-seznam-vsebina">
       <p class="obrazec__sporocilo" id="zadeva-dodana-sporocilo" hidden>
         <span class="obrazec__sporocilo-ikona" aria-hidden="true">✓</span>
@@ -433,17 +437,20 @@
     </div>
 
     <script>
-      /* Brskalnik lahko po izrisu #obrazec še enkrat scrolla na sidro –
-         vrnemo na vrh, da je postavitev enaka korakoma 2 in 3. */
+      /* Sidro #obrazec je na vrhu (višina 0). Kljub temu ob load/pageshow
+         (mobilni hard refresh) še enkrat poravnamo scroll na vrh. */
       (function () {
-        if (location.hash.replace("#", "") !== "obrazec") return;
-        if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-        window.scrollTo(0, 0);
-        requestAnimationFrame(function () {
+        function naVrhCeObrazec() {
+          if (location.hash.replace("#", "") !== "obrazec") return;
+          if ("scrollRestoration" in history) history.scrollRestoration = "manual";
           window.scrollTo(0, 0);
-        });
+        }
+        naVrhCeObrazec();
+        requestAnimationFrame(naVrhCeObrazec);
+        window.addEventListener("load", naVrhCeObrazec);
+        window.addEventListener("pageshow", naVrhCeObrazec);
       })();
     </script>
-    <script src="app.js?v=20260808-obrazec-scroll"></script>
+    <script src="app.js?v=20260808-hash-sidro"></script>
   </body>
 </html>

@@ -211,6 +211,18 @@ a {
   display: none !important;
 }
 
+/* Sidro za URL #obrazec – na vrhu ohišja, ne zavzame prostora v postavitvi. */
+.wizard-hash-sidro {
+  display: block;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  outline: none;
+}
+
 .stran--neplacila.stran--samo-seznam .wizard-shell {
   max-width: 430px;
 }
@@ -579,7 +591,8 @@ a {
 }
 
 /* Ločitev "Dodaj nov račun" (#obrazec) in "Preveri odprte zadeve"
-   (#seznam) - deluje že pred JS (brez utripa celotne strani). */
+   (#seznam) - deluje že pred JS (brez utripa celotne strani).
+   Panel obrazca = #neplacila-obrazec; #obrazec je samo hash-sidro na vrhu. */
 body:has(#obrazec:target) #seznam,
 body:has(#obrazec:target) #seznam-vsebnik,
 body:has(#obrazec:target) .neplacila-seznam-vsebina,
@@ -589,8 +602,8 @@ body.stran--samo-obrazec .neplacila-seznam-vsebina {
   display: none !important;
 }
 
-body:has(#seznam:target) #obrazec,
-body.stran--samo-seznam #obrazec {
+body:has(#seznam:target) #neplacila-obrazec,
+body.stran--samo-seznam #neplacila-obrazec {
   display: none !important;
 }
 
@@ -647,8 +660,8 @@ body.stran--samo-seznam #obrazec {
 
 .obrazec-kartica input,
 .obrazec-kartica textarea,
-#obrazec .obrazec input,
-#obrazec .obrazec textarea {
+#neplacila-obrazec .obrazec input,
+#neplacila-obrazec .obrazec textarea {
   border-radius: 12px;
 }
 

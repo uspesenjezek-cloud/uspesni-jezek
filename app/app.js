@@ -1464,7 +1464,8 @@ function inicializirajNeplacila() {
     const idRazdelka = window.location.hash.replace("#", "");
     if (!idRazdelka) return;
 
-    const obrazecRazdelek = document.getElementById("obrazec");
+    // Panel obrazca (ne hash-sidro #obrazec na vrhu ohišja).
+    const obrazecRazdelek = document.getElementById("neplacila-obrazec");
     const semaforRazdelek = document.getElementById("seznam");
     const seznamRazdelek = document.getElementById("seznam-vsebnik");
 
@@ -1489,7 +1490,7 @@ function inicializirajNeplacila() {
       if (obrazecRazdelek) obrazecRazdelek.hidden = false;
       if (semaforRazdelek) semaforRazdelek.hidden = true;
       if (seznamRazdelek) seznamRazdelek.hidden = true;
-      // #obrazec je panel POD topbarjem – ne scrollaj nanj (sicer skok glede na 2/3).
+      // Hash #obrazec je sidro na vrhu; ob refreshu še enkrat na scrollY=0.
       window.scrollTo(0, 0);
     }
   }
