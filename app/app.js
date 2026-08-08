@@ -65,6 +65,14 @@ function ugotoviMaxDosezenKorak() {
   return 1;
 }
 
+/* Korak je »izpolnjen«, ko so njegovi podatki shranjeni v seji
+   (uspešen Naprej na naslednji korak). Korak 3 ob shrani zadevo počisti sejo. */
+function jeKorakIzpolnjen(stevilka) {
+  if (stevilka === 1) return Boolean(sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI));
+  if (stevilka === 2) return Boolean(sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI));
+  return false;
+}
+
 /* Skupna definicija korakov za WizardProgressHeader (vse 3 strani postopka). */
 const WIZARD_KORAKI = [
   {
@@ -374,24 +382,33 @@ function inicializirajKorakePostopka(trenutniKorak) {
     if (URL_KORAKI_POSTOPKA[n]) el.setAttribute("href", URL_KORAKI_POSTOPKA[n]);
 
     if (jeDebtStepper) {
-      if (n === trenutniKorak) {
+      // Aktivno = trenutni korak (obarva besedilo).
+      // Izpolnjeno = podatki v seji (obarva krogec) – ločeno od aktivnega.
+      const jeTrenutni = n === trenutniKorak;
+      const jeIzpolnjen = jeKorakIzpolnjen(n);
+      const jeDosegljiv = n <= maxDosezen;
+
+      if (jeTrenutni) {
         el.classList.add("debt-step--active");
         el.setAttribute("aria-current", "step");
         el.setAttribute("aria-disabled", "true");
         el.setAttribute("tabindex", "-1");
-        posodobiDebtStepMarker(el, "active", n);
-      } else if (n < trenutniKorak) {
-        el.classList.add("debt-step--complete", "is-clickable");
-        posodobiDebtStepMarker(el, "complete", n);
-      } else if (n <= maxDosezen) {
-        el.classList.add("debt-step--upcoming", "is-clickable");
-        posodobiDebtStepMarker(el, "upcoming", n);
-      } else {
-        el.classList.add("debt-step--upcoming");
-        el.setAttribute("aria-disabled", "true");
-        el.setAttribute("tabindex", "-1");
-        posodobiDebtStepMarker(el, "upcoming", n);
       }
+      if (jeIzpolnjen) {
+        el.classList.add("debt-step--complete");
+        if (!jeTrenutni) el.classList.add("is-clickable");
+      } else if (!jeTrenutni) {
+        el.classList.add("debt-step--upcoming");
+        if (jeDosegljiv) {
+          el.classList.add("is-clickable");
+        } else {
+          el.setAttribute("aria-disabled", "true");
+          el.setAttribute("tabindex", "-1");
+        }
+      }
+
+      const stanje = jeIzpolnjen ? "complete" : jeTrenutni ? "active" : "upcoming";
+      posodobiDebtStepMarker(el, stanje, n);
       return;
     }
 

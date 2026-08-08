@@ -3108,14 +3108,12 @@ body.stran--samo-seznam #neplacila-obrazec {
   background: var(--step-track);
 }
 
+/*
+  Aktivni korak: obarvano SAMO besedilo (+ mehko ozadje/črta).
+  Krogec ostane nevtralen, razen če je korak tudi že izpolnjen (--complete).
+*/
 .debt-step--active .debt-step__content {
   background: var(--step-active-bg);
-}
-
-.debt-step--active .debt-step__number {
-  border-color: var(--step-primary);
-  background: var(--step-primary);
-  color: #ffffff;
 }
 
 .debt-step--active .debt-step__label {
@@ -3127,19 +3125,30 @@ body.stran--samo-seznam #neplacila-obrazec {
   background: var(--step-primary);
 }
 
-.debt-step--complete .debt-step__number {
-  border-color: var(--step-primary);
+.debt-step--active:not(.debt-step--complete) .debt-step__number {
+  border-color: var(--step-border);
   background: var(--step-surface);
-  color: var(--step-primary-dark);
+  color: #58736e;
 }
 
-.debt-step--complete .debt-step__label {
-  color: var(--step-muted);
-  font-weight: 400;
+/* Izpolnjen korak: poln turkizen krogec (indikator »zaključeno«). */
+.debt-step--complete .debt-step__number {
+  border-color: var(--step-primary);
+  background: var(--step-primary);
+  color: #ffffff;
 }
 
 .debt-step--complete .debt-step__line {
   background: var(--step-primary);
+}
+
+.debt-step--complete:not(.debt-step--active) .debt-step__label {
+  color: var(--step-muted);
+  font-weight: 400;
+}
+
+.debt-step--complete:not(.debt-step--active) .debt-step__content {
+  background: transparent;
 }
 
 .debt-step--upcoming .debt-step__number {
