@@ -557,7 +557,6 @@
         }, 450);
         window.setTimeout(function () {
           if (naslov) naslov.focus();
-          else if (samodejno) samodejno.focus();
         }, 10);
       } catch (napaka) {
         forsiraPriporocilo = false;

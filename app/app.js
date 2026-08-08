@@ -3015,8 +3015,10 @@ function inicializirajSporociloDolzniku() {
     originalTemplateSnapshot = posnetekTrenutnegaOsnutka();
 
     if (modalVsebina) modalVsebina.scrollTop = 0;
-    if (modalNaslovVnos) modalNaslovVnos.focus();
-    else modalUrejevalnik.focus();
+    // Ne fokusiraj input/textarea ob odprtju – sicer se na mobilcu takoj odpre tipkovnica.
+    if (modalNaslovGlava && typeof modalNaslovGlava.focus === "function") {
+      modalNaslovGlava.focus();
+    }
   }
 
   function odpriNovPredlogModal() {
@@ -3551,7 +3553,6 @@ function inicializirajSporociloDolzniku() {
     }
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
-    besediloPolje.focus();
   }
 
   const gumbPreglejRok = document.getElementById("gumb-preglej-rok");
