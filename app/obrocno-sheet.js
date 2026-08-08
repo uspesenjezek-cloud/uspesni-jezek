@@ -33,6 +33,10 @@
     var nastavitve = document.getElementById("obrocno-sheet-nastavitve");
     var znacka = document.getElementById("obrocno-sheet-znacka");
     var znesekEl = document.getElementById("obrocno-sheet-znesek");
+    var rokOknoEl = document.getElementById("obrocno-sheet-rok-okno");
+    var rokOknoVrednost = document.getElementById(
+      "obrocno-sheet-rok-okno-vrednost"
+    );
     var opozorilo = document.getElementById("obrocno-sheet-opozorilo");
     var stevilke = document.getElementById("obrocno-sheet-stevilke");
     var razmik = document.getElementById("obrocno-sheet-razmik");
@@ -272,7 +276,14 @@
       var len = (plan.installments && plan.installments.length) || 0;
       if (trenutno === n && len === n) return plan;
       plan = UJ.nastaviSteviloObrokov(plan, n);
-      return UJ.osveziAddon(plan, jezikAddon());
+      plan = UJ.osveziAddon(plan, jezikAddon());
+      var okno = preberiRokOkno();
+      if (okno) {
+        plan = UJ.oznaciOknoNaPlanu(plan, okno);
+        plan = UJ.razporediObrokeVOkno(plan, okno.endDate);
+        plan = UJ.osveziAddon(plan, jezikAddon());
+      }
+      return plan;
     }
 
     function posnetekOsnutkaObrocno() {
@@ -365,6 +376,7 @@
       osnutek = sveziPredlogIzPriporocila(total);
       osnutek = UJ.uskladiSteviloVrstic(osnutek);
       osnutek = zagotoviPriporocenoStevilo(osnutek);
+      osnutek = uporabiRokOkno(osnutek, true);
       draftEnabled = true;
       napolniOpozorilo();
       posodobiVklopUi();
@@ -517,6 +529,7 @@
         osnutek = sveziPredlogIzPriporocila(total);
         osnutek = UJ.uskladiSteviloVrstic(osnutek);
         osnutek = zagotoviPriporocenoStevilo(osnutek);
+        osnutek = uporabiRokOkno(osnutek, true);
       }
       oznaciObrocnoPriporociloSpremenjeno();
       posodobiVklopUi();
@@ -544,7 +557,7 @@
         }
       }
       osnutek = UJ.nastaviSteviloObrokov(osnutek, st);
-      osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+      osnutek = uporabiRokOkno(osnutek, true);
       oznaciObrocnoPriporociloSpremenjeno();
       izrisi();
     }
@@ -1054,6 +1067,8 @@
           osnutek = UJ.osveziAddon(osnutek, jezikAddon());
           if (razmik) razmik.value = osnutek.intervalType;
           osveziVrsticeBrezFokusa();
+          napolniOpozorilo();
+          posodobiPovzetek();
         });
 
         datumOvoj.appendChild(prikaz);
@@ -1104,6 +1119,46 @@
       izrisiVrstice();
       nastaviKontroleOnemogocene(!draftEnabled);
       posodobiPovzetek();
+      napolniOpozorilo();
+    }
+
+    function preberiRokOkno() {
+      var rok = ctx.getPaymentDeadline ? ctx.getPaymentDeadline() : null;
+      var planned =
+        typeof ctx.bazaDatumaPosiljanja === "function"
+          ? ctx.bazaDatumaPosiljanja()
+          : UJ.danesYYYYMMDD();
+      return UJ.oknoIzRokaPlacila(rok, planned);
+    }
+
+    function napolniRokOknoUi(okno) {
+      if (!rokOknoEl) return;
+      if (!okno) {
+        rokOknoEl.hidden = true;
+        if (rokOknoVrednost) rokOknoVrednost.textContent = "—";
+        return;
+      }
+      rokOknoEl.hidden = false;
+      if (rokOknoVrednost) {
+        var dnevi = Number(okno.days);
+        var datum = UJ.formatDateSl(okno.endDate);
+        rokOknoVrednost.textContent =
+          (Number.isFinite(dnevi) ? dnevi + " dni" : "—") +
+          (datum ? " · do " + datum : "");
+      }
+    }
+
+    /** Ob novem predlogu: prenesi rok v časovnico. Ob obstoječem: samo označi okno. */
+    function uporabiRokOkno(plan, razporedi) {
+      var okno = preberiRokOkno();
+      napolniRokOknoUi(okno);
+      if (!plan) return plan;
+      plan = UJ.oznaciOknoNaPlanu(plan, okno);
+      if (razporedi && okno) {
+        plan = UJ.razporediObrokeVOkno(plan, okno.endDate);
+        plan = UJ.osveziAddon(plan, jezikAddon());
+      }
+      return plan;
     }
 
     function napolniOpozorilo() {
@@ -1113,9 +1168,25 @@
         opozorilo.hidden = false;
         opozorilo.textContent =
           "Račun še ni zapadel. Račun zapade čez " + Math.abs(d) + " dni.";
-      } else {
-        opozorilo.hidden = true;
+        return;
       }
+      if (UJ.presegaRokOkno(osnutek)) {
+        var dnevi = Number(osnutek.paymentWindowDays);
+        var doKdaj = osnutek.paymentWindowEndDate
+          ? UJ.formatDateSl(osnutek.paymentWindowEndDate)
+          : "";
+        opozorilo.hidden = false;
+        opozorilo.textContent =
+          "Obroki presegajo rok plačila" +
+          (Number.isFinite(dnevi) ? " (" + dnevi + " dni" : "") +
+          (doKdaj
+            ? (Number.isFinite(dnevi) ? ", do " : " (do ") + doKdaj
+            : "") +
+          (Number.isFinite(dnevi) || doKdaj ? ")" : "") +
+          ". Lahko pustiš – to je ročni odstop.";
+        return;
+      }
+      opozorilo.hidden = true;
     }
 
     function sveziPredlog(total) {
@@ -1308,6 +1379,12 @@
       if (!opts.predlogaNacin) {
         osnutek = zagotoviPriporocenoStevilo(osnutek);
       }
+
+      // Rok plačila → okno za obročno (pri novem predlogu tudi razporedi datume).
+      var razporediPoRoku =
+        Boolean(forsiraPriporocilo) ||
+        (!opts.predlogaNacin && !existingUporaben);
+      osnutek = uporabiRokOkno(osnutek, razporediPoRoku);
 
       originalEnabled = opts.predlogaNacin
         ? Boolean(opts.zacetnoEnabled)

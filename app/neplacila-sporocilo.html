@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-stev-razpored" />
+    <link rel="stylesheet" href="styles.css?v=20260808-rok-obrocno" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -673,9 +673,15 @@
 
           <div class="obrocno-sheet__nastavitve" id="obrocno-sheet-nastavitve">
             <div class="obrocno-sheet__znesek-kartica">
-              <div>
+              <div class="obrocno-sheet__znesek-levo">
                 <p class="rok-sheet__oznaka">Znesek dolga</p>
                 <p class="obrocno-sheet__znesek-vrednost" id="obrocno-sheet-znesek">—</p>
+                <div class="obrocno-sheet__rok-okno" id="obrocno-sheet-rok-okno" hidden>
+                  <p class="rok-sheet__oznaka">Rok plačila</p>
+                  <p class="obrocno-sheet__rok-okno-vrednost" id="obrocno-sheet-rok-okno-vrednost">
+                    —
+                  </p>
+                </div>
               </div>
               <span class="obrocno-sheet__znacka" id="obrocno-sheet-znacka">Samodejni predlog</span>
             </div>
@@ -808,8 +814,8 @@
 
     <script src="rok-placila-utils.js?v=20260808-predogled"></script>
     <script src="rok-placila-sheet.js?v=20260808-rok-fix"></script>
-    <script src="obrocno-utils.js?v=20260808-predogled"></script>
-    <script src="obrocno-sheet.js?v=20260808-predogled"></script>
+    <script src="obrocno-utils.js?v=20260808-rok-obrocno"></script>
+    <script src="obrocno-sheet.js?v=20260808-rok-obrocno"></script>
     <script src="ton-priporocilo.js?v=20260808-predogled"></script>
     <script src="ton-predloge.js?v=20260808-predogled"></script>
     <script src="ton-widget.js?v=20260808-predogled"></script>

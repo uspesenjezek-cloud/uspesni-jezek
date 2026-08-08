@@ -104,6 +104,92 @@
     return Math.round((evalDt.getTime() - due.getTime()) / 86400000);
   }
 
+  /** Število koledarskih dni od a do b (lahko negativno). */
+  function steviloDniMed(a, b) {
+    var da = parseLocalYYYYMMDD(a);
+    var db = parseLocalYYYYMMDD(b);
+    if (!da || !db) return null;
+    return Math.round((db.getTime() - da.getTime()) / 86400000);
+  }
+
+  /**
+   * Okno za obročno iz shranjenega roka plačila (termDays / deadlineDate).
+   * @returns {{ days: number, endDate: string, termDays: number }|null}
+   */
+  function oknoIzRokaPlacila(rok, plannedSendDate) {
+    if (!rok || !rok.enabled) return null;
+    var base = rok.baseSendDate || plannedSendDate || danesYYYYMMDD();
+    var end = rok.deadlineDate || null;
+    var term = Number(rok.termDays);
+    if ((!end || !/^\d{4}-\d{2}-\d{2}$/.test(String(end))) && Number.isFinite(term)) {
+      end = dodajKoledarskeDni(base, Math.max(0, term));
+    }
+    if (!end || !/^\d{4}-\d{2}-\d{2}$/.test(String(end))) return null;
+    var days = Number.isFinite(term) ? Math.max(0, term) : steviloDniMed(base, end);
+    if (days == null || days < 0) days = 0;
+    return {
+      days: days,
+      endDate: String(end),
+      termDays: days,
+    };
+  }
+
+  function oznaciOknoNaPlanu(plan, okno) {
+    if (!plan) return plan;
+    if (!okno) {
+      plan.paymentWindowEndDate = null;
+      plan.paymentWindowDays = null;
+      return plan;
+    }
+    plan.paymentWindowEndDate = okno.endDate;
+    plan.paymentWindowDays = okno.days;
+    return plan;
+  }
+
+  /**
+   * Sorazmerno razporedi datume obrokov v okno [prvi…konec roka].
+   * Interval postane custom (tedenski/mesečni razmik bi okno prebil).
+   */
+  function razporediObrokeVOkno(plan, endDate) {
+    if (!plan || !endDate) return plan;
+    var rows = plan.installments || [];
+    if (!rows.length) return plan;
+    var planned = plan.plannedSendDate || danesYYYYMMDD();
+    var start = najmanjsiPrviDatum(plan.originalDueDate, planned);
+    var end = String(endDate);
+    if (end < start) end = start;
+
+    if (rows.length === 1) {
+      rows[0].dueDate = end;
+    } else {
+      var span = steviloDniMed(start, end);
+      if (span == null || span < 0) span = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var off = Math.round((span * i) / (rows.length - 1));
+        rows[i].dueDate = dodajKoledarskeDni(start, off);
+      }
+    }
+    plan.installments = rows;
+    plan.firstDueDate = rows[0].dueDate;
+    plan.intervalType = "custom";
+    plan.paymentWindowEndDate = end;
+    var d = steviloDniMed(planned, end);
+    plan.paymentWindowDays = d != null ? Math.max(0, d) : plan.paymentWindowDays;
+    oštevilci(plan);
+    plan.updatedAt = new Date().toISOString();
+    return plan;
+  }
+
+  function presegaRokOkno(plan) {
+    if (!plan || !plan.paymentWindowEndDate) return false;
+    var end = String(plan.paymentWindowEndDate);
+    var rows = plan.installments || [];
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].dueDate && String(rows[i].dueDate) > end) return true;
+    }
+    return false;
+  }
+
   function formatCentsSl(cents) {
     var n = Number(cents) || 0;
     var eur = n / 100;
@@ -639,6 +725,21 @@
         message: "Datum prvega obroka je prezgodaj.",
       });
     }
+    if (presegaRokOkno(plan)) {
+      var dOkna = Number(plan.paymentWindowDays);
+      var doKdaj = plan.paymentWindowEndDate
+        ? formatDateSl(plan.paymentWindowEndDate)
+        : "";
+      warnings.push({
+        code: "beyond_window",
+        message:
+          "Obroki presegajo rok plačila" +
+          (Number.isFinite(dOkna) ? " (" + dOkna + " dni" : "") +
+          (doKdaj ? (Number.isFinite(dOkna) ? ", do " : " (do ") + doKdaj : "") +
+          (Number.isFinite(dOkna) || doKdaj ? ")" : "") +
+          ". Lahko pustiš – to je ročni odstop.",
+      });
+    }
     return {
       ok: errors.length === 0,
       errors: errors,
@@ -877,6 +978,11 @@
     sestaviAddonText: sestaviAddonText,
     osveziAddon: osveziAddon,
     najmanjsiPrviDatum: najmanjsiPrviDatum,
+    steviloDniMed: steviloDniMed,
+    oknoIzRokaPlacila: oknoIzRokaPlacila,
+    oznaciOknoNaPlanu: oznaciOknoNaPlanu,
+    razporediObrokeVOkno: razporediObrokeVOkno,
+    presegaRokOkno: presegaRokOkno,
   };
 
   root.UJObrocno = api;
