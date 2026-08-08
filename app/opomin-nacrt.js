@@ -193,6 +193,93 @@
     return d.toISOString();
   }
 
+  /** Lokalni koledarski datum YYYY-MM-DD (časovni pas naprave / podjetja). */
+  function formatLocalYYYYMMDD(dt) {
+    var y = dt.getFullYear();
+    var m = String(dt.getMonth() + 1).padStart(2, "0");
+    var d = String(dt.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
+  }
+
+  function parseLocalDateTime(isoOrLocal) {
+    if (!isoOrLocal) return null;
+    var dt = new Date(isoOrLocal);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt;
+  }
+
+  /** Koledarska razlika v dnevih (B − A), ne milisekunde / 86400000. */
+  function koledarskiDneviMed(isoA, isoB) {
+    var a = parseLocalDateTime(isoA);
+    var b = parseLocalDateTime(isoB);
+    if (!a || !b) return null;
+    var da = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+    var db = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((db.getTime() - da.getTime()) / 86400000);
+  }
+
+  function dodajKoledarskeDniInCas(iso, deltaDni, deltaMsCas) {
+    var d = parseLocalDateTime(iso);
+    if (!d) return null;
+    var out = new Date(d.getTime());
+    if (deltaMsCas) out.setTime(out.getTime() + deltaMsCas);
+    if (deltaDni) out.setDate(out.getDate() + deltaDni);
+    return out.toISOString();
+  }
+
+  function slovenskaDniBeseda(n) {
+    if (root.UJTonPriporocilo && typeof root.UJTonPriporocilo.slovenskaDniBeseda === "function") {
+      return root.UJTonPriporocilo.slovenskaDniBeseda(n);
+    }
+    var d = Math.abs(Number(n) || 0);
+    if (d === 1) return "1 dan";
+    if (d === 2) return "2 dni";
+    if (d === 3 || d === 4) return d + " dni";
+    return d + " dni";
+  }
+
+  function oznakaCezDni(n) {
+    return "Čez " + slovenskaDniBeseda(n);
+  }
+
+  function oznakaPoPrejsnjem(n) {
+    return slovenskaDniBeseda(n) + " po prejšnjem koraku";
+  }
+
+  function syncScheduledAt(step) {
+    if (!step) return step;
+    if (step.scheduledAt && !step.sendAt) step.sendAt = step.scheduledAt;
+    if (step.sendAt && !step.scheduledAt) step.scheduledAt = step.sendAt;
+    if (step.sendAt) step.scheduledAt = step.sendAt;
+    return step;
+  }
+
+  /** Posodobi scheduledOffsetDays iz dejanskih datumov (od prvega koraka). */
+  function uskladiOffseteIzDatumov(plan) {
+    var steps = (plan && plan.steps) || [];
+    if (!steps.length) return plan;
+    var first = steps[0];
+    syncScheduledAt(first);
+    var baseIso = first.sendAt || first.scheduledAt || privzetiSendAt(0);
+    steps.forEach(function (s) {
+      syncScheduledAt(s);
+      var iso = s.sendAt || s.scheduledAt;
+      var off = koledarskiDneviMed(baseIso, iso);
+      if (off == null) off = Number(s.scheduledOffsetDays) || 0;
+      s.scheduledOffsetDays = off;
+      s.offsetDays = off;
+    });
+    var last = steps[steps.length - 1];
+    plan.totalDurationDays = last ? last.scheduledOffsetDays : plan.totalDurationDays;
+    return plan;
+  }
+
+  function jeKorakPremakljiv(step) {
+    if (!step) return false;
+    if (step.status === "sent" || step.status === "cancelled") return false;
+    return true;
+  }
+
   function sestaviGeneratedMessage(index, ctx) {
     var ime = String(ctx.imeDolznika || "Kunde").trim() || "Kunde";
     var znesek = formatirajZnesekDe(ctx.amountCents);
@@ -264,6 +351,7 @@
 
   function narediKorak(meta, offsetDays, ctx, vsebina) {
     var kind = meta.deliveryMode === "manual" ? "manual_lawyer" : "sms";
+    var sendAt = privzetiSendAt(offsetDays);
     var base = {
       id: "stage-" + meta.order,
       index: meta.order,
@@ -274,7 +362,9 @@
       deliveryMode: meta.deliveryMode,
       scheduledOffsetDays: offsetDays,
       offsetDays: offsetDays,
-      sendAt: privzetiSendAt(offsetDays),
+      sendAt: sendAt,
+      scheduledAt: sendAt,
+      manualScheduleOverride: false,
       toneId: meta.toneId,
       templateId: vsebina.templateId,
       paymentDeadline: vsebina.paymentDeadline,
@@ -319,17 +409,20 @@
     });
     var now = zdajIso();
     var totalDurationDays = odmiki[odmiki.length - 1] || 0;
+    var activationAt = steps[0] && steps[0].sendAt ? steps[0].sendAt : now;
     return {
       id: "plan-" + now,
       debtId: null,
       status: "draft",
       createdAt: now,
       updatedAt: now,
+      activationAt: activationAt,
       toneId: toneId,
       amountCents: amountCents,
       overdueDays: overdue,
       overdueDaysAtCreation: overdue,
       recommendationReason: sestaviRazlog(amountCents, overdue, toneId),
+      recommendedGapDays: odmiki[1] != null ? odmiki[1] : 11,
       totalDurationDays: totalDurationDays,
       selectedStageId: steps[0].id,
       keepStageIntervals: true,
@@ -372,11 +465,16 @@
         step.kind === "manual_lawyer" ? "manual" : "automatic";
     }
     if (!step.toneId) step.toneId = meta.toneId;
+    if (step.sendAt == null && step.scheduledAt) step.sendAt = step.scheduledAt;
     if (step.sendAt == null) {
       step.sendAt = privzetiSendAt(step.scheduledOffsetDays || 0);
     }
+    step.scheduledAt = step.sendAt;
     if (step.offsetDays == null) {
       step.offsetDays = step.scheduledOffsetDays || 0;
+    }
+    if (step.manualScheduleOverride == null) {
+      step.manualScheduleOverride = false;
     }
     return step;
   }
@@ -415,12 +513,15 @@
     plan.overdueDaysAtCreation = overdue;
     plan.inputsHash = novHash;
     plan.totalDurationDays = odmiki[odmiki.length - 1] || 0;
+    plan.recommendedGapDays = odmiki[1] != null ? odmiki[1] : 11;
     if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
 
     (plan.steps || []).forEach(function (step, i) {
       step.scheduledOffsetDays = odmiki[i];
       step.offsetDays = odmiki[i];
       step.sendAt = privzetiSendAt(odmiki[i]);
+      step.scheduledAt = step.sendAt;
+      step.manualScheduleOverride = false;
       if (!step.paymentDeadline) step.paymentDeadline = vsebina.paymentDeadline;
       if (!step.installment) step.installment = vsebina.installment;
       if (!step.bankTransfer) step.bankTransfer = vsebina.bankTransfer;
@@ -439,6 +540,7 @@
       }
     });
 
+    plan.activationAt = plan.steps[0] ? plan.steps[0].sendAt : plan.activationAt;
     return osveziPlanStatus(plan);
   }
 
@@ -452,6 +554,7 @@
       }
       if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
       plan.steps.forEach(normalizirajKorak);
+      uskladiOffseteIzDatumov(plan);
       plan.stages = plan.steps;
       return plan;
     } catch (_e) {
@@ -542,10 +645,21 @@
     return osveziPlanStatus(plan);
   }
 
-  /** Premakni sendAt trenutnega koraka; po potrebi ohrani razmike. */
-  function posodobiCasKoraka(plan, index, novSendAtIso) {
+  /**
+   * Premakni čas koraka.
+   * @param {object} [opts]
+   * @param {boolean} [opts.shiftFollowing=true] – prestavi tudi naslednje premakljive korake
+   */
+  function posodobiCasKoraka(plan, index, novSendAtIso, opts) {
     var step = najdiKorak(plan, index);
     if (!step || !novSendAtIso) return plan;
+    if (!jeKorakPremakljiv(step)) return plan;
+
+    var options = opts || {};
+    var shiftFollowing =
+      options.shiftFollowing != null
+        ? Boolean(options.shiftFollowing)
+        : Boolean(plan.keepStageIntervals);
 
     var staro = step.sendAt ? new Date(step.sendAt) : new Date();
     var novo = new Date(novSendAtIso);
@@ -553,66 +667,173 @@
 
     var deltaMs = novo.getTime() - staro.getTime();
     step.sendAt = novo.toISOString();
-
-    var baza = new Date();
-    baza.setHours(12, 0, 0, 0);
-    step.scheduledOffsetDays = Math.max(
-      0,
-      Math.round((novo.getTime() - baza.getTime()) / 86400000)
-    );
-    step.offsetDays = step.scheduledOffsetDays;
+    step.scheduledAt = step.sendAt;
+    step.manualScheduleOverride = true;
     oznaciNeedsReview(step);
 
-    if (plan.keepStageIntervals) {
+    if (shiftFollowing && deltaMs !== 0) {
       (plan.steps || []).forEach(function (s) {
         if (s.index <= step.index) return;
-        if (s.sendAt) {
-          var dn = new Date(s.sendAt);
+        if (!jeKorakPremakljiv(s)) return;
+        if (s.sendAt || s.scheduledAt) {
+          var dn = new Date(s.sendAt || s.scheduledAt);
           dn.setTime(dn.getTime() + deltaMs);
           s.sendAt = dn.toISOString();
-          s.scheduledOffsetDays = Math.max(
-            0,
-            Math.round((dn.getTime() - baza.getTime()) / 86400000)
-          );
-          s.offsetDays = s.scheduledOffsetDays;
+          s.scheduledAt = s.sendAt;
         }
         oznaciNeedsReview(s);
       });
     }
 
-    var last = plan.steps[plan.steps.length - 1];
-    plan.totalDurationDays = last
-      ? last.scheduledOffsetDays
-      : plan.totalDurationDays;
+    uskladiOffseteIzDatumov(plan);
+    if (!plan.activationAt && plan.steps[0]) {
+      plan.activationAt = plan.steps[0].sendAt;
+    }
     return osveziPlanStatus(plan);
   }
 
   /**
-   * Nastavi razmik (v dnevih) od koraka index do naslednjega.
-   * Ob keepStageIntervals premakne tudi vse poznejše korake.
+   * Validacija pred shranjevanjem časa koraka.
+   * @returns {{ ok: boolean, napaka: string|null, preview: object }}
    */
-  function posodobiRazmikDoNaslednjega(plan, index, noviDneviRazmika) {
+  function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing) {
     var step = najdiKorak(plan, index);
     var naslednji = najdiKorak(plan, Number(index) + 1);
-    if (!step || !naslednji) return plan;
+    var prejsnji = najdiKorak(plan, Number(index) - 1);
+    var preview = {
+      shiftedCount: 0,
+      lastSendAt: null,
+      nextGapDays: null,
+      onlyCurrent: !shiftFollowing,
+    };
+    var zacetekDanes = danesZacetekSafe();
+
+    if (!step) {
+      return { ok: false, napaka: "Korak ni najden.", preview: preview };
+    }
+    if (!jeKorakPremakljiv(step)) {
+      return {
+        ok: false,
+        napaka: "Poslanega koraka ni mogoče spreminjati.",
+        preview: preview,
+      };
+    }
+
+    var novo = parseLocalDateTime(novSendAtIso);
+    if (!novo) {
+      return { ok: false, napaka: "Neveljaven datum.", preview: preview };
+    }
+
+    if (novo.getTime() < zacetekDanes) {
+      return {
+        ok: false,
+        napaka: "Datum ne sme biti v preteklosti.",
+        preview: preview,
+      };
+    }
+
+    if (prejsnji && (prejsnji.sendAt || prejsnji.scheduledAt)) {
+      var prev = parseLocalDateTime(prejsnji.sendAt || prejsnji.scheduledAt);
+      if (prev && novo.getTime() <= prev.getTime()) {
+        return {
+          ok: false,
+          napaka: "Ta korak mora biti načrtovan po prejšnjem koraku.",
+          preview: preview,
+        };
+      }
+    }
+
+    var staro = parseLocalDateTime(step.sendAt || step.scheduledAt) || new Date();
+    var deltaMs = novo.getTime() - staro.getTime();
+
+    if (shiftFollowing) {
+      var count = 0;
+      var lastIso = novo.toISOString();
+      var badPast = false;
+      (plan.steps || []).forEach(function (s) {
+        if (s.index <= step.index) return;
+        if (!jeKorakPremakljiv(s)) return;
+        count += 1;
+        if (s.sendAt || s.scheduledAt) {
+          var dn = new Date(s.sendAt || s.scheduledAt);
+          dn.setTime(dn.getTime() + deltaMs);
+          lastIso = dn.toISOString();
+          if (dn.getTime() < zacetekDanes) badPast = true;
+        }
+      });
+      preview.shiftedCount = count;
+      preview.lastSendAt = lastIso;
+      if (badPast) {
+        return {
+          ok: false,
+          napaka: "Premik bi postavil prihodnje korake v preteklost.",
+          preview: preview,
+        };
+      }
+    } else if (naslednji && (naslednji.sendAt || naslednji.scheduledAt)) {
+      var next = parseLocalDateTime(naslednji.sendAt || naslednji.scheduledAt);
+      if (next && next.getTime() <= novo.getTime()) {
+        return {
+          ok: false,
+          napaka:
+            "Naslednji korak je načrtovan prezgodaj. Spremenite datum ali prestavite tudi naslednje korake.",
+          preview: preview,
+        };
+      }
+      preview.nextGapDays = koledarskiDneviMed(
+        novo.toISOString(),
+        next.toISOString()
+      );
+      preview.lastSendAt = naslednji.sendAt || naslednji.scheduledAt;
+    }
+
+    var conflict = (plan.steps || []).some(function (s) {
+      if (s.index === step.index) return false;
+      var t = parseLocalDateTime(s.sendAt || s.scheduledAt);
+      return t && Math.abs(t.getTime() - novo.getTime()) < 60000;
+    });
+    if (conflict) {
+      return {
+        ok: false,
+        napaka: "Dva koraka ne moreta imeti enakega časa.",
+        preview: preview,
+      };
+    }
+
+    return { ok: true, napaka: null, preview: preview };
+  }
+
+  function danesZacetekSafe() {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  /**
+   * Nastavi razmik (v dnevih) od koraka index do naslednjega.
+   * Ob shiftFollowing (ali keepStageIntervals) premakne tudi poznejše korake.
+   */
+  function posodobiRazmikDoNaslednjega(plan, index, noviDneviRazmika, opts) {
+    var step = najdiKorak(plan, index);
+    var naslednji = najdiKorak(plan, Number(index) + 1);
+    if (!step || !naslednji || !jeKorakPremakljiv(naslednji)) return plan;
+
+    var options = opts || {};
+    var shiftFollowing =
+      options.shiftFollowing != null
+        ? Boolean(options.shiftFollowing)
+        : Boolean(plan.keepStageIntervals);
 
     var dnevi = Math.max(0, Math.round(Number(noviDneviRazmika)));
     if (!Number.isFinite(dnevi)) return plan;
 
-    var baza = new Date();
-    baza.setHours(12, 0, 0, 0);
-
-    var staroOffset = Number(naslednji.scheduledOffsetDays) || 0;
-    var novOffset = (Number(step.scheduledOffsetDays) || 0) + dnevi;
-    var deltaDni = novOffset - staroOffset;
-
     var osnovniSend = step.sendAt
       ? new Date(step.sendAt)
-      : new Date(baza.getTime() + (Number(step.scheduledOffsetDays) || 0) * 86400000);
-    if (Number.isNaN(osnovniSend.getTime())) osnovniSend = new Date(baza);
+      : new Date();
+    if (Number.isNaN(osnovniSend.getTime())) osnovniSend = new Date();
 
-    var novSend = new Date(osnovniSend.getTime() + dnevi * 86400000);
-    /* Ohrani uro naslednjega, če že obstaja. */
+    var novSend = new Date(osnovniSend.getTime());
+    novSend.setDate(novSend.getDate() + dnevi);
     if (naslednji.sendAt) {
       var stari = new Date(naslednji.sendAt);
       if (!Number.isNaN(stari.getTime())) {
@@ -620,33 +841,9 @@
       }
     }
 
-    naslednji.sendAt = novSend.toISOString();
-    naslednji.scheduledOffsetDays = novOffset;
-    naslednji.offsetDays = novOffset;
-    oznaciNeedsReview(naslednji);
-
-    if (plan.keepStageIntervals && deltaDni !== 0) {
-      (plan.steps || []).forEach(function (s) {
-        if (s.index <= naslednji.index) return;
-        s.scheduledOffsetDays =
-          (Number(s.scheduledOffsetDays) || 0) + deltaDni;
-        s.offsetDays = s.scheduledOffsetDays;
-        if (s.sendAt) {
-          var d = new Date(s.sendAt);
-          d.setDate(d.getDate() + deltaDni);
-          s.sendAt = d.toISOString();
-        } else {
-          s.sendAt = privzetiSendAt(s.scheduledOffsetDays);
-        }
-        oznaciNeedsReview(s);
-      });
-    }
-
-    var last = plan.steps[plan.steps.length - 1];
-    plan.totalDurationDays = last
-      ? last.scheduledOffsetDays
-      : plan.totalDurationDays;
-    return osveziPlanStatus(plan);
+    return posodobiCasKoraka(plan, naslednji.index, novSend.toISOString(), {
+      shiftFollowing: shiftFollowing,
+    });
   }
 
   function oznaciAktiviran(plan) {
@@ -695,6 +892,13 @@
     nastaviKeepIntervals: nastaviKeepIntervals,
     posodobiCasKoraka: posodobiCasKoraka,
     posodobiRazmikDoNaslednjega: posodobiRazmikDoNaslednjega,
+    validirajCasKoraka: validirajCasKoraka,
+    uskladiOffseteIzDatumov: uskladiOffseteIzDatumov,
+    koledarskiDneviMed: koledarskiDneviMed,
+    slovenskaDniBeseda: slovenskaDniBeseda,
+    oznakaCezDni: oznakaCezDni,
+    oznakaPoPrejsnjem: oznakaPoPrejsnjem,
+    jeKorakPremakljiv: jeKorakPremakljiv,
     oznaciAktiviran: oznaciAktiviran,
     izracunajPlanStatus: izracunajPlanStatus,
     prviNepotrjenSmsIndex: prviNepotrjenSmsIndex,
