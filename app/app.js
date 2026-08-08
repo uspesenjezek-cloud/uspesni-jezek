@@ -3017,6 +3017,12 @@ function inicializirajSporociloDolzniku() {
           privzetiDneviRoka = v;
         },
         getToneId: () => aktivniTonZaDodatke(),
+        getToneIdZaPriporocila: () => tonZaPriporocila(),
+        getPriporociloVhod: () => ({
+          toneId: tonZaPriporocila(),
+          overdueDays: dniZamudeZaPriporocila(),
+          amountCents: znesekDolgaVCentih(),
+        }),
         getDneviZaTon: (toneId) =>
           window.UJRokPlacila ? window.UJRokPlacila.dneviZaTon(toneId) : 14,
         onAfterChange: () => posodobiNamigeTonaDodatkov(),
@@ -3069,6 +3075,12 @@ function inicializirajSporociloDolzniku() {
         },
         getOriginalDueDate: () => podatkiKorak1.datumZapadlosti || null,
         getToneId: () => aktivniTonZaDodatke(),
+        getToneIdZaPriporocila: () => tonZaPriporocila(),
+        getPriporociloVhod: () => ({
+          toneId: tonZaPriporocila(),
+          overdueDays: dniZamudeZaPriporocila(),
+          amountCents: znesekDolgaVCentih(),
+        }),
         getJezik: () => {
           if (window.UJRokPlacila) {
             return window.UJRokPlacila.ugotoviJezikSporocila(besediloPolje.value);

@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-priporocila-vedno" />
+    <link rel="stylesheet" href="styles.css?v=20260808-sheet-razlaga" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -330,6 +330,11 @@
         </div>
 
         <div class="rok-sheet__telo">
+          <p
+            class="rok-sheet__priporocilo-razlaga"
+            id="rok-sheet-priporocilo-razlaga"
+            hidden
+          ></p>
           <label class="rok-sheet__stikalo">
             <span class="rok-sheet__stikalo-besedilo">Samodejno glede na predlog</span>
             <input type="checkbox" id="rok-sheet-samodejno" checked />
@@ -351,7 +356,10 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
             </span>
           </div>
-          <p class="rok-sheet__pomoc" id="rok-sheet-pomoc">Privzeto: 5 dni od pošiljanja</p>
+          <p class="rok-sheet__pomoc" id="rok-sheet-pomoc">
+            <span class="rok-sheet__pomoc-zvezda" id="rok-sheet-pomoc-zvezda" hidden aria-hidden="true">★</span>
+            <span id="rok-sheet-pomoc-besedilo">Privzeto: 5 dni od pošiljanja</span>
+          </p>
           <p class="rok-sheet__napaka" id="rok-sheet-napaka" hidden>
             Rok plačila ne sme biti pred datumom pošiljanja.
           </p>
@@ -422,6 +430,11 @@
           </button>
         </div>
         <div class="rok-sheet__telo">
+          <p
+            class="rok-sheet__priporocilo-razlaga"
+            id="obrocno-sheet-priporocilo-razlaga"
+            hidden
+          ></p>
           <button
             type="button"
             class="obrocno-sheet__vklop"
@@ -535,14 +548,14 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-priporocila-vedno"></script>
-    <script src="rok-placila-sheet.js?v=20260808-priporocila-vedno"></script>
-    <script src="obrocno-utils.js?v=20260808-priporocila-vedno"></script>
-    <script src="obrocno-sheet.js?v=20260808-priporocila-vedno"></script>
-    <script src="ton-priporocilo.js?v=20260808-priporocila-vedno"></script>
-    <script src="ton-predloge.js?v=20260808-priporocila-vedno"></script>
-    <script src="ton-widget.js?v=20260808-priporocila-vedno"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-priporocila-vedno"></script>
-    <script src="app.js?v=20260808-priporocila-vedno"></script>
+    <script src="rok-placila-utils.js?v=20260808-sheet-razlaga"></script>
+    <script src="rok-placila-sheet.js?v=20260808-sheet-razlaga"></script>
+    <script src="obrocno-utils.js?v=20260808-sheet-razlaga"></script>
+    <script src="obrocno-sheet.js?v=20260808-sheet-razlaga"></script>
+    <script src="ton-priporocilo.js?v=20260808-sheet-razlaga"></script>
+    <script src="ton-predloge.js?v=20260808-sheet-razlaga"></script>
+    <script src="ton-widget.js?v=20260808-sheet-razlaga"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-sheet-razlaga"></script>
+    <script src="app.js?v=20260808-sheet-razlaga"></script>
   </body>
 </html>

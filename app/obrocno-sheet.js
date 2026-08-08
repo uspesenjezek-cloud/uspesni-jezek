@@ -51,6 +51,9 @@
     var live = document.getElementById("obrocno-sheet-live");
     var undoEl = document.getElementById("obrocno-sheet-undo");
     var dodatekObrocnoStanje = document.getElementById("dodatek-obrocno-stanje");
+    var razlagaPriporocila = document.getElementById(
+      "obrocno-sheet-priporocilo-razlaga"
+    );
 
     var odprt = false;
     var osnutek = null;
@@ -191,6 +194,54 @@
       }, 250);
     }
 
+    function tonZaRazlago() {
+      return (
+        forsiraToneId ||
+        (typeof ctx.getToneIdZaPriporocila === "function"
+          ? ctx.getToneIdZaPriporocila()
+          : null) ||
+        (typeof ctx.getToneId === "function" ? ctx.getToneId() : null)
+      );
+    }
+
+    function priporocenoSteviloObrokov() {
+      var tonId = tonZaRazlago();
+      if (Rok && typeof Rok.predlogObrocnegaZaTon === "function") {
+        var p = Rok.predlogObrocnegaZaTon(tonId);
+        var n = p && Number(p.installments);
+        if (Number.isFinite(n) && n >= UJ.MIN_OBROKOV) return n;
+      }
+      return null;
+    }
+
+    function posodobiRazlagoPriporocila() {
+      if (!razlagaPriporocila) return;
+      var api = root.UJTonDodatkiPriporocila;
+      if (!api || typeof api.sestaviPriporocila !== "function") {
+        razlagaPriporocila.hidden = true;
+        razlagaPriporocila.innerHTML = "";
+        return;
+      }
+      var vhodOsnova =
+        typeof ctx.getPriporociloVhod === "function"
+          ? ctx.getPriporociloVhod()
+          : null;
+      var vhod = {
+        toneId: (vhodOsnova && vhodOsnova.toneId) || tonZaRazlago(),
+        overdueDays: vhodOsnova ? vhodOsnova.overdueDays : null,
+        amountCents: (vhodOsnova && vhodOsnova.amountCents) || 0,
+      };
+      if (forsiraToneId) vhod.toneId = forsiraToneId;
+      var p = api.sestaviPriporocila(vhod);
+      if (p && p.obrocnoHtml) {
+        razlagaPriporocila.innerHTML = p.obrocnoHtml;
+        razlagaPriporocila.hidden = false;
+      } else {
+        razlagaPriporocila.innerHTML = "";
+        razlagaPriporocila.hidden = true;
+      }
+    }
+
     function zgradiStevilke() {
       if (!stevilke) return;
       stevilke.innerHTML = "";
@@ -198,9 +249,17 @@
         var b = document.createElement("button");
         b.type = "button";
         b.className = "rok-sheet__stevilka obrocno-sheet__stevilka";
-        b.textContent = String(n);
         b.setAttribute("aria-label", "Izberi " + n + " obrokov");
         b.dataset.n = String(n);
+        var cifra = document.createElement("span");
+        cifra.textContent = String(n);
+        b.appendChild(cifra);
+        var zvezdica = document.createElement("span");
+        zvezdica.className = "obrocno-sheet__stevilka-zvezda";
+        zvezdica.setAttribute("aria-hidden", "true");
+        zvezdica.hidden = true;
+        zvezdica.textContent = "★";
+        b.appendChild(zvezdica);
         b.addEventListener("click", function (ev) {
           if (!draftEnabled) return;
           var st = Number(ev.currentTarget.dataset.n);
@@ -212,9 +271,15 @@
 
     function posodobiStevilkeUi() {
       if (!stevilke || !osnutek) return;
+      var priporoceno = priporocenoSteviloObrokov();
       stevilke.querySelectorAll("button").forEach(function (b) {
-        var sel = Number(b.dataset.n) === osnutek.installmentCount;
+        var n = Number(b.dataset.n);
+        var sel = n === osnutek.installmentCount;
         b.setAttribute("aria-selected", sel ? "true" : "false");
+        var zvezdica = b.querySelector(".obrocno-sheet__stevilka-zvezda");
+        if (zvezdica) {
+          zvezdica.hidden = !(priporoceno != null && n === priporoceno);
+        }
         if (sel) {
           b.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
         }
@@ -1070,6 +1135,7 @@
 
       if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(total);
       napolniOpozorilo();
+      posodobiRazlagoPriporocila();
       posodobiVklopUi();
       izrisi();
 

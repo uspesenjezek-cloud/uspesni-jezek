@@ -4580,11 +4580,27 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .obrocno-sheet__stevilka {
+  position: relative;
   flex: 0 0 50px;
   width: 50px;
   min-height: 50px;
   border-radius: 999px;
   font-size: 1.05rem;
+}
+
+.obrocno-sheet__stevilka-zvezda {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  color: #e8b923;
+  font-size: 0.72rem;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 0 #c9a227;
+}
+
+.obrocno-sheet__stevilka-zvezda[hidden] {
+  display: none !important;
 }
 
 .obrocno-sheet__stevilke-chevron {
@@ -5168,6 +5184,28 @@ body.obrocno-sheet-odprt .korak2__noga {
   padding-bottom: 8px;
 }
 
+.rok-sheet__priporocilo-razlaga {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #e0c35a;
+  border-radius: 12px;
+  background: #fff9e6;
+  color: #6a5410;
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.rok-sheet__priporocilo-razlaga[hidden] {
+  display: none !important;
+}
+
+.rok-sheet__priporocilo-razlaga strong {
+  font-weight: 700;
+  color: #4a3d12;
+}
+
 .rok-sheet__stikalo {
   display: flex;
   align-items: center;
@@ -5292,9 +5330,30 @@ body.obrocno-sheet-odprt .korak2__noga {
 }
 
 .rok-sheet__pomoc {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
   margin: 0 0 6px;
   color: #6a7f7a;
   font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.rok-sheet__pomoc--priporoceno {
+  color: #6a5410;
+  font-weight: 600;
+}
+
+.rok-sheet__pomoc-zvezda {
+  flex-shrink: 0;
+  color: #e8b923;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-shadow: 0 0 0 #c9a227;
+}
+
+.rok-sheet__pomoc-zvezda[hidden] {
+  display: none !important;
 }
 
 .rok-sheet__napaka {
