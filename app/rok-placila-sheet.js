@@ -61,6 +61,10 @@
     var preklici = document.getElementById("rok-sheet-preklici");
     var shrani = document.getElementById("rok-sheet-shrani");
     var odstrani = document.getElementById("rok-sheet-odstrani");
+    var hitroIzhodisce = document.getElementById("rok-sheet-hitro-izhodisce");
+    var hitroDnevi = document.getElementById("rok-sheet-hitro-dnevi");
+    var hitroTedni = document.getElementById("rok-sheet-hitro-tedni");
+    var hitroMeseci = document.getElementById("rok-sheet-hitro-meseci");
 
     var odprt = false;
     var osnutek = null;
@@ -305,6 +309,8 @@
       if (datumPolje) datumPolje.value = osnutek.deadlineDate;
       posodobiPomoc();
       preveriDatum();
+      pocistiHitriIzbor();
+      posodobiHitriIzhodisce();
     }
 
     function preveriDatum() {
@@ -379,6 +385,171 @@
       else datumPolje.classList.remove("rok-sheet__datum--vklopljen");
     }
 
+    function oznakaDni(n) {
+      return n === 1 ? "1 dan" : n + " dni";
+    }
+
+    function oznakaTednov(n) {
+      if (n === 1) return "1 teden";
+      if (n === 2) return "2 tedna";
+      if (n === 3 || n === 4) return n + " tedne";
+      return n + " tednov";
+    }
+
+    function oznakaMesecev(n) {
+      if (n === 1) return "1 mesec";
+      if (n === 2) return "2 meseca";
+      return n + " mesece";
+    }
+
+    function bazaZaHitriIzbirnik() {
+      return (
+        (osnutek && osnutek.baseSendDate) ||
+        (typeof ctx.bazaDatumaPosiljanja === "function"
+          ? ctx.bazaDatumaPosiljanja()
+          : "") ||
+        UJ.danesYYYYMMDD()
+      );
+    }
+
+    function datumZaHitriIzbor(enota, n) {
+      var base = bazaZaHitriIzbirnik();
+      if (enota === "days") return UJ.dodajKoledarskeDni(base, n);
+      if (enota === "weeks") return UJ.dodajKoledarskeDni(base, n * 7);
+      if (enota === "months") return UJ.dodajKoledarskeMesce(base, n);
+      return "";
+    }
+
+    function posodobiHitriIzhodisce() {
+      if (!hitroIzhodisce) return;
+      var base = bazaZaHitriIzbirnik();
+      var prikaz = UJ.formatirajDatumZaPrikaz(base, "sl");
+      var jeDanes = base === UJ.danesYYYYMMDD();
+      hitroIzhodisce.textContent = jeDanes
+        ? "Od danes: " + prikaz
+        : "Od datuma pošiljanja: " + prikaz;
+    }
+
+    function vsiHitriGumbi() {
+      var seznam = [];
+      [hitroDnevi, hitroTedni, hitroMeseci].forEach(function (tir) {
+        if (!tir) return;
+        tir.querySelectorAll(".rok-sheet__hitro-gumb").forEach(function (b) {
+          seznam.push(b);
+        });
+      });
+      return seznam;
+    }
+
+    function oznaciHitriGumb(enota, n) {
+      vsiHitriGumbi().forEach(function (b) {
+        var sel =
+          b.dataset.enota === enota && Number(b.dataset.n) === Number(n);
+        b.setAttribute("aria-selected", sel ? "true" : "false");
+        if (sel) {
+          try {
+            b.scrollIntoView({
+              inline: "center",
+              block: "nearest",
+              behavior: "smooth",
+            });
+          } catch (_e) {
+            /* ignore */
+          }
+        }
+      });
+    }
+
+    function pocistiHitriIzbor() {
+      vsiHitriGumbi().forEach(function (b) {
+        b.setAttribute("aria-selected", "false");
+      });
+    }
+
+    /** Sinhronizacija: označi gumb, če se rok ujema s hitrim obdobjem (dnevi pred tedni). */
+    function syncHitriIzbirnikIzDatuma() {
+      posodobiHitriIzhodisce();
+      if (!osnutek) {
+        pocistiHitriIzbor();
+        return;
+      }
+      if (osnutek.mode === "automatic") {
+        pocistiHitriIzbor();
+        return;
+      }
+      var deadline = osnutek.deadlineDate || (datumPolje && datumPolje.value) || "";
+      if (!deadline) {
+        pocistiHitriIzbor();
+        return;
+      }
+      var i;
+      for (i = 1; i <= 9; i++) {
+        if (datumZaHitriIzbor("days", i) === deadline) {
+          oznaciHitriGumb("days", i);
+          return;
+        }
+      }
+      for (i = 1; i <= 8; i++) {
+        if (datumZaHitriIzbor("weeks", i) === deadline) {
+          oznaciHitriGumb("weeks", i);
+          return;
+        }
+      }
+      for (i = 1; i <= 3; i++) {
+        if (datumZaHitriIzbor("months", i) === deadline) {
+          oznaciHitriGumb("months", i);
+          return;
+        }
+      }
+      pocistiHitriIzbor();
+    }
+
+    function uporabiHitriIzbor(enota, n) {
+      if (!osnutek) return;
+      var rok = datumZaHitriIzbor(enota, n);
+      if (!rok) return;
+      var base = bazaZaHitriIzbirnik();
+      osnutek.mode = "manual";
+      osnutek.baseSendDate = base;
+      osnutek.deadlineDate = rok;
+      if (enota === "days") osnutek.termDays = n;
+      else if (enota === "weeks") osnutek.termDays = n * 7;
+      else osnutek.termDays = null;
+      if (samodejno) samodejno.checked = false;
+      if (datumPolje) datumPolje.value = rok;
+      oznaciHitriGumb(enota, n);
+      oznaciRokPriporociloSpremenjeno();
+      posodobiPomoc();
+      preveriDatum();
+    }
+
+    function zgradiHitriTir(tir, enota, odN, doN, oznakaFn) {
+      if (!tir || tir.childElementCount) return;
+      for (var n = odN; n <= doN; n++) {
+        (function (st) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "rok-sheet__hitro-gumb";
+          b.dataset.enota = enota;
+          b.dataset.n = String(st);
+          b.textContent = oznakaFn(st);
+          b.setAttribute("role", "option");
+          b.setAttribute("aria-selected", "false");
+          b.setAttribute("aria-label", oznakaFn(st));
+          b.addEventListener("click", function () {
+            uporabiHitriIzbor(enota, st);
+          });
+          tir.appendChild(b);
+        })(n);
+      }
+    }
+
+    function zgradiHitriIzbirnik() {
+      zgradiHitriTir(hitroDnevi, "days", 1, 9, oznakaDni);
+      zgradiHitriTir(hitroTedni, "weeks", 1, 8, oznakaTednov);
+      zgradiHitriTir(hitroMeseci, "months", 1, 3, oznakaMesecev);
+    }
+
     function napolniUiIzOsnutka() {
       if (!osnutek) return;
       if (samodejno) samodejno.checked = osnutek.mode !== "manual";
@@ -386,6 +557,7 @@
       posodobiPomoc();
       preveriDatum();
       skrijUrediPrivzeto();
+      syncHitriIzbirnikIzDatuma();
 
       var ze = Boolean(ctx.getPaymentDeadline() && ctx.getPaymentDeadline().enabled);
       posodobiDatumVidez(ze);
@@ -836,10 +1008,12 @@
         if (samodejno.checked) {
           osnutek.mode = "automatic";
           preracunajSamodejno();
+          pocistiHitriIzbor();
         } else {
           osnutek.mode = "manual";
           posodobiPomoc();
           oznaciRokPriporociloSpremenjeno();
+          syncHitriIzbirnikIzDatuma();
         }
       });
     }
@@ -853,6 +1027,7 @@
         oznaciRokPriporociloSpremenjeno();
         posodobiPomoc();
         preveriDatum();
+        syncHitriIzbirnikIzDatuma();
       });
       datumPolje.addEventListener("input", function () {
         if (!osnutek) return;
@@ -861,6 +1036,7 @@
           if (samodejno) samodejno.checked = false;
         }
         preveriDatum();
+        syncHitriIzbirnikIzDatuma();
       });
     }
 
@@ -907,6 +1083,8 @@
         skrijUrediPrivzeto();
       });
     }
+
+    zgradiHitriIzbirnik();
 
     return { odpri: odpriSheet, zapri: zapriSheet, zapriNaSilo: zapriNaSilo };
   }

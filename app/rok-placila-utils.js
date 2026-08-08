@@ -133,6 +133,19 @@
     return formatLocalYYYYMMDD(dt);
   }
 
+  /** Dodaj n koledarskih mesecev; ohrani dan ali zadnji veljavni dan v mesecu. */
+  function dodajKoledarskeMesce(yyyyMmDd, meseci) {
+    var dt = parseLocalYYYYMMDD(yyyyMmDd);
+    if (!dt) return "";
+    var dan = dt.getDate();
+    var ciljniMesec = dt.getMonth() + Number(meseci);
+    var leto = dt.getFullYear() + Math.floor(ciljniMesec / 12);
+    var mesec = ((ciljniMesec % 12) + 12) % 12;
+    var zadnji = new Date(leto, mesec + 1, 0).getDate();
+    var novDan = Math.min(dan, zadnji);
+    return formatLocalYYYYMMDD(new Date(leto, mesec, novDan));
+  }
+
   function formatirajDatumZaPrikaz(yyyyMmDd, jezik) {
     var dt = parseLocalYYYYMMDD(yyyyMmDd);
     if (!dt) return yyyyMmDd || "";
@@ -304,6 +317,7 @@
     parseLocalYYYYMMDD: parseLocalYYYYMMDD,
     danesYYYYMMDD: danesYYYYMMDD,
     dodajKoledarskeDni: dodajKoledarskeDni,
+    dodajKoledarskeMesce: dodajKoledarskeMesce,
     formatirajDatumZaPrikaz: formatirajDatumZaPrikaz,
     ugotoviJezikSporocila: ugotoviJezikSporocila,
     sestaviVrsticoRoka: sestaviVrsticoRoka,

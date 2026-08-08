@@ -5448,6 +5448,83 @@ body.obrocno-sheet-odprt .korak2__noga {
   font-weight: 500;
 }
 
+/* Hitri izbirnik obdobja (dnevi / tedni / meseci) */
+.rok-sheet__hitro {
+  margin: 0 0 16px;
+}
+
+.rok-sheet__hitro-izhodisce {
+  margin: 0 0 12px;
+  color: #243d3d;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.rok-sheet__hitro-vrsta {
+  margin: 0 0 12px;
+}
+
+.rok-sheet__hitro-vrsta .rok-sheet__oznaka {
+  margin: 0 0 6px;
+}
+
+.rok-sheet__hitro-ovoj {
+  position: relative;
+}
+
+.rok-sheet__hitro-tir {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 2px 28px 2px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rok-sheet__hitro-tir::-webkit-scrollbar {
+  display: none;
+}
+
+.rok-sheet__hitro-gumb {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.6rem;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid #c4d7d5;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #243d3d;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 550;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.rok-sheet__hitro-gumb[aria-selected="true"] {
+  border-color: #5aa3a5;
+  background: #5aa3a5;
+  color: #ffffff;
+}
+
+.rok-sheet__hitro-chevron {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--teal, #5aa3a5);
+  font-size: 1.2rem;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
 .rok-sheet__stevilke {
   display: grid;
   grid-template-columns: repeat(9, minmax(0, 1fr));

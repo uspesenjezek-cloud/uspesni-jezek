@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-obrocno-nad" />
+    <link rel="stylesheet" href="styles.css?v=20260808-hitro-rok" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -457,6 +457,52 @@
 
         <div class="rok-sheet__telo">
           <div id="rok-sheet-recommendation" class="recommendation-host"></div>
+
+          <section class="rok-sheet__hitro" id="rok-sheet-hitro" aria-label="Hitri izbirnik roka">
+            <p class="rok-sheet__hitro-izhodisce" id="rok-sheet-hitro-izhodisce">
+              Od danes: —
+            </p>
+
+            <div class="rok-sheet__hitro-vrsta">
+              <p class="rok-sheet__oznaka" id="rok-sheet-hitro-dnevi-oznaka">Dnevi</p>
+              <div class="rok-sheet__hitro-ovoj">
+                <div
+                  class="rok-sheet__hitro-tir"
+                  id="rok-sheet-hitro-dnevi"
+                  role="listbox"
+                  aria-labelledby="rok-sheet-hitro-dnevi-oznaka"
+                ></div>
+                <span class="rok-sheet__hitro-chevron" aria-hidden="true">›</span>
+              </div>
+            </div>
+
+            <div class="rok-sheet__hitro-vrsta">
+              <p class="rok-sheet__oznaka" id="rok-sheet-hitro-tedni-oznaka">Tedni</p>
+              <div class="rok-sheet__hitro-ovoj">
+                <div
+                  class="rok-sheet__hitro-tir"
+                  id="rok-sheet-hitro-tedni"
+                  role="listbox"
+                  aria-labelledby="rok-sheet-hitro-tedni-oznaka"
+                ></div>
+                <span class="rok-sheet__hitro-chevron" aria-hidden="true">›</span>
+              </div>
+            </div>
+
+            <div class="rok-sheet__hitro-vrsta">
+              <p class="rok-sheet__oznaka" id="rok-sheet-hitro-meseci-oznaka">Meseci</p>
+              <div class="rok-sheet__hitro-ovoj">
+                <div
+                  class="rok-sheet__hitro-tir"
+                  id="rok-sheet-hitro-meseci"
+                  role="listbox"
+                  aria-labelledby="rok-sheet-hitro-meseci-oznaka"
+                ></div>
+                <span class="rok-sheet__hitro-chevron" aria-hidden="true">›</span>
+              </div>
+            </div>
+          </section>
+
           <label class="rok-sheet__stikalo">
             <span class="rok-sheet__stikalo-besedilo">Samodejni rok</span>
             <input type="checkbox" id="rok-sheet-samodejno" checked />
@@ -634,16 +680,16 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-obrocno-nad"></script>
-    <script src="rok-placila-sheet.js?v=20260808-obrocno-nad"></script>
-    <script src="obrocno-utils.js?v=20260808-obrocno-nad"></script>
-    <script src="obrocno-sheet.js?v=20260808-obrocno-nad"></script>
-    <script src="ton-priporocilo.js?v=20260808-obrocno-nad"></script>
-    <script src="ton-predloge.js?v=20260808-obrocno-nad"></script>
-    <script src="ton-widget.js?v=20260808-obrocno-nad"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-obrocno-nad"></script>
-    <script src="recommendation-card.js?v=20260808-obrocno-nad"></script>
-    <script src="predloga-payment-settings.js?v=20260808-obrocno-nad"></script>
-    <script src="app.js?v=20260808-obrocno-nad"></script>
+    <script src="rok-placila-utils.js?v=20260808-hitro-rok"></script>
+    <script src="rok-placila-sheet.js?v=20260808-hitro-rok"></script>
+    <script src="obrocno-utils.js?v=20260808-hitro-rok"></script>
+    <script src="obrocno-sheet.js?v=20260808-hitro-rok"></script>
+    <script src="ton-priporocilo.js?v=20260808-hitro-rok"></script>
+    <script src="ton-predloge.js?v=20260808-hitro-rok"></script>
+    <script src="ton-widget.js?v=20260808-hitro-rok"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-hitro-rok"></script>
+    <script src="recommendation-card.js?v=20260808-hitro-rok"></script>
+    <script src="predloga-payment-settings.js?v=20260808-hitro-rok"></script>
+    <script src="app.js?v=20260808-hitro-rok"></script>
   </body>
 </html>
