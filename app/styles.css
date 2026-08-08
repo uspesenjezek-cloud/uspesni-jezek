@@ -195,16 +195,9 @@ a {
   position: sticky;
   top: 0;
   z-index: 40;
-  padding: 12px 16px 18px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 12px 16px;
+  border-bottom: 0;
   background: var(--color-page, #fff);
-}
-
-.stran--neplacila .app__naslov-podstrani {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.25;
 }
 
 .stran--neplacila .app__vsebina {
@@ -2667,7 +2660,7 @@ body.stran--samo-seznam #obrazec {
 }
 
 .stran--neplacila .korak2__vrh--neplacila {
-  margin: 0 0 10px;
+  margin: 0;
   padding: 0;
   background: transparent;
 }
