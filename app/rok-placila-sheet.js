@@ -65,6 +65,9 @@
     var predOgledPressed = false;
     var shranjevanje = false;
     var prejsnjiFokus = null;
+    /* Na telefonu isti tap, ki odpre sheet, pogosto zadene še backdrop in ga takoj zapre. */
+    var zapiranjeDovoljeno = false;
+    var casovnikZapiranja = null;
 
     function klon(obj) {
       return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -235,6 +238,7 @@
         if (potrdiModal && !potrdiModal.hidden) return;
         dogodek.preventDefault();
         dogodek.stopPropagation();
+        zapiranjeDovoljeno = true;
         zapriSheet(false);
         return;
       }
@@ -254,26 +258,45 @@
 
     function odpriSheet() {
       if (odprt) return;
-      predOgledPressed = ctx.gumbRok.getAttribute("aria-pressed") === "true";
-      prejsnjiFokus = document.activeElement;
-      napolniOsnutekObOdprtju();
-      napolniUiIzOsnutka();
+      try {
+        predOgledPressed = ctx.gumbRok.getAttribute("aria-pressed") === "true";
+        prejsnjiFokus = document.activeElement;
+        napolniOsnutekObOdprtju();
+        napolniUiIzOsnutka();
 
-      // Predogled aktivnega gumba – commit šele ob shrani.
-      ctx.gumbRok.setAttribute("aria-pressed", "true");
+        // Predogled aktivnega gumba – commit šele ob shrani.
+        ctx.gumbRok.setAttribute("aria-pressed", "true");
 
-      sheet.hidden = false;
-      document.body.classList.add("rok-sheet-odprt");
-      odprt = true;
-      document.addEventListener("keydown", onKeydown, true);
-      window.setTimeout(function () {
-        if (naslov) naslov.focus();
-        else if (samodejno) samodejno.focus();
-      }, 10);
+        zapiranjeDovoljeno = false;
+        if (casovnikZapiranja) window.clearTimeout(casovnikZapiranja);
+        if (sheet.parentElement !== document.body) {
+          document.body.appendChild(sheet);
+        }
+        sheet.hidden = false;
+        document.body.classList.add("rok-sheet-odprt");
+        odprt = true;
+        document.addEventListener("keydown", onKeydown, true);
+        casovnikZapiranja = window.setTimeout(function () {
+          zapiranjeDovoljeno = true;
+          casovnikZapiranja = null;
+        }, 450);
+        window.setTimeout(function () {
+          if (naslov) naslov.focus();
+          else if (samodejno) samodejno.focus();
+        }, 10);
+      } catch (napaka) {
+        if (typeof ctx.pokaziNapako === "function") {
+          ctx.pokaziNapako(
+            "Odpiranje roka plačila ni uspelo. Osvežite stran.",
+            napaka && napaka.message ? napaka.message : ""
+          );
+        }
+      }
     }
 
     function zapriSheet(shraniSpremembe) {
       if (!odprt) return;
+      if (!shraniSpremembe && !zapiranjeDovoljeno) return;
       if (!shraniSpremembe) {
         ctx.gumbRok.setAttribute("aria-pressed", String(predOgledPressed));
         osnutek = null;
@@ -282,6 +305,11 @@
       sheet.hidden = true;
       document.body.classList.remove("rok-sheet-odprt");
       odprt = false;
+      zapiranjeDovoljeno = false;
+      if (casovnikZapiranja) {
+        window.clearTimeout(casovnikZapiranja);
+        casovnikZapiranja = null;
+      }
       document.removeEventListener("keydown", onKeydown, true);
       skrijUrediPrivzeto();
       nastaviNapako(false);
@@ -414,13 +442,33 @@
       zapriSheet(true);
     }
 
-    ctx.gumbRok.addEventListener("click", function () {
-      odpriSheet();
+    ctx.gumbRok.addEventListener("click", function (dogodek) {
+      dogodek.preventDefault();
+      dogodek.stopPropagation();
+      // Po koncu trenutnega tipa – sicer mobilni brskalnik tap prestavi na backdrop.
+      window.setTimeout(odpriSheet, 0);
     });
 
-    if (backdrop) backdrop.addEventListener("click", function () { zapriSheet(false); });
-    if (zapri) zapri.addEventListener("click", function () { zapriSheet(false); });
-    if (preklici) preklici.addEventListener("click", function () { zapriSheet(false); });
+    if (backdrop) {
+      backdrop.addEventListener("click", function (dogodek) {
+        dogodek.preventDefault();
+        dogodek.stopPropagation();
+        if (!zapiranjeDovoljeno) return;
+        zapriSheet(false);
+      });
+    }
+    if (zapri) {
+      zapri.addEventListener("click", function () {
+        zapiranjeDovoljeno = true;
+        zapriSheet(false);
+      });
+    }
+    if (preklici) {
+      preklici.addEventListener("click", function () {
+        zapiranjeDovoljeno = true;
+        zapriSheet(false);
+      });
+    }
     if (shrani) shrani.addEventListener("click", function () { shraniInDodaj(); });
     if (odstrani) odstrani.addEventListener("click", function () { odstraniRok(); });
 
