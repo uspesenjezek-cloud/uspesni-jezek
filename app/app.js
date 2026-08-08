@@ -65,23 +65,43 @@ function ugotoviMaxDosezenKorak() {
   return 1;
 }
 
-const SVG_KORAK_KLJUKICA =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
-const SVG_KORAK_PUSICA =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
-
-const KORAKI_DE_STEPPERja = [
-  { id: 1, shortLabel: "Dolžnik", accessibleLabel: "Vnos dolžnika" },
-  { id: 2, shortLabel: "Sporočilo", accessibleLabel: "Sporočilo" },
-  { id: 3, shortLabel: "Pošiljanje", accessibleLabel: "Pošiljanje" },
+/* Skupna definicija korakov za WizardProgressHeader (vse 3 strani postopka). */
+const WIZARD_KORAKI = [
+  {
+    number: 1,
+    shortLabel: "Dolžnik",
+    fullTitle: "Vnos dolžnika",
+    icon: "user-round",
+  },
+  {
+    number: 2,
+    shortLabel: "Sporočilo",
+    fullTitle: "Vnos sporočila",
+    icon: "message-square-text",
+  },
+  {
+    number: 3,
+    shortLabel: "Pošiljanje",
+    fullTitle: "Pošiljanje",
+    icon: "send",
+  },
 ];
+
+const SVG_WIZARD_IKONE = {
+  "user-round":
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>',
+  "message-square-text":
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H8"/><path d="M16 12H8"/></svg>',
+  send:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
+};
 
 function posodobiDebtStepMarker(el, stanje, stevilka) {
   // Številke vedno ostanejo številke (brez puščic, pik ali kljukic).
   const stevilkaEl = el.querySelector(".debt-step__number");
   if (stevilkaEl) stevilkaEl.textContent = String(stevilka);
 
-  const meta = KORAKI_DE_STEPPERja[stevilka - 1];
+  const meta = WIZARD_KORAKI[stevilka - 1];
   if (meta) {
     const statusBesedilo =
       stanje === "complete"
@@ -91,9 +111,83 @@ function posodobiDebtStepMarker(el, stanje, stevilka) {
           : "še ni začeto";
     el.setAttribute(
       "aria-label",
-      stevilka + " od 3: " + meta.accessibleLabel + " – " + statusBesedilo
+      stevilka + " od 3: " + meta.fullTitle + " – " + statusBesedilo
     );
   }
+}
+
+/**
+ * Skupna komponenta WizardProgressHeader – koraki + glava trenutnega koraka.
+ * Uporabi se na vseh treh straneh postopka (placeholder [data-wizard-progress-header]).
+ */
+function renderWizardProgressHeader(opcije) {
+  const root = document.querySelector("[data-wizard-progress-header]");
+  if (!root) return null;
+
+  const fromAttr = Number(root.getAttribute("data-korak"));
+  const currentStep =
+    Number(opcije && opcije.currentStep) ||
+    (Number.isInteger(fromAttr) && fromAttr >= 1 && fromAttr <= 3 ? fromAttr : 1);
+  const draftSaved = !opcije || opcije.draftSaved !== false;
+  const trenutni = WIZARD_KORAKI[currentStep - 1] || WIZARD_KORAKI[0];
+  const ikonaSvg = SVG_WIZARD_IKONE[trenutni.icon] || SVG_WIZARD_IKONE["user-round"];
+
+  const korakiHtml = WIZARD_KORAKI.map((korak) => {
+    const href = URL_KORAKI_POSTOPKA[korak.number] || "#";
+    return (
+      '<a href="' +
+      href +
+      '" class="debt-step" data-korak="' +
+      korak.number +
+      '" aria-label="' +
+      korak.number +
+      " od 3: " +
+      korak.fullTitle +
+      '">' +
+      '<span class="debt-step__content">' +
+      '<span class="debt-step__number" aria-hidden="true">' +
+      korak.number +
+      "</span>" +
+      '<span class="debt-step__label">' +
+      korak.shortLabel +
+      "</span>" +
+      "</span>" +
+      '<span class="debt-step__line" aria-hidden="true"></span>' +
+      "</a>"
+    );
+  }).join("");
+
+  root.innerHTML =
+    '<nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">' +
+    korakiHtml +
+    "</nav>" +
+    '<header class="korak-glava wizard-current-header">' +
+    '<div class="korak-glava__levo">' +
+    '<span class="korak-glava__ikona" aria-hidden="true">' +
+    ikonaSvg +
+    "</span>" +
+    '<div class="korak-glava__besedilo">' +
+    '<p class="korak-glava__meta">Korak ' +
+    currentStep +
+    " od 3</p>" +
+    '<h2 class="korak-glava__naslov">' +
+    trenutni.fullTitle +
+    "</h2>" +
+    "</div>" +
+    "</div>" +
+    (draftSaved
+      ? '<p class="korak-glava__osnutek">Osnutek shranjen</p>'
+      : "") +
+    "</header>";
+
+  return root;
+}
+
+function inicializirajWizardProgressHeader(trenutniKorak) {
+  const korak = Number(trenutniKorak) || 1;
+  // Oznaka kot doslej na koraku 1 – vedno vidna; ni nove poslovne logike.
+  renderWizardProgressHeader({ currentStep: korak, draftSaved: true });
+  inicializirajKorakePostopka(korak);
 }
 
 /* ---------- Skupni potrditveni / opozorilni modal (namesto confirm/alert) ---------- */
@@ -407,7 +501,7 @@ function inicializirajNeplacila() {
     return;
   }
 
-  inicializirajKorakePostopka(1);
+  inicializirajWizardProgressHeader(1);
   inicializirajIzbrisOsnutka();
 
   // Ob vrnitvi s kasnejšega koraka napolni obrazec iz seje (brez prilog).
@@ -1715,7 +1809,7 @@ function inicializirajSporociloDolzniku() {
     return;
   }
 
-  inicializirajKorakePostopka(2);
+  inicializirajWizardProgressHeader(2);
   inicializirajIzbrisOsnutka();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
@@ -2702,7 +2796,7 @@ function inicializirajPosiljanje() {
     return;
   }
 
-  inicializirajKorakePostopka(3);
+  inicializirajWizardProgressHeader(3);
   inicializirajIzbrisOsnutka();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);

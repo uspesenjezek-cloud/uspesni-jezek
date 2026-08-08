@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-stepper-enovrsticni" />
+    <link rel="stylesheet" href="styles.css?v=20260808-wizard-header" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -57,58 +57,7 @@
 
       <section class="dodaj-zadevo" id="obrazec" aria-label="Dodaj novo zadevo">
         <div class="obrazec-kartica">
-          <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
-            <a
-              href="neplacila.html#obrazec"
-              class="debt-step debt-step--active"
-              data-korak="1"
-              aria-current="step"
-              aria-label="1 od 3: Vnos dolžnika – trenutno"
-            >
-              <span class="debt-step__content">
-                <span class="debt-step__number" aria-hidden="true">1</span>
-                <span class="debt-step__label">Dolžnik</span>
-              </span>
-              <span class="debt-step__line" aria-hidden="true"></span>
-            </a>
-            <a
-              href="neplacila-sporocilo.html"
-              class="debt-step debt-step--upcoming"
-              data-korak="2"
-              aria-label="2 od 3: Sporočilo – še ni začeto"
-            >
-              <span class="debt-step__content">
-                <span class="debt-step__number" aria-hidden="true">2</span>
-                <span class="debt-step__label">Sporočilo</span>
-              </span>
-              <span class="debt-step__line" aria-hidden="true"></span>
-            </a>
-            <a
-              href="neplacila-posiljanje.html"
-              class="debt-step debt-step--upcoming"
-              data-korak="3"
-              aria-label="3 od 3: Pošiljanje – še ni začeto"
-            >
-              <span class="debt-step__content">
-                <span class="debt-step__number" aria-hidden="true">3</span>
-                <span class="debt-step__label">Pošiljanje</span>
-              </span>
-              <span class="debt-step__line" aria-hidden="true"></span>
-            </a>
-          </nav>
-
-          <header class="korak-glava">
-            <div class="korak-glava__levo">
-              <span class="korak-glava__ikona" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-              </span>
-              <div class="korak-glava__besedilo">
-                <p class="korak-glava__meta">Korak 1 od 3</p>
-                <h2 class="korak-glava__naslov">Vnos dolžnika</h2>
-              </div>
-            </div>
-            <p class="korak-glava__osnutek">Osnutek shranjen</p>
-          </header>
+          <div data-wizard-progress-header data-korak="1"></div>
 
           <div class="obrazec-kartica__vsebina">
             <form class="obrazec" id="obrazec-neplacilo">
@@ -481,6 +430,6 @@
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
-    <script src="app.js?v=20260808-stepper-enovrsticni"></script>
+    <script src="app.js?v=20260808-wizard-header"></script>
   </body>
 </html>

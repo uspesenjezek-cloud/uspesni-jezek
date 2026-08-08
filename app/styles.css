@@ -1055,23 +1055,25 @@ body.stran--samo-seznam #obrazec {
 }
 
 /* ========== Glava koraka + AI zajem (korak 1) ========== */
-.korak-glava {
+/* Glava trenutnega koraka (del WizardProgressHeader) */
+.korak-glava,
+.wizard-current-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   min-height: 70px;
   padding: 14px 18px;
   border-bottom: 1px solid #dce7e4;
-  background: #fff;
+  background: #ffffff;
   box-sizing: border-box;
 }
 
 .korak-glava__levo {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   min-width: 0;
+  flex: 1;
 }
 
 .korak-glava__ikona {
@@ -1079,10 +1081,17 @@ body.stran--samo-seznam #obrazec {
   display: grid;
   place-items: center;
   width: 36px;
+  min-width: 36px;
   height: 36px;
   border-radius: 10px;
   background: #559e9d;
-  color: #fff;
+  color: #ffffff;
+}
+
+.korak-glava__ikona svg {
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
 .korak-glava__besedilo {
@@ -1090,29 +1099,30 @@ body.stran--samo-seznam #obrazec {
 }
 
 .korak-glava__meta {
-  margin: 0;
+  margin: 0 0 2px;
   color: #718580;
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 400;
   line-height: 1.2;
 }
 
 .korak-glava__naslov {
-  margin: 2px 0 0;
+  margin: 0;
   color: #173633;
-  font-size: 1.05rem;
+  font-size: 17px;
   font-weight: 500;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .korak-glava__osnutek {
   flex-shrink: 0;
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: 999px;
+  margin: 0 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 16px;
   background: #faf7ef;
-  color: #607570;
-  font-size: 0.68rem;
+  color: #667873;
+  font-size: 11px;
   font-weight: 400;
   white-space: nowrap;
 }
@@ -2942,9 +2952,15 @@ body.stran--samo-seznam #obrazec {
 
 @media (max-width: 370px) {
   .debt-stepper {
-    gap: 7px;
-    padding-left: 18px;
-    padding-right: 18px;
+    gap: 6px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .korak-glava,
+  .wizard-current-header {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }
 
