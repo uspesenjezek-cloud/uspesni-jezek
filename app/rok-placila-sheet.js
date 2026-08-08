@@ -316,10 +316,8 @@
 
     function napolniUiIzOsnutka() {
       if (!osnutek) return;
-      zgradiStevilke();
       if (samodejno) samodejno.checked = osnutek.mode !== "manual";
       if (datumPolje) datumPolje.value = osnutek.deadlineDate || "";
-      oznaciStevilko(Number(osnutek.linkedProposalNumber) || 1);
       posodobiPomoc();
       preveriDatum();
       skrijUrediPrivzeto();

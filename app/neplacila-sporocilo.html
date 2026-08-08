@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-template-editor-1" />
+    <link rel="stylesheet" href="styles.css?v=20260808-rok-brez-povezi" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -466,18 +466,10 @@
             ★ Uporabi priporočeno
           </button>
           <label class="rok-sheet__stikalo">
-            <span class="rok-sheet__stikalo-besedilo">Samodejno glede na predlog</span>
+            <span class="rok-sheet__stikalo-besedilo">Samodejni rok</span>
             <input type="checkbox" id="rok-sheet-samodejno" checked />
             <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
           </label>
-
-          <p class="rok-sheet__oznaka" id="rok-sheet-predlogi-oznaka">Poveži s predlogom</p>
-          <div
-            class="rok-sheet__stevilke"
-            id="rok-sheet-stevilke"
-            role="group"
-            aria-labelledby="rok-sheet-predlogi-oznaka"
-          ></div>
 
           <label class="rok-sheet__oznaka" for="rok-sheet-datum">Rok plačila</label>
           <div class="rok-sheet__datum-ovoj">
@@ -493,30 +485,6 @@
           <p class="rok-sheet__napaka" id="rok-sheet-napaka" hidden>
             Rok plačila ne sme biti pred datumom pošiljanja.
           </p>
-          <button type="button" class="rok-sheet__povezava" id="rok-sheet-uredi-privzeto">
-            Uredi privzeto
-          </button>
-
-          <div class="rok-sheet__uredi-privzeto" id="rok-sheet-uredi-privzeto-panel" hidden>
-            <p class="rok-sheet__oznaka" id="rok-sheet-privzeto-naslov">Privzeti rok za predlog 2</p>
-            <label class="rok-sheet__oznaka" for="rok-sheet-dnevi">Število dni</label>
-            <input
-              type="number"
-              class="rok-sheet__dnevi"
-              id="rok-sheet-dnevi"
-              min="1"
-              max="365"
-              step="1"
-            />
-            <div class="rok-sheet__uredi-akcije">
-              <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="rok-sheet-privzeto-preklici">
-                Prekliči urejanje
-              </button>
-              <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="rok-sheet-privzeto-potrdi">
-                Potrdi
-              </button>
-            </div>
-          </div>
         </div>
 
         <div class="rok-sheet__noga">
@@ -686,15 +654,15 @@
       </div>
     </div>
 
-    <script src="rok-placila-utils.js?v=20260808-template-editor-1"></script>
-    <script src="rok-placila-sheet.js?v=20260808-template-editor-1"></script>
-    <script src="obrocno-utils.js?v=20260808-template-editor-1"></script>
-    <script src="obrocno-sheet.js?v=20260808-template-editor-1"></script>
-    <script src="ton-priporocilo.js?v=20260808-template-editor-1"></script>
-    <script src="ton-predloge.js?v=20260808-template-editor-1"></script>
-    <script src="ton-widget.js?v=20260808-template-editor-1"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-template-editor-1"></script>
-    <script src="predloga-payment-settings.js?v=20260808-template-editor-1"></script>
-    <script src="app.js?v=20260808-template-editor-1"></script>
+    <script src="rok-placila-utils.js?v=20260808-rok-brez-povezi"></script>
+    <script src="rok-placila-sheet.js?v=20260808-rok-brez-povezi"></script>
+    <script src="obrocno-utils.js?v=20260808-rok-brez-povezi"></script>
+    <script src="obrocno-sheet.js?v=20260808-rok-brez-povezi"></script>
+    <script src="ton-priporocilo.js?v=20260808-rok-brez-povezi"></script>
+    <script src="ton-predloge.js?v=20260808-rok-brez-povezi"></script>
+    <script src="ton-widget.js?v=20260808-rok-brez-povezi"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260808-rok-brez-povezi"></script>
+    <script src="predloga-payment-settings.js?v=20260808-rok-brez-povezi"></script>
+    <script src="app.js?v=20260808-rok-brez-povezi"></script>
   </body>
 </html>
