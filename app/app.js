@@ -375,8 +375,35 @@ function potrdiVprasanje(opcije) {
   }
 
   naslovEl.textContent = naslov;
-  opisEl.textContent = opis;
-  opisEl.hidden = !opis;
+  const odstavki = Array.isArray(nastavitve.odstavki)
+    ? nastavitve.odstavki
+    : null;
+  if (odstavki && odstavki.length) {
+    opisEl.textContent = "";
+    const ovoj = document.createElement("div");
+    ovoj.className = "osnutek-modal__odstavki";
+    odstavki.forEach((odstavek) => {
+      if (!odstavek) return;
+      const blok = document.createElement("div");
+      blok.className = "osnutek-modal__odstavek";
+      if (odstavek.naslov) {
+        const n = document.createElement("strong");
+        n.className = "osnutek-modal__odstavek-naslov";
+        n.textContent = String(odstavek.naslov);
+        blok.appendChild(n);
+      }
+      const p = document.createElement("p");
+      p.className = "osnutek-modal__odstavek-besedilo";
+      p.textContent = String(odstavek.besedilo || "");
+      blok.appendChild(p);
+      ovoj.appendChild(blok);
+    });
+    opisEl.appendChild(ovoj);
+    opisEl.hidden = false;
+  } else {
+    opisEl.textContent = opis;
+    opisEl.hidden = !opis;
+  }
   potrdi.textContent = potrdiBesedilo;
   if (preklici) {
     preklici.textContent = prekliciBesedilo;
@@ -2092,17 +2119,22 @@ function inicializirajSporociloDolzniku() {
     recommendedToneId: "friendly",
     selectedToneId: "friendly",
     appliedToneId: null,
+    selectionMode: "automatic",
     isOverridden: false,
     reasonCodes: [],
     reasonText: "",
     reasonDetailText: "",
     amountCentsSnapshot: null,
     amountLabel: "",
+    debtCategory: null,
+    debtCategoryLabel: "",
+    overdueCategory: null,
     originalDueDateSnapshot: null,
     evaluationDate: null,
     overdueDays: null,
     timingLabel: null,
     calculatedAt: null,
+    recommendationVersion: 1,
   };
   if (window.UJTonPriporocilo) {
     tonPriporociloRezultat = window.UJTonPriporocilo.getRecommendedTone({
@@ -4709,6 +4741,15 @@ function inicializirajSporociloDolzniku() {
     }
 
     // Šele ta uspešen submit označi korak 2 kot izpolnjen (potrjen: true).
+    const toneSnapshotAtSend = {
+      amountAtSend: toneState.amountCentsSnapshot,
+      debtCategoryAtSend: toneState.debtCategory,
+      daysOverdueAtSend: toneState.overdueDays,
+      overdueCategoryAtSend: toneState.overdueCategory,
+      recommendedToneAtSend: toneState.recommendedToneId,
+      selectedToneAtSend: toneState.selectedToneId,
+      selectionModeAtSend: toneState.selectionMode || "automatic",
+    };
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK2_PODATKI,
       JSON.stringify({
@@ -4718,7 +4759,13 @@ function inicializirajSporociloDolzniku() {
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
         installmentPlan: installmentPlan,
-        toneRecommendation: { ...toneState },
+        toneRecommendation: {
+          selectedTone: toneState.selectedToneId,
+          selectionMode: toneState.selectionMode || "automatic",
+          recommendationVersion: toneState.recommendationVersion || 1,
+          ...toneState,
+        },
+        toneSnapshotAtSend,
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         priporocilaPrezrta: { ...priporocilaPrezrta },
         potrjen: true,
@@ -5041,6 +5088,25 @@ function inicializirajSporociloDolzniku() {
         toneState = window.UJTonPriporocilo.resetToRecommended(toneState);
         nastaviIzbranTon(toneState.selectedToneId, true);
         shraniOsnutekLokalno();
+      },
+      onShowReasonDetail: (razlaga) => {
+        if (razlaga && Array.isArray(razlaga.odstavki)) {
+          potrdiVprasanje({
+            naslov: razlaga.naslov || "Zakaj priporočamo ta ton?",
+            odstavki: razlaga.odstavki,
+            potrdiBesedilo: "Razumem",
+            samoEnGumb: true,
+            stil: "primary",
+          });
+          return;
+        }
+        potrdiVprasanje({
+          naslov: "Zakaj priporočamo ta ton?",
+          opis: typeof razlaga === "string" ? razlaga : "",
+          potrdiBesedilo: "Razumem",
+          samoEnGumb: true,
+          stil: "primary",
+        });
       },
     });
     posodobiObvestiloNeuporabljenegaTona();

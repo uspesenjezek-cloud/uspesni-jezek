@@ -1,4 +1,4 @@
-/* ========== Kompaktni widget Ton sporočila (pills) ==========
+/* ========== Kompaktni widget Ton sporočila ==========
    window.inicializirajTonWidget(ctx)
    ============================================ */
 (function (root) {
@@ -11,8 +11,8 @@
       '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
     meh:
       '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="8" x2="16" y1="15" y2="15"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
-    shield:
-      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+    "triangle-alert":
+      '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
     "circle-alert":
       '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
   };
@@ -24,7 +24,7 @@
    * @param {object} ctx.recommendation
    * @param {(toneId: string) => void|Promise<boolean>} ctx.onToneSelected
    * @param {() => void|Promise<boolean>} [ctx.onReset]
-   * @param {(detail: string) => void} [ctx.onShowReasonDetail]
+   * @param {(detail: string|object) => void} [ctx.onShowReasonDetail]
    */
   function inicializirajTonWidget(ctx) {
     var UJ = root.UJTonPriporocilo;
@@ -33,10 +33,11 @@
 
     var tir = document.getElementById("ton-tir");
     var znesekZnacka = document.getElementById("ton-znesek-znacka");
-    var casZnacka = document.getElementById("ton-cas-znacka");
-    var metaPika = rootEl.querySelector(".ton-widget__meta-pika");
+    var kategorijaZnacka = document.getElementById("ton-kategorija-znacka");
+    var povzetek = document.getElementById("ton-povzetek");
+    var casTekst = document.getElementById("ton-cas-tekst");
+    var znackaPredlagano = document.getElementById("ton-znacka-predlagano");
     var zakaj = document.getElementById("ton-zakaj");
-    var overrideEl = document.getElementById("ton-override");
     var ponastavi = document.getElementById("ton-ponastavi");
     var ariaLive = document.getElementById("ton-aria-live");
     var tabpanel = document.getElementById("ton-tabpanel-predloge");
@@ -61,6 +62,43 @@
       return 0;
     }
 
+    function jeRocno() {
+      var s = stanje();
+      return s.selectionMode === "manual" || s.isOverridden === true;
+    }
+
+    function pokaziZakaj() {
+      var s = stanje();
+      var rec = Object.assign({}, ctx.recommendation || {}, s);
+      var razlaga =
+        typeof UJ.sestaviRazlagoZaModal === "function"
+          ? UJ.sestaviRazlagoZaModal(rec)
+          : null;
+      if (typeof ctx.onShowReasonDetail === "function") {
+        ctx.onShowReasonDetail(razlaga || podrobniRazlog());
+        return;
+      }
+      if (typeof root.potrdiVprasanje === "function") {
+        if (razlaga) {
+          root.potrdiVprasanje({
+            naslov: razlaga.naslov,
+            odstavki: razlaga.odstavki,
+            potrdiBesedilo: "Razumem",
+            samoEnGumb: true,
+            stil: "primary",
+          });
+        } else {
+          root.potrdiVprasanje({
+            naslov: "Zakaj priporočamo ta ton?",
+            opis: podrobniRazlog(),
+            potrdiBesedilo: "Razumem",
+            samoEnGumb: true,
+            stil: "primary",
+          });
+        }
+      }
+    }
+
     function podrobniRazlog() {
       var s = stanje();
       var rec = ctx.recommendation || {};
@@ -76,21 +114,41 @@
     function posodobiGlavo() {
       var s = stanje();
       var rec = ctx.recommendation || {};
-      var amount = s.amountLabel || rec.amountLabel || "";
+      var missingAmount = Boolean(s.missingAmount || rec.missingAmount);
+      var amount =
+        s.amountLabel ||
+        rec.amountLabel ||
+        (missingAmount ? "Znesek ni določen" : "");
+      var debtLabel = s.debtCategoryLabel || rec.debtCategoryLabel || "";
       var timing = s.timingLabel || rec.timingLabel || "";
 
       if (znesekZnacka) {
-        znesekZnacka.textContent = amount;
-        znesekZnacka.hidden = !amount;
+        znesekZnacka.textContent = amount || "Znesek ni določen";
       }
-      if (casZnacka) {
-        casZnacka.textContent = timing;
-        casZnacka.hidden = !timing;
+      if (kategorijaZnacka) {
+        if (debtLabel) {
+          kategorijaZnacka.textContent = debtLabel;
+          kategorijaZnacka.hidden = false;
+        } else {
+          kategorijaZnacka.textContent = "—";
+          kategorijaZnacka.hidden = missingAmount;
+        }
       }
-      if (metaPika) metaPika.hidden = !(amount && timing);
+      if (casTekst) {
+        casTekst.textContent = timing;
+      }
 
-      if (overrideEl) {
-        overrideEl.hidden = !s.isOverridden;
+      if (znackaPredlagano) {
+        znackaPredlagano.textContent = jeRocno()
+          ? "Ročno izbrano"
+          : "Predlagano";
+        znackaPredlagano.classList.toggle(
+          "ton-widget__znacka--rocno",
+          jeRocno()
+        );
+      }
+      if (ponastavi) {
+        ponastavi.hidden = !jeRocno();
       }
     }
 
@@ -101,6 +159,7 @@
         var id = gumb.dataset.toneId;
         var izbrana = id === s.selectedToneId;
         gumb.classList.toggle("ton-widget__gumb--izbran", izbrana);
+        gumb.setAttribute("aria-pressed", izbrana ? "true" : "false");
         gumb.setAttribute("aria-selected", izbrana ? "true" : "false");
         gumb.tabIndex = izbrana ? 0 : -1;
       });
@@ -141,9 +200,12 @@
         left: Math.max(0, cilj),
         behavior: instant ? "auto" : "smooth",
       });
-      window.setTimeout(function () {
-        tihoScrollanje = false;
-      }, instant ? 50 : 320);
+      window.setTimeout(
+        function () {
+          tihoScrollanje = false;
+        },
+        instant ? 50 : 320
+      );
     }
 
     function izberiTon(toneId, scrollaj) {
@@ -208,6 +270,10 @@
         gumb.dataset.toneId = ton.id;
         gumb.setAttribute("role", "tab");
         gumb.setAttribute("aria-controls", "ton-tabpanel-predloge");
+        gumb.setAttribute(
+          "aria-label",
+          "Izberi " + ton.labelSl.toLowerCase() + " ton"
+        );
         gumb.id = "ton-tab-" + ton.id;
         gumb.innerHTML =
           '<span class="ton-widget__gumb-ikona" aria-hidden="true">' +
@@ -292,18 +358,13 @@
 
     if (zakaj) {
       zakaj.addEventListener("click", function () {
-        var detail = podrobniRazlog();
-        if (typeof ctx.onShowReasonDetail === "function") {
-          ctx.onShowReasonDetail(detail);
-        } else if (typeof root.potrdiVprasanje === "function") {
-          root.potrdiVprasanje({
-            naslov: "Zakaj ta ton?",
-            opis: detail,
-            potrdiBesedilo: "V redu",
-            samoEnGumb: true,
-            stil: "primary",
-          });
-        }
+        pokaziZakaj();
+      });
+    }
+
+    if (povzetek) {
+      povzetek.addEventListener("click", function () {
+        pokaziZakaj();
       });
     }
 
@@ -312,7 +373,7 @@
         if (typeof ctx.onReset === "function") {
           ctx.onReset();
         } else {
-          izberiTon(stanje().recommendedToneId || "very_friendly", true);
+          izberiTon(stanje().recommendedToneId || "friendly", true);
           return;
         }
         osveziUi();
@@ -324,7 +385,7 @@
     zgradiGumbe();
     osveziUi();
     window.requestAnimationFrame(function () {
-      scrollToTone(stanje().selectedToneId || "very_friendly", true);
+      scrollToTone(stanje().selectedToneId || "friendly", true);
       sporociBralniku();
     });
 
@@ -333,6 +394,7 @@
       scrollToSelected: function () {
         scrollToTone(stanje().selectedToneId, false);
       },
+      pokaziZakaj: pokaziZakaj,
       IKONE_SVG: IKONE_SVG,
     };
   }

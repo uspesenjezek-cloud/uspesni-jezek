@@ -17,8 +17,8 @@
     very_friendly: "zelo prijazen ton",
     friendly: "prijazen ton",
     neutral: "nevtralen ton",
-    firm: "odločen ton",
-    strict: "strog ton",
+    firm: "bolj strog ton",
+    strict: "zelo strog ton",
   };
 
   var NASLOVI_PREDLOG_SL = {

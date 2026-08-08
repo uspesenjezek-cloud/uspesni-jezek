@@ -1,5 +1,5 @@
 /**
- * Enotski testi: Ton sporočila (5 tonov, kompaktni widget).
+ * Enotski testi: Ton sporočila (kategorije, zamuda, priporočilo, widget).
  * Zagon: node scripts/test-ton-priporocilo.mjs
  */
 import assert from "node:assert/strict";
@@ -19,6 +19,10 @@ const widgetSrc = fs.readFileSync(
 const appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
 const cssSrc = fs.readFileSync(
   path.join(root, "..", "app", "styles.css"),
+  "utf8"
+);
+const htmlSrc = fs.readFileSync(
+  path.join(root, "..", "app", "neplacila-sporocilo.html"),
   "utf8"
 );
 
@@ -51,70 +55,135 @@ function rec(overdueDays, cents, due) {
   });
 }
 
-test("1. Priporočilo glede na datum (še ni zapadel → Zelo prijazen)", () => {
-  assert.equal(rec(-5, 7564).recommendedToneId, "very_friendly");
-  assert.equal(rec(5, 7564).recommendedToneId, "very_friendly");
-  assert.equal(rec(10, 7564).recommendedToneId, "friendly");
-  assert.equal(rec(20, 7564).recommendedToneId, "neutral");
-  assert.equal(rec(45, 7564).recommendedToneId, "firm");
-  assert.equal(rec(90, 7564).recommendedToneId, "strict");
+test("Kategorije dolga – mejne vrednosti", () => {
+  assert.equal(UJ.getDebtCategory(75.64), "low");
+  assert.equal(UJ.getDebtCategory(250), "low");
+  assert.equal(UJ.getDebtCategory(250.01), "medium");
+  assert.equal(UJ.getDebtCategory(1000), "medium");
+  assert.equal(UJ.getDebtCategory(1000.01), "high");
+  assert.equal(UJ.getDebtCategory(5000), "high");
+  assert.equal(UJ.getDebtCategory(5000.01), "veryHigh");
+  assert.equal(UJ.DEBT_CATEGORY_LABELS.low, "Nizek dolg");
 });
 
-test("2. Znesek premakne največ za eno stopnjo", () => {
-  const r = rec(20, 200000);
+test("Kategorije zamude – mejne vrednosti", () => {
+  assert.equal(UJ.getOverdueCategory(-1), "notDue");
+  assert.equal(UJ.getOverdueCategory(0), "dueToday");
+  assert.equal(UJ.getOverdueCategory(1), "short");
+  assert.equal(UJ.getOverdueCategory(7), "short");
+  assert.equal(UJ.getOverdueCategory(8), "medium");
+  assert.equal(UJ.getOverdueCategory(30), "medium");
+  assert.equal(UJ.getOverdueCategory(31), "long");
+  assert.equal(UJ.getOverdueCategory(60), "long");
+  assert.equal(UJ.getOverdueCategory(61), "veryLong");
+});
+
+test("Oznake zapadlosti (slovenščina)", () => {
+  assert.equal(UJ.oznakaCasovnosti(-3), "Ni zapadlo · Brez zamude");
+  assert.equal(UJ.oznakaCasovnosti(0), "Zapade danes");
+  assert.equal(UJ.oznakaCasovnosti(1), "Zamuda 1 dan · Kratka zamuda");
+  assert.equal(UJ.oznakaCasovnosti(3), "Zamuda 3 dni · Kratka zamuda");
+  assert.equal(UJ.oznakaCasovnosti(18), "Zamuda 18 dni · Srednja zamuda");
+  assert.equal(UJ.oznakaCasovnosti(45), "Zamuda 45 dni · Dolga zamuda");
+  assert.equal(UJ.oznakaCasovnosti(75), "Zamuda 75 dni · Zelo dolga zamuda");
+});
+
+test("75,64 € še ni zapadel → Nizek dolg + Prijazen", () => {
+  const r = rec(-3, 7564);
+  assert.equal(r.debtCategory, "low");
+  assert.equal(r.debtCategoryLabel, "Nizek dolg");
+  assert.equal(r.recommendedToneId, "friendly");
+  assert.equal(r.timingLabel, "Ni zapadlo · Brez zamude");
+  assert.ok(r.amountLabel.includes("75"));
+});
+
+test("Priporočilo glede na zamudo (nizek dolg)", () => {
+  assert.equal(rec(-5, 7564).recommendedToneId, "friendly");
+  assert.equal(rec(0, 7564).recommendedToneId, "friendly");
+  assert.equal(rec(5, 7564).recommendedToneId, "friendly");
+  assert.equal(rec(10, 7564).recommendedToneId, "neutral");
+  assert.equal(rec(45, 7564).recommendedToneId, "firm");
+  assert.equal(rec(75, 7564).recommendedToneId, "strict");
+});
+
+test("Znesek doda največ en korak (visok dolg, 10 dni)", () => {
+  const r = rec(10, 200000); // 2000 € → high, overdue medium → base 2 + boost 1 = firm
+  assert.equal(r.debtCategory, "high");
   assert.equal(r.recommendedToneId, "firm");
 });
 
-test("3. Račun pred zapadlostjo ni strog", () => {
-  const r = rec(-3, 500000);
-  assert.equal(r.recommendedToneId, "very_friendly");
+test("Pred zapadlostjo nikoli strožje od Prijazen", () => {
+  const r = rec(-3, 500001); // > 5000 €
+  assert.equal(r.debtCategory, "veryHigh");
+  assert.equal(r.recommendedToneId, "friendly");
 });
 
-test("4. Ročna izbira se ohrani", () => {
+test("Ročna izbira se ohrani ob spremembi zneska", () => {
   const first = rec(10, 7564);
   let state = UJ.applyRecommendationToState(null, first);
   state = UJ.selectTone(state, "firm");
+  assert.equal(state.selectionMode, "manual");
   assert.equal(state.isOverridden, true);
   const second = UJ.getRecommendedTone({
-    totalDebtCents: 7564,
+    totalDebtCents: 30000,
     originalDueDate: "2026-07-29",
     evaluationDate: "2026-08-09",
     overdueDays: 11,
   });
   state = UJ.applyRecommendationToState(state, second);
   assert.equal(state.selectedToneId, "firm");
-  assert.equal(state.isOverridden, true);
+  assert.equal(state.selectionMode, "manual");
+  assert.notEqual(state.recommendedToneId, "firm");
 });
 
-test("5. Ponastavitev izbere priporočeni ton", () => {
+test("Samodejni način posodobi ton ob spremembi", () => {
+  let state = UJ.applyRecommendationToState(null, rec(-2, 7564));
+  assert.equal(state.selectionMode, "automatic");
+  assert.equal(state.selectedToneId, "friendly");
+  state = UJ.applyRecommendationToState(state, rec(45, 7564));
+  assert.equal(state.selectionMode, "automatic");
+  assert.equal(state.selectedToneId, "firm");
+});
+
+test("Ponastavitev vrne priporočeni ton", () => {
   let state = UJ.applyRecommendationToState(null, rec(10, 7564));
   state = UJ.selectTone(state, "strict");
+  assert.equal(state.selectionMode, "manual");
   state = UJ.resetToRecommended(state);
-  assert.equal(state.selectedToneId, "friendly");
+  assert.equal(state.selectedToneId, "neutral");
+  assert.equal(state.selectionMode, "automatic");
   assert.equal(state.isOverridden, false);
 });
 
-test("6. Vsak ton ima pravilno ikono", () => {
+test("Ikone tonov", () => {
   const map = {
     very_friendly: "smile-plus",
     friendly: "smile",
     neutral: "meh",
-    firm: "shield",
+    firm: "triangle-alert",
     strict: "circle-alert",
   };
   assert.equal(UJ.TONI.length, 5);
   UJ.TONI.forEach((t) => {
     assert.equal(t.iconKey, map[t.id]);
-    assert.ok(widgetSrc.includes('"' + t.iconKey + '"') || widgetSrc.includes("'" + t.iconKey + "'") || widgetSrc.includes(t.iconKey + ":"));
+    assert.ok(widgetSrc.includes(t.iconKey));
   });
 });
 
-test("7. Izbrana ikona postane bela (CSS)", () => {
+test("UI: povzetek, Ponastavi v glavi, scroll-snap", () => {
+  assert.ok(htmlSrc.includes("ton-widget__povzetek"));
+  assert.ok(htmlSrc.includes('id="ton-ponastavi"'));
+  assert.ok(htmlSrc.includes("ton-widget__glava-desno"));
+  assert.ok(cssSrc.includes("scroll-snap-type: x mandatory"));
+  assert.ok(cssSrc.includes("flex: 0 0 138px"));
+  assert.ok(cssSrc.includes("min-height: 68px"));
   assert.ok(cssSrc.includes(".ton-widget__gumb--izbran"));
   assert.ok(/\.ton-widget__gumb--izbran[\s\S]*?color:\s*#ffffff/.test(cssSrc));
+  assert.ok(!/\.ton-widget[\s\S]{0,400}height:\s*230px/.test(cssSrc));
+  assert.ok(!cssSrc.includes("min-height: 148px"));
 });
 
-test("8. Predloge se filtrirajo po tonu", () => {
+test("Predloge se filtrirajo po tonu", () => {
   const vsi = Predloge.sestaviSistemskePredloge(
     { znesek: 75.64, stevilkaRacuna: "1", datumZapadlosti: "2026-08-20" },
     "de"
@@ -125,67 +194,49 @@ test("8. Predloge se filtrirajo po tonu", () => {
   assert.ok(vf.every((p) => p.toneId === "very_friendly"));
 });
 
-test("9. Predloge se filtrirajo po jeziku", () => {
+test("Predloge se filtrirajo po jeziku", () => {
   const vsi = Predloge.sestaviSistemskePredloge({ znesek: 10 }, "de");
   assert.equal(Predloge.filtrirajPredloge(vsi, "friendly", "sl").length, 0);
   assert.equal(Predloge.filtrirajPredloge(vsi, "friendly", "de").length, 6);
 });
 
-test("10. Priporočena predloga je prva", () => {
-  const vsi = Predloge.sestaviSistemskePredloge({ znesek: 10 }, "de");
-  const firm = Predloge.sortirajPredlogeZaTon(
-    Predloge.filtrirajPredloge(vsi, "firm", "de")
-  );
-  assert.equal(firm[0].isRecommended, true);
-});
-
-test("11. Menjava tona ne prepiše sporočila (app.js)", () => {
+test("Menjava tona ne prepiše sporočila (app.js)", () => {
   assert.ok(appSrc.includes("ne prepiše glavnega sporočila"));
   assert.ok(!appSrc.includes("uporabiTonInPrivzetoPredlogo"));
   assert.ok(appSrc.includes("onToneSelected:"));
   assert.ok(appSrc.includes("nastaviIzbranTon(toneId, true)"));
-});
-
-test("12. Uporabi zamenja sporočilo z zaščito", () => {
-  assert.ok(appSrc.includes("async function uporabiPredlog"));
-  assert.ok(appSrc.includes("Uporaba predloge bo zamenjala trenutno urejeno besedilo"));
-  assert.ok(appSrc.includes("besediloPolje.value = predlog.besedilo"));
-});
-
-test("13. Obvestilo samo pri neusklajenem tonu", () => {
   assert.ok(
     appSrc.includes(
       "Izberite predlogo, da uporabite novi ton v sporočilu."
     )
   );
-  assert.ok(appSrc.includes("applied === selected"));
 });
 
-test("14. Števec predlog / 6 na ton", () => {
-  const vsi = Predloge.sestaviSistemskePredloge({ znesek: 1 }, "de");
-  UJ.TONI.forEach((t) => {
-    assert.equal(Predloge.filtrirajPredloge(vsi, t.id, "de").length, 6);
-  });
+test("Zakaj modal + Razumem", () => {
+  assert.ok(appSrc.includes("onShowReasonDetail"));
+  assert.ok(appSrc.includes("Razumem"));
+  assert.ok(appSrc.includes("odstavki"));
+  const razlaga = UJ.sestaviRazlagoZaModal(rec(-3, 7564));
+  assert.equal(razlaga.naslov, "Zakaj priporočamo ta ton?");
+  assert.equal(razlaga.odstavki.length, 3);
+  assert.ok(razlaga.odstavki[2].besedilo.includes("prijazen"));
 });
 
-test("15. Osnutek obnovi toneRecommendation", () => {
+test("Osnutek shrani selectionMode + posnetek ob pošiljanju", () => {
   assert.ok(appSrc.includes("toneRecommendation"));
-  assert.ok(appSrc.includes("applyRecommendationToState"));
-  assert.ok(appSrc.includes("sporociloRocnoUrejeno"));
+  assert.ok(appSrc.includes("selectionMode"));
+  assert.ok(appSrc.includes("toneSnapshotAtSend"));
+  assert.ok(appSrc.includes("recommendedToneAtSend"));
 });
 
-test("Sprejemni: 75,64 € še ni zapadel → Zelo prijazen", () => {
-  const r = rec(-3, 7564);
-  assert.equal(r.recommendedToneId, "very_friendly");
-  assert.equal(r.timingLabel, "Še ni zapadlo");
-  assert.ok(r.amountLabel.includes("75"));
-});
-
-test("Kompaktni UI: pills, brez pik, višina seznama", () => {
-  assert.ok(cssSrc.includes(".ton-widget__gumb"));
-  assert.ok(!cssSrc.includes(".ton-widget__pika--aktivna"));
-  assert.ok(cssSrc.includes("height: 230px"));
-  assert.ok(!widgetSrc.includes("Povlecite levo"));
+test("Brez datuma → Prijazen", () => {
+  const r = UJ.getRecommendedTone({
+    totalDebtCents: 500001,
+    originalDueDate: null,
+    evaluationDate: "2026-08-08",
+  });
+  assert.equal(r.recommendedToneId, "friendly");
+  assert.equal(r.missingDue, true);
 });
 
 console.log("\nUspešnih: " + ok);

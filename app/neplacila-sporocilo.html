@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-priporocila-kompakt" />
+    <link rel="stylesheet" href="styles.css?v=20260808-ton-kartica" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -78,16 +78,48 @@
           <section class="ton-widget" id="ton-widget" aria-labelledby="ton-widget-naslov" hidden>
             <div class="ton-widget__glava">
               <h2 class="ton-widget__naslov" id="ton-widget-naslov">Ton sporočila</h2>
-              <span class="ton-widget__znacka-predlagano" id="ton-znacka-predlagano">Predlagano</span>
+              <div class="ton-widget__glava-desno">
+                <span class="ton-widget__znacka" id="ton-znacka-predlagano">Predlagano</span>
+                <button
+                  type="button"
+                  class="ton-widget__zakaj"
+                  id="ton-zakaj"
+                  aria-label="Pojasni priporočeni ton"
+                >
+                  Zakaj?
+                </button>
+                <button
+                  type="button"
+                  class="ton-widget__ponastavi"
+                  id="ton-ponastavi"
+                  hidden
+                  aria-label="Ponastavi na priporočeni ton"
+                >
+                  ↶ Ponastavi
+                </button>
+              </div>
             </div>
-            <div class="ton-widget__meta">
-              <p class="ton-widget__meta-levo">
-                <span class="ton-widget__meta-znesek" id="ton-znesek-znacka"></span>
-                <span class="ton-widget__meta-pika" aria-hidden="true">•</span>
-                <span class="ton-widget__meta-cas" id="ton-cas-znacka"></span>
-              </p>
-              <button type="button" class="ton-widget__zakaj" id="ton-zakaj">Zakaj?</button>
-            </div>
+
+            <button
+              type="button"
+              class="ton-widget__povzetek"
+              id="ton-povzetek"
+              aria-label="Prikaži kategorijo dolga"
+            >
+              <span class="ton-widget__povzetek-znesek" id="ton-znesek-znacka">—</span>
+              <span class="ton-widget__povzetek-desno">
+                <span class="ton-widget__povzetek-oznaka">Kategorija dolga</span>
+                <span class="ton-widget__povzetek-kategorija" id="ton-kategorija-znacka">—</span>
+              </span>
+            </button>
+
+            <p class="ton-widget__zapadlost" id="ton-cas-znacka">
+              <span class="ton-widget__zapadlost-ikona" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+              </span>
+              <span class="ton-widget__zapadlost-tekst" id="ton-cas-tekst"></span>
+            </p>
+
             <div class="ton-widget__tir-ovoj">
               <div
                 class="ton-widget__tir"
@@ -96,11 +128,6 @@
                 aria-label="Toni sporočila"
               ></div>
               <span class="ton-widget__chevron" aria-hidden="true">›</span>
-            </div>
-            <div class="ton-widget__override" id="ton-override" hidden>
-              <button type="button" class="ton-widget__ponastavi" id="ton-ponastavi">
-                Ponastavi na priporočeno
-              </button>
             </div>
             <p class="sr-only" id="ton-aria-live" aria-live="polite"></p>
           </section>
@@ -798,12 +825,12 @@
     <script src="rok-placila-sheet.js?v=20260808-rok-fix"></script>
     <script src="obrocno-utils.js?v=20260808-obrocno-brez-vklop"></script>
     <script src="obrocno-sheet.js?v=20260808-rok-stanje-datum"></script>
-    <script src="ton-priporocilo.js?v=20260808-predogled"></script>
+    <script src="ton-priporocilo.js?v=20260808-ton-kartica"></script>
     <script src="ton-predloge.js?v=20260808-predogled"></script>
-    <script src="ton-widget.js?v=20260808-predogled"></script>
+    <script src="ton-widget.js?v=20260808-ton-kartica"></script>
     <script src="ton-dodatki-priporocila.js?v=20260808-predogled"></script>
     <script src="recommendation-card.js?v=20260808-predogled"></script>
     <script src="predloga-payment-settings.js?v=20260808-predogled"></script>
-    <script src="app.js?v=20260808-isti-nov"></script>
+    <script src="app.js?v=20260808-ton-kartica"></script>
   </body>
 </html>

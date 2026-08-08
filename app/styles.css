@@ -4117,15 +4117,18 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-widget {
+  width: 100%;
   margin: 12px 0 18px;
-  padding: 16px 16px 14px;
-  min-height: 148px;
-  border: 1px solid var(--teal, #5aa3a5);
+  padding: 16px;
+  border: 1px solid var(--teal, #3d999a);
   border-radius: 22px;
-  background: linear-gradient(180deg, #f7fbfb 0%, var(--white, #ffffff) 100%);
+  background: var(--white, #ffffff);
   box-sizing: border-box;
   box-shadow: none;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .ton-widget--skeleton {
@@ -4137,80 +4140,168 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .ton-widget__naslov {
   margin: 0;
-  color: var(--text, #243d3d);
-  font-size: 1rem;
+  color: var(--text, #17322f);
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.25;
+  min-width: 0;
 }
 
-.ton-widget__znacka-predlagano {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--teal-pale, #eaf4f3);
-  border: 1px solid var(--teal, #5aa3a5);
-  color: var(--teal-dark, #243d3d);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.ton-widget__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.ton-widget__meta-levo {
+.ton-widget__glava-desno {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ton-widget__znacka {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--teal, #51999a);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ton-widget__znacka--rocno {
+  background: var(--teal-dark, #347d7e);
+}
+
+.ton-widget__zakaj,
+.ton-widget__ponastavi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   margin: 0;
-  min-width: 0;
-  color: var(--text, #243d3d);
-  font-size: 0.8rem;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--teal, #51999a);
+  font: inherit;
+  font-size: 0.82rem;
   font-weight: 500;
-  line-height: 1.3;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
-.ton-widget__meta-pika {
-  color: var(--muted, #718585);
-}
-
-.ton-widget__meta-pika[hidden],
-.ton-widget__meta-znesek[hidden],
-.ton-widget__meta-cas[hidden] {
+.ton-widget__ponastavi[hidden] {
   display: none !important;
 }
 
-.ton-widget__zakaj {
-  flex-shrink: 0;
+.ton-widget__zakaj:focus-visible,
+.ton-widget__ponastavi:focus-visible,
+.ton-widget__povzetek:focus-visible,
+.ton-widget__gumb:focus-visible {
+  outline: 3px solid var(--teal-dark, #347d7e);
+  outline-offset: 2px;
+}
+
+.ton-widget__povzetek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
   margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--teal, #5aa3a5);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-decoration: underline;
+  padding: 12px 14px;
+  border: 1px solid var(--teal, #51999a);
+  border-radius: 14px;
+  background: var(--teal-pale, #eaf5f4);
+  color: inherit;
+  text-align: left;
   cursor: pointer;
+  box-sizing: border-box;
+  font: inherit;
+  box-shadow: none;
+}
+
+.ton-widget__povzetek-znesek {
+  color: var(--text, #17322f);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  min-width: 0;
+}
+
+.ton-widget__povzetek-desno {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  max-width: 46%;
+}
+
+.ton-widget__povzetek-oznaka {
+  color: var(--muted, #5f7571);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ton-widget__povzetek-kategorija {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 2px 10px;
+  border: 1px solid var(--teal, #51999a);
+  border-radius: 999px;
+  background: var(--white, #ffffff);
+  color: var(--text, #17322f);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ton-widget__povzetek-kategorija[hidden] {
+  display: none !important;
+}
+
+.ton-widget__zapadlost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  min-height: 24px;
+  color: var(--teal, #51999a);
+  font-size: 0.84rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ton-widget__zapadlost-ikona {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.ton-widget__zapadlost-ikona svg {
+  display: block;
 }
 
 .ton-widget__tir-ovoj {
   position: relative;
   min-width: 0;
+  margin: 0;
 }
 
 .ton-widget__tir-ovoj::after {
@@ -4219,12 +4310,12 @@ body.stran--samo-seznam #neplacila-obrazec {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 36px;
+  width: 28px;
   pointer-events: none;
   background: linear-gradient(
     to right,
-    rgba(247, 251, 251, 0),
-    rgba(247, 251, 251, 0.95)
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.95)
   );
 }
 
@@ -4234,7 +4325,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
-  color: var(--teal, #5aa3a5);
+  color: var(--teal, #51999a);
   font-size: 1.15rem;
   line-height: 1;
   pointer-events: none;
@@ -4260,23 +4351,26 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-widget__gumb {
-  flex: 0 0 auto;
+  flex: 0 0 138px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
-  min-height: 44px;
+  height: 52px;
+  min-height: 52px;
+  min-width: 138px;
   margin: 0;
-  padding: 0 14px;
-  border: 1px solid var(--border, #c4d7d5);
-  border-radius: 22px;
+  padding: 0 12px;
+  border: 1px solid var(--teal, #51999a);
+  border-radius: 20px;
   background: var(--white, #ffffff);
-  color: var(--teal-dark, #243d3d);
+  color: var(--teal, #51999a);
   scroll-snap-align: center;
   cursor: pointer;
   box-sizing: border-box;
   font: inherit;
   font-size: 0.84rem;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -4300,31 +4394,34 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .ton-widget__gumb--izbran {
-  border-color: var(--teal, #5aa3a5);
-  background: var(--teal, #5aa3a5);
+  border-color: var(--teal, #51999a);
+  background: var(--teal, #51999a);
   color: #ffffff;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--teal-dark, #347d7e);
+}
+
+.osnutek-modal__odstavki {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.osnutek-modal__odstavek-naslov {
+  display: block;
+  margin: 0 0 2px;
+  color: var(--text, #17322f);
+  font-size: 0.82rem;
   font-weight: 650;
+  line-height: 1.3;
 }
 
-.ton-widget__override {
-  margin-top: 8px;
-}
-
-.ton-widget__override[hidden] {
-  display: none !important;
-}
-
-.ton-widget__ponastavi {
+.osnutek-modal__odstavek-besedilo {
   margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--teal, #5aa3a5);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-decoration: underline;
-  cursor: pointer;
+  color: #5f7571;
+  font-size: 0.86rem;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 /* ========== "Možna priporočila" - mehke, tople kartice (samo UI/videz,
