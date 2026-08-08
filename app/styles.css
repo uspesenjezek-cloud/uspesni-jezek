@@ -3706,11 +3706,16 @@ body.stran--samo-seznam #neplacila-obrazec {
   background: var(--teal-pale);
 }
 
-/* Številka 1 = prioriteta: vidna »1« + mala rumena zvezda zgoraj levo. */
+/* Številka 1 = prioriteta: ★ + »1« v isti vrstici. */
 .predlog-kartica__stevilka--prioriteta {
-  position: relative;
-  width: 34px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: auto;
+  min-width: 34px;
   height: 34px;
+  padding: 0 6px;
   background: var(--surface-warm);
   color: var(--teal-dark);
   border-radius: 10px;
@@ -3722,14 +3727,13 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .predlog-kartica__zvezda {
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 14px;
-  height: 14px;
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 11px;
+  height: 11px;
   color: #e8b923;
   pointer-events: none;
   line-height: 0;
@@ -3737,13 +3741,13 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .predlog-kartica__zvezda svg {
   display: block;
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
 }
 
 .predlog-kartica__zvezda-cifra {
-  position: relative;
-  z-index: 1;
+  position: static;
+  display: inline-block;
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1;
@@ -3819,7 +3823,10 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta {
-  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   width: 52px;
   height: 52px;
   border-color: var(--border);
@@ -3828,8 +3835,9 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
-  top: -2px;
-  left: -2px;
+  position: static;
+  width: 12px;
+  height: 12px;
   color: #e8b923;
 }
 
@@ -3839,7 +3847,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta .predlog-kartica__zvezda-cifra {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--teal-dark);
 }
@@ -3851,7 +3859,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .predlog-kartica__stevilka-izbira--prioriteta:hover {
-  border-color: transparent;
+  border-color: var(--teal);
 }
 
 .predlog-kartica__naslov {
@@ -6569,11 +6577,15 @@ body.template-editor-odprt {
   color: #fff;
 }
 
+.korak2-modal__stevilka-izbira--prioriteta {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
 .korak2-modal__stevilka-izbira--prioriteta .predlog-kartica__zvezda {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: auto;
+  position: static;
   color: #e8b923;
 }
 
@@ -6800,18 +6812,16 @@ body.template-editor-odprt {
   }
 
   .predlog-kartica__stevilka--prioriteta {
-    width: 32px;
+    min-width: 32px;
     height: 32px;
+    padding: 0 5px;
+    gap: 2px;
   }
 
-  .predlog-kartica__stevilka--prioriteta .predlog-kartica__zvezda {
-    top: -3px;
-    left: -3px;
-  }
-
+  .predlog-kartica__stevilka--prioriteta .predlog-kartica__zvezda,
   .predlog-kartica__stevilka--prioriteta .predlog-kartica__zvezda svg {
-    width: 11px;
-    height: 11px;
+    width: 10px;
+    height: 10px;
   }
 
   .predlog-kartica__stevilke-mreza {

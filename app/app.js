@@ -2117,10 +2117,10 @@ function inicializirajSporociloDolzniku() {
 
   function htmlStevilkaZvezda() {
     return (
-      '<span class="predlog-kartica__zvezda-cifra">1</span>' +
       '<span class="predlog-kartica__zvezda" aria-hidden="true">' +
       ikonaZvezdePrioriteta +
-      "</span>"
+      "</span>" +
+      '<span class="predlog-kartica__zvezda-cifra">1</span>'
     );
   }
 
