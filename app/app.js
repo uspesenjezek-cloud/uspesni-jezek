@@ -2936,125 +2936,50 @@ function inicializirajSporociloDolzniku() {
     besediloPolje.focus();
   }
 
-  const gumbPosodobiRokTon = document.getElementById("gumb-posodobi-rok-ton");
-  const gumbPredlogObrocnoTon = document.getElementById("gumb-predlog-obrocno-ton");
+  const gumbMoznaPriporocila = document.getElementById("gumb-mozna-priporocila");
+  const panelMoznaPriporocila = document.getElementById("panel-mozna-priporocila");
 
   function aktivniTonZaDodatke() {
     return toneState.appliedToneId || toneState.selectedToneId || izbranTonId;
   }
 
-  function posodobiNamigeTonaDodatkov() {
-    const tonId = aktivniTonZaDodatke();
-    if (gumbPredlogObrocnoTon) {
-      gumbPredlogObrocnoTon.hidden = !tonId || !window.UJRokPlacila;
-    }
-    if (!gumbPosodobiRokTon) return;
-    if (!paymentDeadline || !paymentDeadline.enabled || !window.UJRokPlacila) {
-      gumbPosodobiRokTon.hidden = true;
-      return;
-    }
-    const linked = paymentDeadline.linkedToneId || null;
-    const rocno = paymentDeadline.mode === "manual";
-    const drugTon = Boolean(tonId && linked && linked !== tonId);
-    const brezTona = Boolean(tonId && !linked);
-    gumbPosodobiRokTon.hidden = !(rocno || drugTon || brezTona);
+  /** Za priporočila uporabi izbrani ton (tudi pred uporabo predloge). */
+  function tonZaPriporocila() {
+    return toneState.selectedToneId || izbranTonId || toneState.appliedToneId;
   }
 
-  function posodobiRokGledeNaTon() {
-    const UJ = window.UJRokPlacila;
-    if (!UJ || !paymentDeadline || !paymentDeadline.enabled) return;
-    const tonId = aktivniTonZaDodatke();
-    const days = UJ.dneviZaTon(tonId);
-    const base = bazaDatumaPosiljanja();
-    const deadline = UJ.izracunajRok(base, days);
-    const jezik =
-      paymentDeadline.messageLanguage || UJ.ugotoviJezikSporocila(besediloPolje.value);
-    const vrstica = UJ.sestaviVrsticoRoka(deadline, jezik);
-    const rez = UJ.posodobiSistemskoVrstico(
-      besediloPolje.value,
-      paymentDeadline.insertedText || "",
-      vrstica,
-      true
+  function znesekDolgaVCentih() {
+    if (window.UJObrocno) {
+      const c = window.UJObrocno.eurosToCents(podatkiKorak1.znesek);
+      return c != null && c > 0 ? c : 0;
+    }
+    if (window.UJTonPriporocilo) {
+      const c = window.UJTonPriporocilo.eurosToCents(podatkiKorak1.znesek);
+      return c != null && c > 0 ? c : 0;
+    }
+    return 0;
+  }
+
+  function dniZamudeZaPriporocila() {
+    if (!window.UJTonPriporocilo || !podatkiKorak1.datumZapadlosti) return null;
+    return window.UJTonPriporocilo.izracunajDniZamude(
+      podatkiKorak1.datumZapadlosti,
+      window.UJTonPriporocilo.danesYYYYMMDD()
     );
-    if (!rez.ok) {
-      pokaziNapako(
-        "Roka ni mogoče samodejno posodobiti, ker je vrstica ročno spremenjena. Odprite Rok plačila."
-      );
-      return;
-    }
-    besediloPolje.value = String(rez.besedilo).slice(0, NAJVEC_ZNAKOV);
-    paymentDeadline = {
-      ...paymentDeadline,
-      mode: "automatic",
-      linkedToneId: tonId,
-      termDays: days,
-      deadlineDate: deadline,
-      baseSendDate: base,
-      insertedText: vrstica,
-      messageLanguage: jezik,
-    };
-    dodatekBesedila.rok = vrstica;
-    dodatki.rok = true;
-    if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "true");
-    posodobiStanjeUrejevalnika();
-    shraniOsnutekLokalno();
-    posodobiNamigeTonaDodatkov();
   }
 
-  async function prikaziPredlogObrocnegaZaTon() {
-    const UJ = window.UJRokPlacila;
-    if (!UJ) return;
-    const tonId = aktivniTonZaDodatke();
-    const jezik = UJ.ugotoviJezikSporocila
-      ? UJ.ugotoviJezikSporocila(besediloPolje.value)
-      : "de";
-    const predlog = UJ.predlogObrocnegaZaTon(tonId);
-    const vrstica = UJ.sestaviBesediloObrocnegaPredloga(tonId, jezik);
-    const opis =
-      "Predlog za trenutni ton: " +
-      predlog.installments +
-      " obrokov, prvi čez " +
-      predlog.firstDelayDays +
-      " dni, razmik " +
-      predlog.gapDays +
-      " dni.\n\n»" +
-      vrstica +
-      "«";
-    const ok = await potrdiVprasanje({
-      naslov: "Predlog obročnega plačila",
-      opis: opis,
-      potrdiBesedilo: "Dodaj v sporočilo",
-      prekliciBesedilo: "Zapri",
-      stil: "primary",
+  /** Osveži besedila v panelu »Možna priporočila« (vir: ton + zamuda + znesek). */
+  function posodobiNamigeTonaDodatkov() {
+    if (!window.UJTonDodatkiPriporocila) return;
+    const priporocila = window.UJTonDodatkiPriporocila.sestaviPriporocila({
+      toneId: tonZaPriporocila(),
+      overdueDays: dniZamudeZaPriporocila(),
+      amountCents: znesekDolgaVCentih(),
     });
-    if (!ok) return;
-    if (dodatki.obrocno && dodatekBesedila.obrocno) {
-      const zamenjaj = await potrdiVprasanje({
-        naslov: "Zamenjam obročno vrstico?",
-        opis: "V sporočilu je že besedilo o obročnem plačilu. Zamenjam ga s predlogom glede na ton?",
-        potrdiBesedilo: "Zamenjaj",
-        stil: "primary",
-      });
-      if (!zamenjaj) return;
-      const stara = dodatekBesedila.obrocno;
-      if (besediloPolje.value.includes(stara)) {
-        besediloPolje.value = besediloPolje.value.split(stara).join(vrstica);
-      } else {
-        const osnova = besediloPolje.value.replace(/\s+$/, "");
-        besediloPolje.value = (osnova ? osnova + "\n\n" + vrstica : vrstica).slice(
-          0,
-          NAJVEC_ZNAKOV
-        );
-      }
-      dodatekBesedila.obrocno = vrstica;
-    } else {
-      preklopiDodatek("obrocno", vrstica, dodatekObrocno);
-      return;
-    }
-    dodatki.obrocno = true;
-    if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "true");
-    posodobiStanjeUrejevalnika();
-    shraniOsnutekLokalno();
+    const rokEl = document.getElementById("priporocilo-rok-besedilo");
+    const obrocnoEl = document.getElementById("priporocilo-obrocno-besedilo");
+    if (rokEl) rokEl.innerHTML = priporocila.rokHtml;
+    if (obrocnoEl) obrocnoEl.innerHTML = priporocila.obrocnoHtml;
   }
 
   if (dodatekRok) {
@@ -3093,12 +3018,12 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
-  if (gumbPosodobiRokTon) {
-    gumbPosodobiRokTon.addEventListener("click", () => posodobiRokGledeNaTon());
-  }
-  if (gumbPredlogObrocnoTon) {
-    gumbPredlogObrocnoTon.addEventListener("click", () => {
-      prikaziPredlogObrocnegaZaTon();
+  if (gumbMoznaPriporocila && panelMoznaPriporocila) {
+    gumbMoznaPriporocila.addEventListener("click", () => {
+      const odprt = panelMoznaPriporocila.hidden;
+      if (odprt) posodobiNamigeTonaDodatkov();
+      panelMoznaPriporocila.hidden = !odprt;
+      gumbMoznaPriporocila.setAttribute("aria-expanded", odprt ? "true" : "false");
     });
   }
 

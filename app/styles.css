@@ -4007,6 +4007,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .stran--sporocilo .sporocilo-dodatek {
+  position: relative;
   min-height: 78px;
   display: grid;
   place-items: center;
@@ -4023,6 +4024,24 @@ body.stran--samo-seznam #neplacila-obrazec {
   text-align: center;
   cursor: pointer;
   box-sizing: border-box;
+}
+
+/* Rumena zvezdica – isti jezik kot priporočene predloge */
+.stran--sporocilo .sporocilo-dodatek__zvezda {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: 5px;
+  width: 1.05rem;
+  height: 1.05rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e8b923;
+  font-size: 0.78rem;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 0 #c9a227;
 }
 
 .stran--sporocilo .sporocilo-dodatek__ikona {
@@ -4272,30 +4291,88 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 /* Diskretni namigi pod dodatki (rok/obročno glede na ton) – ne spreminja kartic. */
-.ton-dodatki-namigi {
+.ton-priporocila {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: stretch;
+  gap: 8px;
   margin-top: 10px;
 }
 
-.ton-dodatki-namig {
+.ton-priporocila__gumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
   margin: 0;
-  padding: 0;
+  padding: 4px 2px;
   border: 0;
   background: transparent;
-  color: var(--teal, #5aa3a5);
+  color: #c9a227;
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-decoration: underline;
+  font-size: 0.84rem;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 
-.ton-dodatki-namig[hidden] {
+.ton-priporocila__gumb:hover,
+.ton-priporocila__gumb:focus-visible {
+  color: #a88412;
+}
+
+.ton-priporocila__zvezda {
+  color: #e8b923;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.ton-priporocila__chevron {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  transition: transform 0.15s ease;
+}
+
+.ton-priporocila__gumb[aria-expanded="true"] .ton-priporocila__chevron {
+  transform: rotate(180deg);
+}
+
+.ton-priporocila__panel {
+  padding: 12px 14px;
+  border: 1px solid #e0c35a;
+  border-radius: 14px;
+  background: #fff9e6;
+  box-sizing: border-box;
+}
+
+.ton-priporocila__panel[hidden] {
   display: none !important;
+}
+
+.ton-priporocila__sklop + .ton-priporocila__sklop {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ead78a;
+}
+
+.ton-priporocila__naslov {
+  margin: 0 0 4px;
+  color: #6a5410;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ton-priporocila__besedilo {
+  margin: 0;
+  color: #4a3d12;
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.ton-priporocila__besedilo strong {
+  font-weight: 700;
+  color: #3d320e;
 }
 
 /* ========== Bottom sheet: Obročno plačilo (dodatki na rok-sheet) ========== */
