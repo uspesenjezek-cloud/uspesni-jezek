@@ -35,6 +35,15 @@
   var IKONA_TRR =
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>';
 
+  var IKONA_DENARNICA =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>';
+
+  var IKONA_NASMEH =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>';
+
+  var IKONA_DOKUMENT =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>';
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -245,13 +254,43 @@
 
   function gsmLabel(Gsm, besedilo) {
     if (!Gsm) {
-      var n = String(besedilo || "").length;
+      var n = Array.from(String(besedilo || "")).length;
       return n + " znakov";
     }
     var r = Gsm.stevejSms(besedilo);
     var deli =
-      r.parts === 1 ? "1 del" : r.parts === 2 ? "2 dela" : r.parts + " deli";
-    return r.chars + " znakov • " + deli;
+      r.parts === 1 ? "1 del" : r.parts === 2 ? "2 dela" : r.parts + " delov";
+    return r.chars + " znakov · " + deli;
+  }
+
+  function formatEurIzCentov(cents) {
+    if (cents == null || !Number.isFinite(Number(cents))) return null;
+    if (root.UJTonPriporocilo && root.UJTonPriporocilo.formatirajZnesekEur) {
+      return root.UJTonPriporocilo.formatirajZnesekEur(cents);
+    }
+    try {
+      return new Intl.NumberFormat("sl-SI", {
+        style: "currency",
+        currency: "EUR",
+      }).format(Number(cents) / 100);
+    } catch (_e) {
+      return formatirajZnesek(cents);
+    }
+  }
+
+  function kategorijaDolgaIzCentov(cents) {
+    var Ton = root.UJTonPriporocilo;
+    if (Ton && typeof Ton.getDebtCategoryFromCents === "function") {
+      var id = Ton.getDebtCategoryFromCents(cents);
+      if (!id) return null;
+      return (Ton.DEBT_CATEGORY_LABELS && Ton.DEBT_CATEGORY_LABELS[id]) || id;
+    }
+    if (cents == null || !Number.isFinite(Number(cents))) return null;
+    var eur = Number(cents) / 100;
+    if (eur <= 250) return "Nizek dolg";
+    if (eur <= 1000) return "Srednji dolg";
+    if (eur <= 5000) return "Visok dolg";
+    return "Zelo visok dolg";
   }
 
   function imePredloge(step, k2) {
@@ -979,6 +1018,136 @@
       );
     }
 
+    function htmlAddonVrstica(o) {
+      o = o || {};
+      return (
+        '<button type="button" class="step-addon-row" data-vsebina="' +
+        esc(o.akcija || "") +
+        '" aria-label="' +
+        esc(o.aria || o.naslov || "") +
+        '">' +
+        '<span class="step-addon-row__icon" aria-hidden="true">' +
+        (o.ikona || "") +
+        "</span>" +
+        '<span class="step-addon-row__label">' +
+        esc(o.naslov || "") +
+        "</span>" +
+        '<span class="step-addon-row__status">' +
+        esc(o.stanje || "") +
+        "</span>" +
+        '<span class="step-addon-row__chevron" aria-hidden="true">›</span>' +
+        "</button>"
+      );
+    }
+
+    function htmlVsebinaKoraka(ctx) {
+      ctx = ctx || {};
+      var znesekTekst = ctx.znesekTekst;
+      var kategorijaTekst = ctx.kategorijaTekst;
+      var tonOznaka = ctx.tonOznaka || "—";
+      var predlogaOznaka = ctx.predlogaOznaka || "Ni izbrana";
+      var predlogaPriporocena = Boolean(ctx.predlogaPriporocena);
+      var smsBesedilo = ctx.smsBesedilo || "";
+      var smsMeta = ctx.smsMeta || "";
+      var imaSms = Boolean(String(smsBesedilo).trim());
+
+      return (
+        '<section class="step-content-card" aria-label="Vsebina koraka">' +
+        '<h3 class="step-content-card__title">Vsebina koraka</h3>' +
+        '<div class="debt-summary">' +
+        '<span class="debt-summary__icon" aria-hidden="true">' +
+        IKONA_DENARNICA +
+        "</span>" +
+        '<div class="debt-summary__main">' +
+        '<span class="debt-summary__label">Dolg</span>' +
+        '<span class="debt-summary__amount">' +
+        esc(znesekTekst || "Ni določen") +
+        "</span>" +
+        "</div>" +
+        '<div class="debt-summary__category">' +
+        '<span class="debt-summary__category-label">Kategorija</span>' +
+        '<span class="debt-summary__category-value">' +
+        esc(kategorijaTekst || "Ni določena") +
+        "</span>" +
+        "</div>" +
+        "</div>" +
+        '<div class="step-primary-settings">' +
+        '<button type="button" class="step-setting-tile" data-vsebina="ton" aria-label="Spremeni ton sporočila. Trenutno: ' +
+        esc(tonOznaka) +
+        '.">' +
+        '<span class="step-setting-tile__icon" aria-hidden="true">' +
+        IKONA_NASMEH +
+        "</span>" +
+        '<span class="step-setting-tile__content">' +
+        '<span class="step-setting-tile__label">Ton sporočila</span>' +
+        '<span class="step-setting-tile__value">' +
+        esc(tonOznaka) +
+        "</span>" +
+        "</span>" +
+        '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
+        "</button>" +
+        '<button type="button" class="step-setting-tile" data-vsebina="predloga" aria-label="Spremeni predlogo. Trenutno: ' +
+        esc(predlogaOznaka) +
+        '.">' +
+        '<span class="step-setting-tile__icon" aria-hidden="true">' +
+        IKONA_DOKUMENT +
+        "</span>" +
+        '<span class="step-setting-tile__content">' +
+        '<span class="step-setting-tile__label">Predloga</span>' +
+        '<span class="step-setting-tile__value">' +
+        esc(predlogaOznaka) +
+        "</span>" +
+        (predlogaPriporocena
+          ? '<span class="template-recommended-badge">Priporočeno</span>'
+          : "") +
+        "</span>" +
+        '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
+        "</button>" +
+        "</div>" +
+        '<div class="step-addons-list">' +
+        htmlAddonVrstica({
+          ikona: IKONA_ROK,
+          naslov: "Rok plačila",
+          stanje: ctx.rokStanje,
+          akcija: "rok",
+          aria:
+            "Nastavi rok plačila. Trenutno: " + (ctx.rokStanje || "Izklopljeno"),
+        }) +
+        htmlAddonVrstica({
+          ikona: IKONA_OBROCNO,
+          naslov: "Obročno plačilo",
+          stanje: ctx.obrocnoStanje,
+          akcija: "obrocno",
+          aria:
+            "Nastavi obročno plačilo. Trenutno: " +
+            (ctx.obrocnoStanje || "Izklopljeno"),
+        }) +
+        htmlAddonVrstica({
+          ikona: IKONA_TRR,
+          naslov: "TRR",
+          stanje: ctx.trrStanje,
+          akcija: "trr",
+          aria: "Nastavi TRR. Trenutno: " + (ctx.trrStanje || "Izklopljeno"),
+        }) +
+        "</div>" +
+        '<div class="sms-preview">' +
+        '<div class="sms-preview__header">' +
+        '<span class="sms-preview__title">SMS</span>' +
+        '<span class="sms-preview__meta">' +
+        esc(smsMeta) +
+        "</span>" +
+        "</div>" +
+        '<div class="sms-preview__viewport" role="region" aria-label="Predogled SMS sporočila" tabindex="0">' +
+        (imaSms
+          ? esc(smsBesedilo)
+          : '<span class="sms-preview__prazno">Sporočilo še ni sestavljeno.</span>') +
+        "</div>" +
+        '<p class="sms-preview__caption">Celotno sporočilo uredite pri pregledu koraka.</p>' +
+        "</div>" +
+        "</section>"
+      );
+    }
+
     function izrisiGlavni() {
       var imaTelefon = Boolean(
         opts.podatkiKorak1 && opts.podatkiKorak1.telefonDolznika
@@ -1141,92 +1310,34 @@
         var rokAktiven =
           (paymentDeadline && paymentDeadline.enabled) ||
           (step.paymentDeadline && step.paymentDeadline.enabled);
-        var rokDnevi =
-          (paymentDeadline && paymentDeadline.termDays != null
-            ? paymentDeadline.termDays
-            : null) ||
-          (step.paymentDeadline && step.paymentDeadline.days != null
-            ? step.paymentDeadline.days
-            : null);
-        var rokVal = rokAktiven
-          ? rokDnevi != null
-            ? rokDnevi + " dni"
-            : "Vklopljeno"
-          : "Izklopljeno";
-
-        var planObroc =
+        var obrocAktiven = Boolean(
           installmentPlan && installmentPlan.enabled
-            ? installmentPlan
-            : null;
-        var obrocVal = planObroc
-          ? (planObroc.installmentCount ||
-              (planObroc.installments && planObroc.installments.length) ||
-              "?") + " obroki"
-          : "Izklopljeno";
-
-        var iban = String(
-          (opts.podatkiKorak1 && opts.podatkiKorak1.iban) || ""
-        ).trim();
-        var iban4 = iban ? iban.slice(-4) : "";
+        );
         var trrAktiven = Boolean(
           dodatki.trr ||
             (step.bankTransfer && step.bankTransfer.enabled)
         );
-        var trrVal = trrAktiven
-          ? "Privzeti" + (iban4 ? " • …" + iban4 : "")
-          : "Izklopljeno";
 
-        vsebinaHtml =
-          '<section class="opomin-nacrt__vsebina-kartica" aria-label="Vsebina koraka">' +
-          '<h3 class="opomin-nacrt__sekcija-naslov">Vsebina koraka</h3>' +
-          '<div class="opomin-nacrt__vsebina-seznam">' +
-          vrsticaVsebine({
-            ikona: IKONA_TON,
-            naslov: "Ton sporočila",
-            vrednost: N.oznakaTona(step.toneId || plan.toneId),
-            vrednostKotPill: true,
-            akcija: "ton",
-          }) +
-          vrsticaVsebine({
-            ikona: IKONA_PREDLOGA,
-            naslov: "Predloga",
-            vrednost: imePredloge(step, k2),
-            badge: "Priporočeno",
-            akcija: "predloga",
-          }) +
-          vrsticaVsebine({
-            ikona: IKONA_ROK,
-            naslov: "Rok plačila",
-            vrednost: rokVal,
-            akcija: "rok",
-          }) +
-          vrsticaVsebine({
-            ikona: IKONA_OBROCNO,
-            naslov: "Obročno plačilo",
-            vrednost: obrocVal,
-            akcija: "obrocno",
-          }) +
-          vrsticaVsebine({
-            ikona: IKONA_TRR,
-            naslov: "TRR",
-            vrednost: trrVal,
-            akcija: "trr",
-          }) +
-          "</div></section>";
+        var znesekTekst = formatEurIzCentov(plan.amountCents);
+        var kategorijaTekst = kategorijaDolgaIzCentov(plan.amountCents);
+        var tonOznaka = N.oznakaTona(step.toneId || plan.toneId);
+        var predlogaOznaka = imePredloge(step, k2);
+        var predlogaPriporocena =
+          !step.templateSelectionMode ||
+          step.templateSelectionMode === "automatic";
 
-        vsebinaHtml +=
-          '<section class="opomin-nacrt__sms" aria-label="SMS predogled">' +
-          '<div class="opomin-nacrt__sms-glava">' +
-          "<span>SMS</span>" +
-          '<span class="opomin-nacrt__sms-meta">' +
-          esc(smsMeta) +
-          "</span>" +
-          "</div>" +
-          '<div class="opomin-nacrt__sms-predogled" tabindex="0" aria-label="Predogled SMS sporočila">' +
-          esc(smsBesedilo) +
-          "</div>" +
-          '<p class="opomin-nacrt__sms-opomba">Celotno sporočilo lahko uredite pri pregledu koraka.</p>' +
-          "</section>";
+        vsebinaHtml = htmlVsebinaKoraka({
+          znesekTekst: znesekTekst,
+          kategorijaTekst: kategorijaTekst,
+          tonOznaka: tonOznaka,
+          predlogaOznaka: predlogaOznaka,
+          predlogaPriporocena: predlogaPriporocena,
+          rokStanje: rokAktiven ? "Vključeno" : "Izklopljeno",
+          obrocnoStanje: obrocAktiven ? "Vključeno" : "Izklopljeno",
+          trrStanje: trrAktiven ? "Vključeno" : "Izklopljeno",
+          smsBesedilo: smsBesedilo,
+          smsMeta: smsMeta,
+        });
       } else {
         vsebinaHtml =
           '<section class="opomin-nacrt__rocni" aria-label="Ročni korak">' +
