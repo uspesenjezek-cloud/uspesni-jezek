@@ -291,15 +291,109 @@ function inicializirajWizardProgressHeader(trenutniKorak) {
 /* ---------- Skupni potrditveni / opozorilni modal (namesto confirm/alert) ---------- */
 
 const SVG_POTRDI_IKONA_TURKIZ =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>';
+  '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>';
 const SVG_POTRDI_IKONA_NEVARNO =
   '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+const SVG_OPCIJA_ISTI =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>';
+const SVG_OPCIJA_NOV =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>';
+
+const KLJUC_KRATKO_OBVESTILO = "uj-kratko-obvestilo";
 
 let ujPotrdiZakljuci = null;
+let ujPotrdiPrejsnjiFokus = null;
+let ujPotrdiScrollY = 0;
+
+function nastaviKratkoObvestilo(tekst) {
+  if (!tekst) return;
+  try {
+    sessionStorage.setItem(
+      KLJUC_KRATKO_OBVESTILO,
+      JSON.stringify({ tekst: String(tekst), at: Date.now() })
+    );
+  } catch (_e) {
+    /* ignore */
+  }
+}
+
+function pokaziKratkoObvestiloCeObstaja() {
+  let surovo = null;
+  try {
+    surovo = sessionStorage.getItem(KLJUC_KRATKO_OBVESTILO);
+    sessionStorage.removeItem(KLJUC_KRATKO_OBVESTILO);
+  } catch (_e) {
+    return;
+  }
+  if (!surovo) return;
+  let podatki = null;
+  try {
+    podatki = JSON.parse(surovo);
+  } catch (_e) {
+    return;
+  }
+  const tekst = podatki && podatki.tekst ? String(podatki.tekst) : "";
+  if (!tekst) return;
+
+  let el = document.getElementById("uj-kratko-obvestilo");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "uj-kratko-obvestilo";
+    el.className = "uj-kratko-obvestilo";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    document.body.appendChild(el);
+  }
+  el.textContent = tekst;
+  el.hidden = false;
+  el.classList.remove("uj-kratko-obvestilo--vidno");
+  void el.offsetWidth;
+  el.classList.add("uj-kratko-obvestilo--vidno");
+  window.setTimeout(() => {
+    el.classList.remove("uj-kratko-obvestilo--vidno");
+    el.hidden = true;
+  }, 2800);
+}
+
+function zakleniOzadjeMedModalom() {
+  ujPotrdiScrollY = window.scrollY || window.pageYOffset || 0;
+  document.documentElement.classList.add("uj-modal-odprt");
+  document.body.classList.add("uj-modal-odprt");
+  document.body.style.top = "-" + ujPotrdiScrollY + "px";
+}
+
+function odkleniOzadjeMedModalom() {
+  document.documentElement.classList.remove("uj-modal-odprt");
+  document.body.classList.remove("uj-modal-odprt");
+  document.body.style.top = "";
+  window.scrollTo(0, ujPotrdiScrollY || 0);
+}
+
+function zgradiOpcijskiGumb(besedilo, tip) {
+  const ikona = tip === "nov" ? SVG_OPCIJA_NOV : SVG_OPCIJA_ISTI;
+  return (
+    '<span class="osnutek-modal__opcija-ikona" aria-hidden="true">' +
+    ikona +
+    "</span>" +
+    '<span class="osnutek-modal__opcija-naziv"></span>' +
+    '<span class="osnutek-modal__opcija-puscica" aria-hidden="true">›</span>' +
+    '<span class="osnutek-modal__opcija-nalaganje" hidden aria-hidden="true"></span>'
+  );
+}
 
 function zagotoviPotrditveniModal() {
   let modal = document.getElementById("uj-potrdi-modal");
   if (modal) {
+    if (!document.getElementById("uj-potrdi-rocaj")) {
+      const dialog = modal.querySelector(".osnutek-modal__dialog");
+      if (dialog) {
+        const rocaj = document.createElement("div");
+        rocaj.className = "osnutek-modal__rocaj";
+        rocaj.id = "uj-potrdi-rocaj";
+        rocaj.setAttribute("aria-hidden", "true");
+        dialog.insertBefore(rocaj, dialog.firstChild);
+      }
+    }
     if (!document.getElementById("uj-potrdi-drugi")) {
       const akcije = document.getElementById("uj-potrdi-akcije");
       const potrdi = document.getElementById("uj-potrdi-potrdi");
@@ -322,6 +416,7 @@ function zagotoviPotrditveniModal() {
   modal.innerHTML =
     '<button type="button" class="osnutek-modal__backdrop" id="uj-potrdi-backdrop" aria-label="Zapri"></button>' +
     '<div class="osnutek-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="uj-potrdi-naslov" aria-describedby="uj-potrdi-opis">' +
+    '<div class="osnutek-modal__rocaj" id="uj-potrdi-rocaj" aria-hidden="true"></div>' +
     '<div class="osnutek-modal__vrh">' +
     '<span class="osnutek-modal__ikona" id="uj-potrdi-ikona" aria-hidden="true"></span>' +
     '<button type="button" class="osnutek-modal__zapri" id="uj-potrdi-zapri" aria-label="Zapri">' +
@@ -358,7 +453,11 @@ function potrdiVprasanje(opcije) {
   const dvaIzbira = Boolean(nastavitve.dvaIzbira);
 
   const modal = zagotoviPotrditveniModal();
-  const naslovEl = document.getElementById("uj-potrdi-naslov");
+  const dialogEl = modal.querySelector(".osnutek-modal__dialog");
+  const naslovEl =
+    modal.querySelector(".osnutek-modal__naslov") ||
+    document.getElementById("uj-potrdi-naslov") ||
+    document.getElementById("changed-data-modal-title");
   const opisEl = document.getElementById("uj-potrdi-opis");
   const ikonaEl = document.getElementById("uj-potrdi-ikona");
   const akcijeEl = document.getElementById("uj-potrdi-akcije");
@@ -367,12 +466,27 @@ function potrdiVprasanje(opcije) {
   const drugi = document.getElementById("uj-potrdi-drugi");
   const zapri = document.getElementById("uj-potrdi-zapri");
   const backdrop = document.getElementById("uj-potrdi-backdrop");
+  const rocaj = document.getElementById("uj-potrdi-rocaj");
 
   if (!naslovEl || !opisEl || !potrdi) return Promise.resolve(false);
 
   if (typeof ujPotrdiZakljuci === "function") {
     ujPotrdiZakljuci(false);
   }
+
+  ujPotrdiPrejsnjiFokus =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+  modal.classList.toggle("osnutek-modal--sprememba-podatkov", dvaIzbira);
+  naslovEl.id = dvaIzbira ? "changed-data-modal-title" : "uj-potrdi-naslov";
+  if (dialogEl) {
+    dialogEl.setAttribute("role", "dialog");
+    dialogEl.setAttribute("aria-modal", "true");
+    dialogEl.setAttribute("aria-labelledby", naslovEl.id);
+  }
+  if (rocaj) rocaj.hidden = !dvaIzbira;
 
   naslovEl.textContent = naslov;
   const odstavki = Array.isArray(nastavitve.odstavki)
@@ -404,39 +518,94 @@ function potrdiVprasanje(opcije) {
     opisEl.textContent = opis;
     opisEl.hidden = !opis;
   }
-  potrdi.textContent = potrdiBesedilo;
+
   if (preklici) {
     preklici.textContent = prekliciBesedilo;
     preklici.hidden = samoEnGumb || dvaIzbira;
   }
-  if (drugi) {
-    if (dvaIzbira) {
+
+  if (dvaIzbira) {
+    potrdi.innerHTML = zgradiOpcijskiGumb(potrdiBesedilo, "isti");
+    const nazivIsti = potrdi.querySelector(".osnutek-modal__opcija-naziv");
+    if (nazivIsti) nazivIsti.textContent = potrdiBesedilo;
+    potrdi.setAttribute("aria-label", potrdiBesedilo);
+    potrdi.disabled = false;
+
+    if (drugi) {
       drugi.hidden = false;
-      drugi.textContent = drugiBesedilo || "Druga možnost";
-    } else {
+      drugi.innerHTML = zgradiOpcijskiGumb(drugiBesedilo || "Druga možnost", "nov");
+      const nazivNov = drugi.querySelector(".osnutek-modal__opcija-naziv");
+      if (nazivNov) nazivNov.textContent = drugiBesedilo || "Druga možnost";
+      drugi.setAttribute(
+        "aria-label",
+        drugiBesedilo || "Začni kot nov račun"
+      );
+      drugi.disabled = false;
+    }
+  } else {
+    potrdi.textContent = potrdiBesedilo;
+    potrdi.removeAttribute("aria-label");
+    potrdi.disabled = false;
+    if (drugi) {
       drugi.hidden = true;
       drugi.textContent = "";
+      drugi.removeAttribute("aria-label");
+      drugi.disabled = false;
     }
   }
+
   if (akcijeEl) {
-    akcijeEl.classList.toggle("osnutek-modal__akcije--en-gumb", samoEnGumb && !dvaIzbira);
+    akcijeEl.classList.toggle(
+      "osnutek-modal__akcije--en-gumb",
+      samoEnGumb && !dvaIzbira
+    );
     akcijeEl.classList.toggle("osnutek-modal__akcije--dve-izbiri", dvaIzbira);
   }
   if (ikonaEl) {
     ikonaEl.className =
-      "osnutek-modal__ikona" + (stil === "nevarno" ? "" : " osnutek-modal__ikona--turkiz");
-    ikonaEl.innerHTML = stil === "nevarno" ? SVG_POTRDI_IKONA_NEVARNO : SVG_POTRDI_IKONA_TURKIZ;
+      "osnutek-modal__ikona" +
+      (stil === "nevarno" && !dvaIzbira ? "" : " osnutek-modal__ikona--turkiz");
+    ikonaEl.innerHTML =
+      stil === "nevarno" && !dvaIzbira
+        ? SVG_POTRDI_IKONA_NEVARNO
+        : SVG_POTRDI_IKONA_TURKIZ;
   }
-  potrdi.className =
-    "osnutek-modal__potrdi" + (stil === "primary" || dvaIzbira ? " osnutek-modal__potrdi--primary" : "");
-  if (drugi) {
-    drugi.className = "osnutek-modal__potrdi osnutek-modal__potrdi--secondary";
+
+  if (dvaIzbira) {
+    potrdi.className =
+      "osnutek-modal__potrdi osnutek-modal__opcija osnutek-modal__opcija--isti";
+    if (drugi) {
+      drugi.className =
+        "osnutek-modal__potrdi osnutek-modal__opcija osnutek-modal__opcija--nov";
+    }
+  } else {
+    potrdi.className =
+      "osnutek-modal__potrdi" +
+      (stil === "primary" ? " osnutek-modal__potrdi--primary" : "");
+    if (drugi) {
+      drugi.className =
+        "osnutek-modal__potrdi osnutek-modal__potrdi--secondary";
+    }
   }
 
   return new Promise((resolve) => {
+    let zakljuceno = false;
+
+    function oznaciNalaganje(gumb) {
+      if (!dvaIzbira || !gumb) return;
+      potrdi.disabled = true;
+      if (drugi) drugi.disabled = true;
+      const spinner = gumb.querySelector(".osnutek-modal__opcija-nalaganje");
+      if (spinner) spinner.hidden = false;
+      gumb.classList.add("osnutek-modal__opcija--nalaganje");
+    }
+
     function zakljuci(odgovor) {
-      if (ujPotrdiZakljuci !== zakljuci) return;
+      if (ujPotrdiZakljuci !== zakljuci || zakljuceno) return;
+      zakljuceno = true;
       modal.hidden = true;
+      modal.classList.remove("osnutek-modal--sprememba-podatkov");
+      odkleniOzadjeMedModalom();
       document.removeEventListener("keydown", obEscape);
       if (preklici) preklici.removeEventListener("click", obPreklici);
       potrdi.removeEventListener("click", obPotrdi);
@@ -444,6 +613,17 @@ function potrdiVprasanje(opcije) {
       if (zapri) zapri.removeEventListener("click", obPreklici);
       if (backdrop) backdrop.removeEventListener("click", obPreklici);
       ujPotrdiZakljuci = null;
+      if (
+        ujPotrdiPrejsnjiFokus &&
+        typeof ujPotrdiPrejsnjiFokus.focus === "function"
+      ) {
+        try {
+          ujPotrdiPrejsnjiFokus.focus({ preventScroll: true });
+        } catch (_e) {
+          /* ignore */
+        }
+      }
+      ujPotrdiPrejsnjiFokus = null;
       resolve(odgovor);
     }
 
@@ -452,10 +632,14 @@ function potrdiVprasanje(opcije) {
     }
 
     function obPotrdi() {
+      if (zakljuceno || potrdi.disabled) return;
+      oznaciNalaganje(potrdi);
       zakljuci(dvaIzbira ? "isti" : true);
     }
 
     function obDrugi() {
+      if (zakljuceno || (drugi && drugi.disabled)) return;
+      oznaciNalaganje(drugi);
       zakljuci("nov");
     }
 
@@ -474,8 +658,13 @@ function potrdiVprasanje(opcije) {
     if (backdrop) backdrop.addEventListener("click", obPreklici);
     document.addEventListener("keydown", obEscape);
 
+    zakleniOzadjeMedModalom();
     modal.hidden = false;
-    potrdi.focus();
+    if (dvaIzbira) {
+      potrdi.focus();
+    } else {
+      potrdi.focus();
+    }
   });
 }
 
@@ -1875,8 +2064,7 @@ function inicializirajNeplacila() {
     if (imaKasnejse && starHash && novHash !== starHash) {
       const izbira = await potrdiVprasanje({
         naslov: "Podatki dolžnika so se spremenili",
-        opis:
-          "Že imaš sestavljeno sporočilo ali načrt. Kaj želiš narediti?",
+        opis: "Kaj želiš narediti?",
         dvaIzbira: true,
         potrdiBesedilo: "Nadaljuj kot isti račun",
         drugiBesedilo: "Začni kot nov račun",
@@ -1885,8 +2073,10 @@ function inicializirajNeplacila() {
       if (!izbira) return;
       if (izbira === "nov") {
         pocistiSejoKorakov2in3();
+        nastaviKratkoObvestilo("Ustvarjen je nov račun.");
       } else if (izbira === "isti") {
         oznaciKorak2ZaOsvezitevObIstemRacunu();
+        nastaviKratkoObvestilo("Podatki računa so posodobljeni.");
       }
     }
 
@@ -2105,6 +2295,7 @@ function inicializirajSporociloDolzniku() {
 
   inicializirajWizardProgressHeader(2);
   inicializirajIzbrisOsnutka();
+  pokaziKratkoObvestiloCeObstaja();
 
   const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   /* Če fingerprint še manjka (stare seje), nastavi iz trenutnega koraka 1. */
