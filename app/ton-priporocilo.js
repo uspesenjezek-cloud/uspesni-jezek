@@ -1,54 +1,48 @@
 /* ========== Ton sporočila – priporočilo (brez DOM) ==========
    Centralna poslovna pravila. Brskalnik: window.UJTonPriporocilo
    Node: module.exports
-   ID-ji tonov ostanejo: very_friendly | friendly | neutral | firm | strict
+   Aktivni toni: friendly | firm | strict (3).
+   Stari ID-ji (very_friendly, neutral) se preslikajo.
    ============================================ */
 (function (root) {
   "use strict";
 
-  /** Pet tonov: order 0 = najbolj prijazen … 4 = najstrožji. */
+  /** Trije toni: order 0 = prijazen … 2 = strog. */
   var TONI = [
-    {
-      id: "very_friendly",
-      key: "very_friendly",
-      order: 0,
-      labelSl: "Zelo prijazen",
-      iconKey: "smile-plus",
-      active: true,
-    },
     {
       id: "friendly",
       key: "friendly",
-      order: 1,
+      order: 0,
       labelSl: "Prijazen",
       iconKey: "smile",
       active: true,
     },
     {
-      id: "neutral",
-      key: "neutral",
-      order: 2,
-      labelSl: "Nevtralen",
-      iconKey: "meh",
-      active: true,
-    },
-    {
       id: "firm",
       key: "firm",
-      order: 3,
-      labelSl: "Bolj strog",
-      iconKey: "triangle-alert",
+      order: 1,
+      labelSl: "Odločen",
+      iconKey: "shield",
       active: true,
     },
     {
       id: "strict",
       key: "strict",
-      order: 4,
-      labelSl: "Zelo strog",
+      order: 2,
+      labelSl: "Strog",
       iconKey: "circle-alert",
       active: true,
     },
   ];
+
+  /** Stari ID-ji (5 tonov) → novi (3). */
+  var STARI_TON_PRESLIKAVA = {
+    very_friendly: "friendly",
+    friendly: "friendly",
+    neutral: "firm",
+    firm: "firm",
+    strict: "strict",
+  };
 
   /** Meje kategorij dolga (EUR) – ena centralna konfiguracija. */
   var DEBT_THRESHOLDS = {
@@ -64,17 +58,17 @@
     veryHigh: "Zelo visok dolg",
   };
 
-  /** Osnovna stopnja tona (0–4) glede na kategorijo zamude. */
+  /** Osnovna stopnja tona (0–2) glede na kategorijo zamude. */
   var BASE_TONE_LEVEL = {
-    notDue: 1,
-    dueToday: 1,
-    short: 1,
-    medium: 2,
-    long: 3,
-    veryLong: 4,
+    notDue: 0,
+    dueToday: 0,
+    short: 0,
+    medium: 1,
+    long: 2,
+    veryLong: 2,
   };
 
-  var RECOMMENDATION_VERSION = 1;
+  var RECOMMENDATION_VERSION = 2;
 
   function formatLocalYYYYMMDD(dt) {
     var y = dt.getFullYear();
@@ -167,12 +161,12 @@
   }
 
   function najdiTonPoOrder(order) {
-    var o = Math.max(0, Math.min(4, Number(order)));
-    if (!Number.isFinite(o)) o = 1;
+    var o = Math.max(0, Math.min(2, Number(order)));
+    if (!Number.isFinite(o)) o = 0;
     for (var i = 0; i < TONI.length; i++) {
       if (TONI[i].order === o) return TONI[i];
     }
-    return TONI[1];
+    return TONI[0];
   }
 
   function najdiTonPoId(id) {
@@ -180,6 +174,13 @@
       if (TONI[i].id === id) return TONI[i];
     }
     return null;
+  }
+
+  /** Preslika stari/neveljavni ID v veljavnega (friendly|firm|strict). */
+  function normalizirajTonId(id) {
+    if (!id) return "friendly";
+    var mapped = STARI_TON_PRESLIKAVA[id] || id;
+    return najdiTonPoId(mapped) ? mapped : "friendly";
   }
 
   function formatirajZnesekEur(cents) {
@@ -386,14 +387,14 @@
 
     if (missingDue) {
       /* Brez datuma: varen prijazen, ne strog. */
-      level = 1;
+      level = 0;
     } else {
       level = BASE_TONE_LEVEL[overdueCategory];
-      if (level == null) level = 1;
+      if (level == null) level = 0;
       if (!missingAmount && debtCategory) {
         var boost = getAmountToneBoost(debtCategory, overdueDays);
         if (boost > 0) {
-          level = Math.min(4, level + boost);
+          level = Math.min(2, level + boost);
           amountShifted = true;
         }
       }
@@ -405,11 +406,11 @@
       overdueDays != null &&
       overdueDays <= 0
     ) {
-      level = Math.min(level, 1);
+      level = Math.min(level, 0);
       amountShifted = false;
     }
 
-    level = Math.max(0, Math.min(4, level));
+    level = Math.max(0, Math.min(2, level));
     var ton = najdiTonPoOrder(level);
     var amountLabel = missingAmount ? "" : formatirajZnesekEur(totalDebtCents);
     var razlog = sestaviRazlog({
@@ -451,7 +452,7 @@
     var selectionMode =
       prev.selectionMode ||
       (prev.isOverridden ? "manual" : "automatic");
-    var selectedToneId = prev.selectedToneId || null;
+    var selectedToneId = normalizirajTonId(prev.selectedToneId || null);
 
     if (
       selectionMode !== "manual" ||
@@ -467,7 +468,9 @@
     return {
       recommendedToneId: recommendation.recommendedToneId,
       selectedToneId: selectedToneId,
-      appliedToneId: prev.appliedToneId || null,
+      appliedToneId: prev.appliedToneId
+        ? normalizirajTonId(prev.appliedToneId)
+        : null,
       selectionMode: selectionMode,
       isOverridden: selectionMode === "manual",
       reasonCodes: recommendation.reasonCodes,
@@ -500,7 +503,7 @@
 
   function selectTone(state, toneId) {
     var s = state || {};
-    var ton = najdiTonPoId(toneId);
+    var ton = najdiTonPoId(normalizirajTonId(toneId));
     if (!ton) return s;
     var manual = ton.id !== s.recommendedToneId;
     return Object.assign({}, s, {
@@ -532,6 +535,7 @@
 
   var api = {
     TONI: TONI,
+    STARI_TON_PRESLIKAVA: STARI_TON_PRESLIKAVA,
     DEBT_THRESHOLDS: DEBT_THRESHOLDS,
     DEBT_CATEGORY_LABELS: DEBT_CATEGORY_LABELS,
     BASE_TONE_LEVEL: BASE_TONE_LEVEL,
@@ -549,6 +553,7 @@
     formatirajZnesekEur: formatirajZnesekEur,
     najdiTonPoId: najdiTonPoId,
     najdiTonPoOrder: najdiTonPoOrder,
+    normalizirajTonId: normalizirajTonId,
     getRecommendedTone: getRecommendedTone,
     sestaviRazlagoZaModal: sestaviRazlagoZaModal,
     applyRecommendationToState: applyRecommendationToState,
