@@ -198,7 +198,11 @@
       forsiraPriporocilo = false;
       forsiraToneId = null;
       odprt = false;
-      if (sheet) sheet.hidden = true;
+      ignoreOpenUntil = Date.now() + 450;
+      if (sheet) {
+        sheet.hidden = true;
+        sheet.classList.remove("obrocno-sheet--nad-predlogo");
+      }
       izklopiViewportPoslusalce();
       if (scrollFokusCasovnik) clearTimeout(scrollFokusCasovnik);
       osnutek = null;
@@ -1223,20 +1227,30 @@
      *   zacetnoEnabled?: boolean,
      *   zacetnoStevilo?: number|null,
      *   zacetnoInterval?: string|null,
+     *   totalDebtCents?: number,
      *   onClose?: (r: { shranjeno: boolean }) => void
      * }} [opcije]
      */
     function odpri(opcije) {
       var opts = opcije || {};
+      // Če je bil urejevalnik predloge že zaprt, ne odpri »globalnega« sheeta.
+      if (
+        opts.predlogaNacin &&
+        !document.body.classList.contains("template-editor-odprt")
+      ) {
+        return;
+      }
       forsiraPriporocilo = Boolean(opts.izPriporocil);
       forsiraToneId = opts.toneId ? String(opts.toneId) : null;
       pendingOnClose =
         typeof opts.onClose === "function" ? opts.onClose : null;
 
       var total =
-        typeof ctx.getTotalDebtCents === "function"
-          ? ctx.getTotalDebtCents()
-          : 0;
+        opts.totalDebtCents != null && Number.isFinite(Number(opts.totalDebtCents))
+          ? Number(opts.totalDebtCents)
+          : typeof ctx.getTotalDebtCents === "function"
+            ? ctx.getTotalDebtCents()
+            : 0;
       if (!Number.isFinite(total) || total <= 0) {
         forsiraPriporocilo = false;
         forsiraToneId = null;
@@ -1317,6 +1331,13 @@
       izrisi();
 
       prejsnjiFokus = document.activeElement;
+      // Vedno na konec body (kot Rok) – sicer ostane ZA urejevalnikom predloge.
+      document.body.appendChild(sheet);
+      if (opts.predlogaNacin) {
+        sheet.classList.add("obrocno-sheet--nad-predlogo");
+      } else {
+        sheet.classList.remove("obrocno-sheet--nad-predlogo");
+      }
       sheet.hidden = false;
       odprt = true;
       zakleniOzadje();
@@ -1359,6 +1380,7 @@
       pendingOnClose = null;
       var shranjeno = Boolean(meta && meta.shranjeno);
       ignoreOpenUntil = Date.now() + 450;
+      if (sheet) sheet.classList.remove("obrocno-sheet--nad-predlogo");
       var nadPredlogo = document.body.classList.contains("template-editor-odprt");
       if (!nadPredlogo) {
         if (prejsnjiFokus && typeof prejsnjiFokus.focus === "function") {

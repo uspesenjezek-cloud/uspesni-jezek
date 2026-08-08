@@ -1980,6 +1980,8 @@ function inicializirajSporociloDolzniku() {
   /** Po zaprtju sheeta: blokiraj ghost-click na dodatke (sicer se odpre Obročno). */
   let modalDodatkiKlikPavzaDo = 0;
   let modalDodatkiPavzaCasovnik = null;
+  /** Prekliče zakasnjeno odpiranje Roka/Obročnega, če uporabnik zapre modal. */
+  let predlogaSheetOdpriToken = 0;
   const predlogaSheetBesedilo = { value: "" };
   const predlogaDraftDodatki = { rok: false, obrocno: false, trr: false };
   const predlogaDraftDodatekBesedila = { rok: "", obrocno: "", trr: "" };
@@ -2931,6 +2933,7 @@ function inicializirajSporociloDolzniku() {
   }
 
   function ocistiSheetLockPoUrediModalu() {
+    predlogaSheetOdpriToken += 1;
     predlogaSheetAktiven = false;
     predlogaSheetSaved = false;
     predlogaDraftDeadline = null;
@@ -3130,7 +3133,10 @@ function inicializirajSporociloDolzniku() {
         }
       : null;
 
+    const rokToken = ++predlogaSheetOdpriToken;
     window.setTimeout(() => {
+      if (rokToken !== predlogaSheetOdpriToken) return;
+      if (!document.body.classList.contains("template-editor-odprt")) return;
       rokSheetApi.odpri({
         termDays: days,
         toneId: tonZaModalPlacila(),
@@ -3192,10 +3198,20 @@ function inicializirajSporociloDolzniku() {
     // Osnutek naredi sheet v predlogaNacin (ne zgolj jePlanUporaben + fiksen 10000 €).
     predlogaDraftPlan = null;
 
+    let totalZaPredlogo = 10000;
+    if (window.UJObrocno) {
+      const x = window.UJObrocno.eurosToCents(podatkiKorak1.znesek);
+      if (x != null && x > 0) totalZaPredlogo = x;
+    }
+
+    const obToken = ++predlogaSheetOdpriToken;
     window.setTimeout(() => {
+      if (obToken !== predlogaSheetOdpriToken) return;
+      if (!document.body.classList.contains("template-editor-odprt")) return;
       obrocnoSheetApi.odpri({
         toneId: tonZaModalPlacila(),
         predlogaNacin: true,
+        totalDebtCents: totalZaPredlogo,
         zacetnoEnabled: Boolean(p.obrocno && p.obrocno.enabled),
         zacetnoStevilo:
           p.obrocno && p.obrocno.enabled

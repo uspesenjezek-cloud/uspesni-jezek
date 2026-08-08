@@ -5004,6 +5004,12 @@ body.obrocno-sheet-odprt .korak2__noga {
   pointer-events: none;
 }
 
+/* Nad urejevalnikom predloge (2000) – vedno, ne samo v media query. */
+.rok-sheet.obrocno-sheet.obrocno-sheet--nad-predlogo:not([hidden]),
+.rok-sheet.rok-sheet--nad-predlogo:not([hidden]) {
+  z-index: 2300 !important;
+}
+
 /* Mobilni celozaslonski urejevalnik Obročno (≤600px).
    z-index mora biti ≥ urejevalnika predloge (2000), sicer sheet ostane
    zadaj in body.obrocno-sheet-odprt zaklene scroll za vedno. */

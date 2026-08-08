@@ -546,8 +546,12 @@
 
         zapiranjeDovoljeno = false;
         if (casovnikZapiranja) window.clearTimeout(casovnikZapiranja);
-        if (sheet.parentElement !== document.body) {
-          document.body.appendChild(sheet);
+        // Vedno na konec body – nad urejevalnikom predloge.
+        document.body.appendChild(sheet);
+        if (document.body.classList.contains("template-editor-odprt")) {
+          sheet.classList.add("rok-sheet--nad-predlogo");
+        } else {
+          sheet.classList.remove("rok-sheet--nad-predlogo");
         }
         sheet.hidden = false;
         document.body.classList.add("rok-sheet-odprt");
@@ -604,6 +608,7 @@
       pendingOnClose = null;
       var shranjeno = Boolean(meta && meta.shranjeno);
       ignoreOpenUntil = Date.now() + 450;
+      if (sheet) sheet.classList.remove("rok-sheet--nad-predlogo");
       var nadPredlogo = document.body.classList.contains("template-editor-odprt");
       if (!nadPredlogo) {
         if (ctx.gumbRok && typeof ctx.gumbRok.focus === "function") {
@@ -629,6 +634,7 @@
       forsiraPriporocilo = false;
       forsiraToneId = null;
       forsiraTermDays = null;
+      ignoreOpenUntil = Date.now() + 450;
       osnutek = null;
       osnutekPrivzetih = null;
       if (casovnikZapiranja) {
@@ -638,7 +644,10 @@
       document.removeEventListener("keydown", onKeydown, true);
       skrijUrediPrivzeto();
       nastaviNapako(false);
-      if (sheet) sheet.hidden = true;
+      if (sheet) {
+        sheet.hidden = true;
+        sheet.classList.remove("rok-sheet--nad-predlogo");
+      }
       document.body.classList.remove("rok-sheet-odprt");
     }
 
