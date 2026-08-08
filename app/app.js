@@ -2387,17 +2387,10 @@ function inicializirajSporociloDolzniku() {
         izbranTonId,
         jezikPredlog
       );
-      predlogi = window.UJTonPredloge.sortirajPredlogeZaTon(filtrirani);
-      // Uporabniške / stare predloge: dopolni stevilko 1–6 znotraj tona.
-      const zasedene = new Set(
-        predlogi.map((p) => Number(p.stevilka)).filter((n) => n >= 1 && n <= NAJVEC_STEVILK_V_TONU)
-      );
-      predlogi.forEach((predlog, indeks) => {
-        if (predlog.source === "system" && predlog.order) {
-          predlog.stevilka = Number(predlog.order);
-          nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
-          return;
-        }
+      // Ne uporabljaj sortirajPredlogeZaTon – ta vsakič vsili sistemski order.
+      predlogi = filtrirani.slice();
+      const zasedene = new Set();
+      predlogi.forEach((predlog) => {
         const zelena = Number(nastavitvePredlogov.stevilke[predlog.id]);
         if (
           Number.isInteger(zelena) &&
@@ -2408,18 +2401,20 @@ function inicializirajSporociloDolzniku() {
           predlog.stevilka = zelena;
           zasedene.add(zelena);
         } else {
-          const prosta = najdiProstoStevilko(zasedene, indeks + 1);
-          predlog.stevilka = prosta != null ? prosta : indeks + 1;
-          nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
-          if (prosta != null) zasedene.add(prosta);
+          predlog.stevilka = null;
         }
       });
-      predlogi.sort((a, b) => {
-        if (Boolean(a.isRecommended) !== Boolean(b.isRecommended)) {
-          return a.isRecommended ? -1 : 1;
-        }
-        return (a.stevilka || 99) - (b.stevilka || 99);
+      predlogi.forEach((predlog, indeks) => {
+        if (predlog.stevilka != null) return;
+        const hint = Number(predlog.order) || indeks + 1;
+        const prosta = najdiProstoStevilko(zasedene, hint);
+        predlog.stevilka = prosta != null ? prosta : indeks + 1;
+        nastavitvePredlogov.stevilke[predlog.id] = predlog.stevilka;
+        if (prosta != null) zasedene.add(prosta);
       });
+      predlogi.sort(
+        (a, b) => (Number(a.stevilka) || 99) - (Number(b.stevilka) || 99)
+      );
     } else {
       // Fallback brez ton-modula (stari način 1–9).
       predlogi = vsi;
@@ -2524,40 +2519,26 @@ function inicializirajSporociloDolzniku() {
   function nastaviStevilkoPredloga(predlogId, novaStevilka) {
     const id = String(predlogId);
     const maxN = window.UJTonPredloge ? NAJVEC_STEVILK_V_TONU : 9;
-    const nova = Math.max(1, Math.min(maxN, Number(novaStevilka) || 1));
-    const konflikt = predlogi.find(
-      (p) => String(p.id) !== id && Number(nastavitvePredlogov.stevilke[p.id]) === nova
-    );
+    const urejeni = predlogi
+      .slice()
+      .sort((a, b) => (Number(a.stevilka) || 99) - (Number(b.stevilka) || 99));
+    const indeks = urejeni.findIndex((p) => String(p.id) === id);
+    if (indeks < 0) return;
 
-    nastavitvePredlogov.stevilke[id] = nova;
+    const stara = Number(urejeni[indeks].stevilka) || indeks + 1;
+    const zgornja = Math.min(maxN, urejeni.length);
+    const nova = Math.max(1, Math.min(zgornja, Number(novaStevilka) || 1));
 
-    if (konflikt) {
-      const zasedene = new Set(
-        predlogi
-          .filter((p) => p.id !== konflikt.id)
-          .map((p) => Number(nastavitvePredlogov.stevilke[p.id]) || p.stevilka)
-      );
-      zasedene.add(nova);
-      const prosta = najdiProstoStevilko(zasedene, nova + 1);
-      if (prosta != null) {
-        nastavitvePredlogov.stevilke[String(konflikt.id)] = prosta;
-        pokaziObvestiloPredlogov(
-          "Številka " +
-            nova +
-            " je bila zasedena – predloga »" +
-            konflikt.naslov +
-            "« je premaknjena na " +
-            prosta +
-            "."
-        );
-      } else {
-        pokaziObvestiloPredlogov(
-          "Številka " + nova + " je zasedena – vrstni red ohranja prejšnji položaj."
-        );
-      }
-    } else {
-      pokaziObvestiloPredlogov("");
+    if (stara !== nova) {
+      const [predlog] = urejeni.splice(indeks, 1);
+      urejeni.splice(nova - 1, 0, predlog);
     }
+
+    // Sorazmerno: cel seznam dobi številke 1…n po novem vrstnem redu.
+    urejeni.forEach((p, i) => {
+      nastavitvePredlogov.stevilke[String(p.id)] = i + 1;
+    });
+    pokaziObvestiloPredlogov("");
 
     shraniNastavitvePredlogov();
     sestaviSeznamPredlogov();
