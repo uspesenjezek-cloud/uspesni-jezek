@@ -72,7 +72,7 @@ test("CSS: ozek razmik med poljema, brez contact-help/kanal", () => {
   );
   assert(!/\.contact-kanal\b/.test(css), "styles.css še vsebuje .contact-kanal");
   assert(!/\.contact-help\b/.test(css), "styles.css še vsebuje .contact-help");
-  assert(/\.contact-inputs\s*\{[^}]*gap:\s*4px/s.test(css), "gap ni 4px");
+  assert(/\.contact-inputs\s*\{[^}]*gap:\s*var\(--space-xs\)/s.test(css), "gap ni --space-xs");
 });
 
 test("app.js nima logike kljukic", () => {

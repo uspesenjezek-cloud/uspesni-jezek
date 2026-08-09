@@ -56,6 +56,14 @@
   --sirina-max: 480px;
   --odmik: 1rem;
   --odmik-sekcija: 2rem;
+
+  /* Enotna lestvica razmikov (wizard + obrazci). */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
   --radius-gumb: 999px;
 
   /* Zaobljenost in senca za sklope znotraj obrazca "Dodaj novo zadevo"
@@ -726,7 +734,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .obrazec-kartica__vsebina {
-  padding: 16px;
+  padding: var(--space-md);
 }
 
 .obrazec-kartica__uvod {
@@ -735,8 +743,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  margin: 0 0 18px;
-  padding: 16px;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md);
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -795,36 +803,36 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrazec-razdelek {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-sm);
 }
 
 /* Prva sekcija: razmiki do kontaktne skupine so na .contact-group, ne gap. */
 .obrazec-razdelek--dolznik {
-  gap: 14px;
+  gap: var(--space-sm);
 }
 
 .obrazec-razdelek--dolznik > .contact-group {
-  /* Starševski gap 14px + 2px = 16px od polja »Naziv« do legende. */
-  margin-top: 2px;
+  /* Starševski gap + majhen dodatek = en --space-md od »Naziv« do legende. */
+  margin-top: 4px;
 }
 
 .obrazec-razdelek + .obrazec-razdelek {
-  margin-top: 20px;
-  padding-top: 22px;
-  padding-bottom: 22px;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-md);
   border-top: 1px solid var(--color-border);
 }
 
 /* Skupina »Telefon ali e-pošta« – kompaktnejša kot ostala polja. */
 .contact-group {
-  margin: 16px 0 0;
+  margin: var(--space-md) 0 0;
   padding: 0;
   border: 0;
   min-width: 0;
 }
 
 .contact-group legend {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-xs);
   padding: 0;
   color: var(--color-text);
   font-size: 14px;
@@ -835,7 +843,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 .contact-inputs {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 4px;
+  gap: var(--space-xs);
 }
 
 .contact-field {
@@ -887,7 +895,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .contact-error {
-  margin: 8px 0 0;
+  margin: var(--space-xs) 0 0;
   color: var(--color-danger);
   font-size: 13px;
   line-height: 1.4;
@@ -1079,9 +1087,9 @@ body.stran--samo-seznam #neplacila-obrazec {
 .wizard-current-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 70px;
-  padding: 14px 18px;
+  gap: var(--space-sm);
+  min-height: 64px;
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid #dce7e4;
   background: #ffffff;
   box-sizing: border-box;
@@ -1380,8 +1388,8 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrazec-locilo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 18px 0 17px;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0 var(--space-md);
 }
 
 .obrazec-locilo__crta {
@@ -1400,8 +1408,8 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .racun-posiljanje {
-  margin-top: 22px;
-  padding-top: 19px;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
   border-top: 1px solid #d7e3e0;
 }
 
@@ -1409,8 +1417,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .racun-posiljanje__naslov {
@@ -1911,7 +1919,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 .obrazec__polje {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-xs);
 }
 
 .obrazec__polje label {
@@ -1965,9 +1973,9 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .obrazec__gumb-naprej {
-  margin-top: 8px;
+  margin-top: var(--space-md);
   min-height: 52px;
-  gap: 8px;
+  gap: var(--space-xs);
   font-size: 15px;
   font-weight: 700;
   border-radius: 14px;
@@ -2666,14 +2674,14 @@ body.stran--samo-seznam #neplacila-obrazec {
   margin-bottom: 0.6rem;
 }
 
-/* Okno za sporočilo naj bo tesno pod predlogi zgoraj (manj presledka) in
-   večje, da je udobno pisati/dopolnjevati daljše sporočilo. */
+/* Okno za sporočilo (korak 2): enaka višina kot .korak2-textarea. */
 .obrazec__polje--sporocilo-besedilo {
-  margin-top: -0.6rem;
+  margin-top: 0;
 }
 
+#sporocilo-besedilo.korak2-textarea,
 #sporocilo-besedilo {
-  min-height: 11rem;
+  min-height: 148px;
 }
 
 .sporocilo-nov-predlog input {
@@ -2850,9 +2858,9 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-sm);
   width: 100%;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-xs);
   padding: 0;
   background: #f2f7f6;
   box-sizing: border-box;
@@ -3420,10 +3428,10 @@ body.uj-modal-odprt {
 
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-xs);
   width: 100%;
   margin: 0;
-  padding: 16px 18px 12px;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   border-bottom: 1px solid #dce7e4;
   box-sizing: border-box;
   background: var(--step-surface);
@@ -3867,7 +3875,7 @@ body.uj-modal-odprt {
 }
 
 .korak2__vsebina {
-  padding: 14px 18px 18px;
+  padding: var(--space-md);
   min-width: 0;
   background: var(--surface);
 }
@@ -3881,22 +3889,22 @@ body.uj-modal-odprt {
 }
 
 .korak2-sklop__opis {
-  margin: 6px 0 12px;
+  margin: var(--space-xs) 0 var(--space-sm);
   font-size: 0.77rem;
   line-height: 1.45;
   color: var(--muted);
 }
 
 .korak2-sklop__obvestilo {
-  margin: -4px 0 10px;
+  margin: 0 0 var(--space-sm);
   font-size: 0.74rem;
   line-height: 1.4;
   color: #8a6a2f;
 }
 
 .korak2-sklop--locen {
-  margin-top: 24px;
-  padding-top: 22px;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
   border-top: 1px solid var(--border);
 }
 
@@ -3904,7 +3912,7 @@ body.uj-modal-odprt {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .korak2-sklop__akcije {
@@ -3959,8 +3967,9 @@ body.uj-modal-odprt {
 .korak2-textarea {
   display: block;
   width: 100%;
-  min-height: 174px;
-  padding: 14px;
+  min-height: 148px;
+  max-height: none;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--border-strong);
   border-radius: 15px;
   background: var(--white);
@@ -3970,6 +3979,8 @@ body.uj-modal-odprt {
   font-weight: 400;
   line-height: 1.5;
   resize: vertical;
+  overflow-x: hidden;
+  overflow-y: auto;
   box-sizing: border-box;
 }
 
@@ -3980,8 +3991,8 @@ body.uj-modal-odprt {
 .korak2-textarea-meta {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
   font-size: 0.68rem;
   color: var(--muted);
 }
@@ -4000,15 +4011,16 @@ body.uj-modal-odprt {
   position: relative;
   display: block;
   width: auto;
-  /* ~1 celota + 80–90 % druge kartice (116px + 12px + ~0.85×116). */
-  height: 230px;
-  margin-left: -7px;
-  margin-right: -7px;
+  /* 2 kartici (112) + gap + notranji padding. */
+  height: auto;
+  min-height: 256px;
+  max-height: 276px;
+  margin-left: calc(-1 * var(--space-xs));
+  margin-right: calc(-1 * var(--space-xs));
   box-sizing: border-box;
   border: 0;
   border-radius: 0;
   background: transparent;
-  /* visible: popover ne sme biti odrezan ob robu okvirja (mobilno). */
   overflow: visible;
   z-index: 2;
 }
@@ -4019,14 +4031,15 @@ body.uj-modal-odprt {
   left: 0;
   right: 10px;
   bottom: 0;
-  height: 28px;
+  height: var(--space-md);
   pointer-events: none;
   background: linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.92)
+    rgba(255, 255, 255, 0.75)
   );
   z-index: 1;
+  opacity: 0.85;
 }
 
 .stran--sporocilo #predlogi-okvir.predlogi-okvir::before {
@@ -4040,17 +4053,17 @@ body.uj-modal-odprt {
   font-size: 0.85rem;
   line-height: 1;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.55;
 }
 
 .stran--sporocilo .predlogi-okvir__vsebina {
   display: grid;
-  gap: 12px;
-  height: 230px;
+  gap: var(--space-sm);
+  height: 256px;
   overflow-y: auto;
   overflow-x: hidden;
   /* Notranji odmik, da zeleni rob/outline ob izbiri ni odrezan. */
-  padding: 6px 11px 6px 6px;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xs);
   scrollbar-width: none;
   -ms-overflow-style: none;
   overscroll-behavior: contain;
@@ -4104,18 +4117,18 @@ body.uj-modal-odprt {
   grid-template-columns: 40px minmax(0, 1fr) 92px;
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
-  column-gap: 10px;
+  column-gap: var(--space-sm);
   row-gap: 6px;
-  height: 116px;
-  min-height: 116px;
-  max-height: 116px;
-  padding: 10px;
+  height: 112px;
+  min-height: 112px;
+  max-height: 112px;
+  padding: var(--space-sm);
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--white);
   scroll-snap-align: start;
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
   z-index: 1;
 }
 
@@ -4557,10 +4570,10 @@ body.uj-modal-odprt {
   --tone-card-width: 148px;
   width: 100%;
   min-width: 0;
-  margin: 12px 0 18px;
+  margin: 0 0 var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
   container-type: inline-size;
   container-name: tone-widget;
 }
@@ -4571,8 +4584,8 @@ body.uj-modal-odprt {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
   border: 1px solid var(--teal-border);
   border-radius: 18px;
   background: var(--surface-primary);
@@ -6834,7 +6847,7 @@ body.rok-sheet-odprt {
 }
 
 .korak2__noga {
-  padding: 14px 18px 18px;
+  padding: var(--space-md);
   border-top: 1px solid var(--border);
   background: var(--white);
 }
@@ -7552,8 +7565,8 @@ body.template-editor-odprt {
 .opomin-nacrt-potrdi__vsebina {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: var(--space-md);
+  padding: var(--space-md);
   box-sizing: border-box;
 }
 
@@ -7569,7 +7582,7 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__povzetek {
-  padding: 16px;
+  padding: var(--space-md);
   border: 1px solid var(--border, #c9d9d7);
   border-radius: 17px;
   background: #ffffff;
@@ -7597,8 +7610,8 @@ body.template-editor-odprt {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 .opomin-nacrt__povzetek-znacke {
@@ -7712,7 +7725,7 @@ body.template-editor-odprt {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(96px, 28%);
-  gap: 8px;
+  gap: var(--space-xs);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -7847,7 +7860,7 @@ body.template-editor-odprt {
 
 .opomin-nacrt__cas-kartica,
 .opomin-nacrt__rocni {
-  padding: 12px 14px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--border, #c9d9d7);
   border-radius: 16px;
   background: #ffffff;
@@ -7855,7 +7868,7 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__sekcija-naslov {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-xs);
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary, #183a3a);
@@ -7864,7 +7877,7 @@ body.template-editor-odprt {
 .opomin-nacrt__cas-vrstica {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   min-height: 48px;
   border-bottom: 1px solid var(--divider, #dde7e5);
   box-sizing: border-box;
