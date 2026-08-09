@@ -2526,12 +2526,12 @@ function inicializirajNeplacila() {
     if (poljeTelefon) {
       poljeTelefon.classList.remove("obrazec__polje--napaka");
       poljeTelefon.removeAttribute("aria-invalid");
-      poljeTelefon.setAttribute("aria-describedby", "kontakt-pomoc");
+      poljeTelefon.removeAttribute("aria-describedby");
     }
     if (poljeEmail) {
       poljeEmail.classList.remove("obrazec__polje--napaka");
       poljeEmail.removeAttribute("aria-invalid");
-      poljeEmail.setAttribute("aria-describedby", "kontakt-pomoc");
+      poljeEmail.removeAttribute("aria-describedby");
     }
   }
 
@@ -2541,16 +2541,10 @@ function inicializirajNeplacila() {
       napakaKontakt.scrollIntoView({ behavior: "smooth", block: "center" });
     }
     if (poljeTelefon) {
-      poljeTelefon.setAttribute(
-        "aria-describedby",
-        "napaka-kontakt kontakt-pomoc"
-      );
+      poljeTelefon.setAttribute("aria-describedby", "napaka-kontakt");
     }
     if (poljeEmail) {
-      poljeEmail.setAttribute(
-        "aria-describedby",
-        "napaka-kontakt kontakt-pomoc"
-      );
+      poljeEmail.setAttribute("aria-describedby", "napaka-kontakt");
     }
     // Skupna napaka sekcije – praznih polj ne označujemo posamično.
   }

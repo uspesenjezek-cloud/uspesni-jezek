@@ -43,32 +43,36 @@ test("HTML nima checkboxov SMS / E-pošta", () => {
   assert(!/>\s*SMS\s*</.test(kontaktniBlok[0]), "oznaka SMS še v sekciji");
 });
 
-test("HTML ima telefon, e-pošto in pomožno besedilo", () => {
+test("HTML ima telefon, e-pošto in napako (brez pomožnega teksta)", () => {
   assert(/Telefon ali e-pošta/.test(html));
   assert(/id=["']telefon-dolznika["']/.test(html));
   assert(/id=["']email-dolznika["']/.test(html));
   assert(/type=["']tel["']/.test(html));
   assert(/type=["']email["']/.test(html));
-  assert(/Za pošiljanje zadošča telefon ali e-pošta\./.test(html));
+  assert(!/Za pošiljanje zadošča telefon ali e-pošta\./.test(html));
+  assert(!/kontakt-pomoc/.test(html));
+  assert(!/contact-help/.test(html));
   assert(/Vnesite telefonsko številko ali e-poštni naslov\./.test(html));
   assert(/id=["']napaka-kontakt["']/.test(html));
   assert(/role=["']alert["']/.test(html));
 });
 
-test("zaporedje: telefon → e-pošta → napaka → pomoč", () => {
+test("zaporedje: telefon → e-pošta → napaka", () => {
   const iTel = html.indexOf('id="telefon-dolznika"');
   const iEmail = html.indexOf('id="email-dolznika"');
   const iNapaka = html.indexOf('id="napaka-kontakt"');
-  const iPomoc = html.indexOf('id="kontakt-pomoc"');
-  assert(iTel > 0 && iEmail > iTel && iNapaka > iEmail && iPomoc > iNapaka);
+  assert(iTel > 0 && iEmail > iTel && iNapaka > iEmail);
+  assert(html.indexOf('id="kontakt-pomoc"') === -1);
 });
 
-test("CSS nima stilov za contact-kanal", () => {
+test("CSS: ozek razmik med poljema, brez contact-help/kanal", () => {
   const css = fs.readFileSync(
     path.join(__dirname, "..", "app", "styles.css"),
     "utf8"
   );
   assert(!/\.contact-kanal\b/.test(css), "styles.css še vsebuje .contact-kanal");
+  assert(!/\.contact-help\b/.test(css), "styles.css še vsebuje .contact-help");
+  assert(/\.contact-inputs\s*\{[^}]*gap:\s*4px/s.test(css), "gap ni 4px");
 });
 
 test("app.js nima logike kljukic", () => {

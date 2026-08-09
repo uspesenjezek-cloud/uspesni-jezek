@@ -835,7 +835,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 .contact-inputs {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 4px;
 }
 
 .contact-field {
@@ -895,13 +895,6 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .contact-error[hidden] {
   display: none;
-}
-
-.contact-help {
-  margin: 8px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.4;
 }
 
 .obrazec-razdelek__naslov {
