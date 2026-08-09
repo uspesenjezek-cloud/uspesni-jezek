@@ -1,0 +1,37 @@
+---
+description: Avtonomno delo – implementiraj takoj, brez poročanja po nalogi
+alwaysApply: true
+---
+
+# Avtonomni način dela
+
+Pri vseh nalogah **takoj implementiraj** do konca. Brez čakanja na potrditev. Brez vmesnih statusov. Brez spraševanja za vsak korak.
+
+## Poročanje – SAMO ti dve izjemi
+
+**Ne javljaj se** po vsaki nalogi (niti s kratkim opisom »kaj je narejeno«).
+
+Javi se **samo** če:
+
+1. Si **resnično obtičal** in ne moreš nadaljevati brez uporabnikove odločitve (npr. credentials, poslovna izbira, nejasna zahteva z več enakovrednimi izidi).
+2. Naletiš na **resno napako ali opozorilo**: grozeča izguba podatkov, security tveganje, breaking change, ki bi pokvaril druge dele aplikacije – in tega ne moreš varno popraviti sam.
+
+V vseh ostalih primerih: naredi → testiraj → **commitaj** → nadaljuj na naslednjo nalogo **brez sporočila**.
+
+## Težave (običajne)
+
+Build fail, zaseden port, merge conflict, manjkajoča datoteka, cache, flaky test … – **najprej sam reši** (restart, drug pristop, debug). Ne sprašuj, če lahko nadaljuješ sam.
+
+## Preverjanje
+
+Ne commitaj in ne štej naloge za končano, dokler nisi preveril (test, diff, streženi odgovor, smoke). Samo napisana koda ni dovolj.
+
+## Tokeni
+
+Ne kuri tokenov z vprašanji, ki jih lahko rešiš z raziskovanjem ali testiranjem.
+
+## Git
+
+- **Commit** po uspešno končani / preverjeni nalogi – samodejno, brez vprašanja in brez oznanila.
+- **Push** samo, ko uporabnik to izrecno želi (ali jasno potrdi predlog).
+- Še vedno: ne force-push na main/master, ne spreminjaj git config, ne commitaj skrivnosti.
