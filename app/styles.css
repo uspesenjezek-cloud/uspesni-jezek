@@ -824,7 +824,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .contact-group legend {
-  margin: 0 0 7px;
+  margin: 0 0 8px;
   padding: 0;
   color: var(--color-text);
   font-size: 14px;
@@ -835,51 +835,16 @@ body.stran--samo-seznam #neplacila-obrazec {
 .contact-inputs {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .contact-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   min-width: 0;
 }
 
 .contact-input {
   position: relative;
   width: 100%;
-}
-
-.contact-kanal {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  width: fit-content;
-  margin: 0;
-  padding: 0 2px;
-  color: #355654;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.2;
-  cursor: pointer;
-  user-select: none;
-}
-
-.contact-kanal input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: #2f8f8e;
-}
-
-.contact-kanal input:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.contact-kanal:has(input:disabled) {
-  color: #8a9b98;
-  cursor: not-allowed;
 }
 
 .contact-input svg {
@@ -922,7 +887,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .contact-error {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--color-danger);
   font-size: 13px;
   line-height: 1.4;
@@ -933,7 +898,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .contact-help {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.4;

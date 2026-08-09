@@ -1924,9 +1924,6 @@ function inicializirajNeplacila() {
       oznaciPoljeKotAiManjka(telefon);
       oznaciPoljeKotAiManjka(email);
     }
-    if (typeof posodobiKontaktneKljukice === "function") {
-      posodobiKontaktneKljukice();
-    }
   }
 
   async function obdelajRacunZAi(datoteka) {
@@ -2436,89 +2433,14 @@ function inicializirajNeplacila() {
   const napakaKontakt = document.getElementById("napaka-kontakt");
   const poljeTelefon = document.getElementById("telefon-dolznika");
   const poljeEmail = document.getElementById("email-dolznika");
-  const kljukicaSms = document.getElementById("kanal-privzeto-sms");
-  const kljukicaEmail = document.getElementById("kanal-privzeto-email");
-  let smsRocnoIzklop = false;
-  let emailRocnoIzklop = false;
   let casovnikOsnutkaKorak1 = null;
   let casovnikOznakeOsnutkaKorak1 = null;
 
+  /** Kanali pošiljanja: samodejno iz izpolnjenih kontaktov (brez ročnih kljukic). */
   function trenutniPrivzetiKanali() {
-    return {
-      sms: Boolean(kljukicaSms && !kljukicaSms.disabled && kljukicaSms.checked),
-      email: Boolean(
-        kljukicaEmail && !kljukicaEmail.disabled && kljukicaEmail.checked
-      ),
-    };
-  }
-
-  function posodobiKontaktneKljukice() {
     const tel = poljeTelefon ? String(poljeTelefon.value || "").trim() : "";
     const email = poljeEmail ? String(poljeEmail.value || "").trim() : "";
-
-    if (kljukicaSms) {
-      kljukicaSms.disabled = !tel;
-      if (!tel) {
-        kljukicaSms.checked = false;
-        smsRocnoIzklop = false;
-      } else if (!smsRocnoIzklop) {
-        kljukicaSms.checked = true;
-      }
-    }
-    if (kljukicaEmail) {
-      kljukicaEmail.disabled = !email;
-      if (!email) {
-        kljukicaEmail.checked = false;
-        emailRocnoIzklop = false;
-      } else if (!emailRocnoIzklop) {
-        kljukicaEmail.checked = true;
-      }
-    }
-  }
-
-  function obnoviKontaktneKljukiceIzOsnutka(osnutek) {
-    const p = osnutek || {};
-    const tel = String(
-      p.telefonDolznika || (poljeTelefon && poljeTelefon.value) || ""
-    ).trim();
-    const email = String(
-      p.emailDolznika || (poljeEmail && poljeEmail.value) || ""
-    ).trim();
-    const priv =
-      p.privzetiKanali || privzetiKanaliIzKontaktov(tel, email);
-    smsRocnoIzklop = Boolean(tel) && priv.sms === false;
-    emailRocnoIzklop = Boolean(email) && priv.email === false;
-    if (kljukicaSms) {
-      kljukicaSms.disabled = !tel;
-      kljukicaSms.checked = Boolean(tel) && Boolean(priv.sms);
-    }
-    if (kljukicaEmail) {
-      kljukicaEmail.disabled = !email;
-      kljukicaEmail.checked = Boolean(email) && Boolean(priv.email);
-    }
-  }
-
-  if (kljukicaSms) {
-    kljukicaSms.addEventListener("change", () => {
-      const tel = poljeTelefon ? String(poljeTelefon.value || "").trim() : "";
-      if (!tel) return;
-      smsRocnoIzklop = !kljukicaSms.checked;
-      narociShranjevanjeOsnutkaKorak1();
-    });
-  }
-  if (kljukicaEmail) {
-    kljukicaEmail.addEventListener("change", () => {
-      const email = poljeEmail ? String(poljeEmail.value || "").trim() : "";
-      if (!email) return;
-      emailRocnoIzklop = !kljukicaEmail.checked;
-      narociShranjevanjeOsnutkaKorak1();
-    });
-  }
-
-  if (osnutekKorak1ZaPriloge) {
-    obnoviKontaktneKljukiceIzOsnutka(osnutekKorak1ZaPriloge);
-  } else {
-    posodobiKontaktneKljukice();
+    return privzetiKanaliIzKontaktov(tel, email);
   }
 
   function oznaciShranjevanjeKorak1() {
@@ -2601,8 +2523,16 @@ function inicializirajNeplacila() {
 
   function skrijNapakoKontakta() {
     if (napakaKontakt) napakaKontakt.hidden = true;
-    if (poljeTelefon) poljeTelefon.classList.remove("obrazec__polje--napaka");
-    if (poljeEmail) poljeEmail.classList.remove("obrazec__polje--napaka");
+    if (poljeTelefon) {
+      poljeTelefon.classList.remove("obrazec__polje--napaka");
+      poljeTelefon.removeAttribute("aria-invalid");
+      poljeTelefon.setAttribute("aria-describedby", "kontakt-pomoc");
+    }
+    if (poljeEmail) {
+      poljeEmail.classList.remove("obrazec__polje--napaka");
+      poljeEmail.removeAttribute("aria-invalid");
+      poljeEmail.setAttribute("aria-describedby", "kontakt-pomoc");
+    }
   }
 
   function pokaziNapakoKontakta() {
@@ -2610,20 +2540,33 @@ function inicializirajNeplacila() {
       napakaKontakt.hidden = false;
       napakaKontakt.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-    if (poljeTelefon) poljeTelefon.classList.add("obrazec__polje--napaka");
-    if (poljeEmail) poljeEmail.classList.add("obrazec__polje--napaka");
+    if (poljeTelefon) {
+      poljeTelefon.setAttribute(
+        "aria-describedby",
+        "napaka-kontakt kontakt-pomoc"
+      );
+    }
+    if (poljeEmail) {
+      poljeEmail.setAttribute(
+        "aria-describedby",
+        "napaka-kontakt kontakt-pomoc"
+      );
+    }
+    // Skupna napaka sekcije – praznih polj ne označujemo posamično.
   }
 
   if (poljeTelefon) {
     poljeTelefon.addEventListener("input", () => {
-      skrijNapakoKontakta();
-      posodobiKontaktneKljukice();
+      if (String(poljeTelefon.value || "").trim() || (poljeEmail && String(poljeEmail.value || "").trim())) {
+        skrijNapakoKontakta();
+      }
     });
   }
   if (poljeEmail) {
     poljeEmail.addEventListener("input", () => {
-      skrijNapakoKontakta();
-      posodobiKontaktneKljukice();
+      if (String(poljeEmail.value || "").trim() || (poljeTelefon && String(poljeTelefon.value || "").trim())) {
+        skrijNapakoKontakta();
+      }
     });
   }
 

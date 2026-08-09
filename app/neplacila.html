@@ -197,16 +197,13 @@
                           inputmode="tel"
                           autocomplete="tel"
                           placeholder="Mobilni telefon"
+                          aria-describedby="kontakt-pomoc"
                         />
                       </div>
-                      <label class="contact-kanal" for="kanal-privzeto-sms">
-                        <input type="checkbox" id="kanal-privzeto-sms" disabled />
-                        <span>SMS</span>
-                      </label>
                     </div>
 
                     <div class="contact-field">
-                      <label class="sr-only" for="email-dolznika">E-pošta</label>
+                      <label class="sr-only" for="email-dolznika">E-poštni naslov</label>
                       <div class="contact-input">
                         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
                         <input
@@ -216,20 +213,17 @@
                           inputmode="email"
                           autocomplete="email"
                           placeholder="E-pošta (ni obvezna)"
+                          aria-describedby="kontakt-pomoc"
                         />
                       </div>
-                      <label class="contact-kanal" for="kanal-privzeto-email">
-                        <input type="checkbox" id="kanal-privzeto-email" disabled />
-                        <span>E-pošta</span>
-                      </label>
                     </div>
                   </div>
 
-                  <p class="contact-error" id="napaka-kontakt" hidden>
+                  <p class="contact-error" id="napaka-kontakt" role="alert" hidden>
                     Vnesite telefonsko številko ali e-poštni naslov.
                   </p>
 
-                  <p class="contact-help">
+                  <p class="contact-help" id="kontakt-pomoc">
                     Za pošiljanje zadošča telefon ali e-pošta.
                   </p>
                 </fieldset>
