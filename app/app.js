@@ -3120,6 +3120,7 @@ function inicializirajSporociloDolzniku() {
     if (napaka) napaka.hidden = true;
   }
 
+  let drsnikRaf = null;
   function posodobiDrsnik() {
     if (!okvir || !indikator || !seznam) return;
     const maxScroll = seznam.scrollHeight - seznam.clientHeight;
@@ -3130,6 +3131,13 @@ function inicializirajSporociloDolzniku() {
     const travel = Math.max(0, seznam.clientHeight - indikator.offsetHeight - 2);
     const ratio = maxScroll > 0 ? seznam.scrollTop / maxScroll : 0;
     indikator.style.transform = "translateY(" + Math.round(travel * ratio) + "px)";
+  }
+  function posodobiDrsnikRaf() {
+    if (drsnikRaf != null) return;
+    drsnikRaf = window.requestAnimationFrame(() => {
+      drsnikRaf = null;
+      posodobiDrsnik();
+    });
   }
 
   function posodobiStanjeUrejevalnika() {
@@ -5621,17 +5629,21 @@ function inicializirajSporociloDolzniku() {
   seznam.addEventListener(
     "scroll",
     () => {
-      posodobiDrsnik();
+      posodobiDrsnikRaf();
       zapriVseStevilkeIzbire();
     },
     { passive: true }
   );
-  window.addEventListener("resize", () => {
-    posodobiDrsnik();
-    zapriVseStevilkeIzbire();
-  });
+  window.addEventListener(
+    "resize",
+    () => {
+      posodobiDrsnikRaf();
+      zapriVseStevilkeIzbire();
+    },
+    { passive: true }
+  );
   if (typeof ResizeObserver !== "undefined") {
-    const opazovalec = new ResizeObserver(() => posodobiDrsnik());
+    const opazovalec = new ResizeObserver(() => posodobiDrsnikRaf());
     opazovalec.observe(seznam);
     if (okvir) opazovalec.observe(okvir);
   }

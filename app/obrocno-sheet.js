@@ -188,7 +188,7 @@
       forsiraPriporocilo = false;
       forsiraToneId = null;
       odprt = false;
-      ignoreOpenUntil = Date.now() + 450;
+      ignoreOpenUntil = Date.now() + 280;
       if (sheet) {
         sheet.hidden = true;
         sheet.classList.remove("obrocno-sheet--nad-predlogo");
@@ -1403,7 +1403,8 @@
       var cb = pendingOnClose;
       pendingOnClose = null;
       var shranjeno = Boolean(meta && meta.shranjeno);
-      ignoreOpenUntil = Date.now() + 450;
+      // Kratek »ghost click« ščit (ne predolg – sicer naslednji klik na kartico zgreši).
+      ignoreOpenUntil = Date.now() + 280;
       if (sheet) sheet.classList.remove("obrocno-sheet--nad-predlogo");
       var nadPredlogo = document.body.classList.contains("template-editor-odprt");
       if (!nadPredlogo) {
@@ -1584,10 +1585,16 @@
 
     zgradiStevilke();
 
-    ctx.gumbObrocno.addEventListener("click", function () {
-      if (odprt) return;
+    ctx.gumbObrocno.addEventListener("click", function (dogodek) {
+      dogodek.preventDefault();
+      dogodek.stopPropagation();
       if (Date.now() < ignoreOpenUntil) return;
-      odpri();
+      // Po koncu trenutnega tipa – sicer mobilni brskalnik tap prestavi na backdrop.
+      window.setTimeout(function () {
+        if (Date.now() < ignoreOpenUntil) return;
+        if (odprt) return;
+        odpri();
+      }, 0);
     });
 
     function poskusiZapri() {

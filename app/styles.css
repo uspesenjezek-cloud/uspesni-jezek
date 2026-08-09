@@ -2864,6 +2864,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   padding: 0;
   background: #f2f7f6;
   box-sizing: border-box;
+  /* Stabilnejši sticky compositing med scrollom */
+  backface-visibility: hidden;
 }
 
 .wizard-topbar__nazaj {
@@ -3365,8 +3367,10 @@ body.uj-modal-odprt {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 25px;
+  /* clip namesto hidden – manj scroll/compositing težav na mobilcih */
   overflow: hidden;
-  box-shadow: 0 14px 30px var(--shadow);
+  overflow: clip;
+  box-shadow: 0 8px 18px rgba(23, 50, 47, 0.08);
 }
 
 .korak2__glava {
@@ -4066,8 +4070,9 @@ body.uj-modal-odprt {
   padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xs);
   scrollbar-width: none;
   -ms-overflow-style: none;
-  overscroll-behavior: contain;
-  scroll-snap-type: y proximity;
+  /* contain + snap sta na mobilcih povzročala janky page scroll */
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: transparent;
 }
 
@@ -4107,7 +4112,6 @@ body.uj-modal-odprt {
   border-radius: 999px;
   background: var(--teal-dark);
   transform: translateY(0);
-  will-change: transform;
 }
 
 .predlog-kartica {
@@ -4734,7 +4738,8 @@ body.uj-modal-odprt {
   overflow-y: visible;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
-  touch-action: pan-x;
+  /* pan-y dovoljen, da vertikalni page scroll ne »obtiči« nad carouselom */
+  touch-action: pan-x pan-y;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   padding-block: 4px 7px;
