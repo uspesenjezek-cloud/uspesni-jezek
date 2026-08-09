@@ -72,7 +72,7 @@ while ($true) {
       $ext = [System.IO.Path]::GetExtension($filePath).ToLower()
       $contentType = if ($mimeTypes.ContainsKey($ext)) { $mimeTypes[$ext] } else { "application/octet-stream" }
       $content = [System.IO.File]::ReadAllBytes($filePath)
-      $header = "HTTP/1.1 200 OK`r`nContent-Type: $contentType`r`nContent-Length: $($content.Length)`r`nConnection: close`r`n`r`n"
+      $header = "HTTP/1.1 200 OK`r`nContent-Type: $contentType`r`nContent-Length: $($content.Length)`r`nCache-Control: no-store, no-cache, must-revalidate`r`nPragma: no-cache`r`nConnection: close`r`n`r`n"
       $headerBytes = [System.Text.Encoding]::ASCII.GetBytes($header)
       $stream.Write($headerBytes, 0, $headerBytes.Length)
       $stream.Write($content, 0, $content.Length)
