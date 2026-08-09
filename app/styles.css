@@ -9126,12 +9126,7 @@ body.template-editor-odprt {
   inset: -4px -2px;
 }
 
-.vk-kanal-gumb--sms-on {
-  border-color: #3d999b !important;
-  background: #3d999b !important;
-  color: #fff !important;
-}
-
+.vk-kanal-gumb--sms-on,
 .vk-kanal-gumb--email-on {
   border-color: #71b4b3 !important;
   background: #dff3f1 !important;

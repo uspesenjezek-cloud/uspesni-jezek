@@ -118,11 +118,10 @@
   }
 
   function prilogaImaVeljavenKanal(p, imaTel, imaEmail) {
-    if (!p || p.status !== "ready") return true;
-    var c = p.deliveryChannels || {};
-    var sms = Boolean(c.sms) && imaTel;
-    var email = Boolean(c.email) && imaEmail;
-    return sms || email;
+    /* Kanala sta neodvisna (SMS / e-pošta / oba / noben). */
+    void imaTel;
+    void imaEmail;
+    return Boolean(p);
   }
 
   function vsePrilogeVeljavneZaPotrditev(priloge, imaTel, imaEmail) {
@@ -136,12 +135,6 @@
         return {
           ok: false,
           razlog: "Odstranite ali ponovno naložite neuspele račune.",
-        };
-      }
-      if (p.status === "ready" && !prilogaImaVeljavenKanal(p, imaTel, imaEmail)) {
-        return {
-          ok: false,
-          razlog: "Vsak račun mora imeti vsaj en kanal (SMS ali e-pošta).",
         };
       }
     }

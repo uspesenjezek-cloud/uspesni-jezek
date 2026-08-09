@@ -2015,17 +2015,6 @@
               email: prej.email,
             };
             novo[kanal] = !novo[kanal];
-            if (!novo.sms && !novo.email) {
-              if (typeof opts.potrdiVprasanje === "function") {
-                opts.potrdiVprasanje({
-                  naslov: "Vsaj en kanal mora biti izbran",
-                  potrdiBesedilo: "V redu",
-                  samoEnGumb: true,
-                  stil: "primary",
-                });
-              }
-              return;
-            }
             p.deliveryChannels = novo;
             p.updatedAt = new Date().toISOString();
             sinhronizirajPrilogeVKorak1();

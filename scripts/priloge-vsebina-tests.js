@@ -106,13 +106,37 @@ test("privzeti kanali glede na kontakt", () => {
   assert(b.sms && b.email);
 });
 
-test("potrditev zahteva kanal", () => {
+test("potrditev dovoli prilogo brez kanala", () => {
   const r = PV.vsePrilogeVeljavneZaPotrditev(
     [{ status: "ready", deliveryChannels: { sms: false, email: false } }],
     true,
     true
   );
-  assert(!r.ok);
+  assert(r.ok);
+});
+
+test("SMS in e-pošta sta neodvisna (samo SMS / samo e-pošta / oba)", () => {
+  assert(
+    PV.vsePrilogeVeljavneZaPotrditev(
+      [{ status: "ready", deliveryChannels: { sms: true, email: false } }],
+      true,
+      true
+    ).ok
+  );
+  assert(
+    PV.vsePrilogeVeljavneZaPotrditev(
+      [{ status: "ready", deliveryChannels: { sms: false, email: true } }],
+      true,
+      true
+    ).ok
+  );
+  assert(
+    PV.vsePrilogeVeljavneZaPotrditev(
+      [{ status: "ready", deliveryChannels: { sms: true, email: true } }],
+      true,
+      true
+    ).ok
+  );
 });
 
 test("sejo roundtrip", () => {
