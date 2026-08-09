@@ -469,6 +469,8 @@ const KLJUC_KRATKO_OBVESTILO = "uj-kratko-obvestilo";
 let ujPotrdiZakljuci = null;
 let ujPotrdiPrejsnjiFokus = null;
 let ujPotrdiScrollY = 0;
+let ujPotrdiPrevBodyTop = "";
+let ujPotrdiPrevBodyPosition = "";
 
 function nastaviKratkoObvestilo(tekst) {
   if (!tekst) return;
@@ -522,6 +524,8 @@ function pokaziKratkoObvestiloCeObstaja() {
 
 function zakleniOzadjeMedModalom() {
   ujPotrdiScrollY = window.scrollY || window.pageYOffset || 0;
+  ujPotrdiPrevBodyTop = document.body.style.top;
+  ujPotrdiPrevBodyPosition = document.body.style.position;
   document.documentElement.classList.add("uj-modal-odprt");
   document.body.classList.add("uj-modal-odprt");
   document.body.style.top = "-" + ujPotrdiScrollY + "px";
@@ -530,9 +534,93 @@ function zakleniOzadjeMedModalom() {
 function odkleniOzadjeMedModalom() {
   document.documentElement.classList.remove("uj-modal-odprt");
   document.body.classList.remove("uj-modal-odprt");
-  document.body.style.top = "";
-  window.scrollTo(0, ujPotrdiScrollY || 0);
+  const drugLock =
+    document.body.classList.contains("obrocno-sheet-odprt") ||
+    document.body.classList.contains("rok-sheet-odprt") ||
+    document.body.classList.contains("template-editor-odprt") ||
+    document.body.classList.contains("predloga-predogled-odprt");
+  if (drugLock) {
+    // Sheet/predloga še drži lock – ne briši njenega top/position.
+    document.body.style.top = ujPotrdiPrevBodyTop || document.body.style.top;
+    if (ujPotrdiPrevBodyPosition) {
+      document.body.style.position = ujPotrdiPrevBodyPosition;
+    }
+  } else {
+    document.body.style.top = "";
+    window.scrollTo(0, ujPotrdiScrollY || 0);
+    if (typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
+    }
+  }
+  ujPotrdiPrevBodyTop = "";
+  ujPotrdiPrevBodyPosition = "";
 }
+
+/**
+ * Ali je kateri od overlayev (sheet/modal) res viden?
+ * ID predloge: #predogled-modal (ne #template-editor).
+ */
+function UJJeOverlayOdprt() {
+  const ids = [
+    "obrocno-sheet",
+    "rok-sheet",
+    "trr-sheet",
+    "predogled-modal",
+    "predloga-predogled",
+    "uj-potrdi-modal",
+  ];
+  for (let i = 0; i < ids.length; i++) {
+    const el = document.getElementById(ids[i]);
+    if (el && !el.hidden) return true;
+  }
+  return false;
+}
+
+/**
+ * Sprosti body/html scroll lock, če ni odprtega overlaya.
+ * Odstrani tudi »sirote« razredov (sheet skrit, razred pa ostane).
+ * @returns {boolean} true, če je scroll sproščen
+ */
+function UJSprostiGlavniScroll() {
+  const ob = document.getElementById("obrocno-sheet");
+  const rok = document.getElementById("rok-sheet");
+  const trr = document.getElementById("trr-sheet");
+  const predloga = document.getElementById("predogled-modal");
+  const predogled = document.getElementById("predloga-predogled");
+  const potrdi = document.getElementById("uj-potrdi-modal");
+
+  if (!ob || ob.hidden) document.body.classList.remove("obrocno-sheet-odprt");
+  if ((!rok || rok.hidden) && (!trr || trr.hidden)) {
+    document.body.classList.remove("rok-sheet-odprt");
+  }
+  if (!predloga || predloga.hidden) {
+    document.body.classList.remove("template-editor-odprt");
+  }
+  if (!predogled || predogled.hidden) {
+    document.body.classList.remove("predloga-predogled-odprt");
+  }
+  if (!potrdi || potrdi.hidden) {
+    document.documentElement.classList.remove("uj-modal-odprt");
+    document.body.classList.remove("uj-modal-odprt");
+  }
+
+  if (UJJeOverlayOdprt()) return false;
+
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+  document.body.style.overflow = "";
+  document.body.style.touchAction = "";
+  document.documentElement.style.overflow = "";
+  document.documentElement.style.touchAction = "";
+  document.documentElement.style.height = "";
+  return true;
+}
+
+window.UJJeOverlayOdprt = UJJeOverlayOdprt;
+window.UJSprostiGlavniScroll = UJSprostiGlavniScroll;
 
 function zgradiOpcijskiGumb(besedilo, tip) {
   const ikona = tip === "nov" ? SVG_OPCIJA_NOV : SVG_OPCIJA_ISTI;
@@ -3933,6 +4021,9 @@ function inicializirajSporociloDolzniku() {
     document.body.style.right = "";
     document.body.style.width = "";
     window.scrollTo(0, templateEditorScrollY || 0);
+    if (typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
+    }
   }
 
   function premakniModalVBody() {
@@ -4179,6 +4270,9 @@ function inicializirajSporociloDolzniku() {
     if (rokEl) rokEl.hidden = true;
     const trrEl = document.getElementById("trr-sheet");
     if (trrEl) trrEl.hidden = true;
+    if (typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
+    }
   }
 
   async function zapriUrediModal(opcije) {
@@ -4240,6 +4334,9 @@ function inicializirajSporociloDolzniku() {
     document.body.style.right = "";
     document.body.style.width = "";
     window.scrollTo(0, predogledScrollY || 0);
+    if (typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
+    }
   }
 
   function predogledZeliAnimacijo() {
@@ -5608,63 +5705,20 @@ function inicializirajSporociloDolzniku() {
 
   /** Ali je scroll namenoma zaklenjen (odprt sheet/modal)? */
   function jeGlavniScrollNamenomaZaklenjen() {
-    const ids = [
-      "obrocno-sheet",
-      "rok-sheet",
-      "trr-sheet",
-      "template-editor",
-      "predloga-predogled",
-      "uj-potrdi-modal",
-    ];
-    for (let i = 0; i < ids.length; i++) {
-      const el = document.getElementById(ids[i]);
-      if (el && !el.hidden) return true;
-    }
-    return false;
+    return typeof window.UJJeOverlayOdprt === "function"
+      ? window.UJJeOverlayOdprt()
+      : false;
   }
 
   /**
-   * Po focus/blur na textarea: povrni body/html scroll (odstrani ostanke
-   * position/overflow/touch-action in sirote razredov sheetov).
+   * Po focus/blur na textarea / viewport: povrni body scroll.
+   * (Popravek: predloga = #predogled-modal, ne #template-editor.)
    */
   function obnoviGlavniScrollPoBesedilu() {
-    const ob = document.getElementById("obrocno-sheet");
-    const rok = document.getElementById("rok-sheet");
-    const trr = document.getElementById("trr-sheet");
-    if (!ob || ob.hidden) {
-      document.body.classList.remove("obrocno-sheet-odprt");
+    if (typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
     }
-    if ((!rok || rok.hidden) && (!trr || trr.hidden)) {
-      document.body.classList.remove("rok-sheet-odprt");
-    }
-    const predogled = document.getElementById("predloga-predogled");
-    if (!predogled || predogled.hidden) {
-      document.body.classList.remove("predloga-predogled-odprt");
-    }
-    const predloga = document.getElementById("template-editor");
-    if (!predloga || predloga.hidden) {
-      document.body.classList.remove("template-editor-odprt");
-    }
-    const potrdi = document.getElementById("uj-potrdi-modal");
-    if (!potrdi || potrdi.hidden) {
-      document.documentElement.classList.remove("uj-modal-odprt");
-      document.body.classList.remove("uj-modal-odprt");
-    }
-
     if (jeGlavniScrollNamenomaZaklenjen()) return;
-
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.left = "";
-    document.body.style.right = "";
-    document.body.style.width = "";
-    document.body.style.overflow = "";
-    document.body.style.touchAction = "";
-    document.documentElement.style.overflow = "";
-    document.documentElement.style.touchAction = "";
-    document.documentElement.style.height = "";
-
-    // Prebudi scroll engine po tipkovnici (iOS/Chrome DevTools).
     const y = window.scrollY || window.pageYOffset || 0;
     window.requestAnimationFrame(() => {
       window.scrollTo(0, y === 0 ? 1 : y - 1);
@@ -5738,6 +5792,44 @@ function inicializirajSporociloDolzniku() {
   }
 
   prilagodiVisinoSporocila();
+
+  // Varnostna mreža: če sheet ni viden, lock razred/stil pa ostane → sprosti ob gesti.
+  function varnostnoSprostiScrollObGesti() {
+    if (typeof window.UJJeOverlayOdprt === "function" && window.UJJeOverlayOdprt()) {
+      return;
+    }
+    const body = document.body;
+    const sirota =
+      body.classList.contains("obrocno-sheet-odprt") ||
+      body.classList.contains("rok-sheet-odprt") ||
+      body.classList.contains("template-editor-odprt") ||
+      body.classList.contains("predloga-predogled-odprt") ||
+      body.classList.contains("uj-modal-odprt") ||
+      document.documentElement.classList.contains("uj-modal-odprt") ||
+      body.style.position === "fixed" ||
+      body.style.overflow === "hidden" ||
+      body.style.touchAction === "none";
+    if (sirota && typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
+    }
+  }
+  document.addEventListener("pointerdown", varnostnoSprostiScrollObGesti, {
+    passive: true,
+    capture: true,
+  });
+  document.addEventListener("wheel", varnostnoSprostiScrollObGesti, {
+    passive: true,
+    capture: true,
+  });
+  document.addEventListener("touchstart", varnostnoSprostiScrollObGesti, {
+    passive: true,
+    capture: true,
+  });
+  window.addEventListener("pageshow", () => {
+    if (typeof window.UJSprostiGlavniScroll === "function") {
+      window.UJSprostiGlavniScroll();
+    }
+  });
 
   seznam.addEventListener(
     "scroll",

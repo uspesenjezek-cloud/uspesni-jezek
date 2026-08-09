@@ -180,6 +180,9 @@
       document.body.style.width = "";
       document.body.style.overflow = "";
       window.scrollTo(0, scrollY);
+      if (typeof root.UJSprostiGlavniScroll === "function") {
+        root.UJSprostiGlavniScroll();
+      }
     }
 
     /** Zapri brez onClose – npr. ob zaprtju urejevalnika predloge. */

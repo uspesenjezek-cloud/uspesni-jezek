@@ -5877,7 +5877,7 @@ body.uj-modal-odprt {
 body.obrocno-sheet-odprt {
   overflow: hidden;
   overscroll-behavior: none;
-  touch-action: none;
+  /* Brez touch-action: none – če razred ostane (sirota), scroll umre do F5. */
 }
 
 body.obrocno-sheet-odprt .korak2__noga {
@@ -6850,8 +6850,7 @@ body.obrocno-sheet-odprt .korak2__noga {
 body.rok-sheet-odprt {
   overflow: hidden;
   overscroll-behavior: none;
-  /* Prepreči horizontalni »rubber-band« ozadja med odprtim sheetom. */
-  touch-action: none;
+  /* Brez touch-action: none – če razred ostane (sirota), scroll umre do F5. */
 }
 
 .korak2__noga {
