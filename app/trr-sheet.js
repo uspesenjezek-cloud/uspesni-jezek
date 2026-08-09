@@ -136,7 +136,7 @@
       var on = Boolean(vkljuci && vkljuci.checked);
       if (vsebina) vsebina.hidden = !on;
       if (shraniGumb) {
-        shraniGumb.textContent = on ? "Shrani spremembe" : "Shrani (brez TRR)";
+        shraniGumb.textContent = on ? "Shrani spremembe" : "Shrani in dodaj";
       }
     }
 
@@ -545,7 +545,7 @@
           if (odprt) {
             shraniGumb.textContent = vkljuci && vkljuci.checked
               ? "Shrani spremembe"
-              : "Shrani (brez TRR)";
+              : "Shrani in dodaj";
           } else {
             shraniGumb.textContent = "Shrani spremembe";
           }

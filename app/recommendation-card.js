@@ -42,14 +42,15 @@
       id +
       '">Priporočilo sistema</h3>' +
       '    <span class="recommendation-card__badge" data-rec="badge"></span>' +
+      '    <button type="button" class="recommendation-card__zapri" data-rec="ignore" aria-hidden="false">×</button>' +
       "  </div>" +
       '  <p class="recommendation-card__description" data-rec="desc"></p>' +
       '  <p class="recommendation-card__error" data-rec="error" hidden>' +
       "Priporočila ni bilo mogoče uporabiti. Poskusite znova." +
       "</p>" +
       '  <div class="recommendation-card__actions">' +
-      '    <button type="button" class="recommendation-card__button recommendation-card__button--ignore" data-rec="ignore"></button>' +
       '    <button type="button" class="recommendation-card__button recommendation-card__button--apply" data-rec="apply"></button>' +
+      '    <button type="button" class="recommendation-card__button recommendation-card__button--undo" data-rec="undo">Izklopi</button>' +
       "  </div>" +
       "</div>" +
       '<div class="recommendation-compact" data-rec-view="compact" hidden aria-live="polite">' +
@@ -71,6 +72,7 @@
     var errorEl = host.querySelector('[data-rec="error"]');
     var ignoreBtn = host.querySelector('[data-rec="ignore"]');
     var applyBtn = host.querySelector('[data-rec="apply"]');
+    var undoBtn = host.querySelector('[data-rec="undo"]');
     var compactText = host.querySelector('[data-rec="compact-text"]');
     var compactAction = host.querySelector('[data-rec="compact-action"]');
 
@@ -83,7 +85,6 @@
       if (badgeEl) badgeEl.textContent = valueLabel;
       if (descEl) descEl.textContent = description;
       if (ignoreBtn) {
-        ignoreBtn.textContent = "Prezri";
         ignoreBtn.setAttribute("aria-label", ignoreAria);
       }
       if (applyBtn) {
@@ -121,18 +122,26 @@
       }
 
       if (status === "applied") {
-        if (card) card.hidden = true;
+        if (card) {
+          card.hidden = false;
+          card.classList.add("recommendation-card--applied");
+        }
         if (showAgain) showAgain.hidden = true;
-        if (compact) {
-          compact.hidden = false;
-          if (compactText) {
-            compactText.textContent =
-              "Priporočilo uporabljeno: " + valueLabel;
-          }
-          if (compactAction) {
-            compactAction.textContent = "Razveljavi";
-            compactAction.hidden = typeof opts.onUndo !== "function";
-          }
+        if (compact) compact.hidden = true;
+        if (errorEl) errorEl.hidden = true;
+        if (ignoreBtn) {
+          ignoreBtn.hidden = true;
+        }
+        if (applyBtn) {
+          applyBtn.hidden = false;
+          applyBtn.disabled = true;
+          applyBtn.textContent = "✓ Priporočilo uporabljeno";
+        }
+        if (undoBtn) {
+          undoBtn.hidden = false;
+          undoBtn.disabled = typeof opts.onUndo !== "function";
+          undoBtn.removeAttribute("aria-hidden");
+          undoBtn.tabIndex = 0;
         }
         return;
       }
@@ -154,9 +163,18 @@
       }
 
       // visible | applying | error
+      if (card) card.classList.remove("recommendation-card--applied");
       if (compact) compact.hidden = true;
       if (showAgain) showAgain.hidden = true;
       if (card) card.hidden = false;
+      if (ignoreBtn) ignoreBtn.hidden = false;
+      if (applyBtn) applyBtn.hidden = false;
+      if (undoBtn) {
+        undoBtn.hidden = false;
+        undoBtn.disabled = true;
+        undoBtn.setAttribute("aria-hidden", "true");
+        undoBtn.tabIndex = -1;
+      }
       if (errorEl) errorEl.hidden = status !== "error";
       setButtonsDisabled(status === "applying");
       if (applyBtn) {
@@ -192,6 +210,12 @@
     if (ignoreBtn) {
       ignoreBtn.addEventListener("click", function () {
         if (status === "applying") return;
+        if (status === "applied" && typeof opts.onUndo === "function") {
+          opts.onUndo();
+          status = "visible";
+          render();
+          return;
+        }
         ignoredHash = contextHash || "ignored";
         status = "ignored";
         if (typeof opts.onIgnore === "function") opts.onIgnore();
@@ -216,6 +240,15 @@
             status = "error";
             render();
           });
+      });
+    }
+
+    if (undoBtn) {
+      undoBtn.addEventListener("click", function () {
+        if (status !== "applied" || typeof opts.onUndo !== "function") return;
+        opts.onUndo();
+        status = "visible";
+        render();
       });
     }
 

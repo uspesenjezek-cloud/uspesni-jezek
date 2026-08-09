@@ -3253,6 +3253,9 @@ function inicializirajSporociloDolzniku() {
     "predogled-dodatek-trr-stanje"
   );
   const modalPredlagajTon = document.getElementById("predogled-predlagaj-ton");
+  const modalPredlagajTonStanje = document.getElementById(
+    "predogled-predlagaj-ton-stanje"
+  );
   const modalPredlagajTonHint = document.getElementById(
     "predogled-predlagaj-ton-hint"
   );
@@ -4346,6 +4349,9 @@ function inicializirajSporociloDolzniku() {
     recommendationSnapshot = null;
     if (modalPriporociloVrstica) modalPriporociloVrstica.hidden = true;
     if (modalPredlagajTon) modalPredlagajTon.hidden = false;
+    if (modalPredlagajTonStanje) {
+      modalPredlagajTonStanje.textContent = "Uporabi priporočilo";
+    }
   }
 
   function posnetekTrenutnegaOsnutka() {
@@ -4934,7 +4940,9 @@ function inicializirajSporociloDolzniku() {
     if (modalPriporociloNaslov) {
       modalPriporociloNaslov.textContent = labelTona(toneId);
     }
-    if (modalPredlagajTon) modalPredlagajTon.hidden = true;
+    if (modalPredlagajTonStanje) {
+      modalPredlagajTonStanje.textContent = "✓ Priporočilo uporabljeno";
+    }
     if (modalPriporociloVrstica) modalPriporociloVrstica.hidden = false;
   }
 
@@ -5399,38 +5407,33 @@ function inicializirajSporociloDolzniku() {
     }
   }
 
-  /** Mehko skrči en sklop priporočila (kartica → kompakten gumb "Prikaži priporočilo"). */
-  function animirajOdhodPriporocila(sklop, nato) {
-    const koncaj = () => {
-      if (sklop) {
-        resetirajSklopPriporocilaAnimacijo(sklop);
-      }
-      if (typeof nato === "function") nato();
-    };
-
-    if (!sklop || sklop.hidden || zeliZmanjsanoGibanje) {
-      koncaj();
+  /** Animira spremembo višine sklopa med trenutnim in novim stanjem (fn spremeni DOM
+      vsebino - npr. skrije kartico/pokaže gumb "Prikaži priporočilo", ali obratno). */
+  function animirajVisinoSklopa(sklop, fn) {
+    if (!sklop || zeliZmanjsanoGibanje) {
+      if (typeof fn === "function") fn();
       return;
     }
-
-    const visina = sklop.offsetHeight;
-    sklop.style.height = visina + "px";
+    const zacetnaVisina = sklop.offsetHeight;
+    if (typeof fn === "function") fn();
+    sklop.style.height = "auto";
+    const koncnaVisina = sklop.offsetHeight;
+    sklop.style.height = zacetnaVisina + "px";
     sklop.style.overflow = "hidden";
-    sklop.classList.add("ton-priporocila__sklop--odhajaj");
     void sklop.offsetHeight;
     requestAnimationFrame(() => {
-      sklop.style.height = "0px";
+      sklop.style.height = koncnaVisina + "px";
     });
 
     let koncano = false;
     const varnoKoncaj = () => {
       if (koncano) return;
       koncano = true;
+      sklop.style.height = "";
       sklop.style.overflow = "";
-      koncaj();
     };
     sklop.addEventListener("transitionend", varnoKoncaj, { once: true });
-    window.setTimeout(varnoKoncaj, 280);
+    window.setTimeout(varnoKoncaj, 260);
   }
 
   function prezriPriporocilo(vrsta) {
@@ -5444,7 +5447,7 @@ function inicializirajSporociloDolzniku() {
     const sklop =
       vrsta === "rok" ? sklopPriporociloRok : sklopPriporociloObrocno;
 
-    animirajOdhodPriporocila(sklop, () => {
+    animirajVisinoSklopa(sklop, () => {
       posodobiNamigeTonaDodatkov();
     });
     shraniOsnutekLokalno();
@@ -5454,7 +5457,13 @@ function inicializirajSporociloDolzniku() {
   function pokaziPriporocilo(vrsta) {
     if (vrsta === "rok") priporocilaPrezrta.rok = false;
     if (vrsta === "obrocno") priporocilaPrezrta.obrocno = false;
-    posodobiNamigeTonaDodatkov();
+
+    const sklop =
+      vrsta === "rok" ? sklopPriporociloRok : sklopPriporociloObrocno;
+
+    animirajVisinoSklopa(sklop, () => {
+      posodobiNamigeTonaDodatkov();
+    });
     shraniOsnutekLokalno();
   }
 
@@ -6544,6 +6553,7 @@ function inicializirajPosiljanje() {
       ? besedilo + " (" + tehnicniPodatki + ")"
       : besedilo;
     napaka.hidden = false;
+    napaka.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   async function naloziPrilogoZaVsebinoKoraka(datoteka) {

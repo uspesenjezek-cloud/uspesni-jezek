@@ -483,7 +483,7 @@
     }
 
     function besediloShraniGumba() {
-      return originalEnabled ? "Shrani spremembe" : "Vklopi obročno plačilo";
+      return originalEnabled ? "Shrani spremembe" : "Shrani in dodaj";
     }
 
     async function spremeniStevilo(st) {

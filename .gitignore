@@ -9,3 +9,7 @@ ngrok.exe
 
 .vercel
 .env*
+
+# Odvisnosti in začasne datoteke za lokalno testiranje
+node_modules/
+tmp-visual/

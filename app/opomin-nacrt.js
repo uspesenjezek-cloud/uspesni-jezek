@@ -187,9 +187,12 @@
   }
 
   function privzetiSendAt(offsetDays) {
+    var dni = Number(offsetDays) || 0;
     var d = new Date();
-    d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() + (Number(offsetDays) || 0));
+    /* Korak "danes" (0 dni) privzeto pošljemo ob trenutni uri – za korake v
+       prihodnosti ostane razumna privzeta ura 12.00. */
+    if (dni !== 0) d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() + dni);
     return d.toISOString();
   }
 
@@ -661,7 +664,8 @@
         ? Boolean(options.shiftFollowing)
         : Boolean(plan.keepStageIntervals);
 
-    var staro = step.sendAt ? new Date(step.sendAt) : new Date();
+    var staroIso = step.sendAt || step.scheduledAt || null;
+    var staro = staroIso ? new Date(staroIso) : new Date();
     var novo = new Date(novSendAtIso);
     if (Number.isNaN(novo.getTime())) return plan;
 
@@ -672,17 +676,54 @@
     oznaciNeedsReview(step);
 
     if (shiftFollowing && deltaMs !== 0) {
-      (plan.steps || []).forEach(function (s) {
-        if (s.index <= step.index) return;
-        if (!jeKorakPremakljiv(s)) return;
-        if (s.sendAt || s.scheduledAt) {
-          var dn = new Date(s.sendAt || s.scheduledAt);
-          dn.setTime(dn.getTime() + deltaMs);
+      var premakljivi = (plan.steps || []).filter(function (s) {
+        return Number(s.index) > Number(step.index) && jeKorakPremakljiv(s);
+      });
+      if (premakljivi.length) {
+        var intervalDni =
+          options.gapDays != null
+            ? Math.max(0, Math.round(Number(options.gapDays)))
+            : null;
+        if (
+          intervalDni == null ||
+          !Number.isFinite(intervalDni) ||
+          intervalDni <= 0
+        ) {
+          /* Razmik, ki ga ravnokar določamo (prejšnji korak → ta korak),
+             postane predloga za razmik do vseh naslednjih korakov –
+             ne stari razmik do koraka, ki mu je sledil pred to spremembo. */
+          intervalDni = null;
+          var prejsnjiKorak = najdiKorak(plan, Number(step.index) - 1);
+          var prejsnjiKorakCas = prejsnjiKorak
+            ? parseLocalDateTime(
+                prejsnjiKorak.sendAt || prejsnjiKorak.scheduledAt
+              )
+            : null;
+          if (prejsnjiKorakCas) {
+            intervalDni = koledarskiDneviMed(
+              prejsnjiKorakCas.toISOString(),
+              novo.toISOString()
+            );
+          }
+          if (
+            intervalDni == null ||
+            !Number.isFinite(intervalDni) ||
+            intervalDni <= 0
+          ) {
+            intervalDni = 1;
+          }
+        }
+        var prejsnjiCas = novo;
+        premakljivi.forEach(function (s) {
+          var dn = new Date(prejsnjiCas.getTime());
+          dn.setDate(dn.getDate() + intervalDni);
+          dn.setHours(novo.getHours(), novo.getMinutes(), 0, 0);
           s.sendAt = dn.toISOString();
           s.scheduledAt = s.sendAt;
-        }
-        oznaciNeedsReview(s);
-      });
+          oznaciNeedsReview(s);
+          prejsnjiCas = dn;
+        });
+      }
     }
 
     uskladiOffseteIzDatumov(plan);
@@ -696,7 +737,7 @@
    * Validacija pred shranjevanjem časa koraka.
    * @returns {{ ok: boolean, napaka: string|null, preview: object }}
    */
-  function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing) {
+  function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing, opts) {
     var step = najdiKorak(plan, index);
     var naslednji = najdiKorak(plan, Number(index) + 1);
     var prejsnji = najdiKorak(plan, Number(index) - 1);
@@ -743,23 +784,54 @@
       }
     }
 
-    var staro = parseLocalDateTime(step.sendAt || step.scheduledAt) || new Date();
-    var deltaMs = novo.getTime() - staro.getTime();
+    var vOpts = opts || {};
 
     if (shiftFollowing) {
+      var premakljivi = (plan.steps || []).filter(function (s) {
+        return Number(s.index) > Number(step.index) && jeKorakPremakljiv(s);
+      });
       var count = 0;
       var lastIso = novo.toISOString();
       var badPast = false;
-      (plan.steps || []).forEach(function (s) {
-        if (s.index <= step.index) return;
-        if (!jeKorakPremakljiv(s)) return;
-        count += 1;
-        if (s.sendAt || s.scheduledAt) {
-          var dn = new Date(s.sendAt || s.scheduledAt);
-          dn.setTime(dn.getTime() + deltaMs);
-          lastIso = dn.toISOString();
-          if (dn.getTime() < zacetekDanes) badPast = true;
+      var intervalDni =
+        vOpts.gapDays != null
+          ? Math.max(0, Math.round(Number(vOpts.gapDays)))
+          : null;
+      if (
+        intervalDni == null ||
+        !Number.isFinite(intervalDni) ||
+        intervalDni <= 0
+      ) {
+        intervalDni = null;
+        var prviNaslednji = premakljivi[0];
+        if (prviNaslednji) {
+          var stariNaslednjiCas = parseLocalDateTime(
+            prviNaslednji.sendAt || prviNaslednji.scheduledAt
+          );
+          if (stariNaslednjiCas) {
+            intervalDni = koledarskiDneviMed(
+              step.sendAt || step.scheduledAt,
+              stariNaslednjiCas.toISOString()
+            );
+          }
         }
+        if (
+          intervalDni == null ||
+          !Number.isFinite(intervalDni) ||
+          intervalDni <= 0
+        ) {
+          intervalDni = 1;
+        }
+      }
+      var prejsnjiCas = novo;
+      premakljivi.forEach(function (s) {
+        count += 1;
+        var dn = new Date(prejsnjiCas.getTime());
+        dn.setDate(dn.getDate() + intervalDni);
+        dn.setHours(novo.getHours(), novo.getMinutes(), 0, 0);
+        lastIso = dn.toISOString();
+        if (dn.getTime() < zacetekDanes) badPast = true;
+        prejsnjiCas = dn;
       });
       preview.shiftedCount = count;
       preview.lastSendAt = lastIso;
@@ -843,6 +915,7 @@
 
     return posodobiCasKoraka(plan, naslednji.index, novSend.toISOString(), {
       shiftFollowing: shiftFollowing,
+      gapDays: dnevi,
     });
   }
 

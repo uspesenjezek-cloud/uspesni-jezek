@@ -56,6 +56,12 @@
   var IKONA_SLIKA =
     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
 
+  var IKONA_SMS =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>';
+
+  var IKONA_EMAIL =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 7L2 7"/></svg>';
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -149,6 +155,51 @@
     return d.toISOString();
   }
 
+  /* Nekateri stari osnutki nimajo shranjenega mimeType (attachmentMeta) za
+     priloge, zato slike zaznamo tudi po končnici datoteke kot varovalko. */
+  function jeSlikaPriloga(p) {
+    var ime = (p && p.originalFileName) || "";
+    var mime = (p && p.mimeType) || "";
+    if (mime.indexOf("pdf") >= 0) return false;
+    if (mime.indexOf("image/") === 0) return true;
+    return /\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(ime);
+  }
+
+  var KLJUC_CAS_BLIZNJICE = "uj-cas-bliznjice";
+
+  function preberiCasBliznjice() {
+    try {
+      var raw = window.localStorage.getItem(KLJUC_CAS_BLIZNJICE);
+      var seznam = raw ? JSON.parse(raw) : [];
+      return Array.isArray(seznam) ? seznam : [];
+    } catch (_e) {
+      return [];
+    }
+  }
+
+  function shraniCasBliznjice(seznam) {
+    try {
+      window.localStorage.setItem(
+        KLJUC_CAS_BLIZNJICE,
+        JSON.stringify(seznam || [])
+      );
+    } catch (_e) {
+      /* prezri (npr. zaseben način brskanja) */
+    }
+  }
+
+  var CASOVNE_ENOTE_V_DNEH = { dan: 1, teden: 7, mesec: 30 };
+
+  function pretvoriDneveVEnoto(dnevi, enota) {
+    var faktor = CASOVNE_ENOTE_V_DNEH[enota] || 1;
+    return Math.round((Number(dnevi) || 0) / faktor);
+  }
+
+  function pretvoriEnotoVDneve(vrednostVEnoti, enota) {
+    var faktor = CASOVNE_ENOTE_V_DNEH[enota] || 1;
+    return Math.max(0, Math.round((Number(vrednostVEnoti) || 0) * faktor));
+  }
+
   function dneviOdDanes(iso) {
     var d = iso ? new Date(iso) : new Date();
     if (Number.isNaN(d.getTime())) d = new Date();
@@ -173,6 +224,16 @@
     baza.setHours(ura, min, 0, 0);
     baza.setDate(baza.getDate() + Math.max(0, Number(dnevi) || 0));
     return baza.toISOString();
+  }
+
+  function isoIzPredizboraBliznjice(b) {
+    var d = new Date();
+    var ure = String((b && b.ura) || "12:00")
+      .split(":")
+      .map(Number);
+    d.setHours(ure[0] || 0, ure[1] || 0, 0, 0);
+    d.setDate(d.getDate() + Math.max(0, Number(b && b.dnevi) || 0));
+    return d.toISOString();
   }
 
   function isoZaDatetimeLocal(iso) {
@@ -227,15 +288,35 @@
     );
   }
 
+  function formatDatumKratekDDMM(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return (
+      String(d.getDate()).padStart(2, "0") +
+      "." +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "."
+    );
+  }
+
   function oznakaCarouselCas(step, plan) {
     if (step.deliveryMode === "manual" || step.kind === "manual_lawyer") {
       return IKONA_KLJUCAVNICA + " Ročno";
     }
     var off = offsetOdZacetka(plan, step);
-    if (off === 0) {
-      return "Danes · " + formatCasKratko(step.sendAt || step.scheduledAt);
-    }
-    return "+" + off + " dni";
+    var iso = step.sendAt || step.scheduledAt;
+    var vrh = off === 0 ? "Danes" : "+" + off + " dni";
+    var dno = off === 0 ? formatCasKratko(iso) : formatDatumKratekDDMM(iso);
+    return (
+      '<span class="opomin-nacrt__stage-cas-vrh">' +
+      esc(vrh) +
+      "</span>" +
+      '<span class="opomin-nacrt__stage-cas-crta" aria-hidden="true"></span>' +
+      '<span class="opomin-nacrt__stage-cas-dno">' +
+      esc(dno) +
+      "</span>"
+    );
   }
 
   function besediloPosiljanja(step) {
@@ -327,15 +408,29 @@
     if (typeof N.uskladiOffseteIzDatumov === "function") {
       plan = N.uskladiOffseteIzDatumov(plan);
     }
-    var aktivenIndex = 1;
+    var shranjeniAktivniKorak = (plan.steps || []).find(function (korak) {
+      return korak.id === plan.selectedStageId;
+    });
+    var aktivenIndex = shranjeniAktivniKorak
+      ? shranjeniAktivniKorak.index
+      : N.prviNepotrjenSmsIndex(plan) || 1;
     var debounceTimer = null;
     var urejevanIndex = null;
     var pokaziZakaj = false;
+    /* Kateri od gumbov "Zdaj"/"Predizbor" je trenutno aktiven (obarvan zeleno). */
+    var izbranCasNacin = "zdaj";
     var casSheetShiftFollowing = true;
     var casSheetIndex = null;
     /* "trenutni" = čas tega koraka; "naslednji" = razmik do naslednjega */
     var casSheetNacin = "trenutni";
     var casSheetBaseIndex = null;
+    /* Enota prikaza v sheetu "Spremeni čas koraka" (dan/teden/mesec) – dejanska
+       shranjena vrednost (#opomin-cas-sheet-dnevi ob klicu sync funkcij) je vedno
+       v dneh, pretvorba je samo na meji prikaza/vnosa. */
+    var casSheetEnota = "dan";
+    /* Ali je uporabnik v tej odprtvi sheeta ročno spremenil polje "Ura" –
+       če ne, ob izbiri "danes" (0 dni) privzeto nastavimo trenutno uro. */
+    var uraRocnoNastavljena = false;
 
     var PV = root.UJPrilogeVsebina;
     var prilogeKoraka =
@@ -410,6 +505,11 @@
     function syncStageDodatki() {
       var step = N.najdiKorak(plan, aktivenIndex);
       if (!step) return;
+      var predDodatki = JSON.stringify({
+        paymentDeadline: step.paymentDeadline,
+        installment: step.installment,
+        bankTransfer: step.bankTransfer,
+      });
       step.paymentDeadline = {
         enabled: Boolean(paymentDeadline && paymentDeadline.enabled),
         days:
@@ -441,7 +541,15 @@
             : null,
         ibanLastFour: ibanLast,
       };
-      if (step.status === "confirmed") {
+      var poDodatki = JSON.stringify({
+        paymentDeadline: step.paymentDeadline,
+        installment: step.installment,
+        bankTransfer: step.bankTransfer,
+      });
+      /* Status "potrjeno" odstranimo SAMO, če so se dodatki dejansko
+         spremenili - ne le zato, ker smo kartico odprli za ogled
+         (npr. preklop med koraki v karuselu kliče isto funkcijo). */
+      if (step.status === "confirmed" && predDodatki !== poDodatki) {
         step.status = "needs_review";
         step.confirmedAt = null;
         step.snapshotHash = null;
@@ -467,6 +575,9 @@
           obrocno: dodatekBesedila.obrocno || "",
           trr: dodatekBesedila.trr || "",
         };
+        if (opts.podatkiKorak2 && opts.podatkiKorak2.sporociloKanali) {
+          k2.sporociloKanali = opts.podatkiKorak2.sporociloKanali;
+        }
         sessionStorage.setItem("neplacilo-korak2-podatki", JSON.stringify(k2));
         opts.podatkiKorak2 = k2;
       } catch (_e) {
@@ -721,6 +832,7 @@
       opts.potrditevEl.hidden = true;
       urejevanIndex = null;
       izrisiGlavni();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function pokaziPotrditev(index) {
@@ -730,6 +842,7 @@
       opts.glavniEl.hidden = true;
       opts.potrditevEl.hidden = false;
       izrisiPotrditev(step);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function razredPika(step) {
@@ -769,16 +882,51 @@
         '<div class="opomin-cas-sheet__telo">' +
         '<p class="opomin-cas-sheet__namig">Zgoraj dnevi in ura · spodaj točen datum</p>' +
         '<label class="opomin-cas-sheet__oznaka" id="opomin-cas-sheet-dnevi-label" for="opomin-cas-sheet-dnevi">Dnevi</label>' +
-        '<div class="opomin-nacrt__dnevi-krmilnik">' +
-        '<button type="button" class="opomin-nacrt__dnevi-btn" id="opomin-cas-sheet-dnevi-minus" aria-label="Manj dni">−</button>' +
-        '<input type="number" id="opomin-cas-sheet-dnevi" class="opomin-nacrt__dnevi-input" min="0" max="365" step="1" value="0" aria-label="Število dni" />' +
-        '<button type="button" class="opomin-nacrt__dnevi-btn" id="opomin-cas-sheet-dnevi-plus" aria-label="Več dni">+</button>' +
-        '<span class="opomin-nacrt__dnevi-enota">dni</span>' +
+        '<div class="opomin-cas-sheet__casovna-vrstica">' +
+        '<div class="opomin-cas-sheet__enota" role="group" aria-label="Enota časa" id="opomin-cas-sheet-enota">' +
+        '<button type="button" class="opomin-cas-sheet__enota-gumb opomin-cas-sheet__enota-gumb--aktiven" data-enota="dan" id="opomin-cas-sheet-enota-dan">Dnevi</button>' +
+        '<button type="button" class="opomin-cas-sheet__enota-gumb" data-enota="teden" id="opomin-cas-sheet-enota-teden">Tedni</button>' +
+        '<button type="button" class="opomin-cas-sheet__enota-gumb" data-enota="mesec" id="opomin-cas-sheet-enota-mesec">Meseci</button>' +
         "</div>" +
-        '<label class="opomin-cas-sheet__oznaka" for="opomin-cas-sheet-ura">Ura</label>' +
-        '<input type="time" id="opomin-cas-sheet-ura" class="opomin-cas-sheet__input" />' +
+        '<div class="opomin-nacrt__dnevi-krmilnik">' +
+        '<button type="button" class="opomin-nacrt__dnevi-btn" id="opomin-cas-sheet-dnevi-minus" aria-label="Manj">−</button>' +
+        '<input type="number" id="opomin-cas-sheet-dnevi" class="opomin-nacrt__dnevi-input" min="0" step="1" value="0" aria-label="Vrednost v izbrani enoti" />' +
+        '<button type="button" class="opomin-nacrt__dnevi-btn" id="opomin-cas-sheet-dnevi-plus" aria-label="Več">+</button>' +
+        "</div>" +
+        "</div>" +
+        '<div class="opomin-cas-sheet__cas-okvir">' +
+        '<div class="opomin-cas-sheet__vrstica-2">' +
+        '<div class="opomin-cas-sheet__polje">' +
         '<label class="opomin-cas-sheet__oznaka" for="opomin-cas-sheet-datum">Datum</label>' +
+        '<div class="opomin-cas-sheet__datum-vrstica">' +
         '<input type="date" id="opomin-cas-sheet-datum" class="opomin-cas-sheet__input" />' +
+        '<span class="opomin-cas-sheet__dan-crta" aria-hidden="true"></span>' +
+        '<span class="opomin-cas-sheet__dan-tekst" id="opomin-cas-sheet-dan-tedna"></span>' +
+        "</div>" +
+        "</div>" +
+        '<div class="opomin-cas-sheet__polje">' +
+        '<label class="opomin-cas-sheet__oznaka" for="opomin-cas-sheet-ura">Ura</label>' +
+        '<div class="opomin-cas-sheet__datum-vrstica">' +
+        '<input type="time" id="opomin-cas-sheet-ura" class="opomin-cas-sheet__input" />' +
+        '<span class="opomin-cas-sheet__dan-crta" aria-hidden="true"></span>' +
+        '<span class="opomin-cas-sheet__dan-tekst" id="opomin-cas-sheet-ura-obdobje"></span>' +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+        "</div>" +
+        '<div class="opomin-cas-sheet__bliznjice">' +
+        '<p class="opomin-cas-sheet__bliznjice-namig">Predlogi za hitro izbiro</p>' +
+        '<div class="opomin-cas-sheet__bliznjice-vrstica">' +
+        '<button type="button" class="opomin-cas-sheet__bliznjica-dodaj" id="opomin-cas-sheet-bliznjica-plus" aria-label="Dodaj bližnjico">+</button>' +
+        '<div class="opomin-cas-sheet__bliznjice-scroll" id="opomin-cas-sheet-bliznjice-vrstica"></div>' +
+        "</div>" +
+        '<div class="opomin-cas-sheet__bliznjica-forma" id="opomin-cas-sheet-bliznjica-forma" hidden>' +
+        '<span class="opomin-cas-sheet__bliznjica-enota-prikaz" id="opomin-cas-sheet-bliznjica-enota-prikaz" aria-live="polite"></span>' +
+        '<span class="opomin-cas-sheet__bliznjica-ob">ob</span>' +
+        '<input type="time" id="opomin-cas-sheet-bliznjica-ura" class="opomin-cas-sheet__bliznjica-input" aria-label="Ura bližnjice" />' +
+        '<button type="button" class="opomin-cas-sheet__bliznjica-shrani" id="opomin-cas-sheet-bliznjica-shrani">Shrani</button>' +
+        "</div>" +
+        "</div>" +
         '<div class="opomin-cas-sheet__stikalo-ovoj" id="opomin-cas-sheet-stikalo-ovoj">' +
         '<button type="button" class="opomin-nacrt__switch opomin-nacrt__switch--on" id="opomin-cas-sheet-shift" role="switch" aria-checked="true" aria-label="Prestavi tudi naslednje korake">' +
         '<span class="opomin-nacrt__switch-gumb" aria-hidden="true"></span></button>' +
@@ -872,7 +1020,8 @@
               plan,
               casSheetIndex,
               iso,
-              casSheetShiftFollowing
+              casSheetShiftFollowing,
+              { gapDays: izbraniGapDni() }
             )
           : { ok: true, napaka: null, preview: {} };
         if (napakaEl) {
@@ -947,51 +1096,417 @@
       var dneviMinus = el.querySelector("#opomin-cas-sheet-dnevi-minus");
       var dneviPlus = el.querySelector("#opomin-cas-sheet-dnevi-plus");
       var dneviInput = el.querySelector("#opomin-cas-sheet-dnevi");
+      var enotaGumbi = el.querySelectorAll(".opomin-cas-sheet__enota-gumb");
+      var uraEl = el.querySelector("#opomin-cas-sheet-ura");
+
+      /* Razmik v PRAVIH dnevih (pretvorba iz izbrane enote) - uporabi se kot
+         enotni interval za vse naslednje korake, ko je stikalo
+         "Prestavi tudi naslednje korake" vklopljeno. */
+      function trenutniGapDni() {
+        if (!dneviInput) return null;
+        var v = Math.max(0, Math.round(Number(dneviInput.value) || 0));
+        return Math.max(0, Math.round(pretvoriEnotoVDneve(v, casSheetEnota)));
+      }
+
+      function izbraniGapDni() {
+        var g = trenutniGapDni();
+        return g != null && g > 0 ? g : null;
+      }
+
+      function trenutnaUraHHMM() {
+        var d = new Date();
+        var h = String(d.getHours()).padStart(2, "0");
+        var m = String(d.getMinutes()).padStart(2, "0");
+        return h + ":" + m;
+      }
+
+      /* Če je izbran "danes" (0 dni) in uporabnik ure še ni ročno nastavil,
+         privzeto uro postavimo na trenutno uro (namesto fiksne 12.00). Če
+         uporabnik uro ročno spremeni, spoštujemo njegovo izbiro naprej. */
+      function posodobiUraCeDanes(trueDays) {
+        if (uraRocnoNastavljena || !uraEl) return;
+        if (trueDays === 0) uraEl.value = trenutnaUraHHMM();
+      }
+
+      /* vEnoti je vrednost v TRENUTNI izbrani enoti (dan/teden/mesec).
+         #opomin-cas-sheet-dnevi mora ob klicu syncDatumIzDni/syncDneviIzDatuma
+         vedno vsebovati pravo število DNI (ta dva ostajata nespremenjena),
+         zato tu pretvorimo v dneve, pokličemo sync, nato prikaz nazaj
+         pretvorimo v izbrano enoto. */
+      function primeniEnotoVrednost(vEnoti) {
+        if (!dneviInput) return;
+        var trueDays = Math.min(
+          365,
+          pretvoriEnotoVDneve(vEnoti, casSheetEnota)
+        );
+        posodobiUraCeDanes(trueDays);
+        dneviInput.value = String(trueDays);
+        syncDatumIzDni();
+        dneviInput.value = String(
+          pretvoriDneveVEnoto(Number(dneviInput.value) || 0, casSheetEnota)
+        );
+        osveziPredogled();
+        posodobiBliznjicaPrikaz();
+        posodobiPovzetekIzbire();
+      }
+
+      function posodobiAktivnoEnoto() {
+        enotaGumbi.forEach(function (g) {
+          g.classList.toggle(
+            "opomin-cas-sheet__enota-gumb--aktiven",
+            g.getAttribute("data-enota") === casSheetEnota
+          );
+        });
+      }
+
+      function izberiEnoto(novaEnota) {
+        if (!dneviInput || novaEnota === casSheetEnota) return;
+        var trenutniDnevi = pretvoriEnotoVDneve(
+          Number(dneviInput.value) || 0,
+          casSheetEnota
+        );
+        casSheetEnota = novaEnota;
+        posodobiUraCeDanes(trenutniDnevi);
+        dneviInput.value = String(Math.min(365, trenutniDnevi));
+        syncDatumIzDni();
+        dneviInput.value = String(
+          pretvoriDneveVEnoto(Number(dneviInput.value) || 0, casSheetEnota)
+        );
+        posodobiAktivnoEnoto();
+        osveziPredogled();
+        posodobiBliznjicaPrikaz();
+        posodobiPovzetekIzbire();
+      }
+
+      enotaGumbi.forEach(function (g) {
+        g.addEventListener("click", function () {
+          prekiniAktivnoBliznjico();
+          izberiEnoto(g.getAttribute("data-enota"));
+        });
+      });
+
+      var bliznjiceVrstica = el.querySelector(
+        "#opomin-cas-sheet-bliznjice-vrstica"
+      );
+      var bliznjicaPlus = el.querySelector("#opomin-cas-sheet-bliznjica-plus");
+      var bliznjicaForma = el.querySelector("#opomin-cas-sheet-bliznjica-forma");
+      var bliznjicaUra = el.querySelector("#opomin-cas-sheet-bliznjica-ura");
+      var bliznjicaEnotaPrikaz = el.querySelector(
+        "#opomin-cas-sheet-bliznjica-enota-prikaz"
+      );
+      var bliznjicaShrani = el.querySelector(
+        "#opomin-cas-sheet-bliznjica-shrani"
+      );
+      var povzetekIzbireEl = el.querySelector(
+        "#opomin-cas-sheet-povzetek-izbire"
+      );
+
+      function oznakaEnoteStevila(n, enota) {
+        n = Math.max(0, Math.round(Number(n) || 0));
+        if (enota === "teden") {
+          if (n === 1) return n + " teden";
+          if (n === 2) return n + " tedna";
+          if (n === 3 || n === 4) return n + " tedne";
+          return n + " tednov";
+        }
+        if (enota === "mesec") {
+          if (n === 1) return n + " mesec";
+          if (n === 2) return n + " meseca";
+          if (n === 3 || n === 4) return n + " mesece";
+          return n + " mesecev";
+        }
+        if (n === 1) return n + " dan";
+        return n + " dni";
+      }
+
+      function posodobiBliznjicaPrikaz() {
+        if (!bliznjicaEnotaPrikaz || !dneviInput) return;
+        bliznjicaEnotaPrikaz.textContent = oznakaEnoteStevila(
+          dneviInput.value,
+          casSheetEnota
+        );
+      }
+
+      var DNEVI_V_TEDNU = [
+        "Nedelja",
+        "Ponedeljek",
+        "Torek",
+        "Sreda",
+        "Četrtek",
+        "Petek",
+        "Sobota",
+      ];
+
+      function posodobiPovzetekIzbire() {
+        if (!dneviInput || !uraEl) return;
+        var vEnoti = Number(dneviInput.value) || 0;
+        var ura = uraEl.value || "12:00";
+        var besedilo =
+          vEnoti === 0 && casSheetEnota === "dan"
+            ? "Danes ob " + ura
+            : "Čez " + oznakaEnoteStevila(vEnoti, casSheetEnota) + " ob " + ura;
+        if (povzetekIzbireEl) povzetekIzbireEl.textContent = besedilo;
+
+        var danTednaEl = el.querySelector("#opomin-cas-sheet-dan-tedna");
+        var datumElZa = el.querySelector("#opomin-cas-sheet-datum");
+        if (danTednaEl && datumElZa && datumElZa.value) {
+          var d = new Date(datumElZa.value + "T12:00:00");
+          danTednaEl.textContent = Number.isNaN(d.getTime())
+            ? ""
+            : DNEVI_V_TEDNU[d.getDay()];
+        }
+
+        var uraObdobjeEl = el.querySelector("#opomin-cas-sheet-ura-obdobje");
+        if (uraObdobjeEl) {
+          uraObdobjeEl.textContent = ura;
+        }
+      }
+
+      var aktivnaBliznjica = null;
+      var stanjePredBliznjico = null;
+
+      function istaBliznjica(a, b) {
+        return Boolean(
+          a &&
+            b &&
+            a.ura === b.ura &&
+            Number(a.dnevi) === Number(b.dnevi)
+        );
+      }
+
+      function posnetekPredBliznjico() {
+        var datum = el.querySelector("#opomin-cas-sheet-datum");
+        return {
+          enota: casSheetEnota,
+          vrednost: dneviInput ? dneviInput.value : "0",
+          datum: datum ? datum.value : "",
+          ura: uraEl ? uraEl.value : "",
+          uraRocno: uraRocnoNastavljena,
+        };
+      }
+
+      function obnoviStanjePredBliznjico() {
+        if (!stanjePredBliznjico) return;
+        var datum = el.querySelector("#opomin-cas-sheet-datum");
+        casSheetEnota = stanjePredBliznjico.enota || "dan";
+        if (dneviInput) dneviInput.value = stanjePredBliznjico.vrednost;
+        if (datum) datum.value = stanjePredBliznjico.datum;
+        if (uraEl) uraEl.value = stanjePredBliznjico.ura;
+        uraRocnoNastavljena = Boolean(stanjePredBliznjico.uraRocno);
+        posodobiAktivnoEnoto();
+        osveziPredogled();
+        posodobiBliznjicaPrikaz();
+        posodobiPovzetekIzbire();
+      }
+
+      function prekiniAktivnoBliznjico() {
+        if (!aktivnaBliznjica) return;
+        aktivnaBliznjica = null;
+        stanjePredBliznjico = null;
+        izrisiBliznjice();
+      }
+
+      function uporabiBliznjico(b) {
+        if (!dneviInput || !uraEl || !b) return;
+        if (istaBliznjica(aktivnaBliznjica, b)) {
+          obnoviStanjePredBliznjico();
+          aktivnaBliznjica = null;
+          stanjePredBliznjico = null;
+          izrisiBliznjice();
+          return;
+        }
+        if (!aktivnaBliznjica) stanjePredBliznjico = posnetekPredBliznjico();
+        casSheetEnota = "dan";
+        posodobiAktivnoEnoto();
+        uraEl.value = b.ura || "12:00";
+        uraRocnoNastavljena = true;
+        dneviInput.value = String(Math.max(0, Number(b.dnevi) || 0));
+        syncDatumIzDni();
+        osveziPredogled();
+        aktivnaBliznjica = b;
+        izrisiBliznjice();
+      }
+
+      function izrisiBliznjice() {
+        if (!bliznjiceVrstica) return;
+        var seznam = preberiCasBliznjice();
+        bliznjiceVrstica.innerHTML = "";
+        seznam.forEach(function (b, i) {
+          var chip = document.createElement("button");
+          chip.type = "button";
+          chip.className =
+            "opomin-cas-sheet__bliznjica" +
+            (aktivnaBliznjica &&
+            aktivnaBliznjica.ura === b.ura &&
+            Number(aktivnaBliznjica.dnevi) === Number(b.dnevi)
+              ? " opomin-cas-sheet__bliznjica--aktivna"
+              : "");
+          chip.setAttribute(
+            "aria-pressed",
+            istaBliznjica(aktivnaBliznjica, b) ? "true" : "false"
+          );
+          chip.textContent =
+            (b.ura || "") +
+            " · " +
+            (Number(b.dnevi) === 0
+              ? "danes"
+              : "čez " + b.dnevi + (Number(b.dnevi) === 1 ? " dan" : " dni"));
+          chip.setAttribute(
+            "aria-label",
+            "Uporabi bližnjico " + chip.textContent
+          );
+          chip.addEventListener("click", function () {
+            if (bliznjiceVrstica && bliznjiceVrstica._ujJeDrsela) {
+              bliznjiceVrstica._ujJeDrsela = false;
+              return;
+            }
+            uporabiBliznjico(b);
+          });
+          var odstrani = document.createElement("span");
+          odstrani.className = "opomin-cas-sheet__bliznjica-x";
+          odstrani.setAttribute("aria-hidden", "true");
+          odstrani.textContent = "×";
+          odstrani.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            var trenutni = preberiCasBliznjice();
+            trenutni.splice(i, 1);
+            shraniCasBliznjice(trenutni);
+            izrisiBliznjice();
+          });
+          chip.appendChild(odstrani);
+          bliznjiceVrstica.appendChild(chip);
+        });
+      }
+
+      if (bliznjiceVrstica) {
+        var bliznjiceScrollZacetek = 0;
+        bliznjiceVrstica.addEventListener("pointerdown", function () {
+          bliznjiceScrollZacetek = bliznjiceVrstica.scrollLeft;
+          bliznjiceVrstica._ujJeDrsela = false;
+        });
+        bliznjiceVrstica.addEventListener("scroll", function () {
+          if (
+            Math.abs(bliznjiceVrstica.scrollLeft - bliznjiceScrollZacetek) > 6
+          ) {
+            bliznjiceVrstica._ujJeDrsela = true;
+          }
+        });
+      }
+
+      el._ujPonastaviBliznjico = function () {
+        aktivnaBliznjica = null;
+        stanjePredBliznjico = null;
+        izrisiBliznjice();
+      };
+
+      if (bliznjicaPlus && bliznjicaForma) {
+        bliznjicaPlus.addEventListener("click", function () {
+          var odprto = !bliznjicaForma.hidden;
+          bliznjicaForma.hidden = odprto;
+          if (!odprto) {
+            if (bliznjicaUra) {
+              bliznjicaUra.value = (uraEl && uraEl.value) || "12:00";
+            }
+            posodobiBliznjicaPrikaz();
+        posodobiPovzetekIzbire();
+          }
+        });
+      }
+
+      if (bliznjicaShrani) {
+        bliznjicaShrani.addEventListener("click", function () {
+          var ura = (bliznjicaUra && bliznjicaUra.value) || "";
+          if (!ura) {
+            if (bliznjicaUra) bliznjicaUra.focus();
+            return;
+          }
+          var dnevi = pretvoriEnotoVDneve(
+            Number((dneviInput && dneviInput.value) || 0),
+            casSheetEnota
+          );
+          var seznam = preberiCasBliznjice();
+          seznam.push({ ura: ura, dnevi: dnevi });
+          shraniCasBliznjice(seznam);
+          if (bliznjicaForma) bliznjicaForma.hidden = true;
+          izrisiBliznjice();
+        });
+      }
+
+      izrisiBliznjice();
+      posodobiBliznjicaPrikaz();
+      posodobiPovzetekIzbire();
+
       if (dneviMinus) {
         dneviMinus.addEventListener("click", function () {
           if (!dneviInput) return;
-          dneviInput.value = String(
+          prekiniAktivnoBliznjico();
+          primeniEnotoVrednost(
             Math.max(0, (Number(dneviInput.value) || 0) - 1)
           );
-          syncDatumIzDni();
-          osveziPredogled();
         });
       }
       if (dneviPlus) {
         dneviPlus.addEventListener("click", function () {
           if (!dneviInput) return;
-          dneviInput.value = String(
-            Math.min(365, (Number(dneviInput.value) || 0) + 1)
-          );
-          syncDatumIzDni();
-          osveziPredogled();
+          prekiniAktivnoBliznjico();
+          primeniEnotoVrednost((Number(dneviInput.value) || 0) + 1);
         });
       }
       if (dneviInput) {
         dneviInput.addEventListener("input", function () {
-          syncDatumIzDni();
-          osveziPredogled();
+          prekiniAktivnoBliznjico();
+          /* Pri enoti "dan" je prikazana vrednost enaka pravim dnem, zato lahko
+             sproti (med tipkanjem) osvežimo datum/predogled brez prepisa polja.
+             Pri tednih/mesecih pretvorbo naredimo šele ob "change" (blur/enter),
+             da med tipkanjem ne skačemo kurzorja s prepisom vrednosti. */
+          if (casSheetEnota === "dan") {
+            posodobiUraCeDanes(Math.max(0, Number(dneviInput.value) || 0));
+            syncDatumIzDni();
+            osveziPredogled();
+            posodobiBliznjicaPrikaz();
+        posodobiPovzetekIzbire();
+          }
         });
         dneviInput.addEventListener("change", function () {
-          syncDatumIzDni();
-          osveziPredogled();
+          primeniEnotoVrednost(Number(dneviInput.value) || 0);
         });
       }
 
-      var uraEl = el.querySelector("#opomin-cas-sheet-ura");
       if (uraEl) {
-        uraEl.addEventListener("input", osveziPredogled);
-        uraEl.addEventListener("change", osveziPredogled);
+        uraEl.addEventListener("input", function () {
+          prekiniAktivnoBliznjico();
+          uraRocnoNastavljena = true;
+          osveziPredogled();
+          posodobiPovzetekIzbire();
+        });
+        uraEl.addEventListener("change", function () {
+          uraRocnoNastavljena = true;
+          osveziPredogled();
+          posodobiPovzetekIzbire();
+        });
       }
       var datumEl = el.querySelector("#opomin-cas-sheet-datum");
       if (datumEl) {
         datumEl.addEventListener("input", function () {
+          prekiniAktivnoBliznjico();
           syncDneviIzDatuma();
+          if (dneviInput) {
+            dneviInput.value = String(
+              pretvoriDneveVEnoto(Number(dneviInput.value) || 0, casSheetEnota)
+            );
+          }
           osveziPredogled();
+          posodobiPovzetekIzbire();
         });
         datumEl.addEventListener("change", function () {
           syncDneviIzDatuma();
+          if (dneviInput) {
+            dneviInput.value = String(
+              pretvoriDneveVEnoto(Number(dneviInput.value) || 0, casSheetEnota)
+            );
+          }
           osveziPredogled();
+          posodobiPovzetekIzbire();
         });
       }
 
@@ -1024,6 +1539,7 @@
       el._ujOsveziPredogled = osveziPredogled;
       el._ujZapri = zapri;
       el._ujSyncDneviIzDatuma = syncDneviIzDatuma;
+      el._ujPosodobiPovzetekIzbire = posodobiPovzetekIzbire;
       return el;
     }
 
@@ -1044,6 +1560,16 @@
       casSheetBaseIndex = baseIndex;
       casSheetIndex = targetIndex;
       casSheetShiftFollowing = true;
+      casSheetEnota = "dan";
+      uraRocnoNastavljena = false;
+      sheet
+        .querySelectorAll(".opomin-cas-sheet__enota-gumb")
+        .forEach(function (g) {
+          g.classList.toggle(
+            "opomin-cas-sheet__enota-gumb--aktiven",
+            g.getAttribute("data-enota") === "dan"
+          );
+        });
 
       var imaNaslednje = Boolean(N.najdiKorak(plan, targetIndex + 1));
       var stikaloOvoj = document.getElementById("opomin-cas-sheet-stikalo-ovoj");
@@ -1090,11 +1616,28 @@
           dneviEl.value = String(dneviOdDanes(iso));
         }
       }
+      /* Ob odprtju: če je izbran "danes" (0) in je ura še nedotaknjena privzeta
+         12.00, jo takoj zamenjamo za trenutno uro (glej posodobiUraCeDanes). */
+      if (
+        uraEl &&
+        dneviEl &&
+        dneviEl.value === "0" &&
+        uraEl.value === "12:00"
+      ) {
+        var dZdaj = new Date();
+        uraEl.value =
+          String(dZdaj.getHours()).padStart(2, "0") +
+          ":" +
+          String(dZdaj.getMinutes()).padStart(2, "0");
+      }
+
+      if (sheet._ujPonastaviBliznjico) sheet._ujPonastaviBliznjico();
 
       sheet.hidden = false;
       document.documentElement.classList.add("uj-modal-odprt");
       document.body.classList.add("uj-modal-odprt");
       if (sheet._ujOsveziPredogled) sheet._ujOsveziPredogled();
+      if (sheet._ujPosodobiPovzetekIzbire) sheet._ujPosodobiPovzetekIzbire();
       if (naslov) naslov.focus();
     }
 
@@ -1137,6 +1680,7 @@
 
     function htmlAddonVrstica(o) {
       o = o || {};
+      var vklopljeno = o.stanje === "Vklopljeno";
       return (
         '<button type="button" class="step-addon-row" data-vsebina="' +
         esc(o.akcija || "") +
@@ -1149,12 +1693,35 @@
         '<span class="step-addon-row__label">' +
         esc(o.naslov || "") +
         "</span>" +
-        '<span class="step-addon-row__status">' +
+        '<span class="step-addon-row__status' +
+        (vklopljeno ? " step-addon-row__status--vklopljeno" : "") +
+        '">' +
         esc(o.stanje || "") +
         "</span>" +
-        '<span class="step-addon-row__chevron" aria-hidden="true">›</span>' +
         "</button>"
       );
+    }
+
+    function stevecSklanjatev(n) {
+      if (n === 1) return "1 račun";
+      if (n === 2) return "2 računa";
+      if (n === 3 || n === 4) return n + " računi";
+      return n + " računov";
+    }
+
+    function statusnoBesediloPriloge(p, imaTel, imaEmail) {
+      var sms =
+        Boolean(p.deliveryChannels && p.deliveryChannels.sms) &&
+        imaTel &&
+        p.status === "ready";
+      var email =
+        Boolean(p.deliveryChannels && p.deliveryChannels.email) &&
+        imaEmail &&
+        p.status === "ready";
+      if (sms && email) return "Priloženo SMS-u in e-pošti";
+      if (sms) return "Priloženo SMS-u";
+      if (email) return "Priloženo e-pošti";
+      return "Dodano samo kot priloga";
     }
 
     function htmlKanalGumb(vrsta, vkljucen, onemogocen, imeDatoteke) {
@@ -1191,6 +1758,175 @@
         '">' +
         (vkljucen && !onemogocen ? "✓ " : "") +
         label +
+        "</button>"
+      );
+    }
+
+    function htmlZgornjaOrodnaVrstica(steviloPrilog) {
+      return (
+        '<div class="vk-priloge-orodna-vrstica" role="group" aria-label="Priloženi računi">' +
+        '<div class="vk-priloge-orodna-vrstica__povzetek">' +
+        '<span class="vk-priloge-orodna-vrstica__oznaka">Priloženi računi</span>' +
+        '<span class="vk-priloge-orodna-vrstica__stevec" aria-label="' +
+        esc(stevecSklanjatev(steviloPrilog)) +
+        '">' +
+        esc(stevecSklanjatev(steviloPrilog)) +
+        "</span>" +
+        "</div>" +
+        '<button type="button" class="vk-priloge-orodna-vrstica__gumb" id="vk-priloge-slikaj" aria-label="Slikaj račun">' +
+        IKONA_KAMERA +
+        ' <span class="vk-priloge-orodna-vrstica__gumb-tekst">Slikaj</span></button>' +
+        '<button type="button" class="vk-priloge-orodna-vrstica__gumb" id="vk-priloge-uvozi" aria-label="Uvozi račun">' +
+        IKONA_UVOZI +
+        ' <span class="vk-priloge-orodna-vrstica__gumb-tekst">Uvozi</span></button>' +
+        "</div>"
+      );
+    }
+
+    function htmlKarticaRacuna(p, imaTel, imaEmail) {
+      var PV = root.UJPrilogeVsebina;
+      var ime = p.originalFileName || "Račun";
+      var jePdf =
+        (p.mimeType && p.mimeType.indexOf("pdf") >= 0) ||
+        /\.pdf$/i.test(ime);
+      var jeSlika = jeSlikaPriloga(p) && !jePdf;
+      var kanali = p.deliveryChannels || {};
+      var nalaga =
+        p.status === "uploading" || p.status === "processing";
+      var napaka = p.status === "error";
+      var velikostTekst = "";
+      if (nalaga) {
+        velikostTekst =
+          p.progress != null && p.progress < 100
+            ? "Nalaganje " + Math.round(p.progress) + " %"
+            : "Obdelujem …";
+      } else if (napaka) {
+        velikostTekst = "Nalaganje ni uspelo.";
+      } else if (PV && PV.formatVelikost && p.sizeBytes != null) {
+        velikostTekst = PV.formatVelikost(p.sizeBytes);
+      }
+      var statusTekst = napaka
+        ? velikostTekst
+        : nalaga
+          ? velikostTekst
+          : statusnoBesediloPriloge(p, imaTel, imaEmail) +
+            (velikostTekst ? " · " + velikostTekst : "");
+      var smsOn = Boolean(kanali.sms) && imaTel && !nalaga && !napaka;
+      var emailOn = Boolean(kanali.email) && imaEmail && !nalaga && !napaka;
+      var ikonaPredogleda = jeSlika ? IKONA_SLIKA : IKONA_DOKUMENT;
+      return (
+        '<div class="vk-racun-kartica" data-priloga-id="' +
+        esc(p.id) +
+        '" role="listitem">' +
+        '<div class="vk-racun-kartica__datoteka">' +
+        '<span class="vk-racun-kartica__predogled" data-priloga-predogled="' +
+        esc(p.id) +
+        '" aria-hidden="true">' +
+        ikonaPredogleda +
+        "</span>" +
+        '<div class="vk-racun-kartica__meta">' +
+        '<p class="vk-racun-kartica__ime" title="' +
+        esc(ime) +
+        '">' +
+        esc(ime) +
+        "</p>" +
+        '<p class="vk-racun-kartica__status' +
+        (napaka ? " vk-racun-kartica__status--napaka" : "") +
+        '">' +
+        esc(statusTekst) +
+        (napaka
+          ? ' <button type="button" class="vk-priloga-ponovi" data-priloga-ponovi="' +
+            esc(p.id) +
+            '">Poskusi znova</button>'
+          : "") +
+        "</p>" +
+        (!imaTel && !imaEmail && p.status === "ready"
+          ? '<p class="vk-racun-kartica__status vk-racun-kartica__status--napaka">Dodajte telefon ali e-pošto dolžnika.</p>'
+          : "") +
+        "</div>" +
+        '<button type="button" class="vk-racun-kartica__odstrani" data-priloga-odstrani="' +
+        esc(p.id) +
+        '" aria-label="Odstrani račun ' +
+        esc(ime) +
+        '">×</button>' +
+        "</div>" +
+        '<div class="vk-racun-kartica__locilo" aria-hidden="true"></div>' +
+        '<div class="vk-racun-kartica__kanali">' +
+        '<span class="vk-racun-kartica__kanali-oznaka">Priloži v:</span>' +
+        '<div class="vk-racun-kanali-gumbi">' +
+        htmlKanalGumbV2("sms", smsOn, !imaTel || nalaga || napaka, ime) +
+        htmlKanalGumbV2("email", emailOn, !imaEmail || nalaga || napaka, ime) +
+        "</div>" +
+        "</div>" +
+        "</div>"
+      );
+    }
+
+    function htmlKanalGumbV2(vrsta, vkljucen, onemogocen, imeDatoteke) {
+      var jeSms = vrsta === "sms";
+      var label = jeSms ? "SMS" : "E-pošta";
+      var aria =
+        (jeSms ? "Pošlji račun " : "Pošlji račun ") +
+        imeDatoteke +
+        (jeSms ? " prek SMS-a" : " po e-pošti");
+      var ikona = vkljucen ? IKONA_KLJUKICA : jeSms ? IKONA_SMS : IKONA_EMAIL;
+      return (
+        '<button type="button" class="vk-kanal-gumb-v2" data-kanal="' +
+        vrsta +
+        '" aria-pressed="' +
+        (vkljucen ? "true" : "false") +
+        '"' +
+        (onemogocen
+          ? ' aria-disabled="true" title="' +
+            esc(
+              jeSms
+                ? "Dolžnik nima telefonske številke."
+                : "Dolžnik nima e-poštnega naslova."
+            ) +
+            '"'
+          : "") +
+        ' aria-label="' +
+        esc(aria) +
+        '">' +
+        '<span class="vk-kanal-gumb-v2__ikona" aria-hidden="true">' +
+        ikona +
+        '</span><span class="vk-kanal-gumb-v2__besedilo">' +
+        label +
+        "</span>" +
+        "</button>"
+      );
+    }
+
+    function htmlGlobalniKanalGumb(vrsta, vkljucen, onemogocen) {
+      var jeSms = vrsta === "sms";
+      var label = jeSms ? "SMS" : "E-pošta";
+      var ikona = vkljucen ? IKONA_KLJUKICA : jeSms ? IKONA_SMS : IKONA_EMAIL;
+      var aria = jeSms
+        ? "Pošlji ta korak prek SMS-a"
+        : "Pošlji ta korak po e-pošti";
+      return (
+        '<button type="button" class="vk-kanal-gumb-v2 vk-kanal-gumb-v2--kompakt" data-kanal-globalno="' +
+        vrsta +
+        '" aria-pressed="' +
+        (vkljucen ? "true" : "false") +
+        '"' +
+        (onemogocen
+          ? ' aria-disabled="true" title="' +
+            esc(
+              jeSms
+                ? "Dolžnik nima telefonske številke."
+                : "Dolžnik nima e-poštnega naslova."
+            ) +
+            '"'
+          : "") +
+        ' aria-label="' +
+        esc(aria) +
+        '">' +
+        '<span class="vk-kanal-gumb-v2__ikona" aria-hidden="true">' +
+        ikona +
+        '</span><span class="vk-kanal-gumb-v2__besedilo">' +
+        label +
+        "</span>" +
         "</button>"
       );
     }
@@ -1266,32 +2002,26 @@
       var predlogaOznaka = ctx.predlogaOznaka || "Ni izbrana";
       var predlogaPriporocena = Boolean(ctx.predlogaPriporocena);
       var smsBesedilo = ctx.smsBesedilo || "";
+      var smsUrejanje = ctx.smsUrejanje || "";
       var smsMeta = ctx.smsMeta || "";
       var imaSms = Boolean(String(smsBesedilo).trim());
       var priloge = ctx.priloge || [];
       var imaTel = Boolean(ctx.imaTelefon);
       var imaEmail = Boolean(ctx.imaEmail);
       var readyN = PV ? PV.stevecReady(priloge) : 0;
-      var nalagaN = PV ? PV.stevecNalaga(priloge) : 0;
-      var visina =
-        PV && PV.visinaSeznama
-          ? PV.visinaSeznama(priloge.length)
-          : priloge.length <= 1
-            ? 54
-            : 81;
-      var seznamRazred =
-        "vk-priloge-seznam" +
-        (priloge.length === 1 ? " vk-priloge-seznam--ena" : "");
-      var vrsticeHtml = priloge
-        .map(function (p) {
-          return htmlPrilogaVrstica(p, imaTel, imaEmail);
-        })
-        .join("");
       var accept = K.ACCEPT_ATTR || "image/*,application/pdf";
+      var sporociloKanali = ctx.sporociloKanali || {
+        sms: imaTel,
+        email: imaEmail,
+      };
 
       return (
         '<section class="step-content-card" aria-label="Vsebina koraka">' +
         '<h3 class="step-content-card__title">Vsebina koraka</h3>' +
+        '<div class="vk-globalni-kanali" role="group" aria-label="Kanali pošiljanja za ta korak">' +
+        htmlGlobalniKanalGumb("sms", Boolean(sporociloKanali.sms), !imaTel) +
+        htmlGlobalniKanalGumb("email", Boolean(sporociloKanali.email), !imaEmail) +
+        "</div>" +
         '<div class="debt-summary">' +
         '<span class="debt-summary__icon" aria-hidden="true">' +
         IKONA_DENARNICA +
@@ -1377,51 +2107,21 @@
         "</span>" +
         "</div>" +
         '<div class="sms-preview__okno">' +
-        '<div class="sms-preview__viewport" role="region" aria-label="Predogled SMS sporočila" tabindex="0">' +
-        (imaSms
-          ? esc(smsBesedilo)
-          : '<span class="sms-preview__prazno">Sporočilo še ni sestavljeno.</span>') +
+        '<textarea class="sms-preview__viewport" id="opomin-sms-urejanje" aria-label="Uredi SMS sporočilo" maxlength="1000" placeholder="Napišite SMS sporočilo">' +
+        esc(smsUrejanje) +
+        "</textarea>" +
         "</div>" +
+        '<p class="sms-preview__caption">Besedilo lahko popravite neposredno tukaj.</p>' +
         "</div>" +
-        '<p class="sms-preview__caption">Celotno sporočilo uredite pri pregledu koraka.</p>' +
-        "</div>" +
-        '<div class="vk-dodaj-racun" role="group" aria-label="Dodaj račun">' +
-        '<span class="vk-dodaj-racun__ikona" aria-hidden="true">' +
-        IKONA_SPONKA +
-        "</span>" +
-        '<span class="vk-dodaj-racun__naslov">Dodaj račun</span>' +
-        '<button type="button" class="vk-dodaj-racun__gumb" id="vk-priloge-slikaj" aria-label="Slikaj račun">' +
-        IKONA_KAMERA +
-        " Slikaj</button>" +
-        '<button type="button" class="vk-dodaj-racun__gumb" id="vk-priloge-uvozi" aria-label="Uvozi račun">' +
-        IKONA_UVOZI +
-        " Uvozi</button>" +
-        "</div>" +
-        '<div class="vk-priloge-glava"' +
+        htmlZgornjaOrodnaVrstica(readyN) +
+        '<div class="vk-priloge-kartice-seznam"' +
         (priloge.length ? "" : " hidden") +
         ">" +
-        '<p class="vk-priloge-glava__naslov">Priloženi računi</p>' +
-        '<span class="vk-priloge-glava__stevilo" aria-label="Število priloženih računov">' +
-        readyN +
-        "</span>" +
-        "</div>" +
-        (nalagaN
-          ? '<p class="vk-priloge-glava__meta">' +
-            readyN +
-            " priloženi · " +
-            nalagaN +
-            " se nalaga</p>"
-          : '<p class="vk-priloge-glava__meta" hidden></p>') +
-        '<div class="' +
-        seznamRazred +
-        '" id="vk-priloge-seznam" role="list" style="height:' +
-        visina +
-        'px;max-height:' +
-        visina +
-        'px"' +
-        (priloge.length ? "" : " hidden") +
-        ">" +
-        vrsticeHtml +
+        priloge
+          .map(function (p) {
+            return htmlKarticaRacuna(p, imaTel, imaEmail);
+          })
+          .join("") +
         "</div>" +
         '<p class="vk-priloge-napaka" id="vk-priloge-napaka" hidden></p>' +
         '<input type="file" id="vk-priloge-datoteka" accept="' +
@@ -1443,6 +2143,11 @@
       var ready = N.soVsiSmsPotrjeni(plan);
       var potrjeno = potrjeniCount();
       var k2 = opts.podatkiKorak2 || {};
+      var imaEmailGlobalno = Boolean(
+        opts.podatkiKorak1 && opts.podatkiKorak1.emailDolznika
+      );
+      var sporociloKanaliGlobalno =
+        k2.sporociloKanali || { sms: imaTelefon, email: imaEmailGlobalno };
       var jeManual =
         step.kind === "manual_lawyer" || step.deliveryMode === "manual";
 
@@ -1466,10 +2171,17 @@
         typeof N.jeKorakPremakljiv === "function"
           ? N.jeKorakPremakljiv(step)
           : !korakPoslan && !jeManual;
+      var spremeniCasGumbHtml =
+        !korakPoslan && !jeManual && korakPremakljiv
+          ? '<button type="button" class="opomin-nacrt__gumb-spremeni" id="opomin-spremeni-cas"><span aria-hidden="true">✎</span> Spremeni</button>'
+          : "";
 
       var casKarticaHtml =
         '<section class="opomin-nacrt__cas-kartica" aria-label="Čas in razmiki">' +
+        '<div class="opomin-nacrt__cas-glava">' +
         '<h3 class="opomin-nacrt__sekcija-naslov">Čas in razmiki</h3>' +
+        spremeniCasGumbHtml +
+        "</div>" +
         '<div class="opomin-nacrt__cas-vrstica">' +
         '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
         IKONA_KOLEDAR +
@@ -1484,7 +2196,21 @@
         (korakPoslan || jeManual
           ? ""
           : korakPremakljiv
-            ? '<button type="button" class="opomin-nacrt__gumb-spremeni" id="opomin-spremeni-cas">Spremeni</button>'
+            ? '<span class="opomin-nacrt__cas-gumbi">' +
+              '<button type="button" class="opomin-nacrt__gumb-zdaj' +
+              (izbranCasNacin === "zdaj"
+                ? " opomin-nacrt__gumb-zdaj--aktiven"
+                : "") +
+              '" id="opomin-zdaj-cas" aria-label="Nastavi na zdaj">Zdaj</button>' +
+              '<span class="opomin-nacrt__predizbor-ovoj">' +
+              '<button type="button" class="opomin-nacrt__gumb-predizbor' +
+              (izbranCasNacin === "predizbor"
+                ? " opomin-nacrt__gumb-predizbor--aktiven"
+                : "") +
+              '" id="opomin-predizbor-cas" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
+              '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
+              "</span>" +
+              "</span>"
             : "") +
         "</div>";
 
@@ -1625,6 +2351,7 @@
           obrocnoStanje: obrocAktiven ? "Vklopljeno" : "Izklopljeno",
           trrStanje: trrAktiven ? "Vklopljeno" : "Izklopljeno",
           smsBesedilo: smsBesedilo,
+          smsUrejanje: smsOsnova,
           smsMeta: smsMeta,
           priloge: prilogeKoraka,
           imaTelefon: Boolean(
@@ -1633,6 +2360,7 @@
           imaEmail: Boolean(
             opts.podatkiKorak1 && opts.podatkiKorak1.emailDolznika
           ),
+          sporociloKanali: sporociloKanaliGlobalno,
         });
       } else {
         vsebinaHtml =
@@ -1731,6 +2459,88 @@
     }
 
     function poveziGlavni(step, ready) {
+      var smsUrejanje = opts.glavniEl.querySelector("#opomin-sms-urejanje");
+      if (smsUrejanje) {
+        smsUrejanje.addEventListener("input", function () {
+          plan = N.posodobiSporociloKoraka(
+            plan,
+            step.index,
+            smsUrejanje.value
+          );
+
+          var celotnoSporocilo =
+            PV && PV.sestaviSmsZPrilogami
+              ? PV.sestaviSmsZPrilogami(
+                  smsUrejanje.value,
+                  prilogeKoraka,
+                  smsPaketZeton
+                )
+              : smsUrejanje.value;
+          var meta = opts.glavniEl.querySelector(".sms-preview__meta");
+          if (meta) meta.textContent = gsmLabel(Gsm, celotnoSporocilo);
+
+          var badge = opts.glavniEl.querySelector(".opomin-nacrt__status-badge");
+          if (badge) {
+            badge.className =
+              "opomin-nacrt__status-badge opomin-nacrt__status-badge--" +
+              step.status;
+            badge.textContent = statusZnacka(step.status, step.kind);
+          }
+          var ctaVZivo = opts.glavniEl.querySelector("#opomin-nacrt-cta");
+          if (ctaVZivo) {
+            ctaVZivo.textContent =
+              "Preveri in potrdi " + step.order + ". korak →";
+          }
+
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(function () {
+            N.shraniOsnutek(plan);
+          }, 350);
+        });
+        smsUrejanje.addEventListener("blur", function () {
+          clearTimeout(debounceTimer);
+          debounceTimer = null;
+          N.shraniOsnutek(plan);
+        });
+      }
+
+      opts.glavniEl
+        .querySelectorAll("[data-kanal-globalno]")
+        .forEach(function (gumb) {
+          gumb.addEventListener("click", function () {
+            var kanal = gumb.getAttribute("data-kanal-globalno");
+            if (gumb.getAttribute("aria-disabled") === "true") {
+              if (typeof opts.potrdiVprasanje === "function") {
+                opts.potrdiVprasanje({
+                  naslov:
+                    kanal === "sms"
+                      ? "Dolžnik nima telefonske številke."
+                      : "Dolžnik nima e-poštnega naslova.",
+                  potrdiBesedilo: "V redu",
+                  samoEnGumb: true,
+                  stil: "primary",
+                });
+              }
+              return;
+            }
+            var k2 = opts.podatkiKorak2 || {};
+            var imaTelefon = Boolean(
+              opts.podatkiKorak1 && opts.podatkiKorak1.telefonDolznika
+            );
+            var imaEmailGlobalno = Boolean(
+              opts.podatkiKorak1 && opts.podatkiKorak1.emailDolznika
+            );
+            var trenutni =
+              k2.sporociloKanali || { sms: imaTelefon, email: imaEmailGlobalno };
+            var novi = { sms: Boolean(trenutni.sms), email: Boolean(trenutni.email) };
+            novi[kanal] = !novi[kanal];
+            k2.sporociloKanali = novi;
+            opts.podatkiKorak2 = k2;
+            syncKorak2Sejo();
+            izrisiGlavni();
+          });
+        });
+
       opts.glavniEl.querySelectorAll("[data-stage]").forEach(function (btn) {
         btn.addEventListener("click", function () {
           aktivenIndex = Number(btn.getAttribute("data-stage"));
@@ -1752,6 +2562,112 @@
       if (spremeni) {
         spremeni.addEventListener("click", function () {
           odpriCasSheet(step.index, "trenutni");
+        });
+      }
+
+      var zdajCas = opts.glavniEl.querySelector("#opomin-zdaj-cas");
+      if (zdajCas) {
+        zdajCas.addEventListener("click", function () {
+          var iso = new Date().toISOString();
+          var v = N.validirajCasKoraka
+            ? N.validirajCasKoraka(plan, step.index, iso, true)
+            : { ok: true };
+          if (!v.ok) {
+            if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(
+                v.napaka || "Časa ni bilo mogoče nastaviti."
+              );
+            }
+            return;
+          }
+          plan = N.posodobiCasKoraka(plan, step.index, iso, {
+            shiftFollowing: true,
+          });
+          izbranCasNacin = "zdaj";
+          shrani();
+          izrisiGlavni();
+        });
+      }
+
+      var predizborGumb = opts.glavniEl.querySelector("#opomin-predizbor-cas");
+      var predizborMeni = opts.glavniEl.querySelector("#opomin-predizbor-meni");
+
+      function uporabiPredizborBliznjico(b) {
+        var iso = isoIzPredizboraBliznjice(b);
+        var v = N.validirajCasKoraka
+          ? N.validirajCasKoraka(plan, step.index, iso, true)
+          : { ok: true };
+        if (!v.ok) {
+          if (typeof opts.pokaziNapako === "function") {
+            opts.pokaziNapako(v.napaka || "Časa ni bilo mogoče nastaviti.");
+          }
+          return;
+        }
+        plan = N.posodobiCasKoraka(plan, step.index, iso, {
+          shiftFollowing: true,
+        });
+        izbranCasNacin = "predizbor";
+        shrani();
+        izrisiGlavni();
+      }
+
+      function zapriPredizborMeni() {
+        if (predizborMeni) predizborMeni.hidden = true;
+        if (predizborGumb) predizborGumb.setAttribute("aria-expanded", "false");
+      }
+
+      if (predizborGumb && predizborMeni) {
+        predizborGumb.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          var odprto = !predizborMeni.hidden;
+          if (odprto) {
+            zapriPredizborMeni();
+            return;
+          }
+          var seznam = preberiCasBliznjice();
+          predizborMeni.innerHTML = "";
+          var naslovMeni = document.createElement("p");
+          naslovMeni.className = "opomin-nacrt__predizbor-naslov";
+          naslovMeni.textContent = "Bližnjice";
+          predizborMeni.appendChild(naslovMeni);
+          if (!seznam.length) {
+            var prazno = document.createElement("p");
+            prazno.className = "opomin-nacrt__predizbor-prazno";
+            prazno.textContent =
+              "Ni shranjenih bližnjic. Dodaš jih v »Spremeni«.";
+            predizborMeni.appendChild(prazno);
+          } else {
+            seznam.forEach(function (b) {
+              var postavka = document.createElement("button");
+              postavka.type = "button";
+              postavka.className = "opomin-nacrt__predizbor-postavka";
+              postavka.textContent =
+                (b.ura || "") +
+                " · " +
+                (Number(b.dnevi) === 0
+                  ? "danes"
+                  : "čez " +
+                    b.dnevi +
+                    (Number(b.dnevi) === 1 ? " dan" : " dni"));
+              postavka.addEventListener("click", function () {
+                zapriPredizborMeni();
+                uporabiPredizborBliznjico(b);
+              });
+              predizborMeni.appendChild(postavka);
+            });
+          }
+          predizborMeni.hidden = false;
+          predizborGumb.setAttribute("aria-expanded", "true");
+        });
+
+        document.addEventListener("click", function (ev) {
+          if (
+            !predizborMeni.hidden &&
+            !predizborMeni.contains(ev.target) &&
+            ev.target !== predizborGumb
+          ) {
+            zapriPredizborMeni();
+          }
         });
       }
 
@@ -1869,19 +2785,14 @@
             }
             return;
           }
-          if (ready) {
+          if (N.soVsiSmsPotrjeni(plan)) {
             aktiviraj();
             return;
           }
-          if (step.status === "confirmed") {
-            var prvi = N.prviNepotrjenSmsIndex(plan);
-            if (prvi != null) {
-              aktivenIndex = prvi;
-              izrisiGlavni();
-              pokaziPotrditev(prvi);
-            }
-            return;
-          }
+          /* Vedno odpri pregled TRENUTNO izbranega koraka - tudi če je že
+             potrjen, da ga lahko uporabnik znova odpre in po potrebi
+             popravi (besedilo/dodatke). Preskok na naslednji nepotrjen
+             korak bi uporabniku onemogočil urejanje že potrjenega koraka. */
           pokaziPotrditev(step.index);
         });
       }
@@ -1999,11 +2910,143 @@
       }
     }
 
+    function osveziKanalGumbV2(gumb, vkljucen) {
+      if (!gumb) return;
+      gumb.setAttribute("aria-pressed", vkljucen ? "true" : "false");
+      var ikona = gumb.querySelector(".vk-kanal-gumb-v2__ikona");
+      if (!ikona) return;
+      var vrsta = gumb.getAttribute("data-kanal");
+      var jeSms = vrsta === "sms";
+      ikona.innerHTML = vkljucen
+        ? IKONA_KLJUKICA
+        : jeSms
+          ? IKONA_SMS
+          : IKONA_EMAIL;
+    }
+
+    function posodobiStatusnoBesediloPriloge(vrstica, p, imaTel, imaEmail) {
+      if (!vrstica || !p || p.status !== "ready") return;
+      var statusEl = vrstica.querySelector(".vk-racun-kartica__status");
+      if (!statusEl) return;
+      var velikostTekst = "";
+      if (PV && PV.formatVelikost && p.sizeBytes != null) {
+        velikostTekst = PV.formatVelikost(p.sizeBytes);
+      }
+      statusEl.textContent =
+        statusnoBesediloPriloge(p, imaTel, imaEmail) +
+        (velikostTekst ? " · " + velikostTekst : "");
+    }
+
+    function osveziSmsPredogled() {
+      var step = N.najdiKorak(plan, aktivenIndex);
+      if (!step || !opts.glavniEl) return;
+      var smsOsnova = step.finalMessage || step.generatedMessage || "";
+      var novoBesedilo =
+        PV && PV.sestaviSmsZPrilogami
+          ? PV.sestaviSmsZPrilogami(smsOsnova, prilogeKoraka, smsPaketZeton)
+          : smsOsnova;
+      var novaVsebina = String(novoBesedilo).trim()
+        ? esc(novoBesedilo)
+        : '<span class="sms-preview__prazno">Sporočilo še ni sestavljeno.</span>';
+      var viewport = opts.glavniEl.querySelector(".sms-preview__viewport");
+      if (viewport && viewport.tagName === "TEXTAREA") {
+        if (document.activeElement !== viewport && viewport.value !== smsOsnova) {
+          viewport.value = smsOsnova;
+        }
+      } else if (viewport && viewport.innerHTML !== novaVsebina) {
+        viewport.innerHTML = novaVsebina;
+      }
+      var novaMeta = gsmLabel(Gsm, novoBesedilo);
+      var meta = opts.glavniEl.querySelector(".sms-preview__meta");
+      if (meta && meta.textContent !== novaMeta) {
+        meta.textContent = novaMeta;
+      }
+    }
+
+    var lightboxEl = document.getElementById("lightbox");
+    var lightboxSlikaEl = document.getElementById("lightbox-slika");
+    var lightboxZapriEl = document.getElementById("lightbox-zapri");
+    var lightboxOzicen = false;
+
+    function zapriPrilogeLightbox() {
+      if (!lightboxEl) return;
+      lightboxEl.hidden = true;
+      if (lightboxSlikaEl) lightboxSlikaEl.src = "";
+    }
+
+    function odpriPrilogeLightbox(url) {
+      if (!lightboxEl || !lightboxSlikaEl) return;
+      lightboxSlikaEl.src = url;
+      lightboxEl.hidden = false;
+      if (!lightboxOzicen) {
+        lightboxOzicen = true;
+        if (lightboxZapriEl) {
+          lightboxZapriEl.addEventListener("click", zapriPrilogeLightbox);
+        }
+        lightboxEl.addEventListener("click", function (ev) {
+          if (ev.target === lightboxEl) zapriPrilogeLightbox();
+        });
+        document.addEventListener("keydown", function (ev) {
+          if (ev.key === "Escape" && !lightboxEl.hidden) {
+            zapriPrilogeLightbox();
+          }
+        });
+      }
+    }
+
     function poveziPrilogeDogodke() {
       var kamera = opts.glavniEl.querySelector("#vk-priloge-kamera");
       var datoteka = opts.glavniEl.querySelector("#vk-priloge-datoteka");
       var gumbSlikaj = opts.glavniEl.querySelector("#vk-priloge-slikaj");
       var gumbUvozi = opts.glavniEl.querySelector("#vk-priloge-uvozi");
+      if (typeof opts.pridobiUrlPriloge === "function") {
+        opts.glavniEl
+          .querySelectorAll("[data-priloga-predogled]")
+          .forEach(function (predogled) {
+            var id = predogled.getAttribute("data-priloga-predogled");
+            var priloga = prilogeKoraka.find(function (p) {
+              return p.id === id;
+            });
+            if (!priloga || !priloga.storagePath) return;
+            var jeSlika = jeSlikaPriloga(priloga);
+            if (jeSlika) {
+              opts.pridobiUrlPriloge(priloga.storagePath).then(function (rez) {
+                if (!predogled.isConnected || !rez || !rez.url) return;
+                var img = document.createElement("img");
+                img.src = rez.url;
+                img.alt = "";
+                predogled.classList.add(
+                  "vk-racun-kartica__predogled--slika"
+                );
+                predogled.replaceChildren(img);
+              });
+            }
+            predogled.classList.add("vk-racun-kartica__predogled--klik");
+            predogled.setAttribute("role", "button");
+            predogled.setAttribute("tabindex", "0");
+            predogled.setAttribute(
+              "aria-label",
+              "Odpri predogled " + (priloga.originalFileName || "računa")
+            );
+            function odpriPredogled() {
+              opts.pridobiUrlPriloge(priloga.storagePath).then(function (rez) {
+                if (!rez || !rez.url) return;
+                if (jeSlika) {
+                  odpriPrilogeLightbox(rez.url);
+                } else {
+                  window.open(rez.url, "_blank");
+                }
+              });
+            }
+            predogled.addEventListener("click", odpriPredogled);
+            predogled.addEventListener("keydown", function (ev) {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                odpriPredogled();
+              }
+            });
+          });
+      }
       if (gumbSlikaj && kamera) {
         gumbSlikaj.addEventListener("click", function () {
           kamera.click();
@@ -2041,7 +3084,7 @@
         });
       });
 
-      opts.glavniEl.querySelectorAll(".vk-priloga-vrstica").forEach(function (vrstica) {
+      opts.glavniEl.querySelectorAll(".vk-racun-kartica").forEach(function (vrstica) {
         var id = vrstica.getAttribute("data-priloga-id");
         var p = prilogeKoraka.find(function (x) {
           return x.id === id;
@@ -2049,7 +3092,7 @@
         if (!p) return;
         vrstica.querySelectorAll("[data-kanal]").forEach(function (gumb) {
           gumb.addEventListener("click", function () {
-            if (gumb.disabled) {
+            if (gumb.disabled || gumb.getAttribute("aria-disabled") === "true") {
               var kanal = gumb.getAttribute("data-kanal");
               if (typeof opts.potrdiVprasanje === "function") {
                 opts.potrdiVprasanje({
@@ -2077,12 +3120,103 @@
             p.deliveryChannels = novo;
             p.updatedAt = new Date().toISOString();
             sinhronizirajPrilogeVKorak1();
-            izrisiGlavni();
+            /* Brez ponovnega izrisa celotnega koraka – posodobimo samo
+               kliknjen gumb, statusno besedilo »Priloženo …« in SMS predogled,
+               da stran ostane na istem mestu in fokus ni premaknjen. */
+            osveziKanalGumbV2(gumb, novo[kanal]);
+            posodobiStatusnoBesediloPriloge(
+              vrstica,
+              p,
+              Boolean(opts.podatkiKorak1 && opts.podatkiKorak1.telefonDolznika),
+              Boolean(opts.podatkiKorak1 && opts.podatkiKorak1.emailDolznika)
+            );
+            osveziSmsPredogled();
           });
         });
       });
 
       if (prilogeNapaka) pokaziPrilogeNapako(prilogeNapaka);
+    }
+
+    function besediloGumbaPotrdi(step) {
+      var naslednjiKorak = N.najdiKorak(plan, step.index + 1);
+      if (naslednjiKorak) {
+        return "Shrani in naprej na korak " + naslednjiKorak.order + " →";
+      }
+      return "Shrani in dokončaj načrt →";
+    }
+
+    function izrisiKompaktnePredloge(step, ta, gsmEl) {
+      var ovoj = document.getElementById("opomin-potrdi-predloge");
+      var drsnik = document.getElementById("opomin-potrdi-predloge-drsnik");
+      if (!ovoj || !drsnik || !window.UJTonPredloge) return;
+
+      var jezik = "de";
+      var osnovni = window.UJTonPredloge.sestaviSistemskePredloge(
+        opts.podatkiKorak1,
+        jezik
+      );
+      var tonId = step.toneId || plan.toneId;
+      var predlogi = window.UJTonPredloge.filtrirajPredloge(
+        osnovni,
+        tonId,
+        jezik
+      );
+
+      if (!predlogi || !predlogi.length) {
+        ovoj.hidden = true;
+        return;
+      }
+
+      drsnik.innerHTML = "";
+      predlogi.forEach(function (predlog) {
+        var kartica = document.createElement("button");
+        kartica.type = "button";
+        kartica.className = "opomin-potrdi-predloge__kartica";
+        kartica.setAttribute("role", "listitem");
+        if (
+          String(ta.value || "").trim() ===
+          String(predlog.besedilo || "").trim()
+        ) {
+          kartica.classList.add("opomin-potrdi-predloge__kartica--izbrana");
+        }
+        kartica.innerHTML =
+          '<span class="opomin-potrdi-predloge__kartica-naslov"></span>' +
+          '<span class="opomin-potrdi-predloge__kartica-opis"></span>';
+        kartica.querySelector(
+          ".opomin-potrdi-predloge__kartica-naslov"
+        ).textContent = predlog.naslov;
+        kartica.querySelector(
+          ".opomin-potrdi-predloge__kartica-opis"
+        ).textContent = predlog.besedilo;
+        kartica.addEventListener("click", function () {
+          ta.value = String(predlog.besedilo || "").slice(0, 1000);
+          ta.dispatchEvent(new Event("input", { bubbles: true }));
+          drsnik
+            .querySelectorAll(".opomin-potrdi-predloge__kartica--izbrana")
+            .forEach(function (k) {
+              k.classList.remove("opomin-potrdi-predloge__kartica--izbrana");
+            });
+          kartica.classList.add("opomin-potrdi-predloge__kartica--izbrana");
+        });
+        drsnik.appendChild(kartica);
+      });
+
+      ovoj.hidden = false;
+
+      ta.addEventListener("input", function () {
+        drsnik.querySelectorAll(".opomin-potrdi-predloge__kartica").forEach(
+          function (kartica, i) {
+            var ujema =
+              String(ta.value || "").trim() ===
+              String((predlogi[i] || {}).besedilo || "").trim();
+            kartica.classList.toggle(
+              "opomin-potrdi-predloge__kartica--izbrana",
+              ujema
+            );
+          }
+        );
+      });
     }
 
     function izrisiPotrditev(step) {
@@ -2131,11 +3265,14 @@
           '<textarea id="opomin-potrdi-sms" class="opomin-nacrt-potrdi__sms" rows="8" maxlength="1000">' +
           esc(step.finalMessage || step.generatedMessage) +
           "</textarea>" +
-          '<p class="opomin-nacrt__gsm" id="opomin-potrdi-gsm" aria-live="polite"></p>';
+          '<p class="opomin-nacrt__gsm" id="opomin-potrdi-gsm" aria-live="polite"></p>' +
+          '<div class="opomin-potrdi-predloge" id="opomin-potrdi-predloge" hidden>' +
+          '<p class="opomin-potrdi-predloge__naslov">Predloge</p>' +
+          '<div class="opomin-potrdi-predloge__drsnik" id="opomin-potrdi-predloge-drsnik" role="list"></div>' +
+          "</div>";
 
       opts.potrditevEl.innerHTML =
         '<div class="opomin-nacrt-potrdi__vsebina">' +
-        '<button type="button" class="opomin-nacrt-potrdi__nazaj" id="opomin-potrdi-nazaj">← Nazaj in uredi nastavitve</button>' +
         '<h2 class="opomin-nacrt-potrdi__naslov">Preglej ' +
         esc(String(step.order)) +
         ". korak</h2>" +
@@ -2145,10 +3282,12 @@
         readonly +
         smsBlock +
         '<footer class="opomin-nacrt__noga opomin-nacrt__noga--stolpec">' +
-        '<button type="button" class="korak2__gumb-naprej" id="opomin-potrdi-shrani">Potrdi ' +
+        '<button type="button" class="korak2__gumb-naprej" id="opomin-potrdi-shrani">' +
+        esc(besediloGumbaPotrdi(step)) +
+        "</button>" +
+        '<button type="button" class="opomin-nacrt__shrani-osnutek" id="opomin-potrdi-nazaj-2">← Nazaj na urejanje koraka ' +
         esc(String(step.order)) +
-        ". korak in nadaljuj →</button>" +
-        '<button type="button" class="opomin-nacrt__shrani-osnutek" id="opomin-potrdi-nazaj-2">← Nazaj in uredi nastavitve</button>' +
+        "</button>" +
         "</footer>" +
         "</div>";
 
@@ -2183,6 +3322,8 @@
         osveziPotrdiGumb();
       }
 
+      if (!jeManual && ta) izrisiKompaktnePredloge(step, ta, gsmEl);
+
       function nazaj() {
         clearTimeout(debounceTimer);
         shrani();
@@ -2194,32 +3335,98 @@
       if (n1) n1.addEventListener("click", nazaj);
       if (n2) n2.addEventListener("click", nazaj);
 
-      if (gumbPotrdi) {
-        gumbPotrdi.addEventListener("click", function () {
-          if (!jeManual && (!ta || !ta.value.trim())) return;
+      function izvediPotrditev() {
+        try {
+          gumbPotrdi.disabled = true;
+          clearTimeout(debounceTimer);
+          debounceTimer = null;
+
+          /* Najprej shrani dodatke trenutnega koraka. Če bi shrani() klicali
+             po potrditvi, bi syncStageDodatki potrjeni korak vrnil v pregled. */
+          shrani();
           plan = N.potrdiKorak(
             plan,
             step.index,
             jeManual ? "" : ta.value
           );
-          shrani();
-          var naslednji = N.prviNepotrjenSmsIndex(plan);
-          if (naslednji != null) {
-            aktivenIndex = naslednji;
-          } else {
-            aktivenIndex = step.index;
+          var potrjeniKorak = N.najdiKorak(plan, step.index);
+          if (!potrjeniKorak || potrjeniKorak.status !== "confirmed") {
+            throw new Error("Koraka ni bilo mogoče potrditi.");
           }
-          pokaziGlavni();
-          var carousel = opts.glavniEl.querySelector(
-            '[data-stage="' + aktivenIndex + '"]'
-          );
-          if (carousel && carousel.scrollIntoView) {
-            carousel.scrollIntoView({
-              behavior: "smooth",
-              inline: "center",
-              block: "nearest",
+          var naslednjiKorak = N.najdiKorak(plan, Number(step.index) + 1);
+          if (naslednjiKorak) {
+            aktivenIndex = Number(naslednjiKorak.index);
+            plan.selectedStageId = naslednjiKorak.id;
+            N.shraniOsnutek(plan);
+            pokaziGlavni();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            requestAnimationFrame(function () {
+              var naslednjaKartica = opts.glavniEl.querySelector(
+                '[data-stage="' + aktivenIndex + '"]'
+              );
+              if (naslednjaKartica && naslednjaKartica.scrollIntoView) {
+                naslednjaKartica.scrollIntoView({
+                  behavior: "smooth",
+                  inline: "center",
+                  block: "nearest",
+                });
+              }
             });
+            return;
           }
+          aktivenIndex = step.index;
+          plan.selectedStageId = step.id;
+          N.shraniOsnutek(plan);
+          pokaziGlavni();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (napakaPotrditve) {
+          osveziPotrdiGumb();
+          if (typeof opts.pokaziNapako === "function") {
+            opts.pokaziNapako(
+              "Potrditev koraka ni uspela.",
+              napakaPotrditve && napakaPotrditve.message
+                ? napakaPotrditve.message
+                : String(napakaPotrditve)
+            );
+          }
+        }
+      }
+
+      /* Kratka veselo-praznična animacija gumba (skoči proti sredini,
+         se skrči in izgine, za sabo pusti zvezdice) - šele nato se
+         dejansko izvede potrditev in preklop na naslednji korak. */
+      function animirajInPotrdi() {
+        var zvezdiceOvoj = document.createElement("span");
+        zvezdiceOvoj.className = "opomin-potrdi-zvezdice";
+        zvezdiceOvoj.setAttribute("aria-hidden", "true");
+        var stKotov = 6;
+        for (var i = 0; i < stKotov; i++) {
+          var z = document.createElement("span");
+          z.className = "opomin-potrdi-zvezdica";
+          z.textContent = "★";
+          var kot = (360 / stKotov) * i;
+          z.style.setProperty("--kot", kot + "deg");
+          z.style.animationDelay = i * 25 + "ms";
+          zvezdiceOvoj.appendChild(z);
+        }
+        gumbPotrdi.appendChild(zvezdiceOvoj);
+        gumbPotrdi.classList.add("opomin-potrdi-shrani--skoci");
+        gumbPotrdi.disabled = true;
+        window.setTimeout(izvediPotrditev, 680);
+      }
+
+      if (gumbPotrdi) {
+        gumbPotrdi.addEventListener("click", function () {
+          if (!jeManual && (!ta || !ta.value.trim())) {
+            if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(
+                "SMS sporočilo je prazno – dopolni ga pred potrditvijo."
+              );
+            }
+            return;
+          }
+          /* Potrditev ne sme biti odvisna od zaključka vizualne animacije. */
+          izvediPotrditev();
         });
       }
     }
