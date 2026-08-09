@@ -3149,6 +3149,9 @@ function inicializirajSporociloDolzniku() {
         ? "Besedilo lahko poljubno uredite"
         : "Izberite predlog ali napišite svoje sporočilo";
     }
+    if (typeof prilagodiVisinoSporocila === "function") {
+      prilagodiVisinoSporocila();
+    }
   }
 
   function oznaciShranjevanje() {
@@ -5603,6 +5606,96 @@ function inicializirajSporociloDolzniku() {
     });
   }
 
+  /** Ali je scroll namenoma zaklenjen (odprt sheet/modal)? */
+  function jeGlavniScrollNamenomaZaklenjen() {
+    const ids = [
+      "obrocno-sheet",
+      "rok-sheet",
+      "trr-sheet",
+      "template-editor",
+      "predloga-predogled",
+      "uj-potrdi-modal",
+    ];
+    for (let i = 0; i < ids.length; i++) {
+      const el = document.getElementById(ids[i]);
+      if (el && !el.hidden) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Po focus/blur na textarea: povrni body/html scroll (odstrani ostanke
+   * position/overflow/touch-action in sirote razredov sheetov).
+   */
+  function obnoviGlavniScrollPoBesedilu() {
+    const ob = document.getElementById("obrocno-sheet");
+    const rok = document.getElementById("rok-sheet");
+    const trr = document.getElementById("trr-sheet");
+    if (!ob || ob.hidden) {
+      document.body.classList.remove("obrocno-sheet-odprt");
+    }
+    if ((!rok || rok.hidden) && (!trr || trr.hidden)) {
+      document.body.classList.remove("rok-sheet-odprt");
+    }
+    const predogled = document.getElementById("predloga-predogled");
+    if (!predogled || predogled.hidden) {
+      document.body.classList.remove("predloga-predogled-odprt");
+    }
+    const predloga = document.getElementById("template-editor");
+    if (!predloga || predloga.hidden) {
+      document.body.classList.remove("template-editor-odprt");
+    }
+    const potrdi = document.getElementById("uj-potrdi-modal");
+    if (!potrdi || potrdi.hidden) {
+      document.documentElement.classList.remove("uj-modal-odprt");
+      document.body.classList.remove("uj-modal-odprt");
+    }
+
+    if (jeGlavniScrollNamenomaZaklenjen()) return;
+
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    document.body.style.overflow = "";
+    document.body.style.touchAction = "";
+    document.documentElement.style.overflow = "";
+    document.documentElement.style.touchAction = "";
+    document.documentElement.style.height = "";
+
+    // Prebudi scroll engine po tipkovnici (iOS/Chrome DevTools).
+    const y = window.scrollY || window.pageYOffset || 0;
+    window.requestAnimationFrame(() => {
+      window.scrollTo(0, y === 0 ? 1 : y - 1);
+      window.scrollTo(0, y);
+    });
+  }
+
+  /** Auto-višina textarea – brez notranjega scrolla (stran scrolla namesto polja). */
+  function prilagodiVisinoSporocila() {
+    if (!besediloPolje) return;
+    besediloPolje.style.overflowY = "hidden";
+    besediloPolje.style.height = "auto";
+    const minPx = 148;
+    const needed = Math.max(minPx, besediloPolje.scrollHeight);
+    besediloPolje.style.height = needed + "px";
+  }
+
+  let sporociloBlurObnovaCasovnik = null;
+  function narociObnovoScrollaPoBesedilu() {
+    if (sporociloBlurObnovaCasovnik) {
+      window.clearTimeout(sporociloBlurObnovaCasovnik);
+      sporociloBlurObnovaCasovnik = null;
+    }
+    obnoviGlavniScrollPoBesedilu();
+    // Tipkovnica se zapre z zakasnitvijo – ponovi obnovo.
+    sporociloBlurObnovaCasovnik = window.setTimeout(() => {
+      sporociloBlurObnovaCasovnik = null;
+      obnoviGlavniScrollPoBesedilu();
+    }, 320);
+  }
+
   besediloPolje.addEventListener("input", () => {
     skrijNapako();
     if (besediloPolje.value.length > NAJVEC_ZNAKOV) {
@@ -5625,6 +5718,26 @@ function inicializirajSporociloDolzniku() {
     posodobiStanjeUrejevalnika();
     shraniOsnutekLokalno();
   });
+
+  besediloPolje.addEventListener("focusout", () => {
+    narociObnovoScrollaPoBesedilu();
+  });
+  besediloPolje.addEventListener("blur", () => {
+    narociObnovoScrollaPoBesedilu();
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener(
+      "resize",
+      () => {
+        if (document.activeElement === besediloPolje) return;
+        obnoviGlavniScrollPoBesedilu();
+      },
+      { passive: true }
+    );
+  }
+
+  prilagodiVisinoSporocila();
 
   seznam.addEventListener(
     "scroll",

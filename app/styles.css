@@ -3982,9 +3982,12 @@ body.uj-modal-odprt {
   font-size: 16px;
   font-weight: 400;
   line-height: 1.5;
-  resize: vertical;
+  /* Brez notranjega scrolla – JS prilagodi višino; sicer mobile ujame pan v textarea. */
+  resize: none;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   box-sizing: border-box;
 }
 
