@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260809-wizard-space" />
+    <link rel="stylesheet" href="styles.css?v=20260809-vrsta-dolznika" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -163,27 +163,82 @@
                   Kdo vam dolguje?
                 </h3>
 
-                <!-- Samo vizualni preklop (glej pogovor v chatu) - ne shranjuje
-                     se nikamor, samo poudari izbrano možnost (glej klik na
-                     .tip-dolznika-preklop__gumb v app.js). -->
-                <div class="tip-dolznika-preklop" role="group" aria-label="Vrsta dolžnika (samo prikaz)">
-                  <button type="button" class="tip-dolznika-preklop__gumb tip-dolznika-preklop__gumb--aktiven">Podjetje</button>
-                  <button type="button" class="tip-dolznika-preklop__gumb">Fizična oseba</button>
+                <div class="tip-dolznika-preklop" role="group" aria-label="Vrsta dolžnika">
+                  <button
+                    type="button"
+                    class="tip-dolznika-preklop__gumb tip-dolznika-preklop__gumb--aktiven"
+                    data-vrsta-dolznika="podjetje"
+                    aria-pressed="true"
+                  >
+                    Podjetje
+                  </button>
+                  <button
+                    type="button"
+                    class="tip-dolznika-preklop__gumb"
+                    data-vrsta-dolznika="fizicna_oseba"
+                    aria-pressed="false"
+                  >
+                    Fizična oseba
+                  </button>
                 </div>
 
-                <div class="obrazec__polje">
-                  <label for="ime-stranke">Naziv ali ime in priimek</label>
-                  <div class="obrazec__polje-z-ikono">
-                    <span class="obrazec__polje-ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-                    </span>
-                    <input type="text" id="ime-stranke" name="ime" required autocomplete="name" />
+                <div class="vsebina-vrste-dolznika" id="sklop-podjetje">
+                  <div class="obrazec__polje">
+                    <label for="naziv-podjetja">Naziv podjetja</label>
+                    <div class="obrazec__polje-z-ikono">
+                      <span class="obrazec__polje-ikona" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                      </span>
+                      <input type="text" id="naziv-podjetja" name="nazivPodjetja" required autocomplete="organization" />
+                    </div>
                   </div>
+
+                  <div class="zadeva-obrazec__podvrstica">
+                    <div class="obrazec__polje">
+                      <label for="davcna-stevilka">Davčna številka <span class="obrazec__oznaka-opcijsko">opcijsko</span></label>
+                      <input type="text" id="davcna-stevilka" name="davcnaStevilka" maxlength="20" autocomplete="off" />
+                    </div>
+
+                    <div class="obrazec__polje">
+                      <label for="kontaktna-oseba">Kontaktna oseba <span class="obrazec__oznaka-opcijsko">opcijsko</span></label>
+                      <input type="text" id="kontaktna-oseba" name="kontaktnaOseba" maxlength="120" autocomplete="name" />
+                    </div>
+                  </div>
+                  <p class="contact-error" id="napaka-naziv" role="alert" hidden>
+                    Vnesite naziv podjetja.
+                  </p>
+                </div>
+
+                <div class="vsebina-vrste-dolznika" id="sklop-fizicna" hidden>
+                  <div class="zadeva-obrazec__podvrstica">
+                    <div class="obrazec__polje">
+                      <label for="ime-fizicne-osebe">Ime</label>
+                      <div class="obrazec__polje-z-ikono">
+                        <span class="obrazec__polje-ikona" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                        </span>
+                        <input type="text" id="ime-fizicne-osebe" name="ime" disabled autocomplete="given-name" />
+                      </div>
+                    </div>
+
+                    <div class="obrazec__polje">
+                      <label for="priimek-fizicne-osebe">Priimek</label>
+                      <div class="obrazec__polje-z-ikono">
+                        <span class="obrazec__polje-ikona" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                        </span>
+                        <input type="text" id="priimek-fizicne-osebe" name="priimek" disabled autocomplete="family-name" />
+                      </div>
+                    </div>
+                  </div>
+                  <p class="contact-error" id="napaka-ime-priimek" role="alert" hidden>
+                    Vnesite ime in priimek.
+                  </p>
                 </div>
 
                 <!-- Skupno polje »Kontakt dolžnika«: telefon ALI e-pošta. -->
                 <fieldset class="contact-group">
-                  <legend>Telefon ali e-pošta</legend>
+                  <legend>Telefon ali e-pošta — vnesite vsaj enega</legend>
 
                   <div class="contact-inputs">
                     <div class="contact-field">
@@ -280,12 +335,11 @@
                 </div>
 
                 <div class="obrazec__polje">
-                  <label for="opis-dolga">Kaj je bilo opravljeno?</label>
+                  <label for="opis-dolga">Kaj je bilo opravljeno? <span class="obrazec__oznaka-opcijsko">opcijsko</span></label>
                   <textarea
                     id="opis-dolga"
                     name="opis"
                     rows="4"
-                    required
                   ></textarea>
                 </div>
               </div>
@@ -479,6 +533,6 @@
         window.addEventListener("pageshow", naVrhCeObrazec);
       })();
     </script>
-    <script src="app.js?v=20260809-kontakt-2"></script>
+    <script src="app.js?v=20260809-vrsta-dolznika"></script>
   </body>
 </html>

@@ -1219,6 +1219,7 @@ function inicializirajNeplacila() {
   let ocrSourceFile = null;
   let messageAttachments = [];
   let shouldSendAttachment = true;
+  let aktivnaVrstaDolznika = "podjetje";
   const NAJVEC_PRILOG = 6;
   const NAJVECJA_VELIKOST_PRILOGE_B = 10 * 1024 * 1024; // 10 MB - enako kot v sql/003
 
@@ -1242,7 +1243,14 @@ function inicializirajNeplacila() {
         const polje = obrazec.elements.namedItem(name);
         if (polje && vrednost != null && vrednost !== "") polje.value = vrednost;
       };
-      nastavi("ime", osnutek.imeDolznika);
+      // Nova polja glede na vrsto dolžnika. Stari osnutek brez vrste
+      // privzame "podjetje" in obstoječe ime prenese v naziv podjetja,
+      // da imeDolznika na korakih 2/3 in v bazi ostane nespremenjeno.
+      nastavi("nazivPodjetja", osnutek.nazivPodjetja || osnutek.imeDolznika);
+      nastavi("davcnaStevilka", osnutek.davcnaStevilka);
+      nastavi("kontaktnaOseba", osnutek.kontaktnaOseba);
+      nastavi("ime", osnutek.ime);
+      nastavi("priimek", osnutek.priimek);
       nastavi("telefon", osnutek.telefonDolznika);
       nastavi("email", osnutek.emailDolznika);
       nastavi("znesek", osnutek.znesek != null ? String(osnutek.znesek) : "");
@@ -1250,6 +1258,8 @@ function inicializirajNeplacila() {
       nastavi("datumIzdaje", osnutek.datumIzdajeRacuna);
       nastavi("datum", osnutek.datumZapadlosti);
       nastavi("stevilkaRacuna", osnutek.stevilkaRacuna);
+      // Vidnost sklopov glede na vrsto se nastavi spodaj (ob inicializaciji
+      // preklopa), ker so tam že povezani gumbi.
     }
   } catch (_napaka) {
     /* prezri okvarjen osnutek */
@@ -1690,17 +1700,107 @@ function inicializirajNeplacila() {
   }
   izrisiIzbranePriloge();
 
-  /* Preklop "Podjetje / Fizična oseba" je za zdaj samo vizualen (glej
-     pogovor z uporabnikom) - ne shranjuje se nikamor, samo poudari
-     izbrano možnost. */
-  document.querySelectorAll(".tip-dolznika-preklop__gumb").forEach((gumbPreklopa) => {
-    gumbPreklopa.addEventListener("click", () => {
+  /* Preklop "Podjetje / Fizična oseba": prikaže ustrezna polja (skrita so
+     disabled, da ne sodelujejo pri validaciji), obvezna polja in shrani
+     izbiro v osnutek. Vrednosti ob preklopu ostanejo. */
+  function vrednostPolja(name) {
+    const polje = obrazec.elements.namedItem(name);
+    return polje ? String(polje.value || "").trim() : "";
+  }
+
+  function vrednostImenaDolznika() {
+    if (aktivnaVrstaDolznika === "fizicna_oseba") {
+      return [vrednostPolja("ime"), vrednostPolja("priimek")]
+        .filter(Boolean)
+        .join(" ");
+    }
+    return vrednostPolja("nazivPodjetja");
+  }
+
+  function nastaviVrstoDolznika(vrsta, opcije) {
+    const nova = vrsta === "fizicna_oseba" ? "fizicna_oseba" : "podjetje";
+    const tiha = Boolean(opcije && opcije.tiha);
+    if (aktivnaVrstaDolznika === nova) {
+      // Uskladi samo razrede/ARIA (obnovljen osnutek ali privzeti prikaz).
       document
         .querySelectorAll(".tip-dolznika-preklop__gumb")
-        .forEach((g) => g.classList.remove("tip-dolznika-preklop__gumb--aktiven"));
-      gumbPreklopa.classList.add("tip-dolznika-preklop__gumb--aktiven");
+        .forEach((gumb) => {
+          const aktiven = gumb.getAttribute("data-vrsta-dolznika") === nova;
+          gumb.classList.toggle(
+            "tip-dolznika-preklop__gumb--aktiven",
+            aktiven
+          );
+          gumb.setAttribute("aria-pressed", aktiven ? "true" : "false");
+        });
+      return;
+    }
+    aktivnaVrstaDolznika = nova;
+
+    const sklopPodjetje = document.getElementById("sklop-podjetje");
+    const sklopFizicna = document.getElementById("sklop-fizicna");
+    const poljeNaziv = document.getElementById("naziv-podjetja");
+    const poljeDavcna = document.getElementById("davcna-stevilka");
+    const poljeKontaktna = document.getElementById("kontaktna-oseba");
+    const poljeIme = document.getElementById("ime-fizicne-osebe");
+    const poljePriimek = document.getElementById("priimek-fizicne-osebe");
+
+    if (sklopPodjetje) sklopPodjetje.hidden = nova !== "podjetje";
+    if (sklopFizicna) sklopFizicna.hidden = nova !== "fizicna_oseba";
+
+    [poljeNaziv, poljeDavcna, poljeKontaktna].forEach((polje) => {
+      if (!polje) return;
+      polje.disabled = nova !== "podjetje";
+      if (polje === poljeNaziv) {
+        if (nova === "podjetje") polje.setAttribute("required", "");
+        else polje.removeAttribute("required");
+      } else {
+        polje.removeAttribute("required");
+      }
     });
-  });
+    [poljeIme, poljePriimek].forEach((polje) => {
+      if (!polje) return;
+      polje.disabled = nova !== "fizicna_oseba";
+      if (nova === "fizicna_oseba") polje.setAttribute("required", "");
+      else polje.removeAttribute("required");
+    });
+
+    document
+      .querySelectorAll(".tip-dolznika-preklop__gumb")
+      .forEach((gumb) => {
+        const aktiven = gumb.getAttribute("data-vrsta-dolznika") === nova;
+        gumb.classList.toggle(
+          "tip-dolznika-preklop__gumb--aktiven",
+          aktiven
+        );
+        gumb.setAttribute("aria-pressed", aktiven ? "true" : "false");
+      });
+
+    // Skrij napake prejšnje vrste, da ne ostanejo vidne pod skritim sklopom.
+    const napakaNazivEl = document.getElementById("napaka-naziv");
+    const napakaImeEl = document.getElementById("napaka-ime-priimek");
+    if (napakaNazivEl) napakaNazivEl.hidden = true;
+    if (napakaImeEl) napakaImeEl.hidden = true;
+
+    if (!tiha) narociShranjevanjeOsnutkaKorak1();
+  }
+
+  document
+    .querySelectorAll(".tip-dolznika-preklop__gumb")
+    .forEach((gumbPreklopa) => {
+      gumbPreklopa.addEventListener("click", () => {
+        const vrsta = gumbPreklopa.getAttribute("data-vrsta-dolznika");
+        if (!vrsta) return;
+        nastaviVrstoDolznika(vrsta);
+      });
+    });
+
+  // Uskladi sklope z morebitnim obnovljenim osnutkom (privzeto: podjetje).
+  const zacetnaVrsta =
+    osnutekKorak1ZaPriloge &&
+    osnutekKorak1ZaPriloge.vrstaDolznika === "fizicna_oseba"
+      ? "fizicna_oseba"
+      : "podjetje";
+  nastaviVrstoDolznika(zacetnaVrsta, { tiha: true });
 
   /* ---------- Samodejni vnos podatkov iz računa (OCR) ----------
      Zgornji widget (#ai-zajem): bere račun in izpolni obrazec.
@@ -1809,10 +1909,14 @@ function inicializirajNeplacila() {
   }
 
   function imaZeIzpolnjenaPoljaObrazca() {
-    const ime = (document.getElementById("ime-stranke") || {}).value || "";
+    const naziv = (document.getElementById("naziv-podjetja") || {}).value || "";
+    const ime = (document.getElementById("ime-fizicne-osebe") || {}).value || "";
+    const priimek = (document.getElementById("priimek-fizicne-osebe") || {}).value || "";
     const znesek = (document.getElementById("znesek-dolga") || {}).value || "";
     const opis = (document.getElementById("opis-dolga") || {}).value || "";
-    return Boolean(ime.trim() || znesek.trim() || opis.trim());
+    return Boolean(
+      naziv.trim() || ime.trim() || priimek.trim() || znesek.trim() || opis.trim()
+    );
   }
 
   function pokaziAiZajemZacetek() {
@@ -1946,12 +2050,22 @@ function inicializirajNeplacila() {
   function izpolniPoljaIzAI(podatki) {
     if (!podatki) return;
 
-    const naziv = document.getElementById("ime-stranke");
+    const naziv = document.getElementById("naziv-podjetja");
+    const imeFO = document.getElementById("ime-fizicne-osebe");
     if (podatki.naziv) {
-      naziv.value = podatki.naziv;
-      oznaciPoljeKotAiIzpolnjeno(naziv);
+      // AI napolni polje aktivne vrste (podjetje je privzeto).
+      if (aktivnaVrstaDolznika === "fizicna_oseba") {
+        if (imeFO) {
+          imeFO.value = podatki.naziv;
+          oznaciPoljeKotAiIzpolnjeno(imeFO);
+        }
+      } else if (naziv) {
+        naziv.value = podatki.naziv;
+        oznaciPoljeKotAiIzpolnjeno(naziv);
+      }
     } else {
-      oznaciPoljeKotAiManjka(naziv);
+      if (naziv) oznaciPoljeKotAiManjka(naziv);
+      if (imeFO) oznaciPoljeKotAiManjka(imeFO);
     }
 
     const znesek = document.getElementById("znesek-dolga");
@@ -2276,6 +2390,9 @@ function inicializirajNeplacila() {
     const kartica = document.createElement("article");
     kartica.className = "zadeva";
 
+    const telo = document.createElement("div");
+    telo.className = "zadeva__telo";
+
     const glava = document.createElement("div");
     glava.className = "zadeva__glava";
 
@@ -2289,25 +2406,25 @@ function inicializirajNeplacila() {
 
     glava.appendChild(ime);
     glava.appendChild(znesek);
-    kartica.appendChild(glava);
+    telo.appendChild(glava);
 
     if (zadeva.opis_dolga) {
       const opis = document.createElement("p");
       opis.className = "zadeva__opis";
       opis.textContent = zadeva.opis_dolga;
-      kartica.appendChild(opis);
+      telo.appendChild(opis);
     }
 
     const datum = document.createElement("p");
     datum.className = "zadeva__datum";
     datum.textContent = "Zapade: " + formatirajDatum(zadeva.datum_zapadlosti);
-    kartica.appendChild(datum);
+    telo.appendChild(datum);
 
     const status = document.createElement("span");
     const cssRazred = CSS_RAZRED_STATUSA[zadeva.status] || "nov";
     status.className = "zadeva__status zadeva__status--" + cssRazred;
     status.textContent = zadeva.status;
-    kartica.appendChild(status);
+    telo.appendChild(status);
 
     // Razdelek s prilogami se prikaže SAMO, če zadeva dejansko ima vsaj
     // eno naloženo prilogo (glej racun_datoteke_poti v sql/003) - sicer se
@@ -2344,8 +2461,10 @@ function inicializirajNeplacila() {
       });
 
       prilogeRazdelek.appendChild(prilogeSeznam);
-      kartica.appendChild(prilogeRazdelek);
+      telo.appendChild(prilogeRazdelek);
     }
+
+    kartica.appendChild(telo);
 
     const akcije = document.createElement("div");
     akcije.className = "zadeva__akcije";
@@ -2582,10 +2701,18 @@ function inicializirajNeplacila() {
       : Array.isArray(obstojeci.attachmentKanali)
         ? obstojeci.attachmentKanali
         : [];
+    const ime = String(podatki.get("ime") || "").trim();
+    const priimek = String(podatki.get("priimek") || "").trim();
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK1_PODATKI,
       JSON.stringify({
-        imeDolznika: String(podatki.get("ime") || "").trim(),
+        vrstaDolznika: aktivnaVrstaDolznika,
+        imeDolznika: vrednostImenaDolznika(),
+        nazivPodjetja: String(podatki.get("nazivPodjetja") || "").trim(),
+        davcnaStevilka: String(podatki.get("davcnaStevilka") || "").trim() || null,
+        kontaktnaOseba: String(podatki.get("kontaktnaOseba") || "").trim() || null,
+        ime: ime,
+        priimek: priimek,
         telefonDolznika: String(podatki.get("telefon") || "").trim(),
         emailDolznika: String(podatki.get("email") || "").trim(),
         znesek: znesekIzObrazcaZaOsnutek(podatki.get("znesek")),
@@ -2659,15 +2786,35 @@ function inicializirajNeplacila() {
     dogodek.preventDefault();
     skrijNapako();
     skrijNapakoKontakta();
+    const napakaNazivEl = document.getElementById("napaka-naziv");
+    const napakaImeEl = document.getElementById("napaka-ime-priimek");
+    if (napakaNazivEl) napakaNazivEl.hidden = true;
+    if (napakaImeEl) napakaImeEl.hidden = true;
 
     const podatki = new FormData(obrazec);
-    const imeDolznika = podatki.get("ime").trim();
-    const telefonDolznika = podatki.get("telefon").trim();
-    const emailDolznika = podatki.get("email").trim();
+    const imeDolznika = vrednostImenaDolznika();
+    const nazivPodjetja = String(podatki.get("nazivPodjetja") || "").trim();
+    const davcnaStevilka = String(podatki.get("davcnaStevilka") || "").trim() || null;
+    const kontaktnaOseba = String(podatki.get("kontaktnaOseba") || "").trim() || null;
+    const ime = String(podatki.get("ime") || "").trim();
+    const priimek = String(podatki.get("priimek") || "").trim();
+    const telefonDolznika = String(podatki.get("telefon") || "").trim();
+    const emailDolznika = String(podatki.get("email") || "").trim();
     const datumZapadlosti = podatki.get("datum");
-    const opisDolga = podatki.get("opis").trim();
+    const opisDolga = String(podatki.get("opis") || "").trim();
 
-    if (!imeDolznika || !datumZapadlosti || !opisDolga) return;
+    // Napake so prikazane pod ustreznim sklopom, brez skoka na vrh strani.
+    if (!datumZapadlosti) return;
+
+    if (aktivnaVrstaDolznika === "fizicna_oseba") {
+      if (!ime || !priimek) {
+        if (napakaImeEl) napakaImeEl.hidden = false;
+        return;
+      }
+    } else if (!nazivPodjetja) {
+      if (napakaNazivEl) napakaNazivEl.hidden = false;
+      return;
+    }
 
     if (!telefonDolznika && !emailDolznika) {
       pokaziNapakoKontakta();
@@ -2684,7 +2831,16 @@ function inicializirajNeplacila() {
     }
 
     const noviKorak1 = {
+      vrstaDolznika: aktivnaVrstaDolznika,
       imeDolznika,
+      nazivPodjetja:
+        aktivnaVrstaDolznika === "podjetje" ? nazivPodjetja : null,
+      davcnaStevilka:
+        aktivnaVrstaDolznika === "podjetje" ? davcnaStevilka : null,
+      kontaktnaOseba:
+        aktivnaVrstaDolznika === "podjetje" ? kontaktnaOseba : null,
+      ime: aktivnaVrstaDolznika === "fizicna_oseba" ? ime : null,
+      priimek: aktivnaVrstaDolznika === "fizicna_oseba" ? priimek : null,
       telefonDolznika,
       emailDolznika,
       znesek: (() => {
@@ -3209,6 +3365,7 @@ function inicializirajSporociloDolzniku() {
   }
 
   let drsnikRaf = null;
+
   function posodobiDrsnik() {
     if (!okvir || !indikator || !seznam) return;
     const maxScroll = seznam.scrollHeight - seznam.clientHeight;
@@ -3669,10 +3826,12 @@ function inicializirajSporociloDolzniku() {
   }
 
   function zapriVseStevilkeIzbire() {
-    document.querySelectorAll(".predlog-kartica__stevilke-izbirnik").forEach((el) => {
+    const odprtiIzbirniki = document.querySelectorAll(".predlog-kartica__stevilke-izbirnik--plavajoč");
+    if (odprtiIzbirniki.length === 0) return;
+    odprtiIzbirniki.forEach((el) => {
       vrniStevilkeIzbirnikDomov(el);
     });
-    seznam.querySelectorAll(".predlog-kartica__stevilka").forEach((gumb) => {
+    seznam.querySelectorAll(".predlog-kartica__stevilke[aria-expanded=\"true\"]").forEach((gumb) => {
       gumb.setAttribute("aria-expanded", "false");
     });
   }
@@ -4186,6 +4345,7 @@ function inicializirajSporociloDolzniku() {
   function skrijPriporociloVrstico() {
     recommendationSnapshot = null;
     if (modalPriporociloVrstica) modalPriporociloVrstica.hidden = true;
+    if (modalPredlagajTon) modalPredlagajTon.hidden = false;
   }
 
   function posnetekTrenutnegaOsnutka() {
@@ -4772,9 +4932,9 @@ function inicializirajSporociloDolzniku() {
     posodobiModalStevilkeUI();
     posodobiModalDodatkeKartice();
     if (modalPriporociloNaslov) {
-      modalPriporociloNaslov.textContent =
-        "★ Predlagani ton: " + labelTona(toneId);
+      modalPriporociloNaslov.textContent = labelTona(toneId);
     }
+    if (modalPredlagajTon) modalPredlagajTon.hidden = true;
     if (modalPriporociloVrstica) modalPriporociloVrstica.hidden = false;
   }
 
@@ -5149,6 +5309,14 @@ function inicializirajSporociloDolzniku() {
   const sklopPriporociloObrocno = document.getElementById(
     "sklop-priporocilo-obrocno"
   );
+  const kartikaPriporociloRok = sklopPriporociloRok
+    ? sklopPriporociloRok.querySelector(".ton-priporocila__kartica")
+    : null;
+  const kartikaPriporociloObrocno = sklopPriporociloObrocno
+    ? sklopPriporociloObrocno.querySelector(".ton-priporocila__kartica")
+    : null;
+  const gumbPokaziRok = document.getElementById("gumb-pokazi-rok");
+  const gumbPokaziObrocno = document.getElementById("gumb-pokazi-obrocno");
   let rokSheetApi = null;
   let obrocnoSheetApi = null;
   let trrSheetApi = null;
@@ -5206,30 +5374,35 @@ function inicializirajSporociloDolzniku() {
   function posodobiNamigeTonaDodatkov() {
     preveriResetPrezrtjaObKontekstuDolga();
     if (sklopPriporociloRok) {
-      if (!priporocilaPrezrta.rok) resetirajSklopPriporocilaAnimacijo(sklopPriporociloRok);
-      sklopPriporociloRok.hidden = Boolean(priporocilaPrezrta.rok);
+      resetirajSklopPriporocilaAnimacijo(sklopPriporociloRok);
+      sklopPriporociloRok.hidden = false;
+    }
+    if (kartikaPriporociloRok) {
+      kartikaPriporociloRok.hidden = Boolean(priporocilaPrezrta.rok);
+    }
+    if (gumbPokaziRok) {
+      gumbPokaziRok.hidden = !priporocilaPrezrta.rok;
     }
     if (sklopPriporociloObrocno) {
-      if (!priporocilaPrezrta.obrocno) {
-        resetirajSklopPriporocilaAnimacijo(sklopPriporociloObrocno);
-      }
-      sklopPriporociloObrocno.hidden = Boolean(priporocilaPrezrta.obrocno);
+      resetirajSklopPriporocilaAnimacijo(sklopPriporociloObrocno);
+      sklopPriporociloObrocno.hidden = false;
+    }
+    if (kartikaPriporociloObrocno) {
+      kartikaPriporociloObrocno.hidden = Boolean(priporocilaPrezrta.obrocno);
+    }
+    if (gumbPokaziObrocno) {
+      gumbPokaziObrocno.hidden = !priporocilaPrezrta.obrocno;
     }
     if (ovojMoznaPriporocila) {
-      const obaPrezrta =
-        Boolean(priporocilaPrezrta.rok) && Boolean(priporocilaPrezrta.obrocno);
-      if (!obaPrezrta) {
-        ovojMoznaPriporocila.classList.remove("ton-priporocila--odhajaj");
-      }
-      ovojMoznaPriporocila.hidden = obaPrezrta;
+      ovojMoznaPriporocila.classList.remove("ton-priporocila--odhajaj");
+      ovojMoznaPriporocila.hidden = false;
     }
   }
 
-  /** Mehko skrije en sklop priporočila (višina + fade). */
+  /** Mehko skrči en sklop priporočila (kartica → kompakten gumb "Prikaži priporočilo"). */
   function animirajOdhodPriporocila(sklop, nato) {
     const koncaj = () => {
       if (sklop) {
-        sklop.hidden = true;
         resetirajSklopPriporocilaAnimacijo(sklop);
       }
       if (typeof nato === "function") nato();
@@ -5260,31 +5433,6 @@ function inicializirajSporociloDolzniku() {
     window.setTimeout(varnoKoncaj, 280);
   }
 
-  function animirajOdhodCelotnegaRazdelka(nato) {
-    if (
-      !ovojMoznaPriporocila ||
-      ovojMoznaPriporocila.hidden ||
-      zeliZmanjsanoGibanje
-    ) {
-      if (ovojMoznaPriporocila) ovojMoznaPriporocila.hidden = true;
-      if (typeof nato === "function") nato();
-      return;
-    }
-    ovojMoznaPriporocila.classList.add("ton-priporocila--odhajaj");
-    let koncano = false;
-    const varnoKoncaj = () => {
-      if (koncano) return;
-      koncano = true;
-      ovojMoznaPriporocila.hidden = true;
-      ovojMoznaPriporocila.classList.remove("ton-priporocila--odhajaj");
-      if (typeof nato === "function") nato();
-    };
-    ovojMoznaPriporocila.addEventListener("transitionend", varnoKoncaj, {
-      once: true,
-    });
-    window.setTimeout(varnoKoncaj, 260);
-  }
-
   function prezriPriporocilo(vrsta) {
     if (vrsta === "rok") priporocilaPrezrta.rok = true;
     if (vrsta === "obrocno") priporocilaPrezrta.obrocno = true;
@@ -5295,16 +5443,18 @@ function inicializirajSporociloDolzniku() {
 
     const sklop =
       vrsta === "rok" ? sklopPriporociloRok : sklopPriporociloObrocno;
-    const obaPrezrta =
-      Boolean(priporocilaPrezrta.rok) && Boolean(priporocilaPrezrta.obrocno);
 
     animirajOdhodPriporocila(sklop, () => {
-      if (obaPrezrta) {
-        animirajOdhodCelotnegaRazdelka();
-      } else {
-        posodobiNamigeTonaDodatkov();
-      }
+      posodobiNamigeTonaDodatkov();
     });
+    shraniOsnutekLokalno();
+  }
+
+  /** Znova pokaže prej prezrto priporočilo (klik na "Prikaži priporočilo"). */
+  function pokaziPriporocilo(vrsta) {
+    if (vrsta === "rok") priporocilaPrezrta.rok = false;
+    if (vrsta === "obrocno") priporocilaPrezrta.obrocno = false;
+    posodobiNamigeTonaDodatkov();
     shraniOsnutekLokalno();
   }
 
@@ -5541,6 +5691,10 @@ function inicializirajSporociloDolzniku() {
     gumbPrezriRok.addEventListener("click", () => prezriPriporocilo("rok"));
   }
 
+  if (gumbPokaziRok) {
+    gumbPokaziRok.addEventListener("click", () => pokaziPriporocilo("rok"));
+  }
+
   if (gumbPreglejObrocno) {
     gumbPreglejObrocno.addEventListener("click", () => {
       if (gumbPreglejObrocno.disabled) return;
@@ -5573,6 +5727,12 @@ function inicializirajSporociloDolzniku() {
     gumbPrezriObrocno.style.color = "#111111";
     gumbPrezriObrocno.addEventListener("click", () =>
       prezriPriporocilo("obrocno")
+    );
+  }
+
+  if (gumbPokaziObrocno) {
+    gumbPokaziObrocno.addEventListener("click", () =>
+      pokaziPriporocilo("obrocno")
     );
   }
 
@@ -6430,6 +6590,14 @@ function inicializirajPosiljanje() {
       (korak1Sms && korak1Sms.finalMessage) ||
       podatkiKorak2.sporociloDolzniku ||
       null;
+    const PV = window.UJPrilogeVsebina;
+    const planZaShranjevanje = {
+      ...plan,
+      attachments:
+        PV && typeof PV.prilogeZaNacrt === "function"
+          ? PV.prilogeZaNacrt(podatkiKorak1)
+          : [],
+    };
 
     const { error } = await supabaseKlient.from("zadeve").insert({
       ime_dolznika: podatkiKorak1.imeDolznika,
@@ -6442,7 +6610,7 @@ function inicializirajPosiljanje() {
       stevilka_racuna: podatkiKorak1.stevilkaRacuna,
       racun_datoteke_poti: podatkiKorak1.racunDatotekePoti,
       sporocilo_dolzniku: sporociloZaZadevo,
-      opomin_nacrt: plan,
+      opomin_nacrt: planZaShranjevanje,
     });
 
     if (error) {
@@ -6468,6 +6636,9 @@ function inicializirajPosiljanje() {
     aktivirajNacrt,
     potrdiVprasanje,
     naloziPrilogo: naloziPrilogoZaVsebinoKoraka,
+    pridobiUrlPriloge: function (pot) {
+      return ustvariSignedUrlPriloge(pot, 120);
+    },
     onPrilogeSpremenjene: function (k1) {
       Object.assign(podatkiKorak1, k1);
       sessionStorage.setItem(
