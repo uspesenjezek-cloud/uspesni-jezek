@@ -3154,6 +3154,7 @@ function inicializirajSporociloDolzniku() {
 
   let paymentDeadline = null;
   let installmentPlan = null;
+  let trrAccount = null; // { accountId, accountLabel, ibanLastFour, sklic, namen, insertedText } | null
   let privzetiDneviRoka = window.UJRokPlacila
     ? window.UJRokPlacila.naloziPrivzeteDni()
     : { 1: 3, 2: 5, 3: 7, 4: 10, 5: 14, 6: 21, 7: 30, 8: 45, 9: 60 };
@@ -3242,6 +3243,7 @@ function inicializirajSporociloDolzniku() {
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
         installmentPlan: installmentPlan,
+        trrAccount: trrAccount,
         toneRecommendation: { ...toneState },
         sporociloRocnoUrejeno: sporociloRocnoUrejeno,
         priporocilaPrezrta: { ...priporocilaPrezrta },
@@ -3277,6 +3279,32 @@ function inicializirajSporociloDolzniku() {
     stanjeEl.textContent = datum || "Izklopljeno";
   }
 
+  function posodobiTrrKarticoStanje(account) {
+    if (!dodatekTrr) return;
+    const stanjeEl = document.getElementById("dodatek-trr-stanje");
+    const vkljuceno = Boolean(account && account.accountId);
+    dodatekTrr.setAttribute("aria-pressed", String(vkljuceno));
+    if (!stanjeEl) return;
+    if (!vkljuceno) {
+      stanjeEl.hidden = true;
+      stanjeEl.textContent = "";
+      return;
+    }
+    const label = String(account.accountLabel || "").trim();
+    const last4 = String(account.ibanLastFour || "").trim();
+    const tekst =
+      label && last4
+        ? label + " • …" + last4
+        : label || (last4 ? "…" + last4 : "");
+    if (!tekst) {
+      stanjeEl.hidden = true;
+      stanjeEl.textContent = "";
+      return;
+    }
+    stanjeEl.hidden = false;
+    stanjeEl.textContent = tekst;
+  }
+
   function resetirajDodatke() {
     dodatki.rok = false;
     dodatki.obrocno = false;
@@ -3285,11 +3313,13 @@ function inicializirajSporociloDolzniku() {
     dodatekBesedila.obrocno = "";
     dodatekBesedila.trr = "";
     installmentPlan = null;
+    trrAccount = null;
     if (dodatekRok) dodatekRok.setAttribute("aria-pressed", "false");
     if (dodatekObrocno) dodatekObrocno.setAttribute("aria-pressed", "false");
     if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", "false");
     posodobiObrocnoKarticoStanje(null);
     posodobiRokKarticoStanje(null);
+    posodobiTrrKarticoStanje(null);
   }
 
   function normalizirajPaymentSettingsPredloge(raw) {
@@ -4124,11 +4154,20 @@ function inicializirajSporociloDolzniku() {
     } catch (_e2) {
       /* ignore */
     }
+    try {
+      if (trrSheetApi && typeof trrSheetApi.zapriNaSilo === "function") {
+        trrSheetApi.zapriNaSilo();
+      }
+    } catch (_e3) {
+      /* ignore */
+    }
     document.body.classList.remove("obrocno-sheet-odprt", "rok-sheet-odprt");
     const obEl = document.getElementById("obrocno-sheet");
     if (obEl) obEl.hidden = true;
     const rokEl = document.getElementById("rok-sheet");
     if (rokEl) rokEl.hidden = true;
+    const trrEl = document.getElementById("trr-sheet");
+    if (trrEl) trrEl.hidden = true;
   }
 
   async function zapriUrediModal(opcije) {
@@ -4999,6 +5038,7 @@ function inicializirajSporociloDolzniku() {
   );
   let rokSheetApi = null;
   let obrocnoSheetApi = null;
+  let trrSheetApi = null;
 
   function aktivniTonZaDodatke() {
     return toneState.appliedToneId || toneState.selectedToneId || izbranTonId;
@@ -5424,13 +5464,43 @@ function inicializirajSporociloDolzniku() {
   }
 
   if (dodatekTrr) {
+    if (typeof window.inicializirajTrrSheet === "function") {
+      trrSheetApi = window.inicializirajTrrSheet({
+        getTrrAccount: () => trrAccount,
+        setTrrAccount: (v) => {
+          trrAccount = v;
+          posodobiTrrKarticoStanje(trrAccount);
+        },
+        getPodatkiKorak1: () => podatkiKorak1,
+        get besediloPolje() {
+          return besediloPolje;
+        },
+        najvecZnakov: NAJVEC_ZNAKOV,
+        get dodatki() {
+          return dodatki;
+        },
+        get dodatekBesedila() {
+          return dodatekBesedila;
+        },
+        gumbTrr: dodatekTrr,
+        posodobiStanjeUrejevalnika,
+        shraniOsnutekLokalno,
+        potrdiVprasanje,
+        pokaziNapako,
+        supabaseKlient:
+          typeof supabaseKlient !== "undefined" ? supabaseKlient : null,
+      });
+    } else {
+      dodatekTrr.addEventListener("click", () => {
+        pokaziNapako(
+          "Nastavitve TRR se niso naložile. Osvežite stran (Ctrl+F5)."
+        );
+      });
+    }
+  }
+  if (dodatekTrr) {
     dodatekTrr.addEventListener("click", () => {
-      const iban = (podatkiKorak1.iban || "").trim();
-      if (!iban) {
-        pokaziNapako("TRR/IBAN še ni na voljo v podatkih zadeve - dodajte ga ročno v sporočilo.");
-        return;
-      }
-      preklopiDodatek("trr", "TRR: " + iban + ".", dodatekTrr);
+      if (trrSheetApi) trrSheetApi.odpri({ onClose: () => {} });
     });
   }
 
@@ -5594,6 +5664,7 @@ function inicializirajSporociloDolzniku() {
         dodatekBesedila: { ...dodatekBesedila },
         paymentDeadline: paymentDeadline,
         installmentPlan: installmentPlan,
+        trrAccount: trrAccount,
         toneRecommendation: {
           selectedTone: toneState.selectedToneId,
           selectionMode: toneState.selectionMode || "automatic",
@@ -5644,6 +5715,13 @@ function inicializirajSporociloDolzniku() {
         dodatki.rok = true;
         if (!dodatekBesedila.rok && paymentDeadline.insertedText) {
           dodatekBesedila.rok = String(paymentDeadline.insertedText);
+        }
+      }
+      if (osnutek.trrAccount && osnutek.trrAccount.accountId) {
+        trrAccount = osnutek.trrAccount;
+        dodatki.trr = true;
+        if (!dodatekBesedila.trr && trrAccount.insertedText) {
+          dodatekBesedila.trr = String(trrAccount.insertedText);
         }
       }
       if (osnutek.installmentPlan && osnutek.installmentPlan.enabled) {
@@ -5708,7 +5786,8 @@ function inicializirajSporociloDolzniku() {
         dodatki.obrocno =
           Boolean(installmentPlan && installmentPlan.enabled) ||
           (Boolean(osnutek.dodatki.obrocno) && Boolean(installmentPlan));
-        dodatki.trr = Boolean(osnutek.dodatki.trr);
+        dodatki.trr =
+          Boolean(osnutek.dodatki.trr) || Boolean(trrAccount && trrAccount.accountId);
         if (dodatekRok) dodatekRok.setAttribute("aria-pressed", String(dodatki.rok));
         posodobiRokKarticoStanje(
           dodatki.rok && paymentDeadline ? paymentDeadline : null
@@ -5719,10 +5798,15 @@ function inicializirajSporociloDolzniku() {
             dodatki.obrocno && installmentPlan ? installmentPlan : null
           );
         }
-        if (dodatekTrr) dodatekTrr.setAttribute("aria-pressed", String(dodatki.trr));
+        posodobiTrrKarticoStanje(
+          dodatki.trr && trrAccount ? trrAccount : null
+        );
       } else if (paymentDeadline && paymentDeadline.enabled && dodatekRok) {
         dodatekRok.setAttribute("aria-pressed", "true");
         posodobiRokKarticoStanje(paymentDeadline);
+      }
+      if (trrAccount && trrAccount.accountId) {
+        posodobiTrrKarticoStanje(trrAccount);
       }
       if (typeof osnutek.sporociloRocnoUrejeno === "boolean") {
         sporociloRocnoUrejeno = osnutek.sporociloRocnoUrejeno;

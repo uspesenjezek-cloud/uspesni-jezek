@@ -9763,5 +9763,176 @@ body.template-editor-odprt {
   }
 }
 
+/* ========== TRR sheet (Podatki za nakazilo) ========== */
+.trr-sheet__sekcija {
+  margin-top: var(--space-md, 16px);
+}
 
+.trr-sheet__sekcija-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  margin-bottom: var(--space-sm, 12px);
+}
+
+.trr-sheet__sekcija-naslov {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text, #173633);
+}
+
+.trr-sheet__nov {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px dashed var(--teal, #3d999b);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--teal-dark, #247f7e);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trr-sheet__nov:hover {
+  background: var(--teal-pale, #eaf6f5);
+}
+
+.trr-sheet__prazno {
+  margin: 0 0 var(--space-sm, 12px);
+  color: var(--muted, #687c79);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.trr-sheet__seznam {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+}
+
+.trr-sheet__kartica {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.trr-sheet__kartica input {
+  margin-top: 3px;
+  accent-color: var(--teal, #3d999b);
+}
+
+.trr-sheet__kartica--izbrana {
+  border-color: var(--teal, #3d999b);
+  background: var(--teal-pale, #eaf6f5);
+}
+
+.trr-sheet__kartica-telo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.trr-sheet__kartica-vrh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.trr-sheet__kartica-ime {
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--text, #173633);
+}
+
+.trr-sheet__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--teal, #3d999b);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.trr-sheet__kartica-naziv,
+.trr-sheet__kartica-iban {
+  font-size: 0.78rem;
+  color: var(--muted, #687c79);
+  overflow-wrap: anywhere;
+}
+
+.trr-sheet__polje {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-md, 16px);
+}
+
+.trr-sheet__polje input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text, #173633);
+  font-family: inherit;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.trr-sheet__nov-forma {
+  margin-top: var(--space-sm, 12px);
+  padding: 12px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 14px;
+  background: #f7fbfa;
+}
+
+.trr-sheet__nov-akcije {
+  display: flex;
+  gap: var(--space-sm, 12px);
+  margin-top: var(--space-md, 16px);
+}
+
+.trr-sheet__nov-akcije .rok-sheet__gumb {
+  flex: 1;
+}
+
+.trr-sheet__preview {
+  margin-top: var(--space-md, 16px);
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-soft, #eef4f3);
+}
+
+.trr-sheet__preview-oznaka {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted, #687c79);
+}
+
+.trr-sheet__preview-tekst {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text, #173633);
+}
 
