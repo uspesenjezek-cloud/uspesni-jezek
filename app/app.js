@@ -4586,25 +4586,30 @@ function inicializirajSporociloDolzniku() {
     }, 0);
   }
 
-  function preklopiModalTrr() {
+  function odpriModalDodatekTrr() {
     if (!modalDodatkiKlikDovoljen()) return;
-    if (!odprtPredlog) return;
-    const cur =
-      normalizirajPaymentSettingsPredloge(odprtPredlog.paymentSettings) ||
-      zacetniPaketZaModal();
-    const iban = (podatkiKorak1.iban || "").trim();
-    if (!cur.trr.enabled && !iban) {
+    if (!trrSheetApi || typeof trrSheetApi.odpri !== "function") {
       pokaziNapako(
-        "TRR/IBAN še ni na voljo v podatkih zadeve – dodajte ga v prvem koraku."
+        "Nastavitve TRR se niso naložile. Osvežite stran (Ctrl+F5)."
       );
       return;
     }
-    odprtPredlog.paymentSettings = normalizirajPaymentSettingsPredloge({
-      ...cur,
-      trr: { enabled: !cur.trr.enabled },
+    trrSheetApi.odpri({
+      onClose: (rez) => {
+        if (rez && rez.shranjeno && odprtPredlog) {
+          const cur =
+            normalizirajPaymentSettingsPredloge(odprtPredlog.paymentSettings) ||
+            zacetniPaketZaModal();
+          odprtPredlog.paymentSettings = normalizirajPaymentSettingsPredloge({
+            ...cur,
+            trr: { enabled: Boolean(trrAccount && trrAccount.accountId) },
+          });
+          skrijPriporociloVrstico();
+          posodobiModalDodatkeKartice();
+        }
+        poZaprtjuSheetaNadPredlogo();
+      },
     });
-    skrijPriporociloVrstico();
-    posodobiModalDodatkeKartice();
   }
 
   function predlagajTonZaPredlogo() {
@@ -5498,11 +5503,6 @@ function inicializirajSporociloDolzniku() {
       });
     }
   }
-  if (dodatekTrr) {
-    dodatekTrr.addEventListener("click", () => {
-      if (trrSheetApi) trrSheetApi.odpri({ onClose: () => {} });
-    });
-  }
 
   if (gumbDodajPredlog) gumbDodajPredlog.addEventListener("click", odpriNovPredlogModal);
   if (modalIzbrisi) {
@@ -5525,7 +5525,7 @@ function inicializirajSporociloDolzniku() {
     );
   }
   if (modalDodatekTrr) {
-    modalDodatekTrr.addEventListener("click", () => preklopiModalTrr());
+    modalDodatekTrr.addEventListener("click", () => odpriModalDodatekTrr());
   }
   if (modalPredlagajTon) {
     modalPredlagajTon.addEventListener("click", () => predlagajTonZaPredlogo());

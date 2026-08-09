@@ -583,6 +583,19 @@
     }
     if (novShrani) novShrani.addEventListener("click", shraniNovRacun);
 
+    // Klik na TRR kartico (kot rok-placila-sheet na gumbRok) – vedno odpre sheet,
+    // tudi če še ni nobenega računa v Supabase.
+    if (ctx.gumbTrr && typeof ctx.gumbTrr.addEventListener === "function") {
+      ctx.gumbTrr.addEventListener("click", function (dogodek) {
+        dogodek.preventDefault();
+        dogodek.stopPropagation();
+        window.setTimeout(function () {
+          if (odprt) return;
+          odpri({});
+        }, 0);
+      });
+    }
+
     return { odpri: odpri, zapri: zapriSheet, zapriNaSilo: zapriNaSilo };
   }
 

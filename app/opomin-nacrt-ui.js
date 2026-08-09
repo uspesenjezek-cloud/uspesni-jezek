@@ -400,9 +400,12 @@
     var privzetiDneviRoka = { 1: 5, 2: 7, 3: 10, 4: 14, 5: 14, 6: 14, 7: 14, 8: 14, 9: 14 };
     var rokSheetApi = null;
     var obrocnoSheetApi = null;
+    var trrSheetApi = null;
+    var trrAccount = k2Seja.trrAccount || null;
     var bridgeBesedilo = document.getElementById("opomin-bridge-besedilo");
     var bridgeRok = document.getElementById("opomin-bridge-rok");
     var bridgeObrocno = document.getElementById("opomin-bridge-obrocno");
+    var bridgeTrr = document.getElementById("opomin-bridge-trr");
 
     function syncStageDodatki() {
       var step = N.najdiKorak(plan, aktivenIndex);
@@ -422,14 +425,21 @@
             ? Number(installmentPlan.installmentCount)
             : null,
       };
-      var iban = String(
-        (opts.podatkiKorak1 && opts.podatkiKorak1.iban) || ""
-      ).trim();
+      var ibanLast =
+        trrAccount && trrAccount.ibanLastFour
+          ? String(trrAccount.ibanLastFour)
+          : null;
       step.bankTransfer = {
-        enabled: Boolean(dodatki.trr),
-        accountId: null,
-        accountLabel: dodatki.trr ? "Privzeti" : null,
-        ibanLastFour: iban ? iban.slice(-4) : null,
+        enabled: Boolean(trrAccount && trrAccount.accountId),
+        accountId:
+          trrAccount && trrAccount.accountId
+            ? String(trrAccount.accountId)
+            : null,
+        accountLabel:
+          trrAccount && trrAccount.accountLabel
+            ? String(trrAccount.accountLabel)
+            : null,
+        ibanLastFour: ibanLast,
       };
       if (step.status === "confirmed") {
         step.status = "needs_review";
@@ -446,6 +456,7 @@
         var k2 = raw ? JSON.parse(raw) : Object.assign({}, opts.podatkiKorak2 || {});
         k2.paymentDeadline = paymentDeadline;
         k2.installmentPlan = installmentPlan;
+        k2.trrAccount = trrAccount;
         k2.dodatki = {
           rok: Boolean(dodatki.rok),
           obrocno: Boolean(dodatki.obrocno),
@@ -628,6 +639,51 @@
         });
       }
 
+      if (typeof root.inicializirajTrrSheet === "function") {
+        trrSheetApi = root.inicializirajTrrSheet({
+          getTrrAccount: function () {
+            return trrAccount;
+          },
+          setTrrAccount: function (v) {
+            trrAccount = v;
+            dodatki.trr = Boolean(v && v.accountId);
+            if (v && v.insertedText) {
+              dodatekBesedila.trr = String(v.insertedText);
+            } else if (!v) {
+              dodatekBesedila.trr = "";
+            }
+            if (bridgeTrr) {
+              bridgeTrr.setAttribute(
+                "aria-pressed",
+                dodatki.trr ? "true" : "false"
+              );
+            }
+          },
+          getPodatkiKorak1: function () {
+            return opts.podatkiKorak1 || {};
+          },
+          get besediloPolje() {
+            return bridgeBesedilo;
+          },
+          najvecZnakov: 1000,
+          get dodatki() {
+            return dodatki;
+          },
+          get dodatekBesedila() {
+            return dodatekBesedila;
+          },
+          gumbTrr: bridgeTrr,
+          posodobiStanjeUrejevalnika: function () {},
+          shraniOsnutekLokalno: function () {
+            shraniVse();
+          },
+          potrdiVprasanje: opts.potrdiVprasanje,
+          pokaziNapako: opts.pokaziNapako,
+          supabaseKlient:
+            typeof supabaseKlient !== "undefined" ? supabaseKlient : null,
+        });
+      }
+
       if (bridgeBesedilo) {
         var s1 = N.najdiKorak(plan, 1);
         bridgeBesedilo.value =
@@ -644,6 +700,12 @@
         bridgeObrocno.setAttribute(
           "aria-pressed",
           installmentPlan && installmentPlan.enabled ? "true" : "false"
+        );
+      }
+      if (bridgeTrr) {
+        bridgeTrr.setAttribute(
+          "aria-pressed",
+          trrAccount && trrAccount.accountId ? "true" : "false"
         );
       }
     }
@@ -1736,21 +1798,18 @@
             return;
           }
           if (akcija === "trr") {
-            var iban = String(
-              (opts.podatkiKorak1 && opts.podatkiKorak1.iban) || ""
-            ).trim();
-            if (!iban) {
-              if (typeof opts.pokaziNapako === "function") {
-                opts.pokaziNapako(
-                  "TRR/IBAN še ni na voljo v podatkih zadeve – dodajte ga v prvem koraku ali ročno v sporočilo."
-                );
-              }
-              return;
+            if (trrSheetApi && typeof trrSheetApi.odpri === "function") {
+              trrSheetApi.odpri({
+                onClose: function () {
+                  shraniVse();
+                  izrisiGlavni();
+                },
+              });
+            } else if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(
+                "Nastavitve TRR se niso naložile. Osvežite stran (Ctrl+F5)."
+              );
             }
-            dodatki.trr = !dodatki.trr;
-            dodatekBesedila.trr = dodatki.trr ? "TRR: " + iban + "." : "";
-            shraniVse();
-            izrisiGlavni();
             return;
           }
           if (typeof opts.potrdiVprasanje === "function") {

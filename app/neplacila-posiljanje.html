@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260809-kanal-toggle" />
+    <link rel="stylesheet" href="styles.css?v=20260809-trr-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -92,6 +92,7 @@
       <button type="button" id="opomin-bridge-obrocno" aria-pressed="false">
         <span class="sporocilo-dodatek__stanje" id="opomin-bridge-obrocno-stanje">Izklopljeno</span>
       </button>
+      <button type="button" id="opomin-bridge-trr" aria-pressed="false"></button>
       <textarea id="opomin-bridge-besedilo" rows="1"></textarea>
     </div>
 <div class="rok-sheet" id="rok-sheet" hidden>
@@ -363,6 +364,122 @@
       </div>
     </div>
 
+    <!-- Bottom sheet: Podatki za nakazilo (TRR) -->
+    <div class="rok-sheet trr-sheet" id="trr-sheet" hidden>
+      <button
+        type="button"
+        class="rok-sheet__backdrop"
+        id="trr-sheet-backdrop"
+        aria-label="Zapri podatke za nakazilo"
+      ></button>
+      <div
+        class="rok-sheet__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trr-sheet-naslov"
+        id="trr-sheet-panel"
+      >
+        <div class="rok-sheet__rocaj" aria-hidden="true"></div>
+        <div class="rok-sheet__glava">
+          <h2 class="rok-sheet__naslov" id="trr-sheet-naslov" tabindex="-1">
+            Podatki za nakazilo
+          </h2>
+          <button type="button" class="rok-sheet__zapri" id="trr-sheet-zapri" aria-label="Zapri">
+            ✕
+          </button>
+        </div>
+        <div class="rok-sheet__telo">
+          <label class="rok-sheet__stikalo">
+            <span class="rok-sheet__stikalo-besedilo">Vključi TRR v sporočilo</span>
+            <input type="checkbox" id="trr-sheet-vkljuci" />
+            <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
+          </label>
+
+          <div id="trr-sheet-vsebina" hidden>
+            <section class="trr-sheet__sekcija" aria-labelledby="trr-sheet-racuni-naslov">
+              <div class="trr-sheet__sekcija-glava">
+                <h3 class="trr-sheet__sekcija-naslov" id="trr-sheet-racuni-naslov">Izberite račun</h3>
+                <button type="button" class="trr-sheet__nov" id="trr-sheet-nov">
+                  <span aria-hidden="true">+</span> Nov TRR
+                </button>
+              </div>
+
+              <div id="trr-sheet-seznam-ovoj">
+                <p class="trr-sheet__prazno" id="trr-sheet-prazno" hidden>
+                  Še nimate shranjenega TRR. Dodajte prvega z »+ Nov TRR«.
+                </p>
+                <div
+                  class="trr-sheet__seznam"
+                  id="trr-sheet-seznam"
+                  role="radiogroup"
+                  aria-labelledby="trr-sheet-racuni-naslov"
+                ></div>
+              </div>
+
+              <div class="trr-sheet__nov-forma" id="trr-sheet-nov-forma" hidden>
+                <p class="rok-sheet__oznaka">Nov TRR račun</p>
+                <label class="trr-sheet__polje">
+                  <span class="rok-sheet__oznaka">Ime</span>
+                  <input type="text" id="trr-sheet-nov-ime" maxlength="80" placeholder="npr. Privzeti TRR" />
+                </label>
+                <label class="trr-sheet__polje">
+                  <span class="rok-sheet__oznaka">Naziv podjetja</span>
+                  <input type="text" id="trr-sheet-nov-naziv" maxlength="120" placeholder="Naziv podjetja" />
+                </label>
+                <label class="trr-sheet__polje">
+                  <span class="rok-sheet__oznaka">IBAN</span>
+                  <input
+                    type="text"
+                    id="trr-sheet-nov-iban"
+                    maxlength="34"
+                    placeholder="SI56 …"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </label>
+                <p class="rok-sheet__napaka" id="trr-sheet-nov-napaka" hidden role="alert"></p>
+                <div class="trr-sheet__nov-akcije">
+                  <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="trr-sheet-nov-preklici">
+                    Prekliči
+                  </button>
+                  <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="trr-sheet-nov-shrani">
+                    Shrani račun
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <label class="trr-sheet__polje">
+              <span class="rok-sheet__oznaka">Sklic</span>
+              <input type="text" id="trr-sheet-sklic" maxlength="25" autocomplete="off" />
+            </label>
+
+            <label class="trr-sheet__polje">
+              <span class="rok-sheet__oznaka">Namen plačila</span>
+              <input type="text" id="trr-sheet-namen" maxlength="120" autocomplete="off" />
+            </label>
+
+            <div class="trr-sheet__preview" aria-live="polite">
+              <p class="trr-sheet__preview-oznaka">Dodatek k glavnemu sporočilu</p>
+              <p class="trr-sheet__preview-tekst" id="trr-sheet-preview">—</p>
+            </div>
+          </div>
+
+          <p class="rok-sheet__napaka" id="trr-sheet-napaka" hidden role="alert"></p>
+        </div>
+        <div class="rok-sheet__noga">
+          <div class="rok-sheet__noga-vrsta">
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="trr-sheet-preklici">
+              Prekliči
+            </button>
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="trr-sheet-shrani">
+              Shrani spremembe
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Samo-branje predogled predloge (klik na kartico) -->
 
     <div class="lightbox" id="lightbox" hidden>
@@ -376,12 +493,13 @@
     <script src="rok-placila-sheet.js?v=20260808-opomin-vsebina"></script>
     <script src="obrocno-utils.js?v=20260808-opomin-vsebina"></script>
     <script src="obrocno-sheet.js?v=20260808-opomin-vsebina"></script>
+    <script src="trr-sheet.js?v=20260809-trr-v2"></script>
     <script src="ton-dodatki-priporocila.js?v=20260808-opomin-vsebina"></script>
     <script src="recommendation-card.js?v=20260808-opomin-vsebina"></script>
     <script src="ton-priporocilo.js?v=20260808-vsebina-koraka"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
     <script src="opomin-nacrt.js?v=20260808-vsebina-koraka"></script>
-    <script src="opomin-nacrt-ui.js?v=20260809-kanal-toggle"></script>
-    <script src="app.js?v=20260808-vk-priloge"></script>
+    <script src="opomin-nacrt-ui.js?v=20260809-trr-v2"></script>
+    <script src="app.js?v=20260809-trr-v2"></script>
   </body>
 </html>
