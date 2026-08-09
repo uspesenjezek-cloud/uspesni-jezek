@@ -6220,24 +6220,26 @@ body.obrocno-sheet-odprt .korak2__noga {
 }
 
 .recommendation-card__button--ignore {
-  border: 1px solid var(--recommendation-secondary-border);
-  background: var(--recommendation-secondary-background);
-  color: var(--recommendation-secondary-text);
+  border: 0;
+  background: var(--recommendation-button-surface);
+  color: var(--recommendation-accent);
 }
 
 .recommendation-card__button--apply {
-  border: 1px solid var(--recommendation-primary-border);
-  background: var(--recommendation-primary-background);
-  color: var(--recommendation-primary-text);
+  border: 0;
+  background: var(--recommendation-button-surface);
+  color: var(--recommendation-accent);
 }
 
 @media (hover: hover) {
   .recommendation-card__button--ignore:hover {
-    background: rgba(223, 180, 49, 0.08);
+    background: var(--recommendation-button-surface);
+    opacity: 0.8;
   }
 
   .recommendation-card__button--apply:hover {
-    background: #f1d98d;
+    background: var(--recommendation-button-surface);
+    opacity: 0.8;
   }
 }
 
