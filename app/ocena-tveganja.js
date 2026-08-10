@@ -12,6 +12,7 @@
 
   var KLJUC_PRAGOVI_OSNOVA = "neplacilo-ocena-tveganja-pragovi";
   var _trenutniUid = null;
+  var _preskociBlur = false;
 
   function vrniPrivzetePragove() {
     return {
@@ -341,6 +342,7 @@
     var vsiDolgInputi = document.querySelectorAll("#ocena-dolg-nizek-od, #ocena-dolg-nizek-do, #ocena-dolg-srednji-od, #ocena-dolg-srednji-do, #ocena-dolg-visok-od, #ocena-dolg-visok-do, #ocena-dolg-ekstremni-od");
     for (var di = 0; di < vsiDolgInputi.length; di++) {
       vsiDolgInputi[di].addEventListener("blur", function () {
+        if (_preskociBlur) return;
         var p = beriDolgPragoveIzDOM();
         if (!validirajDolgPragove(p)) this.focus();
       });
@@ -348,6 +350,7 @@
     var vsiZamInputi = document.querySelectorAll("#ocena-zamuda-kratka-od, #ocena-zamuda-kratka-do, #ocena-zamuda-srednja-od, #ocena-zamuda-srednja-do, #ocena-zamuda-visoka-od, #ocena-zamuda-visoka-do, #ocena-zamuda-ekstremna-od");
     for (var zi = 0; zi < vsiZamInputi.length; zi++) {
       vsiZamInputi[zi].addEventListener("blur", function () {
+        if (_preskociBlur) return;
         var p = beriZamudaPragoveIzDOM();
         if (!validirajZamudaPragove(p)) this.focus();
       });
@@ -432,8 +435,10 @@
 
     document.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape") {
+        _preskociBlur = true;
         var sheets = ["ocena-dolg-sheet", "ocena-zamuda-sheet", "ocena-zgodovina-sheet"];
         for (var s = 0; s < sheets.length; s++) { var el = document.getElementById(sheets[s]); if (el) el.hidden = true; }
+        setTimeout(function () { _preskociBlur = false; }, 0);
       }
     });
   }
@@ -489,9 +494,22 @@
     var odpriBtn = document.querySelector(odpriSelector);
     if (odpriBtn) odpriBtn.addEventListener("click", function () { sheet.hidden = false; });
     var zapriBtns = sheet.querySelectorAll(zapriSelector);
-    for (var i = 0; i < zapriBtns.length; i++) zapriBtns[i].addEventListener("click", function () { sheet.hidden = true; });
+    for (var i = 0; i < zapriBtns.length; i++) {
+      zapriBtns[i].addEventListener("mousedown", function () { _preskociBlur = true; });
+      zapriBtns[i].addEventListener("click", function () {
+        sheet.hidden = true;
+        setTimeout(function () { _preskociBlur = false; }, 0);
+      });
+    }
     var ponastaviBtn = sheet.querySelector(ponastaviSelector);
-    if (ponastaviBtn && ponastaviFn) ponastaviBtn.addEventListener("click", ponastaviFn);
+    if (ponastaviBtn && ponastaviFn) {
+      // mousedown prepreči blur validacijo še preden polje izgubi fokus
+      ponastaviBtn.addEventListener("mousedown", function () { _preskociBlur = true; });
+      ponastaviBtn.addEventListener("click", function () {
+        ponastaviFn();
+        setTimeout(function () { _preskociBlur = false; }, 0);
+      });
+    }
     var shraniBtn = sheet.querySelector(shraniSelector);
     if (shraniBtn && shraniFn) shraniBtn.addEventListener("click", function () { var ok = shraniFn(); if (ok) sheet.hidden = true; });
   }
