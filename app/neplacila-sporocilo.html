@@ -2,7 +2,7 @@
 <html lang="sl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="color-scheme" content="light only" />
     <title>Vnos sporočila – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-rok-sheet-animacija" />
+    <link rel="stylesheet" href="styles.css?v=20260810-izbrisi-korak-dve-vrstici" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -57,43 +57,37 @@
               <span class="debt-step__line" aria-hidden="true"></span>
             </a>
           </nav>
-          <header class="korak-glava wizard-current-header">
-            <div class="korak-glava__levo">
-              <span class="korak-glava__ikona" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H8"/><path d="M16 12H8"/></svg>
-              </span>
-              <div class="korak-glava__besedilo">
-                <p class="korak-glava__meta">Korak 2 od 3</p>
-                <h2 class="korak-glava__naslov">Vnos sporočila</h2>
-              </div>
-            </div>
-            <p class="korak-glava__osnutek" id="osnutek-status" role="status" aria-live="polite">Osnutek shranjen</p>
-          </header>
         </div>
 
         <main class="korak2__vsebina">
           <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
-          <!-- Ton sporočila: widget + ločena priporočilna vrstica -->
-          <div class="tone-recommendation-section" id="tone-recommendation-section" hidden>
-            <section class="ton-widget" id="ton-widget" aria-label="Ton sporočila">
-              <div class="debt-summary" id="ton-povzetek">
+          <!-- Priporočilo za ta dolg: samostojen widget (ton + ključni podatki) -->
+          <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section" hidden>
+            <section class="ton-widget" id="ton-widget" aria-label="Priporočilo za ta dolg">
+              <header class="priporocilo-widget__glava">
+                <span class="priporocilo-widget__ikona" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a2 2 0 0 1 0-4h6a2 2 0 0 1 0 4Z"/><path d="M12 18v-6"/></svg>
+                </span>
+                <h3 class="priporocilo-widget__naslov">Priporočilo za ta dolg</h3>
+              </header>
+
+              <div class="debt-summary debt-summary--tri" id="ton-povzetek">
                 <div class="debt-summary__amount-column">
                   <span class="debt-summary__label">Dolg</span>
                   <span class="debt-summary__amount" id="ton-znesek-znacka">—</span>
                 </div>
                 <div class="debt-summary__category-column">
-                  <span class="debt-summary__label">Kategorija dolga</span>
-                  <span class="debt-category-pill" id="ton-kategorija-znacka">—</span>
+                  <span class="debt-summary__label">Zamuda</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
                 </div>
+                <div class="debt-summary__category-column">
+                  <span class="debt-summary__label">Pretekle zamude</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
+                </div>
+                <!-- Ohranjen za obstoječo logiko ton-widget.js (posodobiGlava), v novem widgetu ni prikazan -->
+                <span class="debt-category-pill sr-only" id="ton-kategorija-znacka"></span>
               </div>
-
-              <p class="overdue-status" id="ton-cas-znacka">
-                <span class="overdue-status__icon" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-                </span>
-                <span class="overdue-status__text" id="ton-cas-tekst"></span>
-              </p>
 
               <div class="tone-carousel" id="ton-carousel">
                 <div
@@ -104,21 +98,20 @@
                 ></div>
               </div>
               <p class="sr-only" id="ton-aria-live" aria-live="polite"></p>
-            </section>
 
-            <button
-              type="button"
-              class="tone-reason-row"
-              id="ton-reason-row"
-              aria-label="Pojasni priporočeni ton"
-            >
-              <span class="tone-reason-row__star" aria-hidden="true">★</span>
-              <span class="tone-reason-row__text" id="ton-reason-text">Zakaj predlagamo ta ton?</span>
-              <span class="tone-reason-row__button">
-                Poglej
-                <span aria-hidden="true">›</span>
-              </span>
-            </button>
+              <p class="priporocilo-widget__razlaga" id="priporocilo-razlaga">
+                Ton je predlagan glede na znesek in zapadlost.
+              </p>
+
+              <button
+                type="button"
+                class="priporocilo-widget__uporabi"
+                id="priporocilo-uporabi-gumb"
+              >
+                <span class="priporocilo-widget__uporabi-zvezda" aria-hidden="true">★</span>
+                Uporabi priporočeno
+              </button>
+            </section>
           </div>
 
           <form id="obrazec-sporocilo">
@@ -941,12 +934,14 @@
     <script src="obrocno-utils.js?v=20260808-obrocno-brez-vklop"></script>
     <script src="obrocno-sheet.js?v=20260809-gumbi-poenoteni"></script>
     <script src="trr-sheet.js?v=20260809-gumbi-poenoteni"></script>
+    <script src="ocena-tveganja.js?v=20260810-priporocilo-widget-v1"></script>
     <script src="ton-priporocilo.js?v=20260808-ton-widget-v1"></script>
     <script src="ton-predloge.js?v=20260808-utf8-fix"></script>
     <script src="ton-widget.js?v=20260808-ton-widget-v1"></script>
     <script src="ton-dodatki-priporocila.js?v=20260808-predogled"></script>
     <script src="recommendation-card.js?v=20260809-priporocilo-izklopi"></script>
     <script src="predloga-payment-settings.js?v=20260808-predogled"></script>
-    <script src="app.js?v=20260810-dinamicne-stevilke-predlogov"></script>
+    <script src="app.js?v=20260810-brez-korak-glave"></script>
+    <script src="priporocilo-widget.js?v=20260810-priporocilo-widget-v4"></script>
   </body>
 </html>

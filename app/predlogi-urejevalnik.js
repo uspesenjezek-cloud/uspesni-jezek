@@ -523,21 +523,8 @@
         return;
       }
       var p = normalizirajPS(predlogUrejan && predlogUrejan.paymentSettings) || zacetniPaket(tonZaModalPlacila());
-      predlogaSheetSaved = false;
-      var UJ = window.UJRokPlacila;
       var days = Number(p.rok.termDays) || 14;
       var base = bazaDatumaPosiljanja();
-      predlogaDraftDeadline = p.rok.enabled ? {
-        enabled: true,
-        mode: "automatic",
-        linkedProposalNumber: Number(modalIzbranaStevilka) || 1,
-        linkedToneId: (predlogUrejan && predlogUrejan.toneId) || null,
-        termDays: days,
-        deadlineDate: UJ ? UJ.izracunajRok(base, days) : "",
-        baseSendDate: base,
-        insertedText: "",
-        messageLanguage: "sl",
-      } : null;
 
       window.setTimeout(function () {
         if (!document.body.classList.contains("template-editor-odprt")) return;
@@ -545,21 +532,22 @@
           termDays: days,
           toneId: tonZaModalPlacila(),
           onClose: function () {
-            if (predlogaSheetSaved) {
-              var d = predlogaDraftDeadline;
-              if (d && d.enabled) {
-                predlogUrejan.paymentSettings = normalizirajPS({
-                  version: 1,
-                  rok: { enabled: true, mode: "automatic", termDays: Number(d.termDays) || days },
-                  obrocno: { enabled: false, installmentCount: 4, intervalType: "monthly" },
-                  trr: { enabled: ((predlogUrejan.paymentSettings && predlogUrejan.paymentSettings.trr) || {}).enabled || false },
-                });
-              } else {
-                var cur = predlogUrejan.paymentSettings || zacetniPaket(tonZaModalPlacila());
-                cur.rok.enabled = false;
-                predlogUrejan.paymentSettings = normalizirajPS(cur);
-              }
+            // Preberi paymentDeadline iz step-3 globala (prek getterja v ctx)
+            var pd = ctx.getPaymentDeadline ? ctx.getPaymentDeadline() : null;
+            if (pd && pd.enabled) {
+              predlogUrejan.paymentSettings = normalizirajPS({
+                version: 1,
+                rok: { enabled: true, mode: "automatic", termDays: Number(pd.termDays) || days },
+                obrocno: { enabled: false, installmentCount: 4, intervalType: "monthly" },
+                trr: { enabled: ((predlogUrejan.paymentSettings && predlogUrejan.paymentSettings.trr) || {}).enabled || false },
+              });
               skrijPriporociloVrstico();
+              posodobiModalDodatkeKartice();
+            } else if (pd) {
+              // Rok je izklopljen v paymentDeadline
+              var cur = predlogUrejan.paymentSettings || zacetniPaket(tonZaModalPlacila());
+              cur.rok.enabled = false;
+              predlogUrejan.paymentSettings = normalizirajPS(cur);
               posodobiModalDodatkeKartice();
             }
             predlogaSheetSaved = false;
@@ -578,9 +566,6 @@
         return;
       }
       var p = normalizirajPS(predlogUrejan && predlogUrejan.paymentSettings) || zacetniPaket(tonZaModalPlacila());
-      predlogaSheetSaved = false;
-      predlogaDraftPlan = null;
-
       var totalZaPredlogo = 10000;
       if (window.UJObrocno) {
         var x = window.UJObrocno.eurosToCents((ctx.podatkiKorak1 || {}).znesek);
@@ -597,25 +582,25 @@
           zacetnoStevilo: p.obrocno && p.obrocno.enabled ? Number(p.obrocno.installmentCount) || 2 : null,
           zacetnoInterval: p.obrocno && p.obrocno.enabled ? p.obrocno.intervalType || "monthly" : null,
           onClose: function () {
-            if (predlogaSheetSaved) {
-              var plan = predlogaDraftPlan;
-              if (plan && plan.enabled) {
-                predlogUrejan.paymentSettings = normalizirajPS({
-                  version: 1,
-                  rok: { enabled: false, mode: "automatic", termDays: 14 },
-                  obrocno: {
-                    enabled: true,
-                    installmentCount: Number(plan.installmentCount) || (plan.installments && plan.installments.length) || 2,
-                    intervalType: plan.intervalType || "monthly",
-                  },
-                  trr: { enabled: ((predlogUrejan.paymentSettings && predlogUrejan.paymentSettings.trr) || {}).enabled || false },
-                });
-              } else {
-                var cur = predlogUrejan.paymentSettings || zacetniPaket(tonZaModalPlacila());
-                cur.obrocno.enabled = false;
-                predlogUrejan.paymentSettings = normalizirajPS(cur);
-              }
+            // Preberi installmentPlan iz step-3 globala (prek getterja v ctx)
+            var ip = ctx.getInstallmentPlan ? ctx.getInstallmentPlan() : null;
+            if (ip && ip.enabled) {
+              predlogUrejan.paymentSettings = normalizirajPS({
+                version: 1,
+                rok: { enabled: false, mode: "automatic", termDays: 14 },
+                obrocno: {
+                  enabled: true,
+                  installmentCount: Number(ip.installmentCount) || (ip.installments && ip.installments.length) || 2,
+                  intervalType: ip.intervalType || "monthly",
+                },
+                trr: { enabled: ((predlogUrejan.paymentSettings && predlogUrejan.paymentSettings.trr) || {}).enabled || false },
+              });
               skrijPriporociloVrstico();
+              posodobiModalDodatkeKartice();
+            } else if (ip) {
+              var cur = predlogUrejan.paymentSettings || zacetniPaket(tonZaModalPlacila());
+              cur.obrocno.enabled = false;
+              predlogUrejan.paymentSettings = normalizirajPS(cur);
               posodobiModalDodatkeKartice();
             }
             predlogaSheetSaved = false;
@@ -634,20 +619,21 @@
         return;
       }
       trrApi.odpri({
-        onClose: function (rez) {
-          if (rez && rez.shranjeno && predlogUrejan) {
+        onClose: function () {
+          // Preberi trrAccount iz step-3 globala (prek getterja v ctx)
+          var ta = ctx.getTrrAccount ? ctx.getTrrAccount() : null;
+          if (predlogUrejan) {
             var cur = normalizirajPS(predlogUrejan.paymentSettings) || zacetniPaket(tonZaModalPlacila());
-            // TRR sheet vrača trrAccount – preverimo, če je accountId nastavljen
-            var trrEnabled = rez.ibanLastFour ? true : false;
+            var trrEnabled = Boolean(ta && ta.accountId);
             predlogUrejan.paymentSettings = normalizirajPS({
               version: 1,
               rok: cur.rok,
               obrocno: cur.obrocno,
               trr: { enabled: trrEnabled },
             });
-            skrijPriporociloVrstico();
-            posodobiModalDodatkeKartice();
+            if (trrEnabled) skrijPriporociloVrstico();
           }
+          posodobiModalDodatkeKartice();
           poZaprtjuSheetaNadPredlogo();
         },
       });
@@ -657,6 +643,7 @@
 
     function zapri() {
       if (!modal) return;
+      prikaziSeznamView();
       modal.hidden = true;
       document.body.classList.remove("template-editor-odprt");
       if (typeof ctx.onZaprto === "function") ctx.onZaprto();
@@ -715,7 +702,9 @@
         uredi.type = "button";
         uredi.className = "preview-button";
         uredi.innerHTML = IKONA_SVINCNIKA + "<span>Uredi</span>";
-        uredi.addEventListener("click", function () {
+        uredi.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
           odpriFormo(predlog);
         });
 
@@ -773,10 +762,39 @@
       }
     }
 
+    function prikaziSeznamView() {
+      var seznamEl = document.getElementById("predlogi-urejevalnik-seznam");
+      var novaEl = document.getElementById("predlogi-urejevalnik-nova");
+      if (forma) forma.hidden = true;
+      predlogUrejan = null;
+      if (seznamEl) seznamEl.hidden = false;
+      if (novaEl) novaEl.hidden = false;
+      if (vsebinaEl) vsebinaEl.scrollTop = 0;
+    }
+
+    function nazajAliZapri() {
+      if (forma && !forma.hidden) {
+        prikaziSeznamView();
+        izrisiSeznam();
+        return;
+      }
+      zapri();
+    }
+
     /* ======== FORMA ======== */
 
     function odpriFormo(predlog) {
       if (!forma) return;
+
+      // Pogled zamenjaj takoj. Dodatni izračuni spodaj ne smejo preprečiti
+      // prikaza obrazca, če vsebuje posamezna stara predloga nepopolne podatke.
+      var seznamEl = document.getElementById("predlogi-urejevalnik-seznam");
+      var novaEl = document.getElementById("predlogi-urejevalnik-nova");
+      if (seznamEl) seznamEl.hidden = true;
+      if (novaEl) novaEl.hidden = true;
+      forma.hidden = false;
+      if (vsebinaEl) vsebinaEl.scrollTop = 0;
+
       formaJezNova = Boolean(predlog && predlog.jeNova);
       formaUrejanId = predlog && predlog.id ? String(predlog.id) : null;
 
@@ -829,10 +847,6 @@
       posodobiModalStevilkeUI();
       posodobiModalDodatkeKartice();
 
-      forma.hidden = false;
-      if (modalNaslovGlava && typeof modalNaslovGlava.focus === "function") {
-        modalNaslovGlava.focus();
-      }
     }
 
     function shraniFormo() {
@@ -882,6 +896,7 @@
         shraniVse();
         forma.hidden = true;
         predlogUrejan = null;
+        prikaziSeznamView();
         izrisiSeznam();
         return;
       }
@@ -947,6 +962,7 @@
         shraniVse();
         forma.hidden = true;
         predlogUrejan = null;
+        prikaziSeznamView();
         izrisiSeznam();
         return;
       }
@@ -977,6 +993,7 @@
       shraniVse();
       forma.hidden = true;
       predlogUrejan = null;
+      prikaziSeznamView();
       izrisiSeznam();
     }
 
@@ -986,6 +1003,7 @@
         if (predlogUrejan.jeNov) {
           forma.hidden = true;
           predlogUrejan = null;
+          prikaziSeznamView();
           return;
         }
         var id = predlogUrejan.id;
@@ -1005,6 +1023,7 @@
         shraniVse();
         forma.hidden = true;
         predlogUrejan = null;
+        prikaziSeznamView();
         izrisiSeznam();
       };
       var potrdi = ctx.potrdiVprasanje || root.potrdiVprasanje;
@@ -1065,7 +1084,8 @@
         '<div class="template-editor__content" id="' + VSEBINA_ID + '">' +
 
         // --- FORMA (prikaže se ob Uredi) ---
-        '<div class="template-editor" id="' + FORMA_ID + '" hidden>' +
+        '<div id="' + FORMA_ID + '" hidden>' +
+        '<h3 class="template-editor__subtitle" id="predlogi-urejevalnik-forma-naslov-glava">Uredi predlogo</h3>' +
 
         // suggest-tone-button (enak kot korak 2)
         '<button type="button" class="suggest-tone-button" id="predlogi-urejevalnik-predlagaj-ton">' +
@@ -1078,13 +1098,6 @@
         '<span class="suggest-tone-button__action" id="predlogi-urejevalnik-predlagaj-ton-stanje">Uporabi priporočilo</span>' +
         "</button>" +
         '<p class="template-editor__hint" id="predlogi-urejevalnik-predlagaj-ton-hint" hidden>Najprej vnesite besedilo predloge.</p>' +
-
-        // Priporočilo vrstica (dinamično prikazana po uporabi priporočila)
-        '<div class="template-editor__priporocilo" id="predlogi-urejevalnik-priporocilo-vrstica" hidden>' +
-        '<span class="template-editor__priporocilo-zvezda" aria-hidden="true">★</span>' +
-        '<span class="template-editor__priporocilo-tekst">Ton: <strong id="predlogi-urejevalnik-priporocilo-naslov">Predlagani</strong></span>' +
-        '<button type="button" class="template-editor__priporocilo-razveljavi" id="predlogi-urejevalnik-razveljavi-priporocilo">Razveljavi</button>' +
-        "</div>" +
 
         // Naslov
         '<label class="template-editor__label" for="predlogi-urejevalnik-forma-naslov">Ime predloge</label>' +
@@ -1157,7 +1170,7 @@
       modalDodatekObrocnoStanje = document.getElementById("predlogi-urejevalnik-dodatek-obrocno-stanje");
       modalDodatekTrr = document.getElementById("predlogi-urejevalnik-dodatek-trr");
       modalDodatekTrrStanje = document.getElementById("predlogi-urejevalnik-dodatek-trr-stanje");
-      modalNaslovGlava = document.getElementById("predlogi-urejevalnik-naslov"); // naslov glave modala
+      modalNaslovGlava = document.getElementById("predlogi-urejevalnik-forma-naslov-glava");
       modalShraniGumb = document.getElementById("predlogi-urejevalnik-shrani");
       modalIzbrisiGumb = document.getElementById("predlogi-urejevalnik-izbrisi");
       modalPrekliciGumb = document.getElementById("predlogi-urejevalnik-preklici");
@@ -1168,11 +1181,12 @@
       // za formo pa nimamo ločenega naslova, ker je header vedno "Predloge"
 
       // Event listenerji
-      document.getElementById("predlogi-urejevalnik-zapri").addEventListener("click", zapri);
+      document.getElementById("predlogi-urejevalnik-zapri").addEventListener("click", nazajAliZapri);
       document.getElementById("predlogi-urejevalnik-backdrop").addEventListener("click", zapri);
       document.getElementById("predlogi-urejevalnik-preklici").addEventListener("click", function () {
         forma.hidden = true;
         predlogUrejan = null;
+        prikaziSeznamView();
       });
       document.getElementById("predlogi-urejevalnik-shrani").addEventListener("click", shraniFormo);
       document.getElementById("predlogi-urejevalnik-izbrisi").addEventListener("click", izbrisiFormo);
@@ -1191,7 +1205,7 @@
       document.getElementById("predlogi-urejevalnik-dodatek-trr").addEventListener("click", odpriModalDodatekTrr);
 
       document.addEventListener("keydown", function (ev) {
-        if (ev.key === "Escape" && modal && !modal.hidden) zapri();
+        if (ev.key === "Escape" && modal && !modal.hidden) nazajAliZapri();
       });
     }
 
@@ -1200,11 +1214,10 @@
         zgradiModal();
         osveziPodatke().then(function () {
           if (!modal) return;
+          prikaziSeznamView();
           izrisiSeznam();
           modal.hidden = false;
           document.body.classList.add("template-editor-odprt");
-          var naslov = document.getElementById("predlogi-urejevalnik-naslov");
-          if (naslov) naslov.focus();
         });
       },
       zapri: zapri,

@@ -418,7 +418,9 @@
     var debounceTimer = null;
     var urejevanIndex = null;
     var urejanjeKarticeIndex = null;
-    var pokaziZakaj = false;
+    var urejanjeKartic = false;
+    /* Ponovni izris ne sme vrniti vodoravnega seznama na prvo kartico. */
+    var carouselScrollLeft = 0;
     /* Kateri od gumbov "Zdaj"/"Predizbor" je trenutno aktiven (obarvan zeleno). */
     var izbranCasNacin = "zdaj";
     var kontaktDodajOdprt = { sms: false, email: false };
@@ -2420,55 +2422,7 @@
 
       casKarticaHtml += "</section>";
 
-      /* --- Nov navpičen seznam kartic --- */
-      var karticeHtml = '<section class="opomin-kartice" aria-label="Pregled korakov">';
-      plan.steps.forEach(function (s) {
-        var jeManualLawyer = s.kind === "manual_lawyer";
-        var jeAktivna = s.index === aktivenIndex;
-        var jeVVeljavnemUrejanju = urejanjeKarticeIndex === s.index;
-        var off = offsetOdZacetka(plan, s);
-        var casTekst = "";
-        if (jeManualLawyer) {
-          casTekst = IKONA_KLJUCAVNICA + " Ročni korak";
-        } else if (off === 0) {
-          casTekst = "čez 0 dni";
-        } else {
-          casTekst = "čez " + off + " dni";
-        }
-        karticeHtml +=
-          '<div class="opomin-kartica' +
-          (jeAktivna ? " opomin-kartica--aktivna" : "") +
-          '" data-kartica-index="' + s.index + '">' +
-          '<div class="opomin-kartica__levo">' +
-          '<span class="opomin-kartica__stevilka">' +
-          s.order +
-          "</span>" +
-          '<div class="opomin-kartica__meta">' +
-          '<span class="opomin-kartica__naslov">' +
-          esc(s.title) +
-          "</span>" +
-          '<span class="opomin-kartica__cas">' +
-          casTekst +
-          "</span>" +
-          "</div>" +
-          "</div>" +
-          '<div class="opomin-kartica__desno">';
-        if (!jeManualLawyer) {
-          karticeHtml +=
-            '<button type="button" class="opomin-kartica__uredi" data-uredi-kartico="' + s.index + '" aria-label="Uredi ' + esc(s.title) + '">' +
-            (jeVVeljavnemUrejanju ? "Končano" : "Uredi") +
-            "</button>";
-          if (jeVVeljavnemUrejanju) {
-            karticeHtml +=
-              '<button type="button" class="opomin-kartica__odstrani" data-odstrani-kartico="' + s.index + '" aria-label="Odstrani ' + esc(s.title) + '">×</button>';
-          }
-        } else {
-          karticeHtml +=
-            '<span class="opomin-kartica__zaklenjeno" aria-label="Fiksen korak, ni odstranljiv">' + IKONA_KLJUCAVNICA + "</span>";
-        }
-        karticeHtml += "</div></div>";
-      });
-      karticeHtml += "</section>";
+      var karticeHtml = "";
 
       var razmikPrejsnji = razmikOdPrejsnjega(plan, step);
       var podrobnostCas =
@@ -2484,7 +2438,10 @@
             "</p>"
           : "";
 
-      var pikeHtml = plan.steps
+      var vkljuceniKoraki = plan.steps.filter(function (s) { return !s.isExcluded; });
+      var prikazaniKoraki = urejanjeKartic ? plan.steps : vkljuceniKoraki;
+
+      var pikeHtml = vkljuceniKoraki
         .map(function (s) {
           return (
             '<span class="' +
@@ -2500,12 +2457,19 @@
         })
         .join("");
 
-      var carouselHtml = plan.steps
+      var carouselHtml = prikazaniKoraki
         .map(function (s) {
           var aktiven = s.index === aktivenIndex;
-          return (
+          var jeManualLawyer = s.kind === "manual_lawyer";
+          var jeVVeljavnemUrejanju = urejanjeKartic;
+          var html =
+            '<div class="opomin-nacrt__stage-ovoj' +
+            (jeVVeljavnemUrejanju ? " opomin-nacrt__stage-ovoj--urejanje" : "") +
+            (s.isExcluded ? " opomin-nacrt__stage-ovoj--izkljucen" : "") +
+            '">' +
             '<button type="button" class="opomin-nacrt__stage' +
             (aktiven ? " opomin-nacrt__stage--izbran" : "") +
+            (s.isExcluded ? " opomin-nacrt__stage--izkljucen" : "") +
             (s.status === "confirmed" ? " opomin-nacrt__stage--potrjen" : "") +
             '" data-stage="' +
             s.index +
@@ -2517,17 +2481,23 @@
             '<span class="opomin-nacrt__stage-st">' +
             s.order +
             "</span>" +
-            '<span class="opomin-nacrt__stage-naslov">' +
+            '<span class="opomin-nacrt__stage-naslov' +
+            (String(s.title || "").length > 20 ? " opomin-nacrt__stage-naslov--zelo-dolg" : String(s.title || "").length > 15 ? " opomin-nacrt__stage-naslov--dolg" : "") +
+            '">' +
             esc(s.title) +
             "</span>" +
             '<span class="opomin-nacrt__stage-cas">' +
             oznakaCarouselCas(s, plan) +
             "</span>" +
-            "</button>"
-          );
+            "</button>";
+          if (jeVVeljavnemUrejanju) {
+            html += '<button type="button" class="opomin-nacrt__stage-odstrani" data-odstrani-kartico="' + s.index + '" aria-label="Odstrani ' + esc(s.title) + '">×</button>';
+          } else if (jeManualLawyer) {
+            html += '<span class="opomin-nacrt__stage-zaklenjeno" aria-label="Ročni korak">' + IKONA_KLJUCAVNICA + "</span>";
+          }
+          return html + "</div>";
         })
         .join("");
-
       var smsOsnova = step.finalMessage || step.generatedMessage || "";
       var smsBesedilo =
         PV && PV.sestaviSmsZPrilogami
@@ -2595,50 +2565,31 @@
         ? "Pošlji prvi korak in aktiviraj načrt →"
         : "Preveri in potrdi " + step.order + ". korak →";
 
+      var prejsnjiCarousel = opts.glavniEl.querySelector(".opomin-nacrt__carousel");
+      if (prejsnjiCarousel) carouselScrollLeft = prejsnjiCarousel.scrollLeft;
+
       opts.glavniEl.innerHTML =
         '<div class="opomin-nacrt__vsebina">' +
         (!imaTelefon
           ? '<p class="opomin-nacrt__opozorilo" role="status">Telefonska številka dolžnika manjka – SMS-ov ne bo mogoče poslati, dokler je ne dodaš.</p>'
           : "") +
-        '<section class="opomin-nacrt__povzetek" aria-label="Predlagani načrt">' +
-        '<p class="opomin-nacrt__povzetek-naslov">Predlagani načrt</p>' +
-        '<p class="opomin-nacrt__povzetek-vrednost">' +
-        esc(String(plan.steps.length)) + " korakov v " +
-        esc(String(plan.totalDurationDays || 0)) +
-        " dneh</p>" +
-        '<div class="opomin-nacrt__povzetek-vrstica">' +
-        '<div class="opomin-nacrt__povzetek-znacke">' +
-        '<span class="opomin-nacrt__chip opomin-nacrt__chip--teal">' +
-        esc(formatirajZnesek(plan.amountCents)) +
-        "</span>" +
-        '<span class="opomin-nacrt__chip opomin-nacrt__chip--beige">' +
-        esc(String(plan.overdueDays != null ? plan.overdueDays : plan.overdueDaysAtCreation || 0)) +
-        " dni zamude</span>" +
-        "</div>" +
-        '<button type="button" class="opomin-nacrt__povezava" id="opomin-zakaj">Zakaj ta časovnica?</button>' +
-        "</div>" +
-        (pokaziZakaj
-          ? '<p class="opomin-nacrt__zakaj" id="opomin-zakaj-tekst">' +
-            esc(
-              plan.recommendationReason ||
-                N.sestaviRazlog(
-                  plan.amountCents,
-                  plan.overdueDays || 0,
-                  plan.toneId
-                )
-            ) +
-            "</p>"
-          : "") +
-        "</section>" +
         '<div class="opomin-nacrt__napredek-vrstica">' +
+        '<div class="opomin-nacrt__napredek-levo">' +
         '<p class="opomin-nacrt__napredek-tekst">Potrjeno ' +
         potrjeno +
         " od " +
-        plan.steps.length +
+        vkljuceniKoraki.length +
         "</p>" +
         '<div class="opomin-nacrt__pike" role="list" aria-label="Napredek potrjevanja">' +
         pikeHtml +
         "</div>" +
+        "</div>" +
+        '<button type="button" class="opomin-nacrt__uredi-korake' +
+        (urejanjeKartic ? " opomin-nacrt__uredi-korake--aktivno" : "") +
+        '" id="opomin-uredi-korake" aria-pressed="' +
+        (urejanjeKartic ? "true" : "false") +
+        '">Uredi' +
+        "</button>" +
         "</div>" +
         '<div class="opomin-nacrt__carousel-ovoj">' +
         '<div class="opomin-nacrt__carousel" role="list" aria-label="Koraki načrta">' +
@@ -2674,6 +2625,11 @@
         '<button type="button" class="opomin-nacrt__shrani-osnutek" id="opomin-shrani-osnutek">Shrani kot osnutek</button>' +
         "</footer>" +
         "</div>";
+
+      var noviCarousel = opts.glavniEl.querySelector(".opomin-nacrt__carousel");
+      if (noviCarousel && carouselScrollLeft > 0) {
+        noviCarousel.scrollLeft = carouselScrollLeft;
+      }
 
       poveziGlavni(step, ready);
     }
@@ -2771,19 +2727,13 @@
       opts.glavniEl.querySelectorAll("[data-stage]").forEach(function (btn) {
         btn.addEventListener("click", function () {
           aktivenIndex = Number(btn.getAttribute("data-stage"));
-          plan.selectedStageId = (N.najdiKorak(plan, aktivenIndex) || {}).id;
+          var izbranKorak = N.najdiKorak(plan, aktivenIndex);
+          if (izbranKorak) izbranKorak.isExcluded = false;
+          plan.selectedStageId = (izbranKorak || {}).id;
           shrani();
           izrisiGlavni();
         });
       });
-
-      var zakaj = opts.glavniEl.querySelector("#opomin-zakaj");
-      if (zakaj) {
-        zakaj.addEventListener("click", function () {
-          pokaziZakaj = !pokaziZakaj;
-          izrisiGlavni();
-        });
-      }
 
       var spremeni = opts.glavniEl.querySelector("#opomin-spremeni-cas");
       if (spremeni) {
@@ -3009,12 +2959,45 @@
         });
       });
 
+      var urediKorake = opts.glavniEl.querySelector("#opomin-uredi-korake");
+      if (urediKorake) {
+        urediKorake.addEventListener("click", function () {
+          urejanjeKartic = !urejanjeKartic;
+          urejanjeKarticeIndex = null;
+          if (!urejanjeKartic) {
+            var trenutni = N.najdiKorak(plan, aktivenIndex);
+            if (!trenutni || trenutni.isExcluded) {
+              var prviVkljucen = plan.steps.find(function (s) { return !s.isExcluded; });
+              if (prviVkljucen) {
+                aktivenIndex = prviVkljucen.index;
+                plan.selectedStageId = prviVkljucen.id;
+              }
+            }
+          }
+          N.shraniOsnutek(plan);
+          izrisiGlavni();
+        });
+      }
+
+      opts.glavniEl.querySelectorAll("[data-dodaj-korak]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          if (typeof N.dodajKorak !== "function") return;
+          plan = N.dodajKorak(plan);
+          N.shraniOsnutek(plan);
+          izrisiGlavni();
+        });
+      });
+
       opts.glavniEl.querySelectorAll("[data-odstrani-kartico]").forEach(function (btn) {
         btn.addEventListener("click", async function (ev) {
           ev.stopPropagation();
           var idx = Number(btn.getAttribute("data-odstrani-kartico"));
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
+          stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
+          N.shraniOsnutek(plan);
+          izrisiGlavni();
+          return;
           /* Validacija: ne dovoli odstranitve zadnjega SMS koraka */
           var smsCount = typeof N.steviloSmsKorakov === "function" ? N.steviloSmsKorakov(plan) : 0;
           if (stepZaOdstranitev.kind === "sms" && smsCount <= 1) {
@@ -3051,6 +3034,7 @@
             plan.selectedStageId = plan.steps[0] ? plan.steps[0].id : null;
           }
           urejanjeKarticeIndex = null;
+          urejanjeKartic = false;
           N.shraniOsnutek(plan);
           izrisiGlavni();
         });
@@ -3062,7 +3046,7 @@
         var target = ev.target;
         var jeZKartice = false;
         while (target && target !== opts.glavniEl) {
-          if (target.classList && target.classList.contains("opomin-kartica")) {
+          if (target.classList && target.classList.contains("opomin-nacrt__stage-ovoj")) {
             jeZKartice = true;
             break;
           }
@@ -3883,9 +3867,14 @@
         smsBlock +
         prilogeHtml +
         '<footer class="opomin-nacrt__noga opomin-nacrt__noga--stolpec">' +
+        '<div class="opomin-nacrt__noga-vrsta">' +
+        '<button type="button" class="opomin-nacrt__izbrisi-korak" id="opomin-potrdi-izbrisi">Izbriši korak ' +
+        esc(String(step.order)) +
+        "</button>" +
         '<button type="button" class="korak2__gumb-naprej" id="opomin-potrdi-shrani">' +
         esc(besediloGumbaPotrdi(step)) +
         "</button>" +
+        "</div>" +
         '<button type="button" class="opomin-nacrt__shrani-osnutek" id="opomin-potrdi-nazaj-2">← Nazaj na urejanje koraka ' +
         esc(String(step.order)) +
         "</button>" +
@@ -3999,6 +3988,46 @@
       var n2 = opts.potrditevEl.querySelector("#opomin-potrdi-nazaj-2");
       if (n1) n1.addEventListener("click", nazaj);
       if (n2) n2.addEventListener("click", nazaj);
+
+      var gumbIzbrisiKorak = opts.potrditevEl.querySelector("#opomin-potrdi-izbrisi");
+      if (gumbIzbrisiKorak) {
+        gumbIzbrisiKorak.addEventListener("click", async function () {
+          var smsCount = typeof N.steviloSmsKorakov === "function" ? N.steviloSmsKorakov(plan) : 0;
+          if (step.kind === "sms" && smsCount <= 1) {
+            if (typeof opts.potrdiVprasanje === "function") {
+              await opts.potrdiVprasanje({
+                naslov: "Odstranitev ni mogoča",
+                opis: "Načrt mora vsebovati vsaj en samodejni korak. Tega koraka ne moreš odstraniti.",
+                potrdiBesedilo: "V redu",
+                samoEnGumb: true,
+                stil: "primary",
+              });
+            }
+            return;
+          }
+          var potrjeno = false;
+          if (typeof opts.potrdiVprasanje === "function") {
+            potrjeno = await opts.potrdiVprasanje({
+              naslov: "Odstrani korak?",
+              opis: "Korak »" + (step.title || "") + "« bo odstranjen. Preostali koraki se ne prestavijo samodejno.",
+              potrdiBesedilo: "Odstrani",
+              prekliciBesedilo: "Prekliči",
+              stil: "nevarno",
+            });
+          }
+          if (!potrjeno) return;
+          clearTimeout(debounceTimer);
+          if (typeof N.odstraniKorak === "function") {
+            plan = N.odstraniKorak(plan, step.index);
+          }
+          aktivenIndex = plan.steps[0] ? plan.steps[0].index : 1;
+          plan.selectedStageId = plan.steps[0] ? plan.steps[0].id : null;
+          urejanjeKarticeIndex = null;
+          urejanjeKartic = false;
+          N.shraniOsnutek(plan);
+          pokaziGlavni();
+        });
+      }
 
       function izvediPotrditev() {
         try {

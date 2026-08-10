@@ -2885,7 +2885,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   color-scheme: light only;
   max-width: none;
   min-height: 100vh;
-  padding: 8px 12px 28px;
+  padding: 8px 6px 28px;
   background: var(--page) !important;
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -3950,7 +3950,7 @@ body.uj-modal-odprt {
 }
 
 .korak2__vsebina {
-  padding: var(--space-sm);
+  padding: 10px;
   min-width: 0;
   background: var(--surface);
 }
@@ -4667,7 +4667,7 @@ body.uj-modal-odprt {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--teal-border);
   border-radius: 24px;
   background: var(--teal-surface-soft);
@@ -4888,7 +4888,7 @@ body.uj-modal-odprt {
 .debt-summary__category-column {
   gap: 4px;
   align-items: flex-start;
-  padding-left: 12px;
+  padding-left: 10px;
   border-left: 1px solid rgba(63, 153, 152, 0.65);
 }
 
@@ -8034,8 +8034,8 @@ body.template-editor-odprt {
 
 /* Priporočilo na 3. koraku ima enake zunanje robove kot preostanek koraka. */
 .korak2__vsebina--opomin > .tone-recommendation-section {
-  width: calc(100% - (2 * var(--space-sm)));
-  margin: var(--space-sm) var(--space-sm) var(--space-lg);
+  width: calc(100% - 20px);
+  margin: 10px 10px var(--space-lg);
 }
 
 .opomin-nacrt[hidden],
@@ -8057,7 +8057,7 @@ body.template-editor-odprt {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  padding: var(--space-sm);
+  padding: 10px;
   box-sizing: border-box;
 }
 
@@ -8271,6 +8271,8 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__stage {
+  width: 100%;
+  height: 100%;
   min-height: 118px;
   padding: 12px;
   border: 1px solid var(--border, #c9d9d7);
@@ -8286,6 +8288,93 @@ body.template-editor-odprt {
   color: var(--text-primary, #183a3a);
   font: inherit;
   box-sizing: border-box;
+}
+
+.opomin-nacrt__napredek-levo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.opomin-nacrt__uredi-korake {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--teal-dark, #10797d);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.opomin-nacrt__uredi-korake--aktivno {
+  border-color: var(--teal, #399a9a);
+  box-shadow: 0 0 0 2px rgba(57, 154, 154, 0.16);
+}
+
+/* Urejanje je vgrajeno v obstoječo kartico karusela, brez dodatnega seznama. */
+.opomin-nacrt__stage-ovoj {
+  position: relative;
+  min-width: 0;
+  height: 118px;
+  scroll-snap-align: start;
+}
+
+.opomin-nacrt__stage-uredi,
+.opomin-nacrt__stage-odstrani,
+.opomin-nacrt__stage-zaklenjeno {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 2;
+}
+
+.opomin-nacrt__stage-uredi {
+  min-height: 26px;
+  padding: 3px 7px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--teal-dark, #10797d);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.opomin-nacrt__stage-odstrani {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #d8b8b5;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #8f4e48;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.opomin-nacrt__stage-ovoj--urejanje .opomin-nacrt__stage-uredi {
+  display: none;
+}
+
+.opomin-nacrt__stage-zaklenjeno {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--text-muted, #718483);
+}
+
+.opomin-nacrt__stage-zaklenjeno svg {
+  width: 15px;
+  height: 15px;
 }
 
 .opomin-nacrt__stage:focus-visible {
@@ -8307,9 +8396,11 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__stage-naslov {
-  font-size: 13px;
+  font-size: clamp(10px, 3.3vw, 13px);
   font-weight: 700;
   line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .opomin-nacrt__stage-cas {
@@ -8348,6 +8439,55 @@ body.template-editor-odprt {
   color: #ffffff;
 }
 
+/* V načinu urejanja je isti gumb preklopni krogec, ne dejanje brisanja. */
+.opomin-nacrt__stage-ovoj--urejanje .opomin-nacrt__stage-odstrani {
+  border: 2px solid #b9c9c6;
+  border-radius: 50%;
+  background: #eef2f1;
+  color: transparent;
+  font-size: 0;
+}
+
+.opomin-nacrt__stage-ovoj--urejanje:not(.opomin-nacrt__stage-ovoj--izkljucen)
+  .opomin-nacrt__stage-odstrani {
+  border-color: var(--teal, #159195);
+  background: var(--teal, #159195);
+}
+
+.opomin-nacrt__stage-ovoj--urejanje:not(.opomin-nacrt__stage-ovoj--izkljucen)
+  .opomin-nacrt__stage-odstrani::after {
+  content: "✓";
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.opomin-nacrt__stage-naslov--dolg {
+  font-size: 11px;
+}
+
+.opomin-nacrt__stage-naslov--zelo-dolg {
+  font-size: 9.5px;
+  line-height: 1.15;
+}
+
+.opomin-nacrt__stage--izkljucen,
+.opomin-nacrt__stage--izkljucen.opomin-nacrt__stage--izbran {
+  background: #eef2f1;
+  border-color: #d7e0de;
+  color: #758481;
+  opacity: 0.7;
+}
+
+.opomin-nacrt__stage--dodaj {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--teal-dark, #10797d);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .opomin-nacrt__stage--izbran .opomin-nacrt__stage-st {
   background: #ffffff;
   color: var(--teal, #159195);
@@ -8356,6 +8496,10 @@ body.template-editor-odprt {
 
 .opomin-nacrt__stage--izbran .opomin-nacrt__stage-cas {
   color: rgba(255, 255, 255, 0.9);
+}
+
+.opomin-nacrt__stage--izkljucen .opomin-nacrt__stage-cas {
+  color: #758481;
 }
 
 .opomin-nacrt__izbran-glava {
@@ -11507,6 +11651,48 @@ textarea.sms-preview__viewport {
   min-height: 56px;
   border-radius: 15px;
   width: 100%;
+}
+
+.opomin-nacrt__noga-vrsta {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.opomin-nacrt__noga-vrsta .korak2__gumb-naprej {
+  flex: 2 1 0;
+  width: auto;
+}
+
+.opomin-nacrt__izbrisi-korak {
+  flex: 1 1 0;
+  min-height: 56px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border: 1px solid rgba(157, 58, 54, 0.3);
+  border-radius: 15px;
+  background: rgba(157, 58, 54, 0.08);
+  color: var(--color-danger, #9d3a36);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.opomin-nacrt__izbrisi-korak:hover {
+  background: rgba(157, 58, 54, 0.14);
+}
+
+.opomin-nacrt__izbrisi-korak:active {
+  transform: scale(0.98);
 }
 
 #opomin-potrdi-shrani {

@@ -425,25 +425,7 @@ function renderWizardProgressHeader(opcije) {
   root.innerHTML =
     '<nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">' +
     korakiHtml +
-    "</nav>" +
-    '<header class="korak-glava wizard-current-header">' +
-    '<div class="korak-glava__levo">' +
-    '<span class="korak-glava__ikona" aria-hidden="true">' +
-    ikonaSvg +
-    "</span>" +
-    '<div class="korak-glava__besedilo">' +
-    '<p class="korak-glava__meta">Korak ' +
-    currentStep +
-    " od 3</p>" +
-    '<h2 class="korak-glava__naslov">' +
-    trenutni.fullTitle +
-    "</h2>" +
-    "</div>" +
-    "</div>" +
-    (draftSaved
-      ? '<p class="korak-glava__osnutek" id="osnutek-status" role="status" aria-live="polite">Osnutek shranjen</p>'
-      : "") +
-    "</header>";
+    "</nav>";
 
   return root;
 }
@@ -2909,6 +2891,30 @@ function inicializirajNeplacila() {
     pokaziUspesnoDodano();
   }
 
+  // Inicializiraj UI za oceno tveganja (meniji za dolg/zamudo/zgodovino)
+  if (window.UJOcenaTveganja && typeof window.UJOcenaTveganja.inicializirajUIOceno === "function") {
+    window.UJOcenaTveganja.inicializirajUIOceno();
+    window.UJOcenaTveganja.osveziKartice();
+  }
+
+  // Posodabljaj kartice ob spremembi zneska in datuma zapadlosti
+  var znesekEl = document.getElementById("znesek-dolga");
+  var datumEl = document.getElementById("datum-zapadlosti");
+  if (znesekEl) {
+    znesekEl.addEventListener("input", function () {
+      if (window.UJOcenaTveganja && typeof window.UJOcenaTveganja.osveziKartice === "function") {
+        window.UJOcenaTveganja.osveziKartice();
+      }
+    });
+  }
+  if (datumEl) {
+    datumEl.addEventListener("input", function () {
+      if (window.UJOcenaTveganja && typeof window.UJOcenaTveganja.osveziKartice === "function") {
+        window.UJOcenaTveganja.osveziKartice();
+      }
+    });
+  }
+
   prilagodiPrikazGledeNaFragment();
   osveziSeznam();
 }
@@ -3178,11 +3184,22 @@ function inicializirajSporociloDolzniku() {
     recommendationVersion: 1,
   };
   if (window.UJTonPriporocilo) {
-    tonPriporociloRezultat = window.UJTonPriporocilo.getRecommendedTone({
-      totalDebtCents: window.UJTonPriporocilo.eurosToCents(podatkiKorak1.znesek),
-      originalDueDate: podatkiKorak1.datumZapadlosti || null,
-      evaluationDate: window.UJTonPriporocilo.danesYYYYMMDD(),
-    });
+    if (window.UJOcenaTveganja && typeof window.UJOcenaTveganja.izracunajPriporocilo === "function") {
+      var rezultat = window.UJOcenaTveganja.izracunajPriporocilo({
+        totalDebtCents: window.UJTonPriporocilo.eurosToCents(podatkiKorak1.znesek),
+        originalDueDate: podatkiKorak1.datumZapadlosti || null,
+        evaluationDate: window.UJTonPriporocilo.danesYYYYMMDD(),
+      });
+      tonPriporociloRezultat = rezultat;
+      toneState = window.UJTonPriporocilo.applyRecommendationToState(null, rezultat);
+    } else {
+      tonPriporociloRezultat = window.UJTonPriporocilo.getRecommendedTone({
+        totalDebtCents: window.UJTonPriporocilo.eurosToCents(podatkiKorak1.znesek),
+        originalDueDate: podatkiKorak1.datumZapadlosti || null,
+        evaluationDate: window.UJTonPriporocilo.danesYYYYMMDD(),
+      });
+      toneState = window.UJTonPriporocilo.applyRecommendationToState(null, tonPriporociloRezultat);
+    }
     toneState = window.UJTonPriporocilo.applyRecommendationToState(
       null,
       tonPriporociloRezultat
@@ -6644,7 +6661,7 @@ function inicializirajPosiljanje() {
     window.location.href = "neplacila.html#seznam";
   }
 
-  window.UJOpominNacrtUI.inicializiraj({
+  const nacrtApi = window.UJOpominNacrtUI.inicializiraj({
     glavniEl,
     potrditevEl,
     podatkiKorak1,
@@ -6664,6 +6681,11 @@ function inicializirajPosiljanje() {
       );
     },
   });
+
+  /* Izpostavljeno za priporocilo-widget.js (widget "Priporočilo za ta dolg" na koraku 3). */
+  window.UJNacrtApi = nacrtApi;
+  window.UJPodatkiKorak1Ref = podatkiKorak1;
+  window.UJPodatkiKorak2Ref = podatkiKorak2;
 }
 
 inicializirajNeplacila();
