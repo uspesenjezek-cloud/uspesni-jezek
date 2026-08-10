@@ -4,7 +4,21 @@ param(
   [int]$Port = 8000
 )
 
-$root = (Get-Location).Path
+# Ce je Node.js na voljo, uporabi razvojni streznik, ki poleg staticnih
+# datotek podpira tudi /api/citaj-racun. API zahtevo varno posreduje
+# produkcijski Vercelovi funkciji, zato lokalni API kljuc ni potreben.
+$nodeUkaz = Get-Command node -ErrorAction SilentlyContinue
+$nodePot = if ($nodeUkaz) { $nodeUkaz.Source } else { "C:\Program Files\nodejs\node.exe" }
+$lokalniStreznik = Join-Path $PSScriptRoot "scripts\local-server.js"
+
+if ((Test-Path $nodePot -PathType Leaf) -and (Test-Path $lokalniStreznik -PathType Leaf)) {
+  & $nodePot $lokalniStreznik --port $Port
+  exit $LASTEXITCODE
+}
+
+Write-Warning "Node.js ni najden. Zagnan bo samo staticni nacin brez branja racunov."
+
+$root = $PSScriptRoot
 $listener = New-Object System.Net.Sockets.TcpListener ([System.Net.IPAddress]::Any, $Port)
 $listener.Start(50)
 Write-Host "Streznik tece na vratih $Port, mapa: $root"

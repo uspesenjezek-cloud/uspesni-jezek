@@ -846,6 +846,15 @@
         forsiraToneId = null;
         forsiraTermDays = null;
         pendingOnClose = null;
+        odprt = false;
+        if (sheet) sheet.hidden = true;
+        var trrElCatch = document.getElementById("trr-sheet");
+        if (!trrElCatch || trrElCatch.hidden) {
+          document.body.classList.remove("rok-sheet-odprt");
+        }
+        if (typeof root.UJSprostiGlavniScroll === "function") {
+          root.UJSprostiGlavniScroll();
+        }
         if (typeof ctx.pokaziNapako === "function") {
           ctx.pokaziNapako(
             "Odpiranje roka plačila ni uspelo. Osvežite stran.",
@@ -868,7 +877,6 @@
         osnutekPrivzetih = null;
       }
       sheet.hidden = true;
-      document.body.classList.remove("rok-sheet-odprt");
       odprt = false;
       zapiranjeDovoljeno = false;
       forsiraPriporocilo = false;
@@ -881,6 +889,13 @@
       document.removeEventListener("keydown", onKeydown, true);
       skrijUrediPrivzeto();
       nastaviNapako(false);
+      var trrEl = document.getElementById("trr-sheet");
+      if (!trrEl || trrEl.hidden) {
+        document.body.classList.remove("rok-sheet-odprt");
+      }
+      if (typeof root.UJSprostiGlavniScroll === "function") {
+        root.UJSprostiGlavniScroll();
+      }
       var cb = pendingOnClose;
       pendingOnClose = null;
       var shranjeno = Boolean(meta && meta.shranjeno);
@@ -925,7 +940,13 @@
         sheet.hidden = true;
         sheet.classList.remove("rok-sheet--nad-predlogo");
       }
-      document.body.classList.remove("rok-sheet-odprt");
+      var trrEl = document.getElementById("trr-sheet");
+      if (!trrEl || trrEl.hidden) {
+        document.body.classList.remove("rok-sheet-odprt");
+      }
+      if (typeof root.UJSprostiGlavniScroll === "function") {
+        root.UJSprostiGlavniScroll();
+      }
     }
 
     function ugotoviJezik() {

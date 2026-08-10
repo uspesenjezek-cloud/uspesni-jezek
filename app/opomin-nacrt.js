@@ -7,9 +7,12 @@
   var KLJUC_SEJE = "neplacilo-korak3-nacrt";
 
   var ODMKI_BAZA = {
-    strict: [0, 6, 13, 20],
-    firm: [0, 8, 17, 26],
-    friendly: [0, 11, 22, 30],
+    super_evil: [0, 3, 6, 10, 14, 18],
+    super_strict: [0, 5, 11, 17, 24, 30],
+    strict: [0, 6, 13, 20, 28, 36],
+    firm: [0, 8, 17, 26, 34, 42],
+    friendly: [0, 11, 22, 30, 38, 46],
+    super_friendly: [0, 14, 28, 36, 44, 52],
   };
 
   var KORAKI_META = [
@@ -36,6 +39,20 @@
     },
     {
       order: 4,
+      type: "strict_reminder",
+      title: "Dodaten odločen opomin",
+      toneId: "strict",
+      deliveryMode: "automatic",
+    },
+    {
+      order: 5,
+      type: "final_reminder",
+      title: "Zadnji formalni opomin",
+      toneId: "strict",
+      deliveryMode: "automatic",
+    },
+    {
+      order: 6,
       type: "legal_handoff",
       title: "Predaja odvetniku",
       toneId: "strict",
@@ -44,9 +61,12 @@
   ];
 
   var TON_OZNAKE_SL = {
+    super_evil: "Super zloben",
+    super_strict: "Super strog",
     strict: "Strog",
     firm: "Odločen",
-    friendly: "Zelo prijazen",
+    friendly: "Prijazen",
+    super_friendly: "Super prijazen",
     neutral: "Odločen",
   };
 
@@ -139,7 +159,7 @@
       }
     }
 
-    var out = [0, baza[1], baza[2], baza[3]];
+    var out = [0, baza[1], baza[2], baza[3], baza[4], baza[5]];
 
     if (zamuda === "dolga") {
       for (var i = 1; i < out.length; i++) {
@@ -187,9 +207,12 @@
   }
 
   function privzetiSendAt(offsetDays) {
+    var dni = Number(offsetDays) || 0;
     var d = new Date();
-    d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() + (Number(offsetDays) || 0));
+    /* Korak "danes" (0 dni) privzeto pošljemo ob trenutni uri – za korake v
+       prihodnosti ostane razumna privzeta ura 12.00. */
+    if (dni !== 0) d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() + dni);
     return d.toISOString();
   }
 
@@ -318,6 +341,26 @@
         " ist weiterhin unbezahlt. Ohne Zahlung behalten wir uns weitere Schritte vor."
       );
     }
+    if (index === 4) {
+      return (
+        "Guten Tag " +
+        ime +
+        ", die Rechnung" +
+        stevilka +
+        " über " +
+        znesek +
+        " bleibt unbezahlt. Wir bitten Sie dringend um Begleichung, um weitere rechtliche Schritte abzuwenden."
+      );
+    }
+    if (index === 5) {
+      return (
+        "Letzte Aufforderung: Rechnung" +
+        stevilka +
+        " über " +
+        znesek +
+        " ist noch offen. Bei Nichtzahlung werden wir die Angelegenheit an unseren Rechtsbeistand übergeben."
+      );
+    }
     return "";
   }
 
@@ -411,6 +454,7 @@
     var totalDurationDays = odmiki[odmiki.length - 1] || 0;
     var activationAt = steps[0] && steps[0].sendAt ? steps[0].sendAt : now;
     return {
+      schemaVersion: 2,
       id: "plan-" + now,
       debtId: null,
       status: "draft",
@@ -435,7 +479,7 @@
   function izracunajPlanStatus(plan) {
     if (!plan) return "draft";
     if (plan.status === "activated" || plan.status === "active") return "activated";
-    var steps = plan.steps || [];
+    var steps = (plan.steps || []).filter(function (s) { return !s.isExcluded; });
     if (
       steps.length > 0 &&
       steps.every(function (s) {
@@ -472,6 +516,12 @@
     step.scheduledAt = step.sendAt;
     if (step.offsetDays == null) {
       step.offsetDays = step.scheduledOffsetDays || 0;
+    }
+    if (step.customContacts == null) {
+      step.customContacts = { phoneNumbers: [], emailAddresses: [] };
+    } else {
+      if (!Array.isArray(step.customContacts.phoneNumbers)) step.customContacts.phoneNumbers = [];
+      if (!Array.isArray(step.customContacts.emailAddresses)) step.customContacts.emailAddresses = [];
     }
     if (step.manualScheduleOverride == null) {
       step.manualScheduleOverride = false;
@@ -549,7 +599,7 @@
       var surovo = sessionStorage.getItem(KLJUC_SEJE);
       if (!surovo) return null;
       var plan = JSON.parse(surovo);
-      if (!plan || !Array.isArray(plan.steps) || plan.steps.length !== 4) {
+      if (!plan || !Array.isArray(plan.steps) || plan.steps.length < 2) {
         return null;
       }
       if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
@@ -574,10 +624,66 @@
     sessionStorage.removeItem(KLJUC_SEJE);
   }
 
+  function jeStariStiriKoracniNacrt(plan) {
+    var koraki = (plan && plan.steps) || [];
+    return (
+      !plan.schemaVersion &&
+      koraki.length === 4 &&
+      koraki.filter(function (korak) { return korak.kind === "sms"; }).length === 3 &&
+      koraki[3] &&
+      koraki[3].kind === "manual_lawyer"
+    );
+  }
+
+  function nadgradiStariNacrt(plan, podatkiKorak1, podatkiKorak2) {
+    var nov = narediNovPlan(podatkiKorak1, podatkiKorak2);
+    var stariKoraki = plan.steps || [];
+
+    /* Ohranimo obstoječe prve tri opomine; dodamo le nova 4. in 5. korak. */
+    for (var i = 0; i < 3; i++) {
+      if (!stariKoraki[i]) continue;
+      nov.steps[i] = Object.assign({}, nov.steps[i], stariKoraki[i], {
+        id: "stage-" + (i + 1),
+        index: i + 1,
+        order: i + 1,
+      });
+    }
+
+    /* Obstoječo ročno predajo premaknemo na novi 6. korak. */
+    var stariRocni = stariKoraki[3];
+    if (stariRocni) {
+      var noviRocni = nov.steps[5];
+      nov.steps[5] = Object.assign({}, noviRocni, stariRocni, {
+        id: noviRocni.id,
+        index: noviRocni.index,
+        order: noviRocni.order,
+        type: noviRocni.type,
+        title: noviRocni.title,
+        toneId: noviRocni.toneId,
+        kind: noviRocni.kind,
+        deliveryMode: noviRocni.deliveryMode,
+        scheduledOffsetDays: noviRocni.scheduledOffsetDays,
+        offsetDays: noviRocni.offsetDays,
+        sendAt: noviRocni.sendAt,
+        scheduledAt: noviRocni.scheduledAt,
+      });
+    }
+
+    nov.id = plan.id || nov.id;
+    nov.createdAt = plan.createdAt || nov.createdAt;
+    nov.stages = nov.steps;
+    return nov;
+  }
+
   function pridobiAliUstvari(podatkiKorak1, podatkiKorak2) {
     var plan = naloziOsnutek();
     if (!plan) {
       plan = narediNovPlan(podatkiKorak1, podatkiKorak2);
+      shraniOsnutek(plan);
+      return plan;
+    }
+    if (jeStariStiriKoracniNacrt(plan)) {
+      plan = nadgradiStariNacrt(plan, podatkiKorak1, podatkiKorak2);
       shraniOsnutek(plan);
       return plan;
     }
@@ -661,7 +767,8 @@
         ? Boolean(options.shiftFollowing)
         : Boolean(plan.keepStageIntervals);
 
-    var staro = step.sendAt ? new Date(step.sendAt) : new Date();
+    var staroIso = step.sendAt || step.scheduledAt || null;
+    var staro = staroIso ? new Date(staroIso) : new Date();
     var novo = new Date(novSendAtIso);
     if (Number.isNaN(novo.getTime())) return plan;
 
@@ -672,17 +779,54 @@
     oznaciNeedsReview(step);
 
     if (shiftFollowing && deltaMs !== 0) {
-      (plan.steps || []).forEach(function (s) {
-        if (s.index <= step.index) return;
-        if (!jeKorakPremakljiv(s)) return;
-        if (s.sendAt || s.scheduledAt) {
-          var dn = new Date(s.sendAt || s.scheduledAt);
-          dn.setTime(dn.getTime() + deltaMs);
+      var premakljivi = (plan.steps || []).filter(function (s) {
+        return Number(s.index) > Number(step.index) && jeKorakPremakljiv(s);
+      });
+      if (premakljivi.length) {
+        var intervalDni =
+          options.gapDays != null
+            ? Math.max(0, Math.round(Number(options.gapDays)))
+            : null;
+        if (
+          intervalDni == null ||
+          !Number.isFinite(intervalDni) ||
+          intervalDni <= 0
+        ) {
+          /* Razmik, ki ga ravnokar določamo (prejšnji korak → ta korak),
+             postane predloga za razmik do vseh naslednjih korakov –
+             ne stari razmik do koraka, ki mu je sledil pred to spremembo. */
+          intervalDni = null;
+          var prejsnjiKorak = najdiKorak(plan, Number(step.index) - 1);
+          var prejsnjiKorakCas = prejsnjiKorak
+            ? parseLocalDateTime(
+                prejsnjiKorak.sendAt || prejsnjiKorak.scheduledAt
+              )
+            : null;
+          if (prejsnjiKorakCas) {
+            intervalDni = koledarskiDneviMed(
+              prejsnjiKorakCas.toISOString(),
+              novo.toISOString()
+            );
+          }
+          if (
+            intervalDni == null ||
+            !Number.isFinite(intervalDni) ||
+            intervalDni <= 0
+          ) {
+            intervalDni = 1;
+          }
+        }
+        var prejsnjiCas = novo;
+        premakljivi.forEach(function (s) {
+          var dn = new Date(prejsnjiCas.getTime());
+          dn.setDate(dn.getDate() + intervalDni);
+          dn.setHours(novo.getHours(), novo.getMinutes(), 0, 0);
           s.sendAt = dn.toISOString();
           s.scheduledAt = s.sendAt;
-        }
-        oznaciNeedsReview(s);
-      });
+          oznaciNeedsReview(s);
+          prejsnjiCas = dn;
+        });
+      }
     }
 
     uskladiOffseteIzDatumov(plan);
@@ -696,7 +840,7 @@
    * Validacija pred shranjevanjem časa koraka.
    * @returns {{ ok: boolean, napaka: string|null, preview: object }}
    */
-  function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing) {
+  function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing, opts) {
     var step = najdiKorak(plan, index);
     var naslednji = najdiKorak(plan, Number(index) + 1);
     var prejsnji = najdiKorak(plan, Number(index) - 1);
@@ -743,23 +887,54 @@
       }
     }
 
-    var staro = parseLocalDateTime(step.sendAt || step.scheduledAt) || new Date();
-    var deltaMs = novo.getTime() - staro.getTime();
+    var vOpts = opts || {};
 
     if (shiftFollowing) {
+      var premakljivi = (plan.steps || []).filter(function (s) {
+        return Number(s.index) > Number(step.index) && jeKorakPremakljiv(s);
+      });
       var count = 0;
       var lastIso = novo.toISOString();
       var badPast = false;
-      (plan.steps || []).forEach(function (s) {
-        if (s.index <= step.index) return;
-        if (!jeKorakPremakljiv(s)) return;
-        count += 1;
-        if (s.sendAt || s.scheduledAt) {
-          var dn = new Date(s.sendAt || s.scheduledAt);
-          dn.setTime(dn.getTime() + deltaMs);
-          lastIso = dn.toISOString();
-          if (dn.getTime() < zacetekDanes) badPast = true;
+      var intervalDni =
+        vOpts.gapDays != null
+          ? Math.max(0, Math.round(Number(vOpts.gapDays)))
+          : null;
+      if (
+        intervalDni == null ||
+        !Number.isFinite(intervalDni) ||
+        intervalDni <= 0
+      ) {
+        intervalDni = null;
+        var prviNaslednji = premakljivi[0];
+        if (prviNaslednji) {
+          var stariNaslednjiCas = parseLocalDateTime(
+            prviNaslednji.sendAt || prviNaslednji.scheduledAt
+          );
+          if (stariNaslednjiCas) {
+            intervalDni = koledarskiDneviMed(
+              step.sendAt || step.scheduledAt,
+              stariNaslednjiCas.toISOString()
+            );
+          }
         }
+        if (
+          intervalDni == null ||
+          !Number.isFinite(intervalDni) ||
+          intervalDni <= 0
+        ) {
+          intervalDni = 1;
+        }
+      }
+      var prejsnjiCas = novo;
+      premakljivi.forEach(function (s) {
+        count += 1;
+        var dn = new Date(prejsnjiCas.getTime());
+        dn.setDate(dn.getDate() + intervalDni);
+        dn.setHours(novo.getHours(), novo.getMinutes(), 0, 0);
+        lastIso = dn.toISOString();
+        if (dn.getTime() < zacetekDanes) badPast = true;
+        prejsnjiCas = dn;
       });
       preview.shiftedCount = count;
       preview.lastSendAt = lastIso;
@@ -789,6 +964,13 @@
 
     var conflict = (plan.steps || []).some(function (s) {
       if (s.index === step.index) return false;
+      if (
+        shiftFollowing &&
+        Number(s.index) > Number(step.index) &&
+        jeKorakPremakljiv(s)
+      ) {
+        return false;
+      }
       var t = parseLocalDateTime(s.sendAt || s.scheduledAt);
       return t && Math.abs(t.getTime() - novo.getTime()) < 60000;
     });
@@ -843,6 +1025,7 @@
 
     return posodobiCasKoraka(plan, naslednji.index, novSend.toISOString(), {
       shiftFollowing: shiftFollowing,
+      gapDays: dnevi,
     });
   }
 
@@ -855,7 +1038,7 @@
 
   function prviNepotrjenSmsIndex(plan) {
     var step = (plan.steps || []).find(function (s) {
-      return s.status !== "confirmed";
+      return !s.isExcluded && s.status !== "confirmed";
     });
     return step ? step.index : null;
   }
@@ -866,8 +1049,100 @@
 
   function steviloPotrjenih(plan) {
     return (plan.steps || []).filter(function (s) {
-      return s.status === "confirmed";
+      return !s.isExcluded && s.status === "confirmed";
     }).length;
+  }
+
+  /** Odstrani korak z danim indexom iz plana. Preštevilči prikazne in
+      interne indekse, da navigacija med sosednjimi koraki ostane pravilna. */
+  function odstraniKorak(plan, index) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var idx = -1;
+    for (var i = 0; i < plan.steps.length; i++) {
+      if (Number(plan.steps[i].index) === Number(index)) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) return plan;
+    var izbraniKorak = (plan.steps || []).find(function (s) {
+      return s.id === plan.selectedStageId;
+    });
+    plan.steps.splice(idx, 1);
+    /* UI išče prejšnji/naslednji korak z index - 1 oziroma index + 1,
+       zato morajo po odstranitvi ostati zaporedni tudi interni indeksi. */
+    for (var j = 0; j < plan.steps.length; j++) {
+      var korak = plan.steps[j];
+      var novoZaporedje = j + 1;
+      korak.index = novoZaporedje;
+      korak.order = novoZaporedje;
+      korak.id = "stage-" + novoZaporedje;
+    }
+    plan.selectedStageId =
+      izbraniKorak && plan.steps.indexOf(izbraniKorak) !== -1
+        ? izbraniKorak.id
+        : plan.steps[0]
+          ? plan.steps[0].id
+          : null;
+    plan.stages = plan.steps;
+    plan.totalDurationDays = plan.steps.length
+      ? (plan.steps[plan.steps.length - 1].scheduledOffsetDays || 0)
+      : 0;
+    plan.updatedAt = zdajIso();
+    return osveziPlanStatus(plan);
+  }
+
+  function steviloSmsKorakov(plan) {
+    return (plan.steps || []).filter(function (s) {
+      return s.kind === "sms";
+    }).length;
+  }
+
+  function dodajKorak(plan) {
+    if (!plan || !Array.isArray(plan.steps) || plan.steps.length >= 6) return plan;
+    var manualIndex = plan.steps.findIndex(function (s) {
+      return s.kind === "manual_lawyer";
+    });
+    var insertAt = manualIndex >= 0 ? manualIndex : plan.steps.length;
+    var prejsnji = plan.steps.slice(0, insertAt).filter(function (s) {
+      return s.kind === "sms";
+    }).pop();
+    if (!prejsnji) return plan;
+
+    var odmik = (Number(prejsnji.scheduledOffsetDays) || 0) + (Number(plan.recommendedGapDays) || 8);
+    var nov = Object.assign({}, prejsnji, {
+      id: "",
+      index: 0,
+      order: 0,
+      type: "strict_reminder",
+      title: "Dodaten opomin",
+      toneId: "strict",
+      status: "draft",
+      confirmedAt: null,
+      messageNeedsReview: false,
+      scheduledOffsetDays: odmik,
+      offsetDays: odmik,
+      sendAt: privzetiSendAt(odmik),
+      scheduledAt: privzetiSendAt(odmik),
+    });
+    plan.steps.splice(insertAt, 0, nov);
+    plan.steps.forEach(function (step, i) {
+      step.index = i + 1;
+      step.order = i + 1;
+      step.id = "stage-" + (i + 1);
+    });
+    plan.stages = plan.steps;
+    plan.totalDurationDays = plan.steps.length
+      ? Number(plan.steps[plan.steps.length - 1].scheduledOffsetDays) || 0
+      : 0;
+    return osveziPlanStatus(plan);
+  }
+
+  function jeZadnjiKorakManualLawyer(plan) {
+    var steps = plan && plan.steps;
+    if (!steps || !steps.length) return false;
+    var last = steps[steps.length - 1];
+    return last.kind === "manual_lawyer";
   }
 
   var api = {
@@ -904,6 +1179,10 @@
     prviNepotrjenSmsIndex: prviNepotrjenSmsIndex,
     soVsiSmsPotrjeni: soVsiSmsPotrjeni,
     steviloPotrjenih: steviloPotrjenih,
+    odstraniKorak: odstraniKorak,
+    dodajKorak: dodajKorak,
+    steviloSmsKorakov: steviloSmsKorakov,
+    jeZadnjiKorakManualLawyer: jeZadnjiKorakManualLawyer,
   };
 
   root.UJOpominNacrt = api;

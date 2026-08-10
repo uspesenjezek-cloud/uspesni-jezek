@@ -202,6 +202,38 @@
     };
   }
 
+  function prilogeZaNacrt(k1) {
+    var podatki = k1 || {};
+    var poti = Array.isArray(podatki.racunDatotekePoti)
+      ? podatki.racunDatotekePoti
+      : [];
+    var kanali = Array.isArray(podatki.attachmentKanali)
+      ? podatki.attachmentKanali
+      : [];
+    var meta = Array.isArray(podatki.attachmentMeta)
+      ? podatki.attachmentMeta
+      : [];
+    var izvori = Array.isArray(podatki.attachmentOrigins)
+      ? podatki.attachmentOrigins
+      : [];
+
+    return poti.map(function (pot, i) {
+      var k = kanali[i] || {};
+      var m = meta[i] || {};
+      return {
+        storagePath: String(pot),
+        originalFileName: m.originalFileName || "Račun",
+        mimeType: m.mimeType || "",
+        sizeBytes: m.sizeBytes != null ? m.sizeBytes : null,
+        origin: izvori[i] || "manual_attachment",
+        deliveryChannels: {
+          sms: Boolean(k.sms),
+          email: Boolean(k.email),
+        },
+      };
+    });
+  }
+
   root.UJPrilogeVsebina = {
     novId: novId,
     formatVelikost: formatVelikost,
@@ -217,5 +249,6 @@
     vsePrilogeVeljavneZaPotrditev: vsePrilogeVeljavneZaPotrditev,
     izSejeVPriloge: izSejeVPriloge,
     prilogeVSejo: prilogeVSejo,
+    prilogeZaNacrt: prilogeZaNacrt,
   };
 })(typeof window !== "undefined" ? window : globalThis);

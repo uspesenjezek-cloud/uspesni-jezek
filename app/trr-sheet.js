@@ -136,7 +136,7 @@
       var on = Boolean(vkljuci && vkljuci.checked);
       if (vsebina) vsebina.hidden = !on;
       if (shraniGumb) {
-        shraniGumb.textContent = on ? "Shrani spremembe" : "Shrani (brez TRR)";
+        shraniGumb.textContent = on ? "Shrani spremembe" : "Shrani in dodaj";
       }
     }
 
@@ -316,6 +316,15 @@
         }, 10);
       } catch (napaka) {
         pendingOnClose = null;
+        odprt = false;
+        if (sheet) sheet.hidden = true;
+        var rokElCatch = document.getElementById("rok-sheet");
+        if (!rokElCatch || rokElCatch.hidden) {
+          document.body.classList.remove("rok-sheet-odprt");
+        }
+        if (typeof root.UJSprostiGlavniScroll === "function") {
+          root.UJSprostiGlavniScroll();
+        }
         if (typeof ctx.pokaziNapako === "function") {
           ctx.pokaziNapako(
             "Odpiranje TRR nastavitev ni uspelo.",
@@ -331,7 +340,13 @@
       sheet.hidden = true;
       odprt = false;
       osnutek = null;
-      document.body.classList.remove("rok-sheet-odprt");
+      var rokEl = document.getElementById("rok-sheet");
+      if (!rokEl || rokEl.hidden) {
+        document.body.classList.remove("rok-sheet-odprt");
+      }
+      if (typeof root.UJSprostiGlavniScroll === "function") {
+        root.UJSprostiGlavniScroll();
+      }
       document.removeEventListener("keydown", onKeydown, true);
       if (casovnikZapiranja) {
         window.clearTimeout(casovnikZapiranja);
@@ -359,7 +374,13 @@
       odprt = false;
       osnutek = null;
       pendingOnClose = null;
-      document.body.classList.remove("rok-sheet-odprt");
+      var rokEl = document.getElementById("rok-sheet");
+      if (!rokEl || rokEl.hidden) {
+        document.body.classList.remove("rok-sheet-odprt");
+      }
+      if (typeof root.UJSprostiGlavniScroll === "function") {
+        root.UJSprostiGlavniScroll();
+      }
       document.removeEventListener("keydown", onKeydown, true);
       if (casovnikZapiranja) {
         window.clearTimeout(casovnikZapiranja);
@@ -524,7 +545,7 @@
           if (odprt) {
             shraniGumb.textContent = vkljuci && vkljuci.checked
               ? "Shrani spremembe"
-              : "Shrani (brez TRR)";
+              : "Shrani in dodaj";
           } else {
             shraniGumb.textContent = "Shrani spremembe";
           }
