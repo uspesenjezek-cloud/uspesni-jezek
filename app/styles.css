@@ -13007,7 +13007,7 @@ textarea.sms-preview__viewport {
   background: #FFFFFF;
   color: #243B43;
   font: inherit;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -13037,16 +13037,17 @@ textarea.sms-preview__viewport {
 
 .ocena-tveganja__pika {
   display: block;
-  width: 7px;
-  height: 7px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #c4d4d0;
   transition: all 200ms ease;
 }
 
 .ocena-tveganja__pika--aktivna {
-  width: 22px;
-  border-radius: 6px;
+  width: 18px;
+  height: 5px;
+  border-radius: 3px;
   background: var(--teal, #51999a);
 }
 
