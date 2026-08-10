@@ -3553,13 +3553,11 @@ body.uj-modal-odprt {
 .korak2 {
   position: relative;
   width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 25px;
-  /* clip namesto hidden – manj scroll/compositing težav na mobilcih */
-  overflow: hidden;
-  overflow: clip;
-  box-shadow: 0 8px 18px rgba(23, 50, 47, 0.08);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
 .korak2__glava {
@@ -12996,6 +12994,7 @@ textarea.sms-preview__viewport {
   font-weight: 600;
   color: #168E94;
   line-height: 1.15;
+  white-space: nowrap;
 }
 
 .ocena-tveganja__polje-chevron {
