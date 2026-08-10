@@ -4697,7 +4697,10 @@ body.uj-modal-odprt {
   padding: 8px;
   border: 1.5px solid var(--teal-primary);
   border-radius: 24px;
-  background: var(--teal-surface-soft);
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(63, 153, 152, 0.4) 0%, rgba(63, 153, 152, 0) 58%),
+    radial-gradient(120% 100% at 100% 100%, rgba(223, 168, 46, 0.32) 0%, rgba(223, 168, 46, 0) 58%),
+    var(--surface-primary);
   overflow: hidden;
   isolation: isolate;
   box-shadow: 0 2px 10px rgba(36, 127, 126, 0.14);
@@ -4784,9 +4787,9 @@ body.uj-modal-odprt {
   min-height: 58px;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 8px 2px;
   border: 0;
   border-top: 1px solid rgba(63, 153, 152, 0.38);
@@ -4798,19 +4801,16 @@ body.uj-modal-odprt {
 }
 
 .priporocilo-timeline-row__ikona {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--teal-dark);
-  background: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal, #51999a);
 }
 
 .priporocilo-timeline-row__ikona svg {
   display: block;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .priporocilo-timeline-row__besedilo {
@@ -4854,20 +4854,7 @@ body.uj-modal-odprt {
 }
 
 .ton-widget::after {
-  content: "";
-  position: absolute;
-  bottom: -35px;
-  right: -25px;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    circle,
-    rgba(223, 168, 46, 0.22) 0%,
-    rgba(223, 168, 46, 0) 70%
-  );
+  display: none;
 }
 
 .ton-widget > * {

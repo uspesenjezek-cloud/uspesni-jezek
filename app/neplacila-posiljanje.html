@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-krogec-vklop-koraka" />
+    <link rel="stylesheet" href="styles.css?v=20260810-gradient-widget-ozadje" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -66,7 +66,7 @@
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
         <!-- Priporočilo za ta dolg: samostojen widget (ton + ključni podatki + časovnica) -->
-        <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section" hidden>
+        <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section">
           <section class="ton-widget" id="ton-widget" aria-label="Priporočilo za ta dolg">
             <header class="priporocilo-widget__glava">
               <span class="priporocilo-widget__ikona" aria-hidden="true">
@@ -112,7 +112,7 @@
               aria-label="Predlagana časovnica opominjanja"
             >
               <span class="priporocilo-timeline-row__ikona" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v3a4 4 0 0 0 4 4h13"/><path d="m16 10 4 4-4 4"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
               </span>
               <span class="priporocilo-timeline-row__besedilo">
                 <span class="priporocilo-timeline-row__eyebrow">Predlagana časovnica</span>
@@ -561,9 +561,9 @@
     <script src="ton-widget.js?v=20260810-priporocilo-widget-v1"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
     <script src="opomin-nacrt.js?v=20260810-izkljuci-korak"></script>
-    <script src="opomin-nacrt-ui.js?v=20260810-brez-podvojenega-nacrta"></script>
+    <script src="opomin-nacrt-ui.js?v=20260810-dolg-ton-brez-kategorije"></script>
     <script src="predlogi-urejevalnik.js?v=20260810-uredi-brez-zoomiranja"></script>
-    <script src="app.js?v=20260810-brez-korak-glave"></script>
-    <script src="priporocilo-widget.js?v=20260810-aktivni-koraki"></script>
+    <script src="app.js?v=20260810-samodejni-zneski"></script>
+    <script src="priporocilo-widget.js?v=20260810-widget-podatki-vrnjeni"></script>
   </body>
 </html>
