@@ -4761,10 +4761,8 @@ body.uj-modal-odprt {
   padding: 8px;
   border: 1.5px solid var(--teal-primary);
   border-radius: 24px;
-  background:
-    radial-gradient(120% 100% at 0% 0%, rgba(63, 153, 152, 0.4) 0%, rgba(63, 153, 152, 0) 58%),
-    radial-gradient(120% 100% at 100% 100%, rgba(223, 168, 46, 0.32) 0%, rgba(223, 168, 46, 0) 58%),
-    var(--surface-primary);
+  /* Miren prehod: poudarek ostane na tonu in rumenem CTA gumbu. */
+  background: linear-gradient(135deg, #ffffff 0%, #f6fbfa 100%);
   overflow: hidden;
   isolation: isolate;
   box-shadow: 0 2px 10px rgba(36, 127, 126, 0.14);
@@ -12812,7 +12810,7 @@ textarea.sms-preview__viewport {
    skladen z ostalim obrazcem na neplacila.html. */
 .ocena-tveganja {
   margin-top: 10px;
-  padding: 12px;
+  padding: 10px 12px;
   background: #F4F8F9;
   border: 1px solid #D7E7E9;
   border-radius: 16px;
@@ -12867,7 +12865,7 @@ textarea.sms-preview__viewport {
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
   align-items: stretch;
-  margin-top: 10px;
+  margin-top: 6px;
   min-height: 56px;
 }
 
@@ -12955,11 +12953,11 @@ textarea.sms-preview__viewport {
   height: 1px;
   background: #D7E7E9;
   border: 0;
-  margin: 10px 0;
+  margin: 6px 0;
 }
 
 .ocena-tveganja__vprasanje {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 700;
   color: #102B35;
@@ -13032,7 +13030,7 @@ textarea.sms-preview__viewport {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 2px;
 }
 
 .ocena-tveganja__pika {
