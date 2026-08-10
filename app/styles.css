@@ -12500,11 +12500,24 @@ textarea.sms-preview__viewport {
 
 .predloge3-modal__besedilo {
   margin: 0;
+  width: 100%;
+  min-height: 140px;
+  padding: 12px 14px;
+  border: 1px solid #dbe3e1;
+  border-radius: 12px;
+  background: #f9fbfa;
+  color: #3a4a47;
+  font: inherit;
   font-size: 14px;
   line-height: 1.5;
-  color: #3a4a47;
-  white-space: pre-wrap;
-  word-break: break-word;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.predloge3-modal__besedilo:focus {
+  border-color: var(--teal, #51999a);
+  box-shadow: 0 0 0 3px rgba(81, 153, 154, 0.12);
 }
 
 .predloge3-modal__noga {

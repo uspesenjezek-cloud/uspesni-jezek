@@ -3631,7 +3631,7 @@
       var backdrop = document.getElementById("predloge3-predogled-backdrop");
 
       if (naslovEl) naslovEl.textContent = predlog.naslov || "—";
-      if (besediloEl) besediloEl.textContent = predlog.besedilo || "";
+      if (besediloEl) besediloEl.value = predlog.besedilo || "";
 
       function zapri() {
         modal.hidden = true;
@@ -3642,8 +3642,9 @@
       }
 
       function onApply() {
+        var novoBesedilo = besediloEl ? besediloEl.value : "";
         zapri();
-        if (onUporabi) onUporabi();
+        if (onUporabi) onUporabi(novoBesedilo);
       }
 
       if (uporabiBtn) {
@@ -3698,8 +3699,8 @@
           ".opomin-potrdi-predloge__kartica-opis"
         ).textContent = predlog.besedilo;
         kartica.addEventListener("click", function () {
-          odpriPredogledPredloge(predlog, function () {
-            ta.value = String(predlog.besedilo || "").slice(0, 1000);
+          odpriPredogledPredloge(predlog, function (novoBesedilo) {
+            ta.value = String(novoBesedilo || predlog.besedilo || "").slice(0, 1000);
             ta.dispatchEvent(new Event("input", { bubbles: true }));
             drsnik
               .querySelectorAll(".opomin-potrdi-predloge__kartica--izbrana")
