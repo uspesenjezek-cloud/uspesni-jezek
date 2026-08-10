@@ -538,9 +538,43 @@
       </div>
     </div>
 
-    <!-- Samo-branje predogled predloge (klik na kartico) -->
-
-    <div class="lightbox" id="lightbox" hidden>
+    <!-- Predogled predloge (klik na kartico) -->
+    <div class="predloga-predogled" id="predloga-predogled" hidden>
+      <button
+        type="button"
+        class="predloga-predogled__backdrop"
+        id="predloga-predogled-backdrop"
+        aria-label="Zapri predogled"
+      ></button>
+      <div
+        class="predloga-predogled__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="predloga-predogled-naslov"
+        id="predloga-predogled-dialog"
+      >
+        <header class="predloga-predogled__header">
+          <div class="predloga-predogled__header-tekst">
+            <p class="predloga-predogled__eyebrow">Predogled predloge</p>
+            <h2 class="predloga-predogled__naslov" id="predloga-predogled-naslov" tabindex="-1">—</h2>
+          </div>
+          <button
+            type="button"
+            class="predloga-predogled__zapri"
+            id="predloga-predogled-zapri"
+            aria-label="Zapri"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </header>
+        <div class="predloga-predogled__telo">
+          <p class="predloga-predogled__besedilo" id="predloga-predogled-besedilo"></p>
+        </div>
+        <footer class="predloga-predogled__noga">
+          <button type="button" class="predloga-predogled__gumb predloga-predogled__gumb--uporabi" id="predloga-predogled-uporabi" aria-pressed="false">Uporabi</button>
+        </footer>
+      </div>
+    </div>
       <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri">✕</button>
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>

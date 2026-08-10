@@ -3621,6 +3621,42 @@
       return mojiPredlogiPromise;
     }
 
+    function odpriPredogledPredloge(predlog, onUporabi) {
+      var modal = document.getElementById("predloga-predogled");
+      if (!modal) { if (onUporabi) onUporabi(); return; }
+      var naslovEl = document.getElementById("predloga-predogled-naslov");
+      var besediloEl = document.getElementById("predloga-predogled-besedilo");
+      var uporabiBtn = document.getElementById("predloga-predogled-uporabi");
+      var zapriBtn = document.getElementById("predloga-predogled-zapri");
+      var backdrop = document.getElementById("predloga-predogled-backdrop");
+
+      if (naslovEl) naslovEl.textContent = predlog.naslov || "—";
+      if (besediloEl) besediloEl.textContent = predlog.besedilo || "";
+
+      function zapri() {
+        modal.hidden = true;
+        document.body.classList.remove("predloga-predogled-odprt");
+        if (uporabiBtn) uporabiBtn.removeEventListener("click", onApply);
+        if (zapriBtn) zapriBtn.removeEventListener("click", zapri);
+        if (backdrop) backdrop.removeEventListener("click", zapri);
+      }
+
+      function onApply() {
+        zapri();
+        if (onUporabi) onUporabi();
+      }
+
+      if (uporabiBtn) {
+        uporabiBtn.textContent = "Uporabi";
+        uporabiBtn.addEventListener("click", onApply);
+      }
+      if (zapriBtn) zapriBtn.addEventListener("click", zapri);
+      if (backdrop) backdrop.addEventListener("click", zapri);
+
+      modal.hidden = false;
+      document.body.classList.add("predloga-predogled-odprt");
+    }
+
     function izrisiSeznamPredlog(predlogi, ovoj, drsnik, ta) {
       if (!predlogi || !predlogi.length) {
         ovoj.hidden = true;
@@ -3654,14 +3690,16 @@
           ".opomin-potrdi-predloge__kartica-opis"
         ).textContent = predlog.besedilo;
         kartica.addEventListener("click", function () {
-          ta.value = String(predlog.besedilo || "").slice(0, 1000);
-          ta.dispatchEvent(new Event("input", { bubbles: true }));
-          drsnik
-            .querySelectorAll(".opomin-potrdi-predloge__kartica--izbrana")
-            .forEach(function (k) {
-              k.classList.remove("opomin-potrdi-predloge__kartica--izbrana");
-            });
-          kartica.classList.add("opomin-potrdi-predloge__kartica--izbrana");
+          odpriPredogledPredloge(predlog, function () {
+            ta.value = String(predlog.besedilo || "").slice(0, 1000);
+            ta.dispatchEvent(new Event("input", { bubbles: true }));
+            drsnik
+              .querySelectorAll(".opomin-potrdi-predloge__kartica--izbrana")
+              .forEach(function (k) {
+                k.classList.remove("opomin-potrdi-predloge__kartica--izbrana");
+              });
+            kartica.classList.add("opomin-potrdi-predloge__kartica--izbrana");
+          });
         });
         drsnik.appendChild(kartica);
       });
