@@ -1975,6 +1975,8 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 #obrazec-neplacilo > .obrazec__gumb-naprej {
   order: 4;
+  margin-top: 20px;
+  margin-bottom: 8px;
 }
 
 /* Račun je neposredno nadaljevanje opisa opravljenega dela, zato ga držimo
@@ -3014,17 +3016,22 @@ body.stran--samo-seznam #neplacila-obrazec {
   .wizard-topbar / __nazaj / __izbrisi – edini stil za Nazaj + Izbriši osnutek.
 */
 .wizard-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 40;
+  position: relative;
+  top: auto;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
   width: 100%;
-  margin: 0 0 var(--space-xs);
-  padding: 0;
-  background: #f2f7f6;
+  margin: 0;
+  padding: 0 0 10px;
+  background: linear-gradient(
+    180deg,
+    #e8f3f1 0%,
+    #f3f8f7 62%,
+    #ffffff 100%
+  );
   box-sizing: border-box;
   /* Stabilnejši sticky compositing med scrollom */
   backface-visibility: hidden;
@@ -12911,7 +12918,7 @@ textarea.sms-preview__viewport {
   gap: 8px;
   align-items: stretch;
   margin-top: 12px;
-  min-height: 86px;
+  min-height: 0;
 }
 
 .ocena-tveganja__vrstica-locilo {
@@ -12919,13 +12926,14 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje {
+  position: relative;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 12px;
-  align-items: center;
+  align-items: start;
   gap: 8px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px 8px;
+  padding: 9px 8px;
   border: 1px solid #D7E7E9;
   border-radius: 14px;
   background: #FFFFFF;
@@ -12970,7 +12978,7 @@ textarea.sms-preview__viewport {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .ocena-tveganja__polje-oznaka {
@@ -12990,11 +12998,14 @@ textarea.sms-preview__viewport {
 
 .ocena-tveganja__polje-kategorija {
   min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #168E94;
-  line-height: 1.15;
-  white-space: nowrap;
+  line-height: 1.2;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
 }
 
 .ocena-tveganja__polje-chevron {
