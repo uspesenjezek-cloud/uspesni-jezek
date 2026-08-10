@@ -4996,6 +4996,20 @@ body.uj-modal-odprt {
   border-left: 1px solid rgba(63, 153, 152, 0.65);
 }
 
+/* Tretji stolpec je samo število preteklih zamud, zato ga poravnamo pod naslov. */
+.debt-summary--tri .debt-summary__category-column:last-of-type {
+  box-sizing: border-box;
+  align-items: center;
+  padding-left: 0;
+  text-align: center;
+}
+
+/* Apple system green za ključne podatke v priporočilu. */
+#ton-povzetek .debt-summary__label,
+#ton-povzetek .debt-summary__amount {
+  color: #34c759;
+}
+
 .debt-summary__label {
   font-size: 12px;
   line-height: 1.2;
