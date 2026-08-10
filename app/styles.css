@@ -1959,6 +1959,24 @@ body.stran--samo-seznam #neplacila-obrazec {
   gap: 0;
 }
 
+/* Na koraku 1 najprej pokažemo prilogo računa, nato dodatno oceno tveganja.
+   Vse obstoječe kontrole in njihova logika ostanejo iste. */
+#obrazec-neplacilo > .obrazec-razdelek {
+  order: 1;
+}
+
+#obrazec-neplacilo > .racun-posiljanje {
+  order: 2;
+}
+
+#obrazec-neplacilo > .ocena-tveganja {
+  order: 3;
+}
+
+#obrazec-neplacilo > .obrazec__gumb-naprej {
+  order: 4;
+}
+
 .obrazec__polje {
   display: flex;
   flex-direction: column;
@@ -10341,8 +10359,8 @@ body.template-editor-odprt {
 .sms-preview__okno {
   position: relative;
   width: 100%;
-  height: 255px;
-  max-height: 255px;
+  height: 191px;
+  max-height: 191px;
   border: 1px solid #9ccfcd;
   border-radius: 13px;
   background: #fff;
