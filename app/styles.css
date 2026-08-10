@@ -10341,8 +10341,8 @@ body.template-editor-odprt {
 .sms-preview__okno {
   position: relative;
   width: 100%;
-  height: 182px;
-  max-height: 182px;
+  height: 255px;
+  max-height: 255px;
   border: 1px solid #9ccfcd;
   border-radius: 13px;
   background: #fff;
