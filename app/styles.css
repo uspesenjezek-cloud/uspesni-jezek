@@ -3490,13 +3490,12 @@ html.uj-modal-odprt,
 body.uj-modal-odprt {
   overflow: hidden;
   overscroll-behavior: none;
+  scrollbar-gutter: stable;
 }
 
 body.uj-modal-odprt {
-  position: fixed;
-  left: 0;
-  right: 0;
-  width: 100%;
+  /* Ne prepozicioniraj strani ob odpiranju modala: tako ozadje ostane mirno. */
+  position: static;
 }
 
 .uj-kratko-obvestilo {
@@ -4789,13 +4788,12 @@ body.uj-modal-odprt {
   padding: 8px;
   border: 1.5px solid var(--teal-primary);
   border-radius: 24px;
-  /* Subtilen teal sij ob naslovu; rumeni CTA ostane glavni poudarek. */
   background:
     radial-gradient(110% 85% at 0% 0%, rgba(63, 153, 152, 0.15) 0%, rgba(63, 153, 152, 0) 58%),
     linear-gradient(135deg, #ffffff 0%, #f6fbfa 100%);
-  overflow: hidden;
   isolation: isolate;
   box-shadow: 0 2px 10px rgba(36, 127, 126, 0.14);
+  overflow: visible;
 }
 
 .priporocilo-widget__glava {
