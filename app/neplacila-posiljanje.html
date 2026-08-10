@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-gradient-widget-ozadje" />
+    <link rel="stylesheet" href="styles.css?v=20260810-rumen-spodaj-desno" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -539,39 +539,39 @@
     </div>
 
     <!-- Predogled predloge (klik na kartico) -->
-    <div class="predloga-predogled" id="predloge3-predogled" hidden>
+    <div class="predloge3-modal" id="predloge3-predogled" hidden>
       <button
         type="button"
-        class="predloga-predogled__backdrop"
+        class="predloge3-modal__backdrop"
         id="predloge3-predogled-backdrop"
         aria-label="Zapri predogled"
       ></button>
       <div
-        class="predloga-predogled__panel"
+        class="predloge3-modal__panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="predloge3-predogled-naslov"
         id="predloge3-predogled-dialog"
       >
-        <header class="predloga-predogled__header">
-          <div class="predloga-predogled__header-tekst">
-            <p class="predloga-predogled__eyebrow">Predogled predloge</p>
-            <h2 class="predloga-predogled__naslov" id="predloge3-predogled-naslov" tabindex="-1">—</h2>
+        <header class="predloge3-modal__header">
+          <div class="predloge3-modal__header-tekst">
+            <p class="predloge3-modal__eyebrow">Predogled predloge</p>
+            <h2 class="predloge3-modal__naslov" id="predloge3-predogled-naslov" tabindex="-1">—</h2>
           </div>
           <button
             type="button"
-            class="predloga-predogled__zapri"
+            class="predloge3-modal__zapri"
             id="predloge3-predogled-zapri"
             aria-label="Zapri"
           >
             <span aria-hidden="true">×</span>
           </button>
         </header>
-        <div class="predloga-predogled__telo">
-          <p class="predloga-predogled__besedilo" id="predloge3-predogled-besedilo"></p>
+        <div class="predloge3-modal__telo">
+          <p class="predloge3-modal__besedilo" id="predloge3-predogled-besedilo"></p>
         </div>
-        <footer class="predloga-predogled__noga">
-          <button type="button" class="predloga-predogled__gumb predloga-predogled__gumb--uporabi" id="predloge3-predogled-uporabi" aria-pressed="false">Uporabi</button>
+        <footer class="predloge3-modal__noga">
+          <button type="button" class="predloge3-modal__gumb predloge3-modal__gumb--uporabi" id="predloge3-predogled-uporabi" aria-pressed="false">Uporabi</button>
         </footer>
       </div>
     </div>

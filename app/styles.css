@@ -12410,6 +12410,130 @@ textarea.sms-preview__viewport {
   background: var(--teal, #51999a);
 }
 
+/* Predogled predloge — korak 3 (kompakten, ne celozaslonski) */
+.predloge3-modal:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  z-index: 2050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.predloge3-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.predloge3-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+
+.predloge3-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 20px 10px;
+  flex-shrink: 0;
+}
+
+.predloge3-modal__header-tekst {
+  min-width: 0;
+}
+
+.predloge3-modal__eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #808f8d;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.predloge3-modal__naslov {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #17322f;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.predloge3-modal__zapri {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f0f3f2;
+  color: #5f7571;
+  font-size: 17px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.predloge3-modal__telo {
+  padding: 6px 20px 18px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.predloge3-modal__besedilo {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #3a4a47;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.predloge3-modal__noga {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid #eef2f1;
+  flex-shrink: 0;
+}
+
+.predloge3-modal__gumb {
+  flex: 1 1 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.predloge3-modal__gumb--uporabi {
+  background: var(--teal, #51999a);
+  color: #fff;
+}
+
 .korak2__gumb-naprej:focus-visible {
   outline: 3px solid var(--teal-dark, #10797d);
   outline-offset: 2px;

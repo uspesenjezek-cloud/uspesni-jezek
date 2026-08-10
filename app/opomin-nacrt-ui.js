@@ -3635,7 +3635,7 @@
 
       function zapri() {
         modal.hidden = true;
-        document.body.classList.remove("predloga-predogled-odprt");
+        document.body.style.overflow = "";
         if (uporabiBtn) uporabiBtn.removeEventListener("click", onApply);
         if (zapriBtn) zapriBtn.removeEventListener("click", zapri);
         if (backdrop) backdrop.removeEventListener("click", zapri);
@@ -3653,8 +3653,16 @@
       if (zapriBtn) zapriBtn.addEventListener("click", zapri);
       if (backdrop) backdrop.addEventListener("click", zapri);
 
+      function onEscape(ev) {
+        if (ev.key === "Escape") { zapri(); document.removeEventListener("keydown", onEscape); }
+      }
+      document.addEventListener("keydown", onEscape);
+
+      var origZapri = zapri;
+      zapri = function () { document.removeEventListener("keydown", onEscape); origZapri(); };
+
       modal.hidden = false;
-      document.body.classList.add("predloga-predogled-odprt");
+      document.body.style.overflow = "hidden";
     }
 
     function izrisiSeznamPredlog(predlogi, ovoj, drsnik, ta) {
