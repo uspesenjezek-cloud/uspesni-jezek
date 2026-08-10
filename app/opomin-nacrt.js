@@ -7,9 +7,9 @@
   var KLJUC_SEJE = "neplacilo-korak3-nacrt";
 
   var ODMKI_BAZA = {
-    strict: [0, 6, 13, 20],
-    firm: [0, 8, 17, 26],
-    friendly: [0, 11, 22, 30],
+    strict: [0, 6, 13, 20, 28, 36],
+    firm: [0, 8, 17, 26, 34, 42],
+    friendly: [0, 11, 22, 30, 38, 46],
   };
 
   var KORAKI_META = [
@@ -36,6 +36,20 @@
     },
     {
       order: 4,
+      type: "strict_reminder",
+      title: "Dodaten odločen opomin",
+      toneId: "strict",
+      deliveryMode: "automatic",
+    },
+    {
+      order: 5,
+      type: "final_reminder",
+      title: "Zadnji formalni opomin",
+      toneId: "strict",
+      deliveryMode: "automatic",
+    },
+    {
+      order: 6,
       type: "legal_handoff",
       title: "Predaja odvetniku",
       toneId: "strict",
@@ -139,7 +153,7 @@
       }
     }
 
-    var out = [0, baza[1], baza[2], baza[3]];
+    var out = [0, baza[1], baza[2], baza[3], baza[4], baza[5]];
 
     if (zamuda === "dolga") {
       for (var i = 1; i < out.length; i++) {
@@ -321,6 +335,26 @@
         " ist weiterhin unbezahlt. Ohne Zahlung behalten wir uns weitere Schritte vor."
       );
     }
+    if (index === 4) {
+      return (
+        "Guten Tag " +
+        ime +
+        ", die Rechnung" +
+        stevilka +
+        " über " +
+        znesek +
+        " bleibt unbezahlt. Wir bitten Sie dringend um Begleichung, um weitere rechtliche Schritte abzuwenden."
+      );
+    }
+    if (index === 5) {
+      return (
+        "Letzte Aufforderung: Rechnung" +
+        stevilka +
+        " über " +
+        znesek +
+        " ist noch offen. Bei Nichtzahlung werden wir die Angelegenheit an unseren Rechtsbeistand übergeben."
+      );
+    }
     return "";
   }
 
@@ -476,6 +510,12 @@
     if (step.offsetDays == null) {
       step.offsetDays = step.scheduledOffsetDays || 0;
     }
+    if (step.customContacts == null) {
+      step.customContacts = { phoneNumbers: [], emailAddresses: [] };
+    } else {
+      if (!Array.isArray(step.customContacts.phoneNumbers)) step.customContacts.phoneNumbers = [];
+      if (!Array.isArray(step.customContacts.emailAddresses)) step.customContacts.emailAddresses = [];
+    }
     if (step.manualScheduleOverride == null) {
       step.manualScheduleOverride = false;
     }
@@ -552,7 +592,7 @@
       var surovo = sessionStorage.getItem(KLJUC_SEJE);
       if (!surovo) return null;
       var plan = JSON.parse(surovo);
-      if (!plan || !Array.isArray(plan.steps) || plan.steps.length !== 4) {
+      if (!plan || !Array.isArray(plan.steps) || plan.steps.length < 2) {
         return null;
       }
       if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
@@ -861,6 +901,13 @@
 
     var conflict = (plan.steps || []).some(function (s) {
       if (s.index === step.index) return false;
+      if (
+        shiftFollowing &&
+        Number(s.index) > Number(step.index) &&
+        jeKorakPremakljiv(s)
+      ) {
+        return false;
+      }
       var t = parseLocalDateTime(s.sendAt || s.scheduledAt);
       return t && Math.abs(t.getTime() - novo.getTime()) < 60000;
     });
@@ -943,6 +990,44 @@
     }).length;
   }
 
+  /** Odstrani korak z danim indexom iz plana. Preštevilči order preostalih
+      korakov, pusti index (interni ID) nespremenjen, ne spreminja odmikov. */
+  function odstraniKorak(plan, index) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var idx = -1;
+    for (var i = 0; i < plan.steps.length; i++) {
+      if (Number(plan.steps[i].index) === Number(index)) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) return plan;
+    plan.steps.splice(idx, 1);
+    /* Preštevilči order (prikazna številka) */
+    for (var j = 0; j < plan.steps.length; j++) {
+      plan.steps[j].order = j + 1;
+    }
+    plan.stages = plan.steps;
+    plan.totalDurationDays = plan.steps.length
+      ? (plan.steps[plan.steps.length - 1].scheduledOffsetDays || 0)
+      : 0;
+    plan.updatedAt = zdajIso();
+    return osveziPlanStatus(plan);
+  }
+
+  function steviloSmsKorakov(plan) {
+    return (plan.steps || []).filter(function (s) {
+      return s.kind === "sms";
+    }).length;
+  }
+
+  function jeZadnjiKorakManualLawyer(plan) {
+    var steps = plan && plan.steps;
+    if (!steps || !steps.length) return false;
+    var last = steps[steps.length - 1];
+    return last.kind === "manual_lawyer";
+  }
+
   var api = {
     KLJUC_SEJE: KLJUC_SEJE,
     KORAKI_META: KORAKI_META,
@@ -977,6 +1062,9 @@
     prviNepotrjenSmsIndex: prviNepotrjenSmsIndex,
     soVsiSmsPotrjeni: soVsiSmsPotrjeni,
     steviloPotrjenih: steviloPotrjenih,
+    odstraniKorak: odstraniKorak,
+    steviloSmsKorakov: steviloSmsKorakov,
+    jeZadnjiKorakManualLawyer: jeZadnjiKorakManualLawyer,
   };
 
   root.UJOpominNacrt = api;
