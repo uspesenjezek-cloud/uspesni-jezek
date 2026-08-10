@@ -12910,10 +12910,10 @@ textarea.sms-preview__viewport {
 
 .ocena-tveganja__vrstica {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: stretch;
   margin-top: 12px;
-  min-height: 56px;
+  min-height: 86px;
 }
 
 .ocena-tveganja__vrstica-locilo {
@@ -12922,15 +12922,16 @@ textarea.sms-preview__viewport {
 
 .ocena-tveganja__polje {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 16px;
-  align-items: center;
-  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1fr) 12px;
+  align-items: start;
+  gap: 7px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid #D7E7E9;
-  border-radius: 14px;
-  background: #F6FBFB;
+  min-height: 86px;
+  padding: 9px;
+  border: 1px solid #CFE3E1;
+  border-radius: 12px;
+  background: #FFFFFF;
   text-align: left;
   font: inherit;
   color: inherit;
@@ -12960,14 +12961,15 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje-ikona {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: #E4F3F2;
   color: #15959B;
+  align-self: start;
 }
 
 .ocena-tveganja__polje-ikona svg {
@@ -12978,28 +12980,48 @@ textarea.sms-preview__viewport {
 .ocena-tveganja__polje-vsebina {
   min-width: 0;
   flex: 1 1 0;
+  min-height: 66px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: stretch;
+  gap: 3px;
 }
 
 .ocena-tveganja__polje-oznaka {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: #71848C;
-  line-height: 1.2;
+  line-height: 1.05;
 }
 
 .ocena-tveganja__polje-vrednost {
-  flex: 1 1 0;
   min-width: 0;
-  font-size: 13px;
+  margin-top: auto;
+  font-size: 12px;
   font-weight: 700;
   color: #102B35;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ocena-tveganja__polje-kategorija {
+  min-width: 0;
+  margin-top: 2px;
+  color: #173633;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: normal;
+  overflow: hidden;
+  text-align: center;
+}
+
+.ocena-tveganja__polje-chevron {
+  align-self: center;
+  color: #93A8A6;
+  font-size: 15px;
 }
 
 .ocena-tveganja__polje-znesek {
