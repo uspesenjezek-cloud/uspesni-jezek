@@ -1643,9 +1643,64 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .racun-posiljanje__dodaj-se-naslov {
-  margin: 0 0 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
   color: #5f746f;
   font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.racun-posiljanje__dodaj-se {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.racun-posiljanje__gumbi--dodaj-se {
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.racun-posiljanje__gumbi--dodaj-se .racun-posiljanje__gumb {
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 7px;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.racun-posiljanje__akcije-locilo {
+  flex: 0 0 1px;
+  width: 1px;
+  height: 22px;
+  margin: 0 1px;
+  background: #9bcac5;
+}
+
+
+@media (max-width: 370px) {
+  .racun-posiljanje__dodaj-se {
+    gap: 4px;
+  }
+
+  .racun-posiljanje__dodaj-se-naslov {
+    font-size: 0.68rem;
+  }
+
+  .racun-posiljanje__gumbi--dodaj-se {
+    gap: 3px;
+  }
+
+  .racun-posiljanje__gumbi--dodaj-se .racun-posiljanje__gumb {
+    padding-inline: 5px;
+  }
 }
 
 .racun-posiljanje__limit {
@@ -2023,6 +2078,87 @@ body.stran--samo-seznam #neplacila-obrazec {
 #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__datoteka-ikona {
   background: #f2f2f7;
   color: #198f93;
+}
+
+/* Navodili sta zgoraj; večji akciji za dodajanje računa sta spodaj levo. */
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__vrstica {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__naslov {
+  flex: 0 0 auto;
+  margin: 0;
+  color: #5f746f;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+  margin: 9px 0 0;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica .racun-posiljanje__gumb {
+  min-width: 84px;
+  min-height: 40px;
+  padding: 7px 13px;
+  border-color: #a8c7c2;
+  border-radius: 10px;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije-locilo {
+  flex: 0 0 1px;
+  width: 1px;
+  height: 22px;
+  margin: 0 1px;
+  background: #9bcac5;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__stikalo--pod-gumbi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__stikalo--pod-gumbi .racun-posiljanje__stikalo-besedilo {
+  color: #5f746f;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__seznam-wrapper:not(:empty) {
+  margin-top: 8px;
+}
+
+@media (max-width: 400px) {
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__vrstica {
+    gap: 8px;
+  }
+
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica {
+    gap: 7px;
+  }
+
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica .racun-posiljanje__gumb {
+    min-width: 82px;
+  }
 }
 
 .obrazec__polje {
