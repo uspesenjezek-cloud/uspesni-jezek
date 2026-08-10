@@ -338,21 +338,20 @@
     for (var zi = 0; zi < zamInputi.length; zi++) zamInputi[zi].addEventListener("input", syncOdZamude);
 
     // --- Takojšnja validacija ob zapustitvi polja (blur) ---
-    vezaviBlurValidacijo("ocena-dolg-nizek-od", "ocena-dolg-nizek-do");
-    vezaviBlurValidacijo("ocena-dolg-nizek-do", "ocena-dolg-nizek-od", true);
-    vezaviBlurValidacijo("ocena-dolg-srednji-od", "ocena-dolg-srednji-do");
-    vezaviBlurValidacijo("ocena-dolg-srednji-do", "ocena-dolg-srednji-od", true);
-    vezaviBlurValidacijo("ocena-dolg-visok-od", "ocena-dolg-visok-do");
-    vezaviBlurValidacijo("ocena-dolg-visok-do", "ocena-dolg-visok-od", true);
-    vezaviBlurValidacijo("ocena-dolg-ekstremni-od", null, false, true);
-
-    vezaviBlurValidacijo("ocena-zamuda-kratka-od", "ocena-zamuda-kratka-do");
-    vezaviBlurValidacijo("ocena-zamuda-kratka-do", "ocena-zamuda-kratka-od", true);
-    vezaviBlurValidacijo("ocena-zamuda-srednja-od", "ocena-zamuda-srednja-do");
-    vezaviBlurValidacijo("ocena-zamuda-srednja-do", "ocena-zamuda-srednja-od", true);
-    vezaviBlurValidacijo("ocena-zamuda-visoka-od", "ocena-zamuda-visoka-do");
-    vezaviBlurValidacijo("ocena-zamuda-visoka-do", "ocena-zamuda-visoka-od", true);
-    vezaviBlurValidacijo("ocena-zamuda-ekstremna-od", null, false, true);
+    var vsiDolgInputi = document.querySelectorAll("#ocena-dolg-nizek-od, #ocena-dolg-nizek-do, #ocena-dolg-srednji-od, #ocena-dolg-srednji-do, #ocena-dolg-visok-od, #ocena-dolg-visok-do, #ocena-dolg-ekstremni-od");
+    for (var di = 0; di < vsiDolgInputi.length; di++) {
+      vsiDolgInputi[di].addEventListener("blur", function () {
+        var p = beriDolgPragoveIzDOM();
+        if (!validirajDolgPragove(p)) this.focus();
+      });
+    }
+    var vsiZamInputi = document.querySelectorAll("#ocena-zamuda-kratka-od, #ocena-zamuda-kratka-do, #ocena-zamuda-srednja-od, #ocena-zamuda-srednja-do, #ocena-zamuda-visoka-od, #ocena-zamuda-visoka-do, #ocena-zamuda-ekstremna-od");
+    for (var zi = 0; zi < vsiZamInputi.length; zi++) {
+      vsiZamInputi[zi].addEventListener("blur", function () {
+        var p = beriZamudaPragoveIzDOM();
+        if (!validirajZamudaPragove(p)) this.focus();
+      });
+    }
 
     // --- Meni za dolg ---
     vezaviMeni("ocena-dolg-sheet", "[data-odpri-nastavitve-dolga]", "[data-ocena-dolg-zapri]", "[data-ocena-dolg-ponastavi]", "[data-ocena-dolg-shrani]",
@@ -435,41 +434,6 @@
       if (ev.key === "Escape") {
         var sheets = ["ocena-dolg-sheet", "ocena-zamuda-sheet", "ocena-zgodovina-sheet"];
         for (var s = 0; s < sheets.length; s++) { var el = document.getElementById(sheets[s]); if (el) el.hidden = true; }
-      }
-    });
-  }
-
-  function vezaviBlurValidacijo(poljeId, partnerId, jeDoPolje, jeEkstremni) {
-    var el = document.getElementById(poljeId);
-    if (!el) return;
-    el.addEventListener("blur", function () {
-      var v = parseFloat(String(el.value || "").replace(",", "."));
-      if (!Number.isFinite(v)) return;
-      if (jeEkstremni) {
-        // Ekstremni "od" mora biti > prejšnji "do" (visokDo)
-        var prevDoEl = document.getElementById(poljeId.replace("ekstremn", "visok").replace("-od", "-do"));
-        if (!prevDoEl) return;
-        var prevDo = parseFloat(String(prevDoEl.value || "").replace(",", "."));
-        if (Number.isFinite(prevDo) && v <= prevDo) {
-          el.focus();
-          oknoNapake("Številka mora biti višja od " + prevDo + ".");
-        }
-      } else if (jeDoPolje) {
-        var odEl = document.getElementById(partnerId);
-        if (!odEl) return;
-        var od = parseFloat(String(odEl.value || "").replace(",", "."));
-        if (Number.isFinite(od) && od > v) {
-          el.focus();
-          oknoNapake("Številka mora biti višja od " + od + ".");
-        }
-      } else {
-        var doEl = document.getElementById(partnerId);
-        if (!doEl) return;
-        var doV = parseFloat(String(doEl.value || "").replace(",", "."));
-        if (Number.isFinite(doV) && v > doV) {
-          el.focus();
-          oknoNapake("Številka mora biti nižja od " + doV + ".");
-        }
       }
     });
   }
