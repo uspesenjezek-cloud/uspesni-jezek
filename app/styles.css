@@ -5048,23 +5048,8 @@ body.uj-modal-odprt {
 
 .tone-carousel::before,
 .tone-carousel::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 24px;
-  z-index: 4;
-  pointer-events: none;
-}
-
-.tone-carousel::before {
-  left: 0;
-  background: linear-gradient(to right, var(--teal-surface-soft), transparent);
-}
-
-.tone-carousel::after {
-  right: 0;
-  background: linear-gradient(to left, var(--teal-surface-soft), transparent);
+  /* Brez prelivov ob drsni vrstici: izbire ostanejo povsem čiste. */
+  content: none;
 }
 
 .tone-carousel__viewport {
@@ -13032,7 +13017,8 @@ textarea.sms-preview__viewport {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: 6px;
+  margin-bottom: -2px;
 }
 
 .ocena-tveganja__pika {
