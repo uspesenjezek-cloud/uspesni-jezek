@@ -1648,22 +1648,6 @@ body.stran--samo-seznam #neplacila-obrazec {
   font-size: 0.75rem;
 }
 
-.racun-posiljanje__dodaj-se-vrh {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.racun-posiljanje__dodaj-se-vrh .racun-posiljanje__dodaj-se-naslov,
-.racun-posiljanje__dodaj-se-poslji {
-  margin: 0;
-  color: #5f746f;
-  font-size: 0.75rem;
-  line-height: 1.3;
-}
-
 .racun-posiljanje__limit {
   margin: 0;
   color: #667b76;
@@ -1697,21 +1681,6 @@ body.stran--samo-seznam #neplacila-obrazec {
   flex-shrink: 0;
   gap: 8px;
   margin-left: auto;
-}
-
-.racun-posiljanje__gumbi--dodaj-se {
-  width: 100%;
-  min-width: 0;
-  margin-left: 0;
-  align-items: center;
-}
-
-.racun-posiljanje__akcije-locilo {
-  flex: 0 0 1px;
-  width: 1px;
-  height: 26px;
-  margin: 0 1px;
-  background: #8fc6bf;
 }
 
 .racun-posiljanje__gumb {
@@ -1810,22 +1779,6 @@ body.stran--samo-seznam #neplacila-obrazec {
   cursor: pointer;
 }
 
-.racun-posiljanje__stikalo--strnjeno {
-  display: inline-flex;
-  margin: 0 0 0 auto;
-  gap: 0;
-}
-
-.racun-posiljanje__stikalo--strnjeno .racun-posiljanje__stikalo-ui {
-  width: 40px;
-  height: 24px;
-}
-
-.racun-posiljanje__stikalo--strnjeno .racun-posiljanje__stikalo-ui::after {
-  width: 18px;
-  height: 18px;
-}
-
 .racun-posiljanje__stikalo-besedilo {
   min-width: 0;
   display: flex;
@@ -1881,10 +1834,6 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .racun-posiljanje__stikalo input:checked + .racun-posiljanje__stikalo-ui::after {
   transform: translateX(18px);
-}
-
-.racun-posiljanje__stikalo--strnjeno input:checked + .racun-posiljanje__stikalo-ui::after {
-  transform: translateX(16px);
 }
 
 .racun-posiljanje__stikalo input:focus-visible + .racun-posiljanje__stikalo-ui {
@@ -12907,14 +12856,17 @@ textarea.sms-preview__viewport {
   color: var(--text, #173633);
 }
 
-/* ========== KORAK 1: "Ocena tveganja" ========== */
+/* ========== KORAK 1: "Ocena tveganja" (samo dizajn – DeepSeek doda logiko) ==========
+   Nove, omejene BEM komponente. Uporablja obstoječe :root spremenljivke
+   (--color-primary, --color-border, --color-text, --space-*), da je videz
+   skladen z ostalim obrazcem na neplacila.html. */
 .ocena-tveganja {
   margin-top: 10px;
-  padding: 12px;
-  background: #F4F8F9;
-  border: 1px solid #D7E7E9;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(16, 53, 61, 0.04);
+  padding: 8px 0 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   box-sizing: border-box;
 }
 
@@ -12962,11 +12914,11 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__vrstica {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
   align-items: stretch;
-  margin-top: 10px;
+  margin-top: 12px;
+  min-height: 0;
 }
 
 .ocena-tveganja__vrstica-locilo {
@@ -12974,12 +12926,14 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje {
+  position: relative;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr) 12px;
+  align-items: start;
+  gap: 8px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px 10px;
+  padding: 9px 8px;
   border: 1px solid #D7E7E9;
   border-radius: 14px;
   background: #FFFFFF;
@@ -12988,7 +12942,6 @@ textarea.sms-preview__viewport {
   color: inherit;
   cursor: pointer;
   box-sizing: border-box;
-  align-items: center;
 }
 
 .ocena-tveganja__polje:hover {
@@ -13006,8 +12959,8 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje-ikona {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -13017,8 +12970,8 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje-ikona svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .ocena-tveganja__polje-vsebina {
@@ -13036,6 +12989,7 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje-vrednost {
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: #102B35;
@@ -13043,32 +12997,21 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje-kategorija {
-  font-size: 11px;
-  font-weight: 600;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
   color: #168E94;
-  line-height: 1.15;
+  line-height: 1.2;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
 }
 
-.ocena-tveganja__polje-nastavitve {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #E4F3F2;
-  color: #15959B;
-  flex-shrink: 0;
-}
-
-.ocena-tveganja__polje-nastavitve svg {
-  width: 14px;
-  height: 14px;
-}
-
-.ocena-tveganja__polje-nastavitve svg {
-  display: block;
-  width: 13px;
-  height: 13px;
+.ocena-tveganja__polje-chevron {
+  align-self: center;
+  color: #93A8A6;
+  font-size: 15px;
 }
 
 .ocena-tveganja__polje-znesek {
@@ -13078,6 +13021,13 @@ textarea.sms-preview__viewport {
   color: #168E94;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.ocena-tveganja__polje-chevron {
+  flex-shrink: 0;
+  color: #7F9299;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .ocena-tveganja__locilo {
