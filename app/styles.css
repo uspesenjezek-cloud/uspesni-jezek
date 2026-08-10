@@ -12857,11 +12857,11 @@ textarea.sms-preview__viewport {
    skladen z ostalim obrazcem na neplacila.html. */
 .ocena-tveganja {
   margin-top: 10px;
-  padding: 10px 12px;
-  background: #F4F8F9;
-  border: 1px solid #D7E7E9;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(16, 53, 61, 0.04);
+  padding: 8px 0 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   box-sizing: border-box;
 }
 
@@ -12922,7 +12922,7 @@ textarea.sms-preview__viewport {
 
 .ocena-tveganja__polje {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 12px;
+  grid-template-columns: 34px minmax(0, 1fr) 12px;
   align-items: center;
   gap: 8px;
   flex: 1 1 0;
