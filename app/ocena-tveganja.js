@@ -337,6 +337,23 @@
     var zamInputi = document.querySelectorAll("#ocena-zamuda-kratka-do, #ocena-zamuda-srednja-do, #ocena-zamuda-visoka-do");
     for (var zi = 0; zi < zamInputi.length; zi++) zamInputi[zi].addEventListener("input", syncOdZamude);
 
+    // --- Takojšnja validacija ob zapustitvi polja (blur) ---
+    vezaviBlurValidacijo("ocena-dolg-nizek-od", "ocena-dolg-nizek-do");
+    vezaviBlurValidacijo("ocena-dolg-nizek-do", "ocena-dolg-nizek-od", true);
+    vezaviBlurValidacijo("ocena-dolg-srednji-od", "ocena-dolg-srednji-do");
+    vezaviBlurValidacijo("ocena-dolg-srednji-do", "ocena-dolg-srednji-od", true);
+    vezaviBlurValidacijo("ocena-dolg-visok-od", "ocena-dolg-visok-do");
+    vezaviBlurValidacijo("ocena-dolg-visok-do", "ocena-dolg-visok-od", true);
+    vezaviBlurValidacijo("ocena-dolg-ekstremni-od", null, false, true);
+
+    vezaviBlurValidacijo("ocena-zamuda-kratka-od", "ocena-zamuda-kratka-do");
+    vezaviBlurValidacijo("ocena-zamuda-kratka-do", "ocena-zamuda-kratka-od", true);
+    vezaviBlurValidacijo("ocena-zamuda-srednja-od", "ocena-zamuda-srednja-do");
+    vezaviBlurValidacijo("ocena-zamuda-srednja-do", "ocena-zamuda-srednja-od", true);
+    vezaviBlurValidacijo("ocena-zamuda-visoka-od", "ocena-zamuda-visoka-do");
+    vezaviBlurValidacijo("ocena-zamuda-visoka-do", "ocena-zamuda-visoka-od", true);
+    vezaviBlurValidacijo("ocena-zamuda-ekstremna-od", null, false, true);
+
     // --- Meni za dolg ---
     vezaviMeni("ocena-dolg-sheet", "[data-odpri-nastavitve-dolga]", "[data-ocena-dolg-zapri]", "[data-ocena-dolg-ponastavi]", "[data-ocena-dolg-shrani]",
       function () { nastaviDolgInpute(vrniPrivzetePragove()); },
@@ -422,6 +439,41 @@
     });
   }
 
+  function vezaviBlurValidacijo(poljeId, partnerId, jeDoPolje, jeEkstremni) {
+    var el = document.getElementById(poljeId);
+    if (!el) return;
+    el.addEventListener("blur", function () {
+      var v = parseFloat(String(el.value || "").replace(",", "."));
+      if (!Number.isFinite(v)) return;
+      if (jeEkstremni) {
+        // Ekstremni "od" mora biti > prejšnji "do" (visokDo)
+        var prevDoEl = document.getElementById(poljeId.replace("ekstremn", "visok").replace("-od", "-do"));
+        if (!prevDoEl) return;
+        var prevDo = parseFloat(String(prevDoEl.value || "").replace(",", "."));
+        if (Number.isFinite(prevDo) && v <= prevDo) {
+          el.focus();
+          oknoNapake("Številka mora biti višja od " + prevDo + ".");
+        }
+      } else if (jeDoPolje) {
+        var odEl = document.getElementById(partnerId);
+        if (!odEl) return;
+        var od = parseFloat(String(odEl.value || "").replace(",", "."));
+        if (Number.isFinite(od) && od > v) {
+          el.focus();
+          oknoNapake("Številka mora biti višja od " + od + ".");
+        }
+      } else {
+        var doEl = document.getElementById(partnerId);
+        if (!doEl) return;
+        var doV = parseFloat(String(doEl.value || "").replace(",", "."));
+        if (Number.isFinite(doV) && v > doV) {
+          el.focus();
+          oknoNapake("Številka mora biti nižja od " + doV + ".");
+        }
+      }
+    });
+  }
+
   function validirajDolgPragove(p) {
     if (!Number.isFinite(p.dolgNizekDo) || p.dolgNizekDo < 0) { return oknoNapake("Vnesite veljavno mejo za nizek dolg."); }
     if (Number.isFinite(p.dolgNizekOd) && Number.isFinite(p.dolgNizekDo) && p.dolgNizekOd > p.dolgNizekDo) { return oknoNapake("Številka mora biti nižja od " + p.dolgNizekDo + "."); }
@@ -429,6 +481,7 @@
     if (!Number.isFinite(p.dolgSrednjiDo) || p.dolgSrednjiDo <= p.dolgNizekDo) { return oknoNapake("Številka mora biti višja od " + p.dolgNizekDo + "."); }
     if (Number.isFinite(p.dolgVisokOd) && Number.isFinite(p.dolgVisokDo) && p.dolgVisokOd > p.dolgVisokDo) { return oknoNapake("Številka mora biti nižja od " + p.dolgVisokDo + "."); }
     if (!Number.isFinite(p.dolgVisokDo) || p.dolgVisokDo <= p.dolgSrednjiDo) { return oknoNapake("Številka mora biti višja od " + p.dolgSrednjiDo + "."); }
+    if (Number.isFinite(p.dolgEkstremniOd) && Number.isFinite(p.dolgVisokDo) && p.dolgEkstremniOd <= p.dolgVisokDo) { return oknoNapake("Številka mora biti višja od " + p.dolgVisokDo + "."); }
     return true;
   }
 
@@ -439,6 +492,7 @@
     if (!Number.isFinite(p.zamudaSrednjaDo) || p.zamudaSrednjaDo <= p.zamudaKratkaDo) { return oknoNapake("Številka mora biti višja od " + p.zamudaKratkaDo + "."); }
     if (Number.isFinite(p.zamudaVisokaOd) && Number.isFinite(p.zamudaVisokaDo) && p.zamudaVisokaOd > p.zamudaVisokaDo) { return oknoNapake("Številka mora biti nižja od " + p.zamudaVisokaDo + "."); }
     if (!Number.isFinite(p.zamudaVisokaDo) || p.zamudaVisokaDo <= p.zamudaSrednjaDo) { return oknoNapake("Številka mora biti višja od " + p.zamudaSrednjaDo + "."); }
+    if (Number.isFinite(p.zamudaEkstremnaOd) && Number.isFinite(p.zamudaVisokaDo) && p.zamudaEkstremnaOd <= p.zamudaVisokaDo) { return oknoNapake("Številka mora biti višja od " + p.zamudaVisokaDo + "."); }
     return true;
   }
 
