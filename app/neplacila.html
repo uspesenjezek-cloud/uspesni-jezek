@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-izbrisi-korak-dve-vrstici" />
+    <link rel="stylesheet" href="styles.css?v=20260810-rumen-spodaj-desno" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -334,64 +334,68 @@
 
               <section class="ocena-tveganja" id="ocena-tveganja" aria-labelledby="ocena-tveganja-naslov">
                 <div class="ocena-tveganja__glava">
-                  <h3 class="ocena-tveganja__naslov" id="ocena-tveganja-naslov">Ocena tveganja</h3>
-                  <p class="ocena-tveganja__opis">Pomaga določiti primeren ton sporočila.</p>
+                  <span class="ocena-tveganja__glava-ikona" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+                  </span>
+                  <div class="ocena-tveganja__glava-besedilo">
+                    <h3 class="ocena-tveganja__naslov" id="ocena-tveganja-naslov">Ocena tveganja</h3>
+                    <p class="ocena-tveganja__opis">Pomaga določiti primeren ton sporočila.</p>
+                  </div>
                 </div>
 
-                <div class="ocena-tveganja__kartice">
+                <div class="ocena-tveganja__vrstica">
                   <button
                     type="button"
-                    class="ocena-tveganja__kartica"
+                    class="ocena-tveganja__polje"
                     id="ocena-tveganja-dolg"
                     data-odpri-nastavitve-dolga
                     aria-haspopup="dialog"
                   >
-                    <span class="ocena-tveganja__kartica-ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></svg>
+                    <span class="ocena-tveganja__polje-ikona" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></svg>
                     </span>
-                    <span class="ocena-tveganja__kartica-vsebina">
-                      <span class="ocena-tveganja__kartica-oznaka">Višina dolga</span>
-                      <span class="ocena-tveganja__kartica-status" id="ocena-tveganja-dolg-status">Nizek dolg</span>
-                      <span class="ocena-tveganja__kartica-vrednost" id="ocena-tveganja-dolg-vrednost">11,00 €</span>
+                    <span class="ocena-tveganja__polje-vsebina">
+                      <span class="ocena-tveganja__polje-oznaka">Višina dolga</span>
+                      <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-dolg-status">Nizek dolg</span>
+                      <span class="ocena-tveganja__polje-znesek" id="ocena-tveganja-dolg-vrednost">11,00 €</span>
                     </span>
-                    <span class="ocena-tveganja__kartica-puscica" aria-hidden="true">›</span>
+                    <span class="ocena-tveganja__polje-chevron" aria-hidden="true">›</span>
                   </button>
-
+                  <span class="ocena-tveganja__vrstica-locilo" aria-hidden="true"></span>
                   <button
                     type="button"
-                    class="ocena-tveganja__kartica"
+                    class="ocena-tveganja__polje"
                     id="ocena-tveganja-zamuda"
                     data-odpri-nastavitve-zamude
                     aria-haspopup="dialog"
                   >
-                    <span class="ocena-tveganja__kartica-ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                    <span class="ocena-tveganja__polje-ikona" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                     </span>
-                    <span class="ocena-tveganja__kartica-vsebina">
-                      <span class="ocena-tveganja__kartica-oznaka">Dolžina zamude</span>
-                      <span class="ocena-tveganja__kartica-status" id="ocena-tveganja-zamuda-status">Ni zapadel</span>
-                      <span class="ocena-tveganja__kartica-vrednost" id="ocena-tveganja-zamuda-vrednost">0 dni</span>
+                    <span class="ocena-tveganja__polje-vsebina">
+                      <span class="ocena-tveganja__polje-oznaka">Dolžina zamude</span>
+                      <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-zamuda-status">Ni zapadel</span>
+                      <span class="ocena-tveganja__polje-znesek" id="ocena-tveganja-zamuda-vrednost">0 dni</span>
                     </span>
-                    <span class="ocena-tveganja__kartica-puscica" aria-hidden="true">›</span>
+                    <span class="ocena-tveganja__polje-chevron" aria-hidden="true">›</span>
                   </button>
                 </div>
 
-                <div class="ocena-tveganja__zgodovina">
-                  <p class="ocena-tveganja__vprasanje">Ali je dolžnik že kdaj zamudil s plačilom?</p>
-                  <p class="ocena-tveganja__namig">Izberite število preteklih zamud.</p>
-                  <div class="ocena-tveganja__izbira-vrstica" role="group" aria-label="Število preteklih zamud">
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="unknown" aria-pressed="false">Ne vem</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="0" aria-pressed="true">Ne</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="1" aria-pressed="false">1</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="2" aria-pressed="false">2</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="3" aria-pressed="false">3</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="4" aria-pressed="false">4</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="5" aria-pressed="false">5</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="6" aria-pressed="false">6</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="7" aria-pressed="false">7</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="8" aria-pressed="false">8</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="9plus" aria-pressed="false">9+</button>
-                  </div>
+                <hr class="ocena-tveganja__locilo" aria-hidden="true" />
+
+                <p class="ocena-tveganja__vprasanje">Ali je dolžnik že kdaj zamudil s plačilom?</p>
+                <div class="ocena-tveganja__izbira-vrstica" role="group" aria-label="Število preteklih zamud">
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="unknown" aria-pressed="false">Ne vem</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="0" aria-pressed="true">Ne</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="1" aria-pressed="false">1</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="2" aria-pressed="false">2</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="3" aria-pressed="false">3</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="4" aria-pressed="false">4</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="5" aria-pressed="false">5</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="6" aria-pressed="false">6</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="7" aria-pressed="false">7</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="8" aria-pressed="false">8</button>
+                  <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="9plus" aria-pressed="false">9+</button>
                 </div>
               </section>
 
@@ -786,6 +790,6 @@
       })();
     </script>
     <script src="ocena-tveganja.js?v=20260810-pragovi-popravek"></script>
-    <script src="app.js?v=20260810-brez-korak-glave"></script>
+    <script src="app.js?v=20260810-samodejni-zneski"></script>
   </body>
 </html>

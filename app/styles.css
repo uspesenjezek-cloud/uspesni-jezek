@@ -1977,6 +1977,52 @@ body.stran--samo-seznam #neplacila-obrazec {
   order: 4;
 }
 
+/* Račun je neposredno nadaljevanje opisa opravljenega dela, zato ga držimo
+   blizu obrazca in mu damo nežen poudarek brez dodatne višine. */
+#obrazec-neplacilo > .racun-posiljanje {
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid rgba(60, 60, 67, 0.18);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__glava {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__naslov {
+  color: #1d1d1f;
+  font-weight: 700;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__opis {
+  color: #6e6e73;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__neobvezno {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #6e6e73;
+  font-weight: 600;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__prazno,
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__kartica {
+  padding: 10px;
+  border-color: rgba(60, 60, 67, 0.14);
+  background: #fbfbfd;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__ikona,
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__datoteka-ikona {
+  background: #f2f2f7;
+  color: #198f93;
+}
+
 .obrazec__polje {
   display: flex;
   flex-direction: column;
@@ -12765,50 +12811,81 @@ textarea.sms-preview__viewport {
    (--color-primary, --color-border, --color-text, --space-*), da je videz
    skladen z ostalim obrazcem na neplacila.html. */
 .ocena-tveganja {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-border);
+  margin-top: 10px;
+  padding: 12px;
+  background: #F4F8F9;
+  border: 1px solid #D7E7E9;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(16, 53, 61, 0.04);
+  box-sizing: border-box;
 }
 
 .ocena-tveganja__glava {
-  margin-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+}
+
+.ocena-tveganja__glava-ikona {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #E4F3F2;
+  color: #15959B;
+}
+
+.ocena-tveganja__glava-ikona svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ocena-tveganja__glava-besedilo {
+  min-width: 0;
 }
 
 .ocena-tveganja__naslov {
   margin: 0;
-  color: var(--color-text);
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.3;
+  font-size: 16px;
+  font-weight: 700;
+  color: #102B35;
+  line-height: 1.2;
 }
 
 .ocena-tveganja__opis {
-  margin: 4px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.4;
+  margin: 1px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6B7D85;
+  line-height: 1.3;
 }
 
-.ocena-tveganja__kartice {
+.ocena-tveganja__vrstica {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: var(--space-md);
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: stretch;
+  margin-top: 10px;
+  min-height: 56px;
 }
 
-.ocena-tveganja__kartica {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 12px;
+.ocena-tveganja__vrstica-locilo {
+  display: block;
+  width: 1px;
+  background: #D7E7E9;
+  align-self: stretch;
+}
+
+.ocena-tveganja__polje {
+  display: flex;
   align-items: center;
-  column-gap: 8px;
-  width: 100%;
+  gap: 8px;
   min-width: 0;
-  min-height: 72px;
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  background: var(--color-surface);
-  box-shadow: none;
+  padding: 6px 8px 6px 4px;
+  border: 0;
+  background: transparent;
   text-align: left;
   font: inherit;
   color: inherit;
@@ -12816,104 +12893,87 @@ textarea.sms-preview__viewport {
   box-sizing: border-box;
 }
 
-.ocena-tveganja__kartica:focus-visible {
-  outline: 3px solid var(--color-primary-shadow);
-  outline-offset: 2px;
-}
-
-.ocena-tveganja__kartica-ikona {
+.ocena-tveganja__polje-ikona {
   width: 28px;
   height: 28px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--color-teal-soft);
-  color: var(--color-primary);
+  background: #E4F3F2;
+  color: #15959B;
 }
 
-.ocena-tveganja__kartica-ikona svg {
-  width: 16px;
-  height: 16px;
+.ocena-tveganja__polje-ikona svg {
+  width: 15px;
+  height: 15px;
 }
 
-.ocena-tveganja__kartica-vsebina {
+.ocena-tveganja__polje-vsebina {
   min-width: 0;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
-.ocena-tveganja__kartica-oznaka {
+.ocena-tveganja__polje-oznaka {
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: #71848C;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.ocena-tveganja__kartica-status {
+.ocena-tveganja__polje-vrednost {
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-text);
+  color: #102B35;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ocena-tveganja__kartica-vrednost {
-  font-size: 11.5px;
+.ocena-tveganja__polje-znesek {
+  font-size: 12px;
   font-weight: 500;
-  color: var(--color-primary-strong);
+  color: #168E94;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ocena-tveganja__kartica-puscica {
+.ocena-tveganja__polje-chevron {
   flex-shrink: 0;
-  color: var(--color-text-secondary);
-  font-size: 14px;
+  color: #7F9299;
+  font-size: 16px;
   line-height: 1;
-  text-align: center;
 }
 
-.ocena-tveganja__zgodovina {
-  padding-top: 2px;
+.ocena-tveganja__locilo {
+  height: 1px;
+  background: #D7E7E9;
+  border: 0;
+  margin: 10px 0;
 }
 
 .ocena-tveganja__vprasanje {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 0.85rem;
-  font-weight: 500;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #102B35;
   line-height: 1.35;
 }
 
-.ocena-tveganja__namig {
-  margin: 3px 0 10px;
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.4;
-}
-
-/* Vodoravna drsljiva vrstica – SAMO ta element sme dobiti horizontalni scroll;
-   širina je vedno omejena na starša (minmax(0, ...) v nadrejenih grid/flex
-   vsebnikih), zato stran sama ne dobi vodoravnega overflowa. */
 .ocena-tveganja__izbira-vrstica {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  overflow-y: hidden;
   scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 2px;
-  margin: 0 -1px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 1px;
 }
 
 .ocena-tveganja__izbira-vrstica::-webkit-scrollbar {
@@ -12921,52 +12981,35 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__izbira {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   scroll-snap-align: start;
-  min-width: 44px;
-  min-height: 44px;
+  min-height: 34px;
   padding: 0 14px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #CBDADD;
   border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text);
+  background: #FFFFFF;
+  color: #243B43;
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   box-sizing: border-box;
 }
 
 .ocena-tveganja__izbira[aria-pressed="true"] {
-  border-color: var(--color-primary);
-  background: var(--color-teal-soft);
-  color: var(--color-primary-strong);
+  background: #279BA0;
+  border-color: #279BA0;
+  color: #FFFFFF;
+  box-shadow: 0 2px 5px rgba(39, 155, 160, 0.18);
 }
 
 .ocena-tveganja__izbira:focus-visible {
-  outline: 3px solid var(--color-primary-shadow);
+  outline: 3px solid rgba(39, 155, 160, 0.35);
   outline-offset: 2px;
 }
 
-@media (max-width: 360px) {
-  .ocena-tveganja__kartica {
-    padding: 8px;
-    column-gap: 6px;
-  }
-
-  .ocena-tveganja__kartica-ikona {
-    width: 24px;
-    height: 24px;
-  }
-
-  .ocena-tveganja__kartica-ikona svg {
-    width: 14px;
-    height: 14px;
-  }
-}
-
-/* ========== "Ocena tveganja" – spodnji meniji (samo dizajn, brez logike) ========== */
+/* ---- Spodnji meniji za Ocena tveganja (ohranjeno) ---- */
 .ocena-sheet[hidden] {
   display: none !important;
 }
@@ -13235,68 +13278,6 @@ textarea.sms-preview__viewport {
   color: #ffffff;
 }
 
-/* Izpiljen mobilni prikaz ocene tveganja; vedenje in DOM ostajata nespremenjena. */
-.ocena-tveganja__kartice {
-  gap: 8px;
-}
-
-.ocena-tveganja__kartica {
-  grid-template-columns: 30px minmax(0, 1fr) 20px;
-  column-gap: 8px;
-  min-height: 84px;
-  padding: 11px 9px;
-  border-color: #c7dcda;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #f5fbfa 100%);
-  box-shadow: 0 3px 10px rgba(34, 92, 88, 0.06);
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
-}
-
-.ocena-tveganja__kartica:active {
-  transform: scale(0.985);
-}
-
-.ocena-tveganja__kartica-ikona {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: #e4f3f2;
-}
-
-.ocena-tveganja__kartica-vsebina {
-  gap: 3px;
-}
-
-.ocena-tveganja__kartica-oznaka {
-  font-size: 10.5px;
-  letter-spacing: 0.01em;
-}
-
-.ocena-tveganja__kartica-status {
-  font-size: 13.5px;
-  line-height: 1.2;
-}
-
-.ocena-tveganja__kartica-vrednost {
-  width: fit-content;
-  max-width: 100%;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #e8f5f4;
-  font-size: 11px;
-}
-
-.ocena-tveganja__kartica-puscica {
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #edf5f4;
-  color: var(--color-primary-strong);
-  font-size: 16px;
-}
-
 #ocena-dolg-sheet .ocena-sheet__panel,
 #ocena-zamuda-sheet .ocena-sheet__panel {
   max-height: min(calc(100svh - 8px), 680px);
@@ -13402,20 +13383,6 @@ textarea.sms-preview__viewport {
   border-radius: 13px;
   font-size: 0.84rem;
   line-height: 1.2;
-}
-
-@media (max-width: 360px) {
-  .ocena-tveganja__kartica {
-    grid-template-columns: 26px minmax(0, 1fr) 18px;
-    min-height: 80px;
-    padding: 9px 7px;
-    column-gap: 6px;
-  }
-
-  .ocena-tveganja__kartica-ikona {
-    width: 26px;
-    height: 26px;
-  }
 }
 
 /* ===== Opomin kartice (navpičen seznam) ===== */
