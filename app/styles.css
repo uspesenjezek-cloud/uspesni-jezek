@@ -9845,7 +9845,18 @@ body.template-editor-odprt {
   white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
-  overflow-wrap: normal;
+}
+
+.ocena-tveganja__polje-nastavitve {
+  color: #15959B;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ocena-tveganja__polje-nastavitve svg {
+  width: 16px;
+  height: 16px;
 }
 
 .step-content-card .debt-summary {
@@ -12928,7 +12939,7 @@ textarea.sms-preview__viewport {
 .ocena-tveganja__polje {
   position: relative;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 12px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: start;
   gap: 8px;
   flex: 1 1 0;
