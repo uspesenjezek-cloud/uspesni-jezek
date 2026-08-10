@@ -12895,38 +12895,53 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__vrstica {
-  display: grid;
-  grid-template-columns: 1fr 1px 1fr;
+  display: flex;
+  gap: 10px;
   align-items: stretch;
-  margin-top: 10px;
+  margin-top: 12px;
   min-height: 56px;
 }
 
 .ocena-tveganja__vrstica-locilo {
-  display: block;
-  width: 1px;
-  background: #D7E7E9;
-  align-self: stretch;
+  display: none;
 }
 
 .ocena-tveganja__polje {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex: 1 1 0;
   min-width: 0;
-  padding: 6px 8px 6px 4px;
-  border: 0;
-  background: transparent;
+  padding: 12px 10px;
+  border: 1px solid #D7E7E9;
+  border-radius: 14px;
+  background: #F6FBFB;
   text-align: left;
   font: inherit;
   color: inherit;
   cursor: pointer;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(16, 43, 53, 0.05);
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.ocena-tveganja__polje:hover {
+  background: #EDF7F7;
+  border-color: #BEE1DE;
+}
+
+.ocena-tveganja__polje:active {
+  transform: scale(0.98);
+}
+
+.ocena-tveganja__polje:focus-visible {
+  outline: 2px solid #15959B;
+  outline-offset: 2px;
 }
 
 .ocena-tveganja__polje-ikona {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -12945,7 +12960,7 @@ textarea.sms-preview__viewport {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 2px;
 }
 
 .ocena-tveganja__polje-oznaka {
@@ -12960,9 +12975,7 @@ textarea.sms-preview__viewport {
   font-weight: 700;
   color: #102B35;
   line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .ocena-tveganja__polje-znesek {
@@ -12970,9 +12983,7 @@ textarea.sms-preview__viewport {
   font-weight: 500;
   color: #168E94;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .ocena-tveganja__polje-chevron {
