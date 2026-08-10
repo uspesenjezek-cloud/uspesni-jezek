@@ -2810,15 +2810,16 @@ function inicializirajNeplacila() {
       var korak1Raw = sessionStorage.getItem("neplacilo-korak1-podatki");
       var korak1Podatki = korak1Raw ? JSON.parse(korak1Raw) : {};
       if (!korak1Podatki.zgodovinaZamud) {
-        if (document.activeElement) document.activeElement.blur();
         if (typeof potrdiVprasanje === "function") {
-          potrdiVprasanje({
-            naslov: "Izpolnite oceno tveganja",
-            opis: "Pred nadaljevanjem izberite, ali je dolžnik že kdaj zamudil s plačilom.",
-            potrdiBesedilo: "V redu",
-            samoEnGumb: true,
-            stil: "primary",
-          });
+          setTimeout(function () {
+            potrdiVprasanje({
+              naslov: "Izpolnite oceno tveganja",
+              opis: "Pred nadaljevanjem izberite, ali je dolžnik že kdaj zamudil s plačilom.",
+              potrdiBesedilo: "V redu",
+              samoEnGumb: true,
+              stil: "primary",
+            });
+          }, 100);
         }
         return;
       }
