@@ -85,12 +85,17 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Preprečuje bel pas na dnu, kadar mobilni brskalnik ob odprtem modalu
+     (overflow:hidden + zamrznjen scroll) skrči/spremeni vidno višino in
+     razkrije html ozadje pod telom strani. */
+  background: #f2f7f6;
 }
 
 body {
   margin: 0 auto;
   max-width: var(--sirina-max);
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--pisava-telo);
   font-size: 1rem;
   line-height: 1.55;
@@ -1179,13 +1184,13 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin: 18px 0 0;
+  margin: 0;
   padding: 16px;
-  border: 1px solid #bcd4cf;
+  border: 1px solid #d5e1df;
   border-radius: 16px;
   background: #f5faf8;
   box-sizing: border-box;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   overflow: hidden;
   isolation: isolate;
 }
@@ -2026,6 +2031,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 #obrazec-neplacilo > .ocena-tveganja {
   order: 3;
+  margin-top: 16px;
 }
 
 #obrazec-neplacilo > .obrazec__gumb-naprej {
@@ -2037,7 +2043,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 /* Račun je neposredno nadaljevanje opisa opravljenega dela, zato ga držimo
    blizu obrazca in mu damo nežen poudarek brez dodatne višine. */
 #obrazec-neplacilo > .racun-posiljanje {
-  margin-top: 6px;
+  margin-top: 0;
   padding: 12px;
   border: 1px solid rgba(60, 60, 67, 0.18);
   border-radius: 14px;
@@ -2080,7 +2086,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   color: #198f93;
 }
 
-/* Navodili sta zgoraj; večji akciji za dodajanje računa sta spodaj levo. */
+/* Kompaktna vrstica: naslov, ločnica in dejanji za dodajanje računa. */
 #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__vrstica {
   display: flex;
   align-items: center;
@@ -2090,10 +2096,11 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__naslov {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   color: #5f746f;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 500;
   line-height: 1.2;
   white-space: nowrap;
@@ -2104,15 +2111,16 @@ body.stran--samo-seznam #neplacila-obrazec {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 6px;
+  flex: 0 0 auto;
   min-width: 0;
-  margin: 9px 0 0;
+  margin: 0;
 }
 
 #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica .racun-posiljanje__gumb {
-  min-width: 84px;
+  min-width: 0;
   min-height: 40px;
-  padding: 7px 13px;
+  padding: 7px 12px;
   border-color: #a8c7c2;
   border-radius: 10px;
   font-size: 0.76rem;
@@ -2123,7 +2131,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   flex: 0 0 1px;
   width: 1px;
   height: 22px;
-  margin: 0 1px;
+  margin: 0;
   background: #9bcac5;
 }
 
@@ -2153,11 +2161,29 @@ body.stran--samo-seznam #neplacila-obrazec {
   }
 
   #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica {
-    gap: 7px;
+    gap: 5px;
   }
 
   #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica .racun-posiljanje__gumb {
-    min-width: 82px;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 340px) {
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__vrstica {
+    gap: 6px;
+  }
+
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__naslov {
+    font-size: 0.72rem;
+  }
+
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica {
+    gap: 4px;
+  }
+
+  #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__akcije--orodna-vrstica .racun-posiljanje__gumb {
+    padding-inline: 7px;
   }
 }
 
@@ -2219,7 +2245,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 .obrazec__gumb-naprej {
   margin-top: var(--space-md);
-  min-height: 52px;
+  min-height: 50px;
   gap: var(--space-xs);
   font-size: 15px;
   font-weight: 700;
@@ -3077,7 +3103,7 @@ body.stran--samo-seznam #neplacila-obrazec {
 /* ========== KORAK 2: VNOS SPOROČILA (neplacila-sporocilo.html) ==========
    Lokalni design tokeni samo za ta zaslon - ne vplivajo na preostalo app. */
 .stran--sporocilo {
-  --page: #f2f7f6;
+  --page: #ffffff;
   --surface: #ffffff;
   --surface-soft: #f3f8f7;
   --surface-warm: #fbf8f0;
@@ -3114,6 +3140,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   color-scheme: light only;
   max-width: none;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 8px 6px 28px;
   background: var(--page) !important;
   color: var(--text);
@@ -3128,45 +3155,13 @@ body.stran--samo-seznam #neplacila-obrazec {
   color-scheme: light only;
 }
 
-.stran--sporocilo {
-  animation: uj-stran-vstop 200ms ease-out both;
-}
-
-.stran--sporocilo.uj-stran-izhod {
-  animation: uj-stran-izhod 140ms ease-in forwards;
-}
-
-@keyframes uj-stran-vstop {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes uj-stran-izhod {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stran--sporocilo {
-    animation: none;
-  }
-  .stran--sporocilo.uj-stran-izhod {
-    animation: none;
-    opacity: 1;
-  }
-}
+/* POMEMBNO: na .stran--sporocilo (= <body>) NIKOLI ne dodajaj transform/
+   animation s transform-om. Kateri koli transform na <body> ustvari nov
+   containing block za VSE position:fixed elemente na strani (rok-sheet,
+   obrocno-sheet, trr-sheet, opomin-cas-sheet, osnutek-modal ...) - ti se
+   potem pozicionirajo glede na <body> (visok kot cela stran) namesto glede
+   na dejanski zaslon, zato se pojavna okna "izgubijo" izven vidnega dela.
+   Že bilo odstranjeno enkrat in se je vrnilo nazaj - ne dodajaj ponovno. */
 
 .stran--sporocilo h1,
 .stran--sporocilo h2,
@@ -3202,12 +3197,7 @@ body.stran--samo-seznam #neplacila-obrazec {
   width: 100%;
   margin: 0;
   padding: 0 0 10px;
-  background: linear-gradient(
-    180deg,
-    #e8f3f1 0%,
-    #f3f8f7 62%,
-    #ffffff 100%
-  );
+  background: #ffffff;
   box-sizing: border-box;
   /* Stabilnejši sticky compositing med scrollom */
   backface-visibility: hidden;
@@ -3283,24 +3273,11 @@ body.stran--samo-seznam #neplacila-obrazec {
   z-index: 2147483000;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 16px;
   box-sizing: border-box;
   isolation: isolate;
   opacity: 1;
   visibility: visible;
-  width: 100%;
-  max-width: none;
-  height: 100%;
-  max-height: none;
-  margin: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-
-/* Native dialogov backdrop je prosojen, ker zatemnitev in klik za zapiranje
-   že upravlja .osnutek-modal__backdrop znotraj komponente. */
-.osnutek-modal::backdrop {
   background: transparent;
 }
 
@@ -3309,15 +3286,12 @@ body.stran--samo-seznam #neplacila-obrazec {
 }
 
 .osnutek-modal__backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   border: 0;
   margin: 0;
   padding: 0;
   background: rgba(16, 42, 39, 0.42);
-  /* Brez backdrop-filter: na mobilnem Safariju/WebViewu lahko ta ustvari
-     ločen grafični sloj nad dialogom. Zatemnitev ostane, vsebina pa je
-     zanesljivo vedno vidna. */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   cursor: pointer;
@@ -3354,20 +3328,21 @@ body.stran--samo-seznam #neplacila-obrazec {
 
 @media (max-width: 640px) {
   .osnutek-modal:not([hidden]) {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
+    display: grid !important;
+    place-items: center;
+    padding: 16px;
   }
 
   .osnutek-modal__backdrop {
     z-index: 0 !important;
+    background: rgba(16, 42, 39, 0.42);
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
 
   .osnutek-modal__dialog {
     z-index: 10 !important;
-    flex: 0 1 340px;
+    width: min(100%, 340px);
     max-width: 100%;
   }
 
@@ -3726,11 +3701,6 @@ body.uj-modal-odprt {
   overflow: hidden;
   overscroll-behavior: none;
   scrollbar-gutter: stable;
-}
-
-body.uj-modal-odprt {
-  /* Ne prepozicioniraj strani ob odpiranju modala: tako ozadje ostane mirno. */
-  position: static;
 }
 
 .uj-kratko-obvestilo {
@@ -5019,13 +4989,13 @@ body.uj-modal-odprt {
   flex-direction: column;
   gap: 10px;
   padding: 8px;
-  border: 1.5px solid var(--teal-primary);
-  border-radius: 24px;
+  border: 1px solid #d5e1df;
+  border-radius: 16px;
   background:
     radial-gradient(110% 85% at 0% 0%, rgba(63, 153, 152, 0.15) 0%, rgba(63, 153, 152, 0) 58%),
     linear-gradient(135deg, #ffffff 0%, #f6fbfa 100%);
   isolation: isolate;
-  box-shadow: 0 2px 10px rgba(36, 127, 126, 0.14);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   overflow: visible;
 }
 
@@ -5229,12 +5199,27 @@ body.uj-modal-odprt {
   border-left: 1px solid rgba(63, 153, 152, 0.65);
 }
 
-/* Tretji stolpec je samo število preteklih zamud, zato ga poravnamo pod naslov. */
-.debt-summary--tri .debt-summary__category-column:last-of-type {
+/* Vsi trije podatki v povzetku ostanejo natančno pod svojimi naslovi.
+   Vrednost ima polno širino stolpca, da jo skupna logika ob predolgem
+   besedilu lahko pravilno zazna in samodejno zmanjša. */
+.debt-summary--tri .debt-summary__amount-column,
+.debt-summary--tri .debt-summary__category-column {
   box-sizing: border-box;
   align-items: center;
   padding-left: 0;
   text-align: center;
+}
+
+.debt-summary--tri .debt-summary__label,
+.debt-summary--tri .debt-summary__amount {
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+}
+
+.debt-summary--tri .debt-summary__amount {
+  box-sizing: border-box;
+  padding-inline: 4px;
 }
 
 /* Oznake ostanejo nevtralne; samo ključne vrednosti uporabijo mint aplikacije. */
@@ -5520,7 +5505,7 @@ body.uj-modal-odprt {
   }
 
   .debt-summary--tri .debt-summary__category-column {
-    padding-left: 6px;
+    padding-left: 0;
   }
 
   .debt-summary__amount {
@@ -6622,8 +6607,8 @@ body.obrocno-sheet-odprt .korak2__noga {
   z-index: 2100;
   overflow: hidden;
   overscroll-behavior: none;
-  /* Overlay ne sprejema horizontalnega swipe-a. */
-  touch-action: none;
+  /* Brez touch-action: none tukaj – prekrije/omeji touch-action: pan-y na
+     .rok-sheet__panel/__telo znotraj, s čimer scroll v oknu ne deluje. */
 }
 
 /* Obročno: isto kot Rok (nad urejevalnikom predloge in korak2 nogo). */
@@ -8577,6 +8562,8 @@ body.template-editor-odprt {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(96px, 28%);
+  grid-auto-rows: 118px;
+  align-items: stretch;
   gap: var(--space-xs);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -9251,6 +9238,7 @@ body.template-editor-odprt {
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   width: calc(100% - 0px);
   max-width: 420px;
+  max-height: 85vh;
   max-height: min(calc(100svh - 12px), 680px);
   margin: 0;
   padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
@@ -10043,10 +10031,10 @@ body.template-editor-odprt {
   flex-direction: column;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #8fcac8;
+  border: 1px solid #d5e1df;
   border-radius: 16px;
   background: #f1faf9;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   box-sizing: border-box;
   overflow: visible;
   max-width: 100%;
@@ -11867,7 +11855,7 @@ textarea.sms-preview__viewport {
   width: 100%;
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid #d8eae8;
+  border: 1px solid #d5e1df;
   border-radius: 14px;
   background: #eaf6f5;
   box-sizing: border-box;
@@ -12221,8 +12209,8 @@ textarea.sms-preview__viewport {
 }
 
 .opomin-nacrt__noga .korak2__gumb-naprej {
-  min-height: 56px;
-  border-radius: 15px;
+  min-height: 50px;
+  border-radius: 14px;
   width: 100%;
 }
 
