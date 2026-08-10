@@ -12437,6 +12437,7 @@ textarea.sms-preview__viewport {
   z-index: 1;
   width: 100%;
   max-width: 400px;
+  min-height: 420px;
   max-height: 96vh;
   display: flex;
   flex-direction: column;
@@ -12501,7 +12502,8 @@ textarea.sms-preview__viewport {
 .predloge3-modal__besedilo {
   margin: 0;
   width: 100%;
-  min-height: 210px;
+  flex: 1 1 auto;
+  min-height: 280px;
   padding: 12px 14px;
   border: 1px solid #dbe3e1;
   border-radius: 12px;
