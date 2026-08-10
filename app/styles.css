@@ -8098,7 +8098,7 @@ body.template-editor-odprt {
     min-width: 32px;
     height: 32px;
     padding: 0 5px;
-    gap: 2px;
+  gap: 6px;
   }
 
   .predlog-kartica__stevilka--prioriteta .predlog-kartica__zvezda,
