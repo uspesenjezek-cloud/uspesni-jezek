@@ -217,6 +217,8 @@ const KLJUC_SEJE_ZADEVA_DODANA = "neplacilo-zadeva-dodana";
 const KLJUC_MOJI_PREDLOGI_OSNOVA = "neplacilo-moji-predlogi";
 /* Vrstni red (številke 1–9) in skrite predloge – localStorage po uporabniku. */
 const KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = "neplacilo-predlogi-nastavitve";
+window.KLJUC_MOJI_PREDLOGI_OSNOVA = KLJUC_MOJI_PREDLOGI_OSNOVA;
+window.KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
 
 /* URL-ji treh korakov postopka (klikljiv kazalnik napredka). */
 const URL_KORAKI_POSTOPKA = {
@@ -3213,7 +3215,7 @@ function inicializirajSporociloDolzniku() {
   let kljucMojihPredlogov = KLJUC_MOJI_PREDLOGI_OSNOVA;
   let kljucNastavitev = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
   let nastavitvePredlogov = { stevilke: {}, skritiIds: [] };
-  const NAJVEC_STEVILK_V_TONU = 6;
+  const NAJVEC_STEVILK_V_TONU = 9;
 
   const besediloPolje = document.getElementById("sporocilo-besedilo");
   const pomocPolja = document.getElementById("sporocilo-pomoc");
@@ -4224,8 +4226,13 @@ function inicializirajSporociloDolzniku() {
   }
 
   function pripraviModalStevilke() {
-    if (!modalStevilkeMreza || modalStevilkeMreza.childElementCount > 0) return;
-    for (let n = 1; n <= 9; n++) {
+    if (!modalStevilkeMreza) return;
+    const steviloPredlogov = Math.min(
+      NAJVEC_STEVILK_V_TONU,
+      Math.max(1, predlogi.length + (odprtPredlog && odprtPredlog.jeNov ? 1 : 0))
+    );
+    modalStevilkeMreza.replaceChildren();
+    for (let n = 1; n <= steviloPredlogov; n++) {
       const gumb = document.createElement("button");
       gumb.type = "button";
       gumb.className = "korak2-modal__stevilka-izbira";
@@ -5165,7 +5172,7 @@ function inicializirajSporociloDolzniku() {
       return;
     }
 
-    const maxStevilk = window.UJTonPredloge ? NAJVEC_STEVILK_V_TONU : 9;
+    const maxStevilk = Math.min(9, Math.max(1, predlogi.length));
 
     predlogi.forEach((predlog, indeks) => {
       const kartica = document.createElement("article");

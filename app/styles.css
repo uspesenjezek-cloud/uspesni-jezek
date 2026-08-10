@@ -6137,6 +6137,7 @@ body.obrocno-sheet-odprt .korak2__noga {
   background: rgba(18, 48, 44, 0.35);
   cursor: pointer;
   touch-action: none;
+  animation: rokSheetZatemni 200ms ease-out;
 }
 
 .rok-sheet__panel {
@@ -6144,7 +6145,8 @@ body.obrocno-sheet-odprt .korak2__noga {
   left: 0;
   right: 0;
   bottom: 0;
-  /* Centriranje brez transform – transform + touch na iOS pogosto »vleče« panel levo/desno. */
+  /* Centriranje brez transform – transform + touch na iOS pogosto »vleče« panel levo/desno.
+     Zato se panel ob odprtju samo zbledi (opacity), brez transform-a. */
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -6162,6 +6164,32 @@ body.obrocno-sheet-odprt .korak2__noga {
   overscroll-behavior-x: none;
   /* Samo navpično drsenje vsebine; horizontalni gesti so izključeni. */
   touch-action: pan-y;
+  animation: rokSheetPojavi 200ms ease-out;
+}
+
+@keyframes rokSheetZatemni {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rokSheetPojavi {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rok-sheet__panel,
+  .rok-sheet__backdrop {
+    animation: none;
+  }
 }
 
 /* Rok: fiksna višina + grid (kot Obročno) → zanesljiv notranji scroll. */
@@ -8516,6 +8544,38 @@ body.template-editor-odprt {
   box-shadow: 0 -8px 28px rgba(16, 42, 39, 0.12);
   overflow: hidden;
   overscroll-behavior: contain;
+  animation: opominCasSheetGor 220ms ease-out;
+}
+
+@keyframes opominCasSheetGor {
+  from {
+    transform: translateY(18px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes opominCasSheetZatemni {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.opomin-cas-sheet__backdrop {
+  animation: opominCasSheetZatemni 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opomin-cas-sheet__panel,
+  .opomin-cas-sheet__backdrop {
+    animation: none;
+  }
 }
 
 .opomin-cas-sheet__rocaj {
@@ -9723,7 +9783,7 @@ textarea.sms-preview__viewport {
 }
 
 .sms-preview__caption {
-  margin: 5px 0 0 2px;
+  margin: 2px 0 8px 2px;
   padding: 0;
   font-size: 11.5px;
   line-height: 1.3;
@@ -9731,6 +9791,10 @@ textarea.sms-preview__viewport {
   white-space: normal;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.sms-preview .opomin-potrdi-predloge {
+  margin-top: 10px;
 }
 
 /* Dodaj račun */
@@ -11065,11 +11129,36 @@ textarea.sms-preview__viewport {
   margin-top: 10px;
 }
 
+.opomin-potrdi-predloge__glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .opomin-potrdi-predloge__naslov {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
   color: #5f7571;
+}
+
+.opomin-potrdi-predloge__vec {
+  padding: 4px 10px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--teal-dark, #10797d);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.predlog-kartica__seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .opomin-potrdi-predloge__drsnik {

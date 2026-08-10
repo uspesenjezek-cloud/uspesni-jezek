@@ -2106,12 +2106,19 @@
         esc(smsMeta) +
         "</span>" +
         "</div>" +
+        '<p class="sms-preview__caption">Besedilo lahko popravite neposredno tukaj.</p>' +
         '<div class="sms-preview__okno">' +
         '<textarea class="sms-preview__viewport" id="opomin-sms-urejanje" aria-label="Uredi SMS sporočilo" maxlength="1000" placeholder="Napišite SMS sporočilo">' +
         esc(smsUrejanje) +
         "</textarea>" +
         "</div>" +
-        '<p class="sms-preview__caption">Besedilo lahko popravite neposredno tukaj.</p>' +
+        '<div class="opomin-potrdi-predloge" id="opomin-glavni-predloge" hidden>' +
+        '<div class="opomin-potrdi-predloge__glava">' +
+        '<p class="opomin-potrdi-predloge__naslov">Predloge</p>' +
+        '<button type="button" class="opomin-potrdi-predloge__vec" id="opomin-glavni-predloge-vec">Več</button>' +
+        "</div>" +
+        '<div class="opomin-potrdi-predloge__drsnik" id="opomin-glavni-predloge-drsnik" role="list"></div>' +
+        "</div>" +
         "</div>" +
         htmlZgornjaOrodnaVrstica(readyN) +
         '<div class="vk-priloge-kartice-seznam"' +
@@ -2502,6 +2509,13 @@
           debounceTimer = null;
           N.shraniOsnutek(plan);
         });
+        izrisiKompaktnePredloge(
+          step,
+          smsUrejanje,
+          null,
+          "opomin-glavni-predloge",
+          "opomin-glavni-predloge-drsnik"
+        );
       }
 
       opts.glavniEl
@@ -3146,23 +3160,83 @@
       return "Shrani in dokončaj načrt →";
     }
 
-    function izrisiKompaktnePredloge(step, ta, gsmEl) {
-      var ovoj = document.getElementById("opomin-potrdi-predloge");
-      var drsnik = document.getElementById("opomin-potrdi-predloge-drsnik");
-      if (!ovoj || !drsnik || !window.UJTonPredloge) return;
+    var mojiPredlogiPromise = null;
 
-      var jezik = "de";
-      var osnovni = window.UJTonPredloge.sestaviSistemskePredloge(
-        opts.podatkiKorak1,
-        jezik
-      );
-      var tonId = step.toneId || plan.toneId;
-      var predlogi = window.UJTonPredloge.filtrirajPredloge(
-        osnovni,
-        tonId,
-        jezik
-      );
+    function nalozimMojePredlogeAsync() {
+      if (mojiPredlogiPromise) return mojiPredlogiPromise;
+      mojiPredlogiPromise = new Promise(function (resolve) {
+        function beriIzLocalStorage(kljuc) {
+          try {
+            var surovo = localStorage.getItem(kljuc);
+            if (!surovo) return [];
+            var seznam = JSON.parse(surovo);
+            if (!Array.isArray(seznam)) return [];
+            return seznam
+              .filter(function (p) {
+                return p && typeof p.besedilo === "string" && p.besedilo.trim();
+              })
+              .map(function (p) {
+                return {
+                  id: String(p.id || "moj-" + Date.now()),
+                  naslov: String(p.naslov || "Moj predlog"),
+                  besedilo: String(p.besedilo).slice(0, 1000),
+                  jeMoj: true,
+                  toneId: p.toneId || null,
+                  language: p.language || "de",
+                  source: "user",
+                  order: Number(p.order) || null,
+                  isRecommended: false,
+                };
+              });
+          } catch (napaka) {
+            return [];
+          }
+        }
+        function zdruziBrezPodvajanja(seznami) {
+          var videni = {};
+          var izhod = [];
+          seznami.forEach(function (seznam) {
+            seznam.forEach(function (p) {
+              if (videni[p.id]) return;
+              videni[p.id] = true;
+              izhod.push(p);
+            });
+          });
+          return izhod;
+        }
 
+        var osnovniKljuc = "neplacilo-moji-predlogi";
+        if (
+          typeof supabaseKlient !== "undefined" &&
+          supabaseKlient &&
+          supabaseKlient.auth
+        ) {
+          supabaseKlient.auth
+            .getSession()
+            .then(function (res) {
+              var uid =
+                res &&
+                res.data &&
+                res.data.session &&
+                res.data.session.user &&
+                res.data.session.user.id;
+              var brezUid = beriIzLocalStorage(osnovniKljuc);
+              var zUid = uid
+                ? beriIzLocalStorage(osnovniKljuc + "-" + uid)
+                : [];
+              resolve(zdruziBrezPodvajanja([zUid, brezUid]));
+            })
+            .catch(function () {
+              resolve(beriIzLocalStorage(osnovniKljuc));
+            });
+        } else {
+          resolve(beriIzLocalStorage(osnovniKljuc));
+        }
+      });
+      return mojiPredlogiPromise;
+    }
+
+    function izrisiSeznamPredlog(predlogi, ovoj, drsnik, ta) {
       if (!predlogi || !predlogi.length) {
         ovoj.hidden = true;
         return;
@@ -3219,6 +3293,67 @@
       });
     }
 
+    function izrisiKompaktnePredloge(step, ta, gsmEl, ovojId, drsnikId) {
+      var ovoj = document.getElementById(ovojId || "opomin-potrdi-predloge");
+      var drsnik = document.getElementById(
+        drsnikId || "opomin-potrdi-predloge-drsnik"
+      );
+      if (!ovoj || !drsnik || !window.UJTonPredloge) return;
+
+      var jezik = "de";
+      var osnovni = window.UJTonPredloge.sestaviSistemskePredloge(
+        opts.podatkiKorak1,
+        jezik
+      );
+      var tonId = step.toneId || plan.toneId;
+      var predlogi = window.UJTonPredloge.filtrirajPredloge(
+        osnovni,
+        tonId,
+        jezik
+      );
+
+      izrisiSeznamPredlog(predlogi, ovoj, drsnik, ta);
+
+      var gumbVec = document.getElementById(
+        (ovojId || "opomin-potrdi-predloge") + "-vec"
+      );
+      if (gumbVec && !gumbVec._ujVezano) {
+        gumbVec._ujVezano = true;
+        gumbVec.addEventListener("click", function () {
+          if (!window.inicializirajPredlogiUrejevalnik) return;
+          var api = window.inicializirajPredlogiUrejevalnik({
+            podatkiKorak1: opts.podatkiKorak1,
+            toneId: tonId,
+            jezik: jezik,
+            potrdiVprasanje: opts.potrdiVprasanje,
+            onUporabi: function (predlog) {
+              ta.value = String(predlog.besedilo || "").slice(0, 1000);
+              ta.dispatchEvent(new Event("input", { bubbles: true }));
+            },
+          });
+          api.odpri();
+        });
+      }
+
+      nalozimMojePredlogeAsync().then(function (mojiPredlogi) {
+        if (!mojiPredlogi || !mojiPredlogi.length) return;
+        var ovojZdaj = document.getElementById(
+          ovojId || "opomin-potrdi-predloge"
+        );
+        var drsnikZdaj = document.getElementById(
+          drsnikId || "opomin-potrdi-predloge-drsnik"
+        );
+        if (!ovojZdaj || !drsnikZdaj) return;
+        var kombinirano = osnovni.concat(mojiPredlogi);
+        var predlogiZdaj = window.UJTonPredloge.filtrirajPredloge(
+          kombinirano,
+          tonId,
+          jezik
+        );
+        izrisiSeznamPredlog(predlogiZdaj, ovojZdaj, drsnikZdaj, ta);
+      });
+    }
+
     function izrisiPotrditev(step) {
       var jeManual =
         step.kind === "manual_lawyer" || step.deliveryMode === "manual";
@@ -3267,7 +3402,10 @@
           "</textarea>" +
           '<p class="opomin-nacrt__gsm" id="opomin-potrdi-gsm" aria-live="polite"></p>' +
           '<div class="opomin-potrdi-predloge" id="opomin-potrdi-predloge" hidden>' +
+          '<div class="opomin-potrdi-predloge__glava">' +
           '<p class="opomin-potrdi-predloge__naslov">Predloge</p>' +
+          '<button type="button" class="opomin-potrdi-predloge__vec" id="opomin-potrdi-predloge-vec">Več</button>' +
+          "</div>" +
           '<div class="opomin-potrdi-predloge__drsnik" id="opomin-potrdi-predloge-drsnik" role="list"></div>' +
           "</div>";
 
