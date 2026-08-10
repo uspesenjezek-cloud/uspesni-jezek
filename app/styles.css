@@ -5004,11 +5004,11 @@ body.uj-modal-odprt {
   text-align: center;
 }
 
-/* Apple system green za ključne podatke v priporočilu. */
-#ton-povzetek .debt-summary__label,
+/* Oznake ostanejo nevtralne; samo ključne vrednosti uporabijo mint aplikacije. */
 #ton-povzetek .debt-summary__amount {
-  color: #34c759;
+  color: var(--teal-primary);
 }
+
 
 .debt-summary__label {
   font-size: 12px;
@@ -12921,9 +12921,10 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 8px;
   flex: 1 1 0;
   min-width: 0;
   padding: 10px;
