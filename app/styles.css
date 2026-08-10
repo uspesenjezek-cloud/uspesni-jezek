@@ -12552,6 +12552,26 @@ textarea.sms-preview__viewport {
   word-break: break-word;
 }
 
+.predloge3-modal__header-desno {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.predloge3-modal__ponastavi {
+  padding: 5px 10px;
+  border: 1px solid #d0dedc;
+  border-radius: 8px;
+  background: transparent;
+  color: #5f7571;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .predloge3-modal__zapri {
   flex-shrink: 0;
   width: 32px;

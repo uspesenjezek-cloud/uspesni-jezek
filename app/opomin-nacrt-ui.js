@@ -3628,10 +3628,12 @@
       var besediloEl = document.getElementById("predloge3-predogled-besedilo");
       var uporabiBtn = document.getElementById("predloge3-predogled-uporabi");
       var zapriBtn = document.getElementById("predloge3-predogled-zapri");
+      var ponastaviBtn = document.getElementById("predloge3-predogled-ponastavi");
       var backdrop = document.getElementById("predloge3-predogled-backdrop");
+      var original = predlog.besedilo || "";
 
       if (naslovEl) naslovEl.textContent = predlog.naslov || "—";
-      if (besediloEl) besediloEl.value = predlog.besedilo || "";
+      if (besediloEl) besediloEl.value = original;
 
       function zapri() {
         modal.hidden = true;
@@ -3639,12 +3641,32 @@
         if (uporabiBtn) uporabiBtn.removeEventListener("click", onApply);
         if (zapriBtn) zapriBtn.removeEventListener("click", zapri);
         if (backdrop) backdrop.removeEventListener("click", zapri);
+        if (ponastaviBtn) ponastaviBtn.removeEventListener("click", ponastavi);
+      }
+
+      function ponastavi() {
+        if (besediloEl) besediloEl.value = original;
       }
 
       function onApply() {
         var novoBesedilo = besediloEl ? besediloEl.value : "";
-        zapri();
-        if (onUporabi) onUporabi(novoBesedilo);
+        var jeSpremenjeno = String(novoBesedilo || "").trim() !== String(original || "").trim();
+        if (jeSpremenjeno && root.potrdiVprasanje && typeof root.potrdiVprasanje === "function") {
+          root.potrdiVprasanje({
+            naslov: "Shrani spremembe?",
+            opis: "Besedilo predloge ste spremenili.",
+            potrdiBesedilo: "Shrani in uporabi",
+            prekliciBesedilo: "Prekliči",
+            stil: "primary",
+          }).then(function (potrjeno) {
+            if (!potrjeno) return;
+            zapri();
+            if (onUporabi) onUporabi(novoBesedilo);
+          });
+        } else {
+          zapri();
+          if (onUporabi) onUporabi(novoBesedilo);
+        }
       }
 
       if (uporabiBtn) {
@@ -3653,6 +3675,7 @@
       }
       if (zapriBtn) zapriBtn.addEventListener("click", zapri);
       if (backdrop) backdrop.addEventListener("click", zapri);
+      if (ponastaviBtn) ponastaviBtn.addEventListener("click", ponastavi);
 
       function onEscape(ev) {
         if (ev.key === "Escape") { zapri(); document.removeEventListener("keydown", onEscape); }
