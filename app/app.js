@@ -4413,9 +4413,12 @@ function inicializirajSporociloDolzniku() {
 
   function labelTona(toneId) {
     const id = String(toneId || "");
+    if (id === "super_friendly") return "Super prijazen";
     if (id === "friendly" || id === "very_friendly") return "Prijazen";
     if (id === "firm" || id === "neutral") return "Odločen";
-    if (id === "strict" || id === "very_strict") return "Strog";
+    if (id === "strict") return "Strog";
+    if (id === "super_strict" || id === "very_strict") return "Super strog";
+    if (id === "super_evil") return "Super zloben";
     return "Predlagani";
   }
 
@@ -4951,7 +4954,7 @@ function inicializirajSporociloDolzniku() {
     if (window.UJRokPlacila && typeof window.UJRokPlacila.stevilkaZaTon === "function") {
       const n = Number(window.UJRokPlacila.stevilkaZaTon(toneId));
       if (n >= 1 && n <= 9) modalIzbranaStevilka = n;
-    } else if (toneId === "friendly" || toneId === "very_friendly") {
+    } else if (toneId === "super_friendly" || toneId === "friendly" || toneId === "very_friendly") {
       modalIzbranaStevilka = 1;
     } else if (toneId === "firm" || toneId === "neutral") {
       modalIzbranaStevilka = 5;

@@ -5,12 +5,15 @@
 (function (root) {
   "use strict";
 
-  var TONE_IDS = ["friendly", "firm", "strict"];
+  var TONE_IDS = ["super_friendly", "friendly", "firm", "strict", "super_strict", "super_evil"];
 
   var NASLOVI_TONOV_SL = {
+    super_friendly: "super prijazen ton",
     friendly: "prijazen ton",
     firm: "odločen ton",
     strict: "strog ton",
+    super_strict: "super strog ton",
+    super_evil: "super zloben ton",
   };
 
   var NASLOVI_PREDLOG_SL = {

@@ -122,9 +122,12 @@
   }
 
   function pridevnikTona(toneId) {
+    if (toneId === "super_friendly") return "super prijazen";
     if (toneId === "friendly") return "prijazen";
     if (toneId === "firm") return "odločen";
     if (toneId === "strict") return "strog";
+    if (toneId === "super_strict") return "super strog";
+    if (toneId === "super_evil") return "super zloben";
     return "predlagani";
   }
 

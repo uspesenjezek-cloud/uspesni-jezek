@@ -1,18 +1,26 @@
 /* ========== Ton sporočila – priporočilo (brez DOM) ==========
    Centralna poslovna pravila. Brskalnik: window.UJTonPriporocilo
    Node: module.exports
-   Aktivni toni: friendly | firm | strict (3).
+   Aktivni toni: super_friendly | friendly | firm | strict | super_strict | super_evil (6).
    Stari ID-ji (very_friendly, neutral) se preslikajo.
    ============================================ */
 (function (root) {
   "use strict";
 
-  /** Trije toni: order 0 = prijazen … 2 = strog. */
+  /** Šest tonov: order 0 = super prijazen … 5 = super zloben. */
   var TONI = [
+    {
+      id: "super_friendly",
+      key: "super_friendly",
+      order: 0,
+      labelSl: "Super prijazen",
+      iconKey: "smile-plus",
+      active: true,
+    },
     {
       id: "friendly",
       key: "friendly",
-      order: 0,
+      order: 1,
       labelSl: "Prijazen",
       iconKey: "smile",
       active: true,
@@ -20,7 +28,7 @@
     {
       id: "firm",
       key: "firm",
-      order: 1,
+      order: 2,
       labelSl: "Odločen",
       iconKey: "shield",
       active: true,
@@ -28,9 +36,25 @@
     {
       id: "strict",
       key: "strict",
-      order: 2,
+      order: 3,
       labelSl: "Strog",
       iconKey: "circle-alert",
+      active: true,
+    },
+    {
+      id: "super_strict",
+      key: "super_strict",
+      order: 4,
+      labelSl: "Super strog",
+      iconKey: "triangle-alert",
+      active: true,
+    },
+    {
+      id: "super_evil",
+      key: "super_evil",
+      order: 5,
+      labelSl: "Super zloben",
+      iconKey: "flame",
       active: true,
     },
   ];
@@ -161,7 +185,7 @@
   }
 
   function najdiTonPoOrder(order) {
-    var o = Math.max(0, Math.min(2, Number(order)));
+    var o = Math.max(0, Math.min(5, Number(order)));
     if (!Number.isFinite(o)) o = 0;
     for (var i = 0; i < TONI.length; i++) {
       if (TONI[i].order === o) return TONI[i];

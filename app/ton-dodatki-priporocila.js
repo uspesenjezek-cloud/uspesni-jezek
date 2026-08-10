@@ -5,10 +5,14 @@
 (function (root) {
   "use strict";
 
-  /** Samo 3 UI toni; ostale ID-je mapiramo na najbližjega. */
+  /** 6 UI tonov; ostale ID-je mapiramo na najbližjega. */
   function normalizirajTon(toneId) {
+    if (toneId === "super_evil") return "super_evil";
+    if (toneId === "super_strict") return "super_strict";
     if (toneId === "strict") return "strict";
     if (toneId === "firm" || toneId === "neutral") return "firm";
+    if (toneId === "friendly") return "friendly";
+    if (toneId === "super_friendly" || toneId === "very_friendly") return "super_friendly";
     return "friendly";
   }
 

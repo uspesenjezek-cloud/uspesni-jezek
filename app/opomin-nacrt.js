@@ -7,9 +7,12 @@
   var KLJUC_SEJE = "neplacilo-korak3-nacrt";
 
   var ODMKI_BAZA = {
+    super_evil: [0, 3, 6, 10, 14, 18],
+    super_strict: [0, 5, 11, 17, 24, 30],
     strict: [0, 6, 13, 20, 28, 36],
     firm: [0, 8, 17, 26, 34, 42],
     friendly: [0, 11, 22, 30, 38, 46],
+    super_friendly: [0, 14, 28, 36, 44, 52],
   };
 
   var KORAKI_META = [
@@ -58,9 +61,12 @@
   ];
 
   var TON_OZNAKE_SL = {
+    super_evil: "Super zloben",
+    super_strict: "Super strog",
     strict: "Strog",
     firm: "Odločen",
-    friendly: "Zelo prijazen",
+    friendly: "Prijazen",
+    super_friendly: "Super prijazen",
     neutral: "Odločen",
   };
 
