@@ -4761,8 +4761,10 @@ body.uj-modal-odprt {
   padding: 8px;
   border: 1.5px solid var(--teal-primary);
   border-radius: 24px;
-  /* Miren prehod: poudarek ostane na tonu in rumenem CTA gumbu. */
-  background: linear-gradient(135deg, #ffffff 0%, #f6fbfa 100%);
+  /* Subtilen teal sij ob naslovu; rumeni CTA ostane glavni poudarek. */
+  background:
+    radial-gradient(110% 85% at 0% 0%, rgba(63, 153, 152, 0.15) 0%, rgba(63, 153, 152, 0) 58%),
+    linear-gradient(135deg, #ffffff 0%, #f6fbfa 100%);
   overflow: hidden;
   isolation: isolate;
   box-shadow: 0 2px 10px rgba(36, 127, 126, 0.14);
@@ -12865,7 +12867,7 @@ textarea.sms-preview__viewport {
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
   align-items: stretch;
-  margin-top: 6px;
+  margin-top: 10px;
   min-height: 56px;
 }
 
@@ -12957,7 +12959,7 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__vprasanje {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: 13px;
   font-weight: 700;
   color: #102B35;
