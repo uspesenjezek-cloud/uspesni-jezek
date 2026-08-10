@@ -425,20 +425,20 @@
   function validirajDolgPragove(p) {
     if (!Number.isFinite(p.dolgNizekDo) || p.dolgNizekDo < 0) { return oknoNapake("Vnesite veljavno mejo za nizek dolg."); }
     if (Number.isFinite(p.dolgNizekOd) && Number.isFinite(p.dolgNizekDo) && p.dolgNizekOd > p.dolgNizekDo) { return oknoNapake("Številka mora biti nižja od " + p.dolgNizekDo + "."); }
-    if (!Number.isFinite(p.dolgSrednjiDo) || p.dolgSrednjiDo <= p.dolgNizekDo) { return oknoNapake("Meja srednjega dolga mora biti večja od " + p.dolgNizekDo + "."); }
     if (Number.isFinite(p.dolgSrednjiOd) && Number.isFinite(p.dolgSrednjiDo) && p.dolgSrednjiOd > p.dolgSrednjiDo) { return oknoNapake("Številka mora biti nižja od " + p.dolgSrednjiDo + "."); }
-    if (!Number.isFinite(p.dolgVisokDo) || p.dolgVisokDo <= p.dolgSrednjiDo) { return oknoNapake("Meja visokega dolga mora biti večja od " + p.dolgSrednjiDo + "."); }
+    if (!Number.isFinite(p.dolgSrednjiDo) || p.dolgSrednjiDo <= p.dolgNizekDo) { return oknoNapake("Številka mora biti višja od " + p.dolgNizekDo + "."); }
     if (Number.isFinite(p.dolgVisokOd) && Number.isFinite(p.dolgVisokDo) && p.dolgVisokOd > p.dolgVisokDo) { return oknoNapake("Številka mora biti nižja od " + p.dolgVisokDo + "."); }
+    if (!Number.isFinite(p.dolgVisokDo) || p.dolgVisokDo <= p.dolgSrednjiDo) { return oknoNapake("Številka mora biti višja od " + p.dolgSrednjiDo + "."); }
     return true;
   }
 
   function validirajZamudaPragove(p) {
     if (!Number.isFinite(p.zamudaKratkaDo) || p.zamudaKratkaDo < 1) { return oknoNapake("Vnesite veljavno mejo za kratko zamudo."); }
     if (Number.isFinite(p.zamudaKratkaOd) && Number.isFinite(p.zamudaKratkaDo) && p.zamudaKratkaOd > p.zamudaKratkaDo) { return oknoNapake("Številka mora biti nižja od " + p.zamudaKratkaDo + "."); }
-    if (!Number.isFinite(p.zamudaSrednjaDo) || p.zamudaSrednjaDo <= p.zamudaKratkaDo) { return oknoNapake("Meja srednje zamude mora biti večja od " + p.zamudaKratkaDo + "."); }
     if (Number.isFinite(p.zamudaSrednjaOd) && Number.isFinite(p.zamudaSrednjaDo) && p.zamudaSrednjaOd > p.zamudaSrednjaDo) { return oknoNapake("Številka mora biti nižja od " + p.zamudaSrednjaDo + "."); }
-    if (!Number.isFinite(p.zamudaVisokaDo) || p.zamudaVisokaDo <= p.zamudaSrednjaDo) { return oknoNapake("Meja visoke zamude mora biti večja od " + p.zamudaSrednjaDo + "."); }
+    if (!Number.isFinite(p.zamudaSrednjaDo) || p.zamudaSrednjaDo <= p.zamudaKratkaDo) { return oknoNapake("Številka mora biti višja od " + p.zamudaKratkaDo + "."); }
     if (Number.isFinite(p.zamudaVisokaOd) && Number.isFinite(p.zamudaVisokaDo) && p.zamudaVisokaOd > p.zamudaVisokaDo) { return oknoNapake("Številka mora biti nižja od " + p.zamudaVisokaDo + "."); }
+    if (!Number.isFinite(p.zamudaVisokaDo) || p.zamudaVisokaDo <= p.zamudaSrednjaDo) { return oknoNapake("Številka mora biti višja od " + p.zamudaSrednjaDo + "."); }
     return true;
   }
 
