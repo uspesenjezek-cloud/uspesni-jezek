@@ -3622,13 +3622,13 @@
     }
 
     function odpriPredogledPredloge(predlog, onUporabi) {
-      var modal = document.getElementById("predloga-predogled");
+      var modal = document.getElementById("predloge3-predogled");
       if (!modal) { if (onUporabi) onUporabi(); return; }
-      var naslovEl = document.getElementById("predloga-predogled-naslov");
-      var besediloEl = document.getElementById("predloga-predogled-besedilo");
-      var uporabiBtn = document.getElementById("predloga-predogled-uporabi");
-      var zapriBtn = document.getElementById("predloga-predogled-zapri");
-      var backdrop = document.getElementById("predloga-predogled-backdrop");
+      var naslovEl = document.getElementById("predloge3-predogled-naslov");
+      var besediloEl = document.getElementById("predloge3-predogled-besedilo");
+      var uporabiBtn = document.getElementById("predloge3-predogled-uporabi");
+      var zapriBtn = document.getElementById("predloge3-predogled-zapri");
+      var backdrop = document.getElementById("predloge3-predogled-backdrop");
 
       if (naslovEl) naslovEl.textContent = predlog.naslov || "—";
       if (besediloEl) besediloEl.textContent = predlog.besedilo || "";
