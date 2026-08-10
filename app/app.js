@@ -2805,6 +2805,24 @@ function inicializirajNeplacila() {
       return;
     }
 
+    // Ocena tveganja: zgodovina zamud mora biti izpolnjena
+    try {
+      var korak1Raw = sessionStorage.getItem("neplacilo-korak1-podatki");
+      var korak1Podatki = korak1Raw ? JSON.parse(korak1Raw) : {};
+      if (!korak1Podatki.zgodovinaZamud) {
+        if (typeof potrdiVprasanje === "function") {
+          potrdiVprasanje({
+            naslov: "Izpolnite oceno tveganja",
+            opis: "Pred nadaljevanjem izberite, ali je dolžnik že kdaj zamudil s plačilom.",
+            potrdiBesedilo: "V redu",
+            samoEnGumb: true,
+            stil: "primary",
+          });
+        }
+        return;
+      }
+    } catch (_) {}
+
     // Zadeva se dejansko doda v bazo šele na 3. koraku (po sporočilu),
     // glej neplacila-posiljanje.html - tu naložimo nove priloge in ohranimo
     // že naložene poti iz seje (da se ob vrnitvi na korak 1 ne pobrišejo).
@@ -6695,4 +6713,101 @@ inicializirajNeplacila();
 inicializirajSporociloDolzniku();
 inicializirajPosiljanje();
 inicializirajKmaluNaVoljo();
+
+/* ---------- Samodejno prilagajanje velikih prikazov zneskov ----------
+   Znesek ohrani načrtovano velikost, dokler se prilega. Če je predolg,
+   se pisava postopno zmanjša do najmanj 10 px. MutationObserver pokrije
+   dinamično izrisane kartice, ResizeObserver pa spremembe širine zaslona. */
+const SELEKTOR_SAMODEJNEGA_ZNESKA = [
+  "[data-fit-number]",
+  ".debt-summary__amount",
+  ".zadeva__znesek",
+  ".zadeve-semafor__znesek",
+  ".ocena-tveganja__kartica-vrednost",
+  ".obrocno-sheet__znesek-vrednost",
+  ".opomin-nacrt__povzetek-vrednost",
+].join(",");
+
+function prilagodiVelikostZneska(el) {
+  if (!(el instanceof HTMLElement) || !el.isConnected) return;
+
+  /* Najprej vrni velikost iz CSS, da se kratki zneski po razširitvi okvirja
+     spet prikažejo v običajni velikosti. */
+  el.style.removeProperty("font-size");
+  el.removeAttribute("data-fit-number-active");
+
+  const sirina = el.clientWidth;
+  if (!sirina) return;
+
+  const osnovnaVelikost = Number.parseFloat(getComputedStyle(el).fontSize);
+  if (!Number.isFinite(osnovnaVelikost) || osnovnaVelikost <= 0) return;
+  if (el.scrollWidth <= sirina + 0.5) return;
+
+  const najmanjsaIzAtributa = Number.parseFloat(el.getAttribute("data-fit-number-min"));
+  const najmanjsaVelikost = Number.isFinite(najmanjsaIzAtributa)
+    ? Math.max(8, najmanjsaIzAtributa)
+    : 10;
+
+  let spodnja = Math.min(najmanjsaVelikost, osnovnaVelikost);
+  let zgornja = osnovnaVelikost;
+  el.style.fontSize = spodnja + "px";
+
+  /* Tudi pri najmanjši dovoljeni velikosti vsebina nikoli ne sme prekriti
+     sosedov; CSS jo v skrajnem primeru varno odreže znotraj lastnega okvirja. */
+  if (el.scrollWidth > sirina + 0.5) {
+    el.setAttribute("data-fit-number-active", "minimum");
+    return;
+  }
+
+  for (let i = 0; i < 9; i += 1) {
+    const sredina = (spodnja + zgornja) / 2;
+    el.style.fontSize = sredina + "px";
+    if (el.scrollWidth <= sirina + 0.5) spodnja = sredina;
+    else zgornja = sredina;
+  }
+
+  el.style.fontSize = Math.floor(spodnja * 10) / 10 + "px";
+  el.setAttribute("data-fit-number-active", "true");
+}
+
+function prilagodiVseZneske() {
+  document
+    .querySelectorAll(SELEKTOR_SAMODEJNEGA_ZNESKA)
+    .forEach(prilagodiVelikostZneska);
+}
+
+let prilagoditevZneskovNacrtovana = false;
+function nacrtujPrilagoditevZneskov() {
+  if (prilagoditevZneskovNacrtovana) return;
+  prilagoditevZneskovNacrtovana = true;
+  requestAnimationFrame(() => {
+    prilagoditevZneskovNacrtovana = false;
+    prilagodiVseZneske();
+  });
+}
+
+function inicializirajSamodejnoPrilagajanjeZneskov() {
+  nacrtujPrilagoditevZneskov();
+
+  const opazovalecVsebine = new MutationObserver(nacrtujPrilagoditevZneskov);
+  opazovalecVsebine.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["hidden", "class"],
+  });
+
+  window.addEventListener("resize", nacrtujPrilagoditevZneskov, { passive: true });
+  if (typeof ResizeObserver === "function") {
+    const opazovalecSirine = new ResizeObserver(nacrtujPrilagoditevZneskov);
+    opazovalecSirine.observe(document.documentElement);
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", inicializirajSamodejnoPrilagajanjeZneskov);
+} else {
+  inicializirajSamodejnoPrilagajanjeZneskov();
+}
 
