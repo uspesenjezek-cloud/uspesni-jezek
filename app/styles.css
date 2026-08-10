@@ -12908,11 +12908,11 @@ textarea.sms-preview__viewport {
 
 .ocena-tveganja__polje {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 12px 10px;
+  padding: 10px;
   border: 1px solid #D7E7E9;
   border-radius: 14px;
   background: #F6FBFB;
@@ -12921,8 +12921,13 @@ textarea.sms-preview__viewport {
   color: inherit;
   cursor: pointer;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(16, 43, 53, 0.05);
-  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.ocena-tveganja__polje-telo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .ocena-tveganja__polje:hover {
@@ -12968,25 +12973,27 @@ textarea.sms-preview__viewport {
   font-weight: 600;
   color: #71848C;
   line-height: 1.2;
+}
+
+.ocena-tveganja__polje-vrednost {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #102B35;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ocena-tveganja__polje-vrednost {
-  font-size: 13px;
-  font-weight: 700;
-  color: #102B35;
-  line-height: 1.25;
-  word-break: break-word;
-}
-
 .ocena-tveganja__polje-znesek {
+  flex-shrink: 0;
   font-size: 12px;
   font-weight: 500;
   color: #168E94;
   line-height: 1.2;
-  word-break: break-word;
+  white-space: nowrap;
 }
 
 .ocena-tveganja__polje-chevron {
