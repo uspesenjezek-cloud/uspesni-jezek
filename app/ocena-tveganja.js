@@ -433,6 +433,29 @@
       });
     }
 
+    // Indikator pikic za drsnik zgodovine zamud
+    var drsnikOvoj = document.querySelector(".ocena-tveganja__drsnik-ovoj");
+    if (drsnikOvoj) {
+      var izbiraVrstica = drsnikOvoj.querySelector(".ocena-tveganja__izbira-vrstica");
+      var indikator = document.querySelector(".ocena-tveganja__indikator");
+      if (izbiraVrstica && indikator) {
+        var pike = indikator.querySelectorAll(".ocena-tveganja__pika");
+        function posodobiIndikatorZG() {
+          if (!pike.length) return;
+          var w = izbiraVrstica.clientWidth;
+          if (w <= 0) return;
+          var maxScroll = Math.max(1, izbiraVrstica.scrollWidth - w);
+          var idx = Math.round((izbiraVrstica.scrollLeft / maxScroll) * (pike.length - 1));
+          idx = Math.max(0, Math.min(pike.length - 1, idx));
+          pike.forEach(function (p, i) {
+            p.classList.toggle("ocena-tveganja__pika--aktivna", i === idx);
+          });
+        }
+        izbiraVrstica.addEventListener("scroll", posodobiIndikatorZG, { passive: true });
+        posodobiIndikatorZG();
+      }
+    }
+
     document.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape") {
         _preskociBlur = true;

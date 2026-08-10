@@ -12966,6 +12966,23 @@ textarea.sms-preview__viewport {
   line-height: 1.35;
 }
 
+.ocena-tveganja__drsnik-ovoj {
+  position: relative;
+  overflow: hidden;
+}
+
+.ocena-tveganja__drsnik-ovoj::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 32px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, #F4F8F9 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .ocena-tveganja__izbira-vrstica {
   display: flex;
   gap: 8px;
@@ -12973,7 +12990,7 @@ textarea.sms-preview__viewport {
   scroll-snap-type: x proximity;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 1px;
+  padding: 0 32px 2px 0;
 }
 
 .ocena-tveganja__izbira-vrstica::-webkit-scrollbar {
@@ -12983,14 +13000,14 @@ textarea.sms-preview__viewport {
 .ocena-tveganja__izbira {
   flex: 0 0 auto;
   scroll-snap-align: start;
-  min-height: 44px;
-  padding: 0 18px;
+  min-height: 38px;
+  padding: 0 16px;
   border: 1px solid #CBDADD;
   border-radius: 999px;
   background: #FFFFFF;
   color: #243B43;
   font: inherit;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -13008,6 +13025,29 @@ textarea.sms-preview__viewport {
 .ocena-tveganja__izbira:focus-visible {
   outline: 3px solid rgba(39, 155, 160, 0.35);
   outline-offset: 2px;
+}
+
+.ocena-tveganja__indikator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ocena-tveganja__pika {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c4d4d0;
+  transition: all 200ms ease;
+}
+
+.ocena-tveganja__pika--aktivna {
+  width: 22px;
+  border-radius: 6px;
+  background: var(--teal, #51999a);
 }
 
 /* ---- Spodnji meniji za Ocena tveganja (ohranjeno) ---- */
