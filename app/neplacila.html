@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-ocena-polja-sorazmerno" />
+    <link rel="stylesheet" href="styles.css?v=20260810-kategorija-15px-dno" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -359,7 +359,9 @@
                       <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-dolg-vrednost">11,00 €</span>
                       <span class="ocena-tveganja__polje-kategorija" id="ocena-tveganja-dolg-status">Nizek dolg</span>
                     </span>
-                    <span class="ocena-tveganja__polje-chevron" aria-hidden="true">›</span>
+                    <span class="ocena-tveganja__polje-nastavitve" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </span>
                   </button>
                   <span class="ocena-tveganja__vrstica-locilo" aria-hidden="true"></span>
                   <button
@@ -377,7 +379,9 @@
                       <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-zamuda-vrednost">0 dni</span>
                       <span class="ocena-tveganja__polje-kategorija" id="ocena-tveganja-zamuda-status">Ni zapadel</span>
                     </span>
-                    <span class="ocena-tveganja__polje-chevron" aria-hidden="true">›</span>
+                    <span class="ocena-tveganja__polje-nastavitve" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </span>
                   </button>
                 </div>
 
@@ -407,22 +411,9 @@
               </section>
 
               <section class="racun-posiljanje" id="racun-posiljanje" aria-labelledby="racun-posiljanje-naslov">
-                <div class="racun-posiljanje__glava">
-                  <div>
-                    <h3 class="racun-posiljanje__naslov" id="racun-posiljanje-naslov">Račun za pošiljanje</h3>
-                    <p class="racun-posiljanje__opis">
-                      Dolžnik jih prejme kot PDF ali varno povezavo v SMS-u.
-                    </p>
-                  </div>
-                  <span class="racun-posiljanje__neobvezno">Neobvezno</span>
-                </div>
-
-                <div class="racun-posiljanje__prazno" id="racun-posiljanje-prazno">
-                  <span class="racun-posiljanje__ikona" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>
-                  </span>
-                  <p class="racun-posiljanje__prazno-besedilo">Račun še ni dodan.</p>
-                  <div class="racun-posiljanje__gumbi" id="priloga-gumbi">
+                <div class="racun-posiljanje__vrstica">
+                  <h3 class="racun-posiljanje__naslov" id="racun-posiljanje-naslov">Račun za pošiljanje</h3>
+                  <div class="racun-posiljanje__akcije">
                     <button type="button" class="racun-posiljanje__gumb" data-priloga-slikaj>
                       <span aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -435,42 +426,16 @@
                       </span>
                       Uvozi
                     </button>
+                    <span class="racun-posiljanje__locilo" aria-hidden="true"></span>
+                    <label class="racun-posiljanje__stikalo">
+                      <span class="racun-posiljanje__stikalo-besedilo">Pošlji račun</span>
+                      <input type="checkbox" id="racun-posiljanje-stikalo" checked />
+                      <span class="racun-posiljanje__stikalo-ui" aria-hidden="true"></span>
+                    </label>
                   </div>
                 </div>
 
-                <div class="racun-posiljanje__polno" id="racun-posiljanje-polno" hidden>
-                  <div class="racun-posiljanje__seznam" id="racun-posiljanje-seznam" role="list"></div>
-                  <div class="racun-posiljanje__dodaj-se" id="racun-posiljanje-dodaj-se">
-                    <p class="racun-posiljanje__dodaj-se-naslov">Dodaj še račun</p>
-                    <div class="racun-posiljanje__gumbi">
-                      <button type="button" class="racun-posiljanje__gumb" data-priloga-slikaj>
-                        <span aria-hidden="true">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                        </span>
-                        Slikaj
-                      </button>
-                      <button type="button" class="racun-posiljanje__gumb" data-priloga-uvozi>
-                        <span aria-hidden="true">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-                        </span>
-                        Uvozi
-                      </button>
-                    </div>
-                  </div>
-                  <p class="racun-posiljanje__limit" id="priloga-limit-opozorilo" hidden>
-                    Doseženo je največje število računov (6).
-                  </p>
-                  <label class="racun-posiljanje__stikalo">
-                    <span class="racun-posiljanje__stikalo-besedilo">
-                      <span class="racun-posiljanje__stikalo-naslov">Pošlji račun dolžniku</span>
-                      <span class="racun-posiljanje__stikalo-pomoc" id="racun-posiljanje-stikalo-pomoc">
-                        Račun bo dodan končnemu sporočilu.
-                      </span>
-                    </span>
-                    <input type="checkbox" id="racun-posiljanje-stikalo" checked />
-                    <span class="racun-posiljanje__stikalo-ui" aria-hidden="true"></span>
-                  </label>
-                </div>
+                <div class="racun-posiljanje__seznam-wrapper" id="racun-posiljanje-seznam" role="list"></div>
 
                 <input
                   type="file"
@@ -643,7 +608,7 @@
           </div>
 
           <div class="ocena-sheet__vrstica ocena-sheet__vrstica--zadnja">
-            <span class="ocena-sheet__vrstica-oznaka">Ekstremni dolg</span>
+            <span class="ocena-sheet__vrstica-oznaka">hohe Verschuldung</span>
             <span class="ocena-sheet__vrstica-opis">od</span>
             <span class="ocena-sheet__polje-z-enoto">
               <input type="number" id="ocena-dolg-ekstremni-od" inputmode="decimal" class="ocena-sheet__input" value="5001" min="0" />
@@ -796,7 +761,7 @@
         window.addEventListener("pageshow", naVrhCeObrazec);
       })();
     </script>
-    <script src="ocena-tveganja.js?v=20260810-pragovi-popravek"></script>
+    <script src="ocena-tveganja.js?v=20260810-hohe-verschuldung"></script>
     <script src="app.js?v=20260810-zgodovina-zamud-v-widgetu"></script>
   </body>
 </html>
