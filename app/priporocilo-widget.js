@@ -70,23 +70,12 @@
 
   function prilagodiPovzetek() {
     var ids = ["ton-znesek-znacka", "ton-cas-tekst", "ton-zgodovina-znacka"];
-    root.requestAnimationFrame(function () {
-      ids.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el || !el.clientWidth) return;
-
-        var dolzina = String(el.textContent || "").trim().length;
-        var ciljnaVelikost =
-          dolzina > 16 ? 10 : dolzina > 12 ? 11 : dolzina > 9 ? 13 : null;
-        el.style.fontSize = ciljnaVelikost ? ciljnaVelikost + "px" : "";
-
-        var velikost = parseFloat(root.getComputedStyle(el).fontSize);
-        var najmanjsa = 9;
-        while (el.scrollWidth > el.clientWidth && velikost > najmanjsa) {
-          velikost -= 0.5;
-          el.style.fontSize = velikost + "px";
-        }
-      });
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || !el.clientWidth) return;
+      if (typeof root.UJPrilagodiVelikostVrednosti === "function") {
+        root.UJPrilagodiVelikostVrednosti(el);
+      }
     });
   }
 

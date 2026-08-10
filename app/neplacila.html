@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-racun-navodila-zgoraj" />
+    <link rel="stylesheet" href="styles.css?v=20260810-modal-kot-predogled" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -414,28 +414,22 @@
               <section class="racun-posiljanje" id="racun-posiljanje" aria-labelledby="racun-posiljanje-naslov">
                 <div class="racun-posiljanje__vrstica">
                   <h3 class="racun-posiljanje__naslov" id="racun-posiljanje-naslov">Račun za pošiljanje</h3>
+                  <span class="racun-posiljanje__akcije-locilo" aria-hidden="true"></span>
+                  <div class="racun-posiljanje__akcije racun-posiljanje__akcije--orodna-vrstica">
+                    <button type="button" class="racun-posiljanje__gumb" data-priloga-slikaj>
+                      <span aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                      </span>
+                      Slikaj
+                    </button>
+                    <button type="button" class="racun-posiljanje__gumb" data-priloga-uvozi>
+                      <span aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+                      </span>
+                      Uvozi
+                    </button>
+                  </div>
                 </div>
-
-                <div class="racun-posiljanje__akcije racun-posiljanje__akcije--orodna-vrstica">
-                  <button type="button" class="racun-posiljanje__gumb" data-priloga-slikaj>
-                    <span aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                    </span>
-                    Slikaj
-                  </button>
-                  <button type="button" class="racun-posiljanje__gumb" data-priloga-uvozi>
-                    <span aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
-                    </span>
-                    Uvozi
-                  </button>
-                </div>
-
-                <label class="racun-posiljanje__stikalo racun-posiljanje__stikalo--pod-gumbi">
-                  <span class="racun-posiljanje__stikalo-besedilo">Pošlji račun dolžniku</span>
-                  <input type="checkbox" id="racun-posiljanje-stikalo" checked />
-                  <span class="racun-posiljanje__stikalo-ui" aria-hidden="true"></span>
-                </label>
 
                 <div class="racun-posiljanje__seznam racun-posiljanje__seznam-wrapper" id="racun-posiljanje-seznam" role="list"></div>
                 <p class="racun-posiljanje__limit" id="priloga-limit-opozorilo" hidden>
@@ -767,6 +761,6 @@
       })();
     </script>
     <script src="ocena-tveganja.js?v=20260810-pragovi-popravek"></script>
-    <script src="app.js?v=20260810-popup-mobile-layer"></script>
+    <script src="app.js?v=20260811-modal-brez-safari-vrstice"></script>
   </body>
 </html>

@@ -10,6 +10,15 @@
    uporabniku, baza to naredi sama.
    ========================================================== */
 
+/* Prehod na naslednji korak: takoj zbriše fokus (da mobilna tipkovnica ne
+   povzroči skoka ob zapiranju), nato takoj naloži novo stran. */
+function prehodNaStran(url) {
+  if (document.activeElement && typeof document.activeElement.blur === "function") {
+    document.activeElement.blur();
+  }
+  window.location.href = url;
+}
+
 /* Vrstni red statusov - od najbolj svežega do rešenega, točno tak, kot je
    zapisan v bazi (glej "check" v sql/001_tabela_zadeve.sql).
    "Pošlji naslednji opomin" premakne zadevo za eno mesto naprej po tem seznamu. */
@@ -453,8 +462,6 @@ const KLJUC_KRATKO_OBVESTILO = "uj-kratko-obvestilo";
 let ujPotrdiZakljuci = null;
 let ujPotrdiPrejsnjiFokus = null;
 let ujPotrdiScrollY = 0;
-let ujPotrdiPrevBodyTop = "";
-let ujPotrdiPrevBodyPosition = "";
 
 function nastaviKratkoObvestilo(tekst) {
   if (!tekst) return;
@@ -508,11 +515,8 @@ function pokaziKratkoObvestiloCeObstaja() {
 
 function zakleniOzadjeMedModalom() {
   ujPotrdiScrollY = window.scrollY || window.pageYOffset || 0;
-  ujPotrdiPrevBodyTop = document.body.style.top;
-  ujPotrdiPrevBodyPosition = document.body.style.position;
   document.documentElement.classList.add("uj-modal-odprt");
   document.body.classList.add("uj-modal-odprt");
-  document.body.style.top = "-" + ujPotrdiScrollY + "px";
 }
 
 function odkleniOzadjeMedModalom() {
@@ -523,21 +527,12 @@ function odkleniOzadjeMedModalom() {
     document.body.classList.contains("rok-sheet-odprt") ||
     document.body.classList.contains("template-editor-odprt") ||
     document.body.classList.contains("predloga-predogled-odprt");
-  if (drugLock) {
-    // Sheet/predloga še drži lock – ne briši njenega top/position.
-    document.body.style.top = ujPotrdiPrevBodyTop || document.body.style.top;
-    if (ujPotrdiPrevBodyPosition) {
-      document.body.style.position = ujPotrdiPrevBodyPosition;
-    }
-  } else {
-    document.body.style.top = "";
+  if (!drugLock) {
     window.scrollTo(0, ujPotrdiScrollY || 0);
     if (typeof window.UJSprostiGlavniScroll === "function") {
       window.UJSprostiGlavniScroll();
     }
   }
-  ujPotrdiPrevBodyTop = "";
-  ujPotrdiPrevBodyPosition = "";
 }
 
 /**
@@ -663,6 +658,8 @@ function zagotoviPotrditveniModal() {
     return modal;
   }
 
+  // Enak celozaslonski sloj kot pri predogledu predloge. Navaden element je
+  // na iPhone Safariju zanesljivejši od native <dialog> pri spodnji safe area.
   modal = document.createElement("div");
   modal.id = "uj-potrdi-modal";
   modal.className = "osnutek-modal";
@@ -859,7 +856,19 @@ function potrdiVprasanje(opcije) {
     function zakljuci(odgovor, izPopstate) {
       if (ujPotrdiZakljuci !== zakljuci || zakljuceno) return;
       zakljuceno = true;
+      if (
+        typeof HTMLDialogElement !== "undefined" &&
+        modal instanceof HTMLDialogElement &&
+        modal.open
+      ) {
+        try {
+          modal.close();
+        } catch (_e) {
+          /* Starejši WebView: hidden spodaj ostane zanesljiv fallback. */
+        }
+      }
       modal.hidden = true;
+      modal.classList.remove("osnutek-modal--prikazan");
       modal.classList.remove("osnutek-modal--sprememba-podatkov");
       odkleniOzadjeMedModalom();
       document.removeEventListener("keydown", obTipkovnica);
@@ -978,15 +987,33 @@ function potrdiVprasanje(opcije) {
 
     zakleniOzadjeMedModalom();
     modal.hidden = false;
-    if (dvaIzbira) {
+    if (
+      typeof HTMLDialogElement !== "undefined" &&
+      modal instanceof HTMLDialogElement &&
+      typeof modal.showModal === "function" &&
+      !modal.open
+    ) {
+      try {
+        modal.showModal();
+      } catch (_e) {
+        // Če WebView še nima podpore za top layer, ostane obstoječi fixed modal.
+      }
+    }
+    // Dialog mora biti viden že v istem izrisu kot zamegljeno ozadje.
+    // Mobilni WebView lahko ob oddaji obrazca zakasni animacijsko sličico.
+    modal.classList.add("osnutek-modal--prikazan");
+    const jeMobilniDotik =
+      window.matchMedia &&
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    if (dvaIzbira && !jeMobilniDotik) {
       naslovEl.setAttribute("tabindex", "-1");
       try {
         naslovEl.focus({ preventScroll: true });
       } catch (_e) {
-        potrdi.focus();
+        potrdi.focus({ preventScroll: true });
       }
-    } else {
-      potrdi.focus();
+    } else if (!jeMobilniDotik) {
+      potrdi.focus({ preventScroll: true });
     }
   });
 }
@@ -1309,8 +1336,6 @@ function inicializirajNeplacila() {
   const racunPolno = document.getElementById("racun-posiljanje-polno");
   const racunSeznam = document.getElementById("racun-posiljanje-seznam");
   const racunDodajSe = document.getElementById("racun-posiljanje-dodaj-se");
-  const racunStikalo = document.getElementById("racun-posiljanje-stikalo");
-  const racunStikaloPomoc = document.getElementById("racun-posiljanje-stikalo-pomoc");
   const prilogaLimitOpozoriloEl = document.getElementById("priloga-limit-opozorilo");
 
   function sinhronizirajPrilogeZaNalaganje() {
@@ -1398,11 +1423,7 @@ function inicializirajNeplacila() {
         raz
       ),
     }));
-    if (typeof p.shouldSendAttachment === "boolean") {
-      shouldSendAttachment = p.shouldSendAttachment;
-    } else {
-      shouldSendAttachment = true;
-    }
+    shouldSendAttachment = true;
     sinhronizirajPrilogeZaNalaganje();
   }
 
@@ -1557,17 +1578,6 @@ function inicializirajNeplacila() {
         racunSeznam.appendChild(vrstica);
       });
     }
-    if (racunStikalo) racunStikalo.checked = shouldSendAttachment;
-    if (racunStikaloPomoc) {
-      const vec = messageAttachments.length > 1;
-      racunStikaloPomoc.textContent = shouldSendAttachment
-        ? vec
-          ? "Računi bodo dodani končnemu sporočilu."
-          : "Račun bo dodan končnemu sporočilu."
-        : vec
-          ? "Računi ostanejo shranjeni, vendar ne bodo poslani."
-          : "Račun ostane shranjen, vendar ne bo poslan.";
-    }
   }
 
   function odpriPredogledPriloge(priloga) {
@@ -1672,13 +1682,6 @@ function inicializirajNeplacila() {
       if (gumbPrilogaFotoaparat) gumbPrilogaFotoaparat.click();
     });
   });
-  if (racunStikalo) {
-    racunStikalo.addEventListener("change", () => {
-      shouldSendAttachment = racunStikalo.checked;
-      syncPrilogeVSejoKorak1();
-      izrisiIzbranePriloge();
-    });
-  }
   if (osnutekKorak1ZaPriloge) {
     obnoviPrilogeIzSeje(osnutekKorak1ZaPriloge);
   }
@@ -2805,25 +2808,49 @@ function inicializirajNeplacila() {
       return;
     }
 
-    // Ocena tveganja: zgodovina zamud mora biti izpolnjena
+    // Ocena tveganja: odgovor mora biti izpolnjen in se mora ohraniti tudi
+    // po sestavi novega objekta za 2. in 3. korak.
+    let korak1Podatki = {};
     try {
-      var korak1Raw = sessionStorage.getItem("neplacilo-korak1-podatki");
-      var korak1Podatki = korak1Raw ? JSON.parse(korak1Raw) : {};
-      if (!korak1Podatki.zgodovinaZamud) {
+      const korak1Raw = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
+      korak1Podatki = korak1Raw ? JSON.parse(korak1Raw) : {};
+      const izbraniGumbZgodovine = document.querySelector(
+        '#ocena-tveganja [data-zgodovina-zamud][aria-pressed="true"]'
+      );
+      const zgodovinaIzTrenutneIzbire = izbraniGumbZgodovine
+        ? izbraniGumbZgodovine.getAttribute("data-zgodovina-zamud")
+        : null;
+      const zgodovinaJeIzbrana =
+        zgodovinaIzTrenutneIzbire != null &&
+        String(zgodovinaIzTrenutneIzbire) !== "";
+      if (!zgodovinaJeIzbrana) {
         if (typeof potrdiVprasanje === "function") {
-          setTimeout(function () {
-            potrdiVprasanje({
-              naslov: "Izpolnite oceno tveganja",
-              opis: "Pred nadaljevanjem izberite, ali je dolžnik že kdaj zamudil s plačilom.",
-              potrdiBesedilo: "V redu",
-              samoEnGumb: true,
-              stil: "primary",
-            });
-          }, 100);
+          await potrdiVprasanje({
+            naslov: "Izpolnite oceno tveganja",
+            opis: "Pred nadaljevanjem izberite, ali je dolžnik že kdaj zamudil s plačilom.",
+            potrdiBesedilo: "V redu",
+            samoEnGumb: true,
+            stil: "primary",
+          });
         }
         return;
       }
-    } catch (_) {}
+      // Vedno uporabi trenutno vidno izbiro in ne morebitnega starega
+      // odgovora, ki je ostal v osnutku prejšnjega prikaza.
+      korak1Podatki.zgodovinaZamud = zgodovinaIzTrenutneIzbire;
+    } catch (_napakaOcene) {
+      korak1Podatki = {};
+      if (typeof potrdiVprasanje === "function") {
+        await potrdiVprasanje({
+          naslov: "Izpolnite oceno tveganja",
+          opis: "Podatkov ocene ni bilo mogoče prebrati. Ponovno izberite odgovor in nadaljujte.",
+          potrdiBesedilo: "V redu",
+          samoEnGumb: true,
+          stil: "primary",
+        });
+      }
+      return;
+    }
 
     // Zadeva se dejansko doda v bazo šele na 3. koraku (po sporočilu),
     // glej neplacila-posiljanje.html - tu naložimo nove priloge in ohranimo
@@ -2859,6 +2886,9 @@ function inicializirajNeplacila() {
       opisDolga,
       datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
       datumZapadlosti,
+      // Ta podatka uporabljajo priporočilo ter prikaza na 2. in 3. koraku.
+      zgodovinaZamud: korak1Podatki.zgodovinaZamud,
+      vprasalnikOdgovori: korak1Podatki.vprasalnikOdgovori || null,
       stevilkaRacuna: podatki.get("stevilkaRacuna").trim() || null,
       racunDatotekePoti: rezultatPrilog.poti,
       shouldSendAttachment:
@@ -2901,7 +2931,7 @@ function inicializirajNeplacila() {
 
     sessionStorage.setItem(KLJUC_SEJE_KORAK1_PODATKI, JSON.stringify(noviKorak1));
     shraniKorak1Fingerprint(novHash);
-    window.location.href = "neplacila-sporocilo.html";
+    prehodNaStran("neplacila-sporocilo.html");
   });
 
   /* Če se obrtnik pravkar vrnil iz 3. koraka po uspešno dodani zadevi,
@@ -6124,7 +6154,7 @@ function inicializirajSporociloDolzniku() {
       })
     );
 
-    window.location.href = "neplacila-posiljanje.html";
+    prehodNaStran("neplacila-posiljanje.html");
   });
 
   // Obnovi morebiten osnutek iz 2. koraka (npr. po Nazaj s 3. koraka).
@@ -6741,14 +6771,29 @@ function prilagodiVelikostZneska(el) {
   const sirina = el.clientWidth;
   if (!sirina) return;
 
+  /* scrollWidth je celo število, dejanska širina črk pa je lahko za del
+     piksla večja. Range zato preveri natančno širino in pusti majhen rob. */
+  function seVsebinaPrilega() {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const slog = getComputedStyle(el);
+    const vodoravniOdmik =
+      (Number.parseFloat(slog.paddingLeft) || 0) +
+      (Number.parseFloat(slog.paddingRight) || 0);
+    const natancnaSirina = range.getBoundingClientRect().width + vodoravniOdmik;
+    return el.scrollWidth <= sirina && natancnaSirina <= sirina - 0.5;
+  }
+
   const osnovnaVelikost = Number.parseFloat(getComputedStyle(el).fontSize);
   if (!Number.isFinite(osnovnaVelikost) || osnovnaVelikost <= 0) return;
-  if (el.scrollWidth <= sirina + 0.5) return;
+  if (seVsebinaPrilega()) return;
 
   const najmanjsaIzAtributa = Number.parseFloat(el.getAttribute("data-fit-number-min"));
   const najmanjsaVelikost = Number.isFinite(najmanjsaIzAtributa)
     ? Math.max(8, najmanjsaIzAtributa)
-    : 10;
+    : el.classList.contains("debt-summary__amount")
+      ? 8
+      : 10;
 
   let spodnja = Math.min(najmanjsaVelikost, osnovnaVelikost);
   let zgornja = osnovnaVelikost;
@@ -6756,7 +6801,7 @@ function prilagodiVelikostZneska(el) {
 
   /* Tudi pri najmanjši dovoljeni velikosti vsebina nikoli ne sme prekriti
      sosedov; CSS jo v skrajnem primeru varno odreže znotraj lastnega okvirja. */
-  if (el.scrollWidth > sirina + 0.5) {
+  if (!seVsebinaPrilega()) {
     el.setAttribute("data-fit-number-active", "minimum");
     return;
   }
@@ -6764,13 +6809,17 @@ function prilagodiVelikostZneska(el) {
   for (let i = 0; i < 9; i += 1) {
     const sredina = (spodnja + zgornja) / 2;
     el.style.fontSize = sredina + "px";
-    if (el.scrollWidth <= sirina + 0.5) spodnja = sredina;
+    if (seVsebinaPrilega()) spodnja = sredina;
     else zgornja = sredina;
   }
 
   el.style.fontSize = Math.floor(spodnja * 10) / 10 + "px";
   el.setAttribute("data-fit-number-active", "true");
 }
+
+/* Widgeta v 2. in 3. koraku uporabita isto funkcijo takoj po spremembi
+   besedila. Tako se velikost ne preračunava z dvema različnima praviloma. */
+window.UJPrilagodiVelikostVrednosti = prilagodiVelikostZneska;
 
 function prilagodiVseZneske() {
   document
