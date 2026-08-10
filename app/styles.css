@@ -12983,18 +12983,19 @@ textarea.sms-preview__viewport {
 .ocena-tveganja__izbira {
   flex: 0 0 auto;
   scroll-snap-align: start;
-  min-height: 34px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid #CBDADD;
   border-radius: 999px;
   background: #FFFFFF;
   color: #243B43;
   font: inherit;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
   box-sizing: border-box;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .ocena-tveganja__izbira[aria-pressed="true"] {
