@@ -2399,6 +2399,33 @@ body.stran--samo-seznam #neplacila-obrazec {
   color: var(--barva-znamka);
 }
 
+/* Vsi prikazi denarnih vrednosti ostanejo znotraj svojega okvirja.
+   app.js po potrebi samodejno zmanjša samo velikost pisave. */
+[data-fit-number],
+.debt-summary__amount,
+.zadeva__znesek,
+.zadeve-semafor__znesek,
+.ocena-tveganja__kartica-vrednost,
+.obrocno-sheet__znesek-vrednost,
+.opomin-nacrt__povzetek-vrednost {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
+}
+
+.zadeva__ime {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.zadeva__znesek {
+  flex: 0 1 auto;
+  max-width: 52%;
+}
+
 .zadeva__opis {
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
@@ -4668,12 +4695,12 @@ body.uj-modal-odprt {
   flex-direction: column;
   gap: 10px;
   padding: 8px;
-  border: 1px solid var(--teal-border);
+  border: 1.5px solid var(--teal-primary);
   border-radius: 24px;
   background: var(--teal-surface-soft);
   overflow: hidden;
   isolation: isolate;
-  box-shadow: none;
+  box-shadow: 0 2px 10px rgba(36, 127, 126, 0.14);
 }
 
 .priporocilo-widget__glava {
@@ -9839,6 +9866,232 @@ body.template-editor-odprt {
   text-overflow: clip;
 }
 
+/* Kompaktni povzetek: dolg levo, ton sporočila desno. */
+.step-content-card .debt-summary--compact {
+  grid-template-columns: 30px minmax(92px, 1fr) minmax(132px, 1.2fr);
+  grid-template-rows: auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 0;
+  padding: 10px;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 30px;
+  height: 30px;
+  margin-top: 0;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__main {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__amount {
+  font-size: 20px;
+}
+
+.debt-summary__tone {
+  min-width: 0;
+  min-height: 54px;
+  grid-column: 3;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12px;
+  align-items: center;
+  column-gap: 8px;
+  padding: 4px 2px 4px 14px;
+  border: 0;
+  border-left: 1px solid rgba(78, 157, 157, 0.34);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.debt-summary__tone:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid rgba(50, 148, 147, 0.22);
+  outline-offset: 1px;
+}
+
+.debt-summary__tone-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.debt-summary__tone-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.debt-summary__tone-value {
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--teal-dark);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debt-summary__tone-chevron {
+  color: #627673;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__category {
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 0;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__category-label {
+  display: none;
+}
+
+.step-content-card .debt-summary--compact .debt-summary__category-value {
+  min-height: 28px;
+  margin-top: 0;
+  padding: 4px 8px;
+  font-size: 11.5px;
+}
+
+.debt-summary__quick-settings {
+  min-width: 0;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  display: grid;
+  gap: 6px;
+}
+
+.debt-summary__quick-setting {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 10px;
+  align-items: center;
+  column-gap: 6px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.debt-summary__quick-setting + .debt-summary__quick-setting {
+  border-top: 1px solid rgba(78, 157, 157, 0.18);
+}
+
+.debt-summary__quick-setting:focus-visible {
+  outline: 3px solid rgba(50, 148, 147, 0.22);
+  outline-offset: 1px;
+}
+
+.debt-summary__quick-icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-icon);
+  color: var(--teal-primary);
+}
+
+.debt-summary__quick-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.debt-summary__quick-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.debt-summary__quick-label {
+  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.debt-summary__quick-value {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--teal-value);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debt-summary__quick-badge {
+  width: fit-content;
+  margin-top: 2px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--surface-badge);
+  color: var(--teal-dark);
+  font-size: 8.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.debt-summary__quick-chevron {
+  color: #627673;
+  font-size: 13px;
+  line-height: 1;
+  text-align: center;
+}
+
+@media (max-width: 340px) {
+  .step-content-card .debt-summary--compact {
+    grid-template-columns: 26px minmax(82px, 1fr) minmax(124px, 1.15fr);
+    column-gap: 6px;
+    padding: 8px;
+  }
+
+  .debt-summary__quick-setting {
+    grid-template-columns: 20px minmax(0, 1fr) 8px;
+    column-gap: 4px;
+    padding-inline: 4px;
+  }
+
+  .debt-summary__quick-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .debt-summary__tone {
+    min-height: 50px;
+    padding-left: 10px;
+  }
+}
+
 .step-primary-settings {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -10579,9 +10832,9 @@ textarea.sms-preview__viewport {
 }
 
 .vk-priloge-orodna-vrstica__oznaka {
-  color: #6d817e;
-  font-size: 10.5px;
-  font-weight: 500;
+  color: #17322f;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.1;
   white-space: nowrap;
 }
@@ -12029,24 +12282,24 @@ textarea.sms-preview__viewport {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  height: 28px;
+  margin-bottom: 8px;
 }
 
 .opomin-potrdi-predloge__naslov {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #5f7571;
+  font-size: 15px;
+  font-weight: 700;
+  color: #17322f;
 }
 
 .opomin-potrdi-predloge__vec {
-  padding: 4px 10px;
-  border: 1px solid var(--border, #c9d9d7);
-  border-radius: 999px;
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: var(--teal-dark, #10797d);
+  color: var(--teal, #51999a);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -12068,8 +12321,10 @@ textarea.sms-preview__viewport {
   gap: 10px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding-bottom: 4px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  padding: 0 0 4px 0;
 }
 
 .opomin-potrdi-predloge__drsnik::-webkit-scrollbar {
@@ -12077,30 +12332,62 @@ textarea.sms-preview__viewport {
 }
 
 .opomin-potrdi-predloge__kartica {
-  flex: 0 0 auto;
-  width: 62%;
+  flex: 0 0 82%;
   scroll-snap-align: start;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid var(--border, #c9d9d7);
-  border-radius: 14px;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 96px;
+  padding: 14px 16px;
+  border: 1px solid rgba(70, 120, 120, 0.16);
+  border-radius: 16px;
   background: #ffffff;
   text-align: left;
   font: inherit;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .opomin-potrdi-predloge__kartica--izbrana {
-  border-color: var(--teal, #51999a);
-  background: var(--teal-pale, #eaf5f4);
+  border: 1.5px solid #2F8F8B;
+  box-shadow: 0 4px 12px rgba(34, 120, 118, 0.12);
+  background: #ffffff;
+}
+
+.opomin-potrdi-predloge__kartica-ikona {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--teal-pale, #e8f5f3);
+  color: var(--teal, #51999a);
+}
+
+.opomin-potrdi-predloge__kartica-ikona svg {
+  width: 20px;
+  height: 20px;
+}
+
+.opomin-potrdi-predloge__kartica--izbrana .opomin-potrdi-predloge__kartica-ikona {
+  background: #d5eeec;
+  color: #2F8F8B;
+}
+
+.opomin-potrdi-predloge__kartica-vsebina {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .opomin-potrdi-predloge__kartica-naslov {
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 700;
   color: #17322f;
+  line-height: 1.25;
 }
 
 .opomin-potrdi-predloge__kartica-opis {
@@ -12113,10 +12400,27 @@ textarea.sms-preview__viewport {
   overflow: hidden;
 }
 
-@media (min-width: 480px) {
-  .opomin-potrdi-predloge__kartica {
-    width: 46%;
-  }
+.opomin-potrdi-predloge__indikator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.opomin-potrdi-predloge__pika {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c4d4d0;
+  transition: all 200ms ease;
+}
+
+.opomin-potrdi-predloge__pika--aktivna {
+  width: 22px;
+  border-radius: 6px;
+  background: var(--teal, #51999a);
 }
 
 .korak2__gumb-naprej:focus-visible {

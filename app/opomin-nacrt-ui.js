@@ -2154,10 +2154,7 @@
       var PV = root.UJPrilogeVsebina;
       var K = root.UJPrilogeKonstante || {};
       var znesekTekst = ctx.znesekTekst;
-      var kategorijaTekst = ctx.kategorijaTekst;
       var tonOznaka = ctx.tonOznaka || "—";
-      var predlogaOznaka = ctx.predlogaOznaka || "Ni izbrana";
-      var predlogaPriporocena = Boolean(ctx.predlogaPriporocena);
       var smsBesedilo = ctx.smsBesedilo || "";
       var smsUrejanje = ctx.smsUrejanje || "";
       var smsMeta = ctx.smsMeta || "";
@@ -2176,7 +2173,7 @@
         '<section class="step-content-card" aria-label="Vsebina koraka">' +
         '<h3 class="step-content-card__title">Vsebina koraka</h3>' +
         htmlKontaktneKartice(ctx) +
-        '<div class="debt-summary">' +
+        '<div class="debt-summary debt-summary--compact">' +
         '<span class="debt-summary__icon" aria-hidden="true">' +
         IKONA_DENARNICA +
         "</span>" +
@@ -2186,44 +2183,16 @@
         esc(znesekTekst || "—") +
         "</span>" +
         "</div>" +
-        '<div class="debt-summary__category">' +
-        '<span class="debt-summary__category-label">Kategorija</span>' +
-        '<span class="debt-summary__category-value">' +
-        esc(kategorijaTekst || "—") +
-        "</span>" +
-        "</div>" +
-        "</div>" +
-        '<div class="step-primary-settings">' +
-        '<button type="button" class="step-setting-tile" data-vsebina="ton" aria-label="Spremeni ton sporočila. Trenutno: ' +
+        '<button type="button" class="debt-summary__tone" data-vsebina="ton" aria-label="Spremeni ton sporočila. Trenutno: ' +
         esc(tonOznaka) +
         '.">' +
-        '<span class="step-setting-tile__icon" aria-hidden="true">' +
-        IKONA_NASMEH +
-        "</span>" +
-        '<span class="step-setting-tile__content">' +
-        '<span class="step-setting-tile__label">Ton sporočila</span>' +
-        '<span class="step-setting-tile__value">' +
+        '<span class="debt-summary__tone-content">' +
+        '<span class="debt-summary__tone-label">Ton sporočila</span>' +
+        '<span class="debt-summary__tone-value">' +
         esc(tonOznaka) +
         "</span>" +
         "</span>" +
-        '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
-        "</button>" +
-        '<button type="button" class="step-setting-tile" data-vsebina="predloga" aria-label="Spremeni predlogo. Trenutno: ' +
-        esc(predlogaOznaka) +
-        '.">' +
-        '<span class="step-setting-tile__icon" aria-hidden="true">' +
-        IKONA_DOKUMENT +
-        "</span>" +
-        '<span class="step-setting-tile__content">' +
-        '<span class="step-setting-tile__label">Predloga</span>' +
-        '<span class="step-setting-tile__value">' +
-        esc(predlogaOznaka) +
-        "</span>" +
-        (predlogaPriporocena
-          ? '<span class="template-recommended-badge">Priporočeno</span>'
-          : "") +
-        "</span>" +
-        '<span class="step-setting-tile__chevron" aria-hidden="true">›</span>' +
+        '<span class="debt-summary__tone-chevron" aria-hidden="true">›</span>' +
         "</button>" +
         "</div>" +
         '<div class="step-addons-list">' +
@@ -2272,6 +2241,11 @@
         '<button type="button" class="opomin-potrdi-predloge__vec" id="opomin-glavni-predloge-vec">Več</button>' +
         "</div>" +
         '<div class="opomin-potrdi-predloge__drsnik" id="opomin-glavni-predloge-drsnik" role="list"></div>' +
+        '<div class="opomin-potrdi-predloge__indikator" id="opomin-glavni-predloge-indikator" aria-hidden="true">' +
+        '<span class="opomin-potrdi-predloge__pika opomin-potrdi-predloge__pika--aktivna"></span>' +
+        '<span class="opomin-potrdi-predloge__pika"></span>' +
+        '<span class="opomin-potrdi-predloge__pika"></span>' +
+        "</div>" +
         "</div>" +
         "</div>" +
         htmlZgornjaOrodnaVrstica(readyN) +
@@ -2300,7 +2274,7 @@
       );
       var step = N.najdiKorak(plan, aktivenIndex) || plan.steps[0];
       var prejsnji = N.najdiKorak(plan, aktivenIndex - 1);
-      var naslednji = N.najdiKorak(plan, aktivenIndex + 1);
+      var naslednji = N.najdiKorak(plan, Number(aktivenIndex) + 1);
       var ready = N.soVsiSmsPotrjeni(plan);
       var potrjeno = potrjeniCount();
       var k2 = opts.podatkiKorak2 || {};
@@ -2317,6 +2291,7 @@
       }
       var jeManual =
         step.kind === "manual_lawyer" || step.deliveryMode === "manual";
+      var razmikPrejsnji = razmikOdPrejsnjega(plan, step);
 
       var razmikNaslednji = 0;
       if (naslednji) {
@@ -2410,6 +2385,31 @@
               esc(oznakaRazmik) +
               "</span>") +
           "</div>";
+      } else if (!naslednji && prejsnji) {
+        var oznakaRazmikPrejsnji = N.oznakaCezDni
+          ? N.oznakaCezDni(Math.max(0, razmikPrejsnji))
+          : "Čez " + Math.max(0, razmikPrejsnji) + " dni";
+        casKarticaHtml +=
+          '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
+          '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
+          IKONA_URA +
+          "</span>" +
+          '<span class="opomin-nacrt__cas-blok">' +
+          '<span class="opomin-nacrt__cas-oznaka">Od prejšnjega koraka</span>' +
+          '<span class="opomin-nacrt__cas-tekst">' +
+          esc(formatCasPolno(prejsnji.sendAt || prejsnji.scheduledAt)) +
+          "</span>" +
+          "</span>" +
+          (korakPremakljiv
+            ? '<button type="button" class="opomin-nacrt__gumb-dnevi" id="opomin-spremeni-prejsnji-razmik" aria-label="Spremeni razmik: ' +
+              esc(oznakaRazmikPrejsnji) +
+              '">' +
+              esc(oznakaRazmikPrejsnji) +
+              "</button>"
+            : '<span class="opomin-nacrt__cas-znacka">' +
+              esc(oznakaRazmikPrejsnji) +
+              "</span>") +
+          "</div>";
       } else if (!naslednji) {
         casKarticaHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
@@ -2424,7 +2424,6 @@
 
       var karticeHtml = "";
 
-      var razmikPrejsnji = razmikOdPrejsnjega(plan, step);
       var podrobnostCas =
         !jeManual && step.index > 1
           ? '<p class="opomin-nacrt__cas-podrobnost">' +
@@ -2862,6 +2861,15 @@
       if (spremeniRazmik) {
         spremeniRazmik.addEventListener("click", function () {
           odpriCasSheet(step.index, "naslednji");
+        });
+      }
+
+      var spremeniPrejsnjiRazmik = opts.glavniEl.querySelector(
+        "#opomin-spremeni-prejsnji-razmik"
+      );
+      if (spremeniPrejsnjiRazmik && prejsnji) {
+        spremeniPrejsnjiRazmik.addEventListener("click", function () {
+          odpriCasSheet(prejsnji.index, "naslednji");
         });
       }
 
@@ -3632,8 +3640,13 @@
           kartica.classList.add("opomin-potrdi-predloge__kartica--izbrana");
         }
         kartica.innerHTML =
+          '<span class="opomin-potrdi-predloge__kartica-ikona" aria-hidden="true">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>' +
+          "</span>" +
+          '<span class="opomin-potrdi-predloge__kartica-vsebina">' +
           '<span class="opomin-potrdi-predloge__kartica-naslov"></span>' +
-          '<span class="opomin-potrdi-predloge__kartica-opis"></span>';
+          '<span class="opomin-potrdi-predloge__kartica-opis"></span>' +
+          "</span>";
         kartica.querySelector(
           ".opomin-potrdi-predloge__kartica-naslov"
         ).textContent = predlog.naslov;
@@ -3654,6 +3667,24 @@
       });
 
       ovoj.hidden = false;
+
+      // Indikator pikic — posodobi ob scrollu
+      var indikator = document.getElementById((ovoj.id || "opomin-glavni-predloge") + "-indikator");
+      if (indikator) {
+        var pike = indikator.querySelectorAll(".opomin-potrdi-predloge__pika");
+        function posodobiIndikator() {
+          if (!pike.length) return;
+          var w = drsnik.offsetWidth;
+          if (w <= 0) return;
+          var idx = Math.round(drsnik.scrollLeft / w);
+          idx = Math.max(0, Math.min(pike.length - 1, idx));
+          pike.forEach(function (p, i) {
+            p.classList.toggle("opomin-potrdi-predloge__pika--aktivna", i === idx);
+          });
+        }
+        drsnik.addEventListener("scroll", posodobiIndikator, { passive: true });
+        posodobiIndikator();
+      }
 
       ta.addEventListener("input", function () {
         drsnik.querySelectorAll(".opomin-potrdi-predloge__kartica").forEach(
