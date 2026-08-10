@@ -1983,108 +1983,49 @@ body.stran--samo-seznam #neplacila-obrazec {
    blizu obrazca in mu damo nežen poudarek brez dodatne višine. */
 #obrazec-neplacilo > .racun-posiljanje {
   margin-top: 6px;
-  padding: 10px 12px;
-  border: 1px solid #D7E7E9;
+  padding: 12px;
+  border: 1px solid rgba(60, 60, 67, 0.18);
   border-radius: 14px;
   background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.racun-posiljanje__vrstica {
-  display: flex;
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__glava {
   align-items: center;
-  gap: 10px;
-  min-height: 34px;
+  margin-bottom: 8px;
 }
 
 #obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__naslov {
-  font-size: 13px;
+  color: #1d1d1f;
+  font-weight: 700;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__opis {
+  color: #6e6e73;
+}
+
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__neobvezno {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f2f2f7;
+  color: #6e6e73;
   font-weight: 600;
-  color: #17322f;
-  margin: 0;
-  flex-shrink: 0;
 }
 
-.racun-posiljanje__akcije {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__prazno,
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__kartica {
+  padding: 10px;
+  border-color: rgba(60, 60, 67, 0.14);
+  background: #fbfbfd;
 }
 
-.racun-posiljanje__gumb {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: 1px solid #BEE1DE;
-  border-radius: 8px;
-  background: #fff;
-  color: #15959B;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__ikona,
+#obrazec-neplacilo > .racun-posiljanje .racun-posiljanje__datoteka-ikona {
+  background: #f2f2f7;
+  color: #198f93;
 }
 
-.racun-posiljanje__gumb svg {
-  width: 14px;
-  height: 14px;
-}
-
-.racun-posiljanje__locilo {
-  width: 1px;
-  height: 20px;
-  background: #BEE1DE;
-  flex-shrink: 0;
-}
-
-.racun-posiljanje__stikalo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  color: #15959B;
-}
-
-.racun-posiljanje__stikalo input {
-  display: none;
-}
-
-.racun-posiljanje__stikalo-ui {
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: #cdd9d7;
-  position: relative;
-  transition: background 150ms;
-  flex-shrink: 0;
-}
-
-.racun-posiljanje__stikalo-ui::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-  transition: transform 150ms;
-}
-
-.racun-posiljanje__stikalo input:checked + .racun-posiljanje__stikalo-ui {
-  background: #15959B;
-}
-
-.racun-posiljanje__stikalo input:checked + .racun-posiljanje__stikalo-ui::after {
-  transform: translateX(16px);
-}.racun-posiljanje__seznam-wrapper:not(:empty) {
-  margin-top: 8px;
-}
+.obrazec__polje {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -3037,16 +2978,8 @@ body.stran--samo-seznam #neplacila-obrazec {
   color-scheme: light only;
   max-width: none;
   min-height: 100vh;
-  padding: env(safe-area-inset-top, 0px) 6px 28px;
-  background: linear-gradient(
-    180deg,
-    #dcf0ec 0px,
-    #e8f3f1 40px,
-    #f3f8f7 90px,
-    #fafcfb 130px,
-    #ffffff 170px,
-    #ffffff 100%
-  ) !important;
+  padding: 8px 6px 28px;
+  background: var(--page) !important;
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -3093,7 +3026,12 @@ body.stran--samo-seznam #neplacila-obrazec {
   width: 100%;
   margin: 0;
   padding: 0 0 10px;
-  background: transparent;
+  background: linear-gradient(
+    180deg,
+    #e8f3f1 0%,
+    #f3f8f7 62%,
+    #ffffff 100%
+  );
   box-sizing: border-box;
   /* Stabilnejši sticky compositing med scrollom */
   backface-visibility: hidden;
@@ -12980,7 +12918,7 @@ textarea.sms-preview__viewport {
   gap: 8px;
   align-items: stretch;
   margin-top: 12px;
-  min-height: 108px;
+  min-height: 0;
 }
 
 .ocena-tveganja__vrstica-locilo {
@@ -12991,11 +12929,11 @@ textarea.sms-preview__viewport {
   position: relative;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 12px;
-  align-items: center;
+  align-items: start;
   gap: 8px;
   flex: 1 1 0;
   min-width: 0;
-  padding: 10px 8px 34px;
+  padding: 9px 8px;
   border: 1px solid #D7E7E9;
   border-radius: 14px;
   background: #FFFFFF;
@@ -13040,7 +12978,7 @@ textarea.sms-preview__viewport {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .ocena-tveganja__polje-oznaka {
@@ -13059,13 +12997,9 @@ textarea.sms-preview__viewport {
 }
 
 .ocena-tveganja__polje-kategorija {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 7px;
   min-width: 0;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 700;
   color: #168E94;
   line-height: 1.2;
   white-space: normal;
@@ -13074,23 +13008,10 @@ textarea.sms-preview__viewport {
   word-break: break-word;
 }
 
-.ocena-tveganja__polje-nastavitve {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #E4F3F2;
-  color: #15959B;
-}
-
-.ocena-tveganja__polje-nastavitve svg {
-  display: block;
-  width: 13px;
-  height: 13px;
+.ocena-tveganja__polje-chevron {
+  align-self: center;
+  color: #93A8A6;
+  font-size: 15px;
 }
 
 .ocena-tveganja__polje-znesek {
