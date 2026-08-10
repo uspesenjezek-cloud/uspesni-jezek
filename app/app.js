@@ -2810,6 +2810,7 @@ function inicializirajNeplacila() {
       var korak1Raw = sessionStorage.getItem("neplacilo-korak1-podatki");
       var korak1Podatki = korak1Raw ? JSON.parse(korak1Raw) : {};
       if (!korak1Podatki.zgodovinaZamud) {
+        if (document.activeElement) document.activeElement.blur();
         if (typeof potrdiVprasanje === "function") {
           potrdiVprasanje({
             naslov: "Izpolnite oceno tveganja",
