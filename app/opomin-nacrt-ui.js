@@ -2359,7 +2359,7 @@
             ? '<span class="opomin-nacrt__cas-gumbi">' +
               '<button type="button" class="opomin-nacrt__gumb-enako' +
               (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
-              '" id="opomin-enako-cas" aria-label="Priporočeno">Priporočeno</button>' +
+              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
               (step.index > 1
                 ? '<button type="button" class="opomin-nacrt__gumb-zdaj' +
                   (izbranCasNacin === "zdaj"
@@ -2400,7 +2400,7 @@
           "</span>" +
           (naslednjiPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
-              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-priporoceno-razmik" aria-label="Priporočeno">Priporočeno</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-priporoceno-razmik" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
               '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-zdaj-razmik" aria-label="Trenutna ura">Trenutna ura</button>' +
               '<span class="opomin-nacrt__predizbor-ovoj">' +
               '<button type="button" class="opomin-nacrt__gumb-predizbor" id="opomin-predizbor-razmik" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +

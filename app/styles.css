@@ -9031,13 +9031,13 @@ body.template-editor-odprt {
   flex-shrink: 0;
   min-height: 36px;
   padding: 6px 12px;
-  border: 1px solid #d5e0dd;
+  border: 1px solid rgba(214, 161, 38, 0.35);
   border-radius: 18px;
-  background: transparent;
-  color: var(--text-primary, #183a3a);
+  background: var(--gold-button-surface, #fcebb9);
+  color: #8a6412;
   font: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: none;
 }
@@ -9046,15 +9046,20 @@ body.template-editor-odprt {
   display: block;
 }
 
+.opomin-nacrt__gumb-enako [aria-hidden] {
+  color: var(--gold-primary, #d6a126);
+  font-size: 13px;
+}
+
 .opomin-nacrt__gumb-enako--aktiven {
-  background: var(--teal, #159195);
-  color: #ffffff;
+  background: #f9e29c;
+  color: #8a6412;
   font-weight: 700;
   box-shadow: none;
 }
 
 .opomin-nacrt__gumb-enako:focus-visible {
-  outline: 2px solid var(--teal, #159195);
+  outline: 2px solid var(--gold-primary, #d6a126);
   outline-offset: 2px;
 }
 
