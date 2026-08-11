@@ -2339,10 +2339,7 @@
         (korakPoslan || jeManual
           ? ""
           : korakPremakljiv
-            ? '<span class="opomin-nacrt__cas-gumbi">' +
-              '<button type="button" class="opomin-nacrt__gumb-enako' +
-              (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
-              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
+            ? '<div class="opomin-nacrt__cas-mreza">' +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
@@ -2356,7 +2353,18 @@
               '" id="opomin-predizbor-cas" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
               '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
               "</span>" +
+              '<span class="opomin-nacrt__cas-danes" id="opomin-danes-datum">' +
+              esc(formatDatumKratekDDMM(new Date().toISOString())) +
               "</span>" +
+              '<span class="opomin-nacrt__cas-dnevi-stevec">' +
+              '<button type="button" class="opomin-nacrt__dnevi-minus" id="opomin-dnevi-minus" aria-label="Zmanjšaj za 1 dan">−</button>' +
+              '<span class="opomin-nacrt__dnevi-vrednost" id="opomin-dnevi-vrednost">+0 dni</span>' +
+              '<button type="button" class="opomin-nacrt__dnevi-plus" id="opomin-dnevi-plus" aria-label="Povečaj za 1 dan">+</button>' +
+              "</span>" +
+              "</div>" +
+              '<button type="button" class="opomin-nacrt__gumb-enako' +
+              (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
+              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
               '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-spremeni-cas">✎ Spremeni</button>'
             : "") +
         "</div></section>";
