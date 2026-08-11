@@ -3002,10 +3002,6 @@
           var idx = Number(btn.getAttribute("data-odstrani-kartico"));
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
-          stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
-          N.shraniOsnutek(plan);
-          izrisiGlavni();
-          return;
           /* Validacija: ne dovoli odstranitve zadnjega SMS koraka */
           var smsCount = typeof N.steviloSmsKorakov === "function" ? N.steviloSmsKorakov(plan) : 0;
           if (stepZaOdstranitev.kind === "sms" && smsCount <= 1) {
@@ -3023,9 +3019,9 @@
           var potrjeno = false;
           if (typeof opts.potrdiVprasanje === "function") {
             potrjeno = await opts.potrdiVprasanje({
-              naslov: "Odstrani korak?",
-              opis: "Korak »" + (stepZaOdstranitev.title || "") + "« bo odstranjen. Preostali koraki se ne prestavijo samodejno.",
-              potrdiBesedilo: "Odstrani",
+              naslov: "Izbriši korak?",
+              opis: "Korak »" + (stepZaOdstranitev.title || "") + "« bo izbrisan. Preostali koraki se samodejno preštevilčijo.",
+              potrdiBesedilo: "Izbriši",
               prekliciBesedilo: "Prekliči",
               stil: "nevarno",
             });
@@ -4109,9 +4105,9 @@
           var potrjeno = false;
           if (typeof opts.potrdiVprasanje === "function") {
             potrjeno = await opts.potrdiVprasanje({
-              naslov: "Odstrani korak?",
-              opis: "Korak »" + (step.title || "") + "« bo odstranjen. Preostali koraki se ne prestavijo samodejno.",
-              potrdiBesedilo: "Odstrani",
+              naslov: "Izbriši korak?",
+              opis: "Korak »" + (step.title || "") + "« bo izbrisan. Preostali koraki se samodejno preštevilčijo.",
+              potrdiBesedilo: "Izbriši",
               prekliciBesedilo: "Prekliči",
               stil: "nevarno",
             });
