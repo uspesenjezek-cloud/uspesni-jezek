@@ -2399,6 +2399,9 @@
           "</span>" +
           "</span>" +
           (naslednjiPremakljiv
+            ? '<button type="button" class="opomin-nacrt__gumb-spremeni" id="opomin-spremeni-naslednji-cas"><span aria-hidden="true">✎</span> Spremeni</button>'
+            : "") +
+          (naslednjiPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
               '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-priporoceno-razmik" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
               '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-zdaj-razmik" aria-label="Trenutna ura">Trenutna ura</button>' +
@@ -2773,6 +2776,13 @@
           izrisiGlavni();
         });
       });
+
+      var spremeniNaslednji = opts.glavniEl.querySelector("#opomin-spremeni-naslednji-cas");
+      if (spremeniNaslednji && naslednji) {
+        spremeniNaslednji.addEventListener("click", function () {
+          odpriCasSheet(naslednji.index, "trenutni");
+        });
+      }
 
       var spremeni = opts.glavniEl.querySelector("#opomin-spremeni-cas");
       if (spremeni) {
