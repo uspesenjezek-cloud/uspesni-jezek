@@ -8751,7 +8751,9 @@ body.template-editor-odprt {
   gap: 3px;
 }
 
-.opomin-nacrt__stage-cas-vrh {
+.opomin-nacrt__stage-cas--opozorilo {
+  color: #c0392b !important;
+}
   font-weight: 600;
 }
 
@@ -9094,6 +9096,8 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__cas-vrstica--prvi .opomin-nacrt__cas-tekst {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -9115,6 +9119,77 @@ body.template-editor-odprt {
   min-height: 30px;
   padding: 4px 8px;
   font-size: 11px;
+}
+
+.opomin-nacrt__izbira-ure {
+  display: flex;
+  gap: 3px;
+  margin: 0 0 10px;
+  padding: 3px;
+  border: 1px solid #d5e0dd;
+  border-radius: 10px;
+  background: #f0f5f4;
+}
+
+.opomin-nacrt__cas-vrstica--prvi .opomin-nacrt__izbira-ure {
+  flex: 1 1 0;
+  min-width: 132px;
+  margin: 0 0 0 auto;
+  padding: 2px;
+  border-radius: 9px;
+}
+
+.opomin-nacrt__izbira-ure-gumb {
+  position: relative;
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-primary, #183a3a);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.opomin-nacrt__cas-vrstica--prvi .opomin-nacrt__izbira-ure-gumb {
+  min-height: 30px;
+  padding: 4px 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.opomin-nacrt__izbira-ure-gumb--aktiven {
+  background: var(--teal, #159195);
+  color: #ffffff;
+}
+
+.opomin-nacrt__izbira-ure-gumb svg {
+  width: 14px;
+  height: 14px;
+}
+
+.opomin-nacrt__izbira-ure-gumb input[type="time"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.opomin-nacrt__izbira-ure-gumb:focus-within {
+  outline: 2px solid var(--teal, #159195);
+  outline-offset: 2px;
 }
 
 .opomin-nacrt__gumb-enako {
@@ -9226,6 +9301,12 @@ body.template-editor-odprt {
   display: flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+}
+
+.opomin-nacrt__dan:not(.opomin-nacrt__dan--aktiven) {
+  text-decoration: line-through;
+  color: #b0bdb9;
 }
 
 .opomin-nacrt__dan--aktiven {
@@ -9239,7 +9320,7 @@ body.template-editor-odprt {
   margin-top: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #8a6412;
+  color: #c0392b;
   line-height: 1.35;
 }
 
