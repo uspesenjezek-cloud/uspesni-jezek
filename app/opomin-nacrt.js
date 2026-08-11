@@ -284,9 +284,30 @@
     var first = steps[0];
     syncScheduledAt(first);
     var baseIso = first.sendAt || first.scheduledAt || privzetiSendAt(0);
+    var aktivniDnevi = plan._aktivniDnevi;
+    var prilagodiDneve = Array.isArray(aktivniDnevi) && aktivniDnevi.length === 7 &&
+      !aktivniDnevi.every(function (a) { return a; });
     steps.forEach(function (s) {
       syncScheduledAt(s);
       var iso = s.sendAt || s.scheduledAt;
+      if (prilagodiDneve && s.index > 1) {
+        var d = new Date(iso);
+        if (!Number.isNaN(d.getTime())) {
+          var dan = d.getDay();
+          var sloIdx = dan === 0 ? 6 : dan - 1;
+          if (!aktivniDnevi[sloIdx]) {
+            var pristej = 1;
+            for (var adj = 1; adj <= 7; adj++) {
+              if (aktivniDnevi[(sloIdx + adj) % 7]) { pristej = adj; break; }
+            }
+            d.setDate(d.getDate() + pristej);
+            iso = d.toISOString();
+            s.sendAt = iso;
+            s.scheduledAt = iso;
+            s._preskokDni = pristej;
+          }
+        }
+      }
       var off = koledarskiDneviMed(baseIso, iso);
       if (off == null) off = Number(s.scheduledOffsetDays) || 0;
       s.scheduledOffsetDays = off;
@@ -829,6 +850,26 @@
     if (Number.isNaN(novo.getTime())) return plan;
 
     var deltaMs = novo.getTime() - staro.getTime();
+    /* Če so nastavljeni aktivni dnevi, prestavi na prvi naslednji aktiven dan. */
+    var aktivniDnevi = plan._aktivniDnevi;
+    if (Array.isArray(aktivniDnevi) && aktivniDnevi.length === 7) {
+      var vseAktivni = aktivniDnevi.every(function (a) { return a; });
+      if (!vseAktivni) {
+        var dan = novo.getDay(); // 0=Ned
+        var sloIdx = dan === 0 ? 6 : dan - 1; // Pon=0...Ned=6
+        if (!aktivniDnevi[sloIdx]) {
+          var pristejDni = 1;
+          for (var adjD = 1; adjD <= 7; adjD++) {
+            var ni = (sloIdx + adjD) % 7;
+            if (aktivniDnevi[ni]) { pristejDni = adjD; break; }
+          }
+          novo.setDate(novo.getDate() + pristejDni);
+          step._preskokDni = pristejDni;
+        } else {
+          step._preskokDni = 0;
+        }
+      }
+    }
     step.sendAt = novo.toISOString();
     step.scheduledAt = step.sendAt;
     step.manualScheduleOverride = true;
