@@ -2523,7 +2523,6 @@
         (!imaTelefon
           ? '<p class="opomin-nacrt__opozorilo" role="status">Telefonska številka dolžnika manjka – SMS-ov ne bo mogoče poslati, dokler je ne dodaš.</p>'
           : "") +
-        casKarticaHtml +
         '<div class="opomin-nacrt__napredek-vrstica">' +
         '<div class="opomin-nacrt__napredek-levo">' +
         '<p class="opomin-nacrt__napredek-tekst">Potrjeno ' +
@@ -2551,6 +2550,7 @@
         (urejanjeKartic && plan.steps.length < 6
           ? '<button type="button" class="opomin-nacrt__dodaj-korak" data-dodaj-korak>+ Dodaj korak</button>'
           : "") +
+        casKarticaHtml +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
         esc(prikazniRedStep + ". korak – " + step.title) +
