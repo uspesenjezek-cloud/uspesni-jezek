@@ -2387,7 +2387,6 @@
         var oznakaRazmik = N.oznakaCezDni
           ? N.oznakaCezDni(Math.max(0, razmikNaslednji))
           : "Čez " + Math.max(0, razmikNaslednji) + " dni";
-        if (razmikNaslednji === 0) oznakaRazmik = "Določi";
         casKarticaHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
           '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
@@ -2401,17 +2400,12 @@
           "</span>" +
           (naslednjiPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
-              '<button type="button" class="opomin-nacrt__gumb-isti-dan" id="opomin-priporoceno-razmik" aria-label="Priporočen razmik">Priporočeno</button>' +
-              '<button type="button" class="opomin-nacrt__gumb-isti-dan' +
-              (razmikNaslednji === 0 ? " opomin-nacrt__gumb-isti-dan--aktiven" : "") +
-              '" id="opomin-isti-dan" aria-label="Isti dan kot trenutni korak">Isti dan</button>' +
-              '<button type="button" class="opomin-nacrt__gumb-dnevi' +
-              (razmikNaslednji === 0 ? " opomin-nacrt__gumb-dnevi--nevtralen" : "") +
-              '" id="opomin-spremeni-razmik" aria-label="Spremeni razmik: ' +
-              esc(oznakaRazmik) +
-              '">' +
-              esc(oznakaRazmik) +
-              "</button>" +
+              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-priporoceno-razmik" aria-label="Priporočeno">Priporočeno</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-zdaj-razmik" aria-label="Trenutna ura">Trenutna ura</button>' +
+              '<span class="opomin-nacrt__predizbor-ovoj">' +
+              '<button type="button" class="opomin-nacrt__gumb-predizbor" id="opomin-predizbor-razmik" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
+              '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni-razmik" hidden></div>' +
+              "</span>" +
               "</span>"
             : '<span class="opomin-nacrt__cas-znacka">' +
               esc(oznakaRazmik) +
