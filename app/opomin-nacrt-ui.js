@@ -2359,7 +2359,7 @@
               (izbranCasNacin === "zdaj"
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
                 : "") +
-              '" id="opomin-zdaj-cas" aria-label="Nastavi na zdaj">Zdaj</button>' +
+              '" id="opomin-zdaj-cas" aria-label="Nastavi trenutno uro">Trenutna ura</button>' +
               '<span class="opomin-nacrt__predizbor-ovoj">' +
               '<button type="button" class="opomin-nacrt__gumb-predizbor' +
               (izbranCasNacin === "predizbor"
@@ -2808,7 +2808,10 @@
       var zdajCas = opts.glavniEl.querySelector("#opomin-zdaj-cas");
       if (zdajCas) {
         zdajCas.addEventListener("click", function () {
-          var iso = new Date().toISOString();
+          var zdaj = new Date();
+          var datumKoraka = new Date(step.sendAt || step.scheduledAt);
+          datumKoraka.setHours(zdaj.getHours(), zdaj.getMinutes(), zdaj.getSeconds(), 0);
+          var iso = datumKoraka.toISOString();
           var v = N.validirajCasKoraka
             ? N.validirajCasKoraka(plan, step.index, iso, true)
             : { ok: true };
