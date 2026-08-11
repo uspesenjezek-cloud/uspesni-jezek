@@ -53,10 +53,10 @@
     },
     {
       order: 6,
-      type: "legal_handoff",
-      title: "Predaja odvetniku",
+      type: "final_reminder",
+      title: "Zadnji formalni opomin",
       toneId: "strict",
-      deliveryMode: "manual",
+      deliveryMode: "automatic",
     },
   ];
 
