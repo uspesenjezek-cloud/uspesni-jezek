@@ -2687,7 +2687,16 @@
                 predizborOvojHtml +
                 "</span>"
             : "") +
-        "</div>";
+        "</div>" +
+        (step._randomSchedule && step._randomSchedule.enabled
+          ? (step._randomSchedule.resolvedScheduledAt
+            ? '<p class="random-sheet__rezultat" style="margin:4px 0 0">Izbran naključni čas: ' +
+              esc(formatCasKratko(step._randomSchedule.resolvedScheduledAt)) + '</p>'
+            : (step._randomSchedule._previewResolvedAt
+              ? '<p class="random-sheet__rezultat" style="margin:4px 0 0;font-style:italic">Predogled: ~' +
+                esc(formatCasKratko(step._randomSchedule._previewResolvedAt)) + '</p>'
+              : '<p class="random-sheet__rezultat" style="margin:4px 0 0">Naključni čas bo izbran ob potrditvi.</p>'))
+          : "") +
 
       var DNEVI_TEDNA = ["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"];
       var aktivniDnevi = (plan._aktivniDnevi && plan._aktivniDnevi.length === 7)
@@ -4841,9 +4850,19 @@
             if (zadevaId && baseIso) {
               /* Produkcijska pot: kliči API za strežniški izračun. */
               try {
+                var authToken = "";
+                try {
+                  var session = (typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient.auth)
+                    ? (await supabaseKlient.auth.getSession()).data.session
+                    : null;
+                  authToken = (session && session.access_token) || "";
+                } catch (_at) {}
                 var apiRes = await fetch("/api/potrdi-korak", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": authToken ? "Bearer " + authToken : "",
+                  },
                   body: JSON.stringify({ zadevaId: zadevaId, stepIndex: step.index, version: plan.version || "0" }),
                 });
                 var apiData = await apiRes.json();
@@ -4872,8 +4891,8 @@
                 return;
               }
             } else if (baseIso) {
-              /* Nov osnutek (še ni zadevaId): uporabi lokalni CSPRNG.
-                 Ko bo zadeva shranjena, bo strežnik ob aktivaciji ponovno preveril. */
+              /* Nov osnutek (brez zadevaId): lokalni CSPRNG samo kot predogled.
+                 Pravi resolvedScheduledAt bo določil strežnik po shranitvi zadeve. */
               var baseDate = new Date(baseIso);
               if (!Number.isNaN(baseDate.getTime())) {
                 var minCas = rs.minSendTime || "07:00";
@@ -4889,10 +4908,10 @@
                   (crypto || window.crypto).getRandomValues(arr);
                   var rndMn = spodaj + (arr[0] % (zgoraj - spodaj + 1));
                   baseDate.setHours(Math.floor(rndMn / 60), rndMn % 60, 0, 0);
-                  rs.resolvedScheduledAt = baseDate.toISOString();
-                  rs.resolvedAt = new Date().toISOString();
-                  step.sendAt = rs.resolvedScheduledAt;
-                  plan = N.posodobiCasKoraka(plan, step.index, rs.resolvedScheduledAt, { shiftFollowing: false });
+                  rs._previewResolvedAt = baseDate.toISOString();
+                  rs._previewGeneratedAt = new Date().toISOString();
+                  step.sendAt = rs._previewResolvedAt;
+                  plan = N.posodobiCasKoraka(plan, step.index, rs._previewResolvedAt, { shiftFollowing: false });
                 }
               }
             }

@@ -5,5 +5,8 @@
   "description": "Statična spletna aplikacija za obrtnike (Slovenija/Nemčija) - Vercel build samo generira app/config.js iz environment variables, aplikacija sicer nima npm odvisnosti.",
   "scripts": {
     "build": "node scripts/generate-config.js"
+  },
+  "dependencies": {
+    "luxon": "^3.7.2"
   }
 }

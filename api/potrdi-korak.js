@@ -1,94 +1,111 @@
 /* ==========================================================
-   api/potrdi-korak.js — Vercel serverless funkcija v2.
-   DB-backed: bere in posodablja zadeve.opomin_nacrt atomsko.
-   Uporablja optimistic locking (version), explicit
-   Europe/Ljubljana časovni pas in crypto.randomBytes.
+   api/potrdi-korak.js — Vercel serverless v3.
+   DB-backed, avtoriziran, optimistic locking, Luxon TZ.
 
    Zahteva env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+   (SERVICE_ROLE KEY nikoli ne zapusti strežnika.)
    ========================================================== */
 
 var crypto;
 try { crypto = require("crypto"); } catch (_) { crypto = null; }
+var luxon;
+try { luxon = require("luxon"); } catch (_) { luxon = null; }
 
-/* ---------- Pomožne funkcije ---------- */
+var TZ = "Europe/Ljubljana";
+
+/* ---------- Pomožne ---------- */
 
 function parseTimeToMinutes(timeStr) {
   var parts = String(timeStr).split(":");
   return parseInt(parts[0]) * 60 + parseInt(parts[1] || "0");
 }
 
-function minutesToTime(totalMinutes) {
-  var h = Math.floor(totalMinutes / 60);
-  var m = totalMinutes % 60;
-  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+function minutesToTime(t) {
+  return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
 }
 
 function versionIncrement(oldVersion) {
   return String(Number(oldVersion || 0) + 1);
 }
 
-/**
- * Vrne lokalne komponente ISO datuma v Europe/Ljubljana.
- * Na Vercelu (UTC) je new Date(iso).getHours() != lokalna ura,
- * zato uporabimo Intl.DateTimeFormat za pravilno pretvorbo.
- */
-function ljubljanskaUraInMinute(isoString) {
+/** Vrne lokalne minute (0–1439) ISO datuma v Europe/Ljubljana. */
+function ljMinute(isoString) {
+  if (luxon) {
+    var dt = luxon.DateTime.fromISO(isoString, { zone: "utc" }).setZone(TZ);
+    if (dt.isValid) return dt.hour * 60 + dt.minute;
+  }
+  /* Fallback z Intl (manj zanesljiv pri DST prehodih). */
   try {
     var deli = new Intl.DateTimeFormat("sl-SI", {
-      timeZone: "Europe/Ljubljana",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
+      timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false,
     }).formatToParts(new Date(isoString));
-
-    var ura = 0;
-    var min = 0;
+    var hh = 0, mm = 0;
     deli.forEach(function (p) {
-      if (p.type === "hour") ura = parseInt(p.value);
-      if (p.type === "minute") min = parseInt(p.value);
+      if (p.type === "hour") hh = parseInt(p.value);
+      if (p.type === "minute") mm = parseInt(p.value);
     });
-    return ura * 60 + min;
+    return hh * 60 + mm;
   } catch (_) {
     var d = new Date(isoString);
     return d.getHours() * 60 + d.getMinutes();
   }
 }
 
-function ljubljanskiDatum(isoString) {
-  try {
-    return new Date(
-      new Date(isoString).toLocaleString("en-US", { timeZone: "Europe/Ljubljana" })
+/** Sestavi ISO 8601 v UTC iz lokalnih komponent Europe/Ljubljana. */
+function ljISO(localDate, hour, minute) {
+  if (luxon) {
+    var dt = luxon.DateTime.fromObject(
+      { year: localDate.getFullYear(), month: localDate.getMonth() + 1,
+        day: localDate.getDate(), hour: hour, minute: minute },
+      { zone: TZ }
     );
-  } catch (_) {
-    return new Date(isoString);
+    if (dt.isValid) return dt.toUTC().toISO();
   }
+  /* Fallback: uporabi lokalne komponente in pretvori v UTC ročno. */
+  var d = new Date(localDate);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
 }
 
-function ljubljanskiISO(datum) {
-  var leto = datum.getFullYear();
-  var mesec = String(datum.getMonth() + 1).padStart(2, "0");
-  var dan = String(datum.getDate()).padStart(2, "0");
-  var ura = String(datum.getHours()).padStart(2, "0");
-  var min = String(datum.getMinutes()).padStart(2, "0");
-  return leto + "-" + mesec + "-" + dan + "T" + ura + ":" + min + ":00.000Z";
-}
-
-function izracunajNakljucniMinute(earliestAllowed, latestAllowed) {
-  var rangeMinutes = latestAllowed - earliestAllowed;
-  if (rangeMinutes <= 0) return earliestAllowed;
-  /* crypto.randomInt (Node 18+) je CSPRNG in ne trpi modulo-bias
-     pri majhnih razponih. Fallback na crypto.randomBytes z modulom. */
+function izracunajNakljucniMinute(earliest, latest) {
+  var range = latest - earliest;
+  if (range <= 0) return earliest;
   if (crypto && typeof crypto.randomInt === "function") {
-    try {
-      return earliestAllowed + crypto.randomInt(rangeMinutes + 1);
-    } catch (_) {}
+    return earliest + crypto.randomInt(range + 1);
   }
   if (crypto && typeof crypto.randomBytes === "function") {
     var buf = crypto.randomBytes(4);
-    return earliestAllowed + (buf.readUInt32BE(0) % (rangeMinutes + 1));
+    return earliest + (buf.readUInt32BE(0) % (range + 1));
   }
-  /* Zadnji fallback: Math.random. */
-  return earliestAllowed + Math.floor(Math.random() * (rangeMinutes + 1));
+  return earliest + Math.floor(Math.random() * (range + 1));
+}
+
+/* ---------- Avtorizacija ---------- */
+
+async function verifyAuth(req, SUPABASE_URL, SERVICE_KEY) {
+  var authHeader = req.headers["authorization"] || "";
+  var token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return { ok: false, status: 401, napaka: "Ni avtorizacijskega žetona." };
+
+  var userRes;
+  try {
+    userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
+      headers: { "apikey": SERVICE_KEY, "Authorization": "Bearer " + token },
+    });
+  } catch (_) {
+    return { ok: false, status: 502, napaka: "Avtorizacijski strežnik ni dosegljiv." };
+  }
+
+  if (!userRes.ok) {
+    return { ok: false, status: 401, napaka: "Neveljaven žeton." };
+  }
+
+  var userData = await userRes.json();
+  if (!userData || !userData.id) {
+    return { ok: false, status: 401, napaka: "Uporabnik ni prepoznan." };
+  }
+
+  return { ok: true, userId: userData.id };
 }
 
 /* ---------- Glavni handler ---------- */
@@ -103,10 +120,16 @@ export default async function handler(req, res) {
 
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return res.status(500).json({
-      ok: false,
-      napaka: "Strežnik ni konfiguriran (manjka SUPABASE_SERVICE_ROLE_KEY).",
+      ok: false, napaka: "Strežnik ni konfiguriran (SUPABASE_SERVICE_ROLE_KEY).",
     });
   }
+
+  /* --- 1. Avtorizacija --- */
+  var auth = await verifyAuth(req, SUPABASE_URL, SERVICE_KEY);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ ok: false, napaka: auth.napaka });
+  }
+  var userId = auth.userId;
 
   try {
     var telo = req.body || {};
@@ -118,9 +141,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, napaka: "Manjkajo zadevaId ali stepIndex." });
     }
 
-    /* --- 1. Preberi zadevo iz Supabase --- */
+    /* --- 2. Preberi zadevo (service_role, a s preverjenim lastništvom) --- */
     var fetchUrl = SUPABASE_URL + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
-      "&select=id,opomin_nacrt,status";
+      "&select=id,obrtnik_id,opomin_nacrt";
     var fetchRes = await fetch(fetchUrl, {
       headers: {
         "apikey": SERVICE_KEY,
@@ -139,109 +162,92 @@ export default async function handler(req, res) {
     }
 
     var zadeva = rows[0];
+
+    /* --- 3. Preveri lastništvo --- */
+    if (zadeva.obrtnik_id !== userId) {
+      return res.status(403).json({ ok: false, napaka: "Dostop zavrnjen." });
+    }
+
     var plan = zadeva.opomin_nacrt;
     if (!plan || !Array.isArray(plan.steps)) {
       return res.status(400).json({ ok: false, napaka: "Načrt manjka." });
     }
 
-    /* --- 2. Optimistic locking --- */
+    /* --- 4. Optimistic locking --- */
     var serverVersion = String(plan.version || "0");
     if (clientVersion !== serverVersion) {
       return res.status(409).json({
-        ok: false,
-        napaka: "Podatki so zastareli. Osvežite stran in poskusite znova.",
-        code: "VERSION_CONFLICT",
-        serverVersion: serverVersion,
+        ok: false, napaka: "Podatki so zastareli. Osvežite stran in poskusite znova.",
+        code: "VERSION_CONFLICT", serverVersion: serverVersion,
       });
     }
 
-    /* --- 3. Najdi korak --- */
+    /* --- 5. Najdi korak --- */
     var step = plan.steps.find(function (s) { return Number(s.index) === stepIndex; });
     if (!step) {
       return res.status(400).json({ ok: false, napaka: "Korak ni najden." });
     }
 
-    /* Status zaščita. */
     if (step.status === "sent" || step.status === "processing") {
       return res.status(409).json({ ok: false, napaka: "Korak je že poslan ali v obdelavi." });
     }
 
     var rs = step._randomSchedule || {};
 
-    /* --- 4. Če Random ni vklopljen, samo potrdi --- */
+    /* --- 6. Brez Random --- */
     if (!rs.enabled) {
       step.status = "confirmed";
       step.confirmedAt = new Date().toISOString();
       plan.version = versionIncrement(serverVersion);
-      plan.updatedAt = new Date().toISOString();
 
-      var patchRes1 = await fetch(
-        SUPABASE_URL + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
-          "&opomin_nacrt->>version=eq." + encodeURIComponent(serverVersion),
-        {
-          method: "PATCH",
-          headers: {
-            "apikey": SERVICE_KEY,
-            "Authorization": "Bearer " + SERVICE_KEY,
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-          },
-          body: JSON.stringify({
-            opomin_nacrt: plan,
-          }),
-        }
+      var patchRes1 = await atomicPatch(
+        SUPABASE_URL, SERVICE_KEY, zadevaId, serverVersion, plan
       );
-
       if (!patchRes1.ok) {
-        return res.status(409).json({ ok: false, napaka: "Sočasna sprememba — poskusite znova.", code: "VERSION_CONFLICT" });
+        return res.status(409).json({ ok: false, napaka: "Sočasna sprememba.", code: "VERSION_CONFLICT" });
       }
 
       return res.json({ ok: true, randomEnabled: false, version: plan.version });
     }
 
-    /* --- 5. Random: preveri idempotentnost --- */
+    /* --- 7. Idempotentnost --- */
     if (rs.resolvedScheduledAt) {
       return res.json({
-        ok: true,
-        randomEnabled: true,
-        resolvedScheduledAt: rs.resolvedScheduledAt,
-        recalculated: false,
+        ok: true, randomEnabled: true,
+        resolvedScheduledAt: rs.resolvedScheduledAt, recalculated: false,
         version: serverVersion,
       });
     }
 
-    /* --- 6. Izračun naključnega časa --- */
+    /* --- 8. Izračun naključnega časa --- */
     var baseIso = step.sendAt || step.scheduledAt;
     if (!baseIso) {
       return res.status(400).json({ ok: false, napaka: "Korak nima nastavljenega časa." });
     }
 
-    /* Uporabi Europe/Ljubljana za vse časovne izračune. */
-    var baseMn = ljubljanskaUraInMinute(baseIso);
-    var baseHours = Math.floor(baseMn / 60);
-    var baseMinutes = baseMn % 60;
+    var baseMn = ljMinute(baseIso);
+    if (Number.isNaN(baseMn)) {
+      return res.status(400).json({ ok: false, napaka: "Neveljaven osnovni čas." });
+    }
 
     var minSendTime = rs.minSendTime || "07:00";
     var maxSendTime = rs.maxSendTime || "21:00";
     var minMn = parseTimeToMinutes(minSendTime);
     var maxMn = parseTimeToMinutes(maxSendTime);
 
-    /* Validacija: končna ura mora biti po začetni. */
     if (maxMn <= minMn) {
       return res.status(400).json({
-        ok: false,
-        napaka: "Končna ura (" + maxSendTime + ") mora biti po začetni (" + minSendTime + ").",
+        ok: false, napaka: "Končna ura (" + maxSendTime + ") mora biti po začetni (" + minSendTime + ").",
       });
     }
 
     var halfWindow;
     if (rs.mode === "okoli") {
-      var minutesBefore = Number(rs.minutesBefore);
-      var minutesAfter = Number(rs.minutesAfter);
-      if (!Number.isFinite(minutesBefore) || minutesBefore < 0) minutesBefore = 15;
-      if (!Number.isFinite(minutesAfter) || minutesAfter < 0) minutesAfter = 15;
-      /* halfWindow = koliko minut levo in desno od osnovne ure */
-      halfWindow = Math.min(minutesBefore, minutesAfter);
+      var mb = Number(rs.minutesBefore);
+      var ma = Number(rs.minutesAfter);
+      if (!Number.isFinite(mb) || mb < 0) mb = 15;
+      if (!Number.isFinite(ma) || ma < 0) ma = 15;
+      halfWindow = Math.min(mb, ma);
     } else {
       halfWindow = 20;
     }
@@ -250,95 +256,89 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, napaka: "Razpon mora biti večji od 0 minut." });
     }
 
-    var earliestAllowed = Math.max(baseMn - halfWindow, minMn);
-    var latestAllowed = Math.min(baseMn + halfWindow, maxMn);
+    var earliest = Math.max(baseMn - halfWindow, minMn);
+    var latest = Math.min(baseMn + halfWindow, maxMn);
 
-    if (earliestAllowed >= latestAllowed) {
+    if (earliest >= latest) {
       return res.status(400).json({
-        ok: false,
-        napaka:
-          "Znotraj dovoljenega časa (" + minSendTime + "–" + maxSendTime +
-          ") ni veljavnega termina za osnovno uro " + minutesToTime(baseMn) +
-          " z razponom ±" + halfWindow + " min.",
+        ok: false, napaka:
+          "Ni veljavnega termina (" + minSendTime + "–" + maxSendTime + ") za " +
+          minutesToTime(baseMn) + " ±" + halfWindow + " min.",
       });
     }
 
-    var chosenMn = izracunajNakljucniMinute(earliestAllowed, latestAllowed);
+    var chosenMn = izracunajNakljucniMinute(earliest, latest);
 
-    /* --- 7. Shrani rezultat v plan in zbirko (atomsko) --- */
-    rs.resolvedScheduledAt = ljubljanskiISO(
-      new Date(
-        ljubljanskiDatum(baseIso).setHours(
-          Math.floor(chosenMn / 60),
-          chosenMn % 60,
-          0,
-          0
-        )
-        ? ljubljanskiDatum(baseIso)
-        : 0
-      )
-    );
-    /* Popravek: pravilno sestavi ISO v Ljubljanskem času */
-    var ljDatum = ljubljanskiDatum(baseIso);
-    if (Number.isNaN(ljDatum.getTime())) {
-      ljDatum = new Date(baseIso);
-    }
-    ljDatum.setHours(Math.floor(chosenMn / 60), chosenMn % 60, 0, 0);
-    rs.resolvedScheduledAt = ljubljanskiISO(ljDatum);
+    /* --- 9. Shrani v plan --- */
+    var baseDate = new Date(baseIso);
+    rs.resolvedScheduledAt = ljISO(baseDate, Math.floor(chosenMn / 60), chosenMn % 60);
     rs.resolvedAt = new Date().toISOString();
     rs.resolvedMinutes = chosenMn;
     step._randomSchedule = rs;
-
-    if (step.status !== "confirmed") {
-      step.status = "confirmed";
-    }
+    step.status = "confirmed";
     step.confirmedAt = new Date().toISOString();
+    if (!plan.planId) plan.planId = "plan-" + zadevaId;
+    if (!step.stepId) step.stepId = "step-" + zadevaId + "-" + step.index;
     plan.version = versionIncrement(serverVersion);
-    plan.updatedAt = new Date().toISOString();
 
-    var patchRes = await fetch(
-      SUPABASE_URL + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
-        "&opomin_nacrt->>version=eq." + encodeURIComponent(serverVersion),
-      {
-        method: "PATCH",
-        headers: {
-          "apikey": SERVICE_KEY,
-          "Authorization": "Bearer " + SERVICE_KEY,
-          "Content-Type": "application/json",
-          "Prefer": "return=representation",
-        },
-        body: JSON.stringify({
-          opomin_nacrt: plan,
-        }),
-      }
+    var patchRes = await atomicPatch(
+      SUPABASE_URL, SERVICE_KEY, zadevaId, serverVersion, plan
     );
 
     if (!patchRes.ok) {
       return res.status(409).json({
-        ok: false,
-        napaka: "Sočasna sprememba — poskusite znova.",
-        code: "VERSION_CONFLICT",
+        ok: false, napaka: "Sočasna sprememba — poskusite znova.", code: "VERSION_CONFLICT",
       });
     }
 
     return res.json({
-      ok: true,
-      randomEnabled: true,
-      resolvedScheduledAt: rs.resolvedScheduledAt,
-      recalculated: true,
+      ok: true, randomEnabled: true,
+      resolvedScheduledAt: rs.resolvedScheduledAt, recalculated: true,
       version: plan.version,
       range: {
-        earliest: minutesToTime(earliestAllowed),
-        latest: minutesToTime(latestAllowed),
-        chosen: minutesToTime(chosenMn),
-        base: minutesToTime(baseMn),
+        earliest: minutesToTime(earliest), latest: minutesToTime(latest),
+        chosen: minutesToTime(chosenMn), base: minutesToTime(baseMn),
         halfWindow: halfWindow,
       },
     });
   } catch (err) {
     return res.status(500).json({
-      ok: false,
-      napaka: "Napaka strežnika: " + (err.message || "Neznana napaka."),
+      ok: false, napaka: "Napaka strežnika: " + (err.message || "Neznana napaka."),
     });
+  }
+}
+
+/**
+ * Atomski PATCH z optimističnim zaklepom.
+ * Vrne { ok: true } samo če je bila posodobljena natanko 1 vrstica.
+ */
+async function atomicPatch(SUPABASE_URL, SERVICE_KEY, zadevaId, oldVersion, plan) {
+  try {
+    var patchUrl =
+      SUPABASE_URL + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
+      "&opomin_nacrt->>version=eq." + encodeURIComponent(oldVersion);
+
+    var patchRes = await fetch(patchUrl, {
+      method: "PATCH",
+      headers: {
+        "apikey": SERVICE_KEY,
+        "Authorization": "Bearer " + SERVICE_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify({ opomin_nacrt: plan }),
+    });
+
+    if (!patchRes.ok) return { ok: false };
+
+    /* Preveri, da je bila posodobljena natanko 1 vrstica. */
+    var patchedRows = await patchRes.json();
+    if (!Array.isArray(patchedRows) || patchedRows.length !== 1) {
+      return { ok: false };
+    }
+
+    return { ok: true, row: patchedRows[0] };
+  } catch (_) {
+    return { ok: false };
   }
 }
