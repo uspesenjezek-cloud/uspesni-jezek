@@ -8655,7 +8655,7 @@ body.template-editor-odprt {
   left: -8px;
   width: 8px;
   height: 9px;
-  background: #b9d9d5;
+  background: var(--teal, #159195);
   border-radius: 1px;
   transform: translateY(-50%);
   z-index: 1;
