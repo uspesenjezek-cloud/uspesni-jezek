@@ -9916,14 +9916,6 @@ body.template-editor-odprt {
   gap: 6px;
 }
 
-.opomin-nacrt__cas-gumbi-dnevi-vrstica {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-bottom: 10px;
-  border-bottom: 0;
-}
-
 .opomin-nacrt__gumb-isti-dan {
   flex-shrink: 0;
   min-height: 36px;

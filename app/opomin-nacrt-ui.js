@@ -2387,6 +2387,7 @@
         var oznakaRazmik = N.oznakaCezDni
           ? N.oznakaCezDni(Math.max(0, razmikNaslednji))
           : "Čez " + Math.max(0, razmikNaslednji) + " dni";
+        if (razmikNaslednji === 0) oznakaRazmik = "Določi";
         casKarticaHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
           '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
@@ -2400,7 +2401,7 @@
           "</span>" +
           "</div>" +
           (naslednjiPremakljiv
-            ? '<div class="opomin-nacrt__cas-gumbi-dnevi-vrstica">' +
+            ? '<span class="opomin-nacrt__cas-gumbi">' +
               '<button type="button" class="opomin-nacrt__gumb-isti-dan" id="opomin-priporoceno-razmik" aria-label="Priporočen razmik">Priporočeno</button>' +
               '<button type="button" class="opomin-nacrt__gumb-isti-dan' +
               (razmikNaslednji === 0 ? " opomin-nacrt__gumb-isti-dan--aktiven" : "") +
@@ -2412,7 +2413,7 @@
               '">' +
               esc(oznakaRazmik) +
               "</button>" +
-              "</div>"
+              "</span>"
             : '<span class="opomin-nacrt__cas-znacka">' +
               esc(oznakaRazmik) +
               "</span>");
