@@ -3814,8 +3814,7 @@
     }
 
     function izrisiPotrditev(step) {
-      var jeManual =
-        step.kind === "manual_lawyer" || step.deliveryMode === "manual";
+      var jeManual = false;
 
       /* Prikazni red koraka: koliko neizključenih korakov je pred njim + 1 */
       var prikazniRedPotrditev = 0;
