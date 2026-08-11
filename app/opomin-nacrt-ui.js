@@ -3421,6 +3421,28 @@
             zapriPredizborMeni();
           });
           predizborMeni.appendChild(zapriGumb);
+          if (izbranCasNacin === "predizbor") {
+            var izklopiPredizborGumb = document.createElement("button");
+            izklopiPredizborGumb.type = "button";
+            izklopiPredizborGumb.className =
+              "opomin-nacrt__predizbor-izklopi";
+            izklopiPredizborGumb.setAttribute(
+              "aria-label",
+              "Izklopi predizbor"
+            );
+            izklopiPredizborGumb.innerHTML =
+              '<span aria-hidden="true">×</span> Izklopi';
+            izklopiPredizborGumb.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              var trenutniKorak = N.najdiKorak(plan, step.index);
+              if (trenutniKorak) trenutniKorak._uraRocnoNastavljena = true;
+              izbranCasNacin = "rocno";
+              zapriPredizborMeni();
+              shrani();
+              izrisiGlavni();
+            });
+            predizborMeni.appendChild(izklopiPredizborGumb);
+          }
           var naslovMeni = document.createElement("p");
           naslovMeni.className = "opomin-nacrt__predizbor-naslov";
           naslovMeni.textContent = "Bližnjice";
