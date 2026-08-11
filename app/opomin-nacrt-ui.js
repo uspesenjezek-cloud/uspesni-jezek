@@ -2440,6 +2440,16 @@
       var vkljuceniKoraki = plan.steps.filter(function (s) { return !s.isExcluded; });
       var prikazaniKoraki = urejanjeKartic ? plan.steps : vkljuceniKoraki;
 
+      /* Preštevilči prikazne orderje: izključeni koraki se preskočijo,
+         vidni koraki gredo zaporedoma 1, 2, 3 … */
+      var prikazniRed = 0;
+      plan.steps.forEach(function (s) {
+        if (!s.isExcluded) {
+          prikazniRed++;
+          s.order = prikazniRed;
+        }
+      });
+
       var pikeHtml = vkljuceniKoraki
         .map(function (s) {
           return (
@@ -3003,8 +3013,8 @@
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
           stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
-          N.shraniOsnutek(plan);
           izrisiGlavni();
+          N.shraniOsnutek(plan);
         });
       });
 
