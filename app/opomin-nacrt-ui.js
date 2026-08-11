@@ -2606,7 +2606,7 @@
         (urejanjeKartic ? " opomin-nacrt__uredi-korake--aktivno" : "") +
         '" id="opomin-uredi-korake" aria-pressed="' +
         (urejanjeKartic ? "true" : "false") +
-        '">Uredi' +
+        '">' + (urejanjeKartic ? "Shrani" : "Uredi") +
         "</button>" +
         "</div>" +
         '<div class="opomin-nacrt__carousel-ovoj">' +
@@ -2889,9 +2889,10 @@
       var spremeniPrejsnjiRazmik = opts.glavniEl.querySelector(
         "#opomin-spremeni-prejsnji-razmik"
       );
-      if (spremeniPrejsnjiRazmik && prejsnji) {
+      var prejsnjiKorakZaRazmik = N.najdiKorak(plan, step.index - 1);
+      if (spremeniPrejsnjiRazmik && prejsnjiKorakZaRazmik) {
         spremeniPrejsnjiRazmik.addEventListener("click", function () {
-          odpriCasSheet(prejsnji.index, "naslednji");
+          odpriCasSheet(prejsnjiKorakZaRazmik.index, "naslednji");
         });
       }
 
