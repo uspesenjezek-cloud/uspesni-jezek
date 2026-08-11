@@ -832,6 +832,18 @@
     step.sendAt = novo.toISOString();
     step.scheduledAt = step.sendAt;
     step.manualScheduleOverride = true;
+    /* Preračunaj odmik od prvega koraka, da carousel takoj prikaže nov datum. */
+    var prvi = plan.steps && plan.steps[0];
+    if (prvi) {
+      var off = koledarskiDneviMed(
+        prvi.sendAt || prvi.scheduledAt,
+        step.sendAt
+      );
+      if (off != null) {
+        step.scheduledOffsetDays = off;
+        step.offsetDays = off;
+      }
+    }
     oznaciNeedsReview(step);
 
     if (shiftFollowing && deltaMs !== 0) {
