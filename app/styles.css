@@ -8646,6 +8646,19 @@ body.template-editor-odprt {
   scroll-snap-align: start;
 }
 
+/* Povezovalni trak med karticama istega dne */
+.opomin-nacrt__stage-ovoj--isti-dan::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: -8px;
+  width: 8px;
+  height: 2px;
+  background: var(--teal, #159195);
+  border-radius: 1px;
+  z-index: 1;
+}
+
 .opomin-nacrt__stage-uredi,
 .opomin-nacrt__stage-odstrani,
 .opomin-nacrt__stage-zaklenjeno {

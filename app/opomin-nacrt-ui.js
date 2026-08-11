@@ -313,7 +313,14 @@
     var off = offsetOdZacetka(plan, step);
     var razmik = razmikOdPrejsnjega(plan, step);
     var iso = step.sendAt || step.scheduledAt;
-    var vrh = off === 0 ? "Danes" : "+" + Math.max(0, razmik) + " dni";
+    var vrh;
+    if (off === 0) {
+      vrh = "Danes";
+    } else if (razmik === 0) {
+      vrh = "Isti dan";
+    } else {
+      vrh = "+" + Math.max(0, razmik) + " dni";
+    }
     var dno = off === 0 ? formatCasKratko(iso) : formatDatumKratekDDMM(iso);
     return (
       '<span class="opomin-nacrt__stage-cas-vrh">' +
@@ -2492,10 +2499,13 @@
         .map(function (s) {
           var aktiven = s.index === aktivenIndex;
           var jeVVeljavnemUrejanju = urejanjeKartic;
+          var razmikDoPrejsnjega = razmikOdPrejsnjega(plan, s);
+          var jeIstiDan = s.index > 1 && razmikDoPrejsnjega === 0 && !s.isExcluded;
           var html =
             '<div class="opomin-nacrt__stage-ovoj' +
             (jeVVeljavnemUrejanju ? " opomin-nacrt__stage-ovoj--urejanje" : "") +
             (s.isExcluded ? " opomin-nacrt__stage-ovoj--izkljucen" : "") +
+            (jeIstiDan ? " opomin-nacrt__stage-ovoj--isti-dan" : "") +
             '">' +
             '<button type="button" class="opomin-nacrt__stage' +
             (aktiven ? " opomin-nacrt__stage--izbran" : "") +
