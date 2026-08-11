@@ -9159,21 +9159,25 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__dnevi-teden {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   margin-top: 8px;
   padding: 8px 10px;
   background: #f6f9f9;
   border-radius: 12px;
-  flex-wrap: wrap;
 }
 
 .opomin-nacrt__dnevi-teden-oznaka {
-  font-size: 11px;
+  display: block;
+  font-size: 10px;
   font-weight: 600;
   color: #718483;
-  margin-right: 2px;
+  margin: 0 0 4px;
+}
+
+.opomin-nacrt__dnevi-teden-vrstica {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
 .opomin-nacrt__dan {

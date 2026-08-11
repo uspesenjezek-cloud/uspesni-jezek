@@ -2599,8 +2599,10 @@
           ? '<button type="button" class="opomin-nacrt__dodaj-korak" data-dodaj-korak>+ Dodaj korak</button>'
           : "") +
         '<div class="opomin-nacrt__dnevi-teden">' +
-        '<span class="opomin-nacrt__dnevi-teden-oznaka">Pošlji ob:</span>' +
+        '<span class="opomin-nacrt__dnevi-teden-oznaka">Možni dnevi pošiljanja</span>' +
+        '<span class="opomin-nacrt__dnevi-teden-vrstica">' +
         dneviVTednuHtml +
+        "</span>" +
         "</div>" +
         prilagoditevDneviOpomba +
         casKarticaHtml +
