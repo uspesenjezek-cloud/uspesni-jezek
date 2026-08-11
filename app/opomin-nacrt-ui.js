@@ -2440,15 +2440,16 @@
       var vkljuceniKoraki = plan.steps.filter(function (s) { return !s.isExcluded; });
       var prikazaniKoraki = urejanjeKartic ? plan.steps : vkljuceniKoraki;
 
-      /* Preštevilči prikazne orderje: izključeni koraki se preskočijo,
-         vidni koraki gredo zaporedoma 1, 2, 3 … */
-      var prikazniRed = 0;
+      /* Preslikava index → prikazni red: izključeni koraki se preskočijo. */
+      var prikazniRedMap = {};
+      var prikazniRedStevec = 0;
       plan.steps.forEach(function (s) {
         if (!s.isExcluded) {
-          prikazniRed++;
-          s.order = prikazniRed;
+          prikazniRedStevec++;
+          prikazniRedMap[s.index] = prikazniRedStevec;
         }
       });
+      var prikazniRedStep = step ? (prikazniRedMap[step.index] || step.order) : 1;
 
       var pikeHtml = vkljuceniKoraki
         .map(function (s) {
@@ -2485,10 +2486,10 @@
             '" aria-current="' +
             (aktiven ? "step" : "false") +
             '" aria-label="' +
-            esc(s.order + ". " + s.title) +
+            esc((prikazniRedMap[s.index] || s.order) + ". " + s.title) +
             '">' +
             '<span class="opomin-nacrt__stage-st">' +
-            s.order +
+            (prikazniRedMap[s.index] || s.order) +
             "</span>" +
             '<span class="opomin-nacrt__stage-naslov' +
             (String(s.title || "").length > 20 ? " opomin-nacrt__stage-naslov--zelo-dolg" : String(s.title || "").length > 15 ? " opomin-nacrt__stage-naslov--dolg" : "") +
@@ -2572,7 +2573,7 @@
 
       var ctaBesedilo = ready
         ? "Pošlji prvi korak in aktiviraj načrt →"
-        : "Preveri in potrdi " + step.order + ". korak →";
+        : "Preveri in potrdi " + prikazniRedStep + ". korak →";
 
       var prejsnjiCarousel = opts.glavniEl.querySelector(".opomin-nacrt__carousel");
       if (prejsnjiCarousel) carouselScrollLeft = prejsnjiCarousel.scrollLeft;
@@ -2608,7 +2609,7 @@
         "</div>" +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
-        esc(step.order + ". korak – " + step.title) +
+        esc(prikazniRedStep + ". korak – " + step.title) +
         "</h2>" +
         '<span class="opomin-nacrt__status-badge opomin-nacrt__status-badge--' +
         esc(step.status) +
@@ -2674,7 +2675,7 @@
           var ctaVZivo = opts.glavniEl.querySelector("#opomin-nacrt-cta");
           if (ctaVZivo) {
             ctaVZivo.textContent =
-              "Preveri in potrdi " + step.order + ". korak →";
+              "Preveri in potrdi " + prikazniRedStep + ". korak →";
           }
 
           clearTimeout(debounceTimer);
@@ -3013,8 +3014,8 @@
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
           stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
-          izrisiGlavni();
           N.shraniOsnutek(plan);
+          izrisiGlavni();
         });
       });
 
@@ -3510,7 +3511,13 @@
     function besediloGumbaPotrdi(step) {
       var naslednjiKorak = N.najdiKorak(plan, step.index + 1);
       if (naslednjiKorak) {
-        return "Shrani in naprej na korak " + naslednjiKorak.order + " →";
+        var red = 0;
+        var koraki = plan.steps || [];
+        for (var ri = 0; ri < koraki.length; ri++) {
+          if (!koraki[ri].isExcluded) red++;
+          if (koraki[ri].index === naslednjiKorak.index) break;
+        }
+        return "Shrani in naprej na korak " + red + " →";
       }
       return "Shrani in dokončaj načrt →";
     }
@@ -3812,6 +3819,14 @@
     function izrisiPotrditev(step) {
       var jeManual =
         step.kind === "manual_lawyer" || step.deliveryMode === "manual";
+
+      /* Prikazni red koraka: koliko neizključenih korakov je pred njim + 1 */
+      var prikazniRedPotrditev = 0;
+      var koraki = plan.steps || [];
+      for (var ri = 0; ri < koraki.length; ri++) {
+        if (!koraki[ri].isExcluded) prikazniRedPotrditev++;
+        if (koraki[ri].index === step.index) break;
+      }
       var tonOznaka = N.oznakaTona(step.toneId || plan.toneId);
 
       var readonly =
@@ -3928,7 +3943,7 @@
       opts.potrditevEl.innerHTML =
         '<div class="opomin-nacrt-potrdi__vsebina">' +
         '<h2 class="opomin-nacrt-potrdi__naslov">Preglej ' +
-        esc(String(step.order)) +
+        esc(String(prikazniRedPotrditev)) +
         ". korak</h2>" +
         '<p class="opomin-nacrt-potrdi__podnaslov">' +
         esc(step.title) +
@@ -3940,14 +3955,14 @@
         '<footer class="opomin-nacrt__noga opomin-nacrt__noga--stolpec">' +
         '<div class="opomin-nacrt__noga-vrsta">' +
         '<button type="button" class="opomin-nacrt__izbrisi-korak" id="opomin-potrdi-izbrisi">Izbriši korak ' +
-        esc(String(step.order)) +
+        esc(String(prikazniRedPotrditev)) +
         "</button>" +
         '<button type="button" class="korak2__gumb-naprej" id="opomin-potrdi-shrani">' +
         esc(besediloGumbaPotrdi(step)) +
         "</button>" +
         "</div>" +
         '<button type="button" class="opomin-nacrt__shrani-osnutek" id="opomin-potrdi-nazaj-2">← Nazaj na urejanje koraka ' +
-        esc(String(step.order)) +
+        esc(String(prikazniRedPotrditev)) +
         "</button>" +
         "</footer>" +
         "</div>";
