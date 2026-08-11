@@ -2349,6 +2349,9 @@
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
                 : "") +
               '" id="opomin-zdaj-cas" aria-label="Nastavi trenutno uro">Trenutna ura</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-ura-pod" id="opomin-ura-pod">' +
+              esc(formatCasKratko(new Date().toISOString())) +
+              "</button>" +
               '<span class="opomin-nacrt__predizbor-ovoj">' +
               '<button type="button" class="opomin-nacrt__gumb-predizbor' +
               (izbranCasNacin === "predizbor"
@@ -2750,6 +2753,22 @@
             }
             return;
           }
+          plan = N.posodobiCasKoraka(plan, step.index, iso, {
+            shiftFollowing: true,
+          });
+          izbranCasNacin = "zdaj";
+          shrani();
+          izrisiGlavni();
+        });
+      }
+
+      var uraPod = opts.glavniEl.querySelector("#opomin-ura-pod");
+      if (uraPod) {
+        uraPod.addEventListener("click", function () {
+          var zdaj = new Date();
+          var datumKoraka = new Date(step.sendAt || step.scheduledAt);
+          datumKoraka.setHours(zdaj.getHours(), zdaj.getMinutes(), zdaj.getSeconds(), 0);
+          var iso = datumKoraka.toISOString();
           plan = N.posodobiCasKoraka(plan, step.index, iso, {
             shiftFollowing: true,
           });
