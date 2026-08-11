@@ -2393,7 +2393,7 @@
           IKONA_URA +
           "</span>" +
           '<span class="opomin-nacrt__cas-blok">' +
-          '<span class="opomin-nacrt__cas-oznaka">Naslednji korak</span>' +
+          '<span class="opomin-nacrt__cas-oznaka">Pošlje naslednji korak</span>' +
           '<span class="opomin-nacrt__cas-tekst">' +
           esc(formatCasPolno(naslednji.sendAt || naslednji.scheduledAt)) +
           "</span>" +
