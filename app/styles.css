@@ -9008,6 +9008,71 @@ body.template-editor-odprt {
   box-sizing: border-box;
 }
 
+.opomin-nacrt__cas-kartice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex: 1 0 100%;
+  margin-top: 4px;
+}
+
+.opomin-nacrt__cas-kvadrat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 72px;
+  padding: 10px 8px;
+  border: 1px solid #d5e0dd;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text-primary, #183a3a);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: none;
+  text-align: center;
+}
+
+.opomin-nacrt__cas-kvadrat--aktiven {
+  border-color: var(--teal, #159195);
+  background: #e6f4f3;
+  color: var(--teal-dark, #10797d);
+}
+
+.opomin-nacrt__cas-kvadrat-ikona {
+  display: block;
+  color: var(--teal, #159195);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.opomin-nacrt__cas-kvadrat-ikona svg {
+  width: 18px;
+  height: 18px;
+}
+
+.opomin-nacrt__cas-kvadrat--aktiven .opomin-nacrt__cas-kvadrat-ikona {
+  color: var(--teal-dark, #10797d);
+}
+
+.opomin-nacrt__cas-kvadrat-naslov {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.opomin-nacrt__cas-kvadrat-opis {
+  font-size: 10px;
+  font-weight: 500;
+  color: #718483;
+  line-height: 1.2;
+}
+
+.opomin-nacrt__cas-kvadrat--aktiven .opomin-nacrt__cas-kvadrat-opis {
+  color: #5a8a87;
+}
+
 .opomin-nacrt__cas-glava {
   display: flex;
   align-items: center;
