@@ -849,6 +849,12 @@
     var novo = new Date(novSendAtIso);
     if (Number.isNaN(novo.getTime())) return plan;
 
+    /* Če se osnovni čas spremeni, razveljavi star naključni izračun. */
+    if (step._randomSchedule && step._randomSchedule.enabled) {
+      step._randomSchedule.resolvedScheduledAt = null;
+      step._randomSchedule.resolvedAt = null;
+    }
+
     var deltaMs = novo.getTime() - staro.getTime();
     /* Če so nastavljeni aktivni dnevi, prestavi na prvi naslednji aktiven dan. */
     var aktivniDnevi = plan._aktivniDnevi;

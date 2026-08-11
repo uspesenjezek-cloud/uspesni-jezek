@@ -1764,6 +1764,8 @@
             return;
           }
           var nacin = document.querySelector('input[name="random-nacin"]:checked').value;
+          /* Ob spremembi nastavitev razveljavi star izračun. */
+          var starRezultat = step._randomSchedule && step._randomSchedule.resolvedScheduledAt;
           step._randomSchedule = {
             enabled: true,
             mode: nacin,
@@ -4761,6 +4763,39 @@
           gumbPotrdi.disabled = true;
           clearTimeout(debounceTimer);
           debounceTimer = null;
+
+          /* Če je vklopljen Random, izračunaj naključni čas pred potrditvijo. */
+          if (step._randomSchedule && step._randomSchedule.enabled && !step._randomSchedule.resolvedScheduledAt) {
+            var rs = step._randomSchedule;
+            var baseIso = step.sendAt || step.scheduledAt;
+            var baseDate = new Date(baseIso);
+            if (!Number.isNaN(baseDate.getTime())) {
+              var minCas = rs.minSendTime || "07:00";
+              var maxCas = rs.maxSendTime || "21:00";
+              var minMn = parseInt(minCas.split(":")[0]) * 60 + parseInt(minCas.split(":")[1]);
+              var maxMn = parseInt(maxCas.split(":")[0]) * 60 + parseInt(maxCas.split(":")[1]);
+              var baseMn = baseDate.getHours() * 60 + baseDate.getMinutes();
+
+              var polRazpona;
+              if (rs.mode === "okoli") {
+                polRazpona = Math.min(rs.minutesBefore || 15, rs.minutesAfter || 15);
+              } else {
+                polRazpona = 20;
+              }
+              var spodaj = Math.max(baseMn - polRazpona, minMn);
+              var zgoraj = Math.min(baseMn + polRazpona, maxMn);
+              if (zgoraj > spodaj) {
+                var arr = new Uint32Array(1);
+                (crypto || window.crypto).getRandomValues(arr);
+                var nakljucneMinute = spodaj + (arr[0] % (zgoraj - spodaj + 1));
+                baseDate.setHours(Math.floor(nakljucneMinute / 60), nakljucneMinute % 60, 0, 0);
+                rs.resolvedScheduledAt = baseDate.toISOString();
+                rs.resolvedAt = new Date().toISOString();
+                step.sendAt = rs.resolvedScheduledAt;
+                plan = N.posodobiCasKoraka(plan, step.index, rs.resolvedScheduledAt, { shiftFollowing: false });
+              }
+            }
+          }
 
           /* Najprej shrani dodatke trenutnega koraka. Če bi shrani() klicali
              po potrditvi, bi syncStageDodatki potrjeni korak vrnil v pregled. */
