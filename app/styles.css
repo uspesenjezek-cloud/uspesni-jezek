@@ -8984,12 +8984,12 @@ body.template-editor-odprt {
   display: flex;
   flex: 1 0 100%;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-top: 2px;
-  padding: 3px;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: #f0f5f4;
+  border-radius: 0;
+  background: transparent;
   box-sizing: border-box;
 }
 
@@ -9016,9 +9016,9 @@ body.template-editor-odprt {
   flex-shrink: 0;
   min-height: 36px;
   padding: 4px 10px;
-  border: 0;
+  border: 1px solid #d5e0dd;
   border-radius: 18px;
-  background: transparent;
+  background: #f0f5f4;
   color: var(--text-primary, #183a3a);
   font: inherit;
   font-size: 13px;
@@ -9057,9 +9057,9 @@ body.template-editor-odprt {
   flex-shrink: 0;
   min-height: 36px;
   padding: 6px 12px;
-  border: 0;
+  border: 1px solid #d5e0dd;
   border-radius: 18px;
-  background: transparent;
+  background: #f0f5f4;
   color: var(--text-primary, #183a3a);
   font: inherit;
   font-size: 13px;

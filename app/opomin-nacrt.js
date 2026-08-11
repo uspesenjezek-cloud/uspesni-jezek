@@ -899,7 +899,6 @@
   function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing, opts) {
     var step = najdiKorak(plan, index);
     var naslednji = najdiKorak(plan, Number(index) + 1);
-    var prejsnji = najdiKorak(plan, Number(index) - 1);
     var preview = {
       shiftedCount: 0,
       lastSendAt: null,
@@ -930,17 +929,6 @@
         napaka: "Datum ne sme biti v preteklosti.",
         preview: preview,
       };
-    }
-
-    if (prejsnji && (prejsnji.sendAt || prejsnji.scheduledAt)) {
-      var prev = parseLocalDateTime(prejsnji.sendAt || prejsnji.scheduledAt);
-      if (prev && novo.getTime() <= prev.getTime()) {
-        return {
-          ok: false,
-          napaka: "Ta korak mora biti načrtovan po prejšnjem koraku.",
-          preview: preview,
-        };
-      }
     }
 
     var vOpts = opts || {};
