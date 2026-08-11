@@ -2510,7 +2510,7 @@
             oznakaCarouselCas(s, plan) +
             "</span>" +
             "</button>";
-          if (jeVVeljavnemUrejanju) {
+          if (jeVVeljavnemUrejanju && s.index !== 1) {
             html += '<button type="button" class="opomin-nacrt__stage-odstrani" data-odstrani-kartico="' + s.index + '" aria-label="Odstrani ' + esc(s.title) + '">×</button>';
           }
           return html + "</div>";
@@ -3023,6 +3023,7 @@
         btn.addEventListener("click", async function (ev) {
           ev.stopPropagation();
           var idx = Number(btn.getAttribute("data-odstrani-kartico"));
+          if (idx === 1) return; // Prvi korak je zaklenjen
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
           stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
@@ -4092,6 +4093,18 @@
       var gumbIzbrisiKorak = opts.potrditevEl.querySelector("#opomin-potrdi-izbrisi");
       if (gumbIzbrisiKorak) {
         gumbIzbrisiKorak.addEventListener("click", async function () {
+          if (step.index === 1) {
+            if (typeof opts.potrdiVprasanje === "function") {
+              await opts.potrdiVprasanje({
+                naslov: "Brisanje ni mogoče",
+                opis: "Prvi korak je obvezen in ga ni mogoče izbrisati.",
+                potrdiBesedilo: "V redu",
+                samoEnGumb: true,
+                stil: "primary",
+              });
+            }
+            return;
+          }
           var smsCount = typeof N.steviloSmsKorakov === "function" ? N.steviloSmsKorakov(plan) : 0;
           if (step.kind === "sms" && smsCount <= 1) {
             if (typeof opts.potrdiVprasanje === "function") {
