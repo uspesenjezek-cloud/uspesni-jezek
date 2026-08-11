@@ -9236,31 +9236,19 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__dnevi-opomba {
-  width: 100%;
   margin-top: 6px;
-  padding: 8px 12px;
   font-size: 12px;
   font-weight: 500;
   color: #8a6412;
-  background: #fef9e7;
-  border-radius: 10px;
-  border: 1px solid rgba(214, 161, 38, 0.25);
   line-height: 1.35;
-  box-sizing: border-box;
 }
 
 .opomin-cas-sheet__dnevi-opozorilo {
-  width: 100%;
   margin-top: 8px;
-  padding: 8px 12px;
   font-size: 12px;
   font-weight: 500;
   color: #8a6412;
-  background: #fef9e7;
-  border-radius: 10px;
-  border: 1px solid rgba(214, 161, 38, 0.25);
   line-height: 1.35;
-  box-sizing: border-box;
 }
 
 .opomin-nacrt__gumb-predizbor {
