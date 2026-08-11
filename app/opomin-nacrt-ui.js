@@ -2353,7 +2353,7 @@
               (step.index > 1
                 ? '<button type="button" class="opomin-nacrt__gumb-enako' +
                   (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
-                  '" id="opomin-enako-cas" aria-label="Ura kot prejšnji korak"><span class="opomin-nacrt__gumb-enako-vrsta">Ura kot</span><span class="opomin-nacrt__gumb-enako-vrsta">prejšnji korak</span></button>'
+                  '" id="opomin-enako-cas" aria-label="Ura kot prejšnji korak">Ura kot<br>prejšnji korak</button>'
                 : "") +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
