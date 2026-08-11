@@ -470,6 +470,7 @@
       totalDurationDays: totalDurationDays,
       selectedStageId: steps[0].id,
       keepStageIntervals: true,
+      _baseOffsets: odmiki.slice(),
       inputsHash: vhodniHash(amountCents, toneId, overdue),
       steps: steps,
       stages: steps,
@@ -1187,6 +1188,7 @@
     plan.totalDurationDays = plan.steps.length
       ? Number(plan.steps[plan.steps.length - 1].scheduledOffsetDays) || 0
       : 0;
+    plan._baseOffsets = plan.steps.map(function (s) { return Number(s.scheduledOffsetDays) || 0; });
     return osveziPlanStatus(plan);
   }
 
@@ -1198,22 +1200,27 @@
   }
 
   /** Ko uporabnik izključi ali vključi korak, prestavi odmike naslednjih
-      vidnih korakov, da zapolnijo praznino (ali naredijo prostor). */
+      vidnih korakov, da zapolnijo praznino ali naredijo prostor.
+      Uporablja _baseOffsets shranjene ob inicializaciji plana. */
   function preracunajOdmikePoIzkljucitvi(plan) {
     if (!plan || !Array.isArray(plan.steps)) return plan;
-    var trenutniOffsets = plan.steps.map(function (s) { return s.scheduledOffsetDays; });
-    /* Vidni koraki dobijo zaporedne odmike iz originalnega zaporedja. */
-    var naslednjiOffset = 0;
-    plan.steps.forEach(function (s) {
+    var koraki = plan.steps;
+    if (!Array.isArray(plan._baseOffsets) || plan._baseOffsets.length !== koraki.length) {
+      plan._baseOffsets = koraki.map(function (s) { return Number(s.scheduledOffsetDays) || 0; });
+    }
+    /* Vsak neizključen korak dobi odmik iz _baseOffsets glede na svojo pozicijo
+       v zaporedju neizključenih korakov. */
+    var neizkljucenIdx = 0;
+    koraki.forEach(function (s) {
       if (!s.isExcluded) {
-        s.scheduledOffsetDays = trenutniOffsets[naslednjiOffset];
+        s.scheduledOffsetDays = plan._baseOffsets[neizkljucenIdx] || 0;
         s.offsetDays = s.scheduledOffsetDays;
         s.sendAt = privzetiSendAt(s.scheduledOffsetDays);
-        naslednjiOffset++;
+        neizkljucenIdx++;
       }
     });
-    plan.totalDurationDays = plan.steps.length
-      ? (plan.steps[plan.steps.length - 1].scheduledOffsetDays || 0)
+    plan.totalDurationDays = koraki.length
+      ? (koraki[koraki.length - 1].scheduledOffsetDays || 0)
       : 0;
     return osveziPlanStatus(plan);
   }

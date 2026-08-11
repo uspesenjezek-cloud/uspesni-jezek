@@ -272,7 +272,13 @@
 
   function razmikOdPrejsnjega(plan, step) {
     var N = root.UJOpominNacrt;
-    var prejsnji = N ? N.najdiKorak(plan, step.index - 1) : null;
+    /* Poišči prejšnji neizključen korak (ne nujno index - 1). */
+    var koraki = (plan && plan.steps) || [];
+    var idx = koraki.indexOf(step);
+    var prejsnji = null;
+    for (var i = idx - 1; i >= 0; i--) {
+      if (!koraki[i].isExcluded) { prejsnji = koraki[i]; break; }
+    }
     if (!prejsnji) return 0;
     if (N && typeof N.koledarskiDneviMed === "function") {
       return (
