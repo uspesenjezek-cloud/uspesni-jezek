@@ -2342,13 +2342,28 @@
           : korakPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
               '<button type="button" class="opomin-nacrt__gumb-enako' +
-              (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
+              (izbranCasNacin === "enako" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
               '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
+              (Number(step.index) === 1
+                ? '<span class="opomin-nacrt__hitra-ura">'
+                : "") +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
                 : "") +
               '" id="opomin-zdaj-cas" aria-label="Nastavi trenutno uro">Trenutna ura</button>' +
+              (Number(step.index) === 1
+                ? '<label class="opomin-nacrt__hitra-ura-polje">' +
+                  '<span class="opomin-nacrt__hitra-ura-vrednost" aria-hidden="true">' +
+                  IKONA_URA +
+                  '<span>' +
+                  esc(formatCasKratko(step.sendAt || step.scheduledAt)) +
+                  "</span></span>" +
+                  '<input type="time" id="opomin-hitra-ura-input" value="' +
+                  esc(isoZaTimeInput(step.sendAt || step.scheduledAt)) +
+                  '" aria-label="Nastavi uro prvega koraka" />' +
+                  "</label></span>"
+                : "") +
               '<span class="opomin-nacrt__predizbor-ovoj">' +
               '<button type="button" class="opomin-nacrt__gumb-predizbor' +
               (izbranCasNacin === "predizbor"
@@ -2361,6 +2376,19 @@
             : "") +
         "</div></section>";
 
+      var DNEVI_TEDNA = ["Pon", "Tor", "Sre", "Čet", "Pet", "Sob", "Ned"];
+      var aktivniDnevi = (plan._aktivniDnevi && plan._aktivniDnevi.length === 7)
+        ? plan._aktivniDnevi
+        : [true, true, true, true, true, true, true];
+      var dneviVTednuHtml = "";
+      for (var di = 0; di < DNEVI_TEDNA.length; di++) {
+        dneviVTednuHtml +=
+          '<button type="button" class="opomin-nacrt__dan' +
+          (aktivniDnevi[di] ? " opomin-nacrt__dan--aktiven" : "") +
+          '" data-dan="' + di + '" aria-pressed="' + (aktivniDnevi[di] ? "true" : "false") + '">' +
+          DNEVI_TEDNA[di] +
+          "</button>";
+      }
 
       var karticeHtml = "";
 
@@ -2550,6 +2578,10 @@
         (urejanjeKartic && plan.steps.length < 6
           ? '<button type="button" class="opomin-nacrt__dodaj-korak" data-dodaj-korak>+ Dodaj korak</button>'
           : "") +
+        '<div class="opomin-nacrt__dnevi-teden">' +
+        '<span class="opomin-nacrt__dnevi-teden-oznaka">Pošlji ob:</span>' +
+        dneviVTednuHtml +
+        "</div>" +
         casKarticaHtml +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
@@ -2639,6 +2671,18 @@
           "opomin-glavni-predloge-drsnik"
         );
       }
+
+      opts.glavniEl.querySelectorAll("[data-dan]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var dan = Number(btn.getAttribute("data-dan"));
+          if (!Array.isArray(plan._aktivniDnevi) || plan._aktivniDnevi.length !== 7) {
+            plan._aktivniDnevi = [true, true, true, true, true, true, true];
+          }
+          plan._aktivniDnevi[dan] = !plan._aktivniDnevi[dan];
+          N.shraniOsnutek(plan);
+          izrisiGlavni();
+        });
+      });
 
       opts.glavniEl
         .querySelectorAll("[data-kanal-globalno]")
@@ -2754,6 +2798,36 @@
             shiftFollowing: true,
           });
           izbranCasNacin = "zdaj";
+          shrani();
+          izrisiGlavni();
+        });
+      }
+
+      var hitraUraInput = opts.glavniEl.querySelector(
+        "#opomin-hitra-ura-input"
+      );
+      if (hitraUraInput) {
+        hitraUraInput.addEventListener("change", function () {
+          var novaUra = hitraUraInput.value;
+          if (!novaUra) return;
+          var obstojeciIso = step.sendAt || step.scheduledAt;
+          var iso = isoIzDateInTime(isoZaDateInput(obstojeciIso), novaUra);
+          var v = N.validirajCasKoraka
+            ? N.validirajCasKoraka(plan, step.index, iso, true)
+            : { ok: true };
+          if (!v.ok) {
+            hitraUraInput.value = isoZaTimeInput(obstojeciIso);
+            if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(
+                v.napaka || "Ure ni bilo mogoče nastaviti."
+              );
+            }
+            return;
+          }
+          plan = N.posodobiCasKoraka(plan, step.index, iso, {
+            shiftFollowing: true,
+          });
+          izbranCasNacin = "rocno";
           shrani();
           izrisiGlavni();
         });
