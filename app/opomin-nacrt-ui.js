@@ -2393,7 +2393,9 @@
           "</span>" +
           (naslednjiPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi-dnevi">' +
-              '<button type="button" class="opomin-nacrt__gumb-isti-dan" id="opomin-isti-dan" aria-label="Isti dan kot trenutni korak">Isti dan</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-isti-dan' +
+              (razmikNaslednji === 0 ? " opomin-nacrt__gumb-isti-dan--aktiven" : "") +
+              '" id="opomin-isti-dan" aria-label="Isti dan kot trenutni korak">Isti dan</button>' +
               '<button type="button" class="opomin-nacrt__gumb-dnevi" id="opomin-spremeni-razmik" aria-label="Spremeni razmik: ' +
               esc(oznakaRazmik) +
               '">' +

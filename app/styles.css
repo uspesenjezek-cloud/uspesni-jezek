@@ -9911,6 +9911,13 @@ body.template-editor-odprt {
   white-space: nowrap;
 }
 
+.opomin-nacrt__gumb-isti-dan--aktiven {
+  background: var(--teal, #159195);
+  color: #ffffff;
+  font-weight: 700;
+  border-color: var(--teal, #159195);
+}
+
 .opomin-nacrt__gumb-isti-dan:active {
   background: var(--teal, #159195);
   color: #fff;
