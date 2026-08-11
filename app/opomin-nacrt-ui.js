@@ -2310,24 +2310,8 @@
           email: Boolean(sporociloKanaliGlobalno.email),
         };
       }
-      var jeManual =
-        step.kind === "manual_lawyer" || step.deliveryMode === "manual";
+      var jeManual = false;
       var razmikPrejsnji = razmikOdPrejsnjega(plan, step);
-
-      var razmikNaslednji = 0;
-      if (naslednji) {
-        if (typeof N.koledarskiDneviMed === "function") {
-          razmikNaslednji =
-            N.koledarskiDneviMed(
-              step.sendAt || step.scheduledAt,
-              naslednji.sendAt || naslednji.scheduledAt
-            ) || 0;
-        } else {
-          razmikNaslednji =
-            Number(naslednji.scheduledOffsetDays) -
-            Number(step.scheduledOffsetDays);
-        }
-      }
 
       var korakPoslan = step.status === "sent";
       var korakPremakljiv =
@@ -2379,76 +2363,6 @@
             : "") +
         "</div></section>";
 
-      var naslednjiCasHtml = "";
-      if (naslednji && !jeManual) {
-        if (!naslednjiCasHtml) naslednjiCasHtml = '<section class="opomin-nacrt__cas-kartica" aria-label="Čas naslednjega koraka">';
-        var naslednjiPremakljiv =
-          typeof N.jeKorakPremakljiv === "function"
-            ? N.jeKorakPremakljiv(naslednji)
-            : naslednji.status !== "sent";
-        var oznakaRazmik = N.oznakaCezDni
-          ? N.oznakaCezDni(Math.max(0, razmikNaslednji))
-          : "Čez " + Math.max(0, razmikNaslednji) + " dni";
-        naslednjiCasHtml +=
-          '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
-          '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
-          IKONA_URA +
-          "</span>" +
-          '<span class="opomin-nacrt__cas-blok">' +
-          '<span class="opomin-nacrt__cas-oznaka">Pošlje naslednji korak</span>' +
-          '<span class="opomin-nacrt__cas-tekst">' +
-          esc(formatCasPolno(naslednji.sendAt || naslednji.scheduledAt)) +
-          "</span>" +
-          "</span>" +
-          (naslednjiPremakljiv
-            ? '<span class="opomin-nacrt__cas-gumbi">' +
-              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-priporoceno-razmik" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
-              '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-zdaj-razmik" aria-label="Trenutna ura">Trenutna ura</button>' +
-              '<span class="opomin-nacrt__predizbor-ovoj">' +
-              '<button type="button" class="opomin-nacrt__gumb-predizbor" id="opomin-predizbor-razmik" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
-              '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni-razmik" hidden></div>' +
-              "</span>" +
-              "</span>"
-            : '<span class="opomin-nacrt__cas-znacka">' +
-              esc(oznakaRazmik) +
-              "</span>") +
-          "</div>";
-      } else if (!naslednji && prejsnji) {
-        var oznakaRazmikPrejsnji = N.oznakaCezDni
-          ? N.oznakaCezDni(Math.max(0, razmikPrejsnji))
-          : "Čez " + Math.max(0, razmikPrejsnji) + " dni";
-        naslednjiCasHtml +=
-          '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
-          '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
-          IKONA_URA +
-          "</span>" +
-          '<span class="opomin-nacrt__cas-blok">' +
-          '<span class="opomin-nacrt__cas-oznaka">Od prejšnjega koraka</span>' +
-          '<span class="opomin-nacrt__cas-tekst">' +
-          esc(formatCasPolno(prejsnji.sendAt || prejsnji.scheduledAt)) +
-          "</span>" +
-          "</span>" +
-          (korakPremakljiv
-            ? '<button type="button" class="opomin-nacrt__gumb-dnevi" id="opomin-spremeni-prejsnji-razmik" aria-label="Spremeni razmik: ' +
-              esc(oznakaRazmikPrejsnji) +
-              '">' +
-              esc(oznakaRazmikPrejsnji) +
-              "</button>"
-            : '<span class="opomin-nacrt__cas-znacka">' +
-              esc(oznakaRazmikPrejsnji) +
-              "</span>") +
-          "</div>";
-      } else if (!naslednji) {
-        naslednjiCasHtml +=
-          '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
-          '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
-          IKONA_URA +
-          "</span>" +
-          '<span class="opomin-nacrt__cas-tekst opomin-nacrt__cas-tekst--muted">Zadnji korak načrta</span>' +
-          "</div>";
-      }
-
-      if (naslednjiCasHtml) naslednjiCasHtml += "</section>";
 
       var karticeHtml = "";
 
@@ -2639,7 +2553,6 @@
         (urejanjeKartic && plan.steps.length < 6
           ? '<button type="button" class="opomin-nacrt__dodaj-korak" data-dodaj-korak>+ Dodaj korak</button>'
           : "") +
-        naslednjiCasHtml +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
         esc(prikazniRedStep + ". korak – " + step.title) +
