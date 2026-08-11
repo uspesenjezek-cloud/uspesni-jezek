@@ -2320,10 +2320,6 @@
 
       var casKarticaHtml =
         '<section class="opomin-nacrt__cas-kartica" aria-label="Čas in razmiki">' +
-        '<div class="opomin-nacrt__cas-glava">' +
-        '<h3 class="opomin-nacrt__sekcija-naslov">Čas in razmiki</h3>' +
-        spremeniCasGumbHtml +
-        "</div>" +
         '<div class="opomin-nacrt__cas-vrstica">' +
         '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
         IKONA_KOLEDAR +
@@ -2335,6 +2331,7 @@
             : besediloPosiljanja(step)
         ) +
         "</span>" +
+        spremeniCasGumbHtml +
         (korakPoslan || jeManual
           ? ""
           : korakPremakljiv
@@ -2604,6 +2601,9 @@
         "</div>" +
         '<span class="opomin-nacrt__carousel-puscica" aria-hidden="true">›</span>' +
         "</div>" +
+        (urejanjeKartic && plan.steps.length < 6
+          ? '<button type="button" class="opomin-nacrt__dodaj-korak" data-dodaj-korak>+ Dodaj korak</button>'
+          : "") +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
         esc(prikazniRedStep + ". korak – " + step.title) +
