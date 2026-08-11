@@ -2340,9 +2340,6 @@
           ? ""
           : korakPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
-              '<button type="button" class="opomin-nacrt__gumb-enako' +
-              (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
-              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
@@ -2357,7 +2354,12 @@
               '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
               "</span>" +
               "</span>" +
-              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-spremeni-cas">✎ Spremeni</button>'
+              '<span class="opomin-nacrt__cas-priporoceno-vrstica">' +
+              '<button type="button" class="opomin-nacrt__gumb-enako' +
+              (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
+              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-spremeni-cas">✎ Spremeni</button>' +
+              "</span>"
             : "") +
         "</div></section>";
 
