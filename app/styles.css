@@ -9139,6 +9139,26 @@ body.template-editor-odprt {
   margin-right: -92px;
 }
 
+.opomin-nacrt__cas-odmik-vrstica > .opomin-cas-sheet__oznaka {
+  display: block;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.opomin-nacrt__cas-odmik-prejsnji {
+  display: block;
+  width: 100%;
+  margin: -1px 0 1px;
+  color: #7a8c89;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+}
+
 .opomin-nacrt__cas-odmik-kontrolniki {
   display: flex;
   align-items: center;
@@ -9153,10 +9173,15 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__cas-odmik-vrstica .opomin-cas-sheet__enota-gumb {
+  display: flex;
   flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
   padding: 4px 3px;
-  font-size: 10px;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1;
 }
 
 .opomin-nacrt__cas-odmik-vrstica .opomin-nacrt__dnevi-krmilnik {
@@ -9165,14 +9190,19 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__cas-odmik-vrstica .opomin-nacrt__dnevi-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 36px;
+  text-align: center;
 }
 
 .opomin-nacrt__cas-odmik-vrstica .opomin-nacrt__dnevi-input {
   width: 34px;
   min-height: 36px;
   padding: 4px 3px;
+  text-align: center;
   border-color: #159393;
   box-shadow: 0 0 0 1px #159393;
 }
@@ -9813,8 +9843,44 @@ body.template-editor-odprt {
   background: #e4eae8;
 }
 
+.opomin-nacrt__predizbor-izklopi {
+  position: absolute;
+  top: 12px;
+  right: 52px;
+  min-width: 136px;
+  min-height: 32px;
+  padding: 5px 20px;
+  border: 1px solid #d6e1df;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #607472;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 42, 39, 0.06);
+}
+
+.opomin-nacrt__predizbor-izklopi span {
+  margin-right: 3px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.opomin-nacrt__predizbor-izklopi:hover {
+  border-color: #c0d1ce;
+  background: #f5f8f7;
+  color: #405b57;
+}
+
+.opomin-nacrt__predizbor-izklopi:focus-visible {
+  outline: 2px solid var(--teal, #159195);
+  outline-offset: 2px;
+}
+
 .opomin-nacrt__predizbor-naslov {
-  margin: 1px 42px 14px 4px;
+  margin: 1px 186px 14px 4px;
   color: var(--text-primary, #183a3a);
   font-size: 15px;
   font-weight: 700;

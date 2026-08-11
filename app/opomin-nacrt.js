@@ -589,11 +589,18 @@
     if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
 
     (plan.steps || []).forEach(function (step, i) {
+      /* Ohrani Random nastavitve, a razveljavi izračun (osnovni čas se spreminja). */
+      var shranjenRS = step._randomSchedule;
       step.scheduledOffsetDays = odmiki[i];
       step.offsetDays = odmiki[i];
       step.sendAt = privzetiSendAt(odmiki[i]);
       step.scheduledAt = step.sendAt;
       step.manualScheduleOverride = false;
+      if (shranjenRS && shranjenRS.enabled) {
+        step._randomSchedule = shranjenRS;
+        step._randomSchedule.resolvedScheduledAt = null;
+        step._randomSchedule.resolvedAt = null;
+      }
       if (!step.paymentDeadline) step.paymentDeadline = vsebina.paymentDeadline;
       if (!step.installment) step.installment = vsebina.installment;
       if (!step.bankTransfer) step.bankTransfer = vsebina.bankTransfer;
@@ -879,6 +886,15 @@
     step.sendAt = novo.toISOString();
     step.scheduledAt = step.sendAt;
     step.manualScheduleOverride = true;
+
+    /* Razveljavi naključni čas na vseh naslednjih nepotrjenih korakih. */
+    (plan.steps || []).forEach(function (s) {
+      if (Number(s.index) > Number(step.index) && s._randomSchedule && s._randomSchedule.enabled && s.status !== "confirmed") {
+        s._randomSchedule.resolvedScheduledAt = null;
+        s._randomSchedule.resolvedAt = null;
+      }
+    });
+
     /* Preračunaj odmik od prvega koraka, da carousel takoj prikaže nov datum. */
     var prvi = plan.steps && plan.steps[0];
     if (prvi) {
