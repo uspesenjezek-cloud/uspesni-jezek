@@ -3002,43 +3002,7 @@
           var idx = Number(btn.getAttribute("data-odstrani-kartico"));
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
-          /* Validacija: ne dovoli odstranitve zadnjega SMS koraka */
-          var smsCount = typeof N.steviloSmsKorakov === "function" ? N.steviloSmsKorakov(plan) : 0;
-          if (stepZaOdstranitev.kind === "sms" && smsCount <= 1) {
-            if (typeof opts.potrdiVprasanje === "function") {
-              await opts.potrdiVprasanje({
-                naslov: "Odstranitev ni mogoča",
-                opis: "Načrt mora vsebovati vsaj en samodejni korak. Tega koraka ne moreš odstraniti.",
-                potrdiBesedilo: "V redu",
-                samoEnGumb: true,
-                stil: "primary",
-              });
-            }
-            return;
-          }
-          var potrjeno = false;
-          if (typeof opts.potrdiVprasanje === "function") {
-            potrjeno = await opts.potrdiVprasanje({
-              naslov: "Izbriši korak?",
-              opis: "Korak »" + (stepZaOdstranitev.title || "") + "« bo izbrisan. Preostali koraki se samodejno preštevilčijo.",
-              potrdiBesedilo: "Izbriši",
-              prekliciBesedilo: "Prekliči",
-              stil: "nevarno",
-            });
-          }
-          if (!potrjeno) return;
-          if (typeof N.odstraniKorak === "function") {
-            plan = N.odstraniKorak(plan, idx);
-          }
-          /* Če je bil aktivni korak odstranjen, nastavi prvega */
-          if (N.najdiKorak(plan, aktivenIndex)) {
-            /* še obstaja */
-          } else {
-            aktivenIndex = plan.steps[0] ? plan.steps[0].index : 1;
-            plan.selectedStageId = plan.steps[0] ? plan.steps[0].id : null;
-          }
-          urejanjeKarticeIndex = null;
-          urejanjeKartic = false;
+          stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
           N.shraniOsnutek(plan);
           izrisiGlavni();
         });
