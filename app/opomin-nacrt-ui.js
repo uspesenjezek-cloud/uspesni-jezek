@@ -2352,8 +2352,8 @@
             ? '<span class="opomin-nacrt__cas-gumbi">' +
               (step.index > 1
                 ? '<button type="button" class="opomin-nacrt__gumb-enako' +
-                  (izbranCasNacin === "enako" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
-                  '" id="opomin-enako-cas" aria-label="Enako kot prvi korak">Enako kot 1.</button>'
+                  (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
+                  '" id="opomin-enako-cas" aria-label="Ura kot prejšnji korak"><span class="opomin-nacrt__gumb-enako-vrsta">Ura kot</span><span class="opomin-nacrt__gumb-enako-vrsta">prejšnji korak</span></button>'
                 : "") +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
@@ -2771,8 +2771,18 @@
       var enakoCas = opts.glavniEl.querySelector("#opomin-enako-cas");
       if (enakoCas) {
         enakoCas.addEventListener("click", function () {
-          var prviKorak = plan.steps && plan.steps[0];
-          var iso = prviKorak ? (prviKorak.sendAt || prviKorak.scheduledAt) : new Date().toISOString();
+          var prejsnjiKorak = N.najdiKorak(plan, step.index - 1);
+          var prejsnjiDatum = prejsnjiKorak
+            ? new Date(prejsnjiKorak.sendAt || prejsnjiKorak.scheduledAt)
+            : new Date();
+          var trenutniDatum = new Date(step.sendAt || step.scheduledAt);
+          trenutniDatum.setHours(
+            prejsnjiDatum.getHours(),
+            prejsnjiDatum.getMinutes(),
+            prejsnjiDatum.getSeconds(),
+            0
+          );
+          var iso = trenutniDatum.toISOString();
           var v = N.validirajCasKoraka
             ? N.validirajCasKoraka(plan, step.index, iso, true)
             : { ok: true };
