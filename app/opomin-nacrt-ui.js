@@ -2367,9 +2367,6 @@
                     : "") +
                   '" id="opomin-zdaj-cas" aria-label="Nastavi trenutno uro">Trenutna ura</button>'
                 : "") +
-                ? " opomin-nacrt__gumb-zdaj--aktiven"
-                : "") +
-              '" id="opomin-zdaj-cas" aria-label="Nastavi trenutno uro">Trenutna ura</button>' +
               '<span class="opomin-nacrt__predizbor-ovoj">' +
               '<button type="button" class="opomin-nacrt__gumb-predizbor' +
               (izbranCasNacin === "predizbor"
