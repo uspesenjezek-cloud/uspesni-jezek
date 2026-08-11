@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260811-gumb-doloci-cas-kot-uredi" />
+    <link rel="stylesheet" href="styles.css?v=20260811-kartica2-bela-aktivna-izbira" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -538,6 +538,48 @@
       </div>
     </div>
 
+    <!-- Random čas pošiljanja bottom sheet -->
+    <div class="rok-sheet random-sheet" id="random-sheet" hidden>
+      <button type="button" class="rok-sheet__backdrop" id="random-sheet-backdrop" aria-label="Zapri"></button>
+      <div class="rok-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="random-sheet-naslov">
+        <div class="rok-sheet__rocaj" aria-hidden="true"></div>
+        <div class="rok-sheet__glava">
+          <h2 class="rok-sheet__naslov" id="random-sheet-naslov" tabindex="-1">Naključni čas pošiljanja</h2>
+          <button type="button" class="rok-sheet__zapri" id="random-sheet-zapri" aria-label="Zapri">✕</button>
+        </div>
+        <div class="rok-sheet__telo">
+          <p class="random-sheet__podnaslov">Sistem bo izbral dovoljen čas in ga shranil ob potrditvi koraka.</p>
+          <div class="random-sheet__global">
+            <label class="random-sheet__polje">Ne pošiljaj pred<input type="time" id="random-min-cas" value="07:00"></label>
+            <label class="random-sheet__polje">Ne pošiljaj po<input type="time" id="random-max-cas" value="21:00"></label>
+          </div>
+          <p class="rok-sheet__napaka" id="random-napaka" hidden></p>
+          <div class="random-sheet__nacini" role="radiogroup" aria-label="Način naključnega časa">
+            <label class="random-sheet__nacin"><input type="radio" name="random-nacin" value="okoli" checked> Okoli izbrane ure</label>
+            <label class="random-sheet__nacin"><input type="radio" name="random-nacin" value="pametno"> Pametna obdobja</label>
+          </div>
+          <div id="random-okoli" class="random-sheet__okoli">
+            <div class="random-sheet__okoli-vrstica">
+              <label>Največ minut prej <input type="number" id="random-minut-prej" value="15" min="0" max="120" step="5"></label>
+              <label>Največ minut pozneje <input type="number" id="random-minut-pozneje" value="15" min="0" max="120" step="5"></label>
+            </div>
+            <p class="random-sheet__razpon" id="random-okoli-razpon"></p>
+          </div>
+          <div id="random-pametno" class="random-sheet__pametno" hidden>
+            <div id="random-periods"></div>
+            <button type="button" class="rok-sheet__povezava" id="random-ponastavi-obdobja">Uporabi priporočene nastavitve</button>
+          </div>
+          <p class="random-sheet__rezultat" id="random-rezultat"></p>
+        </div>
+        <div class="rok-sheet__noga">
+          <div class="rok-sheet__noga-vrsta">
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="random-sheet-izklopi">Izklopi</button>
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="random-sheet-shrani">Shrani</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Predogled predloge (klik na kartico) -->
     <div class="predloge3-modal" id="predloge3-predogled" hidden>
       <button
@@ -605,7 +647,7 @@
     <script src="ton-widget.js?v=20260810-priporocilo-widget-v1"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
     <script src="opomin-nacrt.js?v=20260811-sesti-korak-urejanje-v2"></script>
-    <script src="opomin-nacrt-ui.js?v=20260811-gumb-doloci-cas-kot-uredi"></script>
+    <script src="opomin-nacrt-ui.js?v=20260811-kartica2-bela-aktivna-izbira"></script>
     <script src="predlogi-urejevalnik.js?v=20260810-uredi-brez-zoomiranja"></script>
     <script src="app.js?v=20260811-modal-brez-safari-vrstice"></script>
     <script src="priporocilo-widget.js?v=20260810-fit-brez-utripa"></script>

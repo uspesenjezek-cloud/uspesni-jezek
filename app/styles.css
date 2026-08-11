@@ -8753,7 +8753,6 @@ body.template-editor-odprt {
 
 .opomin-nacrt__stage-cas--opozorilo {
   color: #c0392b !important;
-}
   font-weight: 600;
 }
 
@@ -8884,6 +8883,7 @@ body.template-editor-odprt {
 
 .opomin-nacrt__cas-kartica,
 .opomin-nacrt__rocni {
+  position: relative;
   padding: 14px;
   border: 1px solid var(--border, #c9d9d7);
   border-radius: 16px;
@@ -8910,8 +8910,15 @@ body.template-editor-odprt {
   box-sizing: border-box;
 }
 
+/* Prostor za absolutno pozicioniran "Določi čas" v kotu kartice, da se
+   besedilo z datumom ne prekriva z njim. */
+.opomin-nacrt__cas-kartica > .opomin-nacrt__cas-vrstica {
+  padding-right: 92px;
+}
+
 .opomin-nacrt__cas-vrstica--zadnja,
-.opomin-nacrt__cas-vrstica:last-child {
+.opomin-nacrt__cas-vrstica:last-child,
+.opomin-nacrt__cas-vrstica:has(+ .opomin-nacrt__dnevi-teden) {
   border-bottom: 0;
 }
 
@@ -9102,6 +9109,297 @@ body.template-editor-odprt {
   white-space: nowrap;
 }
 
+.opomin-nacrt__datum-nad-poljem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 7px 6px;
+}
+
+.opomin-nacrt__datum-nad-poljem .opomin-nacrt__cas-tekst {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.opomin-nacrt__datum-rezerviran-prostor {
+  display: none;
+}
+
+.opomin-nacrt__cas-prazna-vrstica {
+  flex: 1 0 100%;
+  height: 36px;
+}
+
+.opomin-nacrt__cas-odmik-vrstica {
+  display: flex;
+  flex: 1 0 calc(100% + 92px);
+  flex-direction: column;
+  gap: 5px;
+  margin-right: -92px;
+}
+
+.opomin-nacrt__cas-odmik-kontrolniki {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.opomin-nacrt__cas-odmik-vrstica .opomin-cas-sheet__enota {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+}
+
+.opomin-nacrt__cas-odmik-vrstica .opomin-cas-sheet__enota-gumb {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 3px;
+  font-size: 10px;
+}
+
+.opomin-nacrt__cas-odmik-vrstica .opomin-nacrt__dnevi-krmilnik {
+  flex: 0 0 auto;
+  gap: 3px;
+}
+
+.opomin-nacrt__cas-odmik-vrstica .opomin-nacrt__dnevi-btn {
+  width: 34px;
+  height: 36px;
+}
+
+.opomin-nacrt__cas-odmik-vrstica .opomin-nacrt__dnevi-input {
+  width: 34px;
+  min-height: 36px;
+  padding: 4px 3px;
+  border-color: #159393;
+  box-shadow: 0 0 0 1px #159393;
+}
+
+.opomin-nacrt__hitri-koledar {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  box-sizing: border-box;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--teal-dark, #10797d);
+  cursor: pointer;
+}
+
+.opomin-nacrt__hitri-koledar--aktiven {
+  border-color: var(--teal, #159195);
+  background: #e8f5f4;
+  box-shadow: 0 0 0 1px var(--teal, #159195);
+}
+
+.opomin-nacrt__hitri-koledar svg {
+  width: 17px;
+  height: 17px;
+}
+
+.opomin-nacrt__hitri-koledar input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.opomin-nacrt__hitri-koledar:focus-within {
+  outline: 2px solid var(--teal, #159195);
+  outline-offset: 2px;
+}
+
+.opomin-nacrt__cas-gumbi--tretja {
+  flex: 1 0 calc(100% + 92px);
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-right: -92px;
+  margin-top: 4px;
+}
+
+.opomin-nacrt__cas-gumbi--tretja .opomin-nacrt__gumb-random,
+.opomin-nacrt__cas-gumbi--tretja .opomin-nacrt__predizbor-ovoj,
+.opomin-nacrt__cas-gumbi--tretja .opomin-nacrt__gumb-enako {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.opomin-nacrt__cas-gumbi--tretja .opomin-nacrt__gumb-random,
+.opomin-nacrt__cas-gumbi--tretja .opomin-nacrt__gumb-predizbor,
+.opomin-nacrt__cas-gumbi--tretja .opomin-nacrt__gumb-enako {
+  min-height: 40px;
+  border-radius: 20px;
+}
+
+.opomin-nacrt__gumb-random {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid #a9bde3;
+  background: linear-gradient(180deg, #f5f8fd 0%, #e8eef9 100%);
+  color: #3f5f96;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(66, 91, 145, 0.1);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.opomin-nacrt__gumb-random svg {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+}
+
+.opomin-nacrt__gumb-random:hover {
+  border-color: #8fa9da;
+  background: linear-gradient(180deg, #eef3fc 0%, #dfe8f7 100%);
+}
+
+.opomin-nacrt__gumb-random:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 2px rgba(58, 79, 126, 0.14);
+}
+
+.opomin-nacrt__gumb-random:focus-visible {
+  outline: 2px solid #8fa9da;
+  outline-offset: 2px;
+}
+
+/* --- Random čas pošiljanja --- */
+.random-sheet__podnaslov {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #718483;
+}
+
+.random-sheet__global {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.random-sheet__polje {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5f746f;
+}
+
+.random-sheet__polje input {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d5e0dd;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.random-sheet__nacini {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.random-sheet__nacin {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px;
+  border: 1px solid #d5e0dd;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+}
+
+.random-sheet__nacin:has(input:checked) {
+  border-color: var(--teal, #159195);
+  background: #e6f4f3;
+}
+
+.random-sheet__nacin input {
+  accent-color: var(--teal, #159195);
+}
+
+.random-sheet__okoli-vrstica {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.random-sheet__okoli-vrstica label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5f746f;
+}
+
+.random-sheet__okoli-vrstica input {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d5e0dd;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  text-align: center;
+}
+
+.random-sheet__razpon {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #718483;
+  font-weight: 500;
+}
+
+.random-sheet__rezultat {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal, #159195);
+}
+
+.random-sheet__pametno {
+  margin-top: 8px;
+}
+
+.opomin-nacrt__datum-nad-poljem .opomin-nacrt__gumb-enako {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .opomin-nacrt__hitra-ura-polje--zgoraj {
   flex: 0 0 auto;
   width: auto;
@@ -9139,6 +9437,43 @@ body.template-editor-odprt {
   border: 1px solid #9bc8c7;
   border-radius: 12px;
   background: #fbfdfd;
+}
+
+.opomin-nacrt__izbira-ure--drugi {
+  position: relative;
+  top: -14px;
+  flex: 1 1 100%;
+  width: 100%;
+  height: 50px;
+  min-width: 0;
+  max-width: none;
+  margin: 0 0 -14px;
+  padding: 3px;
+  box-sizing: border-box;
+  border-color: #d5e0dd;
+  border-radius: 999px;
+  background: #eef3f2;
+  box-shadow: none;
+}
+
+.opomin-nacrt__izbira-ure--drugi .opomin-nacrt__izbira-ure-gumb {
+  height: 100%;
+  min-height: 0;
+  padding: 5px 7px;
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 999px;
+  transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.opomin-nacrt__izbira-ure--drugi
+  .opomin-nacrt__izbira-ure-gumb--aktiven {
+  background: #ffffff;
+  color: #17322f;
+  font-weight: 700;
+  box-shadow:
+    0 0 0 1.5px var(--teal, #159195) inset,
+    0 1px 3px rgba(16, 42, 39, 0.1);
 }
 
 .opomin-nacrt__izbira-ure-gumb {
@@ -9241,24 +9576,72 @@ body.template-editor-odprt {
 
 .opomin-nacrt__gumb-zdaj {
   flex-shrink: 0;
-  min-height: 32px;
-  padding: 5px 11px;
-  border: 1px solid #9bc8c7;
-  border-radius: 12px;
-  background: #fbfdfd;
-  color: #21797a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border: 1px solid var(--border, #c9d9d7);
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--teal-dark, #10797d);
   font: inherit;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: none;
 }
 
-.opomin-nacrt__gumb-zdaj--aktiven {
-  background: var(--teal, #159195);
-  color: #ffffff;
-  font-weight: 700;
+/* "Uredi"-slog gumb za spremembo časa: lebdi v zgornjem desnem kotu
+   kartice, enako kot .preview-button (predlogi-urejevalnik.js). */
+.opomin-nacrt__gumb-cas-uredi {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 8px 11px;
+  border: 0;
+  border-left: 1px solid #c5d6d2;
+  border-bottom: 1px solid #c5d6d2;
+  border-radius: 0 15px 0 14px;
+  background: #f3f8f7;
+  color: #347d7e;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
   box-shadow: none;
+}
+
+.opomin-nacrt__gumb-cas-uredi--drugi {
+  height: 50px;
+  min-height: 50px;
+}
+
+.opomin-nacrt__gumb-cas-uredi:hover {
+  background: #eaf5f4;
+  border-left-color: #a9c2bd;
+  border-bottom-color: #a9c2bd;
+}
+
+.opomin-nacrt__gumb-zdaj:hover {
+  background: #f3f8f7;
+}
+
+.opomin-nacrt__gumb-zdaj--aktiven {
+  border-color: var(--teal, #399a9a);
+  background: var(--teal-pale, #eaf5f4);
+  color: var(--teal-dark, #10797d);
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(57, 154, 154, 0.16);
 }
 
 .opomin-nacrt__gumb-zdaj:focus-visible {
@@ -9267,35 +9650,39 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__dnevi-teden {
-  margin-top: 8px;
-  padding: 8px 10px;
-  background: #f6f9f9;
-  border-radius: 12px;
+  margin: 12px 0 0;
+  padding: 11px 10px 12px;
+  border: 1px solid #e5edeb;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f7f9f9 0%, #f3f7f6 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .opomin-nacrt__dnevi-teden-oznaka {
   display: block;
-  font-size: 10px;
-  font-weight: 600;
-  color: #718483;
-  margin: 0 0 4px;
+  margin: 0 0 8px;
+  color: #687b79;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .opomin-nacrt__dnevi-teden-vrstica {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2px;
+  gap: 5px;
 }
 
 .opomin-nacrt__dan {
-  width: 38px;
-  height: 32px;
-  border: 1px solid #d5e0dd;
-  border-radius: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid #d8e3e1;
+  border-radius: 14px;
   background: #fff;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #718483;
   cursor: pointer;
@@ -9312,10 +9699,13 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__dan--aktiven {
-  background: var(--teal, #159195);
+  background: linear-gradient(180deg, #58a3a3 0%, var(--teal, #159195) 100%);
   color: #fff;
-  border-color: var(--teal, #159195);
+  border-color: #3f9495;
   font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 1px 2px rgba(25, 79, 78, 0.12);
 }
 
 .opomin-nacrt__dnevi-opomba {
