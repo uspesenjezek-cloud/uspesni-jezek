@@ -8995,64 +8995,17 @@ body.template-editor-odprt {
   outline-offset: 2px;
 }
 
-.opomin-nacrt__cas-mreza {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.opomin-nacrt__cas-gumbi {
+  display: flex;
   flex: 1 0 100%;
-  margin-top: 4px;
-}
-
-.opomin-nacrt__cas-danes {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 6px 8px;
-  border: 1px solid #d5e0dd;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #183a3a;
-  background: #f8fafa;
-}
-
-.opomin-nacrt__cas-dnevi-stevec {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 4px 8px;
-  border: 1px solid #d5e0dd;
-  border-radius: 10px;
-  background: #f8fafa;
-}
-
-.opomin-nacrt__dnevi-minus,
-.opomin-nacrt__dnevi-plus {
-  width: 28px;
-  height: 28px;
-  border: 1px solid #d5e0dd;
-  border-radius: 50%;
-  background: #fff;
-  font: inherit;
-  font-size: 16px;
-  font-weight: 600;
-  color: #183a3a;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.opomin-nacrt__dnevi-vrednost {
-  font-size: 12px;
-  font-weight: 600;
-  color: #183a3a;
-  min-width: 40px;
-  text-align: center;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-sizing: border-box;
 }
 
 .opomin-nacrt__cas-glava {
