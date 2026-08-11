@@ -2336,6 +2336,7 @@
             : besediloPosiljanja(step)
         ) +
         "</span>" +
+        '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-spremeni-cas" style="flex-shrink:0">Določi čas</button>' +
         (korakPoslan || jeManual
           ? ""
           : korakPremakljiv
@@ -2356,8 +2357,7 @@
               '" id="opomin-predizbor-cas" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
               '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
               "</span>" +
-              "</span>" +
-              '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-spremeni-cas">Določi čas</button>'
+              "</span>"
             : "") +
         "</div></section>";
 
