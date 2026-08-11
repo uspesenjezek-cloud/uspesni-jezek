@@ -2340,7 +2340,7 @@
           : "";
 
       var casKarticaHtml =
-        '<section class="opomin-nacrt__cas-kartica" aria-label="Čas in razmiki">' +
+        '<section class="opomin-nacrt__cas-kartica" aria-label="Čas pošiljanja tega koraka">' +
         '<div class="opomin-nacrt__cas-vrstica">' +
         '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
         IKONA_KOLEDAR +
@@ -2377,9 +2377,11 @@
               "</span>" +
               "</span>"
             : "") +
-        "</div>";
+        "</div></section>";
 
+      var naslednjiCasHtml = "";
       if (naslednji && !jeManual) {
+        if (!naslednjiCasHtml) naslednjiCasHtml = '<section class="opomin-nacrt__cas-kartica" aria-label="Čas naslednjega koraka">';
         var naslednjiPremakljiv =
           typeof N.jeKorakPremakljiv === "function"
             ? N.jeKorakPremakljiv(naslednji)
@@ -2387,7 +2389,7 @@
         var oznakaRazmik = N.oznakaCezDni
           ? N.oznakaCezDni(Math.max(0, razmikNaslednji))
           : "Čez " + Math.max(0, razmikNaslednji) + " dni";
-        casKarticaHtml +=
+        naslednjiCasHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
           '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
           IKONA_URA +
@@ -2415,7 +2417,7 @@
         var oznakaRazmikPrejsnji = N.oznakaCezDni
           ? N.oznakaCezDni(Math.max(0, razmikPrejsnji))
           : "Čez " + Math.max(0, razmikPrejsnji) + " dni";
-        casKarticaHtml +=
+        naslednjiCasHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
           '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
           IKONA_URA +
@@ -2437,7 +2439,7 @@
               "</span>") +
           "</div>";
       } else if (!naslednji) {
-        casKarticaHtml +=
+        naslednjiCasHtml +=
           '<div class="opomin-nacrt__cas-vrstica opomin-nacrt__cas-vrstica--zadnja">' +
           '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
           IKONA_URA +
@@ -2446,7 +2448,7 @@
           "</div>";
       }
 
-      casKarticaHtml += "</section>";
+      if (naslednjiCasHtml) naslednjiCasHtml += "</section>";
 
       var karticeHtml = "";
 
@@ -2627,6 +2629,7 @@
         '">' + (urejanjeKartic ? "Shrani" : "Uredi") +
         "</button>" +
         "</div>" +
+        casKarticaHtml +
         '<div class="opomin-nacrt__carousel-ovoj">' +
         '<div class="opomin-nacrt__carousel" role="list" aria-label="Koraki načrta">' +
         carouselHtml +
@@ -2636,6 +2639,7 @@
         (urejanjeKartic && plan.steps.length < 6
           ? '<button type="button" class="opomin-nacrt__dodaj-korak" data-dodaj-korak>+ Dodaj korak</button>'
           : "") +
+        naslednjiCasHtml +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
         esc(prikazniRedStep + ". korak – " + step.title) +
@@ -2647,7 +2651,6 @@
         "</span>" +
         "</div>" +
         podrobnostCas +
-        casKarticaHtml +
         karticeHtml +
         vsebinaHtml +
         '<div class="opomin-nacrt__info" role="note">' +
