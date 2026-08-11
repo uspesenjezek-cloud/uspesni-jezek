@@ -2398,8 +2398,9 @@
           esc(formatCasPolno(naslednji.sendAt || naslednji.scheduledAt)) +
           "</span>" +
           "</span>" +
+          "</div>" +
           (naslednjiPremakljiv
-            ? '<span class="opomin-nacrt__cas-gumbi-dnevi">' +
+            ? '<div class="opomin-nacrt__cas-gumbi-dnevi-vrstica">' +
               '<button type="button" class="opomin-nacrt__gumb-isti-dan" id="opomin-priporoceno-razmik" aria-label="Priporočen razmik">Priporočeno</button>' +
               '<button type="button" class="opomin-nacrt__gumb-isti-dan' +
               (razmikNaslednji === 0 ? " opomin-nacrt__gumb-isti-dan--aktiven" : "") +
@@ -2411,11 +2412,10 @@
               '">' +
               esc(oznakaRazmik) +
               "</button>" +
-              "</span>"
+              "</div>"
             : '<span class="opomin-nacrt__cas-znacka">' +
               esc(oznakaRazmik) +
-              "</span>") +
-          "</div>";
+              "</span>");
       } else if (!naslednji && prejsnji) {
         var oznakaRazmikPrejsnji = N.oznakaCezDni
           ? N.oznakaCezDni(Math.max(0, razmikPrejsnji))
