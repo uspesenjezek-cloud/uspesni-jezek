@@ -310,17 +310,6 @@
     if (step.deliveryMode === "manual" || step.kind === "manual_lawyer") {
       return IKONA_KLJUCAVNICA + " Ročno";
     }
-    /* Prvi korak vedno prikazuje trenutni datum in uro. */
-    if (step.index === 1) {
-      var zdajIso = new Date().toISOString();
-      return (
-        '<span class="opomin-nacrt__stage-cas-vrh">Danes</span>' +
-        '<span class="opomin-nacrt__stage-cas-crta" aria-hidden="true"></span>' +
-        '<span class="opomin-nacrt__stage-cas-dno">' +
-        esc(formatCasKratko(zdajIso)) +
-        "</span>"
-      );
-    }
     var off = offsetOdZacetka(plan, step);
     var razmik = razmikOdPrejsnjega(plan, step);
     var iso = step.sendAt || step.scheduledAt;
@@ -2361,7 +2350,11 @@
           ? ""
           : korakPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
-              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-enako-cas" aria-label="Enako kot prvi korak">Enako kot 1.</button>' +
+              (step.index > 1
+                ? '<button type="button" class="opomin-nacrt__gumb-enako' +
+                  (izbranCasNacin === "enako" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
+                  '" id="opomin-enako-cas" aria-label="Enako kot prvi korak">Enako kot 1.</button>'
+                : "") +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
