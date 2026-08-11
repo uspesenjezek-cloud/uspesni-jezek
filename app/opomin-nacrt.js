@@ -352,7 +352,7 @@
         " bleibt unbezahlt. Wir bitten Sie dringend um Begleichung, um weitere rechtliche Schritte abzuwenden."
       );
     }
-    if (index === 5) {
+    if (index === 5 || index === 6) {
       return (
         "Letzte Aufforderung: Rechnung" +
         stevilka +
@@ -454,7 +454,7 @@
     var totalDurationDays = odmiki[odmiki.length - 1] || 0;
     var activationAt = steps[0] && steps[0].sendAt ? steps[0].sendAt : now;
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       id: "plan-" + now,
       debtId: null,
       status: "draft",
@@ -675,6 +675,49 @@
     return nov;
   }
 
+  function jeNeureljivSestiKorak(plan) {
+    var koraki = (plan && plan.steps) || [];
+    var sesti = koraki.find(function (korak, i) {
+      return Number(korak.index || korak.order || i + 1) === 6;
+    });
+    return !!(
+      sesti &&
+      (sesti.kind === "manual_lawyer" || sesti.deliveryMode === "manual")
+    );
+  }
+
+  function zamenjajNeureljivSestiKorak(plan, podatkiKorak1, podatkiKorak2) {
+    if (!jeNeureljivSestiKorak(plan)) return plan;
+    var pozicija = plan.steps.findIndex(function (korak, i) {
+      return Number(korak.index || korak.order || i + 1) === 6;
+    });
+    if (pozicija < 0) return plan;
+    var stariSesti = plan.steps[pozicija];
+    var noviSesti = narediNovPlan(podatkiKorak1, podatkiKorak2).steps[5];
+
+    /* Ohranimo uporabnikov termin in izklop koraka, kartica pa postane običajna in urejljiva. */
+    if (stariSesti.scheduledOffsetDays != null) {
+      noviSesti.scheduledOffsetDays = stariSesti.scheduledOffsetDays;
+      noviSesti.offsetDays = stariSesti.scheduledOffsetDays;
+    }
+    if (stariSesti.sendAt || stariSesti.scheduledAt) {
+      noviSesti.sendAt = stariSesti.sendAt || stariSesti.scheduledAt;
+      noviSesti.scheduledAt = noviSesti.sendAt;
+      noviSesti.manualScheduleOverride = !!stariSesti.manualScheduleOverride;
+    }
+    if (stariSesti.isExcluded != null) {
+      noviSesti.isExcluded = !!stariSesti.isExcluded;
+    }
+
+    plan.steps[pozicija] = noviSesti;
+    if (plan.selectedStageId === stariSesti.id) {
+      plan.selectedStageId = noviSesti.id;
+    }
+    plan.schemaVersion = 3;
+    plan.stages = plan.steps;
+    return plan;
+  }
+
   function pridobiAliUstvari(podatkiKorak1, podatkiKorak2) {
     var plan = naloziOsnutek();
     if (!plan) {
@@ -686,6 +729,15 @@
       plan = nadgradiStariNacrt(plan, podatkiKorak1, podatkiKorak2);
       shraniOsnutek(plan);
       return plan;
+    }
+    if (jeNeureljivSestiKorak(plan)) {
+      plan = zamenjajNeureljivSestiKorak(
+        plan,
+        podatkiKorak1,
+        podatkiKorak2
+      );
+    } else if ((Number(plan.schemaVersion) || 0) < 3) {
+      plan.schemaVersion = 3;
     }
     plan = uskladiZVhodi(plan, podatkiKorak1, podatkiKorak2);
     shraniOsnutek(plan);
@@ -1145,6 +1197,27 @@
     return last.kind === "manual_lawyer";
   }
 
+  /** Ko uporabnik izključi ali vključi korak, prestavi odmike naslednjih
+      vidnih korakov, da zapolnijo praznino (ali naredijo prostor). */
+  function preracunajOdmikePoIzkljucitvi(plan) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var trenutniOffsets = plan.steps.map(function (s) { return s.scheduledOffsetDays; });
+    /* Vidni koraki dobijo zaporedne odmike iz originalnega zaporedja. */
+    var naslednjiOffset = 0;
+    plan.steps.forEach(function (s) {
+      if (!s.isExcluded) {
+        s.scheduledOffsetDays = trenutniOffsets[naslednjiOffset];
+        s.offsetDays = s.scheduledOffsetDays;
+        s.sendAt = privzetiSendAt(s.scheduledOffsetDays);
+        naslednjiOffset++;
+      }
+    });
+    plan.totalDurationDays = plan.steps.length
+      ? (plan.steps[plan.steps.length - 1].scheduledOffsetDays || 0)
+      : 0;
+    return osveziPlanStatus(plan);
+  }
+
   var api = {
     KLJUC_SEJE: KLJUC_SEJE,
     KORAKI_META: KORAKI_META,
@@ -1157,6 +1230,7 @@
     sestaviRazlog: sestaviRazlog,
     narediNovPlan: narediNovPlan,
     pridobiAliUstvari: pridobiAliUstvari,
+    zagotoviUrejljivSestiKorak: zamenjajNeureljivSestiKorak,
     naloziOsnutek: naloziOsnutek,
     shraniOsnutek: shraniOsnutek,
     pocistiOsnutek: pocistiOsnutek,
@@ -1183,6 +1257,7 @@
     dodajKorak: dodajKorak,
     steviloSmsKorakov: steviloSmsKorakov,
     jeZadnjiKorakManualLawyer: jeZadnjiKorakManualLawyer,
+    preracunajOdmikePoIzkljucitvi: preracunajOdmikePoIzkljucitvi,
   };
 
   root.UJOpominNacrt = api;

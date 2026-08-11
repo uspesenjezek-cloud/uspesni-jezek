@@ -406,6 +406,14 @@
     if (!N || !opts || !opts.glavniEl || !opts.potrditevEl) return null;
 
     var plan = N.pridobiAliUstvari(opts.podatkiKorak1, opts.podatkiKorak2);
+    if (typeof N.zagotoviUrejljivSestiKorak === "function") {
+      plan = N.zagotoviUrejljivSestiKorak(
+        plan,
+        opts.podatkiKorak1,
+        opts.podatkiKorak2
+      );
+      N.shraniOsnutek(plan);
+    }
     if (typeof N.uskladiOffseteIzDatumov === "function") {
       plan = N.uskladiOffseteIzDatumov(plan);
     }
@@ -3011,6 +3019,9 @@
           var stepZaOdstranitev = N.najdiKorak(plan, idx);
           if (!stepZaOdstranitev) return;
           stepZaOdstranitev.isExcluded = !stepZaOdstranitev.isExcluded;
+          if (typeof N.preracunajOdmikePoIzkljucitvi === "function") {
+            plan = N.preracunajOdmikePoIzkljucitvi(plan);
+          }
           N.shraniOsnutek(plan);
           izrisiGlavni();
         });
