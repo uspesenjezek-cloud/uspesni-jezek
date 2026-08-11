@@ -898,7 +898,6 @@
    */
   function validirajCasKoraka(plan, index, novSendAtIso, shiftFollowing, opts) {
     var step = najdiKorak(plan, index);
-    var naslednji = najdiKorak(plan, Number(index) + 1);
     var preview = {
       shiftedCount: 0,
       lastSendAt: null,
@@ -989,21 +988,6 @@
           preview: preview,
         };
       }
-    } else if (naslednji && (naslednji.sendAt || naslednji.scheduledAt)) {
-      var next = parseLocalDateTime(naslednji.sendAt || naslednji.scheduledAt);
-      if (next && next.getTime() <= novo.getTime()) {
-        return {
-          ok: false,
-          napaka:
-            "Naslednji korak je načrtovan prezgodaj. Spremenite datum ali prestavite tudi naslednje korake.",
-          preview: preview,
-        };
-      }
-      preview.nextGapDays = koledarskiDneviMed(
-        novo.toISOString(),
-        next.toISOString()
-      );
-      preview.lastSendAt = naslednji.sendAt || naslednji.scheduledAt;
     }
 
     return { ok: true, napaka: null, preview: preview };
