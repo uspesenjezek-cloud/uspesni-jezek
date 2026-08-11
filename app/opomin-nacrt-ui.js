@@ -310,6 +310,17 @@
     if (step.deliveryMode === "manual" || step.kind === "manual_lawyer") {
       return IKONA_KLJUCAVNICA + " Ročno";
     }
+    /* Prvi korak vedno prikazuje trenutni datum in uro. */
+    if (step.index === 1) {
+      var zdajIso = new Date().toISOString();
+      return (
+        '<span class="opomin-nacrt__stage-cas-vrh">Danes</span>' +
+        '<span class="opomin-nacrt__stage-cas-crta" aria-hidden="true"></span>' +
+        '<span class="opomin-nacrt__stage-cas-dno">' +
+        esc(formatCasKratko(zdajIso)) +
+        "</span>"
+      );
+    }
     var off = offsetOdZacetka(plan, step);
     var razmik = razmikOdPrejsnjega(plan, step);
     var iso = step.sendAt || step.scheduledAt;
@@ -2350,6 +2361,7 @@
           ? ""
           : korakPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
+              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-enako-cas" aria-label="Enako kot prvi korak">Enako kot 1.</button>' +
               '<button type="button" class="opomin-nacrt__gumb-zdaj' +
               (izbranCasNacin === "zdaj"
                 ? " opomin-nacrt__gumb-zdaj--aktiven"
@@ -2760,6 +2772,29 @@
       if (spremeni) {
         spremeni.addEventListener("click", function () {
           odpriCasSheet(step.index, "trenutni");
+        });
+      }
+
+      var enakoCas = opts.glavniEl.querySelector("#opomin-enako-cas");
+      if (enakoCas) {
+        enakoCas.addEventListener("click", function () {
+          var prviKorak = plan.steps && plan.steps[0];
+          var iso = prviKorak ? (prviKorak.sendAt || prviKorak.scheduledAt) : new Date().toISOString();
+          var v = N.validirajCasKoraka
+            ? N.validirajCasKoraka(plan, step.index, iso, true)
+            : { ok: true };
+          if (!v.ok) {
+            if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(v.napaka || "Časa ni bilo mogoče nastaviti.");
+            }
+            return;
+          }
+          plan = N.posodobiCasKoraka(plan, step.index, iso, {
+            shiftFollowing: true,
+          });
+          izbranCasNacin = "enako";
+          shrani();
+          izrisiGlavni();
         });
       }
 
