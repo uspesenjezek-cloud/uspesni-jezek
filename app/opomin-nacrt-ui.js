@@ -2470,7 +2470,6 @@
       var carouselHtml = prikazaniKoraki
         .map(function (s) {
           var aktiven = s.index === aktivenIndex;
-          var jeManualLawyer = s.kind === "manual_lawyer";
           var jeVVeljavnemUrejanju = urejanjeKartic;
           var html =
             '<div class="opomin-nacrt__stage-ovoj' +
@@ -2489,7 +2488,7 @@
             esc((prikazniRedMap[s.index] || s.order) + ". " + s.title) +
             '">' +
             '<span class="opomin-nacrt__stage-st">' +
-            (prikazniRedMap[s.index] || s.order) +
+            (s.isExcluded ? "—" : (prikazniRedMap[s.index] || s.order)) +
             "</span>" +
             '<span class="opomin-nacrt__stage-naslov' +
             (String(s.title || "").length > 20 ? " opomin-nacrt__stage-naslov--zelo-dolg" : String(s.title || "").length > 15 ? " opomin-nacrt__stage-naslov--dolg" : "") +
@@ -2502,8 +2501,6 @@
             "</button>";
           if (jeVVeljavnemUrejanju) {
             html += '<button type="button" class="opomin-nacrt__stage-odstrani" data-odstrani-kartico="' + s.index + '" aria-label="Odstrani ' + esc(s.title) + '">×</button>';
-          } else if (jeManualLawyer) {
-            html += '<span class="opomin-nacrt__stage-zaklenjeno" aria-label="Ročni korak">' + IKONA_KLJUCAVNICA + "</span>";
           }
           return html + "</div>";
         })
