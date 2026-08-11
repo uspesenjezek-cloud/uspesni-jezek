@@ -2390,6 +2390,26 @@
           "</button>";
       }
 
+      var prilagoditevDneviOpomba = "";
+      var vseDneviAktivni = aktivniDnevi.every(function (a) { return a; });
+      if (!vseDneviAktivni && step && !jeManual) {
+        var datumPosiljanja = new Date(step.sendAt || step.scheduledAt);
+        if (!Number.isNaN(datumPosiljanja.getTime())) {
+          var danVTednu = datumPosiljanja.getDay(); // 0=Ned, 1=Pon...
+          var sloIndeks = danVTednu === 0 ? 6 : danVTednu - 1; // Pon=0...Ned=6
+          if (!aktivniDnevi[sloIndeks]) {
+            var pristejDni = 1;
+            for (var adjD = 1; adjD <= 7; adjD++) {
+              var naslIndeks = (sloIndeks + adjD) % 7;
+              if (aktivniDnevi[naslIndeks]) { pristejDni = adjD; break; }
+            }
+            prilagoditevDneviOpomba =
+              '<p class="opomin-nacrt__dnevi-opomba">' +
+              DNEVI_TEDNA[sloIndeks] + " ni aktiven — prištetih " + pristejDni + " dni</p>";
+          }
+        }
+      }
+
       var karticeHtml = "";
 
       var podrobnostCas =
@@ -2582,6 +2602,7 @@
         '<span class="opomin-nacrt__dnevi-teden-oznaka">Pošlji ob:</span>' +
         dneviVTednuHtml +
         "</div>" +
+        prilagoditevDneviOpomba +
         casKarticaHtml +
         '<div class="opomin-nacrt__izbran-glava">' +
         '<h2 class="opomin-nacrt__izbran-naslov">' +
