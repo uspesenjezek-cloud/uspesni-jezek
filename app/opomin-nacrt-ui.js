@@ -2357,7 +2357,7 @@
               '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
               "</span>" +
               "</span>" +
-              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-spremeni-cas">✎ Spremeni</button>'
+              '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-spremeni-cas">Določi čas</button>'
             : "") +
         "</div></section>";
 
