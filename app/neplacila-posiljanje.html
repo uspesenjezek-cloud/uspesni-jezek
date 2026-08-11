@@ -65,6 +65,76 @@
       <main class="korak2__vsebina korak2__vsebina--opomin">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
+        <!-- Priporočilo za ta dolg: samostojen widget (ton + ključni podatki + časovnica) -->
+        <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section">
+          <section class="ton-widget" id="ton-widget" aria-label="Priporočilo za ta dolg">
+            <header class="priporocilo-widget__glava">
+              <span class="priporocilo-widget__ikona" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a2 2 0 0 1 0-4h6a2 2 0 0 1 0 4Z"/><path d="M12 18v-6"/></svg>
+              </span>
+              <h3 class="priporocilo-widget__naslov">Priporočilo za ta dolg</h3>
+            </header>
+
+            <div class="debt-summary debt-summary--tri" id="ton-povzetek">
+              <div class="debt-summary__amount-column">
+                <span class="debt-summary__label">Dolg</span>
+                <span class="debt-summary__amount" id="ton-znesek-znacka">—</span>
+              </div>
+              <div class="debt-summary__category-column">
+                <span class="debt-summary__label">Zamuda</span>
+                <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
+              </div>
+              <div class="debt-summary__category-column">
+                <span class="debt-summary__label">Pretekle zamude</span>
+                <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
+              </div>
+              <span class="debt-category-pill sr-only" id="ton-kategorija-znacka"></span>
+            </div>
+
+            <div class="tone-carousel" id="ton-carousel">
+              <div
+                class="tone-carousel__viewport"
+                id="ton-tir"
+                role="radiogroup"
+                aria-label="Izberite ton sporočila"
+              ></div>
+            </div>
+            <p class="sr-only" id="ton-aria-live" aria-live="polite"></p>
+
+            <p class="priporocilo-widget__razlaga" id="priporocilo-razlaga">
+              Ton je predlagan glede na znesek in zapadlost.
+            </p>
+
+            <button
+              type="button"
+              class="priporocilo-timeline-row"
+              id="priporocilo-casovnica-vrstica"
+              aria-label="Predlagana časovnica opominjanja"
+            >
+              <span class="priporocilo-timeline-row__ikona" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              </span>
+              <span class="priporocilo-timeline-row__besedilo">
+                <span class="priporocilo-timeline-row__eyebrow">Predlagana časovnica</span>
+                <span class="priporocilo-timeline-row__glavno">
+                  <span class="priporocilo-timeline-row__stevilo" id="priporocilo-casovnica-koraki">— korakov</span>
+                  <span class="priporocilo-timeline-row__trajanje" id="priporocilo-casovnica-trajanje"></span>
+                </span>
+              </span>
+              <span class="priporocilo-timeline-row__chevron" aria-hidden="true">›</span>
+            </button>
+
+            <button
+              type="button"
+              class="priporocilo-widget__uporabi"
+              id="priporocilo-uporabi-gumb"
+            >
+              <span class="priporocilo-widget__uporabi-zvezda" aria-hidden="true">★</span>
+              Uporabi priporočeno
+            </button>
+          </section>
+        </div>
+
         <!-- Glavni zaslon načrta (JS) – priloge so znotraj »Vsebina koraka« -->
         <div id="opomin-nacrt-glavni" class="opomin-nacrt"></div>
 
