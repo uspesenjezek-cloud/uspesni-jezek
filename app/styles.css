@@ -8651,11 +8651,11 @@ body.template-editor-odprt {
   content: "";
   position: absolute;
   top: 50%;
-  left: -6px;
-  width: 6px;
-  height: 18px;
+  left: -8px;
+  width: 8px;
+  height: 9px;
   background: var(--teal, #159195);
-  border-radius: 3px;
+  border-radius: 4px;
   transform: translateY(-50%);
   z-index: 1;
 }
