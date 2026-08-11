@@ -9030,16 +9030,19 @@ body.template-editor-odprt {
 .opomin-nacrt__gumb-enako {
   flex-shrink: 0;
   min-height: 36px;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border: 1px solid rgba(214, 161, 38, 0.35);
   border-radius: 18px;
   background: var(--gold-button-surface, #fcebb9);
   color: #8a6412;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .opomin-nacrt__gumb-enako-vrsta {
@@ -9048,7 +9051,8 @@ body.template-editor-odprt {
 
 .opomin-nacrt__gumb-enako [aria-hidden] {
   color: var(--gold-primary, #d6a126);
-  font-size: 13px;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .opomin-nacrt__gumb-enako--aktiven {
