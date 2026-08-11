@@ -8984,7 +8984,7 @@ body.template-editor-odprt {
   display: flex;
   flex: 1 0 100%;
   align-items: center;
-  gap: 0;
+  gap: 6px;
   margin-top: 2px;
   padding: 3px;
   border: 0;
