@@ -354,6 +354,25 @@
     return "Pošlji " + formatCasPolno(iso);
   }
 
+  function besediloDatumaPosiljanja(step) {
+    if (step.deliveryMode === "manual" || step.kind === "manual_lawyer") {
+      return "Ročni korak – samo opozorilo";
+    }
+    var iso = step.sendAt || step.scheduledAt;
+    var d = iso ? new Date(iso) : null;
+    var danes = new Date();
+    if (
+      d &&
+      !Number.isNaN(d.getTime()) &&
+      d.getFullYear() === danes.getFullYear() &&
+      d.getMonth() === danes.getMonth() &&
+      d.getDate() === danes.getDate()
+    ) {
+      return "Pošlji danes";
+    }
+    return "Pošlji " + formatDatumSl(iso);
+  }
+
   function besediloPoslano(step) {
     var iso = step.sentAt || step.sendAt || step.scheduledAt;
     return "Poslano " + formatCasPolno(iso);
@@ -1580,6 +1599,31 @@
           var shraniBtn = document.getElementById("opomin-cas-sheet-shrani");
           if (casSheetIndex == null) return;
           var iso = preberiIsoIzPolj();
+          /* Preveri, ali ročno izbrani dan spada med neaktivne. */
+          if (iso) {
+            var datumPreverba = new Date(iso);
+            if (!Number.isNaN(datumPreverba.getTime())) {
+              var aktivni = (plan._aktivniDnevi && plan._aktivniDnevi.length === 7)
+                ? plan._aktivniDnevi
+                : null;
+              if (aktivni && !aktivni.every(function (a) { return a; })) {
+                var danP = datumPreverba.getDay();
+                var sloP = danP === 0 ? 6 : danP - 1;
+                if (!aktivni[sloP]) {
+                  if (typeof opts.potrdiVprasanje === "function") {
+                    await opts.potrdiVprasanje({
+                      naslov: "Dan ni na voljo",
+                      opis: "Tega dneva ni mogoče izbrati, ker je onemogočen v Možnih dnevih pošiljanja.",
+                      potrdiBesedilo: "V redu",
+                      samoEnGumb: true,
+                      stil: "primary",
+                    });
+                  }
+                  return;
+                }
+              }
+            }
+          }
           var gapDni = izbraniGapDni();
           var v = N.validirajCasKoraka(
             plan,
@@ -2360,9 +2404,32 @@
           ? '<button type="button" class="opomin-nacrt__gumb-spremeni" id="opomin-spremeni-cas"><span aria-hidden="true">✎</span> Spremeni</button>'
           : "";
 
+      var hitraUraZgorajHtml =
+        !korakPoslan &&
+        !jeManual &&
+        korakPremakljiv &&
+        Number(step.index) === 1
+          ? '<label class="opomin-nacrt__hitra-ura-polje opomin-nacrt__hitra-ura-polje--zgoraj">' +
+            '<span class="opomin-nacrt__hitra-ura-vrednost opomin-nacrt__hitra-ura-vrednost--zgoraj' +
+            (step._uraRocnoNastavljena
+              ? ""
+              : " opomin-nacrt__hitra-ura-vrednost--samodejna") +
+            '" aria-hidden="true">' +
+            IKONA_URA +
+            '<span>' +
+            esc(formatCasKratko(step.sendAt || step.scheduledAt)) +
+            "</span></span>" +
+            '<input type="time" id="opomin-hitra-ura-input" value="' +
+            esc(isoZaTimeInput(step.sendAt || step.scheduledAt)) +
+            '" aria-label="Trenutna ura. Kliknite za ročno nastavitev." />' +
+            "</label>"
+          : "";
+
       var casKarticaHtml =
         '<section class="opomin-nacrt__cas-kartica" aria-label="Čas pošiljanja tega koraka">' +
-        '<div class="opomin-nacrt__cas-vrstica">' +
+        '<div class="opomin-nacrt__cas-vrstica' +
+        (Number(step.index) === 1 ? " opomin-nacrt__cas-vrstica--prvi" : "") +
+        '">' +
         '<span class="opomin-nacrt__cas-ikona" aria-hidden="true">' +
         IKONA_KOLEDAR +
         "</span>" +
@@ -2370,9 +2437,12 @@
         esc(
           korakPoslan
             ? besediloPoslano(step)
-            : besediloPosiljanja(step)
+            : Number(step.index) === 1
+              ? besediloDatumaPosiljanja(step)
+              : besediloPosiljanja(step)
         ) +
         "</span>" +
+        hitraUraZgorajHtml +
         '<button type="button" class="opomin-nacrt__gumb-zdaj" id="opomin-spremeni-cas" style="flex-shrink:0">Določi čas</button>' +
         (korakPoslan || jeManual
           ? ""
@@ -2382,20 +2452,7 @@
               (izbranCasNacin === "enako" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
               '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
               (Number(step.index) === 1
-                ? '<label class="opomin-nacrt__hitra-ura-polje">' +
-                  '<span class="opomin-nacrt__hitra-ura-vrednost' +
-                  (step._uraRocnoNastavljena
-                    ? ""
-                    : " opomin-nacrt__hitra-ura-vrednost--samodejna") +
-                  '" aria-hidden="true">' +
-                  IKONA_URA +
-                  '<span>' +
-                  esc(formatCasKratko(step.sendAt || step.scheduledAt)) +
-                  "</span></span>" +
-                  '<input type="time" id="opomin-hitra-ura-input" value="' +
-                  esc(isoZaTimeInput(step.sendAt || step.scheduledAt)) +
-                  '" aria-label="Trenutna ura. Kliknite za ročno nastavitev." />' +
-                  "</label>"
+                ? '<span class="opomin-nacrt__cas-gumb-prostor" aria-hidden="true"></span>'
                 : '<button type="button" class="opomin-nacrt__gumb-zdaj' +
                   (izbranCasNacin === "zdaj"
                     ? " opomin-nacrt__gumb-zdaj--aktiven"
