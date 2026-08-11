@@ -2782,6 +2782,10 @@
             prejsnjiDatum.getSeconds(),
             0
           );
+          /* Če je datum enak prejšnjemu, premakni za 1 minuto naprej. */
+          if (trenutniDatum.getTime() <= prejsnjiDatum.getTime()) {
+            trenutniDatum.setTime(prejsnjiDatum.getTime() + 60000);
+          }
           var iso = trenutniDatum.toISOString();
           var v = N.validirajCasKoraka
             ? N.validirajCasKoraka(plan, step.index, iso, true)
