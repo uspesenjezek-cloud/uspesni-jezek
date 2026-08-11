@@ -2340,24 +2340,24 @@
         (korakPoslan || jeManual
           ? ""
           : korakPremakljiv
-            ? '<div class="opomin-nacrt__cas-kartice">' +
-              '<button type="button" class="opomin-nacrt__cas-kvadrat' +
-              (izbranCasNacin === "zdaj" ? " opomin-nacrt__cas-kvadrat--aktiven" : "") +
-              '" id="opomin-zdaj-cas" aria-label="Trenutna ura"><span class="opomin-nacrt__cas-kvadrat-ikona" aria-hidden="true">' +
-              IKONA_URA +
-              '</span><span class="opomin-nacrt__cas-kvadrat-naslov">Trenutna ura</span><span class="opomin-nacrt__cas-kvadrat-opis">Nastavi uro na zdaj</span></button>' +
-              '<span class="opomin-nacrt__predizbor-ovoj">' +
-              '<button type="button" class="opomin-nacrt__cas-kvadrat' +
-              (izbranCasNacin === "predizbor" ? " opomin-nacrt__cas-kvadrat--aktiven" : "") +
-              '" id="opomin-predizbor-cas" aria-haspopup="true" aria-expanded="false"><span class="opomin-nacrt__cas-kvadrat-ikona" aria-hidden="true">' +
-              IKONA_KOLEDAR +
-              '</span><span class="opomin-nacrt__cas-kvadrat-naslov">Predizbor</span><span class="opomin-nacrt__cas-kvadrat-opis">Hitri predizbori</span></button>' +
-              '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
-              "</span>" +
-              "</div>" +
+            ? '<span class="opomin-nacrt__cas-gumbi">' +
               '<button type="button" class="opomin-nacrt__gumb-enako' +
               (izbranCasNacin !== "zdaj" && izbranCasNacin !== "predizbor" ? " opomin-nacrt__gumb-enako--aktiven" : "") +
-              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>'
+              '" id="opomin-enako-cas" aria-label="Priporočeno"><span aria-hidden="true">★</span> Priporočeno</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-zdaj' +
+              (izbranCasNacin === "zdaj"
+                ? " opomin-nacrt__gumb-zdaj--aktiven"
+                : "") +
+              '" id="opomin-zdaj-cas" aria-label="Nastavi trenutno uro">Trenutna ura</button>' +
+              '<span class="opomin-nacrt__predizbor-ovoj">' +
+              '<button type="button" class="opomin-nacrt__gumb-predizbor' +
+              (izbranCasNacin === "predizbor"
+                ? " opomin-nacrt__gumb-predizbor--aktiven"
+                : "") +
+              '" id="opomin-predizbor-cas" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
+              '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
+              "</span>" +
+              "</span>"
             : "") +
         "</div></section>";
 
