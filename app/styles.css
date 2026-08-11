@@ -9905,6 +9905,13 @@ body.template-editor-odprt {
   outline-offset: 2px;
 }
 
+.opomin-nacrt__gumb-dnevi--nevtralen {
+  border-color: #d5e0dd;
+  background: transparent;
+  color: var(--text-primary, #183a3a);
+  font-weight: 600;
+}
+
 .opomin-nacrt__cas-gumbi-dnevi {
   display: flex;
   align-items: center;
