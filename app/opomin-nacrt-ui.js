@@ -2523,6 +2523,7 @@
         (!imaTelefon
           ? '<p class="opomin-nacrt__opozorilo" role="status">Telefonska številka dolžnika manjka – SMS-ov ne bo mogoče poslati, dokler je ne dodaš.</p>'
           : "") +
+        casKarticaHtml +
         '<div class="opomin-nacrt__napredek-vrstica">' +
         '<div class="opomin-nacrt__napredek-levo">' +
         '<p class="opomin-nacrt__napredek-tekst">Potrjeno ' +
@@ -2541,7 +2542,6 @@
         '">' + (urejanjeKartic ? "Shrani" : "Uredi") +
         "</button>" +
         "</div>" +
-        casKarticaHtml +
         '<div class="opomin-nacrt__carousel-ovoj">' +
         '<div class="opomin-nacrt__carousel" role="list" aria-label="Koraki načrta">' +
         carouselHtml +
