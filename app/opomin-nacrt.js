@@ -1006,26 +1006,6 @@
       preview.lastSendAt = naslednji.sendAt || naslednji.scheduledAt;
     }
 
-    var conflict = (plan.steps || []).some(function (s) {
-      if (s.index === step.index) return false;
-      if (
-        shiftFollowing &&
-        Number(s.index) > Number(step.index) &&
-        jeKorakPremakljiv(s)
-      ) {
-        return false;
-      }
-      var t = parseLocalDateTime(s.sendAt || s.scheduledAt);
-      return t && Math.abs(t.getTime() - novo.getTime()) < 60000;
-    });
-    if (conflict) {
-      return {
-        ok: false,
-        napaka: "Dva koraka ne moreta imeti enakega časa.",
-        preview: preview,
-      };
-    }
-
     return { ok: true, napaka: null, preview: preview };
   }
 
