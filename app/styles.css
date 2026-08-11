@@ -9022,25 +9022,16 @@ body.template-editor-odprt {
 
 .opomin-nacrt__cas-gumbi .opomin-nacrt__gumb-zdaj,
 .opomin-nacrt__cas-gumbi .opomin-nacrt__gumb-enako,
-.opomin-nacrt__cas-gumbi .opomin-nacrt__hitra-ura,
+.opomin-nacrt__cas-gumbi .opomin-nacrt__hitra-ura-polje,
 .opomin-nacrt__cas-gumbi .opomin-nacrt__predizbor-ovoj,
 .opomin-nacrt__cas-gumbi .opomin-nacrt__gumb-predizbor {
   flex: 1 1 0;
 }
 
-.opomin-nacrt__hitra-ura {
-  display: grid;
-  min-width: 0;
-  gap: 6px;
-}
-
-.opomin-nacrt__hitra-ura .opomin-nacrt__gumb-zdaj {
-  width: 100%;
-}
-
 .opomin-nacrt__hitra-ura-polje {
   position: relative;
   display: block;
+  flex: 1 1 0;
   width: 100%;
   min-width: 0;
   min-height: 36px;
@@ -9063,6 +9054,12 @@ body.template-editor-odprt {
   font-weight: 700;
   line-height: 1;
   box-sizing: border-box;
+}
+
+.opomin-nacrt__hitra-ura-vrednost--samodejna {
+  border-color: var(--teal, #159195);
+  background: var(--teal, #159195);
+  color: #ffffff;
 }
 
 .opomin-nacrt__hitra-ura-vrednost svg {
@@ -9176,18 +9173,18 @@ body.template-editor-odprt {
 .opomin-nacrt__dnevi-teden-vrstica {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px;
 }
 
 .opomin-nacrt__dan {
-  width: 36px;
-  height: 30px;
+  width: 38px;
+  height: 32px;
   border: 1px solid #d5e0dd;
   border-radius: 8px;
   background: #fff;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #718483;
   cursor: pointer;
@@ -9206,6 +9203,17 @@ body.template-editor-odprt {
 
 .opomin-nacrt__dnevi-opomba {
   margin: 4px 0 0;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a6412;
+  background: #fef9e7;
+  border-radius: 8px;
+  border: 1px solid rgba(214, 161, 38, 0.2);
+}
+
+.opomin-cas-sheet__dnevi-opozorilo {
+  margin: 6px 0 0;
   padding: 6px 10px;
   font-size: 11px;
   font-weight: 600;
