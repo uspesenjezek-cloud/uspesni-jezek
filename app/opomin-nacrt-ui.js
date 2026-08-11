@@ -2399,7 +2399,7 @@
           "</span>" +
           "</span>" +
           (naslednjiPremakljiv
-            ? '<button type="button" class="opomin-nacrt__gumb-spremeni" id="opomin-spremeni-naslednji-cas"><span aria-hidden="true">✎</span> Spremeni</button>'
+            ? '<button type="button" class="opomin-nacrt__gumb-spremeni" id="opomin-spremeni-naslednji-cas"><span aria-hidden="true">✎</span> Spremeni čas</button>'
             : "") +
           (naslednjiPremakljiv
             ? '<span class="opomin-nacrt__cas-gumbi">' +
