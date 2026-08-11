@@ -2392,11 +2392,14 @@
           "</span>" +
           "</span>" +
           (naslednjiPremakljiv
-            ? '<button type="button" class="opomin-nacrt__gumb-dnevi" id="opomin-spremeni-razmik" aria-label="Spremeni razmik: ' +
+            ? '<span class="opomin-nacrt__cas-gumbi-dnevi">' +
+              '<button type="button" class="opomin-nacrt__gumb-isti-dan" id="opomin-isti-dan" aria-label="Isti dan kot trenutni korak">Isti dan</button>' +
+              '<button type="button" class="opomin-nacrt__gumb-dnevi" id="opomin-spremeni-razmik" aria-label="Spremeni razmik: ' +
               esc(oznakaRazmik) +
               '">' +
               esc(oznakaRazmik) +
-              "</button>"
+              "</button>" +
+              "</span>"
             : '<span class="opomin-nacrt__cas-znacka">' +
               esc(oznakaRazmik) +
               "</span>") +
@@ -2921,6 +2924,35 @@
           ) {
             zapriPredizborMeni();
           }
+        });
+      }
+
+      var istiDan = opts.glavniEl.querySelector("#opomin-isti-dan");
+      if (istiDan) {
+        istiDan.addEventListener("click", function () {
+          var naslednjiKorak = N.najdiKorak(plan, Number(step.index) + 1);
+          if (!naslednjiKorak) return;
+          var datumKoraka = new Date(step.sendAt || step.scheduledAt);
+          var uraNaslednjega = new Date(naslednjiKorak.sendAt || naslednjiKorak.scheduledAt);
+          datumKoraka.setHours(uraNaslednjega.getHours(), uraNaslednjega.getMinutes(), uraNaslednjega.getSeconds(), 0);
+          if (datumKoraka.getTime() <= new Date(step.sendAt || step.scheduledAt).getTime()) {
+            datumKoraka.setMinutes(datumKoraka.getMinutes() + 1);
+          }
+          var iso = datumKoraka.toISOString();
+          var v = N.validirajCasKoraka
+            ? N.validirajCasKoraka(plan, naslednjiKorak.index, iso, true)
+            : { ok: true };
+          if (!v.ok) {
+            if (typeof opts.pokaziNapako === "function") {
+              opts.pokaziNapako(v.napaka || "Časa ni bilo mogoče nastaviti.");
+            }
+            return;
+          }
+          plan = N.posodobiCasKoraka(plan, naslednjiKorak.index, iso, {
+            shiftFollowing: true,
+          });
+          shrani();
+          izrisiGlavni();
         });
       }
 
