@@ -4835,61 +4835,64 @@
           /* Če je vklopljen Random in čas še ni izračunan, ga izračunaj. */
           var rs = step._randomSchedule;
           if (rs && rs.enabled && !rs.resolvedScheduledAt) {
+            var zadevaId = (opts.podatkiKorak1 && opts.podatkiKorak1.zadevaId) || null;
             var baseIso = step.sendAt || step.scheduledAt;
-            if (baseIso) {
-              /* Poskusi strežniško */;
-              var strezniskoReseno = false;
+
+            if (zadevaId && baseIso) {
+              /* Produkcijska pot: kliči API za strežniški izračun. */
               try {
                 var apiRes = await fetch("/api/potrdi-korak", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ plan: plan, index: step.index }),
+                  body: JSON.stringify({ zadevaId: zadevaId, stepIndex: step.index, version: plan.version || "0" }),
                 });
-                if (apiRes.ok) {
-                  var apiData = await apiRes.json();
-                  if (apiData.ok && apiData.plan) {
-                    plan = apiData.plan;
-                    var osvezenStep = N.najdiKorak(plan, step.index);
-                    if (osvezenStep && osvezenStep._randomSchedule && osvezenStep._randomSchedule.resolvedScheduledAt) {
-                      step._randomSchedule = osvezenStep._randomSchedule;
-                      step.sendAt = osvezenStep._randomSchedule.resolvedScheduledAt;
-                      plan = N.posodobiCasKoraka(plan, step.index, osvezenStep._randomSchedule.resolvedScheduledAt, { shiftFollowing: false });
-                      strezniskoReseno = true;
-                    }
-                  } else if (apiData.napaka) {
-                    if (typeof opts.potrdiVprasanje === "function") {
-                      await opts.potrdiVprasanje({ naslov: "Random napaka", opis: apiData.napaka, potrdiBesedilo: "V redu", samoEnGumb: true, stil: "primary" });
-                    }
-                    gumbPotrdi.disabled = false;
-                    return;
+                var apiData = await apiRes.json();
+                if (apiData.ok) {
+                  plan.version = apiData.version || plan.version;
+                  if (apiData.resolvedScheduledAt) {
+                    rs.resolvedScheduledAt = apiData.resolvedScheduledAt;
+                    rs.resolvedAt = new Date().toISOString();
+                    step.sendAt = apiData.resolvedScheduledAt;
+                    plan = N.posodobiCasKoraka(plan, step.index, apiData.resolvedScheduledAt, { shiftFollowing: false });
                   }
+                } else {
+                  var opis = apiData.napaka || "Koraka trenutno ni bilo mogoče potrditi. Poskusite znova.";
+                  if (apiData.code === "VERSION_CONFLICT") opis = "Podatki so zastareli. Osvežite stran.";
+                  if (typeof opts.potrdiVprasanje === "function") {
+                    await opts.potrdiVprasanje({ naslov: "Napaka", opis: opis, potrdiBesedilo: "V redu", samoEnGumb: true, stil: "primary" });
+                  }
+                  gumbPotrdi.disabled = false;
+                  return;
                 }
               } catch (_apiErr) {
-                /* Strežnik ni dosegljiv — uporabi lokalni izračun. */
+                if (typeof opts.potrdiVprasanje === "function") {
+                  await opts.potrdiVprasanje({ naslov: "Strežnik ni dosegljiv", opis: "Koraka trenutno ni bilo mogoče potrditi. Poskusite znova.", potrdiBesedilo: "V redu", samoEnGumb: true, stil: "primary" });
+                }
+                gumbPotrdi.disabled = false;
+                return;
               }
-
-              /* Lokalni fallback izračun */
-              if (!strezniskoReseno) {
-                var baseDate = new Date(baseIso);
-                if (!Number.isNaN(baseDate.getTime())) {
-                  var minCas = rs.minSendTime || "07:00";
-                  var maxCas = rs.maxSendTime || "21:00";
-                  var minMn = parseInt(minCas.split(":")[0]) * 60 + parseInt(minCas.split(":")[1]);
-                  var maxMn = parseInt(maxCas.split(":")[0]) * 60 + parseInt(maxCas.split(":")[1]);
-                  var baseMn = baseDate.getHours() * 60 + baseDate.getMinutes();
-                  var halfW = rs.mode === "okoli" ? Math.min(rs.minutesBefore || 15, rs.minutesAfter || 15) : 20;
-                  var spodaj = Math.max(baseMn - halfW, minMn);
-                  var zgoraj = Math.min(baseMn + halfW, maxMn);
-                  if (zgoraj > spodaj) {
-                    var arr = new Uint32Array(1);
-                    (crypto || window.crypto).getRandomValues(arr);
-                    var rndMn = spodaj + (arr[0] % (zgoraj - spodaj + 1));
-                    baseDate.setHours(Math.floor(rndMn / 60), rndMn % 60, 0, 0);
-                    rs.resolvedScheduledAt = baseDate.toISOString();
-                    rs.resolvedAt = new Date().toISOString();
-                    step.sendAt = rs.resolvedScheduledAt;
-                    plan = N.posodobiCasKoraka(plan, step.index, rs.resolvedScheduledAt, { shiftFollowing: false });
-                  }
+            } else if (baseIso) {
+              /* Nov osnutek (še ni zadevaId): uporabi lokalni CSPRNG.
+                 Ko bo zadeva shranjena, bo strežnik ob aktivaciji ponovno preveril. */
+              var baseDate = new Date(baseIso);
+              if (!Number.isNaN(baseDate.getTime())) {
+                var minCas = rs.minSendTime || "07:00";
+                var maxCas = rs.maxSendTime || "21:00";
+                var minMn = parseInt(minCas.split(":")[0]) * 60 + parseInt(minCas.split(":")[1]);
+                var maxMn = parseInt(maxCas.split(":")[0]) * 60 + parseInt(maxCas.split(":")[1]);
+                var baseMn = baseDate.getHours() * 60 + baseDate.getMinutes();
+                var halfW = rs.mode === "okoli" ? Math.min(rs.minutesBefore || 15, rs.minutesAfter || 15) : 20;
+                var spodaj = Math.max(baseMn - halfW, minMn);
+                var zgoraj = Math.min(baseMn + halfW, maxMn);
+                if (zgoraj > spodaj) {
+                  var arr = new Uint32Array(1);
+                  (crypto || window.crypto).getRandomValues(arr);
+                  var rndMn = spodaj + (arr[0] % (zgoraj - spodaj + 1));
+                  baseDate.setHours(Math.floor(rndMn / 60), rndMn % 60, 0, 0);
+                  rs.resolvedScheduledAt = baseDate.toISOString();
+                  rs.resolvedAt = new Date().toISOString();
+                  step.sendAt = rs.resolvedScheduledAt;
+                  plan = N.posodobiCasKoraka(plan, step.index, rs.resolvedScheduledAt, { shiftFollowing: false });
                 }
               }
             }

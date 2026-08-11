@@ -491,6 +491,8 @@
       totalDurationDays: totalDurationDays,
       selectedStageId: steps[0].id,
       keepStageIntervals: true,
+      version: "1",
+      updatedAt: now,
       _baseOffsets: odmiki.slice(),
       inputsHash: vhodniHash(amountCents, toneId, overdue),
       steps: steps,
@@ -647,6 +649,7 @@
   function shraniOsnutek(plan) {
     if (!plan) return;
     plan.updatedAt = zdajIso();
+    plan.version = String(Number(plan.version || 0) + 1);
     plan.status = izracunajPlanStatus(plan);
     plan.stages = plan.steps;
     sessionStorage.setItem(KLJUC_SEJE, JSON.stringify(plan));
