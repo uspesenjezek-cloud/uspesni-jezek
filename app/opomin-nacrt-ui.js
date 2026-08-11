@@ -2336,7 +2336,6 @@
             : besediloPosiljanja(step)
         ) +
         "</span>" +
-        spremeniCasGumbHtml +
         (korakPoslan || jeManual
           ? ""
           : korakPremakljiv
@@ -2357,7 +2356,8 @@
               '" id="opomin-predizbor-cas" aria-haspopup="true" aria-expanded="false">Predizbor</button>' +
               '<div class="opomin-nacrt__predizbor-meni" id="opomin-predizbor-meni" hidden></div>' +
               "</span>" +
-              "</span>"
+              "</span>" +
+              '<button type="button" class="opomin-nacrt__gumb-enako" id="opomin-spremeni-cas">✎ Spremeni</button>'
             : "") +
         "</div></section>";
 
