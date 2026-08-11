@@ -8644,6 +8644,7 @@ body.template-editor-odprt {
   min-width: 0;
   height: 118px;
   scroll-snap-align: start;
+  overflow: visible;
 }
 
 /* Povezovalni trak med karticama istega dne */
@@ -8654,8 +8655,8 @@ body.template-editor-odprt {
   left: -8px;
   width: 8px;
   height: 9px;
-  background: var(--teal, #159195);
-  border-radius: 4px;
+  background: #b9d9d5;
+  border-radius: 1px;
   transform: translateY(-50%);
   z-index: 1;
 }
