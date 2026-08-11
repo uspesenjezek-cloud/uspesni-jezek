@@ -8650,12 +8650,13 @@ body.template-editor-odprt {
 .opomin-nacrt__stage-ovoj--isti-dan::before {
   content: "";
   position: absolute;
-  top: 14px;
-  left: -8px;
-  width: 8px;
-  height: 2px;
+  top: 50%;
+  left: -6px;
+  width: 6px;
+  height: 18px;
   background: var(--teal, #159195);
-  border-radius: 1px;
+  border-radius: 3px;
+  transform: translateY(-50%);
   z-index: 1;
 }
 
