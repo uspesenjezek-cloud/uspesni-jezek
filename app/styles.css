@@ -9022,10 +9022,15 @@ body.template-editor-odprt {
 
 .opomin-nacrt__cas-gumbi .opomin-nacrt__gumb-zdaj,
 .opomin-nacrt__cas-gumbi .opomin-nacrt__gumb-enako,
-.opomin-nacrt__cas-gumbi .opomin-nacrt__hitra-ura-polje,
+.opomin-nacrt__cas-gumbi .opomin-nacrt__cas-gumb-prostor,
 .opomin-nacrt__cas-gumbi .opomin-nacrt__predizbor-ovoj,
 .opomin-nacrt__cas-gumbi .opomin-nacrt__gumb-predizbor {
   flex: 1 1 0;
+}
+
+.opomin-nacrt__cas-gumb-prostor {
+  min-width: 0;
+  min-height: 36px;
 }
 
 .opomin-nacrt__hitra-ura-polje {
@@ -9081,6 +9086,35 @@ body.template-editor-odprt {
   .opomin-nacrt__hitra-ura-vrednost {
   outline: 2px solid var(--teal, #159195);
   outline-offset: 2px;
+}
+
+.opomin-nacrt__cas-vrstica--prvi {
+  flex-wrap: nowrap;
+  column-gap: 6px;
+}
+
+.opomin-nacrt__cas-vrstica--prvi .opomin-nacrt__cas-tekst {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.opomin-nacrt__hitra-ura-polje--zgoraj {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 30px;
+}
+
+.opomin-nacrt__hitra-ura-vrednost--zgoraj {
+  width: auto;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.opomin-nacrt__cas-vrstica--prvi > .opomin-nacrt__gumb-zdaj {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 11px;
 }
 
 .opomin-nacrt__gumb-enako {
@@ -9202,25 +9236,33 @@ body.template-editor-odprt {
 }
 
 .opomin-nacrt__dnevi-opomba {
-  margin: 4px 0 0;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
   color: #8a6412;
   background: #fef9e7;
-  border-radius: 8px;
-  border: 1px solid rgba(214, 161, 38, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(214, 161, 38, 0.25);
+  line-height: 1.35;
 }
 
 .opomin-cas-sheet__dnevi-opozorilo {
-  margin: 6px 0 0;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
   color: #8a6412;
   background: #fef9e7;
-  border-radius: 8px;
-  border: 1px solid rgba(214, 161, 38, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(214, 161, 38, 0.25);
+  line-height: 1.35;
 }
 
 .opomin-nacrt__gumb-predizbor {
