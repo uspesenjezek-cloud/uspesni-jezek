@@ -606,6 +606,9 @@
       if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
       plan.steps.forEach(normalizirajKorak);
       uskladiOffseteIzDatumov(plan);
+      if (!Array.isArray(plan._baseOffsets) || plan._baseOffsets.length !== plan.steps.length) {
+        plan._baseOffsets = plan.steps.map(function (s) { return Number(s.scheduledOffsetDays) || 0; });
+      }
       plan.stages = plan.steps;
       return plan;
     } catch (_e) {
@@ -1205,15 +1208,12 @@
   function preracunajOdmikePoIzkljucitvi(plan) {
     if (!plan || !Array.isArray(plan.steps)) return plan;
     var koraki = plan.steps;
-    if (!Array.isArray(plan._baseOffsets) || plan._baseOffsets.length !== koraki.length) {
-      plan._baseOffsets = koraki.map(function (s) { return Number(s.scheduledOffsetDays) || 0; });
-    }
     /* Vsak neizključen korak dobi odmik iz _baseOffsets glede na svojo pozicijo
        v zaporedju neizključenih korakov. */
     var neizkljucenIdx = 0;
     koraki.forEach(function (s) {
       if (!s.isExcluded) {
-        s.scheduledOffsetDays = plan._baseOffsets[neizkljucenIdx] || 0;
+        s.scheduledOffsetDays = (plan._baseOffsets || [])[neizkljucenIdx] || 0;
         s.offsetDays = s.scheduledOffsetDays;
         s.sendAt = privzetiSendAt(s.scheduledOffsetDays);
         neizkljucenIdx++;
