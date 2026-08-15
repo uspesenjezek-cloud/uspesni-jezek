@@ -189,6 +189,7 @@ var kerkmannImpressum = test.razcleniImpressum(
 assert.strictEqual(kerkmannImpressum.ime, "Stefan Krause");
 assert.strictEqual(kerkmannImpressum.naziv, "U.K. Udo Kerkmann e.K.");
 assert.strictEqual(kerkmannImpressum.registerNumber, "HRA 17175");
+assert.strictEqual(test.pocistiRegistrskoSodisce(kerkmannImpressum.registerCourt), "D\u00fcsseldorf");
 assert.deepStrictEqual(test.pripraviVnosZaPreverbo({
   ime: "https://udo-kerkmann.com/impressum/",
   naslov: "W\u00f6rthstr. 1",
@@ -227,6 +228,12 @@ var registerPoPovezavi = test.izberiOpenRegisterZadetek([
   { company_id: "DE-HRB-M1201-137035", name: "MedienOrbis GmbH", register_type: "HRB", register_number: "137035" },
 ], { ime: "https://openregister.de/company/DE-HRB-M1201-137035", postnaStevilka: "60325", kraj: "Frankfurt am Main" });
 assert.strictEqual(registerPoPovezavi.status, "found");
+var registerPoSodiscu = test.izberiOpenRegisterZadetek([
+  { company_id: "DE-HRA-R2402-17175", name: "BHKW Ruhrauenpark GmbH & Co. KG", register_type: "HRA", register_number: "17175", register_court: "Essen" },
+  { company_id: "DE-HRA-R1101-17175", name: "U.K. Udo Kerkmann e.K. Inhaber Stefan Krause", register_type: "HRA", register_number: "17175", register_court: "D\u00fcsseldorf" },
+], { ime: "HRA 17175", registerCourt: "Amtsgericht D\u00fcsseldorf" });
+assert.strictEqual(registerPoSodiscu.status, "found");
+assert.strictEqual(registerPoSodiscu.company.company_id, "DE-HRA-R1101-17175");
 
 var identitetaRegister = test.sestaviIdentiteto(registerIzbor, { status: "not_found" }, { status: "not_found" }, {
   ime: "Elektro Beispiel GmbH", postnaStevilka: "60385", kraj: "Frankfurt am Main",

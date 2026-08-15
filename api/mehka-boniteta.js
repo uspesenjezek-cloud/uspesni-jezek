@@ -460,11 +460,22 @@ function razcleniOpenRegisterVnos(vrednost) {
   return { companyId: "", registerType: "", registerNumber: "" };
 }
 
+function pocistiRegistrskoSodisce(vrednost) {
+  return String(vrednost || "")
+    .replace(/^\s*(?:Amtsgericht|Registergericht)\s*:?\s*/i, "")
+    .trim();
+}
+
 function oceniOpenRegisterZadetek(kandidat, vnos) {
   var register = razcleniOpenRegisterVnos(vnos && vnos.ime);
   if (register.companyId && String(kandidat && kandidat.company_id || "").toUpperCase() === register.companyId) return 500;
+  var iskanoSodisce = normaliziraj(pocistiRegistrskoSodisce(vnos && vnos.registerCourt));
+  var najdenoSodisce = normaliziraj(pocistiRegistrskoSodisce(kandidat && kandidat.register_court));
+  if (register.registerNumber && iskanoSodisce && najdenoSodisce && iskanoSodisce !== najdenoSodisce) return 0;
   if (register.registerNumber && String(kandidat && kandidat.register_number || "") === register.registerNumber &&
-      (!register.registerType || String(kandidat && kandidat.register_type || "").toUpperCase() === register.registerType.toUpperCase())) return 450;
+      (!register.registerType || String(kandidat && kandidat.register_type || "").toUpperCase() === register.registerType.toUpperCase())) {
+    return iskanoSodisce && najdenoSodisce ? 500 : 450;
+  }
   var iskano = normaliziraj(vnos.ime);
   var najdeno = normaliziraj(kandidat && kandidat.name);
   if (!iskano || !najdeno) return 0;
@@ -498,6 +509,8 @@ async function poisciOpenRegister(vnos) {
   if (register.registerNumber) {
     url.searchParams.set("register_number", register.registerNumber);
     if (register.registerType) url.searchParams.set("register_type", register.registerType);
+    var registerCourt = pocistiRegistrskoSodisce(vnos.registerCourt);
+    if (registerCourt) url.searchParams.set("register_court", registerCourt);
   } else {
     url.searchParams.set("query", vnos.ime);
   }
@@ -1290,6 +1303,7 @@ async function handler(req, res) {
     var javniProfil = await poisciVImpressumu(vnos);
     var openregisterVnos = Object.assign({}, vnos);
     if (javniProfil.status === "found" && javniProfil.subjekt) {
+      openregisterVnos.registerCourt = javniProfil.subjekt.registerCourt || "";
       if (javniProfil.subjekt.registerNumber) {
         openregisterVnos.ime = javniProfil.subjekt.registerNumber;
       } else if (!openregisterVnos.ime) {
@@ -1464,6 +1478,7 @@ handler._test = {
   poisciVImpressumu: poisciVImpressumu,
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,
   razcleniOpenRegisterVnos: razcleniOpenRegisterVnos,
+  pocistiRegistrskoSodisce: pocistiRegistrskoSodisce,
   sestaviIdentiteto: sestaviIdentiteto,
   normalizirajNaslov: normalizirajNaslov,
   preveriUjemanjeLokacije: preveriUjemanjeLokacije,
