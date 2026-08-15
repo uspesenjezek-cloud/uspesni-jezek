@@ -1231,6 +1231,139 @@ async function zazeniBrskalnikZaDokazilo() {
   });
 }
 
+async function sprejmiPiskotke(stran) {
+  var vzorci = [
+    /^alle\s+(?:akzeptieren|annehmen|zulassen)$/i,
+    /^alles\s+(?:akzeptieren|annehmen|zulassen)$/i,
+    /^akzeptieren\s+und\s+weiter$/i,
+    /^ich\s+stimme\s+zu$/i,
+    /^zustimmen$/i,
+    /^accept\s+all(?:\s+cookies)?$/i,
+    /^allow\s+all$/i,
+    /^agree$/i,
+  ];
+  for (var poskus = 0; poskus < 3; poskus += 1) {
+    var okvirji = stran.frames();
+    var kliknjeno = false;
+    for (var i = 0; i < okvirji.length; i += 1) {
+      try {
+        kliknjeno = await okvirji[i].evaluate(function (besedilniVzorci) {
+          var regexi = besedilniVzorci.map(function (vzorec) { return new RegExp(vzorec.source, vzorec.flags); });
+          var koreni = [document];
+          var elementi = [];
+          while (koreni.length) {
+            var koren = koreni.shift();
+            var najdeni = Array.from(koren.querySelectorAll("button, input[type='button'], input[type='submit'], a, [role='button']"));
+            najdeni.forEach(function (element) {
+              elementi.push(element);
+            });
+            Array.from(koren.querySelectorAll("*")).forEach(function (element) {
+              if (element.shadowRoot) koreni.push(element.shadowRoot);
+            });
+          }
+          var kandidat = elementi.find(function (element) {
+            var slog = window.getComputedStyle(element);
+            var pravokotnik = element.getBoundingClientRect();
+            if (slog.display === "none" || slog.visibility === "hidden" || pravokotnik.width < 20 || pravokotnik.height < 12) return false;
+            var tekst = String(element.innerText || element.value || element.getAttribute("aria-label") || element.title || "")
+              .replace(/\s+/g, " ").trim();
+            return regexi.some(function (regex) { return regex.test(tekst); });
+          });
+          if (!kandidat) return false;
+          kandidat.click();
+          return true;
+        }, vzorci.map(function (vzorec) { return { source: vzorec.source, flags: vzorec.flags }; }));
+      } catch (_) {
+        kliknjeno = false;
+      }
+      if (kliknjeno) break;
+    }
+    if (!kliknjeno) return false;
+    await new Promise(function (resolve) { setTimeout(resolve, 450); });
+  }
+  return true;
+}
+
+async function dolociIzrezIdentitete(stran, identiteta) {
+  var iskalniPojmi = [identiteta && identiteta.ime, identiteta && identiteta.naslov]
+    .concat(identiteta && identiteta.postnaStevilka ? [identiteta.postnaStevilka] : [])
+    .concat(identiteta && identiteta.kraj ? [identiteta.kraj] : [])
+    .map(function (vrednost) { return String(vrednost || "").replace(/\s+/g, " ").trim(); })
+    .filter(function (vrednost) { return vrednost.length >= 3; });
+  if (iskalniPojmi.length < 2) return null;
+
+  var izrez = await stran.evaluate(function (pojmi) {
+    function normaliziraj(vrednost) {
+      return String(vrednost || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "ss").replace(/\s+/g, " ").toLowerCase().trim();
+    }
+    function jeViden(element) {
+      var slog = window.getComputedStyle(element);
+      var pravokotnik = element.getBoundingClientRect();
+      return slog.display !== "none" && slog.visibility !== "hidden" && Number(slog.opacity || 1) > 0 && pravokotnik.width > 20 && pravokotnik.height > 12;
+    }
+    var normaliziraniPojmi = pojmi.map(normaliziraj);
+    var besedilniPravokotniki = [];
+    var sprehajalec = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+    var besedilnoVozlisce;
+    while ((besedilnoVozlisce = sprehajalec.nextNode())) {
+      var stars = besedilnoVozlisce.parentElement;
+      if (!stars || !jeViden(stars)) continue;
+      var vsebina = normaliziraj(besedilnoVozlisce.nodeValue || "");
+      normaliziraniPojmi.forEach(function (pojem, index) {
+        if (!pojem || besedilniPravokotniki.some(function (zapis) { return zapis.index === index; }) || !vsebina.includes(pojem)) return;
+        var obseg = document.createRange();
+        obseg.selectNodeContents(besedilnoVozlisce);
+        var pravokotnik = obseg.getBoundingClientRect();
+        if (pravokotnik.width > 0 && pravokotnik.height > 0) besedilniPravokotniki.push({ index: index, rect: pravokotnik });
+      });
+    }
+    if (besedilniPravokotniki.length >= Math.min(3, normaliziraniPojmi.length)) {
+      var levo = Math.min.apply(null, besedilniPravokotniki.map(function (zapis) { return zapis.rect.left; }));
+      var zgoraj = Math.min.apply(null, besedilniPravokotniki.map(function (zapis) { return zapis.rect.top; }));
+      var desno = Math.max.apply(null, besedilniPravokotniki.map(function (zapis) { return zapis.rect.right; }));
+      var spodaj = Math.max.apply(null, besedilniPravokotniki.map(function (zapis) { return zapis.rect.bottom; }));
+      var vodoravniOdmik = 20;
+      var zgornjiOdmik = 8;
+      var spodnjiOdmik = 8;
+      var besedilniX = Math.max(0, levo + window.scrollX - vodoravniOdmik);
+      var besedilniY = Math.max(0, zgoraj + window.scrollY - zgornjiOdmik);
+      return {
+        x: besedilniX,
+        y: besedilniY,
+        width: Math.max(360, Math.min(desno - levo + vodoravniOdmik * 2, 900)),
+        height: Math.max(90, Math.min(spodaj - zgoraj + zgornjiOdmik + spodnjiOdmik, 520)),
+      };
+    }
+    var kandidati = Array.from(document.querySelectorAll("address, section, article, main, div, p, li, td, dd"))
+      .filter(jeViden)
+      .map(function (element) {
+        var tekst = normaliziraj(element.innerText || element.textContent || "");
+        var zadetki = normaliziraniPojmi.filter(function (pojem) { return tekst.includes(pojem); }).length;
+        var pravokotnik = element.getBoundingClientRect();
+        return { element: element, zadetki: zadetki, povrsina: pravokotnik.width * pravokotnik.height };
+      })
+      .filter(function (kandidat) { return kandidat.zadetki >= Math.min(3, normaliziraniPojmi.length); })
+      .sort(function (a, b) { return b.zadetki - a.zadetki || a.povrsina - b.povrsina; });
+    var element = kandidati.length ? kandidati[0].element : null;
+    if (!element) return null;
+    element.scrollIntoView({ block: "center", inline: "center" });
+    var pravokotnik = element.getBoundingClientRect();
+    var odmik = 24;
+    var x = Math.max(0, pravokotnik.left + window.scrollX - odmik);
+    var y = Math.max(0, pravokotnik.top + window.scrollY - odmik);
+    var sirinaDokumenta = Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0);
+    var visinaDokumenta = Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
+    return {
+      x: x,
+      y: y,
+      width: Math.max(200, Math.min(pravokotnik.width + odmik * 2, sirinaDokumenta - x, 1100)),
+      height: Math.max(120, Math.min(pravokotnik.height + odmik * 2, visinaDokumenta - y, 720)),
+    };
+  }, iskalniPojmi);
+  if (!izrez || !Number.isFinite(izrez.width) || !Number.isFinite(izrez.height)) return null;
+  return izrez;
+}
+
 function dolociVirDokazilaIdentitete(identiteta, openregister, hwk, javniProfil) {
   if (identiteta && identiteta.status === "verified_register") {
     return {
@@ -1285,14 +1418,19 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
   var browser = await zazeniBrskalnikZaDokazilo();
   try {
     var stran = await browser.newPage();
-    await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
+    await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1.5 });
     await stran.setUserAgent(USER_AGENT);
     await stran.goto(varenUrl.toString(), { waitUntil: "domcontentloaded", timeout: 25000 });
     await new Promise(function (resolve) { setTimeout(resolve, 1200); });
+    await sprejmiPiskotke(stran);
+    await new Promise(function (resolve) { setTimeout(resolve, 350); });
+    var izrez = await dolociIzrezIdentitete(stran, identiteta);
+    if (!izrez) throw new Error("IDENTITY_BLOCK_NOT_FOUND");
     var posnetek = await stran.screenshot({
       type: "jpeg",
-      quality: 72,
-      fullPage: true,
+      quality: 82,
+      clip: izrez,
+      captureBeyondViewport: true,
       encoding: "base64",
     });
     return {
