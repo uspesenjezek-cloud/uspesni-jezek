@@ -21,6 +21,7 @@
   var samodejniKraj = "";
   var potrjenoBrezSpletne = false;
   var zadnjiVnos = null;
+  var zadnjaOpenRegisterReferenca = "";
   var potrditevIdentitete = document.getElementById("boniteta-potrditev-identitete");
   var potrditevNapaka = document.getElementById("boniteta-potrditev-napaka");
   var potrditevGumb = document.getElementById("boniteta-potrditev-gumb");
@@ -249,6 +250,7 @@
     }
 
     if (podatki.confirmationRequired) {
+      zadnjaOpenRegisterReferenca = identiteta.companyId || dokaziloIdentitete.companyId || "";
       potrditevIdentitete.hidden = false;
       potrditevNapaka.hidden = true;
       document.getElementById("boniteta-potrdi-ime").value = identiteta.ime || "";
@@ -406,6 +408,7 @@
         kraj: rocniKraj,
         spletnaStran: spletnaStran,
       };
+      zadnjaOpenRegisterReferenca = "";
       var odgovor = await fetch("/api/mehka-boniteta", {
         method: "POST",
         headers: {
@@ -449,6 +452,7 @@
           street: potrjeniNaslov,
           postalCode: potrjenaPosta,
           city: potrjeniKraj,
+          companyId: zadnjaOpenRegisterReferenca,
           confirmed: true,
         },
       });

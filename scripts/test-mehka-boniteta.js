@@ -348,6 +348,22 @@ var potrjenRegister = test.pripraviPotrditevIdentitete({ confirmedIdentity: {
 } }, identitetaZNaslovom);
 assert.strictEqual(potrjenRegister.status, "valid");
 assert.strictEqual(potrjenRegister.identity.verificationMode, "openregister_confirmed");
+var juanRegister = {
+  status: "verified_register", ime: "Juan Munoz e.K.", naziv: "Juan Munoz e.K.",
+  naslov: "Egenolffstraße 3", postnaStevilka: "60316", kraj: "Frankfurt am Main",
+  companyId: "DE-HRA-F1103-44336",
+};
+var juanPotrditev = test.pripraviPotrditevIdentitete({ confirmedIdentity: {
+  name: "Juan Munoz e.K.", businessName: "Juan Munoz e.K.", street: "Egenolffstraße 3",
+  postalCode: "60316", city: "Frankfurt am Main", companyId: "DE-HRA-F1103-44336", confirmed: true,
+} }, juanRegister);
+assert.strictEqual(juanPotrditev.status, "valid");
+assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({ confirmedIdentity: {
+  companyId: "DE-HRA-F1103-44336",
+} }, { ime: "Juan Muñoz", spletnaStran: "https://juan-munoz.de/" }).ime, "DE-HRA-F1103-44336");
+assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({ confirmedIdentity: {
+  companyId: "ni-veljaven-id",
+} }, { ime: "Juan Muñoz" }).ime, "Juan Muñoz");
 assert.strictEqual(test.pripraviPotrditevIdentitete({ confirmedIdentity: {
   name: "MedienOrbis GmbH", street: "Druga ulica 1", postalCode: "60325", city: "Frankfurt am Main", confirmed: true,
 } }, identitetaZNaslovom).reason, "official_data_mismatch");
@@ -391,6 +407,7 @@ assert.doesNotMatch(js, /insolvenca\.evidenceImage/);
 assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
 assert.match(js, /Neposredno prek OpenRegister API/);
 assert.match(js, /confirmedIdentity/);
+assert.match(js, /companyId: zadnjaOpenRegisterReferenca/);
 assert.match(js, /Podatki so pravilni – preveri insolventnost/);
 assert.doesNotMatch(js, /manualHwkEvidence|Nadaljuj v uradnem HWK iskanju/);
 assert.match(apiSrc, /OPENREGISTER_INSOLVENCY_SEARCH/);
@@ -407,6 +424,7 @@ assert.match(apiSrc, /status: "verified_api"/);
 assert.match(apiSrc, /confirmationRequired: true/);
 assert.match(apiSrc, /reason: "temporarily_disabled"/);
 assert.match(apiSrc, /pripraviPotrditevIdentitete\(telo, identiteta\)/);
+assert.match(apiSrc, /pripraviOpenRegisterVnosZaPotrditev\(telo, vnos\)/);
 assert.match(apiSrc, /"identity_evidence_unavailable"/);
 assert.doesNotMatch(apiSrc.slice(apiSrc.indexOf("async function handler"), apiSrc.indexOf("handler._test")), /dolociPristojnoHwk|poisciPriHwk|manualHwkEvidence/);
 assert.match(meni, /href="bonitetna-preverba\.html"/);

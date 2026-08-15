@@ -133,6 +133,13 @@ function pripraviVnosZaPreverbo(telo) {
   return vnos;
 }
 
+function pripraviOpenRegisterVnosZaPotrditev(telo, vnos) {
+  var referenca = telo && telo.confirmedIdentity && telo.confirmedIdentity.companyId;
+  var companyId = razcleniOpenRegisterVnos(varnoBesedilo(referenca, 120)).companyId;
+  if (!companyId) return vnos;
+  return Object.assign({}, vnos, { ime: companyId });
+}
+
 function pripraviRocnoHwkDokazilo(telo, vnos, javniProfil, zbornica) {
   var surovo = telo && telo.manualHwkEvidence;
   if (!surovo || typeof surovo !== "object") return { status: "not_provided" };
@@ -1627,8 +1634,9 @@ async function handler(req, res) {
   }
   try {
     var javniProfil = await poisciVImpressumu(vnos);
-    var openregister = vnos.ime
-      ? await poisciOpenRegister(vnos)
+    var openregisterOsnovniVnos = pripraviOpenRegisterVnosZaPotrditev(telo, vnos);
+    var openregister = openregisterOsnovniVnos.ime
+      ? await poisciOpenRegister(openregisterOsnovniVnos)
       : { status: "not_found", sourceUrl: OPENREGISTER_WEB };
     if (openregister.status !== "found" && javniProfil.status === "found" && javniProfil.subjekt) {
       var openregisterVnos = Object.assign({}, vnos, {
@@ -1803,6 +1811,7 @@ handler._test = {
   sestaviVire: sestaviVire,
   preveriInsolvenco: preveriInsolvenco,
   pripraviVnosZaPreverbo: pripraviVnosZaPreverbo,
+  pripraviOpenRegisterVnosZaPotrditev: pripraviOpenRegisterVnosZaPotrditev,
   pocistiNazivDruzbe: pocistiNazivDruzbe,
 };
 
