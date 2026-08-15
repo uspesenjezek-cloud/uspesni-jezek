@@ -181,6 +181,27 @@ var jansenImpressum = test.razcleniImpressum(
 assert.strictEqual(jansenImpressum.ime, "Holger Jansen");
 assert.strictEqual(jansenImpressum.postnaStevilka, "40225");
 assert.strictEqual(jansenImpressum.kraj, "D\u00fcsseldorf");
+var kerkmannImpressum = test.razcleniImpressum(
+  "<title>Impressum - U.K. Udo Kerkmann e.K.</title><main><h1>Impressum</h1><p>U.K. Udo Kerkmann e.K.<br>Inhaber Stefan Krause<br>W\u00f6rthstr. 1<br>40476 D\u00fcsseldorf</p><p>Registernummer: HRA 17175<br>Registergericht: Amtsgericht D\u00fcsseldorf</p></main>",
+  "https://udo-kerkmann.com/impressum/",
+  { ime: "", postnaStevilka: "40476", kraj: "D\u00fcsseldorf" }
+);
+assert.strictEqual(kerkmannImpressum.ime, "Stefan Krause");
+assert.strictEqual(kerkmannImpressum.naziv, "U.K. Udo Kerkmann e.K.");
+assert.strictEqual(kerkmannImpressum.registerNumber, "HRA 17175");
+assert.deepStrictEqual(test.pripraviVnosZaPreverbo({
+  ime: "https://udo-kerkmann.com/impressum/",
+  naslov: "W\u00f6rthstr. 1",
+  postnaStevilka: "40476",
+  kraj: "D\u00fcsseldorf",
+  spletnaStran: "https://udo-kerkmann.com/impressum/",
+}), {
+  ime: "",
+  naslov: "W\u00f6rthstr. 1",
+  postnaStevilka: "40476",
+  kraj: "D\u00fcsseldorf",
+  spletnaStran: "https://udo-kerkmann.com/impressum/",
+});
 assert.deepStrictEqual(test.najdiImpressumPovezave(
   '<a href="https://jshaustechnik.live-website.com/impressum/">Impressum</a>',
   "https://jshaustechnik.de/ueber-uns/"

@@ -107,6 +107,34 @@ function varnoBesedilo(vrednost, najvec) {
   return String(vrednost || "").trim().replace(/\s+/g, " ").slice(0, najvec);
 }
 
+function jeSpletniNaslovNamestoImena(vrednost) {
+  var vnos = String(vrednost || "").trim();
+  return /^(?:https?:\/\/|www\.)/i.test(vnos) && !/openregister\.de\/company\//i.test(vnos);
+}
+
+function pripraviVnosZaPreverbo(telo) {
+  var vnos = {
+    ime: varnoBesedilo(telo && telo.ime, 240),
+    naslov: varnoBesedilo(telo && telo.naslov, 140),
+    postnaStevilka: varnoBesedilo(telo && telo.postnaStevilka, 5),
+    kraj: varnoBesedilo(telo && telo.kraj, 80),
+    spletnaStran: varnoBesedilo(telo && telo.spletnaStran, 240),
+  };
+  if (jeSpletniNaslovNamestoImena(vnos.ime)) {
+    if (!vnos.spletnaStran) vnos.spletnaStran = vnos.ime;
+    vnos.ime = "";
+  }
+  return vnos;
+}
+
+function pocistiNazivDruzbe(vrednost) {
+  return String(vrednost || "")
+    .replace(/^\s*(?:impressum|imprint)\s*(?:[-–—|:]\s*)?/i, "")
+    .replace(/\s*[|–—-]\s*(?:impressum|imprint)\s*$/i, "")
+    .replace(/\s+(?:impressum|imprint)\s*$/i, "")
+    .trim();
+}
+
 function pocistiImeOsebe(vrednost) {
   return String(vrednost || "")
     .replace(/^(?:herr|frau)\s+/i, "")
@@ -312,6 +340,7 @@ function razcleniImpressum(html, sourceUrl, vnos) {
   var nazivDruzbe = vrstice.find(function (vrstica) {
     return /\b(?:GmbH|UG(?:\s*\(haftungsbeschr(?:ä|a)nkt\))?|AG|GbR|OHG|KG|e\.?\s*K\.?|PartG|eG)\b/i.test(vrstica) && vrstica.length <= 140;
   }) || vnos.ime;
+  nazivDruzbe = pocistiNazivDruzbe(nazivDruzbe);
   var register = tekst.match(/\b((?:HR[AB]|GnR|PR|VR)\s*[A-Z]?\s*\d+[A-Z0-9-]*)\b/i);
   var registergericht = tekst.match(/(?:Registergericht|Amtsgericht)\s*:?\s*([^\n]{2,100})/i);
   var ustId = tekst.match(/\b(?:USt\.?-?IdNr\.?|Umsatzsteuer(?:-|\s*)Identifikationsnummer)\s*:?\s*(DE\s*\d{9})\b/i);
@@ -1253,19 +1282,23 @@ async function handler(req, res) {
   if (!auth.ok) return odgovorJson(res, auth.status, { ok: false, napaka: auth.napaka });
 
   var telo = req.body && typeof req.body === "object" ? req.body : {};
-  var vnos = {
-    ime: varnoBesedilo(telo.ime, 140),
-    naslov: varnoBesedilo(telo.naslov, 140),
-    postnaStevilka: varnoBesedilo(telo.postnaStevilka, 5),
-    kraj: varnoBesedilo(telo.kraj, 80),
-    spletnaStran: varnoBesedilo(telo.spletnaStran, 240),
-  };
-  if (vnos.ime.length < 3 || vnos.naslov.length < 3 || !/^\d{5}$/.test(vnos.postnaStevilka) || vnos.kraj.length < 2) {
-    return odgovorJson(res, 400, { ok: false, code: "INVALID_INPUT", napaka: "Vnesite ime, naslov, kraj in veljavno petmestno poštno številko." });
+  var vnos = pripraviVnosZaPreverbo(telo);
+  if ((!vnos.ime && !vnos.spletnaStran) || vnos.naslov.length < 3 || !/^\d{5}$/.test(vnos.postnaStevilka) || vnos.kraj.length < 2) {
+    return odgovorJson(res, 400, { ok: false, code: "INVALID_INPUT", napaka: "Vnesite ime ali spletno stran ter naslov, kraj in veljavno petmestno poštno številko." });
   }
   try {
-    var openregister = await poisciOpenRegister(vnos);
     var javniProfil = await poisciVImpressumu(vnos);
+    var openregisterVnos = Object.assign({}, vnos);
+    if (javniProfil.status === "found" && javniProfil.subjekt) {
+      if (javniProfil.subjekt.registerNumber) {
+        openregisterVnos.ime = javniProfil.subjekt.registerNumber;
+      } else if (!openregisterVnos.ime) {
+        openregisterVnos.ime = javniProfil.subjekt.naziv || javniProfil.subjekt.ime || "";
+      }
+    }
+    var openregister = openregisterVnos.ime
+      ? await poisciOpenRegister(openregisterVnos)
+      : { status: "not_found", sourceUrl: OPENREGISTER_WEB };
     var hwk;
     var pristojnaHwk;
     var hwkIskalnik;
@@ -1436,6 +1469,8 @@ handler._test = {
   preveriUjemanjeLokacije: preveriUjemanjeLokacije,
   sestaviVire: sestaviVire,
   preveriInsolvenco: preveriInsolvenco,
+  pripraviVnosZaPreverbo: pripraviVnosZaPreverbo,
+  pocistiNazivDruzbe: pocistiNazivDruzbe,
 };
 
 module.exports = handler;
