@@ -879,6 +879,51 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
   };
 }
 
+function normalizirajNaslov(vrednost) {
+  return String(vrednost || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "ss")
+    .toLowerCase()
+    .replace(/str\.(?=\s|\d|$)/g, "strasse")
+    .replace(/\bstr(?:a(?:ss|ß)e)?\.?\b/g, "strasse")
+    .replace(/\bstra(?:ss|ß)e\b/g, "strasse")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function preveriUjemanjeLokacije(vnos, identiteta) {
+  var vneseno = {
+    naslov: String(vnos && vnos.naslov || "").trim(),
+    postnaStevilka: String(vnos && vnos.postnaStevilka || "").trim(),
+    kraj: String(vnos && vnos.kraj || "").trim(),
+  };
+  var uradno = {
+    naslov: String(identiteta && identiteta.naslov || "").trim(),
+    postnaStevilka: String(identiteta && identiteta.postnaStevilka || "").trim(),
+    kraj: String(identiteta && identiteta.kraj || "").trim(),
+  };
+  var polja = {
+    postnaStevilka: Boolean(vneseno.postnaStevilka && uradno.postnaStevilka) && vneseno.postnaStevilka === uradno.postnaStevilka,
+    kraj: Boolean(vneseno.kraj && uradno.kraj) && normaliziraj(vneseno.kraj) === normaliziraj(uradno.kraj),
+    naslov: Boolean(vneseno.naslov && uradno.naslov) && normalizirajNaslov(vneseno.naslov) === normalizirajNaslov(uradno.naslov),
+  };
+  var manjkajoca = Object.keys(polja).filter(function (polje) {
+    return !vneseno[polje] || !uradno[polje];
+  });
+  var neujemanja = Object.keys(polja).filter(function (polje) {
+    return vneseno[polje] && uradno[polje] && !polja[polje];
+  });
+  return {
+    status: manjkajoca.length ? "unverifiable" : (neujemanja.length ? "mismatch" : "matched"),
+    entered: vneseno,
+    official: uradno,
+    fields: polja,
+    missingFields: manjkajoca,
+    mismatchedFields: neujemanja,
+  };
+}
+
 function sestaviVire(openregister, hwk, javniProfil, vnos) {
   var viri = [
     {
@@ -1162,6 +1207,12 @@ function sestaviSklep(identiteta, insolvenca) {
   if (identiteta.status === "probable_impressum") {
     return { level: "yellow", title: "Nosilec je najden, identiteta ni potrjena", message: "Impressum je pomagal določiti nosilca, vendar brez potrditve v registru ali HWK insolvenčna preverba ni bila izvedena." };
   }
+  if (insolvenca && insolvenca.reason === "location_mismatch") {
+    return { level: "red", title: "Naslov se ne ujema z uradnim virom", message: "Najdeno podjetje ali obrtnik ima drugačen naslov, kraj ali poštno številko. Insolvenčna preverba ni bila izvedena." };
+  }
+  if (insolvenca && insolvenca.reason === "location_unverifiable") {
+    return { level: "yellow", title: "Lokacije ni bilo mogoče potrditi", message: "Uradni vir nima vseh podatkov za zanesljivo primerjavo naslova. Insolvenčna preverba ni bila izvedena." };
+  }
   if (insolvenca && insolvenca.status === "not_checked") {
     return { level: "yellow", title: "Identiteta je najdena, dokazilo manjka", message: "Brez dokaznega posnetka registrskega vira insolvenčna preverba ni bila izvedena." };
   }
@@ -1195,12 +1246,13 @@ async function handler(req, res) {
   var telo = req.body && typeof req.body === "object" ? req.body : {};
   var vnos = {
     ime: varnoBesedilo(telo.ime, 140),
+    naslov: varnoBesedilo(telo.naslov, 140),
     postnaStevilka: varnoBesedilo(telo.postnaStevilka, 5),
     kraj: varnoBesedilo(telo.kraj, 80),
     spletnaStran: varnoBesedilo(telo.spletnaStran, 240),
   };
-  if (vnos.ime.length < 3 || !/^\d{5}$/.test(vnos.postnaStevilka)) {
-    return odgovorJson(res, 400, { ok: false, code: "INVALID_INPUT", napaka: "Vnesite ime in veljavno petmestno poštno številko." });
+  if (vnos.ime.length < 3 || vnos.naslov.length < 3 || !/^\d{5}$/.test(vnos.postnaStevilka) || vnos.kraj.length < 2) {
+    return odgovorJson(res, 400, { ok: false, code: "INVALID_INPUT", napaka: "Vnesite ime, naslov, kraj in veljavno petmestno poštno številko." });
   }
   try {
     var openregister = await poisciOpenRegister(vnos);
@@ -1252,6 +1304,7 @@ async function handler(req, res) {
       });
     }
 
+    var ujemanjeLokacije = preveriUjemanjeLokacije(vnos, identiteta);
     var dokaziloIdentitete = null;
     try {
       dokaziloIdentitete = await zajemiDokaziloIdentitete(identiteta, openregister, hwk);
@@ -1259,13 +1312,17 @@ async function handler(req, res) {
       console.error("[mehka-boniteta:identity-evidence]", napakaDokazilaIdentitete.message);
     }
     if (!dokaziloIdentitete) {
-      var nepreverjenaInsolvenca = { status: "not_checked", reason: "identity_evidence_unavailable" };
+      var razlogBrezPreverbe = ujemanjeLokacije.status === "mismatch"
+        ? "location_mismatch"
+        : (ujemanjeLokacije.status === "unverifiable" ? "location_unverifiable" : "identity_evidence_unavailable");
+      var nepreverjenaInsolvenca = { status: "not_checked", reason: razlogBrezPreverbe };
       return odgovorJson(res, 200, {
         ok: true,
         checkedAt: new Date().toISOString(),
         scope: "Nemčija – mehka preverba",
         identity: identiteta,
         identityEvidence: { status: "unavailable", reason: "capture_failed" },
+        locationMatch: ujemanjeLokacije,
         sources: viri,
         openregister: openregister,
         hwk: hwk,
@@ -1273,6 +1330,35 @@ async function handler(req, res) {
         competentChamber: pristojnaHwk,
         insolvency: nepreverjenaInsolvenca,
         result: sestaviSklep(identiteta, nepreverjenaInsolvenca),
+      });
+    }
+
+    var dokaziloIdentiteteOdgovor = {
+      status: "captured",
+      imageDataUrl: dokaziloIdentitete.imageDataUrl,
+      capturedAt: dokaziloIdentitete.capturedAt,
+      sourceUrl: dokaziloIdentitete.sourceUrl,
+      sourceLabel: dokaziloIdentitete.sourceLabel,
+    };
+    if (ujemanjeLokacije.status !== "matched") {
+      var lokacijskaInsolvenca = {
+        status: "not_checked",
+        reason: ujemanjeLokacije.status === "mismatch" ? "location_mismatch" : "location_unverifiable",
+      };
+      return odgovorJson(res, 200, {
+        ok: true,
+        checkedAt: new Date().toISOString(),
+        scope: "Nemčija – mehka preverba",
+        identity: identiteta,
+        identityEvidence: dokaziloIdentiteteOdgovor,
+        locationMatch: ujemanjeLokacije,
+        sources: viri,
+        openregister: openregister,
+        hwk: hwk,
+        publicProfile: javniProfil,
+        competentChamber: pristojnaHwk,
+        insolvency: lokacijskaInsolvenca,
+        result: sestaviSklep(identiteta, lokacijskaInsolvenca),
       });
     }
 
@@ -1288,13 +1374,8 @@ async function handler(req, res) {
       checkedAt: new Date().toISOString(),
       scope: "Nemčija – mehka preverba",
       identity: identiteta,
-      identityEvidence: {
-        status: "captured",
-        imageDataUrl: dokaziloIdentitete.imageDataUrl,
-        capturedAt: dokaziloIdentitete.capturedAt,
-        sourceUrl: dokaziloIdentitete.sourceUrl,
-        sourceLabel: dokaziloIdentitete.sourceLabel,
-      },
+      identityEvidence: dokaziloIdentiteteOdgovor,
+      locationMatch: ujemanjeLokacije,
       sources: viri,
       openregister: openregister,
       hwk: hwk,
@@ -1342,6 +1423,8 @@ handler._test = {
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,
   razcleniOpenRegisterVnos: razcleniOpenRegisterVnos,
   sestaviIdentiteto: sestaviIdentiteto,
+  normalizirajNaslov: normalizirajNaslov,
+  preveriUjemanjeLokacije: preveriUjemanjeLokacije,
   sestaviVire: sestaviVire,
   preveriInsolvenco: preveriInsolvenco,
 };

@@ -56,6 +56,12 @@
           <span class="boniteta-polje__status" id="boniteta-spletna-status">Spletna stran nam pomaga najti pravo ime nosilca v Impressumu.</span>
         </div>
 
+        <div class="boniteta-polje boniteta-polje--celo">
+          <label for="boniteta-naslov-podjetja">Ulica in hišna številka</label>
+          <input id="boniteta-naslov-podjetja" name="naslov" type="text" autocomplete="street-address" placeholder="npr. Bettinastraße 62" maxlength="140" data-fit-input data-fit-input-min="8" required />
+          <span class="boniteta-polje__status">Naslov se mora ujemati z uradnim registrskim ali HWK-zadetkom.</span>
+        </div>
+
         <div class="boniteta-polja-vrstica">
           <div class="boniteta-polje">
             <label for="boniteta-posta">Poštna številka</label>
@@ -147,6 +153,6 @@
     </main>
 
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260815-v10"></script>
+    <script src="bonitetna-preverba.js?v=20260815-v11"></script>
   </body>
 </html>

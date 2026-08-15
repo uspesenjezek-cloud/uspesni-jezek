@@ -173,6 +173,7 @@
     var openregister = podatki.openregister || {};
     var identiteta = podatki.identity || {};
     var dokaziloIdentitete = podatki.identityEvidence || {};
+    var ujemanjeLokacije = podatki.locationMatch || {};
     var identitetaNaslov = document.getElementById("boniteta-identiteta-naslov");
     var identitetaPosnetek = document.getElementById("boniteta-identiteta-posnetek");
     var identitetaSlika = document.getElementById("boniteta-identiteta-slika");
@@ -224,6 +225,26 @@
       hwkVir.textContent = "Poglej HWK iskanje ↗";
     }
 
+    if (ujemanjeLokacije.status) {
+      var vnesenaLokacija = ujemanjeLokacije.entered || {};
+      var uradnaLokacija = ujemanjeLokacije.official || {};
+      dodajPodatek(hwkPodatki, "Vneseni naslov", [vnesenaLokacija.naslov, vnesenaLokacija.postnaStevilka, vnesenaLokacija.kraj].filter(Boolean).join(", "));
+      dodajPodatek(hwkPodatki, "Uradni naslov", [uradnaLokacija.naslov, uradnaLokacija.postnaStevilka, uradnaLokacija.kraj].filter(Boolean).join(", "));
+      if (ujemanjeLokacije.status === "matched") {
+        dodajPodatek(hwkPodatki, "Ujemanje", "Ime in naslov se ujemata");
+        hwkStatus.textContent = "Naslov potrjen";
+        hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
+      } else if (ujemanjeLokacije.status === "mismatch") {
+        dodajPodatek(hwkPodatki, "Ujemanje", "Podatki se ne ujemajo: " + (ujemanjeLokacije.mismatchedFields || []).join(", "));
+        hwkStatus.textContent = "Naslov se ne ujema";
+        hwkStatus.className = "boniteta-znacka boniteta-znacka--red";
+      } else {
+        dodajPodatek(hwkPodatki, "Ujemanje", "Uradni vir nima vseh podatkov za primerjavo");
+        hwkStatus.textContent = "Naslov ni potrjen";
+        hwkStatus.className = "boniteta-znacka boniteta-znacka--yellow";
+      }
+    }
+
     if (dokaziloIdentitete.status === "captured" && /^data:image\/jpeg;base64,/.test(dokaziloIdentitete.imageDataUrl || "")) {
       identitetaSlika.src = dokaziloIdentitete.imageDataUrl;
       identitetaPrenos.href = dokaziloIdentitete.imageDataUrl;
@@ -270,9 +291,15 @@
     } else {
       insolvencaStatus.textContent = "Ni preverjeno";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--yellow";
-      insolvencaOpis.textContent = insolvenca.reason === "identity_evidence_unavailable"
-        ? "Registrski zadetek je najden, vendar dokaznega posnetka ni bilo mogoče zajeti, zato insolvenčna preverba ni bila izvedena."
-        : "Brez potrditve identitete v registru ali HWK insolvenčna preverba ni bila izvedena.";
+      if (insolvenca.reason === "location_mismatch") {
+        insolvencaOpis.textContent = "Vneseni naslov, kraj ali poštna številka se ne ujema z uradnim zadetkom, zato insolvenčna preverba ni bila izvedena.";
+      } else if (insolvenca.reason === "location_unverifiable") {
+        insolvencaOpis.textContent = "Uradni vir nima vseh podatkov za zanesljivo potrditev naslova, zato insolvenčna preverba ni bila izvedena.";
+      } else if (insolvenca.reason === "identity_evidence_unavailable") {
+        insolvencaOpis.textContent = "Registrski zadetek je najden, vendar dokaznega posnetka ni bilo mogoče zajeti, zato insolvenčna preverba ni bila izvedena.";
+      } else {
+        insolvencaOpis.textContent = "Brez potrditve identitete v registru ali HWK insolvenčna preverba ni bila izvedena.";
+      }
     }
     if (insolvenca.evidenceStatus === "captured" && /^data:image\/jpeg;base64,/.test(insolvenca.evidenceImage || "")) {
       insolvencaSlika.src = insolvenca.evidenceImage;
@@ -324,6 +351,7 @@
         },
         body: JSON.stringify({
           ime: document.getElementById("boniteta-ime").value.trim(),
+          naslov: document.getElementById("boniteta-naslov-podjetja").value.trim(),
           postnaStevilka: posta,
           kraj: krajPolje.value.trim(),
           spletnaStran: spletnaStran,

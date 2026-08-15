@@ -210,6 +210,16 @@ var identitetaZNaslovom = test.sestaviIdentiteto({ status: "found", company: {
 assert.strictEqual(identitetaZNaslovom.naslov, "Bettinastraße 62");
 assert.strictEqual(identitetaZNaslovom.postnaStevilka, "60325");
 assert.strictEqual(identitetaZNaslovom.kraj, "Frankfurt am Main");
+var ujemanjeNaslova = test.preveriUjemanjeLokacije({
+  naslov: "Bettinastr. 62", postnaStevilka: "60325", kraj: "Frankfurt am Main",
+}, identitetaZNaslovom);
+assert.strictEqual(ujemanjeNaslova.status, "matched");
+assert.strictEqual(test.preveriUjemanjeLokacije({
+  naslov: "Druga ulica 1", postnaStevilka: "60325", kraj: "Frankfurt am Main",
+}, identitetaZNaslovom).status, "mismatch");
+assert.strictEqual(test.preveriUjemanjeLokacije({
+  naslov: "Bettinastraße 62", postnaStevilka: "60325", kraj: "Frankfurt am Main",
+}, { postnaStevilka: "60325", kraj: "Frankfurt am Main", naslov: "" }).status, "unverifiable");
 
 var identitetaImpressum = test.sestaviIdentiteto({ status: "not_found" }, { status: "not_found" }, {
   status: "found", subjekt: impressum,
@@ -245,6 +255,7 @@ var apiSrc = fs.readFileSync(path.join(koren, "api", "mehka-boniteta.js"), "utf8
 assert.match(html, /id="boniteta-obrazec"/);
 assert.match(html, /id="boniteta-viri"/);
 assert.match(html, /id="boniteta-brez-spletne"/);
+assert.match(html, /id="boniteta-naslov-podjetja"[^>]*required/);
 assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-posnetek"/);
@@ -255,6 +266,7 @@ assert.match(js, /fetch\("\/api\/mehka-boniteta"/);
 assert.match(js, /Vnesite spletno stran ali kliknite/);
 assert.match(js, /potrjenoBrezSpletne/);
 assert.match(js, /fetch\("\/api\/nemcija-posta\?postalCode="/);
+assert.match(js, /naslov: document\.getElementById\("boniteta-naslov-podjetja"\)/);
 assert.match(js, /izrisiVire\(podatki\.sources\)/);
 assert.match(js, /searchedLastName/);
 assert.match(js, /evidenceStatus === "captured"/);
@@ -263,7 +275,8 @@ assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
 assert.match(apiSrc, /zajemiUradnoInsolvencnoDokazilo/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
 assert.match(apiSrc, /identiteta\.status === "unresolved" \|\| identiteta\.status === "probable_impressum"/);
-assert.match(apiSrc, /reason: "identity_evidence_unavailable"/);
+assert.match(apiSrc, /"identity_evidence_unavailable"/);
+assert.match(apiSrc, /preveriUjemanjeLokacije\(vnos, identiteta\)/);
 assert.match(meni, /href="bonitetna-preverba\.html"/);
 assert.match(appJs, /"\[data-fit-input\]"/);
 assert.match(lokalniStreznik, /pathname === "\/api\/mehka-boniteta"/);
