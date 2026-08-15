@@ -36,21 +36,20 @@
         background: #e9f3ef;
         color: #285e5c;
       }
-      .boniteta-hwk-rocno { margin-top: 14px; padding: 14px; border: 1px solid #d9d4b8; border-radius: 14px; background: #fffaf0; }
-      .boniteta-hwk-rocno[hidden] { display: none; }
-      .boniteta-hwk-rocno h4 { margin: 0 0 6px; color: #584d24; font: 700 0.9rem/1.25 "Bricolage Grotesque", sans-serif; }
-      .boniteta-hwk-rocno p { margin: 0 0 10px; color: #6b6241; font: 500 0.72rem/1.4 "Figtree", sans-serif; }
-      .boniteta-hwk-rocno__mreza { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-      .boniteta-hwk-rocno__mreza label { display: grid; gap: 4px; color: #536865; font: 600 0.68rem/1.2 "Figtree", sans-serif; }
-      .boniteta-hwk-rocno__mreza label:first-child, .boniteta-hwk-rocno__mreza label:nth-child(2) { grid-column: 1 / -1; }
-      .boniteta-hwk-rocno input[type="text"] { min-width: 0; width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd9d5; border-radius: 10px; background: #fff; font-size: 16px; }
-      .boniteta-hwk-rocno input[type="file"] { width: 100%; font: 500 0.7rem/1.3 "Figtree", sans-serif; }
-      .boniteta-hwk-rocno__potrditev { display: flex !important; grid-column: 1 / -1; grid-template-columns: none !important; align-items: flex-start; gap: 8px !important; margin-top: 4px; }
-      .boniteta-hwk-rocno__potrditev input { margin-top: 2px; }
-      .boniteta-hwk-rocno__gumb { grid-column: 1 / -1; min-height: 42px; border: 0; border-radius: 11px; background: #3d7676; color: #fff; font: 700 0.76rem/1 "Figtree", sans-serif; cursor: pointer; }
-      .boniteta-hwk-rocno__gumb:disabled { opacity: .6; cursor: wait; }
-      .boniteta-hwk-rocno__napaka { grid-column: 1 / -1; margin: 0 !important; color: #a9433c !important; }
-      @media (max-width: 420px) { .boniteta-hwk-rocno__mreza { grid-template-columns: 1fr; } .boniteta-hwk-rocno__mreza label { grid-column: 1 / -1; } }
+      .boniteta-potrditev-identitete { margin-top: 14px; padding: 14px; border: 1px solid #d9d4b8; border-radius: 14px; background: #fffaf0; }
+      .boniteta-potrditev-identitete[hidden] { display: none; }
+      .boniteta-potrditev-identitete h4 { margin: 0 0 6px; color: #584d24; font: 700 0.9rem/1.25 "Bricolage Grotesque", sans-serif; }
+      .boniteta-potrditev-identitete p { margin: 0 0 10px; color: #6b6241; font: 500 0.72rem/1.4 "Figtree", sans-serif; }
+      .boniteta-potrditev-identitete__mreza { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .boniteta-potrditev-identitete__mreza label { display: grid; gap: 4px; color: #536865; font: 600 0.68rem/1.2 "Figtree", sans-serif; }
+      .boniteta-potrditev-identitete__mreza label:first-child, .boniteta-potrditev-identitete__mreza label:nth-child(2), .boniteta-potrditev-identitete__mreza label:nth-child(3) { grid-column: 1 / -1; }
+      .boniteta-potrditev-identitete input[type="text"] { min-width: 0; width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd9d5; border-radius: 10px; background: #fff; font-size: 16px; }
+      .boniteta-potrditev-identitete__potrditev { display: flex !important; grid-column: 1 / -1; grid-template-columns: none !important; align-items: flex-start; gap: 8px !important; margin-top: 4px; }
+      .boniteta-potrditev-identitete__potrditev input { margin-top: 2px; }
+      .boniteta-potrditev-identitete__gumb { grid-column: 1 / -1; min-height: 42px; border: 0; border-radius: 11px; background: #3d7676; color: #fff; font: 700 0.76rem/1 "Figtree", sans-serif; cursor: pointer; }
+      .boniteta-potrditev-identitete__gumb:disabled { opacity: .6; cursor: wait; }
+      .boniteta-potrditev-identitete__napaka { grid-column: 1 / -1; margin: 0 !important; color: #a9433c !important; }
+      @media (max-width: 420px) { .boniteta-potrditev-identitete__mreza { grid-template-columns: 1fr; } .boniteta-potrditev-identitete__mreza label { grid-column: 1 / -1; } }
     </style>
   </head>
   <body class="stran--bonitetna">
@@ -70,14 +69,14 @@
         <div>
           <p class="boniteta-uvod__oznaka">NEMČIJA · MEHKA PREVERBA</p>
           <h2 id="boniteta-naslov">Preveri, s kom boš sodeloval</h2>
-          <p>Preverimo javni obrtni vpis in uradne insolvenčne objave.</p>
+          <p>Najprej razberemo identiteto, nato vi potrdite podatke za insolvenčno poizvedbo.</p>
         </div>
       </section>
 
       <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate>
         <div class="boniteta-polje boniteta-polje--celo">
-          <label for="boniteta-ime">Ime podjetja ali obrtnika</label>
-          <input id="boniteta-ime" name="ime" type="text" autocomplete="organization" placeholder="npr. U.K. Udo Kerkmann e.K. ali HRA 17175" maxlength="240" data-fit-input data-fit-input-min="8" required />
+          <label for="boniteta-ime">Ime podjetja ali obrtnika (če ga poznate)</label>
+          <input id="boniteta-ime" name="ime" type="text" autocomplete="organization" placeholder="Sistem ga lahko razbere iz spletne strani" maxlength="240" data-fit-input data-fit-input-min="8" />
         </div>
 
         <div class="boniteta-polje boniteta-polje--celo boniteta-spletna-izbira">
@@ -92,25 +91,25 @@
 
         <div class="boniteta-polje boniteta-polje--celo">
           <label for="boniteta-naslov-podjetja">Ulica in hišna številka</label>
-          <input id="boniteta-naslov-podjetja" name="naslov" type="text" autocomplete="street-address" placeholder="npr. Bettinastraße 62" maxlength="140" data-fit-input data-fit-input-min="8" required />
-          <span class="boniteta-polje__status">Naslov se mora ujemati z uradnim registrskim ali HWK-zadetkom.</span>
+          <input id="boniteta-naslov-podjetja" name="naslov" type="text" autocomplete="street-address" placeholder="Sistem ga lahko razbere iz Impressuma" maxlength="140" data-fit-input data-fit-input-min="8" />
+          <span class="boniteta-polje__status">Če imate spletno stran, lahko naslov najprej pustite prazen.</span>
         </div>
 
         <div class="boniteta-polja-vrstica">
           <div class="boniteta-polje">
             <label for="boniteta-posta">Poštna številka</label>
-            <input id="boniteta-posta" name="postnaStevilka" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="npr. 60385" maxlength="5" pattern="[0-9]{5}" data-fit-input data-fit-input-min="10" required />
+            <input id="boniteta-posta" name="postnaStevilka" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="npr. 60385" maxlength="5" pattern="[0-9]{5}" data-fit-input data-fit-input-min="10" />
           </div>
           <div class="boniteta-polje">
             <label for="boniteta-kraj">Kraj</label>
-            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Določi se samodejno" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" required />
+            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Razbere se ali določi samodejno" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" />
             <datalist id="boniteta-kraji"></datalist>
             <div class="boniteta-kraj-izbira" id="boniteta-kraj-izbira" role="group" aria-label="Izberite kraj za poštno številko" hidden></div>
             <span class="boniteta-polje__status" id="boniteta-kraj-status" aria-live="polite"></span>
           </div>
         </div>
 
-        <p class="boniteta-obrazec__namig">Izberite spletno stran ali potrdite, da je stranka nima. Brez spletne strani je preverba samostojnega obrtnika manj zanesljiva.</p>
+        <p class="boniteta-obrazec__namig">Najlažje je vnesti spletno stran. Če je stranka nima, ročno izpolnite ime in celoten naslov.</p>
         <p class="boniteta-napaka" id="boniteta-napaka" role="alert" hidden></p>
 
         <button class="boniteta-gumb" id="boniteta-gumb" type="submit">
@@ -118,7 +117,7 @@
             <circle cx="11" cy="11" r="7"></circle>
             <path d="m20 20-4-4"></path>
           </svg>
-          <span>Preveri stranko</span>
+          <span>Poišči podatke</span>
         </button>
       </form>
 
@@ -142,44 +141,44 @@
 
         <div class="boniteta-rezultat__sklop" id="boniteta-hwk-sklop">
           <div class="boniteta-rezultat__sklop-glava">
-            <h3 id="boniteta-identiteta-naslov">Obrtni vpis</h3>
+            <h3 id="boniteta-identiteta-naslov">Identiteta stranke</h3>
             <span class="boniteta-znacka" id="boniteta-hwk-status"></span>
           </div>
           <dl class="boniteta-podatki" id="boniteta-hwk-podatki"></dl>
           <figure class="boniteta-uradni-posnetek" id="boniteta-identiteta-posnetek" hidden>
             <img id="boniteta-identiteta-slika" alt="Posnetek registrskega vira, ki potrjuje identiteto podjetja ali obrtnika" />
             <figcaption>
-              <strong>Posnetek potrditve identitete</strong>
+              <strong>Posnetek uporabljenega vira</strong>
               <span id="boniteta-identiteta-cas"></span>
               <a id="boniteta-identiteta-prenos" href="#" download="potrditev-identitete.jpg">Prenesi posnetek</a>
             </figcaption>
           </figure>
-          <a class="boniteta-vir" id="boniteta-hwk-vir" href="#" target="_blank" rel="noopener">Odpri vir pri Handwerkskammer ↗</a>
-          <div class="boniteta-hwk-rocno" id="boniteta-hwk-rocno" hidden>
-            <h4>Dokončaj uradno HWK preverbo</h4>
-            <p>Odpri Handwerkerradar, reši varnostno kodo in odpri rezultat. Nato naloži posnetek, na katerem sta vidna uradno ime in naslov.</p>
-            <div class="boniteta-hwk-rocno__mreza">
-              <label>Posnetek uradnega rezultata
-                <input id="boniteta-hwk-dokaz" type="file" accept="image/jpeg,image/png,image/webp" />
+          <a class="boniteta-vir" id="boniteta-hwk-vir" href="#" target="_blank" rel="noopener">Odpri uporabljeni vir ↗</a>
+          <div class="boniteta-potrditev-identitete" id="boniteta-potrditev-identitete" hidden>
+            <h4>Preverite podatke pred insolvenčno poizvedbo</h4>
+            <p>Primerjajte polja s prikazanim virom. Če je sistem kaj narobe razbral, podatek popravite.</p>
+            <div class="boniteta-potrditev-identitete__mreza">
+              <label>Pravno ime oziroma nosilec
+                <input id="boniteta-potrdi-ime" type="text" maxlength="180" data-fit-input />
               </label>
-              <label>Uradno ime oziroma nosilec
-                <input id="boniteta-hwk-uradno-ime" type="text" maxlength="180" data-fit-input />
+              <label>Poslovni naziv
+                <input id="boniteta-potrdi-naziv" type="text" maxlength="180" data-fit-input />
               </label>
-              <label>Uradna ulica in hišna številka
-                <input id="boniteta-hwk-uradni-naslov" type="text" maxlength="140" data-fit-input />
+              <label>Ulica in hišna številka
+                <input id="boniteta-potrdi-naslov" type="text" maxlength="140" data-fit-input />
               </label>
               <label>Poštna številka
-                <input id="boniteta-hwk-uradna-posta" type="text" inputmode="numeric" maxlength="5" data-fit-input />
+                <input id="boniteta-potrdi-posta" type="text" inputmode="numeric" maxlength="5" data-fit-input />
               </label>
               <label>Kraj
-                <input id="boniteta-hwk-uradni-kraj" type="text" maxlength="80" data-fit-input />
+                <input id="boniteta-potrdi-kraj" type="text" maxlength="80" data-fit-input />
               </label>
-              <label class="boniteta-hwk-rocno__potrditev">
-                <input id="boniteta-hwk-potrditev" type="checkbox" />
-                <span>Potrjujem, da je to posnetek uradnega rezultata Handwerkerradar in da sem podatke prepisal točno.</span>
+              <label class="boniteta-potrditev-identitete__potrditev">
+                <input id="boniteta-potrdi-checkbox" type="checkbox" />
+                <span>Podatke sem primerjal s prikazanim virom in so pravilni.</span>
               </label>
-              <p class="boniteta-hwk-rocno__napaka" id="boniteta-hwk-rocno-napaka" role="alert" hidden></p>
-              <button class="boniteta-hwk-rocno__gumb" id="boniteta-hwk-rocno-gumb" type="button">Potrdi HWK in nadaljuj</button>
+              <p class="boniteta-potrditev-identitete__napaka" id="boniteta-potrditev-napaka" role="alert" hidden></p>
+              <button class="boniteta-potrditev-identitete__gumb" id="boniteta-potrditev-gumb" type="button">Podatki so pravilni – preveri insolventnost</button>
             </div>
           </div>
         </div>
@@ -209,12 +208,12 @@
           <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Odpri uradni insolvenčni register ↗</a>
         </div>
 
-        <p class="boniteta-omejitev">Javni HWK seznam ni formalni izpis iz Handwerksrolle. Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
+        <p class="boniteta-omejitev">Podatki iz Impressuma so uporabniško potrjeni in niso uradni registrski izpis. Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
         <button class="boniteta-ponovi" id="boniteta-ponovi" type="button">Preveri drugo stranko</button>
       </section>
     </main>
 
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260815-v16"></script>
+    <script src="bonitetna-preverba.js?v=20260815-v17"></script>
   </body>
 </html>

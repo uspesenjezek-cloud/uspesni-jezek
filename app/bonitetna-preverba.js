@@ -21,9 +21,9 @@
   var samodejniKraj = "";
   var potrjenoBrezSpletne = false;
   var zadnjiVnos = null;
-  var hwkRocno = document.getElementById("boniteta-hwk-rocno");
-  var hwkRocnoNapaka = document.getElementById("boniteta-hwk-rocno-napaka");
-  var hwkRocnoGumb = document.getElementById("boniteta-hwk-rocno-gumb");
+  var potrditevIdentitete = document.getElementById("boniteta-potrditev-identitete");
+  var potrditevNapaka = document.getElementById("boniteta-potrditev-napaka");
+  var potrditevGumb = document.getElementById("boniteta-potrditev-gumb");
 
   function esc(vrednost) {
     return String(vrednost == null ? "" : vrednost)
@@ -198,7 +198,6 @@
     document.getElementById("boniteta-rezultat-opis").textContent = sklep.message || "";
     document.getElementById("boniteta-status-ikona").textContent = sklep.level === "green" ? "✓" : sklep.level === "red" ? "!" : "?";
 
-    var hwk = podatki.hwk || {};
     var hwkStatus = document.getElementById("boniteta-hwk-status");
     var hwkPodatki = document.getElementById("boniteta-hwk-podatki");
     var hwkVir = document.getElementById("boniteta-hwk-vir");
@@ -216,9 +215,9 @@
     hwkVir.hidden = false;
     identitetaPosnetek.hidden = true;
     identitetaSlika.removeAttribute("src");
-    hwkRocno.hidden = true;
+    potrditevIdentitete.hidden = true;
     if (identiteta.status === "verified_register") {
-      hwkStatus.textContent = "Register potrjen";
+      hwkStatus.textContent = identiteta.userConfirmed ? "Register in podatki potrjeni" : "Register najden";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
       identitetaNaslov.textContent = "Registrirana družba";
       dodajPodatek(hwkPodatki, "Pravno ime", identiteta.ime);
@@ -229,62 +228,52 @@
       dodajPodatek(hwkPodatki, "Potrditev", "Neposredno prek OpenRegister API");
       hwkVir.href = openregister.sourceUrl || "https://openregister.de";
       hwkVir.textContent = "Odpri register podjetij ↗";
-    } else if (identiteta.status === "verified_directory" && hwk.subjekt) {
-      hwkStatus.textContent = hwk.evidenceMode === "user_uploaded_official_screenshot" ? "HWK ročno potrjen" : "HWK najden";
-      hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
-      identitetaNaslov.textContent = "Obrtna identiteta";
-      dodajPodatek(hwkPodatki, "Nosilec", identiteta.ime);
-      dodajPodatek(hwkPodatki, "Naslov", [identiteta.naslov, identiteta.postnaStevilka, identiteta.kraj].filter(Boolean).join(", "));
-      dodajPodatek(hwkPodatki, "Poklic", (identiteta.poklici || []).join(", "));
-      hwkVir.href = hwk.subjekt.sourceUrl;
-      hwkVir.textContent = "Odpri vir pri Handwerkskammer ↗";
-    } else if (identiteta.status === "probable_impressum" && profil.subjekt) {
-      hwkStatus.textContent = "Impressum najden";
+    } else if (["probable_impressum", "confirmed_impressum"].includes(identiteta.status) && profil.subjekt) {
+      hwkStatus.textContent = identiteta.status === "confirmed_impressum" ? "Uporabnik potrdil" : "Impressum najden";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--yellow";
-      identitetaNaslov.textContent = "Javna identiteta";
+      identitetaNaslov.textContent = "Podatki iz Impressuma";
       dodajPodatek(hwkPodatki, "Naziv", identiteta.naziv);
       dodajPodatek(hwkPodatki, "Nosilec", identiteta.ime);
-      dodajPodatek(hwkPodatki, "Kraj", [identiteta.postnaStevilka, identiteta.kraj].filter(Boolean).join(" "));
-      dodajPodatek(hwkPodatki, "Pristojna HWK", hwk.chamberName || "Ni določena");
-      dodajPodatek(hwkPodatki, "HWK preverba", hwk.status === "manual_available"
-        ? hwk.reason === "official_search_requires_security_code"
-          ? "Odpri uradni Handwerkerradar in potrdi varnostno kodo"
-          : "Iskalnik zahteva ročni pregled"
-        : hwk.status === "unavailable"
-          ? "Uradni imenik se ni odzval – vpis zato ni ne potrjen ne zavrnjen"
-          : "V javnem imeniku ni potrjeno");
-      hwkVir.href = hwk.status === "manual_available" && hwk.searchUrl ? hwk.searchUrl : profil.sourceUrl;
-      hwkVir.textContent = hwk.status === "manual_available"
-        ? "Nadaljuj v uradnem HWK iskanju ↗"
-        : "Odpri Impressum podjetja ↗";
-      if (hwk.status === "manual_available" && hwk.reason === "official_search_requires_security_code") {
-        hwkRocno.hidden = false;
-        hwkRocnoNapaka.hidden = true;
-        document.getElementById("boniteta-hwk-uradno-ime").value = identiteta.ime || "";
-        document.getElementById("boniteta-hwk-uradni-naslov").value = zadnjiVnos && zadnjiVnos.naslov || "";
-        document.getElementById("boniteta-hwk-uradna-posta").value = zadnjiVnos && zadnjiVnos.postnaStevilka || "";
-        document.getElementById("boniteta-hwk-uradni-kraj").value = zadnjiVnos && zadnjiVnos.kraj || "";
-      }
+      dodajPodatek(hwkPodatki, "Naslov", [identiteta.naslov, identiteta.postnaStevilka, identiteta.kraj].filter(Boolean).join(", "));
+      dodajPodatek(hwkPodatki, "Stopnja", identiteta.status === "confirmed_impressum" ? "Potrjeno s strani uporabnika" : "Čaka na pregled uporabnika");
+      hwkVir.href = profil.sourceUrl || identiteta.sourceUrl || "#";
+      hwkVir.textContent = "Odpri Impressum podjetja ↗";
     } else {
-      hwkStatus.textContent = "Ni potrjeno";
+      hwkStatus.textContent = "Ni razbrano";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--yellow";
       identitetaNaslov.textContent = "Identiteta";
       dodajPodatek(hwkPodatki, "Rezultat", "Noben avtomatski vir ni vrnil dovolj zanesljive identitete.");
-      dodajPodatek(hwkPodatki, "Pristojna HWK", hwk.chamberName);
-      dodajPodatek(hwkPodatki, "Naslednje", "Uporabi uradno občinsko Gewerberegisterauskunft.");
-      hwkVir.href = hwk.searchUrl || "https://www.kammerfinder.de/";
-      hwkVir.textContent = "Poglej HWK iskanje ↗";
+      dodajPodatek(hwkPodatki, "Naslednje", "Preverite spletno stran ali ročno vnesite podatke iz ponudbe oziroma predračuna.");
+      hwkVir.href = profil.sourceUrl || (zadnjiVnos && zadnjiVnos.spletnaStran) || "#";
+      hwkVir.textContent = "Odpri vneseno spletno stran ↗";
+    }
+
+    if (podatki.confirmationRequired) {
+      potrditevIdentitete.hidden = false;
+      potrditevNapaka.hidden = true;
+      document.getElementById("boniteta-potrdi-ime").value = identiteta.ime || "";
+      document.getElementById("boniteta-potrdi-naziv").value = identiteta.naziv || identiteta.ime || "";
+      document.getElementById("boniteta-potrdi-naslov").value = identiteta.naslov || (zadnjiVnos && zadnjiVnos.naslov) || "";
+      document.getElementById("boniteta-potrdi-posta").value = identiteta.postnaStevilka || (zadnjiVnos && zadnjiVnos.postnaStevilka) || "";
+      document.getElementById("boniteta-potrdi-kraj").value = identiteta.kraj || (zadnjiVnos && zadnjiVnos.kraj) || "";
+      document.getElementById("boniteta-potrdi-checkbox").checked = false;
     }
 
     if (ujemanjeLokacije.status) {
       var vnesenaLokacija = ujemanjeLokacije.entered || {};
       var uradnaLokacija = ujemanjeLokacije.official || {};
       dodajPodatek(hwkPodatki, "Vneseni naslov", [vnesenaLokacija.naslov, vnesenaLokacija.postnaStevilka, vnesenaLokacija.kraj].filter(Boolean).join(", "));
-      dodajPodatek(hwkPodatki, "Uradni naslov", [uradnaLokacija.naslov, uradnaLokacija.postnaStevilka, uradnaLokacija.kraj].filter(Boolean).join(", "));
+      dodajPodatek(hwkPodatki, ujemanjeLokacije.confirmationType === "user_confirmed" ? "Potrjeni naslov" : "Uradni naslov", [uradnaLokacija.naslov, uradnaLokacija.postnaStevilka, uradnaLokacija.kraj].filter(Boolean).join(", "));
       if (ujemanjeLokacije.status === "matched") {
-        dodajPodatek(hwkPodatki, "Ujemanje", "Ime in naslov se ujemata");
-        hwkStatus.textContent = "Naslov potrjen";
-        hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
+        if (ujemanjeLokacije.confirmationType === "user_confirmed") {
+          dodajPodatek(hwkPodatki, "Potrditev", "Podatke je s prikazanim Impressumom primerjal uporabnik");
+          hwkStatus.textContent = "Uporabnik potrdil";
+          hwkStatus.className = "boniteta-znacka boniteta-znacka--yellow";
+        } else {
+          dodajPodatek(hwkPodatki, "Ujemanje", "Ime in naslov se ujemata z registrom");
+          hwkStatus.textContent = "Naslov potrjen";
+          hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
+        }
       } else if (ujemanjeLokacije.status === "mismatch") {
         dodajPodatek(hwkPodatki, "Ujemanje", "Podatki se ne ujemajo: " + (ujemanjeLokacije.mismatchedFields || []).join(", "));
         hwkStatus.textContent = "Naslov se ne ujema";
@@ -329,8 +318,10 @@
     if (iskaniKraj) dodajPodatek(insolvencaPodatki, "Kraj", iskaniKraj);
     if (insolvenca.status === "clear") {
       insolvencaStatus.textContent = "Brez zadetka";
-      insolvencaStatus.className = "boniteta-znacka boniteta-znacka--green";
-      insolvencaOpis.textContent = "Za " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni najdenih javnih insolvenčnih objav.";
+      insolvencaStatus.className = "boniteta-znacka boniteta-znacka--" + (identiteta.status === "confirmed_impressum" ? "yellow" : "green");
+      insolvencaOpis.textContent = identiteta.status === "confirmed_impressum"
+        ? "Za uporabniško potrjene podatke " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni bila najdena javna insolvenčna objava."
+        : "Za " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni najdenih javnih insolvenčnih objav.";
     } else if (insolvenca.status === "possible_match") {
       insolvencaStatus.textContent = "Možen zadetek";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--red";
@@ -347,9 +338,11 @@
       } else if (insolvenca.reason === "location_unverifiable") {
         insolvencaOpis.textContent = "Uradni vir nima vseh podatkov za zanesljivo potrditev naslova, zato insolvenčna preverba ni bila izvedena.";
       } else if (insolvenca.reason === "identity_evidence_unavailable") {
-        insolvencaOpis.textContent = "Registrski zadetek je najden, vendar uradne potrditve vira ni bilo mogoče shraniti, zato insolvenčna preverba ni bila izvedena.";
+        insolvencaOpis.textContent = "Posnetka oziroma podatkov uporabljenega vira ni bilo mogoče shraniti, zato insolvenčna preverba ni bila izvedena.";
+      } else if (insolvenca.reason === "user_confirmation_required") {
+        insolvencaOpis.textContent = "Najprej preglejte razbrane podatke, jih po potrebi popravite in kliknite »Podatki so pravilni – preveri insolventnost«.";
       } else {
-        insolvencaOpis.textContent = "Brez potrditve identitete v registru ali HWK insolvenčna preverba ni bila izvedena.";
+        insolvencaOpis.textContent = "Podatki za insolvenčno poizvedbo še niso potrjeni.";
       }
     }
     if (insolvenca.evidenceStatus === "captured" && /^data:image\/jpeg;base64,/.test(insolvenca.evidenceImage || "")) {
@@ -365,7 +358,9 @@
 
     potek.querySelectorAll(".boniteta-potek__korak").forEach(function (korak) {
       korak.classList.remove("is-active");
-      korak.classList.add("is-done");
+      korak.classList.remove("is-done");
+      if (podatki.confirmationRequired && korak.dataset.bonitetaKorak === "insolvency") korak.classList.add("is-active");
+      else korak.classList.add("is-done");
     });
     rezultat.hidden = false;
     if (window.UJPrilagodiVelikostBesedila) {
@@ -380,14 +375,21 @@
     if (!obrazec.reportValidity()) return;
 
     var posta = document.getElementById("boniteta-posta").value.replace(/\D/g, "");
-    if (!/^\d{5}$/.test(posta)) {
-      pokaziNapako("Vnesite veljavno petmestno poštno številko.");
-      return;
-    }
     var spletnaStran = spletnaPolje.value.trim();
     if (!spletnaStran && !potrjenoBrezSpletne) {
       pokaziNapako("Vnesite spletno stran ali kliknite »Nima spletne strani«.");
       spletnaPolje.focus();
+      return;
+    }
+    var rocnoIme = document.getElementById("boniteta-ime").value.trim();
+    var rocniNaslov = document.getElementById("boniteta-naslov-podjetja").value.trim();
+    var rocniKraj = krajPolje.value.trim();
+    if (!spletnaStran && (!rocnoIme || rocniNaslov.length < 3 || !/^\d{5}$/.test(posta) || rocniKraj.length < 2)) {
+      pokaziNapako("Brez spletne strani izpolnite ime, ulico s hišno številko, poštno številko in kraj.");
+      return;
+    }
+    if (posta && !/^\d{5}$/.test(posta)) {
+      pokaziNapako("Poštna številka mora vsebovati pet številk ali pa polje pustite prazno.");
       return;
     }
 
@@ -395,10 +397,10 @@
     try {
       var token = await pridobiToken();
       zadnjiVnos = {
-        ime: document.getElementById("boniteta-ime").value.trim(),
-        naslov: document.getElementById("boniteta-naslov-podjetja").value.trim(),
+        ime: rocnoIme,
+        naslov: rocniNaslov,
         postnaStevilka: posta,
-        kraj: krajPolje.value.trim(),
+        kraj: rocniKraj,
         spletnaStran: spletnaStran,
       };
       var odgovor = await fetch("/api/mehka-boniteta", {
@@ -421,43 +423,29 @@
     }
   });
 
-  function preberiSliko(datoteka) {
-    return new Promise(function (resolve, reject) {
-      if (!datoteka || !/^image\/(?:jpeg|png|webp)$/i.test(datoteka.type) || datoteka.size > 1500000) {
-        reject(new Error("Naložite JPG, PNG ali WebP posnetek, velik največ 1,5 MB."));
-        return;
-      }
-      var bralnik = new FileReader();
-      bralnik.onload = function () { resolve(String(bralnik.result || "")); };
-      bralnik.onerror = function () { reject(new Error("Posnetka ni bilo mogoče prebrati.")); };
-      bralnik.readAsDataURL(datoteka);
-    });
-  }
-
-  hwkRocnoGumb.addEventListener("click", async function () {
-    hwkRocnoNapaka.hidden = true;
+  potrditevGumb.addEventListener("click", async function () {
+    potrditevNapaka.hidden = true;
     if (!zadnjiVnos) return;
-    var dokazPolje = document.getElementById("boniteta-hwk-dokaz");
-    var uradnoIme = document.getElementById("boniteta-hwk-uradno-ime").value.trim();
-    var uradniNaslov = document.getElementById("boniteta-hwk-uradni-naslov").value.trim();
-    var uradnaPosta = document.getElementById("boniteta-hwk-uradna-posta").value.replace(/\D/g, "");
-    var uradniKraj = document.getElementById("boniteta-hwk-uradni-kraj").value.trim();
-    var potrjeno = document.getElementById("boniteta-hwk-potrditev").checked;
+    var potrjenoIme = document.getElementById("boniteta-potrdi-ime").value.trim();
+    var potrjeniNaziv = document.getElementById("boniteta-potrdi-naziv").value.trim();
+    var potrjeniNaslov = document.getElementById("boniteta-potrdi-naslov").value.trim();
+    var potrjenaPosta = document.getElementById("boniteta-potrdi-posta").value.replace(/\D/g, "");
+    var potrjeniKraj = document.getElementById("boniteta-potrdi-kraj").value.trim();
+    var potrjeno = document.getElementById("boniteta-potrdi-checkbox").checked;
     try {
-      if (!uradnoIme || uradniNaslov.length < 3 || !/^\d{5}$/.test(uradnaPosta) || uradniKraj.length < 2 || !potrjeno) {
-        throw new Error("Izpolnite uradno ime in celoten naslov ter potrdite pravilnost prepisa.");
+      if (!potrjenoIme || potrjeniNaslov.length < 3 || !/^\d{5}$/.test(potrjenaPosta) || potrjeniKraj.length < 2 || !potrjeno) {
+        throw new Error("Preglejte ime in celoten naslov ter potrdite pravilnost podatkov.");
       }
-      hwkRocnoGumb.disabled = true;
-      hwkRocnoGumb.textContent = "Preverjam ujemanje …";
-      var slika = await preberiSliko(dokazPolje.files && dokazPolje.files[0]);
+      potrditevGumb.disabled = true;
+      potrditevGumb.textContent = "Preverjam insolventnost …";
       var token = await pridobiToken();
       var telo = Object.assign({}, zadnjiVnos, {
-        manualHwkEvidence: {
-          imageDataUrl: slika,
-          officialName: uradnoIme,
-          officialStreet: uradniNaslov,
-          officialPostalCode: uradnaPosta,
-          officialCity: uradniKraj,
+        confirmedIdentity: {
+          name: potrjenoIme,
+          businessName: potrjeniNaziv,
+          street: potrjeniNaslov,
+          postalCode: potrjenaPosta,
+          city: potrjeniKraj,
           confirmed: true,
         },
       });
@@ -468,14 +456,14 @@
       });
       var podatki = null;
       try { podatki = await odgovor.json(); } catch (_) {}
-      if (!odgovor.ok) throw new Error((podatki && podatki.napaka) || "HWK potrditve ni bilo mogoče sprejeti.");
+      if (!odgovor.ok) throw new Error((podatki && podatki.napaka) || "Potrditve podatkov ni bilo mogoče sprejeti.");
       izrisi(podatki);
-    } catch (napakaRocnegaDokazila) {
-      hwkRocnoNapaka.textContent = napakaRocnegaDokazila.message || "Ročna HWK potrditev ni uspela.";
-      hwkRocnoNapaka.hidden = false;
+    } catch (napakaPotrditve) {
+      potrditevNapaka.textContent = napakaPotrditve.message || "Potrditev podatkov ni uspela.";
+      potrditevNapaka.hidden = false;
     } finally {
-      hwkRocnoGumb.disabled = false;
-      hwkRocnoGumb.textContent = "Potrdi HWK in nadaljuj";
+      potrditevGumb.disabled = false;
+      potrditevGumb.textContent = "Podatki so pravilni – preveri insolventnost";
     }
   });
 
