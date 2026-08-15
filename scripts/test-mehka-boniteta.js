@@ -308,6 +308,8 @@ var apiSrc = fs.readFileSync(path.join(koren, "api", "mehka-boniteta.js"), "utf8
 assert.match(html, /id="boniteta-obrazec"/);
 assert.match(html, /id="boniteta-viri"/);
 assert.match(html, /id="boniteta-brez-spletne"/);
+assert.match(html, /id="boniteta-kraj-izbira"/);
+assert.match(html, /id="boniteta-kraj"[^>]*required/);
 assert.match(html, /id="boniteta-naslov-podjetja"[^>]*required/);
 assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
@@ -319,6 +321,8 @@ assert.match(js, /fetch\("\/api\/mehka-boniteta"/);
 assert.match(js, /Vnesite spletno stran ali kliknite/);
 assert.match(js, /potrjenoBrezSpletne/);
 assert.match(js, /fetch\("\/api\/nemcija-posta\?postalCode="/);
+assert.match(js, /Ta poštna številka ima več krajev – izberite pravilnega/);
+assert.match(js, /boniteta-kraj-izbira__gumb/);
 assert.match(js, /naslov: document\.getElementById\("boniteta-naslov-podjetja"\)/);
 assert.match(js, /izrisiVire\(podatki\.sources\)/);
 assert.match(js, /searchedLastName/);

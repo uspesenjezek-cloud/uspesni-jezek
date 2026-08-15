@@ -12,6 +12,7 @@
   var krajPolje = document.getElementById("boniteta-kraj");
   var krajStatus = document.getElementById("boniteta-kraj-status");
   var krajiSeznam = document.getElementById("boniteta-kraji");
+  var krajiIzbira = document.getElementById("boniteta-kraj-izbira");
   var spletnaPolje = document.getElementById("boniteta-spletna-stran");
   var brezSpletneGumb = document.getElementById("boniteta-brez-spletne");
   var spletnaStatus = document.getElementById("boniteta-spletna-status");
@@ -68,6 +69,8 @@
       var podatki = await odgovor.json();
       var kraji = odgovor.ok && Array.isArray(podatki.cities) ? podatki.cities : [];
       krajiSeznam.innerHTML = "";
+      krajiIzbira.innerHTML = "";
+      krajiIzbira.hidden = true;
       kraji.forEach(function (kraj) {
         var moznost = document.createElement("option");
         moznost.value = kraj;
@@ -77,12 +80,38 @@
         krajStatus.textContent = "Kraj ni bil najden – vnesite ga ročno.";
         return;
       }
-      if (!krajPolje.value.trim() || krajPolje.value.trim() === samodejniKraj) {
+      if (kraji.length === 1 && (!krajPolje.value.trim() || krajPolje.value.trim() === samodejniKraj)) {
         samodejniKraj = kraji[0];
         krajPolje.value = samodejniKraj;
         prilagodiVnos(krajPolje);
       }
-      krajStatus.textContent = kraji.length > 1 ? "Kraj je določen; po potrebi izberite drugega." : "Kraj je določen samodejno.";
+      if (kraji.length > 1) {
+        if (krajPolje.value.trim() === samodejniKraj || !kraji.includes(krajPolje.value.trim())) {
+          krajPolje.value = "";
+          samodejniKraj = "";
+        }
+        kraji.forEach(function (kraj) {
+          var gumbKraja = document.createElement("button");
+          gumbKraja.type = "button";
+          gumbKraja.textContent = kraj;
+          gumbKraja.className = "boniteta-kraj-izbira__gumb";
+          gumbKraja.classList.toggle("is-selected", krajPolje.value.trim() === kraj);
+          gumbKraja.addEventListener("click", function () {
+            krajPolje.value = kraj;
+            samodejniKraj = kraj;
+            krajiIzbira.querySelectorAll("button").forEach(function (gumb) {
+              gumb.classList.toggle("is-selected", gumb === gumbKraja);
+            });
+            prilagodiVnos(krajPolje);
+            krajStatus.textContent = "Izbran kraj: " + kraj + ".";
+          });
+          krajiIzbira.appendChild(gumbKraja);
+        });
+        krajiIzbira.hidden = false;
+        krajStatus.textContent = "Ta poštna številka ima več krajev – izberite pravilnega.";
+      } else {
+        krajStatus.textContent = "Kraj je določen samodejno.";
+      }
     } catch (_) {
       krajStatus.textContent = "Kraja ni bilo mogoče določiti – vnesite ga ročno.";
     }
@@ -383,6 +412,8 @@
     if (dogodek.target.value.length < 5) {
       zadnjaSamodejnaPosta = "";
       krajStatus.textContent = "";
+      krajiIzbira.innerHTML = "";
+      krajiIzbira.hidden = true;
       if (krajPolje.value.trim() === samodejniKraj) krajPolje.value = "";
       samodejniKraj = "";
       return;

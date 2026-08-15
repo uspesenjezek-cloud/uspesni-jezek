@@ -18,6 +18,25 @@
     <script src="config.js"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js"></script>
+    <style>
+      .boniteta-kraj-izbira { display: flex; flex-wrap: wrap; gap: 6px; }
+      .boniteta-kraj-izbira[hidden] { display: none; }
+      .boniteta-kraj-izbira__gumb {
+        min-height: 34px;
+        padding: 0 10px;
+        border: 1px solid #c9d9d5;
+        border-radius: 10px;
+        background: #fff;
+        color: #3f6260;
+        font: 600 0.72rem/1 "Figtree", sans-serif;
+        cursor: pointer;
+      }
+      .boniteta-kraj-izbira__gumb.is-selected {
+        border-color: #3d7676;
+        background: #e9f3ef;
+        color: #285e5c;
+      }
+    </style>
   </head>
   <body class="stran--bonitetna">
     <header class="app__header boniteta-glava">
@@ -69,8 +88,9 @@
           </div>
           <div class="boniteta-polje">
             <label for="boniteta-kraj">Kraj</label>
-            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Določi se samodejno" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" />
+            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Določi se samodejno" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" required />
             <datalist id="boniteta-kraji"></datalist>
+            <div class="boniteta-kraj-izbira" id="boniteta-kraj-izbira" role="group" aria-label="Izberite kraj za poštno številko" hidden></div>
             <span class="boniteta-polje__status" id="boniteta-kraj-status" aria-live="polite"></span>
           </div>
         </div>
@@ -153,6 +173,6 @@
     </main>
 
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260815-v12"></script>
+    <script src="bonitetna-preverba.js?v=20260815-v13"></script>
   </body>
 </html>
