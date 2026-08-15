@@ -144,6 +144,9 @@ var vecZastopnikov = test.razcleniImpressum(
 );
 assert.deepStrictEqual(vecZastopnikov.zastopniki, ["Max Mustermann", "Erika Musterfrau"]);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Location Location"), false);
+assert.strictEqual(test.jeVerjetnoImeOsebe("Max Max Mustermann"), false);
+assert.strictEqual(test.jeVerjetnoImeOsebe("Über Uns"), false);
+assert.strictEqual(test.jeVerjetnoImeOsebe("Menu Start"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("max mustermann"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Max Peter Paul Mustermann"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Karl von der Linden"), true);

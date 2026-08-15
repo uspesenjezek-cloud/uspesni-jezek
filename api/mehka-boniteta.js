@@ -123,9 +123,9 @@ function jeVerjetnoImeOsebe(vrednost) {
   var deli = ime.split(/\s+/).filter(Boolean);
   if (deli.length < 2 || deli.length > 6 || ime.length > 100) return false;
   var normaliziraniDeli = deli.map(normaliziraj);
-  if (new Set(normaliziraniDeli).size === 1) return false;
+  if (new Set(normaliziraniDeli).size !== normaliziraniDeli.length) return false;
   if (normaliziraniDeli.some(function (del) {
-    return /^(?:location|kontakt|contact|impressum|datenschutz|adresse|anschrift|telefon|email|mail|home|willkommen|anbieterkennung|gesetzliche|seiten|seite|navigation)$/.test(del);
+    return /^(?:location|kontakt|contact|impressum|imprint|datenschutz|privacy|adresse|address|anschrift|telefon|email|mail|home|start|menu|menue|uber|uns|about|willkommen|anbieterkennung|gesetzliche|seiten|seite|navigation|footer|header)$/.test(del);
   })) return false;
   if (/\b(?:gmbh|ug|ag|kg|ohg|gbr|inhaber|geschäftsführer|telefon|e-?mail|umsatzsteuer|angaben|inhaltlich|verantwortlich)\b/i.test(ime)) return false;
   var jedro = deli.filter(function (del) { return !/^(?:dr\.?|prof\.?|dipl\.-?ing\.?)$/i.test(del); });
