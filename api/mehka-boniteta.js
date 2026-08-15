@@ -341,13 +341,13 @@ function razcleniImpressum(html, sourceUrl, vnos) {
   var pravneDruzbe = vrstice.map(function (vrstica, index) {
     if (!/\b(?:GmbH|mbH|UG(?:\s*\(haftungsbeschr(?:ä|a)nkt\))?|AG|GbR|OHG|KG|e\.?\s*K\.?|PartG|eG)\b/i.test(vrstica) || vrstica.length > 140) return null;
     var kontekst = vrstice.slice(Math.max(0, index - 2), index + 1).join(" ");
-    var izdelovalecStrani = /(?:Realisierung|Webdesign|Webseite|Website|Konzeption|Agentur|Programmierung)/i.test(kontekst);
+    var izdelovalecStrani = /(?:Realisierung|Webdesign|Webseite|Website|Konzeption|Konzept|Grafik|Design|Agentur|Werbeagentur|Marketing|Programmierung)/i.test(kontekst);
+    if (izdelovalecStrani && (prviNaslovIndex < 0 || index > prviNaslovIndex)) return null;
     var razdaljaDoNosilca = nosilci.reduce(function (najmanjsa, nosilec) {
       var indeksNosilca = vrstice.findIndex(function (v) { return normaliziraj(v).includes(normaliziraj(nosilec)); });
       return indeksNosilca < 0 ? najmanjsa : Math.min(najmanjsa, Math.abs(index - indeksNosilca));
     }, 999);
     var ocena = (prviNaslovIndex >= 0 && index < prviNaslovIndex ? 100 : 0) + Math.max(0, 50 - razdaljaDoNosilca * 10);
-    if (izdelovalecStrani) ocena -= 500;
     return { naziv: vrstica, ocena: ocena };
   }).filter(Boolean).sort(function (a, b) { return b.ocena - a.ocena; });
   var nazivDruzbe = pravneDruzbe.length ? pravneDruzbe[0].naziv : vnos.ime;

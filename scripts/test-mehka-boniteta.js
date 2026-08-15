@@ -93,6 +93,13 @@ var dumanImpressum = test.razcleniImpressum(
   { ime: "Heizungsmeisterei Duman", postnaStevilka: "60437", kraj: "Frankfurt am Main" }
 );
 assert.strictEqual(dumanImpressum.ime, "Köksal Duman");
+var dumanZAgencijo = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Köksal Duman<br>Halmstraße 2<br>60437 Frankfurt am Main</p><p>Vertretungsberechtigte Geschäftsführer: Herr Köksal Duman</p><p>Konzeption, Grafik und Text: Agentur ID GmbH</p><p>Webdesign: GO: Grafik und Konzept GmbH</p></main>",
+  "https://heizungsmeisterei-duman.de/impressum",
+  { ime: "Heizungsmeisterei Duman", postnaStevilka: "60437", kraj: "Frankfurt am Main" }
+);
+assert.strictEqual(dumanZAgencijo.ime, "Köksal Duman");
+assert.strictEqual(dumanZAgencijo.naziv, "Heizungsmeisterei Duman", "Spletna agencija ne sme postati pravno ime obrtnika.");
 var matteiImpressum = test.razcleniImpressum(
   "<main><h2>Impressum</h2><p>Patrick Mattei<br>Georg-Treser-Str. 14<br>60599 Frankfurt am Main<br>Deutschland</p></main><footer><a href='/referenzen-copy/'>Impressum</a></footer>",
   "https://www.mattei-haustechnik.de/referenzen-copy/",
