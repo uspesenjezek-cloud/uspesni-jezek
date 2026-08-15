@@ -20,6 +20,10 @@
   var zadnjaSamodejnaPosta = "";
   var samodejniKraj = "";
   var potrjenoBrezSpletne = false;
+  var zadnjiVnos = null;
+  var hwkRocno = document.getElementById("boniteta-hwk-rocno");
+  var hwkRocnoNapaka = document.getElementById("boniteta-hwk-rocno-napaka");
+  var hwkRocnoGumb = document.getElementById("boniteta-hwk-rocno-gumb");
 
   function esc(vrednost) {
     return String(vrednost == null ? "" : vrednost)
@@ -212,6 +216,7 @@
     hwkVir.hidden = false;
     identitetaPosnetek.hidden = true;
     identitetaSlika.removeAttribute("src");
+    hwkRocno.hidden = true;
     if (identiteta.status === "verified_register") {
       hwkStatus.textContent = "Register potrjen";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
@@ -225,7 +230,7 @@
       hwkVir.href = openregister.sourceUrl || "https://openregister.de";
       hwkVir.textContent = "Odpri register podjetij ↗";
     } else if (identiteta.status === "verified_directory" && hwk.subjekt) {
-      hwkStatus.textContent = "HWK najden";
+      hwkStatus.textContent = hwk.evidenceMode === "user_uploaded_official_screenshot" ? "HWK ročno potrjen" : "HWK najden";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--green";
       identitetaNaslov.textContent = "Obrtna identiteta";
       dodajPodatek(hwkPodatki, "Nosilec", identiteta.ime);
@@ -252,6 +257,14 @@
       hwkVir.textContent = hwk.status === "manual_available"
         ? "Nadaljuj v uradnem HWK iskanju ↗"
         : "Odpri Impressum podjetja ↗";
+      if (hwk.status === "manual_available" && hwk.reason === "official_search_requires_security_code") {
+        hwkRocno.hidden = false;
+        hwkRocnoNapaka.hidden = true;
+        document.getElementById("boniteta-hwk-uradno-ime").value = identiteta.ime || "";
+        document.getElementById("boniteta-hwk-uradni-naslov").value = zadnjiVnos && zadnjiVnos.naslov || "";
+        document.getElementById("boniteta-hwk-uradna-posta").value = zadnjiVnos && zadnjiVnos.postnaStevilka || "";
+        document.getElementById("boniteta-hwk-uradni-kraj").value = zadnjiVnos && zadnjiVnos.kraj || "";
+      }
     } else {
       hwkStatus.textContent = "Ni potrjeno";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--yellow";
@@ -381,19 +394,20 @@
     nastaviNalaganje(true);
     try {
       var token = await pridobiToken();
+      zadnjiVnos = {
+        ime: document.getElementById("boniteta-ime").value.trim(),
+        naslov: document.getElementById("boniteta-naslov-podjetja").value.trim(),
+        postnaStevilka: posta,
+        kraj: krajPolje.value.trim(),
+        spletnaStran: spletnaStran,
+      };
       var odgovor = await fetch("/api/mehka-boniteta", {
         method: "POST",
         headers: {
           Authorization: "Bearer " + token,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ime: document.getElementById("boniteta-ime").value.trim(),
-          naslov: document.getElementById("boniteta-naslov-podjetja").value.trim(),
-          postnaStevilka: posta,
-          kraj: krajPolje.value.trim(),
-          spletnaStran: spletnaStran,
-        }),
+        body: JSON.stringify(zadnjiVnos),
       });
       var podatki = null;
       try { podatki = await odgovor.json(); } catch (_) {}
@@ -404,6 +418,64 @@
       pokaziNapako(err.message || "Preverjanje trenutno ni mogoče.");
     } finally {
       nastaviNalaganje(false);
+    }
+  });
+
+  function preberiSliko(datoteka) {
+    return new Promise(function (resolve, reject) {
+      if (!datoteka || !/^image\/(?:jpeg|png|webp)$/i.test(datoteka.type) || datoteka.size > 1500000) {
+        reject(new Error("Naložite JPG, PNG ali WebP posnetek, velik največ 1,5 MB."));
+        return;
+      }
+      var bralnik = new FileReader();
+      bralnik.onload = function () { resolve(String(bralnik.result || "")); };
+      bralnik.onerror = function () { reject(new Error("Posnetka ni bilo mogoče prebrati.")); };
+      bralnik.readAsDataURL(datoteka);
+    });
+  }
+
+  hwkRocnoGumb.addEventListener("click", async function () {
+    hwkRocnoNapaka.hidden = true;
+    if (!zadnjiVnos) return;
+    var dokazPolje = document.getElementById("boniteta-hwk-dokaz");
+    var uradnoIme = document.getElementById("boniteta-hwk-uradno-ime").value.trim();
+    var uradniNaslov = document.getElementById("boniteta-hwk-uradni-naslov").value.trim();
+    var uradnaPosta = document.getElementById("boniteta-hwk-uradna-posta").value.replace(/\D/g, "");
+    var uradniKraj = document.getElementById("boniteta-hwk-uradni-kraj").value.trim();
+    var potrjeno = document.getElementById("boniteta-hwk-potrditev").checked;
+    try {
+      if (!uradnoIme || uradniNaslov.length < 3 || !/^\d{5}$/.test(uradnaPosta) || uradniKraj.length < 2 || !potrjeno) {
+        throw new Error("Izpolnite uradno ime in celoten naslov ter potrdite pravilnost prepisa.");
+      }
+      hwkRocnoGumb.disabled = true;
+      hwkRocnoGumb.textContent = "Preverjam ujemanje …";
+      var slika = await preberiSliko(dokazPolje.files && dokazPolje.files[0]);
+      var token = await pridobiToken();
+      var telo = Object.assign({}, zadnjiVnos, {
+        manualHwkEvidence: {
+          imageDataUrl: slika,
+          officialName: uradnoIme,
+          officialStreet: uradniNaslov,
+          officialPostalCode: uradnaPosta,
+          officialCity: uradniKraj,
+          confirmed: true,
+        },
+      });
+      var odgovor = await fetch("/api/mehka-boniteta", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(telo),
+      });
+      var podatki = null;
+      try { podatki = await odgovor.json(); } catch (_) {}
+      if (!odgovor.ok) throw new Error((podatki && podatki.napaka) || "HWK potrditve ni bilo mogoče sprejeti.");
+      izrisi(podatki);
+    } catch (napakaRocnegaDokazila) {
+      hwkRocnoNapaka.textContent = napakaRocnegaDokazila.message || "Ročna HWK potrditev ni uspela.";
+      hwkRocnoNapaka.hidden = false;
+    } finally {
+      hwkRocnoGumb.disabled = false;
+      hwkRocnoGumb.textContent = "Potrdi HWK in nadaljuj";
     }
   });
 

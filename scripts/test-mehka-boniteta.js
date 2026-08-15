@@ -326,6 +326,30 @@ var radarFallback = test.sestaviVire(
 )[1];
 assert.match(radarFallback.message, /varnostno potrditev/);
 assert.match(radarFallback.sourceUrl, /handwerker-radar\.de/);
+var rocnoDokazilo = test.pripraviRocnoHwkDokazilo({ manualHwkEvidence: {
+  imageDataUrl: "data:image/jpeg;base64," + Buffer.from("test-image").toString("base64"),
+  officialName: "Köksal Duman",
+  officialStreet: "Halmstraße 2",
+  officialPostalCode: "60437",
+  officialCity: "Frankfurt am Main",
+  confirmed: true,
+} }, {
+  ime: "Heizungsmeisterei Duman", naslov: "Halmstraße 2", postnaStevilka: "60437", kraj: "Frankfurt am Main",
+}, {
+  status: "found", subjekt: { ime: "Köksal Duman" },
+}, {
+  name: "Handwerkskammer Frankfurt-Rhein-Main",
+});
+assert.strictEqual(rocnoDokazilo.status, "valid");
+assert.strictEqual(rocnoDokazilo.hwk.status, "found");
+assert.strictEqual(rocnoDokazilo.hwk.subjekt.postnaStevilka, "60437");
+assert.match(test.sestaviVire({ status: "not_found" }, rocnoDokazilo.hwk, { status: "found" }, {
+  ime: "Heizungsmeisterei Duman", postnaStevilka: "60437", kraj: "Frankfurt am Main",
+})[1].message, /ročno zajet/);
+assert.strictEqual(test.pripraviRocnoHwkDokazilo({ manualHwkEvidence: {
+  imageDataUrl: "data:image/jpeg;base64," + Buffer.from("test-image").toString("base64"),
+  officialName: "Druga Oseba", officialStreet: "Halmstraße 2", officialPostalCode: "60437", officialCity: "Frankfurt am Main", confirmed: true,
+} }, { ime: "Heizungsmeisterei Duman" }, { status: "found", subjekt: { ime: "Köksal Duman" } }, {}).reason, "name_mismatch");
 var nedosegljivHwkVir = test.sestaviVire(
   { status: "not_found" },
   { status: "unavailable", searchUrl: dumanHwkUrl.toString(), chamberName: "Handwerkskammer Frankfurt-Rhein-Main" },
@@ -352,6 +376,10 @@ assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-slika"/);
+assert.match(html, /id="boniteta-hwk-rocno"/);
+assert.match(html, /id="boniteta-hwk-dokaz"/);
+assert.match(html, /id="boniteta-hwk-uradno-ime"[^>]*data-fit-input/);
+assert.match(html, /id="boniteta-hwk-uradni-naslov"[^>]*data-fit-input/);
 assert.match(html, /Posnetek uradne poizvedbe/);
 assert.ok(html.indexOf('id="boniteta-spletna-stran"') < html.indexOf('id="boniteta-posta"'), "Spletna stran mora biti takoj za identiteto in pred lokacijo.");
 assert.match(js, /fetch\("\/api\/mehka-boniteta"/);
@@ -369,6 +397,7 @@ assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
 assert.match(js, /Neposredno prek OpenRegister API/);
 assert.match(js, /Uradni imenik se ni odzval/);
 assert.match(js, /Nadaljuj v uradnem HWK iskanju/);
+assert.match(js, /manualHwkEvidence/);
 assert.match(apiSrc, /zajemiUradnoInsolvencnoDokazilo/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
 assert.match(apiSrc, /status: "verified_api"/);

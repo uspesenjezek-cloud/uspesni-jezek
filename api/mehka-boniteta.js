@@ -131,6 +131,59 @@ function pripraviVnosZaPreverbo(telo) {
   return vnos;
 }
 
+function pripraviRocnoHwkDokazilo(telo, vnos, javniProfil, zbornica) {
+  var surovo = telo && telo.manualHwkEvidence;
+  if (!surovo || typeof surovo !== "object") return { status: "not_provided" };
+  var slika = String(surovo.imageDataUrl || "");
+  var uradnoIme = varnoBesedilo(surovo.officialName, 180);
+  var uradniNaslov = varnoBesedilo(surovo.officialStreet, 140);
+  var uradnaPosta = varnoBesedilo(surovo.officialPostalCode, 5);
+  var uradniKraj = varnoBesedilo(surovo.officialCity, 80);
+  var kandidat = javniProfil && javniProfil.status === "found" && javniProfil.subjekt
+    ? varnoBesedilo(javniProfil.subjekt.ime || javniProfil.subjekt.naziv, 180)
+    : vnos.ime;
+  var normalnoUradno = normaliziraj(uradnoIme);
+  var normalnoKandidat = normaliziraj(kandidat);
+  var imeSeUjema = Boolean(normalnoUradno && normalnoKandidat) && (
+    normalnoUradno === normalnoKandidat ||
+    normalnoUradno.indexOf(normalnoKandidat) >= 0 ||
+    normalnoKandidat.indexOf(normalnoUradno) >= 0
+  );
+  if (surovo.confirmed !== true) return { status: "invalid", reason: "confirmation_missing" };
+  if (!/^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=\r\n]+$/i.test(slika) || slika.length > 2200000) {
+    return { status: "invalid", reason: "invalid_evidence_image" };
+  }
+  if (!imeSeUjema) return { status: "invalid", reason: "name_mismatch" };
+  if (uradniNaslov.length < 3 || !/^\d{5}$/.test(uradnaPosta) || uradniKraj.length < 2) {
+    return { status: "invalid", reason: "official_location_missing" };
+  }
+  return {
+    status: "valid",
+    hwk: {
+      status: "found",
+      searchedName: kandidat,
+      chamberName: zbornica && zbornica.name || "Handwerkskammer",
+      chamberUrl: zbornica && (zbornica.homepage || zbornica.infoUrl) || "",
+      searchUrl: HANDWERKER_RADAR_SEARCH,
+      evidenceMode: "user_uploaded_official_screenshot",
+      manualEvidence: {
+        imageDataUrl: slika,
+        capturedAt: new Date().toISOString(),
+        sourceUrl: HANDWERKER_RADAR_SEARCH,
+      },
+      subjekt: {
+        ime: uradnoIme,
+        naziv: vnos.ime || uradnoIme,
+        naslov: uradniNaslov,
+        postnaStevilka: uradnaPosta,
+        kraj: uradniKraj,
+        poklici: [],
+        sourceUrl: HANDWERKER_RADAR_SEARCH,
+      },
+    },
+  };
+}
+
 function pocistiNazivDruzbe(vrednost) {
   return String(vrednost || "")
     .replace(/^\s*(?:impressum|imprint)\s*(?:[-–—|:]\s*)?/i, "")
@@ -1039,7 +1092,9 @@ function sestaviVire(openregister, hwk, javniProfil, vnos) {
       status: hwk.status,
       sourceUrl: hwk.status === "found" && hwk.subjekt ? hwk.subjekt.sourceUrl : (hwk.searchUrl || hwk.chamberUrl || KAMMERFINDER),
       message: hwk.status === "found"
-        ? "Javni obrtni vpis je najden."
+        ? hwk.evidenceMode === "user_uploaded_official_screenshot"
+          ? "Uradni HWK rezultat je ročno zajet; prepisano ime in naslov sta preverjena glede na vnos."
+          : "Javni obrtni vpis je najden."
         : hwk.status === "manual_available"
           ? hwk.reason === "official_search_requires_security_code"
             ? "Samodejni HWK vir se ni odzval. Odprite uradni Handwerkerradar in opravite varnostno potrditev; to ni negativen zadetek."
@@ -1157,6 +1212,16 @@ function sestaviApiDokaziloIdentitete(identiteta, openregister) {
 async function zajemiDokaziloIdentitete(identiteta, openregister, hwk) {
   var apiDokazilo = sestaviApiDokaziloIdentitete(identiteta, openregister);
   if (apiDokazilo) return apiDokazilo;
+  if (identiteta && identiteta.status === "verified_directory" && hwk && hwk.manualEvidence) {
+    return {
+      status: "captured",
+      imageDataUrl: hwk.manualEvidence.imageDataUrl,
+      capturedAt: hwk.manualEvidence.capturedAt,
+      sourceUrl: hwk.manualEvidence.sourceUrl || HANDWERKER_RADAR_SEARCH,
+      sourceLabel: (hwk.chamberName || "Handwerkskammer") + " – ročno zajet uradni rezultat",
+      evidenceMode: "user_uploaded_official_screenshot",
+    };
+  }
   var vir = dolociVirDokazilaIdentitete(identiteta, openregister, hwk);
   if (!vir || !vir.sourceUrl) return null;
   var varenUrl = await preveriJavniSpletniNaslov(vir.sourceUrl);
@@ -1377,12 +1442,31 @@ async function handler(req, res) {
     var hwkIskalnik;
     try {
       pristojnaHwk = await dolociPristojnoHwk(vnos);
-      hwkIskalnik = await dolociHwkIskalnik(pristojnaHwk);
     } catch (_) {
       pristojnaHwk = { status: "unavailable", sourceUrl: KAMMERFINDER };
-      hwkIskalnik = { type: "none", searchUrl: KAMMERFINDER };
     }
-    if (pristojnaHwk.status === "found") {
+    var rocnoHwkDokazilo = pripraviRocnoHwkDokazilo(telo, vnos, javniProfil, pristojnaHwk);
+    if (rocnoHwkDokazilo.status === "invalid") {
+      var sporocilaRocnegaDokazila = {
+        confirmation_missing: "Potrdite, da posnetek prikazuje uradni HWK rezultat.",
+        invalid_evidence_image: "Naložite veljaven posnetek uradnega HWK rezultata, velik največ 1,5 MB.",
+        name_mismatch: "Uradno ime na posnetku se ne ujema z nosilcem iz Impressuma.",
+        official_location_missing: "Prepišite celoten uradni naslov, poštno številko in kraj.",
+      };
+      return odgovorJson(res, 400, {
+        ok: false,
+        code: "INVALID_MANUAL_HWK_EVIDENCE",
+        napaka: sporocilaRocnegaDokazila[rocnoHwkDokazilo.reason] || "Ročne HWK potrditve ni bilo mogoče sprejeti.",
+      });
+    }
+    if (rocnoHwkDokazilo.status === "valid") {
+      hwk = rocnoHwkDokazilo.hwk;
+    } else if (pristojnaHwk.status === "found") {
+      try {
+        hwkIskalnik = await dolociHwkIskalnik(pristojnaHwk);
+      } catch (_) {
+        hwkIskalnik = { type: "none", searchUrl: pristojnaHwk.homepage || KAMMERFINDER };
+      }
       var hwkIskanja = sestaviHwkIskanja(vnos, javniProfil);
       for (var h = 0; h < hwkIskanja.length; h += 1) {
         try { hwk = await poisciPriHwk(hwkIskanja[h], pristojnaHwk, hwkIskalnik); }
@@ -1539,6 +1623,7 @@ handler._test = {
   jeVerjetnoImeOsebe: jeVerjetnoImeOsebe,
   sestaviHwkIskanja: sestaviHwkIskanja,
   sestaviHwkIskalniUrl: sestaviHwkIskalniUrl,
+  pripraviRocnoHwkDokazilo: pripraviRocnoHwkDokazilo,
   jeZasebenIp: jeZasebenIp,
   poisciVImpressumu: poisciVImpressumu,
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,
