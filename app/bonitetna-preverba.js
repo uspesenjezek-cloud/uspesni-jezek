@@ -192,6 +192,7 @@
       dodajPodatek(hwkPodatki, "Sodišče", identiteta.registerCourt);
       dodajPodatek(hwkPodatki, "Oblika", identiteta.legalForm);
       dodajPodatek(hwkPodatki, "Status", identiteta.active ? "Aktivna" : "Neaktivna");
+      dodajPodatek(hwkPodatki, "Potrditev", "Neposredno prek OpenRegister API");
       hwkVir.href = openregister.sourceUrl || "https://openregister.de";
       hwkVir.textContent = "Odpri register podjetij ↗";
     } else if (identiteta.status === "verified_directory" && hwk.subjekt) {
@@ -296,7 +297,7 @@
       } else if (insolvenca.reason === "location_unverifiable") {
         insolvencaOpis.textContent = "Uradni vir nima vseh podatkov za zanesljivo potrditev naslova, zato insolvenčna preverba ni bila izvedena.";
       } else if (insolvenca.reason === "identity_evidence_unavailable") {
-        insolvencaOpis.textContent = "Registrski zadetek je najden, vendar dokaznega posnetka ni bilo mogoče zajeti, zato insolvenčna preverba ni bila izvedena.";
+        insolvencaOpis.textContent = "Registrski zadetek je najden, vendar uradne potrditve vira ni bilo mogoče shraniti, zato insolvenčna preverba ni bila izvedena.";
       } else {
         insolvencaOpis.textContent = "Brez potrditve identitete v registru ali HWK insolvenčna preverba ni bila izvedena.";
       }

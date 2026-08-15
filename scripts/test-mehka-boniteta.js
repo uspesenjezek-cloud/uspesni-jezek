@@ -240,6 +240,13 @@ var identitetaRegister = test.sestaviIdentiteto(registerIzbor, { status: "not_fo
 });
 assert.strictEqual(identitetaRegister.status, "verified_register");
 assert.strictEqual(identitetaRegister.entityType, "company");
+var apiDokazilo = test.sestaviApiDokaziloIdentitete(identitetaRegister, {
+  sourceUrl: "https://openregister.de/company/DE-HRB-1",
+});
+assert.strictEqual(apiDokazilo.status, "verified_api");
+assert.strictEqual(apiDokazilo.sourceLabel, "OpenRegister API");
+assert.strictEqual(apiDokazilo.companyId, "DE-HRB-1");
+assert.strictEqual(apiDokazilo.imageDataUrl, undefined, "API dokaz ne sme ustvariti screenshota.");
 var identitetaZNaslovom = test.sestaviIdentiteto({ status: "found", company: {
   company_id: "DE-HRB-M1201-137035", name: "MedienOrbis GmbH", register_type: "HRB", register_number: "137035",
   address: { street: "Bettinastraße 62", postal_code: "60325", city: "Frankfurt am Main" },
@@ -309,8 +316,10 @@ assert.match(js, /searchedLastName/);
 assert.match(js, /evidenceStatus === "captured"/);
 assert.match(js, /insolvenca\.evidenceImage/);
 assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
+assert.match(js, /Neposredno prek OpenRegister API/);
 assert.match(apiSrc, /zajemiUradnoInsolvencnoDokazilo/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
+assert.match(apiSrc, /status: "verified_api"/);
 assert.match(apiSrc, /identiteta\.status === "unresolved" \|\| identiteta\.status === "probable_impressum"/);
 assert.match(apiSrc, /"identity_evidence_unavailable"/);
 assert.match(apiSrc, /preveriUjemanjeLokacije\(vnos, identiteta\)/);

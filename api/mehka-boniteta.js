@@ -1098,7 +1098,22 @@ function dolociVirDokazilaIdentitete(identiteta, openregister, hwk) {
   return null;
 }
 
+function sestaviApiDokaziloIdentitete(identiteta, openregister) {
+  if (!identiteta || identiteta.status !== "verified_register") return null;
+  return {
+    status: "verified_api",
+    verifiedAt: new Date().toISOString(),
+    sourceUrl: openregister && openregister.sourceUrl || OPENREGISTER_WEB,
+    sourceLabel: "OpenRegister API",
+    companyId: identiteta.companyId || "",
+    registerNumber: identiteta.registerNumber || "",
+    registerCourt: identiteta.registerCourt || "",
+  };
+}
+
 async function zajemiDokaziloIdentitete(identiteta, openregister, hwk) {
+  var apiDokazilo = sestaviApiDokaziloIdentitete(identiteta, openregister);
+  if (apiDokazilo) return apiDokazilo;
   var vir = dolociVirDokazilaIdentitete(identiteta, openregister, hwk);
   if (!vir || !vir.sourceUrl) return null;
   var varenUrl = await preveriJavniSpletniNaslov(vir.sourceUrl);
@@ -1116,6 +1131,7 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk) {
       encoding: "base64",
     });
     return {
+      status: "captured",
       imageDataUrl: "data:image/jpeg;base64," + posnetek,
       capturedAt: new Date().toISOString(),
       sourceUrl: stran.url() || varenUrl.toString(),
@@ -1265,7 +1281,7 @@ function sestaviSklep(identiteta, insolvenca) {
     return { level: "yellow", title: "Lokacije ni bilo mogoče potrditi", message: "Uradni vir nima vseh podatkov za zanesljivo primerjavo naslova. Insolvenčna preverba ni bila izvedena." };
   }
   if (insolvenca && insolvenca.status === "not_checked") {
-    return { level: "yellow", title: "Identiteta je najdena, dokazilo manjka", message: "Brez dokaznega posnetka registrskega vira insolvenčna preverba ni bila izvedena." };
+    return { level: "yellow", title: "Identiteta je najdena, uradna potrditev manjka", message: "Brez uradne API potrditve ali dokaznega posnetka vira insolvenčna preverba ni bila izvedena." };
   }
   if (!insolvenca || insolvenca.status === "unavailable") {
     return { level: "yellow", title: "Identiteta je najdena, insolvenčna preverba ni uspela", message: "Poizvedbo ponovite pozneje." };
@@ -1390,11 +1406,15 @@ async function handler(req, res) {
     }
 
     var dokaziloIdentiteteOdgovor = {
-      status: "captured",
-      imageDataUrl: dokaziloIdentitete.imageDataUrl,
-      capturedAt: dokaziloIdentitete.capturedAt,
+      status: dokaziloIdentitete.status || "captured",
+      imageDataUrl: dokaziloIdentitete.imageDataUrl || "",
+      capturedAt: dokaziloIdentitete.capturedAt || dokaziloIdentitete.verifiedAt || "",
+      verifiedAt: dokaziloIdentitete.verifiedAt || "",
       sourceUrl: dokaziloIdentitete.sourceUrl,
       sourceLabel: dokaziloIdentitete.sourceLabel,
+      companyId: dokaziloIdentitete.companyId || "",
+      registerNumber: dokaziloIdentitete.registerNumber || "",
+      registerCourt: dokaziloIdentitete.registerCourt || "",
     };
     if (ujemanjeLokacije.status !== "matched") {
       var lokacijskaInsolvenca = {
@@ -1466,6 +1486,7 @@ handler._test = {
   zajemiUradnoInsolvencnoDokazilo: zajemiUradnoInsolvencnoDokazilo,
   dolociVirDokazilaIdentitete: dolociVirDokazilaIdentitete,
   zajemiDokaziloIdentitete: zajemiDokaziloIdentitete,
+  sestaviApiDokaziloIdentitete: sestaviApiDokaziloIdentitete,
   pridobiViewState: pridobiViewState,
   sestaviSklep: sestaviSklep,
   jeFrankfurt: jeFrankfurt,
