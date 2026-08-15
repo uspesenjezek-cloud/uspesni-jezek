@@ -215,9 +215,16 @@ var identitetaImpressum = test.sestaviIdentiteto({ status: "not_found" }, { stat
   status: "found", subjekt: impressum,
 }, { ime: "M.A.Services24", postnaStevilka: "63067", kraj: "Offenbach am Main" });
 assert.strictEqual(identitetaImpressum.status, "probable_impressum");
+assert.strictEqual(test.sestaviSklep(identitetaImpressum, { status: "not_checked" }).level, "yellow");
+assert.deepStrictEqual(test.dolociVirDokazilaIdentitete(identitetaRegister, {
+  sourceUrl: "https://openregister.de/company/DE-HRB-1",
+}, {}), {
+  sourceUrl: "https://openregister.de/company/DE-HRB-1",
+  sourceLabel: "OpenRegister",
+});
 assert.strictEqual(identitetaImpressum.ime, "Mihail Poclit");
 assert.strictEqual(test.sestaviSklep(identitetaRegister, { status: "clear" }).level, "green");
-assert.strictEqual(test.sestaviSklep(identitetaImpressum, { status: "possible_match" }).level, "red");
+assert.strictEqual(test.sestaviSklep(identitetaImpressum, { status: "possible_match" }).level, "yellow");
 assert.strictEqual(test.sestaviSklep({ status: "unresolved" }, { status: "not_checked" }).level, "yellow");
 
 var viri = test.sestaviVire(
@@ -234,11 +241,14 @@ var js = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.js"), "utf8
 var meni = fs.readFileSync(path.join(koren, "app", "zascita-posla.html"), "utf8");
 var appJs = fs.readFileSync(path.join(koren, "app", "app.js"), "utf8");
 var lokalniStreznik = fs.readFileSync(path.join(koren, "scripts", "local-server.js"), "utf8");
+var apiSrc = fs.readFileSync(path.join(koren, "api", "mehka-boniteta.js"), "utf8");
 assert.match(html, /id="boniteta-obrazec"/);
 assert.match(html, /id="boniteta-viri"/);
 assert.match(html, /id="boniteta-brez-spletne"/);
 assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
+assert.match(html, /id="boniteta-identiteta-posnetek"/);
+assert.match(html, /id="boniteta-identiteta-slika"/);
 assert.match(html, /Posnetek uradne poizvedbe/);
 assert.ok(html.indexOf('id="boniteta-spletna-stran"') < html.indexOf('id="boniteta-posta"'), "Spletna stran mora biti takoj za identiteto in pred lokacijo.");
 assert.match(js, /fetch\("\/api\/mehka-boniteta"/);
@@ -249,7 +259,11 @@ assert.match(js, /izrisiVire\(podatki\.sources\)/);
 assert.match(js, /searchedLastName/);
 assert.match(js, /evidenceStatus === "captured"/);
 assert.match(js, /insolvenca\.evidenceImage/);
-assert.match(fs.readFileSync(path.join(koren, "api", "mehka-boniteta.js"), "utf8"), /zajemiUradnoInsolvencnoDokazilo/);
+assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
+assert.match(apiSrc, /zajemiUradnoInsolvencnoDokazilo/);
+assert.match(apiSrc, /zajemiDokaziloIdentitete/);
+assert.match(apiSrc, /identiteta\.status === "unresolved" \|\| identiteta\.status === "probable_impressum"/);
+assert.match(apiSrc, /reason: "identity_evidence_unavailable"/);
 assert.match(meni, /href="bonitetna-preverba\.html"/);
 assert.match(appJs, /"\[data-fit-input\]"/);
 assert.match(lokalniStreznik, /pathname === "\/api\/mehka-boniteta"/);

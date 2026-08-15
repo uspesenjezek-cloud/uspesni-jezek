@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bonitetna preverba – Uspešni Jezek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260815-boniteta-v6" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3d7676" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body class="stran--bonitetna">
+    <header class="app__header boniteta-glava">
+      <a class="app__nazaj" href="zascita-posla.html">← Nazaj</a>
+      <h1 class="app__naslov-podstrani">Bonitetna preverba stranke</h1>
+    </header>
+
+    <main class="app__vsebina boniteta-vsebina">
+      <section class="boniteta-uvod" aria-labelledby="boniteta-naslov">
+        <span class="boniteta-uvod__ikona" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </span>
+        <div>
+          <p class="boniteta-uvod__oznaka">NEMČIJA · MEHKA PREVERBA</p>
+          <h2 id="boniteta-naslov">Preveri, s kom boš sodeloval</h2>
+          <p>Preverimo javni obrtni vpis in uradne insolvenčne objave.</p>
+        </div>
+      </section>
+
+      <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate>
+        <div class="boniteta-polje boniteta-polje--celo">
+          <label for="boniteta-ime">Ime podjetja ali obrtnika</label>
+          <input id="boniteta-ime" name="ime" type="text" autocomplete="organization" placeholder="Ime, HRB številka ali OpenRegister povezava" maxlength="240" data-fit-input data-fit-input-min="8" required />
+        </div>
+
+        <div class="boniteta-polje boniteta-polje--celo boniteta-spletna-izbira">
+          <label for="boniteta-spletna-stran">Spletna stran podjetja</label>
+          <input id="boniteta-spletna-stran" name="spletnaStran" type="text" inputmode="url" autocomplete="url" placeholder="npr. heizungsmeisterei-duman.de" maxlength="240" data-fit-input data-fit-input-min="8" aria-describedby="boniteta-spletna-status" />
+          <button class="boniteta-brez-spletne" id="boniteta-brez-spletne" type="button" aria-pressed="false">
+            <span aria-hidden="true">○</span>
+            <strong>Nima spletne strani</strong>
+          </button>
+          <span class="boniteta-polje__status" id="boniteta-spletna-status">Spletna stran nam pomaga najti pravo ime nosilca v Impressumu.</span>
+        </div>
+
+        <div class="boniteta-polja-vrstica">
+          <div class="boniteta-polje">
+            <label for="boniteta-posta">Poštna številka</label>
+            <input id="boniteta-posta" name="postnaStevilka" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="npr. 60385" maxlength="5" pattern="[0-9]{5}" data-fit-input data-fit-input-min="10" required />
+          </div>
+          <div class="boniteta-polje">
+            <label for="boniteta-kraj">Kraj</label>
+            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Določi se samodejno" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" />
+            <datalist id="boniteta-kraji"></datalist>
+            <span class="boniteta-polje__status" id="boniteta-kraj-status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <p class="boniteta-obrazec__namig">Izberite spletno stran ali potrdite, da je stranka nima. Brez spletne strani je preverba samostojnega obrtnika manj zanesljiva.</p>
+        <p class="boniteta-napaka" id="boniteta-napaka" role="alert" hidden></p>
+
+        <button class="boniteta-gumb" id="boniteta-gumb" type="submit">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-4-4"></path>
+          </svg>
+          <span>Preveri stranko</span>
+        </button>
+      </form>
+
+      <section class="boniteta-potek" id="boniteta-potek" aria-live="polite" hidden>
+        <div class="boniteta-potek__korak is-active" data-boniteta-korak="register"><span>1</span><strong>Registri</strong></div>
+        <div class="boniteta-potek__crta" aria-hidden="true"></div>
+        <div class="boniteta-potek__korak" data-boniteta-korak="identity"><span>2</span><strong>Identiteta</strong></div>
+        <div class="boniteta-potek__crta" aria-hidden="true"></div>
+        <div class="boniteta-potek__korak" data-boniteta-korak="insolvency"><span>3</span><strong>Insolvenca</strong></div>
+      </section>
+
+      <section class="boniteta-rezultat" id="boniteta-rezultat" aria-live="polite" hidden>
+        <div class="boniteta-rezultat__glava">
+          <span class="boniteta-rezultat__status" id="boniteta-status-ikona" aria-hidden="true"></span>
+          <div>
+            <p class="boniteta-rezultat__oznaka">REZULTAT MEHKE PREVERBE</p>
+            <h2 id="boniteta-rezultat-naslov"></h2>
+            <p id="boniteta-rezultat-opis"></p>
+          </div>
+        </div>
+
+        <div class="boniteta-rezultat__sklop" id="boniteta-hwk-sklop">
+          <div class="boniteta-rezultat__sklop-glava">
+            <h3 id="boniteta-identiteta-naslov">Obrtni vpis</h3>
+            <span class="boniteta-znacka" id="boniteta-hwk-status"></span>
+          </div>
+          <dl class="boniteta-podatki" id="boniteta-hwk-podatki"></dl>
+          <figure class="boniteta-uradni-posnetek" id="boniteta-identiteta-posnetek" hidden>
+            <img id="boniteta-identiteta-slika" alt="Posnetek registrskega vira, ki potrjuje identiteto podjetja ali obrtnika" />
+            <figcaption>
+              <strong>Posnetek potrditve identitete</strong>
+              <span id="boniteta-identiteta-cas"></span>
+              <a id="boniteta-identiteta-prenos" href="#" download="potrditev-identitete.jpg">Prenesi posnetek</a>
+            </figcaption>
+          </figure>
+          <a class="boniteta-vir" id="boniteta-hwk-vir" href="#" target="_blank" rel="noopener">Odpri vir pri Handwerkskammer ↗</a>
+        </div>
+
+        <div class="boniteta-rezultat__sklop">
+          <div class="boniteta-rezultat__sklop-glava">
+            <h3>Preverjeni viri</h3>
+          </div>
+          <div class="boniteta-viri" id="boniteta-viri"></div>
+        </div>
+
+        <div class="boniteta-rezultat__sklop" id="boniteta-insolvenca-sklop">
+          <div class="boniteta-rezultat__sklop-glava">
+            <h3>Insolvenčna preverba</h3>
+            <span class="boniteta-znacka" id="boniteta-insolvenca-status"></span>
+          </div>
+          <p class="boniteta-insolvenca-opis" id="boniteta-insolvenca-opis"></p>
+          <dl class="boniteta-podatki" id="boniteta-insolvenca-podatki"></dl>
+          <figure class="boniteta-uradni-posnetek" id="boniteta-insolvenca-posnetek" hidden>
+            <img id="boniteta-insolvenca-slika" alt="Posnetek uradnega insolvenčnega registra z vpisanimi podatki preverbe" />
+            <figcaption>
+              <strong>Posnetek uradne poizvedbe</strong>
+              <span id="boniteta-insolvenca-cas"></span>
+              <a id="boniteta-insolvenca-prenos" href="#" download="insolvencna-preverba.jpg">Prenesi posnetek</a>
+            </figcaption>
+          </figure>
+          <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Odpri uradni insolvenčni register ↗</a>
+        </div>
+
+        <p class="boniteta-omejitev">Javni HWK seznam ni formalni izpis iz Handwerksrolle. Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
+        <button class="boniteta-ponovi" id="boniteta-ponovi" type="button">Preveri drugo stranko</button>
+      </section>
+    </main>
+
+    <script src="app.js?v=20260815-boniteta-fit-v3"></script>
+    <script src="bonitetna-preverba.js?v=20260815-v10"></script>
+  </body>
+</html>

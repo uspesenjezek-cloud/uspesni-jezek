@@ -986,6 +986,50 @@ async function zazeniBrskalnikZaDokazilo() {
   });
 }
 
+function dolociVirDokazilaIdentitete(identiteta, openregister, hwk) {
+  if (identiteta && identiteta.status === "verified_register") {
+    return {
+      sourceUrl: openregister && openregister.sourceUrl || "",
+      sourceLabel: "OpenRegister",
+    };
+  }
+  if (identiteta && identiteta.status === "verified_directory") {
+    return {
+      sourceUrl: hwk && hwk.subjekt && hwk.subjekt.sourceUrl || "",
+      sourceLabel: hwk && hwk.chamberName || "Handwerkskammer",
+    };
+  }
+  return null;
+}
+
+async function zajemiDokaziloIdentitete(identiteta, openregister, hwk) {
+  var vir = dolociVirDokazilaIdentitete(identiteta, openregister, hwk);
+  if (!vir || !vir.sourceUrl) return null;
+  var varenUrl = await preveriJavniSpletniNaslov(vir.sourceUrl);
+  var browser = await zazeniBrskalnikZaDokazilo();
+  try {
+    var stran = await browser.newPage();
+    await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
+    await stran.setUserAgent(USER_AGENT);
+    await stran.goto(varenUrl.toString(), { waitUntil: "domcontentloaded", timeout: 25000 });
+    await new Promise(function (resolve) { setTimeout(resolve, 1200); });
+    var posnetek = await stran.screenshot({
+      type: "jpeg",
+      quality: 72,
+      fullPage: true,
+      encoding: "base64",
+    });
+    return {
+      imageDataUrl: "data:image/jpeg;base64," + posnetek,
+      capturedAt: new Date().toISOString(),
+      sourceUrl: stran.url() || varenUrl.toString(),
+      sourceLabel: vir.sourceLabel,
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
 async function zajemiUradnoInsolvencnoDokazilo(subjekt) {
   var razdeljenoIme = razdeliImeZaInsolvenco(subjekt.ime);
   var browser = await zazeniBrskalnikZaDokazilo();
@@ -1116,13 +1160,10 @@ function sestaviSklep(identiteta, insolvenca) {
     return { level: "yellow", title: "Identitete ni bilo mogoče potrditi", message: "Preverjeni viri niso vrnili dovolj zanesljivega pravnega imena za insolvenčno preverbo." };
   }
   if (identiteta.status === "probable_impressum") {
-    if (insolvenca && insolvenca.status === "possible_match") {
-      return { level: "red", title: "Najdena je možna insolvenčna objava", message: "Nosilec je prepoznan iz Impressuma; pred sodelovanjem ročno potrdite uradno objavo." };
-    }
-    if (insolvenca && insolvenca.status === "clear") {
-      return { level: "yellow", title: "Nosilec je najden, obrtni vpis ni potrjen", message: "Impressum je vrnil identiteto in insolvenčna preverba nima zadetka, javni HWK-imenik pa vpisa ni potrdil." };
-    }
-    return { level: "yellow", title: "Nosilec je najden v Impressumu", message: "Javni HWK-imenik vpisa ni potrdil, insolvenčna preverba pa ni bila zaključena." };
+    return { level: "yellow", title: "Nosilec je najden, identiteta ni potrjena", message: "Impressum je pomagal določiti nosilca, vendar brez potrditve v registru ali HWK insolvenčna preverba ni bila izvedena." };
+  }
+  if (insolvenca && insolvenca.status === "not_checked") {
+    return { level: "yellow", title: "Identiteta je najdena, dokazilo manjka", message: "Brez dokaznega posnetka registrskega vira insolvenčna preverba ni bila izvedena." };
   }
   if (!insolvenca || insolvenca.status === "unavailable") {
     return { level: "yellow", title: "Identiteta je najdena, insolvenčna preverba ni uspela", message: "Poizvedbo ponovite pozneje." };
@@ -1194,7 +1235,7 @@ async function handler(req, res) {
     }
     var identiteta = sestaviIdentiteto(openregister, hwk, javniProfil, vnos);
     var viri = sestaviVire(openregister, hwk, javniProfil, vnos);
-    if (identiteta.status === "unresolved") {
+    if (identiteta.status === "unresolved" || identiteta.status === "probable_impressum") {
       return odgovorJson(res, 200, {
         ok: true,
         checkedAt: new Date().toISOString(),
@@ -1205,8 +1246,33 @@ async function handler(req, res) {
         hwk: hwk,
         publicProfile: javniProfil,
         competentChamber: pristojnaHwk,
-        insolvency: { status: "not_checked" },
+        identityEvidence: { status: "not_captured", reason: "identity_not_verified" },
+        insolvency: { status: "not_checked", reason: "identity_not_verified" },
         result: sestaviSklep(identiteta, null),
+      });
+    }
+
+    var dokaziloIdentitete = null;
+    try {
+      dokaziloIdentitete = await zajemiDokaziloIdentitete(identiteta, openregister, hwk);
+    } catch (napakaDokazilaIdentitete) {
+      console.error("[mehka-boniteta:identity-evidence]", napakaDokazilaIdentitete.message);
+    }
+    if (!dokaziloIdentitete) {
+      var nepreverjenaInsolvenca = { status: "not_checked", reason: "identity_evidence_unavailable" };
+      return odgovorJson(res, 200, {
+        ok: true,
+        checkedAt: new Date().toISOString(),
+        scope: "Nemčija – mehka preverba",
+        identity: identiteta,
+        identityEvidence: { status: "unavailable", reason: "capture_failed" },
+        sources: viri,
+        openregister: openregister,
+        hwk: hwk,
+        publicProfile: javniProfil,
+        competentChamber: pristojnaHwk,
+        insolvency: nepreverjenaInsolvenca,
+        result: sestaviSklep(identiteta, nepreverjenaInsolvenca),
       });
     }
 
@@ -1222,6 +1288,13 @@ async function handler(req, res) {
       checkedAt: new Date().toISOString(),
       scope: "Nemčija – mehka preverba",
       identity: identiteta,
+      identityEvidence: {
+        status: "captured",
+        imageDataUrl: dokaziloIdentitete.imageDataUrl,
+        capturedAt: dokaziloIdentitete.capturedAt,
+        sourceUrl: dokaziloIdentitete.sourceUrl,
+        sourceLabel: dokaziloIdentitete.sourceLabel,
+      },
       sources: viri,
       openregister: openregister,
       hwk: hwk,
@@ -1254,6 +1327,8 @@ handler._test = {
   razdeliImeZaInsolvenco: razdeliImeZaInsolvenco,
   sestaviInsolvencnoTelo: sestaviInsolvencnoTelo,
   zajemiUradnoInsolvencnoDokazilo: zajemiUradnoInsolvencnoDokazilo,
+  dolociVirDokazilaIdentitete: dolociVirDokazilaIdentitete,
+  zajemiDokaziloIdentitete: zajemiDokaziloIdentitete,
   pridobiViewState: pridobiViewState,
   sestaviSklep: sestaviSklep,
   jeFrankfurt: jeFrankfurt,
