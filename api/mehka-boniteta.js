@@ -9,7 +9,9 @@ var HWK_RHEIN_MAIN = "https://hwk-rhein-main.odav.de";
 var KAMMERFINDER = "https://www.kammerfinder.de/";
 var HWK_PO_PLZ = "https://www.handwerkskammer.de/kontakte/zustaendige-handwerkskammer-5620,0,dazustaendig.html";
 var HANDWERKER_RADAR_SEARCH = "https://www.handwerker-radar.de/5100,0,hwrsearch.html";
-var INSOLVENCY_SEARCH = "https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf";
+var INSOLVENCY_PORTAL = "https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf";
+var OPENREGISTER_INSOLVENCY_SEARCH = "https://api.openregister.de/v1/search/insolvency";
+var OPENREGISTER_INSOLVENCY_DETAIL = "https://api.openregister.de/v1/insolvency/";
 var OPENREGISTER_SEARCH = "https://api.openregister.de/v0/search/company";
 var OPENREGISTER_WEB = "https://openregister.de";
 var OFFENBACH_GEWERBE = "https://www.offenbach.de/vv/oe/verwaltung/Ordnungsamt_Gewerbe.php?loc=de";
@@ -1201,12 +1203,6 @@ function razdeliImeZaInsolvenco(ime) {
   return { firmaPriimek: deli.pop(), ime: deli.join(" "), vrsta: "person" };
 }
 
-function pridobiViewState(html) {
-  var naprej = String(html || "").match(/name=["']jakarta\.faces\.ViewState["'][^>]*value=["']([^"']+)/i);
-  var nazaj = String(html || "").match(/value=["']([^"']+)["'][^>]*name=["']jakarta\.faces\.ViewState["']/i);
-  return decodeHtml((naprej || nazaj || [null, ""])[1]);
-}
-
 function cookiesIzOdgovora(odgovor) {
   var vrednosti = typeof odgovor.headers.getSetCookie === "function"
     ? odgovor.headers.getSetCookie()
@@ -1455,128 +1451,122 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
   }
 }
 
-async function zajemiUradnoInsolvencnoDokazilo(subjekt) {
-  var razdeljenoIme = razdeliImeZaInsolvenco(subjekt.ime);
-  var browser = await zazeniBrskalnikZaDokazilo();
-  try {
-    var stran = await browser.newPage();
-    await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
-    await stran.goto(INSOLVENCY_SEARCH, { waitUntil: "domcontentloaded", timeout: 25000 });
-
-    async function izpolni(polje, vrednost) {
-      var selector = '[name="' + polje + '"]';
-      await stran.waitForSelector(selector, { timeout: 12000 });
-      await stran.$eval(selector, function (element, novaVrednost) {
-        element.value = novaVrednost;
-        element.dispatchEvent(new Event("input", { bubbles: true }));
-        element.dispatchEvent(new Event("change", { bubbles: true }));
-      }, vrednost || "");
-    }
-
-    await izpolni("frm_suche:litx_firmaNachName:text", razdeljenoIme.firmaPriimek);
-    await izpolni("frm_suche:litx_vorname:text", razdeljenoIme.ime);
-    await izpolni("frm_suche:litx_sitzWohnsitz:text", subjekt.kraj);
-    await izpolni("frm_suche:ldi_datumVon:datumHtml5", "2005-01-01");
-    await izpolni("frm_suche:ldi_datumBis:datumHtml5", new Date().toISOString().slice(0, 10));
-
-    await Promise.all([
-      stran.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 25000 }).catch(function () {}),
-      stran.click('[name="frm_suche:cbt_suchen"]'),
-    ]);
-    await stran.waitForFunction(function () {
-      return /Suchergebnis|Keine Treffer/i.test(document.body.innerText || "");
-    }, { timeout: 20000 });
-
-    var rezultatBesedilo = await stran.evaluate(function () { return document.body.innerText || ""; });
-    var posnetek = await stran.screenshot({
-      type: "jpeg",
-      quality: 72,
-      fullPage: true,
-      encoding: "base64",
-    });
-    return {
-      imageDataUrl: "data:image/jpeg;base64," + posnetek,
-      capturedAt: new Date().toISOString(),
-      noResults: /Keine Treffer/i.test(rezultatBesedilo),
-    };
-  } finally {
-    await browser.close();
-  }
-}
-
-function sestaviInsolvencnoTelo(subjekt, viewState, datumDo) {
-  var ime = razdeliImeZaInsolvenco(subjekt.ime);
+function sestaviOpenRegisterInsolvencnoIskanje(subjekt) {
+  var filtri = [
+    { field: "city", value: varnoBesedilo(subjekt.kraj, 80) },
+    { field: "debtor_kind", value: subjekt.entityType === "company" ? "legal_person" : "natural_person" },
+  ];
+  if (subjekt.companyId) filtri.unshift({ field: "company_id", value: varnoBesedilo(subjekt.companyId, 120) });
   return {
-    ime: ime,
-    telo: new URLSearchParams({
-      frm_suche: "frm_suche",
-      "frm_suche:lsom_bundesland:codelist:scl_bundesland:mysom": "NO_CODE",
-      "frm_suche:ldi_datumVon:datumHtml5": "2005-01-01",
-      "frm_suche:ldi_datumBis:datumHtml5": datumDo || new Date().toISOString().slice(0, 10),
-      "frm_suche:lsom_wildcard:lsom": "0",
-      "frm_suche:litx_firmaNachName:text": ime.firmaPriimek,
-      "frm_suche:litx_vorname:text": ime.ime,
-      "frm_suche:litx_sitzWohnsitz:text": subjekt.kraj,
-      "frm_suche:iaz_aktenzeichen:itx_abteilung": "",
-      "frm_suche:iaz_aktenzeichen:som_registerzeichen:mysom": "NO_CODE",
-      "frm_suche:iaz_aktenzeichen:itx_lfdNr": "",
-      "frm_suche:iaz_aktenzeichen:itx_jahr": "",
-      "frm_suche:iaz_aktenzeichen:ih_aktenzeichen": "true",
-      "frm_suche:lsom_gegenstand:codelist:mysom": "NO_CODE",
-      "frm_suche:ir_registereintrag:som_registergericht:mysom": "NO_CODE",
-      "frm_suche:ir_registereintrag:som_registerart:mysom": "NO_CODE",
-      "frm_suche:ir_registereintrag:itx_registernummer": "",
-      "frm_suche:ir_registereintrag:ih_registereintrag": "true",
-      "frm_suche:cbt_suchen": "Suchen",
-      "jakarta.faces.ViewState": viewState,
-    }),
+    query: { value: varnoBesedilo(subjekt.ime, 180) },
+    filters: filtri,
+    pagination: { page: 1, per_page: 5 },
   };
 }
 
-async function preveriInsolvenco(subjekt) {
-  var prvi = await fetchZRokom(INSOLVENCY_SEARCH, { headers: { "User-Agent": USER_AGENT, Accept: "text/html" } });
-  if (!prvi.ok) throw new Error("INSOLVENCY_OPEN_FAILED");
-  var prviHtml = await prvi.text();
-  var viewState = pridobiViewState(prviHtml);
-  if (!viewState) throw new Error("INSOLVENCY_FORM_CHANGED");
+function razlogOpenRegisterInsolvencneNapake(status) {
+  if (status === 401 || status === 403) return "not_configured";
+  if (status === 402) return "insufficient_credits";
+  if (status === 429) return "rate_limited";
+  return "api_error";
+}
 
-  var priprava = sestaviInsolvencnoTelo(subjekt, viewState);
-  var ime = priprava.ime;
-  var telo = priprava.telo;
-  var drugi = await fetchZRokom(INSOLVENCY_SEARCH, {
-    method: "POST",
-    redirect: "follow",
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "text/html",
-      "Content-Type": "application/x-www-form-urlencoded",
-      Origin: "https://neu.insolvenzbekanntmachungen.de",
-      Referer: INSOLVENCY_SEARCH,
-      Cookie: cookiesIzOdgovora(prvi),
-    },
-    body: telo,
-  });
-  if (!drugi.ok) throw new Error("INSOLVENCY_SEARCH_FAILED");
-  var rezultat = await drugi.text();
-  if (!/Suchergebnis/i.test(rezultat)) throw new Error("INSOLVENCY_RESULT_CHANGED");
-  var brezZadetka = /Keine Treffer/i.test(rezultat);
-  var dokazilo = null;
+async function pridobiOpenRegisterInsolvencnePodrobnosti(kandidat, kljuc) {
+  var url = OPENREGISTER_INSOLVENCY_DETAIL + encodeURIComponent(kandidat.id);
   try {
-    dokazilo = await zajemiUradnoInsolvencnoDokazilo(subjekt);
-  } catch (napakaDokazila) {
-    console.error("[mehka-boniteta:insolvency-evidence]", napakaDokazila.message);
+    var odgovor = await fetchZRokom(url, {
+      headers: { Authorization: "Bearer " + kljuc, Accept: "application/json", "User-Agent": USER_AGENT },
+    }, 12000);
+    if (!odgovor.ok) {
+      return { id: kandidat.id, status: "unavailable", reason: razlogOpenRegisterInsolvencneNapake(odgovor.status) };
+    }
+    return { id: kandidat.id, status: "found", proceeding: await odgovor.json() };
+  } catch (_) {
+    return { id: kandidat.id, status: "unavailable", reason: "network_error" };
   }
+}
+
+async function preveriInsolvenco(subjekt) {
+  var kljuc = String(process.env.OPENREGISTER_API_KEY || "").trim();
+  var iskanoOb = new Date().toISOString();
+  var iskalniPodatki = {
+    name: varnoBesedilo(subjekt.ime, 180),
+    city: varnoBesedilo(subjekt.kraj, 80),
+    postalCode: varnoBesedilo(subjekt.postnaStevilka, 5),
+    companyId: varnoBesedilo(subjekt.companyId, 120),
+    debtorKind: subjekt.entityType === "company" ? "legal_person" : "natural_person",
+  };
+  if (!kljuc) {
+    return {
+      status: "unavailable",
+      reason: "not_configured",
+      searchedName: iskalniPodatki.name,
+      searchedCity: iskalniPodatki.city,
+      sourceUrl: INSOLVENCY_PORTAL,
+    };
+  }
+
+  var zahteva = sestaviOpenRegisterInsolvencnoIskanje(subjekt);
+  var odgovor;
+  try {
+    odgovor = await fetchZRokom(OPENREGISTER_INSOLVENCY_SEARCH, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + kljuc,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+      },
+      body: JSON.stringify(zahteva),
+    }, 12000);
+  } catch (_) {
+    return {
+      status: "unavailable",
+      reason: "network_error",
+      searchedName: iskalniPodatki.name,
+      searchedCity: iskalniPodatki.city,
+      sourceUrl: INSOLVENCY_PORTAL,
+    };
+  }
+  if (!odgovor.ok) {
+    return {
+      status: "unavailable",
+      reason: razlogOpenRegisterInsolvencneNapake(odgovor.status),
+      searchedName: iskalniPodatki.name,
+      searchedCity: iskalniPodatki.city,
+      sourceUrl: INSOLVENCY_PORTAL,
+    };
+  }
+
+  var podatki = await odgovor.json();
+  var zadetki = Array.isArray(podatki.results) ? podatki.results : [];
+  var podrobnosti = await Promise.all(zadetki.map(function (kandidat) {
+    return pridobiOpenRegisterInsolvencnePodrobnosti(kandidat, kljuc);
+  }));
   return {
-    status: brezZadetka ? "clear" : "possible_match",
-    searchedName: [ime.ime, ime.firmaPriimek].filter(Boolean).join(" "),
-    searchedFirstName: ime.ime,
-    searchedLastName: ime.firmaPriimek,
-    searchedCity: subjekt.kraj,
-    sourceUrl: INSOLVENCY_SEARCH,
-    period: "01.01.2005–danes",
-    evidenceImage: dokazilo ? dokazilo.imageDataUrl : "",
-    evidenceCapturedAt: dokazilo ? dokazilo.capturedAt : "",
-    evidenceStatus: dokazilo ? "captured" : "unavailable",
+    status: zadetki.length ? "possible_match" : "clear",
+    searchedName: iskalniPodatki.name,
+    searchedCity: iskalniPodatki.city,
+    searchedPostalCode: iskalniPodatki.postalCode,
+    searchedCompanyId: iskalniPodatki.companyId,
+    source: "openregister_insolvency_api",
+    sourceLabel: "OpenRegister Insolvency API",
+    apiSourceUrl: "https://docs.openregister.de/endpoint/search-insolvency",
+    sourceUrl: INSOLVENCY_PORTAL,
+    checkedAt: iskanoOb,
+    evidenceStatus: "verified_api",
+    totalResults: podatki.pagination && Number(podatki.pagination.total_results) || zadetki.length,
+    detailsLimited: Boolean(podatki.pagination && Number(podatki.pagination.total_results) > zadetki.length),
+    matches: zadetki,
+    apiEvidence: {
+      sourceLabel: "OpenRegister Insolvency API",
+      endpoint: OPENREGISTER_INSOLVENCY_SEARCH,
+      searchedAt: iskanoOb,
+      searchedData: iskalniPodatki,
+      request: zahteva,
+      response: podatki,
+      details: podrobnosti,
+    },
   };
 }
 
@@ -1606,9 +1596,9 @@ function sestaviSklep(identiteta, insolvenca) {
     return { level: "red", title: "Najdena je možna insolvenčna objava", message: "Pred sodelovanjem je potreben ročni pregled uradne objave in potrditev identitete." };
   }
   if (identiteta.status === "confirmed_impressum") {
-    return { level: "yellow", title: "Mehka preverba z uporabniško potrditvijo", message: "Za podatke, ki ste jih potrdili iz Impressuma, v javnih insolvenčnih objavah ni bilo zadetka. To ni uradna potrditev identitete ali solventnosti." };
+    return { level: "yellow", title: "Mehka preverba z uporabniško potrditvijo", message: "OpenRegister za uporabniško potrjeno ime in kraj ni vrnil publikacije. To ni uradna potrditev identitete ali solventnosti." };
   }
-  return { level: "green", title: "Osnovna mehka preverba je uspešna", message: "Identiteta je najdena v registrskem viru, v javnih insolvenčnih objavah pa ni zadetka." };
+  return { level: "green", title: "Osnovna mehka preverba je uspešna", message: "Identiteta je uradno potrjena; OpenRegister za preverjene iskalne podatke ni vrnil insolvenčne publikacije." };
 }
 
 async function handler(req, res) {
@@ -1748,7 +1738,7 @@ async function handler(req, res) {
       insolvenca = await preveriInsolvenco(identiteta);
     } catch (insolventnaNapaka) {
       console.error("[mehka-boniteta:insolvency]", insolventnaNapaka.message);
-      insolvenca = { status: "unavailable", sourceUrl: INSOLVENCY_SEARCH };
+      insolvenca = { status: "unavailable", reason: "unexpected_error", sourceUrl: INSOLVENCY_PORTAL };
     }
     return odgovorJson(res, 200, {
       ok: true,
@@ -1787,12 +1777,11 @@ handler._test = {
   izberiHwkZadetek: izberiHwkZadetek,
   razcleniHwkPodrobnosti: razcleniHwkPodrobnosti,
   razdeliImeZaInsolvenco: razdeliImeZaInsolvenco,
-  sestaviInsolvencnoTelo: sestaviInsolvencnoTelo,
-  zajemiUradnoInsolvencnoDokazilo: zajemiUradnoInsolvencnoDokazilo,
+  sestaviOpenRegisterInsolvencnoIskanje: sestaviOpenRegisterInsolvencnoIskanje,
+  razlogOpenRegisterInsolvencneNapake: razlogOpenRegisterInsolvencneNapake,
   dolociVirDokazilaIdentitete: dolociVirDokazilaIdentitete,
   zajemiDokaziloIdentitete: zajemiDokaziloIdentitete,
   sestaviApiDokaziloIdentitete: sestaviApiDokaziloIdentitete,
-  pridobiViewState: pridobiViewState,
   sestaviSklep: sestaviSklep,
   jeFrankfurt: jeFrankfurt,
   razcleniImpressum: razcleniImpressum,

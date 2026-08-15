@@ -66,15 +66,22 @@ assert.deepStrictEqual(test.razdeliImeZaInsolvenco("Andreas Deumlich"), {
 assert.deepStrictEqual(test.razdeliImeZaInsolvenco("Elektro Beispiel GmbH"), {
   firmaPriimek: "Elektro Beispiel GmbH", ime: "", vrsta: "company",
 });
-var insolvencnoTelo = test.sestaviInsolvencnoTelo(
-  { ime: "Köksal Duman", kraj: "Frankfurt am Main" }, "view-state", "2026-08-15"
-);
-assert.strictEqual(insolvencnoTelo.telo.get("frm_suche:litx_firmaNachName:text"), "Duman");
-assert.strictEqual(insolvencnoTelo.telo.get("frm_suche:litx_vorname:text"), "Köksal");
-assert.strictEqual(insolvencnoTelo.telo.get("frm_suche:litx_sitzWohnsitz:text"), "Frankfurt am Main");
-assert.strictEqual(insolvencnoTelo.telo.get("frm_suche:ldi_datumVon:datumHtml5"), "2005-01-01");
-assert.strictEqual(insolvencnoTelo.telo.get("frm_suche:ldi_datumBis:datumHtml5"), "2026-08-15");
-assert.strictEqual(test.pridobiViewState('<input name="jakarta.faces.ViewState" value="abc123">'), "abc123");
+var insolvencnoIskanjeOsebe = test.sestaviOpenRegisterInsolvencnoIskanje({
+  ime: "Köksal Duman", kraj: "Frankfurt am Main", entityType: "person",
+});
+assert.deepStrictEqual(insolvencnoIskanjeOsebe.query, { value: "Köksal Duman" });
+assert.deepStrictEqual(insolvencnoIskanjeOsebe.filters, [
+  { field: "city", value: "Frankfurt am Main" },
+  { field: "debtor_kind", value: "natural_person" },
+]);
+assert.deepStrictEqual(insolvencnoIskanjeOsebe.pagination, { page: 1, per_page: 5 });
+var insolvencnoIskanjeDruzbe = test.sestaviOpenRegisterInsolvencnoIskanje({
+  ime: "MedienOrbis GmbH", kraj: "Frankfurt am Main", entityType: "company", companyId: "DE-HRB-M1201-137035",
+});
+assert.deepStrictEqual(insolvencnoIskanjeDruzbe.filters[0], { field: "company_id", value: "DE-HRB-M1201-137035" });
+assert.deepStrictEqual(insolvencnoIskanjeDruzbe.filters[2], { field: "debtor_kind", value: "legal_person" });
+assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(402), "insufficient_credits");
+assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(429), "rate_limited");
 assert.strictEqual(test.jeFrankfurt("60385", ""), true);
 assert.strictEqual(test.jeFrankfurt("63067", "Offenbach am Main"), true);
 assert.strictEqual(test.jeFrankfurt("10115", "Berlin"), false);
@@ -359,14 +366,15 @@ assert.match(html, /id="boniteta-kraj-izbira"/);
 assert.doesNotMatch(html, /id="boniteta-kraj"[^>]*required/);
 assert.doesNotMatch(html, /id="boniteta-naslov-podjetja"[^>]*required/);
 assert.match(html, /id="boniteta-insolvenca-podatki"/);
-assert.match(html, /id="boniteta-insolvenca-posnetek"/);
+assert.doesNotMatch(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-slika"/);
 assert.match(html, /id="boniteta-potrditev-identitete"/);
 assert.match(html, /id="boniteta-potrdi-ime"[^>]*data-fit-input/);
 assert.match(html, /id="boniteta-potrdi-naslov"[^>]*data-fit-input/);
 assert.match(html, /id="boniteta-potrditev-gumb"/);
-assert.match(html, /Posnetek uradne poizvedbe/);
+assert.match(html, /Ročno preveri v uradnem insolvenčnem registru/);
+assert.match(html, /id="boniteta-insolvenca-api-vir"/);
 assert.ok(html.indexOf('id="boniteta-spletna-stran"') < html.indexOf('id="boniteta-posta"'), "Spletna stran mora biti takoj za identiteto in pred lokacijo.");
 assert.match(js, /fetch\("\/api\/mehka-boniteta"/);
 assert.match(js, /Vnesite spletno stran ali kliknite/);
@@ -376,20 +384,25 @@ assert.match(js, /Ta poštna številka ima več krajev – izberite pravilnega/)
 assert.match(js, /boniteta-kraj-izbira__gumb/);
 assert.match(js, /naslov: rocniNaslov/);
 assert.match(js, /izrisiVire\(podatki\.sources\)/);
-assert.match(js, /searchedLastName/);
-assert.match(js, /evidenceStatus === "captured"/);
-assert.match(js, /insolvenca\.evidenceImage/);
+assert.match(js, /evidenceStatus === "verified_api"/);
+assert.match(js, /insolvenca\.apiSourceUrl/);
+assert.match(js, /OpenRegister Insolvency API/);
+assert.doesNotMatch(js, /insolvenca\.evidenceImage/);
 assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
 assert.match(js, /Neposredno prek OpenRegister API/);
 assert.match(js, /confirmedIdentity/);
 assert.match(js, /Podatki so pravilni – preveri insolventnost/);
 assert.doesNotMatch(js, /manualHwkEvidence|Nadaljuj v uradnem HWK iskanju/);
-assert.match(apiSrc, /zajemiUradnoInsolvencnoDokazilo/);
+assert.match(apiSrc, /OPENREGISTER_INSOLVENCY_SEARCH/);
+assert.match(apiSrc, /sestaviOpenRegisterInsolvencnoIskanje/);
+assert.match(apiSrc, /pridobiOpenRegisterInsolvencnePodrobnosti/);
+assert.match(apiSrc, /apiEvidence/);
+assert.doesNotMatch(apiSrc, /async function zajemiUradnoInsolvencnoDokazilo/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
 assert.match(apiSrc, /async function sprejmiPiskotke/);
 assert.match(apiSrc, /async function dolociIzrezIdentitete/);
 assert.match(apiSrc, /clip: izrez/);
-assert.doesNotMatch(apiSrc.slice(apiSrc.indexOf("async function zajemiDokaziloIdentitete"), apiSrc.indexOf("async function zajemiUradnoInsolvencnoDokazilo")), /fullPage:\s*true/);
+assert.doesNotMatch(apiSrc.slice(apiSrc.indexOf("async function zajemiDokaziloIdentitete"), apiSrc.indexOf("function sestaviOpenRegisterInsolvencnoIskanje")), /fullPage:\s*true/);
 assert.match(apiSrc, /status: "verified_api"/);
 assert.match(apiSrc, /confirmationRequired: true/);
 assert.match(apiSrc, /reason: "temporarily_disabled"/);

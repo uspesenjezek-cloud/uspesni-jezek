@@ -49,6 +49,7 @@
       .boniteta-potrditev-identitete__gumb { grid-column: 1 / -1; min-height: 42px; border: 0; border-radius: 11px; background: #3d7676; color: #fff; font: 700 0.76rem/1 "Figtree", sans-serif; cursor: pointer; }
       .boniteta-potrditev-identitete__gumb:disabled { opacity: .6; cursor: wait; }
       .boniteta-potrditev-identitete__napaka { grid-column: 1 / -1; margin: 0 !important; color: #a9433c !important; }
+      .boniteta-insolvenca-viri { display: flex; flex-wrap: wrap; gap: 8px 16px; }
       @media (max-width: 420px) { .boniteta-potrditev-identitete__mreza { grid-template-columns: 1fr; } .boniteta-potrditev-identitete__mreza label { grid-column: 1 / -1; } }
     </style>
   </head>
@@ -197,15 +198,10 @@
           </div>
           <p class="boniteta-insolvenca-opis" id="boniteta-insolvenca-opis"></p>
           <dl class="boniteta-podatki" id="boniteta-insolvenca-podatki"></dl>
-          <figure class="boniteta-uradni-posnetek" id="boniteta-insolvenca-posnetek" hidden>
-            <img id="boniteta-insolvenca-slika" alt="Posnetek uradnega insolvenčnega registra z vpisanimi podatki preverbe" />
-            <figcaption>
-              <strong>Posnetek uradne poizvedbe</strong>
-              <span id="boniteta-insolvenca-cas"></span>
-              <a id="boniteta-insolvenca-prenos" href="#" download="insolvencna-preverba.jpg">Prenesi posnetek</a>
-            </figcaption>
-          </figure>
-          <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Odpri uradni insolvenčni register ↗</a>
+          <div class="boniteta-insolvenca-viri">
+            <a class="boniteta-vir" id="boniteta-insolvenca-api-vir" href="https://docs.openregister.de/endpoint/search-insolvency" target="_blank" rel="noopener" hidden>Podrobnosti vira OpenRegister API ↗</a>
+            <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Ročno preveri v uradnem insolvenčnem registru ↗</a>
+          </div>
         </div>
 
         <p class="boniteta-omejitev">Podatki iz Impressuma so uporabniško potrjeni in niso uradni registrski izpis. Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
@@ -214,6 +210,6 @@
     </main>
 
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260815-v17"></script>
+    <script src="bonitetna-preverba.js?v=20260815-v18"></script>
   </body>
 </html>

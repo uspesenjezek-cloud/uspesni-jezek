@@ -302,34 +302,48 @@
     var insolvencaStatus = document.getElementById("boniteta-insolvenca-status");
     var insolvencaOpis = document.getElementById("boniteta-insolvenca-opis");
     var insolvencaPodatki = document.getElementById("boniteta-insolvenca-podatki");
-    var insolvencaPosnetek = document.getElementById("boniteta-insolvenca-posnetek");
-    var insolvencaSlika = document.getElementById("boniteta-insolvenca-slika");
-    var insolvencaPrenos = document.getElementById("boniteta-insolvenca-prenos");
-    var insolvencaCas = document.getElementById("boniteta-insolvenca-cas");
+    var insolvencaApiVir = document.getElementById("boniteta-insolvenca-api-vir");
     insolvencaPodatki.innerHTML = "";
-    insolvencaPosnetek.hidden = true;
-    insolvencaSlika.removeAttribute("src");
-    var iskanoIme = String(insolvenca.searchedName || identiteta.ime || "").trim().split(/\s+/).filter(Boolean);
-    var iskaniPriimek = String(insolvenca.searchedLastName || (iskanoIme.length > 1 ? iskanoIme[iskanoIme.length - 1] : iskanoIme[0]) || "");
-    var iskanoOsebnoIme = String(insolvenca.searchedFirstName || (iskanoIme.length > 1 ? iskanoIme.slice(0, -1).join(" ") : ""));
+    insolvencaApiVir.hidden = insolvenca.evidenceStatus !== "verified_api";
+    insolvencaApiVir.href = insolvenca.apiSourceUrl || "https://docs.openregister.de/endpoint/search-insolvency";
+    var iskanoIme = String(insolvenca.searchedName || identiteta.ime || "").trim();
     var iskaniKraj = String(insolvenca.searchedCity || identiteta.kraj || "");
-    if (iskaniPriimek) dodajPodatek(insolvencaPodatki, "Priimek", iskaniPriimek);
-    if (iskanoOsebnoIme) dodajPodatek(insolvencaPodatki, "Ime", iskanoOsebnoIme);
+    if (iskanoIme) dodajPodatek(insolvencaPodatki, "Iskano ime", iskanoIme);
     if (iskaniKraj) dodajPodatek(insolvencaPodatki, "Kraj", iskaniKraj);
+    if (insolvenca.searchedPostalCode) dodajPodatek(insolvencaPodatki, "Poštna številka", insolvenca.searchedPostalCode);
+    if (insolvenca.searchedCompanyId) dodajPodatek(insolvencaPodatki, "OpenRegister ID", insolvenca.searchedCompanyId);
+    if (insolvenca.evidenceStatus === "verified_api") {
+      dodajPodatek(insolvencaPodatki, "Vir", insolvenca.sourceLabel || "OpenRegister Insolvency API");
+      var apiCas = new Date(insolvenca.checkedAt || podatki.checkedAt || Date.now());
+      dodajPodatek(insolvencaPodatki, "Čas poizvedbe", new Intl.DateTimeFormat("sl-SI", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(apiCas));
+    }
     if (insolvenca.status === "clear") {
       insolvencaStatus.textContent = "Brez zadetka";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--" + (identiteta.status === "confirmed_impressum" ? "yellow" : "green");
       insolvencaOpis.textContent = identiteta.status === "confirmed_impressum"
-        ? "Za uporabniško potrjene podatke " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni bila najdena javna insolvenčna objava."
-        : "Za " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni najdenih javnih insolvenčnih objav.";
+        ? "OpenRegister za uporabniško potrjeno ime " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni vrnil publikacije."
+        : "OpenRegister za preverjeno ime " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni vrnil insolvenčne publikacije.";
     } else if (insolvenca.status === "possible_match") {
       insolvencaStatus.textContent = "Možen zadetek";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--red";
-      insolvencaOpis.textContent = "Najdena je najmanj ena možna objava. Pred sodelovanjem je treba ročno potrditi identiteto.";
+      insolvencaOpis.textContent = "OpenRegister je vrnil najmanj en možen postopek. Pred sodelovanjem ročno primerjajte dolžnika, kraj, sodišče in opravilno številko.";
+      (insolvenca.matches || []).forEach(function (zadetek, indeks) {
+        var predpona = "Zadetek " + (indeks + 1) + " – ";
+        dodajPodatek(insolvencaPodatki, predpona + "dolžnik", zadetek.debtor_name);
+        dodajPodatek(insolvencaPodatki, predpona + "postopek", [zadetek.case_number, zadetek.court].filter(Boolean).join(" · "));
+        dodajPodatek(insolvencaPodatki, predpona + "status", zadetek.current_status);
+      });
+      if (insolvenca.detailsLimited) dodajPodatek(insolvencaPodatki, "Omejitev", "Prikazanih je prvih 5 zadetkov; preverite tudi ročni vir.");
     } else if (insolvenca.status === "unavailable") {
       insolvencaStatus.textContent = "Ni dosegljivo";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--yellow";
-      insolvencaOpis.textContent = "Uradni insolvenčni portal trenutno ni vrnil rezultata. Poskusite ponovno pozneje.";
+      if (insolvenca.reason === "insufficient_credits") insolvencaOpis.textContent = "OpenRegister nima dovolj API kreditov za insolvenčno poizvedbo.";
+      else if (insolvenca.reason === "not_configured") insolvencaOpis.textContent = "OpenRegister API ključ ni nastavljen ali ni veljaven.";
+      else if (insolvenca.reason === "rate_limited") insolvencaOpis.textContent = "OpenRegister je začasno omejil število poizvedb. Poskusite ponovno pozneje.";
+      else insolvencaOpis.textContent = "OpenRegister Insolvency API trenutno ni vrnil rezultata. Poskusite ponovno pozneje.";
     } else {
       insolvencaStatus.textContent = "Ni preverjeno";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--yellow";
@@ -345,17 +359,6 @@
         insolvencaOpis.textContent = "Podatki za insolvenčno poizvedbo še niso potrjeni.";
       }
     }
-    if (insolvenca.evidenceStatus === "captured" && /^data:image\/jpeg;base64,/.test(insolvenca.evidenceImage || "")) {
-      insolvencaSlika.src = insolvenca.evidenceImage;
-      insolvencaPrenos.href = insolvenca.evidenceImage;
-      insolvencaPosnetek.hidden = false;
-      var preverjenoOb = new Date(insolvenca.evidenceCapturedAt || podatki.checkedAt || Date.now());
-      insolvencaCas.textContent = "Zajeto " + new Intl.DateTimeFormat("sl-SI", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(preverjenoOb) + " na Insolvenzbekanntmachungen";
-    }
-
     potek.querySelectorAll(".boniteta-potek__korak").forEach(function (korak) {
       korak.classList.remove("is-active");
       korak.classList.remove("is-done");
