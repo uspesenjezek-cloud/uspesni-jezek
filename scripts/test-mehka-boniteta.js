@@ -82,6 +82,28 @@ assert.deepStrictEqual(insolvencnoIskanjeDruzbe.filters[0], { field: "company_id
 assert.deepStrictEqual(insolvencnoIskanjeDruzbe.filters[2], { field: "debtor_kind", value: "legal_person" });
 assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(402), "insufficient_credits");
 assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(429), "rate_limited");
+assert.deepStrictEqual(test.razcleniOpravilnoStevilko("70g IN 269/25"), {
+  oddelek: "70g", oznaka: "IN", stevilka: "269", leto: "25", celotna: "70g IN 269/25",
+});
+assert.strictEqual(test.razcleniOpravilnoStevilko("napačna oznaka"), null);
+var kwasnitzaSubjekt = {
+  ime: "Kwasnitza Heizung & Sanitär GmbH", kraj: "Leverkusen",
+  registerNumber: "HRB 116572", registerCourt: "Köln",
+};
+assert.deepStrictEqual(test.razcleniRegistrskiVnosZaInsolvenco(kwasnitzaSubjekt), {
+  court: "Köln", type: "HRB", number: "116572",
+});
+var uradniKwasnitzaRezultat = [
+  "Suchergebnis - Veröffentlichungsliste",
+  "Kwasnitza Heizung & Sanitär GmbH Leverkusen",
+  "70g IN 269/25 Köln HRB 116572",
+].join("\n");
+assert.strictEqual(test.presodiUradniInsolvencniRezultat(
+  uradniKwasnitzaRezultat, kwasnitzaSubjekt, test.razcleniOpravilnoStevilko("70g IN 269/25")
+).status, "confirmed_match");
+assert.strictEqual(test.presodiUradniInsolvencniRezultat(
+  "Suchergebnis\nIhre Suche ergab zu viele Treffer. Die maximale Trefferzahl beträgt 1000.", kwasnitzaSubjekt, null
+).reason, "too_many_results");
 assert.strictEqual(test.jeFrankfurt("60385", ""), true);
 assert.strictEqual(test.jeFrankfurt("63067", "Offenbach am Main"), true);
 assert.strictEqual(test.jeFrankfurt("10115", "Berlin"), false);
@@ -311,7 +333,12 @@ assert.deepStrictEqual(test.dolociVirDokazilaIdentitete(identitetaRegister, {
   sourceLabel: "OpenRegister",
 });
 assert.strictEqual(identitetaImpressum.ime, "Mihail Poclit");
-assert.strictEqual(test.sestaviSklep(identitetaRegister, { status: "clear" }).level, "green");
+assert.strictEqual(test.sestaviSklep(identitetaRegister, {
+  status: "clear", officialVerification: { status: "clear" },
+}).level, "green");
+assert.strictEqual(test.sestaviSklep(identitetaRegister, {
+  status: "possible_match", officialVerification: { status: "confirmed_match" },
+}).title, "Insolvenčna objava je potrjena v dveh virih");
 assert.strictEqual(test.sestaviSklep(identitetaImpressum, { status: "possible_match" }).level, "yellow");
 assert.strictEqual(test.sestaviSklep({ status: "unresolved" }, { status: "not_checked" }).level, "yellow");
 
@@ -382,7 +409,7 @@ assert.match(html, /id="boniteta-kraj-izbira"/);
 assert.doesNotMatch(html, /id="boniteta-kraj"[^>]*required/);
 assert.doesNotMatch(html, /id="boniteta-naslov-podjetja"[^>]*required/);
 assert.match(html, /id="boniteta-insolvenca-podatki"/);
-assert.doesNotMatch(html, /id="boniteta-insolvenca-posnetek"/);
+assert.match(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-slika"/);
 assert.match(html, /id="boniteta-potrditev-identitete"/);
@@ -403,7 +430,7 @@ assert.match(js, /izrisiVire\(podatki\.sources\)/);
 assert.match(js, /evidenceStatus === "verified_api"/);
 assert.match(js, /insolvenca\.apiSourceUrl/);
 assert.match(js, /OpenRegister Insolvency API/);
-assert.doesNotMatch(js, /insolvenca\.evidenceImage/);
+assert.match(js, /uradnaPotrditev\.evidenceImage/);
 assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
 assert.match(js, /Neposredno prek OpenRegister API/);
 assert.match(js, /confirmedIdentity/);
@@ -414,7 +441,8 @@ assert.match(apiSrc, /OPENREGISTER_INSOLVENCY_SEARCH/);
 assert.match(apiSrc, /sestaviOpenRegisterInsolvencnoIskanje/);
 assert.match(apiSrc, /pridobiOpenRegisterInsolvencnePodrobnosti/);
 assert.match(apiSrc, /apiEvidence/);
-assert.doesNotMatch(apiSrc, /async function zajemiUradnoInsolvencnoDokazilo/);
+assert.match(apiSrc, /preveriUradniInsolvencniPortal/);
+assert.match(apiSrc, /presodiUradniInsolvencniRezultat/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
 assert.match(apiSrc, /async function sprejmiPiskotke/);
 assert.match(apiSrc, /async function dolociIzrezIdentitete/);

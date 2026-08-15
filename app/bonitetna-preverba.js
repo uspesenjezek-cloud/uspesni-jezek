@@ -305,7 +305,13 @@
     var insolvencaOpis = document.getElementById("boniteta-insolvenca-opis");
     var insolvencaPodatki = document.getElementById("boniteta-insolvenca-podatki");
     var insolvencaApiVir = document.getElementById("boniteta-insolvenca-api-vir");
+    var insolvencaPosnetek = document.getElementById("boniteta-insolvenca-posnetek");
+    var insolvencaSlika = document.getElementById("boniteta-insolvenca-slika");
+    var insolvencaPrenos = document.getElementById("boniteta-insolvenca-prenos");
+    var insolvencaCas = document.getElementById("boniteta-insolvenca-cas");
     insolvencaPodatki.innerHTML = "";
+    insolvencaPosnetek.hidden = true;
+    insolvencaSlika.removeAttribute("src");
     insolvencaApiVir.hidden = insolvenca.evidenceStatus !== "verified_api";
     insolvencaApiVir.href = insolvenca.apiSourceUrl || "https://docs.openregister.de/endpoint/search-insolvency";
     var iskanoIme = String(insolvenca.searchedName || identiteta.ime || "").trim();
@@ -322,16 +328,32 @@
         timeStyle: "short",
       }).format(apiCas));
     }
+    var uradnaPotrditev = insolvenca.officialVerification || {};
+    if (uradnaPotrditev.status) {
+      var uradniStatus = {
+        confirmed_match: "Isti postopek potrjen",
+        clear: "Brez objave",
+        unverified: "Zadetek se ne ujema",
+        unavailable: "Preverjanje ni uspelo",
+      }[uradnaPotrditev.status] || "Ni potrjeno";
+      dodajPodatek(insolvencaPodatki, "Državni register", uradniStatus);
+      if (uradnaPotrditev.searchedCaseNumber) dodajPodatek(insolvencaPodatki, "Uradno iskana zadeva", uradnaPotrditev.searchedCaseNumber);
+      if (uradnaPotrditev.searchedRegister) dodajPodatek(insolvencaPodatki, "Uradno iskan register", uradnaPotrditev.searchedRegister);
+    }
     if (insolvenca.status === "clear") {
-      insolvencaStatus.textContent = "Brez zadetka";
-      insolvencaStatus.className = "boniteta-znacka boniteta-znacka--" + (identiteta.status === "confirmed_impressum" ? "yellow" : "green");
-      insolvencaOpis.textContent = identiteta.status === "confirmed_impressum"
-        ? "OpenRegister za uporabniško potrjeno ime " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni vrnil publikacije."
-        : "OpenRegister za preverjeno ime " + insolvenca.searchedName + " in kraj " + insolvenca.searchedCity + " ni vrnil insolvenčne publikacije.";
+      var uradnoBrezZadetka = uradnaPotrditev.status === "clear";
+      insolvencaStatus.textContent = uradnoBrezZadetka ? "Brez zadetka v dveh virih" : "Drugi vir ni potrjen";
+      insolvencaStatus.className = "boniteta-znacka boniteta-znacka--" + (uradnoBrezZadetka && identiteta.status !== "confirmed_impressum" ? "green" : "yellow");
+      insolvencaOpis.textContent = uradnoBrezZadetka
+        ? "OpenRegister in državni portal za isto preverjeno identiteto nista vrnila insolvenčne objave."
+        : "OpenRegister ni vrnil objave, vendar preverjanja na državnem portalu ni bilo mogoče dokončati.";
     } else if (insolvenca.status === "possible_match") {
-      insolvencaStatus.textContent = "Možen zadetek";
+      var dvojnoPotrjeno = uradnaPotrditev.status === "confirmed_match";
+      insolvencaStatus.textContent = dvojnoPotrjeno ? "Potrjeno v dveh virih" : "Možen zadetek";
       insolvencaStatus.className = "boniteta-znacka boniteta-znacka--red";
-      insolvencaOpis.textContent = "OpenRegister je vrnil najmanj en možen postopek. Pred sodelovanjem ročno primerjajte dolžnika, kraj, sodišče in opravilno številko.";
+      insolvencaOpis.textContent = dvojnoPotrjeno
+        ? "OpenRegister in državni portal sta vrnila isti postopek za isto pravno osebo, kraj in registrsko številko."
+        : "OpenRegister je vrnil najmanj en možen postopek, državni portal pa istega postopka ni dokončno potrdil. Potreben je ročni pregled.";
       (insolvenca.matches || []).forEach(function (zadetek, indeks) {
         var predpona = "Zadetek " + (indeks + 1) + " – ";
         dodajPodatek(insolvencaPodatki, predpona + "dolžnik", zadetek.debtor_name);
@@ -360,6 +382,16 @@
       } else {
         insolvencaOpis.textContent = "Podatki za insolvenčno poizvedbo še niso potrjeni.";
       }
+    }
+    if (uradnaPotrditev.evidenceStatus === "captured" && /^data:image\/jpeg;base64,/.test(uradnaPotrditev.evidenceImage || "")) {
+      insolvencaSlika.src = uradnaPotrditev.evidenceImage;
+      insolvencaPrenos.href = uradnaPotrditev.evidenceImage;
+      insolvencaPosnetek.hidden = false;
+      var uradnoPreverjenoOb = new Date(uradnaPotrditev.checkedAt || podatki.checkedAt || Date.now());
+      insolvencaCas.textContent = "Zajeto " + new Intl.DateTimeFormat("sl-SI", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(uradnoPreverjenoOb) + " na Insolvenzbekanntmachungen";
     }
     potek.querySelectorAll(".boniteta-potek__korak").forEach(function (korak) {
       korak.classList.remove("is-active");

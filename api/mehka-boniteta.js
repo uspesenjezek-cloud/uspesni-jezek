@@ -1493,6 +1493,128 @@ async function pridobiOpenRegisterInsolvencnePodrobnosti(kandidat, kljuc) {
   }
 }
 
+function razcleniOpravilnoStevilko(vrednost) {
+  var ujemanje = String(vrednost || "").trim().match(/^(.+?)\s+(AR|IE|IK|IN)\s+(\d+)\s*\/\s*(\d{2,4})$/i);
+  if (!ujemanje) return null;
+  return {
+    oddelek: ujemanje[1].trim(),
+    oznaka: ujemanje[2].toUpperCase(),
+    stevilka: ujemanje[3],
+    leto: ujemanje[4],
+    celotna: [ujemanje[1].trim(), ujemanje[2].toUpperCase(), ujemanje[3] + "/" + ujemanje[4]].join(" "),
+  };
+}
+
+function razcleniRegistrskiVnosZaInsolvenco(subjekt) {
+  var register = String(subjekt && subjekt.registerNumber || "").match(/\b(HRA|HRB|PR|GNR|VR)\s*[- ]?\s*(\d+)\b/i);
+  return {
+    court: pocistiRegistrskoSodisce(subjekt && subjekt.registerCourt),
+    type: register ? register[1].toUpperCase() : "",
+    number: register ? register[2] : "",
+  };
+}
+
+function presodiUradniInsolvencniRezultat(besedilo, subjekt, opravilo) {
+  var tekst = String(besedilo || "");
+  if (/Keine Treffer/i.test(tekst)) return { status: "clear", reason: "no_publication_found" };
+  if (/zu viele Treffer|maximale Trefferzahl/i.test(tekst)) return { status: "unavailable", reason: "too_many_results" };
+  if (!/Suchergebnis/i.test(tekst)) return { status: "unavailable", reason: "result_page_not_recognized" };
+  var normalniTekst = normaliziraj(tekst);
+  var imeSeUjema = Boolean(subjekt && subjekt.ime) && normalniTekst.includes(normaliziraj(subjekt.ime));
+  var krajSeUjema = !subjekt || !subjekt.kraj || normalniTekst.includes(normaliziraj(subjekt.kraj));
+  var opraviloSeUjema = !opravilo || normalniTekst.includes(normaliziraj(opravilo.celotna));
+  var register = razcleniRegistrskiVnosZaInsolvenco(subjekt);
+  var registerSeUjema = !register.number || normalniTekst.includes(normaliziraj(register.type + " " + register.number));
+  if (imeSeUjema && krajSeUjema && opraviloSeUjema && registerSeUjema) {
+    return { status: "confirmed_match", reason: "same_proceeding_confirmed" };
+  }
+  return { status: "unverified", reason: "result_identity_mismatch" };
+}
+
+async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
+  var prviZadetek = openregisterRezultat && Array.isArray(openregisterRezultat.matches)
+    ? openregisterRezultat.matches.find(function (zadetek) { return razcleniOpravilnoStevilko(zadetek && zadetek.case_number); })
+    : null;
+  var opravilo = razcleniOpravilnoStevilko(prviZadetek && prviZadetek.case_number);
+  var register = razcleniRegistrskiVnosZaInsolvenco(subjekt);
+  var browser = await zazeniBrskalnikZaDokazilo();
+  try {
+    var stran = await browser.newPage();
+    await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
+    await stran.setUserAgent(USER_AGENT);
+    await stran.goto(INSOLVENCY_PORTAL, { waitUntil: "domcontentloaded", timeout: 25000 });
+
+    async function izpolni(polje, vrednost) {
+      var selector = '[name="' + polje + '"]';
+      await stran.waitForSelector(selector, { timeout: 12000 });
+      await stran.$eval(selector, function (element, novaVrednost) {
+        element.value = novaVrednost;
+        element.dispatchEvent(new Event("input", { bubbles: true }));
+        element.dispatchEvent(new Event("change", { bubbles: true }));
+      }, vrednost || "");
+    }
+
+    async function izberiPoBesedilu(polje, vrednost) {
+      if (!vrednost) return false;
+      var selector = '[name="' + polje + '"]';
+      var izbranaVrednost = await stran.$eval(selector, function (element, iskano) {
+        function cisto(v) {
+          return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        }
+        var moznost = Array.from(element.options || []).find(function (option) {
+          return cisto(option.textContent) === cisto(iskano) || cisto(option.value) === cisto(iskano);
+        });
+        return moznost ? moznost.value : "";
+      }, vrednost);
+      if (!izbranaVrednost) return false;
+      await stran.select(selector, izbranaVrednost);
+      return true;
+    }
+
+    await izpolni("frm_suche:ldi_datumVon:datumHtml5", "2005-01-01");
+    await izpolni("frm_suche:ldi_datumBis:datumHtml5", new Date().toISOString().slice(0, 10));
+    await izpolni("frm_suche:litx_firmaNachName:text", subjekt.ime);
+    await izpolni("frm_suche:litx_vorname:text", "");
+    await izpolni("frm_suche:litx_sitzWohnsitz:text", subjekt.kraj);
+    if (opravilo) {
+      await izpolni("frm_suche:iaz_aktenzeichen:itx_abteilung", opravilo.oddelek);
+      await izberiPoBesedilu("frm_suche:iaz_aktenzeichen:som_registerzeichen:mysom", opravilo.oznaka);
+      await izpolni("frm_suche:iaz_aktenzeichen:itx_lfdNr", opravilo.stevilka);
+      await izpolni("frm_suche:iaz_aktenzeichen:itx_jahr", opravilo.leto);
+    }
+    if (register.number) {
+      await izberiPoBesedilu("frm_suche:ir_registereintrag:som_registergericht:mysom", register.court);
+      await izberiPoBesedilu("frm_suche:ir_registereintrag:som_registerart:mysom", register.type);
+      await izpolni("frm_suche:ir_registereintrag:itx_registernummer", register.number);
+    }
+
+    await Promise.all([
+      stran.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 25000 }).catch(function () {}),
+      stran.click('[name="frm_suche:cbt_suchen"]'),
+    ]);
+    await stran.waitForFunction(function () {
+      return /Suchergebnis|Keine Treffer|zu viele Treffer/i.test(document.body.innerText || "");
+    }, { timeout: 20000 });
+    var rezultatBesedilo = await stran.evaluate(function () { return document.body.innerText || ""; });
+    var presoja = presodiUradniInsolvencniRezultat(rezultatBesedilo, subjekt, opravilo);
+    var posnetek = await stran.screenshot({ type: "jpeg", quality: 72, fullPage: true, encoding: "base64" });
+    return Object.assign({}, presoja, {
+      source: "official_insolvency_portal",
+      sourceLabel: "Insolvenzbekanntmachungen",
+      sourceUrl: INSOLVENCY_PORTAL,
+      checkedAt: new Date().toISOString(),
+      searchedName: subjekt.ime,
+      searchedCity: subjekt.kraj,
+      searchedCaseNumber: opravilo ? opravilo.celotna : "",
+      searchedRegister: register.number ? [register.court, register.type + " " + register.number].filter(Boolean).join(", ") : "",
+      evidenceStatus: "captured",
+      evidenceImage: "data:image/jpeg;base64," + posnetek,
+    });
+  } finally {
+    await browser.close();
+  }
+}
+
 async function preveriInsolvenco(subjekt) {
   var kljuc = String(process.env.OPENREGISTER_API_KEY || "").trim();
   var iskanoOb = new Date().toISOString();
@@ -1550,7 +1672,7 @@ async function preveriInsolvenco(subjekt) {
   var podrobnosti = await Promise.all(zadetki.map(function (kandidat) {
     return pridobiOpenRegisterInsolvencnePodrobnosti(kandidat, kljuc);
   }));
-  return {
+  var rezultat = {
     status: zadetki.length ? "possible_match" : "clear",
     searchedName: iskalniPodatki.name,
     searchedCity: iskalniPodatki.city,
@@ -1575,6 +1697,22 @@ async function preveriInsolvenco(subjekt) {
       details: podrobnosti,
     },
   };
+  try {
+    rezultat.officialVerification = await preveriUradniInsolvencniPortal(subjekt, rezultat);
+  } catch (napakaUradnegaVira) {
+    console.error("[mehka-boniteta:official-insolvency]", napakaUradnegaVira.message);
+    rezultat.officialVerification = {
+      status: "unavailable",
+      reason: "capture_or_search_failed",
+      source: "official_insolvency_portal",
+      sourceLabel: "Insolvenzbekanntmachungen",
+      sourceUrl: INSOLVENCY_PORTAL,
+      checkedAt: new Date().toISOString(),
+      evidenceStatus: "unavailable",
+    };
+  }
+  if (rezultat.officialVerification.status === "confirmed_match") rezultat.status = "possible_match";
+  return rezultat;
 }
 
 function sestaviSklep(identiteta, insolvenca) {
@@ -1600,12 +1738,18 @@ function sestaviSklep(identiteta, insolvenca) {
     return { level: "yellow", title: "Identiteta je najdena, insolvenčna preverba ni uspela", message: "Poizvedbo ponovite pozneje." };
   }
   if (insolvenca.status === "possible_match") {
-    return { level: "red", title: "Najdena je možna insolvenčna objava", message: "Pred sodelovanjem je potreben ročni pregled uradne objave in potrditev identitete." };
+    if (insolvenca.officialVerification && insolvenca.officialVerification.status === "confirmed_match") {
+      return { level: "red", title: "Insolvenčna objava je potrjena v dveh virih", message: "Isti postopek sta vrnila OpenRegister in uradni portal Insolvenzbekanntmachungen. Pred sodelovanjem preglejte uradno objavo." };
+    }
+    return { level: "red", title: "Najdena je možna insolvenčna objava", message: "OpenRegister je vrnil možen postopek, vendar ga uradni portal ni dokončno potrdil. Potreben je ročni pregled." };
+  }
+  if (!insolvenca.officialVerification || insolvenca.officialVerification.status !== "clear") {
+    return { level: "yellow", title: "Uradna insolvenčna preverba ni dokončana", message: "OpenRegister ni vrnil zadetka, vendar uradni portal rezultata ni zanesljivo potrdil." };
   }
   if (identiteta.status === "confirmed_impressum") {
     return { level: "yellow", title: "Mehka preverba z uporabniško potrditvijo", message: "OpenRegister za uporabniško potrjeno ime in kraj ni vrnil publikacije. To ni uradna potrditev identitete ali solventnosti." };
   }
-  return { level: "green", title: "Osnovna mehka preverba je uspešna", message: "Identiteta je uradno potrjena; OpenRegister za preverjene iskalne podatke ni vrnil insolvenčne publikacije." };
+  return { level: "green", title: "Osnovna mehka preverba je uspešna", message: "OpenRegister in uradni portal za preverjene iskalne podatke nista vrnila insolvenčne publikacije." };
 }
 
 async function handler(req, res) {
@@ -1787,6 +1931,10 @@ handler._test = {
   razdeliImeZaInsolvenco: razdeliImeZaInsolvenco,
   sestaviOpenRegisterInsolvencnoIskanje: sestaviOpenRegisterInsolvencnoIskanje,
   razlogOpenRegisterInsolvencneNapake: razlogOpenRegisterInsolvencneNapake,
+  razcleniOpravilnoStevilko: razcleniOpravilnoStevilko,
+  razcleniRegistrskiVnosZaInsolvenco: razcleniRegistrskiVnosZaInsolvenco,
+  presodiUradniInsolvencniRezultat: presodiUradniInsolvencniRezultat,
+  preveriUradniInsolvencniPortal: preveriUradniInsolvencniPortal,
   dolociVirDokazilaIdentitete: dolociVirDokazilaIdentitete,
   zajemiDokaziloIdentitete: zajemiDokaziloIdentitete,
   sestaviApiDokaziloIdentitete: sestaviApiDokaziloIdentitete,
