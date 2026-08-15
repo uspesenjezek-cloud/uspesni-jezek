@@ -11,6 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css?v=20260815-boniteta-v6" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260816-v1" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -206,6 +207,13 @@
               <a id="boniteta-insolvenca-prenos" href="#" download="uradna-insolvencna-preverba.jpg">Prenesi posnetek</a>
             </figcaption>
           </figure>
+          <div class="boniteta-objave" id="boniteta-objave" hidden>
+            <button class="boniteta-objave__gumb" id="boniteta-objave-gumb" type="button" aria-expanded="false" aria-controls="boniteta-objave-seznam">
+              <span id="boniteta-objave-gumb-tekst">Preglej uradne objave</span>
+              <span class="boniteta-objave__puscica" aria-hidden="true">⌄</span>
+            </button>
+            <div class="boniteta-objave__seznam" id="boniteta-objave-seznam" hidden></div>
+          </div>
           <div class="boniteta-insolvenca-viri">
             <a class="boniteta-vir" id="boniteta-insolvenca-api-vir" href="https://docs.openregister.de/endpoint/search-insolvency" target="_blank" rel="noopener" hidden>Podrobnosti vira OpenRegister API ↗</a>
             <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Ročno preveri v uradnem insolvenčnem registru ↗</a>
@@ -218,6 +226,6 @@
     </main>
 
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260815-v20"></script>
+    <script src="bonitetna-preverba.js?v=20260815-v21"></script>
   </body>
 </html>

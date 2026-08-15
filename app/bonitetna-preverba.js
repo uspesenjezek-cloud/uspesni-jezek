@@ -309,9 +309,17 @@
     var insolvencaSlika = document.getElementById("boniteta-insolvenca-slika");
     var insolvencaPrenos = document.getElementById("boniteta-insolvenca-prenos");
     var insolvencaCas = document.getElementById("boniteta-insolvenca-cas");
+    var objaveOkvir = document.getElementById("boniteta-objave");
+    var objaveGumb = document.getElementById("boniteta-objave-gumb");
+    var objaveGumbTekst = document.getElementById("boniteta-objave-gumb-tekst");
+    var objaveSeznam = document.getElementById("boniteta-objave-seznam");
     insolvencaPodatki.innerHTML = "";
     insolvencaPosnetek.hidden = true;
     insolvencaSlika.removeAttribute("src");
+    objaveOkvir.hidden = true;
+    objaveSeznam.hidden = true;
+    objaveSeznam.innerHTML = "";
+    objaveGumb.setAttribute("aria-expanded", "false");
     insolvencaApiVir.hidden = insolvenca.evidenceStatus !== "verified_api";
     insolvencaApiVir.href = insolvenca.apiSourceUrl || "https://docs.openregister.de/endpoint/search-insolvency";
     var iskanoIme = String(insolvenca.searchedName || identiteta.ime || "").trim();
@@ -392,6 +400,34 @@
         dateStyle: "medium",
         timeStyle: "short",
       }).format(uradnoPreverjenoOb) + " na Insolvenzbekanntmachungen";
+    }
+    var uradneObjave = Array.isArray(uradnaPotrditev.publications) ? uradnaPotrditev.publications : [];
+    if (uradneObjave.length) {
+      objaveOkvir.hidden = false;
+      objaveGumbTekst.textContent = "Preglej vseh " + uradneObjave.length + " uradnih objav";
+      uradneObjave.forEach(function (objava, indeks) {
+        var clanek = document.createElement("article");
+        clanek.className = "boniteta-objava";
+        var naslov = document.createElement("h4");
+        naslov.textContent = [objava.publicationDate || "Objava " + (indeks + 1), objava.caseNumber].filter(Boolean).join(" · ");
+        var meta = document.createElement("p");
+        meta.className = "boniteta-objava__meta";
+        meta.textContent = [objava.court, objava.debtorName, objava.city, objava.register].filter(Boolean).join(" · ");
+        var besedilo = document.createElement("p");
+        besedilo.className = "boniteta-objava__besedilo";
+        besedilo.textContent = objava.text || "Besedilo objave ni na voljo.";
+        clanek.appendChild(naslov);
+        clanek.appendChild(meta);
+        clanek.appendChild(besedilo);
+        objaveSeznam.appendChild(clanek);
+      });
+      objaveGumb.onclick = function () {
+        var odpri = objaveSeznam.hidden;
+        objaveSeznam.hidden = !odpri;
+        objaveGumb.setAttribute("aria-expanded", odpri ? "true" : "false");
+      };
+    } else {
+      objaveGumb.onclick = null;
     }
     potek.querySelectorAll(".boniteta-potek__korak").forEach(function (korak) {
       korak.classList.remove("is-active");

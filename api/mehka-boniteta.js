@@ -1544,20 +1544,20 @@ async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
     await stran.setUserAgent(USER_AGENT);
     await stran.goto(INSOLVENCY_PORTAL, { waitUntil: "domcontentloaded", timeout: 25000 });
 
-    async function izpolni(polje, vrednost) {
+    async function izpolni(ciljnaStran, polje, vrednost) {
       var selector = '[name="' + polje + '"]';
-      await stran.waitForSelector(selector, { timeout: 12000 });
-      await stran.$eval(selector, function (element, novaVrednost) {
+      await ciljnaStran.waitForSelector(selector, { timeout: 12000 });
+      await ciljnaStran.$eval(selector, function (element, novaVrednost) {
         element.value = novaVrednost;
         element.dispatchEvent(new Event("input", { bubbles: true }));
         element.dispatchEvent(new Event("change", { bubbles: true }));
       }, vrednost || "");
     }
 
-    async function izberiPoBesedilu(polje, vrednost) {
+    async function izberiPoBesedilu(ciljnaStran, polje, vrednost) {
       if (!vrednost) return false;
       var selector = '[name="' + polje + '"]';
-      var izbranaVrednost = await stran.$eval(selector, function (element, iskano) {
+      var izbranaVrednost = await ciljnaStran.$eval(selector, function (element, iskano) {
         function cisto(v) {
           return String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
         }
@@ -1567,37 +1567,86 @@ async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
         return moznost ? moznost.value : "";
       }, vrednost);
       if (!izbranaVrednost) return false;
-      await stran.select(selector, izbranaVrednost);
+      await ciljnaStran.select(selector, izbranaVrednost);
       return true;
     }
 
-    await izpolni("frm_suche:ldi_datumVon:datumHtml5", "2005-01-01");
-    await izpolni("frm_suche:ldi_datumBis:datumHtml5", new Date().toISOString().slice(0, 10));
-    await izpolni("frm_suche:litx_firmaNachName:text", subjekt.ime);
-    await izpolni("frm_suche:litx_vorname:text", "");
-    await izpolni("frm_suche:litx_sitzWohnsitz:text", subjekt.kraj);
-    if (opravilo) {
-      await izpolni("frm_suche:iaz_aktenzeichen:itx_abteilung", opravilo.oddelek);
-      await izberiPoBesedilu("frm_suche:iaz_aktenzeichen:som_registerzeichen:mysom", opravilo.oznaka);
-      await izpolni("frm_suche:iaz_aktenzeichen:itx_lfdNr", opravilo.stevilka);
-      await izpolni("frm_suche:iaz_aktenzeichen:itx_jahr", opravilo.leto);
-    }
-    if (register.number) {
-      await izberiPoBesedilu("frm_suche:ir_registereintrag:som_registergericht:mysom", register.court);
-      await izberiPoBesedilu("frm_suche:ir_registereintrag:som_registerart:mysom", register.type);
-      await izpolni("frm_suche:ir_registereintrag:itx_registernummer", register.number);
+    async function izvediIskanje(ciljnaStran, datumOd, datumDo) {
+      await izpolni(ciljnaStran, "frm_suche:ldi_datumVon:datumHtml5", datumOd);
+      await izpolni(ciljnaStran, "frm_suche:ldi_datumBis:datumHtml5", datumDo);
+      await izpolni(ciljnaStran, "frm_suche:litx_firmaNachName:text", subjekt.ime);
+      await izpolni(ciljnaStran, "frm_suche:litx_vorname:text", "");
+      await izpolni(ciljnaStran, "frm_suche:litx_sitzWohnsitz:text", subjekt.kraj);
+      if (opravilo) {
+        await izpolni(ciljnaStran, "frm_suche:iaz_aktenzeichen:itx_abteilung", opravilo.oddelek);
+        await izberiPoBesedilu(ciljnaStran, "frm_suche:iaz_aktenzeichen:som_registerzeichen:mysom", opravilo.oznaka);
+        await izpolni(ciljnaStran, "frm_suche:iaz_aktenzeichen:itx_lfdNr", opravilo.stevilka);
+        await izpolni(ciljnaStran, "frm_suche:iaz_aktenzeichen:itx_jahr", opravilo.leto);
+      }
+      if (register.number) {
+        await izberiPoBesedilu(ciljnaStran, "frm_suche:ir_registereintrag:som_registergericht:mysom", register.court);
+        await izberiPoBesedilu(ciljnaStran, "frm_suche:ir_registereintrag:som_registerart:mysom", register.type);
+        await izpolni(ciljnaStran, "frm_suche:ir_registereintrag:itx_registernummer", register.number);
+      }
+      await Promise.all([
+        ciljnaStran.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 25000 }).catch(function () {}),
+        ciljnaStran.click('[name="frm_suche:cbt_suchen"]'),
+      ]);
+      await ciljnaStran.waitForFunction(function () {
+        return /Suchergebnis|Keine Treffer|zu viele Treffer/i.test(document.body.innerText || "");
+      }, { timeout: 20000 });
     }
 
-    await Promise.all([
-      stran.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 25000 }).catch(function () {}),
-      stran.click('[name="frm_suche:cbt_suchen"]'),
-    ]);
-    await stran.waitForFunction(function () {
-      return /Suchergebnis|Keine Treffer|zu viele Treffer/i.test(document.body.innerText || "");
-    }, { timeout: 20000 });
+    await izvediIskanje(stran, "2005-01-01", new Date().toISOString().slice(0, 10));
     var rezultatBesedilo = await stran.evaluate(function () { return document.body.innerText || ""; });
     var presoja = presodiUradniInsolvencniRezultat(rezultatBesedilo, subjekt, opravilo);
     var posnetek = await stran.screenshot({ type: "jpeg", quality: 72, fullPage: true, encoding: "base64" });
+    var objaveMeta = await stran.evaluate(function () {
+      return Array.from(document.querySelectorAll('input[alt="Veröffentlichungstext anzeigen"]')).map(function (gumb) {
+        var celice = Array.from((gumb.closest("tr") || {}).querySelectorAll ? gumb.closest("tr").querySelectorAll("td") : [])
+          .map(function (celica) { return String(celica.innerText || celica.textContent || "").replace(/\s+/g, " ").trim(); });
+        return {
+          publicationDate: celice[0] || "",
+          caseNumber: celice[1] || "",
+          court: celice[2] || "",
+          debtorName: celice[3] || "",
+          city: celice[4] || "",
+          register: celice[5] || "",
+        };
+      });
+    });
+    var uradneObjave = [];
+    var steviloObjav = Math.min(objaveMeta.length, 50);
+    for (var objavaIndex = 0; objavaIndex < steviloObjav; objavaIndex += 1) {
+      var objavaStran = await browser.newPage();
+      await objavaStran.setViewport({ width: 1100, height: 850, deviceScaleFactor: 1 });
+      await objavaStran.setUserAgent(USER_AGENT);
+      var datumUjemanje = String(objaveMeta[objavaIndex].publicationDate || "").match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      var datumObjave = datumUjemanje ? [datumUjemanje[3], datumUjemanje[2], datumUjemanje[1]].join("-") : "2005-01-01";
+      var besediloObjave = "";
+      try {
+        await objavaStran.goto(INSOLVENCY_PORTAL, { waitUntil: "domcontentloaded", timeout: 25000 });
+        await izvediIskanje(objavaStran, datumObjave, datumObjave);
+        var prviGumbObjave = await objavaStran.$('input[alt="Veröffentlichungstext anzeigen"]');
+        if (prviGumbObjave) {
+          await prviGumbObjave.click();
+          await objavaStran.waitForFunction(function () {
+            var polje = document.querySelector('[name="frm_text:ihd_text"], [id="frm_text:ihd_text"]');
+            return Boolean(polje && polje.value);
+          }, { timeout: 8000 });
+          besediloObjave = await objavaStran.$eval('[name="frm_text:ihd_text"], [id="frm_text:ihd_text"]', function (polje) {
+            return String(polje.value || "").trim();
+          });
+        }
+      } catch (_) {
+        besediloObjave = "";
+      } finally {
+        await objavaStran.close();
+      }
+      if (besediloObjave && !uradneObjave.some(function (objava) { return objava.text === besediloObjave; })) {
+        uradneObjave.push(Object.assign({}, objaveMeta[objavaIndex], { text: besediloObjave }));
+      }
+    }
     return Object.assign({}, presoja, {
       source: "official_insolvency_portal",
       sourceLabel: "Insolvenzbekanntmachungen",
@@ -1607,6 +1656,9 @@ async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
       searchedCity: subjekt.kraj,
       searchedCaseNumber: opravilo ? opravilo.celotna : "",
       searchedRegister: register.number ? [register.court, register.type + " " + register.number].filter(Boolean).join(", ") : "",
+      publications: uradneObjave,
+      publicationCount: objaveMeta.length,
+      publicationsLimited: objaveMeta.length > steviloObjav,
       evidenceStatus: "captured",
       evidenceImage: "data:image/jpeg;base64," + posnetek,
     });

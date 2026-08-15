@@ -1,0 +1,85 @@
+.boniteta-objave {
+  margin: 13px 0;
+  overflow: hidden;
+  border: 1px solid #d3e1dd;
+  border-radius: 13px;
+  background: #f8faf9;
+}
+
+.boniteta-objave[hidden],
+.boniteta-objave__seznam[hidden] {
+  display: none;
+}
+
+.boniteta-objave__gumb {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 0;
+  background: #edf6f3;
+  color: #316f70;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boniteta-objave__gumb:focus-visible {
+  outline: 2px solid #3d7676;
+  outline-offset: -2px;
+}
+
+.boniteta-objave__puscica {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.boniteta-objave__gumb[aria-expanded="true"] .boniteta-objave__puscica {
+  transform: rotate(180deg);
+}
+
+.boniteta-objave__seznam {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #d3e1dd;
+}
+
+.boniteta-objava {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #dce7e4;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.boniteta-objava h4 {
+  margin: 0;
+  color: #294846;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.boniteta-objava__meta {
+  margin: 5px 0 0;
+  color: #6c7f7c;
+  font-size: 0.67rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.boniteta-objava__besedilo {
+  margin: 10px 0 0;
+  color: #405957;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
