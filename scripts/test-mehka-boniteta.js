@@ -190,6 +190,15 @@ assert.strictEqual(kerkmannImpressum.ime, "Stefan Krause");
 assert.strictEqual(kerkmannImpressum.naziv, "U.K. Udo Kerkmann e.K.");
 assert.strictEqual(kerkmannImpressum.registerNumber, "HRA 17175");
 assert.strictEqual(test.pocistiRegistrskoSodisce(kerkmannImpressum.registerCourt), "D\u00fcsseldorf");
+var aksImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><h2>Verantwortlich f\u00fcr den Inhalt</h2><p>Abflusskummer Servicegesellschaft M\u00fcller mbH<br>Gesch\u00e4ftsf\u00fchrer: Jascha M\u00fcller<br>Buchwiese 22<br>65510 Idstein</p><p>Handelsregister Wiesbaden HRB Nr. 31655</p><h2>Realisierung der Webseite</h2><p>Royalkomm GmbH, Wiesbaden</p></main>",
+  "https://aks-abflussfrei.de/impressum/",
+  { ime: "AKS Abflussfrei", postnaStevilka: "65510", kraj: "Idstein" }
+);
+assert.strictEqual(aksImpressum.ime, "Jascha M\u00fcller");
+assert.strictEqual(aksImpressum.naziv, "Abflusskummer Servicegesellschaft M\u00fcller mbH");
+assert.strictEqual(aksImpressum.registerNumber, "HRB 31655");
+assert.strictEqual(aksImpressum.registerCourt, "Wiesbaden");
 assert.deepStrictEqual(test.pripraviVnosZaPreverbo({
   ime: "https://udo-kerkmann.com/impressum/",
   naslov: "W\u00f6rthstr. 1",

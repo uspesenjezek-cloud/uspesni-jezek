@@ -337,12 +337,24 @@ function razcleniImpressum(html, sourceUrl, vnos) {
   if (!nosilci.length) return null;
 
   var lokacija = tekst.match(/\b(\d{5})\s+([^\n,]{2,80})/u);
-  var nazivDruzbe = vrstice.find(function (vrstica) {
-    return /\b(?:GmbH|UG(?:\s*\(haftungsbeschr(?:ä|a)nkt\))?|AG|GbR|OHG|KG|e\.?\s*K\.?|PartG|eG)\b/i.test(vrstica) && vrstica.length <= 140;
-  }) || vnos.ime;
+  var prviNaslovIndex = vrstice.findIndex(function (vrstica) { return /\b\d{5}\s+[\p{L}]/u.test(vrstica); });
+  var pravneDruzbe = vrstice.map(function (vrstica, index) {
+    if (!/\b(?:GmbH|mbH|UG(?:\s*\(haftungsbeschr(?:ä|a)nkt\))?|AG|GbR|OHG|KG|e\.?\s*K\.?|PartG|eG)\b/i.test(vrstica) || vrstica.length > 140) return null;
+    var kontekst = vrstice.slice(Math.max(0, index - 2), index + 1).join(" ");
+    var izdelovalecStrani = /(?:Realisierung|Webdesign|Webseite|Website|Konzeption|Agentur|Programmierung)/i.test(kontekst);
+    var razdaljaDoNosilca = nosilci.reduce(function (najmanjsa, nosilec) {
+      var indeksNosilca = vrstice.findIndex(function (v) { return normaliziraj(v).includes(normaliziraj(nosilec)); });
+      return indeksNosilca < 0 ? najmanjsa : Math.min(najmanjsa, Math.abs(index - indeksNosilca));
+    }, 999);
+    var ocena = (prviNaslovIndex >= 0 && index < prviNaslovIndex ? 100 : 0) + Math.max(0, 50 - razdaljaDoNosilca * 10);
+    if (izdelovalecStrani) ocena -= 500;
+    return { naziv: vrstica, ocena: ocena };
+  }).filter(Boolean).sort(function (a, b) { return b.ocena - a.ocena; });
+  var nazivDruzbe = pravneDruzbe.length ? pravneDruzbe[0].naziv : vnos.ime;
   nazivDruzbe = pocistiNazivDruzbe(nazivDruzbe);
-  var register = tekst.match(/\b((?:HR[AB]|GnR|PR|VR)\s*[A-Z]?\s*\d+[A-Z0-9-]*)\b/i);
+  var register = tekst.match(/\b(HR[AB]|GnR|PR|VR)\s*(?:Nr\.?\s*)?([A-Z]?\s*\d+[A-Z0-9-]*)\b/i);
   var registergericht = tekst.match(/(?:Registergericht|Amtsgericht)\s*:?\s*([^\n]{2,100})/i);
+  if (!registergericht) registergericht = tekst.match(/Handelsregister\s*:?[ \t]*(?:Amtsgericht\s+)?([^\n]{2,80}?)\s+(?:HR[AB]|GnR|PR|VR)\b/i);
   var ustId = tekst.match(/\b(?:USt\.?-?IdNr\.?|Umsatzsteuer(?:-|\s*)Identifikationsnummer)\s*:?\s*(DE\s*\d{9})\b/i);
   var email = tekst.match(/\b(?:E-?Mail)\s*:?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i);
   var telefon = tekst.match(/\b(?:Telefon|Tel\.?)\s*:?\s*(\+?[\d][\d\s()/.-]{5,}\d)/i);
@@ -352,7 +364,7 @@ function razcleniImpressum(html, sourceUrl, vnos) {
     zastopniki: nosilci,
     postnaStevilka: lokacija ? lokacija[1] : vnos.postnaStevilka,
     kraj: lokacija ? lokacija[2].trim() : vnos.kraj,
-    registerNumber: register ? register[1].replace(/\s+/g, " ").trim() : "",
+    registerNumber: register ? (register[1] + " " + register[2]).replace(/\s+/g, " ").trim() : "",
     registerCourt: registergericht ? registergericht[1].trim() : "",
     vatId: ustId ? ustId[1].replace(/\s+/g, "") : "",
     email: email ? email[1] : "",
