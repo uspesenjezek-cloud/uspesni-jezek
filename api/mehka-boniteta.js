@@ -251,8 +251,10 @@ function pocistiNazivDruzbe(vrednost) {
 function pocistiImeOsebe(vrednost) {
   return String(vrednost || "")
     .replace(/^(?:herr|frau)\s+/i, "")
+    .replace(/\b([\p{Lu}])\.(?=[\p{Lu}])/gu, "$1. ")
     .replace(/\s*\([^)]*(?:einzelvertret|vertretungsberechtigt|gesch(?:ä|a)ftsf(?:ü|u)hr)[^)]*\)\s*/gi, " ")
     .replace(/\s+(?:telefon|tel\.?|e-?mail|anschrift|adresse)\b[\s\S]*$/i, "")
+    .replace(/\s+(?:installateur|heizungsbau(?:er)?|sanit(?:ä|a)r(?:technik)?|heizung(?:stechnik)?|elektro(?:technik)?|meister(?:betrieb)?|handwerker|klempner|rohrreinigung|kanalreinigung)\b[\s\S]*$/i, "")
     .replace(/[;,]\s*$/, "")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -275,6 +277,7 @@ function jeVerjetnoImeOsebe(vrednost) {
   if (imenskeBesede.length < 2 || imenskeBesede.length > 3) return false;
   return jedro.every(function (del) {
     if (vezniki.has(normaliziraj(del))) return /^[\p{Ll}]+$/u.test(del);
+    if (/^[\p{Lu}]\.$/u.test(del)) return true;
     return /^[\p{Lu}][\p{Ll}]+(?:[-'’][\p{Lu}]?[\p{Ll}]+)*$/u.test(del);
   });
 }
@@ -474,7 +477,14 @@ function razcleniImpressum(html, sourceUrl, vnos) {
     var ocena = (prviNaslovIndex >= 0 && index < prviNaslovIndex ? 100 : 0) + Math.max(0, 50 - razdaljaDoNosilca * 10);
     return { naziv: vrstica, ocena: ocena };
   }).filter(Boolean).sort(function (a, b) { return b.ocena - a.ocena; });
-  var nazivDruzbe = pravneDruzbe.length ? pravneDruzbe[0].naziv : vnos.ime;
+  var vrsticaVlogeIndex = vrstice.findIndex(function (vrstica) {
+    return new RegExp("^(?:" + oznakaVloge + ")\\b", "i").test(vrstica);
+  });
+  var poslovniNazivPredVlogo = vrsticaVlogeIndex > 0 ? vrstice[vrsticaVlogeIndex - 1] : "";
+  if (/^(?:impressum|imprint)(?:\s|$)/i.test(poslovniNazivPredVlogo) || poslovniNazivPredVlogo.length > 140) {
+    poslovniNazivPredVlogo = "";
+  }
+  var nazivDruzbe = pravneDruzbe.length ? pravneDruzbe[0].naziv : (vnos.ime || poslovniNazivPredVlogo || nosilci[0]);
   nazivDruzbe = pocistiNazivDruzbe(nazivDruzbe);
   var register = tekst.match(/\b(HR[AB]|GnR|PR|VR)\s*(?:Nr\.?\s*)?([A-Z]?\s*\d+[A-Z0-9-]*)\b/i);
   var registergericht = tekst.match(/(?:Registergericht|Amtsgericht)\s*:?\s*([^\n]{2,100})/i);

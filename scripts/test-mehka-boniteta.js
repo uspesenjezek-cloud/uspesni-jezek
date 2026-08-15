@@ -94,6 +94,16 @@ var dumanImpressum = test.razcleniImpressum(
 );
 assert.strictEqual(dumanImpressum.ime, "Köksal Duman");
 assert.strictEqual(dumanImpressum.naslov, "Halmstraße 2");
+var zacetnicaInPoklicImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Impressum www.beispiel.de<br>Beispiel Sanitär- und Heizungstechnik<br>Inhaber T.Mantel Installateur und Heizungsbau-Meister<br><br>Egenolffstraße 3<br>60316 Frankfurt am Main<br><br>HRA 44336 Amtsgericht Frankfurt am Main</p></main>",
+  "https://example.test/impressum/",
+  { ime: "", naslov: "Egenolffstraße 3", postnaStevilka: "60316", kraj: "Frankfurt am Main" }
+);
+assert.strictEqual(zacetnicaInPoklicImpressum.ime, "T. Mantel");
+assert.strictEqual(zacetnicaInPoklicImpressum.naziv, "Beispiel Sanitär- und Heizungstechnik");
+assert.strictEqual(zacetnicaInPoklicImpressum.registerNumber, "HRA 44336");
+assert.strictEqual(zacetnicaInPoklicImpressum.registerCourt, "Frankfurt am Main");
+assert.strictEqual(zacetnicaInPoklicImpressum.naslov, "Egenolffstraße 3");
 var dumanZAgencijo = test.razcleniImpressum(
   "<main><h1>Impressum</h1><p>Köksal Duman<br>Halmstraße 2<br>60437 Frankfurt am Main</p><p>Vertretungsberechtigte Geschäftsführer: Herr Köksal Duman</p><p>Konzeption, Grafik und Text: Agentur ID GmbH</p><p>Webdesign: GO: Grafik und Konzept GmbH</p></main>",
   "https://heizungsmeisterei-duman.de/impressum",
