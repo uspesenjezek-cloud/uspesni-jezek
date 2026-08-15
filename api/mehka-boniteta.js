@@ -8,6 +8,7 @@ var fs = require("node:fs");
 var HWK_RHEIN_MAIN = "https://hwk-rhein-main.odav.de";
 var KAMMERFINDER = "https://www.kammerfinder.de/";
 var HWK_PO_PLZ = "https://www.handwerkskammer.de/kontakte/zustaendige-handwerkskammer-5620,0,dazustaendig.html";
+var HANDWERKER_RADAR_SEARCH = "https://www.handwerker-radar.de/5100,0,hwrsearch.html";
 var INSOLVENCY_SEARCH = "https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf";
 var OPENREGISTER_SEARCH = "https://api.openregister.de/v0/search/company";
 var OPENREGISTER_WEB = "https://openregister.de";
@@ -60,6 +61,9 @@ var HWK_CUSTOM_OVERRIDES = {
   "handwerkskammer rheinhessen": "https://www.hwk.de/handwerkersuche/",
   "handwerkskammer sudthuringen": "https://www.hwk-suedthueringen.de/handwerkersuche/",
   "handwerkskammer ulm": "https://www.hwk-ulm.de/handwerkersuche/",
+};
+var HWK_MANUAL_FALLBACK_OVERRIDES = {
+  "handwerkskammer frankfurt rhein main": HANDWERKER_RADAR_SEARCH,
 };
 
 function odgovorJson(res, status, podatki) {
@@ -755,6 +759,7 @@ async function dolociHwkIskalnik(zbornica) {
   rezultat = rezultat || { type: "manual", searchUrl: zbornica.homepage || zbornica.infoUrl || KAMMERFINDER };
   rezultat.chamberName = zbornica.name;
   rezultat.chamberUrl = zbornica.homepage || zbornica.infoUrl;
+  rezultat.fallbackUrl = HWK_MANUAL_FALLBACK_OVERRIDES[kljuc] || "";
   hwkIskalnikCache.set(kljuc, rezultat);
   return rezultat;
 }
@@ -834,6 +839,19 @@ function razcleniHwkPodrobnosti(html, url) {
   };
 }
 
+function sestaviHwkIskalniUrl(vnos, iskalnik) {
+  if (!iskalnik || iskalnik.type !== "odav" || !iskalnik.searchUrl) return "";
+  var iskalniUrlObjekt = new URL(iskalnik.searchUrl);
+  iskalniUrlObjekt.hash = "";
+  iskalniUrlObjekt.searchParams.set("limit", "20");
+  iskalniUrlObjekt.searchParams.set("search-searchterm", vnos.ime);
+  iskalniUrlObjekt.searchParams.set("search-local", "0");
+  iskalniUrlObjekt.searchParams.set("search-filter-zipcode", vnos.postnaStevilka);
+  iskalniUrlObjekt.searchParams.set("search-filter-radius", "20");
+  iskalniUrlObjekt.searchParams.set("offset", "0");
+  return iskalniUrlObjekt.toString();
+}
+
 async function poisciPriHwk(vnos, zbornica, iskalnik) {
   if (!iskalnik || iskalnik.type !== "odav") {
     return {
@@ -844,37 +862,48 @@ async function poisciPriHwk(vnos, zbornica, iskalnik) {
       chamberUrl: zbornica && (zbornica.homepage || zbornica.infoUrl) || "",
     };
   }
-  var iskalniUrlObjekt = new URL(iskalnik.searchUrl);
-  iskalniUrlObjekt.hash = "";
-  iskalniUrlObjekt.searchParams.set("limit", "20");
-  iskalniUrlObjekt.searchParams.set("search-searchterm", vnos.ime);
-  iskalniUrlObjekt.searchParams.set("search-local", "0");
-  iskalniUrlObjekt.searchParams.set("search-filter-zipcode", vnos.postnaStevilka);
-  iskalniUrlObjekt.searchParams.set("search-filter-radius", "20");
-  iskalniUrlObjekt.searchParams.set("offset", "0");
-  var iskalniUrl = iskalniUrlObjekt.toString();
-  var odgovor = await fetchZRokom(iskalniUrl, { headers: { "User-Agent": USER_AGENT, Accept: "text/html" } });
-  if (!odgovor.ok) throw new Error("HWK_SEARCH_FAILED");
+  var iskalniUrl = sestaviHwkIskalniUrl(vnos, iskalnik);
+  var skupniPodatki = {
+    searchUrl: iskalniUrl,
+    searchedName: vnos.ime,
+    chamberName: zbornica && zbornica.name || iskalnik.chamberName || "",
+    chamberUrl: zbornica && (zbornica.homepage || zbornica.infoUrl) || iskalnik.chamberUrl || "",
+  };
+  function nedosegljivSamodejniVir(razlog) {
+    if (iskalnik.fallbackUrl) {
+      return Object.assign({
+        status: "manual_available",
+        reason: "official_search_requires_security_code",
+        searchUrl: iskalnik.fallbackUrl,
+        automatedSearchUrl: iskalniUrl,
+        failedReason: razlog,
+      }, skupniPodatki, { searchUrl: iskalnik.fallbackUrl });
+    }
+    return Object.assign({ status: "unavailable", reason: razlog }, skupniPodatki);
+  }
+  var odgovor;
+  try {
+    odgovor = await fetchZRokom(iskalniUrl, { headers: { "User-Agent": USER_AGENT, Accept: "text/html" } });
+  } catch (_) {
+    return nedosegljivSamodejniVir("timeout_or_blocked");
+  }
+  if (!odgovor.ok) return nedosegljivSamodejniVir("source_http_error");
   var html = await odgovor.text();
   var izbor = izberiHwkZadetek(razcleniHwkRezultate(html, iskalniUrl), vnos);
-  if (izbor.status !== "found") return Object.assign({
-    searchUrl: iskalniUrl,
-    searchedName: vnos.ime,
-    chamberName: zbornica && zbornica.name || iskalnik.chamberName || "",
-    chamberUrl: zbornica && (zbornica.homepage || zbornica.infoUrl) || iskalnik.chamberUrl || "",
-  }, izbor);
+  if (izbor.status !== "found") return Object.assign({}, skupniPodatki, izbor);
 
-  var detail = await fetchZRokom(izbor.kandidat.url, { headers: { "User-Agent": USER_AGENT, Accept: "text/html" } });
-  if (!detail.ok) throw new Error("HWK_DETAIL_FAILED");
-  return {
+  var detail;
+  try {
+    detail = await fetchZRokom(izbor.kandidat.url, { headers: { "User-Agent": USER_AGENT, Accept: "text/html" } });
+  } catch (_) {
+    return nedosegljivSamodejniVir("detail_timeout_or_blocked");
+  }
+  if (!detail.ok) return nedosegljivSamodejniVir("detail_http_error");
+  return Object.assign({}, skupniPodatki, {
     status: "found",
-    searchUrl: iskalniUrl,
-    searchedName: vnos.ime,
-    chamberName: zbornica && zbornica.name || iskalnik.chamberName || "",
-    chamberUrl: zbornica && (zbornica.homepage || zbornica.infoUrl) || iskalnik.chamberUrl || "",
     kandidat: izbor.kandidat,
     subjekt: razcleniHwkPodrobnosti(await detail.text(), izbor.kandidat.url),
-  };
+  });
 }
 
 function sestaviHwkIskanja(vnos, javniProfil) {
@@ -1012,9 +1041,11 @@ function sestaviVire(openregister, hwk, javniProfil, vnos) {
       message: hwk.status === "found"
         ? "Javni obrtni vpis je najden."
         : hwk.status === "manual_available"
-          ? "Pristojna zbornica je določena; njen javni iskalnik uporablja drugačen sistem."
+          ? hwk.reason === "official_search_requires_security_code"
+            ? "Samodejni HWK vir se ni odzval. Odprite uradni Handwerkerradar in opravite varnostno potrditev; to ni negativen zadetek."
+            : "Pristojna zbornica je določena; njen javni iskalnik uporablja drugačen sistem."
           : hwk.status === "unavailable"
-            ? "Javni imenik trenutno ni dosegljiv."
+            ? "Uradni javni imenik se ni odzval; to ne pomeni, da vpisa ni. Odprite pripravljeno ročno iskanje."
             : "V javnem HWK-imeniku ni zadetka.",
     },
     {
@@ -1507,6 +1538,7 @@ handler._test = {
   jeImpressumDokument: jeImpressumDokument,
   jeVerjetnoImeOsebe: jeVerjetnoImeOsebe,
   sestaviHwkIskanja: sestaviHwkIskanja,
+  sestaviHwkIskalniUrl: sestaviHwkIskalniUrl,
   jeZasebenIp: jeZasebenIp,
   poisciVImpressumu: poisciVImpressumu,
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,

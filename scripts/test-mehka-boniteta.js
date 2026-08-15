@@ -304,6 +304,36 @@ var viri = test.sestaviVire(
   { ime: "M.A.Services24", postnaStevilka: "63067", kraj: "Offenbach am Main", spletnaStran: "ma-services24.de" }
 );
 assert.deepStrictEqual(viri.map(function (vir) { return vir.id; }), ["openregister", "hwk", "impressum", "gewerbe"]);
+var dumanHwkUrl = new URL(test.sestaviHwkIskalniUrl({
+  ime: "Köksal Duman", postnaStevilka: "60437",
+}, {
+  type: "odav",
+  searchUrl: "https://hwk-rhein-main.odav.de/betriebe/suche-45,61,bdbsearch.html",
+}));
+assert.strictEqual(dumanHwkUrl.searchParams.get("search-searchterm"), "Köksal Duman");
+assert.strictEqual(dumanHwkUrl.searchParams.get("search-filter-zipcode"), "60437");
+assert.strictEqual(dumanHwkUrl.searchParams.get("search-filter-radius"), "20");
+var radarFallback = test.sestaviVire(
+  { status: "not_found" },
+  {
+    status: "manual_available",
+    reason: "official_search_requires_security_code",
+    searchUrl: "https://www.handwerker-radar.de/5100,0,hwrsearch.html",
+    chamberName: "Handwerkskammer Frankfurt-Rhein-Main",
+  },
+  { status: "found", subjekt: impressum },
+  { ime: "Heizungsmeisterei Duman", postnaStevilka: "60437", kraj: "Frankfurt am Main" }
+)[1];
+assert.match(radarFallback.message, /varnostno potrditev/);
+assert.match(radarFallback.sourceUrl, /handwerker-radar\.de/);
+var nedosegljivHwkVir = test.sestaviVire(
+  { status: "not_found" },
+  { status: "unavailable", searchUrl: dumanHwkUrl.toString(), chamberName: "Handwerkskammer Frankfurt-Rhein-Main" },
+  { status: "found", subjekt: impressum },
+  { ime: "Heizungsmeisterei Duman", postnaStevilka: "60437", kraj: "Frankfurt am Main" }
+)[1];
+assert.match(nedosegljivHwkVir.message, /to ne pomeni, da vpisa ni/);
+assert.strictEqual(nedosegljivHwkVir.sourceUrl, dumanHwkUrl.toString());
 
 var koren = path.join(__dirname, "..");
 var html = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.html"), "utf8");
@@ -337,6 +367,8 @@ assert.match(js, /evidenceStatus === "captured"/);
 assert.match(js, /insolvenca\.evidenceImage/);
 assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
 assert.match(js, /Neposredno prek OpenRegister API/);
+assert.match(js, /Uradni imenik se ni odzval/);
+assert.match(js, /Nadaljuj v uradnem HWK iskanju/);
 assert.match(apiSrc, /zajemiUradnoInsolvencnoDokazilo/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
 assert.match(apiSrc, /status: "verified_api"/);

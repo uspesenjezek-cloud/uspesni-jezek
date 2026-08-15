@@ -241,9 +241,17 @@
       dodajPodatek(hwkPodatki, "Nosilec", identiteta.ime);
       dodajPodatek(hwkPodatki, "Kraj", [identiteta.postnaStevilka, identiteta.kraj].filter(Boolean).join(" "));
       dodajPodatek(hwkPodatki, "Pristojna HWK", hwk.chamberName || "Ni določena");
-      dodajPodatek(hwkPodatki, "HWK preverba", hwk.status === "manual_available" ? "Iskalnik zahteva ročni pregled" : "V javnem imeniku ni potrjeno");
-      hwkVir.href = profil.sourceUrl;
-      hwkVir.textContent = "Odpri Impressum podjetja ↗";
+      dodajPodatek(hwkPodatki, "HWK preverba", hwk.status === "manual_available"
+        ? hwk.reason === "official_search_requires_security_code"
+          ? "Odpri uradni Handwerkerradar in potrdi varnostno kodo"
+          : "Iskalnik zahteva ročni pregled"
+        : hwk.status === "unavailable"
+          ? "Uradni imenik se ni odzval – vpis zato ni ne potrjen ne zavrnjen"
+          : "V javnem imeniku ni potrjeno");
+      hwkVir.href = hwk.status === "manual_available" && hwk.searchUrl ? hwk.searchUrl : profil.sourceUrl;
+      hwkVir.textContent = hwk.status === "manual_available"
+        ? "Nadaljuj v uradnem HWK iskanju ↗"
+        : "Odpri Impressum podjetja ↗";
     } else {
       hwkStatus.textContent = "Ni potrjeno";
       hwkStatus.className = "boniteta-znacka boniteta-znacka--yellow";
