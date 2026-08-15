@@ -147,6 +147,7 @@ assert.strictEqual(test.jeVerjetnoImeOsebe("Location Location"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Max Max Mustermann"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Über Uns"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Menu Start"), false);
+assert.strictEqual(test.jeVerjetnoImeOsebe("Holger Jansen Haustechnik"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("max mustermann"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Max Peter Paul Mustermann"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Karl von der Linden"), true);
@@ -172,6 +173,14 @@ var jshImpressum = test.razcleniImpressum(
 assert.strictEqual(jshImpressum.ime, "Jaweed Shinwari");
 assert.strictEqual(jshImpressum.email, "kontakt@jshaustechnik.de");
 assert.strictEqual(jshImpressum.telefon, "+4971125513905");
+var jansenImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Holger Jansen Haustechnik<br>Merowinger Str. 51<br>40225 D\u00fcsseldorf</p><p>Inhaltlich verantwortlich: Holger Jansen</p></main>",
+  "https://jansenhaustechnik.de/impressum",
+  { ime: "Holger Jansen Haustechnik", postnaStevilka: "40225", kraj: "D\u00fcsseldorf" }
+);
+assert.strictEqual(jansenImpressum.ime, "Holger Jansen");
+assert.strictEqual(jansenImpressum.postnaStevilka, "40225");
+assert.strictEqual(jansenImpressum.kraj, "D\u00fcsseldorf");
 assert.deepStrictEqual(test.najdiImpressumPovezave(
   '<a href="https://jshaustechnik.live-website.com/impressum/">Impressum</a>',
   "https://jshaustechnik.de/ueber-uns/"

@@ -125,7 +125,7 @@ function jeVerjetnoImeOsebe(vrednost) {
   var normaliziraniDeli = deli.map(normaliziraj);
   if (new Set(normaliziraniDeli).size !== normaliziraniDeli.length) return false;
   if (normaliziraniDeli.some(function (del) {
-    return /^(?:location|kontakt|contact|impressum|imprint|datenschutz|privacy|adresse|address|anschrift|telefon|email|mail|home|start|menu|menue|uber|uns|about|willkommen|anbieterkennung|gesetzliche|seiten|seite|navigation|footer|header)$/.test(del);
+    return /^(?:location|kontakt|contact|impressum|imprint|datenschutz|privacy|adresse|address|anschrift|telefon|email|mail|home|start|menu|menue|uber|uns|about|willkommen|anbieterkennung|gesetzliche|seiten|seite|navigation|footer|header|haustechnik|sanitar|sanitaer|heizung|elektro|meisterbetrieb|installateur|rohrreinigung|kanalreinigung|kanalsanierung|klempner)$/.test(del);
   })) return false;
   if (/\b(?:gmbh|ug|ag|kg|ohg|gbr|inhaber|geschäftsführer|telefon|e-?mail|umsatzsteuer|angaben|inhaltlich|verantwortlich)\b/i.test(ime)) return false;
   var jedro = deli.filter(function (del) { return !/^(?:dr\.?|prof\.?|dipl\.-?ing\.?)$/i.test(del); });
@@ -281,6 +281,15 @@ function razcleniImpressum(html, sourceUrl, vnos) {
       if (jeVerjetnoImeOsebe(kandidat) && !nosilci.some(function (oseba) {
         return normaliziraj(oseba) === normaliziraj(kandidat);
       })) nosilci.push(kandidat);
+    }
+  }
+
+  // Ta oznaka pogosto pomeni uredniško odgovorno osebo, zato je samo rezervni
+  // kandidat. Končno identiteto mora še vedno potrditi register ali HWK.
+  if (!nosilci.length) {
+    var odgovornaOseba = tekst.match(/(?:Inhaltlich\s+verantwortlich|Verantwortlich\s+f(?:ĂĽ|u)r\s+den\s+Inhalt)\s*:?\s*\n?([^\n]{2,100})/i);
+    if (odgovornaOseba && jeVerjetnoImeOsebe(odgovornaOseba[1])) {
+      nosilci.push(pocistiImeOsebe(odgovornaOseba[1]));
     }
   }
 
