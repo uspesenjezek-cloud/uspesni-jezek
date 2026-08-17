@@ -1045,7 +1045,7 @@
   .boniteta-hero__podjetje strong { font-size: 1rem; }
   #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 74px; height: 74px; border-width: 3px; }
   #boniteta-nacin-spletna svg, .boniteta-hero__podjetje svg { width: 37px; height: 37px; }
-  .stran--bonitetna .boniteta-zajem { gap: 10px; margin: -76px 10px 0; padding: 20px 10px 14px; border-radius: 22px; }
+  .stran--bonitetna .boniteta-zajem { gap: 10px; margin: -56px 10px 0; padding: 20px 10px 14px; border-radius: 22px; }
   .boniteta-zajem__locilo h2 { font-size: 1.18rem; }
   .boniteta-zajem__nacini { gap: 7px; }
   .boniteta-zajem__nacin { min-height: 160px; padding: 14px 3px 10px; border-radius: 18px; }
