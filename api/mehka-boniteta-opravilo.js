@@ -62,7 +62,12 @@ async function handler(req, res) {
   }
 
   var auth = await db.preveriUporabnika(req, cfg);
-  if (!auth.ok) return odgovorJson(res, auth.status, { ok: false, napaka: auth.napaka });
+  if (!auth.ok) return odgovorJson(res, auth.status, {
+    ok: false,
+    code: auth.code || "AUTH_FAILED",
+    retryable: auth.retryable === true,
+    napaka: auth.napaka,
+  });
 
   try {
     if (req.method === "DELETE") {

@@ -49,37 +49,71 @@ function bearerToken(req) {
   return match ? match[1].trim() : "";
 }
 
+function pocakaj(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+function jePrehodniAuthStatus(status) {
+  return status === 429 || status >= 500;
+}
+
+function jeTimeoutNapaka(err) {
+  return Boolean(err && (err.name === "TimeoutError" || err.name === "AbortError"));
+}
+
 async function preveriUporabnika(req, cfg) {
   var token = bearerToken(req);
   if (!token) {
-    return { ok: false, status: 401, napaka: "Prijava je potekla. Prijavite se znova." };
+    return { ok: false, status: 401, code: "AUTH_TOKEN_MISSING", retryable: false, napaka: "Prijava je potekla. Prijavite se znova." };
   }
 
-  var odgovor;
-  try {
-    odgovor = await fetchZOmejitvijo(cfg.url + "/auth/v1/user", {
-      headers: {
-        apikey: cfg.serviceKey,
-        Authorization: "Bearer " + token,
-      },
-    }, 10000);
-  } catch (err) {
+  var zamiki = Array.isArray(cfg.authRetryDelays) ? cfg.authRetryDelays : [250, 750];
+  var zadnjaNapaka = null;
+  var odgovor = null;
+  for (var poskus = 0; poskus <= zamiki.length; poskus += 1) {
+    try {
+      odgovor = await fetchZOmejitvijo(cfg.url + "/auth/v1/user", {
+        headers: {
+          apikey: cfg.serviceKey,
+          Authorization: "Bearer " + token,
+        },
+      }, 10000);
+      if (!jePrehodniAuthStatus(odgovor.status) || poskus === zamiki.length) break;
+    } catch (err) {
+      zadnjaNapaka = err;
+      odgovor = null;
+      if (poskus === zamiki.length) break;
+    }
+    await pocakaj(zamiki[poskus]);
+  }
+
+  if (!odgovor) {
+    var timeout = jeTimeoutNapaka(zadnjaNapaka);
     return {
       ok: false,
-      status: err && (err.name === "TimeoutError" || err.name === "AbortError") ? 504 : 502,
-      napaka: err && (err.name === "TimeoutError" || err.name === "AbortError")
-        ? "Preverjanje prijave je trajalo predolgo. Poskusite ponovno."
-        : "Avtorizacijski strežnik ni dosegljiv.",
+      status: timeout ? 504 : 502,
+      code: timeout ? "AUTH_TIMEOUT" : "AUTH_SERVER_UNAVAILABLE",
+      retryable: true,
+      napaka: "Povezava s prijavnim strežnikom je začasno prekinjena. Sistem je poskusil ponovno; poskusite še enkrat čez nekaj trenutkov.",
     };
   }
 
   if (!odgovor.ok) {
-    return { ok: false, status: 401, napaka: "Prijava ni več veljavna." };
+    if (jePrehodniAuthStatus(odgovor.status)) {
+      return {
+        ok: false,
+        status: odgovor.status === 429 ? 503 : 502,
+        code: "AUTH_SERVER_UNAVAILABLE",
+        retryable: true,
+        napaka: "Povezava s prijavnim strežnikom je začasno prekinjena. Sistem je poskusil ponovno; poskusite še enkrat čez nekaj trenutkov.",
+      };
+    }
+    return { ok: false, status: 401, code: "AUTH_SESSION_INVALID", retryable: false, napaka: "Prijava ni več veljavna." };
   }
 
   var user = await odgovor.json();
   if (!user || !user.id) {
-    return { ok: false, status: 401, napaka: "Uporabnik ni prepoznan." };
+    return { ok: false, status: 401, code: "AUTH_USER_INVALID", retryable: false, napaka: "Uporabnik ni prepoznan." };
   }
   return { ok: true, user: user, token: token };
 }
@@ -140,5 +174,9 @@ module.exports = {
   pridobiVrstice: pridobiVrstice,
   pokliciRpc: pokliciRpc,
   fetchZOmejitvijo: fetchZOmejitvijo,
-  _test: { omejenCas: omejenCas },
+  _test: {
+    omejenCas: omejenCas,
+    jePrehodniAuthStatus: jePrehodniAuthStatus,
+    jeTimeoutNapaka: jeTimeoutNapaka,
+  },
 };
