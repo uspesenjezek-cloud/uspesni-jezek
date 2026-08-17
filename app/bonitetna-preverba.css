@@ -982,9 +982,9 @@
   border-radius: 28px;
   box-shadow: 0 10px 28px rgba(32, 64, 61, .1);
 }
-.crif-flow-picker h2 { margin: 0 0 30px; color: #075866; font-size: 1.75rem; text-align: center; }
-.crif-flow-picker__options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.crif-flow-picker__options button {
+.stran--bonitetna .crif-flow-picker h2 { margin: 0 0 30px; color: #075866; font-size: 1.75rem; text-align: center; }
+.stran--bonitetna .crif-flow-picker__options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.stran--bonitetna .crif-flow-picker__options button {
   min-height: 390px;
   padding: 24px 12px 18px;
   place-items: center;
@@ -997,13 +997,13 @@
   text-align: center;
   box-shadow: 0 7px 20px rgba(31, 69, 63, .035);
 }
-.crif-flow-picker__options button.is-active { border-color: #6ca8a2; background: #fff; box-shadow: 0 0 0 2px rgba(15, 122, 112, .09), 0 9px 22px rgba(31, 69, 63, .06); }
-.crif-flow-picker__illustration { display: grid; width: 100%; height: 190px; place-items: center; }
-.crif-flow-picker__illustration svg { width: min(210px, 100%); height: 180px; }
-.crif-flow-picker__options strong { margin-top: 2px; color: #075866; font-size: 1.42rem; white-space: nowrap; }
-.crif-flow-picker__options button > span:not(.crif-flow-picker__illustration) { color: #1738a2; font-size: .88rem; }
-.crif-flow-picker__arrow { display: grid; width: 44px; height: 44px; margin-top: 17px; place-items: center; border-radius: 50%; background: #006674; color: #fff; font: 700 2rem/1 "Figtree", sans-serif; }
-.crif-flow-picker__start {
+.stran--bonitetna .crif-flow-picker__options button.is-active { border-color: #6ca8a2; background: #fff; box-shadow: 0 0 0 2px rgba(15, 122, 112, .09), 0 9px 22px rgba(31, 69, 63, .06); }
+.stran--bonitetna .crif-flow-picker__illustration { display: grid; width: 100%; height: 190px; place-items: center; }
+.stran--bonitetna .crif-flow-picker__illustration svg { width: min(210px, 100%); height: 180px; }
+.stran--bonitetna .crif-flow-picker__options strong { margin-top: 2px; color: #075866; font-size: 1.42rem; white-space: nowrap; }
+.stran--bonitetna .crif-flow-picker__options button > span:not(.crif-flow-picker__illustration) { color: #1738a2; font-size: .88rem; }
+.stran--bonitetna .crif-flow-picker__arrow { display: grid; width: 44px; height: 44px; margin-top: 17px; place-items: center; border-radius: 50%; background: #006674; color: #fff; font: 700 2rem/1 "Figtree", sans-serif; }
+.stran--bonitetna .crif-flow-picker__start {
   position: relative;
   display: flex;
   width: 100%;
@@ -1019,26 +1019,27 @@
   font: 700 1.35rem/1 "Bricolage Grotesque", sans-serif;
   cursor: pointer;
 }
-.crif-flow-picker__start b { position: absolute; right: 47px; font: 700 2.25rem/1 "Figtree", sans-serif; }
-.crif-flow-picker__start:hover { filter: brightness(1.05); }
-.crif-flow-picker__start:focus-visible { outline: 3px solid #83bdb6; outline-offset: 3px; }
+.stran--bonitetna .crif-flow-picker__start b { position: absolute; right: 47px; font: 700 2.25rem/1 "Figtree", sans-serif; }
+.stran--bonitetna .crif-flow-picker__start:hover { filter: brightness(1.05); }
+.stran--bonitetna .crif-flow-picker__start:focus-visible { outline: 3px solid #83bdb6; outline-offset: 3px; }
 
 @media (max-width: 620px) {
-  .stran--bonitetna .boniteta-hero { min-height: 285px; padding: calc(34px + env(safe-area-inset-top, 0px)) 20px 74px; border-bottom-right-radius: 54px; }
+  .stran--bonitetna .boniteta-obrazec { gap: 14px; }
+  .stran--bonitetna .boniteta-hero { min-height: 218px; padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 24px; border-bottom-right-radius: 54px; }
   .boniteta-hero__naslovna-vrstica { gap: 14px; }
   .boniteta-hero__scit { flex-basis: 43px; width: 43px; height: 52px; }
   .boniteta-hero__scit svg { width: 43px; height: 52px; }
   .boniteta-hero h1 { font-size: 1.55rem; }
   .boniteta-hero__naslovna-vrstica p { font-size: 1rem; }
-  .boniteta-hero > label { margin-top: 24px; font-size: .82rem; }
+  .boniteta-hero > label { margin-top: 16px; font-size: .82rem; }
   .boniteta-hero__iskanje input, .boniteta-hero__podjetje { min-height: 56px; height: 56px; padding-left: 15px; padding-right: 82px; border-radius: 15px; }
   .boniteta-hero__podjetje strong { font-size: 1rem; }
   #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 74px; height: 74px; border-width: 3px; }
   #boniteta-nacin-spletna svg, .boniteta-hero__podjetje svg { width: 37px; height: 37px; }
-  .stran--bonitetna .boniteta-zajem { gap: 20px; margin: -52px 10px 0; padding: 30px 10px 22px; border-radius: 22px; }
+  .stran--bonitetna .boniteta-zajem { gap: 12px; margin: -46px 10px 0; padding: 24px 10px 16px; border-radius: 22px; }
   .boniteta-zajem__locilo h2 { font-size: 1.18rem; }
   .boniteta-zajem__nacini { gap: 7px; }
-  .boniteta-zajem__nacin { min-height: 206px; padding: 21px 3px 14px; border-radius: 18px; }
+  .boniteta-zajem__nacin { min-height: 195px; padding: 18px 3px 12px; border-radius: 18px; }
   .boniteta-zajem__ikona { width: 64px; height: 64px; flex-basis: 64px; margin-bottom: 18px; }
   .boniteta-zajem__ikona svg { width: 34px; height: 34px; }
   .boniteta-zajem__nacin strong { font-size: 1rem; }
@@ -1046,17 +1047,17 @@
   .boniteta-zajem__datoteka, .boniteta-zajem__uspeh { font-size: .62rem !important; }
   .boniteta-zajem__uspeh { gap: 4px; }
   .boniteta-zajem__uspeh b { width: 18px; height: 18px; }
-  .stran--bonitetna .crif-flow-picker { margin: 0 10px; padding: 28px 10px 14px; border-radius: 22px; }
-  .crif-flow-picker h2 { margin-bottom: 20px; font-size: 1.35rem; }
-  .crif-flow-picker__options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .crif-flow-picker__options button { min-height: 292px; padding: 14px 4px 12px; border-radius: 18px; }
-  .crif-flow-picker__illustration { height: 146px; }
-  .crif-flow-picker__illustration svg { height: 142px; }
-  .crif-flow-picker__options strong { font-size: 1rem; }
-  .crif-flow-picker__options button > span:not(.crif-flow-picker__illustration) { font-size: .66rem; }
-  .crif-flow-picker__arrow { width: 38px; height: 38px; margin-top: 11px; font-size: 1.6rem; }
-  .crif-flow-picker__start { min-height: 54px; margin-top: 13px; font-size: 1.05rem; }
-  .crif-flow-picker__start b { right: 30px; font-size: 1.8rem; }
+  .stran--bonitetna .crif-flow-picker { margin: 0 10px; padding: 20px 10px 12px; border-radius: 22px; }
+  .stran--bonitetna .crif-flow-picker h2 { margin-bottom: 12px; font-size: 1.18rem; }
+  .stran--bonitetna .crif-flow-picker__options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stran--bonitetna .crif-flow-picker__options button { min-height: 220px; padding: 10px 4px 9px; border-radius: 18px; }
+  .stran--bonitetna .crif-flow-picker__illustration { height: 112px; }
+  .stran--bonitetna .crif-flow-picker__illustration svg { height: 110px; }
+  .stran--bonitetna .crif-flow-picker__options strong { font-size: .94rem; }
+  .stran--bonitetna .crif-flow-picker__options button > span:not(.crif-flow-picker__illustration) { font-size: .62rem; }
+  .stran--bonitetna .crif-flow-picker__arrow { width: 34px; height: 34px; margin-top: 8px; font-size: 1.45rem; }
+  .stran--bonitetna .crif-flow-picker__start { min-height: 44px; margin-top: 10px; font-size: 1rem; }
+  .stran--bonitetna .crif-flow-picker__start b { right: 25px; font-size: 1.6rem; }
 }
 
 @media (max-width: 350px) {
