@@ -55,6 +55,23 @@ async function main() {
     assert.equal(zavrnjenaPoteklaPrijava.code, "AUTH_SESSION_INVALID",
       "lokalno preverjanje mora potekli JWT varno zavrniti brez oddaljenega obhoda");
 
+    var legacySkrivnost = jose.base64url.decode("Y2lzdG8tdGVzdG5hLXNrcml2bm9zdC16YS1oc3RvaXBldHNldGRlc2V0");
+    var legacyJwt = await new jose.SignJWT({ role: "authenticated" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuer("https://auth.example.test/auth/v1")
+      .setAudience("authenticated")
+      .setSubject(uporabnikId)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(legacySkrivnost);
+    var zahtevanaOsvezitev = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + legacyJwt } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks }
+    );
+    assert.equal(zahtevanaOsvezitev.code, "AUTH_SESSION_REFRESH_REQUIRED",
+      "stari HS256 žeton mora sprožiti osvežitev seje, ne nedosegljivega Auth API-ja");
+    assert.equal(zahtevanaOsvezitev.retryable, true);
+
     assert.equal(require("../vercel.json").functions["api/mehka-boniteta-opravilo.js"].maxDuration, 30,
       "hladni zajem javnega ključa in rezervna auth pot morata imeti dovolj skupnega časa");
 
