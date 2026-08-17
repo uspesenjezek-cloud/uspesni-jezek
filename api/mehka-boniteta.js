@@ -2584,6 +2584,8 @@ async function analizirajSivinoPosnetka(stran, posnetek) {
     var vsota = 0;
     var sivihSrednjih = 0;
     var belih = 0;
+    var stolpci = Array.from({ length: 8 }, function () { return { svetlost: 0, sivih: 0, skupaj: 0 }; });
+    var vrstice = Array.from({ length: 8 }, function () { return { svetlost: 0, sivih: 0, skupaj: 0 }; });
     for (var i = 0; i < tocke.length; i += 4) {
       var najvec = Math.max(tocke[i], tocke[i + 1], tocke[i + 2]);
       var najmanj = Math.min(tocke[i], tocke[i + 1], tocke[i + 2]);
@@ -2591,19 +2593,51 @@ async function analizirajSivinoPosnetka(stran, posnetek) {
       vsota += svetlost;
       if (svetlost >= 70 && svetlost <= 185 && najvec - najmanj < 20) sivihSrednjih += 1;
       if (svetlost >= 235) belih += 1;
+      var indeksTocke = i / 4;
+      var stolpec = Math.min(7, Math.floor((indeksTocke % 64) / 8));
+      var vrstica = Math.min(7, Math.floor(Math.floor(indeksTocke / 64) / 8));
+      [stolpci[stolpec], vrstice[vrstica]].forEach(function (pas) {
+        pas.svetlost += svetlost;
+        pas.sivih += svetlost >= 70 && svetlost <= 185 && najvec - najmanj < 20 ? 1 : 0;
+        pas.skupaj += 1;
+      });
     }
     var stevilo = tocke.length / 4;
+    function povzetekPasov(pasovi) {
+      var svetlosti = pasovi.map(function (pas) { return pas.svetlost / Math.max(1, pas.skupaj); });
+      var mocnoSivi = pasovi.filter(function (pas) {
+        var povprecje = pas.svetlost / Math.max(1, pas.skupaj);
+        return pas.sivih / Math.max(1, pas.skupaj) >= 0.72 && povprecje >= 65 && povprecje <= 190;
+      }).length;
+      return {
+        delezMocnoSivih: mocnoSivi / pasovi.length,
+        razponSvetlosti: Math.max.apply(null, svetlosti) - Math.min.apply(null, svetlosti),
+      };
+    }
+    var vodoravno = povzetekPasov(stolpci);
+    var navpicno = povzetekPasov(vrstice);
     return {
       povprecnaSvetlost: vsota / stevilo,
       delezSive: sivihSrednjih / stevilo,
       delezBele: belih / stevilo,
+      delezMocnoSivihStolpcev: vodoravno.delezMocnoSivih,
+      razponSvetlostiStolpcev: vodoravno.razponSvetlosti,
+      delezMocnoSivihVrstic: navpicno.delezMocnoSivih,
+      razponSvetlostiVrstic: navpicno.razponSvetlosti,
     };
   }, posnetek);
 }
 
 function jePosnetekZatemnjenZaradiSloja(analiza) {
-  return Boolean(analiza) && analiza.povprecnaSvetlost < 190 &&
+  if (!analiza) return false;
+  var celotnaZatemnitev = analiza.povprecnaSvetlost < 190 &&
     analiza.delezSive > 0.58 && analiza.delezBele < 0.16;
+  function jeDelnaZatemnitev(delez, razpon) {
+    return delez >= 0.25 && delez <= 0.875 && razpon >= 42;
+  }
+  return celotnaZatemnitev ||
+    jeDelnaZatemnitev(analiza.delezMocnoSivihStolpcev || 0, analiza.razponSvetlostiStolpcev || 0) ||
+    jeDelnaZatemnitev(analiza.delezMocnoSivihVrstic || 0, analiza.razponSvetlostiVrstic || 0);
 }
 
 async function zajemiIzrezDokazila(stran, izrez) {
@@ -2637,14 +2671,20 @@ async function zajemiIzrezDokazila(stran, izrez) {
   var naravnoTemnoOzadje = await stran.evaluate(function (clip) {
     function jeTemno(element) {
       if (!element) return false;
-      var barva = window.getComputedStyle(element).backgroundColor;
+      var slog = window.getComputedStyle(element);
+      var barva = slog.backgroundColor;
       var rgb = String(barva || "").match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?/i);
-      if (!rgb || rgb[4] === "0") return false;
+      var alfa = rgb && rgb[4] == null ? 1 : Number(rgb && rgb[4] || 0);
+      if (!rgb || alfa < 0.98 || Number(slog.opacity || 1) < 0.98) return false;
+      if (slog.position === "fixed" || slog.position === "sticky" || slog.position === "absolute") return false;
+      if (slog.filter !== "none" || slog.backdropFilter !== "none") return false;
+      var opis = [element.id, element.className, element.getAttribute("role"), element.getAttribute("aria-label")].join(" ");
+      if (/(?:dialog|modal|overlay|backdrop|popup|lightbox|offcanvas|cookie|consent|cmp|engage)/i.test(opis)) return false;
       return (Number(rgb[1]) + Number(rgb[2]) + Number(rgb[3])) / 3 < 190;
     }
     if (jeTemno(document.body) || jeTemno(document.documentElement)) return true;
     var povrsinaIzreza = Math.max(1, clip.width * clip.height);
-    return Array.from(document.querySelectorAll("*")).some(function (element) {
+    return Array.from(document.querySelectorAll("main, article, section, [role='main']")).some(function (element) {
       if (!jeTemno(element)) return false;
       var rect = element.getBoundingClientRect();
       var levo = Math.max(clip.x, rect.left + window.scrollX);
@@ -2903,7 +2943,7 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
     try {
       posnetek = await zajemiIzrezDokazila(stran, izrez);
     } catch (napakaPrvegaPosnetka) {
-      if (napakaPrvegaPosnetka.message !== "IDENTITY_SCREENSHOT_DIMMED_OVERLAY" ||
+      if (!["IDENTITY_SCREENSHOT_DIMMED_OVERLAY", "IDENTITY_SCREENSHOT_OVERLAY_ACTIVE"].includes(napakaPrvegaPosnetka.message) ||
           !identiteta || !["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) throw napakaPrvegaPosnetka;
       // Če slikovna analiza odkrije zatemnitev, isto pravno stran ponovno
       // naložimo brez izvajanja skript. Vsebina ostane izvirna, pojavni vtičnik

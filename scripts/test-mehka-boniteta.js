@@ -26,13 +26,14 @@ var prihodnjiPosnetek = {
   sourceUrl: "https://example.test/impressum",
   captureVersion: "identity-evidence-v999-future-capture",
   screenshotReady: true,
+  viewportOverlaysRemoved: true,
 };
 assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv(prihodnjiPosnetek), true,
   "prihodnja različica se mora prikazati po semantični strežniški oznaki brez spremembe UI-ja");
 assert.strictEqual(identityEvidenceContract.obogatiDokazilo({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/impressum",
   captureVersion: "identity-evidence-v12-labelled-provider-page-fallback", viewportOverlaysRemoved: true,
-}).screenshotReady, true, "varen že zaključen rezultat v12 mora dobiti trenutno pogodbo ob branju");
+}).screenshotReady, false, "stari avtomatski rezultat v12 se po odkritju delnih sivih slojev ne sme več prikazati");
 assert.strictEqual(identityEvidenceContract.obogatiDokazilo({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/impressum",
   captureVersion: "identity-evidence-v10-unsafe-overlay", viewportOverlaysRemoved: true,
@@ -43,8 +44,8 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/uradni-rezultat",
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
-assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v13-semantic-display-contract");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v31-automotive-impressum-guards");
+assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v14-partial-overlay-detection");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v32-partial-overlay-detection");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -1187,6 +1188,20 @@ assert.match(dokaziloVir, /setJavaScriptEnabled\(false\)/, "rezervni zajem ne sm
 assert.match(dokaziloVir, /eb-popup\|eb-\\d\+-open/, "stanje pojavnega vtičnika mora biti odstranjeno tudi s korenskega elementa");
 assert.strictEqual(test.jePosnetekZatemnjenZaradiSloja({ povprecnaSvetlost: 128, delezSive: 0.91, delezBele: 0.04 }), true);
 assert.strictEqual(test.jePosnetekZatemnjenZaradiSloja({ povprecnaSvetlost: 238, delezSive: 0.04, delezBele: 0.82 }), false);
+assert.strictEqual(test.jePosnetekZatemnjenZaradiSloja({
+  povprecnaSvetlost: 195, delezSive: 0.46, delezBele: 0.28,
+  delezMocnoSivihStolpcev: 0.625, razponSvetlostiStolpcev: 96,
+  delezMocnoSivihVrstic: 0, razponSvetlostiVrstic: 18,
+}), true, "delno siv navpični prekrivni sloj ne sme postati dokazilo");
+assert.strictEqual(test.jePosnetekZatemnjenZaradiSloja({
+  povprecnaSvetlost: 116, delezSive: 0.92, delezBele: 0.02,
+  delezMocnoSivihStolpcev: 1, razponSvetlostiStolpcev: 8,
+  delezMocnoSivihVrstic: 1, razponSvetlostiVrstic: 7,
+}), true, "enakomerno zatemnjena slika mora ostati zavrnjena");
+assert.match(dokaziloVir, /querySelectorAll\("main, article, section, \[role='main'\]"\)/,
+  "temen pojavni div se ne sme več razglasiti za naravno ozadje strani");
+assert.match(dokaziloVir, /IDENTITY_SCREENSHOT_OVERLAY_ACTIVE.*includes|includes\(napakaPrvegaPosnetka\.message\)/s,
+  "tudi DOM-zaznan prekrivni sloj mora sprožiti rezervni zajem brez skript");
 assert.match(dokaziloVir, /eb-\(\?:inst\|dialog\)/, "EngageBox ovoj ne sme ostati siv nad dokaznim posnetkom");
 assert.match(dokaziloVir, /pravokotnik\.width >= window\.innerWidth \* 0\.6/, "odstranitev mora biti omejena na velike prekrivne plasti");
 assert.match(dokaziloVir, /zIndex >= 100/, "navadni fiksni deli strani ne smejo biti pomotoma odstranjeni");
