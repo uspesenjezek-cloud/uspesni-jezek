@@ -32,7 +32,7 @@ Noben korak ne sme preskočiti prejšnjega. Manjkajoče dokazilo, neujemanje ide
 - Za dokazilo družbe so obvezni pravno ime in naslov. Za posameznika so obvezni osebno ime in naslov.
 - Če navaden HTTP-odgovor skrije vsebino, je dovoljen brskalniški zajem z običajnim brskalniškim profilom. Nikoli ne obidi omejitve `429` in za posnetek ne sprejemaj piškotkov v imenu uporabnika.
 - Besedilo v DOM-u ni dokaz, da bo vidno na posnetku: preveri tudi vidnost vseh nadrejenih elementov. Če pravni blok skriva ali delno zatemni nedokončana odjemalska animacija, varno zaključi samo njen ovoj, zahtevaj končno polno vidnost, ponovno določi izrez in šele nato zajemi dokazilo.
-- Prazen ali vizualno skrit pravni blok ne sme ustvariti stanja `captured`; zajem se ponovi, nato pa vrne jasno napako dokazila.
+- Prazen ali vizualno skrit pravni blok ne sme ustvariti stanja `captured`; poleg velikosti JPEG-a se preverita dejanska vsebina v osrednjem delu slike in njena navpična razporeditev. Zajem se ponovi, nato pa vrne jasno napako dokazila.
 - Pasice in modalna okna za piškotke se za dokazni posnetek samo lokalno skrijejo, nikoli kliknejo. Pravilo mora prepoznati nemške in angleške gumbe ter pasice v glavnem dokumentu, okvirjih in odprtih senčnih korenih; po skritju mora obnoviti drsenje strani.
 
 ## Uradna insolvenčna poizvedba
@@ -88,6 +88,7 @@ Za prijavljeno napako preveri najmanj:
 - `Ackermann Sanitär`: Divijev animirani ovoj z `opacity: 0` ne sme ustvariti praznega dokaznega posnetka; zajem ga zaključi samo okoli preverjenega pravnega bloka.
 - `KLIMABERATUNG Rolf Nagel GmbH`: delno prosojen siv vmesni kader ne sme postati dokazilo; zajem mora počakati na popolnoma viden pravni blok in stari posnetek razveljaviti z novo različico predpomnilnika.
 - Delno sivi posnetki: prekrivni sloj, ki zatemni samo levi, desni, zgornji ali spodnji del dokazila, se mora prepoznati po pasovih slike. Temen `div` s prosojnostjo, filtrom, absolutnim položajem ali oznako pojavnega okna ni naravno temno ozadje. Tak zajem se ponovi brez skript, vse avtomatske posnetke pred različico v14 pa strežnik razveljavi tudi, če so nekoč nosili `screenshotReady=true`.
+- `Moradi Elektrotechnik`: Usercentrics dialog in njegovo zatemnitveno ozadje sta ločena sorojenca v zaprtem senčnem delu. Ko je dialog zanesljivo prepoznan, se v istem senčnem korenu odstrani tudi veliko prazno fiksno ozadje z visokim `z-indexom`, glavni JavaScript Impressum pa ostane izrisan. Rezervni prikaz brez skript, ki pokaže samo zgornjo fotografijo in veliko prazno belo sredino, je neveljaven; vsi avtomatski posnetki pred različico v15 se razveljavijo.
 - `A-Z Heizungsprofis GmbH`: nestandardni URL `?page_id=50` je veljaven Impressum; `GF David Jazvac` se prepozna kot zastopnik, `HRB-Nr.: 105826` kot registrska številka, isti skupni slovar pa mora delovati v glavnem, vidnem in rezervnem parserju ter pri potrditvi dokaznega posnetka.
 - Samostojni obrtniki, kot sta Duman in Drescher: osebno ime ostane nosilec in ni zamenjano z navigacijo ali storitvijo.
 - Registrirani samostojni trgovci (`e. K.`), kot je Insel SHK: pravno ime ostane ločeno od nosilca; zveza `Vertreten durch den Inhaber` se razume kot oznaka vloge, osebno ime pa se vzame iz iste ali naslednje vsebinsko povezane vrstice. Sama oznaka `den Inhaber` nikoli ne sme postati ime osebe.
