@@ -62,6 +62,7 @@ function cacheTtlMs(faza) {
 
 function javniPosnetek(job, position) {
   if (!job) return null;
+  var zahteva = job.request_payload || {};
   return {
     id: job.id,
     status: job.status,
@@ -73,9 +74,36 @@ function javniPosnetek(job, position) {
     reused: Boolean(job.reused),
     createdAt: job.created_at,
     updatedAt: job.updated_at,
+    request: {
+      ime: String(zahteva.ime || "").slice(0, 240),
+      naslov: String(zahteva.naslov || "").slice(0, 140),
+      postnaStevilka: String(zahteva.postnaStevilka || "").slice(0, 5),
+      spletnaStran: String(zahteva.spletnaStran || "").slice(0, 240),
+      kraj: String(zahteva.kraj || "").slice(0, 100),
+      registerNumber: String(zahteva.registerNumber || "").slice(0, 120),
+      vatId: String(zahteva.vatId || "").slice(0, 80),
+      uporabiOpenRegisterIdentiteto: Boolean(zahteva.uporabiOpenRegisterIdentiteto),
+    },
     result: identityEvidenceContract.obogatiRezultat(job.result_payload || null),
     error: job.last_error || "",
   };
+}
+
+async function seznamAktivnih(cfg, userId) {
+  var vrstice;
+  if (uporabiPomnilnik()) {
+    vrstice = Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
+      return job.user_id === userId && ["queued", "processing"].includes(job.status);
+    });
+  } else {
+    var pot = "mehka_boniteta_opravila?user_id=eq." + encodeURIComponent(userId) +
+      "&status=in.(queued,processing)&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at&order=created_at.desc&limit=50";
+    var odgovor = await rest(cfg, pot);
+    vrstice = Array.isArray(odgovor.data) ? odgovor.data : [];
+  }
+  return Promise.all(vrstice.map(async function (job) {
+    return javniPosnetek(job, await pozicija(cfg, job));
+  }));
 }
 
 async function rest(cfg, pot, moznosti) {
@@ -516,6 +544,7 @@ module.exports = {
   cacheKey: cacheKey,
   ustvari: ustvari,
   pridobi: pridobi,
+  seznamAktivnih: seznamAktivnih,
   prevzemi: prevzemi,
   zakljuci: zakljuci,
   izbrisiOpravilo: izbrisiOpravilo,

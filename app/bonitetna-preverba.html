@@ -11,7 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css?v=20260815-boniteta-v6" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-zdruzeno-v7" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-reference-flow-v11" />
     <link rel="stylesheet" href="boniteta-pro.css?v=20260816-profiles-delete-v6" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
@@ -57,70 +57,79 @@
     </style>
   </head>
   <body class="stran--bonitetna">
-    <header class="app__header boniteta-glava">
-      <a class="app__nazaj" href="zascita-posla.html">← Nazaj</a>
-      <h1 class="app__naslov-podstrani">Bonitetni center</h1>
-    </header>
-
-    <nav class="boniteta-center-nav" aria-label="Bonitetni center">
-      <button class="is-active" type="button" data-boniteta-center-view="new" data-fit-text>Nova preverba</button>
-      <button type="button" data-boniteta-center-view="profiles" data-fit-text>Moja podjetja</button>
-    </nav>
-
     <main class="app__vsebina boniteta-vsebina" id="boniteta-center-new">
-      <section class="crif-flow-picker" data-crif-element aria-labelledby="crif-flow-picker-title">
-        <div><p class="boniteta-rezultat__oznaka">ENA PREVERBA · DVE GLOBINI</p><h2 id="crif-flow-picker-title">Kako podrobno želiš preveriti stranko?</h2></div>
-        <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
-          <button class="is-active" type="button" data-boniteta-flow="soft" aria-pressed="true"><strong data-fit-text>Hitro preverjanje</strong><span>Identiteta in insolventnost</span></button>
-          <button type="button" data-boniteta-flow="crif" aria-pressed="false" title="Začasna oznaka: ta del je vezan na CRIF"><strong class="crif-temp-mark" data-fit-text>Poglobljena analiza</strong><span>Za večje posle · priprava CRIF</span></button>
-        </div>
-        <p class="crif-temp-legend"><span class="crif-temp-dot" aria-hidden="true"></span>Rdeča pika začasno označuje dele, ki so vezani na CRIF.</p>
-      </section>
-
-      <section class="boniteta-uvod" aria-labelledby="boniteta-naslov" data-boniteta-flow-panel="soft">
-        <span class="boniteta-uvod__ikona" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"></path>
-            <path d="m9 12 2 2 4-4"></path>
-          </svg>
-        </span>
-        <div>
-          <p class="boniteta-uvod__oznaka">NEMČIJA · MEHKA PREVERBA</p>
-          <h2 id="boniteta-naslov">Preveri, s kom boš sodeloval</h2>
-          <p>Najprej razberemo identiteto, nato vi potrdite podatke za insolvenčno poizvedbo.</p>
-        </div>
-      </section>
-
       <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate data-boniteta-flow-panel="soft">
-        <section class="ai-zajem boniteta-zajem" id="boniteta-zajem" aria-labelledby="boniteta-zajem-naslov">
-          <div class="ai-zajem__vrh">
-            <span class="ai-zajem__ikona" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>
+        <section class="boniteta-hero" aria-labelledby="boniteta-naslov">
+          <div class="boniteta-hero__naslovna-vrstica">
+            <span class="boniteta-hero__scit" aria-hidden="true">
+              <svg viewBox="0 0 48 56" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M24 3 5 11v14c0 13 7.4 22.8 19 28 11.6-5.2 19-15 19-28V11L24 3Z"></path>
+                <path d="m15.5 27 6 6 12-13"></path>
+              </svg>
             </span>
-            <div class="ai-zajem__uvod-besedilo">
-              <h2 class="ai-zajem__naslov" id="boniteta-zajem-naslov">Kako želite dodati stranko?</h2>
-              <p class="ai-zajem__opis">Najhitreje je slikati ali uvoziti račun, ponudbo oziroma predračun.</p>
-              <p class="boniteta-zajem__zasebnost">Dokument se za razbiranje varno pošlje zunanjemu AI ponudniku šele po vašem kliku.</p>
-              <p class="ai-zajem__status" id="boniteta-zajem-status" role="status" aria-live="polite" hidden>
-                <span class="ai-zajem__spinner" aria-hidden="true"></span>
-                <span id="boniteta-zajem-status-besedilo"></span>
-              </p>
+            <div>
+              <h1 id="boniteta-naslov">Bonitetna preverba</h1>
+              <p>Preveri novo stranko</p>
             </div>
           </div>
+          <label id="boniteta-hero-label" for="boniteta-hero-spletna-stran">Spletna stran podjetja</label>
+          <div class="boniteta-hero__iskanje">
+            <input id="boniteta-hero-spletna-stran" type="url" inputmode="url" autocomplete="url" placeholder="https://www.podjetje.de" maxlength="240" aria-describedby="boniteta-hero-status" />
+            <button type="button" id="boniteta-nacin-spletna" aria-label="Poišči podatke podjetja">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m5 12.5 4.2 4.2L19 7"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="boniteta-hero__podjetje" id="boniteta-hero-podjetje" hidden>
+            <strong id="boniteta-hero-podjetje-ime" data-fit-text data-fit-text-min="11"></strong>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.2 4.2L19 7"></path></svg></span>
+          </div>
+          <p class="boniteta-hero__status" id="boniteta-hero-status" role="alert" hidden></p>
+        </section>
+
+        <section class="ai-zajem boniteta-zajem" id="boniteta-zajem" aria-labelledby="boniteta-zajem-naslov">
+          <div class="boniteta-zajem__locilo"><h2 id="boniteta-zajem-naslov">Ali dodajate stranko drugače</h2></div>
+          <p class="ai-zajem__status" id="boniteta-zajem-status" role="status" aria-live="polite" hidden>
+            <span class="ai-zajem__spinner" aria-hidden="true"></span>
+            <span id="boniteta-zajem-status-besedilo"></span>
+          </p>
           <div class="boniteta-zajem__nacini">
-            <button type="button" class="boniteta-zajem__nacin boniteta-zajem__nacin--primarni" id="boniteta-nacin-slikaj">
-              <strong data-fit-text>Slikaj dokument</strong><span data-fit-text>Račun, ponudba ali predračun</span>
+            <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-slikaj">
+              <span class="boniteta-zajem__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7 8.5 4h7L17 7"/><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="3.5"/></svg></span>
+              <strong data-fit-text>Slikaj</strong><span data-fit-text>Račun ali ponudbo</span>
+              <span class="boniteta-zajem__datoteka" data-zajem-datoteka hidden></span>
+              <span class="boniteta-zajem__uspeh" data-zajem-uspeh hidden><b aria-hidden="true">✓</b> Pravilno razbrano</span>
             </button>
             <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-uvozi">
-              <strong data-fit-text>Uvozi račun/PDF</strong><span data-fit-text>Sistem prebere dokument</span>
+              <span class="boniteta-zajem__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21H6z"/><path d="M14 2.5v4h4"/><text x="12" y="16" fill="currentColor" stroke="none" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.2" font-weight="800">PDF</text></svg></span>
+              <strong data-fit-text>Uvozi PDF</strong><span data-fit-text>Izberi dokument</span>
+              <span class="boniteta-zajem__datoteka" data-zajem-datoteka hidden></span>
+              <span class="boniteta-zajem__uspeh" data-zajem-uspeh hidden><b aria-hidden="true">✓</b> Pravilno razbrano</span>
             </button>
-            <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-spletna">
-              <strong data-fit-text>Prilepi spletno povezavo</strong><span data-fit-text>Sistem poišče Impressum</span>
+            <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-rocno">
+              <span class="boniteta-zajem__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.5"/><path d="m13 11 7.2-7.2a1.8 1.8 0 0 1 2.5 2.5L15.5 13 12 14z"/></svg></span>
+              <strong data-fit-text>Vnesi ročno</strong><span data-fit-text>Vpiši podatke</span>
             </button>
-            <button type="button" class="boniteta-zajem__rocno" id="boniteta-nacin-rocno">Vnesi ročno</button>
           </div>
           <input type="file" id="boniteta-zajem-fotoaparat" accept="image/*" capture="environment" hidden aria-label="Slikaj dokument za razbiranje strank" />
           <input type="file" id="boniteta-zajem-datoteka" accept="image/*,application/pdf" hidden aria-label="Uvozi dokument za razbiranje strank" />
+        </section>
+
+        <section class="crif-flow-picker" aria-labelledby="crif-flow-picker-title">
+          <h2 id="crif-flow-picker-title">Izberite vrsto preverbe</h2>
+          <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
+            <button class="is-active" type="button" data-boniteta-flow="soft" aria-pressed="true">
+              <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M52 17 18 34v34c0 31 15 53 34 65 19-12 34-34 34-65V34L52 17Z" fill="#eef8f6" stroke="#0b6267" stroke-width="8"/><path d="m36 72 12 13 23-30" stroke="#0b6267" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><rect x="78" y="27" width="72" height="92" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><circle cx="101" cy="58" r="10" fill="#17aaa4"/><path d="M89 83c0-10 5-16 12-16s12 6 12 16v5H89v-5Z" fill="#17aaa4"/><path d="M121 49h18M121 59h18M121 75h18M121 85h18" stroke="#b9cdca" stroke-width="3"/><path d="M126 101c8 0 15 8 15 18" stroke="#0b6267" stroke-width="3"/><path d="m141 114 8 18h-31l8-18" fill="#edf8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M133.5 118v6" stroke="#0b6267" stroke-width="3" stroke-linecap="round"/></svg></span>
+              <strong data-fit-text>Mehka preverba</strong><span>Identiteta in insolventnost</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
+            </button>
+            <button type="button" data-boniteta-flow="crif" aria-pressed="false">
+              <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><rect x="25" y="15" width="82" height="111" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><path d="M42 37h39M42 49h28" stroke="#b9cdca" stroke-width="3"/><path d="M45 103V84M59 103V70M73 103V91M87 103V60" stroke="#068c8d" stroke-width="7"/><rect x="105" y="50" width="49" height="68" rx="5" fill="#eef8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M115 66h28M115 78h19M115 90h24" stroke="#8ebdb7" stroke-width="3"/><path d="M122 118V86h43v32" fill="#9cc6c1" stroke="#0b6267" stroke-width="2.5"/><path d="M132 118V99M145 118V94M157 118V104" stroke="#0b6267" stroke-width="5"/><circle cx="91" cy="91" r="27" fill="rgba(255,255,255,.82)" stroke="#0b6267" stroke-width="7"/><path d="m111 111 18 20" stroke="#0b6267" stroke-width="9" stroke-linecap="round"/></svg></span>
+              <strong data-fit-text>Podrobna preverba</strong><span>Razširjeni podatki in analiza</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
+            </button>
+          </div>
+          <button class="crif-flow-picker__start" id="boniteta-flow-start" type="button"><span data-fit-text>Začni preverbo</span><b aria-hidden="true">→</b></button>
+          <p class="crif-temp-legend" hidden>Rdeča pika začasno označuje dele, ki so vezani na CRIF.</p>
         </section>
 
         <section class="boniteta-izbira-stranke" id="boniteta-izbira-stranke" aria-labelledby="boniteta-izbira-stranke-naslov" hidden>
@@ -456,6 +465,23 @@
       </section>
     </main>
 
+    <section class="bp-main boniteta-center-active" id="boniteta-center-active" aria-labelledby="boniteta-center-active-title" hidden>
+      <section class="bp-hero boniteta-active-hero">
+        <div>
+          <p class="bp-eyebrow">AKTIVNA OPRAVILA</p>
+          <h2 id="boniteta-center-active-title">Preverbe v teku</h2>
+          <p>Tukaj so preverjanja, ki še čakajo, se izvajajo ali potrebujejo nadaljevanje.</p>
+        </div>
+        <button class="bp-secondary" id="boniteta-active-refresh" type="button">Osveži</button>
+      </section>
+      <p id="boniteta-active-error" class="bp-error" role="alert" hidden></p>
+      <section class="bp-panel boniteta-active-panel">
+        <div class="bp-panel-head"><h3>Aktivne preverbe</h3><span id="boniteta-active-count" class="bp-badge">0</span></div>
+        <div id="boniteta-active-state" class="bp-state">Nalagam preverbe v teku …</div>
+        <div id="boniteta-active-grid" class="bp-grid"></div>
+      </section>
+    </section>
+
     <section class="bp-main boniteta-center-workspace" id="boniteta-center-workspace" aria-labelledby="boniteta-center-workspace-title" hidden>
       <section class="bp-hero boniteta-center-hero"><div><p class="bp-eyebrow">VSE NA ENEM MESTU</p><h2 id="boniteta-center-workspace-title">Moja podjetja</h2><p>Odprite shranjen profil, spremljanje ali opozorila. Dodatni podatki se pridobijo šele, ko jih potrebujete.</p></div><button class="bp-primary" type="button" data-boniteta-center-view="new">+ Nova preverba</button></section>
       <nav class="bp-nav bp-subnav" aria-label="Pregled podjetij">
@@ -472,8 +498,23 @@
       </section>
     </section>
 
+    <nav class="boniteta-center-nav" aria-label="Bonitetni center">
+      <button class="is-active" type="button" data-boniteta-center-view="new" aria-pressed="true">
+        <span class="boniteta-center-nav__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg></span>
+        <span data-fit-text>Preveri</span>
+      </button>
+      <button type="button" data-boniteta-center-view="active" aria-pressed="false">
+        <span class="boniteta-center-nav__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span class="boniteta-center-nav__badge" id="boniteta-active-nav-count" hidden>0</span></span>
+        <span data-fit-text>V teku</span>
+      </button>
+      <button type="button" data-boniteta-center-view="profiles" aria-pressed="false">
+        <span class="boniteta-center-nav__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span data-fit-text>Podjetja</span>
+      </button>
+    </nav>
+
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260817-network-retry-v19"></script>
-    <script src="boniteta-sredisce.js?v=20260817-crif-toggle-v7"></script>
+    <script src="bonitetna-preverba.js?v=20260817-reference-flow-v21"></script>
+    <script src="boniteta-sredisce.js?v=20260817-reference-flow-v10"></script>
   </body>
 </html>

@@ -14,6 +14,12 @@
   var krajiSeznam = document.getElementById("boniteta-kraji");
   var krajiIzbira = document.getElementById("boniteta-kraj-izbira");
   var spletnaPolje = document.getElementById("boniteta-spletna-stran");
+  var heroSpletnaPolje = document.getElementById("boniteta-hero-spletna-stran");
+  var heroSpletnaStatus = document.getElementById("boniteta-hero-status");
+  var heroSpletnaOkvir = document.querySelector(".boniteta-hero__iskanje");
+  var heroSpletnaLabel = document.getElementById("boniteta-hero-label");
+  var heroPodjetje = document.getElementById("boniteta-hero-podjetje");
+  var heroPodjetjeIme = document.getElementById("boniteta-hero-podjetje-ime");
   var brezSpletneGumb = document.getElementById("boniteta-brez-spletne");
   var spletnaStatus = document.getElementById("boniteta-spletna-status");
   var privzetiGumb = gumb.innerHTML;
@@ -164,6 +170,35 @@
     if (spinner) spinner.hidden = stanje !== "nalaganje";
   }
 
+  function nastaviHeroPodjetje(ime) {
+    var vrednost = String(ime || "").trim();
+    if (!heroPodjetje || !heroSpletnaOkvir || !heroSpletnaLabel) return;
+    heroPodjetje.hidden = !vrednost;
+    heroSpletnaOkvir.hidden = Boolean(vrednost);
+    heroSpletnaLabel.textContent = vrednost ? "Prepoznano podjetje" : "Spletna stran podjetja";
+    if (heroPodjetjeIme) {
+      heroPodjetjeIme.textContent = vrednost;
+      if (vrednost && window.UJPrilagodiVelikostBesedila) window.UJPrilagodiVelikostBesedila(heroPodjetjeIme);
+    }
+  }
+
+  function nastaviZajemKartico(datoteka, stanje) {
+    var gumbId = datoteka && datoteka.type === "application/pdf" ? "boniteta-nacin-uvozi" : "boniteta-nacin-slikaj";
+    ["boniteta-nacin-slikaj", "boniteta-nacin-uvozi"].forEach(function (id) {
+      var kartica = document.getElementById(id);
+      if (!kartica) return;
+      var izbrana = Boolean(datoteka && id === gumbId);
+      kartica.classList.toggle("is-selected", izbrana);
+      var datotekaIzpis = kartica.querySelector("[data-zajem-datoteka]");
+      var uspehIzpis = kartica.querySelector("[data-zajem-uspeh]");
+      if (datotekaIzpis) {
+        datotekaIzpis.textContent = izbrana ? String(datoteka.name || "Dokument").slice(0, 80) : "";
+        datotekaIzpis.hidden = !izbrana;
+      }
+      if (uspehIzpis) uspehIzpis.hidden = !(izbrana && stanje === "uspeh");
+    });
+  }
+
   function nastaviZajemGumbe(onemogoceni) {
     ["boniteta-nacin-slikaj", "boniteta-nacin-uvozi", "boniteta-nacin-spletna", "boniteta-nacin-rocno"].forEach(function (id) {
       var element = document.getElementById(id);
@@ -218,7 +253,7 @@
     });
   }
 
-  function nastaviNacinVnosa(nacin) {
+  function nastaviNacinVnosa(nacin, brezPremika) {
     nacinVnosa = nacin;
     var samoSpletna = nacin === "spletna";
     document.querySelectorAll("[data-boniteta-rocni-podatek]").forEach(function (element) {
@@ -239,10 +274,12 @@
     if (window.UJPrilagodiVelikostBesedila) {
       vnosPodrobnosti.querySelectorAll("[data-fit-text]").forEach(window.UJPrilagodiVelikostBesedila);
     }
-    window.requestAnimationFrame(function () {
-      (samoSpletna ? spletnaPolje : document.getElementById("boniteta-ime")).focus();
-      vnosPodrobnosti.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
+    if (!brezPremika) {
+      window.requestAnimationFrame(function () {
+        (samoSpletna ? spletnaPolje : document.getElementById("boniteta-ime")).focus();
+        vnosPodrobnosti.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
   }
 
   function izpolniRazbranoPolje(id, vrednost) {
@@ -267,6 +304,7 @@
     izpolniRazbranoPolje("boniteta-kraj", stranka.kraj);
     izpolniRazbranoPolje("boniteta-register", stranka.registerNumber);
     izpolniRazbranoPolje("boniteta-davcna", stranka.vatId);
+    nastaviHeroPodjetje(stranka.pravnoIme || stranka.poslovniNaziv);
     if (stranka.spletnaStran) {
       nastaviBrezSpletne(false);
       izpolniRazbranoPolje("boniteta-spletna-stran", stranka.spletnaStran);
@@ -312,6 +350,7 @@
   async function obdelajDokumentZaBoniteto(datoteka) {
     if (!datoteka || zajemVTehniku) return;
     zajemVTehniku = true;
+    nastaviZajemKartico(datoteka, "nalaganje");
     nastaviZajemGumbe(true);
     nastaviZajemStatus("Beremo stranke in njihove podatke …", "nalaganje");
     try {
@@ -336,9 +375,11 @@
         throw new Error(telo && telo.napaka || "Strank na dokumentu ni bilo mogoče zanesljivo razbrati.");
       }
       izrisiRazbraneStranke(telo.stranke);
+      nastaviZajemKartico(datoteka, "uspeh");
       nastaviZajemStatus("Dokument je prebran. Izberite stranko za preverjanje.", "uspeh");
     } catch (napakaZajema) {
       izbiraStranke.hidden = true;
+      nastaviZajemKartico(datoteka, "napaka");
       nastaviZajemStatus(napakaZajema.message || "Dokumenta ni bilo mogoče prebrati.", "napaka");
     } finally {
       zajemVTehniku = false;
@@ -503,18 +544,7 @@
     }
   }
 
-  async function izvediPrekoCakalneVrste(telo, token) {
-    var ustvarjeno = await fetchSPonovnimPoskusom("/api/mehka-boniteta-opravilo", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify(telo),
-      signal: omejitevKlica(15000),
-    });
-    var ustvarjeniPodatki = null;
-    try { ustvarjeniPodatki = await ustvarjeno.json(); } catch (_) {}
-    if (!ustvarjeno.ok) throw new Error((ustvarjeniPodatki && ustvarjeniPodatki.napaka) || "Preverjanja ni bilo mogoče dodati v čakalno vrsto.");
-
-    var job = ustvarjeniPodatki && ustvarjeniPodatki.job;
+  async function pocakajNaOpravilo(job, token) {
     if (!job || !job.id) throw new Error("Čakalna vrsta ni vrnila veljavnega preverjanja.");
     zadnjiJobId = job.id;
     opisiStanjeOpravila(job);
@@ -559,6 +589,51 @@
       await pocakaj(job.status === "processing" ? 1000 : 1800);
     }
     throw new Error("Preverjanje se nadaljuje v ozadju. Poskusite ponovno čez nekaj trenutkov; sistem bo uporabil isto opravilo in ne bo ponovil poizvedbe.");
+  }
+
+  async function izvediPrekoCakalneVrste(telo, token) {
+    var ustvarjeno = await fetchSPonovnimPoskusom("/api/mehka-boniteta-opravilo", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify(telo),
+      signal: omejitevKlica(15000),
+    });
+    var ustvarjeniPodatki = null;
+    try { ustvarjeniPodatki = await ustvarjeno.json(); } catch (_) {}
+    if (!ustvarjeno.ok) throw new Error((ustvarjeniPodatki && ustvarjeniPodatki.napaka) || "Preverjanja ni bilo mogoče dodati v čakalno vrsto.");
+    return pocakajNaOpravilo(ustvarjeniPodatki && ustvarjeniPodatki.job, token);
+  }
+
+  async function nadaljujOpravilo(jobId) {
+    nastaviNalaganje(true);
+    try {
+      var token = await pridobiToken();
+      var odgovor = await fetchSPonovnimPoskusom("/api/mehka-boniteta-opravilo?id=" + encodeURIComponent(jobId), {
+        headers: { Authorization: "Bearer " + token },
+        signal: omejitevKlica(15000),
+      });
+      var podatki = null;
+      try { podatki = await odgovor.json(); } catch (_) {}
+      if (!odgovor.ok || !podatki || !podatki.job) throw new Error((podatki && podatki.napaka) || "Preverjanja ni bilo mogoče odpreti.");
+      zadnjiVnos = podatki.job.request || {};
+      nacinVnosa = zadnjiVnos.spletnaStran ? "spletna" : "rocno";
+      izpolniRazbranoPolje("boniteta-ime", zadnjiVnos.ime);
+      izpolniRazbranoPolje("boniteta-naslov-podjetja", zadnjiVnos.naslov);
+      izpolniRazbranoPolje("boniteta-posta", zadnjiVnos.postnaStevilka);
+      izpolniRazbranoPolje("boniteta-kraj", zadnjiVnos.kraj);
+      izpolniRazbranoPolje("boniteta-register", zadnjiVnos.registerNumber);
+      izpolniRazbranoPolje("boniteta-davcna", zadnjiVnos.vatId);
+      izpolniRazbranoPolje("boniteta-spletna-stran", zadnjiVnos.spletnaStran);
+      if (heroSpletnaPolje) heroSpletnaPolje.value = zadnjiVnos.spletnaStran || "";
+      nastaviNacinVnosa(nacinVnosa, true);
+      var rezultatOpravila = await pocakajNaOpravilo(podatki.job, token);
+      izrisi(rezultatOpravila);
+    } catch (err) {
+      potek.hidden = true;
+      pokaziNapako(err.message || "Preverjanja ni bilo mogoče nadaljevati.");
+    } finally {
+      nastaviNalaganje(false);
+    }
   }
 
   function nastaviNalaganje(vklopljeno) {
@@ -645,6 +720,7 @@
     var profil = podatki.publicProfile || {};
     var openregister = podatki.openregister || {};
     var identiteta = podatki.identity || {};
+    nastaviHeroPodjetje(identiteta.naziv || identiteta.ime || (zadnjiVnos && zadnjiVnos.ime));
     var dokaziloIdentitete = podatki.identityEvidence || {};
     var ujemanjeLokacije = podatki.locationMatch || {};
     var identitetaNaslov = document.getElementById("boniteta-identiteta-naslov");
@@ -1096,6 +1172,8 @@
     vnosPodrobnosti.hidden = true;
     izbiraStranke.hidden = true;
     nastaviZajemStatus("", null);
+    nastaviZajemKartico(null, null);
+    nastaviHeroPodjetje("");
     document.getElementById("boniteta-nacin-slikaj").focus();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
@@ -1162,9 +1240,38 @@
 
   document.getElementById("boniteta-nacin-spletna").addEventListener("click", function () {
     pocistiNapako();
+    var heroVrednost = String(heroSpletnaPolje && heroSpletnaPolje.value || "").trim();
+    if (!heroVrednost) {
+      if (heroSpletnaStatus) {
+        heroSpletnaStatus.textContent = "Vnesite spletno stran podjetja.";
+        heroSpletnaStatus.hidden = false;
+      }
+      if (heroSpletnaPolje) {
+        heroSpletnaPolje.setAttribute("aria-invalid", "true");
+        heroSpletnaPolje.focus();
+      }
+      return;
+    }
+    if (heroSpletnaStatus) heroSpletnaStatus.hidden = true;
+    heroSpletnaPolje.removeAttribute("aria-invalid");
     nastaviBrezSpletne(false);
-    nastaviNacinVnosa("spletna");
+    spletnaPolje.value = heroVrednost;
+    prilagodiVnos(spletnaPolje);
+    nastaviNacinVnosa("spletna", true);
+    obrazec.requestSubmit();
   });
+
+  if (heroSpletnaPolje) {
+    heroSpletnaPolje.addEventListener("input", function () {
+      heroSpletnaPolje.removeAttribute("aria-invalid");
+      if (heroSpletnaStatus) heroSpletnaStatus.hidden = true;
+    });
+    heroSpletnaPolje.addEventListener("keydown", function (dogodek) {
+      if (dogodek.key !== "Enter") return;
+      dogodek.preventDefault();
+      document.getElementById("boniteta-nacin-spletna").click();
+    });
+  }
 
   document.getElementById("boniteta-nacin-rocno").addEventListener("click", function () {
     pocistiNapako();
@@ -1183,11 +1290,13 @@
 
   var zacetniParametri = new URLSearchParams(window.location.search);
   var zacetnoIme = (zacetniParametri.get("ime") || "").trim().slice(0, 240);
+  var zacetniJobId = (zacetniParametri.get("job") || "").trim();
   if (zacetnoIme) {
     nastaviNacinVnosa("rocno");
     document.getElementById("boniteta-ime").value = zacetnoIme;
     prilagodiVnos(document.getElementById("boniteta-ime"));
   }
+  if (/^[0-9a-f-]{32,36}$/i.test(zacetniJobId)) void nadaljujOpravilo(zacetniJobId);
 
   if (openregisterIdentiteta) {
     openregisterIdentiteta.addEventListener("change", osveziOpenRegisterPreklop);

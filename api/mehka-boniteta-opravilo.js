@@ -89,6 +89,10 @@ async function handler(req, res) {
     }
 
     var id = pridobiId(req);
+    if (!id) {
+      var aktivnaOpravila = await queue.seznamAktivnih(cfg, auth.user.id);
+      return odgovorJson(res, 200, { ok: true, jobs: aktivnaOpravila });
+    }
     if (!/^[0-9a-f-]{32,36}$/i.test(id)) {
       return odgovorJson(res, 400, { ok: false, napaka: "Manjka veljaven ID preverjanja." });
     }
