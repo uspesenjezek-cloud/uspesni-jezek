@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bonitetna preverba – Uspešni Jezek</title>
+    <title>Bonitetni center – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,19 +11,21 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css?v=20260815-boniteta-v6" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260816-v1" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-zdruzeno-v7" />
+    <link rel="stylesheet" href="boniteta-pro.css?v=20260816-profiles-delete-v6" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js"></script>
     <style>
       .boniteta-kraj-izbira { display: flex; flex-wrap: wrap; gap: 6px; }
       .boniteta-kraj-izbira[hidden] { display: none; }
       .boniteta-kraj-izbira__gumb {
-        min-height: 34px;
+        min-height: 44px;
         padding: 0 10px;
         border: 1px solid #c9d9d5;
         border-radius: 10px;
@@ -43,11 +45,11 @@
       .boniteta-potrditev-identitete p { margin: 0 0 10px; color: #6b6241; font: 500 0.72rem/1.4 "Figtree", sans-serif; }
       .boniteta-potrditev-identitete__mreza { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .boniteta-potrditev-identitete__mreza label { display: grid; gap: 4px; color: #536865; font: 600 0.68rem/1.2 "Figtree", sans-serif; }
-      .boniteta-potrditev-identitete__mreza label:first-child, .boniteta-potrditev-identitete__mreza label:nth-child(2), .boniteta-potrditev-identitete__mreza label:nth-child(3) { grid-column: 1 / -1; }
+      .boniteta-potrditev-identitete__mreza label:first-child, .boniteta-potrditev-identitete__mreza label:nth-child(2), .boniteta-potrditev-identitete__mreza label:nth-child(3), .boniteta-potrditev-identitete__mreza label:nth-child(4) { grid-column: 1 / -1; }
       .boniteta-potrditev-identitete input[type="text"] { min-width: 0; width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd9d5; border-radius: 10px; background: #fff; font-size: 16px; }
       .boniteta-potrditev-identitete__potrditev { display: flex !important; grid-column: 1 / -1; grid-template-columns: none !important; align-items: flex-start; gap: 8px !important; margin-top: 4px; }
       .boniteta-potrditev-identitete__potrditev input { margin-top: 2px; }
-      .boniteta-potrditev-identitete__gumb { grid-column: 1 / -1; min-height: 42px; border: 0; border-radius: 11px; background: #3d7676; color: #fff; font: 700 0.76rem/1 "Figtree", sans-serif; cursor: pointer; }
+      .boniteta-potrditev-identitete__gumb { grid-column: 1 / -1; min-height: 44px; border: 0; border-radius: 11px; background: #3d7676; color: #fff; font: 700 0.76rem/1 "Figtree", sans-serif; cursor: pointer; }
       .boniteta-potrditev-identitete__gumb:disabled { opacity: .6; cursor: wait; }
       .boniteta-potrditev-identitete__napaka { grid-column: 1 / -1; margin: 0 !important; color: #a9433c !important; }
       .boniteta-insolvenca-viri { display: flex; flex-wrap: wrap; gap: 8px 16px; }
@@ -57,11 +59,25 @@
   <body class="stran--bonitetna">
     <header class="app__header boniteta-glava">
       <a class="app__nazaj" href="zascita-posla.html">← Nazaj</a>
-      <h1 class="app__naslov-podstrani">Bonitetna preverba stranke</h1>
+      <h1 class="app__naslov-podstrani">Bonitetni center</h1>
     </header>
 
-    <main class="app__vsebina boniteta-vsebina">
-      <section class="boniteta-uvod" aria-labelledby="boniteta-naslov">
+    <nav class="boniteta-center-nav" aria-label="Bonitetni center">
+      <button class="is-active" type="button" data-boniteta-center-view="new" data-fit-text>Nova preverba</button>
+      <button type="button" data-boniteta-center-view="profiles" data-fit-text>Moja podjetja</button>
+    </nav>
+
+    <main class="app__vsebina boniteta-vsebina" id="boniteta-center-new">
+      <section class="crif-flow-picker" data-crif-element aria-labelledby="crif-flow-picker-title">
+        <div><p class="boniteta-rezultat__oznaka">ENA PREVERBA · DVE GLOBINI</p><h2 id="crif-flow-picker-title">Kako podrobno želiš preveriti stranko?</h2></div>
+        <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
+          <button class="is-active" type="button" data-boniteta-flow="soft" aria-pressed="true"><strong data-fit-text>Hitro preverjanje</strong><span>Identiteta in insolventnost</span></button>
+          <button type="button" data-boniteta-flow="crif" aria-pressed="false" title="Začasna oznaka: ta del je vezan na CRIF"><strong class="crif-temp-mark" data-fit-text>Poglobljena analiza</strong><span>Za večje posle · priprava CRIF</span></button>
+        </div>
+        <p class="crif-temp-legend"><span class="crif-temp-dot" aria-hidden="true"></span>Rdeča pika začasno označuje dele, ki so vezani na CRIF.</p>
+      </section>
+
+      <section class="boniteta-uvod" aria-labelledby="boniteta-naslov" data-boniteta-flow-panel="soft">
         <span class="boniteta-uvod__ikona" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"></path>
@@ -75,8 +91,53 @@
         </div>
       </section>
 
-      <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate>
-        <div class="boniteta-polje boniteta-polje--celo">
+      <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate data-boniteta-flow-panel="soft">
+        <section class="ai-zajem boniteta-zajem" id="boniteta-zajem" aria-labelledby="boniteta-zajem-naslov">
+          <div class="ai-zajem__vrh">
+            <span class="ai-zajem__ikona" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="8" x="7" y="8" rx="1"/></svg>
+            </span>
+            <div class="ai-zajem__uvod-besedilo">
+              <h2 class="ai-zajem__naslov" id="boniteta-zajem-naslov">Kako želite dodati stranko?</h2>
+              <p class="ai-zajem__opis">Najhitreje je slikati ali uvoziti račun, ponudbo oziroma predračun.</p>
+              <p class="boniteta-zajem__zasebnost">Dokument se za razbiranje varno pošlje zunanjemu AI ponudniku šele po vašem kliku.</p>
+              <p class="ai-zajem__status" id="boniteta-zajem-status" role="status" aria-live="polite" hidden>
+                <span class="ai-zajem__spinner" aria-hidden="true"></span>
+                <span id="boniteta-zajem-status-besedilo"></span>
+              </p>
+            </div>
+          </div>
+          <div class="boniteta-zajem__nacini">
+            <button type="button" class="boniteta-zajem__nacin boniteta-zajem__nacin--primarni" id="boniteta-nacin-slikaj">
+              <strong data-fit-text>Slikaj dokument</strong><span data-fit-text>Račun, ponudba ali predračun</span>
+            </button>
+            <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-uvozi">
+              <strong data-fit-text>Uvozi račun/PDF</strong><span data-fit-text>Sistem prebere dokument</span>
+            </button>
+            <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-spletna">
+              <strong data-fit-text>Prilepi spletno povezavo</strong><span data-fit-text>Sistem poišče Impressum</span>
+            </button>
+            <button type="button" class="boniteta-zajem__rocno" id="boniteta-nacin-rocno">Vnesi ročno</button>
+          </div>
+          <input type="file" id="boniteta-zajem-fotoaparat" accept="image/*" capture="environment" hidden aria-label="Slikaj dokument za razbiranje strank" />
+          <input type="file" id="boniteta-zajem-datoteka" accept="image/*,application/pdf" hidden aria-label="Uvozi dokument za razbiranje strank" />
+        </section>
+
+        <section class="boniteta-izbira-stranke" id="boniteta-izbira-stranke" aria-labelledby="boniteta-izbira-stranke-naslov" hidden>
+          <p class="boniteta-rezultat__oznaka">RAZBRANE STRANKE</p>
+          <h3 id="boniteta-izbira-stranke-naslov">Koga želite preveriti?</h3>
+          <p>Izberite izdajatelja ali prejemnika. Podatkov različnih strank ne bomo združili.</p>
+          <div class="boniteta-izbira-stranke__seznam" id="boniteta-izbira-stranke-seznam"></div>
+        </section>
+
+        <div class="boniteta-vnos-podrobnosti" id="boniteta-vnos-podrobnosti" hidden>
+          <div class="boniteta-vnos-podrobnosti__glava">
+            <p class="boniteta-rezultat__oznaka" id="boniteta-vnos-oznaka">POTRDITEV PODATKOV</p>
+            <h3 id="boniteta-vnos-naslov">Preverite razbrane podatke</h3>
+            <p id="boniteta-vnos-opis">Po potrebi popravite podatke, nato začnite preverjanje.</p>
+          </div>
+
+        <div class="boniteta-polje boniteta-polje--celo" data-boniteta-rocni-podatek>
           <label for="boniteta-ime">Ime podjetja ali obrtnika (če ga poznate)</label>
           <input id="boniteta-ime" name="ime" type="text" autocomplete="organization" placeholder="Sistem ga lahko razbere iz spletne strani" maxlength="240" data-fit-input data-fit-input-min="8" />
         </div>
@@ -84,20 +145,32 @@
         <div class="boniteta-polje boniteta-polje--celo boniteta-spletna-izbira">
           <label for="boniteta-spletna-stran">Spletna stran podjetja</label>
           <input id="boniteta-spletna-stran" name="spletnaStran" type="text" inputmode="url" autocomplete="url" placeholder="npr. heizungsmeisterei-duman.de" maxlength="240" data-fit-input data-fit-input-min="8" aria-describedby="boniteta-spletna-status" />
-          <button class="boniteta-brez-spletne" id="boniteta-brez-spletne" type="button" aria-pressed="false">
+          <button class="boniteta-brez-spletne" id="boniteta-brez-spletne" type="button" aria-pressed="false" data-boniteta-rocni-podatek>
             <span aria-hidden="true">○</span>
             <strong>Nima spletne strani</strong>
           </button>
           <span class="boniteta-polje__status" id="boniteta-spletna-status">Spletna stran nam pomaga najti pravo ime nosilca v Impressumu.</span>
         </div>
 
-        <div class="boniteta-polje boniteta-polje--celo">
+        <div class="boniteta-preklop" id="boniteta-openregister-preklop-okvir">
+          <div class="boniteta-preklop__besedilo">
+            <strong>OpenRegister za identiteto</strong>
+            <span>Ko je izklopljen, celoten OpenRegister preskočimo. Identiteto razberemo iz Impressuma, insolventnost pa preverimo samo v uradnem registru s posnetkom.</span>
+          </div>
+          <label class="boniteta-stikalo" for="boniteta-openregister-identiteta">
+            <input id="boniteta-openregister-identiteta" type="checkbox" role="switch" aria-describedby="boniteta-openregister-status" checked />
+            <span class="boniteta-stikalo__tir" aria-hidden="true"><span></span></span>
+            <strong id="boniteta-openregister-status">ON</strong>
+          </label>
+        </div>
+
+        <div class="boniteta-polje boniteta-polje--celo" data-boniteta-rocni-podatek>
           <label for="boniteta-naslov-podjetja">Ulica in hišna številka</label>
           <input id="boniteta-naslov-podjetja" name="naslov" type="text" autocomplete="street-address" placeholder="Sistem ga lahko razbere iz Impressuma" maxlength="140" data-fit-input data-fit-input-min="8" />
           <span class="boniteta-polje__status">Če imate spletno stran, lahko naslov najprej pustite prazen.</span>
         </div>
 
-        <div class="boniteta-polja-vrstica">
+        <div class="boniteta-polja-vrstica" data-boniteta-rocni-podatek>
           <div class="boniteta-polje">
             <label for="boniteta-posta">Poštna številka</label>
             <input id="boniteta-posta" name="postnaStevilka" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="npr. 60385" maxlength="5" pattern="[0-9]{5}" data-fit-input data-fit-input-min="10" />
@@ -111,7 +184,18 @@
           </div>
         </div>
 
-        <p class="boniteta-obrazec__namig">Najlažje je vnesti spletno stran. Če je stranka nima, ročno izpolnite ime in celoten naslov.</p>
+        <div class="boniteta-polja-vrstica" data-boniteta-rocni-podatek>
+          <div class="boniteta-polje">
+            <label for="boniteta-register">Registrska številka <span class="boniteta-polje__neobvezno">(če obstaja)</span></label>
+            <input id="boniteta-register" name="registerNumber" type="text" placeholder="npr. HRB 12345" maxlength="120" data-fit-input data-fit-input-min="8" />
+          </div>
+          <div class="boniteta-polje">
+            <label for="boniteta-davcna">Davčna številka <span class="boniteta-polje__neobvezno">(če obstaja)</span></label>
+            <input id="boniteta-davcna" name="vatId" type="text" placeholder="npr. DE123456789" maxlength="80" data-fit-input data-fit-input-min="8" />
+          </div>
+        </div>
+
+        <p class="boniteta-obrazec__namig" id="boniteta-vnos-namig">Preverite, da ime in celoten naslov pripadata isti izbrani stranki.</p>
         <p class="boniteta-napaka" id="boniteta-napaka" role="alert" hidden></p>
 
         <button class="boniteta-gumb" id="boniteta-gumb" type="submit">
@@ -121,17 +205,21 @@
           </svg>
           <span>Poišči podatke</span>
         </button>
+        </div>
       </form>
 
-      <section class="boniteta-potek" id="boniteta-potek" aria-live="polite" hidden>
-        <div class="boniteta-potek__korak is-active" data-boniteta-korak="register"><span>1</span><strong>Registri</strong></div>
-        <div class="boniteta-potek__crta" aria-hidden="true"></div>
-        <div class="boniteta-potek__korak" data-boniteta-korak="identity"><span>2</span><strong>Identiteta</strong></div>
-        <div class="boniteta-potek__crta" aria-hidden="true"></div>
-        <div class="boniteta-potek__korak" data-boniteta-korak="insolvency"><span>3</span><strong>Insolvenca</strong></div>
+      <section class="boniteta-potek" id="boniteta-potek" aria-live="polite" hidden data-boniteta-flow-panel="soft">
+        <div class="boniteta-potek__koraki">
+          <div class="boniteta-potek__korak is-active" data-boniteta-korak="register"><span>1</span><strong>Registri</strong></div>
+          <div class="boniteta-potek__crta" aria-hidden="true"></div>
+          <div class="boniteta-potek__korak" data-boniteta-korak="identity"><span>2</span><strong>Identiteta</strong></div>
+          <div class="boniteta-potek__crta" aria-hidden="true"></div>
+          <div class="boniteta-potek__korak" data-boniteta-korak="insolvency"><span>3</span><strong>Insolvenca</strong></div>
+        </div>
+        <p class="boniteta-potek__status" id="boniteta-vrsta-status">Preverjanje je dodano v varno čakalno vrsto.</p>
       </section>
 
-      <section class="boniteta-rezultat" id="boniteta-rezultat" aria-live="polite" hidden>
+      <section class="boniteta-rezultat" id="boniteta-rezultat" aria-live="polite" hidden data-boniteta-flow-panel="soft">
         <div class="boniteta-rezultat__glava">
           <span class="boniteta-rezultat__status" id="boniteta-status-ikona" aria-hidden="true"></span>
           <div>
@@ -148,23 +236,42 @@
           </div>
           <dl class="boniteta-podatki" id="boniteta-hwk-podatki"></dl>
           <figure class="boniteta-uradni-posnetek" id="boniteta-identiteta-posnetek" hidden>
-            <img id="boniteta-identiteta-slika" alt="Posnetek registrskega vira, ki potrjuje identiteto podjetja ali obrtnika" />
+            <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
+              <a class="boniteta-posnetek-povecava__url" id="boniteta-identiteta-url" href="#" target="_blank" rel="noopener" aria-label="Odpri dejanski vir posnetka">
+                <span aria-hidden="true"></span>
+                <strong>Vir</strong>
+                <output></output>
+              </a>
+              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka identitete">
+                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
+                <output data-posnetek-stopnja aria-live="polite">100 %</output>
+                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
+                <button class="boniteta-posnetek-povecava__prilagodi" type="button" data-posnetek-prilagodi>Prilagodi</button>
+              </div>
+              <div class="boniteta-posnetek-povecava__okno" data-posnetek-okno tabindex="0" aria-label="Posnetek identitete. Povečano sliko lahko pomikate.">
+                <img id="boniteta-identiteta-slika" alt="Posnetek registrskega vira, ki potrjuje identiteto podjetja ali obrtnika" draggable="false" />
+              </div>
+            </div>
             <figcaption>
               <strong>Posnetek uporabljenega vira</strong>
               <span id="boniteta-identiteta-cas"></span>
               <a id="boniteta-identiteta-prenos" href="#" download="potrditev-identitete.jpg">Prenesi posnetek</a>
             </figcaption>
           </figure>
+          <p class="boniteta-dokazilo-status" id="boniteta-identiteta-dokazilo-status" role="status" hidden></p>
           <a class="boniteta-vir" id="boniteta-hwk-vir" href="#" target="_blank" rel="noopener">Odpri uporabljeni vir ↗</a>
           <div class="boniteta-potrditev-identitete" id="boniteta-potrditev-identitete" hidden>
-            <h4>Preverite podatke pred insolvenčno poizvedbo</h4>
-            <p>Primerjajte polja s prikazanim virom. Če je sistem kaj narobe razbral, podatek popravite.</p>
+            <h4 id="boniteta-potrditev-naslov">Preverite podatke pred insolvenčno poizvedbo</h4>
+            <p id="boniteta-potrditev-opis">Primerjajte polja s prikazanim virom. Če je sistem kaj narobe razbral, podatek popravite.</p>
             <div class="boniteta-potrditev-identitete__mreza">
-              <label>Pravno ime oziroma nosilec
+              <label id="boniteta-potrdi-ime-oznaka">Pravno ime
                 <input id="boniteta-potrdi-ime" type="text" maxlength="180" data-fit-input />
               </label>
-              <label>Poslovni naziv
+              <label>Poslovni naziv (če se razlikuje)
                 <input id="boniteta-potrdi-naziv" type="text" maxlength="180" data-fit-input />
+              </label>
+              <label id="boniteta-potrdi-nosilec-ovoj">Nosilec oziroma zastopnik
+                <input id="boniteta-potrdi-nosilec" type="text" maxlength="180" data-fit-input />
               </label>
               <label>Ulica in hišna številka
                 <input id="boniteta-potrdi-naslov" type="text" maxlength="140" data-fit-input />
@@ -177,7 +284,7 @@
               </label>
               <label class="boniteta-potrditev-identitete__potrditev">
                 <input id="boniteta-potrdi-checkbox" type="checkbox" />
-                <span>Podatke sem primerjal s prikazanim virom in so pravilni.</span>
+                <span id="boniteta-potrditev-kljukica">Podatke sem primerjal s prikazanim virom in so pravilni.</span>
               </label>
               <p class="boniteta-potrditev-identitete__napaka" id="boniteta-potrditev-napaka" role="alert" hidden></p>
               <button class="boniteta-potrditev-identitete__gumb" id="boniteta-potrditev-gumb" type="button">Podatki so pravilni – preveri insolventnost</button>
@@ -200,7 +307,17 @@
           <p class="boniteta-insolvenca-opis" id="boniteta-insolvenca-opis"></p>
           <dl class="boniteta-podatki" id="boniteta-insolvenca-podatki"></dl>
           <figure class="boniteta-uradni-posnetek" id="boniteta-insolvenca-posnetek" hidden>
-            <img id="boniteta-insolvenca-slika" alt="Posnetek državnega insolvenčnega registra z rezultatom preverbe" />
+            <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
+              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka insolvenčnega registra">
+                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
+                <output data-posnetek-stopnja aria-live="polite">100 %</output>
+                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
+                <button class="boniteta-posnetek-povecava__prilagodi" type="button" data-posnetek-prilagodi>Prilagodi</button>
+              </div>
+              <div class="boniteta-posnetek-povecava__okno" data-posnetek-okno tabindex="0" aria-label="Posnetek insolvenčnega registra. Povečano sliko lahko pomikate.">
+                <img id="boniteta-insolvenca-slika" alt="Posnetek državnega insolvenčnega registra z rezultatom preverbe" draggable="false" />
+              </div>
+            </div>
             <figcaption>
               <strong>Druga potrditev: uradni insolvenčni register</strong>
               <span id="boniteta-insolvenca-cas"></span>
@@ -220,12 +337,143 @@
           </div>
         </div>
 
-        <p class="boniteta-omejitev">Podatki iz Impressuma so uporabniško potrjeni in niso uradni registrski izpis. Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
+        <p class="boniteta-omejitev" id="boniteta-omejitev">Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
+        <a class="boniteta-ponovi" id="boniteta-odpri-profil" href="bonitetna-preverba.html#profiles" hidden>Odpri celoten profil podjetja</a>
+        <button class="boniteta-ponovi boniteta-izbrisi-preverbo" id="boniteta-izbrisi-preverbo" type="button" hidden>Izbriši vse podatke tega preverjanja</button>
         <button class="boniteta-ponovi" id="boniteta-ponovi" type="button">Preveri drugo stranko</button>
+      </section>
+
+      <section class="crif-preparation" id="crif-preparation" data-crif-element data-boniteta-flow-panel="crif" hidden aria-labelledby="crif-title">
+        <header class="crif-preparation__hero">
+          <div><p class="boniteta-rezultat__oznaka crif-temp-mark">POGLOBLJENA ANALIZA · CRIF-READY</p><h2 id="crif-title">Pripravi preverbo za večji posel</h2><p>Vnesi samo podatke, ki so potrebni za konkreten posel. Zahtevo bomo shranili, CRIF pa poklicali šele po pogodbi in dovoljenjih.</p></div>
+          <span class="crif-contract-badge crif-temp-mark" id="crif-contract-badge">CRIF še ni aktiviran</span>
+        </header>
+
+        <form id="crif-form" class="crif-form" novalidate>
+          <section class="crif-step">
+            <div class="crif-step__heading"><span>1</span><div><h3>Stranka</h3><p>Izberi pravno vrsto, ker se obveznosti glede osebnih podatkov razlikujejo.</p></div></div>
+            <div class="crif-fields crif-fields--three">
+              <label>Vrsta stranke<select id="crif-subject-type" required><option value="company">Podjetje (npr. GmbH)</option><option value="sole_trader">Samostojni podjetnik / e.K.</option><option value="private_person">Zasebna oseba</option></select></label>
+              <label data-crif-company>Pravno ime<input id="crif-legal-name" type="text" maxlength="240" autocomplete="organization" data-fit-input></label>
+              <label data-crif-company>Registrska številka <small>(če obstaja)</small><input id="crif-register-number" type="text" maxlength="120" data-fit-input></label>
+              <label data-crif-person hidden>Ime<input id="crif-first-name" type="text" maxlength="120" autocomplete="given-name" data-fit-input></label>
+              <label data-crif-person hidden>Priimek<input id="crif-last-name" type="text" maxlength="120" autocomplete="family-name" data-fit-input></label>
+              <label data-crif-person hidden>Datum rojstva<input id="crif-date-of-birth" type="date" autocomplete="bday"></label>
+              <label class="crif-field-wide">Ulica in hišna številka<input id="crif-street" type="text" maxlength="160" autocomplete="street-address" required data-fit-input></label>
+              <label>Poštna številka<input id="crif-postal-code" type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" autocomplete="postal-code" required data-fit-input></label>
+              <label>Kraj<input id="crif-city" type="text" maxlength="100" autocomplete="address-level2" required data-fit-input></label>
+            </div>
+          </section>
+
+          <section class="crif-step">
+            <div class="crif-step__heading"><span>2</span><div><h3>Posel in plačilni riziko</h3><p>To je dokaz, zakaj je preverba potrebna in katera globina je smiselna.</p></div></div>
+            <div class="crif-fields crif-fields--three">
+              <label class="crif-field-wide">Referenca ponudbe ali projekta<input id="crif-project-reference" type="text" maxlength="160" placeholder="npr. Ponudba 2026-041" data-fit-input></label>
+              <label>Vrednost posla (€)<input id="crif-project-value" type="number" min="1" step="0.01" required inputmode="decimal"></label>
+              <label>Odprta izpostavljenost (€)<input id="crif-open-exposure" type="number" min="0" step="0.01" required inputmode="decimal"></label>
+              <label>Način plačila<select id="crif-payment-timing" required><option value="">Izberi</option><option value="prepayment">Predplačilo</option><option value="milestone">Po mejnikih</option><option value="after_completion">Po zaključku del</option><option value="invoice">Po računu</option><option value="installments">Obroki</option><option value="other">Drugo</option></select></label>
+              <label>Začetek posla<input id="crif-project-start" type="date" required></label>
+              <label>Konec posla<input id="crif-project-end" type="date" required></label>
+              <label class="crif-field-wide">Zakaj obstaja finančni riziko?<textarea id="crif-legitimate-interest" maxlength="1000" rows="3" placeholder="npr. Material naročimo vnaprej, plačilo sledi 30 dni po zaključku."></textarea></label>
+            </div>
+            <aside class="crif-recommendation" aria-live="polite"><span class="crif-temp-mark">Predvidena analiza</span><strong id="crif-recommendation-product">FinanzCheck</strong><p id="crif-recommendation-reason">Vnesi vrednost posla in odprto izpostavljenost.</p></aside>
+          </section>
+
+          <section class="crif-step">
+            <div class="crif-step__heading"><span>3</span><div><h3>Pravna sled</h3><p>Ta potrdila se shranijo skupaj z zahtevo. Ne predstavljajo avtomatskega pravnega mnenja.</p></div></div>
+            <div class="crif-confirmations">
+              <label><input id="crif-financial-risk" type="checkbox"><span>Preverba je povezana s konkretnim poslom in resničnim tveganjem neplačila.</span></label>
+              <label><input id="crif-business-purpose" type="checkbox"><span>Podatkov ne preverjam iz radovednosti in jih bom uporabil samo za odločitev o tem poslu.</span></label>
+            </div>
+            <div class="crif-notice" id="crif-notice" hidden>
+              <h4>Obvestilo fizični osebi je obvezno</h4>
+              <p>Pred preverbo ji posreduj obvestilo po 13. členu GDPR. To ni soglasje, temveč dokaz, da je bila oseba pravilno obveščena.</p>
+              <details><summary>Predloga nemškega obvestila</summary><div class="crif-notice__template">Hinweis zur Bonitätsprüfung: Im Zusammenhang mit Ihrem konkreten Auftrag und dem damit verbundenen finanziellen Ausfallrisiko verarbeiten wir Ihre Identifikations- und Adressdaten zur Prüfung Ihrer Bonität. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist die Vermeidung von Zahlungsausfällen. Empfänger ist die CRIF GmbH, Victor-Gollancz-Straße 5, 76137 Karlsruhe. Weitere Informationen zu Ihren Datenschutzrechten erhalten Sie in unseren Datenschutzhinweisen und unter crif.de/datenschutz.</div></details>
+              <div class="crif-fields crif-fields--two"><label>Način obvestila<select id="crif-notice-method"><option value="">Izberi</option><option value="email">E-pošta</option><option value="pdf">PDF / pisno</option><option value="in_person">Osebno</option><option value="portal">Portal</option></select></label><label>Čas obvestila<input id="crif-notice-at" type="datetime-local"></label></div>
+              <label class="crif-notice__confirm"><input id="crif-notice-delivered" type="checkbox"><span>Potrjujem, da je oseba obvestilo prejela pred preverbo.</span></label>
+            </div>
+          </section>
+
+          <section class="crif-step">
+            <div class="crif-step__heading"><span>4</span><div><h3>Ponovna preverba pri daljšem poslu</h3><p>Sistem jo predlaga pri najmanj treh mesecih in odprti izpostavljenosti od 10.000 €.</p></div></div>
+            <label class="crif-switch"><input id="crif-monitoring" type="checkbox" role="switch"><span><strong class="crif-temp-mark">Vključi spremljanje</strong><small id="crif-monitoring-hint">Po vnosu datuma in vrednosti dobiš priporočilo.</small></span></label>
+            <div class="crif-fields crif-fields--two" id="crif-monitoring-fields" hidden><label>Konec spremljanja<input id="crif-monitoring-end" type="date"></label><label>Razlog spremljanja<input id="crif-monitoring-reason" type="text" maxlength="500" placeholder="Aktiven projekt in odprta terjatev" data-fit-input></label></div>
+          </section>
+
+          <p class="crif-error" id="crif-error" role="alert" hidden></p>
+          <button class="bp-primary crif-submit crif-temp-action" type="submit" data-fit-text title="Začasna oznaka: ta del je vezan na CRIF">Pripravi zahtevo — brez poizvedbe CRIF</button>
+        </form>
+
+        <section class="crif-success" id="crif-success" hidden aria-live="polite"><span>Pripravljeno</span><h3>Zahteva je varno shranjena</h3><p id="crif-success-text"></p><ul><li>CRIF ni bil kontaktiran in strošek ni nastal.</li><li>Pred prikazom rezultata bo obvezna človeška presoja.</li><li>Aktivacija čaka posebno platformsko pogodbo in API dovoljenja.</li></ul><button class="bp-secondary" id="crif-new-request" type="button">Pripravi novo</button></section>
+
+        <section class="crif-output" id="crif-output" aria-labelledby="crif-output-title" data-crif-result-state="locked">
+          <header class="crif-output__header">
+            <div><p class="boniteta-rezultat__oznaka crif-temp-mark">STRUKTURA KONČNEGA REZULTATA</p><h2 id="crif-output-title">Rezultat poglobljene analize</h2><p>Vsi sklopi so pripravljeni. Vrednosti se prikažejo šele iz dejanskega, dovoljenega CRIF-odziva.</p></div>
+            <span class="crif-output__lock crif-temp-mark">Čaka povezavo CRIF</span>
+          </header>
+
+          <div class="crif-output__product"><span>Predvideni vir rezultata</span><strong id="crif-output-product" data-fit-text>FinanzCheck · čaka CRIF</strong></div>
+
+          <div class="crif-output__metrics" aria-label="Glavni bonitetni kazalniki">
+            <article><span class="crif-temp-mark">Bonitetni razred</span><strong id="crif-output-rating" data-fit-text>Čaka CRIF</strong><small id="crif-output-rating-note">Ocena in pomen razreda</small></article>
+            <article><span class="crif-temp-mark">Verjetnost neplačila</span><strong id="crif-output-probability" data-fit-text>Čaka CRIF</strong><small id="crif-output-probability-note">Obdobje in uporabljeni model</small></article>
+            <article><span class="crif-temp-mark">Priporočen odprti limit</span><strong id="crif-output-limit" data-fit-text>Čaka CRIF</strong><small id="crif-output-limit-note">Primerjava z izpostavljenostjo posla</small></article>
+            <article><span class="crif-temp-mark">Ujemanje identitete</span><strong id="crif-output-identity" data-fit-text>Čaka CRIF</strong><small id="crif-output-identity-note">Ime, naslov in identifikatorji</small></article>
+          </div>
+
+          <div class="crif-output__factors">
+            <article class="crif-output-card"><div class="crif-output-card__head"><h3 class="crif-temp-mark">Pozitivni dejavniki</h3><span class="crif-output-card__icon crif-output-card__icon--positive" aria-hidden="true">+</span></div><p>Najpomembnejši razlogi, ki podpirajo varnejše sodelovanje.</p><div class="crif-output__content" id="crif-output-positive"><div class="crif-output__empty">Na voljo po prejemu podatkov</div></div></article>
+            <article class="crif-output-card"><div class="crif-output-card__head"><h3 class="crif-temp-mark">Opozorilni dejavniki</h3><span class="crif-output-card__icon crif-output-card__icon--warning" aria-hidden="true">!</span></div><p>Razlogi za dodatno varovalo ali previdnejše plačilne pogoje.</p><div class="crif-output__content" id="crif-output-warning"><div class="crif-output__empty">Na voljo po prejemu podatkov</div></div></article>
+          </div>
+
+          <div class="crif-output__details">
+            <article class="crif-output-card"><h3 class="crif-temp-mark">Finančni povzetek</h3><p>Ključni finančni kazalniki, trendi in primerjava obdobij, če jih izbrani CRIF-produkt vsebuje.</p><div class="crif-output__content" id="crif-output-financial"><div class="crif-output__empty">Ni pridobljenih podatkov</div></div></article>
+            <article class="crif-output-card"><h3 class="crif-temp-mark">Plačilne izkušnje</h3><p>Razpoložljive informacije o plačilnem vedenju in zamudah brez samodejne odločitve.</p><div class="crif-output__content" id="crif-output-payments"><div class="crif-output__empty">Ni pridobljenih podatkov</div></div></article>
+            <article class="crif-output-card"><h3 class="crif-temp-mark">Negativni dogodki</h3><p>Morebitni relevantni postopki ali negativni zapisi skupaj z datumom in virom.</p><div class="crif-output__content" id="crif-output-negative"><div class="crif-output__empty">Ni pridobljenih podatkov</div></div></article>
+            <article class="crif-output-card"><h3 class="crif-temp-mark">Spremljanje sprememb</h3><p>Stanje aktivnega spremljanja, zadnja preverba, naslednji termin in prejeta opozorila.</p><div class="crif-output__content" id="crif-output-monitoring"><div class="crif-output__empty">Spremljanje še ni aktivno</div></div></article>
+          </div>
+
+          <section class="crif-output__report">
+            <div><h3 class="crif-temp-mark">Uradno CRIF-poročilo</h3><p id="crif-output-report-note">Izvirni dokument, identifikator poizvedbe, datum pridobitve in uporabljeni produkt.</p></div>
+            <button class="bp-secondary crif-temp-action" id="crif-output-report" type="button" disabled data-fit-text>Prenesi poročilo</button>
+          </section>
+
+          <section class="crif-output__decision" aria-labelledby="crif-decision-title">
+            <div><p class="boniteta-rezultat__oznaka">OBVEZNA ČLOVEŠKA PRESOJA</p><h3 id="crif-decision-title">Končna odločitev obrtnika</h3><p>CRIF je samo eden od dejavnikov. Sistem ne sme samodejno zavrniti stranke.</p></div>
+            <div class="crif-output__decision-actions" role="group" aria-label="Možne odločitve po pregledu rezultata">
+              <button type="button" data-crif-decision="approve" disabled data-fit-text>Sodeluj</button><button type="button" data-crif-decision="review" disabled data-fit-text>Zahtevaj varovalo</button><button type="button" data-crif-decision="decline" disabled data-fit-text>Zavrni posel</button>
+            </div>
+            <label>Razlog odločitve<textarea id="crif-decision-reason" rows="3" maxlength="1200" disabled placeholder="Obvezno po prejemu rezultata"></textarea></label>
+            <p class="crif-output__feedback" id="crif-decision-feedback" role="status" hidden></p>
+            <button class="bp-primary" id="crif-decision-save" type="button" disabled data-fit-text>Shrani človeško odločitev</button>
+          </section>
+
+          <details class="crif-output__states">
+            <summary class="crif-temp-mark">Posebna stanja in pravice osebe</summary>
+            <div><article data-crif-result-message="insufficient"><strong>Podatkov ni dovolj</strong><p id="crif-insufficient-message">Rezultat ostane neopredeljen, obrtnik pa dobi navodilo za ročni pregled.</p></article><article data-crif-result-message="error"><strong>Poizvedba ni uspela</strong><p id="crif-error-message">Prikažeta se jasna napaka in varen ponovni poskus brez podvojene bremenitve.</p><button class="bp-secondary crif-temp-action" id="crif-query-retry" type="button" disabled data-fit-text>Varno ponovi poizvedbo</button></article><article data-crif-result-message="dispute"><strong>Ugovor ali popravek</strong><p>Oseba lahko zahteva razlago, človeški pregled in popravek napačnih podatkov.</p><label>Razlog ugovora<textarea id="crif-dispute-reason" rows="3" maxlength="1600" disabled placeholder="Opišite napačen podatek ali zahtevani pregled"></textarea></label><p class="crif-output__feedback" id="crif-dispute-feedback" role="status" hidden></p><button class="bp-secondary crif-temp-action" id="crif-dispute-open" type="button" disabled data-fit-text>Začni postopek popravka</button></article></div>
+          </details>
+        </section>
       </section>
     </main>
 
+    <section class="bp-main boniteta-center-workspace" id="boniteta-center-workspace" aria-labelledby="boniteta-center-workspace-title" hidden>
+      <section class="bp-hero boniteta-center-hero"><div><p class="bp-eyebrow">VSE NA ENEM MESTU</p><h2 id="boniteta-center-workspace-title">Moja podjetja</h2><p>Odprite shranjen profil, spremljanje ali opozorila. Dodatni podatki se pridobijo šele, ko jih potrebujete.</p></div><button class="bp-primary" type="button" data-boniteta-center-view="new">+ Nova preverba</button></section>
+      <nav class="bp-nav bp-subnav" aria-label="Pregled podjetij">
+        <button data-view="profiles" class="is-active" type="button" data-fit-text>Podjetja</button><button data-view="watched" type="button" data-fit-text>Spremljanje</button><button data-view="alerts" type="button" data-fit-text>Opozorila</button><button class="crif-temp-action" data-crif-element data-view="crif" type="button" data-fit-text title="Začasna oznaka: ta del je vezan na CRIF">Analize</button><button data-view="search" type="button" data-fit-text>Iskanje v registru</button>
+      </nav>
+      <p id="bp-error" class="bp-error" role="alert" hidden></p>
+      <section id="bp-profiles" class="bp-panel"><div class="bp-panel-head"><h3>Preverjena podjetja</h3><span id="bp-profile-count" class="bp-badge">0</span></div><div id="bp-profiles-state" class="bp-state">Nalagam preverjene stranke …</div><div id="bp-profiles-grid" class="bp-grid"></div></section>
+      <section id="bp-watched" class="bp-panel" hidden><div class="bp-panel-head"><h3>Spremljana podjetja</h3><span class="bp-badge">Spremljanje sprememb</span></div><div id="bp-watched-state" class="bp-state">Nalagam spremljanje …</div><div id="bp-watched-grid" class="bp-grid"></div></section>
+      <section id="bp-alerts" class="bp-panel" hidden><div class="bp-panel-head"><h3>Opozorila o spremembah</h3><button id="bp-refresh-alerts" class="bp-secondary" type="button">Osveži</button></div><div id="bp-alerts-state" class="bp-state">Nalagam opozorila …</div><div id="bp-alerts-grid" class="bp-grid"></div></section>
+      <section id="bp-crif" class="bp-panel" data-crif-element hidden><div class="bp-panel-head"><div><h3 class="crif-temp-mark">Pripravljene poglobljene analize</h3><p class="bp-note">Do aktivacije CRIF se shranijo samo priprave, brez zunanje poizvedbe in stroška.</p></div><span class="bp-badge bp-badge--yellow crif-temp-mark">Pogodba v pripravi</span></div><div id="bp-crif-state" class="bp-state">Nalagam pripravljene analize …</div><div id="bp-crif-grid" class="bp-grid"></div></section>
+      <section id="bp-search" class="bp-panel" hidden><div class="bp-panel-head"><h3>Iskanje v nemškem registru</h3><span class="bp-badge">10 kreditov</span></div>
+        <form id="bp-search-form" class="bp-form"><label>Ime ali registrska številka<input id="bp-search-query" type="search" maxlength="240" required data-fit-input></label><label>Kraj<input id="bp-search-city" type="text" maxlength="100" data-fit-input></label><label>Pravna oblika<select id="bp-search-forma"><option value="">Vse oblike</option><option value="gmbh">GmbH</option><option value="ug">UG</option><option value="ag">AG</option><option value="ek">e.K.</option><option value="gbr">GbR</option><option value="kg">KG</option><option value="ohg">OHG</option></select></label><div class="bp-form-actions"><button class="bp-primary" type="submit">Poišči</button><button id="bp-export" class="bp-secondary" type="button" hidden>Izvozi CSV</button></div></form>
+        <p class="bp-note">To je registrsko iskanje. Osnovna bonitetna preverba z uporabniško potrditvijo identitete je vedno v zavihku »Nova preverba«.</p><div id="bp-search-state" class="bp-state" hidden></div><div id="bp-search-grid" class="bp-grid" style="margin-top:16px"></div>
+      </section>
+    </section>
+
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260815-v21"></script>
+    <script src="bonitetna-preverba.js?v=20260817-network-retry-v19"></script>
+    <script src="boniteta-sredisce.js?v=20260817-crif-toggle-v7"></script>
   </body>
 </html>

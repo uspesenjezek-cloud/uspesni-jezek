@@ -464,6 +464,36 @@
         setTimeout(function () { _preskociBlur = false; }, 0);
       }
     });
+
+    obnoviZgodovinoZamudUI();
+  }
+
+  /** Ob vrnitvi z 2. koraka napolni gumbe "Ali je dolžnik že kdaj zamudil?" iz
+      seje. Brez tega je izbira shranjena v sessionStorage, a v DOM-u ni nobenega
+      aria-pressed gumba, zato validacija pred 2. korakom po nepotrebnem javi
+      "Izpolnite oceno tveganja" in uporabnik mora odgovor izbrati znova.
+      Sheeta namenoma NE odpremo – obnavljamo samo stanje, ne poteka vnosa. */
+  function obnoviZgodovinoZamudUI() {
+    var shranjeno = preberiPodatkeKorak1().zgodovinaZamud;
+    if (shranjeno == null || String(shranjeno) === "") return;
+    var gumbi = document.querySelectorAll("[data-zgodovina-zamud]");
+    if (!gumbi.length) return;
+    var najden = false;
+    for (var i = 0; i < gumbi.length; i++) {
+      var ujema = gumbi[i].getAttribute("data-zgodovina-zamud") === String(shranjeno);
+      gumbi[i].setAttribute("aria-pressed", ujema ? "true" : "false");
+      if (ujema) najden = true;
+    }
+    if (!najden) return;
+    /* Odgovori podvprašalnika so v seji – pripravimo jih v sheetu, da so ob
+       ponovnem odprtju že izbrani. */
+    obnoviZgodovinaSheetUI();
+    var izbranoEl = document.getElementById("ocena-zgodovina-izbrano");
+    if (izbranoEl && String(shranjeno) !== "unknown" && String(shranjeno) !== "0") {
+      var st = String(shranjeno) === "9plus" ? "9 ali več" : String(shranjeno);
+      izbranoEl.textContent = "Izbrano: " + (String(shranjeno) === "1" ? "1 zamuda" : st + " zamud");
+    }
+    osveziKartice();
   }
 
   function validirajDolgPragove(p) {

@@ -75,11 +75,58 @@ test("CSS: ozek razmik med poljema, brez contact-help/kanal", () => {
   assert(/\.contact-inputs\s*\{[^}]*gap:\s*var\(--space-xs\)/s.test(css), "gap ni --space-xs");
 });
 
+test("potrjena strnjena postavitev ohrani funkcije in swipe namig", () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, "..", "app", "styles.css"),
+    "utf8"
+  );
+  assert(/KORAK 1 . potrjena strnjena postavitev/.test(css));
+  assert(/#obrazec-neplacilo \.contact-inputs\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 1fr\)/s.test(css));
+  assert(/#obrazec-neplacilo \.zadeva-obrazec__podvrstica--datumi/.test(css));
+  assert(/#obrazec-neplacilo \.ocena-tveganja__polje-vrednost\s*\{[^}]*border-bottom:\s*1px solid/s.test(css));
+  assert(/#obrazec-neplacilo \.ocena-tveganja__izbira\s*\{[^}]*4\.5/s.test(css));
+  assert(/id="ocena-tveganja-zamuda-vrednost"[^>]*data-fit-number/.test(html));
+});
+
 test("app.js nima logike kljukic", () => {
   assert(!/kanal-privzeto-sms/.test(appJs));
   assert(!/smsRocnoIzklop/.test(appJs));
   assert(!/posodobiKontaktneKljukice/.test(appJs));
   assert(!/obnoviKontaktneKljukiceIzOsnutka/.test(appJs));
+});
+
+test("vsa enovrsticna polja prvega koraka sproti zmanjsajo predolgo vrednost", () => {
+  assert(appJs.includes("#obrazec-neplacilo input[type=\"text\"]"));
+  assert(appJs.includes("#obrazec-neplacilo input[type=\"tel\"]"));
+  assert(appJs.includes("#obrazec-neplacilo input[type=\"email\"]"));
+  assert(appJs.includes("#obrazec-neplacilo input[type=\"number\"]"));
+  assert(/function prilagodiVelikostVnosnegaPolja\(el\)/.test(appJs));
+  assert(/merilnikVnosnegaBesedila\.measureText\(vsebina\)/.test(appJs));
+  assert(/style\.setProperty\(\s*"font-size",[\s\S]*?"important"\s*\)/.test(appJs));
+  assert(/document\.addEventListener\("input",[\s\S]*?prilagodiVelikostVnosnegaPolja\(cilj\)/.test(appJs));
+  assert(/document\.fonts\.ready\.then\(nacrtujPrilagoditevZneskov\)/.test(appJs));
+});
+
+test("vprasalni widget je locen in ima vedno viden kompaktni vnos", () => {
+  const css = fs.readFileSync(
+    path.join(__dirname, "..", "app", "styles.css"),
+    "utf8"
+  );
+  assert(/KORAK 1 . korekcija po potrjeni referenci \(v2\)/.test(css));
+  assert(!/\.opravljeno-vprasanje--shranjeno \.opravljeno-vprasanje__odgovor\s*\{[^}]*display:\s*none/s.test(css));
+  assert(/\.opravljeno-bubble #opis-dolga\s*\{[^}]*height:\s*42px;[^}]*border:\s*1px solid/s.test(css));
+  assert(/\.obrazec-razdelek--dolg \.obrazec__polje--opravljeno\s*\{[^}]*border:\s*1px solid[^}]*border-radius:\s*13px/s.test(css));
+  assert(/#obrazec-neplacilo \.obrazec__polje--opravljeno-vprasanja \.opravljeno-bubble #opis-dolga\s*\{[^}]*height:\s*40px;[^}]*min-height:\s*40px/s.test(css));
+  assert(/#obrazec-neplacilo \.obrazec__polje--opravljeno-vprasanja \.opravljeno-vprasanje__odgovor\s*\{[^}]*width:\s*100%;[^}]*padding:\s*0 0 5px/s.test(css));
+  assert(/#obrazec-neplacilo \.obrazec__polje--opravljeno-vprasanja \.opravljeno-vprasanja__puscica\s*\{[^}]*width:\s*26px;[^}]*height:\s*26px/s.test(css));
+  assert(/transition:\s*height 160ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/.test(css));
+  assert(/\.opravljeno-vprasanja__viewport--takojsnja-visina\s*\{[^}]*transition:\s*none !important/s.test(css));
+  assert(/Math\.max\([\s\S]{0,120}aktivnaStran\.scrollHeight[\s\S]{0,100}getBoundingClientRect\(\)\.height/.test(appJs));
+  assert(/celotnaVisina > opravljenoVprasanjaViewport\.offsetHeight[\s\S]{0,220}viewport--takojsnja-visina/.test(appJs));
+  assert(/osveziVisinoOpravljenoVprasanje\(\);[\s\S]{0,180}opravljenoVprasanjaViewport\.scrollTo/.test(appJs));
+  assert(/opisDolgaGlava\.addEventListener\("click"/.test(appJs));
+  assert(/String\(priloga\.description \|\| ""\)\.trim\(\)\) priloga\.collapsed = true/.test(appJs));
+  assert(/grid-template-columns:\s*minmax\(108px, 0\.72fr\) minmax\(0, 1\.28fr\)/.test(css));
 });
 
 test("privzetiKanaliIzKontaktov: telefon / e-pošta / oboje / prazno", () => {

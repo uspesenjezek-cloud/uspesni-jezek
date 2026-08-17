@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="sl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Začasno – predogledi obvestil</title>
+    <link rel="stylesheet" href="styles.css?v=20260814-auto-fit-pill-v36" />
+    <link rel="stylesheet" href="zacasno-obvestila.css?v=20260814-zacasno-modal-v9" />
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body class="stran--sporocilo">
+    <main class="zacasno-obvestila">
+      <div class="zo-topbar" data-zo-katalog-topbar>
+        <a class="zo-nazaj zo-tap" href="neplacila-posiljanje.html" aria-label="Nazaj na načrt">←</a>
+        <p class="zo-oznaka">ZAČASNO</p>
+        <span aria-hidden="true"></span>
+      </div>
+
+      <section class="zo-katalog-view" data-zo-katalog-view>
+        <section class="zo-uvod" aria-label="Uvod">
+          <h1>Predogledi obvestil in korakov</h1>
+          <p class="zo-uvod__podnaslov">Za vsako kartico preverite mini obvestilo in zaslon, ki se odpre v aplikaciji.</p>
+          <span class="zo-uvod__znacka">Samo prototip · nič se ne pošlje</span>
+        </section>
+
+        <div class="zo-seznam" data-zo-seznam aria-label="Predogledi po korakih"></div>
+      </section>
+
+      <section class="zo-sim-popup" data-zo-sim-popup hidden aria-hidden="true" aria-label="Simulacija obvestila">
+        <div class="zo-sim-popup__okno" data-zo-sim-popup-vsebina role="dialog" aria-modal="true" aria-label="Mini obvestilo koraka"></div>
+      </section>
+
+      <section class="zo-detail-view" data-zo-detail-view hidden aria-label="Kaj sledi">
+        <div class="zo-detail-sheet" role="dialog" aria-modal="true" aria-label="Pregled aktivnega koraka">
+          <header class="zo-detail-topbar">
+            <span class="zo-detail-rocaj" aria-hidden="true"></span>
+            <button type="button" class="zo-detail-nazaj zo-tap" data-zo-detail-nazaj aria-label="Zapri pregled">
+              <span aria-hidden="true">×</span>
+            </button>
+          </header>
+          <div class="zo-detail-content" data-zo-detail-content></div>
+        </div>
+      </section>
+
+      <div class="zo-toast" role="status" aria-live="polite" data-zo-toast></div>
+    </main>
+
+    <script src="zacasno-obvestila-data.js?v=20260814-zacasno-modal-v9" defer></script>
+    <script src="zacasno-obvestila.js?v=20260814-zacasno-modal-v9" defer></script>
+  </body>
+</html>

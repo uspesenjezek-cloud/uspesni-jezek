@@ -124,6 +124,22 @@
     return Boolean(p);
   }
 
+  function normalizirajOpisPriloge(p) {
+    var priloga = p || {};
+    return {
+      descriptionQuestion: String(
+        priloga.descriptionQuestion || "Kdaj je nastala ta slika oziroma dokument?"
+      ).trim(),
+      description: String(priloga.description || "").trim(),
+      descriptionRequired: Boolean(priloga.descriptionRequired),
+    };
+  }
+
+  function prilogaImaVeljavenOpis(p) {
+    var opis = normalizirajOpisPriloge(p);
+    return !opis.descriptionRequired || Boolean(opis.description);
+  }
+
   function vsePrilogeVeljavneZaPotrditev(priloge, imaTel, imaEmail) {
     var list = priloge || [];
     for (var i = 0; i < list.length; i++) {
@@ -135,6 +151,12 @@
         return {
           ok: false,
           razlog: "Odstranite ali ponovno naložite neuspele račune.",
+        };
+      }
+      if (!prilogaImaVeljavenOpis(p)) {
+        return {
+          ok: false,
+          razlog: "Odgovorite na obvezno vprašanje pri vsaki prilogi.",
         };
       }
     }
@@ -150,6 +172,8 @@
       var m = meta[i] || {};
       var k = kanali[i] || { sms: true, email: true };
       return {
+        attachmentId: m.id || null,
+        groupId: m.groupId || m.id || null,
         id: m.id || novId(),
         originalFileName:
           m.originalFileName ||
@@ -166,6 +190,9 @@
         origin: origins[i] || "manual_attachment",
         createdAt: m.createdAt || null,
         updatedAt: m.updatedAt || null,
+        descriptionQuestion: normalizirajOpisPriloge(m).descriptionQuestion,
+        description: normalizirajOpisPriloge(m).description,
+        descriptionRequired: normalizirajOpisPriloge(m).descriptionRequired,
         progress: 100,
       };
     });
@@ -191,11 +218,15 @@
       attachmentMeta: ready.map(function (p) {
         return {
           id: p.id,
+          groupId: p.groupId || p.id || null,
           originalFileName: p.originalFileName,
           mimeType: p.mimeType,
           sizeBytes: p.sizeBytes,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
+          descriptionQuestion: normalizirajOpisPriloge(p).descriptionQuestion,
+          description: normalizirajOpisPriloge(p).description,
+          descriptionRequired: normalizirajOpisPriloge(p).descriptionRequired,
         };
       }),
       shouldSendAttachment: ready.length > 0,
@@ -217,21 +248,72 @@
       ? podatki.attachmentOrigins
       : [];
 
-    return poti.map(function (pot, i) {
+    var racuni = poti.map(function (pot, i) {
       var k = kanali[i] || {};
       var m = meta[i] || {};
       return {
+        documentType: "invoice",
+        attachmentId: m.id || null,
+        groupId: m.groupId || m.id || null,
         storagePath: String(pot),
         originalFileName: m.originalFileName || "Račun",
         mimeType: m.mimeType || "",
         sizeBytes: m.sizeBytes != null ? m.sizeBytes : null,
         origin: izvori[i] || "manual_attachment",
+        descriptionQuestion: normalizirajOpisPriloge(m).descriptionQuestion,
+        description: normalizirajOpisPriloge(m).description,
+        descriptionRequired: normalizirajOpisPriloge(m).descriptionRequired,
         deliveryChannels: {
           sms: Boolean(k.sms),
           email: Boolean(k.email),
         },
       };
     });
+    var opravljenoPoti = Array.isArray(podatki.opravljenoDatotekePoti)
+      ? podatki.opravljenoDatotekePoti
+      : [];
+    var opravljenoMeta = Array.isArray(podatki.opravljenoAttachmentMeta)
+      ? podatki.opravljenoAttachmentMeta
+      : [];
+    var dokazila = opravljenoPoti.map(function (pot, i) {
+      var m = opravljenoMeta[i] || {};
+      return {
+        documentType: "work_evidence",
+        attachmentId: m.id || null,
+        groupId: m.groupId || m.id || null,
+        storagePath: String(pot),
+        originalFileName: m.originalFileName || "Dokazilo opravljenega dela",
+        mimeType: m.mimeType || "",
+        sizeBytes: m.sizeBytes != null ? m.sizeBytes : null,
+        origin: "work_evidence",
+        descriptionQuestion:
+          m.descriptionQuestion || "Kdaj je nastala ta slika oziroma dokument?",
+        description: m.description || "",
+        descriptionRequired: Boolean(m.descriptionRequired),
+        deliveryChannels: { sms: false, email: false },
+      };
+    });
+    var brezSlike = (Array.isArray(podatki.opravljenoBrezSlike)
+      ? podatki.opravljenoBrezSlike
+      : []).map(function (m) {
+      return {
+        documentType: "work_evidence",
+        attachmentId: m.id || null,
+        groupId: m.groupId || m.id || null,
+        storagePath: null,
+        originalFileName: m.originalFileName || "Opis prvotnega stanja",
+        mimeType: "text/plain",
+        sizeBytes: null,
+        origin: "work_evidence",
+        textOnly: true,
+        descriptionQuestion: m.descriptionQuestion || "Opišite prvotno stanje.",
+        description: m.description || "",
+        descriptionRequired: true,
+        deliveryChannels: { sms: false, email: false },
+        status: "ready",
+      };
+    });
+    return racuni.concat(dokazila, brezSlike);
   }
 
   root.UJPrilogeVsebina = {
@@ -246,6 +328,8 @@
     sestaviSmsZPrilogami: sestaviSmsZPrilogami,
     validirajDatoteko: validirajDatoteko,
     prilogaImaVeljavenKanal: prilogaImaVeljavenKanal,
+    normalizirajOpisPriloge: normalizirajOpisPriloge,
+    prilogaImaVeljavenOpis: prilogaImaVeljavenOpis,
     vsePrilogeVeljavneZaPotrditev: vsePrilogeVeljavneZaPotrditev,
     izSejeVPriloge: izSejeVPriloge,
     prilogeVSejo: prilogeVSejo,

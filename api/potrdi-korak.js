@@ -1,3 +1,4 @@
+var sentry = require("./_lib/sentry");
 /* ==========================================================
    api/potrdi-korak.js — Vercel serverless v3.
    DB-backed, avtoriziran, optimistic locking, Luxon TZ.
@@ -6,10 +7,9 @@
    (SERVICE_ROLE KEY nikoli ne zapusti strežnika.)
    ========================================================== */
 
-var crypto;
-try { crypto = require("crypto"); } catch (_) { crypto = null; }
-var luxon;
-try { luxon = require("luxon"); } catch (_) { luxon = null; }
+var crypto = require("crypto");
+var luxon = require("luxon");
+var randomSchedule = require("./_lib/random-schedule");
 
 var TZ = "Europe/Ljubljana";
 
@@ -30,54 +30,25 @@ function versionIncrement(oldVersion) {
 
 /** Vrne lokalne minute (0–1439) ISO datuma v Europe/Ljubljana. */
 function ljMinute(isoString) {
-  if (luxon) {
-    var dt = luxon.DateTime.fromISO(isoString, { zone: "utc" }).setZone(TZ);
-    if (dt.isValid) return dt.hour * 60 + dt.minute;
-  }
-  /* Fallback z Intl (manj zanesljiv pri DST prehodih). */
-  try {
-    var deli = new Intl.DateTimeFormat("sl-SI", {
-      timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false,
-    }).formatToParts(new Date(isoString));
-    var hh = 0, mm = 0;
-    deli.forEach(function (p) {
-      if (p.type === "hour") hh = parseInt(p.value);
-      if (p.type === "minute") mm = parseInt(p.value);
-    });
-    return hh * 60 + mm;
-  } catch (_) {
-    var d = new Date(isoString);
-    return d.getHours() * 60 + d.getMinutes();
-  }
+  var dt = luxon.DateTime.fromISO(isoString, { zone: "utc" }).setZone(TZ);
+  return dt.isValid ? dt.hour * 60 + dt.minute : NaN;
 }
 
 /** Sestavi ISO 8601 v UTC iz lokalnih komponent Europe/Ljubljana. */
 function ljISO(localDate, hour, minute) {
-  if (luxon) {
-    var dt = luxon.DateTime.fromObject(
-      { year: localDate.getFullYear(), month: localDate.getMonth() + 1,
-        day: localDate.getDate(), hour: hour, minute: minute },
-      { zone: TZ }
-    );
-    if (dt.isValid) return dt.toUTC().toISO();
-  }
-  /* Fallback: uporabi lokalne komponente in pretvori v UTC ročno. */
-  var d = new Date(localDate);
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString();
+  var base = luxon.DateTime.fromJSDate(localDate, { zone: "utc" }).setZone(TZ);
+  var dt = luxon.DateTime.fromObject(
+    { year: base.year, month: base.month, day: base.day, hour: hour, minute: minute },
+    { zone: TZ }
+  );
+  if (!dt.isValid) throw new Error("Neveljaven lokalni čas.");
+  return dt.toUTC().toISO();
 }
 
 function izracunajNakljucniMinute(earliest, latest) {
   var range = latest - earliest;
   if (range <= 0) return earliest;
-  if (crypto && typeof crypto.randomInt === "function") {
-    return earliest + crypto.randomInt(range + 1);
-  }
-  if (crypto && typeof crypto.randomBytes === "function") {
-    var buf = crypto.randomBytes(4);
-    return earliest + (buf.readUInt32BE(0) % (range + 1));
-  }
-  return earliest + Math.floor(Math.random() * (range + 1));
+  return earliest + crypto.randomInt(range + 1);
 }
 
 /* ---------- Avtorizacija ---------- */
@@ -110,7 +81,7 @@ async function verifyAuth(req, SUPABASE_URL, SERVICE_KEY) {
 
 /* ---------- Glavni handler ---------- */
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, napaka: "Samo POST." });
   }
@@ -230,8 +201,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, napaka: "Neveljaven osnovni čas." });
     }
 
-    var minSendTime = rs.minSendTime || "07:00";
-    var maxSendTime = rs.maxSendTime || "21:00";
+    var uporabiLocenoOkno =
+      plan.allowedSendWindowMode === "per_step" ||
+      (plan.allowedSendWindowMode == null && step.allowedSendWindow);
+    var dovoljenoOkno =
+      (uporabiLocenoOkno && step.allowedSendWindow) ||
+      plan.allowedSendWindow ||
+      {};
+    var minSendTime = dovoljenoOkno.start || "07:00";
+    var maxSendTime = dovoljenoOkno.end || "21:00";
     var minMn = parseTimeToMinutes(minSendTime);
     var maxMn = parseTimeToMinutes(maxSendTime);
 
@@ -241,37 +219,27 @@ export default async function handler(req, res) {
       });
     }
 
-    var halfWindow;
-    if (rs.mode === "okoli") {
-      var mb = Number(rs.minutesBefore);
-      var ma = Number(rs.minutesAfter);
-      if (!Number.isFinite(mb) || mb < 0) mb = 15;
-      if (!Number.isFinite(ma) || ma < 0) ma = 15;
-      halfWindow = Math.min(mb, ma);
-    } else {
-      halfWindow = 20;
-    }
+    /* Pravilo koraka ima prednost; sicer velja skupno pravilo načrta. */
+    rs.minSendTime = minSendTime;
+    rs.maxSendTime = maxSendTime;
 
-    if (halfWindow <= 0) {
-      return res.status(400).json({ ok: false, napaka: "Razpon mora biti večji od 0 minut." });
-    }
-
-    var earliest = Math.max(baseMn - halfWindow, minMn);
-    var latest = Math.min(baseMn + halfWindow, maxMn);
-
-    if (earliest >= latest) {
+    var calculated;
+    try {
+      calculated = randomSchedule.izracunajRandomCas(baseIso, rs);
+    } catch (randomError) {
       return res.status(400).json({
-        ok: false, napaka:
-          "Ni veljavnega termina (" + minSendTime + "–" + maxSendTime + ") za " +
-          minutesToTime(baseMn) + " ±" + halfWindow + " min.",
+        ok: false,
+        code: randomError.code || "INVALID_RANDOM_SCHEDULE",
+        napaka: randomError.message || "Naključnega časa ni bilo mogoče izračunati.",
       });
     }
-
-    var chosenMn = izracunajNakljucniMinute(earliest, latest);
+    var earliest = calculated.earliestMinutes;
+    var latest = calculated.latestMinutes;
+    var chosenMn = calculated.chosenMinutes;
+    baseMn = calculated.baseMinutes;
 
     /* --- 9. Shrani v plan --- */
-    var baseDate = new Date(baseIso);
-    rs.resolvedScheduledAt = ljISO(baseDate, Math.floor(chosenMn / 60), chosenMn % 60);
+    rs.resolvedScheduledAt = calculated.resolvedScheduledAt;
     rs.resolvedAt = new Date().toISOString();
     rs.resolvedMinutes = chosenMn;
     step._randomSchedule = rs;
@@ -298,7 +266,8 @@ export default async function handler(req, res) {
       range: {
         earliest: minutesToTime(earliest), latest: minutesToTime(latest),
         chosen: minutesToTime(chosenMn), base: minutesToTime(baseMn),
-        halfWindow: halfWindow,
+        mode: rs.mode || "okoli",
+        activePeriod: calculated.activePeriod,
       },
     });
   } catch (err) {
@@ -342,3 +311,5 @@ async function atomicPatch(SUPABASE_URL, SERVICE_KEY, zadevaId, oldVersion, plan
     return { ok: false };
   }
 }
+
+module.exports = sentry.wrapHandler(handler, "/api/potrdi-korak");

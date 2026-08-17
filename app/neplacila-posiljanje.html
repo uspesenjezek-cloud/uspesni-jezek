@@ -7,6 +7,9 @@
       content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <meta name="color-scheme" content="light only" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Načrt opominjanja – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,47 +17,42 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260811-kartica2-bela-aktivna-izbira" />
+    <link rel="stylesheet" href="styles.css?v=20260815-racun-stevec-v22" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js"></script>
   </head>
   <body class="stran--sporocilo">
     <div class="korak2-ovoj wizard-shell">
-      <div class="wizard-topbar">
-        <a class="wizard-topbar__nazaj" href="neplacila-sporocilo.html">
+      <div class="wizard-topbar wizard-topbar--zacasno">
+        <a class="wizard-topbar__nazaj" href="neplacila.html#obrazec">
           <span aria-hidden="true">←</span>
           Nazaj
         </a>
+        <a class="wizard-topbar__zacasno" href="zacasno-obvestila.html">Začasno</a>
         <button type="button" class="wizard-topbar__izbrisi" id="gumb-izbrisi-osnutek">
           Izbriši osnutek
         </button>
       </div>
 
     <div class="korak2">
-      <div data-wizard-progress-header data-korak="3">
+      <div data-wizard-progress-header data-korak="2">
         <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
-          <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 3: Vnos dolžnika">
+          <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 2: Vnos dolžnika">
             <span class="debt-step__content">
               <span class="debt-step__number" aria-hidden="true">1</span>
               <span class="debt-step__label">Dolžnik</span>
             </span>
             <span class="debt-step__line" aria-hidden="true"></span>
           </a>
-          <a href="neplacila-sporocilo.html" class="debt-step" data-korak="2" aria-label="2 od 3: Vnos sporočila">
+          <a href="neplacila-posiljanje.html" class="debt-step" data-korak="2" aria-label="2 od 2: Pošiljanje">
             <span class="debt-step__content">
               <span class="debt-step__number" aria-hidden="true">2</span>
-              <span class="debt-step__label">Sporočilo</span>
-            </span>
-            <span class="debt-step__line" aria-hidden="true"></span>
-          </a>
-          <a href="neplacila-posiljanje.html" class="debt-step" data-korak="3" aria-label="3 od 3: Pošiljanje">
-            <span class="debt-step__content">
-              <span class="debt-step__number" aria-hidden="true">3</span>
               <span class="debt-step__label">Pošiljanje</span>
             </span>
             <span class="debt-step__line" aria-hidden="true"></span>
@@ -66,7 +64,7 @@
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
 
         <!-- Priporočilo za ta dolg: samostojen widget (ton + ključni podatki + časovnica) -->
-        <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section">
+        <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section" hidden aria-hidden="true">
           <section class="ton-widget" id="ton-widget" aria-label="Priporočilo za ta dolg">
             <header class="priporocilo-widget__glava">
               <span class="priporocilo-widget__ikona" aria-hidden="true">
@@ -75,19 +73,32 @@
               <h3 class="priporocilo-widget__naslov">Priporočilo za ta dolg</h3>
             </header>
 
-            <div class="debt-summary debt-summary--tri" id="ton-povzetek">
-              <div class="debt-summary__amount-column">
-                <span class="debt-summary__label">Dolg</span>
-                <span class="debt-summary__amount" id="ton-znesek-znacka">—</span>
+            <div class="debt-summary-skupina" id="ton-povzetek">
+              <div class="debt-summary debt-summary--vrstica-1">
+                <div class="debt-summary__amount-column">
+                  <span class="debt-summary__label">Dolžnik</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-dolznik-znacka">—</span>
+                </div>
+                <div class="debt-summary__category-column">
+                  <span class="debt-summary__label">Dolg</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-znesek-znacka">—</span>
+                </div>
               </div>
-              <div class="debt-summary__category-column">
-                <span class="debt-summary__label">Zamuda</span>
-                <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
+              <div class="debt-summary debt-summary--tri debt-summary--vrstica-2">
+                <div class="debt-summary__amount-column">
+                  <span class="debt-summary__label">Zapadlost</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zapadlost-znacka">—</span>
+                </div>
+                <div class="debt-summary__category-column">
+                  <span class="debt-summary__label">Zamuda</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
+                </div>
+                <div class="debt-summary__category-column">
+                  <span class="debt-summary__label">Pretekle zamude</span>
+                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
+                </div>
               </div>
-              <div class="debt-summary__category-column">
-                <span class="debt-summary__label">Pretekle zamude</span>
-                <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
-              </div>
+              <!-- Ohranjen za obstoječo logiko ton-widget.js (posodobiGlava), v novem widgetu ni prikazan -->
               <span class="debt-category-pill sr-only" id="ton-kategorija-znacka"></span>
             </div>
 
@@ -543,38 +554,93 @@
       <button type="button" class="rok-sheet__backdrop" id="random-sheet-backdrop" aria-label="Zapri"></button>
       <div class="rok-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="random-sheet-naslov">
         <div class="rok-sheet__rocaj" aria-hidden="true"></div>
-        <div class="rok-sheet__glava">
-          <h2 class="rok-sheet__naslov" id="random-sheet-naslov" tabindex="-1">Naključni čas pošiljanja</h2>
-          <button type="button" class="rok-sheet__zapri" id="random-sheet-zapri" aria-label="Zapri">✕</button>
+        <div class="rok-sheet__glava random-sheet__glava">
+          <div class="random-sheet__glava-vrh">
+            <div class="random-sheet__naslovna">
+              <span class="random-sheet__naslovna-ikona" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 3h5v5"></path><path d="M4 20 21 3"></path>
+                  <path d="M21 16v5h-5"></path><path d="m15 15 6 6"></path><path d="M4 4l5 5"></path>
+                </svg>
+              </span>
+              <h2 class="rok-sheet__naslov" id="random-sheet-naslov" tabindex="-1">Naključni čas pošiljanja</h2>
+            </div>
+            <div class="random-sheet__glava-dejanja">
+              <button type="button" class="random-sheet__ponastavi-cas" id="random-sheet-ponastavi-cas" aria-label="Ponastavi nastavitve naključnega časa" title="Ponastavi nastavitve naključnega časa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 4v6h6"></path>
+                  <path d="M5.5 15a8 8 0 1 0 1.9-8.2L4 10"></path>
+                </svg>
+                <span>Ponastavi</span>
+              </button>
+              <button type="button" class="rok-sheet__zapri" id="random-sheet-zapri" aria-label="Zapri">✕</button>
+            </div>
+          </div>
+          <p class="random-sheet__podnaslov">Sistem rahlo premakne uro znotraj tvojih meja, da sporočila niso vedno poslana ob istem času.</p>
         </div>
         <div class="rok-sheet__telo">
-          <p class="random-sheet__podnaslov">Sistem bo izbral dovoljen čas in ga shranil ob potrditvi koraka.</p>
-          <div class="random-sheet__global">
-            <label class="random-sheet__polje">Ne pošiljaj pred<input type="time" id="random-min-cas" value="07:00"></label>
-            <label class="random-sheet__polje">Ne pošiljaj po<input type="time" id="random-max-cas" value="21:00"></label>
+          <div class="random-sheet__omejitev-mini" aria-labelledby="random-omejitve-naslov">
+            <span class="random-sheet__omejitev-mini-ikona" aria-hidden="true">◷</span>
+            <span class="random-sheet__omejitev-mini-naslov" id="random-omejitve-naslov">Dovoljeni čas</span>
+            <label class="random-sheet__omejitev-mini-cas">
+              <span class="sr-only">Najprej ob</span>
+              <input type="time" id="random-min-cas" value="07:00">
+            </label>
+            <span class="random-sheet__omejitev-mini-locilo" aria-hidden="true">–</span>
+            <label class="random-sheet__omejitev-mini-cas">
+              <span class="sr-only">Najpozneje ob</span>
+              <input type="time" id="random-max-cas" value="21:00">
+            </label>
           </div>
           <p class="rok-sheet__napaka" id="random-napaka" hidden></p>
+          <p class="random-sheet__vprasanje">Kako naj sistem izbere čas?</p>
           <div class="random-sheet__nacini" role="radiogroup" aria-label="Način naključnega časa">
-            <label class="random-sheet__nacin"><input type="radio" name="random-nacin" value="okoli" checked> Okoli izbrane ure</label>
-            <label class="random-sheet__nacin"><input type="radio" name="random-nacin" value="pametno"> Pametna obdobja</label>
+            <label class="random-sheet__nacin">
+              <input type="radio" name="random-nacin" value="okoli" checked>
+              <span class="random-sheet__nacin-ikona" aria-hidden="true">◉</span>
+              <span><strong>Okoli izbrane ure</strong><small>Prej ali pozneje</small></span>
+            </label>
+            <label class="random-sheet__nacin">
+              <input type="radio" name="random-nacin" value="pametno">
+              <span class="random-sheet__nacin-ikona" aria-hidden="true">✦</span>
+              <span><strong>Pametno po delih dneva</strong><small>Različen razpon</small></span>
+            </label>
           </div>
-          <div id="random-okoli" class="random-sheet__okoli">
+          <div id="random-okoli" class="random-sheet__okoli random-sheet__sklop">
+            <div class="random-sheet__sklop-glava random-sheet__sklop-glava--majhna">
+              <div>
+                <h3>Naključni zamik</h3>
+                <p>Odstopanje od ure, ki je nastavljena v koraku.</p>
+              </div>
+            </div>
             <div class="random-sheet__okoli-vrstica">
-              <label>Največ minut prej <input type="number" id="random-minut-prej" value="15" min="0" max="120" step="5"></label>
-              <label>Največ minut pozneje <input type="number" id="random-minut-pozneje" value="15" min="0" max="120" step="5"></label>
+              <label><span>Največ prej</span><span class="random-sheet__stevilka-polje"><input type="number" id="random-minut-prej" value="15" min="0" max="120" step="5" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off"><span>min</span></span></label>
+              <label><span>Največ pozneje</span><span class="random-sheet__stevilka-polje"><input type="number" id="random-minut-pozneje" value="15" min="0" max="120" step="5" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" autocomplete="off"><span>min</span></span></label>
             </div>
             <p class="random-sheet__razpon" id="random-okoli-razpon"></p>
           </div>
           <div id="random-pametno" class="random-sheet__pametno" hidden>
+            <div class="random-sheet__obdobja-glava">
+              <div>
+                <p class="random-sheet__obdobja-naslov">Čas glede na del dneva</p>
+                <p class="random-sheet__obdobja-opis">Sistem uporabi obdobje, v katerem je izbrana ura.</p>
+              </div>
+              <button type="button" class="random-sheet__priporoceno" id="random-ponastavi-obdobja">
+                <span aria-hidden="true">★</span> Priporočeno
+              </button>
+            </div>
+            <p class="random-sheet__obdobja-pomoc">
+              <span aria-hidden="true">±</span>
+              Število določa največji naključni zamik prej ali pozneje.
+            </p>
             <div id="random-periods"></div>
-            <button type="button" class="rok-sheet__povezava" id="random-ponastavi-obdobja">Uporabi priporočene nastavitve</button>
           </div>
-          <p class="random-sheet__rezultat" id="random-rezultat"></p>
+          <p class="random-sheet__rezultat" id="random-rezultat" role="status" aria-live="polite"></p>
         </div>
         <div class="rok-sheet__noga">
           <div class="rok-sheet__noga-vrsta">
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="random-sheet-izklopi">Izklopi</button>
-            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="random-sheet-shrani">Shrani</button>
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="random-sheet-shrani">Vklopi</button>
           </div>
         </div>
       </div>
@@ -632,24 +698,25 @@
     </div>
 
     <script src="priloge-konstante.js?v=20260808-vk-priloge"></script>
-    <script src="priloge-vsebina.js?v=20260809-kanal-persist-v2"></script>
+    <script src="priloge-vsebina.js?v=20260813-skupina-slik-v6"></script>
     <script src="rok-placila-utils.js?v=20260808-opomin-vsebina"></script>
     <script src="rok-placila-sheet.js?v=20260808-opomin-vsebina"></script>
     <script src="obrocno-utils.js?v=20260808-opomin-vsebina"></script>
-    <script src="obrocno-sheet.js?v=20260809-gumbi-poenoteni"></script>
+    <script src="obrocno-sheet.js?v=20260815-gumbi-vedno-vidni-v3"></script>
     <script src="trr-sheet.js?v=20260809-gumbi-poenoteni"></script>
     <script src="ton-dodatki-priporocila.js?v=20260808-opomin-vsebina"></script>
     <script src="predloga-payment-settings.js?v=20260810-korak3-parity"></script>
     <script src="recommendation-card.js?v=20260809-x-kompakten"></script>
-    <script src="ocena-tveganja.js?v=20260810-priporocilo-widget-v1"></script>
+    <script src="ocena-tveganja.js?v=20260814-obnovi-zgodovino-zamud-v1"></script>
     <script src="ton-priporocilo.js?v=20260808-vsebina-koraka"></script>
     <script src="ton-predloge.js?v=20260810-korak3-predloge"></script>
-    <script src="ton-widget.js?v=20260810-priporocilo-widget-v1"></script>
+    <script src="ton-widget.js?v=20260812-brez-utripa-v2"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
-    <script src="opomin-nacrt.js?v=20260811-sesti-korak-urejanje-v2"></script>
-    <script src="opomin-nacrt-ui.js?v=20260811-kartica2-bela-aktivna-izbira"></script>
+    <script src="opomin-kartice-sync.js?v=20260814-celoten-osnutek-sync-v4"></script>
+    <script src="opomin-nacrt.js?v=20260814-identity-hash-v1"></script>
+    <script src="opomin-nacrt-ui.js?v=20260815-racun-stevec-v12"></script>
     <script src="predlogi-urejevalnik.js?v=20260810-uredi-brez-zoomiranja"></script>
-    <script src="app.js?v=20260811-modal-brez-safari-vrstice"></script>
-    <script src="priporocilo-widget.js?v=20260810-fit-brez-utripa"></script>
+    <script src="app.js?v=20260815-racun-stevec-v19"></script>
+    <script src="priporocilo-widget.js?v=20260814-dolznik-zapadlost-v2"></script>
   </body>
 </html>

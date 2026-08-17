@@ -1,0 +1,22 @@
+# Lokalna razvojna orodja in nastavitve
+.cursor/
+.claude/
+.playwright-cli/
+.devin/
+.vercel/
+
+# Lokalna okolja in začasne datoteke
+.env*
+node_modules/
+work/
+tmp-visual/
+supabase/.temp/
+ngrok.exe
+
+# Interni zapiski in razvojna pomožna orodja
+AGENTS.md
+HANDOFF.md
+OPECODE.md
+ZAPISNIK.md
+serve.ps1
+orodje-pozicioniranje-slike.html

@@ -10,12 +10,13 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260808-ios16" />
+    <link rel="stylesheet" href="styles.css?v=20260817-crif-toggle-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js"></script>
   </head>
@@ -34,17 +35,28 @@
             jih poslal strankam.
           </p>
           <div class="kartica__gumbi">
-            <a class="btn btn--cta" href="neplacila.html#seznam">Preveri odprte zadeve</a>
+            <a class="btn btn--cta" href="aktivni-primeri.html">Preveri odprte zadeve</a>
             <a class="btn btn--obris" href="neplacila.html#obrazec">Dodaj nov račun</a>
           </div>
         </article>
 
-        <button
-          type="button"
-          class="kartica kartica--placeholder"
-        >
-          <h2 class="kartica__naslov">Kategorija 2</h2>
-        </button>
+        <article class="kartica">
+          <div class="kartica__naslovna-vrstica">
+            <h2 class="kartica__naslov">Bonitetni center</h2>
+            <button class="kartica__crif-toggle" id="boniteta-crif-toggle" type="button" role="switch" aria-checked="true">
+              <span aria-hidden="true"></span>
+              <span data-fit-text>CRIF</span>
+              <strong id="boniteta-crif-toggle-state" data-fit-text>Vključen</strong>
+            </button>
+          </div>
+          <p class="kartica__opis">
+            Pred začetkom dela preveri nemško podjetje ali obrtnika v javnih
+            uradnih virih.
+          </p>
+          <div class="kartica__gumbi">
+            <a class="btn btn--cta" href="bonitetna-preverba.html">Odpri bonitetni center</a>
+          </div>
+        </article>
 
         <button
           type="button"
@@ -54,6 +66,7 @@
         </button>
       </div>
     </main>
-      <script src="app.js?v=20260808-izbrisi-zindex"></script>
+      <script src="app.js?v=20260815-boniteta-fit-v3"></script>
+      <script src="zascita-posla.js?v=20260817-crif-toggle-v1"></script>
   </body>
 </html>

@@ -4,9 +4,22 @@
   "version": "1.0.0",
   "description": "Statična spletna aplikacija za obrtnike (Slovenija/Nemčija) - Vercel build samo generira app/config.js iz environment variables, aplikacija sicer nima npm odvisnosti.",
   "scripts": {
-    "build": "node scripts/generate-config.js"
+    "dev": "node scripts/local-server.js --port 8001",
+    "build": "node scripts/generate-config.js && node scripts/build-sentry-browser.mjs",
+    "test": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js && node scripts/test-random.js && node scripts/test-scheduler.js && node scripts/test-predaja-koncni-pregled.js && node scripts/test-opomini-pregled.js && node scripts/test-paket-storitev.js && node scripts/test-predaja-sestavljalnik.mjs && node scripts/test-opomin-kartice-sync.mjs && node scripts/test-priporocilo-zagon.mjs && node scripts/test-izvedba-actions.mjs && node scripts/test-filter-ponudb.js && node scripts/test-aktivni-primeri.js && node scripts/test-identiteta-razveljavitev.mjs",
+    "test:boniteta": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
+    "test:sentry": "node scripts/test-sentry-privacy.js",
+    "test:integration": "node scripts/test-izvedba-rpc-integration.mjs"
   },
   "dependencies": {
-    "luxon": "^3.7.2"
+    "@sentry/browser": "^10.70.0",
+    "@sentry/node": "^10.70.0",
+    "@sparticuz/chromium": "^149.0.0",
+    "esbuild": "^0.25.12",
+    "luxon": "3.7.2",
+    "puppeteer-core": "^25.1.0"
+  },
+  "devDependencies": {
+    "pg": "8.13.1"
   }
 }

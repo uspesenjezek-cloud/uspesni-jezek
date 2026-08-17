@@ -1,4 +1,31 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "crons": [{ "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" }],
+  "functions": {
+    "api/obdelaj-opomine.js": {
+      "maxDuration": 60
+    },
+    "api/mehka-boniteta.js": {
+      "maxDuration": 60,
+      "memory": 1769,
+      "regions": ["fra1"]
+    },
+    "api/mehka-boniteta-opravilo.js": {
+      "maxDuration": 10,
+      "memory": 1024,
+      "regions": ["fra1"]
+    },
+    "api/mehka-boniteta-delavec.js": {
+      "maxDuration": 60,
+      "memory": 1769,
+      "regions": ["fra1"]
+    },
+    "api/boniteta-pro.js": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "regions": ["fra1"]
+    }
+  }
 }

@@ -11,13 +11,14 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260810-modal-kot-predogled" />
+    <link rel="stylesheet" href="styles.css?v=20260815-faded-kot-v6" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="prefetch" href="neplacila-posiljanje.html" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js"></script>
   </head>
@@ -73,18 +74,30 @@
                 <h3 class="priporocilo-widget__naslov">Priporočilo za ta dolg</h3>
               </header>
 
-              <div class="debt-summary debt-summary--tri" id="ton-povzetek">
-                <div class="debt-summary__amount-column">
-                  <span class="debt-summary__label">Dolg</span>
-                  <span class="debt-summary__amount" id="ton-znesek-znacka">—</span>
+              <div class="debt-summary-skupina" id="ton-povzetek">
+                <div class="debt-summary debt-summary--vrstica-1">
+                  <div class="debt-summary__amount-column">
+                    <span class="debt-summary__label">Dolžnik</span>
+                    <span class="debt-summary__amount debt-summary__amount--sm" id="ton-dolznik-znacka">—</span>
+                  </div>
+                  <div class="debt-summary__category-column">
+                    <span class="debt-summary__label">Dolg</span>
+                    <span class="debt-summary__amount debt-summary__amount--sm" id="ton-znesek-znacka">—</span>
+                  </div>
                 </div>
-                <div class="debt-summary__category-column">
-                  <span class="debt-summary__label">Zamuda</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
-                </div>
-                <div class="debt-summary__category-column">
-                  <span class="debt-summary__label">Pretekle zamude</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
+                <div class="debt-summary debt-summary--tri debt-summary--vrstica-2">
+                  <div class="debt-summary__amount-column">
+                    <span class="debt-summary__label">Zapadlost</span>
+                    <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zapadlost-znacka">—</span>
+                  </div>
+                  <div class="debt-summary__category-column">
+                    <span class="debt-summary__label">Zamuda</span>
+                    <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
+                  </div>
+                  <div class="debt-summary__category-column">
+                    <span class="debt-summary__label">Pretekle zamude</span>
+                    <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
+                  </div>
                 </div>
                 <!-- Ohranjen za obstoječo logiko ton-widget.js (posodobiGlava), v novem widgetu ni prikazan -->
                 <span class="debt-category-pill sr-only" id="ton-kategorija-znacka"></span>
@@ -176,7 +189,9 @@
               </div>
             </section>
 
-            <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="dodatki-naslov">
+            <!-- Sklop je prestavljen na 3. korak neposredno pod SMS. Markup
+                 začasno ostaja skrit, dokler se 2. korak dokončno odstrani. -->
+            <section class="korak2-sklop korak2-sklop--locen" aria-labelledby="dodatki-naslov" hidden aria-hidden="true">
               <h2 class="korak2-sklop__naslov" id="dodatki-naslov">Dodajte v sporočilo</h2>
               <p class="korak2-sklop__opis">Izbrani podatki se dodajo na konec besedila.</p>
 
@@ -312,7 +327,7 @@
         </main>
 
         <footer class="korak2__noga">
-          <button type="submit" form="obrazec-sporocilo" class="korak2__gumb-naprej" id="gumb-naprej-posiljanje">
+          <button type="button" class="korak2__gumb-naprej" id="gumb-naprej-posiljanje">
             Nadaljuj na pošiljanje →
           </button>
         </footer>
@@ -933,16 +948,16 @@
     <script src="rok-placila-utils.js?v=20260808-predogled"></script>
     <script src="rok-placila-sheet.js?v=20260809-scroll-perf"></script>
     <script src="obrocno-utils.js?v=20260808-obrocno-brez-vklop"></script>
-    <script src="obrocno-sheet.js?v=20260809-gumbi-poenoteni"></script>
+    <script src="obrocno-sheet.js?v=20260814-odpiranje-brez-trzanja-v2"></script>
     <script src="trr-sheet.js?v=20260809-gumbi-poenoteni"></script>
-    <script src="ocena-tveganja.js?v=20260810-priporocilo-widget-v1"></script>
+    <script src="ocena-tveganja.js?v=20260814-obnovi-zgodovino-zamud-v1"></script>
     <script src="ton-priporocilo.js?v=20260808-ton-widget-v1"></script>
     <script src="ton-predloge.js?v=20260808-utf8-fix"></script>
-    <script src="ton-widget.js?v=20260808-ton-widget-v1"></script>
+    <script src="ton-widget.js?v=20260812-skrij-na-predaji-v1"></script>
     <script src="ton-dodatki-priporocila.js?v=20260808-predogled"></script>
     <script src="recommendation-card.js?v=20260809-priporocilo-izklopi"></script>
     <script src="predloga-payment-settings.js?v=20260808-predogled"></script>
-    <script src="app.js?v=20260811-modal-brez-safari-vrstice"></script>
-    <script src="priporocilo-widget.js?v=20260810-fit-brez-utripa"></script>
+    <script src="app.js?v=20260815-racun-komentar-v10"></script>
+    <script src="priporocilo-widget.js?v=20260814-dolznik-zapadlost-v2"></script>
   </body>
 </html>

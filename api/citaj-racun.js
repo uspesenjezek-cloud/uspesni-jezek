@@ -1,3 +1,4 @@
+var sentry = require("./_lib/sentry");
 /* ==========================================================
    api/citaj-racun.js - Vercel serverless funkcija (Node.js
    runtime). Na strežniku (kjer je ANTHROPIC_API_KEY skrit v
@@ -61,7 +62,61 @@ const NAVODILO_ZA_AI =
   '(naziv, znesek, datum, rokPlacila, stevilkaRacuna, opis, telefon, email), ' +
   'brez dodatnega besedila pred ali za njim, brez oznak kode (```).';
 
-module.exports = async function handler(req, res) {
+const NAVODILO_ZA_BONITETNO_PREVERBO =
+  'Preberi priloženi račun, ponudbo, predračun ali drug poslovni dokument in prepoznaj vse glavne pogodbene stranke. ' +
+  'Najpogosteje sta to IZDAJATELJ in PREJEMNIK. Ne zamenjaj ju z banko, računovodskim servisom, dostavno službo, ' +
+  'izdelovalcem dokumenta ali ponudnikom programske opreme. Preglej glavo, naslovne bloke, telo, nogo in drobni tisk.\n\n' +
+  'Za vsako dejansko stranko vrni:\n' +
+  '- "vloga": samo "izdajatelj", "prejemnik" ali "drugo";\n' +
+  '- "pravnoIme": uradno pravno ime ali ime in priimek samostojnega podjetnika;\n' +
+  '- "poslovniNaziv": blagovna znamka oziroma poslovni naziv, če se razlikuje od pravnega imena;\n' +
+  '- "ulica": ulica in hišna številka;\n' +
+  '- "postnaStevilka": poštna številka;\n' +
+  '- "kraj": kraj;\n' +
+  '- "spletnaStran": neposredno zapisana spletna stran ali jasno zapisana poslovna domena;\n' +
+  '- "registerNumber": registrska oznaka in številka, npr. HRB 12345, HRA 123 ali matična številka;\n' +
+  '- "vatId": davčna oziroma DDV številka, npr. DE123456789.\n\n' +
+  'Ne združuj podatkov dveh strank. Če je posamezen podatek nejasen ali ga ni, vrni null. ' +
+  'Ne ugibaj spletne strani samo iz splošnega e-poštnega naslova (gmail, hotmail, outlook ipd.). ' +
+  'Ne dodajaj stranke brez prepoznavnega imena. Podvojene zapise združi. ' +
+  'Vrni SAMO veljaven JSON objekt oblike {"stranke":[...]} brez dodatnega besedila in brez oznak kode.';
+
+function varnoPoljeStranke(vrednost, najvec) {
+  return typeof vrednost === "string" ? vrednost.trim().replace(/\s+/g, " ").slice(0, najvec) || null : null;
+}
+
+function normalizirajBonitetnoStranko(stranka) {
+  var vloga = ["izdajatelj", "prejemnik", "drugo"].includes(stranka && stranka.vloga)
+    ? stranka.vloga
+    : "drugo";
+  var pravnoIme = varnoPoljeStranke(stranka && stranka.pravnoIme, 240);
+  var poslovniNaziv = varnoPoljeStranke(stranka && stranka.poslovniNaziv, 240);
+  if (!pravnoIme && !poslovniNaziv) return null;
+  return {
+    vloga: vloga,
+    pravnoIme: pravnoIme,
+    poslovniNaziv: poslovniNaziv,
+    ulica: varnoPoljeStranke(stranka && stranka.ulica, 140),
+    postnaStevilka: varnoPoljeStranke(stranka && stranka.postnaStevilka, 12),
+    kraj: varnoPoljeStranke(stranka && stranka.kraj, 80),
+    spletnaStran: varnoPoljeStranke(stranka && stranka.spletnaStran, 240),
+    registerNumber: varnoPoljeStranke(stranka && stranka.registerNumber, 120),
+    vatId: varnoPoljeStranke(stranka && stranka.vatId, 80),
+  };
+}
+
+function normalizirajBonitetneStranke(vrednost) {
+  var stranke = vrednost && Array.isArray(vrednost.stranke) ? vrednost.stranke : [];
+  var videnaImena = new Set();
+  return stranke.map(normalizirajBonitetnoStranko).filter(Boolean).filter(function (stranka) {
+    var kljuc = String(stranka.pravnoIme || stranka.poslovniNaziv).toLowerCase().replace(/[^a-z0-9äöüß]+/gi, " ").trim();
+    if (!kljuc || videnaImena.has(kljuc)) return false;
+    videnaImena.add(kljuc);
+    return true;
+  }).slice(0, 4);
+}
+
+async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ ok: false, napaka: "Metoda ni dovoljena, uporabi POST." });
     return;
@@ -79,6 +134,7 @@ module.exports = async function handler(req, res) {
   const telo = req.body || {};
   const mediaType = telo.mediaType;
   const podatki = telo.podatki;
+  const jeBonitetnaPreverba = telo.namen === "bonitetna_preverba";
 
   if (!podatki || typeof podatki !== "string") {
     res.status(400).json({ ok: false, napaka: "Manjkajo podatki datoteke." });
@@ -120,7 +176,7 @@ module.exports = async function handler(req, res) {
         messages: [
           {
             role: "user",
-            content: [vsebinskiBlok, { type: "text", text: NAVODILO_ZA_AI }],
+            content: [vsebinskiBlok, { type: "text", text: jeBonitetnaPreverba ? NAVODILO_ZA_BONITETNO_PREVERBO : NAVODILO_ZA_AI }],
           },
         ],
       }),
@@ -179,6 +235,16 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    if (jeBonitetnaPreverba) {
+      const stranke = normalizirajBonitetneStranke(razclenjenoJson);
+      if (!stranke.length) {
+        res.status(422).json({ ok: false, napaka: "Na dokumentu ni bilo mogoče zanesljivo prepoznati nobene stranke." });
+        return;
+      }
+      res.status(200).json({ ok: true, stranke });
+      return;
+    }
+
     res.status(200).json({
       ok: true,
       podatki: {
@@ -205,4 +271,12 @@ module.exports = async function handler(req, res) {
     console.error("[citaj-racun] Nepričakovana napaka:", napaka);
     res.status(500).json({ ok: false, napaka: "Nepričakovana napaka pri branju računa." });
   }
+}
+
+module.exports = sentry.wrapHandler(handler, "/api/citaj-racun");
+
+module.exports._test = {
+  normalizirajBonitetnoStranko,
+  normalizirajBonitetneStranke,
+  NAVODILO_ZA_BONITETNO_PREVERBO,
 };

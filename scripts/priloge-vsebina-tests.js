@@ -160,4 +160,85 @@ test("sejo roundtrip", () => {
   assert(nazaj[0].deliveryChannels.sms === true);
 });
 
+test("vprašanje in odgovor priloge preživita sejo", () => {
+  const seja = PV.prilogeVSejo([{
+    id: "opis-1",
+    originalFileName: "slika.jpg",
+    mimeType: "image/jpeg",
+    sizeBytes: 200,
+    storagePath: "u/slika.jpg",
+    status: "ready",
+    deliveryChannels: { sms: false, email: false },
+    descriptionQuestion: "Kdaj je nastala slika?",
+    description: "12. avgusta na gradbišču.",
+    descriptionRequired: true,
+  }]);
+  const nazaj = PV.izSejeVPriloge(seja)[0];
+  assert(nazaj.descriptionQuestion === "Kdaj je nastala slika?");
+  assert(nazaj.description === "12. avgusta na gradbišču.");
+  assert(nazaj.descriptionRequired === true);
+});
+
+test("obvezen prazen opis blokira potrditev, opcijski pa ne", () => {
+  assert(!PV.vsePrilogeVeljavneZaPotrditev([{
+    status: "ready",
+    descriptionRequired: true,
+    description: "",
+  }]).ok);
+  assert(PV.vsePrilogeVeljavneZaPotrditev([{
+    status: "ready",
+    descriptionRequired: false,
+    description: "",
+  }]).ok);
+});
+
+test("račun in dokazilo opravljenega dobita različni vrsti", () => {
+  const nacrt = PV.prilogeZaNacrt({
+    racunDatotekePoti: ["u/racun.pdf"],
+    attachmentMeta: [{ id: "r1", originalFileName: "racun.pdf" }],
+    opravljenoDatotekePoti: ["u/delo.jpg"],
+    opravljenoAttachmentMeta: [{
+      id: "d1",
+      originalFileName: "delo.jpg",
+      description: "Po končanem delu.",
+    }],
+  });
+  assert(nacrt.length === 2);
+  assert(nacrt[0].documentType === "invoice");
+  assert(nacrt[1].documentType === "work_evidence");
+  assert(nacrt[1].description === "Po končanem delu.");
+});
+
+test("opis brez slike se prenese kot besedilno dokazilo", () => {
+  const nacrt = PV.prilogeZaNacrt({
+    opravljenoBrezSlike: [{
+      id: "brez-1",
+      originalFileName: "Opis prvotnega stanja",
+      descriptionQuestion: "Opišite prvotno stanje.",
+      description: "Površina je bila razpokana in vlažna.",
+      descriptionRequired: true,
+      textOnly: true,
+    }],
+  });
+  assert(nacrt.length === 1);
+  assert(nacrt[0].documentType === "work_evidence");
+  assert(nacrt[0].storagePath === null);
+  assert(nacrt[0].textOnly === true);
+  assert(nacrt[0].description === "Površina je bila razpokana in vlažna.");
+});
+
+test("več slik istega vprašanja ohrani skupino in skupni opis", () => {
+  const nacrt = PV.prilogeZaNacrt({
+    opravljenoDatotekePoti: ["u/stanje-1.jpg", "u/stanje-2.jpg"],
+    opravljenoAttachmentMeta: [
+      { id: "s1", groupId: "skupina-1", description: "Prvotno stanje stanovanja." },
+      { id: "s2", groupId: "skupina-1", description: "Prvotno stanje stanovanja." },
+    ],
+  });
+  assert(nacrt.length === 2);
+  assert(nacrt[0].groupId === "skupina-1");
+  assert(nacrt[1].groupId === "skupina-1");
+  assert(nacrt[0].description === nacrt[1].description);
+});
+
 console.log("\n" + ok + " testov OK");

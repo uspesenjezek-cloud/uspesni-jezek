@@ -15,3 +15,11 @@ const SUPABASE_CONFIG = {
   url: "VNESI-SVOJ-PROJECT-URL-TUKAJ",
   anonKey: "VNESI-SVOJ-PUBLISHABLE-KLJUC-TUKAJ",
 };
+
+/* DSN ni skrivnost, vendar ga za posamezno okolje vseeno nastavimo prek
+   SENTRY_DSN v Vercelu. Sentry auth token nikoli ne sodi v to datoteko. */
+const SENTRY_CONFIG = globalThis.SENTRY_CONFIG = Object.freeze({
+  dsn: "",
+  environment: "development",
+  release: "",
+});
