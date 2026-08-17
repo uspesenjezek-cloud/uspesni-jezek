@@ -1034,7 +1034,7 @@
 
 @media (max-width: 620px) {
   .stran--bonitetna .boniteta-obrazec { gap: 14px; }
-  .stran--bonitetna .boniteta-hero { min-height: 170px; padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 8px; border-bottom-right-radius: 48px; }
+  .stran--bonitetna .boniteta-hero { min-height: 200px; padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 38px; border-bottom-right-radius: 48px; }
   .boniteta-hero__naslovna-vrstica { gap: 14px; }
   .boniteta-hero__scit { flex-basis: 39px; width: 39px; height: 47px; }
   .boniteta-hero__scit svg { width: 39px; height: 47px; }
@@ -1045,12 +1045,13 @@
   .boniteta-hero__podjetje strong { font-size: 1rem; }
   #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 68px; height: 68px; border-width: 3px; }
   #boniteta-nacin-spletna svg, .boniteta-hero__podjetje svg { width: 34px; height: 34px; }
-  .stran--bonitetna .boniteta-zajem { gap: 10px; margin: -18px 10px 0; padding: 20px 10px 14px; border-radius: 22px; }
+  .boniteta-hero__status { min-height: 18px; margin: 6px 72px 0 2px; font-size: .65rem; }
+  .stran--bonitetna .boniteta-zajem { gap: 8px; margin: -18px 10px 0; padding: 16px 10px 10px; border-radius: 22px; }
   .boniteta-zajem__locilo h2 { font-size: 1.18rem; }
   .boniteta-zajem__nacini { gap: 7px; }
-  .boniteta-zajem__nacin { min-height: 160px; padding: 14px 3px 10px; border-radius: 18px; }
-  .boniteta-zajem__ikona { width: 58px; height: 58px; flex-basis: 58px; margin-bottom: 12px; }
-  .boniteta-zajem__ikona svg { width: 31px; height: 31px; }
+  .boniteta-zajem__nacin { min-height: 142px; padding: 12px 3px 8px; border-radius: 18px; }
+  .boniteta-zajem__ikona { width: 52px; height: 52px; flex-basis: 52px; margin-bottom: 8px; }
+  .boniteta-zajem__ikona svg { width: 29px; height: 29px; }
   .boniteta-zajem__nacin strong { font-size: 1rem; }
   .boniteta-zajem__nacin > span:not(.boniteta-zajem__ikona):not(.boniteta-zajem__uspeh):not(.boniteta-zajem__datoteka) { font-size: .64rem; }
   .boniteta-zajem__datoteka, .boniteta-zajem__uspeh { font-size: .62rem !important; }
