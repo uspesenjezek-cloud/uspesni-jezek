@@ -19,3 +19,5 @@ create policy boniteta_monitorji_lastnik on public.boniteta_monitorji
   for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy boniteta_opozorila_lastnik on public.boniteta_opozorila
   for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+;

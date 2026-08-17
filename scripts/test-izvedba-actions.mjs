@@ -254,6 +254,20 @@ async function main() {
     assert.match(sql, /case when v_settlement_type = 'full' then placano_skupaj \+ preostali_dolg else placano_skupaj end/);
   });
 
+  await test("14d) baza dovoljuje obročno vrsto delnega plačila", function () {
+    const sql = citaj("supabase/migrations/20260817155300_dovoli_obrocna_placila.sql");
+    assert.match(sql, /check \(vrsta in \('partial', 'full', 'installment'\)\)/);
+    assert.match(sql, /pg_get_constraintdef\(oid\) ilike '%vrsta%'/);
+  });
+
+  await test("14e) javni RPC za obvestilo nima privilegijev lastnika baze", function () {
+    const sql = citaj("supabase/migrations/20260817155634_utrdi_privilegirane_rpc_in_rls.sql");
+    assert.match(sql, /function public\.oznaci_obvestilo_prebrano[\s\S]*?security invoker/);
+    assert.match(sql, /function private\._oznaci_obvestilo_prebrano[\s\S]*?security definer/);
+    assert.match(sql, /obrtnik_id = v_user/);
+    assert.match(sql, /v_user uuid := \(select auth\.uid\(\)\)/);
+  });
+
   await test("15) že poslana sporočila se pri delnem plačilu ne spremenijo", function () {
     const koraki = [korak({ id: "k1", stepId: "s1", executionState: "sent" })];
     const plan = osnovniPlan([{ id: "s1", finalMessage: "Prosimo poravnajte 100,00 €.", messageEditedManually: false }]);

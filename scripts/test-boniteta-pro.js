@@ -1,8 +1,15 @@
 "use strict";
 var assert=require("node:assert"),fs=require("node:fs"),path=require("node:path");
 var root=path.resolve(__dirname,".."),client=require("../api/_lib/openregister-pro-client"),store=require("../api/_lib/boniteta-pro-store"),projectMonitor=require("../api/_lib/projektno-spremljanje"),crif=require("../api/_lib/crif-priprava"),crifResult=require("../api/_lib/crif-rezultat"),db=require("../api/_lib/supabase-server"),proApi=require("../api/boniteta-pro")._test;
-function source(file){return fs.readFileSync(path.join(root,file),"utf8")}
+function source(file){
+ var migrationAliases={
+  "supabase/migrations/20260816101932_boniteta_pro_profili.sql":"supabase/migrations/20260816103741_boniteta_pro_profili.sql",
+  "supabase/migrations/20260816154500_projektna_bonitetna_spremljanja.sql":"supabase/migrations/20260816115957_projektna_bonitetna_spremljanja.sql"
+ };
+ return fs.readFileSync(path.join(root,migrationAliases[file]||file),"utf8");
+}
 async function run(){
+ var rpcHardening=source("supabase/migrations/20260817155634_utrdi_privilegirane_rpc_in_rls.sql");assert.ok(rpcHardening.match(/function public\.ustvari_crif_pripravo[\s\S]*?security invoker/));assert.ok(rpcHardening.match(/function private\._ustvari_crif_pripravo[\s\S]*?security definer/));assert.ok(rpcHardening.includes("using ((select auth.uid()) = user_id)"));assert.ok(rpcHardening.includes("v_user uuid := (select auth.uid())"));
  assert.strictEqual(client.veljavenCompanyId("DE-HRB-F1103-267645"),"DE-HRB-F1103-267645");assert.strictEqual(client.veljavenCompanyId("../../../secret"),"");
  assert.strictEqual(client.safeHttpUrl("javascript:alert(1)"),"");assert.strictEqual(client.safeHttpUrl("https://openregister.de/test"),"https://openregister.de/test");assert.strictEqual(store.compactJson({imageDataUrl:"data:image/jpeg;base64,veliko",nested:{evidenceImage:"x",text:"ok"}}).nested.text,"ok");assert.strictEqual("imageDataUrl" in store.compactJson({imageDataUrl:"x"}),false);
  assert.deepStrictEqual(client.dovoljeniFiltri([{field:"city",value:"Berlin"},{field:"api_key",value:"x"}]),[{field:"city",value:"Berlin",min:undefined,max:undefined,values:undefined}]);

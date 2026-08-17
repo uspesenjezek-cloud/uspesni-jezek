@@ -29,7 +29,7 @@ const karticeMigracijaSrc = fs.readFileSync(
     "..",
     "supabase",
     "migrations",
-    "20260812215817_sinhronizacija_kartic_med_napravami.sql"
+    "20260812220220_sinhronizacija_kartic_med_napravami.sql"
   ),
   "utf8"
 );
@@ -39,7 +39,7 @@ const predajaMigracijaSrc = fs.readFileSync(
     "..",
     "supabase",
     "migrations",
-    "20260814173000_sinhronizacija_predaje_odvetniku.sql"
+    "20260814153821_zascita_in_obnova_predaje_odvetniku.sql"
   ),
   "utf8"
 );
@@ -49,7 +49,7 @@ const osnutekMigracijaSrc = fs.readFileSync(
     "..",
     "supabase",
     "migrations",
-    "20260814181000_sinhronizacija_celotnega_osnutka.sql"
+    "20260814154246_sinhronizacija_celotnega_osnutka.sql"
   ),
   "utf8"
 );
