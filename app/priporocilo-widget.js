@@ -9,6 +9,7 @@
 
   var KLJUC_KORAK1 = "neplacilo-korak1-podatki";
   var KLJUC_KORAK2 = "neplacilo-korak2-podatki";
+  var korak3Zagnan = false;
 
   function preberiKorak1() {
     try {
@@ -69,7 +70,13 @@
   }
 
   function prilagodiPovzetek() {
-    var ids = ["ton-znesek-znacka", "ton-cas-tekst", "ton-zgodovina-znacka"];
+    var ids = [
+      "ton-znesek-znacka",
+      "ton-cas-tekst",
+      "ton-zgodovina-znacka",
+      "ton-dolznik-znacka",
+      "ton-zapadlost-znacka",
+    ];
     ids.forEach(function (id) {
       var el = document.getElementById(id);
       if (!el || !el.clientWidth) return;
@@ -126,8 +133,24 @@
     function osvezi() {
       var zgodovinaEl = document.getElementById("ton-zgodovina-znacka");
       var razlagaEl = document.getElementById("priporocilo-razlaga");
+      var dolznikEl = document.getElementById("ton-dolznik-znacka");
+      var zapadlostEl = document.getElementById("ton-zapadlost-znacka");
       if (zgodovinaEl) zgodovinaEl.textContent = oznakaPreteklihZamud(korak1.zgodovinaZamud);
       if (razlagaEl) razlagaEl.textContent = sestaviRazlago(overdueDays, korak1.zgodovinaZamud);
+      if (dolznikEl) {
+        dolznikEl.textContent = korak1.nazivPodjetja || korak1.imeDolznika || "—";
+      }
+      if (zapadlostEl) {
+        /* Enaka prednost vira datuma kot na kartici "Predaja odvetniku"
+           (opomin-nacrt-ui.js, htmlPredajaPovzetek): rokPlacila je datum,
+           prebran iz skeniranega dokumenta, in ima prednost pred ročno
+           vnesenim datumZapadlosti, če oba obstajata. */
+        var virZapadlosti = korak1.rokPlacila || korak1.datumZapadlosti;
+        zapadlostEl.textContent =
+          virZapadlosti && typeof formatirajDatumSl === "function"
+            ? formatirajDatumSl(virZapadlosti)
+            : "—";
+      }
       prilagodiPovzetek();
     }
 
@@ -139,13 +162,14 @@
   /* ---------- Korak 3: widget + vklop obstoječega carousela za izbiro tona ---------- */
 
   function inicializirajKorak3() {
+    if (korak3Zagnan) return true;
     if (
       !root.UJNacrtApi ||
       !root.UJOpominNacrt ||
       !root.UJTonPriporocilo ||
       typeof root.inicializirajTonWidget !== "function"
     ) {
-      return;
+      return false;
     }
 
     var korak1 = preberiKorak1();
@@ -178,9 +202,21 @@
     function osveziRazlagoInZgodovino() {
       var zgodovinaEl = document.getElementById("ton-zgodovina-znacka");
       var razlagaEl = document.getElementById("priporocilo-razlaga");
+      var dolznikEl = document.getElementById("ton-dolznik-znacka");
+      var zapadlostEl = document.getElementById("ton-zapadlost-znacka");
       if (zgodovinaEl) zgodovinaEl.textContent = oznakaPreteklihZamud(korak1.zgodovinaZamud);
       if (razlagaEl) {
         razlagaEl.textContent = sestaviRazlago(overdueDaysZgodovina, korak1.zgodovinaZamud);
+      }
+      if (dolznikEl) {
+        dolznikEl.textContent = korak1.nazivPodjetja || korak1.imeDolznika || "—";
+      }
+      if (zapadlostEl) {
+        var virZapadlosti = korak1.rokPlacila || korak1.datumZapadlosti;
+        zapadlostEl.textContent =
+          virZapadlosti && typeof formatirajDatumSl === "function"
+            ? formatirajDatumSl(virZapadlosti)
+            : "—";
       }
       prilagodiPovzetek();
     }
@@ -234,6 +270,8 @@
         glavniEl.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     }
+    korak3Zagnan = true;
+    return true;
   }
 
   function zazeni() {
@@ -249,4 +287,10 @@
   } else {
     zazeni();
   }
+  /* inicializirajPosiljanje je asinhron (med drugim pocaka sinhronizacijo
+     kartic). Ce DOMContentLoaded pride prej, widget dobi se ta zanesljiv
+     drugi signal in se napolni takoj, ko so podatki na voljo. */
+  root.addEventListener("uj:nacrt-pripravljen", function () {
+    inicializirajKorak3();
+  });
 })(typeof globalThis !== "undefined" ? globalThis : this);

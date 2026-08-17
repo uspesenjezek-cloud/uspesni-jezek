@@ -14,3 +14,16 @@
     window.location.href = "prijava.html";
   }
 })();
+
+/* Skupni prikaz simuliranega obvestila na vseh zaščitenih straneh. */
+(function naloziGlobalnoSimulacijo() {
+  if (document.querySelector('script[data-zacasno-global]')) return;
+  const script = document.createElement("script");
+  script.src = "zacasno-global.js?v=20260817-global-v2";
+  script.defer = true;
+  script.setAttribute("data-zacasno-global", "1");
+  document.head.appendChild(script);
+})();
+
+/* Globalna produkcijska obvestila v aplikaciji (ne OS push) so bila
+   odstranjena na zahtevo - krog z zvončkom se ne prikazuje več. */

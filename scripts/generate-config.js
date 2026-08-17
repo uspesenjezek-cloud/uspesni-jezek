@@ -16,6 +16,9 @@ const path = require("path");
 
 const url = process.env.SUPABASE_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
+const sentryDsn = process.env.SENTRY_DSN || "";
+const sentryEnvironment = process.env.VERCEL_ENV || process.env.NODE_ENV || "development";
+const sentryRelease = process.env.VERCEL_GIT_COMMIT_SHA || "";
 
 if (!url || !anonKey) {
   console.error(
@@ -34,9 +37,17 @@ const vsebina = `/* ==========================================================
    ========================================================== */
 
 const SUPABASE_CONFIG = {
-  url: "${url}",
-  anonKey: "${anonKey}",
+  url: ${JSON.stringify(url)},
+  anonKey: ${JSON.stringify(anonKey)},
 };
+
+/* Sentry DSN je javni naslov za oddajo dogodkov. Skrivni Sentry auth token
+   se nikoli ne zapisuje v brskalniško konfiguracijo. */
+const SENTRY_CONFIG = globalThis.SENTRY_CONFIG = Object.freeze({
+  dsn: ${JSON.stringify(sentryDsn)},
+  environment: ${JSON.stringify(sentryEnvironment)},
+  release: ${JSON.stringify(sentryRelease)},
+});
 `;
 
 const ciljnaPot = path.join(__dirname, "..", "app", "config.js");

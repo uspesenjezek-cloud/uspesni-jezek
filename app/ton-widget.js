@@ -74,7 +74,17 @@
     var tihoScrollanje = false;
     var uporabnikDrsne = false;
 
-    if (sectionEl) sectionEl.hidden = false;
+    var vidnostUpravljaNacrt = Boolean(
+      document.getElementById("opomin-nacrt-glavni")
+    );
+    if (
+      sectionEl &&
+      !vidnostUpravljaNacrt &&
+      sectionEl.dataset.skritoNaPredajiOdvetniku !== "true"
+    ) {
+      sectionEl.hidden = false;
+      sectionEl.setAttribute("aria-hidden", "false");
+    }
     rootEl.hidden = false;
     rootEl.classList.remove("ton-widget--skeleton");
 

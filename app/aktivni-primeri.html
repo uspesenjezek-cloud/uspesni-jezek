@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light only" />
+    <title>Aktivni primeri – Uspešni Jezek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260814-aktivni-primeri-obroba-v39" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#51999a" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js"></script>
+  </head>
+  <body class="stran--aktivni-primeri">
+    <div class="aktivni-primeri-shell">
+      <header class="aktivni-primeri-topbar">
+        <a class="aktivni-primeri-topbar__nazaj" href="zascita-posla.html">
+          <span aria-hidden="true">←</span>
+          Nazaj
+        </a>
+        <a class="aktivni-primeri-topbar__nov" href="neplacila.html#obrazec">+ Nov račun</a>
+      </header>
+
+      <main class="aktivni-primeri-stran" data-aktivni-primeri-root aria-busy="true">
+        <header class="aktivni-primeri-stran__uvod">
+          <p class="aktivni-primeri-stran__eyebrow">OPOZARJANJE NA NEPLAČILA</p>
+          <div class="aktivni-primeri-stran__naslovna-vrstica">
+            <h1>Aktivni primeri</h1>
+            <span class="aktivni-primeri__stevec" data-aktivni-primeri-stevec hidden></span>
+          </div>
+          <p>Izberite primer za pregled trenutnega koraka in izvedbo dejanja.</p>
+        </header>
+
+        <section class="aktivni-primeri aktivni-primeri--stran" data-aktivni-primeri-vsebina aria-label="Aktivni primeri">
+          <div class="aktivni-primeri__nalaganje" data-aktivni-primeri-nalaganje>
+            <span aria-hidden="true"></span>
+            Nalagam aktivne primere …
+          </div>
+          <div class="aktivni-primeri__seznam" data-aktivni-primeri-seznam></div>
+        </section>
+
+        <section class="aktivni-primeri__prazno" data-aktivni-primeri-prazno hidden>
+          <span class="aktivni-primeri__prazno-ikona" aria-hidden="true">✓</span>
+          <h2>Trenutno ni aktivnih primerov</h2>
+          <p>Ko aktivirate načrt opominjanja, se bo primer prikazal tukaj.</p>
+          <a class="btn btn--cta" href="neplacila.html#obrazec">Dodaj nov račun</a>
+        </section>
+
+        <p class="aktivni-primeri__napaka" data-aktivni-primeri-napaka role="alert" hidden>
+          Aktivnih primerov trenutno ni bilo mogoče naložiti.
+        </p>
+      </main>
+    </div>
+
+    <script src="aktivni-primeri.js?v=20260814-aktivni-primeri-v4"></script>
+  </body>
+</html>

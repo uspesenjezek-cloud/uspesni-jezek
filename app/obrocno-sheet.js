@@ -128,30 +128,58 @@
       }
     }
 
-    function posodobiVisualViewport() {
+    /* Vstopna animacija panela traja 200 ms (rokSheetPojavi v styles.css);
+       260 ms da nekaj rezerve. */
+    var TRAJANJE_ODPIRANJA_MS = 260;
+    var vvZamrznjenoDo = 0;
+    var vvRafId = null;
+
+    function zapisiVisualViewport() {
+      vvRafId = null;
       var vv = window.visualViewport;
       if (!vv) return;
-      document.documentElement.style.setProperty(
-        "--visual-viewport-height",
-        vv.height + "px"
-      );
-      document.documentElement.style.setProperty(
-        "--visual-viewport-top",
-        vv.offsetTop + "px"
-      );
+      var korenElement = document.documentElement;
+      korenElement.style.setProperty("--visual-viewport-height", vv.height + "px");
+      korenElement.style.setProperty("--visual-viewport-top", vv.offsetTop + "px");
+    }
+
+    /** Poslušalec za visualViewport. Dve varovalki, obe zaradi trzanja na iOS:
+
+        1) ZAMRZNITEV med odpiranjem. zakleniOzadje() postavi body na
+           position:fixed, kar v iOS Safariju premakne dinamično orodno vrstico;
+           ta sproži visualViewport resize, ki bi sredi fade-a spremenil
+           --visual-viewport-height in s tem višino panela. Ali se vrstica
+           premakne, je odvisno od trenutnega položaja drsenja – zato je trzanje
+           občasno in ne vedno.
+
+        2) rAF združevanje. Med premikom orodne vrstice ali dvigom tipkovnice
+           resize/scroll padata v gostih rafalih; brez tega vsak dogodek sproži
+           svoj zapis CSS lastnosti na <html> in s tem recalc celega dokumenta.
+           Tako je na sličico največ en zapis. */
+    function posodobiVisualViewportIzDogodka() {
+      if (Date.now() < vvZamrznjenoDo) return;
+      if (vvRafId != null) return;
+      vvRafId = window.requestAnimationFrame(zapisiVisualViewport);
     }
 
     function vklopiViewportPoslusalce() {
-      posodobiVisualViewport();
+      /* Prvi zapis je namerno takojšen (ne prek rAF): geometrija mora biti
+         nastavljena, preden se panel razkrije. */
+      zapisiVisualViewport();
       if (!window.visualViewport) return;
-      window.visualViewport.addEventListener("resize", posodobiVisualViewport);
-      window.visualViewport.addEventListener("scroll", posodobiVisualViewport);
+      window.visualViewport.addEventListener("resize", posodobiVisualViewportIzDogodka);
+      window.visualViewport.addEventListener("scroll", posodobiVisualViewportIzDogodka);
     }
 
     function izklopiViewportPoslusalce() {
+      vvZamrznjenoDo = 0;
+      if (vvRafId != null) {
+        window.cancelAnimationFrame(vvRafId);
+        vvRafId = null;
+      }
       if (!window.visualViewport) return;
-      window.visualViewport.removeEventListener("resize", posodobiVisualViewport);
-      window.visualViewport.removeEventListener("scroll", posodobiVisualViewport);
+      window.visualViewport.removeEventListener("resize", posodobiVisualViewportIzDogodka);
+      window.visualViewport.removeEventListener("scroll", posodobiVisualViewportIzDogodka);
       document.documentElement.style.removeProperty("--visual-viewport-height");
       document.documentElement.style.removeProperty("--visual-viewport-top");
     }
@@ -194,8 +222,16 @@
       ignoreOpenUntil = Date.now() + 280;
       if (sheet) {
         sheet.hidden = true;
-        sheet.classList.remove("obrocno-sheet--nad-predlogo");
+        sheet.classList.remove(
+          "obrocno-sheet--nad-predlogo",
+          "obrocno-sheet--ureja-znesek"
+        );
       }
+      if (editAkcije) editAkcije.hidden = true;
+      if (nogaGlobal) nogaGlobal.hidden = false;
+      editingInstallmentId = null;
+      editSnapshotCents = null;
+      editInputEl = null;
       izklopiViewportPoslusalce();
       if (scrollFokusCasovnik) clearTimeout(scrollFokusCasovnik);
       osnutek = null;
@@ -1345,6 +1381,11 @@
       editSnapshotCents = null;
       editInputEl = null;
       potrjujemUrejanje = false;
+      // Sheet se lahko prej zapre tudi med urejanjem posameznega obroka.
+      // Ob vsakem novem odprtju zato izrecno povrnemo glavno nogo z gumboma.
+      sheet.classList.remove("obrocno-sheet--ureja-znesek");
+      if (editAkcije) editAkcije.hidden = true;
+      if (nogaGlobal) nogaGlobal.hidden = false;
 
       if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(total);
       napolniOpozorilo();
@@ -1365,10 +1406,20 @@
       } else {
         sheet.classList.remove("obrocno-sheet--nad-predlogo");
       }
+      /* Geometrijo in scroll lock nastavimo, DOKLER je sheet še skrit, sicer je
+         odpiranje trzajoče:
+         - na mobilnem panel bere top/height iz --visual-viewport-* (glej
+           styles.css, .obrocno-sheet .rok-sheet__panel v @media max-width:600px);
+           če ju nastavimo po razkritju, se panel premakne sredi fade-a,
+         - zakleniOzadje() z body{position:fixed} sproži reflow cele strani, kar
+           med že začeto animacijo požre prve sličice.
+         Oboje je zdaj opravljeno pred sheet.hidden = false, tako da je prva
+         narisana sličica že v končni geometriji. */
+      vvZamrznjenoDo = Date.now() + TRAJANJE_ODPIRANJA_MS;
+      vklopiViewportPoslusalce();
+      zakleniOzadje();
       sheet.hidden = false;
       odprt = true;
-      zakleniOzadje();
-      vklopiViewportPoslusalce();
       if (telo) telo.scrollTop = 0;
       zapiranjeDovoljeno = false;
       if (casovnikZapiranja) clearTimeout(casovnikZapiranja);
@@ -1376,7 +1427,16 @@
         zapiranjeDovoljeno = true;
       }, 400);
       window.setTimeout(function () {
-        if (naslov) naslov.focus();
+        /* preventScroll: fokus 10 ms po odprtju je še sredi 200 ms animacije;
+           brez tega brskalnik naslov "poscrolla v vidno", kar med fade-om
+           povzroči dodaten premik. */
+        if (naslov) {
+          try {
+            naslov.focus({ preventScroll: true });
+          } catch (_e) {
+            naslov.focus();
+          }
+        }
       }, 10);
     }
 
