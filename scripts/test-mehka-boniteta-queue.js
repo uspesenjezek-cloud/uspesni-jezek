@@ -15,8 +15,51 @@ var koren = path.resolve(__dirname, "..");
 async function main() {
   var prvotniAuthFetch = global.fetch;
   try {
-    assert.equal(supabaseServer._test.omejenCas(1800, 12000), 1800,
-      "posamezni auth poskus mora ostati znotraj skupne omejitve strežniške funkcije");
+    var jose = await import("jose");
+    var kljuci = await jose.generateKeyPair("ES256");
+    var javniJwk = await jose.exportJWK(kljuci.publicKey);
+    javniJwk.kid = "test-es256-key";
+    javniJwk.alg = "ES256";
+    javniJwk.use = "sig";
+    var lokalniJwks = jose.createLocalJWKSet({ keys: [javniJwk] });
+    var uporabnikId = "4ca9b768-b7d3-4a35-8b93-46e0b529f282";
+    var veljavniJwt = await new jose.SignJWT({ role: "authenticated", email: "test@example.test" })
+      .setProtectedHeader({ alg: "ES256", kid: "test-es256-key" })
+      .setIssuer("https://auth.example.test/auth/v1")
+      .setAudience("authenticated")
+      .setSubject(uporabnikId)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(kljuci.privateKey);
+    global.fetch = async function () { throw new Error("oddaljeni auth se pri veljavnem JWT ne sme klicati"); };
+    var lokalnoPreverjenaPrijava = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + veljavniJwt } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks }
+    );
+    assert.equal(lokalnoPreverjenaPrijava.ok, true, "ES256 prijava mora biti preverjena lokalno brez /auth/v1/user");
+    assert.equal(lokalnoPreverjenaPrijava.user.id, uporabnikId);
+    assert.equal(lokalnoPreverjenaPrijava.verification, "local_jwks");
+
+    var potekliJwt = await new jose.SignJWT({ role: "authenticated" })
+      .setProtectedHeader({ alg: "ES256", kid: "test-es256-key" })
+      .setIssuer("https://auth.example.test/auth/v1")
+      .setAudience("authenticated")
+      .setSubject(uporabnikId)
+      .setIssuedAt(Math.floor(Date.now() / 1000) - 600)
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 120)
+      .sign(kljuci.privateKey);
+    var zavrnjenaPoteklaPrijava = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + potekliJwt } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks }
+    );
+    assert.equal(zavrnjenaPoteklaPrijava.code, "AUTH_SESSION_INVALID",
+      "lokalno preverjanje mora potekli JWT varno zavrniti brez oddaljenega obhoda");
+
+    assert.equal(require("../vercel.json").functions["api/mehka-boniteta-opravilo.js"].maxDuration, 30,
+      "hladni zajem javnega ključa in rezervna auth pot morata imeti dovolj skupnega časa");
+
+    assert.equal(supabaseServer._test.omejenCas(5000, 12000), 5000,
+      "rezervni auth poskus mora ostati znotraj skupne omejitve strežniške funkcije");
     var authKlici = 0;
     global.fetch = async function () {
       authKlici += 1;
@@ -25,7 +68,7 @@ async function main() {
     };
     var authPoOmrezniNapaki = await supabaseServer.preveriUporabnika(
       { headers: { authorization: "Bearer veljaven-token" } },
-      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0], authVerificationMode: "remote" }
     );
     assert.equal(authPoOmrezniNapaki.ok, true, "začasna omrežna napaka avtorizacije mora biti samodejno ponovljena");
     assert.equal(authKlici, 3);
@@ -39,7 +82,7 @@ async function main() {
     };
     var authPo503 = await supabaseServer.preveriUporabnika(
       { headers: { authorization: "Bearer veljaven-token" } },
-      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0], authVerificationMode: "remote" }
     );
     assert.equal(authPo503.ok, true, "začasni odgovor 503 mora biti samodejno ponovljen");
     assert.equal(authKlici, 2);
@@ -51,7 +94,7 @@ async function main() {
     };
     var neveljavnaSeja = await supabaseServer.preveriUporabnika(
       { headers: { authorization: "Bearer neveljaven-token" } },
-      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0], authVerificationMode: "remote" }
     );
     assert.equal(neveljavnaSeja.code, "AUTH_SESSION_INVALID");
     assert.equal(neveljavnaSeja.retryable, false);
@@ -61,7 +104,7 @@ async function main() {
     global.fetch = async function () { authKlici += 1; throw new TypeError("network down"); };
     var nedosegljivaAvtorizacija = await supabaseServer.preveriUporabnika(
       { headers: { authorization: "Bearer veljaven-token" } },
-      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0], authVerificationMode: "remote" }
     );
     assert.equal(nedosegljivaAvtorizacija.code, "AUTH_SERVER_UNAVAILABLE");
     assert.equal(nedosegljivaAvtorizacija.retryable, true);

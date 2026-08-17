@@ -1,5 +1,8 @@
 "use strict";
 
+var authJwksPoUrl = new Map();
+var josePromise = null;
+
 function omejenCas(value, fallback) {
   var number = Number(value);
   return Number.isFinite(number) ? Math.min(Math.max(number, 1000), 30000) : fallback;
@@ -61,18 +64,88 @@ function jeTimeoutNapaka(err) {
   return Boolean(err && (err.name === "TimeoutError" || err.name === "AbortError"));
 }
 
+function naloziJose() {
+  if (!josePromise) josePromise = import("jose");
+  return josePromise;
+}
+
+async function pridobiAuthJwks(cfg, jose) {
+  if (cfg.authJwks) return cfg.authJwks;
+  var jwksUrl = cfg.url + "/auth/v1/.well-known/jwks.json";
+  if (!authJwksPoUrl.has(jwksUrl)) {
+    authJwksPoUrl.set(jwksUrl, jose.createRemoteJWKSet(new URL(jwksUrl), {
+      timeoutDuration: 3000,
+      cooldownDuration: 30000,
+      cacheMaxAge: 10 * 60 * 1000,
+    }));
+  }
+  return authJwksPoUrl.get(jwksUrl);
+}
+
+function jeNeveljavnaJwtNapaka(err) {
+  return Boolean(err && [
+    "ERR_JOSE_ALG_NOT_ALLOWED",
+    "ERR_JWS_INVALID",
+    "ERR_JWS_SIGNATURE_VERIFICATION_FAILED",
+    "ERR_JWT_CLAIM_VALIDATION_FAILED",
+    "ERR_JWT_EXPIRED",
+    "ERR_JWT_INVALID",
+    "ERR_JWKS_NO_MATCHING_KEY",
+    "ERR_JWKS_MULTIPLE_MATCHING_KEYS",
+  ].includes(err.code));
+}
+
+async function preveriJwtLokalno(token, cfg) {
+  var jose = await naloziJose();
+  var jwks = await pridobiAuthJwks(cfg, jose);
+  var preverjeno = await jose.jwtVerify(token, jwks, {
+    issuer: cfg.url + "/auth/v1",
+    audience: "authenticated",
+    algorithms: ["ES256"],
+    clockTolerance: 30,
+  });
+  var payload = preverjeno && preverjeno.payload || {};
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(payload.sub || ""))) {
+    var err = new Error("JWT nima veljavnega uporabniškega identifikatorja.");
+    err.code = "ERR_JWT_INVALID";
+    throw err;
+  }
+  return {
+    id: payload.sub,
+    email: typeof payload.email === "string" ? payload.email : "",
+    role: payload.role,
+    app_metadata: payload.app_metadata && typeof payload.app_metadata === "object" ? payload.app_metadata : {},
+  };
+}
+
 async function preveriUporabnika(req, cfg) {
   var token = bearerToken(req);
   if (!token) {
     return { ok: false, status: 401, code: "AUTH_TOKEN_MISSING", retryable: false, napaka: "Prijava je potekla. Prijavite se znova." };
   }
 
-  // Opravilo na Vercelu ima skupno 10-sekundno omejitev. Trije krajši poskusi
-  // zato pustijo dovolj časa še za varen zapis opravila v čakalno vrsto.
-  var zamiki = Array.isArray(cfg.authRetryDelays) ? cfg.authRetryDelays : [200, 400];
+  // Projekt uporablja asimetrični ES256 podpis. Podpis, izdajatelja, občinstvo
+  // in čas veljavnosti zato preverimo lokalno z uradnim javnim JWKS ključem.
+  // Tako vsak klik ni odvisen od odzivnosti oddaljenega /auth/v1/user.
+  if (cfg.authVerificationMode !== "remote") {
+    try {
+      var lokalniUser = await preveriJwtLokalno(token, cfg);
+      return { ok: true, user: lokalniUser, token: token, verification: "local_jwks" };
+    } catch (lokalnaNapaka) {
+      if (jeNeveljavnaJwtNapaka(lokalnaNapaka)) {
+        return { ok: false, status: 401, code: "AUTH_SESSION_INVALID", retryable: false, napaka: "Prijava ni več veljavna." };
+      }
+      // Če javnega ključa ob hladnem zagonu začasno ni mogoče pridobiti,
+      // ohranimo varno rezervno preverjanje neposredno pri Auth strežniku.
+    }
+  }
+
+  // Rezervna oddaljena pot ima znotraj 30-sekundne funkcije dovolj časa za
+  // tri resnične poskuse in nato še za varen zapis opravila v čakalno vrsto.
+  var zamiki = Array.isArray(cfg.authRetryDelays) ? cfg.authRetryDelays : [300, 900];
   var timeoutPoskusa = Number.isFinite(Number(cfg.authAttemptTimeoutMs))
-    ? omejenCas(cfg.authAttemptTimeoutMs, 1800)
-    : 1800;
+    ? omejenCas(cfg.authAttemptTimeoutMs, 5000)
+    : 5000;
   var zadnjaNapaka = null;
   var odgovor = null;
   for (var poskus = 0; poskus <= zamiki.length; poskus += 1) {
@@ -183,5 +256,7 @@ module.exports = {
     omejenCas: omejenCas,
     jePrehodniAuthStatus: jePrehodniAuthStatus,
     jeTimeoutNapaka: jeTimeoutNapaka,
+    jeNeveljavnaJwtNapaka: jeNeveljavnaJwtNapaka,
+    preveriJwtLokalno: preveriJwtLokalno,
   },
 };
