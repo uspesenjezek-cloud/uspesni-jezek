@@ -4,7 +4,7 @@
 // pogodbe med strežnikom ter vmesnikom. Vmesnik se ne sme odločati po številki
 // zajema; prejme samo semantično oznako screenshotReady.
 var CAPTURE_VERSION = "identity-evidence-v15-visible-legal-content";
-var CACHE_VERSION = "impressum-parser-v33-visible-legal-content";
+var CACHE_VERSION = "impressum-parser-v34-registered-merchant-impressum-evidence";
 var CONTRACT_VERSION = "identity-evidence-contract-v1";
 var MINIMUM_SAFE_CAPTURE_MAJOR = 15;
 

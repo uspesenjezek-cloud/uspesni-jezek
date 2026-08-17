@@ -8,6 +8,17 @@
    Če uporabnik ni prijavljen, ga takoj preusmeri na prijava.html.
    ========================================================== */
 
+/* Namizni predogled iPhone/PWA varnega območja je skupen vsem
+   zaščitenim kategorijam. Izbira ostane aktivna med prehodi po aplikaciji. */
+(function nastaviIphonePredogled() {
+  const previewParam = new URLSearchParams(window.location.search).get("app-preview");
+  if (previewParam === "1") sessionStorage.setItem("app-iphone-preview", "1");
+  if (previewParam === "0") sessionStorage.removeItem("app-iphone-preview");
+  if (sessionStorage.getItem("app-iphone-preview") === "1") {
+    document.documentElement.classList.add("app-iphone-preview");
+  }
+})();
+
 (async function preveriPrijavo() {
   const { data } = await supabaseKlient.auth.getSession();
   if (!data.session) {

@@ -130,11 +130,11 @@ async function main() {
     global.fetch = prvotniAuthFetch;
   }
 
-  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v33-visible-legal-content");
+  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v34-registered-merchant-impressum-evidence");
   assert.equal(
     queue.cacheKey({ ime: "Cache GmbH" }),
     require("node:crypto").createHash("sha256").update(JSON.stringify({
-      cacheVersion: "impressum-parser-v33-visible-legal-content",
+      cacheVersion: "impressum-parser-v34-registered-merchant-impressum-evidence",
       faza: "identiteta",
       ime: "cache gmbh",
       naslov: "",
