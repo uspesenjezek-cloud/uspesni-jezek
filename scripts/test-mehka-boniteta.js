@@ -1287,7 +1287,7 @@ assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-objave-gumb"/);
 assert.match(html, /id="boniteta-objave-seznam"/);
-assert.match(html, /bonitetna-preverba\.css\?v=20260817-reference-flow-v17/);
+assert.match(html, /bonitetna-preverba\.css\?v=20260817-reference-flow-v18/);
 assert.match(html, /class="crif-flow-picker__visual"/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options button \+ button \{ border-left:/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-hero \{ min-height: 170px;/);
@@ -1296,6 +1296,8 @@ assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options \{ gri
 assert.match(html, /bonitetna-preverba\.js\?v=20260817-reference-flow-v21/);
 assert.match(html, /boniteta-sredisce\.js\?v=20260817-reference-flow-v10/);
 assert.match(html, /id="boniteta-flow-start"/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start \{[\s\S]*?min-height: 46px;[\s\S]*?border-radius: 11px;[\s\S]*?background: #45a3a0;/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start b \{ position: static;/);
 assert.match(html, /boniteta-pro\.css\?v=20260816-profiles-delete-v6/);
 assert.match(html, /data-boniteta-center-view="new"/);
 assert.match(html, /data-boniteta-center-view="profiles"/);

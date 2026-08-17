@@ -1016,19 +1016,19 @@
   position: relative;
   display: flex;
   width: 100%;
-  min-height: 64px;
+  min-height: 46px;
   margin-top: 20px;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 10px;
   border: 0;
-  border-radius: 999px;
-  background: linear-gradient(100deg, #006273, #007d87);
+  border-radius: 11px;
+  background: #45a3a0;
   color: #fff;
-  font: 700 1.35rem/1 "Bricolage Grotesque", sans-serif;
+  font: 700 .84rem/1 "Figtree", sans-serif;
   cursor: pointer;
 }
-.stran--bonitetna .crif-flow-picker__start b { position: absolute; right: 47px; font: 700 2.25rem/1 "Figtree", sans-serif; }
+.stran--bonitetna .crif-flow-picker__start b { position: static; font: 500 1.25rem/1 "Figtree", sans-serif; }
 .stran--bonitetna .crif-flow-picker__start:hover { filter: brightness(1.05); }
 .stran--bonitetna .crif-flow-picker__start:focus-visible { outline: 3px solid #83bdb6; outline-offset: 3px; }
 
@@ -1066,8 +1066,8 @@
   .stran--bonitetna .crif-flow-picker__options strong { font-size: .94rem; }
   .stran--bonitetna .crif-flow-picker__options button > span:not(.crif-flow-picker__illustration) { font-size: .62rem; }
   .stran--bonitetna .crif-flow-picker__arrow { width: 34px; height: 34px; margin-top: 7px; font-size: 1.45rem; }
-  .stran--bonitetna .crif-flow-picker__start { min-height: 44px; margin-top: 10px; font-size: 1rem; }
-  .stran--bonitetna .crif-flow-picker__start b { right: 25px; font-size: 1.6rem; }
+  .stran--bonitetna .crif-flow-picker__start { min-height: 46px; margin-top: 10px; font-size: .84rem; }
+  .stran--bonitetna .crif-flow-picker__start b { font-size: 1.25rem; }
 }
 
 @media (max-width: 350px) {
