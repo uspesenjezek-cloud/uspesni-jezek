@@ -614,7 +614,7 @@
       if (ustvarjeno.ok) break;
       var authZacasna = ustvarjeniPodatki && ustvarjeniPodatki.retryable === true &&
         ["AUTH_SERVER_UNAVAILABLE", "AUTH_TIMEOUT"].includes(ustvarjeniPodatki.code);
-      var sejaNeveljavna = ustvarjeniPodatki && ustvarjeniPodatki.code === "AUTH_SESSION_INVALID";
+      var sejaNeveljavna = ustvarjeniPodatki && ["AUTH_SESSION_INVALID", "AUTH_SESSION_REFRESH_REQUIRED"].includes(ustvarjeniPodatki.code);
       if (sejaNeveljavna && authPoskus === 0) {
         token = await pridobiToken(true);
         continue;

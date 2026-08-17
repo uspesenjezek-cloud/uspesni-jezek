@@ -97,6 +97,12 @@ function jeNeveljavnaJwtNapaka(err) {
 
 async function preveriJwtLokalno(token, cfg) {
   var jose = await naloziJose();
+  var glava = jose.decodeProtectedHeader(token);
+  if (glava.alg === "HS256") {
+    var legacyErr = new Error("Stari simetrično podpisani JWT potrebuje osvežitev seje.");
+    legacyErr.code = "AUTH_LEGACY_TOKEN";
+    throw legacyErr;
+  }
   var jwks = await pridobiAuthJwks(cfg, jose);
   var preverjeno = await jose.jwtVerify(token, jwks, {
     issuer: cfg.url + "/auth/v1",
@@ -132,9 +138,19 @@ async function preveriUporabnika(req, cfg) {
       var lokalniUser = await preveriJwtLokalno(token, cfg);
       return { ok: true, user: lokalniUser, token: token, verification: "local_jwks" };
     } catch (lokalnaNapaka) {
+      if (lokalnaNapaka && lokalnaNapaka.code === "AUTH_LEGACY_TOKEN") {
+        return {
+          ok: false,
+          status: 401,
+          code: "AUTH_SESSION_REFRESH_REQUIRED",
+          retryable: true,
+          napaka: "Prijavno sejo je treba osvežiti. Osvežite stran ali se prijavite znova.",
+        };
+      }
       if (jeNeveljavnaJwtNapaka(lokalnaNapaka)) {
         return { ok: false, status: 401, code: "AUTH_SESSION_INVALID", retryable: false, napaka: "Prijava ni več veljavna." };
       }
+      console.warn("[auth-local-fallback]", String(lokalnaNapaka && (lokalnaNapaka.code || lokalnaNapaka.name) || "UNKNOWN"));
       // Če javnega ključa ob hladnem zagonu začasno ni mogoče pridobiti,
       // ohranimo varno rezervno preverjanje neposredno pri Auth strežniku.
     }
