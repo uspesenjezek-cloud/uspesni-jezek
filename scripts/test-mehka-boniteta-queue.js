@@ -15,6 +15,8 @@ var koren = path.resolve(__dirname, "..");
 async function main() {
   var prvotniAuthFetch = global.fetch;
   try {
+    assert.equal(supabaseServer._test.omejenCas(1800, 12000), 1800,
+      "posamezni auth poskus mora ostati znotraj skupne omejitve strežniške funkcije");
     var authKlici = 0;
     global.fetch = async function () {
       authKlici += 1;
