@@ -454,9 +454,17 @@
     }
   }
 
-  async function pridobiToken() {
+  async function pridobiToken(prisilnoOsvezi) {
     var seja = await supabaseKlient.auth.getSession();
-    var token = seja && seja.data && seja.data.session && seja.data.session.access_token;
+    if (seja && seja.error) throw seja.error;
+    var trenutnaSeja = seja && seja.data && seja.data.session;
+    var poteceKmalu = trenutnaSeja && trenutnaSeja.expires_at && trenutnaSeja.expires_at * 1000 < Date.now() + 60000;
+    if (prisilnoOsvezi || !trenutnaSeja || poteceKmalu) {
+      var osvezena = await supabaseKlient.auth.refreshSession();
+      if (osvezena && osvezena.error) throw osvezena.error;
+      trenutnaSeja = osvezena && osvezena.data && osvezena.data.session;
+    }
+    var token = trenutnaSeja && trenutnaSeja.access_token;
     if (!token) throw new Error("Prijava je potekla. Prijavite se znova.");
     return token;
   }
@@ -592,14 +600,29 @@
   }
 
   async function izvediPrekoCakalneVrste(telo, token) {
-    var ustvarjeno = await fetchSPonovnimPoskusom("/api/mehka-boniteta-opravilo", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify(telo),
-      signal: omejitevKlica(15000),
-    });
+    var ustvarjeno = null;
     var ustvarjeniPodatki = null;
-    try { ustvarjeniPodatki = await ustvarjeno.json(); } catch (_) {}
+    for (var authPoskus = 0; authPoskus < 3; authPoskus += 1) {
+      ustvarjeno = await fetchSPonovnimPoskusom("/api/mehka-boniteta-opravilo", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(telo),
+        signal: omejitevKlica(15000),
+      });
+      ustvarjeniPodatki = null;
+      try { ustvarjeniPodatki = await ustvarjeno.json(); } catch (_) {}
+      if (ustvarjeno.ok) break;
+      var authZacasna = ustvarjeniPodatki && ustvarjeniPodatki.retryable === true &&
+        ["AUTH_SERVER_UNAVAILABLE", "AUTH_TIMEOUT"].includes(ustvarjeniPodatki.code);
+      var sejaNeveljavna = ustvarjeniPodatki && ustvarjeniPodatki.code === "AUTH_SESSION_INVALID";
+      if (sejaNeveljavna && authPoskus === 0) {
+        token = await pridobiToken(true);
+        continue;
+      }
+      if (!authZacasna || authPoskus === 2) break;
+      await pocakaj(authPoskus === 0 ? 500 : 1200);
+      token = await pridobiToken(authPoskus > 0);
+    }
     if (!ustvarjeno.ok) throw new Error((ustvarjeniPodatki && ustvarjeniPodatki.napaka) || "Preverjanja ni bilo mogoče dodati v čakalno vrsto.");
     return pocakajNaOpravilo(ustvarjeniPodatki && ustvarjeniPodatki.job, token);
   }

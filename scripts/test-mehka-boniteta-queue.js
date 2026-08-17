@@ -7,11 +7,67 @@ var path = require("node:path");
 process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE = "true";
 
 var queue = require("../api/_lib/mehka-boniteta-queue");
+var supabaseServer = require("../api/_lib/supabase-server");
 var worker = require("../api/mehka-boniteta-delavec")._test;
 var projectMonitor = require("../api/_lib/projektno-spremljanje");
 var koren = path.resolve(__dirname, "..");
 
 async function main() {
+  var prvotniAuthFetch = global.fetch;
+  try {
+    var authKlici = 0;
+    global.fetch = async function () {
+      authKlici += 1;
+      if (authKlici < 3) throw new TypeError("temporary network failure");
+      return { ok: true, status: 200, json: async function () { return { id: "user-retry" }; } };
+    };
+    var authPoOmrezniNapaki = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer veljaven-token" } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+    );
+    assert.equal(authPoOmrezniNapaki.ok, true, "začasna omrežna napaka avtorizacije mora biti samodejno ponovljena");
+    assert.equal(authKlici, 3);
+
+    authKlici = 0;
+    global.fetch = async function () {
+      authKlici += 1;
+      return authKlici === 1
+        ? { ok: false, status: 503, json: async function () { return {}; } }
+        : { ok: true, status: 200, json: async function () { return { id: "user-http-retry" }; } };
+    };
+    var authPo503 = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer veljaven-token" } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+    );
+    assert.equal(authPo503.ok, true, "začasni odgovor 503 mora biti samodejno ponovljen");
+    assert.equal(authKlici, 2);
+
+    authKlici = 0;
+    global.fetch = async function () {
+      authKlici += 1;
+      return { ok: false, status: 401, json: async function () { return {}; } };
+    };
+    var neveljavnaSeja = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer neveljaven-token" } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+    );
+    assert.equal(neveljavnaSeja.code, "AUTH_SESSION_INVALID");
+    assert.equal(neveljavnaSeja.retryable, false);
+    assert.equal(authKlici, 1, "neveljavne seje ne smemo po nepotrebnem ponavljati na strežniku");
+
+    authKlici = 0;
+    global.fetch = async function () { authKlici += 1; throw new TypeError("network down"); };
+    var nedosegljivaAvtorizacija = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer veljaven-token" } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authRetryDelays: [0, 0] }
+    );
+    assert.equal(nedosegljivaAvtorizacija.code, "AUTH_SERVER_UNAVAILABLE");
+    assert.equal(nedosegljivaAvtorizacija.retryable, true);
+    assert.equal(authKlici, 3, "strežnik mora pred prikazom začasne napake poskusiti trikrat");
+  } finally {
+    global.fetch = prvotniAuthFetch;
+  }
+
   assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v33-visible-legal-content");
   assert.equal(
     queue.cacheKey({ ime: "Cache GmbH" }),
