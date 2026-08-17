@@ -1034,17 +1034,17 @@
 
 @media (max-width: 620px) {
   .stran--bonitetna .boniteta-obrazec { gap: 14px; }
-  .stran--bonitetna .boniteta-hero { min-height: 242px; padding: calc(24px + env(safe-area-inset-top, 0px)) 20px 64px; border-bottom-right-radius: 48px; }
+  .stran--bonitetna .boniteta-hero { min-height: 170px; padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 8px; border-bottom-right-radius: 48px; }
   .boniteta-hero__naslovna-vrstica { gap: 14px; }
-  .boniteta-hero__scit { flex-basis: 43px; width: 43px; height: 52px; }
-  .boniteta-hero__scit svg { width: 43px; height: 52px; }
-  .boniteta-hero h1 { font-size: 1.55rem; }
-  .boniteta-hero__naslovna-vrstica p { font-size: 1rem; }
-  .boniteta-hero > label { margin-top: 12px; font-size: .8rem; }
-  .boniteta-hero__iskanje input, .boniteta-hero__podjetje { min-height: 56px; height: 56px; padding-left: 15px; padding-right: 82px; border-radius: 15px; }
+  .boniteta-hero__scit { flex-basis: 39px; width: 39px; height: 47px; }
+  .boniteta-hero__scit svg { width: 39px; height: 47px; }
+  .boniteta-hero h1 { font-size: 1.45rem; }
+  .boniteta-hero__naslovna-vrstica p { font-size: .9rem; }
+  .boniteta-hero > label { margin-top: 8px; font-size: .76rem; }
+  .boniteta-hero__iskanje input, .boniteta-hero__podjetje { min-height: 52px; height: 52px; padding-left: 15px; padding-right: 76px; border-radius: 15px; }
   .boniteta-hero__podjetje strong { font-size: 1rem; }
-  #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 74px; height: 74px; border-width: 3px; }
-  #boniteta-nacin-spletna svg, .boniteta-hero__podjetje svg { width: 37px; height: 37px; }
+  #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 68px; height: 68px; border-width: 3px; }
+  #boniteta-nacin-spletna svg, .boniteta-hero__podjetje svg { width: 34px; height: 34px; }
   .stran--bonitetna .boniteta-zajem { gap: 10px; margin: -18px 10px 0; padding: 20px 10px 14px; border-radius: 22px; }
   .boniteta-zajem__locilo h2 { font-size: 1.18rem; }
   .boniteta-zajem__nacini { gap: 7px; }
