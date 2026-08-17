@@ -159,6 +159,10 @@ async function main() {
   var poIzbrisu = await queue.ustvari({}, "user-a", telo);
   assert.equal(poIzbrisu.status, "queued", "po izbrisu mora nastati povsem novo preverjanje");
   assert.equal(poIzbrisu.cached, false);
+  var aktivnaUporabnika = await queue.seznamAktivnih({}, "user-a");
+  assert.equal(aktivnaUporabnika.length, 1, "zavihek V teku mora vrniti samo aktivna opravila prijavljenega uporabnika");
+  assert.equal(aktivnaUporabnika[0].request.ime, "Cache GmbH");
+  assert.equal((await queue.seznamAktivnih({}, "drug-uporabnik")).length, 0, "aktivna opravila drugega uporabnika ne smejo biti vidna");
   var starejsiSorodniId = "b877dc5f-8fba-4ced-8db5-e61c0403b459";
   var drugVnosId = "c877dc5f-8fba-4ced-8db5-e61c0403b459";
   queue._test.pomnilnik.jobs.set(starejsiSorodniId, { id: starejsiSorodniId, user_id: "user-a", request_payload: Object.assign({}, telo, { confirmedIdentity: { confirmed: true } }) });
