@@ -1034,7 +1034,7 @@
 
 @media (max-width: 620px) {
   .stran--bonitetna .boniteta-obrazec { gap: 14px; }
-  .stran--bonitetna .boniteta-hero { min-height: 194px; padding: calc(24px + env(safe-area-inset-top, 0px)) 20px 16px; border-bottom-right-radius: 48px; }
+  .stran--bonitetna .boniteta-hero { min-height: 242px; padding: calc(24px + env(safe-area-inset-top, 0px)) 20px 64px; border-bottom-right-radius: 48px; }
   .boniteta-hero__naslovna-vrstica { gap: 14px; }
   .boniteta-hero__scit { flex-basis: 43px; width: 43px; height: 52px; }
   .boniteta-hero__scit svg { width: 43px; height: 52px; }
@@ -1045,7 +1045,7 @@
   .boniteta-hero__podjetje strong { font-size: 1rem; }
   #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 74px; height: 74px; border-width: 3px; }
   #boniteta-nacin-spletna svg, .boniteta-hero__podjetje svg { width: 37px; height: 37px; }
-  .stran--bonitetna .boniteta-zajem { gap: 10px; margin: -56px 10px 0; padding: 20px 10px 14px; border-radius: 22px; }
+  .stran--bonitetna .boniteta-zajem { gap: 10px; margin: -18px 10px 0; padding: 20px 10px 14px; border-radius: 22px; }
   .boniteta-zajem__locilo h2 { font-size: 1.18rem; }
   .boniteta-zajem__nacini { gap: 7px; }
   .boniteta-zajem__nacin { min-height: 160px; padding: 14px 3px 10px; border-radius: 18px; }
