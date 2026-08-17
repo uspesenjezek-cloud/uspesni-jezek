@@ -223,9 +223,9 @@ async function main() {
   assert.ok(workerVir.indexOf("queue.prevzemi(cfg, 1)") < workerVir.indexOf("projectMonitor.schedule(cfg)"), "ročna vrsta mora biti preverjena pred projektnim razporejevalnikom");
   assert.match(workerVir, /catch \(scheduleError\)/, "napaka projektnega razporejevalnika ne sme blokirati ročne preverbe");
 
-  var osnovnaMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260815231256_mehka_boniteta_cakalna_vrsta.sql"), "utf8");
-  var migracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260815233703_mehka_boniteta_trideset_skupaj_deset_insolvenca.sql"), "utf8");
-  var izbrisMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260816211500_uporabnik_lahko_izbrise_svoje_preverbe.sql"), "utf8");
+  var osnovnaMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260815232735_mehka_boniteta_cakalna_vrsta.sql"), "utf8");
+  var migracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260815234001_mehka_boniteta_trideset_skupaj_deset_insolvenca.sql"), "utf8");
+  var izbrisMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260816170712_uporabnik_lahko_izbrise_svoje_preverbe.sql"), "utf8");
   assert.match(migracija, /for update skip locked/i);
   assert.match(migracija, /30 - count\(\*\)/i);
   assert.match(migracija, /10 - count\(\*\) filter/i);

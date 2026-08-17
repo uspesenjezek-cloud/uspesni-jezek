@@ -12,3 +12,5 @@ create policy boniteta_monitorji_streznik_only on public.boniteta_monitorji
   for all to authenticated using (false) with check (false);
 create policy boniteta_opozorila_streznik_only on public.boniteta_opozorila
   for all to authenticated using (false) with check (false);
+
+;

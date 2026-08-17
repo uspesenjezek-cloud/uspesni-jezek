@@ -90,3 +90,5 @@ end $$;
 revoke all on function public.razporedi_zapadlo_projektno_spremljanje() from public,anon,authenticated;
 revoke all on function public.zakljuci_projektno_spremljanje(uuid,boolean,jsonb) from public,anon,authenticated;
 grant execute on function public.razporedi_zapadlo_projektno_spremljanje(),public.zakljuci_projektno_spremljanje(uuid,boolean,jsonb) to service_role;
+
+;

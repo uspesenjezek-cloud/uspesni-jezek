@@ -1,4 +1,7 @@
--- Prazna kartica na eni napravi ne sme prepisati ze izbranega odvetnika.
+alter table public.opomin_kartice_nastavitve
+  add column if not exists predaja_odvetniku jsonb,
+  add column if not exists predaja_updated_at timestamptz;
+
 create or replace function public.sinhroniziraj_opomin_kartice(
   p_vkljuceni_indeksi smallint[],
   p_client_id text,
@@ -45,7 +48,6 @@ begin
     ),
     predaja_odvetniku = case
       when excluded.predaja_odvetniku is not null
-       and nullif(btrim(excluded.predaja_odvetniku #>> '{lawyerHandoff,lawyerSnapshot,name}'), '') is not null
        and (
          public.opomin_kartice_nastavitve.predaja_updated_at is null
          or excluded.predaja_updated_at >= public.opomin_kartice_nastavitve.predaja_updated_at
@@ -54,7 +56,6 @@ begin
     end,
     predaja_updated_at = case
       when excluded.predaja_odvetniku is not null
-       and nullif(btrim(excluded.predaja_odvetniku #>> '{lawyerHandoff,lawyerSnapshot,name}'), '') is not null
        and (
          public.opomin_kartice_nastavitve.predaja_updated_at is null
          or excluded.predaja_updated_at >= public.opomin_kartice_nastavitve.predaja_updated_at
@@ -66,32 +67,9 @@ begin
 end;
 $$;
 
--- Ce je prvo odprtje nove kode ze poslalo prazno kartico, jo obnovimo iz
--- nazadnje shranjenega aktivnega nacrta istega uporabnika.
-with zadnji_nacrti as (
-  select distinct on (z.obrtnik_id)
-    z.obrtnik_id,
-    z.opomin_nacrt,
-    jsonb_path_query_first(
-      z.opomin_nacrt,
-      '$.steps[*] ? (@.kind == "manual_lawyer")'
-    ) as korak
-  from public.zadeve z
-  where z.opomin_nacrt is not null
-  order by z.obrtnik_id, z.posodobljeno_at desc
-)
-update public.opomin_kartice_nastavitve n
-set
-  predaja_odvetniku = jsonb_build_object(
-    'title', coalesce(z.korak->'title', '"Predaja odvetniku"'::jsonb),
-    'scheduledAt', coalesce(z.korak->'scheduledAt', z.korak->'sendAt', 'null'::jsonb),
-    'status', coalesce(z.korak->'status', '"draft"'::jsonb),
-    'lawyerHandoff', z.korak->'lawyerHandoff'
-  ),
-  predaja_updated_at = now(),
-  client_id = 'server-reconcile',
-  updated_at = now()
-from zadnji_nacrti z
-where n.user_id = z.obrtnik_id
-  and nullif(btrim(z.korak #>> '{lawyerHandoff,lawyerSnapshot,name}'), '') is not null
-  and nullif(btrim(n.predaja_odvetniku #>> '{lawyerHandoff,lawyerSnapshot,name}'), '') is null;
+revoke all on function public.sinhroniziraj_opomin_kartice(
+  smallint[], text, timestamptz, jsonb, timestamptz
+) from public, anon;
+grant execute on function public.sinhroniziraj_opomin_kartice(
+  smallint[], text, timestamptz, jsonb, timestamptz
+) to authenticated;;

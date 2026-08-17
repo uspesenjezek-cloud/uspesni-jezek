@@ -87,3 +87,5 @@ comment on table public.boniteta_profili is 'Uporabnikovi trajni profili preverj
 comment on table public.boniteta_pro_cache is 'Predpomnilnik ločenih, kreditno obračunanih OpenRegister Pro sklopov.';
 comment on table public.boniteta_monitorji is 'OpenRegister API monitorji, ločeni od platformne Watchlist.';
 comment on table public.boniteta_opozorila is 'Preverjena opozorila, prejeta prek podpisanih OpenRegister webhookov.';
+
+;

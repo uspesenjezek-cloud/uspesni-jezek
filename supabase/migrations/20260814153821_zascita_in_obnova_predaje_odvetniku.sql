@@ -1,9 +1,3 @@
--- Razširi mednapravno sinhronizacijo kartic še na celotno nastavitev
--- zadnje kartice »Predaja odvetniku« (odvetnik, paket, sporočilo, dokumenti).
-alter table public.opomin_kartice_nastavitve
-  add column if not exists predaja_odvetniku jsonb,
-  add column if not exists predaja_updated_at timestamptz;
-
 create or replace function public.sinhroniziraj_opomin_kartice(
   p_vkljuceni_indeksi smallint[],
   p_client_id text,
@@ -22,21 +16,11 @@ begin
   end if;
 
   insert into public.opomin_kartice_nastavitve (
-    user_id,
-    vkljuceni_indeksi,
-    client_id,
-    settings_updated_at,
-    updated_at,
-    predaja_odvetniku,
-    predaja_updated_at
+    user_id, vkljuceni_indeksi, client_id, settings_updated_at, updated_at,
+    predaja_odvetniku, predaja_updated_at
   ) values (
-    (select auth.uid()),
-    p_vkljuceni_indeksi,
-    p_client_id,
-    p_settings_updated_at,
-    now(),
-    p_predaja_odvetniku,
-    p_predaja_updated_at
+    (select auth.uid()), p_vkljuceni_indeksi, p_client_id,
+    p_settings_updated_at, now(), p_predaja_odvetniku, p_predaja_updated_at
   )
   on conflict (user_id) do update set
     vkljuceni_indeksi = case
@@ -71,9 +55,30 @@ begin
 end;
 $$;
 
-revoke all on function public.sinhroniziraj_opomin_kartice(
-  smallint[], text, timestamptz, jsonb, timestamptz
-) from public, anon;
-grant execute on function public.sinhroniziraj_opomin_kartice(
-  smallint[], text, timestamptz, jsonb, timestamptz
-) to authenticated;
+with zadnji_nacrti as (
+  select distinct on (z.obrtnik_id)
+    z.obrtnik_id,
+    z.opomin_nacrt,
+    jsonb_path_query_first(
+      z.opomin_nacrt,
+      '$.steps[*] ? (@.kind == "manual_lawyer")'
+    ) as korak
+  from public.zadeve z
+  where z.opomin_nacrt is not null
+  order by z.obrtnik_id, z.posodobljeno_at desc
+)
+update public.opomin_kartice_nastavitve n
+set
+  predaja_odvetniku = jsonb_build_object(
+    'title', coalesce(z.korak->'title', '"Predaja odvetniku"'::jsonb),
+    'scheduledAt', coalesce(z.korak->'scheduledAt', z.korak->'sendAt', 'null'::jsonb),
+    'status', coalesce(z.korak->'status', '"draft"'::jsonb),
+    'lawyerHandoff', z.korak->'lawyerHandoff'
+  ),
+  predaja_updated_at = now(),
+  client_id = 'server-reconcile',
+  updated_at = now()
+from zadnji_nacrti z
+where n.user_id = z.obrtnik_id
+  and nullif(btrim(z.korak #>> '{lawyerHandoff,lawyerSnapshot,name}'), '') is not null
+  and nullif(btrim(n.predaja_odvetniku #>> '{lawyerHandoff,lawyerSnapshot,name}'), '') is null;;

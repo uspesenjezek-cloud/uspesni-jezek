@@ -159,3 +159,5 @@ grant execute on function public.zakljuci_mehka_boniteta_opravilo(uuid, uuid, bo
 
 comment on table public.mehka_boniteta_opravila is
   'Trajna, strežniško dostopna čakalna vrsta za nemške mehke bonitetne preverbe.';
+
+;
