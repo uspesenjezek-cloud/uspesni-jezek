@@ -606,6 +606,10 @@
 
   async function nadaljujOpravilo(jobId) {
     nastaviNalaganje(true);
+    if (samoSpletniVnos && heroSpletnaStatus) {
+      heroSpletnaStatus.textContent = "Iščemo podjetje in posodabljamo podatke obrtnika …";
+      heroSpletnaStatus.hidden = false;
+    }
     try {
       var token = await pridobiToken();
       var odgovor = await fetchSPonovnimPoskusom("/api/mehka-boniteta-opravilo?id=" + encodeURIComponent(jobId), {
@@ -633,6 +637,7 @@
       pokaziNapako(err.message || "Preverjanja ni bilo mogoče nadaljevati.");
     } finally {
       nastaviNalaganje(false);
+      if (samoSpletniVnos && heroSpletnaStatus) heroSpletnaStatus.hidden = true;
     }
   }
 
