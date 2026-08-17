@@ -1040,7 +1040,7 @@
   .boniteta-hero__scit svg { width: 39px; height: 47px; }
   .boniteta-hero h1 { font-size: 1.45rem; }
   .boniteta-hero__naslovna-vrstica p { font-size: .9rem; }
-  .boniteta-hero > label { margin-top: 8px; font-size: .76rem; }
+  .boniteta-hero > label { margin-top: 0; font-size: .76rem; }
   .boniteta-hero__iskanje input, .boniteta-hero__podjetje { min-height: 52px; height: 52px; padding-left: 15px; padding-right: 76px; border-radius: 15px; }
   .boniteta-hero__podjetje strong { font-size: 1rem; }
   #boniteta-nacin-spletna, .boniteta-hero__podjetje > span { right: -7px; width: 68px; height: 68px; border-width: 3px; }
