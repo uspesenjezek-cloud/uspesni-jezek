@@ -1,0 +1,24 @@
+{
+  "id": "/app/bonitetna-preverba.html",
+  "name": "Uspešni Ježek – Bonitetna preverba",
+  "short_name": "Boniteta",
+  "description": "Celozaslonski predogled bonitetnega centra Uspešni Ježek.",
+  "start_url": "/app/bonitetna-preverba.html?app=1",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fcf9f2",
+  "theme_color": "#08747a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

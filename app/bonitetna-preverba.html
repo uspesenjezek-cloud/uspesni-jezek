@@ -2,7 +2,18 @@
 <html lang="sl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Uspešni Ježek" />
+    <script>
+      if (
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true
+      ) {
+        document.documentElement.classList.add("boniteta-standalone");
+      }
+    </script>
     <title>Bonitetni center – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -10,17 +21,17 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260815-boniteta-v6" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-picker-polish-v1" />
+    <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-temp-back-v5" />
     <link rel="stylesheet" href="boniteta-pro.css?v=20260816-profiles-delete-v6" />
-    <link rel="manifest" href="manifest.json" />
+    <link rel="manifest" href="bonitetna-manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
-    <script src="auth-zascita.js"></script>
+    <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <style>
       .boniteta-kraj-izbira { display: flex; flex-wrap: wrap; gap: 6px; }
       .boniteta-kraj-izbira[hidden] { display: none; }
@@ -60,6 +71,9 @@
     <main class="app__vsebina boniteta-vsebina" id="boniteta-center-new">
       <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate data-boniteta-flow-panel="soft">
         <section class="boniteta-hero" aria-labelledby="boniteta-naslov">
+          <a class="boniteta-zacasno-nazaj" href="index.html" aria-label="Nazaj na glavno stran" title="Začasno: nazaj">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 6-6 6 6 6"></path></svg>
+          </a>
           <div class="boniteta-hero__naslovna-vrstica">
             <span class="boniteta-hero__scit" aria-hidden="true">
               <svg viewBox="0 0 48 56" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
@@ -516,7 +530,9 @@
     </nav>
 
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260817-auth-session-upgrade-v24"></script>
+    <script src="bonitetna-preverba.js?v=20260818-ek-impressum-evidence-v26"></script>
     <script src="boniteta-sredisce.js?v=20260817-reference-flow-v10"></script>
+    <script src="pwa-viewport.js?v=20260817-v1"></script>
+    <script src="pwa-dev-refresh.js?v=20260817-v1"></script>
   </body>
 </html>

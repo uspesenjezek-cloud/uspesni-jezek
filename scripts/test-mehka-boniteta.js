@@ -50,7 +50,7 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
 assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v15-visible-legal-content");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v33-visible-legal-content");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v34-registered-merchant-impressum-evidence");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -746,6 +746,75 @@ assert.strictEqual(happyMaidsImpressum.nosilec, "Helmut Schwind");
 assert.deepStrictEqual(happyMaidsImpressum.vloge[0], {
   ime: "Helmut Schwind", vloga: "Inhaber", confidence: "primary_registered_merchant_block",
 });
+var srsNordImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Matthias Dührsen<br>Solarreinigung + Service Nord Matthias Dührsen<br>Eichkamp 20a<br>24217 Schönberg</p>" +
+    "<h2>Kontakt</h2><p>Telefon: 0160 9849 4208<br>E-Mail: info@srsnord.de</p><h2>Umsatzsteuer-ID</h2><p>DE277360207</p>" +
+    "<h2>Redaktionell verantwortlich</h2><p>Matthias Dührsen<br>Eichkamp 20a<br>24217 Schönberg</p></main>",
+  "https://www.srsnord.de/impressum/",
+  { ime: "SRS Nord", postnaStevilka: "24217", kraj: "Schönberg" }
+);
+assert.strictEqual(srsNordImpressum.nosilec, "Matthias Dührsen");
+assert.strictEqual(srsNordImpressum.naziv, "Solarreinigung + Service Nord Matthias Dührsen");
+var srsNordOpenRegister = {
+  status: "found",
+  company: {
+    name: "Matthias Dührsen e. K. SRS Nord Solarreinigung + Service Nord",
+    legal_form: "e.K.", company_id: "DE-HRA-K1101-12602", register_type: "HRA", register_number: "12602",
+    register_court: "Kiel", active: true,
+    address: { street: "Eichkamp 20 a", postal_code: "24217", city: "Schönberg (Holstein)" },
+  },
+};
+var srsNordJavniProfil = { status: "found", sourceUrl: "https://www.srsnord.de/impressum/", subjekt: srsNordImpressum };
+assert.strictEqual(test.potrebujeImpressumDopolnitev(srsNordOpenRegister, { spletnaStran: "https://www.srsnord.de/impressum/" }), true);
+assert.deepStrictEqual(test.preveriImpressumDopolnitevRegistriranegaTrgovca(srsNordOpenRegister, srsNordJavniProfil), {
+  matched: true, representative: "Matthias Dührsen",
+});
+var srsNordIdentiteta = test.sestaviIdentiteto(srsNordOpenRegister, { status: "disabled" }, srsNordJavniProfil, {
+  postnaStevilka: "24217", kraj: "Schönberg",
+});
+assert.strictEqual(srsNordIdentiteta.ime, "Matthias Dührsen e. K. SRS Nord Solarreinigung + Service Nord");
+assert.strictEqual(srsNordIdentiteta.nosilec, "Matthias Dührsen");
+assert.strictEqual(srsNordIdentiteta.poslovniNaziv, "Solarreinigung + Service Nord Matthias Dührsen");
+assert.strictEqual(srsNordIdentiteta.source, "openregister", "OpenRegister mora ostati primarni uradni vir identitete.");
+var srsNordImpressumZaPosnetek = test.sestaviImpressumIdentitetoZaDopolnilniPosnetek(srsNordIdentiteta, srsNordJavniProfil);
+assert.strictEqual(srsNordImpressumZaPosnetek.status, "probable_impressum");
+assert.strictEqual(srsNordImpressumZaPosnetek.sourceUrl, "https://www.srsnord.de/impressum/");
+assert.strictEqual(srsNordImpressumZaPosnetek.nosilec, "Matthias Dührsen",
+  "Impressum, ki je dopolnil registrskega trgovca, mora dobiti svoj dokazni posnetek.");
+assert.strictEqual(test.sestaviImpressumIdentitetoZaDopolnilniPosnetek(
+  Object.assign({}, srsNordIdentiteta, { impressumSourceUrl: "" }), srsNordJavniProfil
+), null, "Brez dejansko uporabljenega Impressuma se ne sme ustvariti navidezni dodatni dokaz.");
+var srsNordPripravljenoDokazilo = test.pripraviDokaziloZaOdgovor({
+  status: "captured",
+  imageDataUrl: testniJpeg,
+  capturedAt: "2026-08-18T00:00:00.000Z",
+  captureVersion: identityEvidenceContract.CAPTURE_VERSION,
+  viewportOverlaysRemoved: true,
+  screenshotReady: true,
+  sourceUrl: "https://www.srsnord.de/impressum/",
+  sourceLabel: "Impressum podjetja – dopolnitev registrskih podatkov",
+  evidenceRole: "registered_merchant_impressum_supplement",
+});
+assert.strictEqual(srsNordPripravljenoDokazilo.screenshotReady, true);
+assert.strictEqual(srsNordPripravljenoDokazilo.evidenceRole, "registered_merchant_impressum_supplement");
+var srsNordInsolvencnaIdentiteta = test.pripraviIdentitetoZaInsolvencnoPoizvedbo(Object.assign({}, srsNordIdentiteta, {
+  userConfirmed: true,
+}));
+assert.strictEqual(srsNordInsolvencnaIdentiteta.entityType, "person", "e.K. se mora v insolvenčnem portalu iskati po fizični osebi nosilca.");
+assert.strictEqual(srsNordInsolvencnaIdentiteta.ime, "Matthias Dührsen");
+assert.strictEqual(srsNordInsolvencnaIdentiteta.companyId, "", "ID registrskega podjetja ne sme omejiti iskanja fizične osebe nosilca.");
+assert.strictEqual(srsNordInsolvencnaIdentiteta.registeredBusinessName, srsNordIdentiteta.ime);
+var navadnaDruzbaZaInsolvenco = { entityType: "company", ime: "Beispiel GmbH", legalForm: "GmbH", nosilec: "Erika Beispiel" };
+assert.strictEqual(test.pripraviIdentitetoZaInsolvencnoPoizvedbo(navadnaDruzbaZaInsolvenco), navadnaDruzbaZaInsolvenco,
+  "Navadne pravne družbe morajo še naprej ostati pravne osebe.");
+var srsNapacenImpressum = {
+  status: "found", sourceUrl: "https://directory.example/impressum", subjekt: Object.assign({}, srsNordImpressum, {
+    nosilec: "Erika Beispiel", ime: "Erika Beispiel", naslov: "Druga Straße 1", postnaStevilka: "10115", kraj: "Berlin",
+    vloge: [{ ime: "Erika Beispiel", vloga: "Geschäftsführung" }],
+  }),
+};
+assert.strictEqual(test.preveriImpressumDopolnitevRegistriranegaTrgovca(srsNordOpenRegister, srsNapacenImpressum).matched, false,
+  "Oseba z drugega Impressuma ali naslova se ne sme združiti z registrskim trgovcem.");
 var kontaktNiNosilec = test.razcleniImpressum(
   "<main><h1>Impressum</h1><h2>Herausgeber dieser Website ist:</h2><p><strong>Beispiel Service e.K.</strong><br>Musterstra\u00dfe 7<br>10115 Berlin</p><p>Handelsregister: HRA 12345</p><h2>Ihr Ansprechpartner f\u00fcr Berlin</h2><p>Martin Kontakt<br>Telefon: 030 123456</p></main>",
   "https://example.test/impressum/",
@@ -1287,20 +1356,20 @@ assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-objave-gumb"/);
 assert.match(html, /id="boniteta-objave-seznam"/);
-assert.match(html, /bonitetna-preverba\.css\?v=20260817-picker-polish-v1/);
+assert.match(html, /bonitetna-preverba\.css\?v=20260817-temp-back-v5/);
 assert.match(html, /class="crif-flow-picker__visual"/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options button \+ button \{ border-left:/);
-assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-hero \{ min-height: 200px;/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-hero \{ min-height: 160px;/);
 assert.match(bonitetaCss, /\.boniteta-hero__status \{ min-height: 18px; margin: 6px 72px 0 2px;/);
-assert.match(bonitetaCss, /\.boniteta-zajem__nacin \{ min-height: 142px;/);
+assert.match(bonitetaCss, /\.boniteta-zajem__nacin \{ min-height: 98px;/);
 assert.match(bonitetaCss, /\.boniteta-hero > label \{ margin-top: 0; font-size: \.76rem; \}/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-zajem \{ gap: 8px; margin: -22px 10px 0;/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-assert.match(html, /bonitetna-preverba\.js\?v=20260817-auth-session-upgrade-v24/);
+assert.match(html, /bonitetna-preverba\.js\?v=20260818-ek-impressum-evidence-v26/);
 assert.match(js, /Iščemo podjetje in posodabljamo podatke obrtnika …/);
 assert.match(html, /boniteta-sredisce\.js\?v=20260817-reference-flow-v10/);
 assert.match(html, /id="boniteta-flow-start"/);
-assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start \{[\s\S]*?min-height: 46px;[\s\S]*?border-radius: 11px;[\s\S]*?background: #45a3a0;/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start \{[\s\S]*?min-height: 46px;[\s\S]*?border-radius: 11px;[\s\S]*?background: linear-gradient\(135deg, #57b6b0, #2f8480\);/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start b \{ position: static;/);
 assert.match(html, /boniteta-pro\.css\?v=20260816-profiles-delete-v6/);
 assert.match(html, /data-boniteta-center-view="new"/);
@@ -1314,7 +1383,9 @@ assert.match(centerJs, /if\(!visible\)selectFlow\("soft"\)/);
 assert.match(html, /id="boniteta-identiteta-posnetek"/);
 assert.match(html, /id="boniteta-identiteta-slika"/);
 assert.match(html, /id="boniteta-identiteta-dokazilo-status"[^>]*role="status"[^>]*hidden/);
-assert.match(js, /dokaziloIdentitete\.screenshotReady === true/);
+assert.match(js, /prikazanoDokaziloIdentitete\.screenshotReady === true/);
+assert.match(js, /podatki\.impressumEvidence/);
+assert.match(js, /prikazanoDokaziloIdentitete/);
 assert.doesNotMatch(js, /identity-evidence-v\d+/);
 assert.doesNotMatch(js, /razlicicaOciscanegaPosnetka/);
 assert.match(js, /Dokazni posnetek ni na voljo/);
@@ -1369,12 +1440,12 @@ assert.match(bonitetaCss, /\.boniteta-posnetek-povecava__okno/);
 assert.match(bonitetaCss, /touch-action:\s*pan-x pan-y/);
 assert.match(bonitetaCss, /\.boniteta-insolvenca-viri \[hidden\][\s\S]*display:\s*none\s*!important/);
 assert.match(bonitetaCss, /overflow-wrap:\s*anywhere/);
-assert.match(js, /dokaziloIdentitete\.imageDataUrl/);
-assert.match(js, /dokaziloIdentitete\.screenshotReady === true/, "UI mora zaupati enotni semantični strežniški pogodbi dokazila");
+assert.match(js, /prikazanoDokaziloIdentitete\.imageDataUrl/);
+assert.match(js, /prikazanoDokaziloIdentitete\.screenshotReady === true/, "UI mora zaupati enotni semantični strežniški pogodbi dokazila");
 assert.match(js, /Neposredno prek OpenRegister API/);
 assert.match(js, /confirmedIdentity/);
 assert.match(html, /id="boniteta-identiteta-url"/, "ob dokazilu mora biti viden končni URL vira");
-assert.match(js, /dokaziloIdentitete\.sourceUrl/, "UI mora prikazati končni URL zajetega vira");
+assert.match(js, /prikazanoDokaziloIdentitete\.sourceUrl/, "UI mora prikazati končni URL zajetega vira");
 assert.match(js, /manual_input/);
 assert.match(js, /!\["verified_register", "confirmed_impressum"\]\.includes\(identiteta\.status\)/, "nepreverjen ročni vnos se ne sme shraniti med preverjena podjetja");
 assert.match(js, /Ročno vneseni podatki niso preverljiv pravni vir/, "omejitev rezultata mora opisati dejanski uporabljeni vir");
@@ -1408,7 +1479,7 @@ assert.match(apiSrc, /litx_vorname:text", imenskiPogoji\.ime/);
 assert.match(apiSrc, /Veröffentlichungstext anzeigen/);
 assert.match(apiSrc, /publications:\s*uradneObjave/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
-assert.match(apiSrc, /viewportOverlaysRemoved:\s*dokaziloIdentitete\.viewportOverlaysRemoved === true/, "oznaka očiščenega posnetka mora priti do odjemalca");
+assert.match(apiSrc, /viewportOverlaysRemoved:\s*dokazilo\.viewportOverlaysRemoved === true/, "oznaka očiščenega posnetka mora priti do odjemalca");
 assert.match(apiSrc, /async function sprejmiPiskotke/);
 assert.match(apiSrc, /async function dolociIzrezIdentitete/);
 assert.match(apiSrc, /function sestaviPojmeDokazilaIdentitete/);

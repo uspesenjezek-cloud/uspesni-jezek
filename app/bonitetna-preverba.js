@@ -750,6 +750,10 @@
     var identiteta = podatki.identity || {};
     nastaviHeroPodjetje(identiteta.naziv || identiteta.ime || (zadnjiVnos && zadnjiVnos.ime));
     var dokaziloIdentitete = podatki.identityEvidence || {};
+    var dokaziloImpressuma = podatki.impressumEvidence || {};
+    var prikazanoDokaziloIdentitete = dokaziloImpressuma.status === "captured" && dokaziloImpressuma.screenshotReady === true
+      ? dokaziloImpressuma
+      : dokaziloIdentitete;
     var ujemanjeLokacije = podatki.locationMatch || {};
     var identitetaNaslov = document.getElementById("boniteta-identiteta-naslov");
     var identitetaPosnetek = document.getElementById("boniteta-identiteta-posnetek");
@@ -841,7 +845,7 @@
       potrdiImePolje.value = potrjujePravnoDruzbo
         ? (identiteta.naziv || identiteta.ime || (zadnjiVnos && zadnjiVnos.ime) || "")
         : (identiteta.ime || (zadnjiVnos && zadnjiVnos.ime) || "");
-      document.getElementById("boniteta-potrdi-naziv").value = identiteta.naziv || identiteta.ime || (zadnjiVnos && zadnjiVnos.ime) || "";
+      document.getElementById("boniteta-potrdi-naziv").value = identiteta.poslovniNaziv || identiteta.naziv || identiteta.ime || (zadnjiVnos && zadnjiVnos.ime) || "";
       potrdiNosilecPolje.value = identiteta.nosilec || "";
       potrdiNosilecOvoj.hidden = !potrjujePravnoDruzbo && !identiteta.nosilec;
       document.getElementById("boniteta-potrdi-naslov").value = identiteta.naslov || (zadnjiVnos && zadnjiVnos.naslov) || "";
@@ -884,31 +888,35 @@
 
     // O varnosti posnetka odloča ena strežniška pogodba. Odjemalec se ne
     // navezuje na v11, v12 ali prihodnjo številko zajema.
-    var posnetekIdentitetePrikazljiv = dokaziloIdentitete.status === "captured" &&
-      dokaziloIdentitete.screenshotReady === true &&
-      /^data:image\/jpeg;base64,/.test(dokaziloIdentitete.imageDataUrl || "");
+    var posnetekIdentitetePrikazljiv = prikazanoDokaziloIdentitete.status === "captured" &&
+      prikazanoDokaziloIdentitete.screenshotReady === true &&
+      /^data:image\/jpeg;base64,/.test(prikazanoDokaziloIdentitete.imageDataUrl || "");
     if (posnetekIdentitetePrikazljiv) {
-      identitetaSlika.src = dokaziloIdentitete.imageDataUrl;
-      identitetaPrenos.href = dokaziloIdentitete.imageDataUrl;
+      identitetaSlika.src = prikazanoDokaziloIdentitete.imageDataUrl;
+      identitetaPrenos.href = prikazanoDokaziloIdentitete.imageDataUrl;
       identitetaPosnetek.hidden = false;
-      if (identitetaUrl && /^https?:\/\//i.test(dokaziloIdentitete.sourceUrl || "")) {
-        identitetaUrl.href = dokaziloIdentitete.sourceUrl;
-        identitetaUrl.querySelector("output").textContent = dokaziloIdentitete.sourceUrl;
+      if (identitetaUrl && /^https?:\/\//i.test(prikazanoDokaziloIdentitete.sourceUrl || "")) {
+        identitetaUrl.href = prikazanoDokaziloIdentitete.sourceUrl;
+        identitetaUrl.querySelector("output").textContent = prikazanoDokaziloIdentitete.sourceUrl;
       }
       ponastaviPovecavoPosnetka(identitetaSlika);
-      var identitetaPreverjenaOb = new Date(dokaziloIdentitete.capturedAt || podatki.checkedAt || Date.now());
+      var identitetaPreverjenaOb = new Date(prikazanoDokaziloIdentitete.capturedAt || podatki.checkedAt || Date.now());
       identitetaCas.textContent = "Zajeto " + new Intl.DateTimeFormat("sl-SI", {
         dateStyle: "medium",
         timeStyle: "short",
-      }).format(identitetaPreverjenaOb) + " na " + (dokaziloIdentitete.sourceLabel || "registrskem viru");
-    } else if (["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) {
+      }).format(identitetaPreverjenaOb) + " na " + (prikazanoDokaziloIdentitete.sourceLabel || "registrskem viru");
+    } else if (["probable_impressum", "confirmed_impressum"].includes(identiteta.status) ||
+        (identiteta.status === "verified_register" && identiteta.impressumSourceUrl)) {
       var razlogiDokazila = {
         capture_failed: "Posnetka uporabljenega vira trenutno ni bilo mogoče pripraviti.",
         identity_block_not_found: "Na pravni strani ni bilo mogoče določiti vidnega bloka za dokazni posnetek.",
         source_unavailable: "Pravna stran med zajemom ni bila dosegljiva.",
       };
-      identitetaDokaziloStatus.textContent = razlogiDokazila[dokaziloIdentitete.reason] ||
-        "Dokazni posnetek ni na voljo. Insolvenčna poizvedba brez prikazljivega dokazila ne bo izvedena.";
+      var manjkajoceDokazilo = identiteta.status === "verified_register" ? dokaziloImpressuma : dokaziloIdentitete;
+      identitetaDokaziloStatus.textContent = razlogiDokazila[manjkajoceDokazilo.reason] ||
+        (identiteta.status === "verified_register"
+          ? "Dopolnilni posnetek Impressuma ni na voljo. OpenRegister ostaja uradni dokaz identitete."
+          : "Dokazni posnetek ni na voljo. Insolvenčna poizvedba brez prikazljivega dokazila ne bo izvedena.");
       identitetaDokaziloStatus.hidden = false;
     }
 
