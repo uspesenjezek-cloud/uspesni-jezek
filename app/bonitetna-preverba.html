@@ -11,7 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css?v=20260815-boniteta-v6" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-reference-flow-v12" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-reference-flow-v13" />
     <link rel="stylesheet" href="boniteta-pro.css?v=20260816-profiles-delete-v6" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
@@ -117,16 +117,18 @@
         </section>
 
         <section class="crif-flow-picker" aria-labelledby="crif-flow-picker-title">
-          <h2 id="crif-flow-picker-title">Izberite vrsto preverbe</h2>
-          <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
-            <button class="is-active" type="button" data-boniteta-flow="soft" aria-pressed="true">
-              <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M52 17 18 34v34c0 31 15 53 34 65 19-12 34-34 34-65V34L52 17Z" fill="#eef8f6" stroke="#0b6267" stroke-width="8"/><path d="m36 72 12 13 23-30" stroke="#0b6267" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><rect x="78" y="27" width="72" height="92" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><circle cx="101" cy="58" r="10" fill="#17aaa4"/><path d="M89 83c0-10 5-16 12-16s12 6 12 16v5H89v-5Z" fill="#17aaa4"/><path d="M121 49h18M121 59h18M121 75h18M121 85h18" stroke="#b9cdca" stroke-width="3"/><path d="M126 101c8 0 15 8 15 18" stroke="#0b6267" stroke-width="3"/><path d="m141 114 8 18h-31l8-18" fill="#edf8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M133.5 118v6" stroke="#0b6267" stroke-width="3" stroke-linecap="round"/></svg></span>
-              <strong data-fit-text>Mehka preverba</strong><span>Identiteta in insolventnost</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
-            </button>
-            <button type="button" data-boniteta-flow="crif" aria-pressed="false">
-              <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><rect x="25" y="15" width="82" height="111" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><path d="M42 37h39M42 49h28" stroke="#b9cdca" stroke-width="3"/><path d="M45 103V84M59 103V70M73 103V91M87 103V60" stroke="#068c8d" stroke-width="7"/><rect x="105" y="50" width="49" height="68" rx="5" fill="#eef8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M115 66h28M115 78h19M115 90h24" stroke="#8ebdb7" stroke-width="3"/><path d="M122 118V86h43v32" fill="#9cc6c1" stroke="#0b6267" stroke-width="2.5"/><path d="M132 118V99M145 118V94M157 118V104" stroke="#0b6267" stroke-width="5"/><circle cx="91" cy="91" r="27" fill="rgba(255,255,255,.82)" stroke="#0b6267" stroke-width="7"/><path d="m111 111 18 20" stroke="#0b6267" stroke-width="9" stroke-linecap="round"/></svg></span>
-              <strong data-fit-text>Podrobna preverba</strong><span>Razširjeni podatki in analiza</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
-            </button>
+          <div class="crif-flow-picker__visual">
+            <h2 id="crif-flow-picker-title">Izberite vrsto preverbe</h2>
+            <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
+              <button class="is-active" type="button" data-boniteta-flow="soft" aria-pressed="true">
+                <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M52 17 18 34v34c0 31 15 53 34 65 19-12 34-34 34-65V34L52 17Z" fill="#eef8f6" stroke="#0b6267" stroke-width="8"/><path d="m36 72 12 13 23-30" stroke="#0b6267" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><rect x="78" y="27" width="72" height="92" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><circle cx="101" cy="58" r="10" fill="#17aaa4"/><path d="M89 83c0-10 5-16 12-16s12 6 12 16v5H89v-5Z" fill="#17aaa4"/><path d="M121 49h18M121 59h18M121 75h18M121 85h18" stroke="#b9cdca" stroke-width="3"/><path d="M126 101c8 0 15 8 15 18" stroke="#0b6267" stroke-width="3"/><path d="m141 114 8 18h-31l8-18" fill="#edf8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M133.5 118v6" stroke="#0b6267" stroke-width="3" stroke-linecap="round"/></svg></span>
+                <strong data-fit-text>Mehka preverba</strong><span>Identiteta in insolventnost</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
+              </button>
+              <button type="button" data-boniteta-flow="crif" aria-pressed="false">
+                <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><rect x="25" y="15" width="82" height="111" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><path d="M42 37h39M42 49h28" stroke="#b9cdca" stroke-width="3"/><path d="M45 103V84M59 103V70M73 103V91M87 103V60" stroke="#068c8d" stroke-width="7"/><rect x="105" y="50" width="49" height="68" rx="5" fill="#eef8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M115 66h28M115 78h19M115 90h24" stroke="#8ebdb7" stroke-width="3"/><path d="M122 118V86h43v32" fill="#9cc6c1" stroke="#0b6267" stroke-width="2.5"/><path d="M132 118V99M145 118V94M157 118V104" stroke="#0b6267" stroke-width="5"/><circle cx="91" cy="91" r="27" fill="rgba(255,255,255,.82)" stroke="#0b6267" stroke-width="7"/><path d="m111 111 18 20" stroke="#0b6267" stroke-width="9" stroke-linecap="round"/></svg></span>
+                <strong data-fit-text>Podrobna preverba</strong><span>Razširjeni podatki in analiza</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
+              </button>
+            </div>
           </div>
           <button class="crif-flow-picker__start" id="boniteta-flow-start" type="button"><span data-fit-text>Začni preverbo</span><b aria-hidden="true">→</b></button>
           <p class="crif-temp-legend" hidden>Rdeča pika začasno označuje dele, ki so vezani na CRIF.</p>
