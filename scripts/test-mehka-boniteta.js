@@ -36,6 +36,11 @@ assert.strictEqual(identityEvidenceContract.obogatiDokazilo({
 }).screenshotReady, false, "stari avtomatski rezultat v12 se po odkritju delnih sivih slojev ne sme več prikazati");
 assert.strictEqual(identityEvidenceContract.obogatiDokazilo({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/impressum",
+  captureVersion: "identity-evidence-v14-partial-overlay-detection", viewportOverlaysRemoved: true,
+  screenshotReady: true,
+}).screenshotReady, false, "rezervni skoraj prazen rezultat v14 se kljub stari oznaki ready ne sme več prikazati");
+assert.strictEqual(identityEvidenceContract.obogatiDokazilo({
+  status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/impressum",
   captureVersion: "identity-evidence-v10-unsafe-overlay", viewportOverlaysRemoved: true,
 }).screenshotReady, false, "stari potencialno prekriti posnetki morajo ostati blokirani");
 assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv(Object.assign({}, prihodnjiPosnetek, { screenshotReady: false })), false,
@@ -44,8 +49,8 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/uradni-rezultat",
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
-assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v14-partial-overlay-detection");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v32-partial-overlay-detection");
+assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v15-visible-legal-content");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v33-visible-legal-content");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -1198,6 +1203,15 @@ assert.strictEqual(test.jePosnetekZatemnjenZaradiSloja({
   delezMocnoSivihStolpcev: 1, razponSvetlostiStolpcev: 8,
   delezMocnoSivihVrstic: 1, razponSvetlostiVrstic: 7,
 }), true, "enakomerno zatemnjena slika mora ostati zavrnjena");
+assert.strictEqual(test.jePosnetekSkorajPrazen({
+  delezBele: 0.75, delezVsebineVJedru: 0.03, delezVsebinskihVrsticVJedru: 0.25,
+}), true, "bel rezervni izris z vsebino samo v ozkem zgornjem pasu ne sme postati dokazilo");
+assert.strictEqual(test.jePosnetekSkorajPrazen({
+  delezBele: 0.86, delezVsebineVJedru: 0.09, delezVsebinskihVrsticVJedru: 0.75,
+}), false, "bel Impressum z razporejenim temnim besedilom mora ostati veljaven");
+assert.strictEqual(test.jePosnetekSkorajPrazen({
+  delezBele: 0.28, delezVsebineVJedru: 0.2, delezVsebinskihVrsticVJedru: 0.75,
+}), false, "vsebinski barvni ali temni Impressum ne sme biti lažno zavrnjen");
 assert.match(dokaziloVir, /querySelectorAll\("main, article, section, \[role='main'\]"\)/,
   "temen pojavni div se ne sme več razglasiti za naravno ozadje strani");
 assert.match(dokaziloVir, /IDENTITY_SCREENSHOT_OVERLAY_ACTIVE.*includes|includes\(napakaPrvegaPosnetka\.message\)/s,
@@ -1205,6 +1219,8 @@ assert.match(dokaziloVir, /IDENTITY_SCREENSHOT_OVERLAY_ACTIVE.*includes|includes
 assert.match(dokaziloVir, /eb-\(\?:inst\|dialog\)/, "EngageBox ovoj ne sme ostati siv nad dokaznim posnetkom");
 assert.match(dokaziloVir, /pravokotnik\.width >= window\.innerWidth \* 0\.6/, "odstranitev mora biti omejena na velike prekrivne plasti");
 assert.match(dokaziloVir, /zIndex >= 100/, "navadni fiksni deli strani ne smejo biti pomotoma odstranjeni");
+assert.match(dokaziloVir, /koren === document/, "neopisano CMP-ozadje se sme odstraniti samo znotraj istega senčnega korena");
+assert.match(dokaziloVir, /IDENTITY_SCREENSHOT_BLANK_CONTENT/, "skoraj prazen rezervni izris mora biti izrecno zavrnjen");
 var zajemOdsek = dokaziloVir.slice(dokaziloVir.indexOf("async function zajemiDokaziloIdentitete"), dokaziloVir.indexOf("function sestaviOpenRegisterInsolvencnoIskanje"));
 assert.match(zajemOdsek, /skrijPiskotkovnoPasicoZaPosnetek/);
 assert.match(zajemOdsek, /EMPTY_IDENTITY_SCREENSHOT/, "prazen posnetek mora po ponovnem poskusu vrniti jasno napako");

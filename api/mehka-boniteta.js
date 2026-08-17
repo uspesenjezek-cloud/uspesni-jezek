@@ -2586,6 +2586,9 @@ async function analizirajSivinoPosnetka(stran, posnetek) {
     var belih = 0;
     var stolpci = Array.from({ length: 8 }, function () { return { svetlost: 0, sivih: 0, skupaj: 0 }; });
     var vrstice = Array.from({ length: 8 }, function () { return { svetlost: 0, sivih: 0, skupaj: 0 }; });
+    var osrednjeVrstice = Array.from({ length: 8 }, function () { return { vsebinskih: 0, skupaj: 0 }; });
+    var osrednjihVsebinskih = 0;
+    var osrednjihSkupaj = 0;
     for (var i = 0; i < tocke.length; i += 4) {
       var najvec = Math.max(tocke[i], tocke[i + 1], tocke[i + 2]);
       var najmanj = Math.min(tocke[i], tocke[i + 1], tocke[i + 2]);
@@ -2594,6 +2597,7 @@ async function analizirajSivinoPosnetka(stran, posnetek) {
       if (svetlost >= 70 && svetlost <= 185 && najvec - najmanj < 20) sivihSrednjih += 1;
       if (svetlost >= 235) belih += 1;
       var indeksTocke = i / 4;
+      var x = indeksTocke % 64;
       var stolpec = Math.min(7, Math.floor((indeksTocke % 64) / 8));
       var vrstica = Math.min(7, Math.floor(Math.floor(indeksTocke / 64) / 8));
       [stolpci[stolpec], vrstice[vrstica]].forEach(function (pas) {
@@ -2601,6 +2605,18 @@ async function analizirajSivinoPosnetka(stran, posnetek) {
         pas.sivih += svetlost >= 70 && svetlost <= 185 && najvec - najmanj < 20 ? 1 : 0;
         pas.skupaj += 1;
       });
+      // Robovi strani lahko vsebujejo ponavljajoč vzorec, medtem ko je
+      // osrednji pravni blok popolnoma prazen. Zato merimo dejansko temnejšo
+      // vsebino posebej v osrednjih 62,5 % izreza in po navpičnih pasovih.
+      if (x >= 12 && x < 52) {
+        var jeVsebinskaTocka = svetlost < 215 || najvec - najmanj > 32;
+        osrednjihSkupaj += 1;
+        osrednjeVrstice[vrstica].skupaj += 1;
+        if (jeVsebinskaTocka) {
+          osrednjihVsebinskih += 1;
+          osrednjeVrstice[vrstica].vsebinskih += 1;
+        }
+      }
     }
     var stevilo = tocke.length / 4;
     function povzetekPasov(pasovi) {
@@ -2624,6 +2640,10 @@ async function analizirajSivinoPosnetka(stran, posnetek) {
       razponSvetlostiStolpcev: vodoravno.razponSvetlosti,
       delezMocnoSivihVrstic: navpicno.delezMocnoSivih,
       razponSvetlostiVrstic: navpicno.razponSvetlosti,
+      delezVsebineVJedru: osrednjihVsebinskih / Math.max(1, osrednjihSkupaj),
+      delezVsebinskihVrsticVJedru: osrednjeVrstice.filter(function (pas) {
+        return pas.vsebinskih / Math.max(1, pas.skupaj) >= 0.025;
+      }).length / osrednjeVrstice.length,
     };
   }, posnetek);
 }
@@ -2638,6 +2658,15 @@ function jePosnetekZatemnjenZaradiSloja(analiza) {
   return celotnaZatemnitev ||
     jeDelnaZatemnitev(analiza.delezMocnoSivihStolpcev || 0, analiza.razponSvetlostiStolpcev || 0) ||
     jeDelnaZatemnitev(analiza.delezMocnoSivihVrstic || 0, analiza.razponSvetlostiVrstic || 0);
+}
+
+function jePosnetekSkorajPrazen(analiza) {
+  if (!analiza) return false;
+  // Visok delež bele sam po sebi ni napaka: večina Impressumov je črno
+  // besedilo na belem ozadju. Zajem zavrnemo šele, ko je hkrati skoraj bel
+  // in v osrednjem delu nima vsebine, razporejene po več navpičnih pasovih.
+  return analiza.delezBele >= 0.68 &&
+    (analiza.delezVsebinskihVrsticVJedru || 0) <= 0.375;
 }
 
 async function zajemiIzrezDokazila(stran, izrez) {
@@ -2695,6 +2724,7 @@ async function zajemiIzrezDokazila(stran, izrez) {
     });
   }, izrez);
   if (!naravnoTemnoOzadje && jePosnetekZatemnjenZaradiSloja(analiza)) throw new Error("IDENTITY_SCREENSHOT_DIMMED_OVERLAY");
+  if (jePosnetekSkorajPrazen(analiza)) throw new Error("IDENTITY_SCREENSHOT_BLANK_CONTENT");
   return posnetek;
 }
 
@@ -2796,6 +2826,30 @@ async function skrijPiskotkovnoPasicoZaPosnetek(stran) {
           element.setAttribute("data-uj-dokazilo-prekrivanje", "true");
           element.setAttribute("aria-hidden", "true");
           skriteTarce.push(element);
+
+          // Usercentrics in podobni CMP-ji imajo dialog in zatemnitveno ozadje
+          // kot ločena sorojenca v senčnem korenu. Dialog ima pravilen opis,
+          // prazno ozadje pa naključno generiran razred. Ko zanesljivo skrijemo
+          // consent/dialog, v istem korenu odstranimo tudi samo velike prazne
+          // fiksne plasti z visokim z-indexom; vsebine strani se ne dotikamo.
+          var koren = element.getRootNode && element.getRootNode();
+          if (!koren || koren === document || !koren.querySelectorAll) return;
+          Array.from(koren.querySelectorAll("*")).forEach(function (sosed) {
+            if (sosed === element || skriteTarce.indexOf(sosed) >= 0) return;
+            var slog = window.getComputedStyle(sosed);
+            var rect = sosed.getBoundingClientRect();
+            var zIndex = Number.parseInt(slog.zIndex, 10);
+            var kratkoBesedilo = besedilo(sosed).length < 80;
+            if ((slog.position === "fixed" || slog.position === "sticky") &&
+                rect.width >= window.innerWidth * 0.8 && rect.height >= window.innerHeight * 0.8 &&
+                Number.isFinite(zIndex) && zIndex >= 100 && kratkoBesedilo) {
+              sosed.style.setProperty("display", "none", "important");
+              sosed.style.setProperty("visibility", "hidden", "important");
+              sosed.setAttribute("data-uj-dokazilo-prekrivanje", "true");
+              sosed.setAttribute("aria-hidden", "true");
+              skriteTarce.push(sosed);
+            }
+          });
         }
         function dodajSenčneKorene(root) {
           Array.from(root.querySelectorAll("*")).forEach(function (element) {
@@ -2943,7 +2997,7 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
     try {
       posnetek = await zajemiIzrezDokazila(stran, izrez);
     } catch (napakaPrvegaPosnetka) {
-      if (!["IDENTITY_SCREENSHOT_DIMMED_OVERLAY", "IDENTITY_SCREENSHOT_OVERLAY_ACTIVE"].includes(napakaPrvegaPosnetka.message) ||
+      if (!["IDENTITY_SCREENSHOT_DIMMED_OVERLAY", "IDENTITY_SCREENSHOT_OVERLAY_ACTIVE", "IDENTITY_SCREENSHOT_BLANK_CONTENT"].includes(napakaPrvegaPosnetka.message) ||
           !identiteta || !["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) throw napakaPrvegaPosnetka;
       // Če slikovna analiza odkrije zatemnitev, isto pravno stran ponovno
       // naložimo brez izvajanja skript. Vsebina ostane izvirna, pojavni vtičnik
@@ -3781,6 +3835,7 @@ handler._test = {
   jePosnetekDokazilaUporaben: jePosnetekDokazilaUporaben,
   analizirajSivinoPosnetka: analizirajSivinoPosnetka,
   jePosnetekZatemnjenZaradiSloja: jePosnetekZatemnjenZaradiSloja,
+  jePosnetekSkorajPrazen: jePosnetekSkorajPrazen,
   ponovnoZajemiImpressumBrezSkript: ponovnoZajemiImpressumBrezSkript,
   skrijPiskotkovnoPasicoZaPosnetek: skrijPiskotkovnoPasicoZaPosnetek,
   zazeniBrskalnikZaDokazilo: zazeniBrskalnikZaDokazilo,

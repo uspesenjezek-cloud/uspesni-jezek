@@ -3,10 +3,10 @@
 // Ena sama izvorna točka za trenutno različico zajema, predpomnilnika in
 // pogodbe med strežnikom ter vmesnikom. Vmesnik se ne sme odločati po številki
 // zajema; prejme samo semantično oznako screenshotReady.
-var CAPTURE_VERSION = "identity-evidence-v14-partial-overlay-detection";
-var CACHE_VERSION = "impressum-parser-v32-partial-overlay-detection";
+var CAPTURE_VERSION = "identity-evidence-v15-visible-legal-content";
+var CACHE_VERSION = "impressum-parser-v33-visible-legal-content";
 var CONTRACT_VERSION = "identity-evidence-contract-v1";
-var MINIMUM_SAFE_CAPTURE_MAJOR = 14;
+var MINIMUM_SAFE_CAPTURE_MAJOR = 15;
 
 function jeVeljavenJpegDataUrl(vrednost) {
   return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(String(vrednost || ""));
@@ -22,8 +22,8 @@ function jePosnetekPrikazljiv(dokazilo) {
   if (dokazilo.screenshotReady === false) return false;
   if (dokazilo.evidenceMode === "user_uploaded_official_screenshot") return true;
 
-  // Delno siv prekrivni sloj je bilo mogoče zajeti tudi v starejših različicah,
-  // če je zatemnil samo del izreza. Zato stare avtomatske JPEG-e razveljavimo,
+  // Delno siv prekrivni sloj ali skoraj prazen rezervni izris je bilo mogoče
+  // zajeti tudi v starejših različicah. Zato stare avtomatske JPEG-e razveljavimo,
   // četudi so nekoč že nosili screenshotReady=true. Odjemalec še vedno prejme
   // samo novo semantično odločitev strežnika, ne pravila o številki različice.
   var zajem = String(dokazilo.captureVersion || "").match(/^identity-evidence-v(\d+)(?:-|$)/);

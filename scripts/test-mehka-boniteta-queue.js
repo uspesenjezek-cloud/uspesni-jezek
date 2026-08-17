@@ -12,11 +12,11 @@ var projectMonitor = require("../api/_lib/projektno-spremljanje");
 var koren = path.resolve(__dirname, "..");
 
 async function main() {
-  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v32-partial-overlay-detection");
+  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v33-visible-legal-content");
   assert.equal(
     queue.cacheKey({ ime: "Cache GmbH" }),
     require("node:crypto").createHash("sha256").update(JSON.stringify({
-      cacheVersion: "impressum-parser-v32-partial-overlay-detection",
+      cacheVersion: "impressum-parser-v33-visible-legal-content",
       faza: "identiteta",
       ime: "cache gmbh",
       naslov: "",
@@ -89,20 +89,35 @@ async function main() {
     "čakalna vrsta mora star avtomatski posnetek po odkritju delnih sivih slojev razveljaviti");
   assert.equal(starSiv.result.identityEvidence.evidenceContractVersion, "identity-evidence-contract-v1");
 
+  var starPrazenId = "a877dc5f-8fba-4ced-8db5-e61c0403b460";
+  queue._test.pomnilnik.jobs.set(starPrazenId, {
+    id: starPrazenId, user_id: "isti-uporabnik", faza: "identiteta", status: "completed", attempts: 1, max_attempts: 3,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(), result_payload: {
+      identityEvidence: {
+        status: "captured", imageDataUrl: "data:image/jpeg;base64,QUJDRA==",
+        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v14-partial-overlay-detection",
+        viewportOverlaysRemoved: true, screenshotReady: true,
+      },
+    },
+  });
+  var starPrazen = await queue.pridobi({}, "isti-uporabnik", starPrazenId);
+  assert.equal(starPrazen.result.identityEvidence.screenshotReady, false,
+    "čakalna vrsta mora tudi že označen skoraj prazen avtomatski zajem v14 razveljaviti");
+
   var novVarenId = "a877dc5f-8fba-4ced-8db5-e61c0403b459";
   queue._test.pomnilnik.jobs.set(novVarenId, {
     id: novVarenId, user_id: "isti-uporabnik", faza: "identiteta", status: "completed", attempts: 1, max_attempts: 3,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), result_payload: {
       identityEvidence: {
         status: "captured", imageDataUrl: "data:image/jpeg;base64,QUJDRA==",
-        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v14-partial-overlay-detection",
+        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v15-visible-legal-content",
         viewportOverlaysRemoved: true,
       },
     },
   });
   var novVaren = await queue.pridobi({}, "isti-uporabnik", novVarenId);
   assert.equal(novVaren.result.identityEvidence.screenshotReady, true,
-    "čakalna vrsta mora nov preverjen zajem prikazati");
+    "čakalna vrsta mora nov preverjen zajem z vidno pravno vsebino prikazati");
 
   queue._test.ponastaviPomnilnik();
   for (var insolventni = 0; insolventni < 40; insolventni += 1) {
