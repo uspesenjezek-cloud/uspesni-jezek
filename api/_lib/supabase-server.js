@@ -67,7 +67,12 @@ async function preveriUporabnika(req, cfg) {
     return { ok: false, status: 401, code: "AUTH_TOKEN_MISSING", retryable: false, napaka: "Prijava je potekla. Prijavite se znova." };
   }
 
-  var zamiki = Array.isArray(cfg.authRetryDelays) ? cfg.authRetryDelays : [250, 750];
+  // Opravilo na Vercelu ima skupno 10-sekundno omejitev. Trije krajši poskusi
+  // zato pustijo dovolj časa še za varen zapis opravila v čakalno vrsto.
+  var zamiki = Array.isArray(cfg.authRetryDelays) ? cfg.authRetryDelays : [200, 400];
+  var timeoutPoskusa = Number.isFinite(Number(cfg.authAttemptTimeoutMs))
+    ? omejenCas(cfg.authAttemptTimeoutMs, 1800)
+    : 1800;
   var zadnjaNapaka = null;
   var odgovor = null;
   for (var poskus = 0; poskus <= zamiki.length; poskus += 1) {
@@ -77,7 +82,7 @@ async function preveriUporabnika(req, cfg) {
           apikey: cfg.serviceKey,
           Authorization: "Bearer " + token,
         },
-      }, 10000);
+      }, timeoutPoskusa);
       if (!jePrehodniAuthStatus(odgovor.status) || poskus === zamiki.length) break;
     } catch (err) {
       zadnjaNapaka = err;
