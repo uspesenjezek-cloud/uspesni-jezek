@@ -130,11 +130,11 @@ async function main() {
     global.fetch = prvotniAuthFetch;
   }
 
-  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v34-registered-merchant-impressum-evidence");
+  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v35-transport-category-regressions");
   assert.equal(
     queue.cacheKey({ ime: "Cache GmbH" }),
     require("node:crypto").createHash("sha256").update(JSON.stringify({
-      cacheVersion: "impressum-parser-v34-registered-merchant-impressum-evidence",
+      cacheVersion: "impressum-parser-v35-transport-category-regressions",
       faza: "identiteta",
       ime: "cache gmbh",
       naslov: "",
@@ -228,7 +228,7 @@ async function main() {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), result_payload: {
       identityEvidence: {
         status: "captured", imageDataUrl: "data:image/jpeg;base64,QUJDRA==",
-        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v15-visible-legal-content",
+        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v16-visible-content-overlay-isolation",
         viewportOverlaysRemoved: true,
       },
     },
