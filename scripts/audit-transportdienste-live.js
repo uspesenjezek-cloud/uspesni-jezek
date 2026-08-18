@@ -202,6 +202,7 @@ async function main() {
   var limit = limitArg ? Number(limitArg.split("=")[1]) : Infinity;
   var start = startArg ? Math.max(0, Number(startArg.split("=")[1]) || 0) : 0;
   var full = args.includes("--full");
+  var useOpenRegister = args.includes("--openregister");
   var browser = await puppeteer.launch({ executablePath: executablePath, headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   var page = await browser.newPage();
   var discovery = await discover(page);
@@ -217,7 +218,7 @@ async function main() {
     })
     : discovery.websites;
   var websites = discoveredWebsites.slice(start, Number.isFinite(limit) ? start + limit : discoveredWebsites.length);
-  var report = { startedAt: new Date().toISOString(), profileCount: discovery.profileCount, discoveredWebsiteCount: discovery.websites.length, startOffset: start, full: full, results: [] };
+  var report = { startedAt: new Date().toISOString(), profileCount: discovery.profileCount, discoveredWebsiteCount: discovery.websites.length, startOffset: start, full: full, useOpenRegister: useOpenRegister, results: [] };
   saveReport(report);
   var handler = require("../api/mehka-boniteta");
 
@@ -226,7 +227,7 @@ async function main() {
     var started = Date.now();
     var record = { companyName: entry.companyName, profile: entry.profile, website: entry.website };
     try {
-      var first = await callEngine(handler, { spletnaStran: entry.website, uporabiOpenRegisterIdentiteto: false });
+      var first = await callEngine(handler, { spletnaStran: entry.website, uporabiOpenRegisterIdentiteto: useOpenRegister });
       var firstData = first.data || {};
       var identityImage = firstData.identityEvidence && firstData.identityEvidence.imageDataUrl;
       var identityMetrics = await imageMetrics(page, identityImage).catch(function () { return null; });
@@ -244,7 +245,7 @@ async function main() {
         var confirmed = confirmation(firstData.identity);
         var second = await callEngine(handler, {
           spletnaStran: entry.website,
-          uporabiOpenRegisterIdentiteto: false,
+          uporabiOpenRegisterIdentiteto: useOpenRegister,
           confirmedIdentity: confirmed,
         });
         var secondData = second.data || {};

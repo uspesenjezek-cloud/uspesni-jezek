@@ -39,6 +39,7 @@ Noben korak ne sme preskočiti prejšnjega. Manjkajoče dokazilo, neujemanje ide
 
 - V polje podjetja se pošlje samo kanonično pravno ime, nikoli celoten naslov strani ali slogan.
 - Za osebo se ime pravilno razdeli v polji priimek/podjetje in ime.
+- Manjkajoč ali neveljaven OpenRegister ključ, izčrpani krediti, omejitev zahtev in začasna omrežna napaka OpenRegisterja ne smejo blokirati preverbe. Po že potrjeni identiteti, lokaciji in dokazilu mora sistem samodejno nadaljevati neposredno na uradni portal Insolvenzbekanntmachungen ter shraniti razlog preklopa.
 - Register, sodišče, kraj in opravilna številka se dodajo samo, kadar so popolni in veljavni.
 - Rdeča validacija obrazca, neprepoznana stran, timeout ali samo prikazan iskalni obrazec pomenijo `unavailable`, ne `clear`.
 - `clear` je dovoljen samo po prepoznanem odgovoru portala brez objave. Morebitni zadetek mora prestati ujemanje identitete in kraja.
