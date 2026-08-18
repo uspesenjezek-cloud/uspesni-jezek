@@ -18,6 +18,7 @@ Noben korak ne sme preskočiti prejšnjega. Manjkajoče dokazilo, neujemanje ide
 - Nikoli ne ugibaj pravnega imena ali nosilca.
 - Navigacija, kontaktni naslovi, spletna agencija, odgovorna oseba za vsebino in marketinški slogani niso pravna identiteta.
 - Pri kapitalski družbi se uporablja kanonično pravno ime z obliko, na primer `GmbH`, `UG`, `AG`, `GbR`, `KG`, `OHG` ali `e.K.`.
+- OpenRegister iskanje mora dati prednost popolni `company_id` oziroma registrski kombinaciji vrste, številke in sodišča, tudi kadar so ti podatki v ločenih poljih Impressuma. Iskanje samo po imenu je rezervna možnost. Odziv `402` pomeni izčrpane API-kredite, ne nedosegljivega registra; uporabniku pokaži točen razlog in nadaljuj z dovoljenimi rezervnimi viri.
 - Naslovi strani, kot je `Pravno ime GmbH | slogan • storitev`, se morajo skrčiti na `Pravno ime GmbH`:
   - pri razčlenitvi Impressuma,
   - pri uporabnikovi potrditvi,
