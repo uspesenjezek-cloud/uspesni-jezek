@@ -6,6 +6,8 @@ var identityEvidenceContract = require("./_lib/identity-evidence");
 var dns = require("node:dns").promises;
 var net = require("node:net");
 var fs = require("node:fs");
+var os = require("node:os");
+var path = require("node:path");
 
 var HWK_RHEIN_MAIN = "https://hwk-rhein-main.odav.de";
 var KAMMERFINDER = "https://www.kammerfinder.de/";
@@ -45,7 +47,7 @@ var LEGAL_ROLE_LABEL_SOURCE = [
   "Vorstandsvorsitzende(?:r)?",
   "Vorstand",
   "Komplement(?:ä|a)r(?:in)?",
-  "\\bPartner(?:in)?\\b",
+  "\\bPartner(?:in)?(?=\\s*:)",
 ].join("|");
 var LEGAL_IMPRESSUM_DATA_PATTERN = new RegExp("(?:Angaben\\s+gem(?:äß|ass)|" + LEGAL_ROLE_LABEL_SOURCE + "|Umsatzsteuer(?:-Identifikationsnummer|nummer|-ID)|USt\\.?-?Id|Registergericht|Amtsgericht|Handelsregister|\\b(?:n\\.?\\s*)?e\\.?\\s*V\\.?\\b|\\b(?:HR[AB]|GnR|PR|VR)\\s*(?:[-–—:]\\s*)?(?:Nr\\.?\\s*:?\\s*)?\\d+)", "i");
 var GERMAN_POSTAL_CITY_PATTERN = /\b\d{5}\s+[\p{L}]/u;
@@ -260,17 +262,34 @@ function pripraviPotrditevIdentitete(telo, identiteta) {
   var potrjeniNosilecVnosa = pocistiImeOsebe(varnoBesedilo(surovo.representativeName, 180));
   var jePravnaDruzba = jeNazivPravneDruzbe(ime);
   var nazivJePravnaDruzba = jeNazivPravneDruzbe(naziv);
+  var imaMocnoPravnoVlogo = function (osebnoIme) {
+    return Boolean(osebnoIme && identiteta && Array.isArray(identiteta.vloge) && identiteta.vloge.some(function (vloga) {
+      return normaliziraj(vloga && vloga.ime) === normaliziraj(osebnoIme) &&
+        !/^(?:Neoznačena oseba|Inhaltlich verantwortlich)$/i.test(String(vloga && vloga.vloga || ""));
+    }));
+  };
+  var jeVeljavnoPotrjenoIme = jeVerjetnoImeOsebe(ime) ||
+    (imaMocnoPravnoVlogo(ime) && (
+      jeVerjetnoDaljseOznacenoImeOsebe(ime) ||
+      jeVerjetnoPonovljenoOznacenoImeOsebe(ime)
+    ));
+  var jeVeljavenPotrjeniNosilec = !potrjeniNosilecVnosa ||
+    jeVerjetnoImeOsebe(potrjeniNosilecVnosa) ||
+    (imaMocnoPravnoVlogo(potrjeniNosilecVnosa) && (
+      jeVerjetnoDaljseOznacenoImeOsebe(potrjeniNosilecVnosa) ||
+      jeVerjetnoPonovljenoOznacenoImeOsebe(potrjeniNosilecVnosa)
+    ));
   if (!jePravnaDruzba) ime = pocistiImeOsebe(ime);
   if (!nazivJePravnaDruzba && jeVerjetnoImeOsebe(naziv)) naziv = pocistiImeOsebe(naziv);
   if (jeSpletnoAliKontaktnoIme(naziv)) return { status: "invalid", reason: "confirmed_business_name_invalid" };
-  if ((!jePravnaDruzba && !jeVerjetnoImeOsebe(ime)) || naslov.length < 3 || !/\d/.test(naslov) || !/^\d{5}$/.test(postnaStevilka) || kraj.length < 2) {
+  if ((!jePravnaDruzba && !jeVeljavnoPotrjenoIme) || naslov.length < 3 || !/\d/.test(naslov) || !/^\d{5}$/.test(postnaStevilka) || kraj.length < 2) {
     return { status: "invalid", reason: "confirmed_data_incomplete" };
   }
   if (!identiteta || !["verified_register", "probable_impressum", "manual_input"].includes(identiteta.status)) {
     return { status: "invalid", reason: "identity_unavailable" };
   }
   identiteta = normalizirajOsebnaPoljaIdentitete(identiteta);
-  if (potrjeniNosilecVnosa && !jeVerjetnoImeOsebe(potrjeniNosilecVnosa)) {
+  if (!jeVeljavenPotrjeniNosilec) {
     return { status: "invalid", reason: "confirmed_representative_invalid" };
   }
   var poslovnaImenaIdentitete = Array.isArray(identiteta.businessIdentityNames) ? identiteta.businessIdentityNames : [];
@@ -330,7 +349,7 @@ function pripraviPotrditevIdentitete(telo, identiteta) {
     };
   }
 
-  var potrjeniNosilec = potrjeniNosilecVnosa || (jeVerjetnoImeOsebe(ime)
+  var potrjeniNosilec = potrjeniNosilecVnosa || (jeVeljavnoPotrjenoIme
     ? ime
     : jeVerjetnoImeOsebe(identiteta.nosilec) ? identiteta.nosilec
       : jeVerjetnoImeOsebe(identiteta.ime) ? identiteta.ime : "");
@@ -370,6 +389,7 @@ function pripraviPotrditevIdentitete(telo, identiteta) {
 function pocistiNazivDruzbe(vrednost) {
   var naziv = String(vrednost || "")
     .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/(?:<!--|-->)/g, " ")
     .replace(/^\s*(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\s*(?:[-–—|:]\s*)?/i, "")
     .replace(/\s*[|–—-]\s*(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\s*$/i, "")
     .replace(/\s+(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\s*$/i, "")
@@ -476,6 +496,9 @@ function pocistiImeOsebe(vrednost) {
 function jeVerjetnoImeOsebe(vrednost) {
   var ime = pocistiImeOsebe(vrednost);
   if (/\d|[<>{}=]|&(?:[a-z]+|#\d+);/i.test(ime)) return false;
+  if (jeSplosnaOznakaPoslovnegaNaziva(ime) || /^Familie\s+/i.test(ime)) return false;
+  if (/^(?:Notwendig|Funktionell|Analyse|Werbung)\s+(?:Immer\s+)?Aktiv$/i.test(ime)) return false;
+  if (/^(?:Google|Microsoft|Meta|Amazon|Adobe|Certified)\s+Partner$/i.test(ime)) return false;
   var deli = ime.split(/\s+/).filter(Boolean);
   if (deli.length < 2 || deli.length > 6 || ime.length > 100) return false;
   var normaliziraniDeli = deli.map(normaliziraj);
@@ -504,6 +527,14 @@ function jeVerjetnoDaljseOznacenoImeOsebe(vrednost) {
   return deli.every(function (del) {
     return /^[\p{Lu}][\p{Ll}]+(?:[-'’][\p{Lu}]?[\p{Ll}]+)*$/u.test(del);
   });
+}
+
+function jeVerjetnoPonovljenoOznacenoImeOsebe(vrednost) {
+  var ime = pocistiImeOsebe(vrednost);
+  if (/\d|[<>{}=]/.test(ime) || vsebujePoslovniOpis(ime) || jeNazivPravneDruzbe(ime)) return false;
+  var deli = ime.split(/\s+/).filter(Boolean);
+  return deli.length === 2 && normaliziraj(deli[0]) === normaliziraj(deli[1]) &&
+    deli.every(function (del) { return /^[\p{Lu}][\p{Ll}]+(?:[-'’][\p{Lu}]?[\p{Ll}]+)*$/u.test(del); });
 }
 
 function normalizirajOsebnaPoljaIdentitete(subjekt) {
@@ -535,8 +566,11 @@ function jeSpletnoAliKontaktnoIme(vrednost) {
 }
 
 function jeSplosnaOznakaPoslovnegaNaziva(vrednost) {
-  var kandidat = String(vrednost || "").replace(/\s+/g, " ").trim();
-  return !kandidat || /^(?:Information(?:en)?|Firmenname|Unternehmensname|Rechtliche\s+Information(?:en)?(?:\s+zu\s+unserem\s+Unternehmen)?|Anbieter|Betreiber)$/i.test(kandidat) ||
+  var kandidat = String(vrednost || "").replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").replace(/(?:<!--|-->)/g, " ").replace(/\s+/g, " ").trim();
+  return !kandidat || /^(?:Information(?:en)?|Firmenname|Unternehmensname|Unternehmensinformationen|Name\s+des\s+Unternehmens|Verwaltung(?:\s+und\s+Betriebssitz)?|Eingetragener\s+Firmensitz|N(?:ü|u)tzliche\s+Weiterleitungen|Wir\s+sch(?:ä|a)tzen\s+Ihre\s+Privatsph(?:ä|a)re|Transport\s+nach|Umzug|Anpassen|Einstellungen|Alle(?:s)?\s+(?:ablehnen|akzeptieren|annehmen)|Rechtliche\s+Information(?:en)?(?:\s+zu\s+unserem\s+Unternehmen)?|Anbieter|Betreiber)$/i.test(kandidat) ||
+    /^(?:Verwaltung|Betriebssitz)(?:\s*[|•·–—-]\s*(?:Verwaltung|Betriebssitz))*$/i.test(kandidat) ||
+    /^(?:Umzug|Umz(?:ü|u)ge|Transport|Transporte)(?:\s*[|•·–—-]\s*(?:Umzug|Umz(?:ü|u)ge|Transport|Transporte))*$/i.test(kandidat) ||
+    /^Hier\s+finden\s+Sie\s+die\s+rechtlichen\s+Angaben\b/i.test(kandidat) ||
     /^(?:f(?:ü|u)r)\s+/i.test(kandidat) ||
     /^(?:(?:Steuerberater(?:in)?|Fachberater(?:in)?|Rechtsanw(?:ä|a)lt(?:in)?|Fachanw(?:ä|a)lt(?:in)?|Architekt(?:in)?|Sachverst(?:ä|a)ndige(?:r|n)?|Gutachter(?:in)?|Ingenieur(?:in)?)(?:\s*(?:,|\/|&|und)\s*)?)+$/i.test(kandidat) ||
     /^(?:Installation|Montage|Herstellung|Verkauf|Vermietung|Reparatur|Wartung|Planung|Beratung|Dienstleistungen?)\s+(?:von|für|im|in|und|&|rund\s+um)\b/i.test(kandidat) ||
@@ -881,7 +915,7 @@ async function poisciImpressumZBrskalnikom(urlji, vnos, pravniKontekst) {
     }
     return null;
   } finally {
-    await browser.close();
+    await zapriBrskalnikZaDokazilo(browser);
   }
 }
 
@@ -920,6 +954,15 @@ function izlociPravniImpressumBlok(html) {
   if (zacetek < 0) {
     zacetek = surovo.search(/<(?:h1|h2|h3)\b[^>]*>[\s\S]{0,400}?(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Verantwortliche(?:r)?\s+Anbieter)[\s\S]{0,400}?<\/(?:h1|h2|h3)>/i);
   }
+  // Nekateri WordPress Impressumi nimajo naslova <h1>Impressum>, temveč se
+  // pravni blok začne neposredno z »Angaben gemäß § 5 TMG/DDG«. Iščemo samo
+  // znotraj <body>, da enaka fraza iz SEO meta opisa v <head> ne postane vir.
+  if (zacetek < 0) {
+    var teloIndex = surovo.search(/<body\b/i);
+    var telo = teloIndex >= 0 ? surovo.slice(teloIndex) : surovo;
+    var pravnaOznaka = telo.search(/(?:Angaben\s+gem(?:äß|&auml;|ass)\s*§?\s*5\s*(?:TMG|DDG)|Anbieterkennzeichnung|Gesetzliche\s+Anbieterkennung)/i);
+    if (pravnaOznaka >= 0) zacetek = Math.max(0, (teloIndex >= 0 ? teloIndex : 0) + pravnaOznaka - 300);
+  }
   if (zacetek < 0) return surovo;
   var blok = surovo.slice(zacetek, zacetek + 20000);
   var konec = blok.slice(200).search(/<(?:h[1-6]|strong|b)\b[^>]*>\s*(?:II\.\s*Rechte|Rechte\s+der\s+Nutzer|Haftungsausschluss|Haftung\s+f(?:ü|u)r|Urheberrecht|Datenschutz|Online-Streitbeilegung|Streitschlichtung)\b/i);
@@ -939,12 +982,14 @@ function pocistiKrajIzPravneVrstice(vrednost) {
     .replace(new RegExp("\\s+(?:" + LEGAL_ROLE_LABEL_SOURCE + ")\\b[\\s\\S]*$", "i"), "")
     .replace(/\s+(?:Kontakt|Telefon|Tel\.?|E-?Mail|Registergericht|Umsatzsteuer)\s*:?\s*[\s\S]*$/i, "")
     .replace(/\s*\((?:B(?:ü|u)ro|Werkstatt|Filiale|Standort|Lager|Office)\)\s*$/i, "")
+    .replace(/\s+Deutschland\s*$/i, "")
     .replace(/[,;•·\s]+$/, "")
     .trim();
 }
 
 function pocistiNaslovUlice(vrednost) {
-  var naslov = String(vrednost || "").replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").replace(/[,;•·\s]+$/, "").trim();
+  var naslov = String(vrednost || "").replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/^\s*(?:Adresse|Anschrift)\s*:\s*/i, "").replace(/[,;•·\s]+$/, "").trim();
   var sPredpono = naslov.match(/^[^,\d]{2,100},\s*([\p{L}][^,]{0,120}\d[\p{L}\d\s/.-]*)$/u);
   return (sPredpono ? sPredpono[1] : naslov).trim();
 }
@@ -1003,7 +1048,10 @@ function najdiNosilcaRegistriranegaTrgovca(vrstice) {
 function razcleniImpressum(html, sourceUrl, vnos) {
   var pravniHtml = izlociPravniImpressumBlok(html);
   var strukturiranHtml = pravniHtml.replace(/<\/(?:h[1-6]|p|div|li|section|article|address|td|dd)>/gi, "$&\n");
-  var tekst = normalizirajInlineNaslovneVrstice(besediloIzHtml(strukturiranHtml).replace(/\s*\n\s*/g, "\n"));
+  var strukturiranoBesedilo = besediloIzHtml(strukturiranHtml).replace(/\s*\n\s*/g, "\n")
+    .replace(/([^\n])(?=(?:Firmenname|Inhaber(?:in)?|Adresse|Anschrift|Telefon|Tel\.?|E-?Mail|Website|Webseite|Handelsregister|Registergericht|Amtsgericht|USt\.?-?Id)\s*:)/gi, "$1\n")
+    .replace(/(^|\n)\s*(?:Firmenname|Unternehmensname)\s*:\s*/gi, "$1");
+  var tekst = normalizirajInlineNaslovneVrstice(strukturiranoBesedilo);
   // Vse za splošnim kreditom izdelovalca strani je zunaj pravnega bloka
   // preverjanega podjetja. Tako besede, kot je "Partner" v imenu agencije,
   // ne morejo postati vloga ali zastopnik preverjenega subjekta.
@@ -1013,6 +1061,16 @@ function razcleniImpressum(html, sourceUrl, vnos) {
   var naslovniIndexLokacije = vrstice.findIndex(function (vrstica) { return /\b\d{5}\s+[\p{L}]/u.test(vrstica); });
   var strukturiranaPoslovnaImena = izlociStrukturiranaPoslovnaImena(html);
   var primarniPoslovniNaziv = najdiPrimarniPoslovniNaziv(vrstice, naslovniIndexLokacije, vnos);
+  if (!primarniPoslovniNaziv) {
+    var domenskoIme = domenskiNaziv(sourceUrl);
+    var strukturiraniKandidat = strukturiranaPoslovnaImena.map(function (ime) {
+      return { ime: ime, ocena: oceniUjemanjePoslovnihNazivov(ime, domenskoIme) };
+    }).filter(function (kandidat) {
+      return !jeSplosnaOznakaPoslovnegaNaziva(kandidat.ime) &&
+        (vsebujePoslovniOpis(kandidat.ime) || jeNazivPravneDruzbe(kandidat.ime)) && kandidat.ocena >= 0.34;
+    }).sort(function (a, b) { return b.ocena - a.ocena; })[0];
+    if (strukturiraniKandidat) primarniPoslovniNaziv = kanonicniPravniNaziv(strukturiraniKandidat.ime);
+  }
   var lokacijaVrstica = naslovniIndexLokacije >= 0 ? vrstice[naslovniIndexLokacije] : "";
   var lokacija = lokacijaVrstica.match(/\b(\d{5})\s+([^,]{2,80})/u) || tekst.match(/\b(\d{5})\s+([^\n,]{2,80})/u);
   var naslovUlice = "";
@@ -1028,6 +1086,22 @@ function razcleniImpressum(html, sourceUrl, vnos) {
   var vzorecVloge = new RegExp("(" + oznakaVloge + ")\\s*:?\\s*\\n?([^\\n]{0,180})", "gi");
   var nosilci = [];
   var pravneVloge = [];
+  // Najprej obravnavamo nedvoumne oznake, ki sta na isti vidni vrstici kot
+  // oseba. To ima prednost pred neoznačenimi kandidati iz navigacije,
+  // certifikacijskih značk in piškotnih oken.
+  vrstice.forEach(function (vrstica) {
+    if (nosilci.length >= 6) return;
+    var oznacenaOseba = vrstica.match(/^\s*((?:Gesch(?:ä|a)ftsf(?:ü|u)hrer(?:in)?|Gesch(?:ä|a)ftsf(?:ü|u)hrung|Betriebsinhaber(?:in)?|Firmeninhaber(?:in)?|Gesch(?:ä|a)ftsinhaber(?:in)?|Inhaber(?:in)?|Vorstand|Komplement(?:ä|a)r(?:in)?|Gesellschafter(?:in)?))\s*:\s*(.{2,180})$/i);
+    if (!oznacenaOseba) return;
+    oznacenaOseba[2].split(/\s*(?:;|\bund\b|\s&\s)\s*/i).forEach(function (suroviKandidat) {
+      var kandidat = pocistiImeOsebe(suroviKandidat);
+      if (!(jeVerjetnoImeOsebe(kandidat) || jeVerjetnoDaljseOznacenoImeOsebe(kandidat) ||
+          jeVerjetnoPonovljenoOznacenoImeOsebe(kandidat)) ||
+          nosilci.some(function (oseba) { return normaliziraj(oseba) === normaliziraj(kandidat); })) return;
+      nosilci.push(kandidat);
+      pravneVloge.push({ ime: kandidat, vloga: dolociPravnoVlogo(oznacenaOseba[1], oznacenaOseba[2]) });
+    });
+  });
   var ujemanjeVloge;
   while ((ujemanjeVloge = vzorecVloge.exec(tekst)) && nosilci.length < 6) {
     var suroviNosilci = [];
@@ -1151,6 +1225,17 @@ function razcleniImpressum(html, sourceUrl, vnos) {
       ? varniVneseniNaziv
       : (primarniPoslovniNaziv || (vneseniNazivJePodprt ? varniVneseniNaziv : "") || nosilci[0]));
   nazivDruzbe = kanonicniPravniNaziv(nazivDruzbe);
+  if (!jeNazivPravneDruzbe(nazivDruzbe) && jeSplosnaOznakaPoslovnegaNaziva(nazivDruzbe)) {
+    var rezervniDomenskiNaziv = domenskiNaziv(sourceUrl);
+    var rezervniStrukturiraniNaziv = strukturiranaPoslovnaImena.map(function (ime) {
+      return { ime: ime, ocena: oceniUjemanjePoslovnihNazivov(ime, rezervniDomenskiNaziv) };
+    }).filter(function (kandidat) {
+      return !jeSplosnaOznakaPoslovnegaNaziva(kandidat.ime) && kandidat.ocena >= 0.34;
+    }).sort(function (a, b) { return b.ocena - a.ocena; })[0];
+    nazivDruzbe = rezervniStrukturiraniNaziv
+      ? kanonicniPravniNaziv(rezervniStrukturiraniNaziv.ime)
+      : (vneseniNazivJePodprt ? kanonicniPravniNaziv(varniVneseniNaziv) : nosilci[0]);
+  }
   var register = najdiRegistrskiVnos(tekst);
   var registergericht = tekst.match(/(?:Registergericht|Amtsgericht)\s*:?\s*([^\n]{2,100})/i);
   if (!registergericht) registergericht = tekst.match(/Handelsregister\s*:?[ \t]*(?:Amtsgericht\s+)?([^\n]{2,80}?)\s+(?:HR[AB]|GnR|PR|VR)\b/i);
@@ -2274,11 +2359,17 @@ async function zazeniBrskalnikZaDokazilo() {
     ];
     var lokalniBrskalnik = lokalnePoti.find(function (pot) { return fs.existsSync(pot); });
     if (!lokalniBrskalnik) throw new Error("LOCAL_BROWSER_NOT_FOUND");
-    return puppeteer.launch({
+    // Vsak zajem dobi svoj profil. Ob časovni prekinitvi zato zaklenjen profil
+    // prejšnjega brskalnika ne more ustaviti vseh naslednjih preverjanj.
+    var zacasniProfil = fs.mkdtempSync(path.join(os.tmpdir(), "mehka-boniteta-browser-"));
+    var lokalniBrowser = await puppeteer.launch({
       executablePath: lokalniBrskalnik,
       headless: true,
+      userDataDir: zacasniProfil,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+    lokalniBrowser.__mehkaBonitetaTempProfile = zacasniProfil;
+    return lokalniBrowser;
   }
   var chromiumModul = require("@sparticuz/chromium");
   var chromium = chromiumModul.default || chromiumModul;
@@ -2289,6 +2380,26 @@ async function zazeniBrskalnikZaDokazilo() {
     executablePath: await chromium.executablePath(),
     headless: "shell",
   });
+}
+
+async function zapriBrskalnikZaDokazilo(browser) {
+  if (!browser) return;
+  var zacasniProfil = browser.__mehkaBonitetaTempProfile;
+  try {
+    await browser.close();
+  } finally {
+    if (!zacasniProfil) return;
+    var razresenProfil = path.resolve(zacasniProfil);
+    var razresenaTempMapa = path.resolve(os.tmpdir());
+    if (path.dirname(razresenProfil) !== razresenaTempMapa ||
+        !path.basename(razresenProfil).startsWith("mehka-boniteta-browser-")) return;
+    try {
+      await fs.promises.rm(razresenProfil, { recursive: true, force: true, maxRetries: 5, retryDelay: 150 });
+    } catch (_) {
+      // Zaklenjen profil ne sme podreti preverbe; naslednji zajem uporablja
+      // drugo mapo in lahko nemoteno nadaljuje.
+    }
+  }
 }
 
 async function sprejmiPiskotke(stran) {
@@ -2618,7 +2729,7 @@ async function pripraviZakasnjenoVsebinoDokazila(stran, identiteta) {
     var razkrito = 0;
     for (var trenutni = cilj; trenutni && trenutni !== document.body && trenutni !== document.documentElement; trenutni = trenutni.parentElement) {
       var slog = window.getComputedStyle(trenutni);
-      var jeAnimacijskiOvoj = /(?:^|[\s_-])(?:animated?|animation|animate|aos|fade|reveal|wow)(?:[\s_-]|$)/i.test(opisAnimacije(trenutni));
+      var jeAnimacijskiOvoj = /(?:^|[\s_-])(?:animated?|animation|animate|aos|fade|reveal|wow|invisible)(?:[\s_-]|$)/i.test(opisAnimacije(trenutni));
       var jeVizualnoSkrit = Number(slog.opacity || 1) < 0.98 || slog.visibility === "hidden";
       if (!jeAnimacijskiOvoj || !jeVizualnoSkrit) continue;
       trenutni.style.setProperty("animation", "none", "important");
@@ -2741,7 +2852,8 @@ function jePosnetekSkorajPrazen(analiza) {
   // besedilo na belem ozadju. Zajem zavrnemo šele, ko je hkrati skoraj bel
   // in v osrednjem delu nima vsebine, razporejene po več navpičnih pasovih.
   return analiza.delezBele >= 0.68 &&
-    (analiza.delezVsebinskihVrsticVJedru || 0) <= 0.375;
+    (analiza.delezVsebineVJedru || 0) <= 0.008 &&
+    (analiza.delezVsebinskihVrsticVJedru || 0) <= 0.125;
 }
 
 async function zajemiIzrezDokazila(stran, izrez) {
@@ -2756,11 +2868,16 @@ async function zajemiIzrezDokazila(stran, izrez) {
       var pravokotnik = element.getBoundingClientRect();
       var zIndex = Number.parseInt(slog.zIndex, 10);
       var opis = [element.id, element.className, element.getAttribute("role"), element.getAttribute("aria-label")].join(" ");
+      var barvaOzadja = String(slog.backgroundColor || "").match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?/i);
+      var alfaOzadja = barvaOzadja && barvaOzadja[4] == null ? 1 : Number(barvaOzadja && barvaOzadja[4] || 0);
+      var neimenovanaZatemnitev = Boolean(barvaOzadja && alfaOzadja >= 0.12 && alfaOzadja < 0.98 &&
+        (Number(barvaOzadja[1]) + Number(barvaOzadja[2]) + Number(barvaOzadja[3])) / 3 < 230) ||
+        (slog.backdropFilter && slog.backdropFilter !== "none");
       return (slog.position === "fixed" || slog.position === "sticky") &&
         slog.display !== "none" && slog.visibility !== "hidden" && Number(slog.opacity || 1) > 0.02 &&
         pravokotnik.width >= window.innerWidth * 0.6 && pravokotnik.height >= window.innerHeight * 0.6 &&
         Number.isFinite(zIndex) && zIndex >= 100 &&
-        /(?:dialog|modal|overlay|backdrop|popup|lightbox|offcanvas|engage|(?:^|[\s_-])eb-(?:inst|dialog)(?:[\s_-]|$))/i.test(opis);
+        (neimenovanaZatemnitev || /(?:dialog|modal|overlay|backdrop|popup|lightbox|offcanvas|engage|(?:^|[\s_-])eb-(?:inst|dialog)(?:[\s_-]|$))/i.test(opis));
     });
   });
   if (prekrivanjeSeVednoAktivno) throw new Error("IDENTITY_SCREENSHOT_OVERLAY_ACTIVE");
@@ -2772,6 +2889,19 @@ async function zajemiIzrezDokazila(stran, izrez) {
     encoding: "base64",
   });
   var analiza = await analizirajSivinoPosnetka(stran, posnetek);
+  var vsebinaIzrezaJeVidna = await stran.evaluate(function (clip) {
+    return Array.from(document.querySelectorAll("h1, h2, h3, h4, p, address, li, dt, dd, strong"))
+      .filter(function (element) {
+        var slog = window.getComputedStyle(element);
+        var rect = element.getBoundingClientRect();
+        var levo = Math.max(clip.x, rect.left + window.scrollX);
+        var zgoraj = Math.max(clip.y, rect.top + window.scrollY);
+        var desno = Math.min(clip.x + clip.width, rect.right + window.scrollX);
+        var spodaj = Math.min(clip.y + clip.height, rect.bottom + window.scrollY);
+        return slog.display !== "none" && slog.visibility !== "hidden" && Number(slog.opacity || 1) >= 0.98 &&
+          desno > levo && spodaj > zgoraj && String(element.innerText || element.textContent || "").trim().length >= 3;
+      }).length >= 3;
+  }, izrez);
   var naravnoTemnoOzadje = await stran.evaluate(function (clip) {
     function jeTemno(element) {
       if (!element) return false;
@@ -2779,16 +2909,19 @@ async function zajemiIzrezDokazila(stran, izrez) {
       var barva = slog.backgroundColor;
       var rgb = String(barva || "").match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?/i);
       var alfa = rgb && rgb[4] == null ? 1 : Number(rgb && rgb[4] || 0);
-      if (!rgb || alfa < 0.98 || Number(slog.opacity || 1) < 0.98) return false;
-      if (slog.position === "fixed" || slog.position === "sticky" || slog.position === "absolute") return false;
+      var zIndex = Number.parseInt(slog.zIndex, 10);
+      var negativnoOzadje = Number.isFinite(zIndex) && zIndex < 0;
+      if (Number(slog.opacity || 1) < 0.98) return false;
+      if ((slog.position === "fixed" || slog.position === "sticky" || slog.position === "absolute") && !negativnoOzadje) return false;
       if (slog.filter !== "none" || slog.backdropFilter !== "none") return false;
       var opis = [element.id, element.className, element.getAttribute("role"), element.getAttribute("aria-label")].join(" ");
       if (/(?:dialog|modal|overlay|backdrop|popup|lightbox|offcanvas|cookie|consent|cmp|engage)/i.test(opis)) return false;
-      return (Number(rgb[1]) + Number(rgb[2]) + Number(rgb[3])) / 3 < 190;
+      var slikovnoOzadje = String(slog.backgroundImage || "none") !== "none";
+      return slikovnoOzadje || Boolean(rgb && alfa >= 0.98 && (Number(rgb[1]) + Number(rgb[2]) + Number(rgb[3])) / 3 < 190);
     }
     if (jeTemno(document.body) || jeTemno(document.documentElement)) return true;
     var povrsinaIzreza = Math.max(1, clip.width * clip.height);
-    return Array.from(document.querySelectorAll("main, article, section, [role='main']")).some(function (element) {
+    return Array.from(document.querySelectorAll("body *")).some(function (element) {
       if (!jeTemno(element)) return false;
       var rect = element.getBoundingClientRect();
       var levo = Math.max(clip.x, rect.left + window.scrollX);
@@ -2798,7 +2931,7 @@ async function zajemiIzrezDokazila(stran, izrez) {
       return Math.max(0, desno - levo) * Math.max(0, spodaj - zgoraj) / povrsinaIzreza >= 0.55;
     });
   }, izrez);
-  if (!naravnoTemnoOzadje && jePosnetekZatemnjenZaradiSloja(analiza)) throw new Error("IDENTITY_SCREENSHOT_DIMMED_OVERLAY");
+  if (!naravnoTemnoOzadje && !vsebinaIzrezaJeVidna && jePosnetekZatemnjenZaradiSloja(analiza)) throw new Error("IDENTITY_SCREENSHOT_DIMMED_OVERLAY");
   if (jePosnetekSkorajPrazen(analiza)) throw new Error("IDENTITY_SCREENSHOT_BLANK_CONTENT");
   return posnetek;
 }
@@ -3042,6 +3175,9 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
     await stran.setUserAgent(BROWSER_USER_AGENT);
     await stran.goto(varenUrl.toString(), { waitUntil: "domcontentloaded", timeout: 25000 });
     await new Promise(function (resolve) { setTimeout(resolve, 1200); });
+    await skrijPiskotkovnoPasicoZaPosnetek(stran);
+    await pripraviZakasnjenoVsebinoDokazila(stran, identiteta);
+    var vnaprejZajetoDokazilo = null;
     if (identiteta && ["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) {
       var vidnaPravnaVsebina = await stran.evaluate(function () {
         return {
@@ -3057,7 +3193,13 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
         sestaviObveznePojmeDokazilaIdentitete(identiteta),
         identiteta.entityType === "company" || jeNazivPravneDruzbe(identiteta.naziv)
       );
-      if (!jePravnaImpressumStran) throw new Error("IMPRINT_PAGE_NOT_CONFIRMED");
+      if (!jePravnaImpressumStran) {
+        try {
+          vnaprejZajetoDokazilo = await ponovnoZajemiImpressumBrezSkript(stran, varenUrl.toString(), identiteta);
+        } catch (_) {
+          throw new Error("IMPRINT_PAGE_NOT_CONFIRMED");
+        }
+      }
     }
     // Za dokazilo ne spreminjamo soglasja na tuji strani. Pasico samo lokalno
     // umaknemo iz posnetka, pravna vsebina Impressuma pa ostane nespremenjena.
@@ -3066,20 +3208,22 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
     // Nekatere strani pravni blok izrišejo šele po zaprtju pasice za piškotke
     // ali po zakasnjenem odjemalskem izrisu. En sam trenutni posnetek je zato
     // občasno vrnil lažen IDENTITY_BLOCK_NOT_FOUND.
-    var izrez = await pocakajNaIzrezIdentitete(stran, identiteta);
+    var izrez = vnaprejZajetoDokazilo && vnaprejZajetoDokazilo.izrez || await pocakajNaIzrezIdentitete(stran, identiteta);
     if (!izrez) throw new Error("IDENTITY_BLOCK_NOT_FOUND");
-    var posnetek;
-    try {
-      posnetek = await zajemiIzrezDokazila(stran, izrez);
-    } catch (napakaPrvegaPosnetka) {
-      if (!["IDENTITY_SCREENSHOT_DIMMED_OVERLAY", "IDENTITY_SCREENSHOT_OVERLAY_ACTIVE", "IDENTITY_SCREENSHOT_BLANK_CONTENT"].includes(napakaPrvegaPosnetka.message) ||
-          !identiteta || !["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) throw napakaPrvegaPosnetka;
-      // Če slikovna analiza odkrije zatemnitev, isto pravno stran ponovno
-      // naložimo brez izvajanja skript. Vsebina ostane izvirna, pojavni vtičnik
-      // pa nima možnosti znova vključiti temnega ozadja.
-      var ponovljenoBrezSkript = await ponovnoZajemiImpressumBrezSkript(stran, varenUrl.toString(), identiteta);
-      izrez = ponovljenoBrezSkript.izrez;
-      posnetek = ponovljenoBrezSkript.posnetek;
+    var posnetek = vnaprejZajetoDokazilo && vnaprejZajetoDokazilo.posnetek;
+    if (!posnetek) {
+      try {
+        posnetek = await zajemiIzrezDokazila(stran, izrez);
+      } catch (napakaPrvegaPosnetka) {
+        if (!["IDENTITY_SCREENSHOT_DIMMED_OVERLAY", "IDENTITY_SCREENSHOT_OVERLAY_ACTIVE", "IDENTITY_SCREENSHOT_BLANK_CONTENT"].includes(napakaPrvegaPosnetka.message) ||
+            !identiteta || !["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) throw napakaPrvegaPosnetka;
+        // Če slikovna analiza odkrije zatemnitev, isto pravno stran ponovno
+        // naložimo brez izvajanja skript. Vsebina ostane izvirna, pojavni vtičnik
+        // pa nima možnosti znova vključiti temnega ozadja.
+        var ponovljenoBrezSkript = await ponovnoZajemiImpressumBrezSkript(stran, varenUrl.toString(), identiteta);
+        izrez = ponovljenoBrezSkript.izrez;
+        posnetek = ponovljenoBrezSkript.posnetek;
+      }
     }
     if (!jePosnetekDokazilaUporaben(posnetek, izrez)) {
       // Animacija se lahko zaključi med izračunom izreza in samim zajemom.
@@ -3103,7 +3247,7 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProf
       sourceLabel: vir.sourceLabel,
     };
   } finally {
-    await browser.close();
+    await zapriBrskalnikZaDokazilo(browser);
   }
 }
 
@@ -3174,10 +3318,16 @@ function sestaviUradneImenskePogoje(subjekt) {
   var vrstaSubjekta = subjekt && subjekt.entityType;
   var varnoIme = vrstaSubjekta === "company" ? kanonicniPravniNaziv(subjekt.ime) : pocistiImeOsebe(subjekt && subjekt.ime);
   var razdeljeno = razdeliImeZaInsolvenco(varnoIme);
+  var posebnoImeZIzrecnoVlogo = Boolean(subjekt && Array.isArray(subjekt.vloge) &&
+    (jeVerjetnoDaljseOznacenoImeOsebe(varnoIme) || jeVerjetnoPonovljenoOznacenoImeOsebe(varnoIme)) &&
+    subjekt.vloge.some(function (vloga) {
+      return normaliziraj(vloga && vloga.ime) === normaliziraj(varnoIme) &&
+        !/^(?:Neoznačena oseba|Inhaltlich verantwortlich)$/i.test(String(vloga && vloga.vloga || ""));
+    }));
   if (vrstaSubjekta === "company" && varnoIme) {
     return { firmaPriimek: varnoBesedilo(varnoIme, 180), ime: "", vrsta: "company" };
   }
-  if (vrstaSubjekta === "person" && jeVerjetnoImeOsebe(varnoIme) && razdeljeno.vrsta === "person") {
+  if (vrstaSubjekta === "person" && (jeVerjetnoImeOsebe(varnoIme) || posebnoImeZIzrecnoVlogo) && razdeljeno.vrsta === "person") {
     return { firmaPriimek: razdeljeno.firmaPriimek, ime: razdeljeno.ime, vrsta: "person" };
   }
   return { firmaPriimek: "", ime: "", vrsta: "unknown" };
@@ -3463,7 +3613,7 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
       evidenceImage: "data:image/jpeg;base64," + posnetek,
     });
   } finally {
-    await browser.close();
+    await zapriBrskalnikZaDokazilo(browser);
   }
 }
 

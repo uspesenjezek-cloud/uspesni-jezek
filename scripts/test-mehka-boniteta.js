@@ -49,8 +49,8 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/uradni-rezultat",
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
-assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v15-visible-legal-content");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v34-registered-merchant-impressum-evidence");
+assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v16-visible-content-overlay-isolation");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v35-transport-category-regressions");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -548,6 +548,63 @@ var federalImpressum = test.razcleniImpressum(
 );
 assert.strictEqual(federalImpressum.ime, "Semih Topatan");
 assert.strictEqual(federalImpressum.naziv, "Federal Umzüge", "splošni naslov Anbieter ni naziv podjetja");
+assert.strictEqual(test.jeVerjetnoImeOsebe("Notwendig Immer Aktiv"), false, "stanje nujnih piškotkov ni osebno ime");
+[
+  "Nützliche Weiterleitungen",
+  "Name des Unternehmens",
+  "Verwaltung und Betriebssitz",
+  "Verwaltung",
+  "Eingetragener Firmensitz",
+  "Wir schätzen Ihre Privatsphäre",
+  "Anpassen",
+  "Alles ablehnen",
+  "Alle akzeptieren",
+  "Verwaltung | Betriebssitz",
+  "Umzug | Transporte",
+  "Familie Sahin",
+].forEach(function (splosnaOznaka) {
+  assert.strictEqual(test.jeVerjetnoImeOsebe(splosnaOznaka), false, "splošna oznaka ni osebno ime: " + splosnaOznaka);
+});
+assert.strictEqual(test.pocistiNazivDruzbe("--> Gerben Faber Transporte Oberndorf --> --> -->"), "Gerben Faber Transporte Oberndorf");
+var blitzlichtImpressum = test.razcleniImpressum(
+  "<html><body><aside><div>Google Partner</div><button>Notwendig</button><span>Immer Aktiv</span></aside>" +
+  "<main><p>Angaben gemäß § 5 TMG:</p><p>Blitzlicht Umzüge und Entrümpelungen</p>" +
+  "<p>Killingstraße 2<br>48159 Münster</p><p>Geschäftsführer: Hassan Hassan</p>" +
+  "<h3>Gestaltung und Programmierung:</h3><p>Primesite (Patrick Schäfer)</p><h1>Haftungsausschluss</h1></main></body></html>",
+  "https://umzugentruempelung-muenster.de/impressum/", { ime: "Blitzlicht Umzüge und Entrümpelungen" }
+);
+assert.strictEqual(blitzlichtImpressum.ime, "Hassan Hassan", "piškotkovni in partnerski vmesnik ne smeta preglasiti označenega direktorja");
+var potrjenHassan = test.pripraviPotrditevIdentitete({ confirmedIdentity: {
+  name: "Hassan Hassan", businessName: "Blitzlicht Umzüge und Entrümpelungen", representativeName: "Hassan Hassan",
+  street: "Killingstraße 2", postalCode: "48159", city: "Münster", confirmed: true,
+} }, Object.assign({ status: "probable_impressum" }, blitzlichtImpressum));
+assert.strictEqual(potrjenHassan.status, "valid", "izrecno označeno podvojeno osebno ime mora prestati tudi potrditveni korak");
+assert.deepStrictEqual(test.sestaviUradneImenskePogoje(potrjenHassan.identity), {
+  firmaPriimek: "Hassan", ime: "Hassan", vrsta: "person",
+}, "potrjeno podvojeno ime z izrecno pravno vlogo mora doseči uradno insolvenčno iskanje");
+var potrjenBayatPoor = test.pripraviPotrditevIdentitete({ confirmedIdentity: {
+  name: "Mohammad Sadegh Bayat Poor", businessName: "Mohammad Sadegh Bayat Poor", representativeName: "Mohammad Sadegh Bayat Poor",
+  street: "Max-von-Laue-Straße 19", postalCode: "30966", city: "Hemmingen", confirmed: true,
+} }, {
+  status: "probable_impressum", ime: "Mohammad Sadegh Bayat Poor", naziv: "Mohammad Sadegh Bayat Poor",
+  nosilec: "Mohammad Sadegh Bayat Poor", zastopniki: ["Mohammad Sadegh Bayat Poor"],
+  vloge: [{ ime: "Mohammad Sadegh Bayat Poor", vloga: "Vertretung" }],
+  naslov: "Max-von-Laue-Straße 19", postnaStevilka: "30966", kraj: "Hemmingen", source: "impressum",
+});
+assert.strictEqual(potrjenBayatPoor.status, "valid", "izrecno označeno štiridelno osebno ime mora prestati tudi potrditveni korak");
+assert.deepStrictEqual(test.sestaviUradneImenskePogoje(potrjenBayatPoor.identity), {
+  firmaPriimek: "Poor", ime: "Mohammad Sadegh Bayat", vrsta: "person",
+}, "potrjeno štiridelno ime z izrecno pravno vlogo mora doseči uradno insolvenčno iskanje");
+assert.strictEqual(blitzlichtImpressum.naziv, "Blitzlicht Umzüge und Entrümpelungen");
+var alfajerInlineImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Firmenname: Alfajer Trans Inhaber: Ali Alfajer Adresse: Neudorfer Str. 34 66111 Saarbrücken Deutschland E-Mail: alfajerumzug@gmail.com Website: alfajer-umzug.com</p></main>",
+  "https://alfajer-umzug.com/impressum/", { ime: "" }
+);
+assert.strictEqual(alfajerInlineImpressum.ime, "Ali Alfajer");
+assert.strictEqual(alfajerInlineImpressum.naziv, "Alfajer Trans");
+assert.strictEqual(alfajerInlineImpressum.naslov, "Neudorfer Str. 34");
+assert.strictEqual(alfajerInlineImpressum.kraj, "Saarbrücken");
+assert.strictEqual(alfajerInlineImpressum.email, "alfajerumzug@gmail.com");
 var entruempelExpertenImpressum = test.razcleniImpressum(
   "<main><h1>Impressum</h1><p>Anbieter: Ramazan Özdemir - Entrümpel Experten<br>Zachersweg 6<br>74376 Gemmrigheim</p></main>",
   "https://entruempelung-gemmrigheim.de/impressum/", { ime: "Entrümpel-Experten" }
@@ -1273,16 +1330,32 @@ assert.strictEqual(test.jePosnetekZatemnjenZaradiSloja({
   delezMocnoSivihVrstic: 1, razponSvetlostiVrstic: 7,
 }), true, "enakomerno zatemnjena slika mora ostati zavrnjena");
 assert.strictEqual(test.jePosnetekSkorajPrazen({
-  delezBele: 0.75, delezVsebineVJedru: 0.03, delezVsebinskihVrsticVJedru: 0.25,
+  delezBele: 0.95, delezVsebineVJedru: 0.001, delezVsebinskihVrsticVJedru: 0,
 }), true, "bel rezervni izris z vsebino samo v ozkem zgornjem pasu ne sme postati dokazilo");
+assert.strictEqual(test.jePosnetekSkorajPrazen({
+  delezBele: 0.822, delezVsebineVJedru: 0.034, delezVsebinskihVrsticVJedru: 0.375,
+}), false, "kratek, vendar v treh osrednjih pasovih viden Impressum ne sme biti lažno zavrnjen");
+assert.strictEqual(test.jePosnetekSkorajPrazen({
+  delezBele: 0.938, delezVsebineVJedru: 0.018, delezVsebinskihVrsticVJedru: 0.25,
+}), false, "kratek dvostolpčni Impressum na skoraj beli podlagi mora ostati veljaven");
 assert.strictEqual(test.jePosnetekSkorajPrazen({
   delezBele: 0.86, delezVsebineVJedru: 0.09, delezVsebinskihVrsticVJedru: 0.75,
 }), false, "bel Impressum z razporejenim temnim besedilom mora ostati veljaven");
 assert.strictEqual(test.jePosnetekSkorajPrazen({
   delezBele: 0.28, delezVsebineVJedru: 0.2, delezVsebinskihVrsticVJedru: 0.75,
 }), false, "vsebinski barvni ali temni Impressum ne sme biti lažno zavrnjen");
-assert.match(dokaziloVir, /querySelectorAll\("main, article, section, \[role='main'\]"\)/,
-  "temen pojavni div se ne sme več razglasiti za naravno ozadje strani");
+assert.match(dokaziloVir, /querySelectorAll\("body \*"\)/,
+  "naravno ozadje je lahko tudi ločen absolutni sloj strani");
+assert.match(dokaziloVir, /dialog\|modal\|overlay\|backdrop/,
+  "pojavni sloj se tudi pri pregledu ozadij ne sme razglasiti za naravno ozadje strani");
+assert.match(dokaziloVir, /negativnoOzadje/,
+  "ločeno ozadje mora biti sprejeto samo, kadar je varno za vsebino z negativnim z-indeksom");
+assert.match(dokaziloVir, /neimenovanaZatemnitev/,
+  "velik prosojen sloj z visokim z-indeksom mora biti zaznan tudi brez značilnega imena razreda");
+assert.match(dokaziloVir, /vsebinaIzrezaJeVidna/,
+  "jasno vidno pravno besedilo na temnem ali slikovnem ozadju ne sme biti lažno zavrnjeno");
+assert.match(dokaziloVir, /wow\|invisible/,
+  "Elementorjev nevidni animacijski ovoj mora biti zaključen pred posnetkom");
 assert.match(dokaziloVir, /IDENTITY_SCREENSHOT_OVERLAY_ACTIVE.*includes|includes\(napakaPrvegaPosnetka\.message\)/s,
   "tudi DOM-zaznan prekrivni sloj mora sprožiti rezervni zajem brez skript");
 assert.match(dokaziloVir, /eb-\(\?:inst\|dialog\)/, "EngageBox ovoj ne sme ostati siv nad dokaznim posnetkom");
