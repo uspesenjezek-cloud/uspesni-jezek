@@ -1605,6 +1605,12 @@ function razcleniOpenRegisterVnos(vrednost) {
   return { companyId: "", registerType: "", registerNumber: "" };
 }
 
+function razcleniOpenRegisterReferenco(vnos) {
+  var izImena = razcleniOpenRegisterVnos(vnos && vnos.ime);
+  if (izImena.companyId || izImena.registerNumber) return izImena;
+  return razcleniOpenRegisterVnos(vnos && vnos.registerNumber);
+}
+
 function pocistiRegistrskoSodisce(vrednost) {
   return String(vrednost || "")
     .replace(/^\s*(?:Amtsgericht|Registergericht)\s*:?\s*/i, "")
@@ -1613,7 +1619,7 @@ function pocistiRegistrskoSodisce(vrednost) {
 }
 
 function oceniOpenRegisterZadetek(kandidat, vnos) {
-  var register = razcleniOpenRegisterVnos(vnos && vnos.ime);
+  var register = razcleniOpenRegisterReferenco(vnos);
   if (register.companyId && String(kandidat && kandidat.company_id || "").toUpperCase() === register.companyId) return 500;
   var iskanoSodisce = normaliziraj(pocistiRegistrskoSodisce(vnos && vnos.registerCourt));
   var najdenoSodisce = normaliziraj(pocistiRegistrskoSodisce(kandidat && kandidat.register_court));
@@ -1647,11 +1653,18 @@ function izberiOpenRegisterZadetek(rezultati, vnos) {
   return { status: "found", company: ocenjeni[0].kandidat };
 }
 
+function razlogOpenRegisterIdentitetneNapake(status) {
+  if (status === 401 || status === 403) return "not_configured";
+  if (status === 402) return "insufficient_credits";
+  if (status === 429) return "rate_limited";
+  return "api_error";
+}
+
 async function poisciOpenRegister(vnos) {
   var kljuc = String(process.env.OPENREGISTER_API_KEY || "").trim();
   if (!kljuc) return { status: "not_configured", sourceUrl: OPENREGISTER_WEB };
   var url = new URL(OPENREGISTER_SEARCH);
-  var register = razcleniOpenRegisterVnos(vnos.ime);
+  var register = razcleniOpenRegisterReferenco(vnos);
   if (register.registerNumber) {
     url.searchParams.set("register_number", register.registerNumber);
     if (register.registerType) url.searchParams.set("register_type", register.registerType);
@@ -1666,8 +1679,13 @@ async function poisciOpenRegister(vnos) {
     var odgovor = await fetchZRokom(url, {
       headers: { Authorization: "Bearer " + kljuc, Accept: "application/json", "User-Agent": USER_AGENT },
     }, 12000);
-    if (odgovor.status === 401 || odgovor.status === 403) return { status: "not_configured", sourceUrl: OPENREGISTER_WEB };
-    if (!odgovor.ok) return { status: "unavailable", sourceUrl: OPENREGISTER_WEB };
+    if (odgovor.status === 401 || odgovor.status === 403) return { status: "not_configured", reason: "not_configured", httpStatus: odgovor.status, sourceUrl: OPENREGISTER_WEB };
+    if (!odgovor.ok) return {
+      status: "unavailable",
+      reason: razlogOpenRegisterIdentitetneNapake(odgovor.status),
+      httpStatus: odgovor.status,
+      sourceUrl: OPENREGISTER_WEB,
+    };
     var podatki = await odgovor.json();
     var izbor = izberiOpenRegisterZadetek(podatki.results, vnos);
     var sourceUrl = izbor.status === "found" && izbor.company && izbor.company.company_id
@@ -1675,7 +1693,7 @@ async function poisciOpenRegister(vnos) {
       : OPENREGISTER_WEB;
     return Object.assign({ sourceUrl: sourceUrl, queryUrl: url.toString() }, izbor);
   } catch (_) {
-    return { status: "unavailable", sourceUrl: OPENREGISTER_WEB };
+    return { status: "unavailable", reason: "network_error", sourceUrl: OPENREGISTER_WEB };
   }
 }
 
@@ -2265,6 +2283,7 @@ function sestaviVire(openregister, hwk, javniProfil, vnos) {
       id: "openregister",
       label: "Register podjetij",
       status: openregister.status,
+      reason: openregister.reason || "",
       sourceUrl: openregister.sourceUrl || OPENREGISTER_WEB,
       message: openregister.status === "found"
         ? "Registrirana družba je najdena."
@@ -2275,7 +2294,13 @@ function sestaviVire(openregister, hwk, javniProfil, vnos) {
           : openregister.status === "ambiguous"
             ? "Najdenih je več možnih družb."
             : openregister.status === "unavailable"
-              ? "Vir trenutno ni dosegljiv."
+              ? (openregister.reason === "insufficient_credits"
+                ? "OpenRegister API nima dovolj kreditov. Javni zapis lahko odprete neposredno; preverjanje se nadaljuje z Impressumom."
+                : openregister.reason === "rate_limited"
+                  ? "OpenRegister je začasno omejil število zahtev; preverjanje se nadaljuje z rezervnimi viri."
+                  : openregister.reason === "network_error"
+                    ? "Povezava z OpenRegisterjem je začasno prekinjena; preverjanje se nadaljuje z rezervnimi viri."
+                    : "OpenRegister API trenutno ni dosegljiv; preverjanje se nadaljuje z rezervnimi viri.")
               : "Registrirana družba s tem imenom ni najdena.",
     },
     {
@@ -4175,7 +4200,10 @@ handler._test = {
   jeZasebenIp: jeZasebenIp,
   poisciVImpressumu: poisciVImpressumu,
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,
+  poisciOpenRegister: poisciOpenRegister,
   razcleniOpenRegisterVnos: razcleniOpenRegisterVnos,
+  razcleniOpenRegisterReferenco: razcleniOpenRegisterReferenco,
+  razlogOpenRegisterIdentitetneNapake: razlogOpenRegisterIdentitetneNapake,
   pocistiRegistrskoSodisce: pocistiRegistrskoSodisce,
   sestaviIdentiteto: sestaviIdentiteto,
   sestaviRocnoIdentiteto: sestaviRocnoIdentiteto,

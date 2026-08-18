@@ -50,7 +50,7 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
 assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v16-visible-content-overlay-isolation");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v36-openregister-insolvency-fallback");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v37-openregister-register-reference");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -166,6 +166,17 @@ assert.strictEqual(ocrVnos.vatId, "DE123456789");
 assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({}, ocrVnos).ime, "HRB 12345");
 assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(402), "insufficient_credits");
 assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(429), "rate_limited");
+assert.strictEqual(test.razlogOpenRegisterIdentitetneNapake(402), "insufficient_credits");
+assert.strictEqual(test.razlogOpenRegisterIdentitetneNapake(429), "rate_limited");
+assert.deepStrictEqual(test.razcleniOpenRegisterReferenco({
+  ime: "Karl Lotz GmbH & Co. KG", registerNumber: "HRA 14904",
+}), { companyId: "", registerType: "HRA", registerNumber: "14904" });
+assert.strictEqual(test.izberiOpenRegisterZadetek([{
+  company_id: "DE-HRA-M1201-14904", name: "Karl Lotz GmbH & Co. KG",
+  register_type: "HRA", register_number: "14904", register_court: "Frankfurt am Main",
+}], {
+  ime: "Napačno uporabniško ime", registerNumber: "HRA 14904", registerCourt: "Frankfurt am Main",
+}).company.company_id, "DE-HRA-M1201-14904", "ločena registrska številka mora imeti prednost pred netočnim imenom");
 assert.deepStrictEqual(test.razcleniOpravilnoStevilko("70g IN 269/25"), {
   oddelek: "70g", oznaka: "IN", stevilka: "269", leto: "25", celotna: "70g IN 269/25",
 });
@@ -1164,6 +1175,13 @@ var viri = test.sestaviVire(
   { ime: "M.A.Services24", postnaStevilka: "63067", kraj: "Offenbach am Main", spletnaStran: "ma-services24.de" }
 );
 assert.deepStrictEqual(viri.map(function (vir) { return vir.id; }), ["openregister", "impressum", "gewerbe"]);
+var virBrezKreditov = test.sestaviVire(
+  { status: "unavailable", reason: "insufficient_credits", sourceUrl: "https://openregister.de" },
+  { status: "disabled" }, { status: "found", subjekt: impressum, sourceUrl: impressum.sourceUrl },
+  { spletnaStran: "https://example.test" }
+).find(function (vir) { return vir.id === "openregister"; });
+assert.match(virBrezKreditov.message, /nima dovolj kreditov/);
+assert.match(virBrezKreditov.message, /nadaljuje z Impressumom/);
 [
   ["website_not_public", "ni veljaven javni spletni naslov"],
   ["website_redirect_failed", "verigo preusmeritev"],
@@ -1406,6 +1424,10 @@ assert.strictEqual(test.pripraviPotrditevIdentitete({ confirmedIdentity: {
 var koren = path.join(__dirname, "..");
 var html = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.html"), "utf8");
 var js = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.js"), "utf8");
+assert.match(js, /reason === "insufficient_credits"[^\n]+Krediti porabljeni/,
+  "UI mora pomanjkanje OpenRegister kreditov razlikovati od nedosegljivega vira");
+assert.match(html, /bonitetna-preverba\.js\?v=20260818-openregister-credit-reason-v27/,
+  "nova razlaga OpenRegister stanja mora dobiti novo različico odjemalskega asseta");
 var centerJs = fs.readFileSync(path.join(koren, "app", "boniteta-sredisce.js"), "utf8");
 var bonitetaCss = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.css"), "utf8");
 var meni = fs.readFileSync(path.join(koren, "app", "zascita-posla.html"), "utf8");
@@ -1443,7 +1465,7 @@ assert.match(bonitetaCss, /\.boniteta-zajem__nacin \{ min-height: 98px;/);
 assert.match(bonitetaCss, /\.boniteta-hero > label \{ margin-top: 0; font-size: \.76rem; \}/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-zajem \{ gap: 8px; margin: -22px 10px 0;/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-assert.match(html, /bonitetna-preverba\.js\?v=20260818-ek-impressum-evidence-v26/);
+assert.match(html, /bonitetna-preverba\.js\?v=20260818-openregister-credit-reason-v27/);
 assert.match(js, /Iščemo podjetje in posodabljamo podatke obrtnika …/);
 assert.match(html, /boniteta-sredisce\.js\?v=20260817-reference-flow-v10/);
 assert.match(html, /id="boniteta-flow-start"/);

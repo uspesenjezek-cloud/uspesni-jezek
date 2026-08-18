@@ -685,12 +685,14 @@
     dl.insertAdjacentHTML("beforeend", "<dt>" + esc(oznaka) + "</dt><dd data-fit-text data-fit-text-min=\"8\">" + esc(vrednost) + "</dd>");
   }
 
-  function oznakaStatusaVira(status) {
+  function oznakaStatusaVira(status, reason) {
     if (status === "found") return { tekst: "Najdeno", razred: "green" };
     if (status === "disabled") return { tekst: "Izklopljeno", razred: "yellow" };
     if (status === "manual_available") return { tekst: "Ročno", razred: "yellow" };
     if (status === "not_configured") return { tekst: "Ni povezano", razred: "yellow" };
     if (status === "unsupported_region") return { tekst: "Ni priključeno", razred: "yellow" };
+    if (status === "unavailable" && reason === "insufficient_credits") return { tekst: "Krediti porabljeni", razred: "yellow" };
+    if (status === "unavailable" && reason === "rate_limited") return { tekst: "Začasno omejeno", razred: "yellow" };
     if (status === "unavailable") return { tekst: "Nedosegljivo", razred: "yellow" };
     if (status === "ambiguous") return { tekst: "Več zadetkov", razred: "yellow" };
     if (status === "not_provided") return { tekst: "Brez vnosa", razred: "" };
@@ -702,7 +704,7 @@
     var vsebnik = document.getElementById("boniteta-viri");
     vsebnik.innerHTML = "";
     (Array.isArray(viri) ? viri : []).forEach(function (vir) {
-      var status = oznakaStatusaVira(vir.status);
+      var status = oznakaStatusaVira(vir.status, vir.reason);
       var vrstica = document.createElement("div");
       vrstica.className = "boniteta-vir-vrstica";
       var naslov = document.createElement("div");
