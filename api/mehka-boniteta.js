@@ -3636,13 +3636,14 @@ async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
   throw zadnjaNapaka || new Error("OFFICIAL_INSOLVENCY_CHECK_FAILED");
 }
 
-function sestaviRezultatSamoUradnegaPortala(subjekt, uradniRezultat) {
+function sestaviRezultatSamoUradnegaPortala(subjekt, uradniRezultat, openregisterFallbackReason) {
   var uradni = uradniRezultat || { status: "unavailable", reason: "capture_or_search_failed", evidenceStatus: "unavailable" };
   return {
     status: uradni.status === "confirmed_match" ? "possible_match" : uradni.status === "clear" ? "clear" : "unavailable",
     reason: uradni.reason || "",
     verificationMode: "official_portal_only",
     openregisterUsed: false,
+    openregisterFallbackReason: varnoBesedilo(openregisterFallbackReason, 80),
     searchedName: varnoBesedilo(uradni.searchedName || subjekt && subjekt.ime, 180),
     searchedCity: varnoBesedilo(subjekt && subjekt.kraj, 80),
     searchedPostalCode: varnoBesedilo(subjekt && subjekt.postnaStevilka, 5),
@@ -3653,6 +3654,27 @@ function sestaviRezultatSamoUradnegaPortala(subjekt, uradniRezultat) {
     evidenceStatus: uradni.evidenceStatus || "unavailable",
     officialVerification: uradni,
   };
+}
+
+async function preveriSamoUradniInsolvencniPortalVarno(subjekt, openregisterFallbackReason) {
+  try {
+    return sestaviRezultatSamoUradnegaPortala(
+      subjekt,
+      await preveriUradniInsolvencniPortal(subjekt, null),
+      openregisterFallbackReason
+    );
+  } catch (napakaUradnegaVira) {
+    console.error("[mehka-boniteta:official-only-insolvency]", napakaUradnegaVira.message);
+    return sestaviRezultatSamoUradnegaPortala(subjekt, {
+      status: "unavailable",
+      reason: "capture_or_search_failed",
+      source: "official_insolvency_portal",
+      sourceLabel: "Insolvenzbekanntmachungen",
+      sourceUrl: INSOLVENCY_PORTAL,
+      checkedAt: new Date().toISOString(),
+      evidenceStatus: "unavailable",
+    }, openregisterFallbackReason);
+  }
 }
 
 function pripraviIdentitetoZaInsolvencnoPoizvedbo(identiteta) {
@@ -3678,20 +3700,7 @@ async function preveriInsolvenco(subjekt, moznosti) {
   }
   var uporabiOpenRegister = !moznosti || moznosti.uporabiOpenRegister !== false;
   if (!uporabiOpenRegister) {
-    try {
-      return sestaviRezultatSamoUradnegaPortala(subjekt, await preveriUradniInsolvencniPortal(subjekt, null));
-    } catch (napakaUradnegaVira) {
-      console.error("[mehka-boniteta:official-only-insolvency]", napakaUradnegaVira.message);
-      return sestaviRezultatSamoUradnegaPortala(subjekt, {
-        status: "unavailable",
-        reason: "capture_or_search_failed",
-        source: "official_insolvency_portal",
-        sourceLabel: "Insolvenzbekanntmachungen",
-        sourceUrl: INSOLVENCY_PORTAL,
-        checkedAt: new Date().toISOString(),
-        evidenceStatus: "unavailable",
-      });
-    }
+    return preveriSamoUradniInsolvencniPortalVarno(subjekt, "disabled");
   }
   var kljuc = String(process.env.OPENREGISTER_API_KEY || "").trim();
   var iskanoOb = new Date().toISOString();
@@ -3703,13 +3712,7 @@ async function preveriInsolvenco(subjekt, moznosti) {
     debtorKind: subjekt.entityType === "company" ? "legal_person" : "natural_person",
   };
   if (!kljuc) {
-    return {
-      status: "unavailable",
-      reason: "not_configured",
-      searchedName: iskalniPodatki.name,
-      searchedCity: iskalniPodatki.city,
-      sourceUrl: INSOLVENCY_PORTAL,
-    };
+    return preveriSamoUradniInsolvencniPortalVarno(subjekt, "not_configured");
   }
 
   var zahteva = sestaviOpenRegisterInsolvencnoIskanje(subjekt);
@@ -3726,22 +3729,10 @@ async function preveriInsolvenco(subjekt, moznosti) {
       body: JSON.stringify(zahteva),
     }, 12000);
   } catch (_) {
-    return {
-      status: "unavailable",
-      reason: "network_error",
-      searchedName: iskalniPodatki.name,
-      searchedCity: iskalniPodatki.city,
-      sourceUrl: INSOLVENCY_PORTAL,
-    };
+    return preveriSamoUradniInsolvencniPortalVarno(subjekt, "network_error");
   }
   if (!odgovor.ok) {
-    return {
-      status: "unavailable",
-      reason: razlogOpenRegisterInsolvencneNapake(odgovor.status),
-      searchedName: iskalniPodatki.name,
-      searchedCity: iskalniPodatki.city,
-      sourceUrl: INSOLVENCY_PORTAL,
-    };
+    return preveriSamoUradniInsolvencniPortalVarno(subjekt, razlogOpenRegisterInsolvencneNapake(odgovor.status));
   }
 
   var podatki = await odgovor.json();

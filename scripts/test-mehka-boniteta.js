@@ -50,7 +50,7 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
 assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v16-visible-content-overlay-isolation");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v35-transport-category-regressions");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v36-openregister-insolvency-fallback");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -205,10 +205,11 @@ var samoUradniRezultat = test.sestaviRezultatSamoUradnegaPortala({
 }, {
   status: "confirmed_match", checkedAt: "2026-08-16T00:00:00.000Z", evidenceStatus: "captured",
   evidenceImage: "data:image/jpeg;base64,AAAA", publications: [{ caseNumber: "67a IN 280/26" }],
-});
+}, "insufficient_credits");
 assert.strictEqual(samoUradniRezultat.status, "possible_match");
 assert.strictEqual(samoUradniRezultat.verificationMode, "official_portal_only");
 assert.strictEqual(samoUradniRezultat.openregisterUsed, false);
+assert.strictEqual(samoUradniRezultat.openregisterFallbackReason, "insufficient_credits");
 assert.strictEqual(samoUradniRezultat.officialVerification.evidenceStatus, "captured");
 assert.deepStrictEqual(test.sestaviPojmeDokazilaIdentitete({
   naziv: "A+I Elektrotechnik GmbH",
@@ -1413,6 +1414,10 @@ var lokalniStreznik = fs.readFileSync(path.join(koren, "scripts", "local-server.
 var appJs = fs.readFileSync(path.join(koren, "app", "app.js"), "utf8");
 var lokalniStreznik = fs.readFileSync(path.join(koren, "scripts", "local-server.js"), "utf8");
 var apiSrc = fs.readFileSync(path.join(koren, "api", "mehka-boniteta.js"), "utf8");
+assert.match(apiSrc, /if \(!kljuc\) \{\s*return preveriSamoUradniInsolvencniPortalVarno\(subjekt, "not_configured"\)/,
+  "manjkajoč OpenRegister ključ mora preklopiti na uradni insolvenčni portal");
+assert.match(apiSrc, /if \(!odgovor\.ok\) \{\s*return preveriSamoUradniInsolvencniPortalVarno\(subjekt, razlogOpenRegisterInsolvencneNapake\(odgovor\.status\)\)/,
+  "OpenRegister napaka ali pomanjkanje kreditov mora preklopiti na uradni insolvenčni portal");
 var packageJson = fs.readFileSync(path.join(koren, "package.json"), "utf8");
 assert.match(html, /id="boniteta-obrazec"/);
 assert.match(html, /id="boniteta-viri"/);
