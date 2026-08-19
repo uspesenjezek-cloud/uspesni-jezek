@@ -1,9 +1,9 @@
 "use strict";
 
-const { PDFDocument, StandardFonts, rgb, degrees } = require("pdf-lib");
-const { safeText, money, dateDE, wrap } = require("./pos-pdf");
+const { PDFDocument, rgb, degrees } = require("pdf-lib");
+const { safeText, money, dateDE, wrap, embedUnicodeFonts } = require("./pos-pdf");
 
-const GENERATOR_VERSION = "uj-pos-adjustment-pdf-1";
+const GENERATOR_VERSION = "uj-pos-adjustment-pdf-2";
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.19, 0.18), muted: rgb(0.38, 0.48, 0.46),
@@ -65,8 +65,7 @@ async function ustvariKorekcijskiPdf(adjustment) {
   pdf.setCreationDate(new Date(adjustment.issued_at || Date.now()));
   pdf.setModificationDate(new Date(adjustment.issued_at || Date.now()));
 
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const { regular, bold } = await embedUnicodeFonts(pdf);
   const snapshot = adjustment.snapshot;
   const seller = snapshot.seller || {};
   const original = snapshot.original_invoice || {};

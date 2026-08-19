@@ -43,7 +43,7 @@ function sampleInvoice(replacement) {
     issued_at: "2026-08-19T12:00:00.000Z",
     snapshot: {
       seller: {
-        legalName: "Muster Elektrotechnik und Gebäudesysteme GmbH",
+        legalName: "Uspešni Ježek - POS Test Čopič",
         legalForm: "GmbH",
         representative: "Erika Beispiel",
         street: "Lange Musterstraße 123",
@@ -116,7 +116,10 @@ function sampleAdjustment(type) {
 }
 
 (async function run() {
-  assert.strictEqual(pdfModule.safeText("Straße – Prüfung"), "Straße - Prüfung");
+  assert.strictEqual(pdfModule.safeText("Uspešni Ježek – Čopič"), "Uspešni Ježek - Čopič");
+  assert.strictEqual(pdfModule.taxIdentityText({}), "");
+  assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890" }), "Steuernummer: 12/345/67890");
+  assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890", vatId: "DE123456789" }), "USt-IdNr.: DE123456789");
   assert.strictEqual(endpoint._test.objectPath("u", "i"), "u/i/rechnung.pdf");
   assert.strictEqual(endpoint._test.encodedPath("a b/c"), "a%20b/c");
   assert.strictEqual(endpoint._test.uuid("not-a-uuid"), "");
@@ -137,11 +140,12 @@ function sampleAdjustment(type) {
   assert.ok(pdf.getPageCount() >= 2, "Dolg realističen račun mora pravilno nadaljevati na novo stran.");
   assert.strictEqual(pdf.getTitle(), "Rechnung RE-2026-0001");
   assert.strictEqual(pdf.getCreator(), pdfModule.GENERATOR_VERSION);
+  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-3");
 
   const replacementBuffer = await pdfModule.ustvariRacunPdf(sampleInvoice(true));
   const replacementPdf = await PDFDocument.load(replacementBuffer);
   assert.strictEqual(replacementPdf.getPageCount(), pdf.getPageCount());
-  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-2");
+  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-3");
 
   const correctionBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("correction"));
   const correctionPdf = await PDFDocument.load(correctionBuffer);
@@ -154,6 +158,7 @@ function sampleAdjustment(type) {
   assert.ok(cancellationPdf.getPageCount() >= 2, "Dolg Storno mora nadaljevati tabelo na novo stran.");
   assert.strictEqual(cancellationPdf.getTitle(), "Stornorechnung ST-2026-0002");
   assert.strictEqual(cancellationPdf.getCreator(), adjustmentPdf.GENERATOR_VERSION);
+  assert.strictEqual(adjustmentPdf.GENERATOR_VERSION, "uj-pos-adjustment-pdf-2");
 
   if (process.env.POS_PDF_SAMPLE_OUTPUT) {
     const output = path.resolve(process.env.POS_PDF_SAMPLE_OUTPUT);
