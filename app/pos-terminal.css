@@ -786,9 +786,10 @@
 .pos-delivery-row__actions { display: grid; justify-items: end; gap: 4px; }
 .pos-delivery-row__status { max-width: 88px; padding: 6px 8px; overflow: hidden; color: #8a5d15; border-radius: 99px; background: #fff2cf; white-space: nowrap; text-overflow: ellipsis; font-size: .55rem; font-weight: 700; }
 .pos-delivery-row__status.is-sent, .pos-delivery-row__status.is-delivered { color: #fff; background: var(--pos-teal); }
+.pos-delivery-row__status.is-delivery_delayed { color: #765812; background: #fff2cf; }
 .pos-delivery-row__status.is-test_completed { color: #17675f; background: #ddf1ed; }
 .pos-delivery-row__status.is-processing { color: #335d75; background: #e9f3f8; }
-.pos-delivery-row__status.is-failed { color: #8c3d39; background: #fff0ef; }
+.pos-delivery-row__status.is-failed, .pos-delivery-row__status.is-bounced, .pos-delivery-row__status.is-complained, .pos-delivery-row__status.is-suppressed { color: #8c3d39; background: #fff0ef; }
 .pos-delivery-row__retry { min-height: 24px; padding: 3px 8px; color: var(--pos-teal-dark); border: 1px solid #b9dcd6; border-radius: 99px; background: #fff; font-size: .54rem; font-weight: 750; cursor: pointer; }
 .pos-delivery-timeline { position: relative; display: grid; grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)); width: 100%; margin: 2px 0 0; padding: 8px 2px 0; gap: 2px; border-top: 1px solid #edf2f0; list-style: none; }
 .pos-delivery-timeline::before { position: absolute; top: 13px; right: 8%; left: 8%; height: 2px; border-radius: 99px; background: #dbe8e5; content: ""; }
@@ -797,8 +798,8 @@
 .pos-delivery-timeline__step span { width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pos-delivery-timeline__step.is-current { color: var(--pos-teal-dark); font-weight: 800; }
 .pos-delivery-timeline__step.is-current i, .pos-delivery-timeline__step.is-test_completed i { border-color: var(--pos-teal); background: var(--pos-teal); box-shadow: 0 0 0 3px #e3f3f0; }
-.pos-delivery-timeline__step.is-failed { color: #8c3d39; }
-.pos-delivery-timeline__step.is-failed i { border-color: #c66e67; background: #fff0ef; }
+.pos-delivery-timeline__step.is-failed, .pos-delivery-timeline__step.is-bounced, .pos-delivery-timeline__step.is-complained, .pos-delivery-timeline__step.is-suppressed { color: #8c3d39; }
+.pos-delivery-timeline__step.is-failed i, .pos-delivery-timeline__step.is-bounced i, .pos-delivery-timeline__step.is-complained i, .pos-delivery-timeline__step.is-suppressed i { border-color: #c66e67; background: #fff0ef; }
 
 .pos-replacement-banner { display: grid; grid-template-columns: 38px minmax(0, 1fr); margin: 0 0 11px; padding: 10px; align-items: center; gap: 9px; border: 1px solid #acd7d1; border-radius: 15px; background: linear-gradient(145deg, #eaf8f5, #fff); }
 .pos-replacement-banner[hidden] { display: none; }

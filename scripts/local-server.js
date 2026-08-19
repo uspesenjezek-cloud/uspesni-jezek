@@ -21,6 +21,7 @@ const posRacunXrechnungModul = require.resolve("../api/pos-racun-xrechnung");
 const posDostavaSandboxModul = require.resolve("../api/pos-dostava-sandbox");
 const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
 const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email");
+const posDostavaWebhookModul = require.resolve("../api/_handlers/pos-dostava-webhook");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
@@ -68,7 +69,7 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (url && !process.env.SUPABASE_URL) process.env.SUPABASE_URL = url[1];
       if (anonKey && !process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = anonKey[1];
     }
-    if (!process.env.OPENREGISTER_API_KEY || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET) {
+    if (!process.env.OPENREGISTER_API_KEY || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET) {
       const okolje = fs.readFileSync(path.join(root, ".env.local"), "utf8");
       const openregister = okolje.match(/^\s*OPENREGISTER_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openregister && !process.env.OPENREGISTER_API_KEY) process.env.OPENREGISTER_API_KEY = openregister[1].trim();
@@ -78,6 +79,8 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (serviceRole && !process.env.SUPABASE_SERVICE_ROLE_KEY) process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRole[1].trim();
       const webhookSecret = okolje.match(/^\s*OPENREGISTER_WEBHOOK_SECRET\s*=\s*["']?([^\r\n"']+)/m);
       if (webhookSecret && !process.env.OPENREGISTER_WEBHOOK_SECRET) process.env.OPENREGISTER_WEBHOOK_SECRET = webhookSecret[1].trim();
+      const resendWebhookSecret = okolje.match(/^\s*RESEND_WEBHOOK_SECRET\s*=\s*["']?([^\r\n"']+)/m);
+      if (resendWebhookSecret && !process.env.RESEND_WEBHOOK_SECRET) process.env.RESEND_WEBHOOK_SECRET = resendWebhookSecret[1].trim();
       const cronSecret = okolje.match(/^\s*CRON_SECRET\s*=\s*["']?([^\r\n"']+)/m);
       if (cronSecret && !process.env.CRON_SECRET) process.env.CRON_SECRET = cronSecret[1].trim();
     }
@@ -377,6 +380,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/pos-dostava-email") {
     void izvediLokalniApi(req, res, posDostavaEmailModul);
+    return;
+  }
+  if (pathname === "/api/pos-dostava-webhook") {
+    void izvediLokalniApi(req, res, posDostavaWebhookModul);
     return;
   }
   if (pathname === "/__app-version") {
