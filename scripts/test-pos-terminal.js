@@ -43,6 +43,10 @@ const bankMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_bank_reconciliation\.sql$/.test(name)).sort().pop()
   : null;
 const bankMigration = bankMigrationName ? fs.readFileSync(path.join(migrationsDir, bankMigrationName), "utf8") : "";
+const datevMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_datev_export_settings\.sql$/.test(name)).sort().pop()
+  : null;
+const datevMigration = datevMigrationName ? fs.readFileSync(path.join(migrationsDir, datevMigrationName), "utf8") : "";
 const apiRoot = path.basename(__dirname).toLowerCase() === "scripts" ? path.join(repoRoot, "api") : path.join(repoRoot, "api");
 const pdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-pdf.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-pdf.js"), "utf8") : "";
 const xrechnungApi = fs.existsSync(path.join(apiRoot, "pos-racun-xrechnung.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-xrechnung.js"), "utf8") : "";
@@ -80,6 +84,11 @@ assert.match(html, /data-structured-buyer-reference/);
 assert.match(html, /data-bank-backdrop/);
 assert.match(html, /data-bank-list/);
 assert.match(html, /data-bank-import-another/);
+assert.match(html, /data-datev-backdrop/);
+assert.match(html, /DATEV Buchungsstapel/);
+assert.match(html, /name="datevAdviserNumber"/);
+assert.match(html, /name="datevClientNumber"/);
+assert.match(html, /data-datev-download/);
 assert.match(html, /name="previousYearTurnoverBand"/);
 assert.match(html, /data-replacement-title data-fit-text data-fit-max="12"/);
 assert.match(js, /rpcName = replacement \? "pos_issue_replacement_invoice" : "pos_issue_invoice"/);
@@ -131,6 +140,8 @@ assert.match(css, /\.pos-delivery-sheet[\s\S]*overflow-x:\s*hidden/);
 assert.match(css, /\.pos-delivery-sheet__actions[\s\S]*env\(safe-area-inset-bottom\)/);
 assert.match(css, /\.pos-bank-sheet[\s\S]*max-height:\s*min\(88vh/);
 assert.match(css, /\.pos-bank-list[\s\S]*overflow-x:\s*hidden/);
+assert.match(css, /\.pos-datev-sheet[\s\S]*env\(safe-area-inset-bottom\)/);
+assert.match(css, /\.pos-datev-sheet[\s\S]*overflow-x:\s*hidden/);
 
 assert.strictEqual(Core.parseMoneyToCents("1.234,56 €"), 123456);
 assert.strictEqual(Core.parseQuantityMilli("1,25"), 1250);
@@ -238,6 +249,59 @@ const invoice = {
   totals: Core.calculateTotals(draft),
   draft
 };
+const datevSettings = Object.assign(Core.defaultDatevSettings("03"), {
+  adviserNumber: "29098",
+  clientNumber: "55003",
+  confirmed: true
+});
+const datevDraft = JSON.parse(JSON.stringify(draft));
+datevDraft.issueDate = "2026-08-19";
+datevDraft.serviceDate = "2026-08-18";
+datevDraft.customerName = "Žiga Čebelar GmbH";
+const datevInvoice = {
+  id: "datev-live-1",
+  number: "RE.Ž-2026 0001",
+  dueDate: "2026-09-02",
+  draft: datevDraft,
+  totals: Core.calculateTotals(datevDraft),
+  isTest: false,
+  adjustments: []
+};
+const datevExport = Core.buildDatevExport([datevInvoice, Object.assign({}, datevInvoice, { id: "datev-test", isTest: true })], datevSettings, "2026-08", new Date("2026-08-19T12:34:56.789Z"));
+assert.deepStrictEqual(datevExport.errors, []);
+assert.strictEqual(Core.DATEV_BOOKING_HEADERS.length, 125);
+assert.strictEqual(datevExport.bookings.length, 1, "Testni računi ne smejo v DATEV izvoz.");
+assert.strictEqual(datevExport.filename, "EXTF_Buchungsstapel_202608.csv");
+const datevLines = datevExport.content.trim().split("\r\n");
+assert.strictEqual(datevLines.length, 3);
+assert.strictEqual(datevLines[0].split(";").length, 31);
+assert.strictEqual(datevLines[1].split(";").length, 125);
+assert.strictEqual(datevLines[2].split(";").length, 125);
+assert.match(datevLines[0], /^"EXTF";700;21;"Buchungsstapel";13;/);
+assert.match(datevLines[0], /;29098;55003;20260101;4;20260801;20260831;/);
+assert.match(datevLines[2], /^119,00;"S";"EUR";;;;1410;8400;"";1908;"RE-Z-2026-0001";"020926";/);
+assert.strictEqual(Core.datevDocumentNumber("Rächnung 1.2;ß"), "Raechnung-1-2-ss");
+assert.ok(Core.validateDatevSettings(Object.assign({}, datevSettings, { confirmed: false }), "2026-08").some((message) => /računovodja/.test(message)));
+const cancelledDatevInvoice = Object.assign({}, datevInvoice, {
+  adjustments: [{ number: "ST-2026-0001", type: "cancellation", createdAt: "2026-08-20T08:00:00Z", deltaGrossCents: -11900 }]
+});
+const cancelledDatevExport = Core.buildDatevExport([cancelledDatevInvoice], datevSettings, "2026-08", new Date("2026-08-20T09:00:00Z"));
+assert.strictEqual(cancelledDatevExport.bookings.length, 2);
+assert.strictEqual(cancelledDatevExport.bookings[1].side, "H");
+assert.strictEqual(cancelledDatevExport.bookings[1].documentNumber, "ST-2026-0001");
+const mixedRateDraft = JSON.parse(JSON.stringify(datevDraft));
+mixedRateDraft.items = [
+  Object.assign({}, mixedRateDraft.items[0], { id: "datev-19", unitPrice: "100,00", taxRate: "19" }),
+  Object.assign({}, mixedRateDraft.items[0], { id: "datev-7", unitPrice: "50,00", taxRate: "7" })
+];
+const mixedRateExport = Core.buildDatevExport([{ id: "datev-mixed", number: "RE-2026-0002", dueDate: "2026-09-02", draft: mixedRateDraft, isTest: false, adjustments: [] }], datevSettings, "2026-08", new Date("2026-08-20T09:00:00Z"));
+assert.deepStrictEqual(mixedRateExport.bookings.map((booking) => booking.counterAccount).sort(), ["8300", "8400"]);
+assert.deepStrictEqual(mixedRateExport.bookings.map((booking) => booking.amountCents).sort((a, b) => a - b), [5350, 11900]);
+const duplicateDocumentExport = Core.buildDatevExport([
+  Object.assign({}, datevInvoice, { id: "datev-duplicate-a", number: "RE.1" }),
+  Object.assign({}, datevInvoice, { id: "datev-duplicate-b", number: "RE 1" })
+], datevSettings, "2026-08", new Date("2026-08-20T09:00:00Z"));
+assert.ok(duplicateDocumentExport.errors.some((message) => /enak DATEV ključ/.test(message)));
 const xml = Core.buildXRechnungXml(invoice, profile);
 assert.match(xml, /xrechnung_3\.0/);
 assert.match(xml, /<cbc:InvoiceTypeCode>380<\/cbc:InvoiceTypeCode>/);
@@ -261,6 +325,7 @@ const business2027Unknown = Core.deliveryRecommendation({ draft: Object.assign({
 assert.strictEqual(business2027Unknown.pdfAllowed, false);
 assert.strictEqual(business2027Unknown.needsTurnoverDecision, true);
 profile.previousYearTurnoverBand = "gt_800k";
+profile.datevSettings = datevSettings;
 const business2027Large = Core.deliveryRecommendation({ draft: Object.assign({}, draft, { issueDate: "2027-04-01" }) }, profile);
 assert.strictEqual(business2027Large.structuredRequired, true);
 const publicDelivery = Core.deliveryRecommendation({ draft: Object.assign({}, draft, { customerType: "public" }) }, profile);
@@ -271,6 +336,8 @@ assert.strictEqual(dbProfile.legal_name, "Muster Handwerk GmbH");
 assert.strictEqual(dbProfile.user_id, "11111111-1111-4111-8111-111111111111");
 assert.strictEqual(dbProfile.previous_year_turnover_band, "gt_800k");
 assert.strictEqual(dbProfile.business_phone, "+49 30 1234567");
+assert.strictEqual(dbProfile.datev_settings.adviserNumber, "29098");
+assert.strictEqual(dbProfile.datev_settings.framework, "03");
 const dbDraft = Core.draftToDatabasePayload(draft);
 assert.strictEqual(dbDraft.items[0].unit_price_cents, 10000);
 assert.strictEqual(dbDraft.items[0].quantity_milli, 1000);
@@ -323,6 +390,9 @@ assert.match(migration, /create or replace function public\.pos_issue_invoice[\s
 assert.match(migration, /revoke all on function public\.pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.match(migration, /grant execute on function public\.pos_issue_invoice\(uuid,jsonb,boolean,boolean\) to authenticated, service_role/i);
 assert.match(migration, /v_line_net := round[\s\S]*v_line_tax := v_line_gross - v_line_net/i);
+assert.ok(datevMigrationName, "Manjka migracija za DATEV nastavitve.");
+assert.match(datevMigration, /alter table public\.pos_business_profiles[\s\S]*add column datev_settings jsonb not null default '\{\}'::jsonb/i);
+assert.match(datevMigration, /jsonb_typeof\(datev_settings\) = 'object'/i);
 assert.ok(documentsMigrationName, "Manjka migracija za PDF originale računov.");
 assert.match(documentsMigration, /create table public\.pos_invoice_documents/i);
 assert.match(documentsMigration, /alter table public\.pos_invoice_documents enable row level security/i);

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260819-resend-safe-test-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260819-datev-export-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
-    <script src="pos-terminal.js?v=20260819-bank-reconciliation-v1" defer></script>
+    <script src="pos-terminal.js?v=20260819-datev-export-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -400,6 +400,58 @@
         <h2 id="pos-dialog-title" data-dialog-title>Obvestilo</h2>
         <p data-dialog-copy></p>
         <div class="pos-dialog__actions"><button class="pos-secondary" type="button" data-dialog-cancel>Prekliči</button><button class="pos-primary" type="button" data-dialog-confirm>V redu</button></div>
+      </section>
+    </div>
+
+    <div class="pos-datev-backdrop" data-datev-backdrop hidden>
+      <section class="pos-datev-sheet" role="dialog" aria-modal="true" aria-labelledby="pos-datev-title">
+        <div class="pos-datev-sheet__handle" aria-hidden="true"></div>
+        <header class="pos-datev-sheet__head">
+          <div><p class="pos-kicker">Računovodstvo</p><h2 id="pos-datev-title">DATEV Buchungsstapel</h2><p>En preverljiv EXTF izvoz za izbrani obračunski mesec.</p></div>
+          <button type="button" data-datev-close aria-label="Zapri">×</button>
+        </header>
+        <form id="pos-datev-form" class="pos-datev-form" novalidate>
+          <section class="pos-datev-period">
+            <label class="pos-field"><span>Obračunski mesec</span><input type="month" name="datevPeriod" /></label>
+            <div class="pos-datev-format"><small>Format</small><strong>EXTF · v700</strong><span data-datev-skr>SKR03</span></div>
+          </section>
+          <div class="pos-datev-summary" data-datev-summary></div>
+          <div class="pos-datev-validation" data-datev-validation></div>
+          <details class="pos-datev-settings" data-datev-settings>
+            <summary><span><strong>DATEV nastavitve</strong><small data-datev-settings-state>Potrebna je začetna nastavitev</small></span><b>Uredi</b></summary>
+            <div class="pos-datev-settings__body">
+              <div class="pos-choice pos-choice--two" data-datev-framework-choice>
+                <label><input type="radio" name="datevFramework" value="03" checked /><span>SKR03</span></label>
+                <label><input type="radio" name="datevFramework" value="04" /><span>SKR04</span></label>
+              </div>
+              <div class="pos-field-row">
+                <label class="pos-field"><span>Beraternummer *</span><input name="datevAdviserNumber" inputmode="numeric" maxlength="7" placeholder="1001–9999999" /></label>
+                <label class="pos-field"><span>Mandantennummer *</span><input name="datevClientNumber" inputmode="numeric" maxlength="5" placeholder="1–99999" /></label>
+              </div>
+              <div class="pos-field-row">
+                <label class="pos-field"><span>Začetek leta (MM-DD)</span><input name="datevFiscalYearStart" inputmode="numeric" maxlength="5" placeholder="01-01" /></label>
+                <label class="pos-field"><span>Diktatkürzel</span><input name="datevInitials" maxlength="4" placeholder="UJ" /></label>
+              </div>
+              <p class="pos-field-label">Konti prihodkov in terjatev</p>
+              <div class="pos-field-row">
+                <label class="pos-field"><span>Forderungen</span><input name="datevReceivableAccount" inputmode="numeric" maxlength="9" /></label>
+                <label class="pos-field"><span>Erlöse 19 %</span><input name="datevRevenue19Account" inputmode="numeric" maxlength="9" /></label>
+              </div>
+              <div class="pos-field-row">
+                <label class="pos-field"><span>Erlöse 7 %</span><input name="datevRevenue7Account" inputmode="numeric" maxlength="9" /></label>
+                <label class="pos-field"><span>§ 19 UStG</span><input name="datevSmallBusinessAccount" inputmode="numeric" maxlength="9" /></label>
+              </div>
+              <label class="pos-field pos-field--full"><span>Reverse charge § 13b</span><input name="datevReverseChargeAccount" inputmode="numeric" maxlength="9" /></label>
+              <label class="pos-acknowledge pos-datev-confirm"><input type="checkbox" name="datevConfirmed" /><span><strong>Konte je pregledal računovodja ali davčni svetovalec.</strong><small>Predlogi SKR03/SKR04 so izhodišče; dejanski Kontenplan je lahko prilagojen podjetju.</small></span></label>
+              <button class="pos-secondary pos-datev-save" type="button" data-datev-save>Shrani DATEV nastavitve</button>
+            </div>
+          </details>
+          <aside class="pos-datev-note"><svg><use href="#i-info"/></svg><p><strong>Ročni uvoz v DATEV</strong><span>Datoteka je pripravljena po javnem DATEV formatu. Samodejni Buchungsdatenservice priklop pride pozneje.</span></p></aside>
+          <div class="pos-datev-sheet__actions">
+            <button class="pos-secondary" type="button" data-datev-cancel>Zapri</button>
+            <button class="pos-primary" type="button" data-datev-download>Prenesi Buchungsstapel</button>
+          </div>
+        </form>
       </section>
     </div>
 
