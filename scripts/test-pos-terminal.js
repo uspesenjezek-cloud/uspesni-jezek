@@ -80,6 +80,7 @@ assert.match(js, /\.rpc\(rpcName, rpcPayload\)/);
 assert.match(js, /\.from\("pos_business_profiles"\)/);
 assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient\.auth/);
 assert.doesNotMatch(js, /global\.supabaseKlient/);
+assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
@@ -152,6 +153,10 @@ profile.accountHolder = "Muster Handwerk GmbH";
 profile.iban = "DE02120300000000202051";
 profile.legalConfirmed = true;
 assert.strictEqual(Core.profileReadiness(profile).live, true);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalName: "   " })).live, false);
+assert.deepStrictEqual(Core.profileForPreview({ legalName: "   " }, true), {
+  legalName: "TEST-Unternehmen", street: "Musterstraße 1", postalCode: "00000", city: "Teststadt"
+});
 
 const draft = Core.defaultDraft(profile);
 draft.customerName = "Sehr langes deutsches Beispielunternehmen für Gebäudetechnik und Sanierung GmbH";
