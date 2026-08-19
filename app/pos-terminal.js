@@ -426,6 +426,139 @@
     return { checks: checks, percent: Math.round(done / checks.length * 100), live: done === checks.length };
   }
 
+  function normalizeBankText(value) {
+    return String(value == null ? "" : value).replace(/ß/g, "ss").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function parseBankDate(value) {
+    var text = String(value || "").trim();
+    var iso = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return iso[1] + "-" + iso[2] + "-" + iso[3];
+    var german = text.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+    if (!german) return "";
+    return german[3] + "-" + String(german[2]).padStart(2, "0") + "-" + String(german[1]).padStart(2, "0");
+  }
+
+  function parseDelimitedLine(line, delimiter) {
+    var values = [];
+    var value = "";
+    var quoted = false;
+    for (var index = 0; index < line.length; index += 1) {
+      var character = line[index];
+      if (character === '"') {
+        if (quoted && line[index + 1] === '"') { value += '"'; index += 1; }
+        else quoted = !quoted;
+      } else if (character === delimiter && !quoted) {
+        values.push(value.trim()); value = "";
+      } else value += character;
+    }
+    values.push(value.trim());
+    return values;
+  }
+
+  function firstBankValue(row, aliases) {
+    for (var index = 0; index < aliases.length; index += 1) {
+      var key = aliases[index];
+      if (row[key] != null && String(row[key]).trim() !== "") return String(row[key]).trim();
+    }
+    return "";
+  }
+
+  function parseBankCsv(text) {
+    var lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter(function (line) { return line.trim(); });
+    if (lines.length < 2) return [];
+    var delimiter = (lines[0].match(/;/g) || []).length >= (lines[0].match(/,/g) || []).length ? ";" : ",";
+    var headers = parseDelimitedLine(lines[0], delimiter).map(normalizeBankText);
+    return lines.slice(1).map(function (line) {
+      var cells = parseDelimitedLine(line, delimiter);
+      var row = {};
+      headers.forEach(function (header, index) { row[header] = cells[index] || ""; });
+      var amountText = firstBankValue(row, ["BETRAG", "UMSATZ", "AMOUNT", "ZNESEK"]);
+      var amountCents = parseMoneyToCents(amountText);
+      var direction = normalizeBankText(firstBankValue(row, ["SOLLHABEN", "CREDITDEBIT", "CDTDBTIND", "TIP"]));
+      if (direction === "DBIT" || direction === "SOLL" || direction === "DEBIT" || direction === "S") amountCents = -Math.abs(amountCents);
+      var bookedOn = parseBankDate(firstBankValue(row, ["BUCHUNGSTAG", "BUCHUNGSDATUM", "BOOKINGDATE", "DATUM"]));
+      return {
+        external_reference: firstBankValue(row, ["KUNDENREFERENZ", "BANKREFERENZ", "REFERENZ", "ENDTOENDID", "TRANSACTIONID"]),
+        booked_on: bookedOn,
+        amount_cents: amountCents,
+        currency: (firstBankValue(row, ["WAHRUNG", "CURRENCY", "VALUTA"]) || "EUR").toUpperCase(),
+        counterparty_name: firstBankValue(row, ["NAMEZAHLUNGSBETEILIGTER", "AUFTRAGGEBERBEGUNSTIGTER", "ZAHLUNGSPFLICHTIGER", "COUNTERPARTY", "NAME"]),
+        counterparty_iban: firstBankValue(row, ["IBANZAHLUNGSBETEILIGTER", "IBAN", "COUNTERPARTYIBAN"]).replace(/\s/g, "").toUpperCase(),
+        remittance_info: firstBankValue(row, ["VERWENDUNGSZWECK", "BUCHUNGSTEXT", "REMITTANCEINFORMATION", "PURPOSE", "NAMEN"])
+      };
+    }).filter(function (entry) { return entry.booked_on && entry.amount_cents > 0 && entry.currency === "EUR"; });
+  }
+
+  function decodeXmlText(value) {
+    return String(value || "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&").trim();
+  }
+
+  function xmlTag(block, tag) {
+    var match = String(block || "").match(new RegExp("<(?:[A-Za-z0-9_]+:)?" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[A-Za-z0-9_]+:)?" + tag + ">", "i"));
+    return match ? decodeXmlText(match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")) : "";
+  }
+
+  function xmlBlock(block, tag) {
+    var match = String(block || "").match(new RegExp("<(?:[A-Za-z0-9_]+:)?" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/(?:[A-Za-z0-9_]+:)?" + tag + ">", "i"));
+    return match ? match[1] : "";
+  }
+
+  function parseCamt053(text) {
+    var entries = String(text || "").match(/<(?:[A-Za-z0-9_]+:)?Ntry(?:\s[^>]*)?>[\s\S]*?<\/(?:[A-Za-z0-9_]+:)?Ntry>/gi) || [];
+    return entries.map(function (entry) {
+      var amountMatch = entry.match(/<(?:[A-Za-z0-9_]+:)?Amt(?:\s+[^>]*Ccy=["']([^"']+)["'][^>]*)?>([^<]+)</i);
+      var amountCents = parseMoneyToCents(amountMatch && amountMatch[2]);
+      if (normalizeBankText(xmlTag(entry, "CdtDbtInd")) === "DBIT") amountCents = -Math.abs(amountCents);
+      var bookingBlock = entry.match(/<(?:[A-Za-z0-9_]+:)?BookgDt[^>]*>([\s\S]*?)<\/(?:[A-Za-z0-9_]+:)?BookgDt>/i);
+      var bookedOn = parseBankDate(xmlTag(bookingBlock && bookingBlock[1], "Dt") || xmlTag(bookingBlock && bookingBlock[1], "DtTm"));
+      var remittanceParts = [];
+      var remittancePattern = /<(?:[A-Za-z0-9_]+:)?Ustrd(?:\s[^>]*)?>([\s\S]*?)<\/(?:[A-Za-z0-9_]+:)?Ustrd>/gi;
+      var remittanceMatch;
+      while ((remittanceMatch = remittancePattern.exec(entry))) remittanceParts.push(decodeXmlText(remittanceMatch[1].replace(/<[^>]+>/g, " ")));
+      var debtorBlock = xmlBlock(entry, "Dbtr");
+      var debtorAccountBlock = xmlBlock(entry, "DbtrAcct");
+      return {
+        external_reference: xmlTag(entry, "AcctSvcrRef") || xmlTag(entry, "NtryRef") || xmlTag(entry, "EndToEndId"),
+        booked_on: bookedOn,
+        amount_cents: amountCents,
+        currency: (amountMatch && amountMatch[1] || "EUR").toUpperCase(),
+        counterparty_name: xmlTag(debtorBlock, "Nm") || xmlTag(entry, "Nm"),
+        counterparty_iban: (xmlTag(debtorAccountBlock, "IBAN") || xmlTag(entry, "IBAN")).replace(/\s/g, "").toUpperCase(),
+        remittance_info: remittanceParts.join(" ") || xmlTag(entry, "AddtlNtryInf")
+      };
+    }).filter(function (entry) { return entry.booked_on && entry.amount_cents > 0 && entry.currency === "EUR"; });
+  }
+
+  function parseBankStatement(text, fileName) {
+    var isCamt = /<(?:[A-Za-z0-9_]+:)?BkToCstmrStmt|<(?:[A-Za-z0-9_]+:)?Ntry/i.test(String(text || ""));
+    var isCsv = /[;,].+\r?\n/.test(String(text || ""));
+    if (!isCamt && !isCsv) return { format: "", transactions: [] };
+    return { format: isCamt ? "camt053" : "csv", transactions: isCamt ? parseCamt053(text) : parseBankCsv(text), fileName: String(fileName || "bančni-izpisek") };
+  }
+
+  function matchBankTransaction(transaction, invoices) {
+    if (!transaction || transaction.status === "confirmed" || integer(transaction.amountCents || transaction.amount_cents, 0) <= 0) return null;
+    var amount = integer(transaction.amountCents || transaction.amount_cents, 0);
+    var searchText = normalizeBankText((transaction.remittanceInfo || transaction.remittance_info || "") + " " + (transaction.counterpartyName || transaction.counterparty_name || ""));
+    var candidates = (Array.isArray(invoices) ? invoices : []).filter(function (invoice) {
+      var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+      return invoice.serverStored && invoice.status !== "cancelled" && outstanding >= amount && outstanding > 0;
+    }).map(function (invoice) {
+      var outstanding = Math.max(0, integer(invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+      var numberMatch = searchText.indexOf(normalizeBankText(invoice.number)) !== -1;
+      var payerName = normalizeBankText(transaction.counterpartyName || transaction.counterparty_name || "");
+      var customerName = normalizeBankText(invoice.draft && invoice.draft.customerName || "");
+      var nameMatch = Boolean(payerName && customerName && (payerName.indexOf(customerName) !== -1 || customerName.indexOf(payerName) !== -1));
+      var exactAmount = outstanding === amount;
+      var score = numberMatch ? (exactAmount ? 100 : 92) : exactAmount && nameMatch ? 84 : exactAmount ? 64 : 0;
+      return { invoice: invoice, score: score, exactAmount: exactAmount, reason: numberMatch ? "Številka računa" + (exactAmount ? " in znesek" : "") : exactAmount && nameMatch ? "Znesek in plačnik" : exactAmount ? "Enak odprti znesek" : "" };
+    }).filter(function (entry) { return entry.score > 0; }).sort(function (left, right) { return right.score - left.score; });
+    if (!candidates.length) return null;
+    if (candidates[0].score === 64 && candidates[1] && candidates[1].score === 64) return null;
+    return candidates[0];
+  }
+
   function profileForPreview(profile, isTest) {
     var source = Object.assign({}, profile || {});
     var identityReady = [source.legalName, source.street, source.postalCode, source.city]
@@ -645,6 +778,10 @@
     draftFromDatabasePayload: draftFromDatabasePayload,
     invoiceFingerprint: invoiceFingerprint,
     mergeInvoiceSources: mergeInvoiceSources,
+    parseBankCsv: parseBankCsv,
+    parseCamt053: parseCamt053,
+    parseBankStatement: parseBankStatement,
+    matchBankTransaction: matchBankTransaction,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
@@ -662,6 +799,7 @@
     client: typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient.auth ? supabaseKlient : null,
     userId: null,
     ready: false,
+    bankReady: false,
     syncing: false,
     error: ""
   };
@@ -678,13 +816,14 @@
   var dialogCallback = null;
 
   function loadState() {
-    var initial = { profile: defaultProfile(), invoices: [], draft: null, sequence: 0 };
+    var initial = { profile: defaultProfile(), invoices: [], bankTransactions: [], draft: null, sequence: 0 };
     try {
       var saved = JSON.parse(global.localStorage.getItem(STORAGE_KEY) || "null");
       if (!saved || typeof saved !== "object") return initial;
       return {
         profile: Object.assign(defaultProfile(), saved.profile || {}),
         invoices: Array.isArray(saved.invoices) ? saved.invoices : [],
+        bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions : [],
         draft: saved.draft && typeof saved.draft === "object" ? saved.draft : null,
         sequence: integer(saved.sequence, 0)
       };
@@ -694,7 +833,10 @@
   }
 
   function persist() {
-    try { global.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_error) { /* lokalni fallback ni obvezen */ }
+    try {
+      var localSnapshot = Object.assign({}, state, { bankTransactions: [] });
+      global.localStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+    } catch (_error) { /* lokalni fallback ni obvezen */ }
   }
 
   function backendMessage(message, kind) {
@@ -791,6 +933,23 @@
     };
   }
 
+  function bankTransactionFromServer(row) {
+    return {
+      id: row.id,
+      bookedOn: row.booked_on,
+      amountCents: integer(row.amount_cents, 0),
+      currency: row.currency || "EUR",
+      externalReference: row.external_reference || "",
+      counterpartyName: row.counterparty_name || "",
+      counterpartyIban: row.counterparty_iban || "",
+      remittanceInfo: row.remittance_info || "",
+      status: row.status || "unmatched",
+      confirmedInvoiceId: row.confirmed_invoice_id || null,
+      confirmedPaymentId: row.confirmed_payment_id || null,
+      confirmedAt: row.confirmed_at || null
+    };
+  }
+
   function serverInvoiceToLocal(row, paidByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice) {
     var snapshot = row.snapshot || {};
     var adjustments = adjustmentsByInvoice && adjustmentsByInvoice[row.id] || [];
@@ -798,7 +957,9 @@
     var latestCorrection = corrections[corrections.length - 1];
     var effectivePayload = latestCorrection && latestCorrection.snapshot && latestCorrection.snapshot.effective_draft || snapshot.draft || {};
     var draft = draftFromDatabasePayload(effectivePayload, true);
-    var paid = integer(paidByInvoice && paidByInvoice[row.id], 0) >= integer(row.gross_cents, 0);
+    var paidCents = integer(paidByInvoice && paidByInvoice[row.id], 0);
+    var paid = paidCents >= integer(row.gross_cents, 0);
+    var partial = paidCents > 0 && !paid;
     var cancelled = adjustments.some(function (entry) { return entry.type === "cancellation"; });
     return {
       id: row.id,
@@ -811,7 +972,8 @@
       draft: draft,
       seller: snapshot.seller || null,
       isTest: Boolean(row.is_test),
-      status: cancelled ? "cancelled" : paid ? "paid" : "open",
+      status: cancelled ? "cancelled" : paid ? "paid" : partial ? "partial" : "open",
+      paidCents: paidCents,
       corrected: corrections.length > 0,
       adjustments: adjustments,
       deliveries: deliveriesByInvoice && deliveriesByInvoice[row.id] || [],
@@ -844,9 +1006,10 @@
         backend.client.from("pos_invoice_replacements").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId)
+        backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId),
+        backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200)
       ]);
-      var firstError = responses.map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 11).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       if (responses[0].data) state.profile = profileFromDatabase(responses[0].data);
@@ -874,6 +1037,8 @@
         deliveriesByInvoice[row.invoice_id].push(deliveryFromServer(row, eventsByDelivery));
       });
       var serverInvoices = (responses[2].data || []).map(function (row) { return serverInvoiceToLocal(row, paidByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice); });
+      backend.bankReady = !responses[11].error;
+      state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
       var invoicesById = {};
       var adjustmentsById = {};
       serverInvoices.forEach(function (invoice) {
@@ -919,6 +1084,7 @@
       renderHome();
     } catch (error) {
       backend.ready = false;
+      backend.bankReady = false;
       backendMessage(databaseErrorMessage(error), "error");
       renderHome();
     } finally {
@@ -956,6 +1122,10 @@
     document.body.classList.remove("uj-modal-odprt");
     var callback = dialogCallback;
     dialogCallback = null;
+    if (!query("[data-bank-backdrop]").hidden || !query("[data-adjustment-backdrop]").hidden || !query("[data-delivery-backdrop]").hidden) {
+      document.documentElement.classList.add("uj-modal-odprt");
+      document.body.classList.add("uj-modal-odprt");
+    }
     if (confirmed && callback) callback();
   }
 
@@ -1014,7 +1184,7 @@
       return;
     }
     list.innerHTML = state.invoices.slice(0, 5).map(function (invoice) {
-      var status = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
+      var status = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
       var disabled = invoice.status === "cancelled" ? " disabled aria-label=\"Storniran račun\"" : "";
       return "<article class=\"pos-invoice-row\" data-invoice-id=\"" + escapeHtml(invoice.id) + "\" data-open-invoice=\"" + escapeHtml(invoice.id) + "\" tabindex=\"0\"><span class=\"pos-invoice-row__icon\"><svg><use href=\"#i-receipt\"/></svg></span><div class=\"pos-invoice-row__main\"><strong data-fit-text>" + escapeHtml(invoice.draft.customerName || "Brez prejemnika") + "</strong><small data-fit-text>" + escapeHtml(invoice.number) + " · " + escapeHtml(formatDate(invoice.draft.issueDate)) + "</small></div><button class=\"pos-invoice-row__amount pos-text-button\" type=\"button\" data-record-payment=\"" + escapeHtml(invoice.id) + "\"" + disabled + "><strong data-fit-text>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</strong><small>" + status + "</small></button></article>";
     }).join("");
@@ -1458,13 +1628,13 @@
     query("[data-detail-issued]").textContent = formatDate(invoice.draft.issueDate);
     query("[data-detail-due]").textContent = formatDate(invoice.dueDate);
     query("[data-detail-method]").textContent = paymentMethodLabel(invoice.draft.paymentMethod);
-    query("[data-detail-payment-status]").textContent = invoice.status === "cancelled" ? "Storniert" : invoice.status === "paid" ? "Bezahlt" : "Offen";
+    query("[data-detail-payment-status]").textContent = invoice.status === "cancelled" ? "Storniert" : invoice.status === "paid" ? "Bezahlt" : invoice.status === "partial" ? "Teilbezahlt" : "Offen";
     var status = query("[data-detail-status]");
     status.classList.toggle("is-paid", invoice.status === "paid");
     status.classList.toggle("is-test", invoice.isTest && invoice.status !== "paid");
     status.classList.toggle("is-cancelled", invoice.status === "cancelled");
     status.classList.toggle("is-corrected", invoice.corrected && invoice.status === "open");
-    status.textContent = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
+    status.textContent = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
     query("[data-detail-payment]").disabled = invoice.status === "cancelled";
     query("[data-detail-copy]").disabled = invoice.status === "cancelled";
     query("[data-detail-correction]").disabled = invoice.status === "cancelled" || !invoice.serverStored;
@@ -2083,12 +2253,14 @@
           var paidAt = new Date().toISOString();
           if (invoice.serverStored) {
             if (!backend.ready || !backend.userId) throw new Error("Varna hramba plačil ni povezana.");
+            var outstandingCents = Math.max(0, invoice.totals.grossCents - integer(invoice.paidCents, 0));
             var result = await backend.client.from("pos_payments").insert({
-              user_id: backend.userId, invoice_id: invoice.id, amount_cents: invoice.totals.grossCents,
+              user_id: backend.userId, invoice_id: invoice.id, amount_cents: outstandingCents,
               currency: "EUR", method: "manual", provider_reference: "Ročno potrjeno v POS", paid_at: paidAt
             }).select("id").single();
             if (result.error) throw result.error;
           }
+          invoice.paidCents = invoice.totals.grossCents;
           invoice.status = "paid";
           invoice.paidAt = paidAt;
           persist();
@@ -2105,16 +2277,116 @@
     requestPayment(invoice.id);
   }
 
+  async function sha256Hex(text) {
+    if (!global.crypto || !global.crypto.subtle || !global.TextEncoder) throw new Error("Ta brskalnik ne podpira varnega prstnega odtisa datoteke.");
+    var bytes = new global.TextEncoder().encode(String(text || ""));
+    var digest = await global.crypto.subtle.digest("SHA-256", bytes);
+    return Array.prototype.map.call(new Uint8Array(digest), function (byte) { return byte.toString(16).padStart(2, "0"); }).join("");
+  }
+
+  function closeBankSheet() {
+    query("[data-bank-backdrop]").hidden = true;
+    document.documentElement.classList.remove("uj-modal-odprt");
+    document.body.classList.remove("uj-modal-odprt");
+  }
+
+  function renderBankSheet() {
+    var transactions = state.bankTransactions || [];
+    var confirmed = transactions.filter(function (entry) { return entry.status === "confirmed"; }).length;
+    var suggested = transactions.filter(function (entry) { return entry.status !== "confirmed" && matchBankTransaction(entry, state.invoices); }).length;
+    query("[data-bank-summary]").innerHTML = [
+      [transactions.length, "Prilivi"], [suggested, "Predlogi"], [confirmed, "Potrjeni"]
+    ].map(function (entry) { return "<div><strong>" + entry[0] + "</strong><small>" + entry[1] + "</small></div>"; }).join("");
+    var list = query("[data-bank-list]");
+    if (!transactions.length) {
+      list.innerHTML = backend.bankReady
+        ? "<div class=\"pos-empty\"><strong>Ni uvoženih prilivov</strong><p>Uvozite CSV ali camt.053 iz svoje banke.</p></div>"
+        : "<div class=\"pos-empty\"><strong>Bančni modul še ni aktiviran</strong><p>Obstoječi POS deluje normalno; uvoz bo na voljo po varni nadgradnji baze.</p></div>";
+      query("[data-bank-import-another]").disabled = !backend.bankReady;
+      return;
+    }
+    query("[data-bank-import-another]").disabled = false;
+    list.innerHTML = transactions.map(function (transaction) {
+      var suggestion = matchBankTransaction(transaction, state.invoices);
+      var confirmedInvoice = transaction.confirmedInvoiceId && findInvoice(transaction.confirmedInvoiceId);
+      var options = state.invoices.filter(function (invoice) {
+        var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+        return invoice.serverStored && invoice.status !== "cancelled" && outstanding >= transaction.amountCents && outstanding > 0;
+      });
+      if (suggestion) options.sort(function (left, right) {
+        if (left.id === suggestion.invoice.id) return -1;
+        if (right.id === suggestion.invoice.id) return 1;
+        return 0;
+      });
+      var optionHtml = options.length ? options.map(function (invoice) {
+        var selected = suggestion && suggestion.invoice.id === invoice.id ? " selected" : "";
+        var outstanding = invoice.totals.grossCents - integer(invoice.paidCents, 0);
+        return "<option value=\"" + escapeHtml(invoice.id) + "\"" + selected + ">" + escapeHtml(invoice.number + " · " + invoice.draft.customerName + " · " + formatMoney(outstanding)) + "</option>";
+      }).join("") : "<option value=\"\">Ni primernega odprtega računa</option>";
+      var bottom = transaction.status === "confirmed"
+        ? "<div class=\"pos-bank-entry__confirmed\"><span>✓ Plačilo potrjeno</span><span>" + escapeHtml(confirmedInvoice ? confirmedInvoice.number : "Račun") + "</span></div>"
+        : "<div class=\"pos-bank-match\"><label>" + (suggestion ? "Predlagan račun" : "Izberite račun") + "<select data-bank-invoice=\"" + escapeHtml(transaction.id) + "\">" + optionHtml + "</select>" + (suggestion ? "<span class=\"pos-bank-match__reason\">" + escapeHtml(suggestion.reason) + " · " + suggestion.score + " %</span>" : "") + "</label><button class=\"pos-primary\" type=\"button\" data-bank-confirm=\"" + escapeHtml(transaction.id) + "\"" + (options.length ? "" : " disabled") + ">Potrdi povezavo</button></div>";
+      return "<article class=\"pos-bank-entry " + (transaction.status === "confirmed" ? "is-confirmed" : "") + "\"><div class=\"pos-bank-entry__top\"><div><strong data-fit-text>" + escapeHtml(transaction.counterpartyName || "Neznani plačnik") + "</strong><small>" + escapeHtml(formatDate(transaction.bookedOn)) + (transaction.counterpartyIban ? " · " + escapeHtml(transaction.counterpartyIban) : "") + "</small></div><b class=\"pos-bank-entry__amount\">" + escapeHtml(formatMoney(transaction.amountCents)) + "</b></div><p class=\"pos-bank-entry__purpose\">" + escapeHtml(transaction.remittanceInfo || transaction.externalReference || "Brez namena plačila") + "</p>" + bottom + "</article>";
+    }).join("");
+    queryAll("[data-bank-confirm]", list).forEach(function (button) {
+      button.addEventListener("click", function () { requestBankConfirmation(button.getAttribute("data-bank-confirm")); });
+    });
+    fitAllText();
+  }
+
+  function openBankSheet() {
+    renderBankSheet();
+    query("[data-bank-backdrop]").hidden = false;
+    document.documentElement.classList.add("uj-modal-odprt");
+    document.body.classList.add("uj-modal-odprt");
+  }
+
+  function requestBankConfirmation(transactionId) {
+    var transaction = (state.bankTransactions || []).filter(function (entry) { return entry.id === transactionId; })[0];
+    var select = query("[data-bank-invoice=\"" + transactionId + "\"]");
+    var invoice = select && findInvoice(select.value);
+    if (!transaction || !invoice) { showToast("Najprej izberite odprti račun."); return; }
+    openDialog("Potrditi bančno plačilo?", formatMoney(transaction.amountCents) + " bo povezano z računom " + invoice.number + ". Bančni zapis in račun ostaneta sledljiva.", {
+      confirmText: "Potrdi plačilo",
+      onConfirm: async function () {
+        try {
+          if (!backend.ready) throw new Error("Varna bančna hramba ni povezana.");
+          var result = await backend.client.rpc("pos_confirm_bank_transaction", {
+            p_transaction_id: transaction.id, p_invoice_id: invoice.id, p_confirmed: true
+          });
+          if (result.error) throw result.error;
+          await loadServerState();
+          renderBankSheet();
+          showToast("Bančno plačilo je potrjeno in povezano z računom.");
+        } catch (error) { showToast(error && error.message || "Plačila ni bilo mogoče potrditi."); }
+      }
+    });
+  }
+
   function importBankFile(file) {
     if (!file) return;
     var reader = new FileReader();
-    reader.onload = function () {
-      var text = String(reader.result || "");
-      var isCamt = /<BkToCstmrStmt|<camt\.053/i.test(text);
-      var isCsv = /[;,].+\r?\n/.test(text);
-      if (!isCamt && !isCsv) { showToast("Datoteka ni prepoznana kot camt.053 ali CSV."); return; }
-      var count = isCamt ? (text.match(/<Ntry>/g) || []).length : Math.max(0, text.trim().split(/\r?\n/).length - 1);
-      openDialog("Bančna datoteka prebrana", "Prepoznan format: " + (isCamt ? "camt.053" : "CSV") + ". Najdenih zapisov: " + count + ". V testnem načinu uvoz ne spreminja statusa računov brez vaše potrditve.", { cancel: false });
+    reader.onload = async function () {
+      try {
+        if (!backend.ready || !backend.userId) throw new Error("Za bančni uvoz je potrebna varna prijavljena hramba.");
+        if (!backend.bankReady) throw new Error("Bančni modul še ni aktiviran.");
+        var text = String(reader.result || "");
+        var parsed = parseBankStatement(text, file.name);
+        if (!parsed.format) throw new Error("Datoteka ni prepoznana kot camt.053 ali CSV.");
+        if (!parsed.transactions.length) throw new Error("V datoteki ni veljavnih EUR prilivov.");
+        var fingerprint = await sha256Hex(text);
+        var result = await backend.client.rpc("pos_import_bank_transactions", {
+          p_file_name: file.name,
+          p_file_sha256: fingerprint,
+          p_file_format: parsed.format,
+          p_transactions: parsed.transactions
+        });
+        if (result.error) throw result.error;
+        await loadServerState();
+        openBankSheet();
+        var summary = result.data || {};
+        showToast("Uvoženo: " + integer(summary.inserted_count, 0) + "; podvojeno preskočeno: " + integer(summary.duplicate_count, 0) + ".");
+      } catch (error) { showToast(error && error.message || "Bančnega izpiska ni bilo mogoče uvoziti."); }
     };
     reader.readAsText(file);
   }
@@ -2215,8 +2487,12 @@
     query("[data-download-xml]").addEventListener("click", downloadXml);
     query("[data-copy-payment]").addEventListener("click", copyPayment);
     query("[data-open-payment]").addEventListener("click", requestLatestPayment);
-    query("[data-import-bank]").addEventListener("click", function () { query("[data-bank-file]").click(); });
+    query("[data-import-bank]").addEventListener("click", openBankSheet);
     query("[data-bank-file]").addEventListener("change", function (event) { importBankFile(event.target.files[0]); event.target.value = ""; });
+    query("[data-bank-close]").addEventListener("click", closeBankSheet);
+    query("[data-bank-cancel]").addEventListener("click", closeBankSheet);
+    query("[data-bank-import-another]").addEventListener("click", function () { query("[data-bank-file]").click(); });
+    query("[data-bank-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeBankSheet(); });
     query("[data-datev-export]").addEventListener("click", exportDatev);
     query("[data-show-all]").addEventListener("click", function () { showToast(state.invoices.length ? "Prikazanih je zadnjih " + Math.min(5, state.invoices.length) + " računov." : "Računov še ni."); });
     query("[data-detail-back]").addEventListener("click", function () { activeInvoiceId = null; showView("home"); });
@@ -2278,6 +2554,7 @@
   }
 
   global.UJPoskusiNotranjiKorakNazaj = function () {
+    if (!query("[data-bank-backdrop]").hidden) { closeBankSheet(); return true; }
     if (!query("[data-delivery-backdrop]").hidden) { closeDeliverySheet(); return true; }
     if (!query("[data-adjustment-backdrop]").hidden) { closeAdjustmentSheet(); return true; }
     if (currentView === "invoice") { previousStep(); return true; }

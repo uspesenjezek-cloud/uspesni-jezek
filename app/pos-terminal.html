@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
-    <script src="pos-terminal.js?v=20260819-invoice-dedupe-v2" defer></script>
+    <script src="pos-terminal.js?v=20260819-bank-reconciliation-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -400,6 +400,22 @@
         <h2 id="pos-dialog-title" data-dialog-title>Obvestilo</h2>
         <p data-dialog-copy></p>
         <div class="pos-dialog__actions"><button class="pos-secondary" type="button" data-dialog-cancel>Prekliči</button><button class="pos-primary" type="button" data-dialog-confirm>V redu</button></div>
+      </section>
+    </div>
+
+    <div class="pos-bank-backdrop" data-bank-backdrop hidden>
+      <section class="pos-bank-sheet" role="dialog" aria-modal="true" aria-labelledby="pos-bank-title">
+        <div class="pos-bank-sheet__handle" aria-hidden="true"></div>
+        <header class="pos-bank-sheet__head">
+          <div><p class="pos-kicker">Bančno usklajevanje</p><h2 id="pos-bank-title">Prejeti prilivi</h2><p>Predlog nikoli ne spremeni računa brez vaše potrditve.</p></div>
+          <button type="button" data-bank-close aria-label="Zapri">×</button>
+        </header>
+        <div class="pos-bank-summary" data-bank-summary></div>
+        <div class="pos-bank-list" data-bank-list></div>
+        <div class="pos-bank-sheet__actions">
+          <button class="pos-secondary" type="button" data-bank-cancel>Zapri</button>
+          <button class="pos-primary" type="button" data-bank-import-another>Uvozi nov izpisek</button>
+        </div>
       </section>
     </div>
 

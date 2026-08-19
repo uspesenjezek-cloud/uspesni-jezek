@@ -39,6 +39,10 @@ const xrechnungMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_xrechnung_documents\.sql$/.test(name)).sort().pop()
   : null;
 const xrechnungMigration = xrechnungMigrationName ? fs.readFileSync(path.join(migrationsDir, xrechnungMigrationName), "utf8") : "";
+const bankMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_bank_reconciliation\.sql$/.test(name)).sort().pop()
+  : null;
+const bankMigration = bankMigrationName ? fs.readFileSync(path.join(migrationsDir, bankMigrationName), "utf8") : "";
 const apiRoot = path.basename(__dirname).toLowerCase() === "scripts" ? path.join(repoRoot, "api") : path.join(repoRoot, "api");
 const pdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-pdf.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-pdf.js"), "utf8") : "";
 const xrechnungApi = fs.existsSync(path.join(apiRoot, "pos-racun-xrechnung.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-xrechnung.js"), "utf8") : "";
@@ -73,6 +77,9 @@ assert.match(html, /data-delivery-backdrop/);
 assert.match(html, /data-detail-deliveries-list/);
 assert.match(html, /data-detail-einvoice/);
 assert.match(html, /data-structured-buyer-reference/);
+assert.match(html, /data-bank-backdrop/);
+assert.match(html, /data-bank-list/);
+assert.match(html, /data-bank-import-another/);
 assert.match(html, /name="previousYearTurnoverBand"/);
 assert.match(html, /data-replacement-title data-fit-text data-fit-max="12"/);
 assert.match(js, /rpcName = replacement \? "pos_issue_replacement_invoice" : "pos_issue_invoice"/);
@@ -82,6 +89,8 @@ assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && sup
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
 assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
+assert.match(js, /\.rpc\("pos_import_bank_transactions"/);
+assert.match(js, /\.rpc\("pos_confirm_bank_transaction"/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
@@ -120,6 +129,8 @@ assert.match(css, /overflow-x:\s*hidden/);
 assert.match(css, /\.pos-adjustment-sheet[\s\S]*max-height:\s*min\(88vh/);
 assert.match(css, /\.pos-delivery-sheet[\s\S]*overflow-x:\s*hidden/);
 assert.match(css, /\.pos-delivery-sheet__actions[\s\S]*env\(safe-area-inset-bottom\)/);
+assert.match(css, /\.pos-bank-sheet[\s\S]*max-height:\s*min\(88vh/);
+assert.match(css, /\.pos-bank-list[\s\S]*overflow-x:\s*hidden/);
 
 assert.strictEqual(Core.parseMoneyToCents("1.234,56 €"), 123456);
 assert.strictEqual(Core.parseQuantityMilli("1,25"), 1250);
@@ -176,6 +187,26 @@ staleLocalCollision.draft.items[0].description = "Stara lokalna različica iste 
 const differentLocalTest = { id: "local-different", number: "TEST-2026-0002", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
 differentLocalTest.draft.items[0].description = "Druga testna storitev";
 assert.deepStrictEqual(Core.mergeInvoiceSources([serverTestInvoice], [localDuplicate, staleLocalCollision, differentLocalTest]).map((invoice) => invoice.id), ["server-test", "local-different"]);
+
+const csvTransactions = Core.parseBankCsv([
+  "Buchungstag;Name Zahlungsbeteiligter;IBAN Zahlungsbeteiligter;Verwendungszweck;Betrag;Währung;Kundenreferenz",
+  "19.08.2026;Unicode-Test Žiga Čebelar;DE02120300000000202051;Zahlung TEST-2026-0001;1,19;EUR;BANK-REF-1",
+  "19.08.2026;Gebühr;;Kontoführung;-4,90;EUR;BANK-REF-2"
+].join("\n"));
+assert.strictEqual(csvTransactions.length, 1);
+assert.deepStrictEqual({ amount: csvTransactions[0].amount_cents, date: csvTransactions[0].booked_on, reference: csvTransactions[0].external_reference }, { amount: 119, date: "2026-08-19", reference: "BANK-REF-1" });
+
+const camtTransactions = Core.parseCamt053(`<?xml version="1.0"?><BkToCstmrStmt><Stmt><Ntry><Amt Ccy="EUR">1.19</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-08-19</Dt></BookgDt><AcctSvcrRef>CAMT-REF-1</AcctSvcrRef><NtryDtls><TxDtls><RltdPties><Dbtr><Nm>Unicode-Test Žiga Čebelar</Nm></Dbtr><DbtrAcct><Id><IBAN>DE02120300000000202051</IBAN></Id></DbtrAcct></RltdPties><RmtInf><Ustrd>TEST-2026-0001</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry></Stmt></BkToCstmrStmt>`);
+assert.strictEqual(camtTransactions.length, 1);
+assert.deepStrictEqual({ amount: camtTransactions[0].amount_cents, date: camtTransactions[0].booked_on, reference: camtTransactions[0].external_reference }, { amount: 119, date: "2026-08-19", reference: "CAMT-REF-1" });
+const bankMatch = Core.matchBankTransaction(csvTransactions[0], [serverTestInvoice]);
+assert.strictEqual(bankMatch.invoice.id, "server-test");
+assert.strictEqual(bankMatch.score, 100);
+const partialBankMatch = Core.matchBankTransaction({ amount_cents: 50, remittance_info: "Teilzahlung TEST-2026-0001" }, [serverTestInvoice]);
+assert.strictEqual(partialBankMatch.invoice.id, "server-test");
+assert.strictEqual(partialBankMatch.score, 92);
+const sameAmountInvoice = Object.assign({}, serverTestInvoice, { id: "server-same-amount", number: "TEST-2026-0099", draft: Object.assign({}, duplicateDraft, { customerName: "Andere GmbH" }) });
+assert.strictEqual(Core.matchBankTransaction({ amount_cents: 119, remittance_info: "Ohne Referenz", counterparty_name: "" }, [serverTestInvoice, sameAmountInvoice]), null);
 
 const draft = Core.defaultDraft(profile);
 draft.customerName = "Sehr langes deutsches Beispielunternehmen für Gebäudetechnik und Sanierung GmbH";
@@ -362,5 +393,24 @@ assert.match(xrechnungApi, /KOSIT_VALIDATOR_URL/);
 assert.match(xrechnungApi, /response\.status === 200/);
 assert.match(xrechnungApi, /response\.status === 406/);
 assert.match(xrechnungApi, /sha256\(xml\) !== document\.sha256/);
+
+assert.ok(bankMigrationName, "Manjka Supabase migracija za bančno usklajevanje.");
+assert.match(bankMigration, /create table public\.pos_bank_imports/i);
+assert.match(bankMigration, /create table public\.pos_bank_transactions/i);
+assert.match(bankMigration, /alter table public\.pos_bank_imports enable row level security/i);
+assert.match(bankMigration, /alter table public\.pos_bank_transactions enable row level security/i);
+assert.match(bankMigration, /grant select on table public\.pos_bank_imports, public\.pos_bank_transactions to authenticated/i);
+assert.doesNotMatch(bankMigration, /grant\s+(?:all|insert|update|delete)[^;]*public\.pos_bank_transactions[^;]*to authenticated/i);
+assert.match(bankMigration, /unique \(user_id, file_sha256\)/i);
+assert.match(bankMigration, /unique \(user_id, source_key\)/i);
+assert.match(bankMigration, /source_bank_transaction_id/i);
+assert.match(bankMigration, /source_bank_transaction_id is null/i);
+assert.match(bankMigration, /for update/i);
+assert.match(bankMigration, /Potrditev uporabnika je obvezna/i);
+assert.match(bankMigration, /Priliv presega odprti znesek računa/i);
+assert.match(bankMigration, /security definer\s+set search_path = ''/i);
+assert.match(bankMigration, /create or replace function public\.pos_import_bank_transactions[\s\S]*security invoker/i);
+assert.match(bankMigration, /create or replace function public\.pos_confirm_bank_transaction[\s\S]*security invoker/i);
+assert.match(bankMigration, /notify pgrst, 'reload schema'/i);
 
 console.log("POS terminal: nemška logika, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
