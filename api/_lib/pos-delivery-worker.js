@@ -50,6 +50,7 @@ async function candidates(cfg, limit) {
   const now = new Date();
   const rows = await modeCandidates(cfg, limit, "sandbox", true, now);
   const readiness = deliveryReadiness();
+  if (readiness.testEnabled && rows.length < limit) rows.push(...await modeCandidates(cfg, limit - rows.length, "resend", true, now));
   if (readiness.liveEnabled && rows.length < limit) rows.push(...await modeCandidates(cfg, limit - rows.length, "resend", false, now));
   const seen = new Set();
   return rows.filter((row) => {
@@ -60,7 +61,10 @@ async function candidates(cfg, limit) {
 }
 
 async function claim(cfg, candidate, workerId) {
-  return rpcRow(await supabase.pokliciRpc(cfg, "pos_claim_invoice_delivery", {
+  const rpcName = candidate && candidate.is_test && candidate.provider === "resend"
+    ? "pos_claim_resend_test_invoice_delivery"
+    : "pos_claim_invoice_delivery";
+  return rpcRow(await supabase.pokliciRpc(cfg, rpcName, {
     p_delivery_id: candidate.id,
     p_user_id: candidate.user_id,
     p_worker_id: workerId,
@@ -88,7 +92,7 @@ async function handler(req, res) {
     return json(res, 200, {
       ok: true,
       mode: readiness.mode,
-      sandbox: !readiness.liveEnabled,
+      sandbox: !readiness.sendEnabled,
       processed: results.length,
       completed: results.filter((entry) => entry.ok).length,
       retrying: results.filter((entry) => entry.status === "queued").length,

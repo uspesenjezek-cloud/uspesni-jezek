@@ -17,13 +17,24 @@ class DeliveryProviderError extends Error {
 function deliveryReadiness(env) {
   const source = env || process.env;
   const configured = Boolean(String(source.RESEND_API_KEY || "").trim() && String(source.POS_EMAIL_FROM || "").trim());
-  const requested = String(source.POS_EMAIL_DELIVERY_ENABLED || "").trim().toLowerCase() === "true";
+  const productionEnabled = String(source.POS_EMAIL_DELIVERY_ENABLED || "").trim().toLowerCase() === "true";
+  const selectedMode = String(source.POS_EMAIL_DELIVERY_MODE || "").trim().toLowerCase();
+  const requestedMode = selectedMode === "test" || selectedMode === "production"
+    ? selectedMode
+    : "sandbox";
+  const testRecipient = String(source.POS_EMAIL_TEST_RECIPIENT || "").trim();
+  const testEnabled = configured && requestedMode === "test" && validEmail(testRecipient);
+  const liveEnabled = configured && requestedMode === "production" && productionEnabled;
   return {
     provider: "resend",
     configured,
-    liveEnabled: configured && requested,
+    sendEnabled: testEnabled || liveEnabled,
+    testEnabled,
+    liveEnabled,
+    recipientLocked: testEnabled,
+    testRecipientConfigured: validEmail(testRecipient),
     webhookConfigured: Boolean(String(source.RESEND_WEBHOOK_SECRET || "").trim()),
-    mode: configured && requested ? "production" : "sandbox",
+    mode: testEnabled ? "test" : liveEnabled ? "production" : "sandbox",
   };
 }
 
@@ -72,8 +83,8 @@ function resendProvider(options) {
   const env = settings.env || process.env;
   const readiness = deliveryReadiness(env);
   const fetchFn = settings.fetch || fetch;
-  if (!readiness.liveEnabled) {
-    throw new DeliveryProviderError("Produkcijsko e-poštno pošiljanje ni vključeno.", {
+  if (!readiness.sendEnabled) {
+    throw new DeliveryProviderError("E-poštno pošiljanje ni vključeno.", {
       code: readiness.configured ? "EMAIL_DELIVERY_DISABLED" : "EMAIL_PROVIDER_NOT_CONFIGURED",
       retryable: false,
     });
@@ -83,8 +94,10 @@ function resendProvider(options) {
     async deliver(deliveryPackage) {
       const delivery = deliveryPackage && deliveryPackage.delivery;
       const attachments = deliveryPackage && deliveryPackage.attachments;
-      if (!delivery || delivery.is_test || delivery.provider !== "resend" || delivery.channel !== "email") {
-        throw new DeliveryProviderError("Resend sme obdelati samo potrjeno pravo e-poštno dostavo.", { code: "RESEND_DELIVERY_MODE_INVALID", retryable: false });
+      const isSafeTest = Boolean(delivery && delivery.is_test && readiness.testEnabled);
+      const isProduction = Boolean(delivery && !delivery.is_test && readiness.liveEnabled);
+      if (!delivery || (!isSafeTest && !isProduction) || delivery.provider !== "resend" || delivery.channel !== "email") {
+        throw new DeliveryProviderError("Resend sme obdelati samo potrjeno e-poštno dostavo v izbranem načinu.", { code: "RESEND_DELIVERY_MODE_INVALID", retryable: false });
       }
       if (!validEmail(deliveryPackage.recipient)) {
         throw new DeliveryProviderError("E-poštni naslov prejemnika ni veljaven.", { code: "RESEND_RECIPIENT_INVALID", retryable: false });
@@ -96,9 +109,10 @@ function resendProvider(options) {
       if (totalBytes > MAX_RAW_ATTACHMENT_BYTES) {
         throw new DeliveryProviderError("Priloge so prevelike za varno e-poštno pošiljanje.", { code: "RESEND_ATTACHMENTS_TOO_LARGE", retryable: false });
       }
+      const actualRecipient = isSafeTest ? String(env.POS_EMAIL_TEST_RECIPIENT || "").trim() : String(deliveryPackage.recipient || "").trim();
       const payload = {
         from: String(env.POS_EMAIL_FROM).trim(),
-        to: [String(deliveryPackage.recipient).trim()],
+        to: [actualRecipient],
         subject: String(deliveryPackage.subject || ("Rechnung " + deliveryPackage.invoiceNumber)).trim().slice(0, 240),
         text: String(deliveryPackage.message || "Im Anhang erhalten Sie Ihre Rechnung.").slice(0, 4000),
         attachments: attachments.map((item) => ({ filename: item.filename, content: item.content.toString("base64") })),
@@ -135,6 +149,7 @@ function resendProvider(options) {
         status: "sent",
         sent: true,
         delivered: false,
+        testMode: isSafeTest,
       };
     },
   };

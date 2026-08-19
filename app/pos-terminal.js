@@ -614,7 +614,7 @@
   var deliveryInvoiceId = null;
   var deliveryRequestKey = null;
   var deliverySubmitting = false;
-  var deliveryCapability = { provider: "resend", configured: false, liveEnabled: false, mode: "sandbox" };
+  var deliveryCapability = { provider: "resend", configured: false, sendEnabled: false, testEnabled: false, liveEnabled: false, mode: "sandbox" };
   var toastTimer = 0;
   var dialogCallback = null;
 
@@ -1078,7 +1078,9 @@
     return "E-pošta";
   }
 
-  function deliveryStatusLabel(status) {
+  function deliveryStatusLabel(status, entry) {
+    var testEmail = Boolean(entry && entry.isTest && entry.provider === "resend");
+    if (testEmail && (status === "test_completed" || status === "sent")) return "Test poslano";
     if (status === "delivery_delayed") return "Zakasnjeno";
     if (status === "bounced") return "Zavrnjeno";
     if (status === "complained") return "Prijavljeno";
@@ -1087,12 +1089,14 @@
     if (status === "processing") return "Preverjam";
     if (status === "test_completed") return "Sandbox končan";
     if (status === "sent") return "Poslano";
-    if (status === "delivered") return "Dostavljeno";
+    if (status === "delivered") return testEmail ? "Test dostavljeno" : "Dostavljeno";
     if (status === "failed") return "Napaka";
     return "Testno pripravljeno";
   }
 
-  function deliveryEventLabel(type) {
+  function deliveryEventLabel(type, entry) {
+    var testEmail = Boolean(entry && entry.isTest && entry.provider === "resend");
+    if (testEmail && (type === "test_completed" || type === "sent")) return "Test poslano";
     if (type === "delivery_delayed") return "Zakasnjeno";
     if (type === "bounced") return "Zavrnjeno";
     if (type === "complained") return "Neželena pošta";
@@ -1105,7 +1109,7 @@
     if (type === "retry_scheduled") return "Ponovitev";
     if (type === "test_completed") return "Končano";
     if (type === "sent") return "Poslano";
-    if (type === "delivered") return "Dostavljeno";
+    if (type === "delivered") return testEmail ? "Test dostavljeno" : "Dostavljeno";
     return "Napaka";
   }
 
@@ -1117,7 +1121,7 @@
     return "<ol class=\"pos-delivery-timeline\" aria-label=\"Časovnica dostave\">" + events.map(function (event, index) {
       var type = String(event.event_type || "failed");
       var eventTime = event.provider_event_at || event.created_at; var time = eventTime ? new Date(eventTime).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) : "";
-      return "<li class=\"pos-delivery-timeline__step is-" + escapeHtml(type) + (index === events.length - 1 ? " is-current" : "") + "\" title=\"" + escapeHtml(time) + "\"><i></i><span>" + escapeHtml(deliveryEventLabel(type)) + "</span></li>";
+      return "<li class=\"pos-delivery-timeline__step is-" + escapeHtml(type) + (index === events.length - 1 ? " is-current" : "") + "\" title=\"" + escapeHtml(time) + "\"><i></i><span>" + escapeHtml(deliveryEventLabel(type, entry)) + "</span></li>";
     }).join("") + "</ol>";
   }
 
@@ -1128,24 +1132,24 @@
     section.hidden = !deliveries.length;
     query("[data-detail-deliveries-count]").textContent = String(deliveries.length);
     list.innerHTML = deliveries.map(function (entry) {
-      var target = entry.recipient || entry.routingReference || "Sandbox";
+      var target = entry.isTest && entry.provider === "resend" ? "dovoljeni testni naslov" : entry.recipient || entry.routingReference || "Sandbox";
       var validation = entry.validationStatus === "pending" ? " · čaka KoSIT" : "";
       var retry = entry.status === "failed" && entry.attemptCount < entry.maxAttempts
-        ? "<button type=\"button\" class=\"pos-delivery-row__retry\" data-retry-delivery=\"" + escapeHtml(entry.id) + "\" data-live=\"" + (entry.isTest ? "false" : "true") + "\">Ponovi</button>"
+        ? "<button type=\"button\" class=\"pos-delivery-row__retry\" data-retry-delivery=\"" + escapeHtml(entry.id) + "\" data-email=\"" + (entry.provider === "resend" ? "true" : "false") + "\">Ponovi</button>"
         : "";
-      return "<article class=\"pos-delivery-row\"><span class=\"pos-delivery-row__icon\"><svg><use href=\"#i-export\"/></svg></span><div class=\"pos-delivery-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(deliveryFormatLabel(entry.documentFormat) + " · " + deliveryChannelLabel(entry.channel)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(String(entry.createdAt || "").slice(0, 10)) + " · " + target + validation) + "</small></div><div class=\"pos-delivery-row__actions\"><span class=\"pos-delivery-row__status is-" + escapeHtml(entry.status) + "\">" + escapeHtml(deliveryStatusLabel(entry.status)) + "</span>" + retry + "</div>" + deliveryTimeline(entry) + "</article>";
+      return "<article class=\"pos-delivery-row\"><span class=\"pos-delivery-row__icon\"><svg><use href=\"#i-export\"/></svg></span><div class=\"pos-delivery-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(deliveryFormatLabel(entry.documentFormat) + " · " + deliveryChannelLabel(entry.channel)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(String(entry.createdAt || "").slice(0, 10)) + " · " + target + validation) + "</small></div><div class=\"pos-delivery-row__actions\"><span class=\"pos-delivery-row__status is-" + escapeHtml(entry.status) + "\">" + escapeHtml(deliveryStatusLabel(entry.status, entry)) + "</span>" + retry + "</div>" + deliveryTimeline(entry) + "</article>";
     }).join("");
     queryAll("[data-retry-delivery]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
         button.disabled = true;
         button.textContent = "Čakaj …";
         try {
-          if (button.getAttribute("data-live") === "true") await posDeliveryEmailRequest(button.getAttribute("data-retry-delivery"));
+          if (button.getAttribute("data-email") === "true") await posDeliveryEmailRequest(button.getAttribute("data-retry-delivery"));
           else await queueAndRunSandbox(button.getAttribute("data-retry-delivery"));
           await loadServerState();
           activeInvoiceId = invoice.id;
           showView("invoice-detail");
-          showToast(button.getAttribute("data-live") === "true" ? "Račun je oddan e-poštnemu ponudniku." : "Sandbox preizkus je končan. Nič ni bilo poslano.");
+          showToast(button.getAttribute("data-email") === "true" ? "E-poštna dostava je ponovno zagnana." : "Sandbox preizkus je končan. Nič ni bilo poslano.");
         } catch (error) {
           button.disabled = false;
           button.textContent = "Ponovi";
@@ -1199,23 +1203,28 @@
   }
 
   function syncDeliveryCapabilityUi() {
+    var send = Boolean(deliveryCapability && deliveryCapability.sendEnabled);
+    var test = Boolean(deliveryCapability && deliveryCapability.testEnabled);
     var live = Boolean(deliveryCapability && deliveryCapability.liveEnabled);
     var note = query("[data-delivery-mode-note]");
     if (!note) return;
-    note.classList.toggle("is-live", live);
-    query("[data-delivery-mode-title]").textContent = live ? "Pravo e-poštno pošiljanje" : "Varen sandbox";
-    query("[data-delivery-mode-copy]").textContent = live
-      ? "Po potrditvi bo račun z izbranimi prilogami dejansko poslan prejemniku."
+    note.classList.toggle("is-live", send);
+    note.classList.toggle("is-test", test);
+    query("[data-delivery-mode-title]").textContent = test ? "Varni e-poštni test" : live ? "Pravo e-poštno pošiljanje" : "Varen sandbox";
+    query("[data-delivery-mode-copy]").textContent = test
+      ? "Račun bo dejansko poslan samo na strežniško določen testni naslov. Stranka ga ne bo prejela."
+      : live ? "Po potrditvi bo račun z izbranimi prilogami dejansko poslan prejemniku."
       : "Preverimo celoten potek, vendar račun ne zapusti sistema in ni dejansko poslan.";
-    query("[data-delivery-confirm-copy]").textContent = live
-      ? "S potrditvijo dovolim dejansko pošiljanje na prikazani e-poštni naslov."
+    query("[data-delivery-confirm-copy]").textContent = test
+      ? "S potrditvijo dovolim testno pošiljanje samo na dovoljeni testni naslov."
+      : live ? "S potrditvijo dovolim dejansko pošiljanje na prikazani e-poštni naslov."
       : "Sandbox zabeleži preizkus, brez zunanjega pošiljanja.";
     var submit = query("[data-delivery-submit]");
-    if (submit && !deliverySubmitting) submit.textContent = live ? "Pošlji račun" : "Zaženi sandbox";
+    if (submit && !deliverySubmitting) submit.textContent = test ? "Pošlji test" : live ? "Pošlji račun" : "Zaženi sandbox";
   }
 
   async function loadDeliveryCapability() {
-    var previous = Boolean(deliveryCapability.liveEnabled);
+    var previous = Boolean(deliveryCapability.sendEnabled);
     try {
       var token = await apiSessionToken();
       var response = await fetch("/api/pos-dostava-email", { method: "GET", headers: { Authorization: "Bearer " + token } });
@@ -1225,13 +1234,15 @@
       deliveryCapability = {
         provider: body.delivery.provider === "resend" ? "resend" : "resend",
         configured: Boolean(body.delivery.configured),
+        sendEnabled: Boolean(body.delivery.sendEnabled),
+        testEnabled: Boolean(body.delivery.testEnabled),
         liveEnabled: Boolean(body.delivery.liveEnabled),
-        mode: body.delivery.liveEnabled ? "production" : "sandbox"
+        mode: String(body.delivery.mode || "sandbox")
       };
     } catch (_error) {
-      deliveryCapability = { provider: "resend", configured: false, liveEnabled: false, mode: "sandbox" };
+      deliveryCapability = { provider: "resend", configured: false, sendEnabled: false, testEnabled: false, liveEnabled: false, mode: "sandbox" };
     }
-    if (!previous && deliveryCapability.liveEnabled) {
+    if (!previous && deliveryCapability.sendEnabled) {
       var form = query("#pos-delivery-form");
       if (form) form.elements.deliveryConfirmed.checked = false;
     }
@@ -1354,18 +1365,20 @@
       if (result.error) throw result.error;
       var prepared = Array.isArray(result.data) ? result.data[0] : result.data;
       if (!prepared || !prepared.id) throw new Error("Pripravljena dostava nima veljavne oznake.");
-      submit.textContent = deliveryCapability.liveEnabled ? "Pošiljam …" : "Sandbox …";
-      var deliveryResult = deliveryCapability.liveEnabled
+      submit.textContent = deliveryCapability.testEnabled ? "Pošiljam test …" : deliveryCapability.liveEnabled ? "Pošiljam …" : "Sandbox …";
+      var deliveryResult = deliveryCapability.sendEnabled
         ? await posDeliveryEmailRequest(prepared.id)
         : await queueAndRunSandbox(prepared.id);
       deliverySubmitting = false;
       submit.disabled = false;
-      submit.textContent = deliveryCapability.liveEnabled ? "Pošlji račun" : "Zaženi sandbox";
+      submit.textContent = deliveryCapability.testEnabled ? "Pošlji test" : deliveryCapability.liveEnabled ? "Pošlji račun" : "Zaženi sandbox";
       closeDeliverySheet();
       await loadServerState();
       activeInvoiceId = invoice.id;
       showView("invoice-detail");
-      showToast(deliveryCapability.liveEnabled
+      showToast(deliveryCapability.testEnabled
+        ? "Testni račun je poslan samo na dovoljeni testni naslov."
+        : deliveryCapability.liveEnabled
         ? (deliveryResult && deliveryResult.sent ? "Račun je oddan e-poštnemu ponudniku." : "Račun čaka na varno pošiljanje.")
         : "Sandbox preizkus je končan. Nič ni bilo poslano.");
     } catch (error) {

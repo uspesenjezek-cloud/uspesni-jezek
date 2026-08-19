@@ -14,6 +14,9 @@ const securityMigration = fs.readFileSync(path.join(root, "supabase", "migration
 const liveMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_resend_delivery_activation\.sql$/.test(name)).sort().pop();
 const liveMigration = fs.readFileSync(path.join(root, "supabase", "migrations", liveMigrationName), "utf8");
+const safeTestMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_resend_safe_test_mode\.sql$/.test(name)).sort().pop();
+const safeTestMigration = fs.readFileSync(path.join(root, "supabase", "migrations", safeTestMigrationName), "utf8");
 const api = fs.readFileSync(path.join(root, "api", "pos-dostava-sandbox.js"), "utf8");
 const providerSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-providers.js"), "utf8");
 const packageSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-package.js"), "utf8");
@@ -49,6 +52,14 @@ assert.match(liveMigration, /revoke all on function public\.pos_queue_live_invoi
 assert.match(liveMigration, /grant execute on function public\.pos_queue_live_invoice_delivery\(uuid,uuid,boolean\) to service_role/);
 assert.match(liveMigration, /is_test = false and provider = 'resend'/);
 assert.match(liveMigration, /v_event := case when v_delivery\.is_test then 'test_completed' else 'sent' end/);
+assert.match(safeTestMigration, /public\.pos_queue_resend_test_invoice_delivery[\s\S]*security invoker/);
+assert.match(safeTestMigration, /is_test = true[\s\S]*provider = 'resend'[\s\S]*channel = 'email'/);
+assert.match(safeTestMigration, /status = 'test_completed'[\s\S]*sent_at = null[\s\S]*delivered_at = null/);
+assert.match(safeTestMigration, /recipient_locked', true/);
+assert.match(safeTestMigration, /public\.pos_apply_resend_test_webhook_event/);
+assert.match(safeTestMigration, /revoke all on function public\.pos_queue_resend_test_invoice_delivery\(uuid,uuid,boolean\) from public, anon, authenticated/);
+assert.match(safeTestMigration, /grant execute on function public\.pos_queue_resend_test_invoice_delivery\(uuid,uuid,boolean\) to service_role/);
+assert.doesNotMatch(safeTestMigration, /grant execute on function public\.pos_queue_resend_test_invoice_delivery[\s\S]*to authenticated/);
 
 assert.match(api, /supabase\.preveriUporabnika/);
 assert.match(api, /p_user_id: auth\.user\.id/);
@@ -59,6 +70,8 @@ assert.match(api, /delivered: false/);
 assert.match(providerSource, /https:\/\/api\.resend\.com\/emails/);
 assert.match(providerSource, /Idempotency-Key/);
 assert.match(providerSource, /POS_EMAIL_DELIVERY_ENABLED/);
+assert.match(providerSource, /POS_EMAIL_DELIVERY_MODE/);
+assert.match(providerSource, /POS_EMAIL_TEST_RECIPIENT/);
 assert.match(providerSource, /MAX_RAW_ATTACHMENT_BYTES/);
 assert.match(packageSource, /pos_invoice_documents/);
 assert.match(packageSource, /pos_einvoice_documents/);
@@ -68,14 +81,18 @@ assert.match(packageSource, /pos-invoice-originals/);
 assert.match(packageSource, /pos-einvoice-originals/);
 assert.match(runnerSource, /pos_finish_invoice_delivery/);
 assert.match(workerSource, /CRON_SECRET/);
+assert.match(runnerSource, /pos_finish_resend_test_invoice_delivery/);
 assert.match(workerSource, /pos_claim_invoice_delivery/);
 assert.match(workerSource, /candidateQuery\("queued"/);
 assert.match(workerSource, /candidateQuery\("processing"/);
 assert.match(workerSource, /provider, isTest/);
 assert.match(emailEndpointSource, /EMAIL_DELIVERY_NOT_ENABLED/);
+assert.match(workerSource, /readiness\.testEnabled/);
+assert.match(workerSource, /pos_claim_resend_test_invoice_delivery/);
 assert.match(emailEndpointSource, /pos_queue_live_invoice_delivery/);
 assert.match(emailEndpointSource, /confirmed === true/);
 assert.match(vercel, /"\/api\/pos-dostava-delavec"[\s\S]*"31 3 \* \* \*"/);
+assert.match(emailEndpointSource, /pos_queue_resend_test_invoice_delivery/);
 
 assert.strictEqual(endpoint._test.uuid("cbcb9da5-9c5a-4f58-a8db-06c314fefb93"), "cbcb9da5-9c5a-4f58-a8db-06c314fefb93");
 assert.strictEqual(endpoint._test.uuid("not-a-uuid"), "");
@@ -84,6 +101,7 @@ assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3
 assert.match(worker._test.candidateQuery("processing", "2026-08-19T12:00:00.000Z", 3, "resend", false), /provider=eq\.resend[\s\S]*is_test=eq\.false[\s\S]*locked_at=lt\./);
 assert.strictEqual(worker._test.safeEqual("1234567890123456", "1234567890123456"), true);
 assert.strictEqual(worker._test.safeEqual("a", "b"), false);
+assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3, "resend", true), /provider=eq\.resend[\s\S]*is_test=eq\.true/);
 
 (async function () {
   const content = Buffer.from("archived invoice bytes");
@@ -112,7 +130,30 @@ assert.strictEqual(worker._test.safeEqual("a", "b"), false);
   assert.strictEqual(result.delivered, false);
   assert.match(result.providerReference, /^sandbox-[0-9a-f]{24}$/);
   assert.throws(() => providers.providerFor("email"), /ni konfiguriran/);
-  assert.deepStrictEqual(providers.deliveryReadiness({}), { provider: "resend", configured: false, liveEnabled: false, webhookConfigured: false, mode: "sandbox" });
+  assert.deepStrictEqual(providers.deliveryReadiness({}), {
+    provider: "resend", configured: false, sendEnabled: false, testEnabled: false,
+    liveEnabled: false, recipientLocked: false, testRecipientConfigured: false,
+    webhookConfigured: false, mode: "sandbox"
+  });
+  assert.deepStrictEqual(providers.deliveryReadiness({
+    RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>",
+    POS_EMAIL_DELIVERY_MODE: "test", POS_EMAIL_TEST_RECIPIENT: "qa@example.de"
+  }), {
+    provider: "resend", configured: true, sendEnabled: true, testEnabled: true,
+    liveEnabled: false, recipientLocked: true, testRecipientConfigured: true,
+    webhookConfigured: false, mode: "test"
+  });
+  assert.strictEqual(providers.deliveryReadiness({
+    RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "rechnung@example.de",
+    POS_EMAIL_DELIVERY_MODE: "test", POS_EMAIL_TEST_RECIPIENT: "ni-naslov"
+  }).sendEnabled, false);
+  assert.strictEqual(providers.deliveryReadiness({
+    RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "rechnung@example.de", POS_EMAIL_DELIVERY_ENABLED: "true"
+  }).liveEnabled, false, "staro stikalo brez izrecnega production načina ne sme vključiti pošiljanja");
+  assert.strictEqual(providers.deliveryReadiness({
+    RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "rechnung@example.de",
+    POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true"
+  }).liveEnabled, true);
   assert.strictEqual(providers.validEmail("rechnung@example.de"), true);
   assert.strictEqual(providers.validEmail("bad\n@example.de"), false);
   assert.throws(() => packages.verifyAttachment(Object.assign({}, attachment, { sha256: "0".repeat(64) })), /celovitosti/);
@@ -142,7 +183,7 @@ assert.strictEqual(worker._test.safeEqual("a", "b"), false);
     manifestSha256: packages.manifestSha256([attachment]),
   };
   const resend = providers.providerFor("resend", {
-    env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>", POS_EMAIL_DELIVERY_ENABLED: "true" },
+    env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>", POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true" },
     fetch: async (url, options) => { requests.push({ url, options }); return { ok: true, status: 200, json: async () => ({ id: "email-provider-id" }) }; },
   });
   const sent = await resend.deliver(livePackage);
@@ -154,6 +195,28 @@ assert.strictEqual(worker._test.safeEqual("a", "b"), false);
   const resendPayload = JSON.parse(requests[0].options.body);
   assert.deepStrictEqual(resendPayload.to, ["kunde@example.de"]);
   assert.strictEqual(resendPayload.attachments[0].content, content.toString("base64"));
+  const testRequests = [];
+  const safeTest = providers.providerFor("resend", {
+    env: {
+      RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>",
+      POS_EMAIL_DELIVERY_MODE: "test", POS_EMAIL_TEST_RECIPIENT: "qa-allowlist@example.de"
+    },
+    fetch: async (url, options) => { testRequests.push({ url, options }); return { ok: true, status: 200, json: async () => ({ id: "email-test-id" }) }; },
+  });
+  const safeResult = await safeTest.deliver(Object.assign({}, livePackage, {
+    delivery: Object.assign({}, livePackage.delivery, { is_test: true })
+  }));
+  assert.strictEqual(safeResult.testMode, true);
+  assert.strictEqual(testRequests.length, 1);
+  const safePayload = JSON.parse(testRequests[0].options.body);
+  assert.deepStrictEqual(safePayload.to, ["qa-allowlist@example.de"]);
+  assert.notStrictEqual(safePayload.to[0], livePackage.recipient, "uporabnikov naslov ne sme obiti strežniškega allowlista");
+  await assert.rejects(
+    () => safeTest.deliver(Object.assign({}, livePackage, {
+      delivery: Object.assign({}, livePackage.delivery, { is_test: false })
+    })),
+    /izbranem načinu/
+  );
   assert.throws(() => providers.providerFor("resend", { env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "a@b.de" } }), /ni vključeno/);
   console.log("POS delivery engine tests passed.");
 })().catch((error) => {

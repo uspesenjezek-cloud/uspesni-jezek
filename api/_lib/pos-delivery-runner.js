@@ -11,7 +11,10 @@ function rpcRow(value) {
 }
 
 async function finish(cfg, delivery, workerId, result) {
-  return rpcRow(await supabase.pokliciRpc(cfg, "pos_finish_invoice_delivery", {
+  const rpcName = delivery && delivery.is_test && delivery.provider === "resend"
+    ? "pos_finish_resend_test_invoice_delivery"
+    : "pos_finish_invoice_delivery";
+  return rpcRow(await supabase.pokliciRpc(cfg, rpcName, {
     p_delivery_id: delivery.id,
     p_user_id: delivery.user_id,
     p_worker_id: workerId,
