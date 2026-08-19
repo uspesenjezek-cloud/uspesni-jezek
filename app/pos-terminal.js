@@ -2125,6 +2125,11 @@
     queryAll("[name=taxMode]").forEach(function (radio) { radio.addEventListener("change", function () { state.draft.taxMode = radio.value; syncTaxFields(); renderItems(); }); });
     query("[name=constructionWithholding]").addEventListener("change", syncTaxFields);
     queryAll("[name=priceMode]").forEach(function (radio) { radio.addEventListener("change", function () { syncDraftFromForm(); renderItems(); }); });
+    query("[name=finalConfirmed]").addEventListener("change", function () {
+      syncDraftFromForm();
+      renderPreview();
+      persist();
+    });
     query("#pos-invoice-form").addEventListener("input", function (event) { if (event.target.matches("[data-fit-input]")) fitInput(event.target); });
     query("#pos-profile-form").addEventListener("input", function (event) { if (event.target.matches("[data-fit-input]")) fitInput(event.target); });
     query("#pos-profile-form").addEventListener("submit", async function (event) {

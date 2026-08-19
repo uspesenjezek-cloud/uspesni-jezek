@@ -1,0 +1,20 @@
+import { build } from "esbuild";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+await build({
+  absWorkingDir: root,
+  entryPoints: ["./app/supabase-entry.js"],
+  outfile: "app/vendor-data.js",
+  bundle: true,
+  minify: true,
+  sourcemap: false,
+  legalComments: "none",
+  format: "iife",
+  platform: "browser",
+  target: ["es2020"],
+});
+
+console.log("app/vendor-data.js ustvarjen iz pripete npm različice Supabase.");

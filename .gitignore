@@ -2,6 +2,7 @@
 # Kopijo brez pravih podatkov najdeš v app/config.example.js
 app/config.js
 app/sentry.bundle.js
+app/vendor-data.js
 
 # Sistemske datoteke
 .DS_Store
