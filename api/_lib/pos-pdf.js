@@ -1,8 +1,14 @@
 "use strict";
 
-const { PDFDocument, StandardFonts, rgb, degrees } = require("pdf-lib");
+const fs = require("fs");
+const fontkit = require("@pdf-lib/fontkit");
+const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-2";
+const GENERATOR_VERSION = "uj-pos-pdf-3";
+const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
+const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
+const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
+const FONT_BOLD = fs.readFileSync(FONT_BOLD_PATH);
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.20, 0.19), muted: rgb(0.37, 0.48, 0.46),
@@ -18,9 +24,17 @@ function safeText(value) {
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201c\u201d]/g, '"')
     .replace(/\u2026/g, "...")
-    .replace(/[^\x20-\x7e\u00a0-\u00ff]/g, "?")
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+async function embedUnicodeFonts(pdf) {
+  pdf.registerFontkit(fontkit);
+  const regular = await pdf.embedFont(FONT_REGULAR, { subset: true });
+  const bold = await pdf.embedFont(FONT_BOLD, { subset: true });
+  return { regular, bold };
 }
 
 function money(cents) {
@@ -105,6 +119,13 @@ function taxGroups(items) {
   return Array.from(groups.values()).sort((left, right) => left.tax_rate_bps - right.tax_rate_bps);
 }
 
+function taxIdentityText(seller) {
+  const source = seller || {};
+  if (safeText(source.vatId)) return "USt-IdNr.: " + safeText(source.vatId);
+  if (safeText(source.taxNumber)) return "Steuernummer: " + safeText(source.taxNumber);
+  return "";
+}
+
 function drawTestWatermark(page, bold) {
   page.drawText("TESTRECHNUNG", {
     x: 103, y: 365, size: 48, font: bold, color: rgb(0.93, 0.84, 0.78),
@@ -123,8 +144,7 @@ async function ustvariRacunPdf(invoice) {
   pdf.setCreationDate(new Date(invoice.issued_at || Date.now()));
   pdf.setModificationDate(new Date(invoice.issued_at || Date.now()));
 
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const { regular, bold } = await embedUnicodeFonts(pdf);
   const seller = invoice.snapshot.seller || {};
   const draft = invoice.snapshot.draft || {};
   const items = Array.isArray(draft.items) ? draft.items : [];
@@ -253,8 +273,8 @@ async function ustvariRacunPdf(invoice) {
   ensureSpace(86);
   page.drawText(paymentLines[0], { x: PAGE.margin, y, font: bold, size: 9.5, color: COLORS.tealDark });
   drawLines(page, paymentLines.slice(1), PAGE.margin, y - 16, { font: regular, size: 8.5, lineHeight: 12, color: COLORS.ink });
-  const taxIdentity = seller.vatId ? "USt-IdNr.: " + seller.vatId : "Steuernummer: " + seller.taxNumber;
-  rightText(page, safeText(taxIdentity), PAGE.width - PAGE.margin, y - 16, regular, 8.2, COLORS.muted);
+  const taxIdentity = taxIdentityText(seller);
+  if (taxIdentity) rightText(page, taxIdentity, PAGE.width - PAGE.margin, y - 16, regular, 8.2, COLORS.muted);
   if (seller.businessEmail) rightText(page, safeText(seller.businessEmail), PAGE.width - PAGE.margin, y - 30, regular, 8.2, COLORS.muted);
 
   pages.forEach((current, index) => {
@@ -266,4 +286,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, embedUnicodeFonts, ustvariRacunPdf };
