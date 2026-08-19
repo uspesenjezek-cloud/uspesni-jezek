@@ -906,6 +906,8 @@
 .pos-delivery-test-note, .pos-delivery-validation { display: flex; padding: 10px; align-items: flex-start; gap: 8px; border: 1px solid #e9d7aa; border-radius: 13px; background: #fff8e8; }
 .pos-delivery-test-note svg, .pos-delivery-validation svg { width: 17px; height: 17px; flex: 0 0 17px; color: #8a681d; }
 .pos-delivery-test-note.is-live { border-color: #b9dcd6; background: #edf9f6; }
+.pos-delivery-test-note.is-test { border-color: #b9dcd6; background: linear-gradient(145deg, #edf9f6, #fff8e8); }
+.pos-delivery-test-note.is-test svg { color: var(--pos-teal-dark); }
 .pos-delivery-test-note.is-live svg { color: var(--pos-teal-dark); }
 .pos-delivery-test-note p, .pos-delivery-validation p { margin: 0; min-width: 0; }
 .pos-delivery-test-note strong, .pos-delivery-test-note span, .pos-delivery-validation strong, .pos-delivery-validation span { display: block; }

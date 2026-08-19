@@ -148,13 +148,17 @@ async function handler(req, res) {
   try { cfg = supabase.konfiguracija(); }
   catch (error) { return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: error.message }); }
   try {
-    const result = rpcResult(await supabase.pokliciRpc(cfg, "pos_apply_resend_webhook_event", {
+    const rpcPayload = {
       p_svix_id: svixId,
       p_event_type: eventType,
       p_email_id: emailId,
       p_event_created_at: createdAt,
       p_failure_code: safeFailureCode(payload),
-    }));
+    };
+    let result = rpcResult(await supabase.pokliciRpc(cfg, "pos_apply_resend_webhook_event", rpcPayload));
+    if (!result || result.matched !== true) {
+      result = rpcResult(await supabase.pokliciRpc(cfg, "pos_apply_resend_test_webhook_event", rpcPayload));
+    }
     if (!result || result.matched !== true) {
       return json(res, 503, { ok: false, code: "DELIVERY_NOT_READY", napaka: "Dostava še ni pripravljena za dogodek." });
     }

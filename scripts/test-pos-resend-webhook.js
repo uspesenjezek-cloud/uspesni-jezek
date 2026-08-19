@@ -14,6 +14,10 @@ const hardeningName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter(function (name) { return /pos_resend_webhook_hardening\.sql$/.test(name); })
   .sort().pop();
 const hardening = fs.readFileSync(path.join(root, "supabase", "migrations", hardeningName), "utf8");
+const safeTestName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter(function (name) { return /pos_resend_safe_test_mode\.sql$/.test(name); })
+  .sort().pop();
+const safeTest = fs.readFileSync(path.join(root, "supabase", "migrations", safeTestName), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", migrationName), "utf8");
 const router = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
@@ -58,6 +62,12 @@ assert.match(migration, /grant execute on function public\.pos_apply_resend_webh
 assert.doesNotMatch(migration, /grant execute[\s\S]*to authenticated[\s\S]*pos_apply_resend_webhook_event/i);
 assert.match(hardening, /alter table private\.pos_resend_webhook_receipts enable row level security/i);
 assert.match(hardening, /create index pos_resend_webhook_receipts_delivery_idx/i);
+assert.match(safeTest, /public\.pos_apply_resend_test_webhook_event/i);
+assert.match(safeTest, /provider = 'resend' and is_test = true and provider_reference = p_email_id/i);
+assert.match(safeTest, /sent_at = null[\s\S]*delivered_at = null/i);
+assert.match(safeTest, /revoke all on function public\.pos_apply_resend_test_webhook_event[\s\S]*from public, anon, authenticated/i);
+assert.match(safeTest, /grant execute on function public\.pos_apply_resend_test_webhook_event[\s\S]*to service_role/i);
+assert.match(fs.readFileSync(path.join(root, "api", "_handlers", "pos-dostava-webhook.js"), "utf8"), /pos_apply_resend_webhook_event[\s\S]*pos_apply_resend_test_webhook_event/);
 assert.match(router, /"delivery-webhook": require\("\.\/_handlers\/pos-dostava-webhook"\)/);
 assert.match(vercel, /"\/api\/pos-dostava-webhook"[\s\S]*handler=delivery-webhook/);
 assert.match(localServer, /RESEND_WEBHOOK_SECRET/);

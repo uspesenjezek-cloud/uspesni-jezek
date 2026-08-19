@@ -44,8 +44,8 @@ async function handler(req, res) {
   if (!auth.ok) return json(res, auth.status, { ok: false, code: auth.code, napaka: auth.napaka });
   const readiness = deliveryReadiness();
   if (req.method === "GET") return json(res, 200, { ok: true, delivery: readiness });
-  if (!readiness.liveEnabled) {
-    return json(res, 409, { ok: false, code: "EMAIL_DELIVERY_NOT_ENABLED", napaka: "Pravo e-poštno pošiljanje še ni vključeno.", delivery: readiness });
+  if (!readiness.sendEnabled) {
+    return json(res, 409, { ok: false, code: "EMAIL_DELIVERY_NOT_ENABLED", napaka: "E-poštno pošiljanje še ni vključeno.", delivery: readiness });
   }
   const deliveryId = uuid(req.body && req.body.deliveryId || req.query && req.query.deliveryId);
   if (!deliveryId) return json(res, 400, { ok: false, napaka: "Neveljavna dostava." });
@@ -55,17 +55,23 @@ async function handler(req, res) {
   try { cfg = supabase.konfiguracija(); }
   catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
   try {
-    const queued = rpcRow(await supabase.pokliciRpc(cfg, "pos_queue_live_invoice_delivery", {
+    const queueRpc = readiness.testEnabled
+      ? "pos_queue_resend_test_invoice_delivery"
+      : "pos_queue_live_invoice_delivery";
+    const queued = rpcRow(await supabase.pokliciRpc(cfg, queueRpc, {
       p_delivery_id: deliveryId,
       p_user_id: auth.user.id,
       p_confirmed: true,
     }));
     if (!queued) return json(res, 409, { ok: false, napaka: "Dostave ni bilo mogoče pripraviti za pošiljanje." });
-    if (queued.status === "sent" || queued.status === "delivered") {
+    if (queued.status === "test_completed" || queued.status === "sent" || queued.status === "delivered") {
       return json(res, 200, { ok: true, alreadyCompleted: true, delivery: publicResult(queued) });
     }
     const workerId = crypto.randomUUID();
-    const claimed = rpcRow(await supabase.pokliciRpc(cfg, "pos_claim_invoice_delivery", {
+    const claimRpc = readiness.testEnabled
+      ? "pos_claim_resend_test_invoice_delivery"
+      : "pos_claim_invoice_delivery";
+    const claimed = rpcRow(await supabase.pokliciRpc(cfg, claimRpc, {
       p_delivery_id: queued.id,
       p_user_id: auth.user.id,
       p_worker_id: workerId,
