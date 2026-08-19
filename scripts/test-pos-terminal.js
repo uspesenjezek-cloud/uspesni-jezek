@@ -171,9 +171,11 @@ const duplicateTotals = Core.calculateTotals(duplicateDraft);
 const serverTestInvoice = { id: "server-test", number: "TEST-2026-0001", isTest: true, serverStored: true, draft: duplicateDraft, totals: duplicateTotals };
 const localDuplicate = { id: "local-duplicate", number: "TEST-2026-0001", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
 localDuplicate.draft.items[0].id = "drug-lokalni-id";
-const differentLocalTest = { id: "local-different", number: "TEST-2026-0001", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
+const staleLocalCollision = { id: "local-collision", number: "TEST-2026-0001", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
+staleLocalCollision.draft.items[0].description = "Stara lokalna različica iste številke";
+const differentLocalTest = { id: "local-different", number: "TEST-2026-0002", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
 differentLocalTest.draft.items[0].description = "Druga testna storitev";
-assert.deepStrictEqual(Core.mergeInvoiceSources([serverTestInvoice], [localDuplicate, differentLocalTest]).map((invoice) => invoice.id), ["server-test", "local-different"]);
+assert.deepStrictEqual(Core.mergeInvoiceSources([serverTestInvoice], [localDuplicate, staleLocalCollision, differentLocalTest]).map((invoice) => invoice.id), ["server-test", "local-different"]);
 
 const draft = Core.defaultDraft(profile);
 draft.customerName = "Sehr langes deutsches Beispielunternehmen für Gebäudetechnik und Sanierung GmbH";

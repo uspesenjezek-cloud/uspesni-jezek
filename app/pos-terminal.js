@@ -463,11 +463,20 @@
     var authoritative = Array.isArray(serverInvoices) ? serverInvoices : [];
     var local = Array.isArray(localInvoices) ? localInvoices : [];
     var seen = Object.create(null);
-    authoritative.forEach(function (invoice) { seen[invoiceFingerprint(invoice)] = true; });
+    var seenNumbers = Object.create(null);
+    authoritative.forEach(function (invoice) {
+      seen[invoiceFingerprint(invoice)] = true;
+      var number = String(invoice && invoice.number || "").trim();
+      if (number) seenNumbers[(invoice.isTest ? "test:" : "live:") + number] = true;
+    });
     return authoritative.concat(local.filter(function (invoice) {
+      var number = String(invoice && invoice.number || "").trim();
+      var numberKey = number ? (invoice.isTest ? "test:" : "live:") + number : "";
+      if (numberKey && seenNumbers[numberKey]) return false;
       var fingerprint = invoiceFingerprint(invoice);
       if (seen[fingerprint]) return false;
       seen[fingerprint] = true;
+      if (numberKey) seenNumbers[numberKey] = true;
       return true;
     }));
   }
