@@ -116,7 +116,45 @@
       iban: "",
       invoicePrefix: "RE-" + new Date().getFullYear() + "-",
       defaultDueDays: "14",
-      legalConfirmed: false
+      legalConfirmed: false,
+      datevSettings: defaultDatevSettings("03")
+    };
+  }
+
+  function defaultDatevSettings(framework) {
+    var skr = String(framework || "03") === "04" ? "04" : "03";
+    return {
+      framework: skr,
+      adviserNumber: "",
+      clientNumber: "",
+      fiscalYearStart: "01-01",
+      accountLength: "4",
+      initials: "UJ",
+      receivableAccount: skr === "04" ? "1210" : "1410",
+      revenue19Account: skr === "04" ? "4400" : "8400",
+      revenue7Account: skr === "04" ? "4300" : "8300",
+      smallBusinessAccount: skr === "04" ? "4195" : "8195",
+      reverseChargeAccount: skr === "04" ? "4337" : "8337",
+      confirmed: false
+    };
+  }
+
+  function normalizeDatevSettings(value) {
+    var input = value && typeof value === "object" ? value : {};
+    var defaults = defaultDatevSettings(input.framework);
+    return {
+      framework: String(input.framework || defaults.framework) === "04" ? "04" : "03",
+      adviserNumber: String(input.adviserNumber || input.adviser_number || "").replace(/\D/g, "").slice(0, 7),
+      clientNumber: String(input.clientNumber || input.client_number || "").replace(/\D/g, "").slice(0, 5),
+      fiscalYearStart: String(input.fiscalYearStart || input.fiscal_year_start || defaults.fiscalYearStart),
+      accountLength: String(clamp(integer(input.accountLength || input.account_length, 4), 4, 8)),
+      initials: String(input.initials || defaults.initials).replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4),
+      receivableAccount: String(input.receivableAccount || input.receivable_account || defaults.receivableAccount).replace(/\D/g, "").slice(0, 9),
+      revenue19Account: String(input.revenue19Account || input.revenue_19_account || defaults.revenue19Account).replace(/\D/g, "").slice(0, 9),
+      revenue7Account: String(input.revenue7Account || input.revenue_7_account || defaults.revenue7Account).replace(/\D/g, "").slice(0, 9),
+      smallBusinessAccount: String(input.smallBusinessAccount || input.small_business_account || defaults.smallBusinessAccount).replace(/\D/g, "").slice(0, 9),
+      reverseChargeAccount: String(input.reverseChargeAccount || input.reverse_charge_account || defaults.reverseChargeAccount).replace(/\D/g, "").slice(0, 9),
+      confirmed: Boolean(input.confirmed)
     };
   }
 
@@ -231,7 +269,8 @@
       iban: cleanIban(profile.iban),
       invoice_prefix: String(profile.invoicePrefix || "").trim(),
       default_due_days: clamp(integer(profile.defaultDueDays, 14), 0, 365),
-      legal_confirmed: Boolean(profile.legalConfirmed)
+      legal_confirmed: Boolean(profile.legalConfirmed),
+      datev_settings: normalizeDatevSettings(profile.datevSettings)
     };
   }
 
@@ -254,7 +293,8 @@
       iban: row.iban,
       invoicePrefix: row.invoice_prefix,
       defaultDueDays: String(row.default_due_days),
-      legalConfirmed: Boolean(row.legal_confirmed)
+      legalConfirmed: Boolean(row.legal_confirmed),
+      datevSettings: normalizeDatevSettings(row.datev_settings)
     });
   }
 
@@ -761,6 +801,181 @@
     ].join("\n");
   }
 
+  var DATEV_BOOKING_HEADERS = (function () {
+    var headers = [
+      "Umsatz (ohne Soll/Haben-Kz)", "Soll/Haben-Kennzeichen", "WKZ Umsatz", "Kurs", "Basis-Umsatz", "WKZ Basis-Umsatz", "Konto", "Gegenkonto (ohne BU-Schlüssel)", "BU-Schlüssel", "Belegdatum", "Belegfeld 1", "Belegfeld 2", "Skonto", "Buchungstext", "Postensperre", "Diverse Adressnummer", "Geschäftspartnerbank", "Sachverhalt", "Zinssperre", "Beleglink",
+      "Beleginfo - Art 1", "Beleginfo - Inhalt 1", "Beleginfo - Art 2", "Beleginfo - Inhalt 2", "Beleginfo - Art 3", "Beleginfo - Inhalt 3", "Beleginfo - Art 4", "Beleginfo - Inhalt 4", "Beleginfo - Art 5", "Beleginfo - Inhalt 5", "Beleginfo - Art 6", "Beleginfo - Inhalt 6", "Beleginfo - Art 7", "Beleginfo - Inhalt 7", "Beleginfo - Art 8", "Beleginfo - Inhalt 8", "KOST1 - Kostenstelle", "KOST2 - Kostenstelle", "Kost-Menge", "EU-Land u. UStID (Bestimmung)", "EU-Steuersatz (Bestimmung)", "Abw. Versteuerungsart", "Sachverhalt L+L", "Funktionsergänzung L+L", "BU 49 Hauptfunktionstyp", "BU 49 Hauptfunktionsnummer", "BU 49 Funktionsergänzung"
+    ];
+    for (var index = 1; index <= 20; index += 1) {
+      headers.push("Zusatzinformation - Art " + index, "Zusatzinformation- Inhalt " + index);
+    }
+    return headers.concat([
+      "Stück", "Gewicht", "Zahlweise", "Forderungsart", "Veranlagungsjahr", "Zugeordnete Fälligkeit", "Skontotyp", "Auftragsnummer", "Buchungstyp", "USt-Schlüssel (Anzahlungen)", "EU-Land (Anzahlungen)", "Sachverhalt L+L (Anzahlungen)", "EU-Steuersatz (Anzahlungen)", "Erlöskonto (Anzahlungen)", "Herkunft-Kz", "Buchungs GUID", "KOST-Datum", "SEPA-Mandatsreferenz", "Skontosperre", "Gesellschaftername", "Beteiligtennummer", "Identifikationsnummer", "Zeichnernummer", "Postensperre bis", "Bezeichnung SoBil-Sachverhalt", "Kennzeichen SoBil-Buchung", "Festschreibung", "Leistungsdatum", "Datum Zuord. Steuerperiode", "Fälligkeit", "Generalumkehr (GU)", "Steuersatz", "Land", "Abrechnungsreferenz", "BVV-Position", "EU-Land u. UStID (Ursprung)", "EU-Steuersatz (Ursprung)", "Abw. Skontokonto"
+    ]);
+  })();
+
+  function datevText(value) {
+    return "\"" + String(value == null ? "" : value).replace(/[\r\n\t]/g, " ").replace(/\"/g, "\"\"") + "\"";
+  }
+
+  function datevAmount(cents) {
+    return (Math.abs(integer(cents, 0)) / 100).toFixed(2).replace(".", ",");
+  }
+
+  function datevCompactDate(iso, includeYear) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+    return match ? match[3] + match[2] + (includeYear ? match[1] : "") : "";
+  }
+
+  function datevDocumentNumber(value) {
+    return String(value || "")
+      .replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue")
+      .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^A-Za-z0-9_$&%*+\-/]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 36);
+  }
+
+  function datevTimestamp(value) {
+    var date = value instanceof Date ? value : new Date(value || Date.now());
+    function pad(number, length) { return String(number).padStart(length || 2, "0"); }
+    return date.getFullYear() + pad(date.getMonth() + 1) + pad(date.getDate()) + pad(date.getHours()) + pad(date.getMinutes()) + pad(date.getSeconds()) + pad(date.getMilliseconds(), 3);
+  }
+
+  function datevPeriod(value) {
+    var match = /^(\d{4})-(\d{2})$/.exec(String(value || ""));
+    if (!match) return null;
+    var year = integer(match[1], 0);
+    var month = integer(match[2], 0);
+    if (year < 2000 || year > 2099 || month < 1 || month > 12) return null;
+    var end = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return { key: match[0], year: year, month: month, start: match[1] + match[2] + "01", end: match[1] + match[2] + String(end).padStart(2, "0") };
+  }
+
+  function datevFiscalStart(period, monthDay) {
+    var match = /^(\d{2})-(\d{2})$/.exec(String(monthDay || ""));
+    if (!period || !match) return "";
+    var month = integer(match[1], 0);
+    var day = integer(match[2], 0);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return "";
+    var year = period.year - (period.month < month ? 1 : 0);
+    var candidate = new Date(Date.UTC(year, month - 1, day));
+    if (candidate.getUTCMonth() !== month - 1 || candidate.getUTCDate() !== day) return "";
+    return String(year) + String(month).padStart(2, "0") + String(day).padStart(2, "0");
+  }
+
+  function validateDatevSettings(settings, periodValue) {
+    var value = normalizeDatevSettings(settings);
+    var period = datevPeriod(periodValue);
+    var errors = [];
+    var adviser = integer(value.adviserNumber, 0);
+    var client = integer(value.clientNumber, 0);
+    var accountLength = integer(value.accountLength, 4);
+    if (!period) errors.push("Izberite veljaven obračunski mesec.");
+    if (adviser < 1001 || adviser > 9999999) errors.push("Beraternummer mora biti med 1001 in 9999999.");
+    if (client < 1 || client > 99999) errors.push("Mandantennummer mora biti med 1 in 99999.");
+    if (!datevFiscalStart(period, value.fiscalYearStart)) errors.push("Začetek poslovnega leta vnesite kot MM-DD.");
+    if (!/^[A-Z]{2,4}$/.test(value.initials)) errors.push("Diktatkürzel mora imeti 2–4 velike črke.");
+    ["receivableAccount", "revenue19Account", "revenue7Account", "smallBusinessAccount", "reverseChargeAccount"].forEach(function (key) {
+      var account = value[key];
+      var maximumLength = key === "receivableAccount" ? accountLength + 1 : accountLength;
+      if (!/^\d+$/.test(account) || account === "0" || account.length > maximumLength) errors.push("Preverite vse DATEV konte in dolžino kontov.");
+    });
+    if (!value.confirmed) errors.push("Potrdite, da je konte pregledal računovodja ali davčni svetovalec.");
+    return errors.filter(function (message, index) { return errors.indexOf(message) === index; });
+  }
+
+  function datevRevenueAccount(draft, rateBps, settings) {
+    if (draft.taxMode === "small_business") return settings.smallBusinessAccount;
+    if (draft.taxMode === "reverse_charge") return settings.reverseChargeAccount;
+    if (integer(rateBps, 0) === 1900) return settings.revenue19Account;
+    if (integer(rateBps, 0) === 700) return settings.revenue7Account;
+    return "";
+  }
+
+  function datevBookingRow(booking) {
+    var fields = new Array(DATEV_BOOKING_HEADERS.length).fill("");
+    fields[0] = datevAmount(booking.amountCents);
+    fields[1] = datevText(booking.side);
+    fields[2] = datevText("EUR");
+    fields[6] = String(booking.account);
+    fields[7] = String(booking.counterAccount);
+    fields[8] = datevText("");
+    fields[9] = datevCompactDate(booking.date, false);
+    fields[10] = datevText(datevDocumentNumber(booking.documentNumber));
+    var dueDate = datevCompactDate(booking.dueDate, true);
+    fields[11] = datevText(dueDate ? dueDate.slice(0, 4) + dueDate.slice(6, 8) : "");
+    fields[13] = datevText(String(booking.text || "").replace(/[\r\n\t]/g, " ").slice(0, 60));
+    fields[14] = "0";
+    return fields.join(";");
+  }
+
+  function buildDatevExport(invoices, inputSettings, periodValue, now) {
+    var settings = normalizeDatevSettings(inputSettings);
+    var period = datevPeriod(periodValue);
+    var errors = validateDatevSettings(settings, periodValue);
+    var bookings = [];
+    var warnings = [];
+    function inPeriod(iso) { return period && String(iso || "").slice(0, 7) === period.key; }
+    function appendParts(invoice, date, documentNumber, side, text, centsOverride) {
+      var draft = invoice.draft || {};
+      var totals = calculateTotals(draft);
+      var keys = Object.keys(totals.byRate);
+      if (centsOverride != null) {
+        var dominant = keys.sort(function (left, right) {
+          var a = totals.byRate[left]; var b = totals.byRate[right];
+          return (b.netCents + b.taxCents) - (a.netCents + a.taxCents);
+        })[0] || "0";
+        var overrideAccount = datevRevenueAccount(draft, integer(dominant, 0), settings);
+        if (!overrideAccount) errors.push("Račun " + invoice.number + " uporablja davčno stopnjo brez nastavljenega DATEV konta.");
+        else if (Math.abs(integer(centsOverride, 0)) > 0) bookings.push({ amountCents: Math.abs(integer(centsOverride, 0)), side: side, account: settings.receivableAccount, counterAccount: overrideAccount, date: date, dueDate: invoice.dueDate, documentNumber: documentNumber, text: text });
+        return;
+      }
+      keys.forEach(function (key) {
+        var part = totals.byRate[key];
+        var gross = part.netCents + part.taxCents;
+        if (!gross) return;
+        var revenueAccount = datevRevenueAccount(draft, part.rateBps, settings);
+        if (!revenueAccount) {
+          errors.push("Račun " + invoice.number + " uporablja davčno stopnjo " + (part.rateBps / 100) + " %, ki nima DATEV konta.");
+          return;
+        }
+        bookings.push({ amountCents: gross, side: side, account: settings.receivableAccount, counterAccount: revenueAccount, date: date, dueDate: invoice.dueDate, documentNumber: documentNumber, text: text });
+      });
+    }
+    (invoices || []).forEach(function (invoice) {
+      if (!invoice || invoice.isTest) return;
+      var draft = invoice.draft || {};
+      if (inPeriod(draft.issueDate)) appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number));
+      (invoice.adjustments || []).forEach(function (adjustment) {
+        var date = String(adjustment.createdAt || "").slice(0, 10);
+        if (!inPeriod(date)) return;
+        if (adjustment.type === "cancellation") appendParts(invoice, date, adjustment.number, "H", "Storno zu " + invoice.number);
+        else if (integer(adjustment.deltaGrossCents, 0) !== 0) appendParts(invoice, date, adjustment.number, adjustment.deltaGrossCents < 0 ? "H" : "S", "Korrektur zu " + invoice.number, adjustment.deltaGrossCents);
+      });
+    });
+    var documentNumbers = {};
+    bookings.forEach(function (booking) {
+      var normalizedNumber = datevDocumentNumber(booking.documentNumber);
+      var originalNumber = String(booking.documentNumber || "");
+      if (documentNumbers[normalizedNumber] && documentNumbers[normalizedNumber] !== originalNumber) errors.push("Dokumentni številki " + documentNumbers[normalizedNumber] + " in " + originalNumber + " bi imeli enak DATEV ključ.");
+      else documentNumbers[normalizedNumber] = originalNumber;
+    });
+    errors = errors.filter(function (message, index) { return errors.indexOf(message) === index; });
+    if (!bookings.length && !errors.length) warnings.push("V tem mesecu ni pravnih računov ali finančnih popravkov. Testni računi so namenoma izločeni.");
+    if (!period) return { errors: errors, warnings: warnings, bookings: [], content: "", filename: "" };
+    var fiscalStart = datevFiscalStart(period, settings.fiscalYearStart);
+    var header = [datevText("EXTF"), "700", "21", datevText("Buchungsstapel"), "13", datevTimestamp(now), "", datevText(settings.initials), datevText(""), datevText(""), String(integer(settings.adviserNumber, 0)), String(integer(settings.clientNumber, 0)), fiscalStart, settings.accountLength, period.start, period.end, datevText("Ausgangsrechnungen " + period.key), datevText(settings.initials), "1", "0", "0", datevText("EUR"), "", datevText(""), "", "", datevText(settings.framework), "", "", datevText(""), datevText("")].join(";");
+    var lines = [header, DATEV_BOOKING_HEADERS.join(";")].concat(bookings.map(datevBookingRow));
+    return {
+      errors: errors,
+      warnings: warnings,
+      bookings: bookings,
+      content: lines.join("\r\n") + "\r\n",
+      filename: "EXTF_Buchungsstapel_" + period.key.replace("-", "") + ".csv",
+      totalCents: bookings.reduce(function (sum, booking) { return sum + booking.amountCents; }, 0)
+    };
+  }
+
   var Core = {
     parseMoneyToCents: parseMoneyToCents,
     parseQuantityMilli: parseQuantityMilli,
@@ -772,6 +987,12 @@
     buildEpcPayload: buildEpcPayload,
     buildXRechnungXml: buildXRechnungXml,
     deliveryRecommendation: deliveryRecommendation,
+    defaultDatevSettings: defaultDatevSettings,
+    normalizeDatevSettings: normalizeDatevSettings,
+    validateDatevSettings: validateDatevSettings,
+    buildDatevExport: buildDatevExport,
+    datevDocumentNumber: datevDocumentNumber,
+    DATEV_BOOKING_HEADERS: DATEV_BOOKING_HEADERS,
     profileToDatabase: profileToDatabase,
     profileFromDatabase: profileFromDatabase,
     draftToDatabasePayload: draftToDatabasePayload,
@@ -1122,7 +1343,7 @@
     document.body.classList.remove("uj-modal-odprt");
     var callback = dialogCallback;
     dialogCallback = null;
-    if (!query("[data-bank-backdrop]").hidden || !query("[data-adjustment-backdrop]").hidden || !query("[data-delivery-backdrop]").hidden) {
+    if (!query("[data-bank-backdrop]").hidden || !query("[data-adjustment-backdrop]").hidden || !query("[data-delivery-backdrop]").hidden || !query("[data-datev-backdrop]").hidden) {
       document.documentElement.classList.add("uj-modal-odprt");
       document.body.classList.add("uj-modal-odprt");
     }
@@ -2391,17 +2612,100 @@
     reader.readAsText(file);
   }
 
-  function exportDatev() {
-    if (!state.invoices.length) { showToast("Za izvoz še ni računov."); return; }
-    var rows = ["Rechnungsnummer;Datum;Kunde;Netto;Steuer;Brutto;Status"];
-    state.invoices.forEach(function (invoice) {
-      rows.push([invoice.number, invoice.draft.issueDate, invoice.draft.customerName.replace(/;/g, ","), (invoice.totals.netCents / 100).toFixed(2), (invoice.totals.taxCents / 100).toFixed(2), (invoice.totals.grossCents / 100).toFixed(2), invoice.status].join(";"));
-      (invoice.adjustments || []).forEach(function (adjustment) {
-        rows.push([adjustment.number, String(adjustment.createdAt || "").slice(0, 10), invoice.draft.customerName.replace(/;/g, ","), (adjustment.deltaNetCents / 100).toFixed(2), (adjustment.deltaTaxCents / 100).toFixed(2), (adjustment.deltaGrossCents / 100).toFixed(2), adjustment.type === "cancellation" ? "Storno" : "Korrektur"].join(";"));
-      });
+  function currentMonthKey() {
+    return isoToday().slice(0, 7);
+  }
+
+  function fillDatevForm(settings) {
+    var value = normalizeDatevSettings(settings);
+    queryAll("[name=datevFramework]").forEach(function (field) { field.checked = field.value === value.framework; });
+    query("[name=datevAdviserNumber]").value = value.adviserNumber;
+    query("[name=datevClientNumber]").value = value.clientNumber;
+    query("[name=datevFiscalYearStart]").value = value.fiscalYearStart;
+    query("[name=datevInitials]").value = value.initials;
+    query("[name=datevReceivableAccount]").value = value.receivableAccount;
+    query("[name=datevRevenue19Account]").value = value.revenue19Account;
+    query("[name=datevRevenue7Account]").value = value.revenue7Account;
+    query("[name=datevSmallBusinessAccount]").value = value.smallBusinessAccount;
+    query("[name=datevReverseChargeAccount]").value = value.reverseChargeAccount;
+    query("[name=datevConfirmed]").checked = value.confirmed;
+  }
+
+  function readDatevForm() {
+    var checked = query("[name=datevFramework]:checked");
+    return normalizeDatevSettings({
+      framework: checked ? checked.value : "03",
+      adviserNumber: query("[name=datevAdviserNumber]").value,
+      clientNumber: query("[name=datevClientNumber]").value,
+      fiscalYearStart: query("[name=datevFiscalYearStart]").value,
+      initials: query("[name=datevInitials]").value,
+      receivableAccount: query("[name=datevReceivableAccount]").value,
+      revenue19Account: query("[name=datevRevenue19Account]").value,
+      revenue7Account: query("[name=datevRevenue7Account]").value,
+      smallBusinessAccount: query("[name=datevSmallBusinessAccount]").value,
+      reverseChargeAccount: query("[name=datevReverseChargeAccount]").value,
+      confirmed: query("[name=datevConfirmed]").checked
     });
-    downloadFile("DATEV-VORPRUEFUNG-TEST.csv", "\ufeff" + rows.join("\r\n"), "text/csv;charset=utf-8");
-    showToast("Testni računovodski CSV je prenesen; to še ni potrjen DATEV Buchungsstapel.");
+  }
+
+  function renderDatevSheet() {
+    var settings = readDatevForm();
+    var period = query("[name=datevPeriod]").value || currentMonthKey();
+    var result = buildDatevExport(state.invoices, settings, period, new Date());
+    query("[data-datev-skr]").textContent = "SKR" + settings.framework;
+    query("[data-datev-settings-state]").textContent = result.errors.length ? "Nastavitve še niso potrjene" : "Pripravljeno · SKR" + settings.framework;
+    var invoiceNumbers = {};
+    result.bookings.forEach(function (booking) { invoiceNumbers[booking.documentNumber] = true; });
+    query("[data-datev-summary]").innerHTML = [
+      [Object.keys(invoiceNumbers).length, "Dokumenti"],
+      [result.bookings.length, "Knjižbe"],
+      [formatMoney(result.totalCents || 0), "Promet"]
+    ].map(function (entry) { return "<div><strong>" + escapeHtml(entry[0]) + "</strong><small>" + escapeHtml(entry[1]) + "</small></div>"; }).join("");
+    query("[data-datev-validation]").innerHTML = result.errors.map(function (message) { return "<p>" + escapeHtml(message) + "</p>"; }).concat(result.warnings.map(function (message) { return "<p class=\"is-warning\">" + escapeHtml(message) + "</p>"; })).join("");
+    query("[data-datev-download]").disabled = Boolean(result.errors.length || !result.bookings.length);
+    return result;
+  }
+
+  function openDatevSheet() {
+    var periodField = query("[name=datevPeriod]");
+    if (!periodField.value) periodField.value = currentMonthKey();
+    fillDatevForm(state.profile.datevSettings);
+    var result = renderDatevSheet();
+    query("[data-datev-settings]").open = Boolean(result.errors.length);
+    query("[data-datev-backdrop]").hidden = false;
+    document.documentElement.classList.add("uj-modal-odprt");
+    document.body.classList.add("uj-modal-odprt");
+  }
+
+  function closeDatevSheet() {
+    query("[data-datev-backdrop]").hidden = true;
+    document.documentElement.classList.remove("uj-modal-odprt");
+    document.body.classList.remove("uj-modal-odprt");
+  }
+
+  async function saveDatevSettings() {
+    state.profile.datevSettings = readDatevForm();
+    persist();
+    try {
+      if (backend.client) {
+        if (!backend.userId) await getBackendUser();
+        await saveProfileToServer();
+      }
+      renderDatevSheet();
+      showToast(backend.ready ? "DATEV nastavitve so varno shranjene." : "DATEV nastavitve so shranjene na tej napravi.");
+    } catch (error) {
+      backend.ready = false;
+      backendMessage(databaseErrorMessage(error), "error");
+      showToast("Nastavitve so lokalno shranjene; varna baza še ni nadgrajena.");
+    }
+  }
+
+  function exportDatev() {
+    var result = renderDatevSheet();
+    if (result.errors.length) { query("[data-datev-settings]").open = true; showToast("Najprej dokončajte DATEV nastavitve."); return; }
+    if (!result.bookings.length) { showToast("V izbranem mesecu ni pravnih dokumentov za izvoz."); return; }
+    downloadFile(result.filename, "\ufeff" + result.content, "text/csv;charset=utf-8");
+    showToast("DATEV Buchungsstapel je prenesen za izbrani mesec.");
   }
 
   function fitInput(field) {
@@ -2493,7 +2797,26 @@
     query("[data-bank-cancel]").addEventListener("click", closeBankSheet);
     query("[data-bank-import-another]").addEventListener("click", function () { query("[data-bank-file]").click(); });
     query("[data-bank-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeBankSheet(); });
-    query("[data-datev-export]").addEventListener("click", exportDatev);
+    query("[data-datev-export]").addEventListener("click", openDatevSheet);
+    query("[name=datevPeriod]").addEventListener("change", renderDatevSheet);
+    query("#pos-datev-form").addEventListener("input", renderDatevSheet);
+    queryAll("[name=datevFramework]").forEach(function (radio) {
+      radio.addEventListener("change", function () {
+        var previous = readDatevForm();
+        var defaults = defaultDatevSettings(radio.value);
+        defaults.adviserNumber = previous.adviserNumber;
+        defaults.clientNumber = previous.clientNumber;
+        defaults.fiscalYearStart = previous.fiscalYearStart;
+        defaults.initials = previous.initials;
+        fillDatevForm(defaults);
+        renderDatevSheet();
+      });
+    });
+    query("[data-datev-save]").addEventListener("click", saveDatevSettings);
+    query("[data-datev-download]").addEventListener("click", exportDatev);
+    query("[data-datev-close]").addEventListener("click", closeDatevSheet);
+    query("[data-datev-cancel]").addEventListener("click", closeDatevSheet);
+    query("[data-datev-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeDatevSheet(); });
     query("[data-show-all]").addEventListener("click", function () { showToast(state.invoices.length ? "Prikazanih je zadnjih " + Math.min(5, state.invoices.length) + " računov." : "Računov še ni."); });
     query("[data-detail-back]").addEventListener("click", function () { activeInvoiceId = null; showView("home"); });
     query("[data-detail-download]").addEventListener("click", async function () {
@@ -2554,6 +2877,7 @@
   }
 
   global.UJPoskusiNotranjiKorakNazaj = function () {
+    if (!query("[data-datev-backdrop]").hidden) { closeDatevSheet(); return true; }
     if (!query("[data-bank-backdrop]").hidden) { closeBankSheet(); return true; }
     if (!query("[data-delivery-backdrop]").hidden) { closeDeliverySheet(); return true; }
     if (!query("[data-adjustment-backdrop]").hidden) { closeAdjustmentSheet(); return true; }
