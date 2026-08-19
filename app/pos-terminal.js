@@ -600,7 +600,7 @@
   var document = global.document;
   var state = loadState();
   var backend = {
-    client: global.supabaseKlient && global.supabaseKlient.auth ? global.supabaseKlient : null,
+    client: typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient.auth ? supabaseKlient : null,
     userId: null,
     ready: false,
     syncing: false,

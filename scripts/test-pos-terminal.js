@@ -78,6 +78,8 @@ assert.match(html, /data-replacement-title data-fit-text data-fit-max="12"/);
 assert.match(js, /rpcName = replacement \? "pos_issue_replacement_invoice" : "pos_issue_invoice"/);
 assert.match(js, /\.rpc\(rpcName, rpcPayload\)/);
 assert.match(js, /\.from\("pos_business_profiles"\)/);
+assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient\.auth/);
+assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
