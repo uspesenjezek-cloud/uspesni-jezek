@@ -20,3 +20,14 @@ OPECODE.md
 ZAPISNIK.md
 serve.ps1
 orodje-pozicioniranje-slike.html
+
+# Te poti v produkciji obravnavata zdruzena usmerjevalnika api/boniteta.js in api/pos.js.
+# Izvorne datoteke ostanejo lokalno zaradi razvojnega streznika in regresijskih testov.
+api/boniteta-pro.js
+api/mehka-boniteta.js
+api/mehka-boniteta-opravilo.js
+api/pos-racun-pdf.js
+api/pos-racun-korekcija.js
+api/pos-racun-xrechnung.js
+api/pos-dostava-sandbox.js
+api/pos-dostava-delavec.js

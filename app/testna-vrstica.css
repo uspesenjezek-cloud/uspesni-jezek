@@ -1,0 +1,125 @@
+:root {
+  --app-testna-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html.app-iphone-preview {
+  --app-testna-safe-bottom: 34px;
+}
+
+.app-testna-vrstica-prostor {
+  display: block;
+  width: 100%;
+  height: calc(48px + var(--app-testna-safe-bottom, 0px));
+  flex: 0 0 calc(48px + var(--app-testna-safe-bottom, 0px));
+  pointer-events: none;
+}
+
+.app-testna-vrstica,
+.boniteta-app-testna-vrstica {
+  position: fixed !important;
+  right: auto;
+  bottom: 0;
+  left: 50%;
+  z-index: 2147482700;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(410px, 100%);
+  height: calc(48px + var(--app-testna-safe-bottom, 0px));
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: stretch;
+  padding: 0 16px var(--app-testna-safe-bottom, 0px);
+  transform: translateX(-50%);
+  border-top: 1px solid #d8e4e0;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 -5px 18px rgba(31, 69, 63, .07);
+  color: #60716e;
+  font: 700 .7rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .02em;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.boniteta-app-testna-vrstica {
+  width: min(460px, 100%);
+  font-family: "Figtree", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Modal mora imeti celoten vidni del zaslona zase. iOS sicer fiksno vrstico
+   ob odprtju tipkovnice prestavi nad tipkovnico, kjer prekrije nogo modala. */
+html.uj-modal-odprt .app-testna-vrstica,
+html.uj-modal-odprt .boniteta-app-testna-vrstica,
+body.uj-modal-odprt .app-testna-vrstica,
+body.uj-modal-odprt .boniteta-app-testna-vrstica {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.app-testna-vrstica__gumb,
+.app-testna-vrstica__prazno {
+  min-width: 0;
+  height: 48px;
+}
+
+.app-testna-vrstica__gumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #315f5f;
+  font: 700 .72rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boniteta-app-testna-vrstica .app-testna-vrstica__gumb {
+  font-family: "Figtree", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.app-testna-vrstica__gumb:hover,
+.app-testna-vrstica__gumb:active {
+  background: #edf6f4;
+}
+
+.app-testna-vrstica__gumb:focus-visible {
+  outline: 2px solid #51999a;
+  outline-offset: -2px;
+}
+
+.app-testna-vrstica__gumb svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+/* Stari zgornji gumbi so samo vizualno umaknjeni; njihovo mesto v glavah
+   ostane rezervirano, da se že potrjene poravnave naslovov ne premaknejo. */
+body.app-testna-vrstica-prisotna .wizard-topbar__nazaj,
+body.app-testna-vrstica-prisotna .aktivni-primeri-topbar__nazaj,
+body.app-testna-vrstica-prisotna .izvedba-integrirana__nazaj,
+body.app-testna-vrstica-prisotna .zo-nazaj {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.app-testna-vrstica-prisotna .app__nazaj,
+body.app-testna-vrstica-prisotna .boniteta-zacasno-nazaj {
+  display: none !important;
+}
+
+body.app-testna-vrstica-prisotna .izvedba-sticky {
+  bottom: calc(48px + var(--app-testna-safe-bottom, 0px));
+  padding-bottom: 12px;
+}

@@ -2,19 +2,28 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": ".",
-  "crons": [{ "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" }],
+  "rewrites": [
+    { "source": "/api/boniteta-pro", "destination": "/api/boniteta?handler=pro" },
+    { "source": "/api/mehka-boniteta", "destination": "/api/boniteta?handler=soft" },
+    { "source": "/api/mehka-boniteta-opravilo", "destination": "/api/boniteta?handler=job" },
+    { "source": "/api/pos-racun-pdf", "destination": "/api/pos?handler=invoice-pdf" },
+    { "source": "/api/pos-racun-korekcija", "destination": "/api/pos?handler=invoice-adjustment" },
+    { "source": "/api/pos-racun-xrechnung", "destination": "/api/pos?handler=invoice-xrechnung" },
+    { "source": "/api/pos-dostava-sandbox", "destination": "/api/pos?handler=delivery-sandbox" },
+    { "source": "/api/pos-dostava-delavec", "destination": "/api/pos?handler=delivery-worker" },
+    { "source": "/api/pos-dostava-email", "destination": "/api/pos?handler=delivery-email" }
+  ],
+  "crons": [
+    { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
+    { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" }
+  ],
   "functions": {
     "api/obdelaj-opomine.js": {
       "maxDuration": 60
     },
-    "api/mehka-boniteta.js": {
+    "api/boniteta.js": {
       "maxDuration": 60,
       "memory": 1769,
-      "regions": ["fra1"]
-    },
-    "api/mehka-boniteta-opravilo.js": {
-      "maxDuration": 30,
-      "memory": 1024,
       "regions": ["fra1"]
     },
     "api/mehka-boniteta-delavec.js": {
@@ -22,8 +31,8 @@
       "memory": 1769,
       "regions": ["fra1"]
     },
-    "api/boniteta-pro.js": {
-      "maxDuration": 30,
+    "api/pos.js": {
+      "maxDuration": 60,
       "memory": 1024,
       "regions": ["fra1"]
     }

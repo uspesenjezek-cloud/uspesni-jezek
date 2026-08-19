@@ -1,0 +1,24 @@
+"use strict";
+
+const handlers = Object.freeze({
+  "invoice-pdf": require("./_handlers/pos-racun-pdf"),
+  "invoice-adjustment": require("./_handlers/pos-racun-korekcija"),
+  "invoice-xrechnung": require("./_handlers/pos-racun-xrechnung"),
+  "delivery-sandbox": require("./_handlers/pos-dostava-sandbox"),
+  "delivery-worker": require("./_handlers/pos-dostava-delavec"),
+  "delivery-email": require("./_handlers/pos-dostava-email"),
+});
+
+function route(req) {
+  if (req.query && req.query.handler) return String(req.query.handler);
+  try { return new URL(req.url, "http://localhost").searchParams.get("handler") || ""; }
+  catch (_) { return ""; }
+}
+
+module.exports = function handler(req, res) {
+  const selected = handlers[route(req)];
+  if (!selected) return res.status(404).json({ ok: false, napaka: "Neznana POS pot." });
+  return selected(req, res);
+};
+
+module.exports._test = { route };
