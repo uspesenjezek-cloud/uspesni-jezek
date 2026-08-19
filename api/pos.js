@@ -7,6 +7,7 @@ const handlers = Object.freeze({
   "delivery-sandbox": require("./_handlers/pos-dostava-sandbox"),
   "delivery-worker": require("./_handlers/pos-dostava-delavec"),
   "delivery-email": require("./_handlers/pos-dostava-email"),
+  "delivery-webhook": require("./_handlers/pos-dostava-webhook"),
 });
 
 function route(req) {

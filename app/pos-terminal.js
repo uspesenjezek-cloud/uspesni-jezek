@@ -725,6 +725,8 @@
       createdAt: row.created_at,
       sentAt: row.sent_at,
       deliveredAt: row.delivered_at,
+      lastProviderEventAt: row.last_provider_event_at,
+      lastProviderEventType: row.last_provider_event_type,
       lastError: row.last_error,
       events: eventsByDelivery && eventsByDelivery[row.id] || []
     };
@@ -1077,6 +1079,10 @@
   }
 
   function deliveryStatusLabel(status) {
+    if (status === "delivery_delayed") return "Zakasnjeno";
+    if (status === "bounced") return "Zavrnjeno";
+    if (status === "complained") return "Prijavljeno";
+    if (status === "suppressed") return "Zadržano";
     if (status === "queued") return "V čakalni vrsti";
     if (status === "processing") return "Preverjam";
     if (status === "test_completed") return "Sandbox končan";
@@ -1087,6 +1093,12 @@
   }
 
   function deliveryEventLabel(type) {
+    if (type === "delivery_delayed") return "Zakasnjeno";
+    if (type === "bounced") return "Zavrnjeno";
+    if (type === "complained") return "Neželena pošta";
+    if (type === "suppressed") return "Zadržano";
+    if (type === "opened") return "Odprto";
+    if (type === "clicked") return "Kliknjeno";
     if (type === "prepared") return "Pripravljeno";
     if (type === "queued") return "V vrsti";
     if (type === "processing") return "Preverjanje";
@@ -1098,11 +1110,13 @@
   }
 
   function deliveryTimeline(entry) {
-    var events = (entry.events || []).slice(-5);
+    var events = (entry.events || []).slice().sort(function (left, right) {
+      return Date.parse(left.provider_event_at || left.created_at || 0) - Date.parse(right.provider_event_at || right.created_at || 0);
+    }).slice(-5);
     if (!events.length) return "";
     return "<ol class=\"pos-delivery-timeline\" aria-label=\"Časovnica dostave\">" + events.map(function (event, index) {
       var type = String(event.event_type || "failed");
-      var time = event.created_at ? new Date(event.created_at).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) : "";
+      var eventTime = event.provider_event_at || event.created_at; var time = eventTime ? new Date(eventTime).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) : "";
       return "<li class=\"pos-delivery-timeline__step is-" + escapeHtml(type) + (index === events.length - 1 ? " is-current" : "") + "\" title=\"" + escapeHtml(time) + "\"><i></i><span>" + escapeHtml(deliveryEventLabel(type)) + "</span></li>";
     }).join("") + "</ol>";
   }
