@@ -13,7 +13,15 @@ import * as Sentry from "@sentry/browser";
       .replace(/\/(?:\d{5,}|[A-Za-z0-9_-]{24,})(?=\/|$)/g, "/:id");
   }
 
-  function pocistiDogodek(event) {
+  function jePricakovaniPreklicObOdhodu(hint) {
+    var original = hint && hint.originalException;
+    var stranSkrita = globalThis.document && globalThis.document.visibilityState === "hidden";
+    return Boolean(stranSkrita && original && original.name === "AbortError");
+  }
+
+  function pocistiDogodek(event, hint) {
+    if (jePricakovaniPreklicObOdhodu(hint)) return null;
+
     delete event.user;
     delete event.request;
     delete event.extra;

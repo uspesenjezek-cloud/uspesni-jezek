@@ -35,6 +35,8 @@ assert.ok(generator.includes("const SENTRY_CONFIG = globalThis.SENTRY_CONFIG"));
 
 var browserEntry = fs.readFileSync(path.join(__dirname, "..", "app", "sentry-entry.js"), "utf8");
 assert.ok(browserEntry.includes('setAttribute("data-sentry-ready", "true")'));
+assert.ok(browserEntry.includes('original.name === "AbortError"'));
+assert.ok(browserEntry.includes('document.visibilityState === "hidden"'));
 
 var exampleConfig = fs.readFileSync(path.join(__dirname, "..", "app", "config.example.js"), "utf8");
 var sandbox = { globalThis: {} };

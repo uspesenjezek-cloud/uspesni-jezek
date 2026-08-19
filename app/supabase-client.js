@@ -3,12 +3,12 @@
    ki jo uporabljajo vse ostale skripte (auth-zascita.js, prijava.js,
    app.js ...).
 
-   Knjižnico Supabase naložimo neposredno iz spleta (CDN) z <script>
-   oznako v <head> vsake strani, zato tu samo pokličemo
-   supabase.createClient() - brez npm, brez "build" koraka.
+   Knjižnico Supabase zgradimo iz točno pripete npm različice in jo
+   strežemo z iste domene kot aplikacijo. Tu nato samo pokličemo
+   supabase.createClient(), brez odvisnosti od zunanjega CDN-ja.
 
    Vrstni red <script> oznak na vsaki strani je pomemben:
-   1. CDN knjižnica (definira globalno spremenljivko "supabase")
+   1. vendor-data.js (definira globalno spremenljivko "supabase")
    2. config.js (definira SUPABASE_CONFIG s tvojimi podatki)
    3. supabase-client.js (ta datoteka - ustvari supabaseKlient)
    4. auth-zascita.js (uporabi supabaseKlient za preverjanje prijave)
