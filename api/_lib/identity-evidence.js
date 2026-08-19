@@ -3,10 +3,10 @@
 // Ena sama izvorna točka za trenutno različico zajema, predpomnilnika in
 // pogodbe med strežnikom ter vmesnikom. Vmesnik se ne sme odločati po številki
 // zajema; prejme samo semantično oznako screenshotReady.
-var CAPTURE_VERSION = "identity-evidence-v16-visible-content-overlay-isolation";
-var CACHE_VERSION = "impressum-parser-v37-openregister-register-reference";
+var CAPTURE_VERSION = "identity-evidence-v17-preserve-legal-modal";
+var CACHE_VERSION = "impressum-parser-v48-official-wildcard-fallback";
 var CONTRACT_VERSION = "identity-evidence-contract-v1";
-var MINIMUM_SAFE_CAPTURE_MAJOR = 16;
+var MINIMUM_SAFE_CAPTURE_MAJOR = 17;
 
 function jeVeljavenJpegDataUrl(vrednost) {
   return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(String(vrednost || ""));

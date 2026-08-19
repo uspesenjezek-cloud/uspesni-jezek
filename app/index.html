@@ -2,7 +2,10 @@
 <html lang="sl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Uspešni Ježek" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Uspešni Jezek – Delovni portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -10,7 +13,8 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
+    <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -19,6 +23,7 @@
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body>
     <header class="app__header">
@@ -37,8 +42,13 @@
     </header>
 
     <main class="app__vsebina">
-      <!-- 5 stebrov storitev. Vsak vodi na svojo podstran s kategorijami. -->
+      <!-- Glavne storitve. Vsaka vodi na svojo podstran s kategorijami. -->
       <nav class="stebri-seznam" aria-label="Stebri storitev">
+        <a class="steber-kartica" href="pos-terminal.html">
+          <span class="steber-kartica__naslov">POS terminal</span>
+          <div class="badge" aria-hidden="true"></div>
+        </a>
+
         <a class="steber-kartica" href="zascita-posla.html">
           <span class="steber-kartica__naslov">Zaščita posla</span>
           <div class="badge" aria-hidden="true"></div>

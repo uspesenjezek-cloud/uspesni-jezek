@@ -15,6 +15,12 @@ const mehkaBonitetaModul = require.resolve("../api/mehka-boniteta");
 const mehkaBonitetaOpraviloModul = require.resolve("../api/mehka-boniteta-opravilo");
 const mehkaBonitetaDelavecModul = require.resolve("../api/mehka-boniteta-delavec");
 const bonitetaProModul = require.resolve("../api/boniteta-pro");
+const posRacunPdfModul = require.resolve("../api/pos-racun-pdf");
+const posRacunKorekcijaModul = require.resolve("../api/pos-racun-korekcija");
+const posRacunXrechnungModul = require.resolve("../api/pos-racun-xrechnung");
+const posDostavaSandboxModul = require.resolve("../api/pos-dostava-sandbox");
+const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
+const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
@@ -72,6 +78,8 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (serviceRole && !process.env.SUPABASE_SERVICE_ROLE_KEY) process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRole[1].trim();
       const webhookSecret = okolje.match(/^\s*OPENREGISTER_WEBHOOK_SECRET\s*=\s*["']?([^\r\n"']+)/m);
       if (webhookSecret && !process.env.OPENREGISTER_WEBHOOK_SECRET) process.env.OPENREGISTER_WEBHOOK_SECRET = webhookSecret[1].trim();
+      const cronSecret = okolje.match(/^\s*CRON_SECRET\s*=\s*["']?([^\r\n"']+)/m);
+      if (cronSecret && !process.env.CRON_SECRET) process.env.CRON_SECRET = cronSecret[1].trim();
     }
   } catch (_) {
     // API bo vrnil jasno konfiguracijsko napako.
@@ -306,7 +314,9 @@ function postreziDatoteko(req, res) {
 }
 
 const server = http.createServer((req, res) => {
-  const pathname = new URL(req.url, "http://localhost").pathname;
+  const requestUrl = new URL(req.url, "http://localhost");
+  const pathname = requestUrl.pathname;
+  req.query = Object.fromEntries(requestUrl.searchParams.entries());
   if (pathname === "/api/citaj-racun") {
     naloziLokalnoSupabaseKonfiguracijo();
     if (process.env.ANTHROPIC_API_KEY) void izvediLokalniApi(req, res, citajRacunModul);
@@ -343,6 +353,30 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/nemcija-posta") {
     void nemcijaPostaHandler(req, res);
+    return;
+  }
+  if (pathname === "/api/pos-racun-pdf") {
+    void izvediLokalniApi(req, res, posRacunPdfModul);
+    return;
+  }
+  if (pathname === "/api/pos-racun-korekcija") {
+    void izvediLokalniApi(req, res, posRacunKorekcijaModul);
+    return;
+  }
+  if (pathname === "/api/pos-racun-xrechnung") {
+    void izvediLokalniApi(req, res, posRacunXrechnungModul);
+    return;
+  }
+  if (pathname === "/api/pos-dostava-sandbox") {
+    void izvediLokalniApi(req, res, posDostavaSandboxModul);
+    return;
+  }
+  if (pathname === "/api/pos-dostava-delavec") {
+    void izvediLokalniApi(req, res, posDostavaDelavecModul);
+    return;
+  }
+  if (pathname === "/api/pos-dostava-email") {
+    void izvediLokalniApi(req, res, posDostavaEmailModul);
     return;
   }
   if (pathname === "/__app-version") {

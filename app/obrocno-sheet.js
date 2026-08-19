@@ -352,6 +352,8 @@
         toneId: (vhodOsnova && vhodOsnova.toneId) || tonZaRazlago(),
         overdueDays: vhodOsnova ? vhodOsnova.overdueDays : null,
         amountCents: (vhodOsnova && vhodOsnova.amountCents) || 0,
+        preferredTermDays: vhodOsnova ? vhodOsnova.preferredTermDays : null,
+        preferredInstallments: vhodOsnova ? vhodOsnova.preferredInstallments : null,
       };
       if (forsiraToneId) vhod.toneId = forsiraToneId;
       var p = api.sestaviPriporocila(vhod);

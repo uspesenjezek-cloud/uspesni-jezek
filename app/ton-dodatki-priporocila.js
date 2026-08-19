@@ -141,13 +141,18 @@
     var zamuda = razvrstiZamudo(vhod && vhod.overdueDays);
     var znesek = razvrstiZnesek(vhod && vhod.amountCents);
 
-    var days =
-      Rok && typeof Rok.dneviZaTon === "function" ? Rok.dneviZaTon(ton) : 14;
+    var preferredDays = Number(vhod && vhod.preferredTermDays);
+    var days = Number.isFinite(preferredDays) && preferredDays > 0
+      ? Math.round(preferredDays)
+      : Rok && typeof Rok.dneviZaTon === "function" ? Rok.dneviZaTon(ton) : 14;
     var predlog =
       Rok && typeof Rok.predlogObrocnegaZaTon === "function"
         ? Rok.predlogObrocnegaZaTon(ton)
         : null;
-    var installments = predlog && predlog.installments ? predlog.installments : 4;
+    var preferredInstallments = Number(vhod && vhod.preferredInstallments);
+    var installments = Number.isFinite(preferredInstallments) && preferredInstallments >= 2
+      ? Math.round(preferredInstallments)
+      : predlog && predlog.installments ? predlog.installments : 4;
 
     var rok = (ROK_BESEDILA[ton] && ROK_BESEDILA[ton][zamuda]) || ROK_BESEDILA.friendly.kratka;
     var obrocnoOsnova =

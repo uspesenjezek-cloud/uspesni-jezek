@@ -15,6 +15,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -23,8 +24,9 @@
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
-  <body class="stran--aktivni-primeri">
+  <body class="stran--aktivni-primeri app-testna-vrstica-prisotna">
     <div class="aktivni-primeri-shell">
       <header class="aktivni-primeri-topbar">
         <a class="aktivni-primeri-topbar__nazaj" href="zascita-posla.html">
@@ -65,6 +67,9 @@
       </main>
     </div>
 
-    <script src="aktivni-primeri.js?v=20260814-aktivni-primeri-v4"></script>
+    <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
+    <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
+
+    <script src="aktivni-primeri.js?v=20260818-egress-v5"></script>
   </body>
 </html>
