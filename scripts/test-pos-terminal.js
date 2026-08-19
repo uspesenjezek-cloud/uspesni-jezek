@@ -81,6 +81,7 @@ assert.match(js, /\.from\("pos_business_profiles"\)/);
 assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient\.auth/);
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
+assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
@@ -157,6 +158,22 @@ assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalName:
 assert.deepStrictEqual(Core.profileForPreview({ legalName: "   " }, true), {
   legalName: "TEST-Unternehmen", street: "Musterstraße 1", postalCode: "00000", city: "Teststadt"
 });
+
+const duplicateDraft = Core.defaultDraft(profile);
+duplicateDraft.customerName = "Unicode-Test Žiga Čebelar";
+duplicateDraft.customerStreet = "Šolska Straße 1";
+duplicateDraft.customerPostalCode = "00000";
+duplicateDraft.customerCity = "Teststadt";
+duplicateDraft.items[0].description = "Preizkus računa - č, š, ž, ß";
+duplicateDraft.items[0].unitPrice = "1,00";
+duplicateDraft.finalConfirmed = true;
+const duplicateTotals = Core.calculateTotals(duplicateDraft);
+const serverTestInvoice = { id: "server-test", number: "TEST-2026-0001", isTest: true, serverStored: true, draft: duplicateDraft, totals: duplicateTotals };
+const localDuplicate = { id: "local-duplicate", number: "TEST-2026-0001", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
+localDuplicate.draft.items[0].id = "drug-lokalni-id";
+const differentLocalTest = { id: "local-different", number: "TEST-2026-0001", isTest: true, serverStored: false, draft: JSON.parse(JSON.stringify(duplicateDraft)), totals: duplicateTotals };
+differentLocalTest.draft.items[0].description = "Druga testna storitev";
+assert.deepStrictEqual(Core.mergeInvoiceSources([serverTestInvoice], [localDuplicate, differentLocalTest]).map((invoice) => invoice.id), ["server-test", "local-different"]);
 
 const draft = Core.defaultDraft(profile);
 draft.customerName = "Sehr langes deutsches Beispielunternehmen für Gebäudetechnik und Sanierung GmbH";

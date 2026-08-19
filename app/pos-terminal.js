@@ -439,6 +439,39 @@
     });
   }
 
+  function invoiceFingerprint(invoice) {
+    var draft = invoice && invoice.draft || {};
+    var totals = invoice && invoice.totals || {};
+    var items = (draft.items || []).map(function (item) {
+      return [
+        String(item.description || "").trim(), item.category || "other",
+        parseQuantityMilli(item.quantity), String(item.unit || "").trim(),
+        parseMoneyToCents(item.unitPrice), integer(item.taxRate, 0)
+      ];
+    });
+    return JSON.stringify([
+      String(invoice && invoice.number || "").trim(), Boolean(invoice && invoice.isTest),
+      draft.customerType || "", String(draft.customerName || "").trim(),
+      String(draft.customerStreet || "").trim(), String(draft.customerPostalCode || "").trim(),
+      String(draft.customerCity || "").trim(), draft.issueDate || "", draft.serviceDate || "",
+      draft.taxMode || "", draft.priceMode || "", draft.paymentMethod || "",
+      integer(totals.netCents, 0), integer(totals.taxCents, 0), integer(totals.grossCents, 0), items
+    ]);
+  }
+
+  function mergeInvoiceSources(serverInvoices, localInvoices) {
+    var authoritative = Array.isArray(serverInvoices) ? serverInvoices : [];
+    var local = Array.isArray(localInvoices) ? localInvoices : [];
+    var seen = Object.create(null);
+    authoritative.forEach(function (invoice) { seen[invoiceFingerprint(invoice)] = true; });
+    return authoritative.concat(local.filter(function (invoice) {
+      var fingerprint = invoiceFingerprint(invoice);
+      if (seen[fingerprint]) return false;
+      seen[fingerprint] = true;
+      return true;
+    }));
+  }
+
   function validateStep(draft, profile, step) {
     var errors = [];
     function required(value, message) { if (!String(value || "").trim()) errors.push(message); }
@@ -601,6 +634,8 @@
     profileFromDatabase: profileFromDatabase,
     draftToDatabasePayload: draftToDatabasePayload,
     draftFromDatabasePayload: draftFromDatabasePayload,
+    invoiceFingerprint: invoiceFingerprint,
+    mergeInvoiceSources: mergeInvoiceSources,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
@@ -865,7 +900,7 @@
         };
       });
       var localTests = state.invoices.filter(function (invoice) { return !invoice.serverStored && invoice.isTest; });
-      state.invoices = serverInvoices.concat(localTests);
+      state.invoices = mergeInvoiceSources(serverInvoices, localTests);
       if (responses[1].data && responses[1].data[0]) {
         state.draft = draftFromDatabasePayload(responses[1].data[0].payload, false);
         state.draft.serverId = responses[1].data[0].id;
