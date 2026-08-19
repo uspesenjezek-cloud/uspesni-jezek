@@ -207,6 +207,33 @@
     return najdiTonPoId(mapped) ? mapped : "friendly";
   }
 
+  function normalizirajIntenzivnostStalneStranke(vrednost) {
+    if (vrednost === "dve_stopnji") return 2;
+    if (vrednost === "ena_stopnja" || vrednost === "najvec_prijazen") return 1;
+    var n = Number(vrednost);
+    return Number.isFinite(n) ? Math.max(0, Math.min(2, Math.round(n))) : 1;
+  }
+
+  function izracunajIntenzivnostStalneStranke(nastavitve) {
+    var n = nastavitve || {};
+    var trajanje = String(n.trajanje || "");
+    var placilo = String(n.nacinPlacila || "");
+    var dni = Number(n.dodatniRokDni) || 7;
+    if (trajanje === "prvic" || placilo === "po_dogovoru" || placilo === "ne_vem") return 0;
+    if (placilo === "po_obrokih") return ["eno_do_tri_leta", "tri_do_pet_let", "vec_kot_pet_let"].indexOf(trajanje) >= 0 ? 1 : 0;
+    if (trajanje === "vec_kot_pet_let") return 2;
+    if (trajanje === "tri_do_pet_let") return dni >= 14 ? 2 : 1;
+    if (trajanje === "eno_do_tri_leta") return dni >= 21 ? 2 : 1;
+    return trajanje === "malo_casa" && placilo === "v_celoti_takoj" ? 1 : 0;
+  }
+
+  function omehcajTonZaStalnoStranko(toneId, intenzivnost) {
+    var ton = najdiTonPoId(normalizirajTonId(toneId)) || najdiTonPoId("friendly");
+    var order = ton ? ton.order : 1;
+    order = Math.max(0, order - normalizirajIntenzivnostStalneStranke(intenzivnost));
+    return najdiTonPoOrder(order);
+  }
+
   function formatirajZnesekEur(cents) {
     if (cents == null || !Number.isFinite(Number(cents))) return "";
     var eur = Number(cents) / 100;
@@ -462,7 +489,19 @@
     }
 
     level = Math.max(0, Math.min(2, level));
-    var ton = najdiTonPoOrder(level);
+    var osnovniTon = najdiTonPoOrder(level);
+    var jeStalnaStranka = podatki.stalnaStranka === true;
+    var stalnaStrankaNastavitve = podatki.stalnaStrankaNastavitve || null;
+    var stalnaStrankaIntenzivnost = stalnaStrankaNastavitve
+      ? izracunajIntenzivnostStalneStranke(stalnaStrankaNastavitve)
+      : normalizirajIntenzivnostStalneStranke(
+          podatki.stalnaStrankaIntenzivnost != null
+            ? podatki.stalnaStrankaIntenzivnost
+            : podatki.stalnaStrankaUcinek
+        );
+    var ton = jeStalnaStranka
+      ? omehcajTonZaStalnoStranko(osnovniTon.id, stalnaStrankaIntenzivnost)
+      : osnovniTon;
     var amountLabel = missingAmount ? "" : formatirajZnesekEur(totalDebtCents);
     var razlog = sestaviRazlog({
       missingDue: missingDue,
@@ -473,6 +512,11 @@
       amountShifted: amountShifted,
       debtCategoryLabel: debtCategoryLabel,
     });
+    if (jeStalnaStranka && stalnaStrankaIntenzivnost > 0) {
+      razlog.codes.push("returning_customer");
+      razlog.shortText += " Ton je omiljen za " + stalnaStrankaIntenzivnost + (stalnaStrankaIntenzivnost === 1 ? " stopnjo" : " stopnji") + ".";
+      razlog.detailText += " Ker je dolžnik označen kot stalna stranka, smo priporočilo prilagodili glede na izbrano intenzivnost.";
+    }
 
     return {
       recommendedToneId: ton.id,
@@ -494,6 +538,10 @@
       calculatedAt: new Date().toISOString(),
       missingDue: missingDue,
       missingAmount: missingAmount,
+      stalnaStranka: jeStalnaStranka,
+      stalnaStrankaIntenzivnost: stalnaStrankaIntenzivnost,
+      stalnaStrankaNastavitve: stalnaStrankaNastavitve,
+      osnovniToneId: osnovniTon.id,
       recommendationVersion: RECOMMENDATION_VERSION,
     };
   }
@@ -605,6 +653,9 @@
     najdiTonPoId: najdiTonPoId,
     najdiTonPoOrder: najdiTonPoOrder,
     normalizirajTonId: normalizirajTonId,
+    omehcajTonZaStalnoStranko: omehcajTonZaStalnoStranko,
+    normalizirajIntenzivnostStalneStranke: normalizirajIntenzivnostStalneStranke,
+    izracunajIntenzivnostStalneStranke: izracunajIntenzivnostStalneStranke,
     getRecommendedTone: getRecommendedTone,
     sestaviRazlagoZaModal: sestaviRazlagoZaModal,
     applyRecommendationToState: applyRecommendationToState,

@@ -8362,9 +8362,11 @@
         vsebinaHtml +
         '<p class="opomin-nacrt__opozorilo-sivo">Potrditev koraka še ne pošlje sporočila.</p>' +
         '<footer class="opomin-nacrt__noga">' +
+        '<div class="osnutek-akcije">' +
+        '<button type="button" class="osnutek-akcije__izbrisi" id="gumb-izbrisi-osnutek" aria-label="Izbriši osnutek">Izbriši</button>' +
         '<button type="button" class="korak2__gumb-naprej" id="opomin-nacrt-cta">' +
         esc(ctaBesedilo) +
-        "</button>" +
+        "</button></div>" +
         '<button type="button" class="opomin-nacrt__shrani-osnutek" id="opomin-shrani-osnutek">Shrani kot osnutek</button>' +
         "</footer>" +
         "</div>";

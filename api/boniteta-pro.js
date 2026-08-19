@@ -76,6 +76,7 @@ async function pro(req, res, cfg, auth) {
   if (!["GET", "POST", "DELETE"].includes(req.method)) return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   var body = req.body && typeof req.body === "object" ? req.body : {};
   var action = req.method === "GET" ? query(req, "action") : String(body.action || "");
+  if (action === "credits") return json(res, 200, { ok: true, credits: await openregister.credits() });
   if (action === "search") return json(res, 200, { ok: true, results: await openregister.advancedSearch(body) });
   var profileId = req.method === "GET" ? query(req, "profileId") : String(body.profileId || "");
   var profile = await store.getProfile(cfg, auth.user.id, profileId);

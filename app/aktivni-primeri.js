@@ -82,7 +82,10 @@
   }
 
   function htmlKartice(zadeva) {
-    var plan = zadeva.opomin_nacrt || {};
+    var plan = {
+      serverActivatedAt: zadeva.opomin_aktiviran || null,
+      steps: Array.isArray(zadeva.opomin_koraki) ? zadeva.opomin_koraki : [],
+    };
     var aktiviran = Boolean(plan.serverActivatedAt);
     var podatekKoraka = aktiviran ? trenutniKorak(plan) : null;
     var barva = barvaKoraka(podatekKoraka);
@@ -152,8 +155,11 @@
 
       var odgovor = await supabaseKlient
         .from("zadeve")
-        .select("*")
+        .select(
+          "id, ime_dolznika, znesek, preostali_dolg, datum_zapadlosti, status, ustvarjeno_at, opomin_aktiviran:opomin_nacrt->>serverActivatedAt, opomin_koraki:opomin_nacrt->steps"
+        )
         .neq("status", "Rešeno")
+        .not("opomin_nacrt->>serverActivatedAt", "is", null)
         .order("ustvarjeno_at", { ascending: false });
 
       if (odgovor.error) {
@@ -164,8 +170,7 @@
       var primeri = (odgovor.data || []).filter(function (zadeva) {
         return zadeva &&
           zadeva.status !== "Rešeno" &&
-          zadeva.opomin_nacrt &&
-          zadeva.opomin_nacrt.serverActivatedAt;
+          zadeva.opomin_aktiviran;
       });
 
       if (nalaganje) nalaganje.hidden = true;

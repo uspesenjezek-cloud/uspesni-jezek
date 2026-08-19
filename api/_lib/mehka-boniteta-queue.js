@@ -60,6 +60,23 @@ function cacheTtlMs(faza) {
   return faza === "insolvenca" ? 10 * 60 * 1000 : 6 * 60 * 60 * 1000;
 }
 
+function jeRezultatPrimerenZaPredpomnilnik(rezultat, faza) {
+  if (!rezultat || rezultat.ok !== true) return false;
+  var identiteta = rezultat.identity || {};
+  var dokazilo = identityEvidenceContract.obogatiDokazilo(rezultat.identityEvidence || {});
+  var identitetaJeUradna = identiteta.status === "verified_register" && dokazilo.status === "verified_api" &&
+    Boolean(dokazilo.companyId || identiteta.companyId);
+  var identitetaImaPosnetek = ["probable_impressum", "confirmed_impressum", "verified_directory"].includes(identiteta.status) &&
+    identityEvidenceContract.jePosnetekPrikazljiv(dokazilo);
+  if (!identitetaJeUradna && !identitetaImaPosnetek) return false;
+  if (faza !== "insolvenca") return true;
+
+  var insolvenca = rezultat.insolvency || {};
+  var uradna = insolvenca.officialVerification || {};
+  return ["clear", "possible_match"].includes(insolvenca.status) &&
+    uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
+}
+
 function javniPosnetek(job, position) {
   if (!job) return null;
   var zahteva = job.request_payload || {};
@@ -135,9 +152,11 @@ async function najdiPredpomnjeno(cfg, userId, kljuc, faza) {
   var pot = "mehka_boniteta_opravila?user_id=eq." + encodeURIComponent(userId) +
     "&cache_key=eq." + encodeURIComponent(kljuc) +
     "&status=eq.completed&finished_at=gte." + encodeURIComponent(od) +
-    "&result_payload=not.is.null&select=result_payload,finished_at&order=finished_at.desc&limit=1";
+    "&result_payload=not.is.null&select=result_payload,finished_at&order=finished_at.desc&limit=10";
   var odgovor = await rest(cfg, pot);
-  return Array.isArray(odgovor.data) && odgovor.data.length ? odgovor.data[0] : null;
+  return Array.isArray(odgovor.data) ? odgovor.data.find(function (zapis) {
+    return jeRezultatPrimerenZaPredpomnilnik(zapis && zapis.result_payload, faza);
+  }) || null : null;
 }
 
 async function najdiAktivno(cfg, userId, kljuc) {
@@ -163,7 +182,8 @@ async function ustvari(cfg, userId, telo) {
     }
     var najden = Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
       return job.user_id === userId && job.cache_key === kljuc && job.status === "completed" && job.result_payload &&
-        Date.now() - new Date(job.finished_at).getTime() <= cacheTtlMs(faza);
+        Date.now() - new Date(job.finished_at).getTime() <= cacheTtlMs(faza) &&
+        jeRezultatPrimerenZaPredpomnilnik(job.result_payload, faza);
     }).sort(function (a, b) { return new Date(b.finished_at) - new Date(a.finished_at); })[0];
     var pomnilniskiJob = {
       id: uuid(), user_id: userId, faza: faza, status: najden ? "completed" : "queued",
@@ -561,6 +581,7 @@ module.exports = {
     najdiAktivno: najdiAktivno,
     opraviloPripadaProfilu: opraviloPripadaProfilu,
     opraviloImaEnakVnos: opraviloImaEnakVnos,
+    jeRezultatPrimerenZaPredpomnilnik: jeRezultatPrimerenZaPredpomnilnik,
     spletniGostitelj: spletniGostitelj,
   },
 };

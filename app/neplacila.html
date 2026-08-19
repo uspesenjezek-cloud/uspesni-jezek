@@ -1,8 +1,10 @@
 ﻿<!DOCTYPE html>
-<html lang="sl">
+<html lang="sl" class="wizard-status-page">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Uspešni Ježek" />
     <meta name="color-scheme" content="light only" />
     <title>Vnos dolžnika – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -11,9 +13,11 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
+    <link rel="stylesheet" href="styles.css?v=20260818-pregled-racuna-v22" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="prefetch" href="neplacila-posiljanje.html" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -21,8 +25,9 @@
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
-  <body class="stran--neplacila">
+  <body class="stran--neplacila app-testna-vrstica-prisotna wizard-status-header">
     <script>
       /* Pri #obrazec: body ENOKO kot koraka 2/3 (samo stran--sporocilo).
          Brez id="obrazec" v DOM – hash ne povzroči scrolla na panel. */
@@ -32,27 +37,21 @@
           location.replace("aktivni-primeri.html");
           return;
         } else if (h === "obrazec") {
-          document.body.className = "stran--sporocilo stran--samo-obrazec";
+          /* Ne prepiši className: s tem bi odstranili tudi skupni razred,
+             ki zaklene testno vrstico in rezervira njen spodnji prostor. */
+          document.body.classList.remove("stran--neplacila");
+          document.body.classList.add("stran--sporocilo", "stran--samo-obrazec");
           if ("scrollRestoration" in history) history.scrollRestoration = "manual";
           window.scrollTo(0, 0);
         }
       })();
     </script>
-    <!-- Ista struktura kot koraka 2/3: ovoj → topbar → .korak2 (brez dodatnih elementov) -->
+    <!-- Nazaj in Domov sta v stalni spodnji vrstici; zgoraj je samo status postopka. -->
     <div class="korak2-ovoj wizard-shell">
-      <div class="wizard-topbar">
-        <a class="wizard-topbar__nazaj" href="zascita-posla.html">
-          <span aria-hidden="true">←</span>
-          Nazaj
-        </a>
-        <button type="button" class="wizard-topbar__izbrisi" id="gumb-izbrisi-osnutek">
-          Izbriši osnutek
-        </button>
-      </div>
-
       <div class="korak2" id="neplacila-obrazec" aria-label="Dodaj novo zadevo">
-        <div data-wizard-progress-header data-korak="1">
+        <div data-wizard-progress-header data-korak="1" data-wizard-zacetni-zaslon="zascita-posla.html">
           <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
+            <span class="debt-stepper__selection" aria-hidden="true"></span>
             <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 2: Vnos dolžnika">
               <span class="debt-step__content">
                 <span class="debt-step__number" aria-hidden="true">1</span>
@@ -260,6 +259,23 @@
                     Vnesite telefonsko številko ali e-poštni naslov.
                   </p>
                 </fieldset>
+
+                <section class="stalna-stranka" id="stalna-stranka-widget" aria-labelledby="stalna-stranka-naslov">
+                  <span class="stalna-stranka__ikona" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.2 1.6 3.5 1.6 3.5-1.6 3.5-1.6"/><path d="M9 9.5h.01"/><path d="M15 9.5h.01"/></svg>
+                  </span>
+                  <span class="stalna-stranka__vsebina">
+                    <strong class="stalna-stranka__naslov" id="stalna-stranka-naslov">Stalna stranka</strong>
+                    <span class="stalna-stranka__opis" id="stalna-stranka-opis">Ton opomina bo mehkejši.</span>
+                  </span>
+                  <button type="button" class="stalna-stranka__stikalo" id="stalna-stranka-stikalo" role="switch" aria-checked="false" aria-label="Stalna stranka je izklopljena">
+                    <span class="stalna-stranka__stikalo-palec" aria-hidden="true"></span>
+                  </button>
+                  <div class="stalna-stranka__spodaj" id="stalna-stranka-spodaj" hidden>
+                    <span class="stalna-stranka__ton"><span id="stalna-stranka-ton">Prijaznejši ton · +7 dni</span></span>
+                    <button type="button" class="stalna-stranka__nastavi" id="stalna-stranka-nastavi" aria-haspopup="dialog">Nastavi</button>
+                  </div>
+                </section>
               </div>
 
               <div class="obrazec-razdelek obrazec-razdelek--dolg">
@@ -391,6 +407,7 @@
                           rows="4"
                           placeholder="Vnesite odgovor …"
                         ></textarea>
+                        <p class="opravljeno-vprasanje__shranjeni-odgovor" id="opis-dolga-shranjeno" hidden></p>
                         <div class="opravljeno-vprasanje__akcije" aria-label="Dejanja odgovora">
                           <button type="button" class="opravljeno-vprasanje__gumb opravljeno-vprasanje__gumb--izbrisi" id="opis-dolga-izbrisi">Izbriši</button>
                           <button type="button" class="opravljeno-vprasanje__gumb opravljeno-vprasanje__gumb--shrani" id="opis-dolga-shrani">Shrani</button>
@@ -504,12 +521,15 @@
                 </div>
               </section>
 
-              <button type="submit" class="btn btn--cta obrazec__gumb-naprej" id="gumb-naprej-korak1">
-                Naprej: sestavi opomin
-                <span class="btn__puscica" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                </span>
-              </button>
+              <div class="osnutek-akcije">
+                <button type="button" class="osnutek-akcije__izbrisi" id="gumb-izbrisi-osnutek" aria-label="Izbriši osnutek">Izbriši</button>
+                <button type="submit" class="btn btn--cta obrazec__gumb-naprej" id="gumb-naprej-korak1">
+                  Naprej: sestavi opomin
+                  <span class="btn__puscica" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  </span>
+                </button>
+              </div>
             </form>
         </main>
       </div>
@@ -828,6 +848,62 @@
       </div>
     </div>
 
+    <div class="ocena-sheet stalna-stranka-sheet" id="stalna-stranka-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri nastavitve stalne stranke" data-stalna-stranka-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="stalna-stranka-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo">
+            <h2 class="ocena-sheet__naslov" id="stalna-stranka-sheet-naslov" tabindex="-1">Kako naj vpliva na ton?</h2>
+            <p class="ocena-sheet__podnaslov">Pravila dolga ostanejo enaka, prilagodi se samo način komunikacije.</p>
+          </div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-stalna-stranka-zapri><span aria-hidden="true">✕</span></button>
+        </div>
+        <div class="ocena-sheet__telo stalna-stranka-sheet__vsebina">
+          <article class="stalna-stranka-nastavitev">
+            <div class="stalna-stranka-nastavitev__glava">
+              <span class="stalna-stranka-nastavitev__ikona" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              <span><strong>Verjamem, da bo plačal</strong><small>Koliko dodatnega časa bi mu brez skrbi dali?</small></span>
+              <output id="stalna-stranka-rok-vrednost" for="stalna-stranka-rok">+7 dni</output>
+            </div>
+            <input type="range" id="stalna-stranka-rok" min="0" max="4" step="1" value="1" aria-label="Dodatni rok plačila" />
+            <div class="stalna-stranka-nastavitev__lestvica stalna-stranka-nastavitev__lestvica--pet" aria-hidden="true"><span>3</span><span>7</span><span>14</span><span>21</span><span>30 dni</span></div>
+          </article>
+
+          <article class="stalna-stranka-nastavitev">
+            <div class="stalna-stranka-nastavitev__glava">
+              <span class="stalna-stranka-nastavitev__ikona" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.6-4.6a2 2 0 0 0 0-2.8L16.4 9a2 2 0 0 0-2.8 0l-.6.6"/><path d="m13 7-2-2a1 1 0 0 0-1.4 0L5 9.6a2 2 0 0 0 0 2.8L7.6 15a2 2 0 0 0 2.8 0l.6-.6"/></svg></span>
+              <span><strong>Poslujeva že …</strong><small>Daljši odnos pomeni več zaupanja pri tonu.</small></span>
+              <output id="stalna-stranka-trajanje-vrednost" for="stalna-stranka-trajanje">1–3 leta</output>
+            </div>
+            <input type="range" id="stalna-stranka-trajanje" min="0" max="4" step="1" value="2" aria-label="Dolžina poslovnega sodelovanja" />
+            <div class="stalna-stranka-nastavitev__lestvica stalna-stranka-nastavitev__lestvica--pet" aria-hidden="true"><span>Prvič</span><span>Malo</span><span>1–3 l.</span><span>3–5 l.</span><span>5+ let</span></div>
+          </article>
+
+          <article class="stalna-stranka-nastavitev">
+            <div class="stalna-stranka-nastavitev__glava">
+              <span class="stalna-stranka-nastavitev__ikona" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v8a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7"/><path d="M16 14h.01"/></svg></span>
+              <span><strong>Dolg bo poravnal …</strong><small>Izberite najverjetnejši način plačila.</small></span>
+              <output id="stalna-stranka-placilo-vrednost" for="stalna-stranka-placilo">Po novem roku</output>
+            </div>
+            <input type="range" id="stalna-stranka-placilo" min="0" max="4" step="1" value="1" aria-label="Pričakovani način plačila dolga" />
+            <div class="stalna-stranka-nastavitev__lestvica stalna-stranka-nastavitev__lestvica--pet stalna-stranka-nastavitev__lestvica--placilo" aria-hidden="true"><span>Takoj</span><span>Po roku</span><span>Obroki</span><span>Dogovor</span><span>Ne vem</span></div>
+          </article>
+
+          <section class="stalna-stranka-rezultat" aria-labelledby="stalna-stranka-rezultat-naslov">
+            <span class="stalna-stranka-rezultat__ikona" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M12 18v3"/><path d="m4.22 4.22 2.12 2.12"/><path d="m17.66 17.66 2.12 2.12"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m4.22 19.78 2.12-2.12"/><path d="m17.66 6.34 2.12-2.12"/><circle cx="12" cy="12" r="3"/></svg></span>
+            <span><strong id="stalna-stranka-rezultat-naslov">Priporočilo za to stranko</strong><small id="stalna-stranka-rezultat-besedilo">Prijaznejši ton · +7 dni</small></span>
+          </section>
+        </div>
+        <div class="ocena-sheet__noga">
+          <button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--primarni" id="stalna-stranka-shrani">Shrani nastavitev</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
+    <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
+
     <script>
       (function () {
         function naVrhCeObrazec() {
@@ -841,7 +917,8 @@
         window.addEventListener("pageshow", naVrhCeObrazec);
       })();
     </script>
-    <script src="ocena-tveganja.js?v=20260814-obnovi-zgodovino-zamud-v1"></script>
-    <script src="app.js?v=20260815-racun-stevec-v19"></script>
+    <script src="ocena-tveganja.js?v=20260818-stalna-trije-gradniki-v3"></script>
+    <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
+    <script src="app.js?v=20260818-ocr-prazno-v15"></script>
   </body>
 </html>

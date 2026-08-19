@@ -55,14 +55,24 @@ function shortObject(input, allowed) {
   return result;
 }
 
+function uradnaRegistrskaPolja(input) {
+  var companyId = String(input && input.companyId || "").trim();
+  return {
+    companyId: companyId || null,
+    registerNumber: companyId ? String(input && input.registerNumber || "").trim().slice(0, 120) || null : null,
+    registerCourt: companyId ? String(input && input.registerCourt || "").trim().slice(0, 120) || null : null,
+  };
+}
+
 async function upsertProfile(cfg, userId, input) {
+  var uradniRegister = uradnaRegistrskaPolja(input);
   var payload = {
     user_id: userId,
     company_key: companyKey(input),
-    company_id: String(input.companyId || "").trim() || null,
+    company_id: uradniRegister.companyId,
     legal_name: String(input.legalName || "").trim().slice(0, 240),
-    register_number: String(input.registerNumber || "").trim().slice(0, 120) || null,
-    register_court: String(input.registerCourt || "").trim().slice(0, 120) || null,
+    register_number: uradniRegister.registerNumber,
+    register_court: uradniRegister.registerCourt,
     company_status: String(input.companyStatus || "").trim().slice(0, 40) || null,
     address: shortObject(input.address, ["street", "address", "postal_code", "postalCode", "city", "country"]),
     contact: shortObject(input.contact, ["website", "email", "phone"]),
@@ -256,5 +266,5 @@ module.exports = {
   openCrifDispute: openCrifDispute,
   saveCrifProviderResult: saveCrifProviderResult,
   compactJson: compactJson,
-  _test: { validUuid: validUuid },
+  _test: { validUuid: validUuid, uradnaRegistrskaPolja: uradnaRegistrskaPolja },
 };

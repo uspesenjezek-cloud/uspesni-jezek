@@ -122,7 +122,9 @@
     }
     var odgovor = await supabaseKlient
       .from("zadeve")
-      .select("*")
+      .select(
+        "id,ime_dolznika,opis_dolga,status,znesek,prvotni_znesek,preostali_dolg,placano_skupaj,poravnano_at,telefon_dolznika,email_dolznika,stevilka_racuna,datum_zapadlosti,opomin_nacrt"
+      )
       .eq("id", params.zadevaId)
       .single();
     if (odgovor.error || !odgovor.data) {

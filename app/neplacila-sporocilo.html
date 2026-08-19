@@ -1,8 +1,10 @@
 ﻿<!DOCTYPE html>
-<html lang="sl">
+<html lang="sl" class="wizard-status-page">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Uspešni Ježek" />
     <meta name="color-scheme" content="light only" />
     <title>Vnos sporočila – Uspešni Jezek</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -11,9 +13,11 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
+    <link rel="stylesheet" href="styles.css?v=20260818-pregled-racuna-v22" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="prefetch" href="neplacila-posiljanje.html" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -21,22 +25,14 @@
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
-  <body class="stran--sporocilo">
+  <body class="stran--sporocilo app-testna-vrstica-prisotna wizard-status-header">
     <div class="korak2-ovoj wizard-shell">
-      <div class="wizard-topbar">
-        <a class="wizard-topbar__nazaj" href="neplacila.html#obrazec">
-          <span aria-hidden="true">←</span>
-          Nazaj
-        </a>
-        <button type="button" class="wizard-topbar__izbrisi" id="gumb-izbrisi-osnutek">
-          Izbriši osnutek
-        </button>
-      </div>
-
       <div class="korak2" id="korak2">
-        <div data-wizard-progress-header data-korak="2">
+        <div data-wizard-progress-header data-korak="2" data-wizard-zacetni-zaslon="zascita-posla.html">
           <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
+            <span class="debt-stepper__selection" aria-hidden="true"></span>
             <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 3: Vnos dolžnika">
               <span class="debt-step__content">
                 <span class="debt-step__number" aria-hidden="true">1</span>
@@ -327,9 +323,12 @@
         </main>
 
         <footer class="korak2__noga">
-          <button type="button" class="korak2__gumb-naprej" id="gumb-naprej-posiljanje">
-            Nadaljuj na pošiljanje →
-          </button>
+          <div class="osnutek-akcije">
+            <button type="button" class="osnutek-akcije__izbrisi" id="gumb-izbrisi-osnutek" aria-label="Izbriši osnutek">Izbriši</button>
+            <button type="button" class="korak2__gumb-naprej" id="gumb-naprej-posiljanje">
+              Nadaljuj na pošiljanje →
+            </button>
+          </div>
         </footer>
 
         <!-- Celozaslonski urejevalnik predloge (JS ga premakne v document.body) -->
@@ -945,19 +944,23 @@
       </div>
     </div>
 
+    <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
+    <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
+
     <script src="rok-placila-utils.js?v=20260808-predogled"></script>
-    <script src="rok-placila-sheet.js?v=20260809-scroll-perf"></script>
+    <script src="rok-placila-sheet.js?v=20260818-stalna-trije-gradniki-v1"></script>
     <script src="obrocno-utils.js?v=20260808-obrocno-brez-vklop"></script>
-    <script src="obrocno-sheet.js?v=20260814-odpiranje-brez-trzanja-v2"></script>
+    <script src="obrocno-sheet.js?v=20260818-stalna-trije-gradniki-v1"></script>
     <script src="trr-sheet.js?v=20260809-gumbi-poenoteni"></script>
-    <script src="ocena-tveganja.js?v=20260814-obnovi-zgodovino-zamud-v1"></script>
-    <script src="ton-priporocilo.js?v=20260808-ton-widget-v1"></script>
+    <script src="ocena-tveganja.js?v=20260818-stalna-trije-gradniki-v3"></script>
+    <script src="ton-priporocilo.js?v=20260818-stalna-trije-gradniki-v3"></script>
     <script src="ton-predloge.js?v=20260808-utf8-fix"></script>
     <script src="ton-widget.js?v=20260812-skrij-na-predaji-v1"></script>
-    <script src="ton-dodatki-priporocila.js?v=20260808-predogled"></script>
+    <script src="ton-dodatki-priporocila.js?v=20260818-stalna-trije-gradniki-v1"></script>
     <script src="recommendation-card.js?v=20260809-priporocilo-izklopi"></script>
     <script src="predloga-payment-settings.js?v=20260808-predogled"></script>
-    <script src="app.js?v=20260815-racun-komentar-v10"></script>
+    <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
+    <script src="app.js?v=20260818-ocr-prazno-v15"></script>
     <script src="priporocilo-widget.js?v=20260814-dolznik-zapadlost-v2"></script>
   </body>
 </html>

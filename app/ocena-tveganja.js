@@ -122,6 +122,35 @@
     return "strict";
   }
 
+  var ZAPOREDJE_TONOV = ["super_friendly", "friendly", "firm", "strict", "super_strict", "super_evil"];
+
+  function normalizirajIntenzivnostStalneStranke(vrednost) {
+    if (vrednost === "dve_stopnji") return 2;
+    if (vrednost === "ena_stopnja" || vrednost === "najvec_prijazen") return 1;
+    var n = Number(vrednost);
+    return Number.isFinite(n) ? Math.max(0, Math.min(2, Math.round(n))) : 1;
+  }
+
+  function izracunajIntenzivnostStalneStranke(nastavitve) {
+    var n = nastavitve || {};
+    var trajanje = String(n.trajanje || "");
+    var placilo = String(n.nacinPlacila || "");
+    var dni = Number(n.dodatniRokDni) || 7;
+    if (trajanje === "prvic" || placilo === "po_dogovoru" || placilo === "ne_vem") return 0;
+    if (placilo === "po_obrokih") return ["eno_do_tri_leta", "tri_do_pet_let", "vec_kot_pet_let"].indexOf(trajanje) >= 0 ? 1 : 0;
+    if (trajanje === "vec_kot_pet_let") return 2;
+    if (trajanje === "tri_do_pet_let") return dni >= 14 ? 2 : 1;
+    if (trajanje === "eno_do_tri_leta") return dni >= 21 ? 2 : 1;
+    return trajanje === "malo_casa" && placilo === "v_celoti_takoj" ? 1 : 0;
+  }
+
+  function omehcajTonZaStalnoStranko(toneId, intenzivnost) {
+    var indeks = ZAPOREDJE_TONOV.indexOf(toneId);
+    if (indeks < 0) indeks = ZAPOREDJE_TONOV.indexOf("friendly");
+    var premik = normalizirajIntenzivnostStalneStranke(intenzivnost);
+    return ZAPOREDJE_TONOV[Math.max(0, indeks - premik)];
+  }
+
   function pridevnikTona(toneId) {
     if (toneId === "super_friendly") return "super prijazen";
     if (toneId === "friendly") return "prijazen";
@@ -139,7 +168,7 @@
     return n + " zamud";
   }
 
-  function sestaviReasonText(dolgKat, zamudaKat, zamudaDnevi, zgodovinaTocke, vprasalnikTocke, zgodovinaZamud, odgovori) {
+  function sestaviReasonText(dolgKat, zamudaKat, zamudaDnevi, zgodovinaTocke, vprasalnikTocke, zgodovinaZamud, odgovori, toneId) {
     var deli = [];
     if (dolgKat.tocke > 0) {
       if (dolgKat.kategorija === "Ekstremni dolg") deli.push("zaradi ekstremnega dolga");
@@ -154,8 +183,9 @@
       var stevilo = z === "9plus" ? 9 : (Number(z) || 0);
       deli.push(sklanjajZamude(stevilo) + " preteklih zamud");
     }
-    if (deli.length === 0) return "Predlagamo prijazen ton.";
-    return "Predlagamo " + pridevnikTona(izracunajTon(dolgKat.tocke, zamudaKat.tocke, zgodovinaTocke, vprasalnikTocke, zamudaKat.kategorija !== "Ni zapadel" && zamudaKat.kategorija !== "Ni podatka")) + " ton zaradi " + deli[0] + (deli.length > 1 ? ", " + deli.slice(1).join(" in ") : "") + ".";
+    var koncniToneId = toneId || izracunajTon(dolgKat.tocke, zamudaKat.tocke, zgodovinaTocke, vprasalnikTocke, zamudaKat.kategorija !== "Ni zapadel" && zamudaKat.kategorija !== "Ni podatka");
+    if (deli.length === 0) return "Predlagamo " + pridevnikTona(koncniToneId) + " ton.";
+    return "Predlagamo " + pridevnikTona(koncniToneId) + " ton zaradi " + deli[0] + (deli.length > 1 ? ", " + deli.slice(1).join(" in ") : "") + ".";
   }
 
   /* ---------- Javni API ---------- */
@@ -176,12 +206,29 @@
     var zTocke = tockeZgodovine(zgodovinaZamud);
     var vTocke = tockeVprasalnika(odgovori, zgodovinaZamud);
     var jeZapadel = zamuda.kategorija !== "Ni zapadel" && zamuda.kategorija !== "Ni podatka";
-    var toneId = izracunajTon(dolg.tocke, zamuda.tocke, zTocke, vTocke, jeZapadel);
+    var osnovniToneId = izracunajTon(dolg.tocke, zamuda.tocke, zTocke, vTocke, jeZapadel);
+    var jeStalnaStranka = podatkiKorak1 && podatkiKorak1.stalnaStranka === true;
+    var stalnaStrankaNastavitve = (podatkiKorak1 && podatkiKorak1.stalnaStrankaNastavitve) || null;
+    var stalnaStrankaIntenzivnost = stalnaStrankaNastavitve
+      ? izracunajIntenzivnostStalneStranke(stalnaStrankaNastavitve)
+      : normalizirajIntenzivnostStalneStranke(
+          podatkiKorak1 && podatkiKorak1.stalnaStrankaIntenzivnost != null
+            ? podatkiKorak1.stalnaStrankaIntenzivnost
+            : podatkiKorak1 && podatkiKorak1.stalnaStrankaUcinek
+        );
+    var toneId = jeStalnaStranka
+      ? omehcajTonZaStalnoStranko(osnovniToneId, stalnaStrankaIntenzivnost)
+      : osnovniToneId;
     var debtCategory = dolg.kategorija === "Ni podatka" ? "unknown" : dolg.kategorija;
     var excessiveCategory = zamuda.kategorija === "Ni podatka" ? "unknown" : zamuda.kategorija;
     var timingLabel = zamuda.dnevi != null ? (zamuda.dnevi <= 0 ? "Ni zapadel" : zamuda.dnevi + " dni zamude") : "Ni podatka";
     var amountLabel = dolg.kategorija !== "Ni podatka" ? (znesek.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €") : "Ni podatka";
-    var reasonText = sestaviReasonText(dolg, zamuda, zamuda.dnevi, zTocke, vTocke, zgodovinaZamud, odgovori);
+    var reasonText = sestaviReasonText(dolg, zamuda, zamuda.dnevi, zTocke, vTocke, zgodovinaZamud, odgovori, toneId);
+    if (jeStalnaStranka && stalnaStrankaIntenzivnost > 0) {
+      reasonText += " Ton je omiljen za " + stalnaStrankaIntenzivnost + (stalnaStrankaIntenzivnost === 1 ? " stopnjo" : " stopnji") + ", ker je dolžnik označen kot stalna stranka.";
+    } else if (jeStalnaStranka) {
+      reasonText += " Dolžnik je označen kot stalna stranka, vendar stopnja tona ostaja nespremenjena.";
+    }
     return {
       recommendedToneId: toneId, reasonText: reasonText, reasonDetailText: reasonText,
       debtCategory: debtCategory, debtCategoryLabel: dolg.kategorija,
@@ -191,6 +238,9 @@
       amountLabel: amountLabel, amountCentsSnapshot: amountCents,
       originalDueDateSnapshot: originalDueDate, evaluationDate: evaluationDate,
       calculatedAt: new Date().toISOString(), recommendationVersion: "ocena-tveganja-v1",
+      stalnaStranka: jeStalnaStranka, stalnaStrankaIntenzivnost: stalnaStrankaIntenzivnost,
+      stalnaStrankaNastavitve: stalnaStrankaNastavitve,
+      osnovniToneId: osnovniToneId,
     };
   }
 
@@ -608,6 +658,9 @@
     izracunajPriporocilo: izracunajPriporocilo, osveziKartice: osveziKartice,
     inicializirajUIOceno: inicializirajUIOceno, preberiOdgovoreVprasalnika: preberiOdgovoreVprasalnika,
     preberiPodatkeKorak1: preberiPodatkeKorak1, koledarskiDneviZamude: koledarskiDneviZamude,
+    omehcajTonZaStalnoStranko: omehcajTonZaStalnoStranko,
+    normalizirajIntenzivnostStalneStranke: normalizirajIntenzivnostStalneStranke,
+    izracunajIntenzivnostStalneStranke: izracunajIntenzivnostStalneStranke,
   };
   root.UJOcenaTveganja = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

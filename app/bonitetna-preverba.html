@@ -21,9 +21,10 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260817-temp-back-v5" />
+    <link rel="stylesheet" href="styles.css?v=20260818-soft-expansions-v2" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260819-clean-result-header-v6" />
     <link rel="stylesheet" href="boniteta-pro.css?v=20260816-profiles-delete-v6" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="bonitetna-manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -32,6 +33,7 @@
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
     <style>
       .boniteta-kraj-izbira { display: flex; flex-wrap: wrap; gap: 6px; }
       .boniteta-kraj-izbira[hidden] { display: none; }
@@ -81,8 +83,18 @@
                 <path d="m15.5 27 6 6 12-13"></path>
               </svg>
             </span>
-            <div>
-              <h1 id="boniteta-naslov">Bonitetna preverba</h1>
+            <div class="boniteta-hero__title-copy">
+              <div class="boniteta-hero__title-line">
+                <h1 id="boniteta-naslov">Bonitetna preverba</h1>
+                <div class="boniteta-hero__test-controls" aria-label="Testni predogledi">
+                  <button class="boniteta-test-toggle" id="boniteta-test-toggle" type="button" role="switch" aria-checked="false" aria-label="Vključi testni predogled preverbe">
+                    <span class="boniteta-test-toggle__label">TEST</span>
+                    <span class="boniteta-test-toggle__state" aria-hidden="true">OFF</span>
+                    <span class="boniteta-test-toggle__track" aria-hidden="true"><span></span></span>
+                  </button>
+                  <button class="boniteta-open-preview" id="boniteta-open-preview" type="button" aria-pressed="false" aria-label="Odpri testni predogled podatkov OpenRegister">OPEN</button>
+                </div>
+              </div>
               <p>Preveri novo stranko</p>
             </div>
           </div>
@@ -103,6 +115,16 @@
         </section>
 
         <section class="ai-zajem boniteta-zajem" id="boniteta-zajem" aria-labelledby="boniteta-zajem-naslov">
+          <div class="boniteta-zajem__rezerva" id="boniteta-spletna-rezerva" role="status" aria-live="polite" hidden>
+            <span class="boniteta-zajem__rezerva-ikona" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10.3 3.8 2.5 17.3A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.7L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg>
+            </span>
+            <div>
+              <span class="boniteta-zajem__rezerva-oznaka">SPLETNE STRANI NI BILO MOGOČE PREBRATI</span>
+              <h2 id="boniteta-spletna-rezerva-naslov">Kako želite dodati podatke?</h2>
+              <p id="boniteta-spletna-rezerva-opis">Nadaljujte z računom, ponudbo ali ročnim vnosom. Pred insolvenčno preverbo boste vse podatke še pregledali.</p>
+            </div>
+          </div>
           <div class="boniteta-zajem__locilo"><h2 id="boniteta-zajem-naslov">Ali dodajate stranko drugače</h2></div>
           <p class="ai-zajem__status" id="boniteta-zajem-status" role="status" aria-live="polite" hidden>
             <span class="ai-zajem__spinner" aria-hidden="true"></span>
@@ -132,19 +154,36 @@
 
         <section class="crif-flow-picker" aria-labelledby="crif-flow-picker-title">
           <div class="crif-flow-picker__visual">
-            <h2 id="crif-flow-picker-title">Izberite vrsto preverbe</h2>
+            <div class="crif-flow-picker__heading">
+              <h2 id="crif-flow-picker-title">Izberite vrsto preverbe</h2>
+              <p>Izberite obseg podatkov.</p>
+            </div>
             <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
-              <button class="is-active" type="button" data-boniteta-flow="soft" aria-pressed="true">
-                <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><path d="M52 17 18 34v34c0 31 15 53 34 65 19-12 34-34 34-65V34L52 17Z" fill="#eef8f6" stroke="#0b6267" stroke-width="8"/><path d="m36 72 12 13 23-30" stroke="#0b6267" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><rect x="78" y="27" width="72" height="92" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><circle cx="101" cy="58" r="10" fill="#17aaa4"/><path d="M89 83c0-10 5-16 12-16s12 6 12 16v5H89v-5Z" fill="#17aaa4"/><path d="M121 49h18M121 59h18M121 75h18M121 85h18" stroke="#b9cdca" stroke-width="3"/><path d="M126 101c8 0 15 8 15 18" stroke="#0b6267" stroke-width="3"/><path d="m141 114 8 18h-31l8-18" fill="#edf8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M133.5 118v6" stroke="#0b6267" stroke-width="3" stroke-linecap="round"/></svg></span>
-                <strong data-fit-text>Mehka preverba</strong><span>Identiteta in insolventnost</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
+              <button class="crif-flow-picker__option is-active" type="button" data-boniteta-flow-card="soft" data-boniteta-flow-start="soft" aria-pressed="true">
+                <span class="crif-flow-picker__main">
+                  <span class="crif-flow-picker__selected" aria-hidden="true">✓</span>
+                  <span class="crif-flow-picker__price" data-fit-text>Brezplačno</span>
+                  <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 220 150" fill="none"><path d="M70 25 25 47v34c0 30 18 52 45 66 27-14 45-36 45-66V47L70 25Z" fill="#f8fcfb" stroke="#0b6267" stroke-width="7"/><path d="m49 79 15 15 29-36" stroke="#0b6267" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><rect x="119" y="48" width="76" height="78" rx="10" fill="#fff" stroke="#7caeaa" stroke-width="3"/><circle cx="146" cy="76" r="10" fill="#d8eeeb" stroke="#0b6267" stroke-width="2.5"/><path d="M131 111c0-14 6-22 15-22s15 8 15 22" fill="#b9dbd7" stroke="#0b6267" stroke-width="2.5"/><path d="M170 69h14M170 80h14M170 92h11" stroke="#0b6267" stroke-width="3" stroke-linecap="round"/><path d="M15 132h34M172 34h31" stroke="#9dceca" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 8"/><path d="M181 20v14M174 27h14" stroke="#b5dcda" stroke-width="3" stroke-linecap="round"/></svg></span>
+                  <strong data-fit-text>Mehka preverba</strong>
+                  <span class="crif-flow-picker__description">Preveri identiteto in insolventnost.</span>
+                </span>
+                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>IZBRANO</span><small>Klikni za podrobnosti ›</small></span><b aria-hidden="true" hidden>→</b></span>
               </button>
-              <button type="button" data-boniteta-flow="crif" aria-pressed="false">
-                <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 180 150" fill="none"><rect x="25" y="15" width="82" height="111" rx="6" fill="#fff" stroke="#173a8f" stroke-width="2.5"/><path d="M42 37h39M42 49h28" stroke="#b9cdca" stroke-width="3"/><path d="M45 103V84M59 103V70M73 103V91M87 103V60" stroke="#068c8d" stroke-width="7"/><rect x="105" y="50" width="49" height="68" rx="5" fill="#eef8f6" stroke="#0b6267" stroke-width="2.5"/><path d="M115 66h28M115 78h19M115 90h24" stroke="#8ebdb7" stroke-width="3"/><path d="M122 118V86h43v32" fill="#9cc6c1" stroke="#0b6267" stroke-width="2.5"/><path d="M132 118V99M145 118V94M157 118V104" stroke="#0b6267" stroke-width="5"/><circle cx="91" cy="91" r="27" fill="rgba(255,255,255,.82)" stroke="#0b6267" stroke-width="7"/><path d="m111 111 18 20" stroke="#0b6267" stroke-width="9" stroke-linecap="round"/></svg></span>
-                <strong data-fit-text>Podrobna preverba</strong><span>Razširjeni podatki in analiza</span><b class="crif-flow-picker__arrow" aria-hidden="true">→</b>
+              <button class="crif-flow-picker__option" type="button" data-boniteta-flow-card="crif" data-boniteta-flow-start="crif" aria-pressed="false">
+                <span class="crif-flow-picker__main">
+                  <span class="crif-flow-picker__selected" aria-hidden="true">✓</span>
+                  <span class="crif-flow-picker__price crif-flow-picker__price--paid" data-fit-text>20 €</span>
+                  <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 220 150" fill="none"><path d="M43 22h84l22 22v86H43z" fill="#fff" stroke="#0b6267" stroke-width="3"/><path d="M127 22v23h22M60 47h44M60 59h31" stroke="#0b6267" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M63 108V88M79 108V72M95 108V95M111 108V64" stroke="#078e8c" stroke-width="7"/><rect x="150" y="57" width="58" height="66" rx="9" fill="#f8fcfb" stroke="#7caeaa" stroke-width="3"/><path d="m162 104 12-13 10 7 14-20" stroke="#0b6267" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="162" cy="104" r="3.5" fill="#0b6267"/><circle cx="174" cy="91" r="3.5" fill="#0b6267"/><circle cx="184" cy="98" r="3.5" fill="#0b6267"/><circle cx="198" cy="78" r="3.5" fill="#0b6267"/><circle cx="135" cy="101" r="23" fill="rgba(255,255,255,.88)" stroke="#0b6267" stroke-width="6"/><path d="m152 118 18 19" stroke="#0b6267" stroke-width="8" stroke-linecap="round"/><path d="M190 30v14M183 37h14" stroke="#b5dcda" stroke-width="3" stroke-linecap="round"/></svg></span>
+                  <strong data-fit-text>Podrobna preverba</strong>
+                  <span class="crif-flow-picker__description">Pridobi razširjene podatke in analizo.</span>
+                </span>
+                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>Preglej in izberi</span><small hidden>Klikni za podrobnosti ›</small></span><b aria-hidden="true">→</b></span>
               </button>
             </div>
+            <button class="crif-flow-picker__start" id="boniteta-flow-start" type="button">
+              <span data-fit-text>Preveri podjetje</span><b aria-hidden="true">→</b>
+            </button>
           </div>
-          <button class="crif-flow-picker__start" id="boniteta-flow-start" type="button"><span data-fit-text>Začni preverbo</span><b aria-hidden="true">→</b></button>
           <p class="crif-temp-legend" hidden>Rdeča pika začasno označuje dele, ki so vezani na CRIF.</p>
         </section>
 
@@ -233,6 +272,13 @@
         </div>
       </form>
 
+      <header class="boniteta-rezultat-okno" id="boniteta-rezultat-okno" hidden>
+        <div>
+          <p>BONITETNA PREVERBA</p>
+          <h1>Rezultat preverbe</h1>
+        </div>
+      </header>
+
       <section class="boniteta-potek" id="boniteta-potek" aria-live="polite" hidden data-boniteta-flow-panel="soft">
         <div class="boniteta-potek__koraki">
           <div class="boniteta-potek__korak is-active" data-boniteta-korak="register"><span>1</span><strong>Registri</strong></div>
@@ -254,12 +300,68 @@
           </div>
         </div>
 
+        <div class="boniteta-metodologija" id="boniteta-metodologija" hidden>
+          <div class="boniteta-metodologija__glava">
+            <div>
+              <p class="boniteta-rezultat__oznaka">KAKO SMO PREVERILI</p>
+              <h3>4 koraki do rezultata</h3>
+              <p id="boniteta-metodologija-opis">Vsak naslednji korak se izvede šele, ko so podatki prejšnjega dovolj zanesljivi.</p>
+            </div>
+            <span class="boniteta-metodologija__sklep" id="boniteta-metodologija-skupno">V teku</span>
+          </div>
+          <ol class="boniteta-metodologija__koraki" aria-label="Pot preverbe">
+            <li class="boniteta-metodologija__korak is-waiting" data-metodologija-korak="identity">
+              <span class="boniteta-metodologija__stevilka">01</span>
+              <span class="boniteta-metodologija__ikona" aria-hidden="true">?</span>
+              <strong>Identiteta</strong>
+              <small>Pravno ime in nosilec</small>
+              <b>Čaka</b>
+            </li>
+            <li class="boniteta-metodologija__korak is-waiting" data-metodologija-korak="location">
+              <span class="boniteta-metodologija__stevilka">02</span>
+              <span class="boniteta-metodologija__ikona" aria-hidden="true">?</span>
+              <strong>Naslov</strong>
+              <small>Ulica, pošta in kraj</small>
+              <b>Čaka</b>
+            </li>
+            <li class="boniteta-metodologija__korak is-waiting" data-metodologija-korak="query">
+              <span class="boniteta-metodologija__stevilka">03</span>
+              <span class="boniteta-metodologija__ikona" aria-hidden="true">?</span>
+              <strong>Poizvedba</strong>
+              <small>Točni podatki za iskanje</small>
+              <b>Čaka</b>
+            </li>
+            <li class="boniteta-metodologija__korak is-waiting" data-metodologija-korak="evidence">
+              <span class="boniteta-metodologija__stevilka">04</span>
+              <span class="boniteta-metodologija__ikona" aria-hidden="true">?</span>
+              <strong>Uradni dokaz</strong>
+              <small>Rezultat in posnetek</small>
+              <b>Čaka</b>
+            </li>
+          </ol>
+          <div class="boniteta-metodologija__povzetek" id="boniteta-metodologija-povzetek" role="status">
+            <span aria-hidden="true">i</span>
+            <p><strong>Preverba še ni zaključena.</strong><small>Spodaj vidite podrobnosti vsakega koraka in uporabljene vire.</small></p>
+          </div>
+        </div>
+
         <div class="boniteta-rezultat__sklop" id="boniteta-hwk-sklop">
           <div class="boniteta-rezultat__sklop-glava">
-            <h3 id="boniteta-identiteta-naslov">Identiteta stranke</h3>
+            <div class="boniteta-podjetje-glava__vsebina">
+              <p class="boniteta-rezultat__oznaka">BONITETNA PREVERBA</p>
+              <h3 id="boniteta-identiteta-naslov">Identiteta in registrski podatki</h3>
+              <div class="boniteta-podjetje-glava" id="boniteta-podjetje-glava" hidden>
+                <span class="boniteta-podjetje-glava__monogram" id="boniteta-podjetje-monogram" aria-hidden="true">—</span>
+                <div class="boniteta-podjetje-glava__opis">
+                  <strong id="boniteta-podjetje-ime" data-fit-text data-fit-text-min="12"></strong>
+                  <span id="boniteta-podjetje-preverjeno"></span>
+                </div>
+              </div>
+            </div>
             <span class="boniteta-znacka" id="boniteta-hwk-status"></span>
           </div>
-          <dl class="boniteta-podatki" id="boniteta-hwk-podatki"></dl>
+          <p class="boniteta-podjetje-podnaslov" id="boniteta-podjetje-podnaslov" hidden>Osnovni podatki</p>
+          <dl class="boniteta-podatki boniteta-podatki--identiteta" id="boniteta-hwk-podatki"></dl>
           <figure class="boniteta-uradni-posnetek" id="boniteta-identiteta-posnetek" hidden>
             <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
               <a class="boniteta-posnetek-povecava__url" id="boniteta-identiteta-url" href="#" target="_blank" rel="noopener" aria-label="Odpri dejanski vir posnetka">
@@ -317,21 +419,24 @@
           </div>
         </div>
 
-        <div class="boniteta-rezultat__sklop">
-          <div class="boniteta-rezultat__sklop-glava">
-            <h3>Preverjeni viri</h3>
-          </div>
-          <div class="boniteta-viri" id="boniteta-viri"></div>
-        </div>
-
-        <div class="boniteta-rezultat__sklop" id="boniteta-insolvenca-sklop">
+        <div class="boniteta-rezultat__sklop" id="boniteta-insolvenca-sklop" hidden>
           <div class="boniteta-rezultat__sklop-glava">
             <h3>Insolvenčna preverba</h3>
             <span class="boniteta-znacka" id="boniteta-insolvenca-status"></span>
           </div>
           <p class="boniteta-insolvenca-opis" id="boniteta-insolvenca-opis"></p>
-          <dl class="boniteta-podatki" id="boniteta-insolvenca-podatki"></dl>
+          <p class="boniteta-barvna-primerjava__namig" id="boniteta-barvna-primerjava-namig" hidden>
+            <span aria-hidden="true">✓</span>
+            Enaka barva pomeni isti preverjeni podatek v kartici in na uradnem posnetku.
+          </p>
+          <dl class="boniteta-podatki boniteta-podatki--primerjava" id="boniteta-insolvenca-podatki"></dl>
           <figure class="boniteta-uradni-posnetek" id="boniteta-insolvenca-posnetek" hidden>
+            <div class="boniteta-barvna-primerjava__legenda" aria-label="Legenda barv na uradnem posnetku">
+              <span class="boniteta-barvna-primerjava__znacka boniteta-barvna-primerjava__znacka--blue" data-primerjava-ton="blue">Ime podjetja</span>
+              <span class="boniteta-barvna-primerjava__znacka boniteta-barvna-primerjava__znacka--green" data-primerjava-ton="green">Kraj</span>
+              <span class="boniteta-barvna-primerjava__znacka boniteta-barvna-primerjava__znacka--violet" data-primerjava-ton="violet">Register</span>
+              <span class="boniteta-barvna-primerjava__znacka boniteta-barvna-primerjava__znacka--amber" data-primerjava-ton="amber">Zadeva</span>
+            </div>
             <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
               <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka insolvenčnega registra">
                 <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
@@ -359,6 +464,62 @@
           <div class="boniteta-insolvenca-viri">
             <a class="boniteta-vir" id="boniteta-insolvenca-api-vir" href="https://docs.openregister.de/endpoint/search-insolvency" target="_blank" rel="noopener" hidden>Podrobnosti vira OpenRegister API ↗</a>
             <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Ročno preveri v uradnem insolvenčnem registru ↗</a>
+          </div>
+        </div>
+
+        <div class="boniteta-rezultat__sklop boniteta-preverjeni-viri">
+          <div class="boniteta-rezultat__sklop-glava">
+            <div>
+              <p class="boniteta-rezultat__oznaka">DOKAZILA OSNOVNE PREVERBE</p>
+              <h3>Uporabljeni viri</h3>
+            </div>
+          </div>
+          <div class="boniteta-viri" id="boniteta-viri"></div>
+        </div>
+
+        <div class="boniteta-rezultat__sklop boniteta-razsiritve" id="boniteta-razsiritve" hidden>
+          <div class="boniteta-rezultat__sklop-glava">
+            <div>
+              <p class="boniteta-rezultat__oznaka">PODROBNI OPENREGISTER PODATKI</p>
+              <h3>Potrebujete več informacij?</h3>
+            </div>
+            <span class="boniteta-znacka boniteta-znacka--green">10–25 kreditov</span>
+          </div>
+          <p class="boniteta-razsiritve__opis">Osnovna preverba je zaključena. Podjetje, lastnike, finance ali dokumente pridobimo samo po vaši izbiri.</p>
+          <div class="boniteta-krediti" id="boniteta-krediti" aria-live="polite">
+            <div class="boniteta-krediti__graf" aria-hidden="true"><span id="boniteta-krediti-lok"></span><b id="boniteta-krediti-stevilo">—</b></div>
+            <div><strong id="boniteta-krediti-naslov">Preverjam razpoložljive kredite …</strong><span id="boniteta-krediti-opis">Stanje se bere neposredno iz OpenRegister računa.</span></div>
+          </div>
+          <button class="boniteta-razsiritve__odpri" id="boniteta-razsiritve-odpri" type="button" aria-expanded="false" aria-controls="boniteta-razsiritve-moznosti">
+            <span><strong data-fit-text>Poglej podrobne možnosti</strong><small>Podjetje · lastniki · finance · dokumenti</small></span><b aria-hidden="true">⌄</b>
+          </button>
+          <div class="boniteta-razsiritve__moznosti" id="boniteta-razsiritve-moznosti" hidden>
+            <div class="boniteta-razsiritve__mreza">
+              <a class="boniteta-razsiritev" data-boniteta-razsiritev="company" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">§</span><strong data-fit-text>Podatki podjetja</strong><small>Register, status in zastopanje</small><b data-fit-text>10 kreditov <span aria-hidden="true">→</span></b></a>
+              <a class="boniteta-razsiritev" data-boniteta-razsiritev="ownership" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">◎</span><strong data-fit-text>Lastniki in povezave</strong><small>Dva povezana registrska sklopa</small><b data-fit-text>20 kreditov <span aria-hidden="true">→</span></b></a>
+              <a class="boniteta-razsiritev" data-boniteta-razsiritev="financials" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">↗</span><strong data-fit-text>Finančni podatki</strong><small>Objavljeni izkazi in grafi</small><b data-fit-text>10 kreditov <span aria-hidden="true">→</span></b></a>
+              <a class="boniteta-razsiritev" data-boniteta-razsiritev="documents" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">▤</span><strong data-fit-text>Uradni dokumenti</strong><small>Seznam registrskih dokumentov</small><b data-fit-text>10 kreditov <span aria-hidden="true">→</span></b></a>
+            </div>
+            <p class="boniteta-razsiritve__namig">Če so podatki za podjetje še sveže shranjeni, jih ponovno prikažemo brez novega zunanjega klica.</p>
+          </div>
+          <button class="boniteta-razsiritve__odpri boniteta-pro-test__toggle" id="boniteta-pro-test-toggle" type="button" aria-expanded="false" aria-controls="boniteta-pro-test" hidden>
+            <span><strong data-fit-text>PRO · odpri podrobni predogled</strong><small>Podjetje · lastniki · finance · dokumenti</small></span><b aria-hidden="true">⌄</b>
+          </button>
+          <div class="boniteta-pro-test" id="boniteta-pro-test" hidden>
+            <div class="boniteta-pro-test__glava">
+              <p class="boniteta-rezultat__oznaka">PRO · TESTNI PREDOGLED</p>
+              <h3>Podrobni podatki podjetja</h3>
+              <p>Vsi podatki so izmišljeni. OpenRegister ni bil poklican, kredit ni bil porabljen in nič se ne shrani.</p>
+            </div>
+            <nav class="boniteta-pro-test__zavihki" aria-label="PRO podrobnosti podjetja">
+              <button type="button" class="is-active" data-pro-test-tab="company">Podjetje</button>
+              <button type="button" data-pro-test-tab="ownership">Lastniki</button>
+              <button type="button" data-pro-test-tab="financials">Finance</button>
+              <button type="button" data-pro-test-tab="documents">Dokumenti</button>
+              <button type="button" data-pro-test-tab="insolvency">Insolvenca</button>
+              <button type="button" data-pro-test-tab="monitoring">Spremljanje</button>
+            </nav>
+            <div class="boniteta-pro-test__vsebina" id="boniteta-pro-test-content" aria-live="polite"></div>
           </div>
         </div>
 
@@ -529,9 +690,13 @@
       </button>
     </nav>
 
+    <div class="boniteta-app-testna-vrstica" id="boniteta-app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica">
+      <span>Testna vrstica</span>
+    </div>
+
     <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260818-openregister-credit-reason-v27"></script>
-    <script src="boniteta-sredisce.js?v=20260817-reference-flow-v10"></script>
+    <script src="bonitetna-preverba.js?v=20260819-company-art-v41"></script>
+    <script src="boniteta-sredisce.js?v=20260819-company-card-v23"></script>
     <script src="pwa-viewport.js?v=20260817-v1"></script>
     <script src="pwa-dev-refresh.js?v=20260817-v1"></script>
   </body>

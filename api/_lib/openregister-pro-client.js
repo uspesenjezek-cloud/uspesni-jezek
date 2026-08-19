@@ -136,6 +136,35 @@ async function advancedSearch(input) {
   });
 }
 
+function kreditnoStanje(input) {
+  var root = input && typeof input === "object" ? input : {};
+  var data = root.credits && typeof root.credits === "object" ? root.credits : root;
+  function stevilo() {
+    for (var i = 0; i < arguments.length; i += 1) {
+      if (arguments[i] == null || arguments[i] === "") continue;
+      var value = Number(arguments[i]);
+      if (Number.isFinite(value) && value >= 0) return value;
+    }
+    return null;
+  }
+  var included = stevilo(data.included, data.included_credits, data.total, data.limit);
+  var used = stevilo(data.used, data.used_credits, data.consumed);
+  var remaining = stevilo(data.remaining, data.remaining_credits, data.available, included !== null && used !== null ? included - used : null);
+  return {
+    included: included,
+    used: used,
+    remaining: remaining,
+    overage: stevilo(data.overage, data.overage_credits),
+    periodEnd: String(data.period_end || data.periodEnd || data.resets_at || data.reset_at || ""),
+    detailedChecksAvailable: remaining === null ? null : Math.floor(remaining / 10),
+    premiumChecksAvailable: remaining === null ? null : Math.floor(remaining / 25),
+  };
+}
+
+async function credits() {
+  return kreditnoStanje(await request("credits"));
+}
+
 async function document(documentId, realtime) {
   var id = String(documentId || "").trim();
   if (!/^[0-9a-z-]{8,80}$/i.test(id)) throw napaka("Manjka veljaven dokument.", 400, "INVALID_DOCUMENT");
@@ -195,6 +224,8 @@ module.exports = {
   request: request,
   section: section,
   advancedSearch: advancedSearch,
+  credits: credits,
+  kreditnoStanje: kreditnoStanje,
   document: document,
   realtimeDocument: realtimeDocument,
   transparencyOrder: transparencyOrder,
