@@ -414,15 +414,29 @@
   }
 
   function profileReadiness(profile) {
+    function present(value) { return Boolean(String(value || "").trim()); }
     var checks = [
-      { key: "identity", label: "Pravno ime in naslov", done: Boolean(profile.legalName && profile.street && profile.postalCode && profile.city) },
-      { key: "tax", label: "Davčna številka", done: Boolean(profile.taxNumber || profile.vatId) },
-      { key: "bank", label: "IBAN in imetnik računa", done: Boolean(cleanIban(profile.iban).length >= 15 && profile.accountHolder) },
-      { key: "numbering", label: "Številčenje računov", done: Boolean(profile.invoicePrefix) },
+      { key: "identity", label: "Pravno ime in naslov", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) },
+      { key: "tax", label: "Davčna številka", done: Boolean(present(profile.taxNumber) || present(profile.vatId)) },
+      { key: "bank", label: "IBAN in imetnik računa", done: Boolean(cleanIban(profile.iban).length >= 15 && present(profile.accountHolder)) },
+      { key: "numbering", label: "Številčenje računov", done: present(profile.invoicePrefix) },
       { key: "confirmation", label: "Potrditev resničnih podatkov", done: Boolean(profile.legalConfirmed) }
     ];
     var done = checks.filter(function (check) { return check.done; }).length;
     return { checks: checks, percent: Math.round(done / checks.length * 100), live: done === checks.length };
+  }
+
+  function profileForPreview(profile, isTest) {
+    var source = Object.assign({}, profile || {});
+    var identityReady = [source.legalName, source.street, source.postalCode, source.city]
+      .every(function (value) { return Boolean(String(value || "").trim()); });
+    if (!isTest || identityReady) return source;
+    return Object.assign(source, {
+      legalName: "TEST-Unternehmen",
+      street: "Musterstraße 1",
+      postalCode: "00000",
+      city: "Teststadt"
+    });
   }
 
   function validateStep(draft, profile, step) {
@@ -578,6 +592,7 @@
     calculateItem: calculateItem,
     calculateTotals: calculateTotals,
     profileReadiness: profileReadiness,
+    profileForPreview: profileForPreview,
     validateStep: validateStep,
     buildEpcPayload: buildEpcPayload,
     buildXRechnungXml: buildXRechnungXml,
@@ -1876,6 +1891,7 @@
     var invoice = currentInvoiceSnapshot();
     var draft = invoice.draft;
     var profile = state.profile;
+    var displayProfile = profileForPreview(profile, invoice.isTest);
     var errors = validateStep(draft, profile, 4);
     var validation = query("[data-validation-summary]");
     validation.innerHTML = errors.length
@@ -1892,7 +1908,7 @@
     if (draft.constructionWithholding) noteParts.push("Bauleistung: stanje Freistellungsbescheinigung – " + draft.exemptionCertificate + ".");
     var preview = query("[data-invoice-preview]");
     preview.classList.toggle("is-test", invoice.isTest);
-    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(profile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([profile.street, profile.postalCode, profile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">Rechnung</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>Fällig am</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>Zahlungsart</small><strong>" + escapeHtml(draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>Rechnung an</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\"><div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div></div><p class=\"pos-preview__note\">" + escapeHtml(noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
+    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">Rechnung</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>Fällig am</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>Zahlungsart</small><strong>" + escapeHtml(draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>Rechnung an</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\"><div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div></div><p class=\"pos-preview__note\">" + escapeHtml(noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
     query("[data-issue-invoice]").textContent = invoice.isTest ? "Ustvari testni račun" : "Pravno izdaj račun";
     query("[data-issue-invoice]").disabled = errors.length > 0;
     renderQr(invoice);

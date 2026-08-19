@@ -4,7 +4,7 @@ const fs = require("fs");
 const fontkit = require("@pdf-lib/fontkit");
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-3";
+const GENERATOR_VERSION = "uj-pos-pdf-4";
 const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
 const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
 const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
@@ -126,6 +126,32 @@ function taxIdentityText(seller) {
   return "";
 }
 
+function sellerForInvoice(invoice) {
+  const source = invoice && invoice.snapshot && invoice.snapshot.seller || {};
+  const identityReady = [source.legalName, source.street, source.postalCode, source.city].every((value) => safeText(value));
+  const paymentReady = Boolean(safeText(source.accountHolder) && safeText(source.iban));
+  const taxReady = Boolean(taxIdentityText(source));
+
+  if (!invoice || !invoice.is_test) {
+    if (!identityReady || !paymentReady || !taxReady) {
+      throw new Error("Pravni račun nima popolnih podatkov izdajatelja, davčne identitete ali plačila.");
+    }
+    return { seller: source, testIdentity: false, testPayment: false, testTax: false };
+  }
+
+  return {
+    seller: Object.assign({}, source, identityReady ? {} : {
+      legalName: "TEST-Unternehmen",
+      street: "Musterstraße 1",
+      postalCode: "00000",
+      city: "Teststadt"
+    }),
+    testIdentity: !identityReady,
+    testPayment: !paymentReady,
+    testTax: !taxReady
+  };
+}
+
 function drawTestWatermark(page, bold) {
   page.drawText("TESTRECHNUNG", {
     x: 103, y: 365, size: 48, font: bold, color: rgb(0.93, 0.84, 0.78),
@@ -145,7 +171,8 @@ async function ustvariRacunPdf(invoice) {
   pdf.setModificationDate(new Date(invoice.issued_at || Date.now()));
 
   const { regular, bold } = await embedUnicodeFonts(pdf);
-  const seller = invoice.snapshot.seller || {};
+  const sellerInfo = sellerForInvoice(invoice);
+  const seller = sellerInfo.seller;
   const draft = invoice.snapshot.draft || {};
   const items = Array.isArray(draft.items) ? draft.items : [];
   const pages = [];
@@ -264,7 +291,12 @@ async function ustvariRacunPdf(invoice) {
     y -= noteHeight + 10;
   }
 
-  const paymentLines = [
+  const paymentLines = sellerInfo.testPayment ? [
+    "Keine Zahlung - TESTDOKUMENT",
+    "Kontoinhaber: TEST - kein echter Zahlungsempfänger",
+    "IBAN: NICHT VORHANDEN",
+    "Verwendungszweck: " + safeText(invoice.invoice_number)
+  ] : [
     "Zahlung per Überweisung",
     "Kontoinhaber: " + safeText(seller.accountHolder || seller.legalName),
     "IBAN: " + safeText(seller.iban),
@@ -273,7 +305,7 @@ async function ustvariRacunPdf(invoice) {
   ensureSpace(86);
   page.drawText(paymentLines[0], { x: PAGE.margin, y, font: bold, size: 9.5, color: COLORS.tealDark });
   drawLines(page, paymentLines.slice(1), PAGE.margin, y - 16, { font: regular, size: 8.5, lineHeight: 12, color: COLORS.ink });
-  const taxIdentity = taxIdentityText(seller);
+  const taxIdentity = taxIdentityText(seller) || (sellerInfo.testTax ? "Steuerdaten: TEST - nicht vorhanden" : "");
   if (taxIdentity) rightText(page, taxIdentity, PAGE.width - PAGE.margin, y - 16, regular, 8.2, COLORS.muted);
   if (seller.businessEmail) rightText(page, safeText(seller.businessEmail), PAGE.width - PAGE.margin, y - 30, regular, 8.2, COLORS.muted);
 
@@ -286,4 +318,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, embedUnicodeFonts, ustvariRacunPdf };

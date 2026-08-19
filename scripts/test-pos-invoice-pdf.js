@@ -120,6 +120,16 @@ function sampleAdjustment(type) {
   assert.strictEqual(pdfModule.taxIdentityText({}), "");
   assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890" }), "Steuernummer: 12/345/67890");
   assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890", vatId: "DE123456789" }), "USt-IdNr.: DE123456789");
+  const incompleteTestInvoice = sampleInvoice();
+  incompleteTestInvoice.invoice_number = "TEST-2026-0001";
+  incompleteTestInvoice.is_test = true;
+  incompleteTestInvoice.snapshot.seller = { legalName: "   " };
+  const testSeller = pdfModule.sellerForInvoice(incompleteTestInvoice);
+  assert.strictEqual(testSeller.seller.legalName, "TEST-Unternehmen");
+  assert.strictEqual(testSeller.seller.street, "Musterstraße 1");
+  assert.strictEqual(testSeller.testPayment, true);
+  assert.strictEqual(testSeller.testTax, true);
+  assert.throws(() => pdfModule.sellerForInvoice(Object.assign({}, incompleteTestInvoice, { is_test: false })), /Pravni račun nima popolnih podatkov/);
   assert.strictEqual(endpoint._test.objectPath("u", "i"), "u/i/rechnung.pdf");
   assert.strictEqual(endpoint._test.encodedPath("a b/c"), "a%20b/c");
   assert.strictEqual(endpoint._test.uuid("not-a-uuid"), "");
@@ -140,12 +150,16 @@ function sampleAdjustment(type) {
   assert.ok(pdf.getPageCount() >= 2, "Dolg realističen račun mora pravilno nadaljevati na novo stran.");
   assert.strictEqual(pdf.getTitle(), "Rechnung RE-2026-0001");
   assert.strictEqual(pdf.getCreator(), pdfModule.GENERATOR_VERSION);
-  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-3");
+  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-4");
+
+  const incompleteTestBuffer = await pdfModule.ustvariRacunPdf(incompleteTestInvoice);
+  const incompleteTestPdf = await PDFDocument.load(incompleteTestBuffer);
+  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-4");
 
   const replacementBuffer = await pdfModule.ustvariRacunPdf(sampleInvoice(true));
   const replacementPdf = await PDFDocument.load(replacementBuffer);
   assert.strictEqual(replacementPdf.getPageCount(), pdf.getPageCount());
-  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-3");
+  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-4");
 
   const correctionBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("correction"));
   const correctionPdf = await PDFDocument.load(correctionBuffer);
@@ -174,6 +188,11 @@ function sampleAdjustment(type) {
     const output = path.resolve(process.env.POS_REPLACEMENT_PDF_SAMPLE_OUTPUT);
     fs.mkdirSync(path.dirname(output), { recursive: true });
     fs.writeFileSync(output, replacementBuffer);
+  }
+  if (process.env.POS_TEST_PDF_SAMPLE_OUTPUT) {
+    const output = path.resolve(process.env.POS_TEST_PDF_SAMPLE_OUTPUT);
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    fs.writeFileSync(output, incompleteTestBuffer);
   }
   console.log("POS PDF: račun, Rechnungsberichtigung in večstranski Storno so preverjeni.");
 })().catch((error) => { console.error(error); process.exitCode = 1; });
