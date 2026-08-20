@@ -73,7 +73,7 @@ assert.match(html, /data-kassenbon-tss/);
 assert.match(html, /data-kassenbon-counter/);
 assert.match(html, /data-kassenbon-qr/);
 assert.match(html, /TRAINING – brez pravega poslovnega dogodka/);
-assert.match(html, /20260820-fiskaly-kassenbon-v1/);
+assert.match(html, /20260820-fiskaly-kassenbon-v2/);
 assert.match(js, /loadFiskalyCapability/);
 assert.match(js, /submitFiskalyTrainingReceipt/);
 assert.match(js, /renderSignedKassenbon/);
@@ -83,6 +83,7 @@ assert.match(js, /fiskalyRetryable/);
 assert.match(js, /integrationReady/);
 assert.doesNotMatch(js, /FISKALY_API_(?:KEY|SECRET)/);
 assert.match(css, /\.pos-fiskaly-receipt-sheet/);
+assert.match(css, /\.pos-fiskaly-receipt-form\[hidden\]\s*\{\s*display:\s*none/);
 assert.match(css, /\.pos-kassenbon-tse/);
 assert.match(css, /overflow-wrap:\s*anywhere/);
 
