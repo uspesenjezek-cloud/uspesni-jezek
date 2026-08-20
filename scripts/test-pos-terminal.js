@@ -241,6 +241,27 @@ assert.strictEqual(partialBankMatch.score, 92);
 const sameAmountInvoice = Object.assign({}, serverTestInvoice, { id: "server-same-amount", number: "TEST-2026-0099", draft: Object.assign({}, duplicateDraft, { customerName: "Andere GmbH" }) });
 assert.strictEqual(Core.matchBankTransaction({ amount_cents: 119, remittance_info: "Ohne Referenz", counterparty_name: "" }, [serverTestInvoice, sameAmountInvoice]), null);
 
+const reconciliationInvoice = Object.assign({}, serverTestInvoice, {
+  id: "reconciliation-invoice",
+  number: "TEST-2026-0100",
+  dueDate: "2026-09-03",
+  seller: { iban: "DE00123456789012345678" },
+  draft: Object.assign({}, duplicateDraft, { issueDate: "2026-08-20", customerName: "Lohn/Gehalt" }),
+  totals: Object.assign({}, duplicateTotals, { grossCents: 40000 })
+});
+const duplicateBankCandidates = [
+  { id: "bank-main", bookedOn: "2026-08-19", amountCents: 40000, counterpartyName: "Lohn/Gehalt", sourceAccountIban: "DE00123456789012345678" },
+  { id: "bank-secondary", bookedOn: "2026-08-19", amountCents: 40000, counterpartyName: "Lohn/Gehalt", sourceAccountIban: "DE00999999999999999999" },
+  { id: "bank-old", bookedOn: "2026-06-01", amountCents: 40000, counterpartyName: "Lohn/Gehalt", sourceAccountIban: "DE00123456789012345678" }
+];
+const resolvedBankMatches = Core.resolveBankMatches(duplicateBankCandidates, [reconciliationInvoice]);
+assert.strictEqual(resolvedBankMatches.suggestions["bank-main"].invoice.id, "reconciliation-invoice");
+assert.strictEqual(resolvedBankMatches.suggestions["bank-secondary"], undefined);
+assert.strictEqual(resolvedBankMatches.suggestions["bank-old"], undefined);
+const ambiguousBankMatches = Core.resolveBankMatches(duplicateBankCandidates.slice(0, 2), [Object.assign({}, reconciliationInvoice, { seller: { iban: "" } })]);
+assert.strictEqual(Object.keys(ambiguousBankMatches.suggestions).length, 0);
+assert.match(ambiguousBankMatches.ambiguities["bank-main"], /Več enako primernih prilivov/);
+
 const draft = Core.defaultDraft(profile);
 draft.customerName = "Sehr langes deutsches Beispielunternehmen für Gebäudetechnik und Sanierung GmbH";
 draft.customerStreet = "Beispielstraße 123";
