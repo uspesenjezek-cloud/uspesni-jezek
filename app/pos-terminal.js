@@ -1033,6 +1033,7 @@
   var deliveryRequestKey = null;
   var deliverySubmitting = false;
   var deliveryCapability = { provider: "resend", configured: false, sendEnabled: false, testEnabled: false, liveEnabled: false, mode: "sandbox" };
+  var fiskalyCapability = { configured: false, connected: false, integrationReady: false, environment: "test", tssCount: 0, tssState: "", clientState: "", cashModuleEnabled: false };
   var toastTimer = 0;
   var dialogCallback = null;
 
@@ -1376,7 +1377,10 @@
     var editorActions = query(".pos-editor-actions");
     if (editorActions) editorActions.hidden = name !== "invoice";
     if (name === "home") renderHome();
-    if (name === "settings") fillForm(query("#pos-profile-form"), state.profile);
+    if (name === "settings") {
+      fillForm(query("#pos-profile-form"), state.profile);
+      loadFiskalyCapability(false);
+    }
     if (name === "invoice") renderEditor();
     if (name === "invoice-detail") renderInvoiceDetail(activeInvoiceId);
     global.scrollTo({ top: 0, behavior: "auto" });
@@ -1698,6 +1702,50 @@
     }
     syncDeliveryCapabilityUi();
     return deliveryCapability;
+  }
+
+  function renderFiskalyCapability() {
+    var badge = query("[data-fiskaly-badge]");
+    var status = query("[data-fiskaly-status]");
+    var copy = query("[data-fiskaly-copy]");
+    var stateBox = query(".pos-fiskaly-state");
+    if (!badge || !status || !copy || !stateBox) return;
+    var ready = Boolean(fiskalyCapability.configured && fiskalyCapability.connected);
+    var failed = Boolean(fiskalyCapability.configured && !fiskalyCapability.connected);
+    badge.classList.toggle("is-ready", ready);
+    badge.classList.toggle("is-error", failed);
+    stateBox.classList.toggle("is-ready", ready);
+    stateBox.classList.toggle("is-error", failed);
+    badge.textContent = ready ? "TEST povezan" : failed ? "Napaka" : "Ni nastavljeno";
+    status.textContent = ready ? "Testna povezava je pripravljena" : failed ? "Povezava trenutno ni dosegljiva" : "Testna povezava še ni nastavljena";
+    copy.textContent = ready
+      ? (fiskalyCapability.integrationReady ? "TSS inicializirana · odjemalec registriran · gotovina izključena" : "SIGN DE · " + fiskalyCapability.tssCount + " testnih TSS · gotovina izključena")
+      : failed ? "Poskusite ponovno; izdaja računov ostaja varno ločena." : "Ključi se nastavijo samo na varnem strežniku.";
+  }
+
+  async function loadFiskalyCapability(showFeedback) {
+    try {
+      var token = await apiSessionToken();
+      var response = await fetch("/api/pos-fiskaly", { method: "GET", headers: { Authorization: "Bearer " + token } });
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      if (!response.ok || !body || !body.fiskaly) throw new Error("Povezave ni bilo mogoče preveriti.");
+      fiskalyCapability = {
+        configured: Boolean(body.fiskaly.configured),
+        connected: Boolean(body.fiskaly.connected),
+        integrationReady: Boolean(body.fiskaly.integrationReady),
+        environment: "test",
+        tssCount: Math.max(0, integer(body.fiskaly.tssCount, 0)),
+        tssState: String(body.fiskaly.tssState || ""),
+        clientState: String(body.fiskaly.clientState || ""),
+        cashModuleEnabled: false
+      };
+    } catch (_error) {
+      fiskalyCapability = { configured: true, connected: false, integrationReady: false, environment: "test", tssCount: 0, tssState: "", clientState: "", cashModuleEnabled: false };
+    }
+    renderFiskalyCapability();
+    if (showFeedback) showToast(fiskalyCapability.connected ? "fiskaly TEST povezava deluje." : "fiskaly TEST povezava trenutno ni dosegljiva.");
+    return fiskalyCapability;
   }
 
   async function posDeliverySandboxRequest(deliveryId) {
@@ -2787,6 +2835,7 @@
       showToast(readiness.live && backend.ready ? "Produkcijski način je pripravljen." : readiness.live ? "Podatki so lokalno shranjeni; produkcija čaka varno bazo." : "Nastavitve so shranjene; Testbetrieb ostaja aktiven.");
       showView("home");
     });
+    query("[data-fiskaly-refresh]").addEventListener("click", function () { loadFiskalyCapability(true); });
     query("[data-preview-print]").addEventListener("click", function () { global.print(); });
     query("[data-download-xml]").addEventListener("click", downloadXml);
     query("[data-copy-payment]").addEventListener("click", copyPayment);
@@ -2889,6 +2938,7 @@
 
   function init() {
     bindEvents();
+    renderFiskalyCapability();
     renderHome();
     showView("home");
     loadServerState();

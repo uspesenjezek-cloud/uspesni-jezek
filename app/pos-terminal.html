@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260819-datev-export-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260820-fiskaly-test-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
-    <script src="pos-terminal.js?v=20260819-datev-export-v1" defer></script>
+    <script src="pos-terminal.js?v=20260820-fiskaly-test-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -183,6 +183,20 @@
           <label class="pos-acknowledge"><input type="checkbox" name="legalConfirmed" /><span><strong>Podatki so resnični in pripadajo registriranemu podjetju.</strong><small>Šele nato lahko aplikacija zapusti Testbetrieb.</small></span></label>
           <button class="pos-primary" type="submit">Shrani nastavitve</button>
         </form>
+
+        <section class="pos-form-card pos-fiskaly-card" aria-labelledby="pos-fiskaly-title">
+          <div class="pos-form-card__title">
+            <span><svg><use href="#i-lock"/></svg></span>
+            <div><h3 id="pos-fiskaly-title">fiskaly SIGN DE</h3><p>Cloud-TSE povezava za Nemčijo.</p></div>
+            <strong class="pos-fiskaly-badge" data-fiskaly-badge>Preverjam</strong>
+          </div>
+          <div class="pos-fiskaly-state">
+            <i data-fiskaly-dot></i>
+            <div><strong data-fiskaly-status>Preverjam testno povezavo …</strong><small data-fiskaly-copy>Ključi ostanejo varno na strežniku.</small></div>
+          </div>
+          <p class="pos-field-help">Gotovinski modul ostaja izključen. fiskaly ne podpisuje običajnih brezgotovinskih računov, dokler ga uporabnik izrecno ne aktivira.</p>
+          <button class="pos-inline-action" type="button" data-fiskaly-refresh>Preveri povezavo <svg><use href="#i-chevron"/></svg></button>
+        </section>
       </section>
 
       <section class="pos-view pos-view--editor" data-view="invoice" aria-labelledby="invoice-title">

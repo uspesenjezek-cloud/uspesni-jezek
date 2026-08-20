@@ -10,7 +10,8 @@
     "test:boniteta": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
     "test:sentry": "node scripts/test-sentry-privacy.js",
     "test:supabase-browser": "node scripts/build-supabase-browser.mjs && node scripts/test-supabase-browser-bundle.mjs",
-    "test:integration": "node scripts/test-izvedba-rpc-integration.mjs"
+    "test:integration": "node scripts/test-izvedba-rpc-integration.mjs",
+    "test:pos-fiskaly": "node scripts/test-pos-fiskaly.js"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "1.1.1",

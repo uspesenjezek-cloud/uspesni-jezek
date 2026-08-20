@@ -377,6 +377,22 @@
 .pos-law-note strong { display: block; color: var(--pos-ink); font-size: .73rem; }
 .pos-law-note p { margin: 2px 0 0; color: inherit; font-size: .65rem; line-height: 1.3; }
 
+.pos-fiskaly-card { margin-top: 13px; background: linear-gradient(145deg, #f1faf7, #fff 72%); }
+.pos-fiskaly-card .pos-form-card__title { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; }
+.pos-fiskaly-card .pos-form-card__title > span { display: grid; place-items: center; }
+.pos-fiskaly-card .pos-form-card__title svg { width: 17px; height: 17px; }
+.pos-fiskaly-badge { max-width: 86px; padding: 6px 9px; overflow: hidden; color: #765812; border-radius: 99px; background: #fff2cf; white-space: nowrap; text-overflow: ellipsis; font-size: .58rem; }
+.pos-fiskaly-badge.is-ready { color: #fff; background: var(--pos-teal); }
+.pos-fiskaly-badge.is-error { color: #8c3d39; background: #fff0ef; }
+.pos-fiskaly-state { display: grid; grid-template-columns: 12px minmax(0, 1fr); margin-top: 12px; padding: 11px; align-items: center; gap: 9px; border: 1px solid #d4e5e1; border-radius: 14px; background: rgba(255,255,255,.9); }
+.pos-fiskaly-state i { width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; background: #c29a46; box-shadow: 0 0 0 1px #c29a46; }
+.pos-fiskaly-state.is-ready i { background: var(--pos-teal); box-shadow: 0 0 0 1px var(--pos-teal); }
+.pos-fiskaly-state.is-error i { background: #b45550; box-shadow: 0 0 0 1px #b45550; }
+.pos-fiskaly-state strong,
+.pos-fiskaly-state small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pos-fiskaly-state strong { color: var(--pos-ink); font-size: .72rem; }
+.pos-fiskaly-state small { margin-top: 2px; color: var(--pos-muted); font-size: .59rem; }
+
 .pos-view-title,
 .pos-editor-head { gap: 11px; }
 .pos-view-title { margin-bottom: 14px; }
