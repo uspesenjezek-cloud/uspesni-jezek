@@ -116,6 +116,11 @@ assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && sup
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
 assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
+assert.match(js, /loadServerState\("deliveries"\)/);
+assert.match(js, /loadServerState\("payments"\)/);
+assert.match(js, /loadServerState\(\["payments", "bank"\]\)/);
+assert.match(js, /scopes\.bank \? backend\.client\.from\("pos_bank_transactions"\)/);
+assert.match(js, /pendingRefreshScopes = mergePosRefreshScopes/);
 assert.match(js, /\.rpc\("pos_import_bank_transactions"/);
 assert.match(js, /\.rpc\("pos_confirm_bank_transaction"/);
 assert.match(js, /\/api\/pos-finapi/);
@@ -181,6 +186,15 @@ assert.match(css, /\.pos-datev-sheet[\s\S]*overflow-x:\s*hidden/);
 
 assert.strictEqual(Core.parseMoneyToCents("1.234,56 €"), 123456);
 assert.strictEqual(Core.parseQuantityMilli("1,25"), 1250);
+assert.deepStrictEqual(Core.normalizePosRefreshScopes(), { profile: true, draft: true, invoices: true, bank: true });
+assert.deepStrictEqual(Core.normalizePosRefreshScopes("payments"), { payments: true });
+assert.deepStrictEqual(Core.normalizePosRefreshScopes(["deliveries", "bank"]), { deliveries: true, bank: true });
+assert.deepStrictEqual(Core.mergePosRefreshScopes({ payments: true }, "invoices"), { invoices: true });
+assert.deepStrictEqual(Core.mergePosRefreshScopes({ bank: true }, "payments"), { bank: true, payments: true });
+assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 400, refundedCents: 0, status: "succeeded" }], 1000, "open"), { paidCents: 400, status: "partial" });
+assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1200, refundedCents: 200, status: "partially_refunded" }], 1000, "open"), { paidCents: 1000, status: "paid" });
+assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "failed" }], 1000, "open"), { paidCents: 0, status: "open" });
+assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "succeeded" }], 1000, "cancelled"), { paidCents: 1000, status: "cancelled" });
 
 const net = Core.calculateItem({ quantity: "2", unitPrice: "100,00", taxRate: "19" }, "net", "regular");
 assert.deepStrictEqual(
