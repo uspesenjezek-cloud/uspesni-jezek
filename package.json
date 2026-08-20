@@ -5,7 +5,7 @@
   "description": "Statična spletna aplikacija za obrtnike (Slovenija/Nemčija) - Vercel build samo generira app/config.js iz environment variables, aplikacija sicer nima npm odvisnosti.",
   "scripts": {
     "dev": "node scripts/local-server.js --port 8001",
-    "build": "node scripts/generate-config.js && node scripts/build-supabase-browser.mjs && node scripts/build-sentry-browser.mjs",
+    "build": "node scripts/generate-config.js && node scripts/build-supabase-browser.mjs && node scripts/build-sentry-browser.mjs && node scripts/build-qrcode-browser.mjs",
     "test": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js && node scripts/test-random.js && node scripts/test-scheduler.js && node scripts/test-predaja-koncni-pregled.js && node scripts/test-opomini-pregled.js && node scripts/test-paket-storitev.js && node scripts/test-predaja-sestavljalnik.mjs && node scripts/test-opomin-kartice-sync.mjs && node scripts/test-priporocilo-zagon.mjs && node scripts/test-izvedba-actions.mjs && node scripts/test-filter-ponudb.js && node scripts/test-aktivni-primeri.js && node scripts/test-identiteta-razveljavitev.mjs",
     "test:boniteta": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
     "test:sentry": "node scripts/test-sentry-privacy.js",
@@ -24,7 +24,8 @@
     "jose": "6.2.9",
     "luxon": "3.7.2",
     "pdf-lib": "1.17.1",
-    "puppeteer-core": "^25.1.0"
+    "puppeteer-core": "^25.1.0",
+    "qrcode": "1.5.4"
   },
   "devDependencies": {
     "pg": "8.13.1"
