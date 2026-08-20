@@ -47,6 +47,10 @@ const finapiMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_finapi_bank_provider\.sql$/.test(name)).sort().pop()
   : null;
 const finapiMigration = finapiMigrationName ? fs.readFileSync(path.join(migrationsDir, finapiMigrationName), "utf8") : "";
+const finapiAccountMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
+  : null;
+const finapiAccountMigration = finapiAccountMigrationName ? fs.readFileSync(path.join(migrationsDir, finapiAccountMigrationName), "utf8") : "";
 const datevMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_datev_export_settings\.sql$/.test(name)).sort().pop()
   : null;
@@ -113,6 +117,10 @@ assert.match(js, /webform-sandbox\.finapi\.io/);
 assert.match(js, /finapi.*complete/);
 assert.match(js, /\.rpc\("pos_import_finapi_transactions"/);
 assert.match(js, /Sandbox povezan · brez pravih nakazil/);
+assert.match(js, /Nalagam bančne podatke/);
+assert.match(js, /Prejeto na/);
+assert.match(js, /source_account_id,source_account_name,source_account_iban/);
+assert.match(js, /backend\.syncing = false;[\s\S]*bankBackdrop && !bankBackdrop\.hidden\) renderBankSheet/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
@@ -503,6 +511,12 @@ assert.match(finapiMigration, /security invoker/i);
 assert.match(finapiMigration, /security definer\s+set search_path = ''/i);
 assert.match(finapiMigration, /external_reference !~ '\^finapi:\[0-9\]\+\$'/i);
 assert.match(finapiMigration, /notify pgrst, 'reload schema'/i);
+assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
+assert.match(finapiAccountMigration, /add column source_account_id text/i);
+assert.match(finapiAccountMigration, /add column source_account_name text/i);
+assert.match(finapiAccountMigration, /add column source_account_iban text/i);
+assert.match(finapiAccountMigration, /on conflict \(user_id,source_key\) do nothing/i);
+assert.match(finapiAccountMigration, /update public\.pos_bank_transactions[\s\S]*source_account_id/i);
 assert.match(finapiApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(finapiApi, /syncDemoTransactions\(auth\.user\.id\)/);
 assert.match(finapiApi, /createDemoBankWebForm\(auth\.user\.id\)/);
