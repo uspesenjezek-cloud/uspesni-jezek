@@ -34,6 +34,8 @@ assert.strictEqual(params.payment_intent_data.metadata.invoice_id, params.metada
 assert.match(params.success_url, /stripe=success/);
 assert.match(params.success_url, /stripe_session_id=%7BCHECKOUT_SESSION_ID%7D/);
 assert.match(params.cancel_url, /stripe=cancelled/);
+assert.doesNotMatch(params.cancel_url, /CHECKOUT_SESSION_ID|stripe_session_id/);
+assert.match(params.cancel_url, /invoice_id=11111111-1111-4111-8111-111111111111/);
 
 assert.strictEqual(checkout.effectivePaidCents([
   { amount_cents: 10000, refunded_cents: 2500, status: "partially_refunded" },

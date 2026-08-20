@@ -2445,11 +2445,17 @@
   function waitMs(ms) { return new Promise(function (resolve) { global.setTimeout(resolve, ms); }); }
 
   async function handleStripeReturn(returnState) {
-    if (!returnState || !returnState.sessionId || !returnState.invoiceId) return;
+    if (!returnState || !returnState.invoiceId || (returnState.state !== "cancelled" && !returnState.sessionId)) return;
     try {
       var result;
       if (returnState.state === "cancelled") {
-        result = await stripeCheckoutRequest("cancel", { sessionId: returnState.sessionId });
+        var returnedInvoice = findInvoice(returnState.invoiceId);
+        var pendingPayment = latestStripePayment(returnedInvoice);
+        var cancelSessionId = String(returnState.sessionId || "").indexOf("cs_test_") === 0
+          ? returnState.sessionId
+          : pendingPayment && pendingPayment.status === "pending" ? pendingPayment.checkoutSessionId : "";
+        if (!cancelSessionId) throw new Error("Odprte Stripe TEST seje za preklic ni mogoče najti.");
+        result = await stripeCheckoutRequest("cancel", { sessionId: cancelSessionId });
       } else {
         for (var attempt = 0; attempt < 6; attempt += 1) {
           result = await stripeCheckoutRequest("status", { sessionId: returnState.sessionId });
@@ -3675,7 +3681,7 @@
           : finapiReturn === "abort" ? "Povezovanje testne banke je bilo prekinjeno." : "finAPI obrazca ni bilo mogoče zaključiti.");
       }, 0);
     }
-    if (stripeReturn && stripeSessionId && stripeInvoiceId) {
+    if (stripeReturn && stripeInvoiceId && (stripeSessionId || stripeReturn === "cancelled")) {
       var cleanStripeUrl = new URL(global.location.href);
       ["stripe", "stripe_session_id", "invoice_id"].forEach(function (key) { cleanStripeUrl.searchParams.delete(key); });
       global.history.replaceState(null, "", cleanStripeUrl.pathname + cleanStripeUrl.search + cleanStripeUrl.hash);

@@ -82,7 +82,6 @@ function checkoutParams(input) {
   success.searchParams.set("invoice_id", input.invoiceId);
   const cancel = new URL("/app/pos-terminal.html", input.baseUrl);
   cancel.searchParams.set("stripe", "cancelled");
-  cancel.searchParams.set("stripe_session_id", "{CHECKOUT_SESSION_ID}");
   cancel.searchParams.set("invoice_id", input.invoiceId);
   return {
     mode: "payment",
