@@ -13,6 +13,8 @@ function source(relativePath) {
   var api = source(file);
   assert.match(api, /\["firmaPriimek", "blue"\], \["ime", "blue"\]/,
     file + " mora pri osebi modro označiti priimek in ime");
+  assert.match(api, /blue:\s*\[[\s\S]*nastavitve\.polja\.firmaPriimek,[\s\S]*nastavitve\.polja\.ime,[\s\S]*\]/,
+    file + " mora po oddaji obrazca ločeno poiskati celici priimka in imena");
   assert.match(api, /document\.querySelector\([^\n]+\) \|\| document\.getElementById\(selektor\)/,
     file + " mora uradno polje poiskati po atributu name ali po id");
   assert.match(api, /Firma\\s\*\\\/\\s\*Nachname[\s\S]*Vorname/,
@@ -21,12 +23,12 @@ function source(relativePath) {
     file + " mora modri okvir ohraniti viden tudi na pomanjšanem uradnem posnetku");
   assert.match(api, /jeIskanaOseba \? "Ime in priimek" : "Ime podjetja"/,
     file + " mora pravilno poimenovati modro oznako glede na vrsto subjekta");
-  assert.match(api, /official-insolvency-v7-visible-person-full-name-highlight/,
+  assert.match(api, /official-insolvency-v8-result-person-full-name-highlight/,
     file + " mora razveljaviti staro dokazilo brez označenega imena");
 });
 
 var queue = source("api/_lib/mehka-boniteta-queue.js");
-assert.match(queue, /INSOLVENCY_CACHE_VERSION = "official-insolvency-v7-visible-person-full-name-highlight"/,
+assert.match(queue, /INSOLVENCY_CACHE_VERSION = "official-insolvency-v8-result-person-full-name-highlight"/,
   "insolvenčni predpomnilnik mora napredovati skupaj z različico posnetka");
 assert.match(queue, /faza === "insolvenca" \? ":" \+ INSOLVENCY_CACHE_VERSION/,
   "ključ insolvenčnega predpomnilnika mora vsebovati različico uradnega posnetka");

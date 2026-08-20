@@ -22,7 +22,7 @@ var OFFENBACH_GEWERBE = "https://www.offenbach.de/vv/oe/verwaltung/Ordnungsamt_G
 var USER_AGENT = "Uspesni-Jezek-soft-business-check/1.0";
 var BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 var IDENTITY_EVIDENCE_VERSION = identityEvidenceContract.CAPTURE_VERSION;
-var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v7-visible-person-full-name-highlight";
+var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v8-result-person-full-name-highlight";
 var MAX_IMPRESSUM_BYTES = 5 * 1024 * 1024;
 var IMPRESSUM_HEADING_PATTERN = /\b(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\b/i;
 var LEGAL_PROVIDER_IDENTITY_PATTERN = /(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Anbieter\s+dieser\s+(?:Website|Webseite)|Verantwortliche(?:r)?\s+Anbieter(?:\s+dieses\s+Internetauftritts)?(?:\s+im\s+datenschutzrechtlichen\s+Sinne)?\s+ist|Verantwortliche\s+Stelle(?:\s+im\s+Sinne\s+der\s+Datenschutzgesetze)?\s*(?:ist|:)|Diensteanbieter\s+(?:im\s+Sinne|gem(?:äß|ass)))/i;
@@ -3837,7 +3837,11 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
     });
 
     var iskaniPojmi = {
-      blue: [[nastavitve.polja.firmaPriimek, nastavitve.polja.ime].filter(Boolean).join(" "), nastavitve.polja.firmaPriimek],
+      blue: [
+        [nastavitve.polja.firmaPriimek, nastavitve.polja.ime].filter(Boolean).join(" "),
+        nastavitve.polja.firmaPriimek,
+        nastavitve.polja.ime,
+      ],
       green: [nastavitve.polja.kraj],
       violet: [[nastavitve.polja.vrstaRegistra, nastavitve.polja.registrskaStevilka].filter(Boolean).join(" "), nastavitve.polja.registrskoSodisce],
       amber: [[nastavitve.polja.oddelek, nastavitve.polja.oznaka, nastavitve.polja.stevilka && nastavitve.polja.leto
@@ -3878,7 +3882,7 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
       legenda.appendChild(pojasnilo);
       glava.insertAdjacentElement("afterend", legenda);
     }
-    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v3-visible-person-full-name" };
+    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v4-result-person-full-name" };
   }, { polja: polja || {}, selektorji: URADNA_INSOLVENCNA_POLJA });
 }
 
