@@ -1,0 +1,114 @@
+"use strict";
+
+const TEST_BASE_URL = "https://kassensichv-middleware.fiskaly.com/api/v2";
+const LIVE_BASE_URL = "https://kassensichv.fiskaly.com/api/v2";
+
+function clean(value) {
+  return String(value || "").trim();
+}
+
+function configuration(source) {
+  const env = source || process.env;
+  const mode = clean(env.FISKALY_SIGN_DE_MODE || "test").toLowerCase();
+  if (mode !== "test") {
+    const error = new Error("Produkcijski fiskaly SIGN DE še ni omogočen.");
+    error.code = "FISKALY_LIVE_LOCKED";
+    throw error;
+  }
+  const apiKey = clean(env.FISKALY_API_KEY_TEST);
+  const apiSecret = clean(env.FISKALY_API_SECRET_TEST);
+  if (!apiKey || !apiSecret) {
+    const error = new Error("Testna fiskaly povezava še ni nastavljena.");
+    error.code = "FISKALY_NOT_CONFIGURED";
+    throw error;
+  }
+  return {
+    mode: "test",
+    baseUrl: TEST_BASE_URL,
+    apiKey,
+    apiSecret,
+    tssId: clean(env.FISKALY_TSS_ID_TEST),
+    clientId: clean(env.FISKALY_CLIENT_ID_TEST),
+  };
+}
+
+async function requestJson(url, options, timeoutMs) {
+  const request = Object.assign({}, options || {});
+  if (!request.signal && typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    request.signal = AbortSignal.timeout(Math.min(Math.max(Number(timeoutMs) || 12000, 1000), 20000));
+  }
+  const response = await fetch(url, request);
+  let body = null;
+  try { body = await response.json(); } catch (_) {}
+  if (!response.ok) {
+    const error = new Error("fiskaly SIGN DE trenutno ni dosegljiv.");
+    error.code = "FISKALY_REQUEST_FAILED";
+    error.status = response.status;
+    throw error;
+  }
+  return body || {};
+}
+
+async function authenticate(cfg) {
+  const body = await requestJson(cfg.baseUrl + "/auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ api_key: cfg.apiKey, api_secret: cfg.apiSecret }),
+  }, 12000);
+  const token = clean(body.access_token);
+  if (!token) {
+    const error = new Error("fiskaly ni vrnil veljavne testne seje.");
+    error.code = "FISKALY_AUTH_INVALID";
+    throw error;
+  }
+  return token;
+}
+
+function listCount(body) {
+  if (Array.isArray(body)) return body.length;
+  if (body && Array.isArray(body.data)) return body.data.length;
+  if (body && Array.isArray(body.results)) return body.results.length;
+  if (body && Number.isFinite(Number(body.count))) return Number(body.count);
+  return 0;
+}
+
+async function connectionStatus(source) {
+  const cfg = configuration(source);
+  const token = await authenticate(cfg);
+  const headers = { Authorization: "Bearer " + token, Accept: "application/json" };
+  const tssList = await requestJson(cfg.baseUrl + "/tss", {
+    method: "GET",
+    headers,
+  }, 12000);
+  let tssState = "";
+  let clientState = "";
+  if (cfg.tssId) {
+    const tss = await requestJson(cfg.baseUrl + "/tss/" + encodeURIComponent(cfg.tssId), { method: "GET", headers }, 12000);
+    tssState = clean(tss.state).toUpperCase();
+    if (cfg.clientId) {
+      const client = await requestJson(cfg.baseUrl + "/tss/" + encodeURIComponent(cfg.tssId) + "/client/" + encodeURIComponent(cfg.clientId), { method: "GET", headers }, 12000);
+      clientState = clean(client.state).toUpperCase();
+    }
+  }
+  return {
+    configured: true,
+    connected: true,
+    environment: cfg.mode,
+    country: "DE",
+    tssCount: listCount(tssList),
+    tssState,
+    clientState,
+    integrationReady: tssState === "INITIALIZED" && clientState === "REGISTERED",
+    cashModuleEnabled: false,
+  };
+}
+
+module.exports = {
+  TEST_BASE_URL,
+  LIVE_BASE_URL,
+  configuration,
+  authenticate,
+  connectionStatus,
+  listCount,
+  _test: { requestJson },
+};

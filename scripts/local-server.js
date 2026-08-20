@@ -22,6 +22,7 @@ const posDostavaSandboxModul = require.resolve("../api/pos-dostava-sandbox");
 const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
 const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email");
 const posDostavaWebhookModul = require.resolve("../api/_handlers/pos-dostava-webhook");
+const posFiskalyModul = require.resolve("../api/_handlers/pos-fiskaly");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
@@ -69,7 +70,7 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (url && !process.env.SUPABASE_URL) process.env.SUPABASE_URL = url[1];
       if (anonKey && !process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = anonKey[1];
     }
-    if (!process.env.OPENREGISTER_API_KEY || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET) {
+    if (!process.env.OPENREGISTER_API_KEY || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
       const okolje = fs.readFileSync(path.join(root, ".env.local"), "utf8");
       const openregister = okolje.match(/^\s*OPENREGISTER_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openregister && !process.env.OPENREGISTER_API_KEY) process.env.OPENREGISTER_API_KEY = openregister[1].trim();
@@ -83,6 +84,12 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (resendWebhookSecret && !process.env.RESEND_WEBHOOK_SECRET) process.env.RESEND_WEBHOOK_SECRET = resendWebhookSecret[1].trim();
       const cronSecret = okolje.match(/^\s*CRON_SECRET\s*=\s*["']?([^\r\n"']+)/m);
       if (cronSecret && !process.env.CRON_SECRET) process.env.CRON_SECRET = cronSecret[1].trim();
+      const fiskalyKey = okolje.match(/^\s*FISKALY_API_KEY_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyKey && !process.env.FISKALY_API_KEY_TEST) process.env.FISKALY_API_KEY_TEST = fiskalyKey[1].trim();
+      const fiskalySecret = okolje.match(/^\s*FISKALY_API_SECRET_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalySecret && !process.env.FISKALY_API_SECRET_TEST) process.env.FISKALY_API_SECRET_TEST = fiskalySecret[1].trim();
+      const fiskalyMode = okolje.match(/^\s*FISKALY_SIGN_DE_MODE\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyMode && !process.env.FISKALY_SIGN_DE_MODE) process.env.FISKALY_SIGN_DE_MODE = fiskalyMode[1].trim();
     }
   } catch (_) {
     // API bo vrnil jasno konfiguracijsko napako.
@@ -384,6 +391,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/pos-dostava-webhook") {
     void izvediLokalniApi(req, res, posDostavaWebhookModul);
+    return;
+  }
+  if (pathname === "/api/pos-fiskaly") {
+    void izvediLokalniApi(req, res, posFiskalyModul);
     return;
   }
   if (pathname === "/__app-version") {
