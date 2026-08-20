@@ -25,22 +25,34 @@ function unavailable(error) {
 }
 
 async function handler(req, res) {
-  if (req.method !== "GET") return json(res, 405, { ok: false, napaka: "Dovoljen je samo GET." });
+  if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljena sta samo GET in POST." });
   let cfg;
   try { cfg = supabase.uporabniskaKonfiguracija(); }
   catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
   try {
+    if (req.method === "POST") {
+      const action = String(req.body && req.body.action || "");
+      if (action !== "training-transaction") return json(res, 400, { ok: false, napaka: "Neznano fiskaly opravilo." });
+      const transaction = await fiskaly.runTrainingTransaction(process.env, req.body && req.body.transactionId);
+      return json(res, 201, { ok: true, sandbox: true, live: false, cashModuleEnabled: false, transaction });
+    }
     return json(res, 200, { ok: true, fiskaly: await fiskaly.connectionStatus() });
   } catch (error) {
     const status = unavailable(error);
-    if (error && error.code === "FISKALY_NOT_CONFIGURED") return json(res, 200, { ok: true, fiskaly: status });
+    if (error && error.code === "FISKALY_NOT_CONFIGURED" && req.method === "GET") return json(res, 200, { ok: true, fiskaly: status });
+    if (error && error.code === "FISKALY_TX_ID_INVALID") return json(res, 400, { ok: false, code: error.code, napaka: "Neveljaven identifikator testnega podpisa." });
+    if (error && ["FISKALY_NOT_CONFIGURED", "FISKALY_RESOURCES_NOT_CONFIGURED", "FISKALY_RESOURCES_NOT_READY"].includes(error.code)) {
+      return json(res, 409, { ok: false, code: error.code, napaka: "fiskaly TEST okolje še ni pripravljeno za podpis." });
+    }
     console.error("[pos-fiskaly]", String(error && (error.code || error.name) || "UNKNOWN"));
-    return json(res, 502, {
+    return json(res, error && error.retryable ? 503 : 502, {
       ok: false,
       code: error && error.code || "FISKALY_UNAVAILABLE",
-      napaka: "Testne povezave s fiskaly SIGN DE ni bilo mogoče preveriti.",
+      napaka: req.method === "POST"
+        ? "Varnega fiskaly SIGN DE preizkusa ni bilo mogoče zaključiti."
+        : "Testne povezave s fiskaly SIGN DE ni bilo mogoče preveriti.",
       fiskaly: status,
     });
   }

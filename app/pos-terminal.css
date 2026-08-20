@@ -423,6 +423,17 @@
 .pos-fiskaly-state small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pos-fiskaly-state strong { color: var(--pos-ink); font-size: .72rem; }
 .pos-fiskaly-state small { margin-top: 2px; color: var(--pos-muted); font-size: .59rem; }
+.pos-fiskaly-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.pos-fiskaly-actions .pos-inline-action { min-width: 0; justify-content: center; }
+.pos-inline-action--primary { color: #fff; border-color: var(--pos-teal); background: var(--pos-teal); }
+.pos-inline-action--primary:disabled { opacity: .48; cursor: not-allowed; }
+.pos-fiskaly-result { display: grid; grid-template-columns: 30px minmax(0,1fr); margin-top: 9px; padding: 9px 10px; align-items: center; gap: 8px; border: 1px solid #b9dcd6; border-radius: 13px; background: #edf9f6; }
+.pos-fiskaly-result[hidden] { display: none; }
+.pos-fiskaly-result > svg { width: 19px; height: 19px; padding: 6px; color: #fff; border-radius: 50%; background: var(--pos-teal); box-sizing: content-box; }
+.pos-fiskaly-result p { min-width: 0; margin: 0; }
+.pos-fiskaly-result strong, .pos-fiskaly-result small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pos-fiskaly-result strong { color: var(--pos-ink); font-size: .66rem; }
+.pos-fiskaly-result small { margin-top: 2px; color: var(--pos-muted); font-size: .56rem; }
 
 .pos-view-title,
 .pos-editor-head { gap: 11px; }

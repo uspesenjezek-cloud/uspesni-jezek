@@ -1137,6 +1137,9 @@
   var deliverySubmitting = false;
   var deliveryCapability = { provider: "resend", configured: false, sendEnabled: false, testEnabled: false, liveEnabled: false, mode: "sandbox" };
   var fiskalyCapability = { configured: false, connected: false, integrationReady: false, environment: "test", tssCount: 0, tssState: "", clientState: "", cashModuleEnabled: false };
+  var fiskalyTestRunning = false;
+  var fiskalyTestRequestId = null;
+  try { fiskalyTestRequestId = global.sessionStorage.getItem("uj_pos_fiskaly_training_id") || null; } catch (_error) {}
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
   var toastTimer = 0;
   var dialogCallback = null;
@@ -1903,6 +1906,7 @@
     var status = query("[data-fiskaly-status]");
     var copy = query("[data-fiskaly-copy]");
     var stateBox = query(".pos-fiskaly-state");
+    var testButton = query("[data-fiskaly-test]");
     if (!badge || !status || !copy || !stateBox) return;
     var ready = Boolean(fiskalyCapability.configured && fiskalyCapability.connected);
     var failed = Boolean(fiskalyCapability.configured && !fiskalyCapability.connected);
@@ -1915,6 +1919,10 @@
     copy.textContent = ready
       ? (fiskalyCapability.integrationReady ? "TSS inicializirana · odjemalec registriran · gotovina izključena" : "SIGN DE · " + fiskalyCapability.tssCount + " testnih TSS · gotovina izključena")
       : failed ? "Poskusite ponovno; izdaja računov ostaja varno ločena." : "Ključi se nastavijo samo na varnem strežniku.";
+    if (testButton) {
+      testButton.disabled = !fiskalyCapability.integrationReady || fiskalyTestRunning;
+      if (testButton.firstChild) testButton.firstChild.nodeValue = fiskalyTestRunning ? "Podpisujem … " : "Izvedi SIGN test ";
+    }
   }
 
   async function loadFiskalyCapability(showFeedback) {
@@ -1940,6 +1948,41 @@
     renderFiskalyCapability();
     if (showFeedback) showToast(fiskalyCapability.connected ? "fiskaly TEST povezava deluje." : "fiskaly TEST povezava trenutno ni dosegljiva.");
     return fiskalyCapability;
+  }
+
+  async function runFiskalyTrainingTest() {
+    if (fiskalyTestRunning || !fiskalyCapability.integrationReady) return;
+    fiskalyTestRunning = true;
+    renderFiskalyCapability();
+    var resultBox = query("[data-fiskaly-result]");
+    try {
+      var token = await apiSessionToken();
+      var transactionId = fiskalyTestRequestId || (global.crypto && typeof global.crypto.randomUUID === "function" ? global.crypto.randomUUID() : "");
+      if (!transactionId) throw new Error("Ta brskalnik ne podpira varnega testnega identifikatorja.");
+      fiskalyTestRequestId = transactionId;
+      try { global.sessionStorage.setItem("uj_pos_fiskaly_training_id", transactionId); } catch (_error) {}
+      var response = await fetch("/api/pos-fiskaly", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "training-transaction", transactionId: transactionId })
+      });
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      if (!response.ok || !body || !body.transaction) throw new Error(body && body.napaka || "Testnega podpisa ni bilo mogoče zaključiti.");
+      var transaction = body.transaction;
+      var copy = query("[data-fiskaly-result-copy]");
+      if (copy) copy.textContent = "TRAINING · podpis #" + String(transaction.signatureCounter || "–") + " · brez pravega plačila";
+      if (resultBox) resultBox.hidden = false;
+      fiskalyTestRequestId = null;
+      try { global.sessionStorage.removeItem("uj_pos_fiskaly_training_id"); } catch (_error) {}
+      showToast("fiskaly TRAINING podpis je uspešno zaključen.");
+    } catch (error) {
+      if (resultBox) resultBox.hidden = true;
+      showToast(error && error.message || "fiskaly test trenutno ni uspel.");
+    } finally {
+      fiskalyTestRunning = false;
+      renderFiskalyCapability();
+    }
   }
 
   async function posDeliverySandboxRequest(deliveryId) {
@@ -3177,6 +3220,7 @@
       showView("home");
     });
     query("[data-fiskaly-refresh]").addEventListener("click", function () { loadFiskalyCapability(true); });
+    query("[data-fiskaly-test]").addEventListener("click", runFiskalyTrainingTest);
     query("[data-preview-print]").addEventListener("click", function () { global.print(); });
     query("[data-download-xml]").addEventListener("click", downloadXml);
     query("[data-copy-payment]").addEventListener("click", copyPayment);

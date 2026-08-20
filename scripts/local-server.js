@@ -90,6 +90,10 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (fiskalySecret && !process.env.FISKALY_API_SECRET_TEST) process.env.FISKALY_API_SECRET_TEST = fiskalySecret[1].trim();
       const fiskalyMode = okolje.match(/^\s*FISKALY_SIGN_DE_MODE\s*=\s*["']?([^\r\n"']+)/m);
       if (fiskalyMode && !process.env.FISKALY_SIGN_DE_MODE) process.env.FISKALY_SIGN_DE_MODE = fiskalyMode[1].trim();
+      const fiskalyTss = okolje.match(/^\s*FISKALY_TSS_ID_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyTss && !process.env.FISKALY_TSS_ID_TEST) process.env.FISKALY_TSS_ID_TEST = fiskalyTss[1].trim();
+      const fiskalyClient = okolje.match(/^\s*FISKALY_CLIENT_ID_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyClient && !process.env.FISKALY_CLIENT_ID_TEST) process.env.FISKALY_CLIENT_ID_TEST = fiskalyClient[1].trim();
     }
   } catch (_) {
     // API bo vrnil jasno konfiguracijsko napako.
