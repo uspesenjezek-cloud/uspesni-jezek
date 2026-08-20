@@ -157,6 +157,21 @@ function connectionBankName(connection) {
   return clean(connection && (connection.bankName || connection.name || connection.bank && connection.bank.name));
 }
 
+function normalizeAccount(row) {
+  const id = clean(row && row.id);
+  if (!id) return null;
+  return {
+    id,
+    name: clean(row && (row.name || row.accountName || row.productName || row.accountTypeName)).slice(0, 240),
+    iban: clean(row && row.iban).replace(/\s+/g, "").toUpperCase().slice(0, 34),
+  };
+}
+
+async function accountsForUser(token, cfg) {
+  const body = await requestJson(cfg, "/accounts?page=1&perPage=500", { headers: bearer(token) }, 12000);
+  return (Array.isArray(body.accounts) ? body.accounts : []).map(normalizeAccount).filter(Boolean);
+}
+
 function verifiedWebFormUrl(value) {
   let parsed;
   try { parsed = new URL(clean(value)); }
@@ -197,12 +212,14 @@ function isoDateDaysAgo(days) {
   return date.toISOString().slice(0, 10);
 }
 
-function normalizeTransaction(row) {
+function normalizeTransaction(row, accountsById) {
   const amount = Number(row && row.amount);
   const amountCents = Math.round(amount * 100);
   const currency = clean(row && row.currency || "EUR").toUpperCase();
   if (!row || !Number.isFinite(amount) || amountCents <= 0 || currency !== "EUR" || row.isAdjustingEntry || row.isPotentialDuplicate) return null;
   const id = clean(row.id);
+  const sourceAccountId = clean(row.accountId);
+  const sourceAccount = accountsById && accountsById.get(sourceAccountId) || null;
   const bookedOn = clean(row.bankBookingDate || row.finapiBookingDate || row.valueDate);
   if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(bookedOn)) return null;
   return {
@@ -213,10 +230,14 @@ function normalizeTransaction(row) {
     counterparty_name: clean(row.counterpartName).slice(0, 240),
     counterparty_iban: clean(row.counterpartIban).replace(/\s+/g, "").toUpperCase().slice(0, 34),
     remittance_info: clean(row.cleanedPurpose || row.purpose || row.endToEndReference).slice(0, 500),
+    source_account_id: sourceAccountId,
+    source_account_name: clean(sourceAccount && sourceAccount.name).slice(0, 240),
+    source_account_iban: clean(sourceAccount && sourceAccount.iban).slice(0, 34),
   };
 }
 
-async function incomingTransactions(token, cfg, days) {
+async function incomingTransactions(token, cfg, days, accounts) {
+  const accountsById = new Map((accounts || []).map(function (account) { return [clean(account.id), account]; }));
   const query = new URLSearchParams({
     view: "bankView",
     direction: "income",
@@ -229,7 +250,9 @@ async function incomingTransactions(token, cfg, days) {
     order: "finapiBookingDate,desc",
   });
   const body = await requestJson(cfg, "/transactions?" + query.toString(), { headers: bearer(token) }, 15000);
-  return (Array.isArray(body.transactions) ? body.transactions : []).map(normalizeTransaction).filter(Boolean);
+  return (Array.isArray(body.transactions) ? body.transactions : []).map(function (row) {
+    return normalizeTransaction(row, accountsById);
+  }).filter(Boolean);
 }
 
 async function statusForUser(appUserId, source) {
@@ -269,7 +292,8 @@ async function syncDemoTransactions(appUserId, source) {
       if (connection.updateStatus !== "IN_PROGRESS") break;
     }
   }
-  const transactions = await incomingTransactions(token, cfg, 120);
+  const accounts = await accountsForUser(token, cfg);
+  const transactions = await incomingTransactions(token, cfg, 120, accounts);
   return {
     status: {
       configured: true,
@@ -301,6 +325,8 @@ module.exports = {
     ensureUser,
     demoConnection,
     connectionBankName,
+    normalizeAccount,
+    accountsForUser,
     verifiedWebFormUrl,
     incomingTransactions,
     resetTokenCache: function () { tokenCache.clear(); },

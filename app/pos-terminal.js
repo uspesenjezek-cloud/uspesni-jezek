@@ -1166,6 +1166,9 @@
       counterpartyName: row.counterparty_name || "",
       counterpartyIban: row.counterparty_iban || "",
       remittanceInfo: row.remittance_info || "",
+      sourceAccountId: row.source_account_id || "",
+      sourceAccountName: row.source_account_name || "",
+      sourceAccountIban: row.source_account_iban || "",
       status: row.status || "unmatched",
       confirmedInvoiceId: row.confirmed_invoice_id || null,
       confirmedPaymentId: row.confirmed_payment_id || null,
@@ -1230,7 +1233,7 @@
         backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId),
-        backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200)
+        backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200)
       ]);
       var firstError = responses.slice(0, 11).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
@@ -1312,6 +1315,8 @@
       renderHome();
     } finally {
       backend.syncing = false;
+      var bankBackdrop = query("[data-bank-backdrop]");
+      if (bankBackdrop && !bankBackdrop.hidden) renderBankSheet();
     }
   }
 
@@ -2690,7 +2695,9 @@
     ].map(function (entry) { return "<div><strong>" + entry[0] + "</strong><small>" + entry[1] + "</small></div>"; }).join("");
     var list = query("[data-bank-list]");
     if (!transactions.length) {
-      list.innerHTML = backend.bankReady
+      list.innerHTML = backend.syncing
+        ? "<div class=\"pos-empty\"><strong>Nalagam bančne podatke …</strong><p>Preverjam povezavo in zadnje prilive.</p></div>"
+        : backend.bankReady
         ? "<div class=\"pos-empty\"><strong>Ni prejetih prilivov</strong><p>Sinhronizirajte finAPI testno banko ali uvozite CSV oziroma camt.053.</p></div>"
         : "<div class=\"pos-empty\"><strong>Bančni modul še ni aktiviran</strong><p>Obstoječi POS deluje normalno; uvoz bo na voljo po varni nadgradnji baze.</p></div>";
       query("[data-bank-import-another]").disabled = !backend.bankReady;
@@ -2717,7 +2724,11 @@
       var bottom = transaction.status === "confirmed"
         ? "<div class=\"pos-bank-entry__confirmed\"><span>✓ Plačilo potrjeno</span><span>" + escapeHtml(confirmedInvoice ? confirmedInvoice.number : "Račun") + "</span></div>"
         : "<div class=\"pos-bank-match\"><label>" + (suggestion ? "Predlagan račun" : "Izberite račun") + "<select data-bank-invoice=\"" + escapeHtml(transaction.id) + "\">" + optionHtml + "</select>" + (suggestion ? "<span class=\"pos-bank-match__reason\">" + escapeHtml(suggestion.reason) + " · " + suggestion.score + " %</span>" : "") + "</label><button class=\"pos-primary\" type=\"button\" data-bank-confirm=\"" + escapeHtml(transaction.id) + "\"" + (options.length ? "" : " disabled") + ">Potrdi povezavo</button></div>";
-      return "<article class=\"pos-bank-entry " + (transaction.status === "confirmed" ? "is-confirmed" : "") + "\"><div class=\"pos-bank-entry__top\"><div><strong data-fit-text>" + escapeHtml(transaction.counterpartyName || "Neznani plačnik") + "</strong><small>" + escapeHtml(formatDate(transaction.bookedOn)) + (transaction.counterpartyIban ? " · " + escapeHtml(transaction.counterpartyIban) : "") + "</small></div><b class=\"pos-bank-entry__amount\">" + escapeHtml(formatMoney(transaction.amountCents)) + "</b></div><p class=\"pos-bank-entry__purpose\">" + escapeHtml(transaction.remittanceInfo || transaction.externalReference || "Brez namena plačila") + "</p>" + bottom + "</article>";
+      var sourceAccount = transaction.sourceAccountName || transaction.sourceAccountIban || transaction.sourceAccountId;
+      var sourceAccountHtml = sourceAccount
+        ? "<p class=\"pos-bank-entry__source\">Prejeto na " + escapeHtml(transaction.sourceAccountName || "bančni račun") + (transaction.sourceAccountIban ? " · " + escapeHtml(transaction.sourceAccountIban) : "") + "</p>"
+        : "";
+      return "<article class=\"pos-bank-entry " + (transaction.status === "confirmed" ? "is-confirmed" : "") + "\"><div class=\"pos-bank-entry__top\"><div><strong data-fit-text>" + escapeHtml(transaction.counterpartyName || "Neznani plačnik") + "</strong><small>" + escapeHtml(formatDate(transaction.bookedOn)) + (transaction.counterpartyIban ? " · " + escapeHtml(transaction.counterpartyIban) : "") + "</small></div><b class=\"pos-bank-entry__amount\">" + escapeHtml(formatMoney(transaction.amountCents)) + "</b></div><p class=\"pos-bank-entry__purpose\">" + escapeHtml(transaction.remittanceInfo || transaction.externalReference || "Brez namena plačila") + "</p>" + sourceAccountHtml + bottom + "</article>";
     }).join("");
     queryAll("[data-bank-confirm]", list).forEach(function (button) {
       button.addEventListener("click", function () { requestBankConfirmation(button.getAttribute("data-bank-confirm")); });
