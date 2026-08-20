@@ -435,6 +435,71 @@
 .pos-fiskaly-result strong { color: var(--pos-ink); font-size: .66rem; }
 .pos-fiskaly-result small { margin-top: 2px; color: var(--pos-muted); font-size: .56rem; }
 
+.pos-fiskaly-receipt-sheet { max-height: min(94vh,900px); }
+.pos-fiskaly-receipt-form { display: grid; margin-top: 12px; gap: 10px; }
+.pos-fiskaly-cart-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pos-fiskaly-cart-head > div { min-width: 0; }
+.pos-fiskaly-cart-head strong, .pos-fiskaly-cart-head small { display: block; }
+.pos-fiskaly-cart-head strong { color: var(--pos-ink); font-size: .72rem; }
+.pos-fiskaly-cart-head small { margin-top: 2px; color: var(--pos-muted); font-size: .56rem; }
+.pos-fiskaly-cart-head > b { flex: 0 0 auto; padding: 6px 8px; color: var(--pos-teal-dark); border-radius: 99px; background: #e3f2ef; font-size: .55rem; }
+.pos-fiskaly-cart { display: grid; gap: 8px; }
+.pos-fiskaly-cart-item { position: relative; display: grid; padding: 9px; gap: 7px; border: 1px solid var(--pos-line); border-radius: 14px; background: #fff; }
+.pos-fiskaly-cart-item__description { display: grid; grid-template-columns: minmax(0,1fr) 34px; align-items: end; gap: 7px; }
+.pos-fiskaly-cart-item__description .pos-field { margin: 0; }
+.pos-fiskaly-cart-item__remove { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; color: #8c4c47; border: 1px solid #ead0cd; border-radius: 10px; background: #fff5f4; cursor: pointer; }
+.pos-fiskaly-cart-item__remove:disabled { opacity: .35; cursor: not-allowed; }
+.pos-fiskaly-cart-item__remove svg { width: 15px; height: 15px; }
+.pos-fiskaly-cart-item__values { display: grid; grid-template-columns: minmax(0,.72fr) minmax(0,1.18fr) minmax(0,.8fr); gap: 7px; }
+.pos-fiskaly-cart-item__values .pos-field { min-width: 0; margin: 0; }
+.pos-fiskaly-cart-item__values input, .pos-fiskaly-cart-item__values select { min-width: 0; font-size: 16px; }
+.pos-fiskaly-cart-item__line { display: flex; min-height: 20px; align-items: center; justify-content: space-between; gap: 8px; color: var(--pos-muted); font-size: .56rem; }
+.pos-fiskaly-cart-item__line strong { overflow: hidden; color: var(--pos-ink); white-space: nowrap; text-overflow: ellipsis; font-size: .66rem; }
+.pos-fiskaly-add-item { width: 100%; margin: 0; justify-content: center; }
+.pos-fiskaly-add-item:disabled { opacity: .45; cursor: not-allowed; }
+.pos-fiskaly-payment { min-width: 0; margin: 0; padding: 0; border: 0; }
+.pos-fiskaly-payment legend { margin-bottom: 7px; color: var(--pos-ink); font-size: .63rem; font-weight: 800; }
+.pos-fiskaly-payment .pos-choice { margin: 0; }
+.pos-fiskaly-payment .pos-choice span { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.pos-fiskaly-payment .pos-choice svg { width: 15px; height: 15px; }
+.pos-fiskaly-cart-summary { overflow: hidden; border: 1px solid #cfe0dc; border-radius: 14px; background: #f5faf8; }
+.pos-fiskaly-cart-summary div { display: flex; min-height: 31px; padding: 6px 10px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #e0ebe8; color: var(--pos-muted); font-size: .6rem; }
+.pos-fiskaly-cart-summary div:last-child { min-height: 39px; color: var(--pos-ink); border-bottom: 0; font-size: .7rem; font-weight: 800; }
+.pos-fiskaly-cart-summary strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pos-fiskaly-confirm { margin: 0; }
+.pos-fiskaly-signed { display: grid; margin-top: 12px; gap: 10px; }
+.pos-fiskaly-signed[hidden] { display: none; }
+.pos-kassenbon { width: min(100%,370px); margin: 0 auto; padding: 16px 14px; overflow: hidden; color: #1f2d2a; border: 1px solid #d9e2df; border-radius: 12px; background: #fff; box-shadow: 0 10px 28px rgba(15,45,40,.08); font-family: Figtree,Arial,sans-serif; }
+.pos-kassenbon header { padding-bottom: 12px; text-align: center; border-bottom: 1px dashed #aab8b5; }
+.pos-kassenbon header strong, .pos-kassenbon header span, .pos-kassenbon header b { display: block; }
+.pos-kassenbon header strong { font-size: .83rem; }
+.pos-kassenbon header span { margin-top: 3px; overflow-wrap: anywhere; color: #65736f; font-size: .57rem; }
+.pos-kassenbon header b { margin-top: 9px; color: #8b5b00; font-size: .65rem; letter-spacing: .08em; }
+.pos-kassenbon-meta { display: grid; grid-template-columns: minmax(0,1fr) auto; padding: 9px 0; gap: 4px 8px; border-bottom: 1px dashed #aab8b5; font-size: .57rem; }
+.pos-kassenbon-meta span { color: #65736f; }
+.pos-kassenbon-meta strong { max-width: 180px; overflow: hidden; white-space: nowrap; text-align: right; text-overflow: ellipsis; }
+.pos-kassenbon-lines { padding: 7px 0; border-bottom: 1px dashed #aab8b5; }
+.pos-kassenbon-line { display: grid; grid-template-columns: minmax(0,1fr) auto; padding: 4px 0; gap: 4px 8px; font-size: .6rem; }
+.pos-kassenbon-line strong { overflow-wrap: anywhere; }
+.pos-kassenbon-line small { grid-column: 1 / -1; color: #65736f; font-size: .52rem; }
+.pos-kassenbon-taxes { padding: 6px 0; border-bottom: 1px dashed #aab8b5; }
+.pos-kassenbon-tax { display: grid; grid-template-columns: minmax(0,1fr) auto; padding: 3px 0; gap: 4px 8px; color: #65736f; font-size: .51rem; }
+.pos-kassenbon-tax strong { color: #1f2d2a; }
+.pos-kassenbon-total { display: grid; grid-template-columns: minmax(0,1fr) auto; padding: 9px 0; align-items: center; gap: 4px 8px; border-bottom: 1px dashed #aab8b5; }
+.pos-kassenbon-total span, .pos-kassenbon-total strong { font-size: .78rem; font-weight: 800; }
+.pos-kassenbon-total small { grid-column: 1 / -1; color: #65736f; font-size: .53rem; }
+.pos-kassenbon-tse { display: grid; padding: 8px 0; gap: 5px; border-bottom: 1px dashed #aab8b5; }
+.pos-kassenbon-tse div { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: 8px; font-size: .5rem; }
+.pos-kassenbon-tse span { color: #65736f; }
+.pos-kassenbon-tse strong { overflow-wrap: anywhere; text-align: right; }
+.pos-kassenbon-qr { display: grid; grid-template-columns: 116px minmax(0,1fr); padding: 10px 0 4px; align-items: center; gap: 10px; }
+.pos-kassenbon-qr canvas { display: block; width: 116px; height: 116px; }
+.pos-kassenbon-qr p { min-width: 0; margin: 0; }
+.pos-kassenbon-qr strong, .pos-kassenbon-qr span { display: block; }
+.pos-kassenbon-qr strong { font-size: .58rem; }
+.pos-kassenbon-qr span { margin-top: 3px; color: #65736f; font-size: .5rem; line-height: 1.3; }
+.pos-kassenbon footer { padding-top: 8px; color: #8b5b00; border-top: 1px dashed #aab8b5; text-align: center; font-size: .5rem; font-weight: 800; }
+
 .pos-view-title,
 .pos-editor-head { gap: 11px; }
 .pos-view-title { margin-bottom: 14px; }

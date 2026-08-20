@@ -34,8 +34,10 @@ async function handler(req, res) {
   try {
     if (req.method === "POST") {
       const action = String(req.body && req.body.action || "");
-      if (action !== "training-transaction") return json(res, 400, { ok: false, napaka: "Neznano fiskaly opravilo." });
-      const transaction = await fiskaly.runTrainingTransaction(process.env, req.body && req.body.transactionId);
+      if (!["training-transaction", "training-receipt"].includes(action)) return json(res, 400, { ok: false, napaka: "Neznano fiskaly opravilo." });
+      const transaction = action === "training-receipt"
+        ? await fiskaly.runTrainingReceipt(process.env, req.body && req.body.transactionId, req.body && req.body.receipt)
+        : await fiskaly.runTrainingTransaction(process.env, req.body && req.body.transactionId);
       return json(res, 201, { ok: true, sandbox: true, live: false, cashModuleEnabled: false, transaction });
     }
     return json(res, 200, { ok: true, fiskaly: await fiskaly.connectionStatus() });
@@ -43,6 +45,7 @@ async function handler(req, res) {
     const status = unavailable(error);
     if (error && error.code === "FISKALY_NOT_CONFIGURED" && req.method === "GET") return json(res, 200, { ok: true, fiskaly: status });
     if (error && error.code === "FISKALY_TX_ID_INVALID") return json(res, 400, { ok: false, code: error.code, napaka: "Neveljaven identifikator testnega podpisa." });
+    if (error && error.code === "FISKALY_RECEIPT_INVALID") return json(res, 400, { ok: false, code: error.code, napaka: error.message });
     if (error && ["FISKALY_NOT_CONFIGURED", "FISKALY_RESOURCES_NOT_CONFIGURED", "FISKALY_RESOURCES_NOT_READY"].includes(error.code)) {
       return json(res, 409, { ok: false, code: error.code, napaka: "fiskaly TEST okolje še ni pripravljeno za podpis." });
     }

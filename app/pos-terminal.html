@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260820-fiskaly-training-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260820-fiskaly-kassenbon-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
-    <script src="pos-terminal.js?v=20260820-fiskaly-training-v1" defer></script>
+    <script src="pos-terminal.js?v=20260820-fiskaly-kassenbon-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -222,7 +222,7 @@
           <p class="pos-field-help">Gotovinski modul ostaja izključen. fiskaly ne podpisuje običajnih brezgotovinskih računov, dokler ga uporabnik izrecno ne aktivira.</p>
           <div class="pos-fiskaly-actions">
             <button class="pos-inline-action" type="button" data-fiskaly-refresh>Preveri povezavo <svg><use href="#i-chevron"/></svg></button>
-            <button class="pos-inline-action pos-inline-action--primary" type="button" data-fiskaly-test disabled>Izvedi SIGN test <svg><use href="#i-chevron"/></svg></button>
+            <button class="pos-inline-action pos-inline-action--primary" type="button" data-fiskaly-test disabled>Testni Kassenbon <svg><use href="#i-chevron"/></svg></button>
           </div>
           <div class="pos-fiskaly-result" data-fiskaly-result hidden aria-live="polite">
             <svg><use href="#i-check"/></svg>
@@ -454,6 +454,62 @@
         <h2 id="pos-dialog-title" data-dialog-title>Obvestilo</h2>
         <p data-dialog-copy></p>
         <div class="pos-dialog__actions"><button class="pos-secondary" type="button" data-dialog-cancel>Prekliči</button><button class="pos-primary" type="button" data-dialog-confirm>V redu</button></div>
+      </section>
+    </div>
+
+    <div class="pos-datev-backdrop pos-fiskaly-receipt-backdrop" data-fiskaly-receipt-backdrop hidden>
+      <section class="pos-datev-sheet pos-fiskaly-receipt-sheet" role="dialog" aria-modal="true" aria-labelledby="pos-fiskaly-receipt-title">
+        <div class="pos-datev-sheet__handle" aria-hidden="true"></div>
+        <header class="pos-datev-sheet__head">
+          <div><p class="pos-kicker">SIGN DE · TEST</p><h2 id="pos-fiskaly-receipt-title">Testni Kassenbon</h2><p>Košarica, plačilo, TSE podpis in preverljiv bon.</p></div>
+          <button type="button" data-fiskaly-receipt-close aria-label="Zapri">×</button>
+        </header>
+
+        <form id="pos-fiskaly-receipt-form" class="pos-fiskaly-receipt-form" novalidate>
+          <aside class="pos-notice pos-notice--test"><svg><use href="#i-info"/></svg><p><strong>TRAINING – brez pravega poslovnega dogodka</strong>Test uporablja fiskaly sandbox in ne izda pravega računa ali davčnega Kassenbona.</p></aside>
+          <div class="pos-fiskaly-cart-head"><div><strong>Testna košarica</strong><small>Bruto cena vključuje izbrani DDV.</small></div><b data-fiskaly-cart-count>2 postavki</b></div>
+          <div class="pos-fiskaly-cart" data-fiskaly-cart></div>
+          <button class="pos-add-item pos-fiskaly-add-item" type="button" data-fiskaly-add-item><svg><use href="#i-plus"/></svg> Dodaj postavko</button>
+
+          <fieldset class="pos-fiskaly-payment">
+            <legend>Način testnega plačila</legend>
+            <div class="pos-choice pos-choice--two">
+              <label><input type="radio" name="fiskalyPaymentType" value="NON_CASH" checked /><span><svg><use href="#i-card"/></svg>Karte / unbar</span></label>
+              <label><input type="radio" name="fiskalyPaymentType" value="CASH" /><span><svg><use href="#i-receipt"/></svg>Bar · samo TEST</span></label>
+            </div>
+          </fieldset>
+
+          <section class="pos-fiskaly-cart-summary" data-fiskaly-cart-summary></section>
+          <label class="pos-acknowledge pos-fiskaly-confirm"><input type="checkbox" name="fiskalyConfirmed" /><span><strong>Razumem, da je to izključno TRAINING test.</strong><small>Gotovinski modul v produkciji ostane izključen.</small></span></label>
+          <div class="pos-datev-sheet__actions">
+            <button class="pos-secondary" type="button" data-fiskaly-receipt-cancel>Zapri</button>
+            <button class="pos-primary" type="submit" data-fiskaly-receipt-submit>Podpiši testni bon</button>
+          </div>
+        </form>
+
+        <section class="pos-fiskaly-signed" data-fiskaly-signed hidden aria-live="polite">
+          <article class="pos-kassenbon">
+            <header><strong data-kassenbon-company>WerkTech Lab – Testbetrieb</strong><span data-kassenbon-address>Geschäftsanschrift noch nicht hinterlegt</span><b>TESTBELEG · TRAINING</b></header>
+            <div class="pos-kassenbon-meta"><span>Belegdatum</span><strong data-kassenbon-date>–</strong><span>Transaktion</span><strong data-kassenbon-number>–</strong></div>
+            <div class="pos-kassenbon-lines" data-kassenbon-lines></div>
+            <div class="pos-kassenbon-taxes" data-kassenbon-taxes></div>
+            <div class="pos-kassenbon-total"><span>Gesamtbetrag</span><strong data-kassenbon-total>–</strong><small data-kassenbon-payment>–</small></div>
+            <section class="pos-kassenbon-tse">
+              <div><span>Vorgangsbeginn</span><strong data-kassenbon-start>–</strong></div>
+              <div><span>Vorgangsende</span><strong data-kassenbon-end>–</strong></div>
+              <div><span>Seriennr. ERS</span><strong data-kassenbon-client>–</strong></div>
+              <div><span>Seriennr. TSE</span><strong data-kassenbon-tss>–</strong></div>
+              <div><span>Signaturzähler</span><strong data-kassenbon-counter>–</strong></div>
+              <div><span>Signaturalgorithmus</span><strong data-kassenbon-algorithm>–</strong></div>
+            </section>
+            <div class="pos-kassenbon-qr"><canvas data-kassenbon-qr width="132" height="132" aria-label="DSFinV-K QR-Code"></canvas><p><strong>TSE-Signatur geprüft</strong><span>QR-Daten stammen direkt aus fiskaly SIGN DE TEST.</span></p></div>
+            <footer>Nicht für den Rechts- oder Geschäftsverkehr bestimmt.</footer>
+          </article>
+          <div class="pos-datev-sheet__actions">
+            <button class="pos-secondary" type="button" data-fiskaly-receipt-done>Zapri</button>
+            <button class="pos-primary" type="button" data-fiskaly-receipt-new>Nov test</button>
+          </div>
+        </section>
       </section>
     </div>
 
