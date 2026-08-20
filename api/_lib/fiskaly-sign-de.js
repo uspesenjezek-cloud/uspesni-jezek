@@ -76,21 +76,116 @@ function transactionHeaders(token) {
   };
 }
 
-function trainingReceipt() {
+const VAT_RATES = {
+  "19": { fiskaly: "NORMAL", percent: 19 },
+  "7": { fiskaly: "REDUCED_1", percent: 7 },
+  "0": { fiskaly: "NULL", percent: 0 },
+};
+
+function failReceipt(message) {
+  const error = new Error(message || "Neveljaven testni Kassenbon.");
+  error.code = "FISKALY_RECEIPT_INVALID";
+  throw error;
+}
+
+function cents(value) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : NaN;
+}
+
+function money(centsValue) {
+  return (centsValue / 100).toFixed(2);
+}
+
+function normalizeTrainingReceipt(input) {
+  const source = input && typeof input === "object" ? input : {};
+  const rawItems = Array.isArray(source.items) ? source.items : [];
+  if (!rawItems.length || rawItems.length > 12) failReceipt("Testni Kassenbon mora imeti od 1 do 12 postavk.");
+  const items = rawItems.map((raw, index) => {
+    const item = raw && typeof raw === "object" ? raw : {};
+    const description = clean(item.description).slice(0, 160);
+    const quantityMilli = cents(item.quantityMilli);
+    const unitGrossCents = cents(item.unitGrossCents);
+    const vatRate = clean(item.vatRate);
+    if (!description) failReceipt("Postavka " + (index + 1) + " nima opisa.");
+    if (!Number.isSafeInteger(quantityMilli) || quantityMilli < 1 || quantityMilli > 100000000) failReceipt("Postavka " + (index + 1) + " nima veljavne količine.");
+    if (!Number.isSafeInteger(unitGrossCents) || unitGrossCents < 0 || unitGrossCents > 100000000) failReceipt("Postavka " + (index + 1) + " nima veljavne cene.");
+    if (!Number.isSafeInteger(unitGrossCents * quantityMilli)) failReceipt("Postavka " + (index + 1) + " presega varen obračunski obseg.");
+    if (!VAT_RATES[vatRate]) failReceipt("Postavka " + (index + 1) + " nima podprte davčne stopnje.");
+    const grossCents = Math.round(unitGrossCents * quantityMilli / 1000);
+    const netCents = VAT_RATES[vatRate].percent
+      ? Math.round(grossCents * 100 / (100 + VAT_RATES[vatRate].percent))
+      : grossCents;
+    return {
+      description,
+      quantityMilli,
+      unitGrossCents,
+      vatRate,
+      grossCents,
+      netCents,
+      taxCents: grossCents - netCents,
+    };
+  });
+  const paymentType = clean(source.paymentType || "NON_CASH").toUpperCase();
+  if (!["CASH", "NON_CASH"].includes(paymentType)) failReceipt("Način testnega plačila ni podprt.");
+  const totalsByVat = ["19", "7", "0"].map((vatRate) => {
+    const matching = items.filter((item) => item.vatRate === vatRate);
+    return {
+      vatRate,
+      fiskalyVatRate: VAT_RATES[vatRate].fiskaly,
+      grossCents: matching.reduce((sum, item) => sum + item.grossCents, 0),
+      netCents: matching.reduce((sum, item) => sum + item.netCents, 0),
+      taxCents: matching.reduce((sum, item) => sum + item.taxCents, 0),
+    };
+  }).filter((row) => row.grossCents !== 0);
+  const grossCents = items.reduce((sum, item) => sum + item.grossCents, 0);
+  const netCents = items.reduce((sum, item) => sum + item.netCents, 0);
+  if (grossCents <= 0 || grossCents > 999999999) failReceipt("Skupni znesek testnega Kassenbona ni veljaven.");
+  return {
+    items,
+    paymentType,
+    totalsByVat,
+    grossCents,
+    netCents,
+    taxCents: grossCents - netCents,
+    currency: "EUR",
+  };
+}
+
+function trainingReceipt(receiptInput) {
+  const receipt = receiptInput && Array.isArray(receiptInput.items)
+    ? receiptInput
+    : normalizeTrainingReceipt({
+      paymentType: "NON_CASH",
+      items: [{ description: "SIGN DE readiness", quantityMilli: 1000, unitGrossCents: 100, vatRate: "19" }],
+    });
   return {
     standard_v1: {
       receipt: {
         receipt_type: "TRAINING",
-        amounts_per_vat_rate: [{ vat_rate: "NORMAL", amount: "1.00" }],
-        amounts_per_payment_type: [{ payment_type: "NON_CASH", amount: "1.00", currency_code: "EUR" }],
+        amounts_per_vat_rate: receipt.totalsByVat.map((row) => ({
+          vat_rate: row.fiskalyVatRate,
+          amount: money(row.grossCents),
+        })),
+        amounts_per_payment_type: [{
+          payment_type: receipt.paymentType,
+          amount: money(receipt.grossCents),
+          currency_code: "EUR",
+        }],
       },
     },
   };
 }
 
-function publicTransaction(body) {
+function publicTransaction(body, receiptInput) {
   const transaction = body || {};
   const signature = transaction.signature || {};
+  const receipt = receiptInput && Array.isArray(receiptInput.items)
+    ? receiptInput
+    : normalizeTrainingReceipt({
+      paymentType: "NON_CASH",
+      items: [{ description: "SIGN DE readiness", quantityMilli: 1000, unitGrossCents: 100, vatRate: "19" }],
+    });
   return {
     transactionId: clean(transaction._id),
     transactionNumber: clean(transaction.number) || null,
@@ -100,10 +195,14 @@ function publicTransaction(body) {
     signatureAlgorithm: clean(signature.algorithm),
     startedAt: clean(transaction.time_start),
     finishedAt: clean(transaction.time_end),
+    tssSerialNumber: clean(transaction.tss_serial_number),
+    clientSerialNumber: clean(transaction.client_serial_number),
+    qrCodeData: clean(transaction.qr_code_data),
     training: true,
-    paymentType: "NON_CASH",
-    amount: "1.00",
+    paymentType: receipt.paymentType,
+    amount: money(receipt.grossCents),
     currency: "EUR",
+    receipt,
   };
 }
 
@@ -139,7 +238,7 @@ async function upsertTransaction(cfg, token, transactionId, revision, payload) {
   throw lastError;
 }
 
-async function runTrainingTransaction(source, requestedId) {
+async function runTrainingReceipt(source, requestedId, receiptInput) {
   const cfg = configuration(source);
   const transactionId = uuidV4(requestedId);
   if (!transactionId) {
@@ -147,25 +246,33 @@ async function runTrainingTransaction(source, requestedId) {
     error.code = "FISKALY_TX_ID_INVALID";
     throw error;
   }
+  const receipt = normalizeTrainingReceipt(receiptInput);
   const token = await authenticate(cfg);
   await retrieveResources(cfg, token);
   await upsertTransaction(cfg, token, transactionId, 1, {
     state: "ACTIVE",
     client_id: cfg.clientId,
-    metadata: { source: "werktech_pos", purpose: "sandbox_readiness" },
+    metadata: { source: "werktech_pos", purpose: "sandbox_kassenbon", receipt_type: "training" },
   });
   const finished = await upsertTransaction(cfg, token, transactionId, 2, {
     state: "FINISHED",
     client_id: cfg.clientId,
-    schema: trainingReceipt(),
+    schema: trainingReceipt(receipt),
   });
-  const result = publicTransaction(finished);
-  if (result.state !== "FINISHED" || !result.transactionId || result.transactionId !== transactionId || result.signatureCounter === null) {
+  const result = publicTransaction(finished, receipt);
+  if (result.state !== "FINISHED" || !result.transactionId || result.transactionId !== transactionId || result.signatureCounter === null || !result.tssSerialNumber || !result.clientSerialNumber || !result.qrCodeData) {
     const error = new Error("fiskaly ni vrnil popolnega testnega podpisa.");
     error.code = "FISKALY_TX_INCOMPLETE";
     throw error;
   }
   return result;
+}
+
+async function runTrainingTransaction(source, requestedId) {
+  return runTrainingReceipt(source, requestedId, {
+    paymentType: "NON_CASH",
+    items: [{ description: "SIGN DE readiness", quantityMilli: 1000, unitGrossCents: 100, vatRate: "19" }],
+  });
 }
 
 async function authenticate(cfg) {
@@ -229,6 +336,7 @@ module.exports = {
   authenticate,
   connectionStatus,
   runTrainingTransaction,
+  runTrainingReceipt,
   listCount,
-  _test: { requestJson, uuidV4, trainingReceipt, publicTransaction, transactionHeaders },
+  _test: { requestJson, uuidV4, normalizeTrainingReceipt, trainingReceipt, publicTransaction, transactionHeaders },
 };

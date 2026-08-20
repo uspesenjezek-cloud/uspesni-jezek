@@ -1138,8 +1138,14 @@
   var deliveryCapability = { provider: "resend", configured: false, sendEnabled: false, testEnabled: false, liveEnabled: false, mode: "sandbox" };
   var fiskalyCapability = { configured: false, connected: false, integrationReady: false, environment: "test", tssCount: 0, tssState: "", clientState: "", cashModuleEnabled: false };
   var fiskalyTestRunning = false;
+  var FISKALY_TRAINING_ID_KEY = "uj_pos_fiskaly_training_id";
+  var FISKALY_TRAINING_RECEIPT_KEY = "uj_pos_fiskaly_training_receipt";
   var fiskalyTestRequestId = null;
-  try { fiskalyTestRequestId = global.sessionStorage.getItem("uj_pos_fiskaly_training_id") || null; } catch (_error) {}
+  try { fiskalyTestRequestId = global.sessionStorage.getItem(FISKALY_TRAINING_ID_KEY) || null; } catch (_error) {}
+  var fiskalyReceiptItems = [
+    { id: uid("fiskaly-item"), description: "Arbeitszeit (Test)", quantityMilli: 1000, unitGrossCents: 11900, vatRate: "19" },
+    { id: uid("fiskaly-item"), description: "Testmaterial", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" }
+  ];
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
   var toastTimer = 0;
   var dialogCallback = null;
@@ -1921,7 +1927,7 @@
       : failed ? "Poskusite ponovno; izdaja računov ostaja varno ločena." : "Ključi se nastavijo samo na varnem strežniku.";
     if (testButton) {
       testButton.disabled = !fiskalyCapability.integrationReady || fiskalyTestRunning;
-      if (testButton.firstChild) testButton.firstChild.nodeValue = fiskalyTestRunning ? "Podpisujem … " : "Izvedi SIGN test ";
+      if (testButton.firstChild) testButton.firstChild.nodeValue = fiskalyTestRunning ? "Podpisujem … " : "Testni Kassenbon ";
     }
   }
 
@@ -1950,37 +1956,193 @@
     return fiskalyCapability;
   }
 
-  async function runFiskalyTrainingTest() {
+  function fiskalyReceiptTotals() {
+    var rows = { "19": { net: 0, tax: 0, gross: 0 }, "7": { net: 0, tax: 0, gross: 0 }, "0": { net: 0, tax: 0, gross: 0 } };
+    fiskalyReceiptItems.forEach(function (item) {
+      var gross = Math.round(integer(item.unitGrossCents, 0) * integer(item.quantityMilli, 0) / 1000);
+      var rate = integer(item.vatRate, 0);
+      var net = rate ? Math.round(gross * 100 / (100 + rate)) : gross;
+      rows[String(rate)].gross += gross;
+      rows[String(rate)].net += net;
+      rows[String(rate)].tax += gross - net;
+    });
+    return {
+      rows: rows,
+      gross: fiskalyReceiptItems.reduce(function (sum, item) { return sum + Math.round(integer(item.unitGrossCents, 0) * integer(item.quantityMilli, 0) / 1000); }, 0),
+      net: Object.keys(rows).reduce(function (sum, key) { return sum + rows[key].net; }, 0),
+      tax: Object.keys(rows).reduce(function (sum, key) { return sum + rows[key].tax; }, 0)
+    };
+  }
+
+  function renderFiskalyCartSummary() {
+    var totals = fiskalyReceiptTotals();
+    query("[data-fiskaly-cart-summary]").innerHTML = "<div><span>Netto</span><strong>" + escapeHtml(formatMoney(totals.net)) + "</strong></div><div><span>Umsatzsteuer</span><strong>" + escapeHtml(formatMoney(totals.tax)) + "</strong></div><div><span>Gesamtbetrag</span><strong>" + escapeHtml(formatMoney(totals.gross)) + "</strong></div>";
+    queryAll("[data-fiskaly-line-total]").forEach(function (element) {
+      var item = fiskalyReceiptItems.filter(function (entry) { return entry.id === element.getAttribute("data-fiskaly-line-total"); })[0];
+      if (item) element.textContent = formatMoney(Math.round(item.unitGrossCents * item.quantityMilli / 1000));
+    });
+  }
+
+  function fiskalyCountLabel(count) {
+    return count === 1 ? "1 postavka" : count === 2 ? "2 postavki" : count + " postavk";
+  }
+
+  function renderFiskalyCart() {
+    var cart = query("[data-fiskaly-cart]");
+    cart.innerHTML = fiskalyReceiptItems.map(function (item, index) {
+      return "<article class=\"pos-fiskaly-cart-item\" data-fiskaly-item=\"" + escapeHtml(item.id) + "\"><div class=\"pos-fiskaly-cart-item__description\"><label class=\"pos-field\"><span>Opis postavke " + (index + 1) + "</span><input name=\"fiskalyDescription\" maxlength=\"160\" value=\"" + escapeHtml(item.description) + "\" /></label><button class=\"pos-fiskaly-cart-item__remove\" type=\"button\" data-fiskaly-remove=\"" + escapeHtml(item.id) + "\" aria-label=\"Odstrani postavko\"" + (fiskalyReceiptItems.length === 1 ? " disabled" : "") + "><svg><use href=\"#i-trash\"/></svg></button></div><div class=\"pos-fiskaly-cart-item__values\"><label class=\"pos-field\"><span>Količina</span><input name=\"fiskalyQuantity\" inputmode=\"decimal\" value=\"" + escapeHtml(formatDecimalMilli(item.quantityMilli)) + "\" /></label><label class=\"pos-field\"><span>Bruto / enoto</span><input name=\"fiskalyUnitPrice\" inputmode=\"decimal\" value=\"" + escapeHtml((item.unitGrossCents / 100).toFixed(2).replace(".", ",")) + "\" /></label><label class=\"pos-field\"><span>DDV</span><select name=\"fiskalyVatRate\"><option value=\"19\"" + (item.vatRate === "19" ? " selected" : "") + ">19 %</option><option value=\"7\"" + (item.vatRate === "7" ? " selected" : "") + ">7 %</option><option value=\"0\"" + (item.vatRate === "0" ? " selected" : "") + ">0 %</option></select></label></div><div class=\"pos-fiskaly-cart-item__line\"><span>Bruto znesek postavke</span><strong data-fiskaly-line-total=\"" + escapeHtml(item.id) + "\">" + escapeHtml(formatMoney(Math.round(item.unitGrossCents * item.quantityMilli / 1000))) + "</strong></div></article>";
+    }).join("");
+    query("[data-fiskaly-cart-count]").textContent = fiskalyCountLabel(fiskalyReceiptItems.length);
+    query("[data-fiskaly-add-item]").disabled = fiskalyReceiptItems.length >= 5;
+    renderFiskalyCartSummary();
+  }
+
+  function openFiskalyReceiptSheet() {
+    if (!fiskalyCapability.integrationReady) { showToast("Najprej mora biti pripravljena fiskaly TEST povezava."); return; }
+    var retryReceipt = storedFiskalyTrainingReceipt();
+    if (fiskalyTestRequestId && retryReceipt && Array.isArray(retryReceipt.items) && retryReceipt.items.length) {
+      fiskalyReceiptItems = retryReceipt.items.map(function (item) {
+        return { id: uid("fiskaly-item"), description: item.description, quantityMilli: item.quantityMilli, unitGrossCents: item.unitGrossCents, vatRate: String(item.vatRate) };
+      });
+      var retryPayment = query("[name=fiskalyPaymentType][value=" + (retryReceipt.paymentType === "CASH" ? "CASH" : "NON_CASH") + "]");
+      if (retryPayment) retryPayment.checked = true;
+    }
+    query("#pos-fiskaly-receipt-form").hidden = false;
+    query("[data-fiskaly-signed]").hidden = true;
+    query("#pos-fiskaly-receipt-form").elements.fiskalyConfirmed.checked = false;
+    renderFiskalyCart();
+    query("[data-fiskaly-receipt-backdrop]").hidden = false;
+  }
+
+  function closeFiskalyReceiptSheet() {
+    query("[data-fiskaly-receipt-backdrop]").hidden = true;
+  }
+
+  function resetFiskalyReceiptSheet() {
+    query("[data-fiskaly-signed]").hidden = true;
+    query("#pos-fiskaly-receipt-form").hidden = false;
+    query("#pos-fiskaly-receipt-form").elements.fiskalyConfirmed.checked = false;
+    renderFiskalyCart();
+  }
+
+  function formatFiskalyTimestamp(value) {
+    var text = String(value || "");
+    var numeric = Number(text);
+    var date = Number.isFinite(numeric) && numeric > 0 ? new Date(numeric > 100000000000 ? numeric : numeric * 1000) : new Date(text);
+    return Number.isNaN(date.getTime()) ? "–" : new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "medium" }).format(date);
+  }
+
+  function storedFiskalyTrainingReceipt() {
+    try {
+      var stored = JSON.parse(global.sessionStorage.getItem(FISKALY_TRAINING_RECEIPT_KEY) || "null");
+      return stored && typeof stored === "object" ? stored : null;
+    } catch (_error) { return null; }
+  }
+
+  function clearFiskalyTrainingRetry() {
+    fiskalyTestRequestId = null;
+    try {
+      global.sessionStorage.removeItem(FISKALY_TRAINING_ID_KEY);
+      global.sessionStorage.removeItem(FISKALY_TRAINING_RECEIPT_KEY);
+    } catch (_error) {}
+  }
+
+  function renderSignedKassenbon(transaction) {
+    var receipt = transaction.receipt || { items: [], totalsByVat: [], grossCents: 0 };
+    var profileName = String(state.profile.legalName || "WerkTech Lab – Testbetrieb");
+    var profileAddress = [state.profile.street, [state.profile.postalCode, state.profile.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Geschäftsanschrift noch nicht hinterlegt";
+    query("[data-kassenbon-company]").textContent = profileName;
+    query("[data-kassenbon-address]").textContent = profileAddress;
+    query("[data-kassenbon-date]").textContent = formatFiskalyTimestamp(transaction.finishedAt);
+    query("[data-kassenbon-number]").textContent = String(transaction.transactionNumber || "–");
+    query("[data-kassenbon-lines]").innerHTML = (receipt.items || []).map(function (item) {
+      var vatLabel = String(item.vatRate) === "0" ? "Steuerfrei / 0 % (Test)" : "USt. " + item.vatRate + " %";
+      return "<div class=\"pos-kassenbon-line\"><strong>" + escapeHtml(item.description) + "</strong><b>" + escapeHtml(formatMoney(item.grossCents)) + "</b><small>" + escapeHtml(formatDecimalMilli(item.quantityMilli) + " × " + formatMoney(item.unitGrossCents) + " · " + vatLabel) + "</small></div>";
+    }).join("");
+    query("[data-kassenbon-taxes]").innerHTML = (receipt.totalsByVat || []).map(function (row) {
+      var vatLabel = String(row.vatRate) === "0" ? "Steuerfrei / 0 % (Test)" : "USt. " + row.vatRate + " %";
+      return "<div class=\"pos-kassenbon-tax\"><span>" + escapeHtml(vatLabel) + "</span><span>Netto " + escapeHtml(formatMoney(row.netCents)) + "</span><span>USt. " + escapeHtml(formatMoney(row.taxCents)) + "</span><strong>Brutto " + escapeHtml(formatMoney(row.grossCents)) + "</strong></div>";
+    }).join("");
+    query("[data-kassenbon-total]").textContent = formatMoney(receipt.grossCents);
+    query("[data-kassenbon-payment]").textContent = transaction.paymentType === "CASH" ? "Zahlungsart: Bar (TRAINING)" : "Zahlungsart: Karte / unbar (TRAINING)";
+    query("[data-kassenbon-start]").textContent = formatFiskalyTimestamp(transaction.startedAt);
+    query("[data-kassenbon-end]").textContent = formatFiskalyTimestamp(transaction.finishedAt);
+    query("[data-kassenbon-client]").textContent = String(transaction.clientSerialNumber || "–");
+    query("[data-kassenbon-tss]").textContent = String(transaction.tssSerialNumber || "–");
+    query("[data-kassenbon-counter]").textContent = String(transaction.signatureCounter || "–");
+    query("[data-kassenbon-algorithm]").textContent = String(transaction.signatureAlgorithm || "–");
+    var canvas = query("[data-kassenbon-qr]");
+    if (canvas && typeof canvas.getContext === "function") {
+      var context = canvas.getContext("2d");
+      if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    if (canvas && transaction.qrCodeData && global.QRCode && typeof global.QRCode.toCanvas === "function") {
+      global.QRCode.toCanvas(canvas, transaction.qrCodeData, { width: 132, margin: 1, errorCorrectionLevel: "M" }, function () {});
+    }
+    query("#pos-fiskaly-receipt-form").hidden = true;
+    query("[data-fiskaly-signed]").hidden = false;
+    fitAllText();
+  }
+
+  async function submitFiskalyTrainingReceipt(event) {
+    event.preventDefault();
+    var form = event.currentTarget;
     if (fiskalyTestRunning || !fiskalyCapability.integrationReady) return;
+    if (!form.elements.fiskalyConfirmed.checked) { showToast("Potrdite, da razumete TRAINING način."); return; }
+    var invalid = fiskalyReceiptItems.some(function (item) { return !String(item.description || "").trim() || item.quantityMilli < 1 || item.unitGrossCents < 0; });
+    if (invalid || fiskalyReceiptTotals().gross <= 0) { showToast("Preverite opise, količine in cene testnih postavk."); return; }
     fiskalyTestRunning = true;
     renderFiskalyCapability();
-    var resultBox = query("[data-fiskaly-result]");
+    var submit = query("[data-fiskaly-receipt-submit]");
+    submit.disabled = true;
+    submit.textContent = "Podpisujem …";
     try {
       var token = await apiSessionToken();
-      var transactionId = fiskalyTestRequestId || (global.crypto && typeof global.crypto.randomUUID === "function" ? global.crypto.randomUUID() : "");
-      if (!transactionId) throw new Error("Ta brskalnik ne podpira varnega testnega identifikatorja.");
+      var transactionId = fiskalyTestRequestId || randomUuid();
+      var payment = query("[name=fiskalyPaymentType]:checked");
+      var currentReceipt = {
+        paymentType: payment ? payment.value : "NON_CASH",
+        items: fiskalyReceiptItems.map(function (item) {
+          return { description: item.description, quantityMilli: item.quantityMilli, unitGrossCents: item.unitGrossCents, vatRate: item.vatRate };
+        })
+      };
+      var receiptPayload = fiskalyTestRequestId && storedFiskalyTrainingReceipt() || currentReceipt;
       fiskalyTestRequestId = transactionId;
-      try { global.sessionStorage.setItem("uj_pos_fiskaly_training_id", transactionId); } catch (_error) {}
-      var response = await fetch("/api/pos-fiskaly", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "training-transaction", transactionId: transactionId })
-      });
+      try {
+        global.sessionStorage.setItem(FISKALY_TRAINING_ID_KEY, transactionId);
+        global.sessionStorage.setItem(FISKALY_TRAINING_RECEIPT_KEY, JSON.stringify(receiptPayload));
+      } catch (_error) {}
+      var response;
+      try {
+        response = await fetch("/api/pos-fiskaly", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "training-receipt", transactionId: transactionId, receipt: receiptPayload })
+        });
+      } catch (networkError) {
+        networkError.fiskalyRetryable = true;
+        throw networkError;
+      }
       var body = null;
       try { body = await response.json(); } catch (_error) {}
-      if (!response.ok || !body || !body.transaction) throw new Error(body && body.napaka || "Testnega podpisa ni bilo mogoče zaključiti.");
-      var transaction = body.transaction;
+      if (!response.ok || !body || !body.transaction) {
+        var responseError = new Error(body && body.napaka || "Testnega Kassenbona ni bilo mogoče podpisati.");
+        responseError.fiskalyRetryable = [502, 503, 504].indexOf(response.status) !== -1;
+        throw responseError;
+      }
+      renderSignedKassenbon(body.transaction);
       var copy = query("[data-fiskaly-result-copy]");
-      if (copy) copy.textContent = "TRAINING · podpis #" + String(transaction.signatureCounter || "–") + " · brez pravega plačila";
-      if (resultBox) resultBox.hidden = false;
-      fiskalyTestRequestId = null;
-      try { global.sessionStorage.removeItem("uj_pos_fiskaly_training_id"); } catch (_error) {}
-      showToast("fiskaly TRAINING podpis je uspešno zaključen.");
+      if (copy) copy.textContent = "TRAINING · Kassenbon podpis #" + String(body.transaction.signatureCounter || "–");
+      query("[data-fiskaly-result]").hidden = false;
+      clearFiskalyTrainingRetry();
+      showToast("Testni Kassenbon je podpisan v fiskaly SIGN DE.");
     } catch (error) {
-      if (resultBox) resultBox.hidden = true;
+      if (!error || !error.fiskalyRetryable) clearFiskalyTrainingRetry();
       showToast(error && error.message || "fiskaly test trenutno ni uspel.");
     } finally {
       fiskalyTestRunning = false;
+      submit.disabled = false;
+      submit.textContent = "Podpiši testni bon";
       renderFiskalyCapability();
     }
   }
@@ -3220,7 +3382,38 @@
       showView("home");
     });
     query("[data-fiskaly-refresh]").addEventListener("click", function () { loadFiskalyCapability(true); });
-    query("[data-fiskaly-test]").addEventListener("click", runFiskalyTrainingTest);
+    query("[data-fiskaly-test]").addEventListener("click", openFiskalyReceiptSheet);
+    query("#pos-fiskaly-receipt-form").addEventListener("submit", submitFiskalyTrainingReceipt);
+    query("[data-fiskaly-add-item]").addEventListener("click", function () {
+      if (fiskalyReceiptItems.length >= 5) return;
+      fiskalyReceiptItems.push({ id: uid("fiskaly-item"), description: "Neue Testleistung", quantityMilli: 1000, unitGrossCents: 1190, vatRate: "19" });
+      renderFiskalyCart();
+    });
+    query("[data-fiskaly-cart]").addEventListener("click", function (event) {
+      var remove = event.target.closest("[data-fiskaly-remove]");
+      if (!remove || fiskalyReceiptItems.length === 1) return;
+      var removeId = remove.getAttribute("data-fiskaly-remove");
+      fiskalyReceiptItems = fiskalyReceiptItems.filter(function (item) { return item.id !== removeId; });
+      renderFiskalyCart();
+    });
+    function syncFiskalyCartInput(event) {
+      var article = event.target.closest("[data-fiskaly-item]");
+      if (!article) return;
+      var item = fiskalyReceiptItems.filter(function (entry) { return entry.id === article.getAttribute("data-fiskaly-item"); })[0];
+      if (!item) return;
+      if (event.target.name === "fiskalyDescription") item.description = event.target.value.slice(0, 160);
+      if (event.target.name === "fiskalyQuantity") item.quantityMilli = parseQuantityMilli(event.target.value);
+      if (event.target.name === "fiskalyUnitPrice") item.unitGrossCents = Math.max(0, parseMoneyToCents(event.target.value));
+      if (event.target.name === "fiskalyVatRate") item.vatRate = event.target.value;
+      renderFiskalyCartSummary();
+    }
+    query("[data-fiskaly-cart]").addEventListener("input", syncFiskalyCartInput);
+    query("[data-fiskaly-cart]").addEventListener("change", syncFiskalyCartInput);
+    query("[data-fiskaly-receipt-close]").addEventListener("click", closeFiskalyReceiptSheet);
+    query("[data-fiskaly-receipt-cancel]").addEventListener("click", closeFiskalyReceiptSheet);
+    query("[data-fiskaly-receipt-done]").addEventListener("click", closeFiskalyReceiptSheet);
+    query("[data-fiskaly-receipt-new]").addEventListener("click", resetFiskalyReceiptSheet);
+    query("[data-fiskaly-receipt-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeFiskalyReceiptSheet(); });
     query("[data-preview-print]").addEventListener("click", function () { global.print(); });
     query("[data-download-xml]").addEventListener("click", downloadXml);
     query("[data-copy-payment]").addEventListener("click", copyPayment);
@@ -3316,6 +3509,7 @@
   }
 
   global.UJPoskusiNotranjiKorakNazaj = function () {
+    if (!query("[data-fiskaly-receipt-backdrop]").hidden) { closeFiskalyReceiptSheet(); return true; }
     if (!query("[data-datev-backdrop]").hidden) { closeDatevSheet(); return true; }
     if (!query("[data-bank-backdrop]").hidden) { closeBankSheet(); return true; }
     if (!query("[data-delivery-backdrop]").hidden) { closeDeliverySheet(); return true; }
