@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "node scripts/local-server.js --port 8001",
     "build": "node scripts/generate-config.js && node scripts/build-supabase-browser.mjs && node scripts/build-sentry-browser.mjs && node scripts/build-qrcode-browser.mjs",
-    "test": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js && node scripts/test-random.js && node scripts/test-scheduler.js && node scripts/test-predaja-koncni-pregled.js && node scripts/test-opomini-pregled.js && node scripts/test-paket-storitev.js && node scripts/test-predaja-sestavljalnik.mjs && node scripts/test-opomin-kartice-sync.mjs && node scripts/test-priporocilo-zagon.mjs && node scripts/test-izvedba-actions.mjs && node scripts/test-filter-ponudb.js && node scripts/test-aktivni-primeri.js && node scripts/test-identiteta-razveljavitev.mjs",
-    "test:boniteta": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
+    "test": "node scripts/test-apify-northdata.js && node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js && node scripts/test-random.js && node scripts/test-scheduler.js && node scripts/test-predaja-koncni-pregled.js && node scripts/test-opomini-pregled.js && node scripts/test-paket-storitev.js && node scripts/test-predaja-sestavljalnik.mjs && node scripts/test-opomin-kartice-sync.mjs && node scripts/test-priporocilo-zagon.mjs && node scripts/test-izvedba-actions.mjs && node scripts/test-filter-ponudb.js && node scripts/test-aktivni-primeri.js && node scripts/test-identiteta-razveljavitev.mjs",
+    "test:boniteta": "node scripts/test-apify-northdata.js && node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
     "test:sentry": "node scripts/test-sentry-privacy.js",
     "test:supabase-browser": "node scripts/build-supabase-browser.mjs && node scripts/test-supabase-browser-bundle.mjs",
     "test:integration": "node scripts/test-izvedba-rpc-integration.mjs",

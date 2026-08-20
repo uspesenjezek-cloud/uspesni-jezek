@@ -9,6 +9,7 @@ var MAX_INSOLVENCY_CONCURRENCY = 10;
 // odločanje ali zajem dokaznega posnetka. Tako star siv oziroma prekrit
 // posnetek po popravku ne more znova prekriti novega pravilnega zajema.
 var CACHE_VERSION = identityEvidenceContract.CACHE_VERSION;
+var NORTHDATA_ENRICHMENT_VERSION = "northdata-apify-v1";
 
 var globalniPomnilnik = global.__UJ_MEHKA_BONITETA_QUEUE__;
 if (!globalniPomnilnik) {
@@ -37,7 +38,7 @@ function fazaZahteve(telo) {
 function cacheKey(telo) {
   var potrjeno = telo && telo.confirmedIdentity || {};
   var podatki = {
-    cacheVersion: CACHE_VERSION,
+    cacheVersion: CACHE_VERSION + ":" + NORTHDATA_ENRICHMENT_VERSION,
     faza: fazaZahteve(telo),
     ime: normaliziraj(telo && telo.ime),
     naslov: normaliziraj(telo && telo.naslov),
@@ -573,6 +574,7 @@ module.exports = {
   pridobiLokalnaOpravilaPoDomeni: pridobiLokalnaOpravilaPoDomeni,
   _test: {
     CACHE_VERSION: CACHE_VERSION,
+    NORTHDATA_ENRICHMENT_VERSION: NORTHDATA_ENRICHMENT_VERSION,
     MAX_CONCURRENCY: MAX_CONCURRENCY,
     MAX_INSOLVENCY_CONCURRENCY: MAX_INSOLVENCY_CONCURRENCY,
     ponastaviPomnilnik: ponastaviPomnilnik,
