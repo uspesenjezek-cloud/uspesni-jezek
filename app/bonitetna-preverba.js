@@ -1316,6 +1316,7 @@
     if (barvniNamig) barvniNamig.hidden = !imaBarvniDokaz;
     var iskanoIme = String(insolvenca.searchedName || identiteta.ime || "").trim();
     var iskaniKraj = String(insolvenca.searchedCity || identiteta.kraj || "");
+    var jeIskanaOseba = Boolean(String(preverjenaPolja.ime || "").trim());
     var imeIzObrazca = [preverjenaPolja.firmaPriimek, preverjenaPolja.ime].filter(Boolean).join(" ");
     var registerIzObrazca = [preverjenaPolja.registrskoSodisce,
       [preverjenaPolja.vrstaRegistra, preverjenaPolja.registrskaStevilka].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
@@ -1326,10 +1327,11 @@
       legendaPrimerjave.hidden = !imaBarvniDokaz;
       legendaPrimerjave.querySelectorAll("[data-primerjava-ton]").forEach(function (znacka) {
         var ton = znacka.dataset.primerjavaTon;
+        if (ton === "blue") znacka.textContent = jeIskanaOseba ? "Ime in priimek" : "Ime podjetja";
         znacka.hidden = !imaBarvniDokaz || (ton === "violet" && !registerIzObrazca) || (ton === "amber" && !zadevaIzObrazca);
       });
     }
-    dodajPodatek(insolvencaPodatki, "Ime podjetja", imeIzObrazca || iskanoIme, imaBarvniDokaz ? "blue" : "neutral");
+    dodajPodatek(insolvencaPodatki, jeIskanaOseba ? "Ime in priimek" : "Ime podjetja", imeIzObrazca || iskanoIme, imaBarvniDokaz ? "blue" : "neutral");
     dodajPodatek(insolvencaPodatki, "Kraj", preverjenaPolja.kraj || iskaniKraj, imaBarvniDokaz ? "green" : "neutral");
     if (registerIzObrazca || uradnaPotrditev.searchedRegister) {
       dodajPodatek(insolvencaPodatki, "Register", registerIzObrazca || uradnaPotrditev.searchedRegister, imaBarvniDokaz ? "violet" : "neutral");

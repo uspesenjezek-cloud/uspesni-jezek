@@ -22,7 +22,7 @@ var OFFENBACH_GEWERBE = "https://www.offenbach.de/vv/oe/verwaltung/Ordnungsamt_G
 var USER_AGENT = "Uspesni-Jezek-soft-business-check/1.0";
 var BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 var IDENTITY_EVIDENCE_VERSION = identityEvidenceContract.CAPTURE_VERSION;
-var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v4-safe-court-option-resolution";
+var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v5-person-full-name-highlight";
 var MAX_IMPRESSUM_BYTES = 5 * 1024 * 1024;
 var IMPRESSUM_HEADING_PATTERN = /\b(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\b/i;
 var LEGAL_PROVIDER_IDENTITY_PATTERN = /(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Anbieter\s+dieser\s+(?:Website|Webseite)|Verantwortliche(?:r)?\s+Anbieter(?:\s+dieses\s+Internetauftritts)?(?:\s+im\s+datenschutzrechtlichen\s+Sinne)?\s+ist|Verantwortliche\s+Stelle(?:\s+im\s+Sinne\s+der\s+Datenschutzgesetze)?\s*(?:ist|:)|Diensteanbieter\s+(?:im\s+Sinne|gem(?:äß|ass)))/i;
@@ -3790,8 +3790,9 @@ async function preberiUradnaInsolvencnaPolja(stran) {
 
 async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
   return stran.evaluate(function (nastavitve) {
+    var jeIskanaOseba = Boolean(String(nastavitve.polja.ime || "").trim());
     var barve = {
-      blue: { rob: "#2f70d6", ozadje: "rgba(47, 112, 214, .14)", naziv: "Ime podjetja" },
+      blue: { rob: "#2f70d6", ozadje: "rgba(47, 112, 214, .14)", naziv: jeIskanaOseba ? "Ime in priimek" : "Ime podjetja" },
       green: { rob: "#2d8a68", ozadje: "rgba(45, 138, 104, .14)", naziv: "Kraj" },
       violet: { rob: "#7657bd", ozadje: "rgba(118, 87, 189, .14)", naziv: "Register" },
       amber: { rob: "#b8751d", ozadje: "rgba(184, 117, 29, .15)", naziv: "Zadeva" },
@@ -3807,6 +3808,11 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
       element.dataset.uspesniJezekPrimerjava = ton;
       return true;
     }
+    function najdiUradnoPolje(kljuc) {
+      var selektor = nastavitve.selektorji[kljuc];
+      if (!selektor) return null;
+      return document.querySelector('[name="' + selektor + '"]') || document.getElementById(selektor);
+    }
     var obarvanih = 0;
     var povezavePolj = [
       ["firmaPriimek", "blue"], ["ime", "blue"], ["kraj", "green"],
@@ -3815,7 +3821,7 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
     ];
     povezavePolj.forEach(function (povezava) {
       if (!nastavitve.polja[povezava[0]]) return;
-      var element = document.querySelector('[name="' + nastavitve.selektorji[povezava[0]] + '"]');
+      var element = najdiUradnoPolje(povezava[0]);
       if (pobarvaj(element, povezava[1])) obarvanih += 1;
     });
 
@@ -3861,7 +3867,7 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
       legenda.appendChild(pojasnilo);
       glava.insertAdjacentElement("afterend", legenda);
     }
-    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v1" };
+    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v2-person-full-name" };
   }, { polja: polja || {}, selektorji: URADNA_INSOLVENCNA_POLJA });
 }
 
