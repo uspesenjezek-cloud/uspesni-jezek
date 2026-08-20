@@ -91,6 +91,10 @@ assert.match(html, /data-delivery-backdrop/);
 assert.match(html, /data-detail-deliveries-list/);
 assert.match(html, /data-detail-payments-section/);
 assert.match(html, /data-detail-payments-list/);
+assert.match(html, /data-view="invoices"/);
+assert.match(html, /data-invoice-overview-list/);
+assert.match(html, /data-invoice-search/);
+assert.match(html, /data-invoice-filter="overdue"/);
 assert.match(html, /data-detail-einvoice/);
 assert.match(html, /data-structured-buyer-reference/);
 assert.match(html, /data-bank-backdrop/);
@@ -155,6 +159,9 @@ assert.match(deliveryEmailApi, /EMAIL_DELIVERY_NOT_ENABLED/);
 assert.match(js, /pos-delivery-timeline/);
 assert.match(css, /\.pos-detail-payments/);
 assert.match(css, /\.pos-payment-row/);
+assert.match(css, /\.pos-invoice-overview-summary/);
+assert.match(css, /\.pos-invoice-search[\s\S]*font-size:\s*16px/);
+assert.match(css, /\.pos-invoice-filters/);
 assert.match(css, /\.pos-delivery-timeline[\s\S]*grid-template-columns/);
 assert.match(js, /getAttribute\("data-fit-max"\)/);
 assert.match(js, /\/api\/pos-racun-korekcija\?adjustmentId=/);
@@ -279,6 +286,27 @@ const mappedBankPayment = Core.paymentFromServer({
   paid_at: "2026-08-20T00:00:00Z",
   source_bank_transaction_id: "bank-main"
 });
+
+const overviewBase = {
+  draft: { customerName: "Muster GmbH", customerEmail: "rechnung@muster.de" },
+  totals: { grossCents: 11900 },
+  paidCents: 0,
+  isTest: false,
+  status: "open"
+};
+const overviewInvoices = [
+  Object.assign({}, overviewBase, { id: "overdue", number: "RE-2026-0001", dueDate: "2026-08-18" }),
+  Object.assign({}, overviewBase, { id: "future", number: "RE-2026-0002", dueDate: "2026-08-25" }),
+  Object.assign({}, overviewBase, { id: "paid", number: "RE-2026-0003", dueDate: "2026-08-18", status: "paid", paidCents: 11900 }),
+  Object.assign({}, overviewBase, { id: "test", number: "TEST-2026-0001", dueDate: "2026-08-18", isTest: true })
+];
+assert.strictEqual(Core.invoiceDaysOverdue(overviewInvoices[0], "2026-08-20"), 2);
+assert.strictEqual(Core.invoiceDaysOverdue(overviewInvoices[3], "2026-08-20"), 0);
+assert.deepStrictEqual(Core.filterInvoices(overviewInvoices, "overdue", "", "2026-08-20").map((row) => row.id), ["overdue"]);
+assert.deepStrictEqual(Core.filterInvoices(overviewInvoices, "all", "0002", "2026-08-20").map((row) => row.id), ["future"]);
+assert.deepStrictEqual(Core.invoiceOverview(overviewInvoices, "2026-08-20"), { openCents: 23800, overdueCents: 11900, paidCount: 1 });
+assert.match(js, /showView\("invoices"\)/);
+assert.match(js, /showView\(invoiceDetailReturnView\)/);
 assert.deepStrictEqual(mappedBankPayment, {
   id: "payment-1",
   invoiceId: "reconciliation-invoice",

@@ -599,6 +599,45 @@
     return candidates[0];
   }
 
+  function invoiceOutstandingCents(invoice) {
+    if (!invoice || invoice.status === "cancelled") return 0;
+    return Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+  }
+
+  function invoiceDaysOverdue(invoice, today) {
+    if (!invoice || invoice.isTest || invoice.status === "paid" || invoice.status === "cancelled" || invoiceOutstandingCents(invoice) <= 0) return 0;
+    var due = Date.parse(String(invoice.dueDate || "") + "T12:00:00Z");
+    var reference = Date.parse(String(today || isoToday()) + "T12:00:00Z");
+    if (!Number.isFinite(due) || !Number.isFinite(reference) || due >= reference) return 0;
+    return Math.max(1, Math.floor((reference - due) / 86400000));
+  }
+
+  function filterInvoices(invoices, filter, term, today) {
+    var selected = ["all", "open", "overdue", "paid"].indexOf(filter) >= 0 ? filter : "all";
+    var queryText = String(term || "").trim().toLocaleLowerCase("sl-SI");
+    return (invoices || []).filter(function (invoice) {
+      var overdue = invoiceDaysOverdue(invoice, today) > 0;
+      var open = !invoice.isTest && invoice.status !== "paid" && invoice.status !== "cancelled" && invoiceOutstandingCents(invoice) > 0;
+      if (selected === "open" && !open) return false;
+      if (selected === "overdue" && !overdue) return false;
+      if (selected === "paid" && invoice.status !== "paid") return false;
+      if (!queryText) return true;
+      var haystack = [invoice.number, invoice.draft && invoice.draft.customerName, invoice.draft && invoice.draft.customerEmail].join(" ").toLocaleLowerCase("sl-SI");
+      return haystack.indexOf(queryText) >= 0;
+    });
+  }
+
+  function invoiceOverview(invoices, today) {
+    return (invoices || []).reduce(function (summary, invoice) {
+      if (invoice.isTest || invoice.status === "cancelled") return summary;
+      var outstanding = invoiceOutstandingCents(invoice);
+      if (outstanding > 0) summary.openCents += outstanding;
+      if (invoiceDaysOverdue(invoice, today) > 0) summary.overdueCents += outstanding;
+      if (invoice.status === "paid") summary.paidCount += 1;
+      return summary;
+    }, { openCents: 0, overdueCents: 0, paidCount: 0 });
+  }
+
   function bankDateOrdinal(value) {
     var match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""));
     if (!match) return null;
@@ -1059,6 +1098,10 @@
     parseBankStatement: parseBankStatement,
     matchBankTransaction: matchBankTransaction,
     resolveBankMatches: resolveBankMatches,
+    invoiceOutstandingCents: invoiceOutstandingCents,
+    invoiceDaysOverdue: invoiceDaysOverdue,
+    filterInvoices: filterInvoices,
+    invoiceOverview: invoiceOverview,
     paymentFromServer: paymentFromServer,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
@@ -1084,6 +1127,9 @@
   var currentView = "home";
   var currentStep = 1;
   var activeInvoiceId = null;
+  var invoiceDetailReturnView = "home";
+  var invoiceOverviewFilter = "all";
+  var invoiceOverviewQuery = "";
   var adjustmentInvoiceId = null;
   var adjustmentSubmitting = false;
   var deliveryInvoiceId = null;
@@ -1459,6 +1505,7 @@
     var editorActions = query(".pos-editor-actions");
     if (editorActions) editorActions.hidden = name !== "invoice";
     if (name === "home") renderHome();
+    if (name === "invoices") renderInvoiceOverview();
     if (name === "settings") {
       fillForm(query("#pos-profile-form"), state.profile);
       loadFiskalyCapability(false);
@@ -1484,25 +1531,63 @@
     renderInvoiceList();
   }
 
-  function renderInvoiceList() {
-    var list = query("[data-invoice-list]");
-    if (!state.invoices.length) {
-      list.innerHTML = "<div class=\"pos-empty\"><strong>Računov še ni</strong><p>Prvi osnutek ustvarite z gumbom »Nov račun«.</p></div>";
-      return;
-    }
-    list.innerHTML = state.invoices.slice(0, 5).map(function (invoice) {
-      var status = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
-      var disabled = invoice.status === "cancelled" ? " disabled aria-label=\"Storniran račun\"" : "";
-      return "<article class=\"pos-invoice-row\" data-invoice-id=\"" + escapeHtml(invoice.id) + "\" data-open-invoice=\"" + escapeHtml(invoice.id) + "\" tabindex=\"0\"><span class=\"pos-invoice-row__icon\"><svg><use href=\"#i-receipt\"/></svg></span><div class=\"pos-invoice-row__main\"><strong data-fit-text>" + escapeHtml(invoice.draft.customerName || "Brez prejemnika") + "</strong><small data-fit-text>" + escapeHtml(invoice.number) + " · " + escapeHtml(formatDate(invoice.draft.issueDate)) + "</small></div><button class=\"pos-invoice-row__amount pos-text-button\" type=\"button\" data-record-payment=\"" + escapeHtml(invoice.id) + "\"" + disabled + "><strong data-fit-text>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</strong><small>" + status + "</small></button></article>";
-    }).join("");
+  function invoiceStatusLabel(invoice, today) {
+    var overdueDays = invoiceDaysOverdue(invoice, today);
+    if (overdueDays) return "Zapadlo · " + overdueDays + (overdueDays === 1 ? " dan" : " dni");
+    if (invoice.status === "cancelled") return "Stornirano";
+    if (invoice.status === "paid") return "Plačano";
+    if (invoice.status === "partial") return "Delno plačano";
+    if (invoice.corrected) return "Popravljeno";
+    if (invoice.isTest) return "Test";
+    return "Odprto";
+  }
+
+  function invoiceRowHtml(invoice, today) {
+    var overdue = invoiceDaysOverdue(invoice, today) > 0;
+    var rowClass = overdue ? " is-overdue" : invoice.status === "paid" ? " is-paid" : invoice.status === "cancelled" ? " is-cancelled" : "";
+    var disabled = invoice.status === "cancelled" ? " disabled aria-label=\"Storniran račun\"" : "";
+    return "<article class=\"pos-invoice-row" + rowClass + "\" data-invoice-id=\"" + escapeHtml(invoice.id) + "\" data-open-invoice=\"" + escapeHtml(invoice.id) + "\" tabindex=\"0\"><span class=\"pos-invoice-row__icon\"><svg><use href=\"#i-receipt\"/></svg></span><div class=\"pos-invoice-row__main\"><strong data-fit-text>" + escapeHtml(invoice.draft.customerName || "Brez prejemnika") + "</strong><small data-fit-text>" + escapeHtml(invoice.number) + " · " + escapeHtml(formatDate(invoice.draft.issueDate)) + "</small></div><button class=\"pos-invoice-row__amount pos-text-button\" type=\"button\" data-record-payment=\"" + escapeHtml(invoice.id) + "\"" + disabled + "><strong data-fit-text>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</strong><small>" + escapeHtml(invoiceStatusLabel(invoice, today)) + "</small></button></article>";
+  }
+
+  function bindInvoiceRows(list, returnView) {
     queryAll("[data-open-invoice]", list).forEach(function (row) {
-      function open() { openInvoiceDetail(row.getAttribute("data-open-invoice")); }
+      function open() { openInvoiceDetail(row.getAttribute("data-open-invoice"), returnView); }
       row.addEventListener("click", function (event) { if (!event.target.closest("[data-record-payment]")) open(); });
       row.addEventListener("keydown", function (event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
     });
     queryAll("[data-record-payment]", list).forEach(function (button) {
       button.addEventListener("click", function (event) { event.stopPropagation(); requestPayment(button.getAttribute("data-record-payment")); });
     });
+  }
+
+  function renderInvoiceList() {
+    var list = query("[data-invoice-list]");
+    if (!state.invoices.length) {
+      list.innerHTML = "<div class=\"pos-empty\"><strong>Računov še ni</strong><p>Prvi osnutek ustvarite z gumbom »Nov račun«.</p></div>";
+      return;
+    }
+    list.innerHTML = state.invoices.slice(0, 5).map(function (invoice) { return invoiceRowHtml(invoice, isoToday()); }).join("");
+    bindInvoiceRows(list, "home");
+    fitAllText();
+  }
+
+  function renderInvoiceOverview() {
+    var today = isoToday();
+    var summary = invoiceOverview(state.invoices, today);
+    var filtered = filterInvoices(state.invoices, invoiceOverviewFilter, invoiceOverviewQuery, today);
+    query("[data-invoice-overview-summary]").innerHTML = [
+      "<article><small>Odprto</small><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(summary.openCents)) + "</strong></article>",
+      "<article class=\"is-overdue\"><small>Zapadlo</small><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(summary.overdueCents)) + "</strong></article>",
+      "<article><small>Plačani</small><strong>" + summary.paidCount + "</strong></article>"
+    ].join("");
+    queryAll("[data-invoice-filter]").forEach(function (button) { button.classList.toggle("is-active", button.getAttribute("data-invoice-filter") === invoiceOverviewFilter); });
+    var count = query("[data-invoice-overview-count]");
+    count.textContent = filtered.length === 1 ? "1 račun" : filtered.length + " računov";
+    var list = query("[data-invoice-overview-list]");
+    list.innerHTML = filtered.length
+      ? filtered.map(function (invoice) { return invoiceRowHtml(invoice, today); }).join("")
+      : "<div class=\"pos-empty\"><strong>Ni ustreznih računov</strong><p>Spremenite filter ali iskalni izraz.</p></div>";
+    bindInvoiceRows(list, "invoices");
     fitAllText();
   }
 
@@ -1510,9 +1595,10 @@
     return state.invoices.filter(function (entry) { return entry.id === id; })[0] || null;
   }
 
-  function openInvoiceDetail(id) {
+  function openInvoiceDetail(id, returnView) {
     if (!findInvoice(id)) return;
     activeInvoiceId = id;
+    invoiceDetailReturnView = returnView === "invoices" ? "invoices" : "home";
     showView("invoice-detail");
   }
 
@@ -2650,7 +2736,9 @@
           invoice.status = "paid";
           invoice.paidAt = paidAt;
           persist();
-          if (currentView === "invoice-detail") renderInvoiceDetail(invoice.id); else renderHome();
+          if (currentView === "invoice-detail") renderInvoiceDetail(invoice.id);
+          else if (currentView === "invoices") renderInvoiceOverview();
+          else renderHome();
           showToast("Plačilo je zabeleženo ločeno od računa.");
         } catch (error) { showToast(error && error.message || "Plačila ni bilo mogoče shraniti."); }
       }
@@ -3120,8 +3208,12 @@
     query("[data-datev-close]").addEventListener("click", closeDatevSheet);
     query("[data-datev-cancel]").addEventListener("click", closeDatevSheet);
     query("[data-datev-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeDatevSheet(); });
-    query("[data-show-all]").addEventListener("click", function () { showToast(state.invoices.length ? "Prikazanih je zadnjih " + Math.min(5, state.invoices.length) + " računov." : "Računov še ni."); });
-    query("[data-detail-back]").addEventListener("click", function () { activeInvoiceId = null; showView("home"); });
+    query("[data-show-all]").addEventListener("click", function () { showView("invoices"); });
+    query("[data-invoice-search]").addEventListener("input", function (event) { invoiceOverviewQuery = event.target.value; renderInvoiceOverview(); });
+    queryAll("[data-invoice-filter]").forEach(function (button) {
+      button.addEventListener("click", function () { invoiceOverviewFilter = button.getAttribute("data-invoice-filter"); renderInvoiceOverview(); });
+    });
+    query("[data-detail-back]").addEventListener("click", function () { activeInvoiceId = null; showView(invoiceDetailReturnView); });
     query("[data-detail-download]").addEventListener("click", async function () {
       var invoice = findInvoice(activeInvoiceId);
       if (!invoice) return;
@@ -3186,7 +3278,8 @@
     if (!query("[data-adjustment-backdrop]").hidden) { closeAdjustmentSheet(); return true; }
     if (currentView === "invoice") { previousStep(); return true; }
     if (currentView === "settings") { showView("home"); return true; }
-    if (currentView === "invoice-detail") { activeInvoiceId = null; showView("home"); return true; }
+    if (currentView === "invoices") { showView("home"); return true; }
+    if (currentView === "invoice-detail") { activeInvoiceId = null; showView(invoiceDetailReturnView); return true; }
     return false;
   };
 
