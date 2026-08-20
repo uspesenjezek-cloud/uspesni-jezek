@@ -2081,6 +2081,8 @@
     }
     query("#pos-fiskaly-receipt-form").hidden = true;
     query("[data-fiskaly-signed]").hidden = false;
+    var sheet = query(".pos-fiskaly-receipt-sheet");
+    if (sheet) sheet.scrollTop = 0;
     fitAllText();
   }
 

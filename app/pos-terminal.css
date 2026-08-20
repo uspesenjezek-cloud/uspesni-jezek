@@ -437,6 +437,7 @@
 
 .pos-fiskaly-receipt-sheet { max-height: min(94vh,900px); }
 .pos-fiskaly-receipt-form { display: grid; margin-top: 12px; gap: 10px; }
+.pos-fiskaly-receipt-form[hidden] { display: none; }
 .pos-fiskaly-cart-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .pos-fiskaly-cart-head > div { min-width: 0; }
 .pos-fiskaly-cart-head strong, .pos-fiskaly-cart-head small { display: block; }
