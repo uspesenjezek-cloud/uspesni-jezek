@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260820-fiskaly-kassenbon-v2" defer></script>
+    <script src="pos-terminal.js?v=20260820-fiskaly-kassenbon-v2-stripe-sandbox-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -419,6 +419,18 @@
             <span data-detail-payments-count>0</span>
           </div>
           <div class="pos-detail-payments__list" data-detail-payments-list></div>
+        </section>
+
+        <section class="pos-stripe-test" data-stripe-payment-panel>
+          <div class="pos-stripe-test__brand"><span>stripe</span><b>SANDBOX · TEST</b></div>
+          <div class="pos-stripe-test__copy">
+            <small>Kartično plačilo brez pravega denarja</small>
+            <strong data-stripe-payment-title>Stripe testno plačilo</strong>
+            <p data-stripe-payment-copy>Znesek se varno prebere iz izdanega testnega računa.</p>
+          </div>
+          <button class="pos-primary pos-stripe-test__button" type="button" data-stripe-payment>
+            <svg><use href="#i-card"/></svg><span>Plačaj s kartico – TEST</span>
+          </button>
         </section>
 
         <section class="pos-detail-adjustments" data-detail-adjustments-section hidden>

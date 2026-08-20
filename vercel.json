@@ -14,7 +14,9 @@
     { "source": "/api/pos-dostava-email", "destination": "/api/pos?handler=delivery-email" },
     { "source": "/api/pos-dostava-webhook", "destination": "/api/pos?handler=delivery-webhook" },
     { "source": "/api/pos-fiskaly", "destination": "/api/pos?handler=fiskaly-sign" },
-    { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" }
+    { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" },
+    { "source": "/api/pos-stripe-checkout", "destination": "/api/pos?handler=stripe-checkout" },
+    { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },

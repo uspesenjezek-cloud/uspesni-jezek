@@ -988,6 +988,26 @@
 .pos-payment-row__copy strong { font-size: .68rem; }
 .pos-payment-row__copy small { margin-top: 2px; color: var(--pos-muted); font-size: .57rem; }
 .pos-payment-row__amount { min-width: 72px; overflow: hidden; color: var(--pos-teal-dark); white-space: nowrap; text-align: right; text-overflow: ellipsis; font-size: .68rem; font-weight: 800; }
+.pos-payment-row__status { display: inline-flex; width: max-content; max-width: 100%; margin-top: 3px; padding: 2px 6px; overflow: hidden; color: #5d6e6a; border-radius: 99px; background: #edf3f1; white-space: nowrap; text-overflow: ellipsis; font-size: .5rem; font-weight: 800; }
+.pos-payment-row__status.is-succeeded { color: #176f70; background: #dff3ef; }
+.pos-payment-row__status.is-pending { color: #8a5d15; background: #fff2cf; }
+.pos-payment-row__status.is-failed, .pos-payment-row__status.is-cancelled { color: #8e3f3a; background: #fce9e7; }
+.pos-payment-row__status.is-refunded, .pos-payment-row__status.is-partially_refunded { color: #5e4d87; background: #eee9f8; }
+.pos-stripe-test { display: grid; margin-top: 10px; padding: 14px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px; border: 1px solid #d8d1f3; border-radius: 17px; background: linear-gradient(145deg, #faf8ff, #fff); box-shadow: 0 8px 22px rgba(63, 47, 112, .06); }
+.pos-stripe-test__brand { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 10px; }
+.pos-stripe-test__brand span { color: #635bff; font-size: .86rem; font-weight: 900; letter-spacing: -.04em; }
+.pos-stripe-test__brand b { padding: 4px 7px; color: #5e4d87; border-radius: 99px; background: #eee9f8; font-size: .5rem; letter-spacing: .08em; }
+.pos-stripe-test__copy { min-width: 0; }
+.pos-stripe-test__copy small, .pos-stripe-test__copy strong, .pos-stripe-test__copy p { display: block; margin: 0; }
+.pos-stripe-test__copy small { color: #786f91; font-size: .54rem; }
+.pos-stripe-test__copy strong { margin-top: 2px; overflow: hidden; color: var(--pos-ink); white-space: nowrap; text-overflow: ellipsis; font-size: .76rem; }
+.pos-stripe-test__copy p { margin-top: 3px; color: var(--pos-muted); font-size: .57rem; line-height: 1.35; }
+.pos-stripe-test__button { display: inline-flex; min-width: 150px; min-height: 42px; padding: 9px 12px; align-items: center; justify-content: center; gap: 7px; background: #635bff; white-space: nowrap; font-size: .62rem; }
+.pos-stripe-test__button:hover { background: #564ee8; }
+.pos-stripe-test__button svg { width: 15px; height: 15px; }
+.pos-stripe-test.is-paid { border-color: #cbe5df; background: linear-gradient(145deg, #f0faf7, #fff); }
+.pos-stripe-test.is-failed, .pos-stripe-test.is-cancelled { border-color: #efd1cd; background: linear-gradient(145deg, #fff7f6, #fff); }
+.pos-stripe-test.is-refunded, .pos-stripe-test.is-partially_refunded { border-color: #d8d1f3; }
 
 .pos-replacement-banner { display: grid; grid-template-columns: 38px minmax(0, 1fr); margin: 0 0 11px; padding: 10px; align-items: center; gap: 9px; border: 1px solid #acd7d1; border-radius: 15px; background: linear-gradient(145deg, #eaf8f5, #fff); }
 .pos-replacement-banner[hidden] { display: none; }
@@ -1170,6 +1190,11 @@
 
 .pos-invoice-row[data-open-invoice] { cursor: pointer; }
 .pos-invoice-row[data-open-invoice]:focus-visible { outline: 0; border-color: var(--pos-teal); box-shadow: 0 0 0 2px rgba(24, 145, 145, .14); }
+
+@media (max-width: 479px) {
+  .pos-stripe-test { grid-template-columns: minmax(0, 1fr); }
+  .pos-stripe-test__button { width: 100%; min-width: 0; }
+}
 
 @media (min-width: 720px) {
   .pos-view--detail { max-width: 620px; margin: 0 auto; }

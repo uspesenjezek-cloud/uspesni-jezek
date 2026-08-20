@@ -1295,9 +1295,17 @@
       amountCents: integer(row.amount_cents, 0),
       currency: row.currency || "EUR",
       method: row.method || "manual",
+      provider: row.provider || (row.source_bank_transaction_id ? "finapi" : "manual"),
       providerReference: row.provider_reference || "",
       paidAt: row.paid_at || null,
-      sourceBankTransactionId: row.source_bank_transaction_id || null
+      sourceBankTransactionId: row.source_bank_transaction_id || null,
+      status: row.status || "succeeded",
+      refundedCents: integer(row.refunded_cents, 0),
+      failureCode: row.failure_code || "",
+      checkoutSessionId: row.checkout_session_id || null,
+      externalPaymentId: row.external_payment_id || null,
+      expiresAt: row.expires_at || null,
+      createdAt: row.created_at || row.paid_at || null
     };
   }
 
@@ -1309,7 +1317,10 @@
     var effectivePayload = latestCorrection && latestCorrection.snapshot && latestCorrection.snapshot.effective_draft || snapshot.draft || {};
     var draft = draftFromDatabasePayload(effectivePayload, true);
     var payments = paymentsByInvoice && paymentsByInvoice[row.id] || [];
-    var paidCents = payments.reduce(function (sum, payment) { return sum + integer(payment.amountCents, 0); }, 0);
+    var paidCents = payments.reduce(function (sum, payment) {
+      if (["succeeded", "partially_refunded"].indexOf(payment.status || "succeeded") === -1) return sum;
+      return sum + Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
+    }, 0);
     var paid = paidCents >= integer(row.gross_cents, 0);
     var partial = paidCents > 0 && !paid;
     var cancelled = adjustments.some(function (entry) { return entry.type === "cancellation"; });
@@ -1352,7 +1363,7 @@
         backend.client.from("pos_business_profiles").select("*").eq("user_id", userId).maybeSingle(),
         backend.client.from("pos_invoice_drafts").select("id,payload,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1),
         backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).limit(100),
-        backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider_reference,paid_at,source_bank_transaction_id").eq("user_id", userId).order("paid_at", { ascending: true }),
+        backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
         backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }),
         backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
@@ -1791,10 +1802,54 @@
   }
 
   function paymentSourceLabel(payment) {
+    if (payment.provider === "stripe" || payment.method === "stripe_card") return "Stripe kartica · TEST";
     if (payment.sourceBankTransactionId || payment.method === "bank_transfer") return "Bančno nakazilo";
-    if (payment.method === "card_external") return "Zunanja kartica";
-    if (payment.method === "already_paid") return "Predhodno plačano";
+    if (payment.method === "external_card") return "Zunanja kartica";
     return "Ročna potrditev";
+  }
+
+  function paymentStatusLabel(payment) {
+    var status = payment && payment.status || "succeeded";
+    if (status === "pending") return "Čaka na plačilo";
+    if (status === "failed") return "Plačilo ni uspelo";
+    if (status === "cancelled") return "Preklicano";
+    if (status === "refunded") return "V celoti povrnjeno";
+    if (status === "partially_refunded") return "Delno povrnjeno";
+    return "Plačano";
+  }
+
+  function latestStripePayment(invoice) {
+    var stripePayments = (invoice && invoice.payments || []).filter(function (payment) {
+      return payment.provider === "stripe" || payment.method === "stripe_card";
+    });
+    return stripePayments[stripePayments.length - 1] || null;
+  }
+
+  function renderStripePayment(invoice) {
+    var panel = query("[data-stripe-payment-panel]");
+    var button = query("[data-stripe-payment]");
+    var buttonCopy = button && query("span", button);
+    var payment = latestStripePayment(invoice);
+    var status = payment && payment.status || "ready";
+    ["paid", "pending", "failed", "cancelled", "refunded", "partially_refunded"].forEach(function (name) {
+      panel.classList.toggle("is-" + name, status === name || name === "paid" && status === "succeeded");
+    });
+    panel.hidden = !invoice.isTest;
+    if (!invoice.isTest) return;
+    var outstanding = Math.max(0, integer(invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+    var title = "Stripe testno plačilo";
+    var copy = "Točen odprti znesek " + formatMoney(outstanding) + " se preveri na strežniku.";
+    var label = "Plačaj s kartico – TEST";
+    if (status === "pending") { title = "Čaka na plačilo"; copy = "Stripe Checkout je odprt; račun še ni označen kot plačan."; label = "Nadaljuj plačilo – TEST"; }
+    if (status === "succeeded") { title = "Plačano"; copy = "Podpisan Stripe webhook je potrdil testno kartično plačilo."; label = "Plačano · TEST"; }
+    if (status === "failed") { title = "Plačilo ni uspelo"; copy = "Poskus je varno zabeležen. Uporabite nov Stripe TEST poskus."; label = "Poskusi znova – TEST"; }
+    if (status === "cancelled") { title = "Preklicano"; copy = "Stripe TEST seja je bila varno zaprta brez plačila."; label = "Začni novo plačilo – TEST"; }
+    if (status === "refunded") { title = "Plačilo povrnjeno"; copy = "Povračilo je odprlo celotni znesek računa."; label = "Plačaj znova – TEST"; }
+    if (status === "partially_refunded") { title = "Delno povrnjeno"; copy = "Odprti znesek po povračilu: " + formatMoney(outstanding) + "."; label = "Plačaj preostanek – TEST"; }
+    query("[data-stripe-payment-title]").textContent = title;
+    query("[data-stripe-payment-copy]").textContent = copy;
+    buttonCopy.textContent = label;
+    button.disabled = !invoice.serverStored || !backend.ready || invoice.status === "cancelled" || invoice.status === "paid";
   }
 
   function renderPaymentList(invoice) {
@@ -1809,10 +1864,13 @@
         return entry.id === payment.sourceBankTransactionId;
       })[0];
       var bankSource = transaction && (transaction.counterpartyName || transaction.sourceAccountName || transaction.sourceAccountIban);
-      var reference = bankSource || payment.providerReference || "Potrjeno v POS";
-      var date = payment.paidAt ? formatDate(String(payment.paidAt).slice(0, 10)) : "Datum ni naveden";
+      var reference = bankSource || payment.providerReference || (payment.provider === "stripe" ? "Stripe Sandbox" : "Potrjeno v POS");
+      var dateSource = payment.paidAt || payment.createdAt;
+      var date = dateSource ? formatDate(String(dateSource).slice(0, 10)) : "Datum ni naveden";
       var isBank = Boolean(payment.sourceBankTransactionId || payment.method === "bank_transfer");
-      return "<article class=\"pos-payment-row\"><span class=\"pos-payment-row__icon" + (isBank ? "" : " is-manual") + "\"><svg><use href=\"#" + (isBank ? "i-bank" : "i-check") + "\"/></svg></span><div class=\"pos-payment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(paymentSourceLabel(payment)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(date + " · " + reference) + "</small></div><strong class=\"pos-payment-row__amount\" data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(payment.amountCents)) + "</strong></article>";
+      var status = payment.status || "succeeded";
+      var effective = Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
+      return "<article class=\"pos-payment-row\"><span class=\"pos-payment-row__icon" + (isBank ? "" : " is-manual") + "\"><svg><use href=\"#" + (isBank ? "i-bank" : payment.provider === "stripe" ? "i-card" : "i-check") + "\"/></svg></span><div class=\"pos-payment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(paymentSourceLabel(payment)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(date + " · " + reference) + "</small><span class=\"pos-payment-row__status is-" + escapeHtml(status) + "\">" + escapeHtml(paymentStatusLabel(payment)) + "</span></div><strong class=\"pos-payment-row__amount\" data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(status === "refunded" ? 0 : effective || payment.amountCents)) + "</strong></article>";
     }).join("");
   }
 
@@ -2329,6 +2387,7 @@
       }
     } else setEinvoiceState(invoice, "pending", "");
     renderPaymentList(invoice);
+    renderStripePayment(invoice);
     renderAdjustmentList(invoice);
     renderDeliveryList(invoice);
     fitAllText();
@@ -2340,6 +2399,82 @@
     var session = result.data && result.data.session;
     if (!session || !session.access_token) throw new Error("Prijava je potekla.");
     return session.access_token;
+  }
+
+  async function stripeCheckoutRequest(action, values) {
+    var token = await apiSessionToken();
+    var body = Object.assign({ action: action }, values || {});
+    var response = await fetch("/api/pos-stripe-checkout", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    var result = null;
+    try { result = await response.json(); } catch (_error) {}
+    if (!response.ok || !result || !result.ok) throw new Error(result && result.napaka || "Stripe TEST plačilo trenutno ni na voljo.");
+    return result;
+  }
+
+  async function startStripeCheckout(invoice) {
+    if (!invoice || !invoice.isTest || !invoice.serverStored || !backend.ready) {
+      showToast("Stripe TEST potrebuje varno shranjen testni račun.");
+      return;
+    }
+    if (invoice.status === "cancelled" || invoice.status === "paid") {
+      showToast(invoice.status === "paid" ? "Račun je že plačan." : "Storniranega računa ni mogoče plačati.");
+      return;
+    }
+    var button = query("[data-stripe-payment]");
+    button.disabled = true;
+    query("span", button).textContent = "Pripravljam Stripe TEST …";
+    try {
+      var pending = latestStripePayment(invoice);
+      var result = pending && pending.status === "pending" && pending.checkoutSessionId
+        ? await stripeCheckoutRequest("resume", { sessionId: pending.checkoutSessionId })
+        : await stripeCheckoutRequest("create", { invoiceId: invoice.id, requestId: randomUuid() });
+      var checkoutUrl = new URL(result.url);
+      if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.stripe.com") throw new Error("Stripe ni vrnil varnega Checkout naslova.");
+      global.location.assign(checkoutUrl.toString());
+    } catch (error) {
+      button.disabled = false;
+      renderStripePayment(invoice);
+      showToast(error && error.message || "Stripe TEST plačila ni bilo mogoče pripraviti.");
+    }
+  }
+
+  function waitMs(ms) { return new Promise(function (resolve) { global.setTimeout(resolve, ms); }); }
+
+  async function handleStripeReturn(returnState) {
+    if (!returnState || !returnState.invoiceId || (returnState.state !== "cancelled" && !returnState.sessionId)) return;
+    try {
+      var result;
+      if (returnState.state === "cancelled") {
+        var returnedInvoice = findInvoice(returnState.invoiceId);
+        var pendingPayment = latestStripePayment(returnedInvoice);
+        var cancelSessionId = String(returnState.sessionId || "").indexOf("cs_test_") === 0
+          ? returnState.sessionId
+          : pendingPayment && pendingPayment.status === "pending" ? pendingPayment.checkoutSessionId : "";
+        if (!cancelSessionId) throw new Error("Odprte Stripe TEST seje za preklic ni mogoče najti.");
+        result = await stripeCheckoutRequest("cancel", { sessionId: cancelSessionId });
+      } else {
+        for (var attempt = 0; attempt < 6; attempt += 1) {
+          result = await stripeCheckoutRequest("status", { sessionId: returnState.sessionId });
+          if (result.payment && ["succeeded", "failed", "cancelled", "partially_refunded", "refunded"].indexOf(result.payment.status) !== -1) break;
+          await waitMs(700 + attempt * 450);
+        }
+      }
+      await loadServerState();
+      var invoice = findInvoice(returnState.invoiceId);
+      if (invoice) openInvoiceDetail(invoice.id);
+      var status = result && result.payment && result.payment.status || "pending";
+      showToast(status === "succeeded"
+        ? "Stripe TEST plačilo je potrjeno s podpisanim webhookom."
+        : status === "cancelled" ? "Stripe TEST plačilo je preklicano."
+        : status === "failed" ? "Stripe TEST plačilo ni uspelo."
+        : "Stripe TEST plačilo še čaka na podpisano potrditev.");
+    } catch (error) {
+      showToast(error && error.message || "Stripe TEST rezultata ni bilo mogoče preveriti.");
+    }
   }
 
   async function posPdfRequest(invoiceId, mode) {
@@ -3478,6 +3613,7 @@
     });
     query("[data-detail-copy]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) copyPaymentForInvoice(invoice); });
     query("[data-detail-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) requestPayment(invoice.id); });
+    query("[data-stripe-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) startStripeCheckout(invoice); });
     query("[data-detail-correction]").addEventListener("click", function () {
       var invoice = findInvoice(activeInvoiceId);
       if (invoice) openAdjustmentSheet(invoice);
@@ -3528,8 +3664,12 @@
     renderFiskalyCapability();
     renderHome();
     showView("home");
-    loadServerState();
-    var finapiReturn = new URLSearchParams(global.location.search).get("finapi");
+    var returnParams = new URLSearchParams(global.location.search);
+    var finapiReturn = returnParams.get("finapi");
+    var stripeReturn = returnParams.get("stripe");
+    var stripeSessionId = returnParams.get("stripe_session_id");
+    var stripeInvoiceId = returnParams.get("invoice_id");
+    var initialLoad = loadServerState();
     if (finapiReturn) {
       var cleanReturnUrl = new URL(global.location.href);
       cleanReturnUrl.searchParams.delete("finapi");
@@ -3540,6 +3680,14 @@
           ? "finAPI obrazec je zaključen. Preverite povezavo in osvežite prilive."
           : finapiReturn === "abort" ? "Povezovanje testne banke je bilo prekinjeno." : "finAPI obrazca ni bilo mogoče zaključiti.");
       }, 0);
+    }
+    if (stripeReturn && stripeInvoiceId && (stripeSessionId || stripeReturn === "cancelled")) {
+      var cleanStripeUrl = new URL(global.location.href);
+      ["stripe", "stripe_session_id", "invoice_id"].forEach(function (key) { cleanStripeUrl.searchParams.delete(key); });
+      global.history.replaceState(null, "", cleanStripeUrl.pathname + cleanStripeUrl.search + cleanStripeUrl.hash);
+      initialLoad.then(function () {
+        return handleStripeReturn({ state: stripeReturn, sessionId: stripeSessionId, invoiceId: stripeInvoiceId });
+      });
     }
   }
 

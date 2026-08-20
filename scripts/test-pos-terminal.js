@@ -313,9 +313,17 @@ assert.deepStrictEqual(mappedBankPayment, {
   amountCents: 40000,
   currency: "EUR",
   method: "bank_transfer",
+  provider: "finapi",
   providerReference: "BANK-REFERENCE-1",
   paidAt: "2026-08-20T00:00:00Z",
-  sourceBankTransactionId: "bank-main"
+  sourceBankTransactionId: "bank-main",
+  status: "succeeded",
+  refundedCents: 0,
+  failureCode: "",
+  checkoutSessionId: null,
+  externalPaymentId: null,
+  expiresAt: null,
+  createdAt: "2026-08-20T00:00:00Z"
 });
 
 const draft = Core.defaultDraft(profile);
