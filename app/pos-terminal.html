@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260820-payment-trace-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260820-invoice-overview-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
-    <script src="pos-terminal.js?v=20260820-payment-trace-v1" defer></script>
+    <script src="pos-terminal.js?v=20260820-invoice-overview-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -129,6 +129,31 @@
           <svg><use href="#i-lock"/></svg>
           <div><strong>Brez gotovine, brez TSE</strong><p>Ta modul je namenoma omejen na račune in povsem ločena brezgotovinska plačila.</p></div>
         </aside>
+      </section>
+
+      <section class="pos-view pos-view--invoices" data-view="invoices" aria-labelledby="invoice-overview-title">
+        <div class="pos-view-title">
+          <button class="pos-back-button" type="button" data-open-view="home" aria-label="Nazaj na pregled">‹</button>
+          <div><p class="pos-kicker">Dokumenti</p><h2 id="invoice-overview-title">Vsi računi</h2></div>
+        </div>
+
+        <div class="pos-invoice-overview-summary" data-invoice-overview-summary></div>
+
+        <div class="pos-invoice-overview-tools">
+          <label class="pos-invoice-search">
+            <span class="pos-invoice-search__icon" aria-hidden="true">⌕</span>
+            <input type="search" data-invoice-search placeholder="Številka ali prejemnik" autocomplete="off" aria-label="Išči račune" />
+          </label>
+          <div class="pos-invoice-filters" aria-label="Filter računov">
+            <button class="is-active" type="button" data-invoice-filter="all">Vsi</button>
+            <button type="button" data-invoice-filter="open">Odprti</button>
+            <button type="button" data-invoice-filter="overdue">Zapadli</button>
+            <button type="button" data-invoice-filter="paid">Plačani</button>
+          </div>
+        </div>
+
+        <div class="pos-invoice-overview-count" data-invoice-overview-count></div>
+        <div class="pos-invoice-list pos-invoice-list--all" data-invoice-overview-list></div>
       </section>
 
       <section class="pos-view" data-view="settings" aria-labelledby="settings-title">
