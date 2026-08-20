@@ -89,6 +89,8 @@ assert.match(html, /data-detail-replacement/);
 assert.match(html, /data-detail-send/);
 assert.match(html, /data-delivery-backdrop/);
 assert.match(html, /data-detail-deliveries-list/);
+assert.match(html, /data-detail-payments-section/);
+assert.match(html, /data-detail-payments-list/);
 assert.match(html, /data-detail-einvoice/);
 assert.match(html, /data-structured-buyer-reference/);
 assert.match(html, /data-bank-backdrop/);
@@ -123,6 +125,9 @@ assert.match(js, /source_account_id,source_account_name,source_account_iban/);
 assert.match(js, /backend\.syncing = false;[\s\S]*bankBackdrop && !bankBackdrop\.hidden\) renderBankSheet/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
+assert.match(js, /source_bank_transaction_id/);
+assert.match(js, /renderPaymentList\(invoice\)/);
+assert.match(js, /Bančno nakazilo/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
 assert.match(js, /\/api\/pos-racun-pdf\?invoiceId=/);
 assert.match(js, /\/api\/pos-racun-xrechnung\?invoiceId=/);
@@ -148,6 +153,8 @@ assert.match(deliveryEmailApi, /pos_queue_live_invoice_delivery/);
 assert.match(deliveryEmailApi, /pos_queue_resend_test_invoice_delivery/);
 assert.match(deliveryEmailApi, /EMAIL_DELIVERY_NOT_ENABLED/);
 assert.match(js, /pos-delivery-timeline/);
+assert.match(css, /\.pos-detail-payments/);
+assert.match(css, /\.pos-payment-row/);
 assert.match(css, /\.pos-delivery-timeline[\s\S]*grid-template-columns/);
 assert.match(js, /getAttribute\("data-fit-max"\)/);
 assert.match(js, /\/api\/pos-racun-korekcija\?adjustmentId=/);
@@ -261,6 +268,27 @@ assert.strictEqual(resolvedBankMatches.suggestions["bank-old"], undefined);
 const ambiguousBankMatches = Core.resolveBankMatches(duplicateBankCandidates.slice(0, 2), [Object.assign({}, reconciliationInvoice, { seller: { iban: "" } })]);
 assert.strictEqual(Object.keys(ambiguousBankMatches.suggestions).length, 0);
 assert.match(ambiguousBankMatches.ambiguities["bank-main"], /Več enako primernih prilivov/);
+
+const mappedBankPayment = Core.paymentFromServer({
+  id: "payment-1",
+  invoice_id: "reconciliation-invoice",
+  amount_cents: 40000,
+  currency: "EUR",
+  method: "bank_transfer",
+  provider_reference: "BANK-REFERENCE-1",
+  paid_at: "2026-08-20T00:00:00Z",
+  source_bank_transaction_id: "bank-main"
+});
+assert.deepStrictEqual(mappedBankPayment, {
+  id: "payment-1",
+  invoiceId: "reconciliation-invoice",
+  amountCents: 40000,
+  currency: "EUR",
+  method: "bank_transfer",
+  providerReference: "BANK-REFERENCE-1",
+  paidAt: "2026-08-20T00:00:00Z",
+  sourceBankTransactionId: "bank-main"
+});
 
 const draft = Core.defaultDraft(profile);
 draft.customerName = "Sehr langes deutsches Beispielunternehmen für Gebäudetechnik und Sanierung GmbH";
