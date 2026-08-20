@@ -19,18 +19,34 @@ async function main() {
   assert.deepStrictEqual(client.buildInput(official), {
     searchQueries: ["HRB 12345"], country: "DE", resultType: "companies",
     includeFinancials: true, includeOfficers: true, includeRelatedCompanies: true,
-    includeEvents: true, includeNews: false, maxResults: 3,
+    includeEvents: true, includeNews: true, maxResults: 3,
   });
 
   var company = {
     recordType: "company", url: "https://www.northdata.com/Beispiel+Technik+GmbH,+Berlin/HRB+12345",
-    name: "Beispiel Technik GmbH", status: "Active", legalForm: "GmbH",
+    name: "Beispiel Technik GmbH", companyId: "north-123", status: "Active", legalForm: "GmbH",
     foundingDate: "2018-04-12", corporatePurpose: "Tehnične storitve.",
     registerNumber: "Berlin HRB 12345", address: { street: "Musterstraße 1", postalCode: "10115", city: "Berlin", country: "DE" },
     officers: [{ name: "Anna Beispiel", role: "Geschäftsführerin", url: "https://www.northdata.com/Anna+Beispiel" }],
     financials: [{ metric: "Revenue", values: [{ year: 2025, value: 125000, formattedValue: "125 k EUR" }] }],
+    futureActorField: { nested: { note: "ostane na voljo za poznejšo odločitev", apiToken: "ne-sme-se-shraniti" } },
+    signature: "ne-sme-se-shraniti",
   };
-  assert.strictEqual(client.selectCompany([company], official).status, "found");
+  var selected = client.selectCompany([company], official);
+  assert.strictEqual(selected.status, "found");
+  assert.strictEqual(selected.company.companyId, "north-123");
+  assert.strictEqual(selected.company.availableData.futureActorField.nested.note, "ostane na voljo za poznejšo odločitev");
+  assert.strictEqual(selected.company.availableData.futureActorField.nested.apiToken, undefined,
+    "skrivnosti se ne smejo shraniti v celoten podatkovni posnetek");
+  assert.strictEqual(selected.company.availableData.signature, undefined);
+  assert.ok(selected.company.dataAvailability.fields.includes("futureActorField"));
+  assert.ok(selected.company.dataAvailability.sizeBytes <= client.SNAPSHOT_MAX_BYTES);
+  var decoy = Object.assign({}, company, {
+    name: "Drugo podjetje GmbH", companyId: "wrong-company", address: { postalCode: "99999", city: "Hamburg", country: "DE" },
+  });
+  var selectedAmongMatches = client.selectCompany([decoy, company], official);
+  assert.strictEqual(selectedAmongMatches.company.availableData.companyId, "north-123",
+    "celoten posnetek mora vedno pripadati izbranemu in ne samo registrsko podobnemu podjetju");
   assert.strictEqual(client.selectCompany([Object.assign({}, company, { registerNumber: "Berlin HRB 99999" })], official).status, "not_found",
     "enako ime z drugo registrsko številko se ne sme združiti");
   assert.strictEqual(client.sanitizeCompany(Object.assign({}, company, { url: "https://example.test/fake" })), null,
@@ -51,7 +67,16 @@ async function main() {
   assert.strictEqual(calls[0].options.headers.Authorization, "Bearer apify-secret-test");
   assert.strictEqual(result.status, "found");
   assert.strictEqual(result.company.foundingDate, "2018-04-12");
+  assert.strictEqual(result.company.availableData.name, "Beispiel Technik GmbH");
   assert.ok(result.estimatedCostUsd <= 0.02);
+
+  var veryLarge = Object.assign({}, company, {
+    hugeFutureField: Array.from({ length: 500 }, function (_, index) { return "vrednost-" + index + "-" + "x".repeat(20000); }),
+  });
+  var bounded = client.sanitizeCompany(veryLarge);
+  assert.ok(bounded.dataAvailability.truncated, "prevelik podatkovni posnetek mora biti jasno označen");
+  assert.ok(bounded.dataAvailability.sizeBytes <= client.SNAPSHOT_MAX_BYTES,
+    "celoten podatkovni posnetek mora ostati znotraj varne velikostne meje");
 
   var failedCalls = 0;
   var failed = await client.enrichCompany(official, {
@@ -89,7 +114,7 @@ async function main() {
     assert.match(api, /northData: northData/);
     assert.match(api, /viri\.push\(northDataObogatitev\.source\)/);
   });
-  assert.strictEqual(queue._test.NORTHDATA_ENRICHMENT_VERSION, "northdata-apify-v1");
+  assert.strictEqual(queue._test.NORTHDATA_ENRICHMENT_VERSION, "northdata-apify-v2-all-data");
   assert.match(source("scripts/local-server.js"), /APIFY_API_TOKEN/,
     "lokalni strežnik mora naložiti strežniški Apify žeton iz .env.local");
   assert.match(source("app/bonitetna-preverba.js"), /northData: podatki\.northData \|\| null/);

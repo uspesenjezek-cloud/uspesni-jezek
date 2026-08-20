@@ -6,6 +6,12 @@ var NORTH_DATA_ROOT = "https://www.northdata.com/";
 var MAX_RESULTS = 3;
 var MAX_TOTAL_CHARGE_USD = 0.02;
 var TIMEOUT_SECONDS = 35;
+var SNAPSHOT_MAX_BYTES = 200 * 1024;
+var SNAPSHOT_MAX_DEPTH = 8;
+var SNAPSHOT_MAX_KEYS = 250;
+var SNAPSHOT_MAX_ITEMS = 200;
+var SNAPSHOT_MAX_STRING = 10000;
+var BLOCKED_SNAPSHOT_KEY = /(?:authorization|cookie|credential|password|secret|signature|token|api[_-]?key)/i;
 
 function text(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 5000);
@@ -55,13 +61,98 @@ function number(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function jsonBytes(value) {
+  return Buffer.byteLength(JSON.stringify(value), "utf8");
+}
+
+function safeSnapshotKey(value) {
+  var key = String(value == null ? "" : value).replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 120);
+  if (!key || key === "__proto__" || key === "prototype" || key === "constructor" || BLOCKED_SNAPSHOT_KEY.test(key)) return "";
+  return key;
+}
+
+function sanitizeSnapshotValue(value, state, depth) {
+  if (value == null || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    var allowed = Math.max(0, Math.min(SNAPSHOT_MAX_STRING, state.remaining));
+    var safe = value.slice(0, allowed);
+    while (safe && Buffer.byteLength(safe, "utf8") > state.remaining) safe = safe.slice(0, Math.floor(safe.length * 0.9));
+    state.remaining -= Buffer.byteLength(safe, "utf8");
+    if (safe.length < value.length) state.truncated = true;
+    return safe;
+  }
+  if (depth >= SNAPSHOT_MAX_DEPTH) {
+    state.truncated = true;
+    return null;
+  }
+  if (Array.isArray(value)) {
+    if (value.length > SNAPSHOT_MAX_ITEMS) state.truncated = true;
+    return value.slice(0, SNAPSHOT_MAX_ITEMS).map(function (entry) {
+      return sanitizeSnapshotValue(entry, state, depth + 1);
+    }).filter(function (entry) { return entry !== undefined; });
+  }
+  if (typeof value === "object") {
+    var output = {};
+    var keys = Object.keys(value);
+    if (keys.length > SNAPSHOT_MAX_KEYS) state.truncated = true;
+    keys.slice(0, SNAPSHOT_MAX_KEYS).forEach(function (rawKey) {
+      var key = safeSnapshotKey(rawKey);
+      if (!key) {
+        state.truncated = true;
+        return;
+      }
+      var keyBytes = Buffer.byteLength(key, "utf8");
+      if (state.remaining <= keyBytes) {
+        state.truncated = true;
+        return;
+      }
+      state.remaining -= keyBytes;
+      var child = sanitizeSnapshotValue(value[rawKey], state, depth + 1);
+      if (child !== undefined) output[key] = child;
+    });
+    return output;
+  }
+  state.truncated = true;
+  return undefined;
+}
+
+function selectedCompanySnapshot(item) {
+  var budget = Math.floor(SNAPSHOT_MAX_BYTES * 0.72);
+  var result = null;
+  var state = null;
+  for (var attempt = 0; attempt < 5; attempt += 1) {
+    state = { remaining: budget, truncated: false };
+    result = sanitizeSnapshotValue(item, state, 0);
+    if (jsonBytes(result) <= SNAPSHOT_MAX_BYTES) break;
+    budget = Math.floor(budget * 0.7);
+    state.truncated = true;
+  }
+  if (!result || typeof result !== "object" || Array.isArray(result)) result = {};
+  while (jsonBytes(result) > SNAPSHOT_MAX_BYTES && Object.keys(result).length) {
+    var largestKey = Object.keys(result).sort(function (a, b) {
+      return jsonBytes(result[b]) - jsonBytes(result[a]);
+    })[0];
+    delete result[largestKey];
+    state.truncated = true;
+  }
+  return {
+    data: result,
+    fields: Object.keys(result).sort(),
+    truncated: Boolean(state && state.truncated) || jsonBytes(result) > SNAPSHOT_MAX_BYTES,
+    sizeBytes: jsonBytes(result),
+  };
+}
+
 function sanitizeCompany(item) {
   if (!item || typeof item !== "object" || String(item.recordType || "company").toLowerCase() !== "company") return null;
   var sourceUrl = safeNorthDataUrl(item.url);
   if (!sourceUrl) return null;
   var address = item.address && typeof item.address === "object" ? item.address : {};
+  var snapshot = selectedCompanySnapshot(item);
   return {
     recordType: "company", sourceUrl: sourceUrl, name: text(item.name, 240),
+    companyId: text(item.companyId, 120),
     status: text(item.status, 60), legalForm: text(item.legalForm, 80),
     foundingDate: /^\d{4}-\d{2}-\d{2}$/.test(String(item.foundingDate || "")) ? String(item.foundingDate) : "",
     corporatePurpose: text(item.corporatePurpose, 5000), registerNumber: text(item.registerNumber, 200),
@@ -125,6 +216,18 @@ function sanitizeCompany(item) {
         description: text(event.description, 2000), type: text(event.type, 80),
       } : null;
     }),
+    news: list(item.news, 100, function (entry) {
+      return entry && typeof entry === "object" ? {
+        title: text(entry.title, 300), date: text(entry.date || entry.publishedAt, 60),
+        source: text(entry.source || entry.publisher, 160), summary: text(entry.summary || entry.description, 3000),
+        url: /^https:\/\//i.test(String(entry.url || "")) ? text(entry.url, 1000) : "",
+      } : null;
+    }),
+    availableData: snapshot.data,
+    dataAvailability: {
+      schemaVersion: "northdata-selected-company-v1", fields: snapshot.fields,
+      truncated: snapshot.truncated, sizeBytes: snapshot.sizeBytes,
+    },
     scrapedAt: text(item.scrapedAt || item.fetchedAt, 60),
   };
 }
@@ -221,7 +324,7 @@ function buildInput(official) {
   return {
     searchQueries: [query], country: "DE", resultType: "companies",
     includeFinancials: true, includeOfficers: true, includeRelatedCompanies: true,
-    includeEvents: true, includeNews: false, maxResults: MAX_RESULTS,
+    includeEvents: true, includeNews: true, maxResults: MAX_RESULTS,
   };
 }
 
@@ -303,6 +406,8 @@ module.exports = {
   registerFrom: registerFrom,
   selectCompany: selectCompany,
   sanitizeCompany: sanitizeCompany,
+  selectedCompanySnapshot: selectedCompanySnapshot,
+  SNAPSHOT_MAX_BYTES: SNAPSHOT_MAX_BYTES,
   enrichCompany: enrichCompany,
   mergeIntoIdentity: mergeIntoIdentity,
   sourceEntry: sourceEntry,

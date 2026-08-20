@@ -9,7 +9,7 @@ var MAX_INSOLVENCY_CONCURRENCY = 10;
 // odločanje ali zajem dokaznega posnetka. Tako star siv oziroma prekrit
 // posnetek po popravku ne more znova prekriti novega pravilnega zajema.
 var CACHE_VERSION = identityEvidenceContract.CACHE_VERSION;
-var NORTHDATA_ENRICHMENT_VERSION = "northdata-apify-v1";
+var NORTHDATA_ENRICHMENT_VERSION = "northdata-apify-v2-all-data";
 
 var globalniPomnilnik = global.__UJ_MEHKA_BONITETA_QUEUE__;
 if (!globalniPomnilnik) {
