@@ -22,7 +22,7 @@ var OFFENBACH_GEWERBE = "https://www.offenbach.de/vv/oe/verwaltung/Ordnungsamt_G
 var USER_AGENT = "Uspesni-Jezek-soft-business-check/1.0";
 var BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 var IDENTITY_EVIDENCE_VERSION = identityEvidenceContract.CAPTURE_VERSION;
-var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v5-person-full-name-highlight";
+var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v6-visible-person-full-name-highlight";
 var MAX_IMPRESSUM_BYTES = 5 * 1024 * 1024;
 var IMPRESSUM_HEADING_PATTERN = /\b(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\b/i;
 var LEGAL_PROVIDER_IDENTITY_PATTERN = /(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Anbieter\s+dieser\s+(?:Website|Webseite)|Verantwortliche(?:r)?\s+Anbieter(?:\s+dieses\s+Internetauftritts)?(?:\s+im\s+datenschutzrechtlichen\s+Sinne)?\s+ist|Verantwortliche\s+Stelle(?:\s+im\s+Sinne\s+der\s+Datenschutzgesetze)?\s*(?:ist|:)|Diensteanbieter\s+(?:im\s+Sinne|gem(?:äß|ass)))/i;
@@ -3792,7 +3792,7 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
   return stran.evaluate(function (nastavitve) {
     var jeIskanaOseba = Boolean(String(nastavitve.polja.ime || "").trim());
     var barve = {
-      blue: { rob: "#2f70d6", ozadje: "rgba(47, 112, 214, .14)", naziv: jeIskanaOseba ? "Ime in priimek" : "Ime podjetja" },
+      blue: { rob: "#1769e0", ozadje: "rgba(23, 105, 224, .24)", naziv: jeIskanaOseba ? "Ime in priimek" : "Ime podjetja" },
       green: { rob: "#2d8a68", ozadje: "rgba(45, 138, 104, .14)", naziv: "Kraj" },
       violet: { rob: "#7657bd", ozadje: "rgba(118, 87, 189, .14)", naziv: "Register" },
       amber: { rob: "#b8751d", ozadje: "rgba(184, 117, 29, .15)", naziv: "Zadeva" },
@@ -3803,7 +3803,9 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
     function pobarvaj(element, ton) {
       if (!element || !barve[ton]) return false;
       element.style.setProperty("background-color", barve[ton].ozadje, "important");
-      element.style.setProperty("box-shadow", "inset 0 0 0 2px " + barve[ton].rob, "important");
+      element.style.setProperty("box-shadow", "inset 0 0 0 3px " + barve[ton].rob, "important");
+      element.style.setProperty("outline", "2px solid " + barve[ton].rob, "important");
+      element.style.setProperty("outline-offset", "1px", "important");
       element.style.setProperty("border-radius", "5px", "important");
       element.dataset.uspesniJezekPrimerjava = ton;
       return true;
@@ -3811,7 +3813,16 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
     function najdiUradnoPolje(kljuc) {
       var selektor = nastavitve.selektorji[kljuc];
       if (!selektor) return null;
-      return document.querySelector('[name="' + selektor + '"]') || document.getElementById(selektor);
+      var neposredno = document.querySelector('[name="' + selektor + '"]') || document.getElementById(selektor);
+      if (neposredno) return neposredno;
+      var oznake = { firmaPriimek: /Firma\s*\/\s*Nachname/i, ime: /^\s*Vorname\s*$/i };
+      var vzorec = oznake[kljuc];
+      if (!vzorec) return null;
+      var vrstica = Array.from(document.querySelectorAll("tr")).find(function (kandidat) {
+        var oznaka = kandidat.querySelector("td, th, label");
+        return oznaka && vzorec.test(String(oznaka.textContent || ""));
+      });
+      return vrstica ? vrstica.querySelector("input, select, textarea") : null;
     }
     var obarvanih = 0;
     var povezavePolj = [
@@ -3867,7 +3878,7 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
       legenda.appendChild(pojasnilo);
       glava.insertAdjacentElement("afterend", legenda);
     }
-    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v2-person-full-name" };
+    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v3-visible-person-full-name" };
   }, { polja: polja || {}, selektorji: URADNA_INSOLVENCNA_POLJA });
 }
 

@@ -15,9 +15,13 @@ function source(relativePath) {
     file + " mora pri osebi modro označiti priimek in ime");
   assert.match(api, /document\.querySelector\([^\n]+\) \|\| document\.getElementById\(selektor\)/,
     file + " mora uradno polje poiskati po atributu name ali po id");
+  assert.match(api, /Firma\\s\*\\\/\\s\*Nachname[\s\S]*Vorname/,
+    file + " mora imeti rezervno iskanje obeh osebnih polj po uradnih oznakah");
+  assert.match(api, /inset 0 0 0 3px[\s\S]*outline[\s\S]*2px solid/,
+    file + " mora modri okvir ohraniti viden tudi na pomanjšanem uradnem posnetku");
   assert.match(api, /jeIskanaOseba \? "Ime in priimek" : "Ime podjetja"/,
     file + " mora pravilno poimenovati modro oznako glede na vrsto subjekta");
-  assert.match(api, /official-insolvency-v5-person-full-name-highlight/,
+  assert.match(api, /official-insolvency-v6-visible-person-full-name-highlight/,
     file + " mora razveljaviti staro dokazilo brez označenega imena");
 });
 
