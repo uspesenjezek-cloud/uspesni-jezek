@@ -21,9 +21,17 @@ function source(relativePath) {
     file + " mora modri okvir ohraniti viden tudi na pomanjšanem uradnem posnetku");
   assert.match(api, /jeIskanaOseba \? "Ime in priimek" : "Ime podjetja"/,
     file + " mora pravilno poimenovati modro oznako glede na vrsto subjekta");
-  assert.match(api, /official-insolvency-v6-visible-person-full-name-highlight/,
+  assert.match(api, /official-insolvency-v7-visible-person-full-name-highlight/,
     file + " mora razveljaviti staro dokazilo brez označenega imena");
 });
+
+var queue = source("api/_lib/mehka-boniteta-queue.js");
+assert.match(queue, /INSOLVENCY_CACHE_VERSION = "official-insolvency-v7-visible-person-full-name-highlight"/,
+  "insolvenčni predpomnilnik mora napredovati skupaj z različico posnetka");
+assert.match(queue, /faza === "insolvenca" \? ":" \+ INSOLVENCY_CACHE_VERSION/,
+  "ključ insolvenčnega predpomnilnika mora vsebovati različico uradnega posnetka");
+assert.match(queue, /uradna\.evidenceVersion === INSOLVENCY_CACHE_VERSION/,
+  "starega uradnega posnetka ni dovoljeno ponovno uporabiti");
 
 var ui = source("app/bonitetna-preverba.js");
 assert.match(ui, /jeIskanaOseba \? "Ime in priimek" : "Ime podjetja"/,
