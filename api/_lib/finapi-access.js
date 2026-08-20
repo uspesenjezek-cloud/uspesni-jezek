@@ -3,6 +3,7 @@
 const crypto = require("crypto");
 
 const SANDBOX_BASE_URL = "https://sandbox.finapi.io/api/v2";
+const WEBFORM_SANDBOX_BASE_URL = "https://webform-sandbox.finapi.io";
 const DEMO_BANK_ID = 280001;
 const DEMO_BANK_NAME = "finAPI Test Bank";
 const DEMO_BANK_INTERFACE = "XS2A";
@@ -148,28 +149,47 @@ async function bankConnections(token, cfg) {
 
 function demoConnection(connections) {
   return (connections || []).find(function (connection) {
-    return Number(connection && connection.bank && connection.bank.id) === DEMO_BANK_ID;
+    return Number(connection && (connection.bankId || connection.bank && connection.bank.id)) === DEMO_BANK_ID;
   }) || null;
 }
 
-async function connectDemoBank(token, cfg) {
-  const existing = demoConnection(await bankConnections(token, cfg));
-  if (existing) return existing;
-  return requestJson(cfg, "/bankConnections/import", {
+function connectionBankName(connection) {
+  return clean(connection && (connection.bankName || connection.name || connection.bank && connection.bank.name));
+}
+
+function verifiedWebFormUrl(value) {
+  let parsed;
+  try { parsed = new URL(clean(value)); }
+  catch (_) { parsed = null; }
+  if (!parsed || parsed.protocol !== "https:" || parsed.hostname !== "webform-sandbox.finapi.io") {
+    const error = new Error("finAPI ni vrnil varnega testnega obrazca.");
+    error.code = "FINAPI_WEBFORM_INVALID";
+    throw error;
+  }
+  return parsed.toString();
+}
+
+async function createDemoBankWebForm(appUserId, source) {
+  const cfg = configuration(source);
+  const token = await userToken(appUserId, cfg, true);
+  const webFormCfg = Object.assign({}, cfg, { baseUrl: WEBFORM_SANDBOX_BASE_URL });
+  const body = await requestJson(webFormCfg, "/api/webForms/bankConnectionImport", {
     method: "POST",
     headers: Object.assign({ "Content-Type": "application/json" }, bearer(token)),
     body: JSON.stringify({
-      bankId: DEMO_BANK_ID,
-      name: DEMO_BANK_NAME,
-      bankingInterface: DEMO_BANK_INTERFACE,
-      loginCredentials: [
-        { label: "Onlinebanking-ID", value: "demo_no_msa" },
-        { label: "PIN", value: "demo_no_msa" },
-      ],
-      storeSecrets: false,
+      bank: { id: DEMO_BANK_ID },
+      bankConnectionName: DEMO_BANK_NAME,
+      allowedInterfaces: [DEMO_BANK_INTERFACE],
+      allowTestBank: true,
       maxDaysForDownload: 120,
     }),
   }, 20000);
+  return {
+    id: clean(body.id),
+    url: verifiedWebFormUrl(body.url),
+    status: clean(body.status || "NOT_YET_OPENED"),
+    expiresAt: clean(body.expiresAt),
+  };
 }
 
 function isoDateDaysAgo(days) {
@@ -222,7 +242,7 @@ async function statusForUser(appUserId, source) {
       connected: Boolean(connection),
       pending: Boolean(connection && connection.updateStatus === "IN_PROGRESS"),
       environment: "sandbox",
-      bankName: connection && connection.bank && connection.bank.name || "",
+      bankName: connectionBankName(connection),
     };
   } catch (error) {
     if (error && (error.status === 400 || error.status === 401 || error.code === "FINAPI_AUTH_INVALID")) {
@@ -234,8 +254,14 @@ async function statusForUser(appUserId, source) {
 
 async function syncDemoTransactions(appUserId, source) {
   const cfg = configuration(source);
-  const token = await userToken(appUserId, cfg, true);
-  let connection = await connectDemoBank(token, cfg);
+  const token = await userToken(appUserId, cfg, false);
+  let connection = demoConnection(await bankConnections(token, cfg));
+  if (!connection) {
+    const error = new Error("Najprej zaključite varen finAPI testni obrazec.");
+    error.code = "FINAPI_WEBFORM_REQUIRED";
+    error.status = 409;
+    throw error;
+  }
   if (connection && connection.updateStatus === "IN_PROGRESS") {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       await new Promise(function (resolve) { setTimeout(resolve, 650); });
@@ -250,7 +276,7 @@ async function syncDemoTransactions(appUserId, source) {
       connected: true,
       pending: Boolean(connection && connection.updateStatus === "IN_PROGRESS"),
       environment: "sandbox",
-      bankName: connection && connection.bank && connection.bank.name || DEMO_BANK_NAME,
+      bankName: connectionBankName(connection) || DEMO_BANK_NAME,
     },
     transactions,
     syncedAt: new Date().toISOString(),
@@ -259,8 +285,10 @@ async function syncDemoTransactions(appUserId, source) {
 
 module.exports = {
   SANDBOX_BASE_URL,
+  WEBFORM_SANDBOX_BASE_URL,
   DEMO_BANK_ID,
   configuration,
+  createDemoBankWebForm,
   statusForUser,
   syncDemoTransactions,
   _test: {
@@ -272,7 +300,8 @@ module.exports = {
     oauthToken,
     ensureUser,
     demoConnection,
-    connectDemoBank,
+    connectionBankName,
+    verifiedWebFormUrl,
     incomingTransactions,
     resetTokenCache: function () { tokenCache.clear(); },
   },

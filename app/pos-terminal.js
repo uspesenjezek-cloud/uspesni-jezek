@@ -2620,13 +2620,33 @@
       if (!backend.ready || !backend.userId) throw new Error("Za finAPI je potrebna varna prijavljena hramba.");
       if (!backend.bankReady) throw new Error("Bančni modul še ni aktiviran.");
       var token = await apiSessionToken();
+      var action = finapiBankCapability.connected ? "sync" : "connect";
       var response = await fetch("/api/pos-finapi", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sync" })
+        body: JSON.stringify({ action: action })
       });
       var body = null;
       try { body = await response.json(); } catch (_error) {}
+      if (action === "connect" && response.ok && body && body.webForm && body.webForm.url) {
+        var webFormUrl = new URL(body.webForm.url);
+        if (webFormUrl.protocol !== "https:" || webFormUrl.hostname !== "webform-sandbox.finapi.io") throw new Error("finAPI ni vrnil varnega testnega obrazca.");
+        var returnUrl = new URL(global.location.href);
+        returnUrl.search = "";
+        returnUrl.hash = "";
+        var errorReturnUrl = new URL(returnUrl.toString());
+        var abortReturnUrl = new URL(returnUrl.toString());
+        returnUrl.searchParams.set("finapi", "complete");
+        errorReturnUrl.searchParams.set("finapi", "error");
+        abortReturnUrl.searchParams.set("finapi", "abort");
+        webFormUrl.searchParams.set("redirectUrl", returnUrl.toString());
+        webFormUrl.searchParams.set("errorRedirectUrl", errorReturnUrl.toString());
+        webFormUrl.searchParams.set("abortRedirectUrl", abortReturnUrl.toString());
+        webFormUrl.searchParams.set("language", "de");
+        webFormUrl.searchParams.set("colorMode", "light");
+        global.location.assign(webFormUrl.toString());
+        return;
+      }
       if (!response.ok || !body || !body.finapi) throw new Error(body && body.napaka || "Testnih prilivov ni bilo mogoče sinhronizirati.");
       updateFinapiBankCapability(body.finapi);
       var transactions = Array.isArray(body.transactions) ? body.transactions : [];
@@ -3046,6 +3066,18 @@
     renderHome();
     showView("home");
     loadServerState();
+    var finapiReturn = new URLSearchParams(global.location.search).get("finapi");
+    if (finapiReturn) {
+      var cleanReturnUrl = new URL(global.location.href);
+      cleanReturnUrl.searchParams.delete("finapi");
+      global.history.replaceState(null, "", cleanReturnUrl.pathname + cleanReturnUrl.search + cleanReturnUrl.hash);
+      setTimeout(function () {
+        openBankSheet();
+        showToast(finapiReturn === "complete"
+          ? "finAPI obrazec je zaključen. Preverite povezavo in osvežite prilive."
+          : finapiReturn === "abort" ? "Povezovanje testne banke je bilo prekinjeno." : "finAPI obrazca ni bilo mogoče zaključiti.");
+      }, 0);
+    }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });

@@ -109,6 +109,8 @@ assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTe
 assert.match(js, /\.rpc\("pos_import_bank_transactions"/);
 assert.match(js, /\.rpc\("pos_confirm_bank_transaction"/);
 assert.match(js, /\/api\/pos-finapi/);
+assert.match(js, /webform-sandbox\.finapi\.io/);
+assert.match(js, /finapi.*complete/);
 assert.match(js, /\.rpc\("pos_import_finapi_transactions"/);
 assert.match(js, /Sandbox povezan · brez pravih nakazil/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
@@ -503,10 +505,13 @@ assert.match(finapiMigration, /external_reference !~ '\^finapi:\[0-9\]\+\$'/i);
 assert.match(finapiMigration, /notify pgrst, 'reload schema'/i);
 assert.match(finapiApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(finapiApi, /syncDemoTransactions\(auth\.user\.id\)/);
+assert.match(finapiApi, /createDemoBankWebForm\(auth\.user\.id\)/);
 assert.doesNotMatch(finapiApi, /FINAPI_CLIENT_SECRET/);
 assert.match(finapiLib, /https:\/\/sandbox\.finapi\.io\/api\/v2/);
+assert.match(finapiLib, /https:\/\/webform-sandbox\.finapi\.io/);
 assert.match(finapiLib, /createHmac\("sha256"/);
-assert.match(finapiLib, /storeSecrets:\s*false/);
+assert.match(finapiLib, /\/api\/webForms\/bankConnectionImport/);
+assert.doesNotMatch(finapiLib, /requestJson\(cfg, "\/bankConnections\/import"/);
 assert.match(finapiLib, /Do NOT route multiple application users|one end user/i);
 
 console.log("POS terminal: nemška logika, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
