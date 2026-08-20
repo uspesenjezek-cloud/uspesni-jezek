@@ -33,12 +33,24 @@ async function handler(req, res) {
       return json(res, 200, { ok: true, finapi: await finapi.statusForUser(auth.user.id) });
     }
     const action = String(req.body && req.body.action || "sync");
+    if (action === "connect") {
+      const webForm = await finapi.createDemoBankWebForm(auth.user.id);
+      return json(res, 201, { ok: true, webForm });
+    }
     if (action !== "sync") return json(res, 400, { ok: false, napaka: "Neznano finAPI opravilo." });
     const result = await finapi.syncDemoTransactions(auth.user.id);
     return json(res, 200, { ok: true, finapi: result.status, transactions: result.transactions, syncedAt: result.syncedAt });
   } catch (error) {
     if (error && error.code === "FINAPI_NOT_CONFIGURED") {
       return json(res, 200, { ok: true, finapi: unavailable(error), transactions: [] });
+    }
+    if (error && error.code === "FINAPI_WEBFORM_REQUIRED") {
+      return json(res, 409, {
+        ok: false,
+        code: error.code,
+        napaka: "Najprej zaključite varen finAPI testni obrazec.",
+        finapi: unavailable(error),
+      });
     }
     console.error("[pos-finapi]", String(error && (error.code || error.name) || "UNKNOWN"));
     return json(res, error && error.retryable ? 503 : 502, {

@@ -14,6 +14,7 @@ const env = {
 assert.throws(function () { Finapi.configuration({}); }, /še ni nastavljena/);
 const cfg = Finapi.configuration(env);
 assert.strictEqual(cfg.baseUrl, "https://sandbox.finapi.io/api/v2");
+assert.strictEqual(Finapi.WEBFORM_SANDBOX_BASE_URL, "https://webform-sandbox.finapi.io");
 const userA = Finapi._test.userCredentials("11111111-2222-4333-8444-555555555555", cfg);
 const userB = Finapi._test.userCredentials("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", cfg);
 assert.match(userA.id, /^uj[a-z0-9]{32}$/);
@@ -51,8 +52,8 @@ async function run() {
     { status: 200, body: { access_token: "client-token", expires_in: 3600 } },
     { status: 201, body: { id: userA.id, password: "XXXXX", isAutoUpdateEnabled: false, isAutoUpdateInProgress: false } },
     { status: 200, body: { access_token: "user-token", expires_in: 3600 } },
-    { status: 200, body: { connections: [] } },
-    { status: 201, body: { id: 7, updateStatus: "READY", categorizationStatus: "READY", accountIds: [10], interfaces: [], importDate: "2026-08-20T12:00:00Z", bank: { id: 280001, name: "finAPI Test Bank" } } },
+    { status: 201, body: { id: "946db09e-5bfc-11eb-ae93-0242ac130002", url: "https://webform-sandbox.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002", status: "NOT_YET_OPENED", expiresAt: "2026-08-20T15:00:00.000Z" } },
+    { status: 200, body: { connections: [{ id: 7, bankId: 280001, name: "finAPI Test Bank", updateStatus: "READY", categorizationStatus: "READY", accountIds: [10], interfaces: [] }] } },
     { status: 200, body: { transactions: [{ id: 91, amount: 12.34, currency: "EUR", bankBookingDate: "2026-08-20", counterpartName: "Muster Kunde", purpose: "RE-2026-0001", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 1, perPage: 500, pageCount: 1, totalCount: 1 }, income: 12.34, spending: 0, balance: 12.34 } },
   ];
   global.fetch = async function (url, options) {
@@ -67,6 +68,9 @@ async function run() {
   };
   try {
     Finapi._test.resetTokenCache();
+    const webForm = await Finapi.createDemoBankWebForm("11111111-2222-4333-8444-555555555555", env);
+    assert.strictEqual(webForm.status, "NOT_YET_OPENED");
+    assert.match(webForm.url, /^https:\/\/webform-sandbox\.finapi\.io\/wf\//);
     const result = await Finapi.syncDemoTransactions("11111111-2222-4333-8444-555555555555", env);
     assert.strictEqual(result.status.connected, true);
     assert.strictEqual(result.status.environment, "sandbox");
@@ -74,15 +78,16 @@ async function run() {
     assert.strictEqual(result.transactions[0].external_reference, "finapi:91");
     assert.strictEqual(requests.length, 6);
     assert.match(requests[0].url, /\/oauth\/token$/);
-    assert.match(requests[3].url, /\/bankConnections$/);
-    assert.match(requests[4].url, /\/bankConnections\/import$/);
+    assert.match(requests[3].url, /webform-sandbox\.finapi\.io\/api\/webForms\/bankConnectionImport$/);
+    assert.match(requests[4].url, /\/bankConnections$/);
     assert.match(requests[5].url, /\/transactions\?/);
     assert.match(requests[5].url, /view=bankView/);
     assert.match(requests[5].url, /direction=income/);
-    const importBody = JSON.parse(requests[4].options.body);
-    assert.strictEqual(importBody.bankId, 280001);
-    assert.strictEqual(importBody.storeSecrets, false);
-    assert.deepStrictEqual(importBody.loginCredentials.map(function (entry) { return entry.label; }), ["Onlinebanking-ID", "PIN"]);
+    const importBody = JSON.parse(requests[3].options.body);
+    assert.strictEqual(importBody.bank.id, 280001);
+    assert.strictEqual(importBody.allowTestBank, true);
+    assert.deepStrictEqual(importBody.allowedInterfaces, ["XS2A"]);
+    assert.doesNotMatch(requests.map(function (entry) { return entry.url; }).join("\n"), /\/bankConnections\/import/);
     assert.doesNotMatch(JSON.stringify(result), /client-secret-test|0123456789abcdef/);
   } finally {
     global.fetch = originalFetch;
