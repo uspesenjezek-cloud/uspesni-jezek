@@ -1,6 +1,7 @@
 # Supabase konfiguracija z API ključi - ne sme priti na GitHub.
 # Kopijo brez pravih podatkov najdeš v app/config.example.js
 app/config.js
+app/qrcode.bundle.js
 app/sentry.bundle.js
 app/vendor-data.js
 

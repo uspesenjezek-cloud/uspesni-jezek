@@ -11,6 +11,8 @@ const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "app", "pos-terminal.css"), "utf8");
+const packageJson = fs.readFileSync(path.join(root, "package.json"), "utf8");
+const qrBuild = fs.readFileSync(path.join(root, "scripts", "build-qrcode-browser.mjs"), "utf8");
 
 assert.strictEqual(client.TEST_BASE_URL, "https://kassensichv-middleware.fiskaly.com/api/v2");
 assert.strictEqual(client.LIVE_BASE_URL, "https://kassensichv.fiskaly.com/api/v2");
@@ -74,6 +76,8 @@ assert.match(html, /data-kassenbon-counter/);
 assert.match(html, /data-kassenbon-qr/);
 assert.match(html, /TRAINING – brez pravega poslovnega dogodka/);
 assert.match(html, /20260820-fiskaly-kassenbon-v2/);
+assert.match(html, /qrcode\.bundle\.js\?v=20260820-local-qr-v1/);
+assert.doesNotMatch(html, /cdn\.jsdelivr\.net\/npm\/qrcode/);
 assert.match(js, /loadFiskalyCapability/);
 assert.match(js, /submitFiskalyTrainingReceipt/);
 assert.match(js, /renderSignedKassenbon/);
@@ -86,6 +90,9 @@ assert.match(css, /\.pos-fiskaly-receipt-sheet/);
 assert.match(css, /\.pos-fiskaly-receipt-form\[hidden\]\s*\{\s*display:\s*none/);
 assert.match(css, /\.pos-kassenbon-tse/);
 assert.match(css, /overflow-wrap:\s*anywhere/);
+assert.match(packageJson, /"qrcode":\s*"1\.5\.4"/);
+assert.match(packageJson, /build-qrcode-browser\.mjs/);
+assert.match(qrBuild, /qrcode-entry\.js/);
 
 async function verifyTrainingFlow() {
   const originalFetch = global.fetch;
