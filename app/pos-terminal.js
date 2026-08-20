@@ -599,6 +599,61 @@
     return candidates[0];
   }
 
+  function bankDateOrdinal(value) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""));
+    if (!match) return null;
+    return Math.floor(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / 86400000);
+  }
+
+  function resolveBankMatches(transactions, invoices) {
+    var suggestions = {};
+    var ambiguities = {};
+    var byInvoice = {};
+    (Array.isArray(transactions) ? transactions : []).forEach(function (transaction, index) {
+      var match = matchBankTransaction(transaction, invoices);
+      if (!match) return;
+      var transactionKey = String(transaction.id || index);
+      var bookedDay = bankDateOrdinal(transaction.bookedOn || transaction.booked_on);
+      var issueDay = bankDateOrdinal(match.invoice && match.invoice.draft && (match.invoice.draft.issueDate || match.invoice.draft.issue_date));
+      var dueDay = bankDateOrdinal(match.invoice && (match.invoice.dueDate || match.invoice.due_date));
+      if (match.score < 92 && bookedDay !== null && issueDay !== null) {
+        var latestDay = dueDay === null ? issueDay + 90 : dueDay + 90;
+        if (bookedDay < issueDay - 14 || bookedDay > latestDay) return;
+      }
+      var sellerIban = cleanIban(match.invoice && match.invoice.seller && match.invoice.seller.iban);
+      var sourceIban = cleanIban(transaction.sourceAccountIban || transaction.source_account_iban);
+      var destinationMatch = Boolean(sellerIban && sourceIban && sellerIban === sourceIban);
+      var entry = Object.assign({}, match, {
+        transaction: transaction,
+        transactionKey: transactionKey,
+        dateDistance: bookedDay === null || issueDay === null ? 999999 : Math.abs(bookedDay - issueDay),
+        destinationMatch: destinationMatch,
+        rank: match.score + (destinationMatch ? 8 : 0)
+      });
+      var invoiceKey = String(match.invoice.id);
+      if (!byInvoice[invoiceKey]) byInvoice[invoiceKey] = [];
+      byInvoice[invoiceKey].push(entry);
+    });
+    Object.keys(byInvoice).forEach(function (invoiceKey) {
+      var entries = byInvoice[invoiceKey].sort(function (left, right) {
+        if (right.rank !== left.rank) return right.rank - left.rank;
+        return left.dateDistance - right.dateDistance;
+      });
+      var best = entries[0];
+      var tied = entries.filter(function (entry) {
+        return entry.rank === best.rank && entry.dateDistance === best.dateDistance;
+      });
+      if (tied.length === 1) {
+        suggestions[best.transactionKey] = best;
+        return;
+      }
+      tied.forEach(function (entry) {
+        ambiguities[entry.transactionKey] = "Več enako primernih prilivov – preverite izvorni račun.";
+      });
+    });
+    return { suggestions: suggestions, ambiguities: ambiguities };
+  }
+
   function profileForPreview(profile, isTest) {
     var source = Object.assign({}, profile || {});
     var identityReady = [source.legalName, source.street, source.postalCode, source.city]
@@ -1003,6 +1058,7 @@
     parseCamt053: parseCamt053,
     parseBankStatement: parseBankStatement,
     matchBankTransaction: matchBankTransaction,
+    resolveBankMatches: resolveBankMatches,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
@@ -2689,7 +2745,8 @@
     renderFinapiBankControl();
     var transactions = state.bankTransactions || [];
     var confirmed = transactions.filter(function (entry) { return entry.status === "confirmed"; }).length;
-    var suggested = transactions.filter(function (entry) { return entry.status !== "confirmed" && matchBankTransaction(entry, state.invoices); }).length;
+    var resolvedMatches = resolveBankMatches(transactions, state.invoices);
+    var suggested = Object.keys(resolvedMatches.suggestions).length;
     query("[data-bank-summary]").innerHTML = [
       [transactions.length, "Prilivi"], [suggested, "Predlogi"], [confirmed, "Potrjeni"]
     ].map(function (entry) { return "<div><strong>" + entry[0] + "</strong><small>" + entry[1] + "</small></div>"; }).join("");
@@ -2705,7 +2762,8 @@
     }
     query("[data-bank-import-another]").disabled = false;
     list.innerHTML = transactions.map(function (transaction) {
-      var suggestion = matchBankTransaction(transaction, state.invoices);
+      var suggestion = resolvedMatches.suggestions[String(transaction.id)] || null;
+      var ambiguity = resolvedMatches.ambiguities[String(transaction.id)] || "";
       var confirmedInvoice = transaction.confirmedInvoiceId && findInvoice(transaction.confirmedInvoiceId);
       var options = state.invoices.filter(function (invoice) {
         var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
@@ -2716,14 +2774,14 @@
         if (right.id === suggestion.invoice.id) return 1;
         return 0;
       });
-      var optionHtml = options.length ? options.map(function (invoice) {
+      var optionHtml = options.length ? (suggestion ? "" : "<option value=\"\" selected disabled>Izberite račun …</option>") + options.map(function (invoice) {
         var selected = suggestion && suggestion.invoice.id === invoice.id ? " selected" : "";
         var outstanding = invoice.totals.grossCents - integer(invoice.paidCents, 0);
         return "<option value=\"" + escapeHtml(invoice.id) + "\"" + selected + ">" + escapeHtml(invoice.number + " · " + invoice.draft.customerName + " · " + formatMoney(outstanding)) + "</option>";
       }).join("") : "<option value=\"\">Ni primernega odprtega računa</option>";
       var bottom = transaction.status === "confirmed"
         ? "<div class=\"pos-bank-entry__confirmed\"><span>✓ Plačilo potrjeno</span><span>" + escapeHtml(confirmedInvoice ? confirmedInvoice.number : "Račun") + "</span></div>"
-        : "<div class=\"pos-bank-match\"><label>" + (suggestion ? "Predlagan račun" : "Izberite račun") + "<select data-bank-invoice=\"" + escapeHtml(transaction.id) + "\">" + optionHtml + "</select>" + (suggestion ? "<span class=\"pos-bank-match__reason\">" + escapeHtml(suggestion.reason) + " · " + suggestion.score + " %</span>" : "") + "</label><button class=\"pos-primary\" type=\"button\" data-bank-confirm=\"" + escapeHtml(transaction.id) + "\"" + (options.length ? "" : " disabled") + ">Potrdi povezavo</button></div>";
+        : "<div class=\"pos-bank-match\"><label>" + (suggestion ? "Predlagan račun" : "Izberite račun") + "<select data-bank-invoice=\"" + escapeHtml(transaction.id) + "\">" + optionHtml + "</select>" + (suggestion ? "<span class=\"pos-bank-match__reason\">" + escapeHtml(suggestion.reason) + " · " + suggestion.score + " %</span>" : ambiguity ? "<span class=\"pos-bank-match__reason is-warning\">" + escapeHtml(ambiguity) + "</span>" : "") + "</label><button class=\"pos-primary\" type=\"button\" data-bank-confirm=\"" + escapeHtml(transaction.id) + "\"" + (suggestion && options.length ? "" : " disabled") + ">Potrdi povezavo</button></div>";
       var sourceAccount = transaction.sourceAccountName || transaction.sourceAccountIban || transaction.sourceAccountId;
       var sourceAccountHtml = sourceAccount
         ? "<p class=\"pos-bank-entry__source\">Prejeto na " + escapeHtml(transaction.sourceAccountName || "bančni račun") + (transaction.sourceAccountIban ? " · " + escapeHtml(transaction.sourceAccountIban) : "") + "</p>"
@@ -2732,6 +2790,12 @@
     }).join("");
     queryAll("[data-bank-confirm]", list).forEach(function (button) {
       button.addEventListener("click", function () { requestBankConfirmation(button.getAttribute("data-bank-confirm")); });
+    });
+    queryAll("[data-bank-invoice]", list).forEach(function (select) {
+      select.addEventListener("change", function () {
+        var button = query("[data-bank-confirm=\"" + select.getAttribute("data-bank-invoice") + "\"]", list);
+        if (button) button.disabled = !select.value;
+      });
     });
     fitAllText();
   }

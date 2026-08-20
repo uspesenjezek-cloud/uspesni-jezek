@@ -713,6 +713,7 @@
 .pos-bank-match select { width: 100%; min-height: 36px; margin-top: 3px; padding: 6px 28px 6px 8px; color: var(--pos-ink); border: 1px solid #bfd5d0; border-radius: 10px; background: #fff; font-size: .62rem; }
 .pos-bank-match button { min-height: 36px; padding: 7px 10px; font-size: .62rem; white-space: nowrap; }
 .pos-bank-match__reason { display: block; margin-top: 4px; color: var(--pos-teal-dark); font-size: .54rem; font-weight: 700; }
+.pos-bank-match__reason.is-warning { color: #9a5d00; }
 .pos-bank-entry__confirmed { display: flex; padding-top: 8px; align-items: center; justify-content: space-between; gap: 8px; color: var(--pos-teal-dark); border-top: 1px solid #cfe2de; font-size: .6rem; font-weight: 700; }
 .pos-bank-sheet__actions { display: grid; grid-template-columns: .8fr 1.2fr; margin: 0 -15px calc(-12px - env(safe-area-inset-bottom)); padding: 10px 15px calc(12px + env(safe-area-inset-bottom)); gap: 8px; border-top: 1px solid #d9e5e1; background: rgba(255,255,255,.97); }
 .pos-bank-sheet__actions button { min-height: 43px; }
