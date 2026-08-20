@@ -680,6 +680,18 @@
 .pos-bank-sheet__head h2 { margin: 1px 0 0; color: var(--pos-ink); font-size: 1.05rem; }
 .pos-bank-sheet__head p:last-child { margin: 3px 0 0; color: var(--pos-muted); font-size: .62rem; }
 .pos-bank-sheet__head button { display: grid; width: 36px; height: 36px; flex: 0 0 36px; padding: 0; place-items: center; color: var(--pos-teal-dark); border: 1px solid var(--pos-line); border-radius: 50%; background: #fff; font-size: 1.35rem; cursor: pointer; }
+.pos-bank-provider { display: grid; grid-template-columns: auto minmax(0,1fr) auto; margin-top: 10px; padding: 9px; align-items: center; gap: 7px 9px; border: 1px solid #cce3de; border-radius: 14px; background: linear-gradient(135deg,#f2faf8,#fbfdfc); }
+.pos-bank-provider__icon { display: grid; width: 34px; height: 34px; grid-row: 1 / span 2; place-items: center; color: var(--pos-teal-dark); border-radius: 10px; background: #dff2ee; }
+.pos-bank-provider__icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.pos-bank-provider__copy { min-width: 0; }
+.pos-bank-provider__copy strong, .pos-bank-provider__copy small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pos-bank-provider__copy strong { color: var(--pos-ink); font-size: .66rem; }
+.pos-bank-provider__copy small { margin-top: 2px; color: var(--pos-muted); font-size: .54rem; }
+.pos-bank-provider__badge { padding: 4px 7px; color: #126d65; border: 1px solid #b6ddd6; border-radius: 99px; background: #e9f7f4; font-size: .49rem; font-weight: 800; letter-spacing: .05em; }
+.pos-bank-provider > button { min-height: 34px; grid-column: 2 / 4; padding: 6px 10px; font-size: .6rem; }
+.pos-bank-provider.is-ready { border-color: #83cfc3; background: linear-gradient(135deg,#eaf9f5,#f8fdfb); }
+.pos-bank-provider.is-error { border-color: #e5c3bd; background: #fff8f6; }
+.pos-bank-provider.is-error .pos-bank-provider__badge { color: #8a4439; border-color: #e7c7c1; background: #fff; }
 .pos-bank-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 11px 0 9px; gap: 7px; }
 .pos-bank-summary div { padding: 8px; text-align: center; border: 1px solid #d6e5e1; border-radius: 12px; background: #f5faf8; }
 .pos-bank-summary strong, .pos-bank-summary small { display: block; }

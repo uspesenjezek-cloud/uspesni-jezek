@@ -1034,6 +1034,7 @@
   var deliverySubmitting = false;
   var deliveryCapability = { provider: "resend", configured: false, sendEnabled: false, testEnabled: false, liveEnabled: false, mode: "sandbox" };
   var fiskalyCapability = { configured: false, connected: false, integrationReady: false, environment: "test", tssCount: 0, tssState: "", clientState: "", cashModuleEnabled: false };
+  var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
   var toastTimer = 0;
   var dialogCallback = null;
 
@@ -2553,6 +2554,106 @@
     return Array.prototype.map.call(new Uint8Array(digest), function (byte) { return byte.toString(16).padStart(2, "0"); }).join("");
   }
 
+  function updateFinapiBankCapability(value) {
+    var next = value || {};
+    finapiBankCapability.loaded = true;
+    finapiBankCapability.configured = Boolean(next.configured);
+    finapiBankCapability.connected = Boolean(next.connected);
+    finapiBankCapability.pending = Boolean(next.pending);
+    finapiBankCapability.environment = "sandbox";
+    finapiBankCapability.bankName = String(next.bankName || "");
+    finapiBankCapability.lastError = false;
+  }
+
+  function renderFinapiBankControl() {
+    var box = query("[data-finapi-bank]");
+    var title = query("[data-finapi-bank-title]");
+    var status = query("[data-finapi-bank-status]");
+    var badge = query("[data-finapi-bank-badge]");
+    var button = query("[data-finapi-bank-sync]");
+    if (!box || !title || !status || !badge || !button) return;
+    var busy = finapiBankCapability.loading || finapiBankCapability.syncing;
+    box.classList.toggle("is-ready", finapiBankCapability.connected);
+    box.classList.toggle("is-error", finapiBankCapability.lastError);
+    title.textContent = finapiBankCapability.bankName || "finAPI testna banka";
+    badge.textContent = finapiBankCapability.lastError ? "NAPAKA" : "TEST";
+    status.textContent = finapiBankCapability.loading ? "Preverjam varno povezavo …"
+      : finapiBankCapability.syncing ? "Prenašam testne prilive …"
+        : finapiBankCapability.pending ? "Banka še pripravlja testne prilive"
+          : finapiBankCapability.connected ? "Sandbox povezan · brez pravih nakazil"
+            : finapiBankCapability.configured ? "Pripravljeno za varen test"
+              : "Strežniški ključi še niso nastavljeni";
+    button.textContent = finapiBankCapability.syncing ? "Sinhroniziram …"
+      : finapiBankCapability.connected ? "Osveži prilive" : "Poveži testno banko";
+    button.disabled = busy || !finapiBankCapability.configured || !backend.bankReady;
+  }
+
+  async function loadFinapiBankStatus(showFeedback) {
+    if (finapiBankCapability.loading) return finapiBankCapability;
+    finapiBankCapability.loading = true;
+    renderFinapiBankControl();
+    try {
+      var token = await apiSessionToken();
+      var response = await fetch("/api/pos-finapi", { method: "GET", headers: { Authorization: "Bearer " + token } });
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      if (!response.ok || !body || !body.finapi) throw new Error(body && body.napaka || "finAPI stanja ni bilo mogoče preveriti.");
+      updateFinapiBankCapability(body.finapi);
+      if (showFeedback) showToast(finapiBankCapability.connected ? "finAPI testna banka je povezana." : finapiBankCapability.configured ? "finAPI je pripravljen za testno povezavo." : "finAPI ključi še niso nastavljeni.");
+    } catch (error) {
+      finapiBankCapability.loaded = true;
+      finapiBankCapability.lastError = true;
+      if (showFeedback) showToast(error && error.message || "finAPI stanja ni bilo mogoče preveriti.");
+    } finally {
+      finapiBankCapability.loading = false;
+      renderFinapiBankControl();
+    }
+    return finapiBankCapability;
+  }
+
+  async function syncFinapiBank() {
+    if (finapiBankCapability.syncing) return;
+    finapiBankCapability.syncing = true;
+    finapiBankCapability.lastError = false;
+    renderFinapiBankControl();
+    try {
+      if (!backend.ready || !backend.userId) throw new Error("Za finAPI je potrebna varna prijavljena hramba.");
+      if (!backend.bankReady) throw new Error("Bančni modul še ni aktiviran.");
+      var token = await apiSessionToken();
+      var response = await fetch("/api/pos-finapi", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync" })
+      });
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      if (!response.ok || !body || !body.finapi) throw new Error(body && body.napaka || "Testnih prilivov ni bilo mogoče sinhronizirati.");
+      updateFinapiBankCapability(body.finapi);
+      var transactions = Array.isArray(body.transactions) ? body.transactions : [];
+      var summary = { inserted_count: 0, duplicate_count: 0 };
+      if (transactions.length) {
+        var fingerprint = await sha256Hex(JSON.stringify(transactions));
+        var result = await backend.client.rpc("pos_import_finapi_transactions", {
+          p_batch_sha256: fingerprint,
+          p_transactions: transactions
+        });
+        if (result.error) throw result.error;
+        summary = result.data || summary;
+        await loadServerState();
+      }
+      renderBankSheet();
+      if (!transactions.length && finapiBankCapability.pending) showToast("Testna banka še pripravlja prilive. Čez nekaj trenutkov pritisnite Osveži prilive.");
+      else if (!transactions.length) showToast("finAPI testna banka trenutno nima novih EUR prilivov.");
+      else showToast("finAPI: novih " + integer(summary.inserted_count, 0) + "; že znanih " + integer(summary.duplicate_count, 0) + ".");
+    } catch (error) {
+      finapiBankCapability.lastError = true;
+      showToast(error && error.message || "finAPI sinhronizacija ni uspela.");
+    } finally {
+      finapiBankCapability.syncing = false;
+      renderFinapiBankControl();
+    }
+  }
+
   function closeBankSheet() {
     query("[data-bank-backdrop]").hidden = true;
     document.documentElement.classList.remove("uj-modal-odprt");
@@ -2560,6 +2661,7 @@
   }
 
   function renderBankSheet() {
+    renderFinapiBankControl();
     var transactions = state.bankTransactions || [];
     var confirmed = transactions.filter(function (entry) { return entry.status === "confirmed"; }).length;
     var suggested = transactions.filter(function (entry) { return entry.status !== "confirmed" && matchBankTransaction(entry, state.invoices); }).length;
@@ -2569,7 +2671,7 @@
     var list = query("[data-bank-list]");
     if (!transactions.length) {
       list.innerHTML = backend.bankReady
-        ? "<div class=\"pos-empty\"><strong>Ni uvoženih prilivov</strong><p>Uvozite CSV ali camt.053 iz svoje banke.</p></div>"
+        ? "<div class=\"pos-empty\"><strong>Ni prejetih prilivov</strong><p>Sinhronizirajte finAPI testno banko ali uvozite CSV oziroma camt.053.</p></div>"
         : "<div class=\"pos-empty\"><strong>Bančni modul še ni aktiviran</strong><p>Obstoječi POS deluje normalno; uvoz bo na voljo po varni nadgradnji baze.</p></div>";
       query("[data-bank-import-another]").disabled = !backend.bankReady;
       return;
@@ -2608,6 +2710,7 @@
     query("[data-bank-backdrop]").hidden = false;
     document.documentElement.classList.add("uj-modal-odprt");
     document.body.classList.add("uj-modal-odprt");
+    loadFinapiBankStatus(false);
   }
 
   function requestBankConfirmation(transactionId) {
@@ -2841,6 +2944,7 @@
     query("[data-copy-payment]").addEventListener("click", copyPayment);
     query("[data-open-payment]").addEventListener("click", requestLatestPayment);
     query("[data-import-bank]").addEventListener("click", openBankSheet);
+    query("[data-finapi-bank-sync]").addEventListener("click", syncFinapiBank);
     query("[data-bank-file]").addEventListener("change", function (event) { importBankFile(event.target.files[0]); event.target.value = ""; });
     query("[data-bank-close]").addEventListener("click", closeBankSheet);
     query("[data-bank-cancel]").addEventListener("click", closeBankSheet);

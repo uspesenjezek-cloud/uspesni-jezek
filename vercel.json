@@ -13,7 +13,8 @@
     { "source": "/api/pos-dostava-delavec", "destination": "/api/pos?handler=delivery-worker" },
     { "source": "/api/pos-dostava-email", "destination": "/api/pos?handler=delivery-email" },
     { "source": "/api/pos-dostava-webhook", "destination": "/api/pos?handler=delivery-webhook" },
-    { "source": "/api/pos-fiskaly", "destination": "/api/pos?handler=fiskaly-sign" }
+    { "source": "/api/pos-fiskaly", "destination": "/api/pos?handler=fiskaly-sign" },
+    { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },

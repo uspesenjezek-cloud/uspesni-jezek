@@ -43,6 +43,10 @@ const bankMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_bank_reconciliation\.sql$/.test(name)).sort().pop()
   : null;
 const bankMigration = bankMigrationName ? fs.readFileSync(path.join(migrationsDir, bankMigrationName), "utf8") : "";
+const finapiMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_finapi_bank_provider\.sql$/.test(name)).sort().pop()
+  : null;
+const finapiMigration = finapiMigrationName ? fs.readFileSync(path.join(migrationsDir, finapiMigrationName), "utf8") : "";
 const datevMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_datev_export_settings\.sql$/.test(name)).sort().pop()
   : null;
@@ -54,6 +58,8 @@ const deliveryApi = fs.existsSync(path.join(apiRoot, "pos-dostava-sandbox.js")) 
 const deliveryWorkerApi = fs.existsSync(path.join(apiRoot, "_lib", "pos-delivery-worker.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "pos-delivery-worker.js"), "utf8") : "";
 const deliveryEmailApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-dostava-email.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-dostava-email.js"), "utf8") : "";
 const adjustmentPdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-korekcija.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-korekcija.js"), "utf8") : "";
+const finapiApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-finapi.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-finapi.js"), "utf8") : "";
+const finapiLib = fs.existsSync(path.join(apiRoot, "_lib", "finapi-access.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "finapi-access.js"), "utf8") : "";
 const Core = require(path.join(assetRoot, "pos-terminal.js"));
 
 assert.match(html, /data-view="home"/);
@@ -84,6 +90,8 @@ assert.match(html, /data-structured-buyer-reference/);
 assert.match(html, /data-bank-backdrop/);
 assert.match(html, /data-bank-list/);
 assert.match(html, /data-bank-import-another/);
+assert.match(html, /data-finapi-bank-sync/);
+assert.match(html, /finAPI testna banka/);
 assert.match(html, /data-datev-backdrop/);
 assert.match(html, /DATEV Buchungsstapel/);
 assert.match(html, /name="datevAdviserNumber"/);
@@ -100,6 +108,9 @@ assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)
 assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
 assert.match(js, /\.rpc\("pos_import_bank_transactions"/);
 assert.match(js, /\.rpc\("pos_confirm_bank_transaction"/);
+assert.match(js, /\/api\/pos-finapi/);
+assert.match(js, /\.rpc\("pos_import_finapi_transactions"/);
+assert.match(js, /Sandbox povezan · brez pravih nakazil/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
@@ -140,6 +151,7 @@ assert.match(css, /\.pos-delivery-sheet[\s\S]*overflow-x:\s*hidden/);
 assert.match(css, /\.pos-delivery-sheet__actions[\s\S]*env\(safe-area-inset-bottom\)/);
 assert.match(css, /\.pos-bank-sheet[\s\S]*max-height:\s*min\(88vh/);
 assert.match(css, /\.pos-bank-list[\s\S]*overflow-x:\s*hidden/);
+assert.match(css, /\.pos-bank-provider[\s\S]*grid-template-columns/);
 assert.match(css, /\.pos-datev-sheet[\s\S]*env\(safe-area-inset-bottom\)/);
 assert.match(css, /\.pos-datev-sheet[\s\S]*overflow-x:\s*hidden/);
 
@@ -482,5 +494,19 @@ assert.match(bankMigration, /security definer\s+set search_path = ''/i);
 assert.match(bankMigration, /create or replace function public\.pos_import_bank_transactions[\s\S]*security invoker/i);
 assert.match(bankMigration, /create or replace function public\.pos_confirm_bank_transaction[\s\S]*security invoker/i);
 assert.match(bankMigration, /notify pgrst, 'reload schema'/i);
+assert.ok(finapiMigrationName, "Manjka Supabase migracija za finAPI bančni vir.");
+assert.match(finapiMigration, /file_format in \('csv','camt053','finapi'\)/i);
+assert.match(finapiMigration, /create or replace function public\.pos_import_finapi_transactions/i);
+assert.match(finapiMigration, /security invoker/i);
+assert.match(finapiMigration, /security definer\s+set search_path = ''/i);
+assert.match(finapiMigration, /external_reference !~ '\^finapi:\[0-9\]\+\$'/i);
+assert.match(finapiMigration, /notify pgrst, 'reload schema'/i);
+assert.match(finapiApi, /preveriUporabnika\(req, cfg\)/);
+assert.match(finapiApi, /syncDemoTransactions\(auth\.user\.id\)/);
+assert.doesNotMatch(finapiApi, /FINAPI_CLIENT_SECRET/);
+assert.match(finapiLib, /https:\/\/sandbox\.finapi\.io\/api\/v2/);
+assert.match(finapiLib, /createHmac\("sha256"/);
+assert.match(finapiLib, /storeSecrets:\s*false/);
+assert.match(finapiLib, /Do NOT route multiple application users|one end user/i);
 
 console.log("POS terminal: nemška logika, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
