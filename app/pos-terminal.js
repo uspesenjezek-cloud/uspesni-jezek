@@ -1059,6 +1059,7 @@
     parseBankStatement: parseBankStatement,
     matchBankTransaction: matchBankTransaction,
     resolveBankMatches: resolveBankMatches,
+    paymentFromServer: paymentFromServer,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
@@ -1232,14 +1233,28 @@
     };
   }
 
-  function serverInvoiceToLocal(row, paidByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice) {
+  function paymentFromServer(row) {
+    return {
+      id: row.id,
+      invoiceId: row.invoice_id,
+      amountCents: integer(row.amount_cents, 0),
+      currency: row.currency || "EUR",
+      method: row.method || "manual",
+      providerReference: row.provider_reference || "",
+      paidAt: row.paid_at || null,
+      sourceBankTransactionId: row.source_bank_transaction_id || null
+    };
+  }
+
+  function serverInvoiceToLocal(row, paymentsByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice) {
     var snapshot = row.snapshot || {};
     var adjustments = adjustmentsByInvoice && adjustmentsByInvoice[row.id] || [];
     var corrections = adjustments.filter(function (entry) { return entry.type === "correction"; });
     var latestCorrection = corrections[corrections.length - 1];
     var effectivePayload = latestCorrection && latestCorrection.snapshot && latestCorrection.snapshot.effective_draft || snapshot.draft || {};
     var draft = draftFromDatabasePayload(effectivePayload, true);
-    var paidCents = integer(paidByInvoice && paidByInvoice[row.id], 0);
+    var payments = paymentsByInvoice && paymentsByInvoice[row.id] || [];
+    var paidCents = payments.reduce(function (sum, payment) { return sum + integer(payment.amountCents, 0); }, 0);
     var paid = paidCents >= integer(row.gross_cents, 0);
     var partial = paidCents > 0 && !paid;
     var cancelled = adjustments.some(function (entry) { return entry.type === "cancellation"; });
@@ -1256,6 +1271,7 @@
       isTest: Boolean(row.is_test),
       status: cancelled ? "cancelled" : paid ? "paid" : partial ? "partial" : "open",
       paidCents: paidCents,
+      payments: payments,
       corrected: corrections.length > 0,
       adjustments: adjustments,
       deliveries: deliveriesByInvoice && deliveriesByInvoice[row.id] || [],
@@ -1281,7 +1297,7 @@
         backend.client.from("pos_business_profiles").select("*").eq("user_id", userId).maybeSingle(),
         backend.client.from("pos_invoice_drafts").select("id,payload,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1),
         backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).limit(100),
-        backend.client.from("pos_payments").select("invoice_id,amount_cents").eq("user_id", userId),
+        backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider_reference,paid_at,source_bank_transaction_id").eq("user_id", userId).order("paid_at", { ascending: true }),
         backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
         backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }),
         backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
@@ -1295,8 +1311,12 @@
       if (firstError) throw firstError;
       backend.ready = true;
       if (responses[0].data) state.profile = profileFromDatabase(responses[0].data);
-      var paidByInvoice = {};
-      (responses[3].data || []).forEach(function (payment) { paidByInvoice[payment.invoice_id] = integer(paidByInvoice[payment.invoice_id], 0) + integer(payment.amount_cents, 0); });
+      var paymentsByInvoice = {};
+      (responses[3].data || []).forEach(function (row) {
+        var payment = paymentFromServer(row);
+        if (!paymentsByInvoice[payment.invoiceId]) paymentsByInvoice[payment.invoiceId] = [];
+        paymentsByInvoice[payment.invoiceId].push(payment);
+      });
       var documentsByInvoice = {};
       (responses[4].data || []).forEach(function (entry) { documentsByInvoice[entry.invoice_id] = entry; });
       var einvoiceDocumentsByInvoice = {};
@@ -1318,7 +1338,7 @@
         if (!deliveriesByInvoice[row.invoice_id]) deliveriesByInvoice[row.invoice_id] = [];
         deliveriesByInvoice[row.invoice_id].push(deliveryFromServer(row, eventsByDelivery));
       });
-      var serverInvoices = (responses[2].data || []).map(function (row) { return serverInvoiceToLocal(row, paidByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice); });
+      var serverInvoices = (responses[2].data || []).map(function (row) { return serverInvoiceToLocal(row, paymentsByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice); });
       backend.bankReady = !responses[11].error;
       state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
       var invoicesById = {};
@@ -1675,6 +1695,32 @@
     });
   }
 
+  function paymentSourceLabel(payment) {
+    if (payment.sourceBankTransactionId || payment.method === "bank_transfer") return "Bančno nakazilo";
+    if (payment.method === "card_external") return "Zunanja kartica";
+    if (payment.method === "already_paid") return "Predhodno plačano";
+    return "Ročna potrditev";
+  }
+
+  function renderPaymentList(invoice) {
+    var section = query("[data-detail-payments-section]");
+    var list = query("[data-detail-payments-list]");
+    var payments = invoice.payments || [];
+    section.hidden = payments.length === 0;
+    if (!payments.length) { list.innerHTML = ""; return; }
+    query("[data-detail-payments-count]").textContent = String(payments.length);
+    list.innerHTML = payments.map(function (payment) {
+      var transaction = payment.sourceBankTransactionId && (state.bankTransactions || []).filter(function (entry) {
+        return entry.id === payment.sourceBankTransactionId;
+      })[0];
+      var bankSource = transaction && (transaction.counterpartyName || transaction.sourceAccountName || transaction.sourceAccountIban);
+      var reference = bankSource || payment.providerReference || "Potrjeno v POS";
+      var date = payment.paidAt ? formatDate(String(payment.paidAt).slice(0, 10)) : "Datum ni naveden";
+      var isBank = Boolean(payment.sourceBankTransactionId || payment.method === "bank_transfer");
+      return "<article class=\"pos-payment-row\"><span class=\"pos-payment-row__icon" + (isBank ? "" : " is-manual") + "\"><svg><use href=\"#" + (isBank ? "i-bank" : "i-check") + "\"/></svg></span><div class=\"pos-payment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(paymentSourceLabel(payment)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(date + " · " + reference) + "</small></div><strong class=\"pos-payment-row__amount\" data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(payment.amountCents)) + "</strong></article>";
+    }).join("");
+  }
+
   function syncDeliveryMode() {
     var invoice = findInvoice(deliveryInvoiceId);
     if (!invoice) return;
@@ -1989,6 +2035,7 @@
           .catch(function (error) { if (activeInvoiceId === invoice.id) setEinvoiceState(invoice, "error", error.message || "XRechnung ni pripravljen."); });
       }
     } else setEinvoiceState(invoice, "pending", "");
+    renderPaymentList(invoice);
     renderAdjustmentList(invoice);
     renderDeliveryList(invoice);
     fitAllText();
@@ -2582,15 +2629,23 @@
       onConfirm: async function () {
         try {
           var paidAt = new Date().toISOString();
+          var savedPayment = null;
           if (invoice.serverStored) {
             if (!backend.ready || !backend.userId) throw new Error("Varna hramba plačil ni povezana.");
             var outstandingCents = Math.max(0, invoice.totals.grossCents - integer(invoice.paidCents, 0));
             var result = await backend.client.from("pos_payments").insert({
               user_id: backend.userId, invoice_id: invoice.id, amount_cents: outstandingCents,
               currency: "EUR", method: "manual", provider_reference: "Ročno potrjeno v POS", paid_at: paidAt
-            }).select("id").single();
+            }).select("id,invoice_id,amount_cents,currency,method,provider_reference,paid_at,source_bank_transaction_id").single();
             if (result.error) throw result.error;
+            savedPayment = paymentFromServer(result.data);
           }
+          if (!savedPayment) savedPayment = paymentFromServer({
+            id: "local-" + Date.now(), invoice_id: invoice.id,
+            amount_cents: invoice.totals.grossCents - integer(invoice.paidCents, 0), currency: "EUR",
+            method: "manual", provider_reference: "Ročno potrjeno v POS", paid_at: paidAt
+          });
+          invoice.payments = (invoice.payments || []).concat([savedPayment]);
           invoice.paidCents = invoice.totals.grossCents;
           invoice.status = "paid";
           invoice.paidAt = paidAt;

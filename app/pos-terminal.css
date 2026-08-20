@@ -864,6 +864,21 @@
 .pos-delivery-timeline__step.is-failed, .pos-delivery-timeline__step.is-bounced, .pos-delivery-timeline__step.is-complained, .pos-delivery-timeline__step.is-suppressed { color: #8c3d39; }
 .pos-delivery-timeline__step.is-failed i, .pos-delivery-timeline__step.is-bounced i, .pos-delivery-timeline__step.is-complained i, .pos-delivery-timeline__step.is-suppressed i { border-color: #c66e67; background: #fff0ef; }
 
+.pos-detail-payments { margin-top: 10px; padding: 13px; border: 1px solid var(--pos-line); border-radius: 17px; background: linear-gradient(145deg, #f7fbfa, #fff); }
+.pos-detail-payments__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pos-detail-payments__head h3 { margin: 1px 0 0; font-size: .82rem; }
+.pos-detail-payments__head > span { display: grid; min-width: 26px; height: 26px; padding: 0 7px; place-items: center; color: var(--pos-teal-dark); border-radius: 99px; background: #e5f4f1; font-size: .64rem; font-weight: 700; }
+.pos-detail-payments__list { display: grid; margin-top: 9px; gap: 7px; }
+.pos-payment-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; min-height: 55px; padding: 8px; align-items: center; gap: 8px; border: 1px solid #dbe6e3; border-radius: 12px; background: #fff; }
+.pos-payment-row__icon { display: grid; width: 34px; height: 34px; place-items: center; color: var(--pos-teal-dark); border-radius: 10px; background: #e8f5f2; }
+.pos-payment-row__icon.is-manual { color: #5e706d; background: #edf3f1; }
+.pos-payment-row__icon svg { width: 16px; height: 16px; }
+.pos-payment-row__copy { min-width: 0; }
+.pos-payment-row__copy strong, .pos-payment-row__copy small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pos-payment-row__copy strong { font-size: .68rem; }
+.pos-payment-row__copy small { margin-top: 2px; color: var(--pos-muted); font-size: .57rem; }
+.pos-payment-row__amount { min-width: 72px; overflow: hidden; color: var(--pos-teal-dark); white-space: nowrap; text-align: right; text-overflow: ellipsis; font-size: .68rem; font-weight: 800; }
+
 .pos-replacement-banner { display: grid; grid-template-columns: 38px minmax(0, 1fr); margin: 0 0 11px; padding: 10px; align-items: center; gap: 9px; border: 1px solid #acd7d1; border-radius: 15px; background: linear-gradient(145deg, #eaf8f5, #fff); }
 .pos-replacement-banner[hidden] { display: none; }
 .pos-replacement-banner > span { display: grid; width: 38px; height: 38px; place-items: center; color: #fff; border-radius: 12px; background: linear-gradient(145deg, var(--pos-teal), var(--pos-teal-dark)); }
