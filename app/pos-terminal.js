@@ -3614,19 +3614,29 @@
   }
 
   async function saveDatevSettings() {
+    var saveButton = query("[data-datev-save]");
+    var originalLabel = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.setAttribute("aria-busy", "true");
+    saveButton.textContent = "Shranjujem …";
     state.profile.datevSettings = readDatevForm();
     persist();
+    renderDatevSheet();
+    showToast("DATEV nastavitve shranjujem …");
     try {
       if (backend.client) {
         if (!backend.userId) await getBackendUser();
         await saveProfileToServer();
       }
-      renderDatevSheet();
       showToast(backend.ready ? "DATEV nastavitve so varno shranjene." : "DATEV nastavitve so shranjene na tej napravi.");
     } catch (error) {
       backend.ready = false;
       backendMessage(databaseErrorMessage(error), "error");
       showToast("Nastavitve so lokalno shranjene; varna baza še ni nadgrajena.");
+    } finally {
+      saveButton.disabled = false;
+      saveButton.removeAttribute("aria-busy");
+      saveButton.textContent = originalLabel;
     }
   }
 

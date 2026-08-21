@@ -763,7 +763,7 @@
   right: 16px;
   bottom: calc(62px + var(--app-testna-safe-bottom, 0px));
   left: 16px;
-  z-index: 2147483000;
+  z-index: 2147483600;
   max-width: 398px;
   margin: 0 auto;
   padding: 11px 13px;
