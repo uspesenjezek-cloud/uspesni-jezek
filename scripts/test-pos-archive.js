@@ -10,12 +10,14 @@ const hardeningMigration = fs.readFileSync(path.join(root, "supabase", "migratio
 const wormMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821195904_pos_s3_object_lock_archive.sql"), "utf8");
 const productionRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821214500_pos_archive_production_recovery_evidence.sql"), "utf8");
 const completeSummaryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821213852_pos_archive_complete_summary.sql"), "utf8");
+const missingDocumentMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821220929_pos_archive_missing_document_repair.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 const archive = require(path.join(root, "api", "_lib", "pos-archive"));
 const worm = require(path.join(root, "api", "_lib", "pos-worm-archive"));
 const handler = require(path.join(root, "api", "_handlers", "pos-arhiv"));
+const archiveWorker = require(path.join(root, "api", "pos-arhiv-delavec"));
 const terminal = require(path.join(root, "app", "pos-terminal"));
 const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-arhiv.js"), "utf8");
 const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
@@ -51,6 +53,12 @@ assert.match(completeSummaryMigration, /create or replace function public\.pos_a
 assert.match(completeSummaryMigration, /security invoker/i);
 assert.match(completeSummaryMigration, /count\(\*\) filter \(where integrity_result = 'verified'\)/i);
 assert.match(completeSummaryMigration, /revoke all on function public\.pos_archive_user_summary\(uuid\)\s+from public, anon, authenticated/i);
+assert.match(missingDocumentMigration, /create or replace function public\.pos_archive_missing_document_batch\(p_limit integer default 2\)/i);
+assert.match(missingDocumentMigration, /not exists[\s\S]*public\.pos_invoice_documents/i);
+assert.match(missingDocumentMigration, /not exists[\s\S]*public\.pos_adjustment_documents/i);
+assert.match(missingDocumentMigration, /security invoker/i);
+assert.match(missingDocumentMigration, /revoke all on function public\.pos_archive_missing_document_batch\(integer\)[\s\S]*from public, anon, authenticated/i);
+assert.match(missingDocumentMigration, /grant execute on function public\.pos_archive_missing_document_batch\(integer\)[\s\S]*to service_role/i);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
@@ -205,7 +213,42 @@ async function testAwsRoundTrip() {
   assert.ok(calls.some(function (call) { return call.name === "GetObjectCommand" && call.input.VersionId === stored.versionId; }));
 }
 
-testAwsRoundTrip().then(function () {
+async function testMissingDocumentRepair() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
+  const invoiceDocuments = require(path.join(root, "api", "_handlers", "pos-racun-pdf"))._test;
+  const adjustmentDocuments = require(path.join(root, "api", "_handlers", "pos-racun-korekcija"))._test;
+  const originalRpc = supabase.pokliciRpc;
+  const originalRead = supabase.pridobiVrstice;
+  const originalInvoiceEnsure = invoiceDocuments.ensureDocument;
+  const originalAdjustmentEnsure = adjustmentDocuments.ensureDocument;
+  const repaired = [];
+  supabase.pokliciRpc = async function (_, name, payload) {
+    assert.strictEqual(name, "pos_archive_missing_document_batch");
+    assert.strictEqual(payload.p_limit, 2);
+    return [
+      { source_table: "pos_invoices", source_id: "invoice-1", user_id: "user-1" },
+      { source_table: "pos_invoice_adjustments", source_id: "adjustment-1", user_id: "user-1" }
+    ];
+  };
+  supabase.pridobiVrstice = async function (_, table, query) {
+    assert.match(query, /user_id=eq\.user-1/);
+    return [{ id: table === "pos_invoices" ? "invoice-1" : "adjustment-1" }];
+  };
+  invoiceDocuments.ensureDocument = async function (_, row) { repaired.push("invoice:" + row.id); };
+  adjustmentDocuments.ensureDocument = async function (_, row) { repaired.push("adjustment:" + row.id); };
+  try {
+    const counts = await archiveWorker._test.repairMissingDocuments({}, 2);
+    assert.deepStrictEqual(counts, { repaired: 2, failed: 0 });
+    assert.deepStrictEqual(repaired, ["invoice:invoice-1", "adjustment:adjustment-1"]);
+  } finally {
+    supabase.pokliciRpc = originalRpc;
+    supabase.pridobiVrstice = originalRead;
+    invoiceDocuments.ensureDocument = originalInvoiceEnsure;
+    adjustmentDocuments.ensureDocument = originalAdjustmentEnsure;
+  }
+}
+
+Promise.all([testAwsRoundTrip(), testMissingDocumentRepair()]).then(function () {
   console.log("POS archive tests passed.");
 }).catch(function (error) {
   console.error(error);

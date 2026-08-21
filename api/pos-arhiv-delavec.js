@@ -4,6 +4,8 @@ const crypto = require("crypto");
 const supabase = require("./_lib/supabase-server");
 const archive = require("./_lib/pos-archive");
 const worm = require("./_lib/pos-worm-archive");
+const invoiceDocuments = require("./_handlers/pos-racun-pdf")._test;
+const adjustmentDocuments = require("./_handlers/pos-racun-korekcija")._test;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
@@ -13,6 +15,33 @@ function safeEqual(left, right) {
   const a = Buffer.from(String(left || ""));
   const b = Buffer.from(String(right || ""));
   return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);
+}
+
+async function repairMissingDocuments(cfg, limit) {
+  const candidates = await supabase.pokliciRpc(cfg, "pos_archive_missing_document_batch", {
+    p_limit: Math.min(Math.max(Number(limit) || 2, 1), 10)
+  });
+  const counts = { repaired: 0, failed: 0 };
+  for (const candidate of (Array.isArray(candidates) ? candidates : [])) {
+    try {
+      const table = candidate && candidate.source_table;
+      const sourceId = candidate && candidate.source_id;
+      const userId = candidate && candidate.user_id;
+      if (!sourceId || !userId || !["pos_invoices", "pos_invoice_adjustments"].includes(table)) {
+        throw Object.assign(new Error("Neveljaven kandidat za obnovo dokumenta."), { code: "INVALID_REPAIR_CANDIDATE" });
+      }
+      const rows = await supabase.pridobiVrstice(cfg, table,
+        "id=eq." + encodeURIComponent(sourceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=*&limit=1");
+      if (!rows[0]) throw Object.assign(new Error("Izvorni POS zapis ne obstaja."), { code: "REPAIR_SOURCE_MISSING" });
+      if (table === "pos_invoices") await invoiceDocuments.ensureDocument(cfg, rows[0], userId);
+      else await adjustmentDocuments.ensureDocument(cfg, rows[0], userId);
+      counts.repaired += 1;
+    } catch (error) {
+      console.error("[pos-archive-document-repair]", worm.safeErrorCode(error));
+      counts.failed += 1;
+    }
+  }
+  return counts;
 }
 
 module.exports = async function handler(req, res) {
@@ -25,6 +54,7 @@ module.exports = async function handler(req, res) {
   catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
 
   try {
+    const documentCounts = await repairMissingDocuments(cfg, 2);
     const rows = await supabase.pokliciRpc(cfg, "pos_archive_integrity_batch", { p_limit: 10 });
     const counts = { verified: 0, failed: 0 };
     for (const record of (Array.isArray(rows) ? rows : [])) {
@@ -103,9 +133,10 @@ module.exports = async function handler(req, res) {
     }
     if (s3Client) s3Client.destroy();
 
-    const failed = counts.failed + replicaCounts.failed;
+    const failed = documentCounts.failed + counts.failed + replicaCounts.failed;
     return json(res, failed ? 409 : 200, {
       ok: failed === 0,
+      documents: { checked: documentCounts.repaired + documentCounts.failed, counts: documentCounts },
       integrity: { checked: counts.verified + counts.failed, counts: counts },
       replicas: { checked: replicaCounts.verified + replicaCounts.failed, counts: replicaCounts }
     });
@@ -113,3 +144,5 @@ module.exports = async function handler(req, res) {
     return json(res, Number(error && error.status || 500), { ok: false, napaka: "Periodično preverjanje arhiva ni uspelo." });
   }
 };
+
+module.exports._test = { repairMissingDocuments, safeEqual };
