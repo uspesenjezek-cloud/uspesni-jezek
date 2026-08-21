@@ -46,6 +46,7 @@ assert.strictEqual(summary.earliestRetentionNotBefore, "2034-12-31");
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
+assert.match(html, /pos-terminal\.js\?v=20260821-pos-archive-readiness-v1/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
@@ -56,4 +57,3 @@ assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
 assert.ok(vercel.crons.some((entry) => entry.path === "/api/pos-arhiv-delavec" && entry.schedule === "23 4 1 * *"));
 
 console.log("POS archive tests passed.");
-
