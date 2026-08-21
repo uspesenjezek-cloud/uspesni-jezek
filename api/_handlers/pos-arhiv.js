@@ -15,7 +15,7 @@ function uuid(value) {
 async function recordsForUser(cfg, userId) {
   return supabase.pridobiVrstice(cfg, "pos_archive_records",
     "user_id=eq." + encodeURIComponent(userId) +
-    "&select=id,invoice_id,document_kind,original_media_type,sha256,byte_size,storage_bucket,storage_path,archived_at,retention_not_before&order=archived_at.desc&limit=100");
+    "&select=id,user_id,invoice_id,document_kind,original_media_type,sha256,byte_size,storage_bucket,storage_path,archived_at,retention_not_before&order=archived_at.desc&limit=100");
 }
 
 async function eventsForUser(cfg, userId) {

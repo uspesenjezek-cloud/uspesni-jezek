@@ -12,6 +12,7 @@ const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 const archive = require(path.join(root, "api", "_lib", "pos-archive"));
 const handler = require(path.join(root, "api", "_handlers", "pos-arhiv"));
+const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-arhiv.js"), "utf8");
 
 assert.strictEqual(archive.hash(Buffer.from("original")), "0682c5f2076f099c34cfdd15a9e063849ed437a49677e6fcc5b4198c76575be5");
 assert.match(migration, /create table public\.pos_archive_records/i);
@@ -48,6 +49,7 @@ assert.match(html, /data-archive-verify/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.doesNotMatch(js, /currentSessionToken/);
+assert.match(handlerSource, /select=id,user_id,invoice_id/);
 assert.match(js, /Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo/);
 assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
 assert.ok(vercel.crons.some((entry) => entry.path === "/api/pos-arhiv-delavec" && entry.schedule === "23 4 1 * *"));
