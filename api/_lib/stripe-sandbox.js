@@ -80,6 +80,7 @@ function checkoutParams(input) {
   success.searchParams.set("stripe", "success");
   success.searchParams.set("stripe_session_id", "{CHECKOUT_SESSION_ID}");
   success.searchParams.set("invoice_id", input.invoiceId);
+  const successUrl = success.toString().replace("%7BCHECKOUT_SESSION_ID%7D", "{CHECKOUT_SESSION_ID}");
   const cancel = new URL("/app/pos-terminal.html", input.baseUrl);
   cancel.searchParams.set("stripe", "cancelled");
   cancel.searchParams.set("invoice_id", input.invoiceId);
@@ -102,7 +103,7 @@ function checkoutParams(input) {
     }],
     metadata,
     payment_intent_data: { metadata },
-    success_url: success.toString(),
+    success_url: successUrl,
     cancel_url: cancel.toString(),
   };
 }
