@@ -57,30 +57,36 @@ module.exports = async function handler(req, res) {
     const documentCounts = await repairMissingDocuments(cfg, 2);
     const rows = await supabase.pokliciRpc(cfg, "pos_archive_integrity_batch", { p_limit: 10 });
     const counts = { verified: 0, failed: 0 };
-    for (const record of (Array.isArray(rows) ? rows : [])) {
-      const result = await archive.verifyAndRecord(cfg, record);
+    const integrityResults = await Promise.all((Array.isArray(rows) ? rows : []).map(function (record) {
+      return archive.verifyAndRecord(cfg, record);
+    }));
+    for (const result of integrityResults) {
       if (result.verification.result === "verified") counts.verified += 1;
       else counts.failed += 1;
     }
 
-    const replicaRows = await supabase.pokliciRpc(cfg, "pos_archive_replica_batch", { p_limit: 10 });
+    let replicaRows = [];
     const replicaCounts = { verified: 0, failed: 0 };
     let s3Cfg = null;
     let s3Client = null;
     let bucketError = null;
+    let replicaSkipped = false;
     let needsRecoveryTest = false;
     try {
       s3Cfg = worm.configuration();
-      if (!s3Cfg.configured) throw Object.assign(new Error("AWS arhiv še ni povezan."), { code: "AWS_ARCHIVE_NOT_CONFIGURED" });
-      s3Client = worm.makeClient(s3Cfg);
-      await worm.verifyBucketObjectLock(s3Client, s3Cfg);
-      const heartbeat = await supabase.pokliciRpc(cfg, "pos_archive_provider_heartbeat", {
-        p_environment: s3Cfg.liveEnabled ? "production" : "test",
-        p_object_lock_mode: s3Cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE",
-        p_recovery_tested: false
-      });
-      const lastRecovery = heartbeat && heartbeat.recoveryTestedAt ? new Date(heartbeat.recoveryTestedAt) : null;
-      needsRecoveryTest = !lastRecovery || Number.isNaN(lastRecovery.getTime()) || lastRecovery.getTime() < Date.now() - 90 * 86400000;
+      if (!s3Cfg.configured) {
+        replicaSkipped = true;
+      } else {
+        s3Client = worm.makeClient(s3Cfg);
+        await worm.verifyBucketObjectLock(s3Client, s3Cfg);
+        const heartbeat = await supabase.pokliciRpc(cfg, "pos_archive_provider_heartbeat", {
+          p_environment: s3Cfg.liveEnabled ? "production" : "test",
+          p_object_lock_mode: s3Cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE",
+          p_recovery_tested: false
+        });
+        const lastRecovery = heartbeat && heartbeat.recoveryTestedAt ? new Date(heartbeat.recoveryTestedAt) : null;
+        needsRecoveryTest = !lastRecovery || Number.isNaN(lastRecovery.getTime()) || lastRecovery.getTime() < Date.now() - 90 * 86400000;
+      }
     } catch (error) {
       bucketError = error;
       try {
@@ -88,9 +94,17 @@ module.exports = async function handler(req, res) {
       } catch (_ignored) {}
     }
 
+    if (!replicaSkipped && !bucketError) {
+      try {
+        replicaRows = await supabase.pokliciRpc(cfg, "pos_archive_replica_batch", { p_limit: 10 });
+      } catch (error) {
+        if (s3Client) s3Client.destroy();
+        throw error;
+      }
+    }
+
     for (const record of (Array.isArray(replicaRows) ? replicaRows : [])) {
       try {
-        if (bucketError) throw bucketError;
         const buffer = await archive.readObject(cfg, record);
         if (!buffer) throw Object.assign(new Error("Arhivirani izvirnik manjka."), { code: "SOURCE_OBJECT_MISSING" });
         const result = await worm.copyAndVerify(s3Client, s3Cfg, record, buffer);
@@ -133,12 +147,18 @@ module.exports = async function handler(req, res) {
     }
     if (s3Client) s3Client.destroy();
 
-    const failed = documentCounts.failed + counts.failed + replicaCounts.failed;
+    const providerFailed = Boolean(bucketError);
+    const failed = documentCounts.failed + counts.failed + replicaCounts.failed + (providerFailed ? 1 : 0);
     return json(res, failed ? 409 : 200, {
       ok: failed === 0,
       documents: { checked: documentCounts.repaired + documentCounts.failed, counts: documentCounts },
       integrity: { checked: counts.verified + counts.failed, counts: counts },
-      replicas: { checked: replicaCounts.verified + replicaCounts.failed, counts: replicaCounts }
+      replicas: {
+        checked: replicaCounts.verified + replicaCounts.failed,
+        counts: replicaCounts,
+        skipped: replicaSkipped,
+        providerErrorCode: providerFailed ? worm.safeErrorCode(bucketError) : null
+      }
     });
   } catch (error) {
     return json(res, Number(error && error.status || 500), { ok: false, napaka: "Periodično preverjanje arhiva ni uspelo." });

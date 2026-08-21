@@ -131,6 +131,7 @@ assert.doesNotMatch(handlerSource, /archived_at\.desc&limit=25/);
 assert.match(html, /data-archive-verify>Preveri arhiv zdaj/);
 assert.match(js, /Paket je preverjen; preostanek arhiva bo preverjen v naslednjih paketih/);
 assert.doesNotMatch(handlerSource, /pos_archive_integrity_events[\s\S]*limit=500/);
+assert.match(fs.readFileSync(path.join(root, "api", "pos-arhiv-delavec.js"), "utf8"), /Promise\.all\([\s\S]*archive\.verifyAndRecord/);
 assert.match(js, /Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo/);
 assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
 assert.match(localServer, /posArhivModul = require\.resolve\("\.\.\/api\/_handlers\/pos-arhiv"\)/);
@@ -283,10 +284,85 @@ async function testUserIntegrityBatch() {
   }
 }
 
+async function testParallelUserIntegrityVerification() {
+  const originalVerify = archive.verifyAndRecord;
+  let active = 0;
+  let maximumActive = 0;
+  const completed = [];
+  archive.verifyAndRecord = async function (_, record) {
+    active += 1;
+    maximumActive = Math.max(maximumActive, active);
+    await new Promise(function (resolve) { setTimeout(resolve, 5); });
+    completed.push(record.id);
+    active -= 1;
+  };
+  try {
+    const checked = await handler._test.verifyRecords({}, [
+      { id: "archive-1" },
+      { id: "archive-2" },
+      { id: "archive-3" }
+    ]);
+    assert.strictEqual(checked, 3);
+    assert.strictEqual(maximumActive, 3);
+    assert.deepStrictEqual(completed.sort(), ["archive-1", "archive-2", "archive-3"]);
+  } finally {
+    archive.verifyAndRecord = originalVerify;
+  }
+}
+
+async function testUnconfiguredWormDoesNotClaimReplicas() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
+  const originalConfiguration = worm.configuration;
+  const originalSupabaseConfiguration = supabase.konfiguracija;
+  const originalVerifyUser = supabase.preveriUporabnika;
+  const originalRpc = supabase.pokliciRpc;
+  const originalCronSecret = process.env.CRON_SECRET;
+  const calls = [];
+  let responseStatus = 0;
+  let responseBody = null;
+  supabase.konfiguracija = function () { return {}; };
+  supabase.preveriUporabnika = async function () { throw new Error("Cron ne sme preverjati uporabnika."); };
+  supabase.pokliciRpc = async function (_, name) {
+    calls.push(name);
+    if (name === "pos_archive_replica_batch" || name === "pos_archive_provider_fail") {
+      throw new Error("Nepovezan AWS ne sme prevzeti ali pokvariti replik.");
+    }
+    if (name === "pos_archive_missing_document_batch" || name === "pos_archive_integrity_batch") return [];
+    throw new Error("Nepričakovan RPC: " + name);
+  };
+  worm.configuration = function () {
+    return { configured: false, liveEnabled: false };
+  };
+  process.env.CRON_SECRET = "archive-test-secret";
+  const res = {
+    status(code) { responseStatus = code; return this; },
+    setHeader() { return this; },
+    end(body) { responseBody = JSON.parse(body); return this; }
+  };
+  try {
+    await archiveWorker({ method: "GET", headers: { authorization: "Bearer archive-test-secret" } }, res);
+    assert.strictEqual(responseStatus, 200);
+    assert.strictEqual(responseBody.ok, true);
+    assert.strictEqual(responseBody.replicas.skipped, true);
+    assert.strictEqual(responseBody.replicas.checked, 0);
+    assert.strictEqual(responseBody.replicas.providerErrorCode, null);
+    assert.deepStrictEqual(calls, ["pos_archive_missing_document_batch", "pos_archive_integrity_batch"]);
+  } finally {
+    worm.configuration = originalConfiguration;
+    supabase.konfiguracija = originalSupabaseConfiguration;
+    supabase.preveriUporabnika = originalVerifyUser;
+    supabase.pokliciRpc = originalRpc;
+    if (originalCronSecret === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = originalCronSecret;
+  }
+}
+
 async function runArchiveTests() {
   await testAwsRoundTrip();
   await testMissingDocumentRepair();
   await testUserIntegrityBatch();
+  await testParallelUserIntegrityVerification();
+  await testUnconfiguredWormDoesNotClaimReplicas();
 }
 
 runArchiveTests().then(function () {

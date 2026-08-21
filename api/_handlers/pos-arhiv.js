@@ -28,6 +28,13 @@ async function recordForUser(cfg, userId, archiveId) {
   return rows.length === 1 ? rows[0] : null;
 }
 
+async function verifyRecords(cfg, records) {
+  await Promise.all((records || []).map(function (record) {
+    return archive.verifyAndRecord(cfg, record);
+  }));
+  return (records || []).length;
+}
+
 function publicSummary(readiness, records, events, replicas) {
   const latestByRecord = Object.create(null);
   const replicaByRecord = Object.create(null);
@@ -139,8 +146,7 @@ async function handler(req, res) {
         ? (selectedRecord ? [selectedRecord] : [])
         : await integrityBatchForUser(cfg, auth.user.id, 10);
       if (action === "verify-one" && selected.length !== 1) return json(res, 404, { ok: false, napaka: "Arhivski zapis ne obstaja ali ni vaš." });
-      for (const record of selected) await archive.verifyAndRecord(cfg, record);
-      checkedNow = selected.length;
+      checkedNow = await verifyRecords(cfg, selected);
     }
     const values = await Promise.all([
       supabase.pokliciRpc(cfg, "pos_archive_readiness", {}),
@@ -153,4 +159,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { publicSummary, publicDatabaseSummary, integrityBatchForUser };
+module.exports._test = { publicSummary, publicDatabaseSummary, integrityBatchForUser, verifyRecords };
