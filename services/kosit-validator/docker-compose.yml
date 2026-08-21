@@ -1,6 +1,10 @@
 services:
   kosit-validator:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.vercel
+    environment:
+      KOSIT_VALIDATOR_TOKEN: ${KOSIT_VALIDATOR_TOKEN:?KOSIT_VALIDATOR_TOKEN is required}
     ports:
       - "127.0.0.1:8080:8080"
     restart: unless-stopped
