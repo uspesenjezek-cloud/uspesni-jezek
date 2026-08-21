@@ -168,18 +168,28 @@ async function testFetchAllRows() {
 }
 
 const cachedState = Core.localStateSnapshot({
+  profile: { legalName: "Server GmbH", taxNumber: "12/345/67890", iban: "DE02120300000000202051" },
   invoices: Array.from({ length: 125 }, function (_value, index) { return { id: "server-" + index, serverStored: true }; })
     .concat([{ id: "local-test", serverStored: false }]),
   workOrders: Array.from({ length: 125 }, function (_value, index) { return { id: "order-" + index }; }),
   bankTransactions: [{ id: "bank-1" }],
   draft: { id: "draft-1" }
 });
-assert.equal(cachedState.invoices.length, 101);
+assert.equal(cachedState.invoices.length, 1);
 assert.ok(cachedState.invoices.some(function (invoice) { return invoice.id === "local-test"; }));
-assert.equal(cachedState.workOrders.length, 100);
+assert.equal(cachedState.workOrders.length, 0);
 assert.deepEqual(cachedState.bankTransactions, []);
 assert.equal(cachedState.draft.id, "draft-1");
-assert.match(js, /var localSnapshot = localStateSnapshot\(state\)/);
+assert.equal(cachedState.profile.taxNumber, "12/345/67890");
+const connectedState = Core.localStateSnapshot(cachedState, true);
+assert.equal(connectedState.profile.legalName, "");
+assert.equal(connectedState.profile.taxNumber, "");
+assert.equal(connectedState.profile.iban, "");
+assert.equal(connectedState.invoices.length, 1);
+assert.equal(connectedState.draft.id, "draft-1");
+assert.match(js, /global\.localStorage\.removeItem\(STORAGE_KEY\)/);
+assert.match(js, /global\.sessionStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(localSnapshot\)\)/);
+assert.match(js, /backend\.serverStateLoaded = true;\s+persist\(\);\s+backendMessage\("Sinhronizirano", "ready"\)/);
 const mergedBankRows = Core.mergeBankTransactionRows(
   [{ id: "open-old", booked_on: "2024-01-01", status: "unmatched" }, { id: "duplicate", booked_on: "2025-01-01", status: "unmatched" }],
   [{ id: "confirmed-new", booked_on: "2026-01-01", status: "confirmed" }, { id: "duplicate", booked_on: "2025-01-01", status: "confirmed" }]

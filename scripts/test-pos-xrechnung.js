@@ -147,7 +147,7 @@ assert.match(proxy, /validatorReady\(40 \* time\.Second\)/);
 assert.match(api, /AbortSignal\.timeout\(50000\)/);
 assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
 assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
-assert.match(terminalHtml, /pos-terminal\.js\?v=20260822-full-history-v4/);
+assert.match(terminalHtml, /pos-terminal\.js\?v=20260822-full-history-v6/);
 assert.match(terminalJs, /validationMessage/);
 
 console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");

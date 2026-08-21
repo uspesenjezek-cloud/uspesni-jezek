@@ -1307,14 +1307,14 @@
     }
   }
 
-  function localStateSnapshot(current) {
+  function localStateSnapshot(current, connected) {
     var source = current || {};
     var invoices = Array.isArray(source.invoices) ? source.invoices : [];
     var localInvoices = invoices.filter(function (invoice) { return !invoice.serverStored; });
-    var recentServerInvoices = invoices.filter(function (invoice) { return invoice.serverStored; }).slice(0, 100);
     return Object.assign({}, source, {
-      invoices: localInvoices.concat(recentServerInvoices),
-      workOrders: (Array.isArray(source.workOrders) ? source.workOrders : []).slice(0, 100),
+      profile: connected ? defaultProfile() : Object.assign(defaultProfile(), source.profile || {}),
+      invoices: localInvoices,
+      workOrders: [],
       bankTransactions: []
     });
   }
@@ -1439,6 +1439,7 @@
     client: typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient.auth ? supabaseKlient : null,
     userId: null,
     ready: false,
+    serverStateLoaded: false,
     bankReady: false,
     syncing: false,
     pendingRefreshScopes: {},
@@ -1477,7 +1478,7 @@
   function loadState() {
     var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0 };
     try {
-      var saved = JSON.parse(global.localStorage.getItem(STORAGE_KEY) || "null");
+      var saved = JSON.parse(global.sessionStorage.getItem(STORAGE_KEY) || global.localStorage.getItem(STORAGE_KEY) || "null");
       if (!saved || typeof saved !== "object") return initial;
       return {
         profile: Object.assign(defaultProfile(), saved.profile || {}),
@@ -1494,8 +1495,15 @@
 
   function persist() {
     try {
-      var localSnapshot = localStateSnapshot(state);
-      global.localStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+      var connected = Boolean(backend.userId && (backend.ready || backend.serverStateLoaded));
+      var localSnapshot = localStateSnapshot(state, connected);
+      if (connected) {
+        global.localStorage.removeItem(STORAGE_KEY);
+        global.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+      } else {
+        global.sessionStorage.removeItem(STORAGE_KEY);
+        global.localStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+      }
     } catch (_error) { /* lokalni fallback ni obvezen */ }
   }
 
@@ -1529,6 +1537,8 @@
       .select("user_id").single();
     if (result.error) throw result.error;
     backend.ready = true;
+    backend.serverStateLoaded = true;
+    persist();
     backendMessage("Sinhronizirano", "ready");
   }
 
@@ -1545,6 +1555,7 @@
     var result = await request;
     if (result.error) throw result.error;
     state.draft.serverId = result.data.id;
+    backend.serverStateLoaded = true;
     persist();
     backendMessage("Osnutek je varno shranjen", "ready");
     return result.data.id;
@@ -1754,6 +1765,7 @@
       var firstError = responses.slice(0, 14).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
+      backend.serverStateLoaded = true;
       if (responses[0].data) state.profile = profileFromDatabase(responses[0].data);
       var paymentsByInvoice = {};
       (responses[3].data || []).forEach(function (row) {
