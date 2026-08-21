@@ -72,7 +72,8 @@ async function run() {
     { status: 201, body: { id: "946db09e-5bfc-11eb-ae93-0242ac130002", url: "https://webform-sandbox.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002", status: "NOT_YET_OPENED", expiresAt: "2026-08-20T15:00:00.000Z" } },
     { status: 200, body: { connections: [{ id: 7, bankId: 280001, name: "finAPI Test Bank", updateStatus: "READY", categorizationStatus: "READY", accountIds: [10], interfaces: [] }] } },
     { status: 200, body: { accounts: [{ id: 41, name: "Geschäftskonto", iban: "DE89 3704 0044 0532 0130 00" }] } },
-    { status: 200, body: { transactions: [{ id: 91, accountId: 41, amount: 12.34, currency: "EUR", bankBookingDate: "2026-08-20", counterpartName: "Muster Kunde", purpose: "RE-2026-0001", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 1, perPage: 500, pageCount: 1, totalCount: 1 }, income: 12.34, spending: 0, balance: 12.34 } },
+    { status: 200, body: { transactions: [{ id: 91, accountId: 41, amount: 12.34, currency: "EUR", bankBookingDate: "2026-08-20", counterpartName: "Muster Kunde", purpose: "RE-2026-0001", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 1, perPage: 500, pageCount: 2, totalCount: 2 }, income: 12.34, spending: 0, balance: 12.34 } },
+    { status: 200, body: { transactions: [{ id: 90, accountId: 41, amount: 56.78, currency: "EUR", bankBookingDate: "2026-08-19", counterpartName: "Zweiter Kunde", purpose: "RE-2026-0002", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 2, perPage: 500, pageCount: 2, totalCount: 2 }, income: 56.78, spending: 0, balance: 69.12 } },
   ];
   global.fetch = async function (url, options) {
     requests.push({ url: String(url), options: options || {} });
@@ -92,9 +93,10 @@ async function run() {
     const result = await Finapi.syncDemoTransactions("11111111-2222-4333-8444-555555555555", env);
     assert.strictEqual(result.status.connected, true);
     assert.strictEqual(result.status.environment, "sandbox");
-    assert.strictEqual(result.transactions.length, 1);
+    assert.strictEqual(result.transactions.length, 2);
     assert.strictEqual(result.transactions[0].external_reference, "finapi:91");
-    assert.strictEqual(requests.length, 7);
+    assert.strictEqual(result.transactions[1].external_reference, "finapi:90");
+    assert.strictEqual(requests.length, 8);
     assert.match(requests[0].url, /\/oauth\/token$/);
     assert.match(requests[3].url, /webform-sandbox\.finapi\.io\/api\/webForms\/bankConnectionImport$/);
     assert.match(requests[4].url, /\/bankConnections$/);
@@ -102,6 +104,8 @@ async function run() {
     assert.match(requests[6].url, /\/transactions\?/);
     assert.match(requests[6].url, /view=bankView/);
     assert.match(requests[6].url, /direction=income/);
+    assert.match(requests[6].url, /page=1/);
+    assert.match(requests[7].url, /page=2/);
     const importBody = JSON.parse(requests[3].options.body);
     assert.strictEqual(importBody.bank.id, 280001);
     assert.strictEqual(importBody.allowTestBank, true);
