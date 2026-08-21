@@ -12,6 +12,7 @@ const productionRecoveryMigration = fs.readFileSync(path.join(root, "supabase", 
 const completeSummaryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821213852_pos_archive_complete_summary.sql"), "utf8");
 const missingDocumentMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821220929_pos_archive_missing_document_repair.sql"), "utf8");
 const userIntegrityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223224_pos_archive_user_integrity_batch.sql"), "utf8");
+const integrityPriorityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223844_pos_archive_integrity_batch_priority.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
@@ -67,6 +68,12 @@ assert.match(userIntegrityMigration, /limit least\(greatest\(coalesce\(p_limit, 
 assert.match(userIntegrityMigration, /revoke all on function public\.pos_archive_user_integrity_batch\(uuid, integer\)[\s\S]*from public, anon, authenticated/i);
 assert.match(userIntegrityMigration, /grant execute on function public\.pos_archive_user_integrity_batch\(uuid, integer\)[\s\S]*to service_role/i);
 assert.strictEqual((userIntegrityMigration.match(/event\.result = 'verified'/gi) || []).length, 2);
+assert.strictEqual((integrityPriorityMigration.match(/left join lateral/gi) || []).length, 2);
+assert.strictEqual((integrityPriorityMigration.match(/when latest\.checked_at is null then 0/gi) || []).length, 2);
+assert.strictEqual((integrityPriorityMigration.match(/when latest\.result <> 'verified' then 1/gi) || []).length, 2);
+assert.strictEqual((integrityPriorityMigration.match(/latest\.checked_at < now\(\) - interval '90 days'/gi) || []).length, 2);
+assert.match(integrityPriorityMigration, /security invoker/i);
+assert.match(integrityPriorityMigration, /revoke all on function public\.pos_archive_user_integrity_batch\(uuid, integer\)[\s\S]*from public, anon, authenticated/i);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
