@@ -30,7 +30,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260821-final-deductions-v1/);
+assert.match(html, /pos-terminal\.js\?v=20260821-final-deductions-v2/);
 assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);
@@ -127,6 +127,8 @@ const cancelledLink = Object.assign({}, order.invoiceLinks[0], {
 order.invoiceLinks = [cancelledLink];
 assert.equal(Core.workOrderFinalState(order, true).progressPercent, 0, "Stornirani Abschlag ne sme zmanjšati Schlussrechnung.");
 assert.equal(Core.workOrderFinalState(order, true).blocked, false);
+assert.match(js, /var used = workOrderFinalState\(order\)\.progressPercent;/, "Dialog za novi Abschlag mora uporabiti isti seštevek aktivnih delnih računov.");
+assert.doesNotMatch(js, /var used = \(order\.invoiceLinks \|\| \[\]\)\.filter/, "Dialog ne sme ponovno šteti storniranih Abschlagsrechnungen.");
 
 order.invoiceLinks = [Object.assign({}, cancelledLink, { invoice: Object.assign({}, cancelledLink.invoice, { status: "paid", isTest: false, paidCents: 35700 }) })];
 assert.equal(Core.workOrderFinalState(order, true).blocked, true, "Testnega in pravnega računa ni dovoljeno mešati.");

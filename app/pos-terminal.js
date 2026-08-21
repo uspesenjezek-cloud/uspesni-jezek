@@ -2066,7 +2066,7 @@
       });
     };
     if (action === "final") { replace("final", 0); return; }
-    var used = (order.invoiceLinks || []).filter(function (link) { return link.invoice_kind === "progress"; }).reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0);
+    var used = workOrderFinalState(order).progressPercent;
     var maximum = Math.max(1, 99 - used);
     openDialog("Pripraviti Abschlagsrechnung?", "Vnesite odstotek dejansko dokumentiranega Leistungsstand. Doslej izdano: " + used + " %.", {
       confirmText: "Pripravi Abschlag",
