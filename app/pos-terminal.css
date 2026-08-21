@@ -797,6 +797,12 @@
 .pos-dialog__icon { display: grid; width: 40px; height: 40px; margin: 0 auto 10px; place-items: center; color: var(--pos-teal-dark); border-radius: 13px; background: #e5f4f1; }
 .pos-dialog h2 { margin: 0; color: var(--pos-ink); font-size: 1.02rem; }
 .pos-dialog p { margin: 7px 0 16px; color: var(--pos-muted); font-size: .72rem; }
+.pos-dialog__field { display: grid; margin: -3px 0 16px; gap: 5px; text-align: left; }
+.pos-dialog__field[hidden] { display: none; }
+.pos-dialog__field > span { color: var(--pos-ink); font-size: .62rem; font-weight: 800; }
+.pos-dialog__field input { width: 100%; min-height: 46px; padding: 10px 12px; color: var(--pos-ink); border: 1px solid #cdded9; border-radius: 12px; outline: none; background: #f8fbfa; font: 700 1rem/1.2 "Figtree", sans-serif; }
+.pos-dialog__field input:focus { border-color: var(--pos-teal); box-shadow: 0 0 0 2px rgba(19, 127, 130, .12); }
+.pos-dialog__field small { color: var(--pos-muted); font-size: .56rem; line-height: 1.3; }
 .pos-dialog__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 
 .pos-bank-backdrop { position: fixed; inset: 0; z-index: 2147483150; display: flex; padding: 72px 0 0; align-items: flex-end; justify-content: center; background: rgba(10,35,31,.42); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }

@@ -9,6 +9,7 @@ const supabaseServer = require(path.join(root, "api", "_lib", "supabase-server")
 const checkoutHandler = require(path.join(root, "api", "_handlers", "pos-stripe-checkout"));
 const checkout = checkoutHandler._test;
 const webhook = require(path.join(root, "api", "_handlers", "pos-stripe-webhook"))._test;
+const posCore = require(path.join(root, "app", "pos-terminal.js"));
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260820202607_stripe_sandbox_invoice_payments.sql"), "utf8");
 const router = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
@@ -63,6 +64,9 @@ assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_c
 assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 2500), 2500);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 11900, status: "refunded" }), /uspešno Stripe TEST plačilo/);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 10001), /ni veljaven/);
+assert.deepStrictEqual(posCore.validateRefundAmountInput("25,00", 11900), { amountCents: 2500, error: "" });
+assert.match(posCore.validateRefundAmountInput("0", 11900).error, /večji od 0/);
+assert.match(posCore.validateRefundAmountInput("120,00", 11900).error, /119,00/);
 
 const baseEvent = { id: "evt_test", created: 1787248800, livemode: false };
 const metadata = {
@@ -111,6 +115,12 @@ assert.match(js, /status === "succeeded"/);
 assert.match(js, /data-stripe-refund/);
 assert.match(js, /stripeCheckoutRequest\("refund"/);
 assert.match(html, /Vrni plačilo – TEST/);
+assert.match(html, /data-dialog-input/);
+assert.match(js, /Znesek povračila/);
+assert.match(js, /validateRefundAmountInput\(value, refundableCents\)/);
+assert.match(js, /onConfirm: async function \(value\)/);
+assert.match(css, /\.pos-dialog__field\[hidden\] \{ display: none; \}/);
+assert.match(css, /font: 700 1rem\/1\.2/);
 assert.match(css, /\.pos-stripe-test\[hidden\], \.pos-stripe-test__refund\[hidden\] \{ display: none; \}/);
 assert.doesNotMatch(js, /STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|sk_test_|whsec_/);
 

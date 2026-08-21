@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260821-stripe-refund-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260821-stripe-partial-refund-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260821-stripe-refund-v1" defer></script>
+    <script src="pos-terminal.js?v=20260821-stripe-partial-refund-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -484,6 +484,11 @@
         <div class="pos-dialog__icon"><svg><use href="#i-info"/></svg></div>
         <h2 id="pos-dialog-title" data-dialog-title>Obvestilo</h2>
         <p data-dialog-copy></p>
+        <label class="pos-dialog__field" data-dialog-field hidden>
+          <span data-dialog-field-label>Znesek</span>
+          <input type="text" inputmode="decimal" autocomplete="off" data-dialog-input aria-describedby="pos-dialog-field-hint" />
+          <small id="pos-dialog-field-hint" data-dialog-field-hint></small>
+        </label>
         <div class="pos-dialog__actions"><button class="pos-secondary" type="button" data-dialog-cancel>Prekliči</button><button class="pos-primary" type="button" data-dialog-confirm>V redu</button></div>
       </section>
     </div>
