@@ -1285,29 +1285,35 @@
 
   function archiveCapabilityView(capability) {
     var archive = capability || {};
-    var failed = Number(archive.failureCount || 0) > 0;
+    var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
     var unavailable = Boolean(archive.error);
     var pending = Boolean(archive.loading || (!archive.loaded && !unavailable));
-    var allVerified = Boolean(archive.loaded && !unavailable && !failed && Number(archive.uncheckedCount || 0) === 0);
+    var allVerified = Boolean(archive.loaded && !unavailable && !failed &&
+      Number(archive.uncheckedCount || 0) === 0 && Number(archive.replicaPendingCount || 0) === 0);
     var documentCount = Number(archive.documentCount || 0);
     var verifiedCount = Number(archive.verifiedCount || 0);
+    var replicatedCount = Number(archive.replicatedCount || 0);
     return {
       failed: failed,
       unavailable: unavailable,
       pending: pending,
       allVerified: allVerified,
-      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Celovit" : "Ni še preverjeno",
+      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Dvojno zaščiten" : "Kopiranje čaka",
       integrityText: pending || unavailable ? "—" : documentCount ? verifiedCount + " / " + documentCount + " preverjenih" : "ni izvirnikov",
-      backupText: pending ? "preverjam" : unavailable ? "ni dosegljivo" : archive.independentBackupReady ? "potrjena in obnovljena" : "ni potrjena",
+      backupText: pending ? "preverjam" : unavailable ? "ni dosegljivo" : archive.wormProviderReady
+        ? "AWS Object Lock: " + replicatedCount + " / " + documentCount
+        : "AWS Object Lock še ni povezan",
       copyText: pending
-        ? "Nalagam dejansko stanje nespremenljivih PDF/XML izvirnikov in ločene kopije …"
+        ? "Nalagam dejansko stanje PDF/XML izvirnikov in zaklenjenih ločenih kopij …"
         : unavailable
           ? "Stanja arhiva trenutno ni mogoče prebrati. Produkcija ostaja varno zaklenjena."
           : failed
-            ? "Najmanj en izvirnik ni prestal preverjanja. Produkcija ostaja zaklenjena."
+            ? "Najmanj en izvirnik ali njegova AWS kopija ni prestala preverjanja. Produkcija ostaja zaklenjena."
             : archive.productionReady
-              ? "PDF/XML izvirniki so nespremenljivi, šifrirani pri ponudniku in zaščiteni tudi z obnovljivo ločeno kopijo."
-              : "Izvirniki so nespremenljivi in šifrirani pri ponudniku. Produkcija ostaja zaklenjena, dokler ni potrjena še ločena obnovljiva kopija."
+              ? "PDF/XML izvirniki imajo preverjeno SHA-256 sled in ločeno AWS različico z 8-letnim Compliance zaklepom."
+              : allVerified
+                ? "Vsi trenutni izvirniki imajo preverjeno ločeno AWS Object Lock kopijo. Produkcija čaka poslovni AWS račun in Compliance način."
+                : "Izvirniki ostajajo v Supabase; ločene AWS Object Lock kopije se še pripravljajo. Produkcija ostaja zaklenjena."
     };
   }
 
@@ -1410,7 +1416,7 @@
     { id: uid("fiskaly-item"), description: "Testmaterial", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" }
   ];
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
-  var archiveCapability = { loaded: false, loading: false, error: "", productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, retentionYears: 8, independentBackupReady: false };
+  var archiveCapability = { loaded: false, loading: false, error: "", productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, replicatedCount: 0, replicaPendingCount: 0, replicaFailureCount: 0, retentionYears: 8, independentBackupReady: false, wormProviderReady: false, wormEnvironment: "not_configured", objectLockMode: null };
   var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", latestTransfer: null, lastError: "" };
   var toastTimer = 0;
   var dialogCallback = null;

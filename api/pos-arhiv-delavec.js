@@ -3,6 +3,7 @@
 const crypto = require("crypto");
 const supabase = require("./_lib/supabase-server");
 const archive = require("./_lib/pos-archive");
+const worm = require("./_lib/pos-worm-archive");
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
@@ -31,7 +32,83 @@ module.exports = async function handler(req, res) {
       if (result.verification.result === "verified") counts.verified += 1;
       else counts.failed += 1;
     }
-    return json(res, counts.failed ? 409 : 200, { ok: counts.failed === 0, checked: counts.verified + counts.failed, counts: counts });
+
+    const replicaRows = await supabase.pokliciRpc(cfg, "pos_archive_replica_batch", { p_limit: 10 });
+    const replicaCounts = { verified: 0, failed: 0 };
+    let s3Cfg = null;
+    let s3Client = null;
+    let bucketError = null;
+    let needsRecoveryTest = false;
+    try {
+      s3Cfg = worm.configuration();
+      if (!s3Cfg.configured) throw Object.assign(new Error("AWS arhiv še ni povezan."), { code: "AWS_ARCHIVE_NOT_CONFIGURED" });
+      s3Client = worm.makeClient(s3Cfg);
+      await worm.verifyBucketObjectLock(s3Client, s3Cfg);
+      const heartbeat = await supabase.pokliciRpc(cfg, "pos_archive_provider_heartbeat", {
+        p_environment: s3Cfg.liveEnabled ? "production" : "test",
+        p_object_lock_mode: s3Cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE",
+        p_recovery_tested: false
+      });
+      const lastRecovery = heartbeat && heartbeat.recoveryTestedAt ? new Date(heartbeat.recoveryTestedAt) : null;
+      needsRecoveryTest = !lastRecovery || Number.isNaN(lastRecovery.getTime()) || lastRecovery.getTime() < Date.now() - 90 * 86400000;
+    } catch (error) {
+      bucketError = error;
+      try {
+        await supabase.pokliciRpc(cfg, "pos_archive_provider_fail", { p_error_code: worm.safeErrorCode(error) });
+      } catch (_ignored) {}
+    }
+
+    for (const record of (Array.isArray(replicaRows) ? replicaRows : [])) {
+      try {
+        if (bucketError) throw bucketError;
+        const buffer = await archive.readObject(cfg, record);
+        if (!buffer) throw Object.assign(new Error("Arhivirani izvirnik manjka."), { code: "SOURCE_OBJECT_MISSING" });
+        const result = await worm.copyAndVerify(s3Client, s3Cfg, record, buffer);
+        await supabase.pokliciRpc(cfg, "pos_archive_replica_complete", {
+          p_replica_id: record.replica_id,
+          p_bucket: result.bucket,
+          p_object_key: result.objectKey,
+          p_object_version_id: result.objectVersionId,
+          p_object_etag: result.objectEtag,
+          p_remote_checksum_sha256: result.remoteChecksumSha256,
+          p_remote_byte_size: result.remoteByteSize,
+          p_object_lock_mode: result.objectLockMode,
+          p_retain_until: result.retainUntil
+        });
+        const expectedRecoveryMode = s3Cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE";
+        if (needsRecoveryTest && result.objectLockMode === expectedRecoveryMode) {
+          await worm.recoverAndVerify(s3Client, s3Cfg, Object.assign({}, record, {
+            replica_bucket: result.bucket,
+            replica_object_key: result.objectKey,
+            replica_object_version_id: result.objectVersionId
+          }));
+          await supabase.pokliciRpc(cfg, "pos_archive_provider_heartbeat", {
+            p_environment: s3Cfg.liveEnabled ? "production" : "test",
+            p_object_lock_mode: s3Cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE",
+            p_recovery_tested: true
+          });
+          needsRecoveryTest = false;
+        }
+        replicaCounts.verified += 1;
+      } catch (error) {
+        await supabase.pokliciRpc(cfg, "pos_archive_replica_fail", {
+          p_replica_id: record.replica_id,
+          p_error_code: worm.safeErrorCode(error)
+        });
+        try {
+          await supabase.pokliciRpc(cfg, "pos_archive_provider_fail", { p_error_code: worm.safeErrorCode(error) });
+        } catch (_ignored) {}
+        replicaCounts.failed += 1;
+      }
+    }
+    if (s3Client) s3Client.destroy();
+
+    const failed = counts.failed + replicaCounts.failed;
+    return json(res, failed ? 409 : 200, {
+      ok: failed === 0,
+      integrity: { checked: counts.verified + counts.failed, counts: counts },
+      replicas: { checked: replicaCounts.verified + replicaCounts.failed, counts: replicaCounts }
+    });
   } catch (error) {
     return json(res, Number(error && error.status || 500), { ok: false, napaka: "Periodično preverjanje arhiva ni uspelo." });
   }

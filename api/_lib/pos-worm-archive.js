@@ -1,0 +1,301 @@
+"use strict";
+
+const crypto = require("crypto");
+const {
+  S3Client,
+  GetObjectCommand,
+  GetObjectLockConfigurationCommand,
+  HeadObjectCommand,
+  PutObjectCommand
+} = require("@aws-sdk/client-s3");
+
+const REQUIRED_REGION = "eu-central-1";
+const PROVIDER = "aws_s3_object_lock";
+const MAX_TEST_RETENTION_DAYS = 30;
+
+function bool(value) {
+  return String(value || "").toLowerCase() === "true";
+}
+
+function boundedInteger(value, fallback, minimum, maximum) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback;
+}
+
+function configuration(env) {
+  const source = env || process.env;
+  const region = String(source.POS_ARCHIVE_S3_REGION || REQUIRED_REGION).trim();
+  const bucket = String(source.POS_ARCHIVE_S3_BUCKET || "").trim();
+  const accessKeyId = String(source.POS_ARCHIVE_S3_ACCESS_KEY_ID || "").trim();
+  const secretAccessKey = String(source.POS_ARCHIVE_S3_SECRET_ACCESS_KEY || "").trim();
+  const sessionToken = String(source.POS_ARCHIVE_S3_SESSION_TOKEN || "").trim();
+  const configured = Boolean(bucket && accessKeyId && secretAccessKey);
+
+  if (region !== REQUIRED_REGION) {
+    throw codedError("AWS_REGION_NOT_FRANKFURT", "POS arhiv mora biti v regiji eu-central-1 (Frankfurt)." );
+  }
+  if (bucket && !/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(bucket)) {
+    throw codedError("AWS_BUCKET_INVALID", "Ime AWS arhivskega predala ni veljavno.");
+  }
+  if ((accessKeyId && !secretAccessKey) || (!accessKeyId && secretAccessKey)) {
+    throw codedError("AWS_CREDENTIALS_INCOMPLETE", "AWS arhivski poverilnici nista popolni.");
+  }
+
+  return {
+    configured,
+    provider: PROVIDER,
+    region,
+    bucket,
+    credentials: configured ? { accessKeyId, secretAccessKey, ...(sessionToken ? { sessionToken } : {}) } : null,
+    liveEnabled: bool(source.POS_ARCHIVE_S3_LIVE_ENABLED),
+    testRetentionDays: boundedInteger(source.POS_ARCHIVE_S3_TEST_RETENTION_DAYS, 7, 1, MAX_TEST_RETENTION_DAYS)
+  };
+}
+
+function codedError(code, message, cause) {
+  const error = new Error(message || code);
+  error.code = code;
+  if (cause) error.cause = cause;
+  return error;
+}
+
+function safeErrorCode(error) {
+  const ownCode = String(error && (error.code || error.name) || "UNKNOWN_ERROR").toUpperCase();
+  const normalized = ownCode.replace(/[^A-Z0-9_]/g, "_").slice(0, 80);
+  if (normalized === "NOTFOUND" || normalized === "NOSUCHKEY") return "AWS_OBJECT_NOT_FOUND";
+  if (normalized.includes("CREDENTIAL")) return "AWS_CREDENTIALS_REJECTED";
+  if (normalized.includes("ACCESSDENIED") || normalized.includes("FORBIDDEN")) return "AWS_ACCESS_DENIED";
+  if (normalized.includes("TIMEOUT")) return "AWS_TIMEOUT";
+  return normalized || "UNKNOWN_ERROR";
+}
+
+function hexToBase64(value) {
+  const hex = String(value || "");
+  if (!/^[0-9a-f]{64}$/.test(hex)) throw codedError("SOURCE_HASH_INVALID", "Izvorna kontrolna vsota ni veljavna.");
+  return Buffer.from(hex, "hex").toString("base64");
+}
+
+function base64ToHex(value) {
+  const text = String(value || "");
+  if (!text) return "";
+  const buffer = Buffer.from(text, "base64");
+  return buffer.length === 32 ? buffer.toString("hex") : "";
+}
+
+function objectKey(record) {
+  const extension = record.original_media_type === "application/xml" ? "xml" : "pdf";
+  const userId = String(record.user_id || "").toLowerCase();
+  const recordId = String(record.id || "").toLowerCase();
+  const checksum = String(record.sha256 || "").toLowerCase();
+  if (!/^[0-9a-f-]{36}$/.test(userId) || !/^[0-9a-f-]{36}$/.test(recordId)) {
+    throw codedError("ARCHIVE_ID_INVALID", "Arhivski identifikator ni veljaven.");
+  }
+  if (!/^[0-9a-f]{64}$/.test(checksum)) throw codedError("SOURCE_HASH_INVALID", "Izvorna kontrolna vsota ni veljavna.");
+  return "pos-originals/" + userId + "/" + recordId + "/" + checksum + "." + extension;
+}
+
+function retentionFor(record, cfg, nowValue) {
+  const now = nowValue instanceof Date ? nowValue : new Date(nowValue || Date.now());
+  if (Number.isNaN(now.getTime())) throw codedError("CLOCK_INVALID", "Sistemski čas ni veljaven.");
+  if (record.is_test) {
+    return {
+      // A production-account recovery check must exercise the same immutable
+      // lock mode that protects live invoices. The short test retention keeps
+      // the bootstrap probe bounded while still proving COMPLIANCE support.
+      mode: cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE",
+      retainUntil: new Date(now.getTime() + cfg.testRetentionDays * 86400000)
+    };
+  }
+  if (!cfg.liveEnabled) {
+    throw codedError("LIVE_WORM_NOT_ENABLED", "Produkcijski WORM arhiv še ni izrecno omogočen.");
+  }
+  const retainUntil = new Date(String(record.retention_not_before || "") + "T23:59:59.999Z");
+  if (Number.isNaN(retainUntil.getTime()) || retainUntil <= now) {
+    throw codedError("LIVE_RETENTION_INVALID", "Produkcijski datum hrambe ni veljaven.");
+  }
+  return { mode: "COMPLIANCE", retainUntil };
+}
+
+function makeClient(cfg) {
+  if (!cfg.configured) throw codedError("AWS_ARCHIVE_NOT_CONFIGURED", "AWS arhiv še ni povezan.");
+  return new S3Client({
+    region: cfg.region,
+    credentials: cfg.credentials,
+    maxAttempts: 3,
+    retryMode: "standard"
+  });
+}
+
+async function verifyBucketObjectLock(client, cfg) {
+  let result;
+  try {
+    result = await client.send(new GetObjectLockConfigurationCommand({ Bucket: cfg.bucket }));
+  } catch (error) {
+    throw codedError(safeErrorCode(error), "Nastavitve AWS Object Lock ni bilo mogoče preveriti.", error);
+  }
+  if (!result || !result.ObjectLockConfiguration || result.ObjectLockConfiguration.ObjectLockEnabled !== "Enabled") {
+    throw codedError("AWS_OBJECT_LOCK_DISABLED", "AWS predal nima omogočenega Object Lock.");
+  }
+  return result.ObjectLockConfiguration;
+}
+
+function isNotFound(error) {
+  return Boolean(error && (
+    error.name === "NotFound" || error.name === "NoSuchKey" ||
+    Number(error.$metadata && error.$metadata.httpStatusCode) === 404
+  ));
+}
+
+function validateHead(head, record, requiredRetention) {
+  const checksumHex = base64ToHex(head && head.ChecksumSHA256);
+  const metadataHash = String(head && head.Metadata && head.Metadata.sha256 || "").toLowerCase();
+  const remoteSize = Number(head && head.ContentLength);
+  const remoteMode = String(head && head.ObjectLockMode || "");
+  const remoteRetainUntil = head && head.ObjectLockRetainUntilDate
+    ? new Date(head.ObjectLockRetainUntilDate)
+    : null;
+  const requiredTime = requiredRetention.retainUntil.getTime();
+
+  if (checksumHex !== record.sha256 || metadataHash !== record.sha256) {
+    throw codedError("AWS_CHECKSUM_MISMATCH", "Kontrolna vsota AWS kopije se ne ujema z izvirnikom.");
+  }
+  if (remoteSize !== Number(record.byte_size)) {
+    throw codedError("AWS_SIZE_MISMATCH", "Velikost AWS kopije se ne ujema z izvirnikom.");
+  }
+  if (remoteMode !== requiredRetention.mode || !remoteRetainUntil || remoteRetainUntil.getTime() < requiredTime) {
+    throw codedError("AWS_RETENTION_MISMATCH", "AWS kopija nima zahtevanega načina ali roka zaklepa.");
+  }
+  if (!head.VersionId) throw codedError("AWS_VERSION_MISSING", "AWS kopija nima različice objekta.");
+
+  return {
+    bucket: null,
+    objectKey: null,
+    objectVersionId: String(head.VersionId),
+    objectEtag: String(head.ETag || ""),
+    remoteChecksumSha256: checksumHex,
+    remoteByteSize: remoteSize,
+    objectLockMode: remoteMode,
+    retainUntil: remoteRetainUntil.toISOString()
+  };
+}
+
+async function headObject(client, cfg, key, versionId) {
+  const input = { Bucket: cfg.bucket, Key: key, ChecksumMode: "ENABLED" };
+  if (versionId) input.VersionId = versionId;
+  try {
+    return await client.send(new HeadObjectCommand(input));
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw codedError(safeErrorCode(error), "AWS kopije ni bilo mogoče preveriti.", error);
+  }
+}
+
+async function copyAndVerify(client, cfg, record, buffer, nowValue) {
+  if (!cfg.configured) throw codedError("AWS_ARCHIVE_NOT_CONFIGURED", "AWS arhiv še ni povezan.");
+  if (!Buffer.isBuffer(buffer) || buffer.length !== Number(record.byte_size)) {
+    throw codedError("SOURCE_SIZE_MISMATCH", "Velikost izvirnika pred kopiranjem ni pravilna.");
+  }
+  const sourceHash = crypto.createHash("sha256").update(buffer).digest("hex");
+  if (sourceHash !== record.sha256) {
+    throw codedError("SOURCE_HASH_MISMATCH", "Kontrolna vsota izvirnika pred kopiranjem ni pravilna.");
+  }
+  const key = objectKey(record);
+  const existingVersionId = String(record.replica_object_version_id || "");
+  const retention = existingVersionId ? {
+    mode: String(record.replica_object_lock_mode || ""),
+    retainUntil: new Date(record.replica_retain_until)
+  } : retentionFor(record, cfg, nowValue);
+  if (!/^(GOVERNANCE|COMPLIANCE)$/.test(retention.mode) || Number.isNaN(retention.retainUntil.getTime())) {
+    throw codedError("AWS_RETENTION_INVALID", "Shranjeni rok AWS kopije ni veljaven.");
+  }
+  if (existingVersionId && (record.replica_bucket !== cfg.bucket || record.replica_object_key !== key)) {
+    throw codedError("AWS_REPLICA_IDENTITY_MISMATCH", "Shranjena identiteta AWS kopije ni skladna z arhivskim zapisom.");
+  }
+  let head = await headObject(client, cfg, key, existingVersionId || undefined);
+
+  if (existingVersionId && !head) {
+    throw codedError("AWS_OBJECT_NOT_FOUND", "Zaklenjena različica AWS kopije ni bila najdena.");
+  }
+
+  if (!head) {
+    let uploaded;
+    try {
+      uploaded = await client.send(new PutObjectCommand({
+        Bucket: cfg.bucket,
+        Key: key,
+        Body: buffer,
+        ContentLength: buffer.length,
+        ContentType: record.original_media_type,
+        ChecksumAlgorithm: "SHA256",
+        ChecksumSHA256: hexToBase64(record.sha256),
+        Metadata: {
+          sha256: record.sha256,
+          archive_record_id: String(record.id),
+          invoice_id: String(record.invoice_id)
+        },
+        ServerSideEncryption: "AES256",
+        ObjectLockMode: retention.mode,
+        ObjectLockRetainUntilDate: retention.retainUntil
+      }));
+    } catch (error) {
+      throw codedError(safeErrorCode(error), "Izvirnika ni bilo mogoče zapisati v AWS WORM arhiv.", error);
+    }
+    if (!uploaded || !uploaded.VersionId) {
+      throw codedError("AWS_VERSION_MISSING", "AWS ni vrnil različice zapisane kopije.");
+    }
+    head = await headObject(client, cfg, key, uploaded.VersionId);
+  }
+  if (!head) throw codedError("AWS_OBJECT_NOT_FOUND", "AWS kopija po zapisu ni bila najdena.");
+
+  const result = validateHead(head, record, retention);
+  result.bucket = cfg.bucket;
+  result.objectKey = key;
+  return result;
+}
+
+async function recoverAndVerify(client, cfg, record) {
+  const key = objectKey(record);
+  const versionId = String(record.replica_object_version_id || record.objectVersionId || "");
+  const expectedBucket = String(record.replica_bucket || record.bucket || "");
+  if (!versionId || expectedBucket !== cfg.bucket || String(record.replica_object_key || record.objectKey || "") !== key) {
+    throw codedError("AWS_REPLICA_IDENTITY_MISMATCH", "AWS kopija nima popolne shranjene identitete.");
+  }
+  let response;
+  try {
+    response = await client.send(new GetObjectCommand({ Bucket: cfg.bucket, Key: key, VersionId: versionId, ChecksumMode: "ENABLED" }));
+  } catch (error) {
+    throw codedError(safeErrorCode(error), "AWS kopije ni bilo mogoče obnoviti.", error);
+  }
+  if (!response || !response.Body || Number(response.ContentLength) > Number(record.byte_size)) {
+    throw codedError("AWS_RECOVERY_INVALID", "Obnovljena AWS kopija ni veljavna.");
+  }
+  const bytes = typeof response.Body.transformToByteArray === "function"
+    ? await response.Body.transformToByteArray()
+    : null;
+  if (!bytes) throw codedError("AWS_RECOVERY_STREAM_UNSUPPORTED", "Obnovljene AWS kopije ni bilo mogoče prebrati.");
+  const buffer = Buffer.from(bytes);
+  const checksum = crypto.createHash("sha256").update(buffer).digest("hex");
+  if (buffer.length !== Number(record.byte_size) || checksum !== record.sha256) {
+    throw codedError("AWS_RECOVERY_HASH_MISMATCH", "Obnovljena AWS kopija se ne ujema z izvirnikom.");
+  }
+  return { sha256: checksum, byteSize: buffer.length, versionId };
+}
+
+module.exports = {
+  PROVIDER,
+  REQUIRED_REGION,
+  configuration,
+  makeClient,
+  verifyBucketObjectLock,
+  copyAndVerify,
+  recoverAndVerify,
+  safeErrorCode,
+  _test: {
+    MAX_TEST_RETENTION_DAYS,
+    hexToBase64,
+    base64ToHex,
+    objectKey,
+    retentionFor,
+    validateHead
+  }
+};

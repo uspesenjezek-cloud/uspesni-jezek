@@ -82,6 +82,7 @@ async function verifyAndRecord(cfg, record) {
 module.exports = {
   CHECKER_VERSION,
   hash,
+  readObject,
   verifyRecord,
   verifyAndRecord,
   _test: { encodedPath, MAX_BYTES }

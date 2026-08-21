@@ -24,10 +24,20 @@ async function eventsForUser(cfg, userId) {
     "&select=archive_record_id,result,checked_at&order=checked_at.desc&limit=500");
 }
 
-function publicSummary(readiness, records, events) {
+async function replicasForUser(cfg, userId) {
+  return supabase.pridobiVrstice(cfg, "pos_archive_replicas",
+    "user_id=eq." + encodeURIComponent(userId) +
+    "&select=archive_record_id,status,object_lock_mode,retain_until,verified_at,last_error_code&order=created_at.desc&limit=500");
+}
+
+function publicSummary(readiness, records, events, replicas) {
   const latestByRecord = Object.create(null);
+  const replicaByRecord = Object.create(null);
   events.forEach(function (event) {
     if (!latestByRecord[event.archive_record_id]) latestByRecord[event.archive_record_id] = event;
+  });
+  (replicas || []).forEach(function (replica) {
+    if (!replicaByRecord[replica.archive_record_id]) replicaByRecord[replica.archive_record_id] = replica;
   });
   const verified = records.filter(function (record) {
     return latestByRecord[record.id] && latestByRecord[record.id].result === "verified";
@@ -35,21 +45,36 @@ function publicSummary(readiness, records, events) {
   const failures = records.filter(function (record) {
     return latestByRecord[record.id] && latestByRecord[record.id].result !== "verified";
   }).length;
+  const replicated = records.filter(function (record) {
+    return replicaByRecord[record.id] && replicaByRecord[record.id].status === "verified";
+  }).length;
+  const replicaFailures = records.filter(function (record) {
+    return replicaByRecord[record.id] && replicaByRecord[record.id].status === "failed";
+  }).length;
   return {
     retentionYears: Number(readiness.retentionYears || 8),
     encryptionScope: readiness.encryptionScope || "provider_managed_at_rest",
     independentBackupReady: Boolean(readiness.independentBackupReady),
     recoveryTestedAt: readiness.recoveryTestedAt || null,
+    wormProvider: readiness.wormProvider || "aws_s3_object_lock",
+    wormEnvironment: readiness.wormEnvironment || "not_configured",
+    objectLockMode: readiness.objectLockMode || null,
+    wormProviderReady: Boolean(readiness.wormProviderReady),
+    wormConnectivityTestedAt: readiness.wormConnectivityTestedAt || null,
     productionReady: Boolean(readiness.productionReady),
     documentCount: records.length,
     verifiedCount: verified,
     uncheckedCount: records.length - verified - failures,
     failureCount: failures,
+    replicatedCount: replicated,
+    replicaPendingCount: records.length - replicated - replicaFailures,
+    replicaFailureCount: replicaFailures,
     earliestRetentionNotBefore: records.reduce(function (earliest, record) {
       return !earliest || record.retention_not_before < earliest ? record.retention_not_before : earliest;
     }, null),
     records: records.map(function (record) {
       const latest = latestByRecord[record.id] || null;
+      const replica = replicaByRecord[record.id] || null;
       return {
         id: record.id,
         invoiceId: record.invoice_id,
@@ -58,7 +83,12 @@ function publicSummary(readiness, records, events) {
         archivedAt: record.archived_at,
         retentionNotBefore: record.retention_not_before,
         integrity: latest ? latest.result : "unchecked",
-        checkedAt: latest ? latest.checked_at : null
+        checkedAt: latest ? latest.checked_at : null,
+        replicaStatus: replica ? replica.status : "pending",
+        objectLockMode: replica ? replica.object_lock_mode : null,
+        replicaRetainUntil: replica ? replica.retain_until : null,
+        replicaVerifiedAt: replica ? replica.verified_at : null,
+        replicaErrorCode: replica ? replica.last_error_code : null
       };
     })
   };
@@ -87,10 +117,11 @@ async function handler(req, res) {
     }
     const values = await Promise.all([
       supabase.pokliciRpc(cfg, "pos_archive_readiness", {}),
-      eventsForUser(cfg, auth.user.id)
+      eventsForUser(cfg, auth.user.id),
+      replicasForUser(cfg, auth.user.id)
     ]);
     records = await recordsForUser(cfg, auth.user.id);
-    return json(res, 200, { ok: true, archive: publicSummary(values[0] || {}, records, values[1] || []) });
+    return json(res, 200, { ok: true, archive: publicSummary(values[0] || {}, records, values[1] || [], values[2] || []) });
   } catch (error) {
     return json(res, Number(error && error.status || 500), { ok: false, napaka: error.message || "Arhiva ni bilo mogoče preveriti." });
   }

@@ -12,6 +12,7 @@ ngrok.exe
 
 .vercel
 .env*
+!.env.example
 
 # Odvisnosti in začasne datoteke za lokalno testiranje
 node_modules/
@@ -20,3 +21,4 @@ tmp-visual/
 work/
 .claude/settings.local.json
 .env*
+!.env.example
