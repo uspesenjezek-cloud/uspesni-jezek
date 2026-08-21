@@ -8,6 +8,7 @@ const pdfModule = require("../api/_lib/pos-pdf");
 const adjustmentPdf = require("../api/_lib/pos-adjustment-pdf");
 const endpoint = require("../api/pos-racun-pdf");
 const adjustmentEndpoint = require("../api/pos-racun-korekcija");
+const pdfSource = fs.readFileSync(path.join(__dirname, "..", "api", "_lib", "pos-pdf.js"), "utf8");
 
 function sampleInvoice(replacement) {
   const items = [];
@@ -150,16 +151,35 @@ function sampleAdjustment(type) {
   assert.ok(pdf.getPageCount() >= 2, "Dolg realističen račun mora pravilno nadaljevati na novo stran.");
   assert.strictEqual(pdf.getTitle(), "Rechnung RE-2026-0001");
   assert.strictEqual(pdf.getCreator(), pdfModule.GENERATOR_VERSION);
-  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-4");
+  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-5");
 
   const incompleteTestBuffer = await pdfModule.ustvariRacunPdf(incompleteTestInvoice);
   const incompleteTestPdf = await PDFDocument.load(incompleteTestBuffer);
-  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-4");
+  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-5");
 
   const replacementBuffer = await pdfModule.ustvariRacunPdf(sampleInvoice(true));
   const replacementPdf = await PDFDocument.load(replacementBuffer);
   assert.strictEqual(replacementPdf.getPageCount(), pdf.getPageCount());
-  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-4");
+  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-5");
+
+  const finalInvoice = sampleInvoice();
+  finalInvoice.snapshot.draft.workflow_context = {
+    work_order_id: "33333333-3333-4333-8333-333333333333",
+    invoice_kind: "final",
+    final_deductions: [{
+      invoice_id: "22222222-2222-4222-8222-222222222222", invoice_number: "RE-2026-0007", issue_date: "2026-07-15",
+      net_cents: 10000, tax_cents: 1900, gross_cents: 11900
+    }]
+  };
+  finalInvoice.net_cents -= 10000;
+  finalInvoice.tax_cents -= 1900;
+  finalInvoice.gross_cents -= 11900;
+  const finalBuffer = await pdfModule.ustvariRacunPdf(finalInvoice);
+  const finalPdf = await PDFDocument.load(finalBuffer);
+  assert.strictEqual(finalPdf.getCreator(), "uj-pos-pdf-5");
+  assert.match(pdfSource, /Auftragssumme brutto/);
+  assert.match(pdfSource, /Noch zu zahlen/);
+  assert.match(pdfSource, /§ 14 Abs\. 5 UStG/);
 
   const correctionBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("correction"));
   const correctionPdf = await PDFDocument.load(correctionBuffer);

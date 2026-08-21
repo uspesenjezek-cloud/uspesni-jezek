@@ -79,6 +79,29 @@ const reverseXml = generator.buildXRechnung(reverseInvoice).toString("utf8");
 assert.match(reverseXml, /<cbc:ID>AE<\/cbc:ID>/);
 assert.match(reverseXml, /<cbc:TaxExemptionReasonCode>VATEX-EU-AE<\/cbc:TaxExemptionReasonCode>/);
 
+const finalInvoice = invoice({
+  net_cents: 15000, tax_cents: 2850, gross_cents: 17850,
+  snapshot: {
+    seller: invoice().snapshot.seller,
+    draft: Object.assign({}, invoice().snapshot.draft, {
+      workflow_context: {
+        work_order_id: "33333333-3333-4333-8333-333333333333",
+        invoice_kind: "final",
+        final_deductions: [{
+          invoice_id: "22222222-2222-4222-8222-222222222222", invoice_number: "RE-2026-0039", issue_date: "2026-07-15",
+          net_cents: 5000, tax_cents: 950, gross_cents: 5950
+        }]
+      }
+    })
+  }
+});
+const finalXml = generator.buildXRechnung(finalInvoice).toString("utf8");
+assert.match(finalXml, /<cbc:TaxInclusiveAmount currencyID="EUR">238\.00<\/cbc:TaxInclusiveAmount>/);
+assert.match(finalXml, /<cbc:PrepaidAmount currencyID="EUR">59\.50<\/cbc:PrepaidAmount>/);
+assert.match(finalXml, /<cbc:PayableAmount currencyID="EUR">178\.50<\/cbc:PayableAmount>/);
+assert.match(finalXml, /<cac:BillingReference>[\s\S]*<cbc:ID>RE-2026-0039<\/cbc:ID>/);
+assert.match(finalXml, /§ 14 Abs\. 5 UStG/);
+
 const broken = invoice({ gross_cents: 999 });
 assert.throws(() => generator.buildXRechnung(broken), /seštevki računa/i);
 assert.throws(() => generator.buildXRechnung(Object.assign(invoice(), { customer_type: "private" })), /podjetju ali javnemu/);
@@ -124,7 +147,7 @@ assert.match(proxy, /validatorReady\(40 \* time\.Second\)/);
 assert.match(api, /AbortSignal\.timeout\(50000\)/);
 assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
 assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
-assert.match(terminalHtml, /pos-terminal\.js\?v=20260821-handwerker-workflow-v2/);
+assert.match(terminalHtml, /pos-terminal\.js\?v=20260821-final-deductions-v1/);
 assert.match(terminalJs, /validationMessage/);
 
 console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");

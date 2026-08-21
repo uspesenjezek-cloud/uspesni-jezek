@@ -16,6 +16,10 @@ const indexMigrationName = fs.readdirSync(path.join(root, "supabase", "migration
   .filter((name) => /index_pos_workflow_and_datev_foreign_keys\.sql$/.test(name)).sort().pop();
 assert.ok(indexMigrationName, "Manjka migracija indeksov za POS/DATEV tuje ključe.");
 const indexMigration = fs.readFileSync(path.join(root, "supabase", "migrations", indexMigrationName), "utf8");
+const deductionMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_final_invoice_deductions\.sql$/.test(name)).sort().pop();
+assert.ok(deductionMigrationName, "Manjka migracija za odbitke v Schlussrechnung.");
+const deductionMigration = fs.readFileSync(path.join(root, "supabase", "migrations", deductionMigrationName), "utf8");
 const Core = require(path.join(root, "app", "pos-terminal.js"));
 
 assert.match(html, /data-new-offer/);
@@ -26,7 +30,8 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260821-handwerker-workflow-v2/);
+assert.match(html, /pos-terminal\.js\?v=20260821-final-deductions-v1/);
+assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);
 assert.ok(js.includes('data-fit-text data-fit-max=\\"15\\"'), "Dinamični dolgi naslov mora uporabljati samodejno prilagajanje pisave.");
@@ -43,6 +48,14 @@ assert.match(migration, /pos_invoices_link_work_order/);
 assert.match(migration, /Schlussrechnung po Abschlägen zahteva prikaz in odbitek/);
 assert.match(indexMigration, /pos_work_order_events_work_order_id_idx[\s\S]*pos_work_order_events \(work_order_id\)/);
 assert.match(indexMigration, /pos_datev_document_transfers_archive_record_id_idx[\s\S]*pos_datev_document_transfers \(archive_record_id\)/);
+assert.match(deductionMigration, /pos_prepare_work_order_final_invoice/);
+assert.match(deductionMigration, /status in \('succeeded', 'partially_refunded'\)/);
+assert.match(deductionMigration, /final_deductions/);
+assert.match(deductionMigration, /new\.net_cents := v_service_net - v_deduction_net/);
+assert.match(deductionMigration, /insert into public\.pos_work_order_invoices[\s\S]*net_cents,tax_cents,gross_cents/);
+assert.match(deductionMigration, /adjustment_type = 'cancellation'/);
+assert.match(deductionMigration, /v_progress\.is_test <> new\.is_test/);
+assert.doesNotMatch(deductionMigration, /Schlussrechnung po Abschlägen zahteva prikaz in odbitek/);
 
 const profile = Core.defaultProfile();
 profile.taxStatus = "regular";
@@ -87,5 +100,35 @@ order.status = "completed";
 const finalDraft = Core.prepareWorkOrderInvoiceDraft(order, profile, "final", 0);
 assert.equal(finalDraft.workflowContext.invoiceKind, "final");
 assert.equal(finalDraft.items[0].unitPrice, "100,00");
+
+order.invoiceLinks = [{
+  invoice_id: "22222222-2222-4222-8222-222222222222", invoice_kind: "progress", progress_percent: 30,
+  net_cents: 30000, tax_cents: 5700, gross_cents: 35700, paid_cents: 0,
+  invoice_number: "RE-2026-0002", issue_date: "2026-08-21"
+}];
+assert.equal(Core.workOrderFinalState(order).blocked, true);
+assert.equal(Core.prepareWorkOrderInvoiceDraft(order, profile, "final", 0), null, "Neplačan Abschlag mora blokirati Schlussrechnung.");
+order.invoiceLinks[0].paid_cents = 35700;
+const deductedFinal = Core.prepareWorkOrderInvoiceDraft(order, profile, "final", 0);
+assert.equal(deductedFinal.workflowContext.finalDeductions.length, 1);
+assert.equal(deductedFinal.workflowContext.finalDeductions[0].invoiceNumber, "RE-2026-0002");
+const deductedTotals = Core.calculateTotals(deductedFinal);
+assert.equal(deductedTotals.serviceGrossCents, 119000);
+assert.equal(deductedTotals.deductionGrossCents, 35700);
+assert.equal(deductedTotals.grossCents, 83300);
+assert.equal(deductedTotals.netCents, 70000);
+assert.equal(deductedTotals.taxCents, 13300);
+const serializedFinal = Core.draftToDatabasePayload(deductedFinal);
+assert.equal(serializedFinal.workflow_context.final_deductions[0].gross_cents, 35700);
+
+const cancelledLink = Object.assign({}, order.invoiceLinks[0], {
+  invoice: { id: order.invoiceLinks[0].invoice_id, status: "cancelled", isTest: true, totals: { netCents: 30000, taxCents: 5700, grossCents: 35700 }, paidCents: 0 }
+});
+order.invoiceLinks = [cancelledLink];
+assert.equal(Core.workOrderFinalState(order, true).progressPercent, 0, "Stornirani Abschlag ne sme zmanjšati Schlussrechnung.");
+assert.equal(Core.workOrderFinalState(order, true).blocked, false);
+
+order.invoiceLinks = [Object.assign({}, cancelledLink, { invoice: Object.assign({}, cancelledLink.invoice, { status: "paid", isTest: false, paidCents: 35700 }) })];
+assert.equal(Core.workOrderFinalState(order, true).blocked, true, "Testnega in pravnega računa ni dovoljeno mešati.");
 
 console.log("POS Handwerker workflow tests passed.");

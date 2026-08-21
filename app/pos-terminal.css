@@ -449,6 +449,7 @@
 .pos-work-order__facts small { display: block; color: var(--pos-muted); font-size: .59rem; }
 .pos-work-order__facts b { display: block; min-height: 18px; margin-top: 3px; color: var(--pos-ink); font-size: .75rem; line-height: 1.2; }
 .pos-work-order__actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.pos-work-order__warning { margin: 11px 0 0; padding: 9px 11px; border: 1px solid rgba(180,85,42,.2); border-radius: 12px; background: rgba(255,244,235,.9); color: #8c3f21; font-size: .68rem; font-weight: 700; line-height: 1.35; }
 .pos-work-order__actions button { min-height: 38px; padding: 0 11px; border: 1px solid rgba(19,127,130,.2); border-radius: 12px; background: #fff; color: var(--pos-teal-dark); font: 700 .7rem/1 Figtree,sans-serif; white-space: nowrap; }
 .pos-work-order__actions button:first-child { background: var(--pos-teal); color: #fff; }
 .pos-work-order__actions button:disabled { opacity: .45; cursor: not-allowed; }

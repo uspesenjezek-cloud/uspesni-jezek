@@ -358,7 +358,17 @@
         offer_number: String(draft.workflowContext.offerNumber || ""),
         order_number: String(draft.workflowContext.orderNumber || ""),
         invoice_kind: draft.workflowContext.invoiceKind === "progress" ? "progress" : "final",
-        progress_percent: draft.workflowContext.invoiceKind === "progress" ? integer(draft.workflowContext.progressPercent, 0) : null
+        progress_percent: draft.workflowContext.invoiceKind === "progress" ? integer(draft.workflowContext.progressPercent, 0) : null,
+        final_deductions: draft.workflowContext.invoiceKind === "final" ? normalizeFinalDeductions(draft.workflowContext.finalDeductions).map(function (entry) {
+          return {
+            invoice_id: entry.invoiceId,
+            invoice_number: entry.invoiceNumber,
+            issue_date: entry.issueDate,
+            net_cents: entry.netCents,
+            tax_cents: entry.taxCents,
+            gross_cents: entry.grossCents
+          };
+        }) : []
       } : null
     };
   }
@@ -408,7 +418,8 @@
         offerNumber: source.workflow_context.offer_number || "",
         orderNumber: source.workflow_context.order_number || "",
         invoiceKind: source.workflow_context.invoice_kind === "progress" ? "progress" : "final",
-        progressPercent: integer(source.workflow_context.progress_percent, 0)
+        progressPercent: integer(source.workflow_context.progress_percent, 0),
+        finalDeductions: normalizeFinalDeductions(source.workflow_context.final_deductions)
       } : null
     });
   }
@@ -444,6 +455,50 @@
     };
   }
 
+  function normalizeFinalDeductions(value) {
+    return (Array.isArray(value) ? value : []).map(function (entry) {
+      var source = entry || {};
+      return {
+        invoiceId: String(source.invoiceId || source.invoice_id || ""),
+        invoiceNumber: String(source.invoiceNumber || source.invoice_number || ""),
+        issueDate: String(source.issueDate || source.issue_date || ""),
+        netCents: Math.max(0, integer(source.netCents == null ? source.net_cents : source.netCents, 0)),
+        taxCents: Math.max(0, integer(source.taxCents == null ? source.tax_cents : source.taxCents, 0)),
+        grossCents: Math.max(0, integer(source.grossCents == null ? source.gross_cents : source.grossCents, 0))
+      };
+    }).filter(function (entry) { return entry.invoiceId && entry.grossCents > 0; });
+  }
+
+  function workOrderFinalState(workOrder, targetIsTest) {
+    var progressLinks = (workOrder && workOrder.invoiceLinks || []).filter(function (link) {
+      return link.invoice_kind === "progress" && !(link.invoice && link.invoice.status === "cancelled");
+    });
+    var deductions = progressLinks.map(function (link) {
+      var invoice = link.invoice || null;
+      var totals = invoice && invoice.totals || {};
+      return {
+        invoiceId: String(link.invoice_id || invoice && invoice.id || ""),
+        invoiceNumber: String(link.invoice_number || invoice && invoice.number || ""),
+        issueDate: String(link.issue_date || invoice && invoice.draft && invoice.draft.issueDate || ""),
+        netCents: integer(link.net_cents == null ? totals.netCents : link.net_cents, 0),
+        taxCents: integer(link.tax_cents == null ? totals.taxCents : link.tax_cents, 0),
+        grossCents: integer(link.gross_cents == null ? totals.grossCents : link.gross_cents, 0),
+        paidCents: integer(link.paid_cents == null ? invoice && invoice.paidCents : link.paid_cents, 0),
+        cancelled: Boolean(invoice && invoice.status === "cancelled"),
+        testMismatch: typeof targetIsTest === "boolean" && invoice ? Boolean(invoice.isTest) !== targetIsTest : false
+      };
+    });
+    var blocked = deductions.some(function (entry) {
+      return entry.cancelled || entry.testMismatch || entry.grossCents <= 0 || entry.paidCents < entry.grossCents;
+    });
+    return {
+      progressLinks: progressLinks,
+      deductions: normalizeFinalDeductions(deductions),
+      blocked: blocked,
+      progressPercent: progressLinks.reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0)
+    };
+  }
+
   function workOrderActions(status) {
     if (status === "draft") return ["edit", "offer", "cancel"];
     if (status === "offered") return ["accept", "cancel"];
@@ -457,6 +512,8 @@
     if (!workOrder || ["accepted", "in_progress", "completed"].indexOf(workOrder.status) === -1) return null;
     var kind = invoiceKind === "progress" ? "progress" : "final";
     if (kind === "final" && workOrder.status !== "completed") return null;
+    var finalState = workOrderFinalState(workOrder, !profileReadiness(profile).live);
+    if (kind === "final" && finalState.blocked) return null;
     var percent = kind === "progress" ? clamp(integer(progressPercent, 0), 1, 99) : 100;
     var source = draftFromDatabasePayload(workOrder.lockedPayload || workOrder.payload, false);
     var draft = Object.assign(defaultDraft(profile), source, {
@@ -468,7 +525,8 @@
         offerNumber: workOrder.offerNumber,
         orderNumber: workOrder.orderNumber,
         invoiceKind: kind,
-        progressPercent: kind === "progress" ? percent : 0
+        progressPercent: kind === "progress" ? percent : 0,
+        finalDeductions: kind === "final" ? finalState.deductions : []
       }
     });
     if (kind === "progress") {
@@ -483,7 +541,7 @@
       draft.workDescription = "Abschlagsrechnung über " + percent + " % gemäß dokumentiertem Leistungsstand zu " + workOrder.orderNumber + ".";
     } else {
       draft.items = (source.items || []).map(function (item) { return Object.assign({}, item, { id: uid("item") }); });
-      draft.workDescription = "Schlussrechnung zu " + workOrder.orderNumber + ".";
+      draft.workDescription = "Schlussrechnung zu " + workOrder.orderNumber + (finalState.deductions.length ? " unter Abzug der vereinnahmten Abschlagszahlungen." : ".");
     }
     if (!draft.items.length) draft.items = [defaultItem()];
     return draft;
@@ -549,6 +607,20 @@
       totals.byRate[rateKey].taxCents += calculated.taxCents;
       if (["labour", "travel", "machine"].indexOf(item.category) !== -1) totals.eligible35aCents += calculated.grossCents;
     });
+    totals.serviceNetCents = totals.netCents;
+    totals.serviceTaxCents = totals.taxCents;
+    totals.serviceGrossCents = totals.grossCents;
+    var deductions = normalizeFinalDeductions(draft && draft.workflowContext && draft.workflowContext.finalDeductions);
+    totals.deductions = deductions;
+    totals.deductionNetCents = deductions.reduce(function (sum, entry) { return sum + entry.netCents; }, 0);
+    totals.deductionTaxCents = deductions.reduce(function (sum, entry) { return sum + entry.taxCents; }, 0);
+    totals.deductionGrossCents = deductions.reduce(function (sum, entry) { return sum + entry.grossCents; }, 0);
+    if (deductions.length) {
+      totals.netCents = Math.max(0, totals.serviceNetCents - totals.deductionNetCents);
+      totals.taxCents = Math.max(0, totals.serviceTaxCents - totals.deductionTaxCents);
+      totals.grossCents = Math.max(0, totals.serviceGrossCents - totals.deductionGrossCents);
+      totals.eligible35aCents = Math.max(0, Math.round(totals.eligible35aCents * totals.grossCents / Math.max(1, totals.serviceGrossCents)));
+    }
     return totals;
   }
 
@@ -958,6 +1030,11 @@
     var exemption = taxNote(draft);
     var supplierTaxScheme = draft.taxMode === "regular" ? "VAT" : "OTH";
     var buyerReference = draft.buyerReference || draft.leitwegId;
+    var deductions = totals.deductions || [];
+    var serviceNetCents = totals.serviceNetCents == null ? totals.netCents : totals.serviceNetCents;
+    var serviceTaxCents = totals.serviceTaxCents == null ? totals.taxCents : totals.serviceTaxCents;
+    var serviceGrossCents = totals.serviceGrossCents == null ? totals.grossCents : totals.serviceGrossCents;
+    var deductionGrossCents = totals.deductionGrossCents || 0;
     if (!buyerReference || !profile.businessEmail || !draft.customerEmail) throw new Error("XRechnung nima vseh obveznih elektronskih naslovov in Buyer reference.");
     var lines = draft.items.map(function (item, index) {
       var calc = calculateItem(item, draft.priceMode, draft.taxMode);
@@ -976,6 +1053,7 @@
       var rate = totals.byRate[key];
       return "<cac:TaxSubtotal><cbc:TaxableAmount currencyID=\"EUR\">" + (rate.netCents / 100).toFixed(2) + "</cbc:TaxableAmount><cbc:TaxAmount currencyID=\"EUR\">" + (rate.taxCents / 100).toFixed(2) + "</cbc:TaxAmount><cac:TaxCategory><cbc:ID>" + (draft.taxMode === "regular" ? "S" : "E") + "</cbc:ID><cbc:Percent>" + (rate.rateBps / 100).toFixed(2) + "</cbc:Percent>" + (exemption ? "<cbc:TaxExemptionReason>" + escapeXml(exemption) + "</cbc:TaxExemptionReason>" : "") + "<cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory></cac:TaxSubtotal>";
     }).join("");
+    var billingReferences = deductions.map(function (entry) { return "  <cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>" + escapeXml(entry.invoiceNumber || entry.invoiceId) + "</cbc:ID>" + (entry.issueDate ? "<cbc:IssueDate>" + escapeXml(entry.issueDate) + "</cbc:IssueDate>" : "") + "</cac:InvoiceDocumentReference></cac:BillingReference>"; }).join("\n");
     return [
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
       "<Invoice xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2\" xmlns:cac=\"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2\" xmlns:cbc=\"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2\">",
@@ -985,14 +1063,16 @@
       "  <cbc:IssueDate>" + escapeXml(draft.issueDate) + "</cbc:IssueDate>",
       "  <cbc:DueDate>" + escapeXml(invoice.dueDate) + "</cbc:DueDate>",
       "  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>",
+      deductions.length ? "  <cbc:Note>Vereinnahmte Abschlagszahlungen einschließlich Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.</cbc:Note>" : "",
       "  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>",
       "  <cbc:BuyerReference>" + escapeXml(buyerReference) + "</cbc:BuyerReference>",
+      billingReferences,
       "  <cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(profile.businessEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(profile.street) + "</cbc:StreetName><cbc:CityName>" + escapeXml(profile.city) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(profile.postalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyTaxScheme><cbc:CompanyID>" + escapeXml(profile.vatId || profile.taxNumber) + "</cbc:CompanyID><cac:TaxScheme><cbc:ID>" + supplierTaxScheme + "</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(profile.legalName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingSupplierParty>",
       "  <cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(draft.customerEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(draft.customerStreet) + "</cbc:StreetName><cbc:CityName>" + escapeXml(draft.customerCity) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(draft.customerPostalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(draft.customerName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>",
       "  <cac:Delivery><cbc:ActualDeliveryDate>" + escapeXml(draft.serviceDate) + "</cbc:ActualDeliveryDate></cac:Delivery>",
       "  <cac:PaymentMeans><cbc:PaymentMeansCode>58</cbc:PaymentMeansCode><cbc:PaymentID>" + escapeXml(invoice.number) + "</cbc:PaymentID><cac:PayeeFinancialAccount><cbc:ID>" + escapeXml(cleanIban(profile.iban)) + "</cbc:ID><cbc:Name>" + escapeXml(profile.accountHolder || profile.legalName) + "</cbc:Name></cac:PayeeFinancialAccount></cac:PaymentMeans>",
-      "  <cac:TaxTotal><cbc:TaxAmount currencyID=\"EUR\">" + (totals.taxCents / 100).toFixed(2) + "</cbc:TaxAmount>" + taxSubtotals + "</cac:TaxTotal>",
-      "  <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID=\"EUR\">" + (totals.netCents / 100).toFixed(2) + "</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID=\"EUR\">" + (totals.netCents / 100).toFixed(2) + "</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID=\"EUR\">" + (totals.grossCents / 100).toFixed(2) + "</cbc:TaxInclusiveAmount><cbc:PayableAmount currencyID=\"EUR\">" + (totals.grossCents / 100).toFixed(2) + "</cbc:PayableAmount></cac:LegalMonetaryTotal>",
+      "  <cac:TaxTotal><cbc:TaxAmount currencyID=\"EUR\">" + (serviceTaxCents / 100).toFixed(2) + "</cbc:TaxAmount>" + taxSubtotals + "</cac:TaxTotal>",
+      "  <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID=\"EUR\">" + (serviceGrossCents / 100).toFixed(2) + "</cbc:TaxInclusiveAmount>" + (deductionGrossCents ? "<cbc:PrepaidAmount currencyID=\"EUR\">" + (deductionGrossCents / 100).toFixed(2) + "</cbc:PrepaidAmount>" : "") + "<cbc:PayableAmount currencyID=\"EUR\">" + (totals.grossCents / 100).toFixed(2) + "</cbc:PayableAmount></cac:LegalMonetaryTotal>",
       lines,
       "</Invoice>"
     ].join("\n");
@@ -1285,6 +1365,7 @@
     workOrderPayloadFromDraft: workOrderPayloadFromDraft,
     workOrderFromServer: workOrderFromServer,
     workOrderActions: workOrderActions,
+    workOrderFinalState: workOrderFinalState,
     prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
     defaultProfile: defaultProfile,
     defaultDraft: defaultDraft
@@ -1598,7 +1679,7 @@
         backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId),
         scopes.bank ? backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200) : skipped(),
         backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
-        backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true })
+        backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true })
       ]);
       var firstError = responses.slice(0, 14).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
@@ -1637,7 +1718,6 @@
         if (!linksByWorkOrder[link.work_order_id]) linksByWorkOrder[link.work_order_id] = [];
         linksByWorkOrder[link.work_order_id].push(link);
       });
-      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || []); });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -1648,6 +1728,16 @@
         invoicesById[invoice.id] = invoice;
         (invoice.adjustments || []).forEach(function (adjustment) { adjustmentsById[adjustment.id] = adjustment; });
       });
+      Object.keys(linksByWorkOrder).forEach(function (workOrderId) {
+        linksByWorkOrder[workOrderId].forEach(function (link) {
+          var linkedInvoice = invoicesById[link.invoice_id] || null;
+          link.invoice = linkedInvoice;
+          link.invoice_number = linkedInvoice && linkedInvoice.number || "";
+          link.issue_date = linkedInvoice && linkedInvoice.draft && linkedInvoice.draft.issueDate || "";
+          link.paid_cents = linkedInvoice ? linkedInvoice.paidCents : 0;
+        });
+      });
+      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || []); });
       (responses[7].data || []).forEach(function (relation) {
         var original = invoicesById[relation.original_invoice_id];
         var replacement = invoicesById[relation.replacement_invoice_id];
@@ -1896,12 +1986,14 @@
     }
     root.innerHTML = rows.map(function (order) {
       var actions = workOrderActions(order.status);
-      var progressTotal = (order.invoiceLinks || []).filter(function (link) { return link.invoice_kind === "progress"; }).reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0);
+      var finalState = workOrderFinalState(order, !profileReadiness(state.profile).live);
+      var progressTotal = finalState.progressPercent;
       var actionHtml = actions.map(function (action) {
-        var blockedFinal = action === "final" && progressTotal > 0;
-        return "<button type=\"button\" data-work-order-action=\"" + action + "\" data-work-order-id=\"" + escapeHtml(order.id) + "\"" + (blockedFinal ? " disabled title=\"Schlussrechnung z odbitkom Abschläge sledi v naslednjem koraku\"" : "") + ">" + escapeHtml(workOrderActionLabel(action)) + "</button>";
+        var blockedFinal = action === "final" && finalState.blocked;
+        return "<button type=\"button\" data-work-order-action=\"" + action + "\" data-work-order-id=\"" + escapeHtml(order.id) + "\"" + (blockedFinal ? " title=\"Končni račun je na voljo, ko so vsi delni računi v celoti plačani.\"" : "") + ">" + escapeHtml(workOrderActionLabel(action)) + "</button>";
       }).join("");
-      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (progressTotal ? "<div><small>Abschläge</small><b>" + progressTotal + " %</b></div>" : "") + "</div>" + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+      var progressCopy = progressTotal ? progressTotal + " %" + (finalState.blocked ? " · plačilo odprto" : " · plačano") : "";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
       button.addEventListener("click", function () {
@@ -1937,7 +2029,11 @@
 
   function openWorkOrderInvoiceDraft(order, kind, percent) {
     var draft = prepareWorkOrderInvoiceDraft(order, state.profile, kind, percent);
-    if (!draft) { showToast("Naročilo še ni v pravilnem stanju za ta račun."); return; }
+    if (!draft) {
+      var finalState = kind === "final" ? workOrderFinalState(order, !profileReadiness(state.profile).live) : null;
+      showToast(finalState && finalState.blocked ? "Končni račun je varno omogočen šele, ko so vsi delni računi v celoti plačani." : "Naročilo še ni v pravilnem stanju za ta račun.");
+      return;
+    }
     state.draft = draft;
     currentStep = 1;
     persist();
@@ -3457,9 +3553,14 @@
     if (replacement) noteParts.unshift("Nadomestni račun za " + replacement.cancellationNumber + "; prvotni račun " + replacement.originalInvoiceNumber + ".");
     if (draft.handwerker35a) noteParts.push("Davčno upravičeni stroški dela, vožnje in strojev: " + formatMoney(invoice.totals.eligible35aCents) + ". Končno upravičenost preveri Finanzamt.");
     if (draft.constructionWithholding) noteParts.push("Bauleistung: stanje Freistellungsbescheinigung – " + draft.exemptionCertificate + ".");
+    var deductions = invoice.totals.deductions || [];
+    if (deductions.length) noteParts.push("Vereinnahmte Teilentgelte und die darauf entfallende Umsatzsteuer sind gemäß § 14 Abs. 5 UStG abgesetzt.");
+    var totalsHtml = deductions.length
+      ? "<div class=\"pos-preview__total-row\"><span>Leistungswert netto</span><span>" + escapeHtml(formatMoney(invoice.totals.serviceNetCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer gesamt</span><span>" + escapeHtml(formatMoney(invoice.totals.serviceTaxCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Auftragssumme brutto</span><span>" + escapeHtml(formatMoney(invoice.totals.serviceGrossCents)) + "</span></div>" + deductions.map(function (entry) { return "<div class=\"pos-preview__total-row\"><span>Abschlag " + escapeHtml(entry.invoiceNumber || entry.invoiceId) + " · Netto " + escapeHtml(formatMoney(entry.netCents)) + " · USt. " + escapeHtml(formatMoney(entry.taxCents)) + "</span><span>− " + escapeHtml(formatMoney(entry.grossCents)) + "</span></div>"; }).join("") + "<div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Noch zu zahlen</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div>"
+      : "<div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div>";
     var preview = query("[data-invoice-preview]");
     preview.classList.toggle("is-test", invoice.isTest && !offerMode);
-    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (offerMode ? "ANGEBOT" : invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">" + (offerMode ? "Angebot" : "Rechnung") + "</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>" + (offerMode ? "Gültig bis" : "Fällig am") + "</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>" + (offerMode ? "Status" : "Zahlungsart") + "</small><strong>" + escapeHtml(offerMode ? "Unverbindlich bis Annahme" : draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>" + (offerMode ? "Angebot für" : "Rechnung an") + "</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\"><div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div></div><p class=\"pos-preview__note\">" + escapeHtml(offerMode ? "Dieses Angebot ist bis zum genannten Datum gültig. Leistungsumfang und Preise werden erst mit Annahme verbindlich." : noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
+    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (offerMode ? "ANGEBOT" : invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">" + (offerMode ? "Angebot" : "Rechnung") + "</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>" + (offerMode ? "Gültig bis" : "Fällig am") + "</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>" + (offerMode ? "Status" : "Zahlungsart") + "</small><strong>" + escapeHtml(offerMode ? "Unverbindlich bis Annahme" : draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>" + (offerMode ? "Angebot für" : "Rechnung an") + "</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\">" + totalsHtml + "</div><p class=\"pos-preview__note\">" + escapeHtml(offerMode ? "Dieses Angebot ist bis zum genannten Datum gültig. Leistungsumfang und Preise werden erst mit Annahme verbindlich." : noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
     query("[data-issue-invoice]").textContent = offerMode ? (draft.workflowContext && draft.workflowContext.workOrderId ? "Posodobi ponudbo" : "Ustvari ponudbo") : invoice.isTest ? "Ustvari testni račun" : "Pravno izdaj račun";
     query("[data-issue-invoice]").disabled = errors.length > 0;
     if (offerMode) {

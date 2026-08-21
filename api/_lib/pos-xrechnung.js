@@ -1,6 +1,6 @@
 "use strict";
 
-const GENERATOR_VERSION = "uj-pos-xrechnung-1";
+const GENERATOR_VERSION = "uj-pos-xrechnung-2";
 const XRECHNUNG_VERSION = "3.0.2";
 const KOSIT_VALIDATOR_VERSION = "1.6.2";
 const KOSIT_CONFIG_VERSION = "2026-01-31";
@@ -45,6 +45,17 @@ function normalizeInvoice(invoice) {
   const seller = snapshot.seller && typeof snapshot.seller === "object" ? snapshot.seller : {};
   const draft = snapshot.draft && typeof snapshot.draft === "object" ? snapshot.draft : {};
   const items = Array.isArray(draft.items) ? draft.items : [];
+  const workflow = draft.workflow_context && typeof draft.workflow_context === "object" ? draft.workflow_context : {};
+  const deductions = (Array.isArray(workflow.final_deductions) ? workflow.final_deductions : []).map((entry) => ({
+    invoiceId: text(entry && entry.invoice_id), invoiceNumber: text(entry && entry.invoice_number), issueDate: text(entry && entry.issue_date),
+    netCents: integer(entry && entry.net_cents), taxCents: integer(entry && entry.tax_cents), grossCents: integer(entry && entry.gross_cents)
+  }));
+  const serviceNetCents = items.reduce((sum, item) => sum + integer(item && item.net_cents), 0);
+  const serviceTaxCents = items.reduce((sum, item) => sum + integer(item && item.tax_cents), 0);
+  const serviceGrossCents = items.reduce((sum, item) => sum + integer(item && item.gross_cents), 0);
+  const deductionNetCents = deductions.reduce((sum, entry) => sum + entry.netCents, 0);
+  const deductionTaxCents = deductions.reduce((sum, entry) => sum + entry.taxCents, 0);
+  const deductionGrossCents = deductions.reduce((sum, entry) => sum + entry.grossCents, 0);
   const normalized = {
     id: text(invoice && invoice.id), number: text(invoice && invoice.invoice_number),
     issueDate: text(invoice && invoice.issue_date || draft.issue_date),
@@ -53,7 +64,8 @@ function normalizeInvoice(invoice) {
     customerType: text(invoice && invoice.customer_type || draft.customer_type),
     taxMode: text(invoice && invoice.tax_mode || draft.tax_mode),
     netCents: integer(invoice && invoice.net_cents), taxCents: integer(invoice && invoice.tax_cents),
-    grossCents: integer(invoice && invoice.gross_cents), seller, draft, items
+    grossCents: integer(invoice && invoice.gross_cents), seller, draft, items, deductions,
+    serviceNetCents, serviceTaxCents, serviceGrossCents, deductionNetCents, deductionTaxCents, deductionGrossCents
   };
   normalized.sellerPhone = text(draft.seller_contact_phone || seller.businessPhone);
   validateInvoice(normalized);
@@ -89,7 +101,14 @@ function validateInvoice(invoice) {
     if (integer(item.net_cents) + integer(item.tax_cents) !== integer(item.gross_cents)) throw new Error("Seštevek postavke " + (index + 1) + " ni pravilen.");
     net += integer(item.net_cents); tax += integer(item.tax_cents); gross += integer(item.gross_cents);
   });
-  if (net !== invoice.netCents || tax !== invoice.taxCents || gross !== invoice.grossCents || net + tax !== gross) throw new Error("Zaklenjeni seštevki računa niso skladni s postavkami.");
+  invoice.deductions.forEach((entry, index) => {
+    if (!entry.invoiceId || !entry.invoiceNumber) throw new Error("Odbitek Abschlagsrechnung " + (index + 1) + " nima veljavne reference.");
+    if (entry.netCents < 0 || entry.taxCents < 0 || entry.grossCents <= 0 || entry.netCents + entry.taxCents !== entry.grossCents) throw new Error("Odbitek Abschlagsrechnung " + (index + 1) + " nima veljavnih zneskov.");
+  });
+  const expectedNet = net - invoice.deductionNetCents;
+  const expectedTax = tax - invoice.deductionTaxCents;
+  const expectedGross = gross - invoice.deductionGrossCents;
+  if (expectedNet < 0 || expectedTax < 0 || expectedGross < 0 || expectedNet + expectedTax !== expectedGross || expectedNet !== invoice.netCents || expectedTax !== invoice.taxCents || expectedGross !== invoice.grossCents || net + tax !== gross) throw new Error("Zaklenjeni seštevki računa niso skladni s postavkami in odbitki.");
 }
 
 function element(name, value, attributes) {
@@ -139,13 +158,16 @@ function buildXRechnung(invoiceRow) {
   if (text(seller.vatId)) sellerTax.push("      <cac:PartyTaxScheme>" + element("cbc:CompanyID", seller.vatId) + "<cac:TaxScheme>" + element("cbc:ID", "VAT") + "</cac:TaxScheme></cac:PartyTaxScheme>");
   if (text(seller.taxNumber)) sellerTax.push("      <cac:PartyTaxScheme>" + element("cbc:CompanyID", seller.taxNumber) + "<cac:TaxScheme>" + element("cbc:ID", "FC") + "</cac:TaxScheme></cac:PartyTaxScheme>");
   const paymentNote = invoice.dueDate === invoice.issueDate ? "Zahlbar sofort ohne Abzug." : "Zahlbar bis " + invoice.dueDate + " ohne Abzug.";
+  const billingReferences = invoice.deductions.map((entry) => "  <cac:BillingReference><cac:InvoiceDocumentReference>" + element("cbc:ID", entry.invoiceNumber) + (validDate(entry.issueDate) ? element("cbc:IssueDate", entry.issueDate) : "") + "</cac:InvoiceDocumentReference></cac:BillingReference>").join("\n");
   const xml = [
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
     "<ubl:Invoice xmlns:ubl=\"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2\" xmlns:cac=\"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2\" xmlns:cbc=\"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2\">",
     "  " + element("cbc:CustomizationID", CUSTOMIZATION_ID), "  " + element("cbc:ProfileID", PROFILE_ID),
     "  " + element("cbc:ID", invoice.number), "  " + element("cbc:IssueDate", invoice.issueDate),
     "  " + element("cbc:DueDate", invoice.dueDate), "  " + element("cbc:InvoiceTypeCode", "380"),
+    invoice.deductions.length ? "  " + element("cbc:Note", "Vereinnahmte Abschlagszahlungen einschließlich der darauf entfallenden Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.") : "",
     "  " + element("cbc:DocumentCurrencyCode", "EUR"), "  " + element("cbc:BuyerReference", buyerReference),
+    billingReferences,
     "  <cac:AccountingSupplierParty>", "    <cac:Party>",
     "      " + element("cbc:EndpointID", seller.businessEmail, { schemeID: "EM" }),
     "      <cac:PartyIdentification>" + element("cbc:ID", seller.vatId || seller.taxNumber) + "</cac:PartyIdentification>",
@@ -165,11 +187,12 @@ function buildXRechnung(invoiceRow) {
     "  <cac:Delivery>" + element("cbc:ActualDeliveryDate", invoice.serviceDate) + "</cac:Delivery>",
     "  <cac:PaymentMeans>" + element("cbc:PaymentMeansCode", "58") + element("cbc:PaymentID", invoice.number) + "<cac:PayeeFinancialAccount>" + element("cbc:ID", cleanIban(seller.iban)) + element("cbc:Name", seller.accountHolder) + "</cac:PayeeFinancialAccount></cac:PaymentMeans>",
     "  <cac:PaymentTerms>" + element("cbc:Note", paymentNote) + "</cac:PaymentTerms>",
-    "  <cac:TaxTotal>", "    " + element("cbc:TaxAmount", money(invoice.taxCents), { currencyID: "EUR" }), taxXml, "  </cac:TaxTotal>",
+    "  <cac:TaxTotal>", "    " + element("cbc:TaxAmount", money(invoice.serviceTaxCents), { currencyID: "EUR" }), taxXml, "  </cac:TaxTotal>",
     "  <cac:LegalMonetaryTotal>",
-    "    " + element("cbc:LineExtensionAmount", money(invoice.netCents), { currencyID: "EUR" }),
-    "    " + element("cbc:TaxExclusiveAmount", money(invoice.netCents), { currencyID: "EUR" }),
-    "    " + element("cbc:TaxInclusiveAmount", money(invoice.grossCents), { currencyID: "EUR" }),
+    "    " + element("cbc:LineExtensionAmount", money(invoice.serviceNetCents), { currencyID: "EUR" }),
+    "    " + element("cbc:TaxExclusiveAmount", money(invoice.serviceNetCents), { currencyID: "EUR" }),
+    "    " + element("cbc:TaxInclusiveAmount", money(invoice.serviceGrossCents), { currencyID: "EUR" }),
+    invoice.deductionGrossCents ? "    " + element("cbc:PrepaidAmount", money(invoice.deductionGrossCents), { currencyID: "EUR" }) : "",
     "    " + element("cbc:PayableAmount", money(invoice.grossCents), { currencyID: "EUR" }),
     "  </cac:LegalMonetaryTotal>", lineXml, "</ubl:Invoice>"
   ].filter(Boolean).join("\n");

@@ -4,7 +4,7 @@ const fs = require("fs");
 const fontkit = require("@pdf-lib/fontkit");
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-4";
+const GENERATOR_VERSION = "uj-pos-pdf-5";
 const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
 const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
 const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
@@ -254,21 +254,36 @@ async function ustvariRacunPdf(invoice) {
   });
 
   const vatRows = taxGroups(items);
-  const summaryRows = [["Nettobetrag", invoice.net_cents]].concat(
+  const workflow = draft.workflow_context && typeof draft.workflow_context === "object" ? draft.workflow_context : {};
+  const deductions = Array.isArray(workflow.final_deductions) ? workflow.final_deductions : [];
+  const serviceNetCents = items.reduce((sum, item) => sum + (Number(item && item.net_cents) || 0), 0);
+  const serviceTaxCents = items.reduce((sum, item) => sum + (Number(item && item.tax_cents) || 0), 0);
+  const serviceGrossCents = serviceNetCents + serviceTaxCents;
+  const summaryRows = [["Nettobetrag", serviceNetCents]].concat(
     vatRows.map((group) => ["USt. " + (group.tax_rate_bps / 100) + " %", group.tax_cents])
   );
-  if (!vatRows.length) summaryRows.push(["Umsatzsteuer", invoice.tax_cents]);
+  if (!vatRows.length) summaryRows.push(["Umsatzsteuer", serviceTaxCents]);
+  if (deductions.length) {
+    summaryRows.push(["Auftragssumme brutto", serviceGrossCents]);
+    deductions.forEach((entry) => {
+      summaryRows.push([
+        "Abschlag " + safeText(entry.invoice_number || entry.invoice_id) + " (Netto " + money(entry.net_cents) + ", USt. " + money(entry.tax_cents) + ")",
+        -(Number(entry.gross_cents) || 0)
+      ]);
+    });
+  }
   ensureSpace(130 + summaryRows.length * 18);
   const totalX = 335;
   const totalWidth = 212;
   y -= 5;
   summaryRows.forEach((entry) => {
-    page.drawText(entry[0], { x: totalX, y, font: regular, size: 9, color: COLORS.muted });
+    const labelSize = fitSize(entry[0], regular, 145, 9, 6.5);
+    page.drawText(entry[0], { x: totalX, y, font: regular, size: labelSize, color: COLORS.muted });
     rightText(page, money(entry[1]), totalX + totalWidth, y, regular, 9, COLORS.ink);
     y -= 18;
   });
   page.drawLine({ start: { x: totalX, y: y + 10 }, end: { x: totalX + totalWidth, y: y + 10 }, thickness: 1, color: COLORS.teal });
-  page.drawText("Gesamtbetrag", { x: totalX, y: y - 3, font: bold, size: 11, color: COLORS.tealDark });
+  page.drawText(deductions.length ? "Noch zu zahlen" : "Gesamtbetrag", { x: totalX, y: y - 3, font: bold, size: 11, color: COLORS.tealDark });
   rightText(page, money(invoice.gross_cents), totalX + totalWidth, y - 3, bold, 12, COLORS.tealDark);
   y -= 42;
 
@@ -278,6 +293,7 @@ async function ustvariRacunPdf(invoice) {
   }
   if (invoice.tax_mode === "small_business") notes.push("Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.");
   if (invoice.tax_mode === "reverse_charge") notes.push("Steuerschuldnerschaft des Leistungsempfängers gemäß § 13b UStG.");
+  if (deductions.length) notes.push("Vereinnahmte Teilentgelte und die darauf entfallende Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.");
   if (draft.handwerker_35a) notes.push("Begünstigte Arbeits-, Fahrt- und Maschinenkosten nach § 35a EStG: " + money(invoice.eligible_35a_cents) + ". Die steuerliche Anerkennung prüft das Finanzamt.");
   if (draft.consumer_default_notice && draft.customer_type === "private") notes.push("Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).");
   if (draft.customer_type === "private" && (draft.handwerker_35a || draft.construction_withholding)) notes.push("Hinweis: Bei Leistungen im Zusammenhang mit einem Grundstück ist diese Rechnung zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).");
