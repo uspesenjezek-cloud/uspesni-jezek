@@ -1136,6 +1136,15 @@
     };
   }
 
+  function stripeReturnMessage(status) {
+    if (status === "succeeded") return "Stripe TEST plačilo je potrjeno s podpisanim webhookom.";
+    if (status === "partially_refunded") return "Stripe TEST plačilo je potrjeno; del zneska je že povrnjen.";
+    if (status === "refunded") return "Stripe TEST plačilo je potrjeno in v celoti povrnjeno.";
+    if (status === "cancelled") return "Stripe TEST plačilo je preklicano.";
+    if (status === "failed") return "Stripe TEST plačilo ni uspelo.";
+    return "Stripe TEST plačilo še čaka na podpisano potrditev.";
+  }
+
   var Core = {
     parseMoneyToCents: parseMoneyToCents,
     validateRefundAmountInput: validateRefundAmountInput,
@@ -1172,6 +1181,7 @@
     normalizePosRefreshScopes: normalizePosRefreshScopes,
     mergePosRefreshScopes: mergePosRefreshScopes,
     archiveCapabilityView: archiveCapabilityView,
+    stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
     paymentSummary: paymentSummary,
     buildAdjustmentChanges: buildAdjustmentChanges,
@@ -2730,11 +2740,7 @@
       var invoice = findInvoice(returnState.invoiceId);
       if (invoice) openInvoiceDetail(invoice.id);
       var status = result && result.payment && result.payment.status || "pending";
-      showToast(status === "succeeded"
-        ? "Stripe TEST plačilo je potrjeno s podpisanim webhookom."
-        : status === "cancelled" ? "Stripe TEST plačilo je preklicano."
-        : status === "failed" ? "Stripe TEST plačilo ni uspelo."
-        : "Stripe TEST plačilo še čaka na podpisano potrditev.");
+      showToast(stripeReturnMessage(status));
     } catch (error) {
       showToast(error && error.message || "Stripe TEST rezultata ni bilo mogoče preveriti.");
     }
