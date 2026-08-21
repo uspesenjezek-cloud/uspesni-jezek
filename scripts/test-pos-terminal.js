@@ -166,6 +166,20 @@ async function testFetchAllRows() {
   assert.equal(failed.data, null);
   assert.equal(failed.error, expectedError);
 }
+
+const cachedState = Core.localStateSnapshot({
+  invoices: Array.from({ length: 125 }, function (_value, index) { return { id: "server-" + index, serverStored: true }; })
+    .concat([{ id: "local-test", serverStored: false }]),
+  workOrders: Array.from({ length: 125 }, function (_value, index) { return { id: "order-" + index }; }),
+  bankTransactions: [{ id: "bank-1" }],
+  draft: { id: "draft-1" }
+});
+assert.equal(cachedState.invoices.length, 101);
+assert.ok(cachedState.invoices.some(function (invoice) { return invoice.id === "local-test"; }));
+assert.equal(cachedState.workOrders.length, 100);
+assert.deepEqual(cachedState.bankTransactions, []);
+assert.equal(cachedState.draft.id, "draft-1");
+assert.match(js, /var localSnapshot = localStateSnapshot\(state\)/);
 assert.match(js, /loadServerState\("deliveries"\)/);
 assert.match(js, /loadServerState\("payments"\)/);
 assert.match(js, /loadServerState\(\["payments", "bank"\]\)/);

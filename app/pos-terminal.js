@@ -1297,6 +1297,18 @@
     }
   }
 
+  function localStateSnapshot(current) {
+    var source = current || {};
+    var invoices = Array.isArray(source.invoices) ? source.invoices : [];
+    var localInvoices = invoices.filter(function (invoice) { return !invoice.serverStored; });
+    var recentServerInvoices = invoices.filter(function (invoice) { return invoice.serverStored; }).slice(0, 100);
+    return Object.assign({}, source, {
+      invoices: localInvoices.concat(recentServerInvoices),
+      workOrders: (Array.isArray(source.workOrders) ? source.workOrders : []).slice(0, 100),
+      bankTransactions: []
+    });
+  }
+
   function archiveCapabilityView(capability) {
     var archive = capability || {};
     var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
@@ -1376,6 +1388,7 @@
     normalizePosRefreshScopes: normalizePosRefreshScopes,
     mergePosRefreshScopes: mergePosRefreshScopes,
     fetchAllRows: fetchAllRows,
+    localStateSnapshot: localStateSnapshot,
     archiveCapabilityView: archiveCapabilityView,
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
@@ -1457,7 +1470,7 @@
 
   function persist() {
     try {
-      var localSnapshot = Object.assign({}, state, { bankTransactions: [] });
+      var localSnapshot = localStateSnapshot(state);
       global.localStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
     } catch (_error) { /* lokalni fallback ni obvezen */ }
   }
