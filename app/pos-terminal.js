@@ -45,6 +45,14 @@
     }).format((integer(cents, 0)) / 100);
   }
 
+  function validateRefundAmountInput(value, refundableCents) {
+    var amountCents = parseMoneyToCents(value);
+    var maximumCents = Math.max(0, integer(refundableCents, 0));
+    if (amountCents <= 0) return { amountCents: amountCents, error: "Vnesite znesek povračila, večji od 0 €." };
+    if (amountCents > maximumCents) return { amountCents: amountCents, error: "Najvišje možno TEST povračilo je " + formatMoney(maximumCents) + "." };
+    return { amountCents: amountCents, error: "" };
+  }
+
   function formatDecimalMilli(milli) {
     return new Intl.NumberFormat(DATE_LOCALE, { maximumFractionDigits: 3 }).format(milli / 1000);
   }
@@ -1102,6 +1110,7 @@
 
   var Core = {
     parseMoneyToCents: parseMoneyToCents,
+    validateRefundAmountInput: validateRefundAmountInput,
     parseQuantityMilli: parseQuantityMilli,
     calculateItem: calculateItem,
     calculateTotals: calculateTotals,
@@ -1186,6 +1195,7 @@
   var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", latestTransfer: null, lastError: "" };
   var toastTimer = 0;
   var dialogCallback = null;
+  var dialogValidator = null;
 
   function loadState() {
     var initial = { profile: defaultProfile(), invoices: [], bankTransactions: [], draft: null, sequence: 0 };
@@ -1616,28 +1626,48 @@
 
   function openDialog(title, copy, options) {
     var backdrop = query("[data-dialog-backdrop]");
+    var field = query("[data-dialog-field]");
+    var input = query("[data-dialog-input]");
+    var inputOptions = options && options.input;
     query("[data-dialog-title]").textContent = title;
     query("[data-dialog-copy]").textContent = copy;
     query("[data-dialog-cancel]").hidden = Boolean(options && options.cancel === false);
     query("[data-dialog-confirm]").textContent = options && options.confirmText || "V redu";
     dialogCallback = options && options.onConfirm || null;
+    dialogValidator = options && options.validate || null;
+    field.hidden = !inputOptions;
+    input.value = inputOptions && inputOptions.value || "";
+    query("[data-dialog-field-label]").textContent = inputOptions && inputOptions.label || "Znesek";
+    query("[data-dialog-field-hint]").textContent = inputOptions && inputOptions.hint || "";
     backdrop.hidden = false;
     document.documentElement.classList.add("uj-modal-odprt");
     document.body.classList.add("uj-modal-odprt");
-    query("[data-dialog-confirm]").focus();
+    (inputOptions ? input : query("[data-dialog-confirm]")).focus();
+    if (inputOptions) input.select();
   }
 
   function closeDialog(confirmed) {
+    var inputValue = query("[data-dialog-input]").value;
+    if (confirmed && dialogValidator) {
+      var validationMessage = dialogValidator(inputValue);
+      if (validationMessage) {
+        showToast(validationMessage);
+        query("[data-dialog-input]").focus();
+        query("[data-dialog-input]").select();
+        return;
+      }
+    }
     query("[data-dialog-backdrop]").hidden = true;
     document.documentElement.classList.remove("uj-modal-odprt");
     document.body.classList.remove("uj-modal-odprt");
     var callback = dialogCallback;
     dialogCallback = null;
+    dialogValidator = null;
     if (!query("[data-bank-backdrop]").hidden || !query("[data-adjustment-backdrop]").hidden || !query("[data-delivery-backdrop]").hidden || !query("[data-datev-backdrop]").hidden) {
       document.documentElement.classList.add("uj-modal-odprt");
       document.body.classList.add("uj-modal-odprt");
     }
-    if (confirmed && callback) callback();
+    if (confirmed && callback) callback(inputValue);
   }
 
   function fillForm(form, values) {
@@ -3663,13 +3693,22 @@
       showToast("Za ta račun ni povračljivega Stripe TEST plačila.");
       return;
     }
-    var amountCents = integer(payment.amountCents, 0) - integer(payment.refundedCents, 0);
+    var refundableCents = integer(payment.amountCents, 0) - integer(payment.refundedCents, 0);
     openDialog(
       "Povrniti Stripe TEST plačilo?",
-      "Stripe bo v sandboxu povrnil " + formatMoney(amountCents) + ". Pravi denar se ne premakne; podpisani webhook bo posodobil plačilno sled.",
+      "Vnesite celotni ali delni znesek. Pravi denar se ne premakne; podpisani webhook bo posodobil plačilno sled.",
       {
-        confirmText: "Povrni " + formatMoney(amountCents) + " – TEST",
-        onConfirm: async function () {
+        confirmText: "Povrni – TEST",
+        input: {
+          label: "Znesek povračila",
+          value: (refundableCents / 100).toFixed(2).replace(".", ","),
+          hint: "Največ " + formatMoney(refundableCents) + ". Uporabite lahko tudi delni znesek."
+        },
+        validate: function (value) {
+          return validateRefundAmountInput(value, refundableCents).error;
+        },
+        onConfirm: async function (value) {
+          var amountCents = validateRefundAmountInput(value, refundableCents).amountCents;
           var button = query("[data-stripe-refund]");
           button.disabled = true;
           query("span", button).textContent = "Povračilo se pripravlja …";
@@ -4030,6 +4069,7 @@
     query("[data-delivery-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeDeliverySheet(); });
     query("[data-dialog-confirm]").addEventListener("click", function () { closeDialog(true); });
     query("[data-dialog-cancel]").addEventListener("click", function () { closeDialog(false); });
+    query("[data-dialog-input]").addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); closeDialog(true); } });
     query("[data-dialog-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeDialog(false); });
     global.addEventListener("resize", fitAllText);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllText);
