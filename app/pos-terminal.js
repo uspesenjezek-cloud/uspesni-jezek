@@ -983,7 +983,7 @@
   function deliveryRecommendation(invoice, profile) {
     var draft = invoice && invoice.draft || {};
     var type = draft.customerType || "private";
-    var issueDate = String(draft.issueDate || "");
+    var serviceDate = String(draft.serviceDate || draft.issueDate || "");
     var turnoverBand = profile && profile.previousYearTurnoverBand || "unknown";
     if (type === "public") {
       return {
@@ -993,13 +993,23 @@
       };
     }
     if (type === "business") {
-      var year = integer(issueDate.slice(0, 4), new Date().getFullYear());
-      var pdfAllowed = year <= 2026 || (year === 2027 && turnoverBand === "lte_800k");
-      var needsTurnoverDecision = year === 2027 && turnoverBand === "unknown";
+      var totals = invoice && invoice.totals || calculateTotals(draft);
+      var grossCents = Math.max(0, integer(totals && totals.grossCents, 0));
+      var taxMode = draft.taxMode || (profile && profile.taxStatus === "small_business" ? "small_business" : "regular");
+      var smallBusiness = taxMode === "small_business" || Boolean(profile && profile.taxStatus === "small_business");
+      var smallAmount = grossCents <= 25000 && taxMode !== "reverse_charge";
+      var exempt = smallBusiness || smallAmount;
+      var year = integer(serviceDate.slice(0, 4), new Date().getFullYear());
+      var pdfAllowed = exempt || year <= 2026 || (year === 2027 && turnoverBand === "lte_800k");
+      var needsTurnoverDecision = !exempt && year === 2027 && turnoverBand === "unknown";
+      var copy = smallBusiness
+        ? "Kot Kleinunternehmer lahko izdate PDF; strukturirani XML ostaja pripravljen."
+        : smallAmount ? "Za račun do 250 EUR je PDF dovoljen; strukturirani XML ostaja pripravljen."
+          : pdfAllowed ? "Strukturirani XML je pripravljen za prihodnja pravila." : "Za datum opravljene storitve je potreben strukturirani e-račun.";
       return {
         channel: "email", documentFormat: "xrechnung_pdf", structuredRequired: !pdfAllowed,
         pdfAllowed: pdfAllowed, pdfConsentRequired: true, needsTurnoverDecision: needsTurnoverDecision,
-        title: "XRechnung + berljivi PDF", copy: pdfAllowed ? "Strukturirani XML je pripravljen za prihodnja pravila." : "Za ta datum je potreben strukturirani e-račun.", badge: "XML + PDF"
+        title: "XRechnung + berljivi PDF", copy: copy, badge: "XML + PDF"
       };
     }
     return {

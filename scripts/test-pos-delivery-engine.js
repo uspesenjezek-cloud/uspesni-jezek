@@ -17,6 +17,9 @@ const liveMigration = fs.readFileSync(path.join(root, "supabase", "migrations", 
 const safeTestMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_resend_safe_test_mode\.sql$/.test(name)).sort().pop();
 const safeTestMigration = fs.readFileSync(path.join(root, "supabase", "migrations", safeTestMigrationName), "utf8");
+const einvoiceExemptionsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_einvoice_delivery_exemptions\.sql$/.test(name)).sort().pop();
+const einvoiceExemptionsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", einvoiceExemptionsMigrationName), "utf8");
 const api = fs.readFileSync(path.join(root, "api", "_handlers", "pos-dostava-sandbox.js"), "utf8");
 const providerSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-providers.js"), "utf8");
 const packageSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-package.js"), "utf8");
@@ -60,6 +63,12 @@ assert.match(safeTestMigration, /public\.pos_apply_resend_test_webhook_event/);
 assert.match(safeTestMigration, /revoke all on function public\.pos_queue_resend_test_invoice_delivery\(uuid,uuid,boolean\) from public, anon, authenticated/);
 assert.match(safeTestMigration, /grant execute on function public\.pos_queue_resend_test_invoice_delivery\(uuid,uuid,boolean\) to service_role/);
 assert.doesNotMatch(safeTestMigration, /grant execute on function public\.pos_queue_resend_test_invoice_delivery[\s\S]*to authenticated/);
+assert.match(einvoiceExemptionsMigration, /invoice\.service_date < date '2027-01-01'/i);
+assert.match(einvoiceExemptionsMigration, /invoice\.gross_cents <= 25000 and invoice\.tax_mode <> 'reverse_charge'/i);
+assert.match(einvoiceExemptionsMigration, /invoice\.tax_mode = 'small_business'/i);
+assert.match(einvoiceExemptionsMigration, /previous_year_turnover_band = 'lte_800k'/i);
+assert.match(einvoiceExemptionsMigration, /before insert or update of document_format, status, provider, is_test/i);
+assert.match(einvoiceExemptionsMigration, /not private\.pos_invoice_pdf_delivery_allowed\(v_invoice\.id, v_user\)/i);
 
 assert.match(api, /supabase\.preveriUporabnika/);
 assert.match(api, /p_user_id: auth\.user\.id/);
