@@ -14,6 +14,7 @@ const archive = require(path.join(root, "api", "_lib", "pos-archive"));
 const handler = require(path.join(root, "api", "_handlers", "pos-arhiv"));
 const terminal = require(path.join(root, "app", "pos-terminal"));
 const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-arhiv.js"), "utf8");
+const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
 
 assert.strictEqual(archive.hash(Buffer.from("original")), "0682c5f2076f099c34cfdd15a9e063849ed437a49677e6fcc5b4198c76575be5");
 assert.match(migration, /create table public\.pos_archive_records/i);
@@ -63,7 +64,7 @@ assert.match(unavailableView.copyText, /varno zaklenjena/i);
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260821-payment-rpc-v1/);
+assert.match(html, /pos-terminal\.js\?v=20260821-handwerker-workflow-v2/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
@@ -71,6 +72,8 @@ assert.doesNotMatch(js, /currentSessionToken/);
 assert.match(handlerSource, /select=id,user_id,invoice_id/);
 assert.match(js, /Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo/);
 assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
+assert.match(localServer, /posArhivModul = require\.resolve\("\.\.\/api\/_handlers\/pos-arhiv"\)/);
+assert.match(localServer, /pathname === "\/api\/pos-arhiv"[\s\S]*izvediLokalniApi\(req, res, posArhivModul\)/);
 assert.ok(vercel.crons.some((entry) => entry.path === "/api/pos-arhiv-delavec" && entry.schedule === "23 4 1 * *"));
 
 console.log("POS archive tests passed.");

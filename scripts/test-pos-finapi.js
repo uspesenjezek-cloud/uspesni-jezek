@@ -1,9 +1,11 @@
 "use strict";
 
 const assert = require("assert");
+const fs = require("fs");
 const path = require("path");
 const Finapi = require(path.join(__dirname, "..", "api", "_lib", "finapi-access"));
 const PosRouter = require(path.join(__dirname, "..", "api", "pos"))._test;
+const localServer = fs.readFileSync(path.join(__dirname, "..", "scripts", "local-server.js"), "utf8");
 
 const env = {
   FINAPI_MODE: "sandbox",
@@ -19,6 +21,7 @@ Object.defineProperty(rewrittenRequest, "query", {
 assert.strictEqual(PosRouter.route(rewrittenRequest), "finapi-bank");
 assert.strictEqual(PosRouter.route({ url: "/api/pos" }), "");
 assert.strictEqual(PosRouter.route(null), "");
+assert.match(localServer, /pathname === "\/api\/pos-finapi"[\s\S]*izvediLokalniApi\(req, res, posFinapiModul\)/);
 
 assert.throws(function () { Finapi.configuration({}); }, /še ni nastavljena/);
 const cfg = Finapi.configuration(env);

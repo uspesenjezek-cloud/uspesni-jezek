@@ -16,6 +16,10 @@ const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "app", "pos-terminal.css"), "utf8");
+const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
+
+assert.match(localServer, /pathname === "\/api\/pos-stripe-checkout"[\s\S]*izvediLokalniApi\(req, res, posStripeCheckoutModul\)/);
+assert.match(localServer, /pathname === "\/api\/pos-stripe-webhook"[\s\S]*izvediLokalniApi\(req, res, posStripeWebhookModul\)/);
 
 assert.throws(() => stripeSandbox.configuration({}), /ključ še ni nastavljen/);
 assert.throws(() => stripeSandbox.configuration({ STRIPE_MODE: "live", STRIPE_SECRET_KEY: "sk_test_x", STRIPE_WEBHOOK_SECRET: "whsec_1234567890123456" }), /zaklenjen/);

@@ -25,6 +25,10 @@ const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
 const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email");
 const posDostavaWebhookModul = require.resolve("../api/_handlers/pos-dostava-webhook");
 const posFiskalyModul = require.resolve("../api/_handlers/pos-fiskaly");
+const posFinapiModul = require.resolve("../api/_handlers/pos-finapi");
+const posStripeCheckoutModul = require.resolve("../api/_handlers/pos-stripe-checkout");
+const posStripeWebhookModul = require.resolve("../api/_handlers/pos-stripe-webhook");
+const posArhivModul = require.resolve("../api/_handlers/pos-arhiv");
 const posDatevModul = require.resolve("../api/_handlers/pos-datev");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
@@ -458,6 +462,22 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/pos-fiskaly") {
     void izvediLokalniApi(req, res, posFiskalyModul);
+    return;
+  }
+  if (pathname === "/api/pos-finapi") {
+    void izvediLokalniApi(req, res, posFinapiModul);
+    return;
+  }
+  if (pathname === "/api/pos-stripe-checkout") {
+    void izvediLokalniApi(req, res, posStripeCheckoutModul);
+    return;
+  }
+  if (pathname === "/api/pos-stripe-webhook") {
+    void izvediLokalniApi(req, res, posStripeWebhookModul);
+    return;
+  }
+  if (pathname === "/api/pos-arhiv") {
+    void izvediLokalniApi(req, res, posArhivModul);
     return;
   }
   if (pathname === "/api/pos-datev") {

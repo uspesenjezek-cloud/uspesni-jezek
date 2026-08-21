@@ -228,7 +228,10 @@
       consumerDefaultNotice: false,
       einvoiceValidated: false,
       finalConfirmed: false,
-      replacementContext: null
+      replacementContext: null,
+      workflowMode: "invoice",
+      offerValidDays: "14",
+      workflowContext: null
     };
   }
 
@@ -349,6 +352,13 @@
         original_invoice_number: replacement.originalInvoiceNumber,
         cancellation_adjustment_id: replacement.cancellationAdjustmentId,
         cancellation_number: replacement.cancellationNumber
+      } : null,
+      workflow_context: draft.workflowContext && draft.workflowContext.workOrderId ? {
+        work_order_id: String(draft.workflowContext.workOrderId),
+        offer_number: String(draft.workflowContext.offerNumber || ""),
+        order_number: String(draft.workflowContext.orderNumber || ""),
+        invoice_kind: draft.workflowContext.invoiceKind === "progress" ? "progress" : "final",
+        progress_percent: draft.workflowContext.invoiceKind === "progress" ? integer(draft.workflowContext.progressPercent, 0) : null
       } : null
     };
   }
@@ -390,8 +400,93 @@
       paymentMethod: source.payment_method,
       consumerDefaultNotice: Boolean(source.consumer_default_notice),
       finalConfirmed: Boolean(issued),
-      replacementContext: normalizeReplacementContext(source)
+      replacementContext: normalizeReplacementContext(source),
+      workflowMode: "invoice",
+      offerValidDays: "14",
+      workflowContext: source.workflow_context ? {
+        workOrderId: source.workflow_context.work_order_id || "",
+        offerNumber: source.workflow_context.offer_number || "",
+        orderNumber: source.workflow_context.order_number || "",
+        invoiceKind: source.workflow_context.invoice_kind === "progress" ? "progress" : "final",
+        progressPercent: integer(source.workflow_context.progress_percent, 0)
+      } : null
     });
+  }
+
+  function workOrderPayloadFromDraft(draft) {
+    var payload = draftToDatabasePayload(draft);
+    payload.valid_until = addDays(draft.issueDate || isoToday(), clamp(integer(draft.offerValidDays, 14), 1, 180));
+    return payload;
+  }
+
+  function workOrderFromServer(row, links) {
+    return {
+      id: row.id,
+      offerNumber: row.offer_number,
+      orderNumber: row.order_number || "",
+      status: row.status,
+      title: row.title,
+      customerName: row.customer_name,
+      customerEmail: row.customer_email || "",
+      validUntil: row.valid_until,
+      netCents: integer(row.net_cents, 0),
+      taxCents: integer(row.tax_cents, 0),
+      grossCents: integer(row.gross_cents, 0),
+      payload: row.payload || {},
+      lockedPayload: row.locked_payload || null,
+      offeredAt: row.offered_at || null,
+      acceptedAt: row.accepted_at || null,
+      startedAt: row.started_at || null,
+      completedAt: row.completed_at || null,
+      cancelledAt: row.cancelled_at || null,
+      updatedAt: row.updated_at,
+      invoiceLinks: links || []
+    };
+  }
+
+  function workOrderActions(status) {
+    if (status === "draft") return ["edit", "offer", "cancel"];
+    if (status === "offered") return ["accept", "cancel"];
+    if (status === "accepted") return ["start", "progress", "cancel"];
+    if (status === "in_progress") return ["complete", "progress", "cancel"];
+    if (status === "completed") return ["final", "progress", "cancel"];
+    return [];
+  }
+
+  function prepareWorkOrderInvoiceDraft(workOrder, profile, invoiceKind, progressPercent) {
+    if (!workOrder || ["accepted", "in_progress", "completed"].indexOf(workOrder.status) === -1) return null;
+    var kind = invoiceKind === "progress" ? "progress" : "final";
+    if (kind === "final" && workOrder.status !== "completed") return null;
+    var percent = kind === "progress" ? clamp(integer(progressPercent, 0), 1, 99) : 100;
+    var source = draftFromDatabasePayload(workOrder.lockedPayload || workOrder.payload, false);
+    var draft = Object.assign(defaultDraft(profile), source, {
+      id: uid("draft"), serverId: null, createdAt: new Date().toISOString(),
+      issueDate: isoToday(), serviceDate: isoToday(), finalConfirmed: false, einvoiceValidated: false,
+      workflowMode: "invoice",
+      workflowContext: {
+        workOrderId: workOrder.id,
+        offerNumber: workOrder.offerNumber,
+        orderNumber: workOrder.orderNumber,
+        invoiceKind: kind,
+        progressPercent: kind === "progress" ? percent : 0
+      }
+    });
+    if (kind === "progress") {
+      draft.items = (source.items || []).map(function (item) {
+        var cents = Math.round(parseMoneyToCents(item.unitPrice) * percent / 100);
+        return Object.assign({}, item, {
+          id: uid("item"),
+          description: "Abschlag " + percent + " % · " + String(item.description || "Leistung"),
+          unitPrice: (cents / 100).toFixed(2).replace(".", ",")
+        });
+      });
+      draft.workDescription = "Abschlagsrechnung über " + percent + " % gemäß dokumentiertem Leistungsstand zu " + workOrder.orderNumber + ".";
+    } else {
+      draft.items = (source.items || []).map(function (item) { return Object.assign({}, item, { id: uid("item") }); });
+      draft.workDescription = "Schlussrechnung zu " + workOrder.orderNumber + ".";
+    }
+    if (!draft.items.length) draft.items = [defaultItem()];
+    return draft;
   }
 
   function buildAdjustmentChanges(invoice, values) {
@@ -1187,6 +1282,10 @@
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
+    workOrderPayloadFromDraft: workOrderPayloadFromDraft,
+    workOrderFromServer: workOrderFromServer,
+    workOrderActions: workOrderActions,
+    prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
     defaultProfile: defaultProfile,
     defaultDraft: defaultDraft
   };
@@ -1237,13 +1336,14 @@
   var dialogValidator = null;
 
   function loadState() {
-    var initial = { profile: defaultProfile(), invoices: [], bankTransactions: [], draft: null, sequence: 0 };
+    var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0 };
     try {
       var saved = JSON.parse(global.localStorage.getItem(STORAGE_KEY) || "null");
       if (!saved || typeof saved !== "object") return initial;
       return {
         profile: Object.assign(defaultProfile(), saved.profile || {}),
         invoices: Array.isArray(saved.invoices) ? saved.invoices : [],
+        workOrders: Array.isArray(saved.workOrders) ? saved.workOrders : [],
         bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions : [],
         draft: saved.draft && typeof saved.draft === "object" ? saved.draft : null,
         sequence: integer(saved.sequence, 0)
@@ -1496,9 +1596,11 @@
         backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
         backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId),
-        scopes.bank ? backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200) : skipped()
+        scopes.bank ? backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200) : skipped(),
+        backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
+        backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true })
       ]);
-      var firstError = responses.slice(0, 11).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 14).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       if (responses[0].data) state.profile = profileFromDatabase(responses[0].data);
@@ -1530,6 +1632,12 @@
         deliveriesByInvoice[row.invoice_id].push(deliveryFromServer(row, eventsByDelivery));
       });
       var serverInvoices = (responses[2].data || []).map(function (row) { return serverInvoiceToLocal(row, paymentsByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice); });
+      var linksByWorkOrder = {};
+      (responses[13].data || []).forEach(function (link) {
+        if (!linksByWorkOrder[link.work_order_id]) linksByWorkOrder[link.work_order_id] = [];
+        linksByWorkOrder[link.work_order_id].push(link);
+      });
+      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || []); });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -1736,6 +1844,7 @@
     if (editorActions) editorActions.hidden = name !== "invoice";
     if (name === "home") renderHome();
     if (name === "invoices") renderInvoiceOverview();
+    if (name === "work-orders") renderWorkOrders();
     if (name === "settings") {
       fillForm(query("#pos-profile-form"), state.profile);
       loadFiskalyCapability(false);
@@ -1760,6 +1869,115 @@
     query("[data-mode-copy]").textContent = live ? "Varna izdaja je omogočena" : readiness.live && backend.ready ? "Čaka potrjena arhivska kopija" : readiness.live ? "Čaka varna povezava z bazo" : "Pravni računi so zaklenjeni";
     renderArchiveCapability();
     renderInvoiceList();
+  }
+
+  function workOrderStatusLabel(status) {
+    return {
+      draft: "Osnutek ponudbe", offered: "Ponudba poslana", accepted: "Naročilo sprejeto",
+      in_progress: "Delo poteka", completed: "Delo zaključeno", invoiced: "Zaključni račun izdan", cancelled: "Preklicano"
+    }[status] || status;
+  }
+
+  function workOrderActionLabel(action) {
+    return {
+      edit: "Uredi ponudbo", offer: "Označi kot poslano", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
+      progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči"
+    }[action] || action;
+  }
+
+  function renderWorkOrders() {
+    var root = query("[data-work-order-list]");
+    if (!root) return;
+    var rows = state.workOrders || [];
+    query("[data-work-order-count]").textContent = rows.length ? rows.length + (rows.length === 1 ? " projekt" : " projektov") : "Ni projektov";
+    if (!rows.length) {
+      root.innerHTML = "<div class=\"pos-empty\"><span><svg><use href=\"#i-building\"/></svg></span><strong>Pripravite prvo ponudbo</strong><p>Po sprejemu se ponudba spremeni v naročilo, nato pa vodi do Abschlags- ali Schlussrechnung.</p></div>";
+      return;
+    }
+    root.innerHTML = rows.map(function (order) {
+      var actions = workOrderActions(order.status);
+      var progressTotal = (order.invoiceLinks || []).filter(function (link) { return link.invoice_kind === "progress"; }).reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0);
+      var actionHtml = actions.map(function (action) {
+        var blockedFinal = action === "final" && progressTotal > 0;
+        return "<button type=\"button\" data-work-order-action=\"" + action + "\" data-work-order-id=\"" + escapeHtml(order.id) + "\"" + (blockedFinal ? " disabled title=\"Schlussrechnung z odbitkom Abschläge sledi v naslednjem koraku\"" : "") + ">" + escapeHtml(workOrderActionLabel(action)) + "</button>";
+      }).join("");
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (progressTotal ? "<div><small>Abschläge</small><b>" + progressTotal + " %</b></div>" : "") + "</div>" + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+    }).join("");
+    queryAll("[data-work-order-action]", root).forEach(function (button) {
+      button.addEventListener("click", function () {
+        var order = rows.filter(function (entry) { return entry.id === button.getAttribute("data-work-order-id"); })[0];
+        var action = button.getAttribute("data-work-order-action");
+        if (action === "edit") openWorkOrderForEdit(order);
+        else if (action === "progress" || action === "final") startWorkOrderInvoice(order, action);
+        else transitionWorkOrder(order, action);
+      });
+    });
+    fitAllText();
+  }
+
+  function transitionWorkOrder(order, action) {
+    if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
+    var copy = action === "offer" ? "Ponudba se bo zaklenila. Nadaljnja sprememba zahteva novo ponudbo."
+      : action === "accept" ? "Potrdite le, če je naročnik ponudbo dejansko sprejel."
+        : action === "cancel" ? "Preklic ostane zapisan v sled dogodkov."
+          : "Prehod se bo zapisal v sled projekta.";
+    openDialog(workOrderActionLabel(action) + "?", copy, {
+      confirmText: workOrderActionLabel(action),
+      onConfirm: async function () {
+        try {
+          var result = await backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action }).single();
+          if (result.error) throw result.error;
+          await loadServerState("invoices");
+          showView("work-orders");
+          showToast("Status projekta je varno posodobljen.");
+        } catch (error) { showToast(error && error.message || "Statusa ni bilo mogoče posodobiti."); }
+      }
+    });
+  }
+
+  function openWorkOrderInvoiceDraft(order, kind, percent) {
+    var draft = prepareWorkOrderInvoiceDraft(order, state.profile, kind, percent);
+    if (!draft) { showToast("Naročilo še ni v pravilnem stanju za ta račun."); return; }
+    state.draft = draft;
+    currentStep = 1;
+    persist();
+    showView("invoice");
+    showToast(kind === "progress" ? "Abschlagsrechnung je pripravljena za preverjanje." : "Schlussrechnung je pripravljena za preverjanje.");
+  }
+
+  function openWorkOrderForEdit(order) {
+    if (!order || order.status !== "draft") { showToast("Samo neposlana ponudba je še spremenljiva."); return; }
+    var draft = draftFromDatabasePayload(order.payload, false);
+    draft.id = uid("draft");
+    draft.serverId = null;
+    draft.createdAt = new Date().toISOString();
+    draft.workflowMode = "offer";
+    draft.offerValidDays = String(Math.max(1, Math.round((Date.parse(order.validUntil + "T12:00:00Z") - Date.parse(isoToday() + "T12:00:00Z")) / 86400000)));
+    draft.workflowContext = { workOrderId: order.id, offerNumber: order.offerNumber };
+    draft.finalConfirmed = false;
+    state.draft = draft;
+    currentStep = 1;
+    persist();
+    showView("invoice");
+  }
+
+  function startWorkOrderInvoice(order, action) {
+    if (!order) return;
+    var replace = function (kind, percent) {
+      if (!state.draft) { openWorkOrderInvoiceDraft(order, kind, percent); return; }
+      openDialog("Zamenjati trenutni osnutek?", "Trenutni osnutek bo zamenjan z računom za " + (order.orderNumber || order.offerNumber) + ".", {
+        confirmText: "Pripravi račun", onConfirm: function () { openWorkOrderInvoiceDraft(order, kind, percent); }
+      });
+    };
+    if (action === "final") { replace("final", 0); return; }
+    var used = (order.invoiceLinks || []).filter(function (link) { return link.invoice_kind === "progress"; }).reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0);
+    var maximum = Math.max(1, 99 - used);
+    openDialog("Pripraviti Abschlagsrechnung?", "Vnesite odstotek dejansko dokumentiranega Leistungsstand. Doslej izdano: " + used + " %.", {
+      confirmText: "Pripravi Abschlag",
+      input: { label: "Leistungsstand v %", value: String(Math.min(30, maximum)), hint: "Dovoljeno še največ " + maximum + " %." },
+      validate: function (value) { var percent = integer(value, 0); return percent < 1 || percent > maximum ? "Vnesite odstotek med 1 in " + maximum + "." : ""; },
+      onConfirm: function (value) { replace("progress", integer(value, 0)); }
+    });
   }
 
   function productionReady() {
@@ -2963,10 +3181,27 @@
   }
 
   function startInvoice() {
-    if (!state.draft) state.draft = defaultDraft(state.profile);
+    var open = function () { state.draft = defaultDraft(state.profile); currentStep = 1; persist(); showView("invoice"); };
+    if (!state.draft) { open(); return; }
+    if (state.draft.workflowMode === "offer") {
+      openDialog("Zamenjati osnutek ponudbe?", "Trenutni osnutek ponudbe bo zamenjan z novim računom.", { confirmText: "Nov račun", onConfirm: open });
+      return;
+    }
     currentStep = 1;
-    persist();
     showView("invoice");
+  }
+
+  function startOffer() {
+    var create = function () {
+      state.draft = defaultDraft(state.profile);
+      state.draft.workflowMode = "offer";
+      state.draft.offerValidDays = "14";
+      currentStep = 1;
+      persist();
+      showView("invoice");
+    };
+    if (!state.draft) { create(); return; }
+    openDialog("Začeti novo ponudbo?", "Trenutni osnutek bo zamenjan z novo ponudbo.", { confirmText: "Nova ponudba", onConfirm: create });
   }
 
   function openReplacementDraft(invoice, cancellation) {
@@ -3031,6 +3266,27 @@
 
   function renderEditor() {
     if (!state.draft) state.draft = defaultDraft(state.profile);
+    var offerMode = state.draft.workflowMode === "offer";
+    var workflow = state.draft.workflowContext || {};
+    query("[data-close-editor]").setAttribute("aria-label", offerMode ? "Zapri ponudbo" : "Zapri račun");
+    query("[data-editor-steps-label]").setAttribute("aria-label", offerMode ? "Koraki ponudbe" : "Koraki računa");
+    query("[data-customer-step-label]").textContent = offerMode ? "Naročnik" : "Stranka";
+    query("[data-customer-step-title]").textContent = offerMode ? "Komu pošiljate ponudbo?" : "Komu izdajate račun?";
+    query("[data-issue-date-label]").textContent = offerMode ? "Datum ponudbe *" : "Datum izdaje *";
+    query("[data-service-date-label]").textContent = offerMode ? "Predvideni datum izvedbe *" : "Datum storitve *";
+    query("[data-draft-label]").textContent = offerMode ? (workflow.offerNumber ? "Urejanje " + workflow.offerNumber : "Nova ponudba") : workflow.invoiceKind === "progress" ? "Abschlagsrechnung · " + (workflow.orderNumber || "Auftrag") : workflow.invoiceKind === "final" ? "Schlussrechnung · " + (workflow.orderNumber || "Auftrag") : "Nov osnutek";
+    query("#invoice-title").textContent = offerMode ? "Pripravi ponudbo" : workflow.invoiceKind === "progress" ? "Pripravi Abschlagsrechnung" : workflow.invoiceKind === "final" ? "Pripravi Schlussrechnung" : "Izstavi račun";
+    query("[data-offer-validity]").hidden = !offerMode;
+    query("[data-final-confirm-title]").textContent = offerMode ? "Preveril sem ponudbo in vse dogovorjene postavke." : "Preveril sem podatke in davčno obravnavo.";
+    query("[data-final-confirm-copy]").textContent = offerMode ? "Po označitvi kot poslano se ponudba zaklene." : "Pri Testbetrieb bo dokument jasno označen kot testni in ni pravni račun.";
+    query("[data-service-step-title]").textContent = offerMode ? "Kaj ponujate?" : "Kaj je bilo opravljeno?";
+    query("[data-service-step-copy]").textContent = offerMode ? "Obseg, postavke in predvideni termin naj bodo razumljivi naročniku." : "Datumi, opis in postavke morajo jasno opisati izvedeno delo.";
+    query("[data-items-title]").textContent = offerMode ? "Postavke ponudbe" : "Postavke računa";
+    query("[data-items-copy]").textContent = offerMode ? "Cene in količine postanejo osnova naročila." : "Cene lahko vnašate neto ali bruto.";
+    query("[data-tax-step-title]").textContent = offerMode ? "Kako bo ponudba davčno obračunana?" : "Kako se račun davčno obravnava?";
+    query("[data-review-step-copy]").textContent = offerMode ? "Osnutek lahko še spreminjate; po označitvi kot poslano se zaklene." : "Po pravni izdaji vsebine ne bo mogoče prepisati; popravek bo nov dokument.";
+    queryAll("[data-invoice-only-output]").forEach(function (element) { element.hidden = offerMode; });
+    query("[data-issue-invoice]").textContent = offerMode ? (workflow.workOrderId ? "Posodobi ponudbo" : "Ustvari ponudbo") : "Ustvari testni račun";
     fillForm(query("#pos-invoice-form"), state.draft);
     var replacement = normalizeReplacementContext(state.draft);
     var banner = query("[data-replacement-banner]");
@@ -3179,9 +3435,15 @@
     syncDraftFromForm();
     var invoice = currentInvoiceSnapshot();
     var draft = invoice.draft;
+    var offerMode = draft.workflowMode === "offer";
+    if (offerMode) {
+      invoice.number = draft.workflowContext && draft.workflowContext.offerNumber || "ANG-" + new Date().getFullYear() + "-····";
+      invoice.dueDate = addDays(draft.issueDate, draft.offerValidDays);
+    }
     var profile = state.profile;
     var displayProfile = profileForPreview(profile, invoice.isTest);
     var errors = validateStep(draft, profile, 4);
+    if (offerMode && (integer(draft.offerValidDays, 0) < 1 || integer(draft.offerValidDays, 0) > 180)) errors.push("Veljavnost ponudbe mora biti med 1 in 180 dni.");
     var validation = query("[data-validation-summary]");
     validation.innerHTML = errors.length
       ? "<div class=\"pos-validation__errors\"><strong>Pred izdajo popravite:</strong><ul>" + errors.map(function (error) { return "<li>" + escapeHtml(error) + "</li>"; }).join("") + "</ul></div>"
@@ -3196,11 +3458,14 @@
     if (draft.handwerker35a) noteParts.push("Davčno upravičeni stroški dela, vožnje in strojev: " + formatMoney(invoice.totals.eligible35aCents) + ". Končno upravičenost preveri Finanzamt.");
     if (draft.constructionWithholding) noteParts.push("Bauleistung: stanje Freistellungsbescheinigung – " + draft.exemptionCertificate + ".");
     var preview = query("[data-invoice-preview]");
-    preview.classList.toggle("is-test", invoice.isTest);
-    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">Rechnung</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>Fällig am</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>Zahlungsart</small><strong>" + escapeHtml(draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>Rechnung an</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\"><div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div></div><p class=\"pos-preview__note\">" + escapeHtml(noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
-    query("[data-issue-invoice]").textContent = invoice.isTest ? "Ustvari testni račun" : "Pravno izdaj račun";
+    preview.classList.toggle("is-test", invoice.isTest && !offerMode);
+    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (offerMode ? "ANGEBOT" : invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">" + (offerMode ? "Angebot" : "Rechnung") + "</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>" + (offerMode ? "Gültig bis" : "Fällig am") + "</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>" + (offerMode ? "Status" : "Zahlungsart") + "</small><strong>" + escapeHtml(offerMode ? "Unverbindlich bis Annahme" : draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>" + (offerMode ? "Angebot für" : "Rechnung an") + "</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\"><div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div></div><p class=\"pos-preview__note\">" + escapeHtml(offerMode ? "Dieses Angebot ist bis zum genannten Datum gültig. Leistungsumfang und Preise werden erst mit Annahme verbindlich." : noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
+    query("[data-issue-invoice]").textContent = offerMode ? (draft.workflowContext && draft.workflowContext.workOrderId ? "Posodobi ponudbo" : "Ustvari ponudbo") : invoice.isTest ? "Ustvari testni račun" : "Pravno izdaj račun";
     query("[data-issue-invoice]").disabled = errors.length > 0;
-    renderQr(invoice);
+    if (offerMode) {
+      var oldQr = query(".pos-preview__qr", preview);
+      if (oldQr) oldQr.remove();
+    } else renderQr(invoice);
     fitAllText();
   }
 
@@ -3246,6 +3511,7 @@
 
   function issueInvoice() {
     syncDraftFromForm();
+    if (state.draft && state.draft.workflowMode === "offer") { issueOffer(); return; }
     var errors = validateStep(state.draft, state.profile, 4);
     if (errors.length) { renderPreview(); showToast(errors[0]); return; }
     var readiness = profileReadiness(state.profile);
@@ -3291,6 +3557,30 @@
         }
       }
     );
+  }
+
+  function issueOffer() {
+    syncDraftFromForm();
+    var errors = validateStep(state.draft, state.profile, 4);
+    var validDays = integer(state.draft.offerValidDays, 0);
+    if (validDays < 1 || validDays > 180) errors.push("Veljavnost ponudbe mora biti med 1 in 180 dni.");
+    if (errors.length) { renderPreview(); showToast(errors[0]); return; }
+    if (!backend.ready || !backend.client) { showToast("Ponudba potrebuje varno strežniško hrambo in številčenje."); return; }
+    var existingId = state.draft.workflowContext && state.draft.workflowContext.workOrderId || null;
+    openDialog(existingId ? "Posodobiti ponudbo?" : "Ustvariti ponudbo?", existingId ? "Spremembe bodo shranjene v osnutek. Poslana ponudba ostane nespremenljiva." : "Ponudba dobi zaporedno številko. Zaklene se šele, ko jo označite kot poslano.", {
+      confirmText: existingId ? "Posodobi" : "Ustvari ponudbo",
+      onConfirm: async function () {
+        try {
+          var result = await backend.client.rpc("pos_save_work_order", { p_work_order_id: existingId, p_payload: workOrderPayloadFromDraft(state.draft) }).single();
+          if (result.error) throw result.error;
+          state.draft = null;
+          persist();
+          await loadServerState("invoices");
+          showView("work-orders");
+          showToast(existingId ? "Osnutek ponudbe je posodobljen." : "Ponudba je varno ustvarjena.");
+        } catch (error) { showToast(error && error.message || "Ponudbe ni bilo mogoče shraniti."); }
+      }
+    });
   }
 
   function downloadFile(filename, content, type) {
@@ -3936,9 +4226,11 @@
   function bindEvents() {
     queryAll("[data-open-view]").forEach(function (button) { button.addEventListener("click", function () { showView(button.getAttribute("data-open-view")); }); });
     queryAll("[data-new-invoice]").forEach(function (button) { button.addEventListener("click", startInvoice); });
+    queryAll("[data-new-offer]").forEach(function (button) { button.addEventListener("click", startOffer); });
     query("[data-close-editor]").addEventListener("click", closeEditor);
     query("[data-save-draft]").addEventListener("click", async function () {
       syncDraftFromForm(); persist();
+      if (state.draft && state.draft.workflowMode === "offer") { showToast("Osnutek ponudbe je shranjen na tej napravi. Številko dobi ob ustvarjanju."); return; }
       if (!backend.ready) { showToast("Osnutek je lokalno shranjen; varna hramba ni povezana."); return; }
       try { await saveDraftToServer(); showToast("Osnutek je varno shranjen in sinhroniziran."); }
       catch (error) { showToast(error && error.message || "Osnutek je ostal shranjen samo lokalno."); }
@@ -4120,6 +4412,7 @@
     if (currentView === "invoice") { previousStep(); return true; }
     if (currentView === "settings") { showView("home"); return true; }
     if (currentView === "invoices") { showView("home"); return true; }
+    if (currentView === "work-orders") { showView("home"); return true; }
     if (currentView === "invoice-detail") { activeInvoiceId = null; showView(invoiceDetailReturnView); return true; }
     return false;
   };

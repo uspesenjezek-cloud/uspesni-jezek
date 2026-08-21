@@ -11,19 +11,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260821-stripe-partial-refund-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260821-handwerker-workflow-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
     <link rel="apple-touch-icon" href="icon-192.png" />
-    <script src="pos-terminal-i18n.js?v=20260821-de-market-v1"></script>
+    <script src="pos-terminal-i18n.js?v=20260821-de-market-v4"></script>
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260821-payment-rpc-v1" defer></script>
+    <script src="pos-terminal.js?v=20260821-handwerker-workflow-v2" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -80,6 +80,11 @@
         </div>
 
         <div class="pos-action-grid" aria-label="Hitra opravila">
+          <button class="pos-action-card pos-action-card--workflow" type="button" data-new-offer>
+            <span class="pos-action-card__icon"><svg><use href="#i-building"/></svg></span>
+            <strong>Nova ponudba</strong>
+            <small>Angebot do Auftrag in računa</small>
+          </button>
           <button class="pos-action-card" type="button" data-new-invoice>
             <span class="pos-action-card__icon"><svg><use href="#i-receipt"/></svg></span>
             <strong>Izstavi račun</strong>
@@ -99,6 +104,11 @@
             <span class="pos-action-card__icon"><svg><use href="#i-export"/></svg></span>
             <strong>DATEV izvoz</strong>
             <small>Obdobje za računovodjo</small>
+          </button>
+          <button class="pos-action-card" type="button" data-open-view="work-orders">
+            <span class="pos-action-card__icon"><svg><use href="#i-check"/></svg></span>
+            <strong>Projekti in naročila</strong>
+            <small>Od ponudbe do Schlussrechnung</small>
           </button>
         </div>
 
@@ -169,6 +179,19 @@
 
         <div class="pos-invoice-overview-count" data-invoice-overview-count></div>
         <div class="pos-invoice-list pos-invoice-list--all" data-invoice-overview-list></div>
+      </section>
+
+      <section class="pos-view pos-view--work-orders" data-view="work-orders" aria-labelledby="work-orders-title">
+        <div class="pos-view-title">
+          <button class="pos-back-button" type="button" data-open-view="home" aria-label="Nazaj na pregled">‹</button>
+          <div><p class="pos-kicker">Handwerker potek</p><h2 id="work-orders-title">Ponudbe in naročila</h2></div>
+        </div>
+        <section class="pos-work-order-intro">
+          <div><strong data-fit-text>Od ponudbe do plačila</strong><p>Poslana ponudba se zaklene, sprejem dobi Auftragsnummer, zaključeno delo pa se prenese v račun.</p></div>
+          <button class="pos-primary" type="button" data-new-offer><svg><use href="#i-plus"/></svg> Nova ponudba</button>
+        </section>
+        <div class="pos-work-order-toolbar"><strong data-work-order-count>Ni projektov</strong><span>strežniško številčenje · sled prehodov</span></div>
+        <div class="pos-work-order-list" data-work-order-list></div>
       </section>
 
       <section class="pos-view" data-view="settings" aria-labelledby="settings-title">
@@ -256,8 +279,8 @@
           <span><svg><use href="#i-receipt"/></svg></span>
           <div><strong data-replacement-title data-fit-text data-fit-max="12">Nadomestni račun</strong><small data-replacement-copy data-fit-text data-fit-max="9.5">Vsi podatki morajo biti ponovno potrjeni.</small></div>
         </aside>
-        <ol class="pos-steps" data-steps aria-label="Koraki računa">
-          <li class="is-active"><button type="button" data-step="1"><span>1</span><small>Stranka</small></button></li>
+        <ol class="pos-steps" data-steps data-editor-steps-label aria-label="Koraki računa">
+          <li class="is-active"><button type="button" data-step="1"><span>1</span><small data-customer-step-label>Stranka</small></button></li>
           <li><button type="button" data-step="2"><span>2</span><small>Storitev</small></button></li>
           <li><button type="button" data-step="3"><span>3</span><small>Davek</small></button></li>
           <li><button type="button" data-step="4"><span>4</span><small>Pregled</small></button></li>
@@ -265,7 +288,7 @@
 
         <form class="pos-form pos-invoice-form" id="pos-invoice-form" novalidate>
           <section class="pos-step-panel is-active" data-step-panel="1">
-            <div class="pos-step-copy"><p class="pos-kicker">1 · Prejemnik</p><h3>Komu izdajate račun?</h3><p>Izbira določa davčna pravila in obliko dokumenta.</p></div>
+            <div class="pos-step-copy"><p class="pos-kicker">1 · Prejemnik</p><h3 data-customer-step-title>Komu izdajate račun?</h3><p>Izbira določa davčna pravila in obliko dokumenta.</p></div>
             <div class="pos-choice pos-choice--three" data-customer-type>
               <label><input type="radio" name="customerType" value="private" checked /><span>Fizična oseba</span></label>
               <label><input type="radio" name="customerType" value="business" /><span>Podjetje</span></label>
@@ -298,18 +321,19 @@
           </section>
 
           <section class="pos-step-panel" data-step-panel="2">
-            <div class="pos-step-copy"><p class="pos-kicker">2 · Storitev</p><h3>Kaj je bilo opravljeno?</h3><p>Datumi, opis in postavke morajo jasno opisati izvedeno delo.</p></div>
+            <div class="pos-step-copy"><p class="pos-kicker">2 · Storitev</p><h3 data-service-step-title>Kaj je bilo opravljeno?</h3><p data-service-step-copy>Datumi, opis in postavke morajo jasno opisati izvedeno delo.</p></div>
             <section class="pos-form-card pos-form-card--flat">
               <div class="pos-field-row">
-                <label class="pos-field"><span>Datum izdaje *</span><input type="date" name="issueDate" /></label>
-                <label class="pos-field"><span>Datum storitve *</span><input type="date" name="serviceDate" /></label>
+                <label class="pos-field"><span data-issue-date-label>Datum izdaje *</span><input type="date" name="issueDate" /></label>
+                <label class="pos-field"><span data-service-date-label>Datum storitve *</span><input type="date" name="serviceDate" /></label>
               </div>
+              <label class="pos-field pos-field--full" data-offer-validity hidden><span>Veljavnost ponudbe *</span><select name="offerValidDays"><option value="7">7 dni</option><option value="14" selected>14 dni</option><option value="30">30 dni</option><option value="60">60 dni</option><option value="90">90 dni</option></select></label>
               <label class="pos-field pos-field--full"><span>Posel / projekt</span><input name="projectName" data-fit-input maxlength="160" placeholder="npr. Sanacija kopalnice" /></label>
               <label class="pos-field pos-field--full"><span>Opis dela</span><textarea name="workDescription" rows="3" maxlength="1200" placeholder="Kratek in razumljiv opis izvedenega dela"></textarea></label>
             </section>
 
             <div class="pos-items-head">
-              <div><h3>Postavke računa</h3><p>Cene lahko vnašate neto ali bruto.</p></div>
+              <div><h3 data-items-title>Postavke računa</h3><p data-items-copy>Cene lahko vnašate neto ali bruto.</p></div>
               <div class="pos-mini-choice"><label><input type="radio" name="priceMode" value="net" checked /><span>Neto</span></label><label><input type="radio" name="priceMode" value="gross" /><span>Bruto</span></label></div>
             </div>
             <div class="pos-items" data-items></div>
@@ -317,7 +341,7 @@
           </section>
 
           <section class="pos-step-panel" data-step-panel="3">
-            <div class="pos-step-copy"><p class="pos-kicker">3 · Davek in plačilo</p><h3>Kako se račun davčno obravnava?</h3><p>Posebne obravnave zahtevajo potrditev in sledljiv razlog.</p></div>
+            <div class="pos-step-copy"><p class="pos-kicker">3 · Davek in plačilo</p><h3 data-tax-step-title>Kako se račun davčno obravnava?</h3><p>Posebne obravnave zahtevajo potrditev in sledljiv razlog.</p></div>
             <section class="pos-form-card pos-form-card--flat">
               <p class="pos-field-label">Davčna obravnava *</p>
               <div class="pos-tax-options" data-tax-options>
@@ -349,15 +373,15 @@
           </section>
 
           <section class="pos-step-panel" data-step-panel="4">
-            <div class="pos-step-copy"><p class="pos-kicker">4 · Pregled</p><h3>Ali je vse pravilno?</h3><p>Po pravni izdaji vsebine ne bo mogoče prepisati; popravek bo nov dokument.</p></div>
+            <div class="pos-step-copy"><p class="pos-kicker">4 · Pregled</p><h3>Ali je vse pravilno?</h3><p data-review-step-copy>Po pravni izdaji vsebine ne bo mogoče prepisati; popravek bo nov dokument.</p></div>
             <div class="pos-validation" data-validation-summary></div>
             <article class="pos-invoice-preview" data-invoice-preview></article>
             <div class="pos-output-grid">
               <button type="button" data-preview-print><svg><use href="#i-receipt"/></svg><span><strong>PDF / tisk</strong><small>Berljiva oblika</small></span></button>
-              <button type="button" data-download-xml><svg><use href="#i-export"/></svg><span><strong>XRechnung</strong><small>Nastane varno po izdaji</small></span></button>
-              <button type="button" data-copy-payment><svg><use href="#i-bank"/></svg><span><strong>SEPA podatki</strong><small>Kopiraj plačilo</small></span></button>
+              <button type="button" data-download-xml data-invoice-only-output><svg><use href="#i-export"/></svg><span><strong>XRechnung</strong><small>Nastane varno po izdaji</small></span></button>
+              <button type="button" data-copy-payment data-invoice-only-output><svg><use href="#i-bank"/></svg><span><strong>SEPA podatki</strong><small>Kopiraj plačilo</small></span></button>
             </div>
-            <label class="pos-acknowledge"><input type="checkbox" name="finalConfirmed" /><span><strong>Preveril sem podatke in davčno obravnavo.</strong><small>Pri Testbetrieb bo dokument jasno označen kot testni in ni pravni račun.</small></span></label>
+            <label class="pos-acknowledge"><input type="checkbox" name="finalConfirmed" /><span><strong data-final-confirm-title>Preveril sem podatke in davčno obravnavo.</strong><small data-final-confirm-copy>Pri Testbetrieb bo dokument jasno označen kot testni in ni pravni račun.</small></span></label>
           </section>
         </form>
 
