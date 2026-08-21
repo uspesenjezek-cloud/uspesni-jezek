@@ -136,6 +136,36 @@ assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && sup
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
 assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
+assert.match(js, /async function fetchAllRows\(buildQuery, pageSize\)/);
+assert.match(js, /buildQuery\(\)\.range\(offset, offset \+ size - 1\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{ return backend\.client\.from\("pos_invoices"\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{ return backend\.client\.from\("pos_payments"\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{ return backend\.client\.from\("pos_work_orders"\)/);
+assert.doesNotMatch(js, /\.from\("pos_invoices"\)[^;\n]*\.limit\(100\)/);
+assert.doesNotMatch(js, /\.from\("pos_work_orders"\)[^;\n]*\.limit\(100\)/);
+
+async function testFetchAllRows() {
+  const source = Array.from({ length: 1201 }, function (_value, index) { return { id: index + 1 }; });
+  const ranges = [];
+  const result = await Core.fetchAllRows(function () {
+    return {
+      range: async function (from, to) {
+        ranges.push([from, to]);
+        return { data: source.slice(from, to + 1), error: null };
+      }
+    };
+  }, 500);
+  assert.equal(result.error, null);
+  assert.equal(result.data.length, 1201);
+  assert.deepEqual(ranges, [[0, 499], [500, 999], [1000, 1499]]);
+
+  const expectedError = new Error("page failed");
+  const failed = await Core.fetchAllRows(function () {
+    return { range: async function () { return { data: null, error: expectedError }; } };
+  }, 500);
+  assert.equal(failed.data, null);
+  assert.equal(failed.error, expectedError);
+}
 assert.match(js, /loadServerState\("deliveries"\)/);
 assert.match(js, /loadServerState\("payments"\)/);
 assert.match(js, /loadServerState\(\["payments", "bank"\]\)/);
@@ -676,4 +706,9 @@ assert.match(finapiLib, /\/api\/webForms\/bankConnectionImport/);
 assert.doesNotMatch(finapiLib, /requestJson\(cfg, "\/bankConnections\/import"/);
 assert.match(finapiLib, /Do NOT route multiple application users|one end user/i);
 
-console.log("POS terminal: nemška logika, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
+testFetchAllRows().then(function () {
+  console.log("POS terminal: nemška logika, celotna zgodovina, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
+}).catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});

@@ -1283,6 +1283,20 @@
     return merged;
   }
 
+  async function fetchAllRows(buildQuery, pageSize) {
+    var size = Math.min(Math.max(integer(pageSize, 500), 1), 1000);
+    var rows = [];
+    var offset = 0;
+    while (true) {
+      var result = await buildQuery().range(offset, offset + size - 1);
+      if (result.error) return { data: null, error: result.error };
+      var page = result.data || [];
+      rows = rows.concat(page);
+      if (page.length < size) return { data: rows, error: null };
+      offset += size;
+    }
+  }
+
   function archiveCapabilityView(capability) {
     var archive = capability || {};
     var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
@@ -1361,6 +1375,7 @@
     invoiceOverview: invoiceOverview,
     normalizePosRefreshScopes: normalizePosRefreshScopes,
     mergePosRefreshScopes: mergePosRefreshScopes,
+    fetchAllRows: fetchAllRows,
     archiveCapabilityView: archiveCapabilityView,
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
@@ -1674,18 +1689,18 @@
       var responses = await Promise.all([
         scopes.profile ? backend.client.from("pos_business_profiles").select("*").eq("user_id", userId).maybeSingle() : skipped(),
         scopes.draft ? backend.client.from("pos_invoice_drafts").select("id,payload,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1) : skipped(),
-        backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).limit(100),
-        backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
-        backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }),
-        backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
-        backend.client.from("pos_invoice_replacements").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId),
+        fetchAllRows(function () { return backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).order("id", { ascending: false }); }),
+        fetchAllRows(function () { return backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId).order("adjustment_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_replacements").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("replacement_invoice_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
         scopes.bank ? backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200) : skipped(),
-        backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(100),
-        backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true })
+        fetchAllRows(function () { return backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).order("id", { ascending: false }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); })
       ]);
       var firstError = responses.slice(0, 14).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
