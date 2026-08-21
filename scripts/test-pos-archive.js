@@ -48,6 +48,7 @@ assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
+assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
 assert.doesNotMatch(js, /currentSessionToken/);
 assert.match(handlerSource, /select=id,user_id,invoice_id/);
 assert.match(js, /Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo/);
@@ -55,3 +56,4 @@ assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
 assert.ok(vercel.crons.some((entry) => entry.path === "/api/pos-arhiv-delavec" && entry.schedule === "23 4 1 * *"));
 
 console.log("POS archive tests passed.");
+
