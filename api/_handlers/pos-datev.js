@@ -164,33 +164,68 @@ function adjustmentLocal(row) {
   };
 }
 
+function chunks(values, size) {
+  const result = [];
+  const width = Math.min(Math.max(Number(size) || 100, 1), 200);
+  for (let index = 0; index < values.length; index += width) result.push(values.slice(index, index + width));
+  return result;
+}
+
+async function pagedRows(cfg, table, query, pageSize) {
+  const size = Math.min(Math.max(Number(pageSize) || 500, 1), 1000);
+  const baseQuery = String(query || "").replace(/^&/, "");
+  const rows = [];
+  let offset = 0;
+  while (true) {
+    const page = await supabase.pridobiVrstice(cfg, table,
+      baseQuery + "&limit=" + size + "&offset=" + offset);
+    rows.push.apply(rows, page);
+    if (page.length < size) return rows;
+    offset += page.length;
+    if (offset >= 20000) {
+      throw new datev.DatevError("Izbrano DATEV obdobje vsebuje preveč zapisov za varen enkratni prenos.", {
+        code: "DATEV_DATASET_TOO_LARGE", status: 409,
+      });
+    }
+  }
+}
+
+async function rowsForIds(cfg, table, userId, column, ids, suffix) {
+  const rows = [];
+  for (const part of chunks(ids, 100)) {
+    const inFilter = "(" + part.map(encodeURIComponent).join(",") + ")";
+    const page = await pagedRows(cfg, table,
+      "user_id=eq." + encodeURIComponent(userId) + "&" + column + "=in." + inFilter + suffix);
+    rows.push.apply(rows, page);
+  }
+  return rows;
+}
+
 async function periodPackage(cfg, userId, selectedPeriod, options) {
   const testOnly = Boolean(options && options.testOnly);
   const testFilter = testOnly ? "true" : "false";
-  const periodInvoices = await supabase.pridobiVrstice(cfg, "pos_invoices",
+  const periodInvoices = await pagedRows(cfg, "pos_invoices",
     "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq." + testFilter + "&issue_date=gte." + selectedPeriod.start +
-    "&issue_date=lte." + selectedPeriod.end + "&select=*&order=issued_at.asc&limit=500");
-  const periodAdjustments = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments",
+    "&issue_date=lte." + selectedPeriod.end + "&select=*&order=issued_at.asc,id.asc");
+  const periodAdjustments = await pagedRows(cfg, "pos_invoice_adjustments",
     "user_id=eq." + encodeURIComponent(userId) + "&issued_at=gte." + encodeURIComponent(selectedPeriod.start + "T00:00:00Z") +
     "&issued_at=lt." + encodeURIComponent(new Date(Date.UTC(Number(selectedPeriod.key.slice(0, 4)), Number(selectedPeriod.key.slice(5, 7)), 1)).toISOString()) +
-    "&select=original_invoice_id&order=issued_at.asc&limit=1000");
+    "&select=id,original_invoice_id&order=issued_at.asc,id.asc");
   const existingIds = new Set(periodInvoices.map(function (row) { return row.id; }));
   const additionalIds = Array.from(new Set(periodAdjustments.map(function (row) { return row.original_invoice_id; }).filter(function (id) { return id && !existingIds.has(id); })));
   let additionalInvoices = [];
   if (additionalIds.length) {
-    additionalInvoices = await supabase.pridobiVrstice(cfg, "pos_invoices",
-      "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq." + testFilter + "&id=in.(" + additionalIds.join(",") + ")&select=*&order=issued_at.asc&limit=500");
+    additionalInvoices = await rowsForIds(cfg, "pos_invoices", userId, "id", additionalIds,
+      "&is_test=eq." + testFilter + "&select=*&order=issued_at.asc,id.asc");
   }
   const invoices = periodInvoices.concat(additionalInvoices);
   if (!invoices.length) return { invoices: [], records: [] };
   const ids = invoices.map(function (row) { return row.id; });
-  const inFilter = "(" + ids.join(",") + ")";
   const [adjustments, records] = await Promise.all([
-    supabase.pridobiVrstice(cfg, "pos_invoice_adjustments",
-      "user_id=eq." + encodeURIComponent(userId) + "&original_invoice_id=in." + inFilter + "&select=*&order=issued_at.asc&limit=1000"),
-    supabase.pridobiVrstice(cfg, "pos_archive_records",
-      "user_id=eq." + encodeURIComponent(userId) + "&invoice_id=in." + inFilter +
-      "&source_table=in.(pos_invoice_documents,pos_adjustment_documents)&select=*&order=archived_at.asc&limit=1500"),
+    rowsForIds(cfg, "pos_invoice_adjustments", userId, "original_invoice_id", ids,
+      "&select=*&order=issued_at.asc,id.asc"),
+    rowsForIds(cfg, "pos_archive_records", userId, "invoice_id", ids,
+      "&source_table=in.(pos_invoice_documents,pos_adjustment_documents)&select=*&order=archived_at.asc,id.asc"),
   ]);
   const adjustmentsByInvoice = Object.create(null);
   adjustments.forEach(function (row) {
@@ -463,5 +498,5 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports._test = {
-  adjustmentLocal, period, publicConnection, publicJob, requestBody, safeFilename, uuid,
+  adjustmentLocal, chunks, pagedRows, period, periodPackage, publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid,
 };

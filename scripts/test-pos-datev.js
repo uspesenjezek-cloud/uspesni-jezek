@@ -107,4 +107,45 @@ assert.match(localServer, /pathname === "\/api\/pos-datev"/);
 assert.match(localServer, /else void posredujZascitenApi\(req, res, requestUrl\.pathname \+ requestUrl\.search\)/);
 assert.match(localServer, /pathname === "\/__dev-source"/);
 
-console.log("POS DATEV mock, OAuth zaščita, PDF povezave in RLS so preverjeni.");
+assert.deepStrictEqual(handler._test.chunks([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+assert.doesNotMatch(handler._test.periodPackage.toString(), /&limit=(?:500|1000|1500)/);
+assert.match(handler._test.periodPackage.toString(), /pagedRows\(cfg, "pos_invoices"/);
+assert.match(handler._test.periodPackage.toString(), /rowsForIds\(cfg, "pos_archive_records"/);
+
+void (async function verifyDatevPagination() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server.js"));
+  const originalRead = supabase.pridobiVrstice;
+  const source = Array.from({ length: 1205 }, function (_, index) { return { id: index + 1 }; });
+  const offsets = [];
+  supabase.pridobiVrstice = async function (_, table, query) {
+    assert.strictEqual(table, "datev_test_rows");
+    const params = new URLSearchParams(query);
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    offsets.push(offset);
+    return source.slice(offset, offset + limit);
+  };
+  try {
+    const all = await handler._test.pagedRows({}, "datev_test_rows", "select=id&order=id.asc", 500);
+    assert.strictEqual(all.length, 1205);
+    assert.deepStrictEqual(offsets, [0, 500, 1000]);
+    assert.strictEqual(all[1204].id, 1205);
+
+    const requestedGroups = [];
+    supabase.pridobiVrstice = async function (_, table, query) {
+      assert.strictEqual(table, "datev_id_rows");
+      const params = new URLSearchParams(query);
+      requestedGroups.push(params.get("invoice_id").slice(4, -1).split(","));
+      return [];
+    };
+    await handler._test.rowsForIds({}, "datev_id_rows", "user-1", "invoice_id",
+      Array.from({ length: 205 }, function (_, index) { return "invoice-" + index; }), "&select=id&order=id.asc");
+    assert.deepStrictEqual(requestedGroups.map(function (group) { return group.length; }), [100, 100, 5]);
+  } finally {
+    supabase.pridobiVrstice = originalRead;
+  }
+  console.log("POS DATEV mock, OAuth zaščita, PDF povezave, celotno obdobje in RLS so preverjeni.");
+})().catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});
