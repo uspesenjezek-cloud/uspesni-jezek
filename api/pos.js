@@ -15,8 +15,7 @@ const handlers = Object.freeze({
 });
 
 function route(req) {
-  if (req.query && req.query.handler) return String(req.query.handler);
-  try { return new URL(req.url, "http://localhost").searchParams.get("handler") || ""; }
+  try { return new URL(req && req.url || "/", "http://localhost").searchParams.get("handler") || ""; }
   catch (_) { return ""; }
 }
 

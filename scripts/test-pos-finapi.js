@@ -3,6 +3,7 @@
 const assert = require("assert");
 const path = require("path");
 const Finapi = require(path.join(__dirname, "..", "api", "_lib", "finapi-access"));
+const PosRouter = require(path.join(__dirname, "..", "api", "pos"))._test;
 
 const env = {
   FINAPI_MODE: "sandbox",
@@ -10,6 +11,14 @@ const env = {
   FINAPI_CLIENT_SECRET: "client-secret-test",
   FINAPI_USER_KEY: "0123456789abcdef0123456789abcdef",
 };
+
+const rewrittenRequest = { url: "/api/pos?handler=finapi-bank" };
+Object.defineProperty(rewrittenRequest, "query", {
+  get: function () { throw new Error("POS router must not access the legacy req.query field"); },
+});
+assert.strictEqual(PosRouter.route(rewrittenRequest), "finapi-bank");
+assert.strictEqual(PosRouter.route({ url: "/api/pos" }), "");
+assert.strictEqual(PosRouter.route(null), "");
 
 assert.throws(function () { Finapi.configuration({}); }, /še ni nastavljena/);
 const cfg = Finapi.configuration(env);
