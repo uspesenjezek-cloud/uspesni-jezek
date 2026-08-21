@@ -1315,7 +1315,7 @@
     }
   }
 
-  function localStateSnapshot(current, connected) {
+  function localStateSnapshot(current, connected, ownerUserId) {
     var source = current || {};
     var invoices = Array.isArray(source.invoices) ? source.invoices : [];
     var localInvoices = invoices.filter(function (invoice) { return !invoice.serverStored; });
@@ -1323,7 +1323,8 @@
       profile: connected ? defaultProfile() : Object.assign(defaultProfile(), source.profile || {}),
       invoices: localInvoices,
       workOrders: [],
-      bankTransactions: []
+      bankTransactions: [],
+      storageOwnerUserId: connected ? String(ownerUserId || source.storageOwnerUserId || "") : ""
     });
   }
 
@@ -1485,7 +1486,7 @@
   var dialogValidator = null;
 
   function loadState() {
-    var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0 };
+    var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0, storageOwnerUserId: "" };
     try {
       var saved = JSON.parse(global.sessionStorage.getItem(STORAGE_KEY) || global.localStorage.getItem(STORAGE_KEY) || "null");
       if (!saved || typeof saved !== "object") return initial;
@@ -1495,7 +1496,8 @@
         workOrders: Array.isArray(saved.workOrders) ? saved.workOrders : [],
         bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions : [],
         draft: saved.draft && typeof saved.draft === "object" ? saved.draft : null,
-        sequence: integer(saved.sequence, 0)
+        sequence: integer(saved.sequence, 0),
+        storageOwnerUserId: String(saved.storageOwnerUserId || "")
       };
     } catch (_error) {
       return initial;
@@ -1504,8 +1506,9 @@
 
   function persist() {
     try {
-      var connected = Boolean(backend.userId && (backend.ready || backend.serverStateLoaded));
-      var localSnapshot = localStateSnapshot(state, connected);
+      var ownerUserId = backend.userId || state.storageOwnerUserId || "";
+      var connected = Boolean(backend.serverStateLoaded || ownerUserId);
+      var localSnapshot = localStateSnapshot(state, connected, ownerUserId);
       if (connected) {
         global.localStorage.removeItem(STORAGE_KEY);
         global.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
@@ -1535,7 +1538,13 @@
     if (!backend.client) return null;
     var result = await backend.client.auth.getUser();
     if (result.error) throw result.error;
-    backend.userId = result.data && result.data.user && result.data.user.id || null;
+    var nextUserId = result.data && result.data.user && result.data.user.id || null;
+    if (nextUserId && state.storageOwnerUserId && state.storageOwnerUserId !== nextUserId) {
+      state = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0, storageOwnerUserId: "" };
+      try { global.sessionStorage.removeItem(STORAGE_KEY); } catch (_error) {}
+    }
+    backend.userId = nextUserId;
+    if (nextUserId) state.storageOwnerUserId = nextUserId;
     return backend.userId;
   }
 
