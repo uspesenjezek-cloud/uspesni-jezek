@@ -19,6 +19,18 @@ const migrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_terminal_core\.sql$/.test(name)).sort().pop()
   : null;
 const migration = migrationName ? fs.readFileSync(path.join(migrationsDir, migrationName), "utf8") : "";
+const issueConcurrencyMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_issue_concurrency_idempotency\.sql$/.test(name)).sort().pop()
+  : null;
+const issueConcurrencyMigration = issueConcurrencyMigrationName ? fs.readFileSync(path.join(migrationsDir, issueConcurrencyMigrationName), "utf8") : "";
+const manualPaymentMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_manual_payment_rpc\.sql$/.test(name)).sort().pop()
+  : null;
+const manualPaymentMigration = manualPaymentMigrationName ? fs.readFileSync(path.join(migrationsDir, manualPaymentMigrationName), "utf8") : "";
+const profilePrivilegesMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_profile_sequence_privileges\.sql$/.test(name)).sort().pop()
+  : null;
+const profilePrivilegesMigration = profilePrivilegesMigrationName ? fs.readFileSync(path.join(migrationsDir, profilePrivilegesMigrationName), "utf8") : "";
 const documentsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_documents\.sql$/.test(name)).sort().pop()
   : null;
@@ -134,6 +146,8 @@ assert.match(js, /source_account_id,source_account_name,source_account_iban/);
 assert.match(js, /backend\.syncing = false;[\s\S]*bankBackdrop && !bankBackdrop\.hidden\) renderBankSheet/);
 assert.match(js, /\.from\("pos_invoice_drafts"\)/);
 assert.match(js, /\.from\("pos_payments"\)/);
+assert.match(js, /\.rpc\("pos_record_manual_payment"/);
+assert.doesNotMatch(js, /\.from\("pos_payments"\)\.insert\(/);
 assert.match(js, /source_bank_transaction_id/);
 assert.match(js, /renderPaymentList\(invoice\)/);
 assert.match(js, /Bančno nakazilo/);
@@ -457,6 +471,7 @@ assert.strictEqual(dbProfile.legal_name, "Muster Handwerk GmbH");
 assert.strictEqual(dbProfile.user_id, "11111111-1111-4111-8111-111111111111");
 assert.strictEqual(dbProfile.previous_year_turnover_band, "gt_800k");
 assert.strictEqual(dbProfile.business_phone, "+49 30 1234567");
+assert.strictEqual(Object.keys(dbProfile).some((key) => /^(?:next_.*_sequence|created_at|updated_at)$/.test(key)), false);
 assert.strictEqual(dbProfile.datev_settings.adviserNumber, "29098");
 assert.strictEqual(dbProfile.datev_settings.framework, "03");
 const dbDraft = Core.draftToDatabasePayload(draft);
@@ -511,6 +526,32 @@ assert.match(migration, /create or replace function public\.pos_issue_invoice[\s
 assert.match(migration, /revoke all on function public\.pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.match(migration, /grant execute on function public\.pos_issue_invoice\(uuid,jsonb,boolean,boolean\) to authenticated, service_role/i);
 assert.match(migration, /v_line_net := round[\s\S]*v_line_tax := v_line_gross - v_line_net/i);
+assert.ok(issueConcurrencyMigrationName, "Manjka migracija za sočasno idempotentno izdajo POS računa.");
+const profileLockIndex = issueConcurrencyMigration.search(/select \* into v_profile[\s\S]*?where user_id = v_user for update/i);
+const existingInvoiceIndex = issueConcurrencyMigration.search(/select \* into v_existing[\s\S]*?source_draft_id = p_draft_id/i);
+const draftOwnershipIndex = issueConcurrencyMigration.search(/if not exists \([\s\S]*?from public\.pos_invoice_drafts/i);
+assert.ok(profileLockIndex >= 0, "Izdaja mora zakleniti zaporedje uporabnika.");
+assert.ok(existingInvoiceIndex > profileLockIndex, "Idempotentni pregled mora slediti zaklepu uporabnika.");
+assert.ok(draftOwnershipIndex > existingInvoiceIndex, "Obstoj osnutka se preveri šele po zaklepu in idempotentnem pregledu.");
+assert.match(issueConcurrencyMigration, /security definer\s+set search_path = ''/i);
+assert.match(issueConcurrencyMigration, /revoke all on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from public, anon/i);
+assert.match(issueConcurrencyMigration, /grant execute on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) to authenticated, service_role/i);
+assert.ok(manualPaymentMigrationName, "Manjka varna strežniška pot za ročno potrditev plačila.");
+assert.match(manualPaymentMigration, /revoke insert on table public\.pos_payments from authenticated/i);
+assert.match(manualPaymentMigration, /drop policy if exists pos_payment_insert_own/i);
+assert.match(manualPaymentMigration, /where id = p_invoice_id and user_id = v_user\s+for update/i);
+assert.match(manualPaymentMigration, /v_outstanding := v_invoice\.gross_cents - v_paid/i);
+assert.match(manualPaymentMigration, /if v_outstanding <= 0 then raise exception 'Račun je že v celoti plačan\.'/i);
+assert.match(manualPaymentMigration, /manual_payment_confirmed/i);
+assert.match(manualPaymentMigration, /create or replace function public\.pos_record_manual_payment[\s\S]*security invoker/i);
+assert.match(manualPaymentMigration, /revoke all on function public\.pos_record_manual_payment\(uuid,boolean\) from public, anon/i);
+assert.match(manualPaymentMigration, /grant execute on function public\.pos_record_manual_payment\(uuid,boolean\) to authenticated, service_role/i);
+assert.ok(profilePrivilegesMigrationName, "Manjka zaščita strežniških števcev računa.");
+assert.match(profilePrivilegesMigration, /revoke insert, update on table public\.pos_business_profiles from authenticated/i);
+assert.match(profilePrivilegesMigration, /grant insert \([\s\S]*user_id[\s\S]*legal_name[\s\S]*datev_settings[\s\S]*\) on public\.pos_business_profiles to authenticated/i);
+assert.match(profilePrivilegesMigration, /grant update \([\s\S]*user_id[\s\S]*legal_name[\s\S]*datev_settings[\s\S]*\) on public\.pos_business_profiles to authenticated/i);
+assert.doesNotMatch(profilePrivilegesMigration, /grant (?:insert|update) \([\s\S]*next_(?:invoice|test|adjustment)_sequence/i);
+assert.doesNotMatch(profilePrivilegesMigration, /grant (?:insert|update) \([\s\S]*\b(?:created_at|updated_at)\b/i);
 assert.ok(datevMigrationName, "Manjka migracija za DATEV nastavitve.");
 assert.match(datevMigration, /alter table public\.pos_business_profiles[\s\S]*add column datev_settings jsonb not null default '\{\}'::jsonb/i);
 assert.match(datevMigration, /jsonb_typeof\(datev_settings\) = 'object'/i);
