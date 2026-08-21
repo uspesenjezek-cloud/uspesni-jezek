@@ -1309,6 +1309,19 @@
     });
   }
 
+  function mergeBankTransactionRows(unmatchedRows, confirmedRows) {
+    var seen = Object.create(null);
+    return (unmatchedRows || []).concat(confirmedRows || []).filter(function (row) {
+      var id = String(row && row.id || "");
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    }).sort(function (left, right) {
+      var dateOrder = String(right.booked_on || "").localeCompare(String(left.booked_on || ""));
+      return dateOrder || String(right.id || "").localeCompare(String(left.id || ""));
+    });
+  }
+
   function archiveCapabilityView(capability) {
     var archive = capability || {};
     var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
@@ -1389,6 +1402,7 @@
     mergePosRefreshScopes: mergePosRefreshScopes,
     fetchAllRows: fetchAllRows,
     localStateSnapshot: localStateSnapshot,
+    mergeBankTransactionRows: mergeBankTransactionRows,
     archiveCapabilityView: archiveCapabilityView,
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
@@ -1691,6 +1705,18 @@
     });
   }
 
+  async function loadBankTransactionRows(userId) {
+    var columns = "id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at";
+    var responses = await Promise.all([
+      fetchAllRows(function () {
+        return backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "unmatched").order("booked_on", { ascending: false }).order("id", { ascending: false });
+      }),
+      backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "confirmed").order("booked_on", { ascending: false }).order("id", { ascending: false }).limit(200)
+    ]);
+    var error = responses.map(function (entry) { return entry.error; }).filter(Boolean)[0] || null;
+    return { data: error ? null : mergeBankTransactionRows(responses[0].data, responses[1].data), error: error };
+  }
+
   async function loadFullServerState(scopes) {
     if (!backend.client || backend.syncing) return;
     backend.syncing = true;
@@ -1711,7 +1737,7 @@
         fetchAllRows(function () { return backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
-        scopes.bank ? backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200) : skipped(),
+        scopes.bank ? loadBankTransactionRows(userId) : skipped(),
         fetchAllRows(function () { return backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).order("id", { ascending: false }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); })
       ]);
@@ -1837,7 +1863,7 @@
         add("deliveries", backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
         add("deliveryEvents", backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
       }
-      if (scopes.bank) add("bank", backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200));
+      if (scopes.bank) add("bank", loadBankTransactionRows(userId));
       var values = await Promise.all(requests);
       var responses = {};
       keys.forEach(function (key, index) { responses[key] = values[index]; });

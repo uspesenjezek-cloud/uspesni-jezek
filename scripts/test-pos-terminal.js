@@ -180,10 +180,18 @@ assert.equal(cachedState.workOrders.length, 100);
 assert.deepEqual(cachedState.bankTransactions, []);
 assert.equal(cachedState.draft.id, "draft-1");
 assert.match(js, /var localSnapshot = localStateSnapshot\(state\)/);
+const mergedBankRows = Core.mergeBankTransactionRows(
+  [{ id: "open-old", booked_on: "2024-01-01", status: "unmatched" }, { id: "duplicate", booked_on: "2025-01-01", status: "unmatched" }],
+  [{ id: "confirmed-new", booked_on: "2026-01-01", status: "confirmed" }, { id: "duplicate", booked_on: "2025-01-01", status: "confirmed" }]
+);
+assert.deepEqual(mergedBankRows.map(function (row) { return row.id; }), ["confirmed-new", "duplicate", "open-old"]);
+assert.match(js, /fetchAllRows\(function \(\) \{[\s\S]*\.eq\("status", "unmatched"\)/);
+assert.match(js, /\.eq\("status", "confirmed"\)[^;\n]*\.limit\(200\)/);
+assert.doesNotMatch(js, /scopes\.bank \? backend\.client\.from\("pos_bank_transactions"\)[^;\n]*\.limit\(200\)/);
 assert.match(js, /loadServerState\("deliveries"\)/);
 assert.match(js, /loadServerState\("payments"\)/);
 assert.match(js, /loadServerState\(\["payments", "bank"\]\)/);
-assert.match(js, /scopes\.bank \? backend\.client\.from\("pos_bank_transactions"\)/);
+assert.match(js, /scopes\.bank \? loadBankTransactionRows\(userId\) : skipped\(\)/);
 assert.match(js, /pendingRefreshScopes = mergePosRefreshScopes/);
 assert.match(js, /\.rpc\("pos_import_bank_transactions"/);
 assert.match(js, /\.rpc\("pos_confirm_bank_transaction"/);
