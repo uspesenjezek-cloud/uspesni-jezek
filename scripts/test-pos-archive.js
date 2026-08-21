@@ -12,6 +12,7 @@ const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 const archive = require(path.join(root, "api", "_lib", "pos-archive"));
 const handler = require(path.join(root, "api", "_handlers", "pos-arhiv"));
+const terminal = require(path.join(root, "app", "pos-terminal"));
 const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-arhiv.js"), "utf8");
 
 assert.strictEqual(archive.hash(Buffer.from("original")), "0682c5f2076f099c34cfdd15a9e063849ed437a49677e6fcc5b4198c76575be5");
@@ -44,9 +45,25 @@ assert.strictEqual(summary.uncheckedCount, 1);
 assert.strictEqual(summary.productionReady, false);
 assert.strictEqual(summary.earliestRetentionNotBefore, "2034-12-31");
 
+const loadingView = terminal.archiveCapabilityView({ loaded: false, loading: false, independentBackupReady: false });
+assert.strictEqual(loadingView.badgeText, "Preverjam");
+assert.strictEqual(loadingView.integrityText, "—");
+assert.strictEqual(loadingView.backupText, "preverjam");
+assert.doesNotMatch(loadingView.copyText, /ni potrjena/i);
+
+const readyView = terminal.archiveCapabilityView({ loaded: true, loading: false, documentCount: 10, verifiedCount: 10, uncheckedCount: 0, failureCount: 0, independentBackupReady: true, productionReady: true });
+assert.strictEqual(readyView.badgeText, "Celovit");
+assert.strictEqual(readyView.integrityText, "10 / 10 preverjenih");
+assert.strictEqual(readyView.backupText, "potrjena in obnovljena");
+
+const unavailableView = terminal.archiveCapabilityView({ loaded: true, loading: false, error: "začasna napaka", independentBackupReady: true, productionReady: false });
+assert.strictEqual(unavailableView.badgeText, "Ni dosegljivo");
+assert.strictEqual(unavailableView.backupText, "ni dosegljivo");
+assert.match(unavailableView.copyText, /varno zaklenjena/i);
+
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260821-stripe-partial-refund-v1/);
+assert.match(html, /pos-terminal\.js\?v=20260821-stripe-return-v2/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);

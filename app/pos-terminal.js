@@ -1108,6 +1108,43 @@
     return merged;
   }
 
+  function archiveCapabilityView(capability) {
+    var archive = capability || {};
+    var failed = Number(archive.failureCount || 0) > 0;
+    var unavailable = Boolean(archive.error);
+    var pending = Boolean(archive.loading || (!archive.loaded && !unavailable));
+    var allVerified = Boolean(archive.loaded && !unavailable && !failed && Number(archive.uncheckedCount || 0) === 0);
+    var documentCount = Number(archive.documentCount || 0);
+    var verifiedCount = Number(archive.verifiedCount || 0);
+    return {
+      failed: failed,
+      unavailable: unavailable,
+      pending: pending,
+      allVerified: allVerified,
+      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Celovit" : "Ni še preverjeno",
+      integrityText: pending || unavailable ? "—" : documentCount ? verifiedCount + " / " + documentCount + " preverjenih" : "ni izvirnikov",
+      backupText: pending ? "preverjam" : unavailable ? "ni dosegljivo" : archive.independentBackupReady ? "potrjena in obnovljena" : "ni potrjena",
+      copyText: pending
+        ? "Nalagam dejansko stanje nespremenljivih PDF/XML izvirnikov in ločene kopije …"
+        : unavailable
+          ? "Stanja arhiva trenutno ni mogoče prebrati. Produkcija ostaja varno zaklenjena."
+          : failed
+            ? "Najmanj en izvirnik ni prestal preverjanja. Produkcija ostaja zaklenjena."
+            : archive.productionReady
+              ? "PDF/XML izvirniki so nespremenljivi, šifrirani pri ponudniku in zaščiteni tudi z obnovljivo ločeno kopijo."
+              : "Izvirniki so nespremenljivi in šifrirani pri ponudniku. Produkcija ostaja zaklenjena, dokler ni potrjena še ločena obnovljiva kopija."
+    };
+  }
+
+  function stripeReturnMessage(status) {
+    if (status === "succeeded") return "Stripe TEST plačilo je potrjeno s podpisanim webhookom.";
+    if (status === "partially_refunded") return "Stripe TEST plačilo je potrjeno; del zneska je že povrnjen.";
+    if (status === "refunded") return "Stripe TEST plačilo je potrjeno in v celoti povrnjeno.";
+    if (status === "cancelled") return "Stripe TEST plačilo je preklicano.";
+    if (status === "failed") return "Stripe TEST plačilo ni uspelo.";
+    return "Stripe TEST plačilo še čaka na podpisano potrditev.";
+  }
+
   var Core = {
     parseMoneyToCents: parseMoneyToCents,
     validateRefundAmountInput: validateRefundAmountInput,
@@ -1143,6 +1180,8 @@
     invoiceOverview: invoiceOverview,
     normalizePosRefreshScopes: normalizePosRefreshScopes,
     mergePosRefreshScopes: mergePosRefreshScopes,
+    archiveCapabilityView: archiveCapabilityView,
+    stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
     paymentSummary: paymentSummary,
     buildAdjustmentChanges: buildAdjustmentChanges,
@@ -1191,7 +1230,7 @@
     { id: uid("fiskaly-item"), description: "Testmaterial", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" }
   ];
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
-  var archiveCapability = { loaded: false, loading: false, productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, retentionYears: 8, independentBackupReady: false };
+  var archiveCapability = { loaded: false, loading: false, error: "", productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, retentionYears: 8, independentBackupReady: false };
   var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", latestTransfer: null, lastError: "" };
   var toastTimer = 0;
   var dialogCallback = null;
@@ -1730,27 +1769,21 @@
   function renderArchiveCapability() {
     var badge = query("[data-archive-badge]");
     if (!badge) return;
-    var failed = archiveCapability.failureCount > 0;
-    var allVerified = archiveCapability.loaded && !failed && archiveCapability.uncheckedCount === 0;
-    badge.classList.toggle("is-ready", allVerified && archiveCapability.independentBackupReady);
-    badge.classList.toggle("is-error", failed);
-    badge.textContent = archiveCapability.loading ? "Preverjam" : failed ? "Potrebna pozornost" : allVerified ? "Celovit" : "Ni še preverjeno";
+    var view = archiveCapabilityView(archiveCapability);
+    badge.classList.toggle("is-ready", view.allVerified && archiveCapability.independentBackupReady);
+    badge.classList.toggle("is-error", view.failed || view.unavailable);
+    badge.textContent = view.badgeText;
     query("[data-archive-retention]").textContent = "najmanj " + integer(archiveCapability.retentionYears, 8) + " let";
-    query("[data-archive-integrity]").textContent = archiveCapability.documentCount
-      ? archiveCapability.verifiedCount + " / " + archiveCapability.documentCount + " preverjenih"
-      : archiveCapability.loaded ? "ni izvirnikov" : "—";
-    query("[data-archive-backup]").textContent = archiveCapability.independentBackupReady ? "potrjena in obnovljena" : "ni potrjena";
-    query("[data-archive-copy]").textContent = failed
-      ? "Najmanj en izvirnik ni prestal preverjanja. Produkcija ostaja zaklenjena."
-      : archiveCapability.productionReady
-        ? "PDF/XML izvirniki so nespremenljivi, šifrirani pri ponudniku in zaščiteni tudi z obnovljivo ločeno kopijo."
-        : "Izvirniki so nespremenljivi in šifrirani pri ponudniku. Produkcija ostaja zaklenjena, dokler ni potrjena še ločena obnovljiva kopija.";
+    query("[data-archive-integrity]").textContent = view.integrityText;
+    query("[data-archive-backup]").textContent = view.backupText;
+    query("[data-archive-copy]").textContent = view.copyText;
     query("[data-archive-verify]").disabled = archiveCapability.loading || !backend.ready;
   }
 
   async function loadArchiveCapability(showFeedback, verify) {
     if (!backend.ready) { renderArchiveCapability(); return archiveCapability; }
     archiveCapability.loading = true;
+    archiveCapability.error = "";
     renderArchiveCapability();
     try {
       var token = await apiSessionToken();
@@ -1761,10 +1794,12 @@
       });
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.ok) throw new Error(data.napaka || "Arhiva ni bilo mogoče preveriti.");
-      archiveCapability = Object.assign({}, archiveCapability, data.archive || {}, { loaded: true, loading: false });
+      archiveCapability = Object.assign({}, archiveCapability, data.archive || {}, { loaded: true, loading: false, error: "" });
       if (showFeedback) showToast(archiveCapability.failureCount ? "Arhiv potrebuje pozornost." : "Vsi arhivirani izvirniki so preverjeni.");
     } catch (error) {
       archiveCapability.loading = false;
+      archiveCapability.loaded = true;
+      archiveCapability.error = error && error.message || "Arhiva ni bilo mogoče preveriti.";
       archiveCapability.productionReady = false;
       if (showFeedback) showToast(error && error.message || "Arhiva ni bilo mogoče preveriti.");
     }
@@ -2705,11 +2740,7 @@
       var invoice = findInvoice(returnState.invoiceId);
       if (invoice) openInvoiceDetail(invoice.id);
       var status = result && result.payment && result.payment.status || "pending";
-      showToast(status === "succeeded"
-        ? "Stripe TEST plačilo je potrjeno s podpisanim webhookom."
-        : status === "cancelled" ? "Stripe TEST plačilo je preklicano."
-        : status === "failed" ? "Stripe TEST plačilo ni uspelo."
-        : "Stripe TEST plačilo še čaka na podpisano potrditev.");
+      showToast(stripeReturnMessage(status));
     } catch (error) {
       showToast(error && error.message || "Stripe TEST rezultata ni bilo mogoče preveriti.");
     }
