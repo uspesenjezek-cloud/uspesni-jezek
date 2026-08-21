@@ -68,15 +68,23 @@ const datevMigrationName = fs.existsSync(migrationsDir)
   : null;
 const datevMigration = datevMigrationName ? fs.readFileSync(path.join(migrationsDir, datevMigrationName), "utf8") : "";
 const apiRoot = path.basename(__dirname).toLowerCase() === "scripts" ? path.join(repoRoot, "api") : path.join(repoRoot, "api");
-const pdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-pdf.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-pdf.js"), "utf8") : "";
-const xrechnungApi = fs.existsSync(path.join(apiRoot, "pos-racun-xrechnung.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-xrechnung.js"), "utf8") : "";
-const deliveryApi = fs.existsSync(path.join(apiRoot, "pos-dostava-sandbox.js")) ? fs.readFileSync(path.join(apiRoot, "pos-dostava-sandbox.js"), "utf8") : "";
+const pdfApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-racun-pdf.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-racun-pdf.js"), "utf8") : "";
+const xrechnungApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-racun-xrechnung.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-racun-xrechnung.js"), "utf8") : "";
+const deliveryApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-dostava-sandbox.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-dostava-sandbox.js"), "utf8") : "";
 const deliveryWorkerApi = fs.existsSync(path.join(apiRoot, "_lib", "pos-delivery-worker.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "pos-delivery-worker.js"), "utf8") : "";
 const deliveryEmailApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-dostava-email.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-dostava-email.js"), "utf8") : "";
-const adjustmentPdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-korekcija.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-korekcija.js"), "utf8") : "";
+const adjustmentPdfApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-racun-korekcija.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-racun-korekcija.js"), "utf8") : "";
+const compatibilityWrappers = [
+  "pos-racun-pdf", "pos-racun-korekcija", "pos-racun-xrechnung", "pos-dostava-sandbox", "pos-dostava-delavec"
+].map(function (name) { return fs.readFileSync(path.join(apiRoot, name + ".js"), "utf8"); });
 const finapiApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-finapi.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-finapi.js"), "utf8") : "";
 const finapiLib = fs.existsSync(path.join(apiRoot, "_lib", "finapi-access.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "finapi-access.js"), "utf8") : "";
 const Core = require(path.join(assetRoot, "pos-terminal.js"));
+
+compatibilityWrappers.forEach(function (source) {
+  assert.match(source, /module\.exports = require\("\.\/_handlers\/pos-[a-z-]+"\);/);
+  assert.ok(source.trim().split(/\r?\n/).length <= 3, "POS združljivostna pot ne sme podvajati produkcijskega handlerja.");
+});
 
 assert.match(html, /data-view="home"/);
 assert.match(html, /data-view="settings"/);
