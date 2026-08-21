@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css?v=20260818-wizard-status-v5" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260820-fiskaly-kassenbon-v2" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260821-datev-cloud-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260821-gobd-archive-v1" defer></script>
+    <script src="pos-terminal.js?v=20260821-datev-cloud-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -553,6 +553,17 @@
           </section>
           <div class="pos-datev-summary" data-datev-summary></div>
           <div class="pos-datev-validation" data-datev-validation></div>
+          <section class="pos-datev-cloud" data-datev-cloud>
+            <div class="pos-datev-cloud__mark" aria-hidden="true">D</div>
+            <div class="pos-datev-cloud__copy">
+              <strong data-datev-cloud-title>DATEV Buchungsdatenservice</strong>
+              <small data-datev-cloud-status>Preverjam varno povezavo …</small>
+            </div>
+            <span class="pos-datev-cloud__badge" data-datev-cloud-badge>MOCK</span>
+            <button class="pos-secondary" type="button" data-datev-connect>Poveži mock okolje</button>
+            <button class="pos-primary" type="button" data-datev-transfer>Pošlji dokumente in knjižbe</button>
+            <small class="pos-datev-cloud__latest" data-datev-cloud-latest>Poskusni prenosi ne pošiljajo podatkov v pravi DATEV.</small>
+          </section>
           <details class="pos-datev-settings" data-datev-settings>
             <summary><span><strong>DATEV nastavitve</strong><small data-datev-settings-state>Potrebna je začetna nastavitev</small></span><b>Uredi</b></summary>
             <div class="pos-datev-settings__body">
@@ -582,7 +593,7 @@
               <button class="pos-secondary pos-datev-save" type="button" data-datev-save>Shrani DATEV nastavitve</button>
             </div>
           </details>
-          <aside class="pos-datev-note"><svg><use href="#i-info"/></svg><p><strong>Ročni uvoz v DATEV</strong><span>Datoteka je pripravljena po javnem DATEV formatu. Samodejni Buchungsdatenservice priklop pride pozneje.</span></p></aside>
+          <aside class="pos-datev-note"><svg><use href="#i-info"/></svg><p><strong>Ročni izvoz ostaja na voljo</strong><span>EXTF lahko še vedno prenesete ročno. Produkcijsko pošiljanje se vključi šele po DATEV odobritvi in pravih OAuth podatkih.</span></p></aside>
           <div class="pos-datev-sheet__actions">
             <button class="pos-secondary" type="button" data-datev-cancel>Zapri</button>
             <button class="pos-primary" type="button" data-datev-download>Prenesi Buchungsstapel</button>

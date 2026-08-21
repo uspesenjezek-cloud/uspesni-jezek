@@ -1000,17 +1000,19 @@
     fields[11] = datevText(dueDate ? dueDate.slice(0, 4) + dueDate.slice(6, 8) : "");
     fields[13] = datevText(String(booking.text || "").replace(/[\r\n\t]/g, " ").slice(0, 60));
     fields[14] = "0";
+    if (booking.documentGuid) fields[19] = datevText('BEDI "' + String(booking.documentGuid).toUpperCase() + '"');
     return fields.join(";");
   }
 
-  function buildDatevExport(invoices, inputSettings, periodValue, now) {
+  function buildDatevExport(invoices, inputSettings, periodValue, now, options) {
+    options = options || {};
     var settings = normalizeDatevSettings(inputSettings);
     var period = datevPeriod(periodValue);
     var errors = validateDatevSettings(settings, periodValue);
     var bookings = [];
     var warnings = [];
     function inPeriod(iso) { return period && String(iso || "").slice(0, 7) === period.key; }
-    function appendParts(invoice, date, documentNumber, side, text, centsOverride) {
+    function appendParts(invoice, date, documentNumber, side, text, centsOverride, documentGuid) {
       var draft = invoice.draft || {};
       var totals = calculateTotals(draft);
       var keys = Object.keys(totals.byRate);
@@ -1021,7 +1023,7 @@
         })[0] || "0";
         var overrideAccount = datevRevenueAccount(draft, integer(dominant, 0), settings);
         if (!overrideAccount) errors.push("Račun " + invoice.number + " uporablja davčno stopnjo brez nastavljenega DATEV konta.");
-        else if (Math.abs(integer(centsOverride, 0)) > 0) bookings.push({ amountCents: Math.abs(integer(centsOverride, 0)), side: side, account: settings.receivableAccount, counterAccount: overrideAccount, date: date, dueDate: invoice.dueDate, documentNumber: documentNumber, text: text });
+        else if (Math.abs(integer(centsOverride, 0)) > 0) bookings.push({ amountCents: Math.abs(integer(centsOverride, 0)), side: side, account: settings.receivableAccount, counterAccount: overrideAccount, date: date, dueDate: invoice.dueDate, documentNumber: documentNumber, text: text, documentGuid: documentGuid });
         return;
       }
       keys.forEach(function (key) {
@@ -1033,18 +1035,19 @@
           errors.push("Račun " + invoice.number + " uporablja davčno stopnjo " + (part.rateBps / 100) + " %, ki nima DATEV konta.");
           return;
         }
-        bookings.push({ amountCents: gross, side: side, account: settings.receivableAccount, counterAccount: revenueAccount, date: date, dueDate: invoice.dueDate, documentNumber: documentNumber, text: text });
+        bookings.push({ amountCents: gross, side: side, account: settings.receivableAccount, counterAccount: revenueAccount, date: date, dueDate: invoice.dueDate, documentNumber: documentNumber, text: text, documentGuid: documentGuid });
       });
     }
     (invoices || []).forEach(function (invoice) {
       if (!invoice || invoice.isTest) return;
       var draft = invoice.draft || {};
-      if (inPeriod(draft.issueDate)) appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number));
+      if (inPeriod(draft.issueDate)) appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number), null, invoice.documentGuid);
       (invoice.adjustments || []).forEach(function (adjustment) {
         var date = String(adjustment.createdAt || "").slice(0, 10);
         if (!inPeriod(date)) return;
-        if (adjustment.type === "cancellation") appendParts(invoice, date, adjustment.number, "H", "Storno zu " + invoice.number);
-        else if (integer(adjustment.deltaGrossCents, 0) !== 0) appendParts(invoice, date, adjustment.number, adjustment.deltaGrossCents < 0 ? "H" : "S", "Korrektur zu " + invoice.number, adjustment.deltaGrossCents);
+        var adjustmentInvoice = adjustment.draft ? Object.assign({}, invoice, { draft: adjustment.draft }) : invoice;
+        if (adjustment.type === "cancellation") appendParts(adjustmentInvoice, date, adjustment.number, "H", "Storno zu " + invoice.number, null, adjustment.documentGuid);
+        else if (integer(adjustment.deltaGrossCents, 0) !== 0) appendParts(adjustmentInvoice, date, adjustment.number, adjustment.deltaGrossCents < 0 ? "H" : "S", "Korrektur zu " + invoice.number, adjustment.deltaGrossCents, adjustment.documentGuid);
       });
     });
     var documentNumbers = {};
@@ -1053,6 +1056,7 @@
       var originalNumber = String(booking.documentNumber || "");
       if (documentNumbers[normalizedNumber] && documentNumbers[normalizedNumber] !== originalNumber) errors.push("Dokumentni številki " + documentNumbers[normalizedNumber] + " in " + originalNumber + " bi imeli enak DATEV ključ.");
       else documentNumbers[normalizedNumber] = originalNumber;
+      if (options.requireDocumentLinks && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(booking.documentGuid || ""))) errors.push("Dokument " + originalNumber + " nima veljavne DATEV povezave do PDF-ja.");
     });
     errors = errors.filter(function (message, index) { return errors.indexOf(message) === index; });
     if (!bookings.length && !errors.length) warnings.push("V tem mesecu ni pravnih računov ali finančnih popravkov. Testni računi so namenoma izločeni.");
@@ -1179,6 +1183,7 @@
   ];
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
   var archiveCapability = { loaded: false, loading: false, productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, retentionYears: 8, independentBackupReady: false };
+  var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", latestTransfer: null, lastError: "" };
   var toastTimer = 0;
   var dialogCallback = null;
 
@@ -3584,6 +3589,8 @@
     ].map(function (entry) { return "<div><strong>" + escapeHtml(entry[0]) + "</strong><small>" + escapeHtml(entry[1]) + "</small></div>"; }).join("");
     query("[data-datev-validation]").innerHTML = result.errors.map(function (message) { return "<p>" + escapeHtml(message) + "</p>"; }).concat(result.warnings.map(function (message) { return "<p class=\"is-warning\">" + escapeHtml(message) + "</p>"; })).join("");
     query("[data-datev-download]").disabled = Boolean(result.errors.length || !result.bookings.length);
+    var cloudTransfer = query("[data-datev-transfer]");
+    if (cloudTransfer) cloudTransfer.disabled = datevCloudCapability.loading || datevCloudCapability.working || !datevCloudCapability.connected || !backend.ready || Boolean(result.errors.length || !result.bookings.length);
     return result;
   }
 
@@ -3596,6 +3603,8 @@
     query("[data-datev-backdrop]").hidden = false;
     document.documentElement.classList.add("uj-modal-odprt");
     document.body.classList.add("uj-modal-odprt");
+    renderDatevCloud();
+    loadDatevCloudStatus(false);
   }
 
   function closeDatevSheet() {
@@ -3627,6 +3636,124 @@
     if (!result.bookings.length) { showToast("V izbranem mesecu ni pravnih dokumentov za izvoz."); return; }
     downloadFile(result.filename, "\ufeff" + result.content, "text/csv;charset=utf-8");
     showToast("DATEV Buchungsstapel je prenesen za izbrani mesec.");
+  }
+
+  async function datevCloudRequest(action, values, method) {
+    var token = await apiSessionToken();
+    var requestMethod = method || "POST";
+    var target = "/api/pos-datev";
+    var options = { method: requestMethod, headers: { Authorization: "Bearer " + token } };
+    if (requestMethod === "GET") target += "?action=" + encodeURIComponent(action);
+    else {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(Object.assign({ action: action }, values || {}));
+    }
+    var response = await fetch(target, options);
+    var result = null;
+    try { result = await response.json(); } catch (_error) {}
+    if (!response.ok || !result || !result.ok) throw new Error(result && result.napaka || "DATEV povezava trenutno ni na voljo.");
+    return result;
+  }
+
+  function updateDatevCloudCapability(result) {
+    var connection = result && result.datev || {};
+    datevCloudCapability.loaded = true;
+    datevCloudCapability.configured = Boolean(connection.configured);
+    datevCloudCapability.connected = Boolean(connection.connected);
+    datevCloudCapability.environment = String(connection.environment || "mock");
+    datevCloudCapability.clientName = String(connection.clientName || "");
+    if (Object.prototype.hasOwnProperty.call(result || {}, "latestTransfer")) datevCloudCapability.latestTransfer = result.latestTransfer;
+    if (Object.prototype.hasOwnProperty.call(result || {}, "transfer")) datevCloudCapability.latestTransfer = result.transfer;
+    datevCloudCapability.lastError = "";
+  }
+
+  function renderDatevCloud() {
+    var box = query("[data-datev-cloud]");
+    if (!box) return;
+    var connectionButton = query("[data-datev-connect]");
+    var transferButton = query("[data-datev-transfer]");
+    var latest = datevCloudCapability.latestTransfer;
+    var busy = datevCloudCapability.loading || datevCloudCapability.working;
+    var exportResult = renderDatevSheet();
+    box.classList.toggle("is-ready", datevCloudCapability.connected && !datevCloudCapability.lastError);
+    box.classList.toggle("is-error", Boolean(datevCloudCapability.lastError));
+    query("[data-datev-cloud-title]").textContent = datevCloudCapability.clientName || "DATEV Buchungsdatenservice";
+    query("[data-datev-cloud-badge]").textContent = datevCloudCapability.lastError ? "NAPAKA" : datevCloudCapability.environment.toUpperCase();
+    query("[data-datev-cloud-status]").textContent = datevCloudCapability.loading ? "Preverjam varno povezavo …"
+      : datevCloudCapability.working ? "Varno izvajam DATEV opravilo …"
+        : datevCloudCapability.lastError || (datevCloudCapability.connected ? "Povezano · pripravljeno za prenos" : datevCloudCapability.configured ? "Pripravljeno za povezavo" : "DATEV OAuth podatki še niso izdani");
+    connectionButton.textContent = datevCloudCapability.connected ? "Prekini DATEV povezavo" : datevCloudCapability.environment === "mock" ? "Poveži mock okolje" : "Poveži DATEV sandbox";
+    connectionButton.disabled = busy || !datevCloudCapability.configured || !backend.ready;
+    transferButton.textContent = datevCloudCapability.working ? "Prenašam …" : "Pošlji dokumente in knjižbe";
+    transferButton.disabled = busy || !datevCloudCapability.connected || !backend.ready || Boolean(exportResult.errors.length || !exportResult.bookings.length);
+    query("[data-datev-cloud-latest]").textContent = latest
+      ? (latest.status === "succeeded" ? "Uspešno: " : latest.status === "processing" ? "DATEV še obdeluje: " : latest.status === "failed" ? "Neuspešno: " : "Priprava: ") + latest.period + " · " + Number(latest.documentCount || 0) + " dokumentov · " + Number(latest.bookingCount || 0) + " knjižb"
+      : datevCloudCapability.environment === "mock" ? "Mock preveri celoten tok brez pošiljanja v pravi DATEV." : "Prenos vključuje arhivirane PDF-je in povezane EXTF knjižbe.";
+  }
+
+  async function loadDatevCloudStatus(showFeedback) {
+    if (datevCloudCapability.loading || !backend.ready) { renderDatevCloud(); return; }
+    datevCloudCapability.loading = true;
+    renderDatevCloud();
+    try {
+      updateDatevCloudCapability(await datevCloudRequest("status", null, "GET"));
+      if (showFeedback) showToast(datevCloudCapability.connected ? "DATEV povezava je pripravljena." : "DATEV povezava še ni aktivna.");
+    } catch (error) {
+      datevCloudCapability.loaded = true;
+      datevCloudCapability.lastError = error && error.message || "DATEV stanja ni mogoče preveriti.";
+      if (showFeedback) showToast(datevCloudCapability.lastError);
+    } finally {
+      datevCloudCapability.loading = false;
+      renderDatevCloud();
+    }
+  }
+
+  async function connectDatevCloud() {
+    if (datevCloudCapability.working) return;
+    datevCloudCapability.working = true;
+    renderDatevCloud();
+    try {
+      state.profile.datevSettings = readDatevForm();
+      persist();
+      await saveProfileToServer();
+      var wasConnected = datevCloudCapability.connected;
+      var result = await datevCloudRequest(wasConnected ? "disconnect" : "connect");
+      if (result.authorizationUrl) {
+        var authorizationUrl = new URL(result.authorizationUrl);
+        if (authorizationUrl.protocol !== "https:" || authorizationUrl.hostname !== "login.datev.de") throw new Error("DATEV ni vrnil varne prijavne strani.");
+        global.location.assign(authorizationUrl.toString());
+        return;
+      }
+      updateDatevCloudCapability(result);
+      showToast(wasConnected ? "DATEV povezava je varno prekinjena." : "DATEV mock okolje je povezano.");
+    } catch (error) {
+      datevCloudCapability.lastError = error && error.message || "DATEV povezave ni bilo mogoče vzpostaviti.";
+      showToast(datevCloudCapability.lastError);
+    } finally {
+      datevCloudCapability.working = false;
+      renderDatevCloud();
+    }
+  }
+
+  async function transferDatevCloud() {
+    if (datevCloudCapability.working) return;
+    var result = renderDatevSheet();
+    if (result.errors.length || !result.bookings.length) { showToast("Najprej preverite DATEV nastavitve in obračunski mesec."); return; }
+    datevCloudCapability.working = true;
+    datevCloudCapability.lastError = "";
+    renderDatevCloud();
+    try {
+      var response = await datevCloudRequest("transfer", { period: query("[name=datevPeriod]").value, requestId: randomUuid() });
+      updateDatevCloudCapability(response);
+      showToast(response.transfer && response.transfer.status === "succeeded" ? "DATEV mock prenos je uspešno preverjen." : "DATEV je sprejel prenos in ga obdeluje.");
+      if (response.transfer && response.transfer.status === "processing") setTimeout(function () { loadDatevCloudStatus(false); }, Math.max(2, Number(response.transfer.retryAfterSeconds || 5)) * 1000);
+    } catch (error) {
+      datevCloudCapability.lastError = error && error.message || "DATEV prenosa ni bilo mogoče dokončati.";
+      showToast(datevCloudCapability.lastError);
+    } finally {
+      datevCloudCapability.working = false;
+      renderDatevCloud();
+    }
   }
 
   function fitInput(field) {
@@ -3769,6 +3896,8 @@
       });
     });
     query("[data-datev-save]").addEventListener("click", saveDatevSettings);
+    query("[data-datev-connect]").addEventListener("click", connectDatevCloud);
+    query("[data-datev-transfer]").addEventListener("click", transferDatevCloud);
     query("[data-datev-download]").addEventListener("click", exportDatev);
     query("[data-datev-close]").addEventListener("click", closeDatevSheet);
     query("[data-datev-cancel]").addEventListener("click", closeDatevSheet);
@@ -3857,6 +3986,7 @@
     showView("home");
     var returnParams = new URLSearchParams(global.location.search);
     var finapiReturn = returnParams.get("finapi");
+    var datevReturn = returnParams.get("datev");
     var stripeReturn = returnParams.get("stripe");
     var stripeSessionId = returnParams.get("stripe_session_id");
     var stripeInvoiceId = returnParams.get("invoice_id");
@@ -3871,6 +4001,16 @@
           ? "finAPI obrazec je zaključen. Preverite povezavo in osvežite prilive."
           : finapiReturn === "abort" ? "Povezovanje testne banke je bilo prekinjeno." : "finAPI obrazca ni bilo mogoče zaključiti.");
       }, 0);
+    }
+    if (datevReturn) {
+      var cleanDatevUrl = new URL(global.location.href);
+      cleanDatevUrl.searchParams.delete("datev");
+      cleanDatevUrl.searchParams.delete("datev_code");
+      global.history.replaceState(null, "", cleanDatevUrl.pathname + cleanDatevUrl.search + cleanDatevUrl.hash);
+      initialLoad.then(function () {
+        openDatevSheet();
+        showToast(datevReturn === "connected" ? "DATEV sandbox je uspešno povezan." : "DATEV povezave ni bilo mogoče zaključiti.");
+      });
     }
     if (stripeReturn && stripeInvoiceId && (stripeSessionId || stripeReturn === "cancelled")) {
       var cleanStripeUrl = new URL(global.location.href);

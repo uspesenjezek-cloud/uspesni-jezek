@@ -1185,6 +1185,21 @@
 .pos-datev-validation:empty { display: none; }
 .pos-datev-validation p { margin: 0; padding: 8px 10px; color: #824440; border: 1px solid #e4c1be; border-radius: 11px; background: #fff4f3; font-size: .6rem; line-height: 1.3; }
 .pos-datev-validation p.is-warning { color: #755d22; border-color: #ead9ab; background: #fff9e9; }
+.pos-datev-cloud { display: grid; grid-template-columns: auto minmax(0,1fr) auto; padding: 10px; align-items: center; gap: 8px 9px; border: 1px solid #c8e1db; border-radius: 15px; background: linear-gradient(135deg,#eff9f6,#fbfdfc); }
+.pos-datev-cloud__mark { display: grid; width: 36px; height: 36px; grid-row: 1 / span 2; place-items: center; color: #fff; border-radius: 11px; background: var(--pos-teal-dark); font-size: .8rem; font-weight: 900; }
+.pos-datev-cloud__copy { min-width: 0; }
+.pos-datev-cloud__copy strong, .pos-datev-cloud__copy small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pos-datev-cloud__copy strong { color: var(--pos-ink); font-size: .68rem; }
+.pos-datev-cloud__copy small { margin-top: 2px; color: var(--pos-muted); font-size: .55rem; }
+.pos-datev-cloud__badge { padding: 4px 7px; color: #126d65; border: 1px solid #b6ddd6; border-radius: 99px; background: #e9f7f4; font-size: .49rem; font-weight: 800; letter-spacing: .05em; }
+.pos-datev-cloud > button { min-height: 37px; padding: 7px 8px; font-size: .58rem; }
+.pos-datev-cloud > [data-datev-connect] { grid-column: 1 / 3; }
+.pos-datev-cloud > [data-datev-transfer] { grid-column: 3; }
+.pos-datev-cloud__latest { grid-column: 1 / 4; color: var(--pos-muted); font-size: .54rem; line-height: 1.35; }
+.pos-datev-cloud.is-ready { border-color: #72c7b8; background: linear-gradient(135deg,#e8f8f3,#f9fdfb); }
+.pos-datev-cloud.is-error { border-color: #e5c3bd; background: #fff8f6; }
+.pos-datev-cloud.is-error .pos-datev-cloud__badge { color: #8a4439; border-color: #e7c7c1; background: #fff; }
+.pos-datev-cloud button:disabled { opacity: .5; cursor: not-allowed; }
 .pos-datev-settings { overflow: hidden; border: 1px solid var(--pos-line); border-radius: 15px; background: #fff; }
 .pos-datev-settings summary { display: flex; padding: 11px; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
 .pos-datev-settings summary::-webkit-details-marker { display: none; }
@@ -1214,6 +1229,7 @@
 @media (max-width: 479px) {
   .pos-stripe-test { grid-template-columns: minmax(0, 1fr); }
   .pos-stripe-test__button { width: 100%; min-width: 0; }
+  .pos-datev-cloud > [data-datev-connect], .pos-datev-cloud > [data-datev-transfer] { grid-column: 1 / 4; width: 100%; }
 }
 
 @media (min-width: 720px) {

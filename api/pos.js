@@ -13,6 +13,7 @@ const handlers = Object.freeze({
   "stripe-checkout": require("./_handlers/pos-stripe-checkout"),
   "stripe-webhook": require("./_handlers/pos-stripe-webhook"),
   "archive": require("./_handlers/pos-arhiv"),
+  "datev": require("./_handlers/pos-datev"),
 });
 
 function route(req) {

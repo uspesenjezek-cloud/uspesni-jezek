@@ -17,7 +17,8 @@
     { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" },
     { "source": "/api/pos-stripe-checkout", "destination": "/api/pos?handler=stripe-checkout" },
     { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" },
-    { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" }
+    { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" },
+    { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
