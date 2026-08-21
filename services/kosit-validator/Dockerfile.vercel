@@ -1,3 +1,8 @@
+FROM golang:1.24-alpine3.22 AS proxy-build
+WORKDIR /src
+COPY proxy.go ./proxy.go
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/kosit-proxy ./proxy.go
+
 FROM alpine:3.22 AS download
 
 ARG VALIDATOR_URL=https://github.com/itplr-kosit/validator/releases/download/v1.6.2/validator-1.6.2-standalone.jar
@@ -16,11 +21,13 @@ RUN apk add --no-cache ca-certificates unzip \
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /opt/kosit
+RUN apk add --no-cache ca-certificates
 COPY --from=download /tmp/validator.jar /opt/kosit/validator.jar
 COPY --from=download /opt/kosit/config /opt/kosit/config
+COPY --from=proxy-build /out/kosit-proxy /opt/kosit/kosit-proxy
+COPY start.sh /opt/kosit/start.sh
+RUN chmod 0555 /opt/kosit/kosit-proxy /opt/kosit/start.sh
 
+ENV PORT=8080
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget -q -O - http://127.0.0.1:8080/server/health >/dev/null || exit 1
-
-ENTRYPOINT ["java", "-jar", "/opt/kosit/validator.jar", "-s", "/opt/kosit/config/scenarios.xml", "-D", "-H", "0.0.0.0", "-P", "8080", "--disable-gui"]
+ENTRYPOINT ["/opt/kosit/start.sh"]

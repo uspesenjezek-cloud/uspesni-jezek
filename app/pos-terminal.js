@@ -2510,8 +2510,9 @@
     if (invoice.draft.customerType === "business" || invoice.draft.customerType === "public") {
       var einvoiceStatus = invoice.einvoiceDocument && (invoice.einvoiceDocument.validation_status || invoice.einvoiceDocument.validationStatus) || "pending";
       if (invoice.einvoiceDocumentReady) {
+        var validationMessage = invoice.einvoiceDocument && invoice.einvoiceDocument.validationMessage;
         setEinvoiceState(invoice, einvoiceStatus === "validated" ? "ready" : einvoiceStatus === "failed" ? "error" : "pending",
-          einvoiceStatus === "validated" ? "KoSIT potrjen arhivirani original" : einvoiceStatus === "failed" ? "KoSIT je našel napake" : "Arhiviran · validator še ni povezan");
+          validationMessage || (einvoiceStatus === "validated" ? "KoSIT potrjen arhivirani original" : einvoiceStatus === "failed" ? "KoSIT je našel napake" : "Arhiviran · KoSIT validacija še čaka"));
       } else if (!invoice.serverStored) setEinvoiceState(invoice, "error", "Lokalni test nima arhiviranega XRechnung originala.");
       else {
         setEinvoiceState(invoice, "loading", "UBL XML se varno pripravlja …");

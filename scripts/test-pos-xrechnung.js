@@ -6,9 +6,14 @@ const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const generator = require(path.join(repoRoot, "api", "_lib", "pos-xrechnung"));
+const xrechnungHandler = require(path.join(repoRoot, "api", "pos-racun-xrechnung"))._test;
 const api = fs.readFileSync(path.join(repoRoot, "api", "pos-racun-xrechnung.js"), "utf8");
 const migration = fs.readFileSync(path.join(repoRoot, "supabase", "migrations", "20260819151900_pos_xrechnung_documents.sql"), "utf8");
-const dockerfile = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "Dockerfile"), "utf8");
+const dockerfile = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "Dockerfile.vercel"), "utf8");
+const proxy = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "proxy.go"), "utf8");
+const startup = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "start.sh"), "utf8");
+const terminalHtml = fs.readFileSync(path.join(repoRoot, "app", "pos-terminal.html"), "utf8");
+const terminalJs = fs.readFileSync(path.join(repoRoot, "app", "pos-terminal.js"), "utf8");
 
 function invoice(overrides) {
   const base = {
@@ -86,6 +91,11 @@ assert.match(api, /response\.status === 200/);
 assert.match(api, /response\.status === 406/);
 assert.match(api, /KOSIT_VALIDATOR_URL/);
 assert.match(api, /validation_status !== "validated"/);
+assert.strictEqual(xrechnungHandler.validatorSettings({}).configured, false);
+assert.strictEqual(xrechnungHandler.validatorSettings({ KOSIT_VALIDATOR_URL: "http://validator.example", KOSIT_VALIDATOR_TOKEN: "x".repeat(32) }).configured, false);
+assert.strictEqual(xrechnungHandler.validatorSettings({ KOSIT_VALIDATOR_URL: "https://validator.example", KOSIT_VALIDATOR_TOKEN: "short" }).configured, false);
+assert.strictEqual(xrechnungHandler.validatorSettings({ KOSIT_VALIDATOR_URL: "https://validator.example", KOSIT_VALIDATOR_TOKEN: "x".repeat(32) }).configured, true);
+assert.strictEqual(xrechnungHandler.validatorSettings({ KOSIT_VALIDATOR_URL: "http://127.0.0.1:8080", KOSIT_VALIDATOR_TOKEN: "x".repeat(32) }).configured, true);
 
 ["pos_einvoice_documents", "pos_einvoice_validation_events"].forEach((table) => {
   assert.match(migration, new RegExp("alter table public\\." + table + " enable row level security", "i"));
@@ -103,6 +113,17 @@ assert.match(dockerfile, /xrechnung-3\.0\.2-validator-configuration-2026-01-31\.
 assert.match(dockerfile, /244978514ad48f67c7573acfffc8f4fd73d81feda6f276710033f9913579857e/);
 assert.match(dockerfile, /6a5a5911a421b25fbc423f62f93f894df7b236f5d73ca4f84bb222a945082704/);
 assert.match(dockerfile, /sha256sum -c/);
+assert.match(dockerfile, /COPY --from=proxy-build \/out\/kosit-proxy/);
+assert.match(proxy, /subtle\.ConstantTimeCompare/);
+assert.match(proxy, /maxBodyBytes = 2 \* 1024 \* 1024/);
+assert.match(proxy, /mediaType == "application\/xml"/);
+assert.match(proxy, /r\.URL\.Path == "\/health"/);
+assert.match(proxy, /validatorReady\(40 \* time\.Second\)/);
+assert.match(api, /AbortSignal\.timeout\(50000\)/);
+assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
+assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
+assert.match(terminalHtml, /pos-terminal\.js\?v=20260821-kosit-validation-v1/);
+assert.match(terminalJs, /validationMessage/);
 
 console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");
 
