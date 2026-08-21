@@ -1528,6 +1528,7 @@
       persist();
       backendMessage("Sinhronizirano", "ready");
       renderHome();
+      await loadArchiveCapability(false, false);
     } catch (error) {
       backend.ready = false;
       backend.bankReady = false;
@@ -4037,3 +4038,4 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
   else init();
 })(typeof window !== "undefined" ? window : globalThis);
+
