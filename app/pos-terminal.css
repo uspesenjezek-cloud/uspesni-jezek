@@ -286,6 +286,7 @@
 }
 
 .pos-panel--readiness { background: linear-gradient(145deg, #f1faf7, #fff 70%); }
+.pos-panel--archive { background: linear-gradient(145deg, #f5f9f8, #fff 72%); }
 .pos-panel__head { align-items: flex-start; justify-content: space-between; gap: 12px; }
 .pos-panel__head--row { align-items: center; }
 .pos-panel h3 { margin: 0; color: var(--pos-ink); font: 700 .98rem/1.18 "Bricolage Grotesque", system-ui, sans-serif; }
@@ -375,6 +376,25 @@
   margin: 13px 0 12px;
   gap: 7px;
 }
+
+.pos-archive-badge {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  padding: 5px 9px;
+  color: #775d16;
+  border-radius: 999px;
+  background: #fff1c7;
+  font-size: .68rem;
+  font-weight: 700;
+}
+.pos-archive-badge.is-ready { color: var(--pos-teal-dark); background: #dff2ee; }
+.pos-archive-badge.is-error { color: #8c2e25; background: #fde5e1; }
+.pos-archive-copy { margin: 10px 0 0; color: var(--pos-muted); font-size: .72rem; line-height: 1.45; }
+.pos-archive-facts { display: grid; margin: 11px 0 0; gap: 7px; }
+.pos-archive-facts div { display: flex; justify-content: space-between; gap: 12px; padding-top: 7px; border-top: 1px solid #e3ece9; }
+.pos-archive-facts dt { color: var(--pos-muted); font-size: .68rem; }
+.pos-archive-facts dd { margin: 0; color: var(--pos-ink); text-align: right; font-size: .69rem; font-weight: 700; }
 .pos-invoice-overview-summary article { min-width: 0; padding: 9px 7px; border: 1px solid #d7e5e1; border-radius: 13px; background: linear-gradient(145deg, #f3faf8, #fff); }
 .pos-invoice-overview-summary article.is-overdue { border-color: #ead8b5; background: linear-gradient(145deg, #fff8e8, #fff); }
 .pos-invoice-overview-summary small,

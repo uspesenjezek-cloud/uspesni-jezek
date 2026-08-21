@@ -12,6 +12,7 @@ const handlers = Object.freeze({
   "finapi-bank": require("./_handlers/pos-finapi"),
   "stripe-checkout": require("./_handlers/pos-stripe-checkout"),
   "stripe-webhook": require("./_handlers/pos-stripe-webhook"),
+  "archive": require("./_handlers/pos-arhiv"),
 });
 
 function route(req) {

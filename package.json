@@ -13,7 +13,8 @@
     "test:integration": "node scripts/test-izvedba-rpc-integration.mjs",
     "test:pos-fiskaly": "node scripts/test-pos-fiskaly.js",
     "test:pos-finapi": "node scripts/test-pos-finapi.js",
-    "test:pos-stripe": "node scripts/test-pos-stripe.js"
+    "test:pos-stripe": "node scripts/test-pos-stripe.js",
+    "test:pos-archive": "node scripts/test-pos-archive.js"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "1.1.1",

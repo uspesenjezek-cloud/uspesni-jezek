@@ -16,11 +16,13 @@
     { "source": "/api/pos-fiskaly", "destination": "/api/pos?handler=fiskaly-sign" },
     { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" },
     { "source": "/api/pos-stripe-checkout", "destination": "/api/pos?handler=stripe-checkout" },
-    { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" }
+    { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" },
+    { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
-    { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" }
+    { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" },
+    { "path": "/api/pos-arhiv-delavec", "schedule": "23 4 1 * *" }
   ],
   "functions": {
     "api/obdelaj-opomine.js": {
@@ -37,6 +39,11 @@
       "regions": ["fra1"]
     },
     "api/pos.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "regions": ["fra1"]
+    },
+    "api/pos-arhiv-delavec.js": {
       "maxDuration": 60,
       "memory": 1024,
       "regions": ["fra1"]

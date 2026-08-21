@@ -1178,6 +1178,7 @@
     { id: uid("fiskaly-item"), description: "Testmaterial", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" }
   ];
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
+  var archiveCapability = { loaded: false, loading: false, productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, retentionYears: 8, independentBackupReady: false };
   var toastTimer = 0;
   var dialogCallback = null;
 
@@ -1564,6 +1565,7 @@
       persist();
       backendMessage("Sinhronizirano", "ready");
       renderHome();
+      await loadArchiveCapability(false, false);
     } catch (error) {
       backend.ready = false;
       backendMessage(databaseErrorMessage(error), "error");
@@ -1677,11 +1679,61 @@
       return "<li class=\"" + (check.done ? "is-done" : "") + "\">" + escapeHtml(check.label) + "</li>";
     }).join("");
     var mode = query(".pos-mode");
-    var live = readiness.live && backend.ready;
+    var live = productionReady();
     mode.classList.toggle("is-live", live);
     query("[data-mode-title]").textContent = live ? "Produktion" : "Testbetrieb";
-    query("[data-mode-copy]").textContent = live ? "Varna izdaja je omogočena" : readiness.live ? "Čaka varna povezava z bazo" : "Pravni računi so zaklenjeni";
+    query("[data-mode-copy]").textContent = live ? "Varna izdaja je omogočena" : readiness.live && backend.ready ? "Čaka potrjena arhivska kopija" : readiness.live ? "Čaka varna povezava z bazo" : "Pravni računi so zaklenjeni";
+    renderArchiveCapability();
     renderInvoiceList();
+  }
+
+  function productionReady() {
+    return profileReadiness(state.profile).live && backend.ready && archiveCapability.productionReady;
+  }
+
+  function renderArchiveCapability() {
+    var badge = query("[data-archive-badge]");
+    if (!badge) return;
+    var failed = archiveCapability.failureCount > 0;
+    var allVerified = archiveCapability.loaded && !failed && archiveCapability.uncheckedCount === 0;
+    badge.classList.toggle("is-ready", allVerified && archiveCapability.independentBackupReady);
+    badge.classList.toggle("is-error", failed);
+    badge.textContent = archiveCapability.loading ? "Preverjam" : failed ? "Potrebna pozornost" : allVerified ? "Celovit" : "Ni še preverjeno";
+    query("[data-archive-retention]").textContent = "najmanj " + integer(archiveCapability.retentionYears, 8) + " let";
+    query("[data-archive-integrity]").textContent = archiveCapability.documentCount
+      ? archiveCapability.verifiedCount + " / " + archiveCapability.documentCount + " preverjenih"
+      : archiveCapability.loaded ? "ni izvirnikov" : "—";
+    query("[data-archive-backup]").textContent = archiveCapability.independentBackupReady ? "potrjena in obnovljena" : "ni potrjena";
+    query("[data-archive-copy]").textContent = failed
+      ? "Najmanj en izvirnik ni prestal preverjanja. Produkcija ostaja zaklenjena."
+      : archiveCapability.productionReady
+        ? "PDF/XML izvirniki so nespremenljivi, šifrirani pri ponudniku in zaščiteni tudi z obnovljivo ločeno kopijo."
+        : "Izvirniki so nespremenljivi in šifrirani pri ponudniku. Produkcija ostaja zaklenjena, dokler ni potrjena še ločena obnovljiva kopija.";
+    query("[data-archive-verify]").disabled = archiveCapability.loading || !backend.ready;
+  }
+
+  async function loadArchiveCapability(showFeedback, verify) {
+    if (!backend.ready) { renderArchiveCapability(); return archiveCapability; }
+    archiveCapability.loading = true;
+    renderArchiveCapability();
+    try {
+      var token = await currentSessionToken();
+      var response = await fetch("/api/pos-arhiv", {
+        method: verify ? "POST" : "GET",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: verify ? JSON.stringify({ action: "verify-all" }) : undefined
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.ok) throw new Error(data.napaka || "Arhiva ni bilo mogoče preveriti.");
+      archiveCapability = Object.assign({}, archiveCapability, data.archive || {}, { loaded: true, loading: false });
+      if (showFeedback) showToast(archiveCapability.failureCount ? "Arhiv potrebuje pozornost." : "Vsi arhivirani izvirniki so preverjeni.");
+    } catch (error) {
+      archiveCapability.loading = false;
+      archiveCapability.productionReady = false;
+      if (showFeedback) showToast(error && error.message || "Arhiva ni bilo mogoče preveriti.");
+    }
+    renderHome();
+    return archiveCapability;
   }
 
   function invoiceStatusLabel(invoice, today) {
@@ -3027,7 +3079,7 @@
 
   function currentInvoiceSnapshot(number) {
     syncDraftFromForm();
-    var live = profileReadiness(state.profile).live && backend.ready;
+    var live = productionReady();
     return {
       id: uid("invoice"),
       number: number || nextInvoiceNumber(!live),
@@ -3114,8 +3166,12 @@
     var errors = validateStep(state.draft, state.profile, 4);
     if (errors.length) { renderPreview(); showToast(errors[0]); return; }
     var readiness = profileReadiness(state.profile);
-    var live = readiness.live && backend.ready;
+    var live = productionReady();
     var replacement = normalizeReplacementContext(state.draft);
+    if (readiness.live && backend.ready && !archiveCapability.productionReady) {
+      showToast("Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo in preizkus obnove.");
+      return;
+    }
     if (replacement && !backend.ready) { showToast("Nadomestni račun potrebuje varno strežniško povezavo."); return; }
     var invoice = currentInvoiceSnapshot(nextInvoiceNumber(!live));
     openDialog(
@@ -3649,7 +3705,7 @@
         }
       }
       renderHome();
-      showToast(readiness.live && backend.ready ? "Produkcijski način je pripravljen." : readiness.live ? "Podatki so lokalno shranjeni; produkcija čaka varno bazo." : "Nastavitve so shranjene; Testbetrieb ostaja aktiven.");
+      showToast(productionReady() ? "Produkcijski način je pripravljen." : readiness.live && backend.ready ? "Podatki so shranjeni; produkcija čaka potrjeno arhivsko kopijo." : readiness.live ? "Podatki so lokalno shranjeni; produkcija čaka varno bazo." : "Nastavitve so shranjene; Testbetrieb ostaja aktiven.");
       showView("home");
     });
     query("[data-fiskaly-refresh]").addEventListener("click", function () { loadFiskalyCapability(true); });
@@ -3697,6 +3753,7 @@
     query("[data-bank-import-another]").addEventListener("click", function () { query("[data-bank-file]").click(); });
     query("[data-bank-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeBankSheet(); });
     query("[data-datev-export]").addEventListener("click", openDatevSheet);
+    query("[data-archive-verify]").addEventListener("click", function () { loadArchiveCapability(true, true); });
     query("[name=datevPeriod]").addEventListener("change", renderDatevSheet);
     query("#pos-datev-form").addEventListener("input", renderDatevSheet);
     queryAll("[name=datevFramework]").forEach(function (radio) {

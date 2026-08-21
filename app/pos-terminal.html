@@ -22,7 +22,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260821-kosit-validation-v1" defer></script>
+    <script src="pos-terminal.js?v=20260821-gobd-archive-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -112,6 +112,20 @@
           <div class="pos-progress"><span data-profile-progress-bar></span></div>
           <ul class="pos-checklist" data-readiness-list></ul>
           <button class="pos-inline-action" type="button" data-open-view="settings">Dopolni podatke podjetja <svg><use href="#i-chevron"/></svg></button>
+        </section>
+
+        <section class="pos-panel pos-panel--archive" aria-labelledby="pos-archive-title">
+          <div class="pos-panel__head pos-panel__head--row">
+            <div><p class="pos-kicker">GoBD arhiv</p><h3 id="pos-archive-title">Izvirniki in sled celovitosti</h3></div>
+            <span class="pos-archive-badge" data-archive-badge>Preverjam</span>
+          </div>
+          <p class="pos-archive-copy" data-archive-copy>Preverjam nespremenljive PDF/XML izvirnike in rok hrambe …</p>
+          <dl class="pos-archive-facts">
+            <div><dt>Hramba</dt><dd data-archive-retention>najmanj 8 let</dd></div>
+            <div><dt>Celovitost</dt><dd data-archive-integrity>—</dd></div>
+            <div><dt>Ločena kopija</dt><dd data-archive-backup>ni potrjena</dd></div>
+          </dl>
+          <button class="pos-inline-action" type="button" data-archive-verify>Preveri vse arhivirane izvirnike <svg><use href="#i-chevron"/></svg></button>
         </section>
 
         <section class="pos-panel">
