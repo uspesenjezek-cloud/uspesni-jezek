@@ -44,7 +44,7 @@ async function readDocument(cfg, userId, invoiceId) {
   return rows.length === 1 ? rows[0] : null;
 }
 async function invoiceIsCancelled(cfg, userId, invoiceId) {
-  const rows = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments", "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1");
+  const rows = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments", "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1");
   return rows.length > 0;
 }
 async function downloadObject(cfg, path) {
