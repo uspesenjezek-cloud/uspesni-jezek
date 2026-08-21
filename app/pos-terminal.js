@@ -220,6 +220,7 @@
       items: [defaultItem()],
       taxMode: taxMode,
       reverseChargeConfirmed: false,
+      propertyRelated: false,
       handwerker35a: false,
       constructionWithholding: false,
       exemptionCertificate: "unknown",
@@ -341,6 +342,7 @@
       }),
       tax_mode: draft.taxMode,
       reverse_charge_confirmed: Boolean(draft.reverseChargeConfirmed),
+      property_related: Boolean(draft.propertyRelated),
       handwerker_35a: Boolean(draft.handwerker35a),
       construction_withholding: Boolean(draft.constructionWithholding),
       exemption_certificate: draft.exemptionCertificate,
@@ -403,6 +405,7 @@
       }),
       taxMode: source.tax_mode,
       reverseChargeConfirmed: Boolean(source.reverse_charge_confirmed),
+      propertyRelated: Boolean(source.property_related),
       handwerker35a: Boolean(source.handwerker_35a),
       constructionWithholding: Boolean(source.construction_withholding),
       exemptionCertificate: source.exemption_certificate,
@@ -980,6 +983,11 @@
     return "Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).";
   }
 
+  function propertyRetentionNotice(draft) {
+    if (!draft || draft.customerType !== "private" || (!draft.propertyRelated && !draft.handwerker35a)) return "";
+    return "Der Leistungsempfänger ist verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).";
+  }
+
   function deliveryRecommendation(invoice, profile) {
     var draft = invoice && invoice.draft || {};
     var type = draft.customerType || "private";
@@ -1384,6 +1392,7 @@
     profileReadiness: profileReadiness,
     profileForPreview: profileForPreview,
     validateStep: validateStep,
+    propertyRetentionNotice: propertyRetentionNotice,
     buildEpcPayload: buildEpcPayload,
     buildXRechnungXml: buildXRechnungXml,
     deliveryRecommendation: deliveryRecommendation,
@@ -3634,7 +3643,7 @@
       var calc = calculateItem(item, draft.priceMode, draft.taxMode);
       return "<tr><td>" + escapeHtml(item.description || "—") + "</td><td>" + escapeHtml(formatDecimalMilli(calc.quantityMilli)) + "</td><td>" + escapeHtml(formatMoney(calc.grossCents)) + "</td></tr>";
     }).join("");
-    var noteParts = [taxNote(draft), defaultNotice(draft)];
+    var noteParts = [taxNote(draft), defaultNotice(draft), propertyRetentionNotice(draft)];
     var replacement = normalizeReplacementContext(draft);
     if (replacement) noteParts.unshift("Nadomestni račun za " + replacement.cancellationNumber + "; prvotni račun " + replacement.originalInvoiceNumber + ".");
     if (draft.handwerker35a) noteParts.push("Davčno upravičeni stroški dela, vožnje in strojev: " + formatMoney(invoice.totals.eligible35aCents) + ". Končno upravičenost preveri Finanzamt.");

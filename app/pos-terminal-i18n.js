@@ -238,6 +238,8 @@
     "DDV se ne prikaže. Račun bo vseboval »Steuerschuldnerschaft des Leistungsempfängers«.": "Die Umsatzsteuer wird nicht ausgewiesen. Die Rechnung enthält den Hinweis „Steuerschuldnerschaft des Leistungsempfängers“.",
     "Preveril sem pogoje § 13b.": "Ich habe die Voraussetzungen des § 13b geprüft.",
     "Odločitev temelji na dokazilu oziroma potrditvi davčnega svetovalca.": "Die Entscheidung beruht auf einem Nachweis beziehungsweise der Bestätigung eines Steuerberaters.",
+    "Storitev, povezana z nepremičnino": "Leistung im Zusammenhang mit einem Grundstück",
+    "Za zasebno stranko doda zakonsko opozorilo o dveletni hrambi dokazil (§ 14b UStG).": "Fügt bei Privatkunden den gesetzlichen Hinweis zur zweijährigen Aufbewahrung der Nachweise hinzu (§ 14b UStG).",
     "Na računu posebej prikaži stroške dela, vožnje in strojev.": "Arbeits-, Fahrt- und Maschinenkosten auf der Rechnung gesondert ausweisen.",
     "Preveri Freistellungsbescheinigung in možni 15 % odbitek.": "Freistellungsbescheinigung und möglichen Steuerabzug von 15 % prüfen.",
     "Še ni preverjeno": "Noch nicht geprüft",

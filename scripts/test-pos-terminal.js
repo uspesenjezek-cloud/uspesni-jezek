@@ -190,6 +190,10 @@ assert.equal(connectedState.draft.id, "draft-1");
 assert.match(js, /global\.localStorage\.removeItem\(STORAGE_KEY\)/);
 assert.match(js, /global\.sessionStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(localSnapshot\)\)/);
 assert.match(js, /backend\.serverStateLoaded = true;\s+persist\(\);\s+backendMessage\("Sinhronizirano", "ready"\)/);
+assert.match(Core.propertyRetentionNotice({ customerType: "private", propertyRelated: true }), /zwei Jahre aufzubewahren \(§ 14b Abs\. 1 UStG\)/);
+assert.match(Core.propertyRetentionNotice({ customerType: "private", handwerker35a: true }), /zwei Jahre aufzubewahren/);
+assert.strictEqual(Core.propertyRetentionNotice({ customerType: "business", propertyRelated: true }), "");
+assert.match(html, /name="propertyRelated"/);
 const mergedBankRows = Core.mergeBankTransactionRows(
   [{ id: "open-old", booked_on: "2024-01-01", status: "unmatched" }, { id: "duplicate", booked_on: "2025-01-01", status: "unmatched" }],
   [{ id: "confirmed-new", booked_on: "2026-01-01", status: "confirmed" }, { id: "duplicate", booked_on: "2025-01-01", status: "confirmed" }]
@@ -557,10 +561,14 @@ const dbDraft = Core.draftToDatabasePayload(draft);
 assert.strictEqual(dbDraft.items[0].unit_price_cents, 10000);
 assert.strictEqual(dbDraft.items[0].quantity_milli, 1000);
 assert.strictEqual(dbDraft.items[0].tax_rate_bps, 1900);
+assert.strictEqual(dbDraft.property_related, false);
+const propertyDbDraft = Core.draftToDatabasePayload(Object.assign({}, draft, { propertyRelated: true }));
+assert.strictEqual(propertyDbDraft.property_related, true);
 const restoredDraft = Core.draftFromDatabasePayload(dbDraft);
 assert.strictEqual(restoredDraft.customerName, draft.customerName);
 assert.strictEqual(restoredDraft.items[0].unitPrice, "100,00");
 assert.strictEqual(restoredDraft.finalConfirmed, false, "Obnovljen osnutek mora zahtevati nov končni pregled.");
+assert.strictEqual(Core.draftFromDatabasePayload(propertyDbDraft).propertyRelated, true);
 assert.deepStrictEqual(Core.buildAdjustmentChanges({ draft, dueDate: "2026-09-02" }, {
   customer_name: draft.customerName,
   customer_street: "Neue Straße 44",

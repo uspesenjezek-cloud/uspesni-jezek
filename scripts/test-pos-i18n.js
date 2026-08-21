@@ -21,7 +21,7 @@ function load(search) {
   return context.module.exports;
 }
 
-assert.match(html, /pos-terminal-i18n\.js\?v=20260821-de-market-v5/);
+assert.match(html, /pos-terminal-i18n\.js\?v=20260822-de-market-v6/);
 assert.ok(html.indexOf("pos-terminal-i18n.js") < html.indexOf("pos-terminal.js"), "locale layer must load before POS behavior");
 assert.match(html, /<html lang="sl" class="pos-page">/, "Slovenian remains the default document language");
 
@@ -52,6 +52,8 @@ assert.equal(de.translate("30 % · plačano"), "30 % · bezahlt");
 assert.equal(de.translate("Končni račun čaka na celotno plačilo vseh delnih računov."), "Die Schlussrechnung wartet auf die vollständige Zahlung aller Abschlagsrechnungen.");
 assert.equal(de.translate("Postavka 12"), "Position 12");
 assert.equal(de.translate("60 dni"), "60 Tage");
+assert.equal(de.translate("Storitev, povezana z nepremičnino"), "Leistung im Zusammenhang mit einem Grundstück");
+assert.match(de.translate("Za zasebno stranko doda zakonsko opozorilo o dveletni hrambi dokazil (§ 14b UStG)."), /zweijährigen Aufbewahrung/);
 
 const deLocale = load("?locale=de-DE");
 assert.equal(deLocale.isGerman, true);

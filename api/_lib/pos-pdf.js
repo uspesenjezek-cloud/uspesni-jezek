@@ -4,7 +4,7 @@ const fs = require("fs");
 const fontkit = require("@pdf-lib/fontkit");
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-5";
+const GENERATOR_VERSION = "uj-pos-pdf-6";
 const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
 const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
 const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
@@ -152,6 +152,12 @@ function sellerForInvoice(invoice) {
   };
 }
 
+function propertyRetentionNote(draft) {
+  const source = draft || {};
+  if (source.customer_type !== "private" || (!source.property_related && !source.handwerker_35a)) return "";
+  return "Der Leistungsempfänger ist verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).";
+}
+
 function drawTestWatermark(page, bold) {
   page.drawText("TESTRECHNUNG", {
     x: 103, y: 365, size: 48, font: bold, color: rgb(0.93, 0.84, 0.78),
@@ -296,7 +302,8 @@ async function ustvariRacunPdf(invoice) {
   if (deductions.length) notes.push("Vereinnahmte Teilentgelte und die darauf entfallende Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.");
   if (draft.handwerker_35a) notes.push("Begünstigte Arbeits-, Fahrt- und Maschinenkosten nach § 35a EStG: " + money(invoice.eligible_35a_cents) + ". Die steuerliche Anerkennung prüft das Finanzamt.");
   if (draft.consumer_default_notice && draft.customer_type === "private") notes.push("Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).");
-  if (draft.customer_type === "private" && (draft.handwerker_35a || draft.construction_withholding)) notes.push("Hinweis: Bei Leistungen im Zusammenhang mit einem Grundstück ist diese Rechnung zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).");
+  const retentionNote = propertyRetentionNote(draft);
+  if (retentionNote) notes.push(retentionNote);
   if (invoice.is_test) notes.unshift("Dieses Dokument ist eine TESTRECHNUNG und nicht für den Rechts- oder Geschäftsverkehr bestimmt.");
   if (notes.length) {
     const noteLines = notes.flatMap((note) => wrap(note, regular, 8, PAGE.width - PAGE.margin * 2 - 18));
@@ -334,4 +341,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, propertyRetentionNote, embedUnicodeFonts, ustvariRacunPdf };

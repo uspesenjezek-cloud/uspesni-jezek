@@ -64,6 +64,7 @@ function sampleInvoice(replacement) {
         customer_postal_code: "20095",
         customer_city: "Hamburg",
         payment_method: "sepa",
+        property_related: true,
         handwerker_35a: true,
         construction_withholding: false,
         consumer_default_notice: true,
@@ -121,6 +122,9 @@ function sampleAdjustment(type) {
   assert.strictEqual(pdfModule.taxIdentityText({}), "");
   assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890" }), "Steuernummer: 12/345/67890");
   assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890", vatId: "DE123456789" }), "USt-IdNr.: DE123456789");
+  assert.match(pdfModule.propertyRetentionNote({ customer_type: "private", property_related: true }), /zwei Jahre aufzubewahren \(§ 14b Abs\. 1 UStG\)/);
+  assert.strictEqual(pdfModule.propertyRetentionNote({ customer_type: "business", property_related: true }), "");
+  assert.strictEqual(pdfModule.propertyRetentionNote({ customer_type: "private", property_related: false, handwerker_35a: false }), "");
   const incompleteTestInvoice = sampleInvoice();
   incompleteTestInvoice.invoice_number = "TEST-2026-0001";
   incompleteTestInvoice.is_test = true;
@@ -151,16 +155,16 @@ function sampleAdjustment(type) {
   assert.ok(pdf.getPageCount() >= 2, "Dolg realističen račun mora pravilno nadaljevati na novo stran.");
   assert.strictEqual(pdf.getTitle(), "Rechnung RE-2026-0001");
   assert.strictEqual(pdf.getCreator(), pdfModule.GENERATOR_VERSION);
-  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-5");
+  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-6");
 
   const incompleteTestBuffer = await pdfModule.ustvariRacunPdf(incompleteTestInvoice);
   const incompleteTestPdf = await PDFDocument.load(incompleteTestBuffer);
-  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-5");
+  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-6");
 
   const replacementBuffer = await pdfModule.ustvariRacunPdf(sampleInvoice(true));
   const replacementPdf = await PDFDocument.load(replacementBuffer);
   assert.strictEqual(replacementPdf.getPageCount(), pdf.getPageCount());
-  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-5");
+  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-6");
 
   const finalInvoice = sampleInvoice();
   finalInvoice.snapshot.draft.workflow_context = {
@@ -176,7 +180,7 @@ function sampleAdjustment(type) {
   finalInvoice.gross_cents -= 11900;
   const finalBuffer = await pdfModule.ustvariRacunPdf(finalInvoice);
   const finalPdf = await PDFDocument.load(finalBuffer);
-  assert.strictEqual(finalPdf.getCreator(), "uj-pos-pdf-5");
+  assert.strictEqual(finalPdf.getCreator(), "uj-pos-pdf-6");
   assert.match(pdfSource, /Auftragssumme brutto/);
   assert.match(pdfSource, /Noch zu zahlen/);
   assert.match(pdfSource, /§ 14 Abs\. 5 UStG/);
