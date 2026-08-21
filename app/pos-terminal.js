@@ -1717,7 +1717,7 @@
     archiveCapability.loading = true;
     renderArchiveCapability();
     try {
-      var token = await currentSessionToken();
+      var token = await apiSessionToken();
       var response = await fetch("/api/pos-arhiv", {
         method: verify ? "POST" : "GET",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
