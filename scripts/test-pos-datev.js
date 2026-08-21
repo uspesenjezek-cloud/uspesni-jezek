@@ -14,8 +14,8 @@ const browserJs = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "ut
 const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-datev.js"), "utf8");
 const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821123000_pos_datev_cloud_integration.sql"), "utf8");
-const mockIsolationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821124125_datev_mock_job_isolation.sql"), "utf8");
-const repeatableMockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821132209_datev_repeatable_mock_runs.sql"), "utf8");
+const mockIsolationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821124359_datev_mock_job_isolation.sql"), "utf8");
+const repeatableMockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821132323_datev_repeatable_mock_runs.sql"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 
 const cfg = datev.configuration({ DATEV_MODE: "mock" });

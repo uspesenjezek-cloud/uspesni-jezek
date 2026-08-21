@@ -5,8 +5,8 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.join(__dirname, "..");
-const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821093000_pos_gobd_archive.sql"), "utf8");
-const hardeningMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821102000_pos_archive_private_readiness.sql"), "utf8");
+const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821100924_pos_gobd_archive.sql"), "utf8");
+const hardeningMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821101118_pos_archive_private_readiness.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
