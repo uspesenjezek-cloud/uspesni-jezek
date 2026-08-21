@@ -89,6 +89,7 @@ assert.match(browserJs, /showToast\("DATEV nastavitve shranjujem …"\)/);
 assert.match(css, /\.pos-toast[\s\S]*?z-index:\s*2147483600/);
 assert.match(localServer, /posDatevModul = require\.resolve\("\.\.\/api\/_handlers\/pos-datev"\)/);
 assert.match(localServer, /pathname === "\/api\/pos-datev"/);
+assert.match(localServer, /else void posredujZascitenApi\(req, res, requestUrl\.pathname \+ requestUrl\.search\)/);
 assert.match(localServer, /pathname === "\/__dev-source"/);
 
 console.log("POS DATEV mock, OAuth zaščita, PDF povezave in RLS so preverjeni.");

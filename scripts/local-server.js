@@ -268,6 +268,33 @@ function posljiRazlicicoAplikacije(req, res) {
   posljiJson(res, 200, { ok: true, version: [lokalniVir.workspaceHash, lokalniVir.appVersion, lokalniVir.apiVersion].join(":") });
 }
 
+async function posredujZascitenApi(req, res, ciljnaPot) {
+  try {
+    const telo = ["GET", "HEAD"].includes(req.method) ? null : await preberiTelo(req);
+    const headers = {
+      Accept: req.headers.accept || "application/json",
+      Authorization: req.headers.authorization || "",
+    };
+    if (telo && telo.length) headers["Content-Type"] = req.headers["content-type"] || "application/json";
+    const odgovor = await fetch(`${apiOrigin}${ciljnaPot}`, {
+      method: req.method,
+      headers,
+      body: telo && telo.length ? telo : undefined,
+      signal: AbortSignal.timeout(60000),
+    });
+    const rezultat = Buffer.from(await odgovor.arrayBuffer());
+    res.writeHead(odgovor.status, {
+      "Content-Type": odgovor.headers.get("content-type") || "application/json; charset=utf-8",
+      "Content-Length": rezultat.length,
+      "Cache-Control": "no-store",
+    });
+    res.end(rezultat);
+  } catch (napaka) {
+    const jeTimeout = napaka && (napaka.name === "TimeoutError" || napaka.name === "AbortError");
+    posljiJson(res, 502, { ok: false, napaka: jeTimeout ? "Strežniški DATEV preizkus je trajal predolgo." : "Zaščitenega DATEV API-ja ni bilo mogoče doseči." });
+  }
+}
+
 function varniPrstniOdtisMape(mapa) {
   const resenaPot = fs.realpathSync(mapa);
   const kanonicnaPot = process.platform === "win32" ? resenaPot.toLowerCase() : resenaPot;
@@ -434,7 +461,9 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (pathname === "/api/pos-datev") {
-    void izvediLokalniApi(req, res, posDatevModul);
+    naloziLokalnoSupabaseKonfiguracijo();
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) void izvediLokalniApi(req, res, posDatevModul);
+    else void posredujZascitenApi(req, res, requestUrl.pathname + requestUrl.search);
     return;
   }
   if (pathname === "/__app-version") {
