@@ -219,7 +219,8 @@ async function periodPackage(cfg, userId, selectedPeriod, options) {
   };
 }
 
-async function createJob(cfg, userId, requestId, selectedPeriod, mode) {
+async function createJob(cfg, userId, requestId, selectedPeriod, mode, options) {
+  const repeatableMock = mode === "mock" && Boolean(options && options.testOnly);
   try {
     const rows = await rest(cfg, "pos_datev_transfer_jobs", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: {
@@ -229,9 +230,14 @@ async function createJob(cfg, userId, requestId, selectedPeriod, mode) {
     return rows[0];
   } catch (error) {
     if (error.code !== "DATEV_DUPLICATE") throw error;
+    const sameRequest = await supabase.pridobiVrstice(cfg, "pos_datev_transfer_jobs",
+      "user_id=eq." + encodeURIComponent(userId) + "&request_id=eq." + encodeURIComponent(requestId) +
+      "&select=*&limit=1");
+    if (sameRequest[0]) return sameRequest[0];
+    const reusableStatuses = repeatableMock ? "preparing,processing" : "preparing,processing,succeeded";
     const rows = await supabase.pridobiVrstice(cfg, "pos_datev_transfer_jobs",
       "user_id=eq." + encodeURIComponent(userId) + "&period=eq." + encodeURIComponent(selectedPeriod.key) +
-      "&status=in.(preparing,processing,succeeded)&select=*&order=created_at.desc&limit=1");
+      "&environment=eq." + encodeURIComponent(mode) + "&status=in.(" + reusableStatuses + ")&select=*&order=created_at.desc&limit=1");
     if (rows[0]) return rows[0];
     throw error;
   }
@@ -256,7 +262,7 @@ function publicJob(row) {
 
 async function executeTransfer(datevCfg, db, connection, token, userId, settings, selectedPeriod, requestId, options) {
   const testOnly = Boolean(options && options.testOnly);
-  let job = await createJob(db, userId, requestId, selectedPeriod, datevCfg.mode);
+  let job = await createJob(db, userId, requestId, selectedPeriod, datevCfg.mode, { testOnly });
   if (job.status === "succeeded" || job.status === "processing") return job;
   const pack = await periodPackage(db, userId, selectedPeriod, { testOnly });
   if (!pack.invoices.length) throw new datev.DatevError(testOnly ? "V izbranem mesecu ni testnih računov za DATEV mock preizkus." : "V izbranem mesecu ni pravnih računov za DATEV.", { code: "DATEV_PERIOD_EMPTY", status: 409 });

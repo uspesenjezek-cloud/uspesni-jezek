@@ -15,6 +15,7 @@ const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-d
 const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821123000_pos_datev_cloud_integration.sql"), "utf8");
 const mockIsolationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821124125_datev_mock_job_isolation.sql"), "utf8");
+const repeatableMockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821132209_datev_repeatable_mock_runs.sql"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 
 const cfg = datev.configuration({ DATEV_MODE: "mock" });
@@ -90,6 +91,12 @@ assert.match(browserJs, /Mock uporabi samo račune TEST-\*/);
 assert.match(handlerSource, /action === "transfer" \|\| action === "test-transfer"/);
 assert.match(handlerSource, /is_test=eq\." \+ testFilter/);
 assert.match(mockIsolationMigration, /user_id, period, environment/i);
+assert.match(repeatableMockMigration, /environment <> 'mock'[\s\S]*preparing','processing','succeeded/i);
+assert.match(repeatableMockMigration, /environment = 'mock'[\s\S]*preparing','processing'/i);
+assert.doesNotMatch(repeatableMockMigration, /environment = 'mock'[\s\S]*preparing','processing','succeeded'/i);
+assert.match(handlerSource, /request_id=eq\." \+ encodeURIComponent\(requestId\)/);
+assert.match(handlerSource, /environment=eq\." \+ encodeURIComponent\(mode\)/);
+assert.match(handlerSource, /repeatableMock \? "preparing,processing" : "preparing,processing,succeeded"/);
 assert.match(browserJs, /authorizationUrl\.hostname !== "login\.datev\.de"/);
 assert.match(browserJs, /Mock uporabi samo račune TEST-\*/);
 assert.match(browserJs, /saveButton\.textContent = "Shranjujem …"/);
