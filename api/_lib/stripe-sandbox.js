@@ -123,7 +123,28 @@ function assertTestSession(session, expected) {
   return session;
 }
 
+function assertTestPaymentIntent(intent, expected) {
+  const metadata = intent && intent.metadata || {};
+  if (!intent || !clean(intent.id).startsWith("pi_") || intent.livemode !== false) {
+    const error = new Error("Stripe ni vrnil veljavnega TEST plačila.");
+    error.code = "STRIPE_LIVE_PAYMENT_REJECTED";
+    throw error;
+  }
+  if (metadata.test_mode !== "true" || metadata.user_id !== expected.userId || metadata.invoice_id !== expected.invoiceId) {
+    const error = new Error("Stripe TEST plačilo ni povezano s tem računom.");
+    error.code = "STRIPE_PAYMENT_MISMATCH";
+    throw error;
+  }
+  if (expected.amountCents != null && (Number(intent.amount) !== Number(expected.amountCents) || clean(intent.currency).toUpperCase() !== "EUR")) {
+    const error = new Error("Stripe TEST plačilo nima pričakovanega zneska ali valute.");
+    error.code = "STRIPE_PAYMENT_AMOUNT_MISMATCH";
+    throw error;
+  }
+  return intent;
+}
+
 module.exports = {
+  assertTestPaymentIntent,
   assertTestSession,
   checkoutMetadata,
   checkoutParams,

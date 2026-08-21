@@ -2016,11 +2016,22 @@
     return stripePayments[stripePayments.length - 1] || null;
   }
 
+  function latestRefundableStripePayment(invoice) {
+    var stripePayments = (invoice && invoice.payments || []).filter(function (payment) {
+      var remaining = integer(payment.amountCents, 0) - integer(payment.refundedCents, 0);
+      return (payment.provider === "stripe" || payment.method === "stripe_card") &&
+        ["succeeded", "partially_refunded"].indexOf(payment.status) !== -1 && remaining > 0;
+    });
+    return stripePayments[stripePayments.length - 1] || null;
+  }
+
   function renderStripePayment(invoice) {
     var panel = query("[data-stripe-payment-panel]");
     var button = query("[data-stripe-payment]");
+    var refundButton = query("[data-stripe-refund]");
     var buttonCopy = button && query("span", button);
     var payment = latestStripePayment(invoice);
+    var refundablePayment = latestRefundableStripePayment(invoice);
     var status = payment && payment.status || "ready";
     ["paid", "pending", "failed", "cancelled", "refunded", "partially_refunded"].forEach(function (name) {
       panel.classList.toggle("is-" + name, status === name || name === "paid" && status === "succeeded");
@@ -2041,6 +2052,11 @@
     query("[data-stripe-payment-copy]").textContent = copy;
     buttonCopy.textContent = label;
     button.disabled = !invoice.serverStored || !backend.ready || invoice.status === "cancelled" || invoice.status === "paid";
+    refundButton.hidden = !refundablePayment;
+    refundButton.disabled = !invoice.serverStored || !backend.ready;
+    if (refundablePayment) {
+      query("span", refundButton).textContent = "Vrni " + formatMoney(integer(refundablePayment.amountCents, 0) - integer(refundablePayment.refundedCents, 0)) + " – TEST";
+    }
   }
 
   function renderPaymentList(invoice) {
@@ -3641,6 +3657,49 @@
     }
   }
 
+  function refundStripePayment(invoice) {
+    var payment = latestRefundableStripePayment(invoice);
+    if (!invoice || !invoice.isTest || !payment || !invoice.serverStored || !backend.ready) {
+      showToast("Za ta račun ni povračljivega Stripe TEST plačila.");
+      return;
+    }
+    var amountCents = integer(payment.amountCents, 0) - integer(payment.refundedCents, 0);
+    openDialog(
+      "Povrniti Stripe TEST plačilo?",
+      "Stripe bo v sandboxu povrnil " + formatMoney(amountCents) + ". Pravi denar se ne premakne; podpisani webhook bo posodobil plačilno sled.",
+      {
+        confirmText: "Povrni " + formatMoney(amountCents) + " – TEST",
+        onConfirm: async function () {
+          var button = query("[data-stripe-refund]");
+          button.disabled = true;
+          query("span", button).textContent = "Povračilo se pripravlja …";
+          try {
+            await stripeCheckoutRequest("refund", {
+              invoiceId: invoice.id,
+              paymentId: payment.id,
+              amountCents: amountCents,
+              confirmed: true,
+              requestId: randomUuid()
+            });
+            for (var attempt = 0; attempt < 7; attempt += 1) {
+              await waitMs(650 + attempt * 300);
+              await loadServerState("payments");
+              var refreshed = findInvoice(invoice.id);
+              var refreshedPayment = refreshed && (refreshed.payments || []).filter(function (entry) { return entry.id === payment.id; })[0];
+              if (refreshedPayment && integer(refreshedPayment.refundedCents, 0) >= integer(payment.refundedCents, 0) + amountCents) break;
+            }
+            var updatedInvoice = findInvoice(invoice.id);
+            if (updatedInvoice) renderInvoiceDetail(updatedInvoice.id);
+            showToast("Stripe TEST povračilo je poslano; plačilno sled potrdi podpisani webhook.");
+          } catch (error) {
+            renderStripePayment(findInvoice(invoice.id) || invoice);
+            showToast(error && error.message || "Stripe TEST povračila ni bilo mogoče izvesti.");
+          }
+        }
+      }
+    );
+  }
+
   function exportDatev() {
     var result = renderDatevSheet();
     if (result.errors.length) { query("[data-datev-settings]").open = true; showToast("Najprej dokončajte DATEV nastavitve."); return; }
@@ -3947,6 +4006,7 @@
     query("[data-detail-copy]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) copyPaymentForInvoice(invoice); });
     query("[data-detail-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) requestPayment(invoice.id); });
     query("[data-stripe-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) startStripeCheckout(invoice); });
+    query("[data-stripe-refund]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) refundStripePayment(invoice); });
     query("[data-detail-correction]").addEventListener("click", function () {
       var invoice = findInvoice(activeInvoiceId);
       if (invoice) openAdjustmentSheet(invoice);

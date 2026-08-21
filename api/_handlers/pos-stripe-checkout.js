@@ -58,6 +58,42 @@ async function paymentForSession(cfg, userId, sessionId) {
   return rows[0] || null;
 }
 
+async function paymentForRefund(cfg, userId, invoiceId, paymentId) {
+  const rows = await supabase.pridobiVrstice(cfg, "pos_payments",
+    "id=eq." + encodeURIComponent(paymentId) + "&invoice_id=eq." + encodeURIComponent(invoiceId) +
+    "&user_id=eq." + encodeURIComponent(userId) + "&provider=eq.stripe" +
+    "&select=id,invoice_id,provider,amount_cents,currency,status,refunded_cents,failure_code,paid_at,expires_at,checkout_session_id,external_payment_id&limit=1");
+  return rows[0] || null;
+}
+
+async function testInvoiceForRefund(cfg, userId, invoiceId) {
+  const rows = await supabase.pridobiVrstice(cfg, "pos_invoices",
+    "id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) +
+    "&is_test=eq.true&select=id,is_test&limit=1");
+  return rows[0] || null;
+}
+
+function refundRequestCents(payment, requestedAmount) {
+  if (!payment || !["succeeded", "partially_refunded"].includes(payment.status)) {
+    const error = new Error("Povrniti je mogoče samo uspešno Stripe TEST plačilo.");
+    error.status = 409;
+    throw error;
+  }
+  const remaining = Number(payment.amount_cents || 0) - Number(payment.refunded_cents || 0);
+  const amount = requestedAmount == null || requestedAmount === "" ? remaining : Number(requestedAmount);
+  if (!Number.isSafeInteger(remaining) || remaining <= 0) {
+    const error = new Error("Stripe TEST plačilo je že v celoti povrnjeno.");
+    error.status = 409;
+    throw error;
+  }
+  if (!Number.isSafeInteger(amount) || amount <= 0 || amount > remaining) {
+    const error = new Error("Znesek TEST povračila ni veljaven.");
+    error.status = 400;
+    throw error;
+  }
+  return amount;
+}
+
 function publicPayment(row) {
   if (!row) return null;
   return {
@@ -87,6 +123,54 @@ async function handler(req, res) {
   const stripe = stripeSandbox.createClient(stripeCfg);
 
   try {
+    if (action === "refund") {
+      const invoiceId = uuid(body.invoiceId);
+      const paymentId = uuid(body.paymentId);
+      const requestId = uuid(body.requestId);
+      if (!invoiceId || !paymentId || !requestId || body.confirmed !== true) {
+        return json(res, 400, { ok: false, napaka: "TEST povračilo potrebuje veljavno in izrecno potrditev." });
+      }
+      const [payment, invoice] = await Promise.all([
+        paymentForRefund(serviceCfg, auth.user.id, invoiceId, paymentId),
+        testInvoiceForRefund(serviceCfg, auth.user.id, invoiceId),
+      ]);
+      if (!payment || !invoice) return json(res, 404, { ok: false, napaka: "Stripe TEST plačilo ne obstaja." });
+      const amountCents = refundRequestCents(payment, body.amountCents);
+      if (String(payment.currency || "").toUpperCase() !== "EUR") {
+        return json(res, 409, { ok: false, napaka: "Stripe TEST povračilo podpira samo EUR plačila." });
+      }
+      const paymentIntentId = String(payment.external_payment_id || "");
+      if (!/^pi_[A-Za-z0-9_]+$/.test(paymentIntentId) || paymentIntentId.length > 240) {
+        return json(res, 409, { ok: false, napaka: "Stripe TEST plačilo nima veljavne povezave za povračilo." });
+      }
+      stripeSandbox.assertTestPaymentIntent(await stripe.paymentIntents.retrieve(paymentIntentId), {
+        userId: auth.user.id, invoiceId, amountCents: Number(payment.amount_cents),
+      });
+      const refund = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        amount: amountCents,
+        reason: "requested_by_customer",
+        metadata: {
+          test_mode: "true",
+          user_id: auth.user.id,
+          invoice_id: invoiceId,
+          payment_id: paymentId,
+          request_id: requestId,
+        },
+      }, {
+        idempotencyKey: "uj-pos-test-refund:" + auth.user.id + ":" + paymentId + ":" + Number(payment.refunded_cents || 0) + ":" + amountCents,
+      });
+      if (!refund || !String(refund.id || "").startsWith("re_")) {
+        throw new Error("Stripe ni vrnil veljavnega TEST povračila.");
+      }
+      return json(res, 202, {
+        ok: true,
+        testMode: true,
+        refund: { id: refund.id, status: refund.status, amountCents: Number(refund.amount), currency: String(refund.currency || "eur").toUpperCase() },
+        payment: publicPayment(payment),
+      });
+    }
+
     if (action === "status" || action === "cancel" || action === "resume") {
       if (!sessionId.startsWith("cs_test_") || sessionId.length > 240) return json(res, 400, { ok: false, napaka: "Neveljavna Stripe TEST seja." });
       const payment = await paymentForSession(serviceCfg, auth.user.id, sessionId);
@@ -157,4 +241,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { effectivePaidCents, publicPayment, requestBody, uuid };
+module.exports._test = { effectivePaidCents, publicPayment, refundRequestCents, requestBody, uuid };

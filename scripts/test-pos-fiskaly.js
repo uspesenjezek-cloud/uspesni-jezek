@@ -75,7 +75,7 @@ assert.match(html, /data-kassenbon-tss/);
 assert.match(html, /data-kassenbon-counter/);
 assert.match(html, /data-kassenbon-qr/);
 assert.match(html, /TRAINING – brez pravega poslovnega dogodka/);
-assert.match(html, /pos-terminal\.css\?v=20260821-datev-cloud-v1/);
+assert.match(html, /pos-terminal\.css\?v=20260821-stripe-refund-v1/);
 assert.match(html, /qrcode\.bundle\.js\?v=20260820-local-qr-v1/);
 assert.doesNotMatch(html, /cdn\.jsdelivr\.net\/npm\/qrcode/);
 assert.match(js, /loadFiskalyCapability/);
