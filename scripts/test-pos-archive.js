@@ -9,6 +9,7 @@ const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "202
 const hardeningMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821101118_pos_archive_private_readiness.sql"), "utf8");
 const wormMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821195904_pos_s3_object_lock_archive.sql"), "utf8");
 const productionRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821214500_pos_archive_production_recovery_evidence.sql"), "utf8");
+const completeSummaryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821213852_pos_archive_complete_summary.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
@@ -46,6 +47,10 @@ assert.match(productionRecoveryMigration, /worm_environment is distinct from p_e
 assert.match(productionRecoveryMigration, /object_lock_mode = 'COMPLIANCE'/i);
 assert.match(productionRecoveryMigration, /not invoice\.is_test/i);
 assert.match(productionRecoveryMigration, /replica\.retain_until >= \(record\.retention_not_before::timestamptz \+ interval '1 day' - interval '1 millisecond'\)/i);
+assert.match(completeSummaryMigration, /create or replace function public\.pos_archive_user_summary\(p_user_id uuid\)/i);
+assert.match(completeSummaryMigration, /security invoker/i);
+assert.match(completeSummaryMigration, /count\(\*\) filter \(where integrity_result = 'verified'\)/i);
+assert.match(completeSummaryMigration, /revoke all on function public\.pos_archive_user_summary\(uuid\)\s+from public, anon, authenticated/i);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
@@ -63,6 +68,15 @@ assert.strictEqual(summary.replicatedCount, 1);
 assert.strictEqual(summary.replicaPendingCount, 1);
 assert.strictEqual(summary.productionReady, false);
 assert.strictEqual(summary.earliestRetentionNotBefore, "2034-12-31");
+
+const completeSummary = handler._test.publicDatabaseSummary(
+  { retentionYears: 8, productionReady: false, wormProviderReady: false },
+  { documentCount: 1250, verifiedCount: 1249, uncheckedCount: 1, failureCount: 0, replicatedCount: 1200, replicaPendingCount: 50, replicaFailureCount: 0, earliestRetentionNotBefore: "2034-12-31" }
+);
+assert.strictEqual(completeSummary.documentCount, 1250);
+assert.strictEqual(completeSummary.verifiedCount, 1249);
+assert.strictEqual(completeSummary.replicaPendingCount, 50);
+assert.deepStrictEqual(completeSummary.records, []);
 
 const loadingView = terminal.archiveCapabilityView({ loaded: false, loading: false, independentBackupReady: false });
 assert.strictEqual(loadingView.badgeText, "Preverjam");
@@ -88,6 +102,8 @@ assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
 assert.doesNotMatch(js, /currentSessionToken/);
 assert.match(handlerSource, /select=id,user_id,invoice_id/);
+assert.match(handlerSource, /pos_archive_user_summary/);
+assert.doesNotMatch(handlerSource, /pos_archive_integrity_events[\s\S]*limit=500/);
 assert.match(js, /Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo/);
 assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
 assert.match(localServer, /posArhivModul = require\.resolve\("\.\.\/api\/_handlers\/pos-arhiv"\)/);

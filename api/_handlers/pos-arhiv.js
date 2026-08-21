@@ -12,22 +12,18 @@ function uuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text) ? text : "";
 }
 
-async function recordsForUser(cfg, userId) {
+async function recentRecordsForUser(cfg, userId) {
   return supabase.pridobiVrstice(cfg, "pos_archive_records",
     "user_id=eq." + encodeURIComponent(userId) +
-    "&select=id,user_id,invoice_id,document_kind,original_media_type,sha256,byte_size,storage_bucket,storage_path,archived_at,retention_not_before&order=archived_at.desc&limit=100");
+    "&select=id,user_id,invoice_id,document_kind,original_media_type,sha256,byte_size,storage_bucket,storage_path,archived_at,retention_not_before&order=archived_at.desc&limit=25");
 }
 
-async function eventsForUser(cfg, userId) {
-  return supabase.pridobiVrstice(cfg, "pos_archive_integrity_events",
+async function recordForUser(cfg, userId, archiveId) {
+  const rows = await supabase.pridobiVrstice(cfg, "pos_archive_records",
     "user_id=eq." + encodeURIComponent(userId) +
-    "&select=archive_record_id,result,checked_at&order=checked_at.desc&limit=500");
-}
-
-async function replicasForUser(cfg, userId) {
-  return supabase.pridobiVrstice(cfg, "pos_archive_replicas",
-    "user_id=eq." + encodeURIComponent(userId) +
-    "&select=archive_record_id,status,object_lock_mode,retain_until,verified_at,last_error_code&order=created_at.desc&limit=500");
+    "&id=eq." + encodeURIComponent(archiveId) +
+    "&select=id,user_id,invoice_id,document_kind,original_media_type,sha256,byte_size,storage_bucket,storage_path,archived_at,retention_not_before&limit=1");
+  return rows.length === 1 ? rows[0] : null;
 }
 
 function publicSummary(readiness, records, events, replicas) {
@@ -94,6 +90,31 @@ function publicSummary(readiness, records, events, replicas) {
   };
 }
 
+function publicDatabaseSummary(readiness, totals) {
+  const summary = totals && typeof totals === "object" ? totals : {};
+  return {
+    retentionYears: Number(readiness.retentionYears || 8),
+    encryptionScope: readiness.encryptionScope || "provider_managed_at_rest",
+    independentBackupReady: Boolean(readiness.independentBackupReady),
+    recoveryTestedAt: readiness.recoveryTestedAt || null,
+    wormProvider: readiness.wormProvider || "aws_s3_object_lock",
+    wormEnvironment: readiness.wormEnvironment || "not_configured",
+    objectLockMode: readiness.objectLockMode || null,
+    wormProviderReady: Boolean(readiness.wormProviderReady),
+    wormConnectivityTestedAt: readiness.wormConnectivityTestedAt || null,
+    productionReady: Boolean(readiness.productionReady),
+    documentCount: Number(summary.documentCount || 0),
+    verifiedCount: Number(summary.verifiedCount || 0),
+    uncheckedCount: Number(summary.uncheckedCount || 0),
+    failureCount: Number(summary.failureCount || 0),
+    replicatedCount: Number(summary.replicatedCount || 0),
+    replicaPendingCount: Number(summary.replicaPendingCount || 0),
+    replicaFailureCount: Number(summary.replicaFailureCount || 0),
+    earliestRetentionNotBefore: summary.earliestRetentionNotBefore || null,
+    records: []
+  };
+}
+
 async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
@@ -103,29 +124,29 @@ async function handler(req, res) {
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
 
   try {
-    let records = await recordsForUser(cfg, auth.user.id);
     if (req.method === "POST") {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const action = String(body.action || "verify-all");
       const archiveId = uuid(body.archiveId);
-      const selected = action === "verify-one"
-        ? records.filter(function (record) { return record.id === archiveId; })
-        : records.slice(0, 25);
       if (action !== "verify-one" && action !== "verify-all") return json(res, 400, { ok: false, napaka: "Neveljavno arhivsko dejanje." });
+      const selectedRecord = action === "verify-one" && archiveId
+        ? await recordForUser(cfg, auth.user.id, archiveId)
+        : null;
+      const selected = action === "verify-one"
+        ? (selectedRecord ? [selectedRecord] : [])
+        : await recentRecordsForUser(cfg, auth.user.id);
       if (action === "verify-one" && selected.length !== 1) return json(res, 404, { ok: false, napaka: "Arhivski zapis ne obstaja ali ni vaš." });
       for (const record of selected) await archive.verifyAndRecord(cfg, record);
     }
     const values = await Promise.all([
       supabase.pokliciRpc(cfg, "pos_archive_readiness", {}),
-      eventsForUser(cfg, auth.user.id),
-      replicasForUser(cfg, auth.user.id)
+      supabase.pokliciRpc(cfg, "pos_archive_user_summary", { p_user_id: auth.user.id })
     ]);
-    records = await recordsForUser(cfg, auth.user.id);
-    return json(res, 200, { ok: true, archive: publicSummary(values[0] || {}, records, values[1] || [], values[2] || []) });
+    return json(res, 200, { ok: true, archive: publicDatabaseSummary(values[0] || {}, values[1] || {}) });
   } catch (error) {
     return json(res, Number(error && error.status || 500), { ok: false, napaka: error.message || "Arhiva ni bilo mogoče preveriti." });
   }
 }
 
 module.exports = handler;
-module.exports._test = { publicSummary };
+module.exports._test = { publicSummary, publicDatabaseSummary };
