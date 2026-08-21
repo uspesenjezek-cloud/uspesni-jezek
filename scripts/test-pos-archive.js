@@ -11,6 +11,7 @@ const wormMigration = fs.readFileSync(path.join(root, "supabase", "migrations", 
 const productionRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821214500_pos_archive_production_recovery_evidence.sql"), "utf8");
 const completeSummaryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821213852_pos_archive_complete_summary.sql"), "utf8");
 const missingDocumentMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821220929_pos_archive_missing_document_repair.sql"), "utf8");
+const userIntegrityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223224_pos_archive_user_integrity_batch.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
@@ -59,6 +60,13 @@ assert.match(missingDocumentMigration, /not exists[\s\S]*public\.pos_adjustment_
 assert.match(missingDocumentMigration, /security invoker/i);
 assert.match(missingDocumentMigration, /revoke all on function public\.pos_archive_missing_document_batch\(integer\)[\s\S]*from public, anon, authenticated/i);
 assert.match(missingDocumentMigration, /grant execute on function public\.pos_archive_missing_document_batch\(integer\)[\s\S]*to service_role/i);
+assert.match(userIntegrityMigration, /create or replace function public\.pos_archive_user_integrity_batch\([\s\S]*p_user_id uuid[\s\S]*p_limit integer default 10/i);
+assert.match(userIntegrityMigration, /record\.user_id = p_user_id/i);
+assert.match(userIntegrityMigration, /event\.result = 'verified'[\s\S]*event\.checked_at >= now\(\) - interval '90 days'/i);
+assert.match(userIntegrityMigration, /limit least\(greatest\(coalesce\(p_limit, 10\), 1\), 25\)/i);
+assert.match(userIntegrityMigration, /revoke all on function public\.pos_archive_user_integrity_batch\(uuid, integer\)[\s\S]*from public, anon, authenticated/i);
+assert.match(userIntegrityMigration, /grant execute on function public\.pos_archive_user_integrity_batch\(uuid, integer\)[\s\S]*to service_role/i);
+assert.strictEqual((userIntegrityMigration.match(/event\.result = 'verified'/gi) || []).length, 2);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
@@ -104,13 +112,17 @@ assert.match(unavailableView.copyText, /varno zaklenjena/i);
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260822-full-history-v2/);
+assert.match(html, /pos-terminal\.js\?v=20260822-full-history-v3/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
 assert.doesNotMatch(js, /currentSessionToken/);
 assert.match(handlerSource, /select=id,user_id,invoice_id/);
 assert.match(handlerSource, /pos_archive_user_summary/);
+assert.match(handlerSource, /pos_archive_user_integrity_batch/);
+assert.doesNotMatch(handlerSource, /archived_at\.desc&limit=25/);
+assert.match(html, /data-archive-verify>Preveri arhiv zdaj/);
+assert.match(js, /Paket je preverjen; preostanek arhiva bo preverjen v naslednjih paketih/);
 assert.doesNotMatch(handlerSource, /pos_archive_integrity_events[\s\S]*limit=500/);
 assert.match(js, /Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo/);
 assert.ok(vercel.rewrites.some((entry) => entry.source === "/api/pos-arhiv"));
@@ -248,7 +260,29 @@ async function testMissingDocumentRepair() {
   }
 }
 
-Promise.all([testAwsRoundTrip(), testMissingDocumentRepair()]).then(function () {
+async function testUserIntegrityBatch() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
+  const originalRpc = supabase.pokliciRpc;
+  supabase.pokliciRpc = async function (_, name, payload) {
+    assert.strictEqual(name, "pos_archive_user_integrity_batch");
+    assert.deepStrictEqual(payload, { p_user_id: "user-1", p_limit: 25 });
+    return [{ id: "archive-1" }];
+  };
+  try {
+    const rows = await handler._test.integrityBatchForUser({}, "user-1", 999);
+    assert.deepStrictEqual(rows, [{ id: "archive-1" }]);
+  } finally {
+    supabase.pokliciRpc = originalRpc;
+  }
+}
+
+async function runArchiveTests() {
+  await testAwsRoundTrip();
+  await testMissingDocumentRepair();
+  await testUserIntegrityBatch();
+}
+
+runArchiveTests().then(function () {
   console.log("POS archive tests passed.");
 }).catch(function (error) {
   console.error(error);

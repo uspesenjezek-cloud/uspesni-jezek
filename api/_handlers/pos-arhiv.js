@@ -12,10 +12,12 @@ function uuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text) ? text : "";
 }
 
-async function recentRecordsForUser(cfg, userId) {
-  return supabase.pridobiVrstice(cfg, "pos_archive_records",
-    "user_id=eq." + encodeURIComponent(userId) +
-    "&select=id,user_id,invoice_id,document_kind,original_media_type,sha256,byte_size,storage_bucket,storage_path,archived_at,retention_not_before&order=archived_at.desc&limit=25");
+async function integrityBatchForUser(cfg, userId, limit) {
+  const rows = await supabase.pokliciRpc(cfg, "pos_archive_user_integrity_batch", {
+    p_user_id: userId,
+    p_limit: Math.min(Math.max(Number(limit) || 10, 1), 25)
+  });
+  return Array.isArray(rows) ? rows : [];
 }
 
 async function recordForUser(cfg, userId, archiveId) {
@@ -124,6 +126,7 @@ async function handler(req, res) {
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
 
   try {
+    let checkedNow = 0;
     if (req.method === "POST") {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const action = String(body.action || "verify-all");
@@ -134,19 +137,20 @@ async function handler(req, res) {
         : null;
       const selected = action === "verify-one"
         ? (selectedRecord ? [selectedRecord] : [])
-        : await recentRecordsForUser(cfg, auth.user.id);
+        : await integrityBatchForUser(cfg, auth.user.id, 10);
       if (action === "verify-one" && selected.length !== 1) return json(res, 404, { ok: false, napaka: "Arhivski zapis ne obstaja ali ni vaš." });
       for (const record of selected) await archive.verifyAndRecord(cfg, record);
+      checkedNow = selected.length;
     }
     const values = await Promise.all([
       supabase.pokliciRpc(cfg, "pos_archive_readiness", {}),
       supabase.pokliciRpc(cfg, "pos_archive_user_summary", { p_user_id: auth.user.id })
     ]);
-    return json(res, 200, { ok: true, archive: publicDatabaseSummary(values[0] || {}, values[1] || {}) });
+    return json(res, 200, { ok: true, archive: Object.assign(publicDatabaseSummary(values[0] || {}, values[1] || {}), { checkedNow }) });
   } catch (error) {
     return json(res, Number(error && error.status || 500), { ok: false, napaka: error.message || "Arhiva ni bilo mogoče preveriti." });
   }
 }
 
 module.exports = handler;
-module.exports._test = { publicSummary, publicDatabaseSummary };
+module.exports._test = { publicSummary, publicDatabaseSummary, integrityBatchForUser };

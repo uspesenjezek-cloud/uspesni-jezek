@@ -2143,7 +2143,11 @@
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.ok) throw new Error(data.napaka || "Arhiva ni bilo mogoče preveriti.");
       archiveCapability = Object.assign({}, archiveCapability, data.archive || {}, { loaded: true, loading: false, error: "" });
-      if (showFeedback) showToast(archiveCapability.failureCount ? "Arhiv potrebuje pozornost." : "Vsi arhivirani izvirniki so preverjeni.");
+      if (showFeedback) {
+        if (archiveCapability.failureCount) showToast("Arhiv potrebuje pozornost.");
+        else if (archiveCapability.uncheckedCount) showToast("Paket je preverjen; preostanek arhiva bo preverjen v naslednjih paketih.");
+        else showToast("Vsi arhivirani izvirniki so preverjeni.");
+      }
     } catch (error) {
       archiveCapability.loading = false;
       archiveCapability.loaded = true;
