@@ -10,6 +10,8 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
+const childProcess = require("node:child_process");
 const citajRacunModul = require.resolve("../api/citaj-racun");
 const mehkaBonitetaModul = require.resolve("../api/mehka-boniteta");
 const mehkaBonitetaOpraviloModul = require.resolve("../api/mehka-boniteta-opravilo");
@@ -23,6 +25,7 @@ const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
 const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email");
 const posDostavaWebhookModul = require.resolve("../api/_handlers/pos-dostava-webhook");
 const posFiskalyModul = require.resolve("../api/_handlers/pos-fiskaly");
+const posDatevModul = require.resolve("../api/_handlers/pos-datev");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
@@ -37,6 +40,7 @@ const port = portArgument >= 0 ? Number(process.argv[portArgument + 1]) : 8001;
 const apiOrigin = (process.env.LOCAL_OCR_API_ORIGIN || "https://uspesni-jezek.vercel.app").replace(/\/$/, "");
 const maxRequestBytes = 8 * 1024 * 1024;
 const versionSyncOznaka = '<script src="/app/version-sync.js?v=20260814-device-sync-v1"></script>';
+const serverStartedAt = new Date().toISOString();
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -260,7 +264,35 @@ function posljiRazlicicoAplikacije(req, res) {
     posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
     return;
   }
-  posljiJson(res, 200, { ok: true, version: izracunajRazlicicoAplikacije() });
+  const lokalniVir = identitetaLokalnegaVira();
+  posljiJson(res, 200, { ok: true, version: [lokalniVir.workspaceHash, lokalniVir.appVersion, lokalniVir.apiVersion].join(":") });
+}
+
+function varniPrstniOdtisMape(mapa) {
+  const resenaPot = fs.realpathSync(mapa);
+  const kanonicnaPot = process.platform === "win32" ? resenaPot.toLowerCase() : resenaPot;
+  return crypto.createHash("sha256").update(kanonicnaPot).digest("hex").slice(0, 16);
+}
+
+function gitVrednost(argumenti) {
+  try {
+    return childProcess.execFileSync("git", argumenti, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch (_) { return ""; }
+}
+
+function identitetaLokalnegaVira() {
+  return {
+    workspaceName: path.basename(root), workspaceHash: varniPrstniOdtisMape(root),
+    branch: gitVrednost(["rev-parse", "--abbrev-ref", "HEAD"]) || "unknown",
+    commit: gitVrednost(["rev-parse", "--short=12", "HEAD"]) || "unknown",
+    dirty: Boolean(gitVrednost(["status", "--porcelain"])),
+    appVersion: izracunajRazlicicoAplikacije(), apiVersion: izracunajApiRazlicico(), serverStartedAt,
+  };
+}
+
+function posljiIdentitetoLokalnegaVira(req, res) {
+  if (req.method !== "GET") { posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." }); return; }
+  posljiJson(res, 200, { ok: true, localSource: identitetaLokalnegaVira() });
 }
 
 function postreziDatoteko(req, res) {
@@ -401,8 +433,16 @@ const server = http.createServer((req, res) => {
     void izvediLokalniApi(req, res, posFiskalyModul);
     return;
   }
+  if (pathname === "/api/pos-datev") {
+    void izvediLokalniApi(req, res, posDatevModul);
+    return;
+  }
   if (pathname === "/__app-version") {
     posljiRazlicicoAplikacije(req, res);
+    return;
+  }
+  if (pathname === "/__dev-source") {
+    posljiIdentitetoLokalnegaVira(req, res);
     return;
   }
   postreziDatoteko(req, res);
@@ -410,6 +450,8 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`Lokalna aplikacija: http://localhost:${port}`);
+  const lokalniVir = identitetaLokalnegaVira();
+  console.log(`Vir: ${lokalniVir.workspaceName} · ${lokalniVir.branch} · ${lokalniVir.commit} · ${lokalniVir.workspaceHash}`);
   console.log(`Telefon v istem omrežju: http://IP-RACUNALNIKA:${port}`);
   naloziLokalnoSupabaseKonfiguracijo();
   console.log(process.env.ANTHROPIC_API_KEY

@@ -11,6 +11,7 @@ const handler = require(path.join(root, "api", "_handlers", "pos-datev.js"));
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "app", "pos-terminal.css"), "utf8");
 const browserJs = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
+const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821123000_pos_datev_cloud_integration.sql"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 
@@ -83,5 +84,8 @@ assert.match(css, /\.pos-datev-cloud/);
 assert.match(browserJs, /function transferDatevCloud\(/);
 assert.match(browserJs, /authorizationUrl\.hostname !== "login\.datev\.de"/);
 assert.match(browserJs, /Mock preveri celoten tok brez pošiljanja v pravi DATEV/);
+assert.match(localServer, /posDatevModul = require\.resolve\("\.\.\/api\/_handlers\/pos-datev"\)/);
+assert.match(localServer, /pathname === "\/api\/pos-datev"/);
+assert.match(localServer, /pathname === "\/__dev-source"/);
 
 console.log("POS DATEV mock, OAuth zaščita, PDF povezave in RLS so preverjeni.");
