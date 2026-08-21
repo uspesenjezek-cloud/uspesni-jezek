@@ -3333,13 +3333,14 @@
           var savedPayment = null;
           if (invoice.serverStored) {
             if (!backend.ready || !backend.userId) throw new Error("Varna hramba plačil ni povezana.");
-            var outstandingCents = Math.max(0, invoice.totals.grossCents - integer(invoice.paidCents, 0));
-            var result = await backend.client.from("pos_payments").insert({
-              user_id: backend.userId, invoice_id: invoice.id, amount_cents: outstandingCents,
-              currency: "EUR", method: "manual", provider_reference: "Ročno potrjeno v POS", paid_at: paidAt
-            }).select("id,invoice_id,amount_cents,currency,method,provider_reference,paid_at,source_bank_transaction_id").single();
+            var result = await backend.client.rpc("pos_record_manual_payment", {
+              p_invoice_id: invoice.id,
+              p_confirmed: true
+            });
             if (result.error) throw result.error;
-            savedPayment = paymentFromServer(result.data);
+            var paymentRow = Array.isArray(result.data) ? result.data[0] : result.data;
+            if (!paymentRow || !paymentRow.id) throw new Error("Strežnik ni vrnil potrjenega plačila.");
+            savedPayment = paymentFromServer(paymentRow);
           }
           if (!savedPayment) savedPayment = paymentFromServer({
             id: "local-" + Date.now(), invoice_id: invoice.id,
