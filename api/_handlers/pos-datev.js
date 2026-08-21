@@ -164,9 +164,11 @@ function adjustmentLocal(row) {
   };
 }
 
-async function periodPackage(cfg, userId, selectedPeriod) {
+async function periodPackage(cfg, userId, selectedPeriod, options) {
+  const testOnly = Boolean(options && options.testOnly);
+  const testFilter = testOnly ? "true" : "false";
   const periodInvoices = await supabase.pridobiVrstice(cfg, "pos_invoices",
-    "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq.false&issue_date=gte." + selectedPeriod.start +
+    "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq." + testFilter + "&issue_date=gte." + selectedPeriod.start +
     "&issue_date=lte." + selectedPeriod.end + "&select=*&order=issued_at.asc&limit=500");
   const periodAdjustments = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments",
     "user_id=eq." + encodeURIComponent(userId) + "&issued_at=gte." + encodeURIComponent(selectedPeriod.start + "T00:00:00Z") +
@@ -177,7 +179,7 @@ async function periodPackage(cfg, userId, selectedPeriod) {
   let additionalInvoices = [];
   if (additionalIds.length) {
     additionalInvoices = await supabase.pridobiVrstice(cfg, "pos_invoices",
-      "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq.false&id=in.(" + additionalIds.join(",") + ")&select=*&order=issued_at.asc&limit=500");
+      "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq." + testFilter + "&id=in.(" + additionalIds.join(",") + ")&select=*&order=issued_at.asc&limit=500");
   }
   const invoices = periodInvoices.concat(additionalInvoices);
   if (!invoices.length) return { invoices: [], records: [] };
@@ -252,11 +254,12 @@ function publicJob(row) {
   } : null;
 }
 
-async function executeTransfer(datevCfg, db, connection, token, userId, settings, selectedPeriod, requestId) {
+async function executeTransfer(datevCfg, db, connection, token, userId, settings, selectedPeriod, requestId, options) {
+  const testOnly = Boolean(options && options.testOnly);
   let job = await createJob(db, userId, requestId, selectedPeriod, datevCfg.mode);
   if (job.status === "succeeded" || job.status === "processing") return job;
-  const pack = await periodPackage(db, userId, selectedPeriod);
-  if (!pack.invoices.length) throw new datev.DatevError("V izbranem mesecu ni pravnih računov za DATEV.", { code: "DATEV_PERIOD_EMPTY", status: 409 });
+  const pack = await periodPackage(db, userId, selectedPeriod, { testOnly });
+  if (!pack.invoices.length) throw new datev.DatevError(testOnly ? "V izbranem mesecu ni testnih računov za DATEV mock preizkus." : "V izbranem mesecu ni pravnih računov za DATEV.", { code: "DATEV_PERIOD_EMPTY", status: 409 });
   const client = datevCfg.mode === "mock"
     ? datev.mockClient(settings.adviserNumber, settings.clientNumber)
     : await datev.getClient(datevCfg, token, settings.adviserNumber, settings.clientNumber);
@@ -313,6 +316,7 @@ async function executeTransfer(datevCfg, db, connection, token, userId, settings
   }
   const result = Core.buildDatevExport(pack.invoices, settings, selectedPeriod.key, new Date(), { requireDocumentLinks: true });
   if (result.errors.length) throw new datev.DatevError(result.errors[0], { code: "DATEV_EXTF_INVALID", status: 409, details: result.errors });
+  if (testOnly) result.filename = "EXTF_TEST_Buchungsstapel_" + selectedPeriod.key.replace("-", "") + ".csv";
   const hash = crypto.createHash("sha256").update(result.content, "utf8").digest("hex");
   if (datevCfg.mode === "mock") {
     return patchJob(db, job.id, {
@@ -418,7 +422,9 @@ async function handler(req, res) {
       });
       return json(res, 200, { ok: true, datev: publicConnection(datevCfg, connection) });
     }
-    if (action === "transfer") {
+    if (action === "transfer" || action === "test-transfer") {
+      const testOnly = action === "test-transfer";
+      if (testOnly && datevCfg.mode !== "mock") throw new datev.DatevError("Testni DATEV paket je dovoljen samo v mock okolju.", { code: "DATEV_TEST_ONLY_MOCK", status: 409 });
       const selectedPeriod = period(body.period);
       const requestId = uuid(body.requestId);
       if (!selectedPeriod || !requestId) return json(res, 400, { ok: false, napaka: "DATEV obdobje ali zahtevek ni veljaven." });
@@ -426,7 +432,7 @@ async function handler(req, res) {
       if (!connection || connection.status !== "connected") throw new datev.DatevError("Najprej povežite DATEV.", { code: "DATEV_NOT_CONNECTED", status: 409 });
       const access = await accessForConnection(datevCfg, db, connection);
       try {
-        const job = await executeTransfer(datevCfg, db, access.connection, access.token, auth.user.id, settings, selectedPeriod, requestId);
+        const job = await executeTransfer(datevCfg, db, access.connection, access.token, auth.user.id, settings, selectedPeriod, requestId, { testOnly });
         return json(res, job.status === "succeeded" ? 200 : 202, { ok: true, datev: publicConnection(datevCfg, access.connection), transfer: publicJob(job) });
       } catch (error) {
         const jobs = await supabase.pridobiVrstice(db, "pos_datev_transfer_jobs",

@@ -3685,6 +3685,7 @@
     var latest = datevCloudCapability.latestTransfer;
     var busy = datevCloudCapability.loading || datevCloudCapability.working;
     var exportResult = renderDatevSheet();
+    var mockTest = datevCloudCapability.environment === "mock" && !exportResult.errors.length && !exportResult.bookings.length;
     box.classList.toggle("is-ready", datevCloudCapability.connected && !datevCloudCapability.lastError);
     box.classList.toggle("is-error", Boolean(datevCloudCapability.lastError));
     query("[data-datev-cloud-title]").textContent = datevCloudCapability.clientName || "DATEV Buchungsdatenservice";
@@ -3694,11 +3695,11 @@
         : datevCloudCapability.lastError || (datevCloudCapability.connected ? "Povezano · pripravljeno za prenos" : datevCloudCapability.configured ? "Pripravljeno za povezavo" : "DATEV OAuth podatki še niso izdani");
     connectionButton.textContent = datevCloudCapability.connected ? "Prekini DATEV povezavo" : datevCloudCapability.environment === "mock" ? "Poveži mock okolje" : "Poveži DATEV sandbox";
     connectionButton.disabled = busy || !datevCloudCapability.configured || !backend.ready;
-    transferButton.textContent = datevCloudCapability.working ? "Prenašam …" : "Pošlji dokumente in knjižbe";
-    transferButton.disabled = busy || !datevCloudCapability.connected || !backend.ready || Boolean(exportResult.errors.length || !exportResult.bookings.length);
+    transferButton.textContent = datevCloudCapability.working ? "Prenašam …" : mockTest ? "Preveri testni DATEV paket" : "Pošlji dokumente in knjižbe";
+    transferButton.disabled = busy || !datevCloudCapability.connected || !backend.ready || Boolean(exportResult.errors.length || (!exportResult.bookings.length && !mockTest));
     query("[data-datev-cloud-latest]").textContent = latest
       ? (latest.status === "succeeded" ? "Uspešno: " : latest.status === "processing" ? "DATEV še obdeluje: " : latest.status === "failed" ? "Neuspešno: " : "Priprava: ") + latest.period + " · " + Number(latest.documentCount || 0) + " dokumentov · " + Number(latest.bookingCount || 0) + " knjižb"
-      : datevCloudCapability.environment === "mock" ? "Mock preveri celoten tok brez pošiljanja v pravi DATEV." : "Prenos vključuje arhivirane PDF-je in povezane EXTF knjižbe.";
+      : datevCloudCapability.environment === "mock" ? "Mock uporabi samo račune TEST-* in ničesar ne pošlje v pravi DATEV." : "Prenos vključuje arhivirane PDF-je in povezane EXTF knjižbe.";
   }
 
   async function loadDatevCloudStatus(showFeedback) {
@@ -3748,12 +3749,13 @@
   async function transferDatevCloud() {
     if (datevCloudCapability.working) return;
     var result = renderDatevSheet();
-    if (result.errors.length || !result.bookings.length) { showToast("Najprej preverite DATEV nastavitve in obračunski mesec."); return; }
+    var mockTest = datevCloudCapability.environment === "mock" && !result.errors.length && !result.bookings.length;
+    if (result.errors.length || (!result.bookings.length && !mockTest)) { showToast("Najprej preverite DATEV nastavitve in obračunski mesec."); return; }
     datevCloudCapability.working = true;
     datevCloudCapability.lastError = "";
     renderDatevCloud();
     try {
-      var response = await datevCloudRequest("transfer", { period: query("[name=datevPeriod]").value, requestId: randomUuid() });
+      var response = await datevCloudRequest(mockTest ? "test-transfer" : "transfer", { period: query("[name=datevPeriod]").value, requestId: randomUuid() });
       updateDatevCloudCapability(response);
       showToast(response.transfer && response.transfer.status === "succeeded" ? "DATEV mock prenos je uspešno preverjen." : "DATEV je sprejel prenos in ga obdeluje.");
       if (response.transfer && response.transfer.status === "processing") setTimeout(function () { loadDatevCloudStatus(false); }, Math.max(2, Number(response.transfer.retryAfterSeconds || 5)) * 1000);
