@@ -87,6 +87,10 @@ const dateInvariantsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_date_invariants\.sql$/.test(name)).sort().pop()
   : null;
 const dateInvariantsMigration = dateInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, dateInvariantsMigrationName), "utf8") : "";
+const tenantInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_tenant_relationship_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const tenantInvariantsMigration = tenantInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, tenantInvariantsMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -827,6 +831,14 @@ assert.match(dateInvariantsMigration, /create trigger pos_invoices_live_issue_da
 assert.match(dateInvariantsMigration, /not new\.is_test[\s\S]*Europe\/Berlin[\s\S]*pg_catalog\.now/i);
 assert.match(dateInvariantsMigration, /revoke all on function private\.pos_enforce_live_invoice_issue_date\(\) from public, anon, authenticated/i);
 assert.match(dateInvariantsMigration, /validate constraint pos_work_orders_validity_window_check/i);
+assert.ok(tenantInvariantsMigrationName, "Manjkajo uporabniške invariante povezav POS.");
+assert.strictEqual((tenantInvariantsMigration.match(/foreign key \([^\n]+, user_id\)/gi) || []).length, 25);
+assert.strictEqual((tenantInvariantsMigration.match(/validate constraint pos_tenant_/gi) || []).length, 25);
+assert.strictEqual((tenantInvariantsMigration.match(/unique \(id, user_id\)/gi) || []).length, 10);
+assert.match(tenantInvariantsMigration, /pos_tenant_archive_record_invoice_fk[\s\S]*foreign key \(invoice_id, user_id\)/i);
+assert.match(tenantInvariantsMigration, /pos_tenant_payment_invoice_fk[\s\S]*references public\.pos_invoices\(id, user_id\)/i);
+assert.match(tenantInvariantsMigration, /pos_tenant_invoice_delivery_event_delivery_fk[\s\S]*references public\.pos_invoice_deliveries\(id, user_id\)/i);
+assert.match(tenantInvariantsMigration, /pos_tenant_work_order_invoice_order_fk[\s\S]*references public\.pos_work_orders\(id, user_id\)/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
