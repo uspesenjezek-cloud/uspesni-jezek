@@ -87,6 +87,10 @@ const germanBusinessTimezoneMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_german_business_timezone\.sql$/.test(name)).sort().pop()
   : null;
 const germanBusinessTimezoneMigration = germanBusinessTimezoneMigrationName ? fs.readFileSync(path.join(migrationsDir, germanBusinessTimezoneMigrationName), "utf8") : "";
+const privateRpcSurfaceMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_private_rpc_surface\.sql$/.test(name)).sort().pop()
+  : null;
+const privateRpcSurfaceMigration = privateRpcSurfaceMigrationName ? fs.readFileSync(path.join(migrationsDir, privateRpcSurfaceMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -725,6 +729,24 @@ assert.ok(draftOwnershipIndex > existingInvoiceIndex, "Obstoj osnutka se preveri
 assert.match(issueConcurrencyMigration, /security definer\s+set search_path = ''/i);
 assert.match(issueConcurrencyMigration, /revoke all on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.match(issueConcurrencyMigration, /grant execute on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) to authenticated, service_role/i);
+assert.ok(privateRpcSurfaceMigrationName, "Manjka zaprtje neposrednega dostopa do zasebnih POS RPC funkcij.");
+[
+  "pos_archive_readiness", "pos_confirm_bank_transaction", "pos_create_invoice_adjustment",
+  "pos_import_bank_transactions", "pos_import_finapi_transactions", "pos_issue_invoice",
+  "pos_issue_replacement_invoice", "pos_prepare_invoice_delivery", "pos_queue_invoice_delivery",
+  "pos_record_manual_payment", "pos_save_work_order", "pos_transition_work_order"
+].forEach((name) => {
+  assert.match(privateRpcSurfaceMigration, new RegExp("alter function public\\." + name + "\\([^;]*\\) security definer", "i"));
+});
+[
+  "pos_archive_readiness", "_pos_confirm_bank_transaction", "_pos_create_invoice_adjustment_validated",
+  "_pos_import_bank_transactions_validated", "_pos_import_finapi_transactions_validated",
+  "_pos_issue_invoice_validated", "_pos_issue_replacement_invoice_validated",
+  "_pos_prepare_invoice_delivery", "_pos_queue_invoice_delivery", "_pos_record_manual_payment",
+  "_pos_save_work_order_validated", "_pos_transition_work_order"
+].forEach((name) => {
+  assert.match(privateRpcSurfaceMigration, new RegExp("revoke execute on function private\\." + name.replace(/^_/, "\\_") + "\\([^;]*from authenticated", "i"));
+});
 assert.ok(payloadLimitsMigrationName, "Manjka omejitev strežniškega POS payload-a.");
 assert.match(payloadLimitsMigration, /octet_length\(p_payload::text\) > 524288/i);
 assert.match(payloadLimitsMigration, /customer_street[\s\S]*between 1 and 180/i);
