@@ -20,6 +20,10 @@ const deductionMigrationName = fs.readdirSync(path.join(root, "supabase", "migra
   .filter((name) => /pos_final_invoice_deductions\.sql$/.test(name)).sort().pop();
 assert.ok(deductionMigrationName, "Manjka migracija za odbitke v Schlussrechnung.");
 const deductionMigration = fs.readFileSync(path.join(root, "supabase", "migrations", deductionMigrationName), "utf8");
+const payloadLimitsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_work_order_payload_limits\.sql$/.test(name)).sort().pop();
+assert.ok(payloadLimitsMigrationName, "Manjka zaščita payload-a ponudbe in delovnega naloga.");
+const payloadLimitsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", payloadLimitsMigrationName), "utf8");
 const Core = require(path.join(root, "app", "pos-terminal.js"));
 
 assert.match(html, /data-new-offer/);
@@ -56,6 +60,15 @@ assert.match(deductionMigration, /insert into public\.pos_work_order_invoices[\s
 assert.match(deductionMigration, /adjustment_type = 'cancellation'/);
 assert.match(deductionMigration, /v_progress\.is_test <> new\.is_test/);
 assert.doesNotMatch(deductionMigration, /Schlussrechnung po Abschlägen zahteva prikaz in odbitek/);
+assert.match(payloadLimitsMigration, /private\.pos_validate_invoice_payload\(p_payload\)/i);
+assert.match(payloadLimitsMigration, /v_profile_tax_status = 'small_business'[\s\S]*v_tax_mode <> 'small_business'/i);
+assert.match(payloadLimitsMigration, /v_profile_tax_status <> 'small_business'[\s\S]*v_tax_mode = 'small_business'/i);
+assert.match(payloadLimitsMigration, /v_tax_mode = 'reverse_charge'[\s\S]*v_customer_type = 'private'/i);
+assert.match(payloadLimitsMigration, /pos_work_orders_payload_size_check[\s\S]*validate constraint pos_work_orders_payload_size_check/i);
+assert.match(payloadLimitsMigration, /pos_work_orders_locked_payload_size_check[\s\S]*validate constraint pos_work_orders_locked_payload_size_check/i);
+assert.match(payloadLimitsMigration, /create or replace function private\._pos_save_work_order_validated[\s\S]*security definer/i);
+assert.match(payloadLimitsMigration, /create or replace function public\.pos_save_work_order[\s\S]*security invoker[\s\S]*private\._pos_save_work_order_validated/i);
+assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_save_work_order\(uuid,jsonb\) from authenticated/i);
 
 const profile = Core.defaultProfile();
 profile.taxStatus = "regular";
