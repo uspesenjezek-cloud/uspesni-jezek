@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-offer-pdf-v21/);
+assert.match(html, /pos-terminal\.js\?v=20260822-acceptance-proof-v22/);
 assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);
@@ -129,6 +129,19 @@ assert.deepEqual(Core.workOrderActions("offered"), ["pdf", "accept", "cancel"]);
 assert.deepEqual(Core.workOrderActions("in_progress"), ["pdf", "complete", "progress", "cancel"]);
 assert.deepEqual(Core.workOrderActions("completed"), ["pdf", "final", "progress", "cancel"]);
 assert.deepEqual(Core.workOrderActions("invoiced"), ["pdf"]);
+
+const acceptanceMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_offer_acceptance_evidence\.sql$/.test(name)).sort().pop();
+assert.ok(acceptanceMigrationName, "Manjka migracija za dokaz sprejema ponudbe.");
+const acceptanceMigration = fs.readFileSync(path.join(root, "supabase", "migrations", acceptanceMigrationName), "utf8");
+assert.match(acceptanceMigration, /create table public\.pos_work_order_acceptances/i);
+assert.match(acceptanceMigration, /foreign key \(offer_document_id, user_id\)[\s\S]*references public\.pos_offer_documents\(id, user_id\)/i);
+assert.match(acceptanceMigration, /pos_work_order_acceptances_immutable[\s\S]*before update or delete/i);
+assert.match(acceptanceMigration, /pos_work_order_events_immutable[\s\S]*before update or delete/i);
+assert.match(acceptanceMigration, /pos_work_orders_require_acceptance_evidence[\s\S]*before update of status/i);
+assert.match(acceptanceMigration, /create or replace function public\.pos_accept_work_order/i);
+assert.match(js, /rpc\("pos_accept_work_order", \{ p_work_order_id: order\.id, p_evidence:/);
+assert.match(js, /label: "Dokaz sprejema"[\s\S]*maxLength: 500/);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");

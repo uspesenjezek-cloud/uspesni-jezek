@@ -79,6 +79,12 @@
     return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat(DATE_LOCALE).format(date);
   }
 
+  function formatGermanTimestampDate(iso) {
+    if (!iso) return "—";
+    var date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat(DATE_LOCALE, { timeZone: "Europe/Berlin" }).format(date);
+  }
+
   function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -438,7 +444,7 @@
     return payload;
   }
 
-  function workOrderFromServer(row, links) {
+  function workOrderFromServer(row, links, acceptance) {
     return {
       id: row.id,
       offerNumber: row.offer_number,
@@ -458,6 +464,8 @@
       startedAt: row.started_at || null,
       completedAt: row.completed_at || null,
       cancelledAt: row.cancelled_at || null,
+      acceptanceEvidence: acceptance && acceptance.evidence || "",
+      acceptanceOfferSha256: acceptance && acceptance.offer_sha256 || "",
       updatedAt: row.updated_at,
       invoiceLinks: links || []
     };
@@ -1873,9 +1881,10 @@
         fetchAllRows(function () { return backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
         scopes.bank ? loadBankTransactionRows(userId) : skipped(),
         fetchAllRows(function () { return backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).order("id", { ascending: false }); }),
-        fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 14).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 15).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -1913,6 +1922,8 @@
         if (!linksByWorkOrder[link.work_order_id]) linksByWorkOrder[link.work_order_id] = [];
         linksByWorkOrder[link.work_order_id].push(link);
       });
+      var acceptanceByWorkOrder = {};
+      (responses[14].data || []).forEach(function (acceptance) { acceptanceByWorkOrder[acceptance.work_order_id] = acceptance; });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -1932,7 +1943,7 @@
           link.paid_cents = linkedInvoice ? linkedInvoice.paidCents : 0;
         });
       });
-      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || []); });
+      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || [], acceptanceByWorkOrder[row.id] || null); });
       (responses[7].data || []).forEach(function (relation) {
         var original = invoicesById[relation.original_invoice_id];
         var replacement = invoicesById[relation.replacement_invoice_id];
@@ -2069,6 +2080,8 @@
     dialogValidator = options && options.validate || null;
     field.hidden = !inputOptions;
     input.value = inputOptions && inputOptions.value || "";
+    input.placeholder = inputOptions && inputOptions.placeholder || "";
+    input.maxLength = inputOptions && inputOptions.maxLength || 524288;
     query("[data-dialog-field-label]").textContent = inputOptions && inputOptions.label || "Znesek";
     query("[data-dialog-field-hint]").textContent = inputOptions && inputOptions.hint || "";
     backdrop.hidden = false;
@@ -2188,7 +2201,8 @@
         return "<button type=\"button\" data-work-order-action=\"" + action + "\" data-work-order-id=\"" + escapeHtml(order.id) + "\"" + (blockedFinal ? " title=\"Končni račun je na voljo, ko so vsi delni računi v celoti plačani.\"" : "") + ">" + escapeHtml(workOrderActionLabel(action)) + "</button>";
       }).join("");
       var progressCopy = progressTotal ? progressTotal + " %" + (finalState.blocked ? " · plačilo odprto" : " · plačano") : "";
-      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+      var acceptanceCopy = order.acceptanceEvidence ? formatGermanTimestampDate(order.acceptedAt) + " · " + order.acceptanceEvidence : "";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
       button.addEventListener("click", function () {
@@ -2212,9 +2226,22 @@
           : "Prehod se bo zapisal v sled projekta.";
     openDialog(workOrderActionLabel(action) + "?", copy, {
       confirmText: workOrderActionLabel(action),
-      onConfirm: async function () {
+      input: action === "accept" ? {
+        label: "Dokaz sprejema",
+        hint: "Vpišite način, osebo in referenco sprejema.",
+        placeholder: "E-pošta · Max Mustermann · sporočilo 22. 8. 2026",
+        maxLength: 500
+      } : null,
+      validate: action === "accept" ? function (value) {
+        var length = String(value || "").trim().length;
+        return length < 5 || length > 500 ? "Vpišite dokaz sprejema (od 5 do 500 znakov)." : "";
+      } : null,
+      onConfirm: async function (acceptanceEvidence) {
         try {
-          var result = await backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action }).single();
+          var request = action === "accept"
+            ? backend.client.rpc("pos_accept_work_order", { p_work_order_id: order.id, p_evidence: String(acceptanceEvidence || "").trim() })
+            : backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action });
+          var result = await request.single();
           if (result.error) throw result.error;
           var offerPdfError = "";
           if (action === "offer") {
