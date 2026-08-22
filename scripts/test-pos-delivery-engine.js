@@ -23,6 +23,10 @@ const einvoiceExemptionsMigration = fs.readFileSync(path.join(root, "supabase", 
 const deliveryLimitsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_delivery_field_limits\.sql$/.test(name)).sort().pop();
 const deliveryLimitsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", deliveryLimitsMigrationName), "utf8");
+const lifecycleMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_delivery_lifecycle_invariants\.sql$/.test(name)).sort().pop();
+assert.ok(lifecycleMigrationName, "Manjkajo invariante življenjskega cikla dostave.");
+const lifecycleMigration = fs.readFileSync(path.join(root, "supabase", "migrations", lifecycleMigrationName), "utf8");
 const api = fs.readFileSync(path.join(root, "api", "_handlers", "pos-dostava-sandbox.js"), "utf8");
 const providerSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-providers.js"), "utf8");
 const packageSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-package.js"), "utf8");
@@ -77,6 +81,14 @@ assert.match(deliveryLimitsMigration, /char_length\(subject\) <= 240[\s\S]*subje
 assert.match(deliveryLimitsMigration, /char_length\(message\) <= 4000/i);
 assert.match(deliveryLimitsMigration, /octet_length\(details::text\) <= 65536/i);
 assert.match(deliveryLimitsMigration, /validate constraint pos_invoice_delivery_events_details_check/i);
+assert.match(lifecycleMigration, /pos_invoice_deliveries_lifecycle_check/i);
+assert.match(lifecycleMigration, /\(status = 'processing'\) = \(locked_at is not null\)/i);
+assert.match(lifecycleMigration, /status not in \('sent','delivered','delivery_delayed','bounced','complained','suppressed'\)[\s\S]*last_provider_event_at is not null/i);
+assert.match(lifecycleMigration, /new\.status = 'test_prepared' and new\.provider = 'not_connected'/i);
+assert.match(lifecycleMigration, /new\.is_test <> v_invoice_is_test/i);
+assert.match(lifecycleMigration, /before insert or update of invoice_id, user_id, status, provider, is_test/i);
+assert.match(lifecycleMigration, /revoke all on function private\.pos_validate_delivery_invoice_mode\(\) from public, anon, authenticated/i);
+assert.match(lifecycleMigration, /validate constraint pos_invoice_deliveries_lifecycle_check/i);
 
 assert.match(api, /supabase\.preveriUporabnika/);
 assert.match(api, /p_user_id: auth\.user\.id/);
