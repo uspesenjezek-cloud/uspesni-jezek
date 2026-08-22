@@ -1004,6 +1004,7 @@
         if (parseQuantityMilli(item.quantity) <= 0) errors.push("Količina pri postavki " + (index + 1) + " mora biti večja od 0.");
         if (parseMoneyToCents(item.unitPrice) < 0) errors.push("Cena pri postavki " + (index + 1) + " ne sme biti negativna.");
       });
+      if (calculateTotals(draft).grossCents <= 0) errors.push("Skupni znesek računa mora biti večji od 0,00 €.");
     }
 
     if (step === 3 || step === 4) {

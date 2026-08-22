@@ -87,6 +87,10 @@ const germanBusinessTimezoneMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_german_business_timezone\.sql$/.test(name)).sort().pop()
   : null;
 const germanBusinessTimezoneMigration = germanBusinessTimezoneMigrationName ? fs.readFileSync(path.join(migrationsDir, germanBusinessTimezoneMigrationName), "utf8") : "";
+const positiveTotalMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_positive_total\.sql$/.test(name)).sort().pop()
+  : null;
+const positiveTotalMigration = positiveTotalMigrationName ? fs.readFileSync(path.join(migrationsDir, positiveTotalMigrationName), "utf8") : "";
 const privateRpcSurfaceMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_private_rpc_surface\.sql$/.test(name)).sort().pop()
   : null;
@@ -528,6 +532,11 @@ draft.items[0].description = "Arbeitsleistung für die vollständige Sanierung";
 draft.items[0].unitPrice = "100,00";
 draft.finalConfirmed = true;
 assert.deepStrictEqual(Core.validateStep(draft, profile, 4), []);
+const zeroValueDraft = JSON.parse(JSON.stringify(draft));
+zeroValueDraft.items.forEach((item) => { item.unitPrice = "0,00"; });
+assert.ok(Core.validateStep(zeroValueDraft, profile, 2).some((entry) => /večji od 0,00/.test(entry)));
+assert.ok(positiveTotalMigrationName, "Manjka prepoved ničelnega pravnega POS računa.");
+assert.match(positiveTotalMigration, /check \(gross_cents > 0\)[\s\S]*validate constraint pos_invoices_positive_total_check/i);
 
 const invalidParty = JSON.parse(JSON.stringify(draft));
 invalidParty.customerPostalCode = "2009";
