@@ -670,6 +670,14 @@
     return "";
   }
 
+  function profileChangeRequiresConfirmation(fieldName) {
+    return [
+      "legalName", "legalForm", "representative", "street", "postalCode", "city",
+      "businessEmail", "businessPhone", "taxStatus", "taxNumber", "vatId",
+      "previousYearTurnoverBand", "accountHolder", "iban"
+    ].indexOf(String(fieldName || "")) !== -1;
+  }
+
   function profileReadiness(profile) {
     function present(value) { return Boolean(String(value || "").trim()); }
     var checks = [
@@ -1432,6 +1440,7 @@
     profileReadiness: profileReadiness,
     validIban: validIban,
     profileValidationError: profileValidationError,
+    profileChangeRequiresConfirmation: profileChangeRequiresConfirmation,
     profileForPreview: profileForPreview,
     validateStep: validateStep,
     propertyRetentionNotice: propertyRetentionNotice,
@@ -4496,7 +4505,10 @@
       persist();
     });
     query("#pos-invoice-form").addEventListener("input", function (event) { if (event.target.matches("[data-fit-input]")) fitInput(event.target); });
-    query("#pos-profile-form").addEventListener("input", function (event) { if (event.target.matches("[data-fit-input]")) fitInput(event.target); });
+    query("#pos-profile-form").addEventListener("input", function (event) {
+      if (event.target.matches("[data-fit-input]")) fitInput(event.target);
+      if (profileChangeRequiresConfirmation(event.target.name)) query("[name=legalConfirmed]", event.currentTarget).checked = false;
+    });
     query("#pos-profile-form").addEventListener("submit", async function (event) {
       event.preventDefault();
       state.profile = readForm(event.currentTarget, state.profile);
