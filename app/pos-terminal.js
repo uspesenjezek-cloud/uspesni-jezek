@@ -454,7 +454,7 @@
     return payload;
   }
 
-  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart) {
+  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart, withdrawal) {
     return {
       id: row.id,
       offerNumber: row.offer_number,
@@ -471,15 +471,22 @@
       lockedPayload: row.locked_payload || null,
       offeredAt: row.offered_at || null,
       acceptedAt: row.accepted_at || null,
+      acceptedOn: row.accepted_on || acceptance && acceptance.accepted_on || "",
       startedAt: row.started_at || null,
       completedAt: row.completed_at || null,
       cancelledAt: row.cancelled_at || null,
+      withdrawnAt: row.withdrawn_at || null,
       acceptanceEvidence: acceptance && acceptance.evidence || "",
       acceptanceOfferSha256: acceptance && acceptance.offer_sha256 || "",
       cancellationReason: cancellation && cancellation.reason || "",
       cancellationStatusBefore: cancellation && cancellation.status_before || "",
       earlyStartEvidence: earlyStart && earlyStart.evidence || "",
       earlyStartRecordedAt: earlyStart && earlyStart.recorded_at || "",
+      withdrawalDeclaredOn: withdrawal && withdrawal.declared_on || "",
+      withdrawalEvidence: withdrawal && withdrawal.evidence || "",
+      withdrawalStatusBefore: withdrawal && withdrawal.status_before || "",
+      withdrawalReceivedAt: withdrawal && withdrawal.received_at || "",
+      valueCompensationReviewRequired: Boolean(withdrawal && withdrawal.value_compensation_review_required),
       updatedAt: row.updated_at,
       invoiceLinks: links || []
     };
@@ -534,8 +541,8 @@
     if (source.customer_type !== "private") return false;
     var context = source.consumer_contract_context;
     if (context === "urgent_repair") return true;
-    if (["distance", "off_premises"].indexOf(context) === -1 || !order.acceptedAt) return false;
-    var acceptedDay = berlinDateKey(order.acceptedAt);
+    if (["distance", "off_premises"].indexOf(context) === -1 || !(order.acceptedOn || order.acceptedAt)) return false;
+    var acceptedDay = order.acceptedOn || berlinDateKey(order.acceptedAt);
     var currentDay = berlinDateKey(now || new Date());
     return Boolean(acceptedDay && currentDay && currentDay <= addDays(acceptedDay, 14));
   }
@@ -543,13 +550,16 @@
   function workOrderActions(orderOrStatus) {
     var order = orderOrStatus && typeof orderOrStatus === "object" ? orderOrStatus : null;
     var status = order ? order.status : orderOrStatus;
+    var source = order && (order.lockedPayload || order.payload) || {};
+    var consumerWithdrawal = order && source.customer_type === "private" && ["distance", "off_premises"].indexOf(source.consumer_contract_context) !== -1;
     if (status === "draft") return ["edit", "offer", "cancel"];
     if (status === "offered") return ["pdf", "accept", "cancel"];
-    if (status === "accepted") return ["pdf", "start", "progress"];
-    if (status === "in_progress") return ["pdf", "complete", "progress"];
+    if (status === "accepted") return ["pdf", "start", "progress"].concat(consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "in_progress") return ["pdf", "complete", "progress"].concat(consumerWithdrawal ? ["withdraw"] : []);
     if (status === "completed") return ["pdf", "final", "progress"];
     if (status === "invoiced") return ["pdf"];
     if (status === "cancelled" && order && order.offeredAt) return ["pdf"];
+    if (status === "withdrawn") return ["pdf"];
     return [];
   }
 
@@ -1924,11 +1934,12 @@
         scopes.bank ? loadBankTransactionRows(userId) : skipped(),
         fetchAllRows(function () { return backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).order("id", { ascending: false }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,accepted_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_cancellations").select("work_order_id,status_before,reason,offer_document_id,offer_sha256,cancelled_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_withdrawals").select("work_order_id,status_before,declared_on,evidence,value_compensation_review_required,received_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 17).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 18).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -1972,6 +1983,8 @@
       (responses[15].data || []).forEach(function (cancellation) { cancellationByWorkOrder[cancellation.work_order_id] = cancellation; });
       var earlyStartByWorkOrder = {};
       (responses[16].data || []).forEach(function (entry) { earlyStartByWorkOrder[entry.work_order_id] = entry; });
+      var withdrawalByWorkOrder = {};
+      (responses[17].data || []).forEach(function (entry) { withdrawalByWorkOrder[entry.work_order_id] = entry; });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -1991,7 +2004,7 @@
           link.paid_cents = linkedInvoice ? linkedInvoice.paidCents : 0;
         });
       });
-      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || [], acceptanceByWorkOrder[row.id] || null, cancellationByWorkOrder[row.id] || null, earlyStartByWorkOrder[row.id] || null); });
+      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || [], acceptanceByWorkOrder[row.id] || null, cancellationByWorkOrder[row.id] || null, earlyStartByWorkOrder[row.id] || null, withdrawalByWorkOrder[row.id] || null); });
       (responses[7].data || []).forEach(function (relation) {
         var original = invoicesById[relation.original_invoice_id];
         var replacement = invoicesById[relation.replacement_invoice_id];
@@ -2127,6 +2140,10 @@
     dialogCallback = options && options.onConfirm || null;
     dialogValidator = options && options.validate || null;
     field.hidden = !inputOptions;
+    input.type = inputOptions && inputOptions.type || "text";
+    input.inputMode = inputOptions && inputOptions.inputMode || (input.type === "date" ? "" : "text");
+    input.min = inputOptions && inputOptions.min || "";
+    input.max = inputOptions && inputOptions.max || "";
     input.value = inputOptions && inputOptions.value || "";
     input.placeholder = inputOptions && inputOptions.placeholder || "";
     input.maxLength = inputOptions && inputOptions.maxLength || 524288;
@@ -2136,7 +2153,7 @@
     document.documentElement.classList.add("uj-modal-odprt");
     document.body.classList.add("uj-modal-odprt");
     (inputOptions ? input : query("[data-dialog-confirm]")).focus();
-    if (inputOptions) input.select();
+    if (inputOptions && input.type !== "date") input.select();
   }
 
   function closeDialog(confirmed) {
@@ -2146,7 +2163,7 @@
       if (validationMessage) {
         showToast(validationMessage);
         query("[data-dialog-input]").focus();
-        query("[data-dialog-input]").select();
+        if (query("[data-dialog-input]").type !== "date") query("[data-dialog-input]").select();
         return;
       }
     }
@@ -2220,14 +2237,15 @@
   function workOrderStatusLabel(status) {
     return {
       draft: "Osnutek ponudbe", offered: "Ponudba zaklenjena", accepted: "Naročilo sprejeto",
-      in_progress: "Delo poteka", completed: "Delo zaključeno", invoiced: "Zaključni račun izdan", cancelled: "Preklicano"
+      in_progress: "Delo poteka", completed: "Delo zaključeno", invoiced: "Zaključni račun izdan", cancelled: "Preklicano",
+      withdrawn: "Potrošnikov odstop"
     }[status] || status;
   }
 
   function workOrderActionLabel(action) {
     return {
       edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
-      progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči"
+      progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči", withdraw: "Zabeleži odstop"
     }[action] || action;
   }
 
@@ -2249,10 +2267,12 @@
         return "<button type=\"button\" data-work-order-action=\"" + action + "\" data-work-order-id=\"" + escapeHtml(order.id) + "\"" + (blockedFinal ? " title=\"Končni račun je na voljo, ko so vsi delni računi v celoti plačani.\"" : "") + ">" + escapeHtml(workOrderActionLabel(action)) + "</button>";
       }).join("");
       var progressCopy = progressTotal ? progressTotal + " %" + (finalState.blocked ? " · plačilo odprto" : " · plačano") : "";
-      var acceptanceCopy = order.acceptanceEvidence ? formatGermanTimestampDate(order.acceptedAt) + " · " + order.acceptanceEvidence : "";
+      var acceptanceCopy = order.acceptanceEvidence ? (order.acceptedOn ? formatDate(order.acceptedOn) : formatGermanTimestampDate(order.acceptedAt)) + " · " + order.acceptanceEvidence : "";
       var cancellationCopy = order.cancellationReason ? formatGermanTimestampDate(order.cancelledAt) + " · " + order.cancellationReason : "";
       var earlyStartCopy = order.earlyStartEvidence ? formatGermanTimestampDate(order.earlyStartRecordedAt) + " · " + order.earlyStartEvidence : "";
-      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+      var withdrawalCopy = order.withdrawalEvidence ? formatDate(order.withdrawalDeclaredOn) + " · " + order.withdrawalEvidence : "";
+      var withdrawalWarning = order.status === "withdrawn" ? "Nadaljnje delo in novi računi so ustavljeni. Obstoječi računi in plačila ostajajo nespremenjeni; preverite Storno/Gutschrift" + (order.valueCompensationReviewRequired ? " ter morebitni Wertersatz" : "") + ". Vračilo denarja ni bilo samodejno izvedeno." : "";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
       button.addEventListener("click", function () {
@@ -2267,23 +2287,119 @@
     fitAllText();
   }
 
+  function recordWorkOrderAcceptance(order) {
+    var offeredOn = berlinDateKey(order.offeredAt) || isoToday();
+    var today = berlinDateKey(new Date()) || isoToday();
+    openDialog("Kdaj je naročnik sprejel ponudbo?", "Vnesite dejanski nemški koledarski datum sprejema. Od tega datuma teče potrošnikov 14-dnevni rok; čas vnosa v POS se hrani ločeno.", {
+      confirmText: "Naprej",
+      input: {
+        type: "date",
+        label: "Datum sprejema",
+        hint: "Datum ne sme biti pred zaklepom ponudbe, v prihodnosti ali po izteku veljavnosti.",
+        value: today,
+        min: offeredOn,
+        max: today
+      },
+      validate: function (value) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "Vpišite veljaven datum sprejema.";
+        if (value < offeredOn || value > today || value > order.validUntil) return "Datum sprejema ni v dovoljenem obdobju ponudbe.";
+        return "";
+      },
+      onConfirm: function (acceptedOn) {
+        openDialog("Dokaz sprejema", "Potrdite le, če je naročnik ponudbo dejansko sprejel. Dokaz bo vezan na nespremenljivi PDF ponudbe.", {
+          confirmText: "Potrdi sprejem",
+          input: {
+            label: "Dokaz sprejema",
+            hint: "Vpišite način, osebo in referenco sprejema.",
+            placeholder: "E-pošta · Max Mustermann · sporočilo 22. 8. 2026",
+            maxLength: 500
+          },
+          validate: function (value) {
+            var length = String(value || "").trim().length;
+            return length < 5 || length > 500 ? "Vpišite dokaz sprejema (od 5 do 500 znakov)." : "";
+          },
+          onConfirm: async function (evidence) {
+            try {
+              var result = await backend.client.rpc("pos_accept_work_order", {
+                p_work_order_id: order.id,
+                p_evidence: String(evidence || "").trim(),
+                p_accepted_on: acceptedOn
+              }).single();
+              if (result.error) throw result.error;
+              await loadServerState("invoices");
+              showView("work-orders");
+              showToast("Sprejem in dejanski datum pogodbe sta varno zapisana.");
+            } catch (error) { showToast(error && error.message || "Sprejema ni bilo mogoče zapisati."); }
+          }
+        });
+      }
+    });
+  }
+
+  function recordConsumerWithdrawal(order) {
+    var acceptedOn = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var today = berlinDateKey(new Date()) || isoToday();
+    var deadline = acceptedOn && addDays(acceptedOn, 14) || today;
+    var latest = deadline < today ? deadline : today;
+    openDialog("Datum potrošnikove izjave", "Vnesite datum, ko je potrošnik izjavo poslal. Za pravočasnost zadošča pravočasna odpošiljka, zato je ta datum lahko pred datumom prejema.", {
+      confirmText: "Naprej",
+      input: {
+        type: "date",
+        label: "Datum izjave o odstopu",
+        hint: "Dovoljen je datum od sprejema pogodbe do konca 14. dne, vendar ne v prihodnosti.",
+        value: latest,
+        min: acceptedOn,
+        max: latest
+      },
+      validate: function (value) {
+        if (!acceptedOn || !/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "Vpišite veljaven datum izjave o odstopu.";
+        if (value < acceptedOn || value > latest) return "Datum izjave ni znotraj dovoljenega 14-dnevnega obdobja.";
+        return "";
+      },
+      onConfirm: function (declaredOn) {
+        openDialog("Zabeleži potrošnikov odstop?", "S tem takoj ustavite nadaljnje delo in nove račune. Obstoječi računi, plačila in morebitni Wertersatz se ne spremenijo samodejno in zahtevajo ločen pregled.", {
+          confirmText: "Zabeleži odstop",
+          input: {
+            label: "Dokaz prejete izjave",
+            hint: "Vpišite kanal, osebo in referenco jasne izjave o odstopu.",
+            placeholder: "E-pošta · Max Mustermann · sporočilo 25. 8. 2026",
+            maxLength: 500
+          },
+          validate: function (value) {
+            var length = String(value || "").trim().length;
+            return length < 5 || length > 500 ? "Vpišite dokaz prejete izjave (od 5 do 500 znakov)." : "";
+          },
+          onConfirm: async function (evidence) {
+            try {
+              var result = await backend.client.rpc("pos_record_consumer_withdrawal", {
+                p_work_order_id: order.id,
+                p_declared_on: declaredOn,
+                p_evidence: String(evidence || "").trim()
+              }).single();
+              if (result.error) throw result.error;
+              await loadServerState("invoices");
+              showView("work-orders");
+              showToast("Odstop je nespremenljivo zapisan; delo in novi računi so ustavljeni.");
+            } catch (error) { showToast(error && error.message || "Odstopa ni bilo mogoče zapisati."); }
+          }
+        });
+      }
+    });
+  }
+
   function transitionWorkOrder(order, action) {
     if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
+    if (action === "accept") { recordWorkOrderAcceptance(order); return; }
+    if (action === "withdraw") { recordConsumerWithdrawal(order); return; }
     if (action === "offer" && !profileReadiness(state.profile).live) { showToast("Pravno ponudbo lahko pošljete šele po potrditvi popolnih podatkov podjetja in registra."); return; }
     var earlyEvidenceRequired = action === "start" && requiresEarlyStartEvidence(order);
     var copy = action === "offer" ? "Ponudba se bo zaklenila in dobila nespremenljiv PDF. Po prenosu jo pošljite naročniku."
-      : action === "accept" ? "Potrdite le, če je naročnik ponudbo dejansko sprejel."
-        : earlyEvidenceRequired ? "Pred iztekom 14 dni oziroma pri nujnem popravilu je potreben dokaz izrecne zahteve potrošnika za začetek dela."
+      : earlyEvidenceRequired ? "Pred iztekom 14 dni oziroma pri nujnem popravilu je potreben dokaz izrecne zahteve potrošnika za začetek dela."
         : action === "cancel" ? "Preklic ostane zapisan v sled dogodkov."
           : "Prehod se bo zapisal v sled projekta.";
     openDialog(workOrderActionLabel(action) + "?", copy, {
       confirmText: workOrderActionLabel(action),
-      input: action === "accept" ? {
-        label: "Dokaz sprejema",
-        hint: "Vpišite način, osebo in referenco sprejema.",
-        placeholder: "E-pošta · Max Mustermann · sporočilo 22. 8. 2026",
-        maxLength: 500
-      } : action === "cancel" ? {
+      input: action === "cancel" ? {
         label: "Razlog preklica",
         hint: "Razlog ostane nespremenljivo zapisan v sledi ponudbe.",
         placeholder: "Npr. naročnik ni sprejel ponudbe v roku",
@@ -2294,16 +2410,14 @@
         placeholder: "Podpisana izjava iz PDF · Max Mustermann · 22. 8. 2026",
         maxLength: 500
       } : null,
-      validate: action === "accept" || action === "cancel" || earlyEvidenceRequired ? function (value) {
+      validate: action === "cancel" || earlyEvidenceRequired ? function (value) {
         var length = String(value || "").trim().length;
-        var label = action === "accept" ? "Vpišite dokaz sprejema" : action === "cancel" ? "Vpišite razlog preklica" : "Vpišite dokaz zahteve za predčasni začetek";
+        var label = action === "cancel" ? "Vpišite razlog preklica" : "Vpišite dokaz zahteve za predčasni začetek";
         return length < 5 || length > 500 ? label + " (od 5 do 500 znakov)." : "";
       } : null,
       onConfirm: async function (acceptanceEvidence) {
         try {
-          var request = action === "accept"
-            ? backend.client.rpc("pos_accept_work_order", { p_work_order_id: order.id, p_evidence: String(acceptanceEvidence || "").trim() })
-            : action === "cancel"
+          var request = action === "cancel"
               ? backend.client.rpc("pos_cancel_work_order", { p_work_order_id: order.id, p_reason: String(acceptanceEvidence || "").trim() })
             : action === "start"
               ? backend.client.rpc("pos_start_work_order", { p_work_order_id: order.id, p_evidence: String(acceptanceEvidence || "").trim() })

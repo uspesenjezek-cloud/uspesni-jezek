@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-consumer-withdrawal-v24/);
+assert.match(html, /pos-terminal\.js\?v=20260822-consumer-withdrawal-notice-v25/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -152,12 +152,16 @@ assert.deepEqual(Core.workOrderActions("in_progress"), ["pdf", "complete", "prog
 assert.deepEqual(Core.workOrderActions("completed"), ["pdf", "final", "progress"]);
 assert.deepEqual(Core.workOrderActions("invoiced"), ["pdf"]);
 assert.deepEqual(Core.workOrderActions({ status: "cancelled", offeredAt: "2026-08-22T10:00:00Z" }), ["pdf"]);
+assert.deepEqual(Core.workOrderActions("withdrawn"), ["pdf"]);
 
 const earlyOrder = Object.assign({}, order, {
   status: "accepted",
   acceptedAt: "2026-08-22T10:00:00.000Z",
+  acceptedOn: "2026-08-22",
   lockedPayload: Object.assign({}, payload, { customer_type: "private", consumer_contract_context: "distance" })
 });
+assert.deepEqual(Core.workOrderActions(earlyOrder), ["pdf", "start", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { status: "in_progress" })), ["pdf", "complete", "progress", "withdraw"]);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-08-30T10:00:00.000Z"), true);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T21:59:59.000Z"), true);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T22:00:00.000Z"), false);
@@ -176,8 +180,17 @@ assert.match(acceptanceMigration, /pos_work_order_acceptances_immutable[\s\S]*be
 assert.match(acceptanceMigration, /pos_work_order_events_immutable[\s\S]*before update or delete/i);
 assert.match(acceptanceMigration, /pos_work_orders_require_acceptance_evidence[\s\S]*before update of status/i);
 assert.match(acceptanceMigration, /create or replace function public\.pos_accept_work_order/i);
-assert.match(js, /rpc\("pos_accept_work_order", \{ p_work_order_id: order\.id, p_evidence:/);
+assert.match(js, /rpc\("pos_accept_work_order", \{[\s\S]*p_work_order_id: order\.id,[\s\S]*p_evidence:[\s\S]*p_accepted_on: acceptedOn/);
 assert.match(js, /label: "Dokaz sprejema"[\s\S]*maxLength: 500/);
+const acceptanceDateMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_offer_acceptance_effective_date\.sql$/.test(name)).sort().pop();
+assert.ok(acceptanceDateMigrationName, "Manjka dejanski datum sprejema pogodbe.");
+const acceptanceDateMigration = fs.readFileSync(path.join(root, "supabase", "migrations", acceptanceDateMigrationName), "utf8");
+assert.match(acceptanceDateMigration, /add column accepted_on date/i);
+assert.match(acceptanceDateMigration, /_pos_accept_work_order\([\s\S]*p_accepted_on date/i);
+assert.match(acceptanceDateMigration, /pos_consumer_early_start_requires_evidence\([\s\S]*p_accepted_on date/i);
+assert.match(acceptanceDateMigration, /create or replace function public\.pos_accept_work_order\([\s\S]*p_accepted_on date/i);
+assert.match(acceptanceDateMigration, /create or replace function public\.pos_accept_work_order\([\s\S]*p_evidence text\s*\)/i, "Stari RPC mora ostati združljiv.");
 
 const cancellationMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_offer_cancellation_evidence\.sql$/.test(name)).sort().pop();
@@ -223,6 +236,20 @@ assert.ok(consumerPeriodMigrationName, "Manjka pravilna meja 14-dnevnega potroš
 const consumerPeriodMigration = fs.readFileSync(path.join(root, "supabase", "migrations", consumerPeriodMigrationName), "utf8");
 assert.match(consumerPeriodMigration, /at time zone 'Europe\/Berlin'\)::date[\s\S]*<= [\s\S]*::date \+ 14/i);
 assert.match(consumerPeriodMigration, /private\.pos_consumer_early_start_requires_evidence[\s\S]*private\._pos_start_work_order/i);
+
+const withdrawalMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_withdrawal_notices\.sql$/.test(name)).sort().pop();
+assert.ok(withdrawalMigrationName, "Manjka ločen postopek potrošnikovega odstopa.");
+const withdrawalMigration = fs.readFileSync(path.join(root, "supabase", "migrations", withdrawalMigrationName), "utf8");
+assert.match(withdrawalMigration, /create table public\.pos_work_order_withdrawals/i);
+assert.match(withdrawalMigration, /status_before text not null check \(status_before in \('accepted', 'in_progress'\)\)/i);
+assert.match(withdrawalMigration, /pos_work_order_withdrawals_immutable[\s\S]*before update or delete/i);
+assert.match(withdrawalMigration, /pos_work_orders_require_consumer_withdrawal_evidence[\s\S]*before update of status/i);
+assert.match(withdrawalMigration, /p_declared_on > v_deadline/i);
+assert.match(withdrawalMigration, /automatic_refund_performed', false/i);
+assert.match(withdrawalMigration, /create or replace function public\.pos_record_consumer_withdrawal/i);
+assert.match(js, /rpc\("pos_record_consumer_withdrawal", \{[\s\S]*p_declared_on: declaredOn[\s\S]*p_evidence:/);
+assert.match(js, /Obstoječi računi, plačila in morebitni Wertersatz se ne spremenijo samodejno/i);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");

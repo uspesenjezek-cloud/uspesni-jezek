@@ -439,6 +439,8 @@
 .pos-work-order--accepted::before, .pos-work-order--in_progress::before { background: var(--pos-teal); }
 .pos-work-order--completed::before, .pos-work-order--invoiced::before { background: #3f9b68; }
 .pos-work-order--cancelled { opacity: .68; }
+.pos-work-order--withdrawn::before { background: #b65738; }
+.pos-work-order--withdrawn .pos-work-order__top > span { color: #8c3f21; background: #fff0e8; }
 .pos-work-order__top { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
 .pos-work-order__top > div { min-width: 0; flex: 1; }
 .pos-work-order__top small { display: block; min-height: 16px; color: var(--pos-teal-dark); font-size: .67rem; font-weight: 700; }
