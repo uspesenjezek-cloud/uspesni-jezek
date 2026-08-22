@@ -3,7 +3,7 @@
 const { DateTime } = require("luxon");
 const xrechnung = require("./pos-xrechnung");
 
-const GENERATOR_VERSION = "uj-pos-adjustment-xrechnung-1";
+const GENERATOR_VERSION = "uj-pos-adjustment-xrechnung-2";
 
 function text(value) {
   return String(value == null ? "" : value).trim();
@@ -70,8 +70,6 @@ function asCreditNote(xml, adjustment) {
     .replace("</ubl:Invoice>", "</ubl:CreditNote>")
     .replace(/^  <cbc:DueDate>[^\n]+\n/m, "")
     .replace("<cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>", "<cbc:CreditNoteTypeCode>381</cbc:CreditNoteTypeCode>\n  <cbc:Note>Stornierung: " + xrechnung._test.escapeXml(adjustment.reason) + "</cbc:Note>")
-    .replace(/  <cac:PaymentMeans>[\s\S]*?<\/cac:PaymentMeans>\n/, "")
-    .replace(/  <cac:PaymentTerms>[\s\S]*?<\/cac:PaymentTerms>\n/, "")
     .replace(/<cac:InvoiceLine>/g, "<cac:CreditNoteLine>")
     .replace(/<\/cac:InvoiceLine>/g, "</cac:CreditNoteLine>")
     .replace(/<cbc:InvoicedQuantity/g, "<cbc:CreditedQuantity")
