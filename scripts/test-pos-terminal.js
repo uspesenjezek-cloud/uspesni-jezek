@@ -51,6 +51,10 @@ const adjustmentLimitsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_payload_limits\.sql$/.test(name)).sort().pop()
   : null;
 const adjustmentLimitsMigration = adjustmentLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentLimitsMigrationName), "utf8") : "";
+const adjustmentSourceMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_source_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const adjustmentSourceMigration = adjustmentSourceMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentSourceMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -727,6 +731,15 @@ assert.match(adjustmentLimitsMigration, /pos_invoice_adjustments_snapshot_size_c
 assert.match(adjustmentLimitsMigration, /create or replace function private\._pos_create_invoice_adjustment_validated[\s\S]*security definer/i);
 assert.match(adjustmentLimitsMigration, /create or replace function public\.pos_create_invoice_adjustment[\s\S]*security invoker[\s\S]*private\._pos_create_invoice_adjustment_validated/i);
 assert.match(adjustmentLimitsMigration, /revoke execute on function private\._pos_create_invoice_adjustment\(uuid,text,text,jsonb,boolean\) from authenticated/i);
+assert.ok(adjustmentSourceMigrationName, "Manjkajo izvorne invariante popravkov računov.");
+assert.match(adjustmentSourceMigration, /pos_invoice_adjustments_kind_shape_check/i);
+assert.match(adjustmentSourceMigration, /adjustment_type = 'correction'[\s\S]*changes <> '\{\}'::jsonb[\s\S]*delta_gross_cents = 0/i);
+assert.match(adjustmentSourceMigration, /adjustment_type = 'cancellation'[\s\S]*delta_gross_cents < 0/i);
+assert.match(adjustmentSourceMigration, /new\.snapshot #>> '\{original_invoice,invoice_number\}' <> v_invoice\.invoice_number/i);
+assert.match(adjustmentSourceMigration, /new\.delta_gross_cents <> -v_invoice\.gross_cents/i);
+assert.match(adjustmentSourceMigration, /new\.changes \? 'due_date'[\s\S]*v_invoice\.issue_date \+ 365/i);
+assert.match(adjustmentSourceMigration, /create trigger pos_invoice_adjustments_validate_source[\s\S]*before insert on public\.pos_invoice_adjustments/i);
+assert.match(adjustmentSourceMigration, /validate constraint pos_invoice_adjustments_kind_shape_check/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
