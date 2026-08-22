@@ -631,13 +631,52 @@
     return String(value || "").replace(/\s/g, "").toUpperCase();
   }
 
+  function validIban(value) {
+    var iban = cleanIban(value);
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+    var rearranged = iban.slice(4) + iban.slice(0, 4);
+    var remainder = 0;
+    for (var index = 0; index < rearranged.length; index += 1) {
+      var character = rearranged[index];
+      var digits = /[0-9]/.test(character) ? character : String(character.charCodeAt(0) - 55);
+      for (var digitIndex = 0; digitIndex < digits.length; digitIndex += 1) {
+        remainder = (remainder * 10 + Number(digits[digitIndex])) % 97;
+      }
+    }
+    return remainder === 1;
+  }
+
+  function cleanVatId(value) {
+    return String(value || "").replace(/[\s-]/g, "").toUpperCase();
+  }
+
+  function validGermanTaxNumber(value) {
+    var text = String(value || "").trim();
+    var digits = text.replace(/[^0-9]/g, "");
+    return /^[0-9 /-]+$/.test(text) && [10, 11, 13].indexOf(digits.length) !== -1;
+  }
+
+  function profileValidationError(profile) {
+    function present(value) { return Boolean(String(value || "").trim()); }
+    if (present(profile.postalCode) && !/^[0-9]{5}$/.test(String(profile.postalCode).trim())) return "PLZ mora imeti točno 5 številk.";
+    if (present(profile.businessEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(profile.businessEmail).trim())) return "Poslovni e-poštni naslov ni veljaven.";
+    if (present(profile.businessPhone) && !/^\+?[0-9][0-9 ()/.-]{5,59}$/.test(String(profile.businessPhone).trim())) return "Poslovni telefon ni veljaven.";
+    if (present(profile.taxNumber) && !validGermanTaxNumber(profile.taxNumber)) return "Steuernummer mora ustrezati nemškemu 10-, 11- ali 13-mestnemu formatu.";
+    if (present(profile.vatId) && !/^DE[0-9]{9}$/.test(cleanVatId(profile.vatId))) return "USt-IdNr. mora biti DE in 9 številk.";
+    if (present(profile.iban) && !validIban(profile.iban)) return "IBAN ni veljaven; preverite številko in kontrolni mesti.";
+    if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(String(profile.invoicePrefix || ""))) return "Predpona računa lahko vsebuje le črke, številke, piko, vezaj, podčrtaj ali /.";
+    if (profile.legalConfirmed && ![profile.legalName, profile.street, profile.postalCode, profile.city, profile.accountHolder, profile.iban].every(present)) return "Pred potrditvijo izpolnite vse obvezne podatke podjetja in plačila.";
+    if (profile.legalConfirmed && !present(profile.taxNumber) && !present(profile.vatId)) return "Pred potrditvijo vnesite Steuernummer ali USt-IdNr.";
+    return "";
+  }
+
   function profileReadiness(profile) {
     function present(value) { return Boolean(String(value || "").trim()); }
     var checks = [
-      { key: "identity", label: "Pravno ime in naslov", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) },
-      { key: "tax", label: "Davčna številka", done: Boolean(present(profile.taxNumber) || present(profile.vatId)) },
-      { key: "bank", label: "IBAN in imetnik računa", done: Boolean(cleanIban(profile.iban).length >= 15 && present(profile.accountHolder)) },
-      { key: "numbering", label: "Številčenje računov", done: present(profile.invoicePrefix) },
+      { key: "identity", label: "Pravno ime in naslov", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) && /^[0-9]{5}$/.test(String(profile.postalCode || "").trim()) },
+      { key: "tax", label: "Davčna številka", done: Boolean((present(profile.taxNumber) && validGermanTaxNumber(profile.taxNumber)) || (present(profile.vatId) && /^DE[0-9]{9}$/.test(cleanVatId(profile.vatId)))) },
+      { key: "bank", label: "IBAN in imetnik računa", done: Boolean(validIban(profile.iban) && present(profile.accountHolder)) },
+      { key: "numbering", label: "Številčenje računov", done: /^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(String(profile.invoicePrefix || "")) },
       { key: "confirmation", label: "Potrditev resničnih podatkov", done: Boolean(profile.legalConfirmed) }
     ];
     var done = checks.filter(function (check) { return check.done; }).length;
@@ -1391,6 +1430,8 @@
     calculateItem: calculateItem,
     calculateTotals: calculateTotals,
     profileReadiness: profileReadiness,
+    validIban: validIban,
+    profileValidationError: profileValidationError,
     profileForPreview: profileForPreview,
     validateStep: validateStep,
     propertyRetentionNotice: propertyRetentionNotice,
@@ -4460,6 +4501,9 @@
       event.preventDefault();
       state.profile = readForm(event.currentTarget, state.profile);
       state.profile.iban = cleanIban(state.profile.iban);
+      state.profile.vatId = cleanVatId(state.profile.vatId);
+      var profileError = profileValidationError(state.profile);
+      if (profileError) { showToast(profileError); return; }
       var readiness = profileReadiness(state.profile);
       persist();
       if (backend.client) {

@@ -59,6 +59,10 @@ const adjustmentNullGuardsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_null_guards\.sql$/.test(name)).sort().pop()
   : null;
 const adjustmentNullGuardsMigration = adjustmentNullGuardsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentNullGuardsMigrationName), "utf8") : "";
+const businessProfileInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_business_profile_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const businessProfileInvariantsMigration = businessProfileInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, businessProfileInvariantsMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -362,6 +366,11 @@ profile.iban = "DE02120300000000202051";
 profile.legalConfirmed = true;
 assert.strictEqual(Core.profileReadiness(profile).live, true);
 assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalName: "   " })).live, false);
+assert.strictEqual(Core.validIban("DE02 1203 0000 0000 2020 51"), true);
+assert.strictEqual(Core.validIban("DE03 1203 0000 0000 2020 51"), false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { iban: "DE03120300000000202051" })).live, false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { vatId: "DE123", taxNumber: "" })).live, false);
+assert.match(Core.profileValidationError(Object.assign({}, profile, { iban: "DE03120300000000202051" })), /IBAN/);
 assert.deepStrictEqual(Core.profileForPreview({ legalName: "   " }, true), {
   legalName: "TEST-Unternehmen", street: "Musterstraße 1", postalCode: "00000", city: "Teststadt"
 });
@@ -754,6 +763,13 @@ assert.strictEqual((adjustmentNullGuardsMigration.match(/is distinct from/gi) ||
 assert.match(adjustmentNullGuardsMigration, /snapshot #>> '\{original_invoice,id\}' is distinct from v_invoice\.id::text/i);
 assert.match(adjustmentNullGuardsMigration, /snapshot #>> '\{original_invoice,gross_cents\}'\)::bigint is distinct from v_invoice\.gross_cents/i);
 assert.match(adjustmentNullGuardsMigration, /revoke all on function private\.pos_validate_adjustment_source\(\) from public, anon, authenticated/i);
+assert.ok(businessProfileInvariantsMigrationName, "Manjkajo varovalke poslovnega profila.");
+assert.match(businessProfileInvariantsMigration, /create or replace function private\.pos_iban_valid\(p_iban text\)/i);
+assert.match(businessProfileInvariantsMigration, /return v_remainder = 1/i);
+assert.match(businessProfileInvariantsMigration, /pos_business_profiles_german_tax_shape_check/i);
+assert.match(businessProfileInvariantsMigration, /vat_id = '' or vat_id ~ '\^DE\[0-9\]\{9\}\$'/i);
+assert.match(businessProfileInvariantsMigration, /pos_business_profiles_confirmation_check/i);
+assert.match(businessProfileInvariantsMigration, /grant execute on function private\.pos_iban_valid\(text\) to authenticated, service_role/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
