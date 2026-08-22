@@ -9,6 +9,7 @@ const adjustmentPdf = require("../api/_lib/pos-adjustment-pdf");
 const endpoint = require("../api/pos-racun-pdf");
 const adjustmentEndpoint = require("../api/pos-racun-korekcija");
 const pdfSource = fs.readFileSync(path.join(__dirname, "..", "api", "_lib", "pos-pdf.js"), "utf8");
+const pdfEndpointSource = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "pos-racun-pdf.js"), "utf8");
 
 function sampleInvoice(replacement) {
   const items = [];
@@ -194,6 +195,8 @@ function sampleAdjustment(type) {
   assert.match(pdfSource, /Auftragssumme brutto/);
   assert.match(pdfSource, /Noch zu zahlen/);
   assert.match(pdfSource, /§ 14 Abs\. 5 UStG/);
+  assert.match(pdfEndpointSource, /providerJson\.readBuffer\(response,[\s\S]*MAX_PDF_BYTES/);
+  assert.match(pdfEndpointSource, /POS_PDF_ORIGINAL_TOO_LARGE/);
 
   const correctionBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("correction"));
   const correctionPdf = await PDFDocument.load(correctionBuffer);

@@ -2,9 +2,11 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
 const { GENERATOR_VERSION, ustvariRacunPdf } = require("../_lib/pos-pdf");
 
 const BUCKET = "pos-invoice-originals";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
@@ -49,7 +51,11 @@ async function downloadObject(cfg, path) {
     error.status = response.status;
     throw error;
   }
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_PDF_BYTES,
+    code: "POS_PDF_ORIGINAL_TOO_LARGE",
+    message: "Arhivirani PDF presega dovoljeno velikost."
+  });
 }
 
 async function uploadObject(cfg, path, pdf) {
@@ -107,7 +113,7 @@ async function ensureDocument(cfg, invoice, userId) {
   pdf = await downloadObject(cfg, path);
   if (!pdf) {
     pdf = await ustvariRacunPdf(invoice);
-    if (pdf.length > 5 * 1024 * 1024) throw new Error("Ustvarjeni PDF je nepričakovano prevelik.");
+    if (pdf.length > MAX_PDF_BYTES) throw new Error("Ustvarjeni PDF je nepričakovano prevelik.");
     const uploaded = await uploadObject(cfg, path, pdf);
     if (!uploaded) pdf = await downloadObject(cfg, path);
   }

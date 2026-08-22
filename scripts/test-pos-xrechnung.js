@@ -160,6 +160,8 @@ assert.match(proxy, /r\.URL\.Path == "\/health"/);
 assert.match(proxy, /validatorReady\(40 \* time\.Second\)/);
 assert.match(api, /AbortSignal\.timeout\(50000\)/);
 assert.match(api, /providerJson\.readText\(response,[\s\S]*KOSIT_RESPONSE_TOO_LARGE/);
+assert.match(api, /providerJson\.readBuffer\(response,[\s\S]*MAX_XML_BYTES/);
+assert.match(api, /POS_XRECHNUNG_ORIGINAL_TOO_LARGE/);
 assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
 assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
 assert.match(terminalHtml, /pos-terminal\.js\?v=20260822-full-history-v8/);
@@ -170,6 +172,11 @@ void (async function verifyBoundedKositResponse() {
   await assert.rejects(
     () => providerJson.readText(new Response("x".repeat(1025)), { maxBytes: 1024, code: "KOSIT_RESPONSE_TOO_LARGE" }),
     function (error) { return error && error.code === "KOSIT_RESPONSE_TOO_LARGE"; }
+  );
+  assert.strictEqual((await providerJson.readBuffer(new Response("original"), { maxBytes: 1024 })).toString("utf8"), "original");
+  await assert.rejects(
+    () => providerJson.readBuffer(new Response("x".repeat(1025)), { maxBytes: 1024, code: "POS_ORIGINAL_TOO_LARGE" }),
+    function (error) { return error && error.code === "POS_ORIGINAL_TOO_LARGE"; }
   );
   console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");
 })().catch(function (error) {

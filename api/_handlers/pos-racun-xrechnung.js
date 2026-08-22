@@ -9,6 +9,7 @@ const {
 
 const BUCKET = "pos-einvoice-originals";
 const MAX_REPORT_LENGTH = 65536;
+const MAX_XML_BYTES = 2 * 1024 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
@@ -50,7 +51,11 @@ async function downloadObject(cfg, path) {
   }, 15000);
   if (response.status === 404 || response.status === 400) return null;
   if (!response.ok) throw Object.assign(new Error("Arhiviranega XRechnung dokumenta ni bilo mogoče prebrati."), { status: response.status });
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_XML_BYTES,
+    code: "POS_XRECHNUNG_ORIGINAL_TOO_LARGE",
+    message: "Arhivirani XRechnung presega dovoljeno velikost."
+  });
 }
 async function uploadObject(cfg, path, xml) {
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + BUCKET + "/" + encodedPath(path), {
@@ -139,7 +144,7 @@ async function ensureDocument(cfg, invoice, userId) {
   xml = await downloadObject(cfg, path);
   if (!xml) {
     xml = buildXRechnung(invoice);
-    if (xml.length > 2 * 1024 * 1024) throw new Error("Ustvarjeni XRechnung je nepričakovano prevelik.");
+    if (xml.length > MAX_XML_BYTES) throw new Error("Ustvarjeni XRechnung je nepričakovano prevelik.");
     const uploaded = await uploadObject(cfg, path, xml);
     if (!uploaded) xml = await downloadObject(cfg, path);
   }
