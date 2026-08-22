@@ -57,15 +57,18 @@
     return new Intl.NumberFormat(DATE_LOCALE, { maximumFractionDigits: 3 }).format(milli / 1000);
   }
 
-  function isoToday() {
-    var now = new Date();
-    var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
+  function isoToday(now) {
+    var value = now == null ? new Date() : new Date(now);
+    if (Number.isNaN(value.getTime())) value = new Date();
+    return berlinDateKey(value) || value.toISOString().slice(0, 10);
   }
 
   function addDays(iso, days) {
-    var date = new Date(String(iso || isoToday()) + "T12:00:00");
-    date.setDate(date.getDate() + integer(days, 0));
+    var value = String(iso || isoToday());
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    var date = match ? new Date(Date.UTC(integer(match[1]), integer(match[2]) - 1, integer(match[3]))) : null;
+    if (!date || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) date = new Date(isoToday() + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() + integer(days, 0));
     return date.toISOString().slice(0, 10);
   }
 
@@ -106,7 +109,8 @@
     });
   }
 
-  function defaultProfile() {
+  function defaultProfile(now) {
+    var businessYear = isoToday(now).slice(0, 4);
     return {
       legalName: "",
       legalForm: "",
@@ -122,7 +126,7 @@
       previousYearTurnoverBand: "unknown",
       accountHolder: "",
       iban: "",
-      invoicePrefix: "RE-" + new Date().getFullYear() + "-",
+      invoicePrefix: "RE-" + businessYear + "-",
       defaultDueDays: "14",
       legalConfirmed: false,
       datevSettings: defaultDatevSettings("03")
@@ -1064,7 +1068,7 @@
       var smallBusiness = taxMode === "small_business" || Boolean(profile && profile.taxStatus === "small_business");
       var smallAmount = grossCents <= 25000 && taxMode !== "reverse_charge";
       var exempt = smallBusiness || smallAmount;
-      var year = integer(serviceDate.slice(0, 4), new Date().getFullYear());
+      var year = integer(serviceDate.slice(0, 4), integer(isoToday().slice(0, 4), new Date().getUTCFullYear()));
       var pdfAllowed = exempt || year <= 2026 || (year === 2027 && turnoverBand === "lte_800k");
       var needsTurnoverDecision = !exempt && year === 2027 && turnoverBand === "unknown";
       var copy = smallBusiness
@@ -1463,6 +1467,8 @@
   }
 
   var Core = {
+    isoToday: isoToday,
+    addDays: addDays,
     parseMoneyToCents: parseMoneyToCents,
     validateRefundAmountInput: validateRefundAmountInput,
     parseQuantityMilli: parseQuantityMilli,
@@ -3695,7 +3701,7 @@
 
   function nextInvoiceNumber(isTest) {
     var next = state.sequence + 1;
-    var year = new Date().getFullYear();
+    var year = isoToday().slice(0, 4);
     var prefix = isTest ? "TEST-" + year + "-" : (state.profile.invoicePrefix || "RE-" + year + "-");
     return prefix + String(next).padStart(4, "0");
   }
@@ -3721,7 +3727,7 @@
     var draft = invoice.draft;
     var offerMode = draft.workflowMode === "offer";
     if (offerMode) {
-      invoice.number = draft.workflowContext && draft.workflowContext.offerNumber || "ANG-" + new Date().getFullYear() + "-····";
+      invoice.number = draft.workflowContext && draft.workflowContext.offerNumber || "ANG-" + isoToday().slice(0, 4) + "-····";
       invoice.dueDate = addDays(draft.issueDate, draft.offerValidDays);
     }
     var profile = state.profile;

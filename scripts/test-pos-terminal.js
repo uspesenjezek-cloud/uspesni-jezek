@@ -358,6 +358,15 @@ assert.match(css, /\.pos-datev-sheet[\s\S]*overflow-x:\s*hidden/);
 
 assert.strictEqual(Core.parseMoneyToCents("1.234,56 €"), 123456);
 assert.strictEqual(Core.parseQuantityMilli("1,25"), 1250);
+assert.strictEqual(Core.isoToday("2026-12-31T22:30:00.000Z"), "2026-12-31");
+assert.strictEqual(Core.isoToday("2026-12-31T23:30:00.000Z"), "2027-01-01");
+assert.strictEqual(Core.isoToday("2026-03-29T00:30:00.000Z"), "2026-03-29");
+assert.strictEqual(Core.isoToday("2026-03-29T22:30:00.000Z"), "2026-03-30");
+assert.strictEqual(Core.addDays("2026-03-28", 1), "2026-03-29");
+assert.strictEqual(Core.addDays("2026-03-29", 1), "2026-03-30");
+assert.strictEqual(Core.addDays("2026-12-31", 1), "2027-01-01");
+assert.strictEqual(Core.addDays("2027-01-01", -1), "2026-12-31");
+assert.strictEqual(Core.defaultProfile("2026-12-31T23:30:00.000Z").invoicePrefix, "RE-2027-");
 assert.deepStrictEqual(Core.normalizePosRefreshScopes(), { profile: true, draft: true, invoices: true, bank: true });
 assert.deepStrictEqual(Core.normalizePosRefreshScopes("payments"), { payments: true });
 assert.deepStrictEqual(Core.normalizePosRefreshScopes(["deliveries", "bank"]), { deliveries: true, bank: true });
@@ -716,7 +725,7 @@ assert.strictEqual(replacementDraft.customerName, draft.customerName);
 assert.strictEqual(replacementDraft.items[0].description, draft.items[0].description);
 assert.strictEqual(replacementDraft.finalConfirmed, false);
 assert.strictEqual(replacementDraft.einvoiceValidated, false);
-assert.strictEqual(replacementDraft.issueDate, new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+assert.strictEqual(replacementDraft.issueDate, Core.isoToday());
 assert.notStrictEqual(replacementDraft.items[0].id, draft.items[0].id);
 assert.deepStrictEqual(Core.normalizeReplacementContext(replacementDraft), {
   originalInvoiceId: "11111111-1111-4111-8111-111111111111",
