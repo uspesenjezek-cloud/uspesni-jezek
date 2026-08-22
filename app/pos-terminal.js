@@ -1008,7 +1008,10 @@
         if (!String(draft.customerVatId || "").trim()) errors.push("Reverse charge zahteva USt-IdNr. prejemnika.");
         if (!draft.reverseChargeConfirmed) errors.push("Potrdite, da so bili preverjeni pogoji § 13b UStG.");
       }
+      if (draft.constructionWithholding && draft.customerType === "private") errors.push("Bauabzugsteuer po § 48 EStG velja le za poslovnega ali javnega prejemnika.");
       if (draft.constructionWithholding && draft.exemptionCertificate === "unknown") errors.push("Pri Bauleistung izberite stanje Freistellungsbescheinigung.");
+      if (draft.handwerker35a && draft.customerType !== "private") errors.push("Handwerkerleistung po § 35a EStG je namenjena zasebnemu prejemniku.");
+      if (draft.consumerDefaultNotice && draft.customerType !== "private") errors.push("30-dnevno potrošniško opozorilo je dovoljeno le za zasebnega prejemnika.");
     }
 
     if (step === 4) {

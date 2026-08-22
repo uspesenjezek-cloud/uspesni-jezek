@@ -54,6 +54,8 @@ assert.equal(de.translate("Postavka 12"), "Position 12");
 assert.equal(de.translate("60 dni"), "60 Tage");
 assert.equal(de.translate("Storitev, povezana z nepremičnino"), "Leistung im Zusammenhang mit einem Grundstück");
 assert.match(de.translate("Za zasebno stranko doda zakonsko opozorilo o dveletni hrambi dokazil (§ 14b UStG)."), /zweijährigen Aufbewahrung/);
+assert.match(de.translate("Bauabzugsteuer po § 48 EStG velja le za poslovnega ali javnega prejemnika."), /Bauabzugsteuer/);
+assert.match(de.translate("Handwerkerleistung po § 35a EStG je namenjena zasebnemu prejemniku."), /privaten Leistungsempfänger/);
 
 const deLocale = load("?locale=de-DE");
 assert.equal(deLocale.isGerman, true);

@@ -522,7 +522,11 @@
     "Potrebna pozornost": "Aufmerksamkeit erforderlich",
     "Končano": "Abgeschlossen",
     "V čakalni vrsti": "In Warteschlange",
-    "Neuspešno": "Fehlgeschlagen"
+    "Neuspešno": "Fehlgeschlagen",
+    "Bauabzugsteuer po § 48 EStG velja le za poslovnega ali javnega prejemnika.": "Die Bauabzugsteuer nach § 48 EStG gilt nur bei einem unternehmerischen oder öffentlichen Leistungsempfänger.",
+    "Pri Bauleistung izberite stanje Freistellungsbescheinigung.": "Wählen Sie bei einer Bauleistung den Status der Freistellungsbescheinigung.",
+    "Handwerkerleistung po § 35a EStG je namenjena zasebnemu prejemniku.": "Die Handwerkerleistung nach § 35a EStG ist für einen privaten Leistungsempfänger vorgesehen.",
+    "30-dnevno potrošniško opozorilo je dovoljeno le za zasebnega prejemnika.": "Der 30-Tage-Verzugshinweis ist nur für einen privaten Leistungsempfänger zulässig."
   };
 
   var patterns = [

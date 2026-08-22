@@ -158,6 +158,18 @@ function propertyRetentionNote(draft) {
   return "Der Leistungsempfänger ist verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).";
 }
 
+function constructionWithholdingNote(draft) {
+  const source = draft || {};
+  if (!source.construction_withholding) return "";
+  const labels = {
+    valid: "gültig",
+    missing: "nicht vorgelegt",
+    not_applicable: "nicht relevant",
+    unknown: "noch nicht geprüft"
+  };
+  return "Bauleistung nach § 48 EStG. Freistellungsbescheinigung: " + (labels[source.exemption_certificate] || labels.unknown) + ".";
+}
+
 function drawTestWatermark(page, bold) {
   page.drawText("TESTRECHNUNG", {
     x: 103, y: 365, size: 48, font: bold, color: rgb(0.93, 0.84, 0.78),
@@ -301,6 +313,8 @@ async function ustvariRacunPdf(invoice) {
   if (invoice.tax_mode === "reverse_charge") notes.push("Steuerschuldnerschaft des Leistungsempfängers gemäß § 13b UStG.");
   if (deductions.length) notes.push("Vereinnahmte Teilentgelte und die darauf entfallende Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.");
   if (draft.handwerker_35a) notes.push("Begünstigte Arbeits-, Fahrt- und Maschinenkosten nach § 35a EStG: " + money(invoice.eligible_35a_cents) + ". Die steuerliche Anerkennung prüft das Finanzamt.");
+  const constructionNote = constructionWithholdingNote(draft);
+  if (constructionNote) notes.push(constructionNote);
   if (draft.consumer_default_notice && draft.customer_type === "private") notes.push("Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).");
   const retentionNote = propertyRetentionNote(draft);
   if (retentionNote) notes.push(retentionNote);
@@ -341,4 +355,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, propertyRetentionNote, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, embedUnicodeFonts, ustvariRacunPdf };

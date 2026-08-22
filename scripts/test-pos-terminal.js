@@ -75,6 +75,10 @@ const invoiceEinvoicePartyRequirementsMigrationName = fs.existsSync(migrationsDi
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_einvoice_party_requirements\.sql$/.test(name)).sort().pop()
   : null;
 const invoiceEinvoicePartyRequirementsMigration = invoiceEinvoicePartyRequirementsMigrationName ? fs.readFileSync(path.join(migrationsDir, invoiceEinvoicePartyRequirementsMigrationName), "utf8") : "";
+const invoiceTaxEvidenceRequirementsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_tax_evidence_requirements\.sql$/.test(name)).sort().pop()
+  : null;
+const invoiceTaxEvidenceRequirementsMigration = invoiceTaxEvidenceRequirementsMigrationName ? fs.readFileSync(path.join(migrationsDir, invoiceTaxEvidenceRequirementsMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -524,6 +528,16 @@ publicWithoutLeitweg.customerType = "public";
 publicWithoutLeitweg.leitwegId = "";
 assert.ok(Core.validateStep(publicWithoutLeitweg, profile, 1).some((entry) => /Leitweg-ID/.test(entry)));
 
+const privateConstruction = JSON.parse(JSON.stringify(draft));
+privateConstruction.customerType = "private";
+privateConstruction.constructionWithholding = true;
+privateConstruction.exemptionCertificate = "valid";
+assert.ok(Core.validateStep(privateConstruction, profile, 3).some((entry) => /§ 48 EStG/.test(entry)));
+
+const businessHandwerker = JSON.parse(JSON.stringify(draft));
+businessHandwerker.handwerker35a = true;
+assert.ok(Core.validateStep(businessHandwerker, profile, 3).some((entry) => /§ 35a EStG/.test(entry)));
+
 const invoice = {
   number: "RE-2026-0001",
   dueDate: "2026-09-02",
@@ -804,6 +818,11 @@ assert.match(invoiceEinvoicePartyRequirementsMigration, /v_customer_type in \('b
 assert.match(invoiceEinvoicePartyRequirementsMigration, /v_customer_type = 'business' and v_email = ''/i);
 assert.match(invoiceEinvoicePartyRequirementsMigration, /v_seller_email[\s\S]*business_email[\s\S]*auth\.uid\(\)/i);
 assert.match(invoiceEinvoicePartyRequirementsMigration, /v_seller_phone = ''/i);
+assert.ok(invoiceTaxEvidenceRequirementsMigrationName, "Manjkajo strežniške zahteve za davčna dokazila računa.");
+assert.match(invoiceTaxEvidenceRequirementsMigration, /v_construction_withholding[\s\S]*v_customer_type not in \('business', 'public'\)/i);
+assert.match(invoiceTaxEvidenceRequirementsMigration, /v_exemption_certificate not in \('valid', 'missing', 'not_applicable'\)/i);
+assert.match(invoiceTaxEvidenceRequirementsMigration, /v_handwerker_35a[\s\S]*v_customer_type <> 'private'/i);
+assert.match(invoiceTaxEvidenceRequirementsMigration, /private\.pos_validate_invoice_tax_evidence\([\s\S]*private\.pos_validate_invoice_payload/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);

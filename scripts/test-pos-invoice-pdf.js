@@ -125,6 +125,9 @@ function sampleAdjustment(type) {
   assert.match(pdfModule.propertyRetentionNote({ customer_type: "private", property_related: true }), /zwei Jahre aufzubewahren \(§ 14b Abs\. 1 UStG\)/);
   assert.strictEqual(pdfModule.propertyRetentionNote({ customer_type: "business", property_related: true }), "");
   assert.strictEqual(pdfModule.propertyRetentionNote({ customer_type: "private", property_related: false, handwerker_35a: false }), "");
+  assert.strictEqual(pdfModule.constructionWithholdingNote({ construction_withholding: false }), "");
+  assert.match(pdfModule.constructionWithholdingNote({ construction_withholding: true, exemption_certificate: "valid" }), /Freistellungsbescheinigung: gültig/);
+  assert.match(pdfModule.constructionWithholdingNote({ construction_withholding: true, exemption_certificate: "missing" }), /nicht vorgelegt/);
   const incompleteTestInvoice = sampleInvoice();
   incompleteTestInvoice.invoice_number = "TEST-2026-0001";
   incompleteTestInvoice.is_test = true;
