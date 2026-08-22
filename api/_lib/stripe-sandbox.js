@@ -48,9 +48,12 @@ function safeBaseUrl(req, env) {
   try { parsed = new URL(candidate); }
   catch (_) { parsed = null; }
   const localAllowed = source.NODE_ENV !== "production" && parsed && ["localhost", "127.0.0.1"].includes(parsed.hostname);
-  const vercelAllowed = parsed && (parsed.hostname === "uspesni-jezek.vercel.app" || parsed.hostname.endsWith(".vercel.app"));
   const configuredAllowed = Boolean(configured && parsed && parsed.protocol === "https:");
-  if (!parsed || (!configuredAllowed && !vercelAllowed && !localAllowed) || (parsed.protocol !== "https:" && !localAllowed)) {
+  const vercelEnvironmentAllowed = Boolean(!configured && vercelUrl && parsed && parsed.protocol === "https:" &&
+    (parsed.hostname === "uspesni-jezek.vercel.app" || parsed.hostname.endsWith(".vercel.app")));
+  const canonicalForwardedAllowed = Boolean(!configured && !vercelUrl && parsed && parsed.protocol === "https:" &&
+    parsed.hostname === "uspesni-jezek.vercel.app");
+  if (!parsed || (!configuredAllowed && !vercelEnvironmentAllowed && !canonicalForwardedAllowed && !localAllowed) || (parsed.protocol !== "https:" && !localAllowed)) {
     const error = new Error("Varna Stripe povratna domena ni nastavljena.");
     error.code = "STRIPE_RETURN_URL_INVALID";
     throw error;

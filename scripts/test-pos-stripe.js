@@ -29,6 +29,11 @@ assert.throws(() => stripeSandbox.configuration({ STRIPE_SECRET_KEY: "sk_live_fo
 assert.deepStrictEqual(stripeSandbox.configuration({
   STRIPE_MODE: "test", STRIPE_SECRET_KEY: "sk_test_example", STRIPE_WEBHOOK_SECRET: "whsec_1234567890123456",
 }), { mode: "test", secretKey: "sk_test_example", webhookSecret: "whsec_1234567890123456" });
+assert.strictEqual(stripeSandbox.safeBaseUrl({ headers: { host: "uspesni-jezek.vercel.app" } }, { NODE_ENV: "production" }), "https://uspesni-jezek.vercel.app");
+assert.strictEqual(stripeSandbox.safeBaseUrl({ headers: { host: "attacker.invalid" } }, { NODE_ENV: "production", VERCEL_URL: "uspesni-jezek-git-pos-preview.vercel.app" }), "https://uspesni-jezek-git-pos-preview.vercel.app");
+assert.strictEqual(stripeSandbox.safeBaseUrl({ headers: { host: "attacker.invalid" } }, { NODE_ENV: "production", STRIPE_RETURN_BASE_URL: "https://pos.example.de/path?q=1" }), "https://pos.example.de");
+assert.throws(() => stripeSandbox.safeBaseUrl({ headers: { "x-forwarded-host": "attacker-preview.vercel.app", host: "uspesni-jezek.vercel.app" } }, { NODE_ENV: "production" }), /povratna domena/i);
+assert.throws(() => stripeSandbox.safeBaseUrl({ headers: { host: "attacker.invalid" } }, { NODE_ENV: "production" }), /povratna domena/i);
 assert.strictEqual(stripeSandbox.assertTestPaymentIntent({
   id: "pi_test_refund", livemode: false, amount: 11900, currency: "eur",
   metadata: { test_mode: "true", user_id: "user-1", invoice_id: "invoice-1" },
