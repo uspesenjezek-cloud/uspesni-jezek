@@ -1261,6 +1261,21 @@
     return fields.join(";");
   }
 
+  function berlinDateKey(value) {
+    var text = String(value || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    var date = new Date(text);
+    if (Number.isNaN(date.getTime())) return "";
+    try {
+      var parts = new Intl.DateTimeFormat("en", {
+        timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(date);
+      var values = {};
+      parts.forEach(function (part) { values[part.type] = part.value; });
+      return values.year && values.month && values.day ? values.year + "-" + values.month + "-" + values.day : "";
+    } catch (_) { return ""; }
+  }
+
   function buildDatevExport(invoices, inputSettings, periodValue, now, options) {
     options = options || {};
     var settings = normalizeDatevSettings(inputSettings);
@@ -1268,7 +1283,7 @@
     var errors = validateDatevSettings(settings, periodValue);
     var bookings = [];
     var warnings = [];
-    function inPeriod(iso) { return period && String(iso || "").slice(0, 7) === period.key; }
+    function inPeriod(iso) { return period && berlinDateKey(iso).slice(0, 7) === period.key; }
     function appendParts(invoice, date, documentNumber, side, text, centsOverride, documentGuid) {
       var draft = invoice.draft || {};
       var totals = calculateTotals(draft);
@@ -1300,7 +1315,7 @@
       var draft = invoice.draft || {};
       if (inPeriod(draft.issueDate)) appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number), null, invoice.documentGuid);
       (invoice.adjustments || []).forEach(function (adjustment) {
-        var date = String(adjustment.createdAt || "").slice(0, 10);
+        var date = berlinDateKey(adjustment.createdAt);
         if (!inPeriod(date)) return;
         var adjustmentInvoice = adjustment.draft ? Object.assign({}, invoice, { draft: adjustment.draft }) : invoice;
         if (adjustment.type === "cancellation") appendParts(adjustmentInvoice, date, adjustment.number, "H", "Storno zu " + invoice.number, null, adjustment.documentGuid);
@@ -1460,6 +1475,7 @@
     normalizeDatevSettings: normalizeDatevSettings,
     validateDatevSettings: validateDatevSettings,
     buildDatevExport: buildDatevExport,
+    berlinDateKey: berlinDateKey,
     datevDocumentNumber: datevDocumentNumber,
     DATEV_BOOKING_HEADERS: DATEV_BOOKING_HEADERS,
     profileToDatabase: profileToDatabase,

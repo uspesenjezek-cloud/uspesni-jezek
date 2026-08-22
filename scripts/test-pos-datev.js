@@ -75,9 +75,21 @@ const missingLink = Core.buildDatevExport([Object.assign({}, invoice, { document
 assert.ok(missingLink.errors.some((message) => /nima veljavne DATEV povezave/.test(message)));
 const manual = Core.buildDatevExport([Object.assign({}, invoice, { documentGuid: "", adjustments: [] })], settings, "2026-08", new Date());
 assert.deepStrictEqual(manual.errors, []);
+assert.strictEqual(Core.berlinDateKey("2026-08-31T22:30:00.000Z"), "2026-09-01");
+const boundaryInvoice = Object.assign({}, invoice, {
+  adjustments: [Object.assign({}, invoice.adjustments[0], { createdAt: "2026-08-31T22:30:00.000Z" })]
+});
+assert.strictEqual(Core.buildDatevExport([boundaryInvoice], settings, "2026-08", new Date()).bookings.length, 1);
+assert.strictEqual(Core.buildDatevExport([boundaryInvoice], settings, "2026-09", new Date()).bookings.length, 1);
 
 assert.strictEqual(handler._test.period("2026-02").end, "2026-02-28");
 assert.strictEqual(handler._test.period("2028-02").end, "2028-02-29");
+assert.deepStrictEqual(handler._test.berlinPeriodBounds(handler._test.period("2026-08")), {
+  startUtc: "2026-07-31T22:00:00.000Z", endUtc: "2026-08-31T22:00:00.000Z"
+});
+assert.strictEqual(handler._test.berlinMonthKey("2026-08-31T22:30:00.000Z"), "2026-09");
+assert.strictEqual(handler._test.berlinDate("2026-08-31T22:30:00.000Z"), "2026-09-01");
+assert.strictEqual(handler._test.adjustmentLocal({ issued_at: "2026-08-31T22:30:00.000Z" }).createdAt, "2026-09-01");
 assert.strictEqual(handler._test.safeFilename("RE/2026:1"), "RE_2026_1");
 assert.match(migration, /create table public\.pos_datev_connections/i);
 assert.match(migration, /create table public\.pos_datev_document_transfers/i);
@@ -98,6 +110,8 @@ assert.match(browserJs, /Preveri testni DATEV paket/);
 assert.match(browserJs, /Mock uporabi samo račune TEST-\*/);
 assert.match(handlerSource, /action === "transfer" \|\| action === "test-transfer"/);
 assert.match(handlerSource, /is_test=eq\." \+ testFilter/);
+assert.match(handlerSource, /issued_at=gte\." \+ encodeURIComponent\(bounds\.startUtc\)/);
+assert.match(handlerSource, /berlinMonthKey\(row\.issued_at\) === selectedPeriod\.key/);
 assert.match(mockIsolationMigration, /user_id, period, environment/i);
 assert.match(repeatableMockMigration, /environment <> 'mock'[\s\S]*preparing','processing','succeeded/i);
 assert.match(repeatableMockMigration, /environment = 'mock'[\s\S]*preparing','processing'/i);

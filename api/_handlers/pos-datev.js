@@ -1,9 +1,11 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const { DateTime } = require("luxon");
 const supabase = require("../_lib/supabase-server");
 const datev = require("../_lib/datev-cloud");
 const Core = require("../../app/pos-terminal.js");
+const BERLIN_ZONE = "Europe/Berlin";
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -83,7 +85,7 @@ async function profileSettings(cfg, userId) {
   const rows = await supabase.pridobiVrstice(cfg, "pos_business_profiles",
     "user_id=eq." + encodeURIComponent(userId) + "&select=datev_settings&limit=1");
   const settings = Core.normalizeDatevSettings(rows[0] && rows[0].datev_settings || {});
-  const errors = Core.validateDatevSettings(settings, new Date().toISOString().slice(0, 7));
+  const errors = Core.validateDatevSettings(settings, DateTime.now().setZone(BERLIN_ZONE).toFormat("yyyy-MM"));
   const identityErrors = errors.filter(function (message) { return /Beraternummer|Mandantennummer/.test(message); });
   if (identityErrors.length) throw new datev.DatevError(identityErrors[0], { code: "DATEV_SETTINGS_INCOMPLETE", status: 409 });
   return settings;
@@ -159,9 +161,26 @@ async function patchDocumentTransfer(cfg, id, changes) {
 function adjustmentLocal(row) {
   return {
     id: row.id, number: row.adjustment_number, type: row.adjustment_type,
-    createdAt: row.issued_at, deltaGrossCents: Number(row.delta_gross_cents || 0), snapshot: row.snapshot || {},
+    createdAt: berlinDate(row.issued_at), deltaGrossCents: Number(row.delta_gross_cents || 0), snapshot: row.snapshot || {},
     draft: row.snapshot && row.snapshot.effective_draft ? Core.draftFromDatabasePayload(row.snapshot.effective_draft, true) : null,
   };
+}
+
+function berlinMonthKey(value) {
+  const date = DateTime.fromISO(String(value || ""), { setZone: true });
+  return date.isValid ? date.setZone(BERLIN_ZONE).toFormat("yyyy-MM") : "";
+}
+
+function berlinDate(value) {
+  const date = DateTime.fromISO(String(value || ""), { setZone: true });
+  return date.isValid ? date.setZone(BERLIN_ZONE).toISODate() : "";
+}
+
+function berlinPeriodBounds(selectedPeriod) {
+  if (!selectedPeriod) return null;
+  const start = DateTime.fromISO(selectedPeriod.start, { zone: BERLIN_ZONE }).startOf("day");
+  if (!start.isValid) return null;
+  return { startUtc: start.toUTC().toISO(), endUtc: start.plus({ months: 1 }).toUTC().toISO() };
 }
 
 function chunks(values, size) {
@@ -204,12 +223,14 @@ async function rowsForIds(cfg, table, userId, column, ids, suffix) {
 async function periodPackage(cfg, userId, selectedPeriod, options) {
   const testOnly = Boolean(options && options.testOnly);
   const testFilter = testOnly ? "true" : "false";
+  const bounds = berlinPeriodBounds(selectedPeriod);
+  if (!bounds) throw new datev.DatevError("DATEV obdobje ni veljavno.", { code: "DATEV_PERIOD_INVALID", status: 400 });
   const periodInvoices = await pagedRows(cfg, "pos_invoices",
     "user_id=eq." + encodeURIComponent(userId) + "&is_test=eq." + testFilter + "&issue_date=gte." + selectedPeriod.start +
     "&issue_date=lte." + selectedPeriod.end + "&select=*&order=issued_at.asc,id.asc");
   const periodAdjustments = await pagedRows(cfg, "pos_invoice_adjustments",
-    "user_id=eq." + encodeURIComponent(userId) + "&issued_at=gte." + encodeURIComponent(selectedPeriod.start + "T00:00:00Z") +
-    "&issued_at=lt." + encodeURIComponent(new Date(Date.UTC(Number(selectedPeriod.key.slice(0, 4)), Number(selectedPeriod.key.slice(5, 7)), 1)).toISOString()) +
+    "user_id=eq." + encodeURIComponent(userId) + "&issued_at=gte." + encodeURIComponent(bounds.startUtc) +
+    "&issued_at=lt." + encodeURIComponent(bounds.endUtc) +
     "&select=id,original_invoice_id&order=issued_at.asc,id.asc");
   const existingIds = new Set(periodInvoices.map(function (row) { return row.id; }));
   const additionalIds = Array.from(new Set(periodAdjustments.map(function (row) { return row.original_invoice_id; }).filter(function (id) { return id && !existingIds.has(id); })));
@@ -234,7 +255,7 @@ async function periodPackage(cfg, userId, selectedPeriod, options) {
   });
   const periodInvoiceIds = new Set(periodInvoices.map(function (row) { return row.id; }));
   const periodAdjustmentIds = new Set(adjustments.filter(function (row) {
-    return String(row.issued_at || "").slice(0, 7) === selectedPeriod.key;
+    return berlinMonthKey(row.issued_at) === selectedPeriod.key;
   }).map(function (row) { return row.id; }));
   return {
     records: records.filter(function (record) {
@@ -498,5 +519,6 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports._test = {
-  adjustmentLocal, chunks, pagedRows, period, periodPackage, publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid,
+  adjustmentLocal, berlinDate, berlinMonthKey, berlinPeriodBounds, chunks, pagedRows, period, periodPackage,
+  publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid,
 };
