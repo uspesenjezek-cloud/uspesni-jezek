@@ -67,6 +67,10 @@ const profileReconfirmationMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_profile_reconfirmation\.sql$/.test(name)).sort().pop()
   : null;
 const profileReconfirmationMigration = profileReconfirmationMigrationName ? fs.readFileSync(path.join(migrationsDir, profileReconfirmationMigrationName), "utf8") : "";
+const invoicePartyValidationMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_party_validation\.sql$/.test(name)).sort().pop()
+  : null;
+const invoicePartyValidationMigration = invoicePartyValidationMigrationName ? fs.readFileSync(path.join(migrationsDir, invoicePartyValidationMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -618,6 +622,7 @@ assert.strictEqual(dbProfile.legal_name, "Muster Handwerk GmbH");
 assert.strictEqual(dbProfile.user_id, "11111111-1111-4111-8111-111111111111");
 assert.strictEqual(dbProfile.previous_year_turnover_band, "gt_800k");
 assert.strictEqual(Core.profileToDatabase(Object.assign({}, profile, { vatId: "de-123 456 789" }), "user-1").vat_id, "DE123456789");
+assert.strictEqual(Core.draftToDatabasePayload(Object.assign(Core.defaultDraft(profile), { customerVatId: "de-123 456 789" })).customer_vat_id, "DE123456789");
 assert.strictEqual(dbProfile.business_phone, "+49 30 1234567");
 assert.strictEqual(Object.keys(dbProfile).some((key) => /^(?:next_.*_sequence|created_at|updated_at)$/.test(key)), false);
 assert.strictEqual(dbProfile.datev_settings.adviserNumber, "29098");
@@ -784,6 +789,12 @@ assert.match(profileReconfirmationMigration, /if old\.legal_confirmed and/i);
 assert.match(profileReconfirmationMigration, /new\.iban is distinct from old\.iban/i);
 assert.match(profileReconfirmationMigration, /new\.legal_confirmed := false/i);
 assert.match(profileReconfirmationMigration, /create trigger pos_business_profiles_reset_confirmation[\s\S]*before update on public\.pos_business_profiles/i);
+assert.ok(invoicePartyValidationMigrationName, "Manjka strežniška validacija prejemnika računa.");
+assert.match(invoicePartyValidationMigration, /customer_postal_code[\s\S]*'\^\[0-9\]\{5\}\$'/i);
+assert.match(invoicePartyValidationMigration, /customer_email[\s\S]*\^\[\^\[:space:\]@\]\+@/i);
+assert.match(invoicePartyValidationMigration, /tax_mode[\s\S]*reverse_charge[\s\S]*v_vat_id = ''/i);
+assert.match(invoicePartyValidationMigration, /private\.pos_validate_invoice_payload\([\s\S]*private\.pos_validate_invoice_party_fields\(/i);
+assert.match(invoicePartyValidationMigration, /revoke all on function private\.pos_validate_invoice_party_fields\(jsonb\)[\s\S]*authenticated/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);

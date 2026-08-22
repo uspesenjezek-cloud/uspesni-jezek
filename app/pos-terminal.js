@@ -318,7 +318,7 @@
       customer_street: String(draft.customerStreet || "").trim(),
       customer_postal_code: String(draft.customerPostalCode || "").trim(),
       customer_city: String(draft.customerCity || "").trim(),
-      customer_vat_id: String(draft.customerVatId || "").trim(),
+      customer_vat_id: cleanVatId(draft.customerVatId),
       customer_contact: String(draft.customerContact || "").trim(),
       customer_email: String(draft.customerEmail || "").trim(),
       customer_phone: String(draft.customerPhone || "").trim(),
