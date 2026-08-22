@@ -74,10 +74,12 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (url && !process.env.SUPABASE_URL) process.env.SUPABASE_URL = url[1];
       if (anonKey && !process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = anonKey[1];
     }
-    if (!process.env.OPENREGISTER_API_KEY || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
+    if (!process.env.OPENREGISTER_API_KEY || !process.env.APIFY_API_TOKEN || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
       const okolje = fs.readFileSync(path.join(root, ".env.local"), "utf8");
       const openregister = okolje.match(/^\s*OPENREGISTER_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openregister && !process.env.OPENREGISTER_API_KEY) process.env.OPENREGISTER_API_KEY = openregister[1].trim();
+      const apify = okolje.match(/^\s*APIFY_API_TOKEN\s*=\s*["']?([^\r\n"']+)/m);
+      if (apify && !process.env.APIFY_API_TOKEN) process.env.APIFY_API_TOKEN = apify[1].trim();
       const anthropic = okolje.match(/^\s*ANTHROPIC_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (anthropic && !process.env.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = anthropic[1].trim();
       const serviceRole = okolje.match(/^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^\r\n"']+)/m);

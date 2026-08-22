@@ -3,6 +3,7 @@ var sentry = require("../_lib/sentry");
 
 var db = require("../_lib/supabase-server");
 var identityEvidenceContract = require("../_lib/identity-evidence");
+var northDataClient = require("../_lib/apify-northdata-client");
 var dns = require("node:dns").promises;
 var net = require("node:net");
 var fs = require("node:fs");
@@ -2192,6 +2193,7 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
       registerNumber: [podjetje.register_type, podjetje.register_number].filter(Boolean).join(" "),
       registerCourt: podjetje.register_court || "",
       registerCourtSource: "openregister_verified",
+      incorporatedAt: podjetje.incorporation_date || podjetje.incorporated_at || "",
       active: podjetje.active !== false,
       source: "openregister",
       openRegisterIdentity: {
@@ -2204,6 +2206,7 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
         legalForm: podjetje.legal_form || "",
         registerNumber: [podjetje.register_type, podjetje.register_number].filter(Boolean).join(" "),
         registerCourt: podjetje.register_court || "",
+        incorporatedAt: podjetje.incorporation_date || podjetje.incorporated_at || "",
       },
     };
     var dopolnitev = preveriImpressumDopolnitevRegistriranegaTrgovca(openregister, javniProfil);
@@ -4453,7 +4456,15 @@ async function handler(req, res) {
     if (identiteta.status === "unresolved" && popolnRocniVnos) {
       identiteta = sestaviRocnoIdentiteto(vnos) || identiteta;
     }
+    var northData = {
+      status: "skipped",
+      reason: "user_confirmation_required",
+      source: "northdata_apify",
+      sourceLabel: "North Data prek Apify",
+      sourceUrl: northDataClient.NORTH_DATA_ROOT,
+    };
     var viri = sestaviVire(openregister, hwk, javniProfil, vnos);
+    viri.push(northDataClient.sourceEntry(northData));
     if (identiteta.status === "unresolved") {
       return odgovorJson(res, 200, {
         ok: true,
@@ -4462,6 +4473,7 @@ async function handler(req, res) {
         identity: identiteta,
         sources: viri,
         openregister: openregister,
+        northData: northData,
         hwk: hwk,
         publicProfile: javniProfil,
         identityEvidence: { status: "not_captured", reason: "identity_not_resolved" },
@@ -4484,6 +4496,7 @@ async function handler(req, res) {
         identityEvidence: { status: "unavailable", reason: "user_input_is_not_evidence" },
         sources: viri,
         openregister: openregister,
+        northData: northData,
         hwk: hwk,
         publicProfile: javniProfil,
         insolvency: brezPreverljivegaVira,
@@ -4515,6 +4528,7 @@ async function handler(req, res) {
         },
         sources: viri,
         openregister: openregister,
+        northData: northData,
         hwk: hwk,
         publicProfile: javniProfil,
         insolvency: nepreverjenaInsolvenca,
@@ -4568,6 +4582,7 @@ async function handler(req, res) {
         impressumEvidence: dokaziloImpressumaOdgovor,
         sources: viri,
         openregister: openregister,
+        northData: northData,
         hwk: hwk,
         publicProfile: javniProfil,
         insolvency: cakaNaPotrditev,
@@ -4587,16 +4602,21 @@ async function handler(req, res) {
       missingFields: [],
       mismatchedFields: [],
     };
-    var insolvenca;
-    try {
-      insolvenca = await preveriInsolvenco(
+    var northDataPromise = northDataClient.enrichVerifiedIdentity(openregister, identiteta);
+    var insolvencaPromise = preveriInsolvenco(
         pripraviIdentitetoZaInsolvencnoPoizvedbo(identiteta),
         { uporabiOpenRegister: openregisterIdentitetaVklopljena }
-      );
-    } catch (insolventnaNapaka) {
+      ).catch(function (insolventnaNapaka) {
       console.error("[mehka-boniteta:insolvency]", insolventnaNapaka.message);
-      insolvenca = { status: "unavailable", reason: "unexpected_error", sourceUrl: INSOLVENCY_PORTAL };
-    }
+      return { status: "unavailable", reason: "unexpected_error", sourceUrl: INSOLVENCY_PORTAL };
+    });
+    var vzporedniRezultati = await Promise.all([northDataPromise, insolvencaPromise]);
+    var northDataObogatitev = vzporedniRezultati[0];
+    identiteta = northDataObogatitev.identity;
+    northData = northDataObogatitev.northData;
+    viri = viri.filter(function (vir) { return vir.id !== "northdata"; });
+    viri.push(northDataObogatitev.source);
+    var insolvenca = vzporedniRezultati[1];
     return odgovorJson(res, 200, {
       ok: true,
       checkedAt: new Date().toISOString(),
@@ -4608,6 +4628,7 @@ async function handler(req, res) {
       locationMatch: potrjenaLokacija,
       sources: viri,
       openregister: openregister,
+      northData: northData,
       hwk: hwk,
       publicProfile: javniProfil,
       insolvency: insolvenca,

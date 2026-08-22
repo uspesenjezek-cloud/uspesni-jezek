@@ -672,7 +672,13 @@
             address: { street: identiteta.naslov || "", postal_code: identiteta.postnaStevilka || "", city: identiteta.kraj || "" },
             contact: { website: vnosObRezultatu && vnosObRezultatu.spletnaStran || "" },
             checkedAt: podatki.checkedAt,
-            latestCheck: { result: podatki.result || {}, insolvency: podatki.insolvency || {}, identityStatus: identiteta.status, sources: podatki.sources || [] },
+            latestCheck: {
+              result: podatki.result || {},
+              insolvency: podatki.insolvency || {},
+              northData: podatki.northData || null,
+              identityStatus: identiteta.status,
+              sources: podatki.sources || [],
+            },
           },
         }),
       });
