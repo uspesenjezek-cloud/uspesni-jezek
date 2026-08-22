@@ -29,6 +29,20 @@ const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"
 const cfg = datev.configuration({ DATEV_MODE: "mock" });
 assert.strictEqual(cfg.mode, "mock");
 assert.throws(() => datev.configuration({ DATEV_MODE: "sandbox" }), /nastavitve še niso izdane/i);
+assert.throws(
+  () => datev.configuration({
+    DATEV_MODE: "production",
+    DATEV_CLIENT_ID: "live-client",
+    DATEV_CLIENT_SECRET: "live-secret",
+    DATEV_REDIRECT_URI: "https://uspesni-jezek.vercel.app/api/pos-datev?action=callback",
+    DATEV_TOKEN_ENCRYPTION_KEY: "x".repeat(32),
+  }),
+  function (error) { return error && error.code === "DATEV_PRODUCTION_LOCKED" && error.status === 409; }
+);
+assert.throws(
+  () => datev.urls("production"),
+  function (error) { return error && error.code === "DATEV_PRODUCTION_LOCKED"; }
+);
 const state = datev.sealState(cfg, { userId: "11111111-1111-4111-8111-111111111111", verifier: "secret" });
 assert.strictEqual(datev.openState(cfg, state).verifier, "secret");
 assert.throws(() => datev.openState(cfg, state.slice(0, -2) + "aa"), /ni veljavna/i);

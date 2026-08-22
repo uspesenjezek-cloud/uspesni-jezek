@@ -39,6 +39,12 @@ function secretKey(value, required) {
 function configuration(env) {
   const source = env || process.env;
   const mode = environment(source.DATEV_MODE);
+  if (mode === "production") {
+    throw new DatevError("Produkcijski DATEV prenos še ni omogočen.", {
+      code: "DATEV_PRODUCTION_LOCKED",
+      status: 409,
+    });
+  }
   const required = mode !== "mock";
   const clientId = String(source.DATEV_CLIENT_ID || "").trim();
   const clientSecret = String(source.DATEV_CLIENT_SECRET || "");
@@ -58,6 +64,12 @@ function configuration(env) {
 }
 
 function urls(mode) {
+  if (environment(mode) === "production") {
+    throw new DatevError("Produkcijski DATEV prenos še ni omogočen.", {
+      code: "DATEV_PRODUCTION_LOCKED",
+      status: 409,
+    });
+  }
   const sandbox = mode !== "production";
   return {
     authorize: sandbox ? "https://login.datev.de/openidsandbox/authorize" : "https://login.datev.de/openid/authorize",
