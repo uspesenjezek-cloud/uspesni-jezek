@@ -24,6 +24,10 @@ const payloadLimitsMigrationName = fs.readdirSync(path.join(root, "supabase", "m
   .filter((name) => /pos_work_order_payload_limits\.sql$/.test(name)).sort().pop();
 assert.ok(payloadLimitsMigrationName, "Manjka zaščita payload-a ponudbe in delovnega naloga.");
 const payloadLimitsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", payloadLimitsMigrationName), "utf8");
+const complianceMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_work_order_party_tax_validation\.sql$/.test(name)).sort().pop();
+assert.ok(complianceMigrationName, "Manjka strežniška preverba pogodbenih in davčnih podatkov ponudbe.");
+const complianceMigration = fs.readFileSync(path.join(root, "supabase", "migrations", complianceMigrationName), "utf8");
 const lifecycleMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_work_order_lifecycle_invariants\.sql$/.test(name)).sort().pop();
 assert.ok(lifecycleMigrationName, "Manjkajo invariante življenjskega cikla ponudbe in naročila.");
@@ -73,6 +77,12 @@ assert.match(payloadLimitsMigration, /pos_work_orders_locked_payload_size_check[
 assert.match(payloadLimitsMigration, /create or replace function private\._pos_save_work_order_validated[\s\S]*security definer/i);
 assert.match(payloadLimitsMigration, /create or replace function public\.pos_save_work_order[\s\S]*security invoker[\s\S]*private\._pos_save_work_order_validated/i);
 assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_save_work_order\(uuid,jsonb\) from authenticated/i);
+assert.match(complianceMigration, /private\.pos_validate_invoice_party_fields[\s\S]*seller_contact_phone/i);
+assert.match(complianceMigration, /private\.pos_validate_invoice_payload/i);
+assert.match(complianceMigration, /private\.pos_validate_invoice_tax_evidence/i);
+assert.match(complianceMigration, /v_customer_type = 'public'[\s\S]*leitweg_id/i);
+assert.match(complianceMigration, /v_tax_mode = 'reverse_charge'[\s\S]*reverse_charge_confirmed/i);
+assert.match(complianceMigration, /revoke all on function private\.pos_validate_work_order_payload\(jsonb\)[\s\S]*from public, anon, authenticated/i);
 assert.match(lifecycleMigration, /pos_work_orders_lifecycle_check/i);
 assert.match(lifecycleMigration, /locked_payload is null or locked_payload = payload/i);
 assert.match(lifecycleMigration, /\(order_number is null\) = \(accepted_at is null\)/i);
