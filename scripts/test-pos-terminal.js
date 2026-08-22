@@ -83,6 +83,10 @@ const moneyInvariantsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_money_invariants\.sql$/.test(name)).sort().pop()
   : null;
 const moneyInvariantsMigration = moneyInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, moneyInvariantsMigrationName), "utf8") : "";
+const dateInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_date_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const dateInvariantsMigration = dateInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, dateInvariantsMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -814,6 +818,15 @@ assert.match(moneyInvariantsMigration, /tax_mode = 'regular' or tax_cents = 0/i)
 assert.match(moneyInvariantsMigration, /pos_invoice_adjustments_money_invariant_check[\s\S]*delta_gross_cents = delta_net_cents \+ delta_tax_cents/i);
 assert.match(moneyInvariantsMigration, /pos_payments_amount_upper_bound_check[\s\S]*100000000000/i);
 assert.match(moneyInvariantsMigration, /validate constraint pos_bank_transactions_amount_upper_bound_check/i);
+assert.ok(dateInvariantsMigrationName, "Manjkajo datumske invariante POS.");
+assert.match(dateInvariantsMigration, /due_date between issue_date and issue_date \+ 365/i);
+assert.match(dateInvariantsMigration, /is_test and document_status = 'test'/i);
+assert.match(dateInvariantsMigration, /not is_test and document_status = 'issued'/i);
+assert.match(dateInvariantsMigration, /valid_until between[\s\S]*Europe\/Berlin[\s\S]*\+ 180/i);
+assert.match(dateInvariantsMigration, /create trigger pos_invoices_live_issue_date_guard[\s\S]*before insert or update of issue_date, is_test/i);
+assert.match(dateInvariantsMigration, /not new\.is_test[\s\S]*Europe\/Berlin[\s\S]*pg_catalog\.now/i);
+assert.match(dateInvariantsMigration, /revoke all on function private\.pos_enforce_live_invoice_issue_date\(\) from public, anon, authenticated/i);
+assert.match(dateInvariantsMigration, /validate constraint pos_work_orders_validity_window_check/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
