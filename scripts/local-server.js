@@ -19,6 +19,7 @@ const mehkaBonitetaDelavecModul = require.resolve("../api/mehka-boniteta-delavec
 const bonitetaProModul = require.resolve("../api/boniteta-pro");
 const posRacunPdfModul = require.resolve("../api/pos-racun-pdf");
 const posRacunKorekcijaModul = require.resolve("../api/pos-racun-korekcija");
+const posRacunKorekcijaXrechnungModul = require.resolve("../api/_handlers/pos-racun-korekcija-xrechnung");
 const posRacunXrechnungModul = require.resolve("../api/pos-racun-xrechnung");
 const posDostavaSandboxModul = require.resolve("../api/pos-dostava-sandbox");
 const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
@@ -442,6 +443,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/pos-racun-xrechnung") {
     void izvediLokalniApi(req, res, posRacunXrechnungModul);
+    return;
+  }
+  if (pathname === "/api/pos-racun-korekcija-xrechnung") {
+    void izvediLokalniApi(req, res, posRacunKorekcijaXrechnungModul);
     return;
   }
   if (pathname === "/api/pos-dostava-sandbox") {

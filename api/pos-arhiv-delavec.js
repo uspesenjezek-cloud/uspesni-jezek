@@ -6,6 +6,7 @@ const archive = require("./_lib/pos-archive");
 const worm = require("./_lib/pos-worm-archive");
 const invoiceDocuments = require("./_handlers/pos-racun-pdf")._test;
 const adjustmentDocuments = require("./_handlers/pos-racun-korekcija")._test;
+const adjustmentEinvoiceDocuments = require("./_handlers/pos-racun-korekcija-xrechnung")._test;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
@@ -27,14 +28,16 @@ async function repairMissingDocuments(cfg, limit) {
       const table = candidate && candidate.source_table;
       const sourceId = candidate && candidate.source_id;
       const userId = candidate && candidate.user_id;
-      if (!sourceId || !userId || !["pos_invoices", "pos_invoice_adjustments"].includes(table)) {
+      if (!sourceId || !userId || !["pos_invoices", "pos_invoice_adjustments", "pos_invoice_adjustment_xrechnung"].includes(table)) {
         throw Object.assign(new Error("Neveljaven kandidat za obnovo dokumenta."), { code: "INVALID_REPAIR_CANDIDATE" });
       }
-      const rows = await supabase.pridobiVrstice(cfg, table,
+      const sourceTable = table === "pos_invoice_adjustment_xrechnung" ? "pos_invoice_adjustments" : table;
+      const rows = await supabase.pridobiVrstice(cfg, sourceTable,
         "id=eq." + encodeURIComponent(sourceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=*&limit=1");
       if (!rows[0]) throw Object.assign(new Error("Izvorni POS zapis ne obstaja."), { code: "REPAIR_SOURCE_MISSING" });
       if (table === "pos_invoices") await invoiceDocuments.ensureDocument(cfg, rows[0], userId);
-      else await adjustmentDocuments.ensureDocument(cfg, rows[0], userId);
+      else if (table === "pos_invoice_adjustments") await adjustmentDocuments.ensureDocument(cfg, rows[0], userId);
+      else await adjustmentEinvoiceDocuments.ensureDocument(cfg, rows[0], userId);
       counts.repaired += 1;
     } catch (error) {
       console.error("[pos-archive-document-repair]", worm.safeErrorCode(error));

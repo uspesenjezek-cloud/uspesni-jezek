@@ -1857,7 +1857,7 @@
     return result.data.id;
   }
 
-  function adjustmentFromServer(row, documentsByAdjustment) {
+  function adjustmentFromServer(row, documentsByAdjustment, einvoiceDocumentsByAdjustment) {
     return {
       id: row.id,
       number: row.adjustment_number,
@@ -1870,7 +1870,9 @@
       createdAt: row.issued_at,
       snapshot: row.snapshot || {},
       documentReady: Boolean(documentsByAdjustment && documentsByAdjustment[row.id]),
-      document: documentsByAdjustment && documentsByAdjustment[row.id] || null
+      document: documentsByAdjustment && documentsByAdjustment[row.id] || null,
+      einvoiceDocumentReady: Boolean(einvoiceDocumentsByAdjustment && einvoiceDocumentsByAdjustment[row.id]),
+      einvoiceDocument: einvoiceDocumentsByAdjustment && einvoiceDocumentsByAdjustment[row.id] || null
     };
   }
 
@@ -2073,9 +2075,10 @@
         fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_documents").select("id,work_order_id,offer_sha256,accepted_on,sha256,byte_size,generator_version,created_at").eq("user_id", userId).order("created_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_settlements").select("*").eq("user_id", userId).order("assessed_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_refund_records").select("*").eq("user_id", userId).order("recorded_at", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_refund_records").select("*").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_adjustment_einvoice_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("adjustment_id", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 22).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 23).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -2092,10 +2095,12 @@
       (responses[10].data || []).forEach(function (entry) { einvoiceDocumentsByInvoice[entry.invoice_id] = entry; });
       var documentsByAdjustment = {};
       (responses[6].data || []).forEach(function (entry) { documentsByAdjustment[entry.adjustment_id] = entry; });
+      var einvoiceDocumentsByAdjustment = {};
+      (responses[22].data || []).forEach(function (entry) { einvoiceDocumentsByAdjustment[entry.adjustment_id] = entry; });
       var adjustmentsByInvoice = {};
       (responses[5].data || []).forEach(function (row) {
         if (!adjustmentsByInvoice[row.original_invoice_id]) adjustmentsByInvoice[row.original_invoice_id] = [];
-        adjustmentsByInvoice[row.original_invoice_id].push(adjustmentFromServer(row, documentsByAdjustment));
+        adjustmentsByInvoice[row.original_invoice_id].push(adjustmentFromServer(row, documentsByAdjustment, einvoiceDocumentsByAdjustment));
       });
       var eventsByDelivery = {};
       (responses[9].data || []).forEach(function (row) {
@@ -3144,7 +3149,10 @@
       var financial = cancellation || creditNote;
       var title = cancellation ? "Stornorechnung" : creditNote ? "Gutschrift" : "Rechnungsberichtigung";
       var stateCopy = entry.documentReady ? "PDF" : "Pripravi PDF";
-      return "<article class=\"pos-adjustment-row " + (financial ? "is-cancellation" : "") + (creditNote ? " is-credit-note" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : creditNote ? "i-receipt" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + entry.reason) + "</small></div><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button></article>";
+      var structured = !creditNote && (invoice.draft.customerType === "business" || invoice.draft.customerType === "public");
+      var einvoiceStatus = entry.einvoiceDocument && (entry.einvoiceDocument.validation_status || entry.einvoiceDocument.validationStatus) || "pending";
+      var xmlCopy = entry.einvoiceDocumentReady && einvoiceStatus === "validated" ? "XML" : "Pripravi XML";
+      return "<article class=\"pos-adjustment-row " + (financial ? "is-cancellation" : "") + (creditNote ? " is-credit-note" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : creditNote ? "i-receipt" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + entry.reason) + "</small></div><div class=\"pos-adjustment-row__actions\"><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button>" + (structured ? "<button type=\"button\" data-download-adjustment-xrechnung=\"" + escapeHtml(entry.id) + "\">" + xmlCopy + "</button>" : "") + "</div></article>";
     }
     queryAll("[data-download-adjustment]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -3154,6 +3162,17 @@
         button.textContent = "Preverjam …";
         try { await downloadAdjustmentPdf(entry); button.textContent = "PDF"; showToast("Arhivirani računovodski dokument je prenesen."); }
         catch (error) { button.textContent = "Poskusi znova"; showToast(error.message || "Popravka ni bilo mogoče prenesti."); }
+        finally { button.disabled = false; }
+      });
+    });
+    queryAll("[data-download-adjustment-xrechnung]", list).forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var entry = downloadable.filter(function (item) { return item.id === button.getAttribute("data-download-adjustment-xrechnung"); })[0];
+        if (!entry) return;
+        button.disabled = true;
+        button.textContent = "KoSIT …";
+        try { await downloadAdjustmentEinvoice(entry); button.textContent = "XML"; showToast("Arhivirani strukturirani popravek je prenesen."); }
+        catch (error) { button.textContent = "Poskusi znova"; showToast(error.message || "Strukturiranega popravka ni bilo mogoče prenesti."); }
         finally { button.disabled = false; }
       });
     });
@@ -4685,6 +4704,39 @@
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  async function adjustmentEinvoiceRequest(adjustmentId, mode) {
+    var token = await apiSessionToken();
+    var response = await fetch("/api/pos-racun-korekcija-xrechnung?adjustmentId=" + encodeURIComponent(adjustmentId) + "&mode=" + encodeURIComponent(mode || "download"), {
+      method: mode === "download" ? "GET" : "POST", headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) {
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      throw new Error(body && body.napaka || "Strukturiranega popravka ni bilo mogoče pripraviti.");
+    }
+    return response;
+  }
+
+  async function downloadAdjustmentEinvoice(adjustment) {
+    var status = adjustment.einvoiceDocument && (adjustment.einvoiceDocument.validation_status || adjustment.einvoiceDocument.validationStatus) || "pending";
+    if (!adjustment.einvoiceDocumentReady || status !== "validated") {
+      var metadataResponse = await adjustmentEinvoiceRequest(adjustment.id, "validate");
+      var metadata = await metadataResponse.json();
+      adjustment.einvoiceDocumentReady = true;
+      adjustment.einvoiceDocument = metadata.document;
+      status = metadata.document && (metadata.document.validation_status || metadata.document.validationStatus) || "pending";
+      if (status === "failed") throw new Error(metadata.document.validationMessage || "KoSIT je strukturirani popravek zavrnil.");
+    }
+    var response = await adjustmentEinvoiceRequest(adjustment.id, "download");
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = adjustment.number.replace(/[^A-Za-z0-9._-]+/g, "-") + "-XRechnung.xml";
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
     global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   }
 

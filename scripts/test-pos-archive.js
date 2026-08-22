@@ -17,6 +17,10 @@ const userIntegrityMigration = fs.readFileSync(path.join(root, "supabase", "migr
 const integrityPriorityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223844_pos_archive_integrity_batch_priority.sql"), "utf8");
 const retentionDeletionMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822023000_pos_retention_safe_user_deletion.sql"), "utf8");
 const sourceInvariantsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822040000_pos_archive_source_invariants.sql"), "utf8");
+const adjustmentRepairMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_adjustment_xrechnung_archive_repair\.sql$/.test(name)).sort().pop();
+assert.ok(adjustmentRepairMigrationName, "Manjka obnova strukturiranih popravkov v arhivu.");
+const adjustmentRepairMigration = fs.readFileSync(path.join(root, "supabase", "migrations", adjustmentRepairMigrationName), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
@@ -100,6 +104,9 @@ assert.match(sourceInvariantsMigration, /new\.retention_basis <> 'UStG § 14b; A
 assert.match(sourceInvariantsMigration, /new\.encryption_scope <> 'provider_managed_at_rest'/i);
 assert.match(sourceInvariantsMigration, /revoke all on function private\.pos_validate_archive_record_source\(\) from public, anon, authenticated/i);
 assert.match(sourceInvariantsMigration, /validate constraint pos_archive_records_source_shape_check/i);
+assert.match(adjustmentRepairMigration, /'pos_invoice_adjustment_xrechnung'::text/i);
+assert.match(adjustmentRepairMigration, /exists\(select 1 from public\.pos_einvoice_documents/i);
+assert.match(adjustmentRepairMigration, /not exists\(select 1 from public\.pos_adjustment_einvoice_documents/i);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
@@ -145,7 +152,7 @@ assert.match(unavailableView.copyText, /varno zaklenjena/i);
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260822-financial-adjustment-guards-v32/);
+assert.match(html, /pos-terminal\.js\?v=20260822-adjustment-xrechnung-v33/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
@@ -277,34 +284,39 @@ async function testMissingDocumentRepair() {
   const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
   const invoiceDocuments = require(path.join(root, "api", "_handlers", "pos-racun-pdf"))._test;
   const adjustmentDocuments = require(path.join(root, "api", "_handlers", "pos-racun-korekcija"))._test;
+  const adjustmentEinvoiceDocuments = require(path.join(root, "api", "_handlers", "pos-racun-korekcija-xrechnung"))._test;
   const originalRpc = supabase.pokliciRpc;
   const originalRead = supabase.pridobiVrstice;
   const originalInvoiceEnsure = invoiceDocuments.ensureDocument;
   const originalAdjustmentEnsure = adjustmentDocuments.ensureDocument;
+  const originalAdjustmentEinvoiceEnsure = adjustmentEinvoiceDocuments.ensureDocument;
   const repaired = [];
   supabase.pokliciRpc = async function (_, name, payload) {
     assert.strictEqual(name, "pos_archive_missing_document_batch");
     assert.strictEqual(payload.p_limit, 2);
     return [
       { source_table: "pos_invoices", source_id: "invoice-1", user_id: "user-1" },
-      { source_table: "pos_invoice_adjustments", source_id: "adjustment-1", user_id: "user-1" }
+      { source_table: "pos_invoice_adjustments", source_id: "adjustment-1", user_id: "user-1" },
+      { source_table: "pos_invoice_adjustment_xrechnung", source_id: "adjustment-x-1", user_id: "user-1" }
     ];
   };
   supabase.pridobiVrstice = async function (_, table, query) {
     assert.match(query, /user_id=eq\.user-1/);
-    return [{ id: table === "pos_invoices" ? "invoice-1" : "adjustment-1" }];
+    return [{ id: /adjustment-x-1/.test(query) ? "adjustment-x-1" : table === "pos_invoices" ? "invoice-1" : "adjustment-1" }];
   };
   invoiceDocuments.ensureDocument = async function (_, row) { repaired.push("invoice:" + row.id); };
   adjustmentDocuments.ensureDocument = async function (_, row) { repaired.push("adjustment:" + row.id); };
+  adjustmentEinvoiceDocuments.ensureDocument = async function (_, row) { repaired.push("adjustment-xml:" + row.id); };
   try {
     const counts = await archiveWorker._test.repairMissingDocuments({}, 2);
-    assert.deepStrictEqual(counts, { repaired: 2, failed: 0 });
-    assert.deepStrictEqual(repaired, ["invoice:invoice-1", "adjustment:adjustment-1"]);
+    assert.deepStrictEqual(counts, { repaired: 3, failed: 0 });
+    assert.deepStrictEqual(repaired, ["invoice:invoice-1", "adjustment:adjustment-1", "adjustment-xml:adjustment-x-1"]);
   } finally {
     supabase.pokliciRpc = originalRpc;
     supabase.pridobiVrstice = originalRead;
     invoiceDocuments.ensureDocument = originalInvoiceEnsure;
     adjustmentDocuments.ensureDocument = originalAdjustmentEnsure;
+    adjustmentEinvoiceDocuments.ensureDocument = originalAdjustmentEinvoiceEnsure;
   }
 }
 

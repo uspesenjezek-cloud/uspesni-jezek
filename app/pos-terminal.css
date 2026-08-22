@@ -1015,6 +1015,7 @@
 .pos-adjustment-row__copy strong, .pos-adjustment-row__copy small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pos-adjustment-row__copy strong { font-size: .68rem; }
 .pos-adjustment-row__copy small { margin-top: 2px; color: var(--pos-muted); font-size: .57rem; }
+.pos-adjustment-row__actions { display: grid; min-width: 68px; gap: 4px; }
 .pos-adjustment-row button { min-width: 68px; min-height: 34px; padding: 6px 8px; color: var(--pos-teal-dark); border: 1px solid #bcd8d2; border-radius: 10px; background: #f5faf9; font-size: .58rem; font-weight: 700; cursor: pointer; }
 .pos-adjustment-row button:disabled { opacity: .55; cursor: wait; }
 .pos-replacement-action { display: grid; margin-top: 9px; padding: 10px; gap: 9px; border: 1px solid #b8dcd6; border-radius: 14px; background: linear-gradient(145deg, #edf9f6, #fff); }

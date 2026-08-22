@@ -10,12 +10,20 @@ const adjustmentGenerator = require(path.join(repoRoot, "api", "_lib", "pos-adju
 const providerJson = require(path.join(repoRoot, "api", "_lib", "provider-json"));
 const xrechnungHandler = require(path.join(repoRoot, "api", "pos-racun-xrechnung"))._test;
 const api = fs.readFileSync(path.join(repoRoot, "api", "_handlers", "pos-racun-xrechnung.js"), "utf8");
+const adjustmentApi = fs.readFileSync(path.join(repoRoot, "api", "_handlers", "pos-racun-korekcija-xrechnung.js"), "utf8");
 const migration = fs.readFileSync(path.join(repoRoot, "supabase", "migrations", "20260819151900_pos_xrechnung_documents.sql"), "utf8");
+const adjustmentMigrationName = fs.readdirSync(path.join(repoRoot, "supabase", "migrations"))
+  .filter((name) => /pos_adjustment_xrechnung_documents\.sql$/.test(name)).sort().pop();
+assert.ok(adjustmentMigrationName, "Manjka migracija strukturiranih popravkov.");
+const adjustmentMigration = fs.readFileSync(path.join(repoRoot, "supabase", "migrations", adjustmentMigrationName), "utf8");
 const dockerfile = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "Dockerfile.vercel"), "utf8");
 const proxy = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "proxy.go"), "utf8");
 const startup = fs.readFileSync(path.join(repoRoot, "services", "kosit-validator", "start.sh"), "utf8");
 const terminalHtml = fs.readFileSync(path.join(repoRoot, "app", "pos-terminal.html"), "utf8");
 const terminalJs = fs.readFileSync(path.join(repoRoot, "app", "pos-terminal.js"), "utf8");
+const posRouter = fs.readFileSync(path.join(repoRoot, "api", "pos.js"), "utf8");
+const vercel = fs.readFileSync(path.join(repoRoot, "vercel.json"), "utf8");
+const localServer = fs.readFileSync(path.join(repoRoot, "scripts", "local-server.js"), "utf8");
 
 function invoice(overrides) {
   const base = {
@@ -213,8 +221,28 @@ assert.match(api, /providerJson\.readBuffer\(response,[\s\S]*MAX_XML_BYTES/);
 assert.match(api, /POS_XRECHNUNG_ORIGINAL_TOO_LARGE/);
 assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
 assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
-assert.match(terminalHtml, /pos-terminal\.js\?v=20260822-financial-adjustment-guards-v32/);
+assert.match(terminalHtml, /pos-terminal\.js\?v=20260822-adjustment-xrechnung-v33/);
 assert.match(terminalJs, /validationMessage/);
+assert.match(terminalJs, /pos_adjustment_einvoice_documents/);
+assert.match(terminalJs, /data-download-adjustment-xrechnung/);
+assert.match(terminalJs, /\/api\/pos-racun-korekcija-xrechnung\?adjustmentId=/);
+assert.match(adjustmentApi, /preveriUporabnika\(req, cfg\)/);
+assert.match(adjustmentApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
+assert.match(adjustmentApi, /"x-upsert": "false"/);
+assert.match(adjustmentApi, /sha256\(xml\) !== document\.sha256/);
+assert.match(adjustmentApi, /validateWithKosit/);
+assert.match(adjustmentApi, /Cache-Control", "private, no-store, max-age=0"/);
+assert.match(adjustmentMigration, /create table public\.pos_adjustment_einvoice_documents/i);
+assert.match(adjustmentMigration, /create table public\.pos_adjustment_einvoice_validation_events/i);
+assert.match(adjustmentMigration, /alter table public\.pos_adjustment_einvoice_documents enable row level security/i);
+assert.match(adjustmentMigration, /revoke all on table[\s\S]*pos_adjustment_einvoice_documents[\s\S]*from public,anon,authenticated/i);
+assert.match(adjustmentMigration, /using \(\(select auth\.uid\(\)\) is not null and \(select auth\.uid\(\)\) = user_id\)/i);
+assert.match(adjustmentMigration, /pos_adjustment_einvoice_documents_protected/i);
+assert.match(adjustmentMigration, /source_table='pos_adjustment_einvoice_documents'[\s\S]*storage_bucket='pos-einvoice-originals'/i);
+assert.match(adjustmentMigration, /make_date\(extract\(year from \(a\.issued_at at time zone 'Europe\/Berlin'\)\)::integer\+8,12,31\)/i);
+assert.match(posRouter, /"adjustment-xrechnung": require\("\.\/_handlers\/pos-racun-korekcija-xrechnung"\)/);
+assert.match(vercel, /\/api\/pos-racun-korekcija-xrechnung[\s\S]*handler=adjustment-xrechnung/);
+assert.match(localServer, /pathname === "\/api\/pos-racun-korekcija-xrechnung"[\s\S]*posRacunKorekcijaXrechnungModul/);
 
 void (async function verifyBoundedKositResponse() {
   assert.strictEqual(await providerJson.readText(new Response("bericht"), { maxBytes: 1024 }), "bericht");
