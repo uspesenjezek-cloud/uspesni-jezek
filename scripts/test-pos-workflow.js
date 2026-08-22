@@ -32,6 +32,10 @@ const lifecycleMigrationName = fs.readdirSync(path.join(root, "supabase", "migra
   .filter((name) => /pos_work_order_lifecycle_invariants\.sql$/.test(name)).sort().pop();
 assert.ok(lifecycleMigrationName, "Manjkajo invariante življenjskega cikla ponudbe in naročila.");
 const lifecycleMigration = fs.readFileSync(path.join(root, "supabase", "migrations", lifecycleMigrationName), "utf8");
+const sellerLockConsistencyMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_offer_seller_lock_consistency\.sql$/.test(name)).sort().pop();
+assert.ok(sellerLockConsistencyMigrationName, "Manjka usklajen zaklep pravnih podatkov ponudbe.");
+const sellerLockConsistencyMigration = fs.readFileSync(path.join(root, "supabase", "migrations", sellerLockConsistencyMigrationName), "utf8");
 const Core = require(path.join(root, "app", "pos-terminal.js"));
 
 assert.match(html, /data-new-offer/);
@@ -90,6 +94,9 @@ assert.match(lifecycleMigration, /accepted_at is null or accepted_at >= offered_
 assert.match(lifecycleMigration, /when 'invoiced' then[\s\S]*completed_at is not null and cancelled_at is null/i);
 assert.match(lifecycleMigration, /when 'cancelled' then[\s\S]*cancelled_at is not null/i);
 assert.match(lifecycleMigration, /validate constraint pos_work_orders_lifecycle_check/i);
+assert.match(sellerLockConsistencyMigration, /new\.payload := jsonb_set\(new\.payload, '\{seller\}', v_seller, true\)/i);
+assert.match(sellerLockConsistencyMigration, /new\.locked_payload := new\.payload/i);
+assert.match(sellerLockConsistencyMigration, /not v_profile\.legal_confirmed/i);
 
 const profile = Core.defaultProfile();
 profile.taxStatus = "regular";
