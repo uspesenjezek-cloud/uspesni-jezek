@@ -12,6 +12,7 @@ const webhook = require(path.join(root, "api", "_handlers", "pos-stripe-webhook"
 const posCore = require(path.join(root, "app", "pos-terminal.js"));
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260820204343_stripe_sandbox_invoice_payments.sql"), "utf8");
 const monotonicRefundMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821230949_pos_stripe_refunds_monotonic.sql"), "utf8");
+const paymentEventInvariantsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822054500_pos_payment_event_invariants.sql"), "utf8");
 const router = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
@@ -122,6 +123,15 @@ assert.match(monotonicRefundMigration, /new\.refunded_cents < old\.refunded_cent
 assert.match(monotonicRefundMigration, /new\.refunded_cents = new\.amount_cents[\s\S]*new\.status := 'refunded'/i);
 assert.match(monotonicRefundMigration, /create trigger pos_payments_refund_monotonic[\s\S]*before update on public\.pos_payments/i);
 assert.match(monotonicRefundMigration, /revoke all on function private\.pos_preserve_refund_progress\(\) from public, anon, authenticated/i);
+assert.match(paymentEventInvariantsMigration, /pos_payment_events_source_shape_check/i);
+assert.match(paymentEventInvariantsMigration, /external_event_id ~ '\^evt_\[A-Za-z0-9_\]\+\$'/i);
+assert.match(paymentEventInvariantsMigration, /event_created_at <= processed_at \+ interval '5 minutes'/i);
+assert.match(paymentEventInvariantsMigration, /summary->'test_mode' = 'true'::jsonb/i);
+assert.match(paymentEventInvariantsMigration, /v_payment\.provider is distinct from 'stripe'/i);
+assert.match(paymentEventInvariantsMigration, /v_payment\.method is distinct from 'stripe_card'/i);
+assert.match(paymentEventInvariantsMigration, /new\.event_created_at < v_payment\.created_at - interval '5 minutes'/i);
+assert.match(paymentEventInvariantsMigration, /create trigger pos_payment_events_validate_source[\s\S]*before insert on public\.pos_payment_events/i);
+assert.match(paymentEventInvariantsMigration, /validate constraint pos_payment_events_source_shape_check/i);
 assert.match(router, /"stripe-checkout": require\("\.\/_handlers\/pos-stripe-checkout"\)/);
 assert.match(router, /"stripe-webhook": require\("\.\/_handlers\/pos-stripe-webhook"\)/);
 assert.match(fs.readFileSync(path.join(root, "api", "_handlers", "pos-stripe-checkout.js"), "utf8"), /stripe\.refunds\.create/);

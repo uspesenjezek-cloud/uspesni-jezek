@@ -55,6 +55,10 @@ const adjustmentSourceMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_source_invariants\.sql$/.test(name)).sort().pop()
   : null;
 const adjustmentSourceMigration = adjustmentSourceMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentSourceMigrationName), "utf8") : "";
+const adjustmentNullGuardsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_null_guards\.sql$/.test(name)).sort().pop()
+  : null;
+const adjustmentNullGuardsMigration = adjustmentNullGuardsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentNullGuardsMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -744,6 +748,12 @@ assert.match(adjustmentSourceMigration, /new\.delta_gross_cents <> -v_invoice\.g
 assert.match(adjustmentSourceMigration, /new\.changes \? 'due_date'[\s\S]*v_invoice\.issue_date \+ 365/i);
 assert.match(adjustmentSourceMigration, /create trigger pos_invoice_adjustments_validate_source[\s\S]*before insert on public\.pos_invoice_adjustments/i);
 assert.match(adjustmentSourceMigration, /validate constraint pos_invoice_adjustments_kind_shape_check/i);
+assert.ok(adjustmentNullGuardsMigrationName, "Manjkajo NULL-varovalke izvora popravkov.");
+assert.match(adjustmentNullGuardsMigration, /perform private\.pos_validate_adjustment_changes\(/i);
+assert.strictEqual((adjustmentNullGuardsMigration.match(/is distinct from/gi) || []).length, 9);
+assert.match(adjustmentNullGuardsMigration, /snapshot #>> '\{original_invoice,id\}' is distinct from v_invoice\.id::text/i);
+assert.match(adjustmentNullGuardsMigration, /snapshot #>> '\{original_invoice,gross_cents\}'\)::bigint is distinct from v_invoice\.gross_cents/i);
+assert.match(adjustmentNullGuardsMigration, /revoke all on function private\.pos_validate_adjustment_source\(\) from public, anon, authenticated/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
