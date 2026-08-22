@@ -651,17 +651,9 @@ const duplicateDocumentExport = Core.buildDatevExport([
   Object.assign({}, datevInvoice, { id: "datev-duplicate-b", number: "RE 1" })
 ], datevSettings, "2026-08", new Date("2026-08-20T09:00:00Z"));
 assert.ok(duplicateDocumentExport.errors.some((message) => /enak DATEV ključ/.test(message)));
-const xml = Core.buildXRechnungXml(invoice, profile);
-assert.match(xml, /xrechnung_3\.0/);
-assert.match(xml, /<cbc:InvoiceTypeCode>380<\/cbc:InvoiceTypeCode>/);
-assert.match(xml, /<cbc:PayableAmount currencyID="EUR">119\.00<\/cbc:PayableAmount>/);
-const alreadyPaidDraft = JSON.parse(JSON.stringify(draft));
-alreadyPaidDraft.paymentMethod = "already_paid";
-const alreadyPaidClientXml = Core.buildXRechnungXml(Object.assign({}, invoice, { draft: alreadyPaidDraft, totals: Core.calculateTotals(alreadyPaidDraft) }), profile);
-assert.match(alreadyPaidClientXml, /<cbc:PaymentMeansCode name="Bereits bezahlt">1<\/cbc:PaymentMeansCode>/);
-assert.match(alreadyPaidClientXml, /<cbc:PrepaidAmount currencyID="EUR">119\.00<\/cbc:PrepaidAmount>/);
-assert.match(alreadyPaidClientXml, /<cbc:PayableAmount currencyID="EUR">0\.00<\/cbc:PayableAmount>/);
-assert.match(xml, /Muster Handwerk GmbH/);
+assert.strictEqual(Core.buildXRechnungXml, undefined, "XRechnung sme nastati samo iz zaklenjenega računa na strežniku.");
+assert.doesNotMatch(js, /function buildXRechnungXml\(/);
+assert.match(js, /Točen XRechnung nastane iz zaklenjenih podatkov po izdaji/);
 
 const epc = Core.buildEpcPayload(invoice, profile);
 assert.match(epc, /^BCD\n002\n1\nSCT\n/);

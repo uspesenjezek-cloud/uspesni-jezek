@@ -87,15 +87,6 @@
       .replace(/'/g, "&#039;");
   }
 
-  function escapeXml(value) {
-    return String(value == null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
-  }
-
   function uid(prefix) {
     if (global.crypto && typeof global.crypto.randomUUID === "function") return prefix + "-" + global.crypto.randomUUID();
     return prefix + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
@@ -1109,66 +1100,6 @@
     return ["BCD", "002", "1", "SCT", "", profile.accountHolder || profile.legalName, iban, "EUR" + amount, "", "", invoice.number, ""].join("\n");
   }
 
-  function buildXRechnungXml(invoice, profile) {
-    var draft = invoice.draft;
-    var totals = invoice.totals;
-    var exemption = taxNote(draft);
-    var supplierTaxScheme = draft.taxMode === "regular" ? "VAT" : "OTH";
-    var buyerReference = draft.buyerReference || draft.leitwegId;
-    var deductions = totals.deductions || [];
-    var serviceNetCents = totals.serviceNetCents == null ? totals.netCents : totals.serviceNetCents;
-    var serviceTaxCents = totals.serviceTaxCents == null ? totals.taxCents : totals.serviceTaxCents;
-    var serviceGrossCents = totals.serviceGrossCents == null ? totals.grossCents : totals.serviceGrossCents;
-    var deductionGrossCents = totals.deductionGrossCents || 0;
-    var paymentMethod = draft.paymentMethod || "sepa";
-    var paymentCode = paymentMethod === "sepa" ? "58" : "1";
-    var paymentName = paymentMethod === "already_paid" ? "Bereits bezahlt" : paymentMethod === "card_external" ? "Externes Kartenterminal" : "SEPA-Überweisung";
-    var paymentAccount = paymentMethod === "sepa" ? "<cac:PayeeFinancialAccount><cbc:ID>" + escapeXml(cleanIban(profile.iban)) + "</cbc:ID><cbc:Name>" + escapeXml(profile.accountHolder || profile.legalName) + "</cbc:Name></cac:PayeeFinancialAccount>" : "";
-    var prepaidCents = paymentMethod === "already_paid" ? serviceGrossCents : deductionGrossCents;
-    var payableCents = paymentMethod === "already_paid" ? 0 : totals.grossCents;
-    if (!buyerReference || !profile.businessEmail || !draft.customerEmail) throw new Error("XRechnung nima vseh obveznih elektronskih naslovov in Buyer reference.");
-    var lines = draft.items.map(function (item, index) {
-      var calc = calculateItem(item, draft.priceMode, draft.taxMode);
-      var unitCode = item.unit === "Std." ? "HUR" : item.unit === "m²" ? "MTK" : item.unit === "Stk." ? "C62" : "C62";
-      return [
-        "  <cac:InvoiceLine>",
-        "    <cbc:ID>" + (index + 1) + "</cbc:ID>",
-        "    <cbc:InvoicedQuantity unitCode=\"" + unitCode + "\">" + (calc.quantityMilli / 1000).toFixed(3) + "</cbc:InvoicedQuantity>",
-        "    <cbc:LineExtensionAmount currencyID=\"EUR\">" + (calc.netCents / 100).toFixed(2) + "</cbc:LineExtensionAmount>",
-        "    <cac:Item><cbc:Name>" + escapeXml(item.description) + "</cbc:Name><cac:ClassifiedTaxCategory><cbc:ID>" + (draft.taxMode === "regular" ? "S" : "E") + "</cbc:ID><cbc:Percent>" + (calc.rateBps / 100).toFixed(2) + "</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:ClassifiedTaxCategory></cac:Item>",
-        "    <cac:Price><cbc:PriceAmount currencyID=\"EUR\">" + (calc.netCents / Math.max(1, calc.quantityMilli) * 10).toFixed(4) + "</cbc:PriceAmount></cac:Price>",
-        "  </cac:InvoiceLine>"
-      ].join("\n");
-    }).join("\n");
-    var taxSubtotals = Object.keys(totals.byRate).map(function (key) {
-      var rate = totals.byRate[key];
-      return "<cac:TaxSubtotal><cbc:TaxableAmount currencyID=\"EUR\">" + (rate.netCents / 100).toFixed(2) + "</cbc:TaxableAmount><cbc:TaxAmount currencyID=\"EUR\">" + (rate.taxCents / 100).toFixed(2) + "</cbc:TaxAmount><cac:TaxCategory><cbc:ID>" + (draft.taxMode === "regular" ? "S" : "E") + "</cbc:ID><cbc:Percent>" + (rate.rateBps / 100).toFixed(2) + "</cbc:Percent>" + (exemption ? "<cbc:TaxExemptionReason>" + escapeXml(exemption) + "</cbc:TaxExemptionReason>" : "") + "<cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory></cac:TaxSubtotal>";
-    }).join("");
-    var billingReferences = deductions.map(function (entry) { return "  <cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>" + escapeXml(entry.invoiceNumber || entry.invoiceId) + "</cbc:ID>" + (entry.issueDate ? "<cbc:IssueDate>" + escapeXml(entry.issueDate) + "</cbc:IssueDate>" : "") + "</cac:InvoiceDocumentReference></cac:BillingReference>"; }).join("\n");
-    return [
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
-      "<Invoice xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2\" xmlns:cac=\"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2\" xmlns:cbc=\"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2\">",
-      "  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0</cbc:CustomizationID>",
-      "  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>",
-      "  <cbc:ID>" + escapeXml(invoice.number) + "</cbc:ID>",
-      "  <cbc:IssueDate>" + escapeXml(draft.issueDate) + "</cbc:IssueDate>",
-      "  <cbc:DueDate>" + escapeXml(invoice.dueDate) + "</cbc:DueDate>",
-      "  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>",
-      deductions.length ? "  <cbc:Note>Vereinnahmte Abschlagszahlungen einschließlich Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.</cbc:Note>" : "",
-      "  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>",
-      "  <cbc:BuyerReference>" + escapeXml(buyerReference) + "</cbc:BuyerReference>",
-      billingReferences,
-      "  <cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(profile.businessEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(profile.street) + "</cbc:StreetName><cbc:CityName>" + escapeXml(profile.city) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(profile.postalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyTaxScheme><cbc:CompanyID>" + escapeXml(profile.vatId || profile.taxNumber) + "</cbc:CompanyID><cac:TaxScheme><cbc:ID>" + supplierTaxScheme + "</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(profile.legalName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingSupplierParty>",
-      "  <cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(draft.customerEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(draft.customerStreet) + "</cbc:StreetName><cbc:CityName>" + escapeXml(draft.customerCity) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(draft.customerPostalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(draft.customerName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>",
-      "  <cac:Delivery><cbc:ActualDeliveryDate>" + escapeXml(draft.serviceDate) + "</cbc:ActualDeliveryDate></cac:Delivery>",
-      "  <cac:PaymentMeans><cbc:PaymentMeansCode name=\"" + escapeXml(paymentName) + "\">" + paymentCode + "</cbc:PaymentMeansCode><cbc:PaymentID>" + escapeXml(invoice.number) + "</cbc:PaymentID>" + paymentAccount + "</cac:PaymentMeans>",
-      "  <cac:TaxTotal><cbc:TaxAmount currencyID=\"EUR\">" + (serviceTaxCents / 100).toFixed(2) + "</cbc:TaxAmount>" + taxSubtotals + "</cac:TaxTotal>",
-      "  <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID=\"EUR\">" + (serviceGrossCents / 100).toFixed(2) + "</cbc:TaxInclusiveAmount>" + (prepaidCents ? "<cbc:PrepaidAmount currencyID=\"EUR\">" + (prepaidCents / 100).toFixed(2) + "</cbc:PrepaidAmount>" : "") + "<cbc:PayableAmount currencyID=\"EUR\">" + (payableCents / 100).toFixed(2) + "</cbc:PayableAmount></cac:LegalMonetaryTotal>",
-      lines,
-      "</Invoice>"
-    ].join("\n");
-  }
-
   var DATEV_BOOKING_HEADERS = (function () {
     var headers = [
       "Umsatz (ohne Soll/Haben-Kz)", "Soll/Haben-Kennzeichen", "WKZ Umsatz", "Kurs", "Basis-Umsatz", "WKZ Basis-Umsatz", "Konto", "Gegenkonto (ohne BU-Schlüssel)", "BU-Schlüssel", "Belegdatum", "Belegfeld 1", "Belegfeld 2", "Skonto", "Buchungstext", "Postensperre", "Diverse Adressnummer", "Geschäftspartnerbank", "Sachverhalt", "Zinssperre", "Beleglink",
@@ -1500,7 +1431,6 @@
     validateStep: validateStep,
     propertyRetentionNotice: propertyRetentionNotice,
     buildEpcPayload: buildEpcPayload,
-    buildXRechnungXml: buildXRechnungXml,
     deliveryRecommendation: deliveryRecommendation,
     defaultDatevSettings: defaultDatevSettings,
     normalizeDatevSettings: normalizeDatevSettings,
