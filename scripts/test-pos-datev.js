@@ -13,6 +13,10 @@ const css = fs.readFileSync(path.join(root, "app", "pos-terminal.css"), "utf8");
 const browserJs = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-datev.js"), "utf8");
 const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
+const datevSettingsValidationMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_datev_settings_validation\.sql$/.test(name)).sort().pop();
+assert.ok(datevSettingsValidationMigrationName, "Manjka strežniška validacija DATEV nastavitev.");
+const datevSettingsValidationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", datevSettingsValidationMigrationName), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821123000_pos_datev_cloud_integration.sql"), "utf8");
 const mockIsolationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821124359_datev_mock_job_isolation.sql"), "utf8");
 const repeatableMockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821132323_datev_repeatable_mock_runs.sql"), "utf8");
@@ -104,6 +108,12 @@ assert.match(browserJs, /showToast\("DATEV nastavitve shranjujem …"\)/);
 assert.match(css, /\.pos-toast[\s\S]*?z-index:\s*2147483600/);
 assert.match(localServer, /posDatevModul = require\.resolve\("\.\.\/api\/_handlers\/pos-datev"\)/);
 assert.match(localServer, /pathname === "\/api\/pos-datev"/);
+assert.match(datevSettingsValidationMigration, /octet_length\(p_settings::text\) > 16384/i);
+assert.match(datevSettingsValidationMigration, /adviserNumber[\s\S]*\^\[0-9\]\{0,7\}\$/i);
+assert.match(datevSettingsValidationMigration, /clientNumber[\s\S]*\^\[0-9\]\{0,5\}\$/i);
+assert.match(datevSettingsValidationMigration, /pos_business_profiles_datev_settings_values_check[\s\S]*validate constraint pos_business_profiles_datev_settings_values_check/i);
+assert.match(datevSettingsValidationMigration, /immutable[\s\S]*set search_path = ''/i);
+assert.match(datevSettingsValidationMigration, /grant execute on function private\.pos_datev_settings_valid\(jsonb\) to authenticated, service_role/i);
 assert.match(localServer, /else void posredujZascitenApi\(req, res, requestUrl\.pathname \+ requestUrl\.search\)/);
 assert.match(localServer, /pathname === "\/__dev-source"/);
 
