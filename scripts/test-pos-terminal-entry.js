@@ -9,6 +9,7 @@ const appRoot = path.basename(__dirname).toLowerCase() === "scripts" ? path.join
 const indexRoot = path.basename(__dirname).toLowerCase() === "scripts" ? path.join(root, "app") : path.join(root, "..", "app");
 const indexHtml = fs.readFileSync(path.join(indexRoot, "index.html"), "utf8");
 const posHtml = fs.readFileSync(path.join(appRoot, "pos-terminal.html"), "utf8");
+const vercelConfig = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 
 assert.match(
   indexHtml,
@@ -18,5 +19,17 @@ assert.match(
 assert.match(posHtml, /<p class="pos-header__eyebrow">POS terminal<\/p>/);
 assert.match(posHtml, /<h1>Računi in plačila<\/h1>/);
 assert.match(posHtml, /src="testna-vrstica\.js[^\"]*" defer/);
+
+const posHeaders = (vercelConfig.headers || []).find(function (rule) {
+  return rule.source === "/app/pos-terminal.html";
+});
+assert.ok(posHeaders, "POS stran mora imeti lastna varnostna HTTP pravila.");
+const posHeaderMap = Object.fromEntries(posHeaders.headers.map(function (header) {
+  return [header.key.toLowerCase(), header.value];
+}));
+assert.strictEqual(posHeaderMap["x-content-type-options"], "nosniff");
+assert.strictEqual(posHeaderMap["x-frame-options"], "DENY");
+assert.strictEqual(posHeaderMap["referrer-policy"], "no-referrer");
+assert.strictEqual(posHeaderMap["permissions-policy"], "camera=(), microphone=(), geolocation=(), payment=()");
 
 console.log("POS terminal je pravilno povezan z začetnim zaslonom in skupno navigacijo.");

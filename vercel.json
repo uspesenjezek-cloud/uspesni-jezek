@@ -20,6 +20,17 @@
     { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" },
     { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" }
   ],
+  "headers": [
+    {
+      "source": "/app/pos-terminal.html",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
+      ]
+    }
+  ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
     { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" },
