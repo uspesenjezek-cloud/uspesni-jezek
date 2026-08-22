@@ -9,6 +9,7 @@ const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "202
 const hardeningMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821101118_pos_archive_private_readiness.sql"), "utf8");
 const wormMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821195904_pos_s3_object_lock_archive.sql"), "utf8");
 const productionRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821214500_pos_archive_production_recovery_evidence.sql"), "utf8");
+const berlinRetentionMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822093000_pos_archive_berlin_retention_year.sql"), "utf8");
 const completeSummaryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821213852_pos_archive_complete_summary.sql"), "utf8");
 const missingDocumentMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821220929_pos_archive_missing_document_repair.sql"), "utf8");
 const userIntegrityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223224_pos_archive_user_integrity_batch.sql"), "utf8");
@@ -53,6 +54,9 @@ assert.match(productionRecoveryMigration, /worm_environment is distinct from p_e
 assert.match(productionRecoveryMigration, /object_lock_mode = 'COMPLIANCE'/i);
 assert.match(productionRecoveryMigration, /not invoice\.is_test/i);
 assert.match(productionRecoveryMigration, /replica\.retain_until >= \(record\.retention_not_before::timestamptz \+ interval '1 day' - interval '1 millisecond'\)/i);
+assert.match(berlinRetentionMigration, /extract\(year from \(a\.issued_at at time zone 'Europe\/Berlin'\)\)::integer/i);
+assert.match(berlinRetentionMigration, /make_date\(v_issue_year \+ 8, 12, 31\)/i);
+assert.doesNotMatch(berlinRetentionMigration, /extract\(year from a\.issued_at\)::integer/i);
 assert.match(completeSummaryMigration, /create or replace function public\.pos_archive_user_summary\(p_user_id uuid\)/i);
 assert.match(completeSummaryMigration, /security invoker/i);
 assert.match(completeSummaryMigration, /count\(\*\) filter \(where integrity_result = 'verified'\)/i);
