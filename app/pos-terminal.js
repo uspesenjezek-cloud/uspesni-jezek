@@ -482,6 +482,9 @@
       cancellationStatusBefore: cancellation && cancellation.status_before || "",
       earlyStartEvidence: earlyStart && earlyStart.evidence || "",
       earlyStartRecordedAt: earlyStart && earlyStart.recorded_at || "",
+      valueCompensationInformed: Boolean(earlyStart && earlyStart.value_compensation_informed),
+      rightExpiryAcknowledged: Boolean(earlyStart && earlyStart.right_expiry_acknowledged),
+      earlyStartRequestOnDurableMedium: Boolean(earlyStart && earlyStart.request_on_durable_medium),
       withdrawalDeclaredOn: withdrawal && withdrawal.declared_on || "",
       withdrawalEvidence: withdrawal && withdrawal.evidence || "",
       withdrawalStatusBefore: withdrawal && withdrawal.status_before || "",
@@ -560,19 +563,38 @@
     return source.customer_type === "private" && ["distance", "off_premises", "urgent_repair"].indexOf(source.consumer_contract_context) !== -1;
   }
 
+  function consumerServiceRightExpired(order) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    if (!order || !order.completedAt || source.customer_type !== "private" || ["distance", "off_premises"].indexOf(source.consumer_contract_context) === -1) return false;
+    return Boolean(
+      order.valueCompensationInformed
+      && order.rightExpiryAcknowledged
+      && (source.consumer_contract_context !== "off_premises" || order.earlyStartRequestOnDurableMedium)
+    );
+  }
+
+  function consumerWithdrawalAvailable(order, now) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    if (!order || source.customer_type !== "private" || ["distance", "off_premises"].indexOf(source.consumer_contract_context) === -1) return false;
+    if (["accepted", "in_progress", "completed", "invoiced"].indexOf(order.status) === -1 || consumerServiceRightExpired(order)) return false;
+    var acceptedOn = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var today = berlinDateKey(now || new Date());
+    return Boolean(acceptedOn && today && today <= addDays(acceptedOn, 14));
+  }
+
   function workOrderActions(orderOrStatus) {
     var order = orderOrStatus && typeof orderOrStatus === "object" ? orderOrStatus : null;
     var status = order ? order.status : orderOrStatus;
     var source = order && (order.lockedPayload || order.payload) || {};
-    var consumerWithdrawal = order && source.customer_type === "private" && ["distance", "off_premises"].indexOf(source.consumer_contract_context) !== -1;
+    var consumerWithdrawal = order && consumerWithdrawalAvailable(order);
     if (status === "draft") return ["edit", "offer", "cancel"];
     if (status === "offered") return ["pdf", "accept", "cancel"];
     var confirmation = order && requiresContractConfirmation(order);
     var confirmationActions = confirmation ? ["contract_pdf"].concat(order.contractConfirmationDeliveryEvidence ? [] : ["contract_delivery"]) : [];
     if (status === "accepted") return ["pdf"].concat(confirmationActions, ["start", "progress"], consumerWithdrawal ? ["withdraw"] : []);
     if (status === "in_progress") return ["pdf"].concat(confirmationActions, ["complete", "progress"], consumerWithdrawal ? ["withdraw"] : []);
-    if (status === "completed") return ["pdf"].concat(confirmationActions, ["final", "progress"]);
-    if (status === "invoiced") return ["pdf"].concat(confirmationActions);
+    if (status === "completed") return ["pdf"].concat(confirmationActions, ["final", "progress"], consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "invoiced") return ["pdf"].concat(confirmationActions, consumerWithdrawal ? ["withdraw"] : []);
     if (status === "cancelled" && order && order.offeredAt) return ["pdf"];
     if (status === "withdrawn") return ["pdf"].concat(confirmationActions);
     return [];
@@ -1601,6 +1623,8 @@
     workOrderFromServer: workOrderFromServer,
     requiresEarlyStartEvidence: requiresEarlyStartEvidence,
     requiresContractConfirmation: requiresContractConfirmation,
+    consumerServiceRightExpired: consumerServiceRightExpired,
+    consumerWithdrawalAvailable: consumerWithdrawalAvailable,
     workOrderActions: workOrderActions,
     workOrderFinalState: workOrderFinalState,
     prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
@@ -1952,7 +1976,7 @@
         fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,accepted_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_cancellations").select("work_order_id,status_before,reason,offer_document_id,offer_sha256,cancelled_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,value_compensation_informed,right_expiry_acknowledged,request_on_durable_medium,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_withdrawals").select("work_order_id,status_before,declared_on,evidence,value_compensation_review_required,received_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_documents").select("id,work_order_id,offer_sha256,accepted_on,sha256,byte_size,generator_version,created_at").eq("user_id", userId).order("created_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
@@ -2559,24 +2583,46 @@
         var label = action === "cancel" ? "Vpišite razlog preklica" : "Vpišite dokaz zahteve za predčasni začetek";
         return length < 5 || length > 500 ? label + " (od 5 do 500 znakov)." : "";
       } : null,
-      onConfirm: async function (acceptanceEvidence) {
-        try {
-          var request = action === "cancel"
-              ? backend.client.rpc("pos_cancel_work_order", { p_work_order_id: order.id, p_reason: String(acceptanceEvidence || "").trim() })
-            : action === "start"
-              ? backend.client.rpc("pos_start_work_order", { p_work_order_id: order.id, p_evidence: String(acceptanceEvidence || "").trim() })
-              : backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action });
-          var result = await request.single();
-          if (result.error) throw result.error;
-          var offerPdfError = "";
-          if (action === "offer") {
-            try { await ensureOfferDocument(result.data && result.data.id || order.id); }
-            catch (documentError) { offerPdfError = documentError && documentError.message || "PDF ponudbe še ni pripravljen."; }
-          }
-          await loadServerState("invoices");
-          showView("work-orders");
-          showToast(offerPdfError ? "Ponudba je zaklenjena; PDF lahko znova pripravite z gumbom Ponudba PDF." : action === "offer" ? "Ponudba je zaklenjena in njen PDF original je pripravljen." : "Status projekta je varno posodobljen.");
-        } catch (error) { showToast(error && error.message || "Statusa ni bilo mogoče posodobiti."); }
+      onConfirm: function (acceptanceEvidence) {
+        var execute = async function (acknowledgements) {
+          var facts = acknowledgements || {};
+          try {
+            var request = action === "cancel"
+                ? backend.client.rpc("pos_cancel_work_order", { p_work_order_id: order.id, p_reason: String(acceptanceEvidence || "").trim() })
+              : action === "start"
+                ? backend.client.rpc("pos_start_work_order", {
+                    p_work_order_id: order.id,
+                    p_evidence: String(acceptanceEvidence || "").trim(),
+                    p_value_compensation_informed: Boolean(facts.valueCompensationInformed),
+                    p_right_expiry_acknowledged: Boolean(facts.rightExpiryAcknowledged),
+                    p_request_on_durable_medium: Boolean(facts.requestOnDurableMedium)
+                  })
+                : backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action });
+            var result = await request.single();
+            if (result.error) throw result.error;
+            var offerPdfError = "";
+            if (action === "offer") {
+              try { await ensureOfferDocument(result.data && result.data.id || order.id); }
+              catch (documentError) { offerPdfError = documentError && documentError.message || "PDF ponudbe še ni pripravljen."; }
+            }
+            await loadServerState("invoices");
+            showView("work-orders");
+            showToast(offerPdfError ? "Ponudba je zaklenjena; PDF lahko znova pripravite z gumbom Ponudba PDF." : action === "offer" ? "Ponudba je zaklenjena in njen PDF original je pripravljen." : "Status projekta je varno posodobljen.");
+          } catch (error) { showToast(error && error.message || "Statusa ni bilo mogoče posodobiti."); }
+        };
+        var context = (order.lockedPayload || order.payload || {}).consumer_contract_context;
+        if (action === "start" && earlyEvidenceRequired && ["distance", "off_premises"].indexOf(context) !== -1) {
+          openDialog("Potrdite vsebino izjave", "Nadaljujte samo, če navedeni dokaz potrjuje, da je potrošnik izrecno zahteval predčasni začetek, prejel obvestilo o Wertersatz in potrdil, da pravica do odstopa po popolni izvedbi preneha." + (context === "off_premises" ? " Izjava mora biti na papirju ali drugem trajnem nosilcu." : ""), {
+            confirmText: "Izjava je potrjena",
+            onConfirm: function () {
+              execute({
+                valueCompensationInformed: true,
+                rightExpiryAcknowledged: true,
+                requestOnDurableMedium: context === "off_premises"
+              });
+            }
+          });
+        } else execute({});
       }
     });
   }
