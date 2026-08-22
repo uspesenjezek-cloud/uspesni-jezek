@@ -7,7 +7,8 @@ const { GENERATOR_VERSION, ustvariKorekcijskiPdf } = require("../_lib/pos-adjust
 const BUCKET = "pos-invoice-originals";
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 
 function uuid(value) {

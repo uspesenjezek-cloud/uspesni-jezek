@@ -107,6 +107,7 @@ assert.match(api, /supabase\.preveriUporabnika/);
 assert.match(api, /p_user_id: auth\.user\.id/);
 assert.match(api, /pos_claim_invoice_delivery/);
 assert.match(api, /processClaimed/);
+assert.match(api, /Cache-Control", "private, no-store, max-age=0"/);
 assert.match(api, /sent: false/);
 assert.match(api, /delivered: false/);
 assert.match(providerSource, /https:\/\/api\.resend\.com\/emails/);

@@ -130,6 +130,7 @@ assert.match(api, /KOSIT_VALIDATOR_URL/);
 assert.match(api, /validation_status !== "validated"/);
 assert.doesNotMatch(api, /invoiceIsCancelled|Storniranega računa ni dovoljeno pripraviti/);
 assert.match(api, /A cancellation does not replace or erase the issued structured original/);
+assert.match(api, /Cache-Control", "private, no-store, max-age=0"/);
 assert.strictEqual(xrechnungHandler.validatorSettings({}).configured, false);
 assert.strictEqual(xrechnungHandler.validatorSettings({ KOSIT_VALIDATOR_URL: "http://validator.example", KOSIT_VALIDATOR_TOKEN: "x".repeat(32) }).configured, false);
 assert.strictEqual(xrechnungHandler.validatorSettings({ KOSIT_VALIDATOR_URL: "https://validator.example", KOSIT_VALIDATOR_TOKEN: "short" }).configured, false);

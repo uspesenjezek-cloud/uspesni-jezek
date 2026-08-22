@@ -151,6 +151,7 @@ assert.doesNotMatch(js, /currentSessionToken/);
 assert.match(handlerSource, /select=id,user_id,invoice_id/);
 assert.match(handlerSource, /pos_archive_user_summary/);
 assert.match(handlerSource, /pos_archive_user_integrity_batch/);
+assert.match(handlerSource, /Cache-Control", "private, no-store, max-age=0"/);
 assert.doesNotMatch(handlerSource, /archived_at\.desc&limit=25/);
 assert.match(html, /data-archive-verify>Preveri arhiv zdaj/);
 assert.match(js, /Paket je preverjen; preostanek arhiva bo preverjen v naslednjih paketih/);

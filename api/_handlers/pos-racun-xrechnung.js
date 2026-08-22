@@ -12,7 +12,8 @@ const MAX_REPORT_LENGTH = 65536;
 const MAX_XML_BYTES = 2 * 1024 * 1024;
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 function uuid(value) {
   const valueText = String(value || "");

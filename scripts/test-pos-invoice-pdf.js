@@ -10,6 +10,7 @@ const endpoint = require("../api/pos-racun-pdf");
 const adjustmentEndpoint = require("../api/pos-racun-korekcija");
 const pdfSource = fs.readFileSync(path.join(__dirname, "..", "api", "_lib", "pos-pdf.js"), "utf8");
 const pdfEndpointSource = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "pos-racun-pdf.js"), "utf8");
+const adjustmentEndpointSource = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "pos-racun-korekcija.js"), "utf8");
 
 function sampleInvoice(replacement) {
   const items = [];
@@ -150,6 +151,8 @@ function sampleAdjustment(type) {
   assert.strictEqual(endpoint._test.encodedPath("a b/c"), "a%20b/c");
   assert.strictEqual(endpoint._test.uuid("not-a-uuid"), "");
   assert.strictEqual(adjustmentEndpoint._test.objectPath("u", "a"), "u/adjustments/a/korrektur.pdf");
+  assert.match(pdfEndpointSource, /Cache-Control", "private, no-store, max-age=0"/);
+  assert.match(adjustmentEndpointSource, /Cache-Control", "private, no-store, max-age=0"/);
   assert.deepStrictEqual(pdfModule.taxGroups([
     { tax_rate_bps: 1900, net_cents: 10000, tax_cents: 1900 },
     { tax_rate_bps: 700, net_cents: 5000, tax_cents: 350 },
