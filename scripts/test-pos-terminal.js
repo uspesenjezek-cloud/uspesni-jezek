@@ -131,6 +131,10 @@ const dateInvariantsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_date_invariants\.sql$/.test(name)).sort().pop()
   : null;
 const dateInvariantsMigration = dateInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, dateInvariantsMigrationName), "utf8") : "";
+const liveCalendarMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_live_invoice_calendar_dates\.sql$/.test(name)).sort().pop()
+  : null;
+const liveCalendarMigration = liveCalendarMigrationName ? fs.readFileSync(path.join(migrationsDir, liveCalendarMigrationName), "utf8") : "";
 const tenantInvariantsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_tenant_relationship_invariants\.sql$/.test(name)).sort().pop()
   : null;
@@ -362,6 +366,9 @@ assert.strictEqual(Core.isoToday("2026-12-31T22:30:00.000Z"), "2026-12-31");
 assert.strictEqual(Core.isoToday("2026-12-31T23:30:00.000Z"), "2027-01-01");
 assert.strictEqual(Core.isoToday("2026-03-29T00:30:00.000Z"), "2026-03-29");
 assert.strictEqual(Core.isoToday("2026-03-29T22:30:00.000Z"), "2026-03-30");
+assert.strictEqual(Core.liveInvoiceDateError({ issueDate: "2026-08-22", serviceDate: "2026-08-21" }, "2026-08-22"), "");
+assert.match(Core.liveInvoiceDateError({ issueDate: "2026-08-21", serviceDate: "2026-08-21" }, "2026-08-22"), /današnji nemški poslovni datum/);
+assert.match(Core.liveInvoiceDateError({ issueDate: "2026-08-22", serviceDate: "2026-08-23" }, "2026-08-22"), /ne sme biti v prihodnosti/);
 assert.strictEqual(Core.addDays("2026-03-28", 1), "2026-03-29");
 assert.strictEqual(Core.addDays("2026-03-29", 1), "2026-03-30");
 assert.strictEqual(Core.addDays("2026-12-31", 1), "2027-01-01");
@@ -1011,6 +1018,10 @@ assert.match(dateInvariantsMigration, /create trigger pos_invoices_live_issue_da
 assert.match(dateInvariantsMigration, /not new\.is_test[\s\S]*Europe\/Berlin[\s\S]*pg_catalog\.now/i);
 assert.match(dateInvariantsMigration, /revoke all on function private\.pos_enforce_live_invoice_issue_date\(\) from public, anon, authenticated/i);
 assert.match(dateInvariantsMigration, /validate constraint pos_work_orders_validity_window_check/i);
+assert.ok(liveCalendarMigrationName, "Manjka stroga koledarska varovalka pravih računov.");
+assert.match(liveCalendarMigration, /check \(is_test or service_date <= issue_date\) not valid/i);
+assert.match(liveCalendarMigration, /new\.issue_date is distinct from[\s\S]*Europe\/Berlin[\s\S]*pg_catalog\.now/i);
+assert.match(liveCalendarMigration, /validate constraint pos_invoices_live_service_date_check/i);
 assert.ok(tenantInvariantsMigrationName, "Manjkajo uporabniške invariante povezav POS.");
 assert.strictEqual((tenantInvariantsMigration.match(/foreign key \([^\n]+, user_id\)/gi) || []).length, 25);
 assert.strictEqual((tenantInvariantsMigration.match(/validate constraint pos_tenant_/gi) || []).length, 25);

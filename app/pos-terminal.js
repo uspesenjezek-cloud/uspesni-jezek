@@ -1039,6 +1039,18 @@
     return errors;
   }
 
+  function liveInvoiceDateError(draft, today) {
+    var source = draft || {};
+    var businessToday = String(today || isoToday());
+    if (String(source.issueDate || "") !== businessToday) {
+      return "Datum izdaje pravega računa mora biti današnji nemški poslovni datum.";
+    }
+    if (String(source.serviceDate || "") > String(source.issueDate || "")) {
+      return "Datum izvedbe pravega računa ne sme biti v prihodnosti.";
+    }
+    return "";
+  }
+
   function taxNote(draft) {
     if (draft.taxMode === "small_business") return "Steuerbefreiung für Kleinunternehmer gemäß § 19 UStG.";
     if (draft.taxMode === "reverse_charge") return "Steuerschuldnerschaft des Leistungsempfängers gemäß § 13b UStG.";
@@ -1438,6 +1450,7 @@
     profileChangeRequiresConfirmation: profileChangeRequiresConfirmation,
     profileForPreview: profileForPreview,
     validateStep: validateStep,
+    liveInvoiceDateError: liveInvoiceDateError,
     propertyRetentionNotice: propertyRetentionNotice,
     buildEpcPayload: buildEpcPayload,
     deliveryRecommendation: deliveryRecommendation,
@@ -3772,6 +3785,8 @@
     if (errors.length) { renderPreview(); showToast(errors[0]); return; }
     var readiness = profileReadiness(state.profile);
     var live = productionReady();
+    var calendarError = live ? liveInvoiceDateError(state.draft, isoToday()) : "";
+    if (calendarError) { showToast(calendarError); return; }
     var replacement = normalizeReplacementContext(state.draft);
     if (readiness.live && backend.ready && !archiveCapability.productionReady) {
       showToast("Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo in preizkus obnove.");
