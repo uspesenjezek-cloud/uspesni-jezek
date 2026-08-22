@@ -367,6 +367,8 @@ assert.strictEqual(Core.addDays("2026-03-29", 1), "2026-03-30");
 assert.strictEqual(Core.addDays("2026-12-31", 1), "2027-01-01");
 assert.strictEqual(Core.addDays("2027-01-01", -1), "2026-12-31");
 assert.strictEqual(Core.defaultProfile("2026-12-31T23:30:00.000Z").invoicePrefix, "RE-2027-");
+assert.strictEqual(Core.datevTimestamp("2026-12-31T23:30:15.007Z"), "20270101003015007");
+assert.strictEqual(Core.datevTimestamp("2026-06-30T22:30:15.007Z"), "20260701003015007");
 assert.deepStrictEqual(Core.normalizePosRefreshScopes(), { profile: true, draft: true, invoices: true, bank: true });
 assert.deepStrictEqual(Core.normalizePosRefreshScopes("payments"), { payments: true });
 assert.deepStrictEqual(Core.normalizePosRefreshScopes(["deliveries", "bank"]), { deliveries: true, bank: true });

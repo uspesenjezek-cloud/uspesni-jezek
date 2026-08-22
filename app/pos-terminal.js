@@ -1206,7 +1206,19 @@
   function datevTimestamp(value) {
     var date = value instanceof Date ? value : new Date(value || Date.now());
     function pad(number, length) { return String(number).padStart(length || 2, "0"); }
-    return date.getFullYear() + pad(date.getMonth() + 1) + pad(date.getDate()) + pad(date.getHours()) + pad(date.getMinutes()) + pad(date.getSeconds()) + pad(date.getMilliseconds(), 3);
+    if (Number.isNaN(date.getTime())) date = new Date();
+    try {
+      var parts = new Intl.DateTimeFormat("en", {
+        timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+      }).formatToParts(date);
+      var values = {};
+      parts.forEach(function (part) { values[part.type] = part.value; });
+      if (values.year && values.month && values.day && values.hour && values.minute && values.second) {
+        return values.year + values.month + values.day + values.hour + values.minute + values.second + pad(date.getUTCMilliseconds(), 3);
+      }
+    } catch (_) {}
+    return date.getUTCFullYear() + pad(date.getUTCMonth() + 1) + pad(date.getUTCDate()) + pad(date.getUTCHours()) + pad(date.getUTCMinutes()) + pad(date.getUTCSeconds()) + pad(date.getUTCMilliseconds(), 3);
   }
 
   function datevPeriod(value) {
@@ -1495,6 +1507,7 @@
     validateDatevSettings: validateDatevSettings,
     buildDatevExport: buildDatevExport,
     berlinDateKey: berlinDateKey,
+    datevTimestamp: datevTimestamp,
     datevDocumentNumber: datevDocumentNumber,
     DATEV_BOOKING_HEADERS: DATEV_BOOKING_HEADERS,
     profileToDatabase: profileToDatabase,
