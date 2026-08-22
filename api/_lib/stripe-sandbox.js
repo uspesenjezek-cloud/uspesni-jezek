@@ -118,7 +118,8 @@ function assertTestSession(session, expected) {
     error.code = "STRIPE_LIVE_SESSION_REJECTED";
     throw error;
   }
-  if (metadata.test_mode !== "true" || metadata.user_id !== expected.userId || metadata.invoice_id !== expected.invoiceId) {
+  if (metadata.test_mode !== "true" || metadata.user_id !== expected.userId || metadata.invoice_id !== expected.invoiceId
+      || expected.attemptId && metadata.provider_attempt_id !== expected.attemptId) {
     const error = new Error("Stripe TEST seja ni povezana s tem računom.");
     error.code = "STRIPE_SESSION_MISMATCH";
     throw error;

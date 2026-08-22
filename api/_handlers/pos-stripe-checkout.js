@@ -1,6 +1,5 @@
 "use strict";
 
-const crypto = require("node:crypto");
 const supabase = require("../_lib/supabase-server");
 const stripeSandbox = require("../_lib/stripe-sandbox");
 
@@ -204,14 +203,17 @@ async function handler(req, res) {
     const requestId = uuid(body.requestId);
     if (!invoiceId || !requestId) return json(res, 400, { ok: false, napaka: "Manjka veljavna povezava z računom." });
     const context = await invoiceContext(serviceCfg, auth.user.id, invoiceId);
-    const attemptId = crypto.randomUUID();
+    // The browser request id is already a validated UUID. Reusing it as the
+    // provider attempt id keeps a retried HTTP request bound to the same
+    // Stripe idempotency result and the same database row.
+    const attemptId = requestId;
     const params = stripeSandbox.checkoutParams({
       baseUrl: stripeSandbox.safeBaseUrl(req), invoiceId, invoiceNumber: context.invoice.invoice_number,
       userId: auth.user.id, attemptId, amountCents: context.outstandingCents,
     });
     const session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.create(params, {
       idempotencyKey: "uj-pos-test:" + auth.user.id + ":" + invoiceId + ":" + requestId,
-    }), { userId: auth.user.id, invoiceId });
+    }), { userId: auth.user.id, invoiceId, attemptId });
     let registered;
     try {
       registered = rpcRow(await supabase.pokliciRpc(serviceCfg, "pos_register_stripe_checkout", {

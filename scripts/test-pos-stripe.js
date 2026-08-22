@@ -64,6 +64,19 @@ assert.doesNotMatch(params.success_url, /%7BCHECKOUT_SESSION_ID%7D/);
 assert.match(params.cancel_url, /stripe=cancelled/);
 assert.doesNotMatch(params.cancel_url, /CHECKOUT_SESSION_ID|stripe_session_id/);
 assert.match(params.cancel_url, /invoice_id=11111111-1111-4111-8111-111111111111/);
+const checkoutSession = {
+  id: "cs_test_retry_safe", livemode: false, metadata: params.metadata,
+};
+assert.strictEqual(stripeSandbox.assertTestSession(checkoutSession, {
+  userId: params.metadata.user_id,
+  invoiceId: params.metadata.invoice_id,
+  attemptId: params.metadata.provider_attempt_id,
+}).id, checkoutSession.id);
+assert.throws(() => stripeSandbox.assertTestSession(checkoutSession, {
+  userId: params.metadata.user_id,
+  invoiceId: params.metadata.invoice_id,
+  attemptId: "44444444-4444-4444-8444-444444444444",
+}), /ni povezana/);
 
 assert.strictEqual(checkout.effectivePaidCents([
   { amount_cents: 10000, refunded_cents: 2500, status: "partially_refunded" },
@@ -139,7 +152,10 @@ assert.match(paymentEventInvariantsMigration, /create trigger pos_payment_events
 assert.match(paymentEventInvariantsMigration, /validate constraint pos_payment_events_source_shape_check/i);
 assert.match(router, /"stripe-checkout": require\("\.\/_handlers\/pos-stripe-checkout"\)/);
 assert.match(router, /"stripe-webhook": require\("\.\/_handlers\/pos-stripe-webhook"\)/);
-assert.match(fs.readFileSync(path.join(root, "api", "_handlers", "pos-stripe-checkout.js"), "utf8"), /stripe\.refunds\.create/);
+const checkoutHandlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-stripe-checkout.js"), "utf8");
+assert.match(checkoutHandlerSource, /stripe\.refunds\.create/);
+assert.match(checkoutHandlerSource, /const attemptId = requestId;/);
+assert.match(checkoutHandlerSource, /assertTestSession[\s\S]*\{ userId: auth\.user\.id, invoiceId, attemptId \}/);
 assert.match(vercel, /\/api\/pos-stripe-checkout/);
 assert.match(vercel, /\/api\/pos-stripe-webhook/);
 assert.match(html, /Plačaj s kartico – TEST/);
