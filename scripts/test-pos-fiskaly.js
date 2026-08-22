@@ -62,6 +62,7 @@ assert.match(handler, /preveriUporabnika/);
 assert.match(handler, /Cache-Control/);
 assert.match(handler, /training-transaction/);
 assert.match(handler, /training-receipt/);
+assert.match(handler, /requestJson\(req, MAX_BODY_BYTES\)/);
 assert.doesNotMatch(handler, /api_secret|FISKALY_API_SECRET_TEST/);
 assert.match(router, /"fiskaly-sign": require\("\.\/_handlers\/pos-fiskaly"\)/);
 assert.match(vercel, /\/api\/pos-fiskaly/);

@@ -4,10 +4,12 @@ const crypto = require("node:crypto");
 const { DateTime } = require("luxon");
 const supabase = require("../_lib/supabase-server");
 const providerJson = require("../_lib/provider-json");
+const requestJson = require("../_lib/pos-request-json");
 const datev = require("../_lib/datev-cloud");
 const Core = require("../../app/pos-terminal.js");
 const BERLIN_ZONE = "Europe/Berlin";
 const MAX_ARCHIVE_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const MAX_BODY_BYTES = 16 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -15,9 +17,7 @@ function json(res, status, body) {
 }
 
 function requestBody(req) {
-  if (req.body && typeof req.body === "object") return req.body;
-  if (typeof req.body === "string") { try { return JSON.parse(req.body); } catch (_) {} }
-  return {};
+  return requestJson(req, MAX_BODY_BYTES);
 }
 
 function uuid(value) {
@@ -452,7 +452,9 @@ async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljena sta samo GET in POST." });
   const auth = await supabase.preveriUporabnika(req, db);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const body = requestBody(req);
+  let body;
+  try { body = requestBody(req); }
+  catch (error) { return json(res, error.status || 400, { ok: false, code: error.code, napaka: error.message }); }
   const action = String(req.method === "GET" ? query.action || "status" : body.action || "status");
   try {
     let connection = await connectionForUser(db, auth.user.id);
@@ -537,5 +539,5 @@ async function handler(req, res) {
 module.exports = handler;
 module.exports._test = {
   adjustmentLocal, archiveContent, berlinDate, berlinMonthKey, berlinPeriodBounds, chunks, pagedRows, period, periodPackage,
-  publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid, MAX_ARCHIVE_DOCUMENT_BYTES,
+  publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid, MAX_ARCHIVE_DOCUMENT_BYTES, MAX_BODY_BYTES,
 };

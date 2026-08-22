@@ -44,6 +44,9 @@ const runner = require(path.join(root, "api", "_lib", "pos-delivery-runner.js"))
 const worker = require(path.join(root, "api", "pos-dostava-delavec.js"));
 const endpoint = require(path.join(root, "api", "pos-dostava-sandbox.js"));
 
+assert.match(api, /requestJson\(req, MAX_BODY_BYTES\)/);
+assert.match(emailEndpointSource, /requestJson\(req, MAX_BODY_BYTES\)/);
+
 assert.match(migration, /document_format in \('pdf','xrechnung_pdf'\)[\s\S]*pos_invoice_documents/);
 assert.match(migration, /document_format in \('xrechnung','xrechnung_pdf'\)[\s\S]*validation_status[\s\S]*<> 'validated'/);
 assert.match(migration, /for update skip locked/i);
@@ -135,7 +138,7 @@ assert.match(emailEndpointSource, /EMAIL_DELIVERY_NOT_ENABLED/);
 assert.match(workerSource, /readiness\.testEnabled/);
 assert.match(workerSource, /pos_claim_resend_test_invoice_delivery/);
 assert.match(emailEndpointSource, /pos_queue_live_invoice_delivery/);
-assert.match(emailEndpointSource, /confirmed === true/);
+assert.match(emailEndpointSource, /body\.confirmed !== true/);
 assert.match(vercel, /"\/api\/pos-dostava-delavec"[\s\S]*"31 3 \* \* \*"/);
 assert.match(emailEndpointSource, /pos_queue_resend_test_invoice_delivery/);
 

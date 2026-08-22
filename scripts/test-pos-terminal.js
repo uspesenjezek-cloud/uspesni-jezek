@@ -168,6 +168,11 @@ const compatibilityWrappers = [
 const finapiApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-finapi.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-finapi.js"), "utf8") : "";
 const finapiLib = fs.existsSync(path.join(apiRoot, "_lib", "finapi-access.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "finapi-access.js"), "utf8") : "";
 const Core = require(path.join(assetRoot, "pos-terminal.js"));
+const requestJson = require(path.join(repoRoot, "api", "_lib", "pos-request-json.js"));
+assert.deepStrictEqual(requestJson({ headers: {}, body: '{"action":"test"}' }, 4096), { action: "test" });
+assert.throws(() => requestJson({ headers: { "content-length": "5000" }, body: {} }, 4096), (error) => error && error.status === 413 && error.code === "POS_REQUEST_BODY_TOO_LARGE");
+assert.throws(() => requestJson({ headers: {}, body: { payload: "x".repeat(5000) } }, 4096), (error) => error && error.status === 413);
+assert.throws(() => requestJson({ headers: {}, body: "[1,2,3]" }, 4096), (error) => error && error.status === 400);
 
 compatibilityWrappers.forEach(function (source) {
   assert.match(source, /module\.exports = require\("\.\/_handlers\/pos-[a-z-]+"\);/);

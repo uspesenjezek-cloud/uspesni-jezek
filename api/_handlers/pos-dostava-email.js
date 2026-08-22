@@ -4,6 +4,8 @@ const crypto = require("node:crypto");
 const supabase = require("../_lib/supabase-server");
 const { processClaimed, rpcRow } = require("../_lib/pos-delivery-runner");
 const { deliveryReadiness } = require("../_lib/pos-delivery-providers");
+const requestJson = require("../_lib/pos-request-json");
+const MAX_BODY_BYTES = 16 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
@@ -44,12 +46,15 @@ async function handler(req, res) {
   if (!auth.ok) return json(res, auth.status, { ok: false, code: auth.code, napaka: auth.napaka });
   const readiness = deliveryReadiness();
   if (req.method === "GET") return json(res, 200, { ok: true, delivery: readiness });
+  let body;
+  try { body = requestJson(req, MAX_BODY_BYTES); }
+  catch (error) { return json(res, error.status || 400, { ok: false, code: error.code, napaka: error.message }); }
   if (!readiness.sendEnabled) {
     return json(res, 409, { ok: false, code: "EMAIL_DELIVERY_NOT_ENABLED", napaka: "E-poštno pošiljanje še ni vključeno.", delivery: readiness });
   }
-  const deliveryId = uuid(req.body && req.body.deliveryId || req.query && req.query.deliveryId);
+  const deliveryId = uuid(body.deliveryId || req.query && req.query.deliveryId);
   if (!deliveryId) return json(res, 400, { ok: false, napaka: "Neveljavna dostava." });
-  if (!(req.body && req.body.confirmed === true)) return json(res, 400, { ok: false, napaka: "Pred pošiljanjem je potrebna izrecna potrditev." });
+  if (body.confirmed !== true) return json(res, 400, { ok: false, napaka: "Pred pošiljanjem je potrebna izrecna potrditev." });
 
   let cfg;
   try { cfg = supabase.konfiguracija(); }
@@ -98,4 +103,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { detailMessage, publicResult, uuid };
+module.exports._test = { detailMessage, publicResult, uuid, MAX_BODY_BYTES };

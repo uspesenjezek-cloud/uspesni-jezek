@@ -2,6 +2,8 @@
 
 const supabase = require("../_lib/supabase-server");
 const archive = require("../_lib/pos-archive");
+const requestJson = require("../_lib/pos-request-json");
+const MAX_BODY_BYTES = 16 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -136,7 +138,9 @@ async function handler(req, res) {
   try {
     let checkedNow = 0;
     if (req.method === "POST") {
-      const body = req.body && typeof req.body === "object" ? req.body : {};
+      let body;
+      try { body = requestJson(req, MAX_BODY_BYTES); }
+      catch (error) { return json(res, error.status || 400, { ok: false, code: error.code, napaka: error.message }); }
       const action = String(body.action || "verify-all");
       const archiveId = uuid(body.archiveId);
       if (action !== "verify-one" && action !== "verify-all") return json(res, 400, { ok: false, napaka: "Neveljavno arhivsko dejanje." });
@@ -160,4 +164,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { publicSummary, publicDatabaseSummary, integrityBatchForUser, verifyRecords };
+module.exports._test = { publicSummary, publicDatabaseSummary, integrityBatchForUser, verifyRecords, MAX_BODY_BYTES };

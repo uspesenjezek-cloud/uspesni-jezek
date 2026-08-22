@@ -43,6 +43,8 @@ assert.throws(
   () => datev.urls("production"),
   function (error) { return error && error.code === "DATEV_PRODUCTION_LOCKED"; }
 );
+assert.deepStrictEqual(handler._test.requestBody({ headers: {}, body: '{"action":"status"}' }), { action: "status" });
+assert.throws(() => handler._test.requestBody({ headers: {}, body: { payload: "x".repeat(handler._test.MAX_BODY_BYTES) } }), /prevelik/);
 const state = datev.sealState(cfg, { userId: "11111111-1111-4111-8111-111111111111", verifier: "secret" });
 assert.strictEqual(datev.openState(cfg, state).verifier, "secret");
 assert.throws(() => datev.openState(cfg, state.slice(0, -2) + "aa"), /ni veljavna/i);
