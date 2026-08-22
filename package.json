@@ -18,7 +18,8 @@
     "test:pos-archive": "node scripts/test-pos-archive.js",
     "test:pos-datev": "node scripts/test-pos-datev.js",
     "test:pos-i18n": "node scripts/test-pos-i18n.js",
-    "test:pos-workflow": "node scripts/test-pos-workflow.js"
+    "test:pos-workflow": "node scripts/test-pos-workflow.js",
+    "test:pos-offer": "node scripts/test-pos-offer-pdf.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1116.0",

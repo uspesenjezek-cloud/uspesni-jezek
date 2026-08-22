@@ -509,10 +509,11 @@
 
   function workOrderActions(status) {
     if (status === "draft") return ["edit", "offer", "cancel"];
-    if (status === "offered") return ["accept", "cancel"];
-    if (status === "accepted") return ["start", "progress", "cancel"];
-    if (status === "in_progress") return ["complete", "progress", "cancel"];
-    if (status === "completed") return ["final", "progress", "cancel"];
+    if (status === "offered") return ["pdf", "accept", "cancel"];
+    if (status === "accepted") return ["pdf", "start", "progress", "cancel"];
+    if (status === "in_progress") return ["pdf", "complete", "progress", "cancel"];
+    if (status === "completed") return ["pdf", "final", "progress", "cancel"];
+    if (status === "invoiced") return ["pdf"];
     return [];
   }
 
@@ -2157,14 +2158,14 @@
 
   function workOrderStatusLabel(status) {
     return {
-      draft: "Osnutek ponudbe", offered: "Ponudba poslana", accepted: "Naročilo sprejeto",
+      draft: "Osnutek ponudbe", offered: "Ponudba zaklenjena", accepted: "Naročilo sprejeto",
       in_progress: "Delo poteka", completed: "Delo zaključeno", invoiced: "Zaključni račun izdan", cancelled: "Preklicano"
     }[status] || status;
   }
 
   function workOrderActionLabel(action) {
     return {
-      edit: "Uredi ponudbo", offer: "Označi kot poslano", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
+      edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
       progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči"
     }[action] || action;
   }
@@ -2194,6 +2195,7 @@
         var order = rows.filter(function (entry) { return entry.id === button.getAttribute("data-work-order-id"); })[0];
         var action = button.getAttribute("data-work-order-action");
         if (action === "edit") openWorkOrderForEdit(order);
+        else if (action === "pdf") downloadOfferPdf(order).then(function () { showToast("Nespremenljivi PDF ponudbe je prenesen."); }).catch(function (error) { showToast(error && error.message || "PDF ponudbe ni na voljo."); });
         else if (action === "progress" || action === "final") startWorkOrderInvoice(order, action);
         else transitionWorkOrder(order, action);
       });
@@ -2204,7 +2206,7 @@
   function transitionWorkOrder(order, action) {
     if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
     if (action === "offer" && !profileReadiness(state.profile).live) { showToast("Pravno ponudbo lahko pošljete šele po potrditvi popolnih podatkov podjetja in registra."); return; }
-    var copy = action === "offer" ? "Ponudba se bo zaklenila. Nadaljnja sprememba zahteva novo ponudbo."
+    var copy = action === "offer" ? "Ponudba se bo zaklenila in dobila nespremenljiv PDF. Po prenosu jo pošljite naročniku."
       : action === "accept" ? "Potrdite le, če je naročnik ponudbo dejansko sprejel."
         : action === "cancel" ? "Preklic ostane zapisan v sled dogodkov."
           : "Prehod se bo zapisal v sled projekta.";
@@ -2214,9 +2216,14 @@
         try {
           var result = await backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action }).single();
           if (result.error) throw result.error;
+          var offerPdfError = "";
+          if (action === "offer") {
+            try { await ensureOfferDocument(result.data && result.data.id || order.id); }
+            catch (documentError) { offerPdfError = documentError && documentError.message || "PDF ponudbe še ni pripravljen."; }
+          }
           await loadServerState("invoices");
           showView("work-orders");
-          showToast("Status projekta je varno posodobljen.");
+          showToast(offerPdfError ? "Ponudba je zaklenjena; PDF lahko znova pripravite z gumbom Ponudba PDF." : action === "offer" ? "Ponudba je zaklenjena in njen PDF original je pripravljen." : "Status projekta je varno posodobljen.");
         } catch (error) { showToast(error && error.message || "Statusa ni bilo mogoče posodobiti."); }
       }
     });
@@ -3960,6 +3967,41 @@
     var invoice = latestManualPaymentCandidate(state.invoices);
     if (!invoice) { showToast("Ni odprtega računa za plačilo."); return; }
     requestPayment(invoice.id);
+  }
+
+  async function posOfferPdfRequest(workOrderId, mode) {
+    var token = await apiSessionToken();
+    var action = mode || "download";
+    var response = await fetch("/api/pos-angebot-pdf?workOrderId=" + encodeURIComponent(workOrderId) + "&mode=" + encodeURIComponent(action), {
+      method: action === "metadata" ? "POST" : "GET",
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) {
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      throw new Error(body && body.napaka || "PDF ponudbe ni bilo mogoče pripraviti.");
+    }
+    return response;
+  }
+
+  async function ensureOfferDocument(workOrderId) {
+    var response = await posOfferPdfRequest(workOrderId, "metadata");
+    var body = await response.json();
+    return body.document;
+  }
+
+  async function downloadOfferPdf(order) {
+    if (!order || !order.id || order.status === "draft") throw new Error("PDF je na voljo šele po zaklepu ponudbe.");
+    var response = await posOfferPdfRequest(order.id, "download");
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = String(order.offerNumber || "Angebot").replace(/[^A-Za-z0-9._-]+/g, "-") + ".pdf";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   }
 
   async function sha256Hex(text) {

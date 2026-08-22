@@ -2,6 +2,7 @@
 
 const handlers = Object.freeze({
   "invoice-pdf": require("./_handlers/pos-racun-pdf"),
+  "offer-pdf": require("./_handlers/pos-angebot-pdf"),
   "invoice-adjustment": require("./_handlers/pos-racun-korekcija"),
   "invoice-xrechnung": require("./_handlers/pos-racun-xrechnung"),
   "delivery-sandbox": require("./_handlers/pos-dostava-sandbox"),

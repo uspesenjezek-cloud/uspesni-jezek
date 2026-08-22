@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-bauabzug-lock-v20/);
+assert.match(html, /pos-terminal\.js\?v=20260822-offer-pdf-v21/);
 assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);
@@ -125,7 +125,10 @@ const order = Core.workOrderFromServer({
   tax_cents: 19000, gross_cents: 119000, payload, locked_payload: payload, updated_at: "2026-08-21T12:00:00Z"
 }, []);
 assert.deepEqual(Core.workOrderActions("draft"), ["edit", "offer", "cancel"]);
-assert.deepEqual(Core.workOrderActions("in_progress"), ["complete", "progress", "cancel"]);
+assert.deepEqual(Core.workOrderActions("offered"), ["pdf", "accept", "cancel"]);
+assert.deepEqual(Core.workOrderActions("in_progress"), ["pdf", "complete", "progress", "cancel"]);
+assert.deepEqual(Core.workOrderActions("completed"), ["pdf", "final", "progress", "cancel"]);
+assert.deepEqual(Core.workOrderActions("invoiced"), ["pdf"]);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");
