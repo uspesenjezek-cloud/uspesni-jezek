@@ -4,6 +4,7 @@
   var STORAGE_KEY = "uj-pos-terminal-v1";
   var DATE_LOCALE = "de-DE";
   var CURRENCY = "EUR";
+  var MAX_BANK_IMPORT_BYTES = 5 * 1024 * 1024;
 
   function integer(value, fallback) {
     var parsed = Number.parseInt(value, 10);
@@ -824,6 +825,14 @@
     return Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
   }
 
+  function bankImportFileError(file) {
+    if (!file) return "Izberite bančni izpisek.";
+    var size = Number(file.size);
+    if (!Number.isFinite(size) || size <= 0) return "Bančni izpisek je prazen ali ga ni mogoče prebrati.";
+    if (size > MAX_BANK_IMPORT_BYTES) return "Bančni izpisek je prevelik. Največja dovoljena velikost je 5 MB.";
+    return "";
+  }
+
   function latestManualPaymentCandidate(invoices) {
     return (invoices || []).filter(function (invoice) {
       return invoice && invoice.status !== "paid" && invoice.status !== "cancelled" && invoiceOutstandingCents(invoice) > 0;
@@ -1449,6 +1458,8 @@
     parseBankCsv: parseBankCsv,
     parseCamt053: parseCamt053,
     parseBankStatement: parseBankStatement,
+    bankImportFileError: bankImportFileError,
+    MAX_BANK_IMPORT_BYTES: MAX_BANK_IMPORT_BYTES,
     matchBankTransaction: matchBankTransaction,
     resolveBankMatches: resolveBankMatches,
     invoiceOutstandingCents: invoiceOutstandingCents,
@@ -4127,7 +4138,10 @@
 
   function importBankFile(file) {
     if (!file) return;
+    var fileError = bankImportFileError(file);
+    if (fileError) { showToast(fileError); return; }
     var reader = new FileReader();
+    reader.onerror = function () { showToast("Bančnega izpiska ni bilo mogoče prebrati."); };
     reader.onload = async function () {
       try {
         if (!backend.ready || !backend.userId) throw new Error("Za bančni uvoz je potrebna varna prijavljena hramba.");

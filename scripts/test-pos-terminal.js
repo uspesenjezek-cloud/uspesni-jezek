@@ -460,6 +460,10 @@ assert.deepStrictEqual({ amount: csvTransactions[0].amount_cents, date: csvTrans
 const camtTransactions = Core.parseCamt053(`<?xml version="1.0"?><BkToCstmrStmt><Stmt><Ntry><Amt Ccy="EUR">1.19</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-08-19</Dt></BookgDt><AcctSvcrRef>CAMT-REF-1</AcctSvcrRef><NtryDtls><TxDtls><RltdPties><Dbtr><Nm>Unicode-Test Žiga Čebelar</Nm></Dbtr><DbtrAcct><Id><IBAN>DE02120300000000202051</IBAN></Id></DbtrAcct></RltdPties><RmtInf><Ustrd>TEST-2026-0001</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry></Stmt></BkToCstmrStmt>`);
 assert.strictEqual(camtTransactions.length, 1);
 assert.deepStrictEqual({ amount: camtTransactions[0].amount_cents, date: camtTransactions[0].booked_on, reference: camtTransactions[0].external_reference }, { amount: 119, date: "2026-08-19", reference: "CAMT-REF-1" });
+assert.strictEqual(Core.bankImportFileError({ size: 1024 }), "");
+assert.match(Core.bankImportFileError({ size: 0 }), /prazen/i);
+assert.match(Core.bankImportFileError({ size: Core.MAX_BANK_IMPORT_BYTES + 1 }), /5 MB/);
+assert.match(js, /reader\.onerror = function \(\) \{ showToast\("Bančnega izpiska ni bilo mogoče prebrati\."\); \}/);
 const bankMatch = Core.matchBankTransaction(csvTransactions[0], [serverTestInvoice]);
 assert.strictEqual(bankMatch.invoice.id, "server-test");
 assert.strictEqual(bankMatch.score, 100);
