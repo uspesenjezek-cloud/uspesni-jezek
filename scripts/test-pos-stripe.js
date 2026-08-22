@@ -88,6 +88,15 @@ assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_c
 assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 2500), 2500);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 11900, status: "refunded" }), /uspešno Stripe TEST plačilo/);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 10001), /ni veljaven/);
+assert.deepStrictEqual(checkout.requestBody({ headers: {}, body: { action: "status" } }), { action: "status" });
+assert.throws(
+  () => checkout.requestBody({ headers: { "content-length": String(checkout.MAX_BODY_BYTES + 1) }, body: {} }),
+  function (error) { return error && error.status === 413; }
+);
+assert.throws(
+  () => checkout.requestBody({ headers: {}, body: "x".repeat(checkout.MAX_BODY_BYTES + 1) }),
+  function (error) { return error && error.status === 413; }
+);
 assert.deepStrictEqual(posCore.validateRefundAmountInput("25,00", 11900), { amountCents: 2500, error: "" });
 assert.match(posCore.validateRefundAmountInput("0", 11900).error, /večji od 0/);
 assert.match(posCore.validateRefundAmountInput("120,00", 11900).error, /119,00/);

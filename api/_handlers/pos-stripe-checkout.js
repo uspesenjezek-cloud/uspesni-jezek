@@ -2,6 +2,7 @@
 
 const supabase = require("../_lib/supabase-server");
 const stripeSandbox = require("../_lib/stripe-sandbox");
+const MAX_BODY_BYTES = 16 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -14,8 +15,29 @@ function uuid(value) {
 }
 
 function requestBody(req) {
-  if (req.body && typeof req.body === "object") return req.body;
+  const declared = Number(req && req.headers && req.headers["content-length"] || 0);
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    const error = new Error("Stripe TEST zahtevek je prevelik.");
+    error.status = 413;
+    throw error;
+  }
+  if (req.body && typeof req.body === "object") {
+    let serialized;
+    try { serialized = JSON.stringify(req.body); }
+    catch (_) { serialized = ""; }
+    if (!serialized || Buffer.byteLength(serialized, "utf8") > MAX_BODY_BYTES) {
+      const error = new Error("Stripe TEST zahtevek je prevelik ali neveljaven.");
+      error.status = 413;
+      throw error;
+    }
+    return req.body;
+  }
   if (typeof req.body === "string") {
+    if (Buffer.byteLength(req.body, "utf8") > MAX_BODY_BYTES) {
+      const error = new Error("Stripe TEST zahtevek je prevelik.");
+      error.status = 413;
+      throw error;
+    }
     try { return JSON.parse(req.body); } catch (_) {}
   }
   return {};
@@ -116,7 +138,9 @@ async function handler(req, res) {
   }
   const auth = await supabase.preveriUporabnika(req, authCfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const body = requestBody(req);
+  let body;
+  try { body = requestBody(req); }
+  catch (error) { return json(res, error.status || 400, { ok: false, napaka: error.message }); }
   const action = String(req.method === "GET" ? req.query && req.query.action || "status" : body.action || "create");
   const sessionId = String(req.method === "GET" ? req.query && req.query.sessionId || "" : body.sessionId || "");
   const stripe = stripeSandbox.createClient(stripeCfg);
@@ -243,4 +267,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { effectivePaidCents, publicPayment, refundRequestCents, requestBody, uuid };
+module.exports._test = { effectivePaidCents, publicPayment, refundRequestCents, requestBody, uuid, MAX_BODY_BYTES };
