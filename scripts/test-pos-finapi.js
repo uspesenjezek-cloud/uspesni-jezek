@@ -75,6 +75,16 @@ async function run() {
     { status: 200, body: { transactions: [{ id: 91, accountId: 41, amount: 12.34, currency: "EUR", bankBookingDate: "2026-08-20", counterpartName: "Muster Kunde", purpose: "RE-2026-0001", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 1, perPage: 500, pageCount: 2, totalCount: 2 }, income: 12.34, spending: 0, balance: 12.34 } },
     { status: 200, body: { transactions: [{ id: 90, accountId: 41, amount: 56.78, currency: "EUR", bankBookingDate: "2026-08-19", counterpartName: "Zweiter Kunde", purpose: "RE-2026-0002", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 2, perPage: 500, pageCount: 2, totalCount: 2 }, income: 56.78, spending: 0, balance: 69.12 } },
   ];
+  global.fetch = async function () {
+    return new Response("{}", {
+      status: 200,
+      headers: { "content-type": "application/json", "content-length": String(Finapi.MAX_RESPONSE_BYTES + 1) },
+    });
+  };
+  await assert.rejects(
+    () => Finapi._test.requestJson(cfg, "/oversized", {}, 1000),
+    function (error) { return error && error.code === "FINAPI_RESPONSE_TOO_LARGE" && error.retryable === true; }
+  );
   global.fetch = async function (url, options) {
     requests.push({ url: String(url), options: options || {} });
     const next = responses.shift();

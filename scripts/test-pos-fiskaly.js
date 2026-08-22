@@ -100,6 +100,16 @@ async function verifyTrainingFlow() {
   const transactionId = "63f3fa9e-6c8b-4fe9-949b-534ad16132cf";
   const tssId = "5c9242f4-12d0-4409-91a9-92265116f7f0";
   const clientId = "eeb95524-a891-465c-b71f-7bfa05ae69c3";
+  global.fetch = async function () {
+    return new Response("{}", {
+      status: 200,
+      headers: { "content-type": "application/json", "content-length": String(client.MAX_RESPONSE_BYTES + 1) },
+    });
+  };
+  await assert.rejects(
+    () => client._test.requestJson(client.TEST_BASE_URL + "/oversized", {}, 1000),
+    function (error) { return error && error.code === "FISKALY_RESPONSE_TOO_LARGE" && error.retryable === true; }
+  );
   global.fetch = async function (url, options) {
     calls.push({ url: String(url), options: options || {} });
     let body = {};

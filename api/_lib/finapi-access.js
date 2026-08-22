@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("crypto");
+const providerJson = require("./provider-json");
 
 const SANDBOX_BASE_URL = "https://sandbox.finapi.io/api/v2";
 const WEBFORM_SANDBOX_BASE_URL = "https://webform-sandbox.finapi.io";
@@ -8,6 +9,7 @@ const DEMO_BANK_ID = 280001;
 const DEMO_BANK_NAME = "finAPI Test Bank";
 const DEMO_BANK_INTERFACE = "XS2A";
 const tokenCache = new Map();
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 function clean(value) {
   return String(value || "").trim();
@@ -77,8 +79,11 @@ async function requestJson(cfg, path, options, timeoutMs) {
     error.retryable = true;
     throw error;
   }
-  let body = null;
-  try { body = await response.json(); } catch (_) {}
+  const body = await providerJson.readJson(response, {
+    maxBytes: MAX_RESPONSE_BYTES,
+    code: "FINAPI_RESPONSE_TOO_LARGE",
+    message: "finAPI je vrnil prevelik odgovor.",
+  });
   if (!response.ok) {
     const error = new Error("finAPI zahteva ni uspela.");
     error.code = errorCode(body) || "FINAPI_REQUEST_FAILED";
@@ -330,6 +335,7 @@ module.exports = {
   SANDBOX_BASE_URL,
   WEBFORM_SANDBOX_BASE_URL,
   DEMO_BANK_ID,
+  MAX_RESPONSE_BYTES,
   configuration,
   createDemoBankWebForm,
   statusForUser,
