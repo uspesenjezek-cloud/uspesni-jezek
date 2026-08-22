@@ -42,7 +42,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-full-history-v12/);
+assert.match(html, /pos-terminal\.js\?v=20260822-full-history-v13/);
 assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);

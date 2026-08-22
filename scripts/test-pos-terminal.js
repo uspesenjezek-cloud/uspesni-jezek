@@ -283,7 +283,8 @@ const mergedBankRows = Core.mergeBankTransactionRows(
 );
 assert.deepEqual(mergedBankRows.map(function (row) { return row.id; }), ["confirmed-new", "duplicate", "open-old"]);
 assert.match(js, /fetchAllRows\(function \(\) \{[\s\S]*\.eq\("status", "unmatched"\)/);
-assert.match(js, /\.eq\("status", "confirmed"\)[^;\n]*\.limit\(200\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{[\s\S]*?eq\("status", "confirmed"\)/);
+assert.doesNotMatch(js, /eq\("status", "confirmed"\)[^\n]*\.limit\(200\)/);
 assert.doesNotMatch(js, /scopes\.bank \? backend\.client\.from\("pos_bank_transactions"\)[^;\n]*\.limit\(200\)/);
 assert.match(js, /loadServerState\("deliveries"\)/);
 assert.match(js, /loadServerState\("payments"\)/);

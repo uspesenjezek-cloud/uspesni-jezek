@@ -1832,7 +1832,9 @@
       fetchAllRows(function () {
         return backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "unmatched").order("booked_on", { ascending: false }).order("id", { ascending: false });
       }),
-      backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "confirmed").order("booked_on", { ascending: false }).order("id", { ascending: false }).limit(200)
+      fetchAllRows(function () {
+        return backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "confirmed").order("booked_on", { ascending: false }).order("id", { ascending: false });
+      })
     ]);
     var error = responses.map(function (entry) { return entry.error; }).filter(Boolean)[0] || null;
     return { data: error ? null : mergeBankTransactionRows(responses[0].data, responses[1].data), error: error };
