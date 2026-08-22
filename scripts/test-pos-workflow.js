@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-consumer-service-expiry-v27/);
+assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-settlement-v28/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -187,6 +187,22 @@ assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-30T10:00:00.00
 earlyOrder.lockedPayload.customer_type = "business";
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-08-22T10:01:00.000Z"), false);
 
+const withdrawnConsumerOrder = {
+  status: "withdrawn",
+  acceptedOn: "2026-08-22",
+  lockedPayload: { customer_type: "private", consumer_contract_context: "distance" },
+  contractConfirmationDeliveryEvidence: "E-pošta s PDF",
+  withdrawalRefundRecords: []
+};
+assert.deepEqual(Core.workOrderActions(withdrawnConsumerOrder), ["pdf", "contract_pdf", "withdrawal_settlement"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, withdrawnConsumerOrder, {
+  withdrawalSettlementId: "settlement-1", withdrawalRefundDueCents: 7000
+})), ["pdf", "contract_pdf", "withdrawal_refund"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, withdrawnConsumerOrder, {
+  withdrawalSettlementId: "settlement-1", withdrawalRefundDueCents: 7000,
+  withdrawalRefundRecords: [{ amount_cents: 3000 }, { amount_cents: 4000 }]
+})), ["pdf", "contract_pdf"]);
+
 const acceptanceMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_offer_acceptance_evidence\.sql$/.test(name)).sort().pop();
 assert.ok(acceptanceMigrationName, "Manjka migracija za dokaz sprejema ponudbe.");
@@ -301,6 +317,40 @@ assert.match(completionWithdrawalMigration, /status_before in \('accepted', 'in_
 assert.match(completionWithdrawalMigration, /v_order\.status in \('completed', 'invoiced'\) and private\.pos_consumer_service_right_expired/i);
 assert.match(completionWithdrawalMigration, /when 'withdrawn' then accepted_at is not null and cancelled_at is null and withdrawn_at is not null/i);
 assert.match(js, /Potrdite vsebino izjave[\s\S]*Wertersatz[\s\S]*pravica do odstopa po popolni izvedbi preneha/i);
+
+const settlementMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_withdrawal_settlement\.sql$/.test(name)).sort().pop();
+assert.ok(settlementMigrationName, "Manjka nespremenljiv denarni pregled po potrošnikovem odstopu.");
+const settlementMigration = fs.readFileSync(path.join(root, "supabase", "migrations", settlementMigrationName), "utf8");
+const originalMethodMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_withdrawal_original_method_guard\.sql$/.test(name)).sort().pop();
+assert.ok(originalMethodMigrationName, "Manjka strežniška zaščita prvotnega načina vračila.");
+const originalMethodMigration = fs.readFileSync(path.join(root, "supabase", "migrations", originalMethodMigrationName), "utf8");
+assert.match(settlementMigration, /create table public\.pos_consumer_withdrawal_settlements/i);
+assert.match(settlementMigration, /create table public\.pos_consumer_withdrawal_refund_records/i);
+assert.match(settlementMigration, /pos_consumer_withdrawal_settlements_immutable[\s\S]*before update or delete/i);
+assert.match(settlementMigration, /pos_consumer_withdrawal_refund_records_immutable[\s\S]*before update or delete/i);
+assert.match(settlementMigration, /refund_due_cents = greatest\(retained_payment_cents - value_compensation_cents, 0\)/i);
+assert.match(settlementMigration, /refund_method = 'agreed_alternative' and alternative_agreement_evidence is not null/i);
+assert.match(settlementMigration, /payment\.status in \('succeeded','partially_refunded','refunded'\)/i);
+assert.match(settlementMigration, /evidence\.value_compensation_informed[\s\S]*request_on_durable_medium/i);
+assert.match(settlementMigration, /received_at at time zone 'Europe\/Berlin'\)::date \+ 14/i);
+assert.match(settlementMigration, /p_executed_on < v_withdrawal_received_on/i);
+assert.match(settlementMigration, /automatic_refund_performed',false/i);
+assert.match(settlementMigration, /external_payment_triggered',false/i);
+assert.match(originalMethodMigration, /v_settlement\.refund_method = 'original'[\s\S]*payment\.provider='stripe'[\s\S]*payment\.method='bank_transfer'[\s\S]*payment\.provider='finapi'/i);
+assert.match(originalMethodMigration, /Dokaz vračila mora uporabiti enega od prvotnih načinov plačila/i);
+assert.match(settlementMigration, /revoke all on table public\.pos_consumer_withdrawal_settlements from public, anon, authenticated/i);
+assert.match(settlementMigration, /revoke all on table public\.pos_consumer_withdrawal_refund_records from public, anon, authenticated/i);
+assert.match(js, /from\("pos_consumer_withdrawal_settlements"\)/);
+assert.match(js, /from\("pos_consumer_withdrawal_refund_records"\)/);
+assert.match(js, /function assessConsumerWithdrawalSettlement\(order\)/);
+assert.match(js, /rpc\("pos_assess_consumer_withdrawal_settlement"/);
+assert.match(js, /function recordConsumerWithdrawalRefund\(order\)/);
+assert.match(js, /function originalRefundProvider\(order\)/);
+assert.match(js, /rpc\("pos_record_consumer_withdrawal_refund"/);
+assert.match(js, /Ta postopek ne sproži Stripe, banke ali nakazila/i);
+assert.match(js, /Zakonski rok:[\s\S]*Vračilo ni bilo samodejno izvedeno/i);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");

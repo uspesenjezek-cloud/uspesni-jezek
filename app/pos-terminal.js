@@ -454,7 +454,7 @@
     return payload;
   }
 
-  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart, withdrawal, contractDocument, contractDelivery) {
+  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart, withdrawal, contractDocument, contractDelivery, withdrawalSettlement, withdrawalRefunds) {
     return {
       id: row.id,
       offerNumber: row.offer_number,
@@ -498,6 +498,17 @@
       contractConfirmationDeliveryEvidence: contractDelivery && contractDelivery.evidence || "",
       contractConfirmationDeliveredOn: contractDelivery && contractDelivery.delivered_on || "",
       contractConfirmationElectronicConsent: contractDelivery && contractDelivery.electronic_consent_evidence || "",
+      withdrawalSettlementId: withdrawalSettlement && withdrawalSettlement.id || "",
+      withdrawalGrossReceivedCents: integer(withdrawalSettlement && withdrawalSettlement.gross_received_cents, 0),
+      withdrawalAlreadyRefundedCents: integer(withdrawalSettlement && withdrawalSettlement.already_refunded_cents, 0),
+      withdrawalRetainedPaymentCents: integer(withdrawalSettlement && withdrawalSettlement.retained_payment_cents, 0),
+      withdrawalValueCompensationCents: integer(withdrawalSettlement && withdrawalSettlement.value_compensation_cents, 0),
+      withdrawalRefundDueCents: integer(withdrawalSettlement && withdrawalSettlement.refund_due_cents, 0),
+      withdrawalConsumerBalanceReviewCents: integer(withdrawalSettlement && withdrawalSettlement.consumer_balance_review_cents, 0),
+      withdrawalRefundMethod: withdrawalSettlement && withdrawalSettlement.refund_method || "",
+      withdrawalRefundDueOn: withdrawalSettlement && withdrawalSettlement.refund_due_on || "",
+      withdrawalSettlementAssessedAt: withdrawalSettlement && withdrawalSettlement.assessed_at || "",
+      withdrawalRefundRecords: withdrawalRefunds || [],
       updatedAt: row.updated_at,
       invoiceLinks: links || []
     };
@@ -596,7 +607,12 @@
     if (status === "completed") return ["pdf"].concat(confirmationActions, ["final", "progress"], consumerWithdrawal ? ["withdraw"] : []);
     if (status === "invoiced") return ["pdf"].concat(confirmationActions, consumerWithdrawal ? ["withdraw"] : []);
     if (status === "cancelled" && order && order.offeredAt) return ["pdf"];
-    if (status === "withdrawn") return ["pdf"].concat(confirmationActions);
+    if (status === "withdrawn") {
+      var refundRecorded = order ? (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0) : 0;
+      var settlementActions = order && !order.withdrawalSettlementId ? ["withdrawal_settlement"]
+        : order && refundRecorded < order.withdrawalRefundDueCents ? ["withdrawal_refund"] : [];
+      return ["pdf"].concat(confirmationActions, settlementActions);
+    }
     return [];
   }
 
@@ -1979,9 +1995,11 @@
         fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,value_compensation_informed,right_expiry_acknowledged,request_on_durable_medium,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_withdrawals").select("work_order_id,status_before,declared_on,evidence,value_compensation_review_required,received_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_documents").select("id,work_order_id,offer_sha256,accepted_on,sha256,byte_size,generator_version,created_at").eq("user_id", userId).order("created_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_settlements").select("*").eq("user_id", userId).order("assessed_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_refund_records").select("*").eq("user_id", userId).order("recorded_at", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 20).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 22).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -2031,6 +2049,13 @@
       (responses[18].data || []).forEach(function (entry) { contractDocumentByWorkOrder[entry.work_order_id] = entry; });
       var contractDeliveryByWorkOrder = {};
       (responses[19].data || []).forEach(function (entry) { contractDeliveryByWorkOrder[entry.work_order_id] = entry; });
+      var withdrawalSettlementByWorkOrder = {};
+      (responses[20].data || []).forEach(function (entry) { withdrawalSettlementByWorkOrder[entry.work_order_id] = entry; });
+      var withdrawalRefundsByWorkOrder = {};
+      (responses[21].data || []).forEach(function (entry) {
+        if (!withdrawalRefundsByWorkOrder[entry.work_order_id]) withdrawalRefundsByWorkOrder[entry.work_order_id] = [];
+        withdrawalRefundsByWorkOrder[entry.work_order_id].push(entry);
+      });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -2059,7 +2084,9 @@
           earlyStartByWorkOrder[row.id] || null,
           withdrawalByWorkOrder[row.id] || null,
           contractDocumentByWorkOrder[row.id] || null,
-          contractDeliveryByWorkOrder[row.id] || null
+          contractDeliveryByWorkOrder[row.id] || null,
+          withdrawalSettlementByWorkOrder[row.id] || null,
+          withdrawalRefundsByWorkOrder[row.id] || []
         );
       });
       (responses[7].data || []).forEach(function (relation) {
@@ -2313,7 +2340,8 @@
   function workOrderActionLabel(action) {
     return {
       edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", contract_pdf: "Potrdilo pogodbe PDF", contract_delivery: "Zabeleži izročitev", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
-      progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči", withdraw: "Zabeleži odstop"
+      progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči", withdraw: "Zabeleži odstop",
+      withdrawal_settlement: "Denarni pregled odstopa", withdrawal_refund: "Zabeleži vračilo"
     }[action] || action;
   }
 
@@ -2341,8 +2369,16 @@
       var withdrawalCopy = order.withdrawalEvidence ? formatDate(order.withdrawalDeclaredOn) + " · " + order.withdrawalEvidence : "";
       var contractDeliveryCopy = order.contractConfirmationDeliveryEvidence ? formatDate(order.contractConfirmationDeliveredOn) + " · " + (order.contractConfirmationDeliveryChannel === "paper" ? "papir" : "elektronsko") + " · " + order.contractConfirmationDeliveryEvidence : "";
       var contractWarning = order.status === "accepted" && requiresContractConfirmation(order) && !order.contractConfirmationDeliveryEvidence ? "Pred začetkom dela ustvarite pogodbeno potrdilo PDF in dokazljivo zabeležite njegovo izročitev potrošniku na trajnem nosilcu." : "";
-      var withdrawalWarning = order.status === "withdrawn" ? "Nadaljnje delo in novi računi so ustavljeni. Obstoječi računi in plačila ostajajo nespremenjeni; preverite Storno/Gutschrift" + (order.valueCompensationReviewRequired ? " ter morebitni Wertersatz" : "") + ". Vračilo denarja ni bilo samodejno izvedeno." : "";
-      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (contractDeliveryCopy ? "<div><small>Potrdilo pogodbe izročeno</small><b data-fit-text title=\"" + escapeHtml(contractDeliveryCopy) + "\">" + escapeHtml(contractDeliveryCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (contractWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(contractWarning) + "</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+      var withdrawalRefundRecorded = (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0);
+      var withdrawalRefundRemaining = Math.max(0, order.withdrawalRefundDueCents - withdrawalRefundRecorded);
+      var settlementCopy = order.withdrawalSettlementId ? "Vračilo " + formatMoney(order.withdrawalRefundDueCents) + " · Wertersatz " + formatMoney(order.withdrawalValueCompensationCents) + " · rok " + formatDate(order.withdrawalRefundDueOn) : "";
+      var refundCopy = withdrawalRefundRecorded ? formatMoney(withdrawalRefundRecorded) + " od " + formatMoney(order.withdrawalRefundDueCents) : "";
+      var withdrawalWarning = "";
+      if (order.status === "withdrawn" && !order.withdrawalSettlementId) withdrawalWarning = "Nadaljnje delo in novi računi so ustavljeni. Zdaj nespremenljivo ocenite plačila, morebitni Wertersatz in vračilo; nobeno plačilo se ne bo sprožilo samodejno.";
+      else if (order.status === "withdrawn" && withdrawalRefundRemaining > 0) withdrawalWarning = "Dokaz vračila še manjka za " + formatMoney(withdrawalRefundRemaining) + ". Zakonski rok: " + formatDate(order.withdrawalRefundDueOn) + ". Vračilo ni bilo samodejno izvedeno.";
+      else if (order.status === "withdrawn" && order.withdrawalConsumerBalanceReviewCents > 0) withdrawalWarning = "Wertersatz presega zadržano plačilo za " + formatMoney(order.withdrawalConsumerBalanceReviewCents) + ". POS ni ustvaril terjatve; potreben je ločen pravni in davčni pregled.";
+      else if (order.status === "withdrawn" && order.withdrawalSettlementId) withdrawalWarning = "Denarne posledice odstopa so ocenjene in zahtevano vračilo je v celoti dokazano oziroma ni potrebno. POS ni samodejno premaknil denarja.";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (contractDeliveryCopy ? "<div><small>Potrdilo pogodbe izročeno</small><b data-fit-text title=\"" + escapeHtml(contractDeliveryCopy) + "\">" + escapeHtml(contractDeliveryCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (settlementCopy ? "<div><small>Denarni pregled</small><b data-fit-text title=\"" + escapeHtml(settlementCopy) + "\">" + escapeHtml(settlementCopy) + "</b></div>" : "") + (refundCopy ? "<div><small>Dokazano vračilo</small><b data-fit-text>" + escapeHtml(refundCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (contractWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(contractWarning) + "</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
       button.addEventListener("click", function () {
@@ -2352,6 +2388,8 @@
         else if (action === "pdf") downloadOfferPdf(order).then(function () { showToast("Nespremenljivi PDF ponudbe je prenesen."); }).catch(function (error) { showToast(error && error.message || "PDF ponudbe ni na voljo."); });
         else if (action === "contract_pdf") downloadContractConfirmationPdf(order).then(function () { showToast("Nespremenljivo pogodbeno potrdilo je preneseno."); }).catch(function (error) { showToast(error && error.message || "Pogodbeno potrdilo ni na voljo."); });
         else if (action === "contract_delivery") recordContractConfirmationDelivery(order);
+        else if (action === "withdrawal_settlement") assessConsumerWithdrawalSettlement(order);
+        else if (action === "withdrawal_refund") recordConsumerWithdrawalRefund(order);
         else if (action === "progress" || action === "final") startWorkOrderInvoice(order, action);
         else transitionWorkOrder(order, action);
       });
@@ -2458,6 +2496,159 @@
               showView("work-orders");
               showToast("Odstop je nespremenljivo zapisan; delo in novi računi so ustavljeni.");
             } catch (error) { showToast(error && error.message || "Odstopa ni bilo mogoče zapisati."); }
+          }
+        });
+      }
+    });
+  }
+
+  function retainedWorkOrderPaymentCents(order) {
+    return (order && order.invoiceLinks || []).reduce(function (total, link) {
+      var invoice = link && link.invoice;
+      if (!invoice) return total;
+      return total + (invoice.payments || []).reduce(function (sum, payment) {
+        if (["succeeded", "partially_refunded", "refunded"].indexOf(payment.status) === -1) return sum;
+        return sum + Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
+      }, 0);
+    }, 0);
+  }
+
+  function assessConsumerWithdrawalSettlement(order) {
+    if (!order || order.status !== "withdrawn" || order.withdrawalSettlementId) return;
+    var retained = retainedWorkOrderPaymentCents(order);
+    var submit = async function (valueCompensationCents, refundMethod, alternativeEvidence, reason) {
+      try {
+        var result = await backend.client.rpc("pos_assess_consumer_withdrawal_settlement", {
+          p_work_order_id: order.id,
+          p_value_compensation_cents: valueCompensationCents,
+          p_refund_method: refundMethod,
+          p_alternative_agreement_evidence: alternativeEvidence || null,
+          p_value_compensation_reason: reason || null
+        }).single();
+        if (result.error) throw result.error;
+        await loadServerState("invoices");
+        showView("work-orders");
+        showToast("Denarne posledice odstopa so nespremenljivo ocenjene; denar ni bil premaknjen.");
+      } catch (error) { showToast(error && error.message || "Denarnega pregleda ni bilo mogoče zapisati."); }
+    };
+    var chooseMethod = function (valueCompensationCents, reason) {
+      var estimatedRefund = Math.max(0, retained - valueCompensationCents);
+      if (!estimatedRefund) { submit(valueCompensationCents, "not_required", "", reason); return; }
+      openDialog("Način vračila", "Ocenjeno preostalo vračilo je " + formatMoney(estimatedRefund) + ". Po § 357 BGB uporabite isti način plačila, razen če je potrošnik izrecno in brez stroškov pristal na drugega.", {
+        confirmText: "Naprej",
+        input: {
+          label: "Način vračila",
+          value: "original",
+          options: [
+            { value: "original", label: "Prvotni način plačila" },
+            { value: "agreed_alternative", label: "Dogovorjena alternativa" }
+          ]
+        },
+        onConfirm: function (method) {
+          if (method === "original") { submit(valueCompensationCents, method, "", reason); return; }
+          openDialog("Dokaz dogovorjene alternative", "Vpišite dokaz, da je potrošnik izrecno pristal na drug način vračila in da zaradi tega nima stroškov.", {
+            confirmText: "Zaključi pregled",
+            input: { label: "Dokaz dogovora", placeholder: "E-pošta · Max Mustermann · dogovorjen IBAN · brez stroškov", maxLength: 500 },
+            validate: function (value) { var length = String(value || "").trim().length; return length < 5 || length > 500 ? "Vpišite dokaz dogovora (od 5 do 500 znakov)." : ""; },
+            onConfirm: function (evidence) { submit(valueCompensationCents, method, String(evidence || "").trim(), reason); }
+          });
+        }
+      });
+    };
+    var explainValueCompensation = function (valueCompensationCents) {
+      if (!valueCompensationCents) { chooseMethod(0, ""); return; }
+      openDialog("Utemeljitev Wertersatz", "Utemeljite sorazmerni znesek glede na dejansko opravljeno storitev in dogovorjeno skupno ceno. POS terjatve ne bo samodejno ustvaril.", {
+        confirmText: "Naprej",
+        input: { label: "Dokazljiva utemeljitev", placeholder: "Opravljenih 3 od 10 dogovorjenih ur · delovni zapisnik …", maxLength: 500 },
+        validate: function (value) { var length = String(value || "").trim().length; return length < 5 || length > 500 ? "Vpišite utemeljitev Wertersatz (od 5 do 500 znakov)." : ""; },
+        onConfirm: function (reason) { chooseMethod(valueCompensationCents, String(reason || "").trim()); }
+      });
+    };
+    if (!order.valueCompensationReviewRequired) { explainValueCompensation(0); return; }
+    openDialog("Ocena Wertersatz", "Vpišite 0,00 €, če Wertersatz ni utemeljen. Najvišja dovoljena osnova je pogodbena bruto vrednost " + formatMoney(order.grossCents) + ".", {
+      confirmText: "Naprej",
+      input: { label: "Wertersatz", hint: "Znesek ne sme presegati pogodbene bruto vrednosti.", value: "0,00", inputMode: "decimal", maxLength: 20 },
+      validate: function (value) {
+        var cents = parseMoneyToCents(value);
+        if (cents < 0 || cents > order.grossCents) return "Wertersatz mora biti med 0,00 € in " + formatMoney(order.grossCents) + ".";
+        return "";
+      },
+      onConfirm: function (value) { explainValueCompensation(parseMoneyToCents(value)); }
+    });
+  }
+
+  function originalRefundProvider(order) {
+    var providers = [];
+    (order && order.invoiceLinks || []).forEach(function (link) {
+      var invoice = link && link.invoice;
+      (invoice && invoice.payments || []).forEach(function (payment) {
+        if (["succeeded", "partially_refunded", "refunded"].indexOf(payment.status) === -1) return;
+        var provider = payment.provider === "stripe" ? "stripe"
+          : payment.method === "bank_transfer" || payment.provider === "finapi" ? "bank_transfer" : "other";
+        if (providers.indexOf(provider) === -1) providers.push(provider);
+      });
+    });
+    return providers[0] || "bank_transfer";
+  }
+
+  function recordConsumerWithdrawalRefund(order) {
+    if (!order || !order.withdrawalSettlementId) return;
+    var recorded = (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0);
+    var remaining = Math.max(0, order.withdrawalRefundDueCents - recorded);
+    if (!remaining) return;
+    openDialog("Znesek izvedenega vračila", "Zabeležite samo že dejansko izvedeno vračilo. Ta postopek ne sproži Stripe, banke ali nakazila. Preostalo za dokazovanje: " + formatMoney(remaining) + ".", {
+      confirmText: "Naprej",
+      input: { label: "Izvedeni znesek", value: (remaining / 100).toFixed(2).replace(".", ","), inputMode: "decimal", maxLength: 20 },
+      validate: function (value) {
+        var cents = parseMoneyToCents(value);
+        if (cents <= 0 || cents > remaining) return "Znesek mora biti med 0,01 € in " + formatMoney(remaining) + ".";
+        return "";
+      },
+      onConfirm: function (amountText) {
+        var amountCents = parseMoneyToCents(amountText);
+        var today = berlinDateKey(new Date()) || isoToday();
+        openDialog("Datum izvedenega vračila", "Vpišite datum, ko je bilo vračilo dejansko izvedeno.", {
+          confirmText: "Naprej",
+          input: { type: "date", label: "Datum vračila", value: today, max: today },
+          validate: function (value) { return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) && value <= today ? "" : "Vpišite veljaven datum vračila."; },
+          onConfirm: function (executedOn) {
+            openDialog("Kje je bilo vračilo izvedeno?", "Izberite dejanski kanal. Zapis je samo dokaz in ne bo sprožil zunanje transakcije.", {
+              confirmText: "Naprej",
+              input: { label: "Kanal vračila", value: order.withdrawalRefundMethod === "original" ? originalRefundProvider(order) : "bank_transfer", options: [
+                { value: "bank_transfer", label: "Bančno nakazilo" },
+                { value: "stripe", label: "Stripe" },
+                { value: "other", label: "Drugo" }
+              ] },
+              onConfirm: function (provider) {
+                openDialog("Referenca vračila", "Vpišite bančno referenco, Stripe refund ID ali drugo enolično oznako izvedene transakcije.", {
+                  confirmText: "Naprej",
+                  input: { label: "Referenca", placeholder: "Npr. RF-2026-0042 ali re_…", maxLength: 200 },
+                  validate: function (value) { var length = String(value || "").trim().length; return length < 3 || length > 200 ? "Vpišite veljavno referenco (od 3 do 200 znakov)." : ""; },
+                  onConfirm: function (reference) {
+                    openDialog("Dokaz izvedenega vračila", "Vpišite preverljivo evidenco, na primer bančni izpisek ali Stripe dogodek. Zapis bo nespremenljiv.", {
+                      confirmText: "Zabeleži dokaz",
+                      input: { label: "Dokaz", placeholder: "Bančni izpisek · vrstica 42 · 5. 9. 2026", maxLength: 500 },
+                      validate: function (value) { var length = String(value || "").trim().length; return length < 5 || length > 500 ? "Vpišite dokaz (od 5 do 500 znakov)." : ""; },
+                      onConfirm: async function (evidence) {
+                        try {
+                          var result = await backend.client.rpc("pos_record_consumer_withdrawal_refund", {
+                            p_work_order_id: order.id,
+                            p_amount_cents: amountCents,
+                            p_provider: provider,
+                            p_provider_reference: String(reference || "").trim(),
+                            p_evidence: String(evidence || "").trim(),
+                            p_executed_on: executedOn
+                          }).single();
+                          if (result.error) throw result.error;
+                          await loadServerState("invoices"); showView("work-orders");
+                          showToast("Dokaz izvedenega vračila je nespremenljivo zapisan; nobena transakcija ni bila sprožena.");
+                        } catch (error) { showToast(error && error.message || "Dokaza vračila ni bilo mogoče zapisati."); }
+                      }
+                    });
+                  }
+                });
+              }
+            });
           }
         });
       }
