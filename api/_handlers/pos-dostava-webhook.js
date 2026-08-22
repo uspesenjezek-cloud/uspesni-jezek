@@ -97,10 +97,11 @@ function verifySvixSignature(options) {
   return signatures.some(function (candidate) { return safeEqual(candidate, expected); });
 }
 
-function eventTimestamp(payload) {
+function eventTimestamp(payload, nowMilliseconds) {
   const value = payload && (payload.created_at || payload.data && payload.data.created_at);
   const parsed = Date.parse(String(value || ""));
-  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : "";
+  const now = Number.isFinite(nowMilliseconds) ? nowMilliseconds : Date.now();
+  return Number.isFinite(parsed) && parsed <= now + MAX_CLOCK_SKEW_SECONDS * 1000 ? new Date(parsed).toISOString() : "";
 }
 
 function safeFailureCode(payload) {

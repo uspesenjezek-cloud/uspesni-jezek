@@ -212,6 +212,17 @@ assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3
   const resendPayload = JSON.parse(requests[0].options.body);
   assert.deepStrictEqual(resendPayload.to, ["kunde@example.de"]);
   assert.strictEqual(resendPayload.attachments[0].content, content.toString("base64"));
+  const oversizedResponseProvider = providers.providerFor("resend", {
+    env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>", POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true" },
+    fetch: async () => new Response("{}", {
+      status: 200,
+      headers: { "content-type": "application/json", "content-length": String(providers.MAX_PROVIDER_RESPONSE_BYTES + 1) },
+    }),
+  });
+  await assert.rejects(
+    () => oversizedResponseProvider.deliver(livePackage),
+    function (error) { return error && error.code === "RESEND_RESPONSE_TOO_LARGE" && error.retryable === true; }
+  );
   const testRequests = [];
   const safeTest = providers.providerFor("resend", {
     env: {

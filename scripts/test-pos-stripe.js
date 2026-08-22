@@ -105,6 +105,9 @@ const refunded = webhook.normalizeEvent(Object.assign({}, baseEvent, {
 assert.strictEqual(refunded.refundedCents, 11900);
 assert.strictEqual(refunded.paymentIntentId, "pi_test");
 assert.strictEqual(webhook.eventCreatedAt("ni-cas"), "");
+const fixedNow = Date.parse("2026-08-21T12:00:00.000Z");
+assert.strictEqual(webhook.eventCreatedAt(String(fixedNow / 1000 + 301), fixedNow), "");
+assert.strictEqual(webhook.eventCreatedAt(String(fixedNow / 1000 + 300), fixedNow), "2026-08-21T12:05:00.000Z");
 
 assert.match(migration, /alter table public\.pos_payments[\s\S]*add column status text not null default 'succeeded'/i);
 assert.match(migration, /create table public\.pos_payment_events/i);

@@ -41,11 +41,12 @@ function uuid(value) {
 
 function objectId(value) { return typeof value === "string" ? value : value && value.id || ""; }
 
-function eventCreatedAt(value) {
+function eventCreatedAt(value, nowMilliseconds) {
   const seconds = Number(value);
   if (!Number.isSafeInteger(seconds) || seconds <= 0) return "";
   const date = new Date(seconds * 1000);
-  return Number.isFinite(date.getTime()) ? date.toISOString() : "";
+  const now = Number.isFinite(nowMilliseconds) ? nowMilliseconds : Date.now();
+  return Number.isFinite(date.getTime()) && date.getTime() <= now + 5 * 60 * 1000 ? date.toISOString() : "";
 }
 
 function normalizeEvent(event) {

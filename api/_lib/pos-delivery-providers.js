@@ -4,6 +4,7 @@ const crypto = require("node:crypto");
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const MAX_RAW_ATTACHMENT_BYTES = 28 * 1024 * 1024;
+const MAX_PROVIDER_RESPONSE_BYTES = 64 * 1024;
 
 class DeliveryProviderError extends Error {
   constructor(message, options) {
@@ -78,6 +79,31 @@ function resendIdempotencyKey(deliveryPackage) {
   return ["invoice-delivery", deliveryPackage.delivery.id, deliveryPackage.manifestSha256.slice(0, 32)].join("/");
 }
 
+async function providerResponseJson(response) {
+  const declared = Number(response && response.headers && response.headers.get("content-length") || 0);
+  if (Number.isFinite(declared) && declared > MAX_PROVIDER_RESPONSE_BYTES) {
+    throw new DeliveryProviderError("E-poštni ponudnik je vrnil prevelik odgovor.", { code: "RESEND_RESPONSE_TOO_LARGE", retryable: true });
+  }
+  if (!response || !response.body || typeof response.body.getReader !== "function") {
+    try { return await response.json(); } catch (_) { return null; }
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const part = await reader.read();
+    if (part.done) break;
+    const chunk = Buffer.from(part.value);
+    total += chunk.length;
+    if (total > MAX_PROVIDER_RESPONSE_BYTES) {
+      await reader.cancel().catch(function () {});
+      throw new DeliveryProviderError("E-poštni ponudnik je vrnil prevelik odgovor.", { code: "RESEND_RESPONSE_TOO_LARGE", retryable: true });
+    }
+    chunks.push(chunk);
+  }
+  try { return JSON.parse(Buffer.concat(chunks, total).toString("utf8")); } catch (_) { return null; }
+}
+
 function resendProvider(options) {
   const settings = options || {};
   const env = settings.env || process.env;
@@ -134,8 +160,7 @@ function resendProvider(options) {
       } catch (_) {
         throw new DeliveryProviderError("E-poštni ponudnik trenutno ni dosegljiv.", { code: "RESEND_NETWORK_ERROR", retryable: true });
       }
-      let body = null;
-      try { body = await response.json(); } catch (_) {}
+      const body = await providerResponseJson(response);
       if (!response.ok || !body || !body.id) {
         const retryable = response.status === 408 || response.status === 409 || response.status === 425 || response.status === 429 || response.status >= 500;
         throw new DeliveryProviderError(retryable ? "E-poštni ponudnik je začasno zavrnil pošiljanje." : "E-poštni ponudnik je zavrnil podatke pošiljanja.", {
@@ -163,9 +188,11 @@ function providerFor(name, options) {
 
 module.exports = {
   DeliveryProviderError,
+  MAX_PROVIDER_RESPONSE_BYTES,
   MAX_RAW_ATTACHMENT_BYTES,
   deliveryReadiness,
   providerFor,
+  providerResponseJson,
   resendIdempotencyKey,
   resendProvider,
   sandboxReference,
