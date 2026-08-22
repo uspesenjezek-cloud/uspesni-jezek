@@ -71,6 +71,10 @@ const finapiMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_finapi_bank_provider\.sql$/.test(name)).sort().pop()
   : null;
 const finapiMigration = finapiMigrationName ? fs.readFileSync(path.join(migrationsDir, finapiMigrationName), "utf8") : "";
+const bankLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_bank_import_payload_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const bankLimitsMigration = bankLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, bankLimitsMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -779,6 +783,16 @@ assert.match(finapiMigration, /security invoker/i);
 assert.match(finapiMigration, /security definer\s+set search_path = ''/i);
 assert.match(finapiMigration, /external_reference !~ '\^finapi:\[0-9\]\+\$'/i);
 assert.match(finapiMigration, /notify pgrst, 'reload schema'/i);
+assert.ok(bankLimitsMigrationName, "Manjka omejitev payload-a bančnega uvoza.");
+assert.match(bankLimitsMigration, /octet_length\(p_transactions::text\) > p_max_bytes/i);
+assert.match(bankLimitsMigration, /jsonb_typeof\(v_row->'amount_cents'\) not in \('number', 'string'\)/i);
+assert.match(bankLimitsMigration, /v_amount > 9223372036854775807/i);
+assert.match(bankLimitsMigration, /private\._pos_import_bank_transactions_validated[\s\S]*4194304/i);
+assert.match(bankLimitsMigration, /private\._pos_import_finapi_transactions_validated[\s\S]*2097152/i);
+assert.match(bankLimitsMigration, /create or replace function public\.pos_import_bank_transactions[\s\S]*security invoker[\s\S]*private\._pos_import_bank_transactions_validated/i);
+assert.match(bankLimitsMigration, /create or replace function public\.pos_import_finapi_transactions[\s\S]*security invoker[\s\S]*private\._pos_import_finapi_transactions_validated/i);
+assert.match(bankLimitsMigration, /revoke execute on function private\._pos_import_bank_transactions\(text,text,text,jsonb\) from authenticated/i);
+assert.match(bankLimitsMigration, /revoke execute on function private\._pos_import_finapi_transactions\(text,jsonb\) from authenticated/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
