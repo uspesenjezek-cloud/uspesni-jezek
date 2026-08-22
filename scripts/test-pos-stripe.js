@@ -292,7 +292,10 @@ async function testRefundHandler() {
     assert.strictEqual(calls.refunds.length, 1);
     assert.strictEqual(calls.refunds[0].params.payment_intent, "pi_test_refund");
     assert.strictEqual(calls.refunds[0].params.metadata.request_id, request.body.requestId);
-    assert.match(calls.refunds[0].options.idempotencyKey, /:1900:2500$/);
+    assert.strictEqual(
+      calls.refunds[0].options.idempotencyKey,
+      "uj-pos-test-refund:22222222-2222-4222-8222-222222222222:33333333-3333-4333-8333-333333333333:" + request.body.requestId
+    );
     assert(calls.queries.some((entry) => entry.table === "pos_invoices" && entry.query.includes("is_test=eq.true")));
     assert(calls.queries.some((entry) => entry.table === "pos_payments" && entry.query.includes("user_id=eq.")));
   } finally {

@@ -158,7 +158,7 @@ async function handler(req, res) {
           request_id: requestId,
         },
       }, {
-        idempotencyKey: "uj-pos-test-refund:" + auth.user.id + ":" + paymentId + ":" + Number(payment.refunded_cents || 0) + ":" + amountCents,
+        idempotencyKey: "uj-pos-test-refund:" + auth.user.id + ":" + paymentId + ":" + requestId,
       });
       if (!refund || !String(refund.id || "").startsWith("re_")) {
         throw new Error("Stripe ni vrnil veljavnega TEST povračila.");
