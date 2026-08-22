@@ -79,6 +79,10 @@ const internalJsonLimitsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_internal_json_limits\.sql$/.test(name)).sort().pop()
   : null;
 const internalJsonLimitsMigration = internalJsonLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, internalJsonLimitsMigrationName), "utf8") : "";
+const moneyInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_money_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const moneyInvariantsMigration = moneyInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, moneyInvariantsMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -803,6 +807,13 @@ assert.match(internalJsonLimitsMigration, /pos_datev_connections_services_size_c
 assert.match(internalJsonLimitsMigration, /pos_einvoice_documents_validation_report_size_check[\s\S]*2097152/i);
 assert.match(internalJsonLimitsMigration, /pos_payments_metadata_size_check[\s\S]*jsonb_typeof\(metadata\) = 'object'/i);
 assert.match(internalJsonLimitsMigration, /validate constraint pos_work_order_events_details_size_check/i);
+assert.ok(moneyInvariantsMigrationName, "Manjkajo denarne invariante POS.");
+assert.match(moneyInvariantsMigration, /gross_cents = net_cents \+ tax_cents/i);
+assert.match(moneyInvariantsMigration, /eligible_35a_cents between 0 and gross_cents/i);
+assert.match(moneyInvariantsMigration, /tax_mode = 'regular' or tax_cents = 0/i);
+assert.match(moneyInvariantsMigration, /pos_invoice_adjustments_money_invariant_check[\s\S]*delta_gross_cents = delta_net_cents \+ delta_tax_cents/i);
+assert.match(moneyInvariantsMigration, /pos_payments_amount_upper_bound_check[\s\S]*100000000000/i);
+assert.match(moneyInvariantsMigration, /validate constraint pos_bank_transactions_amount_upper_bound_check/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
