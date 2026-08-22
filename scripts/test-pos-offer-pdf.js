@@ -13,6 +13,7 @@ const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-a
 const confirmationHandlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-pogodba-pdf.js"), "utf8");
 const dispatcher = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
+const vercelIgnore = fs.readFileSync(path.join(root, ".vercelignore"), "utf8");
 const terminal = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const migrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_offer_documents\.sql$/.test(name)).sort().pop();
@@ -109,6 +110,7 @@ function workOrder() {
   assert.doesNotMatch(handlerSource, /response\.arrayBuffer\(/);
   assert.match(dispatcher, /"offer-pdf": require\("\.\/_handlers\/pos-angebot-pdf"\)/);
   assert.match(vercel, /"\/api\/pos-angebot-pdf"[\s\S]*handler=offer-pdf/);
+  assert.match(vercelIgnore, /^api\/pos-angebot-pdf\.js$/m, "Združeni Angebot handler ne sme šteti kot dodatna Vercel funkcija.");
   assert.match(terminal, /function downloadOfferPdf\(order\)/);
   assert.match(terminal, /Ponudba je zaklenjena in njen PDF original je pripravljen/);
   assert.equal(confirmationEndpoint._test.objectPath("u", "w"), "u/w/vertragsbestaetigung.pdf");
@@ -123,6 +125,11 @@ function workOrder() {
   assert.doesNotMatch(confirmationHandlerSource, /response\.arrayBuffer\(/);
   assert.match(dispatcher, /"contract-confirmation-pdf": require\("\.\/_handlers\/pos-pogodba-pdf"\)/);
   assert.match(vercel, /"\/api\/pos-pogodba-pdf"[\s\S]*handler=contract-confirmation-pdf/);
+  assert.match(vercelIgnore, /^api\/pos-pogodba-pdf\.js$/m, "Združeno pogodbeno potrdilo ne sme šteti kot dodatna Vercel funkcija.");
+  const ignoredApiFiles = new Set(vercelIgnore.split(/\r?\n/).filter((line) => /^api\/[^/]+\.js$/.test(line)));
+  const deployedFunctionCount = fs.readdirSync(path.join(root, "api"))
+    .filter((name) => name.endsWith(".js") && !ignoredApiFiles.has("api/" + name)).length;
+  assert.ok(deployedFunctionCount <= 12, "Hobby uvedba presega omejitev 12 Vercel funkcij: " + deployedFunctionCount);
   assert.match(terminal, /function downloadContractConfirmationPdf\(order\)/);
 
   assert.match(migration, /create table public\.pos_offer_documents/i);
