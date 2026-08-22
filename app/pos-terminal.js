@@ -833,6 +833,12 @@
     return Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
   }
 
+  function latestManualPaymentCandidate(invoices) {
+    return (invoices || []).filter(function (invoice) {
+      return invoice && invoice.status !== "paid" && invoice.status !== "cancelled" && invoiceOutstandingCents(invoice) > 0;
+    })[0] || null;
+  }
+
   function invoiceDaysOverdue(invoice, today) {
     if (!invoice || invoice.isTest || invoice.status === "paid" || invoice.status === "cancelled" || invoiceOutstandingCents(invoice) <= 0) return 0;
     var due = Date.parse(String(invoice.dueDate || "") + "T12:00:00Z");
@@ -1503,6 +1509,7 @@
     matchBankTransaction: matchBankTransaction,
     resolveBankMatches: resolveBankMatches,
     invoiceOutstandingCents: invoiceOutstandingCents,
+    latestManualPaymentCandidate: latestManualPaymentCandidate,
     invoiceDaysOverdue: invoiceDaysOverdue,
     filterInvoices: filterInvoices,
     invoiceOverview: invoiceOverview,
@@ -3910,7 +3917,8 @@
     if (!invoice) return;
     if (invoice.status === "cancelled") { showToast("Storniranega računa ni mogoče označiti kot plačanega."); return; }
     if (invoice.status === "paid") { showToast("Ta račun je že označen kot plačan."); return; }
-    openDialog("Označiti kot plačano?", invoice.number + " · " + formatMoney(invoice.totals.grossCents) + ". Ročna potrditev mora temeljiti na dejansko vidnem plačilu.", {
+    var outstandingCents = invoiceOutstandingCents(invoice);
+    openDialog("Označiti kot plačano?", invoice.number + " · preostanek " + formatMoney(outstandingCents) + ". Ročna potrditev mora temeljiti na dejansko vidnem plačilu.", {
       confirmText: "Potrdi plačilo",
       onConfirm: async function () {
         try {
@@ -3947,7 +3955,7 @@
   }
 
   function requestLatestPayment() {
-    var invoice = state.invoices.filter(function (entry) { return entry.status === "open"; })[0];
+    var invoice = latestManualPaymentCandidate(state.invoices);
     if (!invoice) { showToast("Ni odprtega računa za plačilo."); return; }
     requestPayment(invoice.id);
   }

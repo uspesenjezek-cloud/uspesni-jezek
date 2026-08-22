@@ -145,7 +145,7 @@ assert.match(unavailableView.copyText, /varno zaklenjena/i);
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260822-berlin-dates-v14/);
+assert.match(html, /pos-terminal\.js\?v=20260822-partial-payment-v15/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);

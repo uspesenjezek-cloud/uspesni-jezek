@@ -376,6 +376,14 @@ assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 400, refundedCents: 0
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1200, refundedCents: 200, status: "partially_refunded" }], 1000, "open"), { paidCents: 1000, status: "paid" });
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "failed" }], 1000, "open"), { paidCents: 0, status: "open" });
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "succeeded" }], 1000, "cancelled"), { paidCents: 1000, status: "cancelled" });
+assert.strictEqual(Core.latestManualPaymentCandidate([
+  { id: "partial", status: "partial", totals: { grossCents: 1000 }, paidCents: 400 },
+  { id: "open", status: "open", totals: { grossCents: 1000 }, paidCents: 0 }
+]).id, "partial");
+assert.strictEqual(Core.latestManualPaymentCandidate([
+  { status: "paid", totals: { grossCents: 1000 }, paidCents: 1000 },
+  { status: "cancelled", totals: { grossCents: 1000 }, paidCents: 0 }
+]), null);
 
 const net = Core.calculateItem({ quantity: "2", unitPrice: "100,00", taxRate: "19" }, "net", "regular");
 assert.deepStrictEqual(
