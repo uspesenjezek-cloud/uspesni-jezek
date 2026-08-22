@@ -95,6 +95,10 @@ const tenantInvariantsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_tenant_relationship_invariants\.sql$/.test(name)).sort().pop()
   : null;
 const tenantInvariantsMigration = tenantInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, tenantInvariantsMigrationName), "utf8") : "";
+const tenantIndexesMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_tenant_foreign_key_indexes\.sql$/.test(name)).sort().pop()
+  : null;
+const tenantIndexesMigration = tenantIndexesMigrationName ? fs.readFileSync(path.join(migrationsDir, tenantIndexesMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -852,6 +856,12 @@ assert.match(tenantInvariantsMigration, /pos_tenant_archive_record_invoice_fk[\s
 assert.match(tenantInvariantsMigration, /pos_tenant_payment_invoice_fk[\s\S]*references public\.pos_invoices\(id, user_id\)/i);
 assert.match(tenantInvariantsMigration, /pos_tenant_invoice_delivery_event_delivery_fk[\s\S]*references public\.pos_invoice_deliveries\(id, user_id\)/i);
 assert.match(tenantInvariantsMigration, /pos_tenant_work_order_invoice_order_fk[\s\S]*references public\.pos_work_orders\(id, user_id\)/i);
+assert.ok(tenantIndexesMigrationName, "Manjkajo pokrivni indeksi uporabniških tujih ključev POS.");
+assert.strictEqual((tenantIndexesMigration.match(/create index /gi) || []).length, 25);
+assert.strictEqual((tenantIndexesMigration.match(/\([^\n]+, user_id\)/gi) || []).length, 25);
+assert.match(tenantIndexesMigration, /pos_archive_records_invoice_user_idx[\s\S]*pos_archive_records\(invoice_id, user_id\)/i);
+assert.match(tenantIndexesMigration, /pos_payments_invoice_user_idx[\s\S]*pos_payments\(invoice_id, user_id\)/i);
+assert.match(tenantIndexesMigration, /pos_work_order_invoices_order_user_idx[\s\S]*pos_work_order_invoices\(work_order_id, user_id\)/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
