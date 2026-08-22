@@ -1,9 +1,9 @@
 "use strict";
 
 const { PDFDocument, rgb } = require("pdf-lib");
-const { safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerLegalDisclosureLines, embedUnicodeFonts } = require("./pos-pdf");
+const { safeText, money, dateDE, wrap, taxGroups, priceMode, lineDisplayAmount, taxIdentityText, sellerLegalDisclosureLines, embedUnicodeFonts } = require("./pos-pdf");
 
-const GENERATOR_VERSION = "uj-pos-offer-pdf-1";
+const GENERATOR_VERSION = "uj-pos-offer-pdf-2";
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.19, 0.18), muted: rgb(0.38, 0.48, 0.46),
@@ -34,6 +34,8 @@ function normalizeOffer(workOrder) {
 
 async function ustvariPonudboPdf(workOrder) {
   const { payload, seller, items } = normalizeOffer(workOrder);
+  const displayedPriceMode = priceMode(payload.price_mode);
+  const priceSuffix = displayedPriceMode === "gross" ? "brutto" : "netto";
   const pdf = await PDFDocument.create();
   pdf.setTitle("Angebot " + safeText(workOrder.offer_number));
   pdf.setAuthor("Uspešni Ježek POS");
@@ -74,9 +76,10 @@ async function ustvariPonudboPdf(workOrder) {
   function drawTableHeader() {
     page.drawRectangle({ x: PAGE.margin, y: y - 5, width: PAGE.width - PAGE.margin * 2, height: 22, color: COLORS.pale });
     page.drawText("Leistung", { x: PAGE.margin + 7, y: y + 3, font: bold, size: 7.5, color: COLORS.tealDark });
-    rightText(page, "Menge", 365, y + 3, bold, 7.5, COLORS.tealDark);
-    rightText(page, "USt.", 450, y + 3, bold, 7.5, COLORS.tealDark);
-    rightText(page, "Betrag", PAGE.width - PAGE.margin, y + 3, bold, 7.5, COLORS.tealDark);
+    rightText(page, "Menge", 340, y + 3, bold, 7.3, COLORS.tealDark);
+    rightText(page, "E-Preis " + priceSuffix, 425, y + 3, bold, 7, COLORS.tealDark);
+    rightText(page, "USt.", 468, y + 3, bold, 7.3, COLORS.tealDark);
+    rightText(page, "Gesamt " + priceSuffix, PAGE.width - PAGE.margin, y + 3, bold, 7, COLORS.tealDark);
     y -= 17;
   }
 
@@ -112,20 +115,26 @@ async function ustvariPonudboPdf(workOrder) {
 
   drawTableHeader();
   items.forEach((item) => {
-    const lines = wrap(item.description, regular, 8.2, 250);
+    const lines = wrap(item.description, regular, 8.2, 220);
     const height = Math.max(28, lines.length * 10 + 12);
     ensureSpace(height + 6, true);
     lines.forEach((line, index) => page.drawText(line, { x: PAGE.margin + 7, y: y - 9 - index * 10, font: regular, size: 8.2, color: COLORS.ink }));
-    rightText(page, String(Number(item.quantity_milli) / 1000).replace(".", ",") + " " + safeText(item.unit || ""), 365, y - 9, regular, 8, COLORS.ink);
-    rightText(page, (Number(item.tax_rate_bps || 0) / 100) + " %", 450, y - 9, regular, 8, COLORS.ink);
-    rightText(page, money(item.gross_cents), PAGE.width - PAGE.margin, y - 9, bold, 8.3, COLORS.ink);
+    rightText(page, String(Number(item.quantity_milli) / 1000).replace(".", ",") + " " + safeText(item.unit || ""), 340, y - 9, regular, 7.8, COLORS.ink);
+    rightText(page, money(item.unit_price_cents), 425, y - 9, regular, 7.8, COLORS.ink);
+    rightText(page, (Number(item.tax_rate_bps || 0) / 100) + " %", 468, y - 9, regular, 7.8, COLORS.ink);
+    rightText(page, money(lineDisplayAmount(item, displayedPriceMode)), PAGE.width - PAGE.margin, y - 9, bold, 8.1, COLORS.ink);
     y -= height;
     page.drawLine({ start: { x: PAGE.margin, y: y + 5 }, end: { x: PAGE.width - PAGE.margin, y: y + 5 }, thickness: 0.5, color: COLORS.line });
   });
 
-  ensureSpace(130);
+  const grouped = taxGroups(items);
+  const summaryRows = [["Nettobetrag", workOrder.net_cents]].concat(
+    grouped.map((group) => ["USt. " + (group.tax_rate_bps / 100) + " %", group.tax_cents])
+  );
+  if (!grouped.length) summaryRows.push(["Umsatzsteuer", workOrder.tax_cents]);
+  ensureSpace(112 + summaryRows.length * 18);
   const totalX = 330;
-  [["Nettobetrag", workOrder.net_cents], ["Umsatzsteuer", workOrder.tax_cents]].forEach((entry) => {
+  summaryRows.forEach((entry) => {
     page.drawText(entry[0], { x: totalX, y, font: regular, size: 9, color: COLORS.muted });
     rightText(page, money(entry[1]), PAGE.width - PAGE.margin, y, regular, 9, COLORS.ink);
     y -= 18;
@@ -135,11 +144,13 @@ async function ustvariPonudboPdf(workOrder) {
   rightText(page, money(workOrder.gross_cents), PAGE.width - PAGE.margin, y - 3, bold, 12, COLORS.tealDark);
   y -= 47;
 
-  const notes = ["An dieses Angebot halten wir uns bis zum " + dateDE(workOrder.valid_until) + ". Der Vertrag kommt durch Annahme zustande."];
+  const notes = [
+    "Positionspreise und -beträge sind " + priceSuffix + " ausgewiesen.",
+    "An dieses Angebot halten wir uns bis zum " + dateDE(workOrder.valid_until) + ". Der Vertrag kommt durch Annahme zustande."
+  ];
   if (payload.tax_mode === "small_business") notes.push("Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.");
   if (payload.tax_mode === "reverse_charge") notes.push("Vorgesehene Steuerschuldnerschaft des Leistungsempfängers gemäß § 13b UStG.");
-  const grouped = taxGroups(items);
-  if (grouped.length > 1) notes.push("Die Umsatzsteuer ist je Steuersatz in den Positionen ausgewiesen.");
+  if (grouped.length > 1) notes.push("Die Umsatzsteuer ist in der Summe je Steuersatz ausgewiesen.");
   drawLines(notes.flatMap((note) => wrap(note, regular, 8, PAGE.width - PAGE.margin * 2)), PAGE.margin, 8, 10.5, regular);
   y -= 8;
   const taxIdentity = taxIdentityText(seller);

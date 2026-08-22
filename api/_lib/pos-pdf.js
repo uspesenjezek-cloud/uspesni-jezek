@@ -4,7 +4,7 @@ const fs = require("fs");
 const fontkit = require("@pdf-lib/fontkit");
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-7";
+const GENERATOR_VERSION = "uj-pos-pdf-8";
 const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
 const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
 const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
@@ -124,6 +124,14 @@ function taxIdentityText(seller) {
   if (safeText(source.vatId)) return "USt-IdNr.: " + safeText(source.vatId);
   if (safeText(source.taxNumber)) return "Steuernummer: " + safeText(source.taxNumber);
   return "";
+}
+
+function priceMode(value) {
+  return value === "gross" ? "gross" : "net";
+}
+
+function lineDisplayAmount(item, mode) {
+  return Number(item && item[priceMode(mode) === "gross" ? "gross_cents" : "net_cents"]) || 0;
 }
 
 function sellerLegalDisclosureLines(seller) {
@@ -289,14 +297,16 @@ async function ustvariRacunPdf(invoice) {
   page.drawText("Leistungen", { x: PAGE.margin, y, font: bold, size: 12, color: COLORS.tealDark });
   y -= 18;
 
+  const displayedPriceMode = priceMode(draft.price_mode);
+  const priceSuffix = displayedPriceMode === "gross" ? "brutto" : "netto";
   const columns = { desc: PAGE.margin, qty: 306, unit: 369, tax: 445, total: 547 };
   function tableHeader() {
     page.drawRectangle({ x: PAGE.margin, y: y - 5, width: PAGE.width - PAGE.margin * 2, height: 22, color: COLORS.pale });
     page.drawText("Beschreibung", { x: columns.desc + 7, y: y + 3, font: bold, size: 7.5, color: COLORS.tealDark });
     rightText(page, "Menge", columns.qty + 43, y + 3, bold, 7.5, COLORS.tealDark);
-    rightText(page, "Einzelpreis", columns.unit + 63, y + 3, bold, 7.5, COLORS.tealDark);
+    rightText(page, "E-Preis " + priceSuffix, columns.unit + 63, y + 3, bold, 7.1, COLORS.tealDark);
     rightText(page, "USt.", columns.tax + 38, y + 3, bold, 7.5, COLORS.tealDark);
-    rightText(page, "Betrag", columns.total, y + 3, bold, 7.5, COLORS.tealDark);
+    rightText(page, "Gesamt " + priceSuffix, columns.total, y + 3, bold, 7.1, COLORS.tealDark);
     y -= 14;
   }
   tableHeader();
@@ -311,7 +321,7 @@ async function ustvariRacunPdf(invoice) {
     rightText(page, qty, columns.qty + 43, y - 9, regular, 8, COLORS.ink);
     rightText(page, money(item.unit_price_cents), columns.unit + 63, y - 9, regular, 8, COLORS.ink);
     rightText(page, (Number(item.tax_rate_bps || 0) / 100) + " %", columns.tax + 38, y - 9, regular, 8, COLORS.ink);
-    rightText(page, money(item.gross_cents), columns.total, y - 9, bold, 8.3, COLORS.ink);
+    rightText(page, money(lineDisplayAmount(item, displayedPriceMode)), columns.total, y - 9, bold, 8.3, COLORS.ink);
     y -= rowHeight;
   });
 
@@ -350,6 +360,7 @@ async function ustvariRacunPdf(invoice) {
   y -= 42;
 
   const notes = [];
+  notes.push("Positionspreise und -beträge sind " + priceSuffix + " ausgewiesen.");
   if (draft.replacement_cancellation_number && draft.replacement_original_number) {
     notes.push("Ersatzrechnung zur Stornorechnung " + safeText(draft.replacement_cancellation_number) + "; ursprüngliche Rechnung " + safeText(draft.replacement_original_number) + ".");
   }
@@ -389,4 +400,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerLegalDisclosureLines, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, paymentInstructions, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, priceMode, lineDisplayAmount, taxIdentityText, sellerLegalDisclosureLines, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, paymentInstructions, embedUnicodeFonts, ustvariRacunPdf };

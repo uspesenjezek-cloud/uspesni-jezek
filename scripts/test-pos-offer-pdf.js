@@ -56,7 +56,7 @@ function workOrder() {
   const pdf = await PDFDocument.load(buffer);
   assert.ok(pdf.getPageCount() >= 2, "Dolga ponudba mora pravilno nadaljevati tabelo na novi strani.");
   assert.equal(pdf.getTitle(), "Angebot ANG-2026-0042");
-  assert.equal(pdf.getCreator(), "uj-pos-offer-pdf-1");
+  assert.equal(pdf.getCreator(), "uj-pos-offer-pdf-2");
   if (process.env.POS_OFFER_PDF_SAMPLE_OUTPUT) fs.writeFileSync(process.env.POS_OFFER_PDF_SAMPLE_OUTPUT, buffer);
 
   assert.equal(endpoint._test.objectPath("u", "w"), "u/w/angebot.pdf");

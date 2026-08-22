@@ -179,16 +179,20 @@ function sampleAdjustment(type) {
   assert.ok(pdf.getPageCount() >= 2, "Dolg realističen račun mora pravilno nadaljevati na novo stran.");
   assert.strictEqual(pdf.getTitle(), "Rechnung RE-2026-0001");
   assert.strictEqual(pdf.getCreator(), pdfModule.GENERATOR_VERSION);
-  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-7");
+  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-8");
+  assert.strictEqual(pdfModule.priceMode("gross"), "gross");
+  assert.strictEqual(pdfModule.priceMode("unexpected"), "net");
+  assert.strictEqual(pdfModule.lineDisplayAmount({ net_cents: 1000, gross_cents: 1190 }, "net"), 1000);
+  assert.strictEqual(pdfModule.lineDisplayAmount({ net_cents: 1000, gross_cents: 1190 }, "gross"), 1190);
 
   const incompleteTestBuffer = await pdfModule.ustvariRacunPdf(incompleteTestInvoice);
   const incompleteTestPdf = await PDFDocument.load(incompleteTestBuffer);
-  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-7");
+  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-8");
 
   const replacementBuffer = await pdfModule.ustvariRacunPdf(sampleInvoice(true));
   const replacementPdf = await PDFDocument.load(replacementBuffer);
   assert.strictEqual(replacementPdf.getPageCount(), pdf.getPageCount());
-  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-7");
+  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-8");
 
   const finalInvoice = sampleInvoice();
   finalInvoice.snapshot.draft.workflow_context = {
@@ -204,7 +208,7 @@ function sampleAdjustment(type) {
   finalInvoice.gross_cents -= 11900;
   const finalBuffer = await pdfModule.ustvariRacunPdf(finalInvoice);
   const finalPdf = await PDFDocument.load(finalBuffer);
-  assert.strictEqual(finalPdf.getCreator(), "uj-pos-pdf-7");
+  assert.strictEqual(finalPdf.getCreator(), "uj-pos-pdf-8");
   assert.match(pdfSource, /Auftragssumme brutto/);
   assert.match(pdfSource, /Noch zu zahlen/);
   assert.match(pdfSource, /§ 14 Abs\. 5 UStG/);
