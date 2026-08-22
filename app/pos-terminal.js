@@ -593,6 +593,22 @@
     return Boolean(acceptedOn && today && today <= addDays(acceptedOn, 14));
   }
 
+  function withdrawalTaxCorrectionState(order) {
+    if (!order || order.status !== "withdrawn" || !order.withdrawalSettlementId) return { required: false, kind: "none", invoice: null, reductionCents: 0 };
+    var activeInvoices = (order.invoiceLinks || []).map(function (link) { return link && link.invoice; }).filter(function (invoice) {
+      return invoice && invoice.status !== "cancelled";
+    });
+    var activeGross = activeInvoices.reduce(function (sum, invoice) {
+      return sum + integer(invoice.totals && invoice.totals.grossCents, 0);
+    }, 0);
+    var reduction = Math.max(0, activeGross - integer(order.withdrawalValueCompensationCents, 0));
+    if (!activeInvoices.length || !reduction) return { required: false, kind: "none", invoice: null, reductionCents: 0 };
+    if (!order.withdrawalValueCompensationCents) {
+      return { required: true, kind: "full_cancellation", invoice: activeInvoices[0], reductionCents: reduction };
+    }
+    return { required: true, kind: "partial_correction", invoice: activeInvoices[0], reductionCents: reduction };
+  }
+
   function workOrderActions(orderOrStatus) {
     var order = orderOrStatus && typeof orderOrStatus === "object" ? orderOrStatus : null;
     var status = order ? order.status : orderOrStatus;
@@ -609,9 +625,11 @@
     if (status === "cancelled" && order && order.offeredAt) return ["pdf"];
     if (status === "withdrawn") {
       var refundRecorded = order ? (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0) : 0;
+      var taxCorrection = withdrawalTaxCorrectionState(order);
       var settlementActions = order && !order.withdrawalSettlementId ? ["withdrawal_settlement"]
         : order && refundRecorded < order.withdrawalRefundDueCents ? ["withdrawal_refund"] : [];
-      return ["pdf"].concat(confirmationActions, settlementActions);
+      var taxActions = taxCorrection.kind === "full_cancellation" ? ["withdrawal_tax_correction"] : [];
+      return ["pdf"].concat(confirmationActions, settlementActions, taxActions);
     }
     return [];
   }
@@ -1642,6 +1660,7 @@
     consumerServiceRightExpired: consumerServiceRightExpired,
     consumerWithdrawalAvailable: consumerWithdrawalAvailable,
     workOrderActions: workOrderActions,
+    withdrawalTaxCorrectionState: withdrawalTaxCorrectionState,
     workOrderFinalState: workOrderFinalState,
     prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
     defaultProfile: defaultProfile,
@@ -2341,7 +2360,8 @@
     return {
       edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", contract_pdf: "Potrdilo pogodbe PDF", contract_delivery: "Zabeleži izročitev", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
       progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči", withdraw: "Zabeleži odstop",
-      withdrawal_settlement: "Denarni pregled odstopa", withdrawal_refund: "Zabeleži vračilo"
+      withdrawal_settlement: "Denarni pregled odstopa", withdrawal_refund: "Zabeleži vračilo",
+      withdrawal_tax_correction: "Uredi davčni Storno"
     }[action] || action;
   }
 
@@ -2371,13 +2391,16 @@
       var contractWarning = order.status === "accepted" && requiresContractConfirmation(order) && !order.contractConfirmationDeliveryEvidence ? "Pred začetkom dela ustvarite pogodbeno potrdilo PDF in dokazljivo zabeležite njegovo izročitev potrošniku na trajnem nosilcu." : "";
       var withdrawalRefundRecorded = (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0);
       var withdrawalRefundRemaining = Math.max(0, order.withdrawalRefundDueCents - withdrawalRefundRecorded);
+      var taxCorrection = withdrawalTaxCorrectionState(order);
       var settlementCopy = order.withdrawalSettlementId ? "Vračilo " + formatMoney(order.withdrawalRefundDueCents) + " · Wertersatz " + formatMoney(order.withdrawalValueCompensationCents) + " · rok " + formatDate(order.withdrawalRefundDueOn) : "";
       var refundCopy = withdrawalRefundRecorded ? formatMoney(withdrawalRefundRecorded) + " od " + formatMoney(order.withdrawalRefundDueCents) : "";
       var withdrawalWarning = "";
       if (order.status === "withdrawn" && !order.withdrawalSettlementId) withdrawalWarning = "Nadaljnje delo in novi računi so ustavljeni. Zdaj nespremenljivo ocenite plačila, morebitni Wertersatz in vračilo; nobeno plačilo se ne bo sprožilo samodejno.";
       else if (order.status === "withdrawn" && withdrawalRefundRemaining > 0) withdrawalWarning = "Dokaz vračila še manjka za " + formatMoney(withdrawalRefundRemaining) + ". Zakonski rok: " + formatDate(order.withdrawalRefundDueOn) + ". Vračilo ni bilo samodejno izvedeno.";
       else if (order.status === "withdrawn" && order.withdrawalConsumerBalanceReviewCents > 0) withdrawalWarning = "Wertersatz presega zadržano plačilo za " + formatMoney(order.withdrawalConsumerBalanceReviewCents) + ". POS ni ustvaril terjatve; potreben je ločen pravni in davčni pregled.";
-      else if (order.status === "withdrawn" && order.withdrawalSettlementId) withdrawalWarning = "Denarne posledice odstopa so ocenjene in zahtevano vračilo je v celoti dokazano oziroma ni potrebno. POS ni samodejno premaknil denarja.";
+      else if (order.status === "withdrawn" && taxCorrection.kind === "full_cancellation") withdrawalWarning = "Vračilo je denarno urejeno, vendar aktivni račun še vedno izkazuje previsoko davčno osnovo. Po § 17 UStG izdajte nespremenljiv Storno; original ostane v arhivu.";
+      else if (order.status === "withdrawn" && taxCorrection.kind === "partial_correction") withdrawalWarning = "Potrebno je delno zmanjšanje davčne osnove za " + formatMoney(taxCorrection.reductionCents) + ". POS delnega davčnega dobropisa še ne izdaja; pred knjiženjem je potreben računovodski pregled. Ne izdajajte polnega Storna, če Wertersatz ostane obdavčljiv.";
+      else if (order.status === "withdrawn" && order.withdrawalSettlementId) withdrawalWarning = "Denarne posledice odstopa so ocenjene, zahtevano vračilo je dokazano oziroma ni potrebno in odprta davčna korekcija ni zaznana. POS ni samodejno premaknil denarja.";
       return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (contractDeliveryCopy ? "<div><small>Potrdilo pogodbe izročeno</small><b data-fit-text title=\"" + escapeHtml(contractDeliveryCopy) + "\">" + escapeHtml(contractDeliveryCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (settlementCopy ? "<div><small>Denarni pregled</small><b data-fit-text title=\"" + escapeHtml(settlementCopy) + "\">" + escapeHtml(settlementCopy) + "</b></div>" : "") + (refundCopy ? "<div><small>Dokazano vračilo</small><b data-fit-text>" + escapeHtml(refundCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (contractWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(contractWarning) + "</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
@@ -2390,6 +2413,10 @@
         else if (action === "contract_delivery") recordContractConfirmationDelivery(order);
         else if (action === "withdrawal_settlement") assessConsumerWithdrawalSettlement(order);
         else if (action === "withdrawal_refund") recordConsumerWithdrawalRefund(order);
+        else if (action === "withdrawal_tax_correction") {
+          var correction = withdrawalTaxCorrectionState(order);
+          if (correction.invoice) openAdjustmentSheet(correction.invoice, "cancellation");
+        }
         else if (action === "progress" || action === "final") startWorkOrderInvoice(order, action);
         else transitionWorkOrder(order, action);
       });
@@ -3989,13 +4016,13 @@
     query("[data-adjustment-submit]").textContent = cancellation ? "Ustvari Storno" : "Ustvari popravek";
   }
 
-  function openAdjustmentSheet(invoice) {
+  function openAdjustmentSheet(invoice, initialType) {
     if (!invoice || !invoice.serverStored) { showToast("Popravek je na voljo po varni strežniški izdaji."); return; }
     if (invoice.status === "cancelled") { showToast("Storniranega računa ni mogoče ponovno popraviti."); return; }
     adjustmentInvoiceId = invoice.id;
     var form = query("#pos-adjustment-form");
     form.reset();
-    query("[name=adjustmentType][value=correction]", form).checked = true;
+    query("[name=adjustmentType][value=" + (initialType === "cancellation" ? "cancellation" : "correction") + "]", form).checked = true;
     var values = {
       customer_name: invoice.draft.customerName,
       customer_street: invoice.draft.customerStreet,

@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-settlement-v28/);
+assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-tax-review-v29/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -202,6 +202,23 @@ assert.deepEqual(Core.workOrderActions(Object.assign({}, withdrawnConsumerOrder,
   withdrawalSettlementId: "settlement-1", withdrawalRefundDueCents: 7000,
   withdrawalRefundRecords: [{ amount_cents: 3000 }, { amount_cents: 4000 }]
 })), ["pdf", "contract_pdf"]);
+const activeWithdrawalInvoice = {
+  id: "invoice-1", status: "paid", totals: { grossCents: 11900 }, adjustments: []
+};
+const fullCancellationState = Object.assign({}, withdrawnConsumerOrder, {
+  withdrawalSettlementId: "settlement-1", withdrawalRefundDueCents: 11900,
+  withdrawalRefundRecords: [{ amount_cents: 11900 }], withdrawalValueCompensationCents: 0,
+  invoiceLinks: [{ invoice: activeWithdrawalInvoice }]
+});
+assert.equal(Core.withdrawalTaxCorrectionState(fullCancellationState).kind, "full_cancellation");
+assert.deepEqual(Core.workOrderActions(fullCancellationState), ["pdf", "contract_pdf", "withdrawal_tax_correction"]);
+const partialTaxState = Object.assign({}, fullCancellationState, { withdrawalValueCompensationCents: 3000 });
+assert.equal(Core.withdrawalTaxCorrectionState(partialTaxState).kind, "partial_correction");
+assert.equal(Core.withdrawalTaxCorrectionState(partialTaxState).reductionCents, 8900);
+assert.deepEqual(Core.workOrderActions(partialTaxState), ["pdf", "contract_pdf"]);
+assert.equal(Core.withdrawalTaxCorrectionState(Object.assign({}, fullCancellationState, {
+  invoiceLinks: [{ invoice: Object.assign({}, activeWithdrawalInvoice, { status: "cancelled" }) }]
+})).required, false);
 
 const acceptanceMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_offer_acceptance_evidence\.sql$/.test(name)).sort().pop();
@@ -351,6 +368,9 @@ assert.match(js, /function originalRefundProvider\(order\)/);
 assert.match(js, /rpc\("pos_record_consumer_withdrawal_refund"/);
 assert.match(js, /Ta postopek ne sproži Stripe, banke ali nakazila/i);
 assert.match(js, /Zakonski rok:[\s\S]*Vračilo ni bilo samodejno izvedeno/i);
+assert.match(js, /function withdrawalTaxCorrectionState\(order\)/);
+assert.match(js, /Po § 17 UStG izdajte nespremenljiv Storno/i);
+assert.match(js, /POS delnega davčnega dobropisa še ne izdaja/i);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");
