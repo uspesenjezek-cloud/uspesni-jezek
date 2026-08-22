@@ -13,6 +13,7 @@ const completeSummaryMigration = fs.readFileSync(path.join(root, "supabase", "mi
 const missingDocumentMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821220929_pos_archive_missing_document_repair.sql"), "utf8");
 const userIntegrityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223224_pos_archive_user_integrity_batch.sql"), "utf8");
 const integrityPriorityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223844_pos_archive_integrity_batch_priority.sql"), "utf8");
+const retentionDeletionMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822023000_pos_retention_safe_user_deletion.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
@@ -74,6 +75,12 @@ assert.strictEqual((integrityPriorityMigration.match(/when latest\.result <> 've
 assert.strictEqual((integrityPriorityMigration.match(/latest\.checked_at < now\(\) - interval '90 days'/gi) || []).length, 2);
 assert.match(integrityPriorityMigration, /security invoker/i);
 assert.match(integrityPriorityMigration, /revoke all on function public\.pos_archive_user_integrity_batch\(uuid, integer\)[\s\S]*from public, anon, authenticated/i);
+assert.match(retentionDeletionMigration, /create or replace function private\.pos_block_unsafe_auth_user_delete\(\)/i);
+assert.match(retentionDeletionMigration, /from public\.pos_invoices[\s\S]*not invoice\.is_test/i);
+assert.match(retentionDeletionMigration, /from public\.pos_archive_records/i);
+assert.match(retentionDeletionMigration, /before delete on auth\.users/i);
+assert.match(retentionDeletionMigration, /errcode = '23503'/i);
+assert.match(retentionDeletionMigration, /revoke all on function private\.pos_block_unsafe_auth_user_delete\(\) from public, anon, authenticated/i);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
