@@ -104,6 +104,7 @@ const refunded = webhook.normalizeEvent(Object.assign({}, baseEvent, {
 }));
 assert.strictEqual(refunded.refundedCents, 11900);
 assert.strictEqual(refunded.paymentIntentId, "pi_test");
+assert.strictEqual(webhook.eventCreatedAt("ni-cas"), "");
 
 assert.match(migration, /alter table public\.pos_payments[\s\S]*add column status text not null default 'succeeded'/i);
 assert.match(migration, /create table public\.pos_payment_events/i);
@@ -203,6 +204,18 @@ async function testStatusHandler() {
   }
 }
 
+async function testWebhookBodyLimit() {
+  assert.strictEqual(await webhook.rawRequestBody({ rawBody: Buffer.from("{}") }), "{}");
+  await assert.rejects(
+    () => webhook.rawRequestBody({ rawBody: Buffer.alloc(webhook.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+  await assert.rejects(
+    () => webhook.rawRequestBody({ rawBody: "x".repeat(webhook.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+}
+
 async function testRefundHandler() {
   const originals = {
     userConfiguration: supabaseServer.uporabniskaKonfiguracija,
@@ -274,7 +287,7 @@ async function testRefundHandler() {
   }
 }
 
-testStatusHandler().then(testRefundHandler).then(() => {
+testWebhookBodyLimit().then(testStatusHandler).then(testRefundHandler).then(() => {
   console.log("POS Stripe sandbox Checkout, refund API, webhook varovalke in plačilna sled: OK");
 }).catch((error) => {
   console.error(error);
