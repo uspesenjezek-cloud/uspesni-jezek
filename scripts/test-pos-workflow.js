@@ -24,6 +24,10 @@ const payloadLimitsMigrationName = fs.readdirSync(path.join(root, "supabase", "m
   .filter((name) => /pos_work_order_payload_limits\.sql$/.test(name)).sort().pop();
 assert.ok(payloadLimitsMigrationName, "Manjka zaščita payload-a ponudbe in delovnega naloga.");
 const payloadLimitsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", payloadLimitsMigrationName), "utf8");
+const lifecycleMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_work_order_lifecycle_invariants\.sql$/.test(name)).sort().pop();
+assert.ok(lifecycleMigrationName, "Manjkajo invariante življenjskega cikla ponudbe in naročila.");
+const lifecycleMigration = fs.readFileSync(path.join(root, "supabase", "migrations", lifecycleMigrationName), "utf8");
 const Core = require(path.join(root, "app", "pos-terminal.js"));
 
 assert.match(html, /data-new-offer/);
@@ -69,6 +73,13 @@ assert.match(payloadLimitsMigration, /pos_work_orders_locked_payload_size_check[
 assert.match(payloadLimitsMigration, /create or replace function private\._pos_save_work_order_validated[\s\S]*security definer/i);
 assert.match(payloadLimitsMigration, /create or replace function public\.pos_save_work_order[\s\S]*security invoker[\s\S]*private\._pos_save_work_order_validated/i);
 assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_save_work_order\(uuid,jsonb\) from authenticated/i);
+assert.match(lifecycleMigration, /pos_work_orders_lifecycle_check/i);
+assert.match(lifecycleMigration, /locked_payload is null or locked_payload = payload/i);
+assert.match(lifecycleMigration, /\(order_number is null\) = \(accepted_at is null\)/i);
+assert.match(lifecycleMigration, /accepted_at is null or accepted_at >= offered_at/i);
+assert.match(lifecycleMigration, /when 'invoiced' then[\s\S]*completed_at is not null and cancelled_at is null/i);
+assert.match(lifecycleMigration, /when 'cancelled' then[\s\S]*cancelled_at is not null/i);
+assert.match(lifecycleMigration, /validate constraint pos_work_orders_lifecycle_check/i);
 
 const profile = Core.defaultProfile();
 profile.taxStatus = "regular";
