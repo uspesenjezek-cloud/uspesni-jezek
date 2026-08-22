@@ -82,6 +82,13 @@ function validateInvoice(invoice) {
     if (!text(value)) throw new Error(["Manjka naziv izdajatelja.", "Manjka ulica izdajatelja.", "Manjka PLZ izdajatelja.", "Manjka kraj izdajatelja.", "Za XRechnung manjka poslovna e-pošta izdajatelja."][index]);
   });
   if (!text(seller.vatId) && !text(seller.taxNumber)) throw new Error("Za XRechnung manjka davčna številka izdajatelja.");
+  if (!["Einzelunternehmen", "e.K.", "GbR", "eGbR", "UG (haftungsbeschränkt)", "GmbH"].includes(text(seller.legalForm)) || !text(seller.representative)) {
+    throw new Error("Za XRechnung manjkajo pravna oblika in obvezni zastopniki izdajatelja.");
+  }
+  if (["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"].includes(text(seller.legalForm))
+    && ![seller.companySeat, seller.registerCourt, seller.registerNumber].every((value) => text(value))) {
+    throw new Error("Za registrirano pravno obliko manjkajo sedež, registrsko sodišče ali registrska številka.");
+  }
   if (!/^\D*(?:\d\D*){3,}$/.test(invoice.sellerPhone)) throw new Error("Za XRechnung manjka veljavna telefonska številka izdajatelja.");
   if (!cleanIban(seller.iban) || !text(seller.accountHolder)) throw new Error("Za XRechnung manjkajo podatki za nakazilo.");
   const draft = invoice.draft;
@@ -194,7 +201,7 @@ function buildXRechnung(invoiceRow) {
     "      <cac:PartyName>" + element("cbc:Name", seller.legalName) + "</cac:PartyName>",
     "      <cac:PostalAddress>" + element("cbc:StreetName", seller.street) + element("cbc:CityName", seller.city) + element("cbc:PostalZone", seller.postalCode) + "<cac:Country>" + element("cbc:IdentificationCode", "DE") + "</cac:Country></cac:PostalAddress>",
     sellerTax.join("\n"),
-    "      <cac:PartyLegalEntity>" + element("cbc:RegistrationName", seller.legalName) + (text(seller.legalForm) ? element("cbc:CompanyLegalForm", seller.legalForm) : "") + "</cac:PartyLegalEntity>",
+    "      <cac:PartyLegalEntity>" + element("cbc:RegistrationName", seller.legalName) + (text(seller.registerNumber) ? element("cbc:CompanyID", seller.registerNumber) : "") + (text(seller.legalForm) ? element("cbc:CompanyLegalForm", seller.legalForm + (text(seller.companySeat) ? "; Sitz: " + seller.companySeat : "") + (text(seller.registerCourt) ? "; Registergericht: " + seller.registerCourt : "")) : "") + "</cac:PartyLegalEntity>",
     "      <cac:Contact>" + (text(seller.representative) ? element("cbc:Name", seller.representative) : "") + element("cbc:Telephone", invoice.sellerPhone) + element("cbc:ElectronicMail", seller.businessEmail) + "</cac:Contact>",
     "    </cac:Party>", "  </cac:AccountingSupplierParty>",
     "  <cac:AccountingCustomerParty>", "    <cac:Party>",

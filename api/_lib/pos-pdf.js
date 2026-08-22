@@ -4,7 +4,7 @@ const fs = require("fs");
 const fontkit = require("@pdf-lib/fontkit");
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-6";
+const GENERATOR_VERSION = "uj-pos-pdf-7";
 const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
 const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
 const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
@@ -126,9 +126,27 @@ function taxIdentityText(seller) {
   return "";
 }
 
+function sellerLegalDisclosureLines(seller) {
+  const source = seller || {};
+  const form = safeText(source.legalForm);
+  const representative = safeText(source.representative);
+  const registered = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"].includes(form);
+  const lines = [];
+  if (form) lines.push("Rechtsform: " + form);
+  if (registered) {
+    lines.push("Sitz: " + safeText(source.companySeat) + " · Registergericht: " + safeText(source.registerCourt) + " · Registernummer: " + safeText(source.registerNumber));
+  }
+  if (representative) {
+    lines.push((form === "GmbH" || form === "UG (haftungsbeschränkt)" ? "Geschäftsführung: " : form === "Einzelunternehmen" || form === "e.K." ? "Inhaber/in: " : "Vertretungsberechtigte: ") + representative);
+  }
+  return lines;
+}
+
 function sellerForInvoice(invoice) {
   const source = invoice && invoice.snapshot && invoice.snapshot.seller || {};
-  const identityReady = [source.legalName, source.street, source.postalCode, source.city].every((value) => safeText(value));
+  const registered = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"].includes(safeText(source.legalForm));
+  const identityReady = [source.legalName, source.legalForm, source.representative, source.street, source.postalCode, source.city].every((value) => safeText(value))
+    && (!registered || [source.companySeat, source.registerCourt, source.registerNumber].every((value) => safeText(value)));
   const paymentReady = Boolean(safeText(source.accountHolder) && safeText(source.iban));
   const taxReady = Boolean(taxIdentityText(source));
 
@@ -243,8 +261,10 @@ async function ustvariRacunPdf(invoice) {
   addPage(false);
 
   const sellerAddress = [seller.street, [seller.postalCode, seller.city].filter(Boolean).join(" ")].filter(Boolean).map(safeText);
+  const sellerDisclosure = sellerLegalDisclosureLines(seller).flatMap((line) => wrap(line, regular, 7.2, 250));
   page.drawText("Absender", { x: PAGE.margin, y, font: bold, size: 7.5, color: COLORS.muted });
-  y = drawLines(page, [seller.legalName].concat(sellerAddress), PAGE.margin, y - 15, { font: regular, size: 9, lineHeight: 12 }) - 8;
+  y = drawLines(page, [seller.legalName].concat(sellerAddress), PAGE.margin, y - 15, { font: regular, size: 9, lineHeight: 12 });
+  y = drawLines(page, sellerDisclosure, PAGE.margin, y - 2, { font: regular, size: 7.2, lineHeight: 9, color: COLORS.muted }) - 8;
 
   const customer = [draft.customer_name, draft.customer_street, [draft.customer_postal_code, draft.customer_city].filter(Boolean).join(" ")].filter(Boolean);
   page.drawText("Rechnung an", { x: PAGE.margin, y, font: bold, size: 7.5, color: COLORS.muted });
@@ -369,4 +389,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, paymentInstructions, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerLegalDisclosureLines, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, paymentInstructions, embedUnicodeFonts, ustvariRacunPdf };

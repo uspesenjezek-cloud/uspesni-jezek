@@ -202,9 +202,15 @@
             <div class="pos-form-card__title"><span>1</span><div><h3>Pravna identiteta</h3><p>Podatki iz Gewerbeanmeldung oziroma registra.</p></div></div>
             <label class="pos-field pos-field--full"><span>Pravno ime podjetja *</span><input name="legalName" autocomplete="organization" data-fit-input maxlength="120" /></label>
             <div class="pos-field-row">
-              <label class="pos-field"><span>Pravna oblika</span><select name="legalForm"><option value="">Izberite</option><option>Einzelunternehmen</option><option>GbR</option><option>UG (haftungsbeschränkt)</option><option>GmbH</option><option>Sonstige</option></select></label>
-              <label class="pos-field"><span>Lastnik / zastopnik</span><input name="representative" autocomplete="name" data-fit-input maxlength="120" /></label>
+              <label class="pos-field"><span>Pravna oblika *</span><select name="legalForm"><option value="">Izberite</option><option>Einzelunternehmen</option><option>e.K.</option><option>GbR</option><option>eGbR</option><option>UG (haftungsbeschränkt)</option><option>GmbH</option><option>Sonstige</option></select></label>
+              <label class="pos-field"><span>Vsi lastniki / zastopniki *</span><input name="representative" autocomplete="name" data-fit-input maxlength="160" placeholder="Polna imena, ločena z vejico" /></label>
             </div>
+            <div class="pos-field-row">
+              <label class="pos-field"><span>Registrirani sedež</span><input name="companySeat" data-fit-input maxlength="100" placeholder="npr. Berlin" /></label>
+              <label class="pos-field"><span>Registrsko sodišče</span><input name="registerCourt" data-fit-input maxlength="160" placeholder="npr. Amtsgericht Charlottenburg" /></label>
+            </div>
+            <label class="pos-field pos-field--full"><span>Registrska številka</span><input name="registerNumber" data-fit-input maxlength="80" placeholder="npr. HRB 12345 B, HRA 12345 ali GsR 123" /></label>
+            <p class="pos-field-help">Sedež, registrsko sodišče in številka so obvezni za GmbH, UG, e.K. in eGbR. Pri GmbH/UG navedite vse Geschäftsführer.</p>
             <label class="pos-field pos-field--full"><span>Ulica in hišna številka *</span><input name="street" autocomplete="street-address" data-fit-input maxlength="140" /></label>
             <div class="pos-field-row pos-field-row--postal">
               <label class="pos-field"><span>PLZ *</span><input name="postalCode" inputmode="numeric" autocomplete="postal-code" maxlength="5" /></label>

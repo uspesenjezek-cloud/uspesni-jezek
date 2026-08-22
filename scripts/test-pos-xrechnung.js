@@ -24,6 +24,7 @@ function invoice(overrides) {
     snapshot: {
       seller: {
         legalName: "Muster Handwerk GmbH", legalForm: "GmbH", representative: "Mara Muster",
+        companySeat: "Berlin", registerCourt: "Amtsgericht Charlottenburg", registerNumber: "HRB 12345 B",
         street: "Musterstraße 1", postalCode: "10115", city: "Berlin", businessEmail: "rechnung@muster-handwerk.de",
         taxNumber: "12/345/67890", vatId: "DE123456789", accountHolder: "Muster Handwerk GmbH", iban: "DE02120300000000202051"
       },
@@ -44,6 +45,14 @@ assert.match(xml, /<cbc:ProfileID>urn:fdc:peppol\.eu:2017:poacc:billing:01:1\.0<
 assert.match(xml, /<cbc:BuyerReference>PO-8842<\/cbc:BuyerReference>/);
 assert.match(xml, /<cbc:EndpointID schemeID="EM">rechnung@kunde-bau\.de<\/cbc:EndpointID>/);
 assert.match(xml, /<cbc:Telephone>\+49 30 1234567<\/cbc:Telephone>/);
+assert.match(xml, /<cbc:CompanyID>HRB 12345 B<\/cbc:CompanyID>/);
+assert.match(xml, /<cbc:CompanyLegalForm>GmbH; Sitz: Berlin; Registergericht: Amtsgericht Charlottenburg<\/cbc:CompanyLegalForm>/);
+assert.throws(() => generator.buildXRechnung(invoice({
+  snapshot: {
+    seller: Object.assign({}, invoice().snapshot.seller, { registerNumber: "" }),
+    draft: invoice().snapshot.draft
+  }
+})), /registrirano pravno obliko/);
 assert.match(xml, /<cbc:PaymentMeansCode name="SEPA-Überweisung">58<\/cbc:PaymentMeansCode>/);
 assert.match(xml, /<cbc:TaxAmount currencyID="EUR">38\.00<\/cbc:TaxAmount>/);
 assert.match(xml, /<cbc:PayableAmount currencyID="EUR">238\.00<\/cbc:PayableAmount>/);

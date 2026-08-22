@@ -107,6 +107,9 @@
       legalName: "",
       legalForm: "",
       representative: "",
+      companySeat: "",
+      registerCourt: "",
+      registerNumber: "",
       street: "",
       postalCode: "",
       city: "",
@@ -264,6 +267,9 @@
       legal_name: String(profile.legalName || "").trim(),
       legal_form: String(profile.legalForm || "").trim(),
       representative: String(profile.representative || "").trim(),
+      company_seat: String(profile.companySeat || "").trim(),
+      register_court: String(profile.registerCourt || "").trim(),
+      register_number: String(profile.registerNumber || "").trim(),
       street: String(profile.street || "").trim(),
       postal_code: String(profile.postalCode || "").trim(),
       city: String(profile.city || "").trim(),
@@ -288,6 +294,9 @@
       legalName: row.legal_name,
       legalForm: row.legal_form,
       representative: row.representative,
+      companySeat: row.company_seat,
+      registerCourt: row.register_court,
+      registerNumber: row.register_number,
       street: row.street,
       postalCode: row.postal_code,
       city: row.city,
@@ -654,6 +663,8 @@
 
   function profileValidationError(profile) {
     function present(value) { return Boolean(String(value || "").trim()); }
+    var supportedForms = ["Einzelunternehmen", "e.K.", "GbR", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    var registeredForms = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
     if (present(profile.postalCode) && !/^[0-9]{5}$/.test(String(profile.postalCode).trim())) return "PLZ mora imeti točno 5 številk.";
     if (present(profile.businessEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(profile.businessEmail).trim())) return "Poslovni e-poštni naslov ni veljaven.";
     if (present(profile.businessPhone) && !/^\+?[0-9][0-9 ()/.-]{5,59}$/.test(String(profile.businessPhone).trim())) return "Poslovni telefon ni veljaven.";
@@ -661,6 +672,9 @@
     if (present(profile.vatId) && !/^DE[0-9]{9}$/.test(cleanVatId(profile.vatId))) return "USt-IdNr. mora biti DE in 9 številk.";
     if (present(profile.iban) && !validIban(profile.iban)) return "IBAN ni veljaven; preverite številko in kontrolni mesti.";
     if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(String(profile.invoicePrefix || ""))) return "Predpona računa lahko vsebuje le črke, številke, piko, vezaj, podčrtaj ali /.";
+    if (profile.legalConfirmed && supportedForms.indexOf(String(profile.legalForm || "")) === -1) return "Za produkcijo izberite podprto nemško pravno obliko podjetja.";
+    if (profile.legalConfirmed && !present(profile.representative)) return "Vnesite vse lastnike, družbenike ali zastopnike, ki morajo biti navedeni na poslovnih dokumentih.";
+    if (profile.legalConfirmed && registeredForms.indexOf(profile.legalForm) !== -1 && ![profile.companySeat, profile.registerCourt, profile.registerNumber].every(present)) return "Za registrirano pravno obliko vnesite sedež, registrsko sodišče in registrsko številko.";
     if (profile.legalConfirmed && ![profile.legalName, profile.street, profile.postalCode, profile.city, profile.accountHolder, profile.iban].every(present)) return "Pred potrditvijo izpolnite vse obvezne podatke podjetja in plačila.";
     if (profile.legalConfirmed && !present(profile.taxNumber) && !present(profile.vatId)) return "Pred potrditvijo vnesite Steuernummer ali USt-IdNr.";
     return "";
@@ -668,7 +682,7 @@
 
   function profileChangeRequiresConfirmation(fieldName) {
     return [
-      "legalName", "legalForm", "representative", "street", "postalCode", "city",
+      "legalName", "legalForm", "representative", "companySeat", "registerCourt", "registerNumber", "street", "postalCode", "city",
       "businessEmail", "businessPhone", "taxStatus", "taxNumber", "vatId",
       "previousYearTurnoverBand", "accountHolder", "iban"
     ].indexOf(String(fieldName || "")) !== -1;
@@ -676,8 +690,13 @@
 
   function profileReadiness(profile) {
     function present(value) { return Boolean(String(value || "").trim()); }
+    var supportedForms = ["Einzelunternehmen", "e.K.", "GbR", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    var registeredForms = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    var legalFormReady = supportedForms.indexOf(String(profile.legalForm || "")) !== -1
+      && present(profile.representative)
+      && (registeredForms.indexOf(profile.legalForm) === -1 || [profile.companySeat, profile.registerCourt, profile.registerNumber].every(present));
     var checks = [
-      { key: "identity", label: "Pravno ime in naslov", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) && /^[0-9]{5}$/.test(String(profile.postalCode || "").trim()) },
+      { key: "identity", label: "Pravna oblika in obvezni registrski podatki", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) && /^[0-9]{5}$/.test(String(profile.postalCode || "").trim()) && legalFormReady },
       { key: "tax", label: "Davčna številka", done: Boolean((present(profile.taxNumber) && validGermanTaxNumber(profile.taxNumber)) || (present(profile.vatId) && /^DE[0-9]{9}$/.test(cleanVatId(profile.vatId)))) },
       { key: "bank", label: "IBAN in imetnik računa", done: Boolean(validIban(profile.iban) && present(profile.accountHolder)) },
       { key: "numbering", label: "Številčenje računov", done: /^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(String(profile.invoicePrefix || "")) },
@@ -2184,6 +2203,7 @@
 
   function transitionWorkOrder(order, action) {
     if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
+    if (action === "offer" && !profileReadiness(state.profile).live) { showToast("Pravno ponudbo lahko pošljete šele po potrditvi popolnih podatkov podjetja in registra."); return; }
     var copy = action === "offer" ? "Ponudba se bo zaklenila. Nadaljnja sprememba zahteva novo ponudbo."
       : action === "accept" ? "Potrdite le, če je naročnik ponudbo dejansko sprejel."
         : action === "cancel" ? "Preklic ostane zapisan v sled dogodkov."

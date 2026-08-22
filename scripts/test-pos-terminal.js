@@ -67,6 +67,10 @@ const profileReconfirmationMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_profile_reconfirmation\.sql$/.test(name)).sort().pop()
   : null;
 const profileReconfirmationMigration = profileReconfirmationMigrationName ? fs.readFileSync(path.join(migrationsDir, profileReconfirmationMigrationName), "utf8") : "";
+const sellerLegalIdentityMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_seller_legal_identity\.sql$/.test(name)).sort().pop()
+  : null;
+const sellerLegalIdentityMigration = sellerLegalIdentityMigrationName ? fs.readFileSync(path.join(migrationsDir, sellerLegalIdentityMigrationName), "utf8") : "";
 const invoicePartyValidationMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_party_validation\.sql$/.test(name)).sort().pop()
   : null;
@@ -426,6 +430,11 @@ assert.deepStrictEqual(
 
 const profile = Core.defaultProfile();
 profile.legalName = "Muster Handwerk GmbH";
+profile.legalForm = "GmbH";
+profile.representative = "Erika Beispiel";
+profile.companySeat = "Berlin";
+profile.registerCourt = "Amtsgericht Charlottenburg";
+profile.registerNumber = "HRB 12345 B";
 profile.street = "Musterstraße 1";
 profile.postalCode = "10115";
 profile.city = "Berlin";
@@ -437,6 +446,9 @@ profile.iban = "DE02120300000000202051";
 profile.legalConfirmed = true;
 assert.strictEqual(Core.profileReadiness(profile).live, true);
 assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalName: "   " })).live, false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { registerNumber: "" })).live, false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalForm: "Einzelunternehmen", companySeat: "", registerCourt: "", registerNumber: "" })).live, true);
+assert.match(Core.profileValidationError(Object.assign({}, profile, { legalForm: "Sonstige" })), /podprto nemško pravno obliko/);
 assert.strictEqual(Core.validIban("DE02 1203 0000 0000 2020 51"), true);
 assert.strictEqual(Core.validIban("DE03 1203 0000 0000 2020 51"), false);
 assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { iban: "DE03120300000000202051" })).live, false);
@@ -444,6 +456,7 @@ assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { vatId: "DE
 assert.match(Core.profileValidationError(Object.assign({}, profile, { iban: "DE03120300000000202051" })), /IBAN/);
 assert.strictEqual(Core.profileChangeRequiresConfirmation("iban"), true);
 assert.strictEqual(Core.profileChangeRequiresConfirmation("taxStatus"), true);
+assert.strictEqual(Core.profileChangeRequiresConfirmation("registerCourt"), true);
 assert.strictEqual(Core.profileChangeRequiresConfirmation("defaultDueDays"), false);
 assert.strictEqual(Core.profileChangeRequiresConfirmation("invoicePrefix"), false);
 assert.deepStrictEqual(Core.profileForPreview({ legalName: "   " }, true), {
@@ -714,6 +727,10 @@ const dbProfile = Core.profileToDatabase(profile, "11111111-1111-4111-8111-11111
 assert.strictEqual(dbProfile.legal_name, "Muster Handwerk GmbH");
 assert.strictEqual(dbProfile.user_id, "11111111-1111-4111-8111-111111111111");
 assert.strictEqual(dbProfile.previous_year_turnover_band, "gt_800k");
+assert.strictEqual(dbProfile.company_seat, "Berlin");
+assert.strictEqual(dbProfile.register_court, "Amtsgericht Charlottenburg");
+assert.strictEqual(dbProfile.register_number, "HRB 12345 B");
+assert.strictEqual(Core.profileFromDatabase(dbProfile).registerNumber, "HRB 12345 B");
 assert.strictEqual(Core.profileToDatabase(Object.assign({}, profile, { vatId: "de-123 456 789" }), "user-1").vat_id, "DE123456789");
 assert.strictEqual(Core.draftToDatabasePayload(Object.assign(Core.defaultDraft(profile), { customerVatId: "de-123 456 789" })).customer_vat_id, "DE123456789");
 assert.strictEqual(dbProfile.business_phone, "+49 30 1234567");
@@ -900,6 +917,15 @@ assert.match(profileReconfirmationMigration, /if old\.legal_confirmed and/i);
 assert.match(profileReconfirmationMigration, /new\.iban is distinct from old\.iban/i);
 assert.match(profileReconfirmationMigration, /new\.legal_confirmed := false/i);
 assert.match(profileReconfirmationMigration, /create trigger pos_business_profiles_reset_confirmation[\s\S]*before update on public\.pos_business_profiles/i);
+assert.ok(sellerLegalIdentityMigrationName, "Manjkajo pravni podatki izdajatelja za nemške poslovne dokumente.");
+assert.match(sellerLegalIdentityMigration, /add column company_seat text not null default ''/i);
+assert.match(sellerLegalIdentityMigration, /add column register_court text not null default ''/i);
+assert.match(sellerLegalIdentityMigration, /add column register_number text not null default ''/i);
+assert.match(sellerLegalIdentityMigration, /legal_form in \('Einzelunternehmen', 'e\.K\.', 'GbR', 'eGbR', 'UG \(haftungsbeschränkt\)', 'GmbH'\)/i);
+assert.match(sellerLegalIdentityMigration, /pos_invoices_live_seller_legal_identity_check[\s\S]*validate constraint pos_invoices_live_seller_legal_identity_check/i);
+assert.match(sellerLegalIdentityMigration, /create trigger pos_invoices_capture_seller_legal_identity[\s\S]*before insert on public\.pos_invoices/i);
+assert.match(sellerLegalIdentityMigration, /create trigger pos_work_orders_lock_seller_legal_identity[\s\S]*before update of status on public\.pos_work_orders/i);
+assert.match(sellerLegalIdentityMigration, /new\.locked_payload := jsonb_set[\s\S]*'\{seller\}'/i);
 assert.ok(invoicePartyValidationMigrationName, "Manjka strežniška validacija prejemnika računa.");
 assert.match(invoicePartyValidationMigration, /customer_postal_code[\s\S]*'\^\[0-9\]\{5\}\$'/i);
 assert.match(invoicePartyValidationMigration, /customer_email[\s\S]*\^\[\^\[:space:\]@\]\+@/i);

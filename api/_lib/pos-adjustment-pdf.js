@@ -2,9 +2,9 @@
 
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 const { DateTime } = require("luxon");
-const { safeText, money, dateDE, wrap, embedUnicodeFonts } = require("./pos-pdf");
+const { safeText, money, dateDE, wrap, sellerLegalDisclosureLines, embedUnicodeFonts } = require("./pos-pdf");
 
-const GENERATOR_VERSION = "uj-pos-adjustment-pdf-2";
+const GENERATOR_VERSION = "uj-pos-adjustment-pdf-3";
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.19, 0.18), muted: rgb(0.38, 0.48, 0.46),
@@ -101,6 +101,14 @@ async function ustvariKorekcijskiPdf(adjustment) {
   }
 
   addPage(false);
+  page.drawText("Aussteller", { x: PAGE.margin, y, font: bold, size: 8, color: COLORS.muted });
+  y -= 16;
+  [seller.legalName, seller.street, [seller.postalCode, seller.city].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .forEach((line) => drawWrapped(line, PAGE.margin, PAGE.width - PAGE.margin * 2, 8.5, 11, regular));
+  sellerLegalDisclosureLines(seller)
+    .forEach((line) => drawWrapped(line, PAGE.margin, PAGE.width - PAGE.margin * 2, 7.2, 9.5, regular, COLORS.muted));
+  y -= 8;
   page.drawText("Bezug zur ursprünglichen Rechnung", { x: PAGE.margin, y, font: bold, size: 8, color: COLORS.muted });
   y -= 18;
   page.drawRectangle({ x: PAGE.margin, y: y - 65, width: PAGE.width - PAGE.margin * 2, height: 70, color: COLORS.pale, borderColor: COLORS.line, borderWidth: .7 });
