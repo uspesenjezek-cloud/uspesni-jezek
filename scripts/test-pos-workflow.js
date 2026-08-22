@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-acceptance-proof-v22/);
+assert.match(html, /pos-terminal\.js\?v=20260822-cancellation-proof-v23/);
 assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);
@@ -126,9 +126,11 @@ const order = Core.workOrderFromServer({
 }, []);
 assert.deepEqual(Core.workOrderActions("draft"), ["edit", "offer", "cancel"]);
 assert.deepEqual(Core.workOrderActions("offered"), ["pdf", "accept", "cancel"]);
-assert.deepEqual(Core.workOrderActions("in_progress"), ["pdf", "complete", "progress", "cancel"]);
-assert.deepEqual(Core.workOrderActions("completed"), ["pdf", "final", "progress", "cancel"]);
+assert.deepEqual(Core.workOrderActions("accepted"), ["pdf", "start", "progress"]);
+assert.deepEqual(Core.workOrderActions("in_progress"), ["pdf", "complete", "progress"]);
+assert.deepEqual(Core.workOrderActions("completed"), ["pdf", "final", "progress"]);
 assert.deepEqual(Core.workOrderActions("invoiced"), ["pdf"]);
+assert.deepEqual(Core.workOrderActions({ status: "cancelled", offeredAt: "2026-08-22T10:00:00Z" }), ["pdf"]);
 
 const acceptanceMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_offer_acceptance_evidence\.sql$/.test(name)).sort().pop();
@@ -142,6 +144,18 @@ assert.match(acceptanceMigration, /pos_work_orders_require_acceptance_evidence[\
 assert.match(acceptanceMigration, /create or replace function public\.pos_accept_work_order/i);
 assert.match(js, /rpc\("pos_accept_work_order", \{ p_work_order_id: order\.id, p_evidence:/);
 assert.match(js, /label: "Dokaz sprejema"[\s\S]*maxLength: 500/);
+
+const cancellationMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_offer_cancellation_evidence\.sql$/.test(name)).sort().pop();
+assert.ok(cancellationMigrationName, "Manjka migracija za dokaz preklica ponudbe.");
+const cancellationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", cancellationMigrationName), "utf8");
+assert.match(cancellationMigration, /create table public\.pos_work_order_cancellations/i);
+assert.match(cancellationMigration, /status_before text not null check \(status_before in \('draft', 'offered'\)\)/i);
+assert.match(cancellationMigration, /pos_work_order_cancellations_immutable[\s\S]*before update or delete/i);
+assert.match(cancellationMigration, /pos_work_orders_require_cancellation_evidence[\s\S]*before update of status/i);
+assert.match(cancellationMigration, /create or replace function public\.pos_cancel_work_order/i);
+assert.match(js, /rpc\("pos_cancel_work_order", \{ p_work_order_id: order\.id, p_reason:/);
+assert.match(js, /label: "Razlog preklica"[\s\S]*maxLength: 500/);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");
