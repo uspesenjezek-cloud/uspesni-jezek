@@ -4,6 +4,7 @@
   var STORAGE_KEY = "uj-pos-terminal-v1";
   var DATE_LOCALE = "de-DE";
   var CURRENCY = "EUR";
+  var MAX_BANK_IMPORT_BYTES = 5 * 1024 * 1024;
 
   function integer(value, fallback) {
     var parsed = Number.parseInt(value, 10);
@@ -57,15 +58,18 @@
     return new Intl.NumberFormat(DATE_LOCALE, { maximumFractionDigits: 3 }).format(milli / 1000);
   }
 
-  function isoToday() {
-    var now = new Date();
-    var local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
+  function isoToday(now) {
+    var value = now == null ? new Date() : new Date(now);
+    if (Number.isNaN(value.getTime())) value = new Date();
+    return berlinDateKey(value) || value.toISOString().slice(0, 10);
   }
 
   function addDays(iso, days) {
-    var date = new Date(String(iso || isoToday()) + "T12:00:00");
-    date.setDate(date.getDate() + integer(days, 0));
+    var value = String(iso || isoToday());
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    var date = match ? new Date(Date.UTC(integer(match[1]), integer(match[2]) - 1, integer(match[3]))) : null;
+    if (!date || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) date = new Date(isoToday() + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() + integer(days, 0));
     return date.toISOString().slice(0, 10);
   }
 
@@ -75,6 +79,12 @@
     return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat(DATE_LOCALE).format(date);
   }
 
+  function formatGermanTimestampDate(iso) {
+    if (!iso) return "—";
+    var date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat(DATE_LOCALE, { timeZone: "Europe/Berlin" }).format(date);
+  }
+
   function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -82,15 +92,6 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
-  }
-
-  function escapeXml(value) {
-    return String(value == null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
   }
 
   function uid(prefix) {
@@ -106,11 +107,15 @@
     });
   }
 
-  function defaultProfile() {
+  function defaultProfile(now) {
+    var businessYear = isoToday(now).slice(0, 4);
     return {
       legalName: "",
       legalForm: "",
       representative: "",
+      companySeat: "",
+      registerCourt: "",
+      registerNumber: "",
       street: "",
       postalCode: "",
       city: "",
@@ -122,7 +127,7 @@
       previousYearTurnoverBand: "unknown",
       accountHolder: "",
       iban: "",
-      invoicePrefix: "RE-" + new Date().getFullYear() + "-",
+      invoicePrefix: "RE-" + businessYear + "-",
       defaultDueDays: "14",
       legalConfirmed: false,
       datevSettings: defaultDatevSettings("03")
@@ -220,15 +225,21 @@
       items: [defaultItem()],
       taxMode: taxMode,
       reverseChargeConfirmed: false,
+      propertyRelated: false,
       handwerker35a: false,
       constructionWithholding: false,
       exemptionCertificate: "unknown",
       dueDays: String(profile && profile.defaultDueDays || 14),
       paymentMethod: "sepa",
       consumerDefaultNotice: false,
+      consumerContractContext: "unknown",
+      urgentRepairScope: "",
       einvoiceValidated: false,
       finalConfirmed: false,
-      replacementContext: null
+      replacementContext: null,
+      workflowMode: "invoice",
+      offerValidDays: "14",
+      workflowContext: null
     };
   }
 
@@ -264,6 +275,9 @@
       legal_name: String(profile.legalName || "").trim(),
       legal_form: String(profile.legalForm || "").trim(),
       representative: String(profile.representative || "").trim(),
+      company_seat: String(profile.companySeat || "").trim(),
+      register_court: String(profile.registerCourt || "").trim(),
+      register_number: String(profile.registerNumber || "").trim(),
       street: String(profile.street || "").trim(),
       postal_code: String(profile.postalCode || "").trim(),
       city: String(profile.city || "").trim(),
@@ -271,7 +285,7 @@
       business_phone: String(profile.businessPhone || "").trim(),
       tax_status: profile.taxStatus === "small_business" ? "small_business" : "regular",
       tax_number: String(profile.taxNumber || "").trim(),
-      vat_id: String(profile.vatId || "").trim().toUpperCase(),
+      vat_id: cleanVatId(profile.vatId),
       previous_year_turnover_band: ["lte_800k", "gt_800k"].indexOf(profile.previousYearTurnoverBand) !== -1 ? profile.previousYearTurnoverBand : "unknown",
       account_holder: String(profile.accountHolder || "").trim(),
       iban: cleanIban(profile.iban),
@@ -288,6 +302,9 @@
       legalName: row.legal_name,
       legalForm: row.legal_form,
       representative: row.representative,
+      companySeat: row.company_seat,
+      registerCourt: row.register_court,
+      registerNumber: row.register_number,
       street: row.street,
       postalCode: row.postal_code,
       city: row.city,
@@ -314,7 +331,7 @@
       customer_street: String(draft.customerStreet || "").trim(),
       customer_postal_code: String(draft.customerPostalCode || "").trim(),
       customer_city: String(draft.customerCity || "").trim(),
-      customer_vat_id: String(draft.customerVatId || "").trim(),
+      customer_vat_id: cleanVatId(draft.customerVatId),
       customer_contact: String(draft.customerContact || "").trim(),
       customer_email: String(draft.customerEmail || "").trim(),
       customer_phone: String(draft.customerPhone || "").trim(),
@@ -338,17 +355,41 @@
       }),
       tax_mode: draft.taxMode,
       reverse_charge_confirmed: Boolean(draft.reverseChargeConfirmed),
+      property_related: Boolean(draft.propertyRelated),
       handwerker_35a: Boolean(draft.handwerker35a),
       construction_withholding: Boolean(draft.constructionWithholding),
       exemption_certificate: draft.exemptionCertificate,
       due_days: clamp(integer(draft.dueDays, 14), 0, 365),
       payment_method: draft.paymentMethod,
       consumer_default_notice: Boolean(draft.consumerDefaultNotice),
+      consumer_contract_context: draft.customerType === "private"
+        ? (["business_premises", "distance", "off_premises", "urgent_repair"].indexOf(draft.consumerContractContext) !== -1 ? draft.consumerContractContext : "unknown")
+        : "not_applicable",
+      urgent_repair_scope: draft.customerType === "private" && draft.consumerContractContext === "urgent_repair"
+        ? String(draft.urgentRepairScope || "").trim()
+        : "",
       replacement_context: replacement ? {
         original_invoice_id: replacement.originalInvoiceId,
         original_invoice_number: replacement.originalInvoiceNumber,
         cancellation_adjustment_id: replacement.cancellationAdjustmentId,
         cancellation_number: replacement.cancellationNumber
+      } : null,
+      workflow_context: draft.workflowContext && draft.workflowContext.workOrderId ? {
+        work_order_id: String(draft.workflowContext.workOrderId),
+        offer_number: String(draft.workflowContext.offerNumber || ""),
+        order_number: String(draft.workflowContext.orderNumber || ""),
+        invoice_kind: draft.workflowContext.invoiceKind === "progress" ? "progress" : "final",
+        progress_percent: draft.workflowContext.invoiceKind === "progress" ? integer(draft.workflowContext.progressPercent, 0) : null,
+        final_deductions: draft.workflowContext.invoiceKind === "final" ? normalizeFinalDeductions(draft.workflowContext.finalDeductions).map(function (entry) {
+          return {
+            invoice_id: entry.invoiceId,
+            invoice_number: entry.invoiceNumber,
+            issue_date: entry.issueDate,
+            net_cents: entry.netCents,
+            tax_cents: entry.taxCents,
+            gross_cents: entry.grossCents
+          };
+        }) : []
       } : null
     };
   }
@@ -383,15 +424,289 @@
       }),
       taxMode: source.tax_mode,
       reverseChargeConfirmed: Boolean(source.reverse_charge_confirmed),
+      propertyRelated: Boolean(source.property_related),
       handwerker35a: Boolean(source.handwerker_35a),
       constructionWithholding: Boolean(source.construction_withholding),
       exemptionCertificate: source.exemption_certificate,
       dueDays: String(source.due_days == null ? 14 : source.due_days),
       paymentMethod: source.payment_method,
       consumerDefaultNotice: Boolean(source.consumer_default_notice),
+      consumerContractContext: source.consumer_contract_context || "unknown",
+      urgentRepairScope: source.urgent_repair_scope || "",
       finalConfirmed: Boolean(issued),
-      replacementContext: normalizeReplacementContext(source)
+      replacementContext: normalizeReplacementContext(source),
+      workflowMode: "invoice",
+      offerValidDays: "14",
+      workflowContext: source.workflow_context ? {
+        workOrderId: source.workflow_context.work_order_id || "",
+        offerNumber: source.workflow_context.offer_number || "",
+        orderNumber: source.workflow_context.order_number || "",
+        invoiceKind: source.workflow_context.invoice_kind === "progress" ? "progress" : "final",
+        progressPercent: integer(source.workflow_context.progress_percent, 0),
+        finalDeductions: normalizeFinalDeductions(source.workflow_context.final_deductions)
+      } : null
     });
+  }
+
+  function workOrderPayloadFromDraft(draft) {
+    var payload = draftToDatabasePayload(draft);
+    payload.valid_until = addDays(draft.issueDate || isoToday(), clamp(integer(draft.offerValidDays, 14), 1, 180));
+    return payload;
+  }
+
+  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart, withdrawal, contractDocument, contractDelivery, withdrawalSettlement, withdrawalRefunds) {
+    return {
+      id: row.id,
+      offerNumber: row.offer_number,
+      orderNumber: row.order_number || "",
+      status: row.status,
+      title: row.title,
+      customerName: row.customer_name,
+      customerEmail: row.customer_email || "",
+      validUntil: row.valid_until,
+      netCents: integer(row.net_cents, 0),
+      taxCents: integer(row.tax_cents, 0),
+      grossCents: integer(row.gross_cents, 0),
+      payload: row.payload || {},
+      lockedPayload: row.locked_payload || null,
+      offeredAt: row.offered_at || null,
+      acceptedAt: row.accepted_at || null,
+      acceptedOn: row.accepted_on || acceptance && acceptance.accepted_on || "",
+      startedAt: row.started_at || null,
+      completedAt: row.completed_at || null,
+      cancelledAt: row.cancelled_at || null,
+      withdrawnAt: row.withdrawn_at || null,
+      acceptanceEvidence: acceptance && acceptance.evidence || "",
+      acceptanceOfferSha256: acceptance && acceptance.offer_sha256 || "",
+      cancellationReason: cancellation && cancellation.reason || "",
+      cancellationStatusBefore: cancellation && cancellation.status_before || "",
+      earlyStartEvidence: earlyStart && earlyStart.evidence || "",
+      earlyStartRecordedAt: earlyStart && earlyStart.recorded_at || "",
+      valueCompensationInformed: Boolean(earlyStart && earlyStart.value_compensation_informed),
+      rightExpiryAcknowledged: Boolean(earlyStart && earlyStart.right_expiry_acknowledged),
+      earlyStartRequestOnDurableMedium: Boolean(earlyStart && earlyStart.request_on_durable_medium),
+      withdrawalDeclaredOn: withdrawal && withdrawal.declared_on || "",
+      withdrawalEvidence: withdrawal && withdrawal.evidence || "",
+      withdrawalStatusBefore: withdrawal && withdrawal.status_before || "",
+      withdrawalReceivedAt: withdrawal && withdrawal.received_at || "",
+      valueCompensationReviewRequired: Boolean(withdrawal && withdrawal.value_compensation_review_required),
+      contractConfirmationDocumentId: contractDocument && contractDocument.id || "",
+      contractConfirmationSha256: contractDocument && contractDocument.sha256 || "",
+      contractConfirmationCreatedAt: contractDocument && contractDocument.created_at || "",
+      contractConfirmationDeliveryChannel: contractDelivery && contractDelivery.channel || "",
+      contractConfirmationDeliveryRecipient: contractDelivery && contractDelivery.recipient || "",
+      contractConfirmationDeliveryEvidence: contractDelivery && contractDelivery.evidence || "",
+      contractConfirmationDeliveredOn: contractDelivery && contractDelivery.delivered_on || "",
+      contractConfirmationElectronicConsent: contractDelivery && contractDelivery.electronic_consent_evidence || "",
+      withdrawalSettlementId: withdrawalSettlement && withdrawalSettlement.id || "",
+      withdrawalGrossReceivedCents: integer(withdrawalSettlement && withdrawalSettlement.gross_received_cents, 0),
+      withdrawalAlreadyRefundedCents: integer(withdrawalSettlement && withdrawalSettlement.already_refunded_cents, 0),
+      withdrawalRetainedPaymentCents: integer(withdrawalSettlement && withdrawalSettlement.retained_payment_cents, 0),
+      withdrawalValueCompensationCents: integer(withdrawalSettlement && withdrawalSettlement.value_compensation_cents, 0),
+      withdrawalRefundDueCents: integer(withdrawalSettlement && withdrawalSettlement.refund_due_cents, 0),
+      withdrawalConsumerBalanceReviewCents: integer(withdrawalSettlement && withdrawalSettlement.consumer_balance_review_cents, 0),
+      withdrawalRefundMethod: withdrawalSettlement && withdrawalSettlement.refund_method || "",
+      withdrawalRefundDueOn: withdrawalSettlement && withdrawalSettlement.refund_due_on || "",
+      withdrawalSettlementAssessedAt: withdrawalSettlement && withdrawalSettlement.assessed_at || "",
+      withdrawalRefundRecords: withdrawalRefunds || [],
+      updatedAt: row.updated_at,
+      invoiceLinks: links || []
+    };
+  }
+
+  function normalizeFinalDeductions(value) {
+    return (Array.isArray(value) ? value : []).map(function (entry) {
+      var source = entry || {};
+      return {
+        invoiceId: String(source.invoiceId || source.invoice_id || ""),
+        invoiceNumber: String(source.invoiceNumber || source.invoice_number || ""),
+        issueDate: String(source.issueDate || source.issue_date || ""),
+        netCents: Math.max(0, integer(source.netCents == null ? source.net_cents : source.netCents, 0)),
+        taxCents: Math.max(0, integer(source.taxCents == null ? source.tax_cents : source.taxCents, 0)),
+        grossCents: Math.max(0, integer(source.grossCents == null ? source.gross_cents : source.grossCents, 0))
+      };
+    }).filter(function (entry) { return entry.invoiceId && entry.grossCents > 0; });
+  }
+
+  function workOrderFinalState(workOrder, targetIsTest) {
+    var progressLinks = (workOrder && workOrder.invoiceLinks || []).filter(function (link) {
+      return link.invoice_kind === "progress" && !(link.invoice && link.invoice.status === "cancelled");
+    });
+    var deductions = progressLinks.map(function (link) {
+      var invoice = link.invoice || null;
+      var totals = invoice && invoice.totals || {};
+      return {
+        invoiceId: String(link.invoice_id || invoice && invoice.id || ""),
+        invoiceNumber: String(link.invoice_number || invoice && invoice.number || ""),
+        issueDate: String(link.issue_date || invoice && invoice.draft && invoice.draft.issueDate || ""),
+        netCents: integer(link.net_cents == null ? totals.netCents : link.net_cents, 0),
+        taxCents: integer(link.tax_cents == null ? totals.taxCents : link.tax_cents, 0),
+        grossCents: integer(link.gross_cents == null ? totals.grossCents : link.gross_cents, 0),
+        paidCents: integer(link.paid_cents == null ? invoice && invoice.paidCents : link.paid_cents, 0),
+        cancelled: Boolean(invoice && invoice.status === "cancelled"),
+        testMismatch: typeof targetIsTest === "boolean" && invoice ? Boolean(invoice.isTest) !== targetIsTest : false
+      };
+    });
+    var blocked = deductions.some(function (entry) {
+      return entry.cancelled || entry.testMismatch || entry.grossCents <= 0 || entry.paidCents < entry.grossCents;
+    });
+    return {
+      progressLinks: progressLinks,
+      deductions: normalizeFinalDeductions(deductions),
+      blocked: blocked,
+      progressPercent: progressLinks.reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0)
+    };
+  }
+
+  function requiresEarlyStartEvidence(order, now) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    if (source.customer_type !== "private") return false;
+    var context = source.consumer_contract_context;
+    if (context === "urgent_repair") return true;
+    if (["distance", "off_premises"].indexOf(context) === -1 || !(order.acceptedOn || order.acceptedAt)) return false;
+    var acceptedDay = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var currentDay = berlinDateKey(now || new Date());
+    return Boolean(acceptedDay && currentDay && currentDay <= addDays(acceptedDay, 14));
+  }
+
+  function requiresContractConfirmation(order) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    return source.customer_type === "private" && ["distance", "off_premises", "urgent_repair"].indexOf(source.consumer_contract_context) !== -1;
+  }
+
+  function consumerServiceRightExpired(order) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    if (!order || !order.completedAt || source.customer_type !== "private" || ["distance", "off_premises"].indexOf(source.consumer_contract_context) === -1) return false;
+    return Boolean(
+      order.valueCompensationInformed
+      && order.rightExpiryAcknowledged
+      && (source.consumer_contract_context !== "off_premises" || order.earlyStartRequestOnDurableMedium)
+    );
+  }
+
+  function consumerWithdrawalAvailable(order, now) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    if (!order || source.customer_type !== "private" || ["distance", "off_premises"].indexOf(source.consumer_contract_context) === -1) return false;
+    if (["accepted", "in_progress", "completed", "invoiced"].indexOf(order.status) === -1 || consumerServiceRightExpired(order)) return false;
+    var acceptedOn = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var today = berlinDateKey(now || new Date());
+    return Boolean(acceptedOn && today && today <= addDays(acceptedOn, 14));
+  }
+
+  function withdrawalTaxCorrectionState(order) {
+    if (!order || order.status !== "withdrawn" || !order.withdrawalSettlementId) return { required: false, kind: "none", invoice: null, reductionCents: 0 };
+    var activeInvoices = (order.invoiceLinks || []).map(function (link) { return link && link.invoice; }).filter(function (invoice) {
+      return invoice && invoice.status !== "cancelled";
+    });
+    var activeGross = activeInvoices.reduce(function (sum, invoice) {
+      var credited = (invoice.adjustments || []).filter(function (entry) { return entry.type === "credit_note"; })
+        .reduce(function (amount, entry) { return amount + integer(entry.deltaGrossCents, 0); }, 0);
+      return sum + Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) + credited);
+    }, 0);
+    var reduction = Math.max(0, activeGross - integer(order.withdrawalValueCompensationCents, 0));
+    if (!activeInvoices.length || !reduction) return { required: false, kind: "none", invoice: null, reductionCents: 0 };
+    if (!order.withdrawalValueCompensationCents) {
+      return { required: true, kind: "full_cancellation", invoice: activeInvoices[0], reductionCents: reduction };
+    }
+    return { required: true, kind: "partial_correction", invoice: activeInvoices[0], reductionCents: reduction };
+  }
+
+  function createWithdrawalTaxCredit(order) {
+    var correction = withdrawalTaxCorrectionState(order);
+    if (!order || correction.kind !== "partial_correction" || !backend.client || !backend.ready) {
+      showToast("Davčni dobropis trenutno ni potreben ali varna hramba ni povezana.");
+      return;
+    }
+    openDialog("Izdati delni davčni dobropis?", "POS bo iz zaklenjenih postavk računov sam izračunal neto in DDV za zmanjšanje " + formatMoney(correction.reductionCents) + ". Priznani Wertersatz " + formatMoney(order.withdrawalValueCompensationCents) + " ostane obdavčljiv. Dobropis bo nespremenljiv in ne bo sprožil vračila denarja.", {
+      confirmText: "Izdaj dobropis",
+      onConfirm: async function () {
+        try {
+          var result = await backend.client.rpc("pos_create_withdrawal_tax_credit_notes", {
+            p_work_order_id: order.id,
+            p_confirmed: true
+          });
+          if (result.error) throw result.error;
+          var adjustments = (result.data || []).map(function (row) { return adjustmentFromServer(row, {}); });
+          var documentsReady = true;
+          for (var index = 0; index < adjustments.length; index += 1) {
+            try { await ensureAdjustmentDocument(adjustments[index]); }
+            catch (_pdfError) { documentsReady = false; }
+          }
+          await loadServerState("invoices");
+          showView("work-orders");
+          showToast(documentsReady
+            ? "Davčni dobropis in PDF sta nespremenljivo izdana; denar ni bil premaknjen."
+            : "Davčni dobropis je izdan; PDF se varno pripravi ob prenosu.");
+        } catch (error) {
+          showToast(error && error.message || "Davčnega dobropisa ni bilo mogoče izdati.");
+        }
+      }
+    });
+  }
+
+  function workOrderActions(orderOrStatus) {
+    var order = orderOrStatus && typeof orderOrStatus === "object" ? orderOrStatus : null;
+    var status = order ? order.status : orderOrStatus;
+    var source = order && (order.lockedPayload || order.payload) || {};
+    var consumerWithdrawal = order && consumerWithdrawalAvailable(order);
+    if (status === "draft") return ["edit", "offer", "cancel"];
+    if (status === "offered") return ["pdf", "accept", "cancel"];
+    var confirmation = order && requiresContractConfirmation(order);
+    var confirmationActions = confirmation ? ["contract_pdf"].concat(order.contractConfirmationDeliveryEvidence ? [] : ["contract_delivery"]) : [];
+    if (status === "accepted") return ["pdf"].concat(confirmationActions, ["start", "progress"], consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "in_progress") return ["pdf"].concat(confirmationActions, ["complete", "progress"], consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "completed") return ["pdf"].concat(confirmationActions, ["final", "progress"], consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "invoiced") return ["pdf"].concat(confirmationActions, consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "cancelled" && order && order.offeredAt) return ["pdf"];
+    if (status === "withdrawn") {
+      var refundRecorded = order ? (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0) : 0;
+      var taxCorrection = withdrawalTaxCorrectionState(order);
+      var settlementActions = order && !order.withdrawalSettlementId ? ["withdrawal_settlement"]
+        : order && refundRecorded < order.withdrawalRefundDueCents ? ["withdrawal_refund"] : [];
+      var taxActions = taxCorrection.kind === "full_cancellation" ? ["withdrawal_tax_correction"]
+        : taxCorrection.kind === "partial_correction" ? ["withdrawal_tax_credit"] : [];
+      return ["pdf"].concat(confirmationActions, settlementActions, taxActions);
+    }
+    return [];
+  }
+
+  function prepareWorkOrderInvoiceDraft(workOrder, profile, invoiceKind, progressPercent) {
+    if (!workOrder || ["accepted", "in_progress", "completed"].indexOf(workOrder.status) === -1) return null;
+    var kind = invoiceKind === "progress" ? "progress" : "final";
+    if (kind === "final" && workOrder.status !== "completed") return null;
+    var finalState = workOrderFinalState(workOrder, !profileReadiness(profile).live);
+    if (kind === "final" && finalState.blocked) return null;
+    var percent = kind === "progress" ? clamp(integer(progressPercent, 0), 1, 99) : 100;
+    var source = draftFromDatabasePayload(workOrder.lockedPayload || workOrder.payload, false);
+    var draft = Object.assign(defaultDraft(profile), source, {
+      id: uid("draft"), serverId: null, createdAt: new Date().toISOString(),
+      issueDate: isoToday(), serviceDate: isoToday(), finalConfirmed: false, einvoiceValidated: false,
+      workflowMode: "invoice",
+      workflowContext: {
+        workOrderId: workOrder.id,
+        offerNumber: workOrder.offerNumber,
+        orderNumber: workOrder.orderNumber,
+        invoiceKind: kind,
+        progressPercent: kind === "progress" ? percent : 0,
+        finalDeductions: kind === "final" ? finalState.deductions : []
+      }
+    });
+    if (kind === "progress") {
+      draft.items = (source.items || []).map(function (item) {
+        var cents = Math.round(parseMoneyToCents(item.unitPrice) * percent / 100);
+        return Object.assign({}, item, {
+          id: uid("item"),
+          description: "Abschlag " + percent + " % · " + String(item.description || "Leistung"),
+          unitPrice: (cents / 100).toFixed(2).replace(".", ",")
+        });
+      });
+      draft.workDescription = "Abschlagsrechnung über " + percent + " % gemäß dokumentiertem Leistungsstand zu " + workOrder.orderNumber + ".";
+    } else {
+      draft.items = (source.items || []).map(function (item) { return Object.assign({}, item, { id: uid("item") }); });
+      draft.workDescription = "Schlussrechnung zu " + workOrder.orderNumber + (finalState.deductions.length ? " unter Abzug der vereinnahmten Abschlagszahlungen." : ".");
+    }
+    if (!draft.items.length) draft.items = [defaultItem()];
+    return draft;
   }
 
   function buildAdjustmentChanges(invoice, values) {
@@ -454,6 +769,20 @@
       totals.byRate[rateKey].taxCents += calculated.taxCents;
       if (["labour", "travel", "machine"].indexOf(item.category) !== -1) totals.eligible35aCents += calculated.grossCents;
     });
+    totals.serviceNetCents = totals.netCents;
+    totals.serviceTaxCents = totals.taxCents;
+    totals.serviceGrossCents = totals.grossCents;
+    var deductions = normalizeFinalDeductions(draft && draft.workflowContext && draft.workflowContext.finalDeductions);
+    totals.deductions = deductions;
+    totals.deductionNetCents = deductions.reduce(function (sum, entry) { return sum + entry.netCents; }, 0);
+    totals.deductionTaxCents = deductions.reduce(function (sum, entry) { return sum + entry.taxCents; }, 0);
+    totals.deductionGrossCents = deductions.reduce(function (sum, entry) { return sum + entry.grossCents; }, 0);
+    if (deductions.length) {
+      totals.netCents = Math.max(0, totals.serviceNetCents - totals.deductionNetCents);
+      totals.taxCents = Math.max(0, totals.serviceTaxCents - totals.deductionTaxCents);
+      totals.grossCents = Math.max(0, totals.serviceGrossCents - totals.deductionGrossCents);
+      totals.eligible35aCents = Math.max(0, Math.round(totals.eligible35aCents * totals.grossCents / Math.max(1, totals.serviceGrossCents)));
+    }
     return totals;
   }
 
@@ -461,13 +790,70 @@
     return String(value || "").replace(/\s/g, "").toUpperCase();
   }
 
+  function validIban(value) {
+    var iban = cleanIban(value);
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+    var rearranged = iban.slice(4) + iban.slice(0, 4);
+    var remainder = 0;
+    for (var index = 0; index < rearranged.length; index += 1) {
+      var character = rearranged[index];
+      var digits = /[0-9]/.test(character) ? character : String(character.charCodeAt(0) - 55);
+      for (var digitIndex = 0; digitIndex < digits.length; digitIndex += 1) {
+        remainder = (remainder * 10 + Number(digits[digitIndex])) % 97;
+      }
+    }
+    return remainder === 1;
+  }
+
+  function cleanVatId(value) {
+    return String(value || "").replace(/[\s-]/g, "").toUpperCase();
+  }
+
+  function validGermanTaxNumber(value) {
+    var text = String(value || "").trim();
+    var digits = text.replace(/[^0-9]/g, "");
+    return /^[0-9 /-]+$/.test(text) && [10, 11, 13].indexOf(digits.length) !== -1;
+  }
+
+  function profileValidationError(profile) {
+    function present(value) { return Boolean(String(value || "").trim()); }
+    var supportedForms = ["Einzelunternehmen", "e.K.", "GbR", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    var registeredForms = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    if (present(profile.postalCode) && !/^[0-9]{5}$/.test(String(profile.postalCode).trim())) return "PLZ mora imeti točno 5 številk.";
+    if (present(profile.businessEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(profile.businessEmail).trim())) return "Poslovni e-poštni naslov ni veljaven.";
+    if (present(profile.businessPhone) && !/^\+?[0-9][0-9 ()/.-]{5,59}$/.test(String(profile.businessPhone).trim())) return "Poslovni telefon ni veljaven.";
+    if (present(profile.taxNumber) && !validGermanTaxNumber(profile.taxNumber)) return "Steuernummer mora ustrezati nemškemu 10-, 11- ali 13-mestnemu formatu.";
+    if (present(profile.vatId) && !/^DE[0-9]{9}$/.test(cleanVatId(profile.vatId))) return "USt-IdNr. mora biti DE in 9 številk.";
+    if (present(profile.iban) && !validIban(profile.iban)) return "IBAN ni veljaven; preverite številko in kontrolni mesti.";
+    if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(String(profile.invoicePrefix || ""))) return "Predpona računa lahko vsebuje le črke, številke, piko, vezaj, podčrtaj ali /.";
+    if (profile.legalConfirmed && supportedForms.indexOf(String(profile.legalForm || "")) === -1) return "Za produkcijo izberite podprto nemško pravno obliko podjetja.";
+    if (profile.legalConfirmed && !present(profile.representative)) return "Vnesite vse lastnike, družbenike ali zastopnike, ki morajo biti navedeni na poslovnih dokumentih.";
+    if (profile.legalConfirmed && registeredForms.indexOf(profile.legalForm) !== -1 && ![profile.companySeat, profile.registerCourt, profile.registerNumber].every(present)) return "Za registrirano pravno obliko vnesite sedež, registrsko sodišče in registrsko številko.";
+    if (profile.legalConfirmed && ![profile.legalName, profile.street, profile.postalCode, profile.city, profile.accountHolder, profile.iban].every(present)) return "Pred potrditvijo izpolnite vse obvezne podatke podjetja in plačila.";
+    if (profile.legalConfirmed && !present(profile.taxNumber) && !present(profile.vatId)) return "Pred potrditvijo vnesite Steuernummer ali USt-IdNr.";
+    return "";
+  }
+
+  function profileChangeRequiresConfirmation(fieldName) {
+    return [
+      "legalName", "legalForm", "representative", "companySeat", "registerCourt", "registerNumber", "street", "postalCode", "city",
+      "businessEmail", "businessPhone", "taxStatus", "taxNumber", "vatId",
+      "previousYearTurnoverBand", "accountHolder", "iban"
+    ].indexOf(String(fieldName || "")) !== -1;
+  }
+
   function profileReadiness(profile) {
     function present(value) { return Boolean(String(value || "").trim()); }
+    var supportedForms = ["Einzelunternehmen", "e.K.", "GbR", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    var registeredForms = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"];
+    var legalFormReady = supportedForms.indexOf(String(profile.legalForm || "")) !== -1
+      && present(profile.representative)
+      && (registeredForms.indexOf(profile.legalForm) === -1 || [profile.companySeat, profile.registerCourt, profile.registerNumber].every(present));
     var checks = [
-      { key: "identity", label: "Pravno ime in naslov", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) },
-      { key: "tax", label: "Davčna številka", done: Boolean(present(profile.taxNumber) || present(profile.vatId)) },
-      { key: "bank", label: "IBAN in imetnik računa", done: Boolean(cleanIban(profile.iban).length >= 15 && present(profile.accountHolder)) },
-      { key: "numbering", label: "Številčenje računov", done: present(profile.invoicePrefix) },
+      { key: "identity", label: "Pravna oblika in obvezni registrski podatki", done: [profile.legalName, profile.street, profile.postalCode, profile.city].every(present) && /^[0-9]{5}$/.test(String(profile.postalCode || "").trim()) && legalFormReady },
+      { key: "tax", label: "Davčna številka", done: Boolean((present(profile.taxNumber) && validGermanTaxNumber(profile.taxNumber)) || (present(profile.vatId) && /^DE[0-9]{9}$/.test(cleanVatId(profile.vatId)))) },
+      { key: "bank", label: "IBAN in imetnik računa", done: Boolean(validIban(profile.iban) && present(profile.accountHolder)) },
+      { key: "numbering", label: "Številčenje računov", done: /^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(String(profile.invoicePrefix || "")) },
       { key: "confirmation", label: "Potrditev resničnih podatkov", done: Boolean(profile.legalConfirmed) }
     ];
     var done = checks.filter(function (check) { return check.done; }).length;
@@ -590,10 +976,10 @@
     var amount = integer(transaction.amountCents || transaction.amount_cents, 0);
     var searchText = normalizeBankText((transaction.remittanceInfo || transaction.remittance_info || "") + " " + (transaction.counterpartyName || transaction.counterparty_name || ""));
     var candidates = (Array.isArray(invoices) ? invoices : []).filter(function (invoice) {
-      var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
-      return invoice.serverStored && invoice.status !== "cancelled" && outstanding >= amount && outstanding > 0;
+      var outstanding = invoiceOutstandingCents(invoice);
+      return invoice.serverStored && !invoice.hasCreditNote && invoice.status !== "cancelled" && outstanding >= amount && outstanding > 0;
     }).map(function (invoice) {
-      var outstanding = Math.max(0, integer(invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+      var outstanding = invoiceOutstandingCents(invoice);
       var numberMatch = searchText.indexOf(normalizeBankText(invoice.number)) !== -1;
       var payerName = normalizeBankText(transaction.counterpartyName || transaction.counterparty_name || "");
       var customerName = normalizeBankText(invoice.draft && invoice.draft.customerName || "");
@@ -608,8 +994,25 @@
   }
 
   function invoiceOutstandingCents(invoice) {
-    if (!invoice || invoice.status === "cancelled") return 0;
-    return Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+    if (!invoice || invoice.status === "cancelled" || invoice.status === "credited") return 0;
+    var receivable = invoice.adjustedGrossCents == null
+      ? integer(invoice.totals && invoice.totals.grossCents, 0)
+      : integer(invoice.adjustedGrossCents, 0);
+    return Math.max(0, receivable - integer(invoice.paidCents, 0));
+  }
+
+  function bankImportFileError(file) {
+    if (!file) return "Izberite bančni izpisek.";
+    var size = Number(file.size);
+    if (!Number.isFinite(size) || size <= 0) return "Bančni izpisek je prazen ali ga ni mogoče prebrati.";
+    if (size > MAX_BANK_IMPORT_BYTES) return "Bančni izpisek je prevelik. Največja dovoljena velikost je 5 MB.";
+    return "";
+  }
+
+  function latestManualPaymentCandidate(invoices) {
+    return (invoices || []).filter(function (invoice) {
+      return invoice && invoice.status !== "paid" && invoice.status !== "cancelled" && invoiceOutstandingCents(invoice) > 0;
+    })[0] || null;
   }
 
   function invoiceDaysOverdue(invoice, today) {
@@ -765,11 +1168,30 @@
       required(draft.customerStreet, "Vnesite naslov prejemnika.");
       required(draft.customerPostalCode, "Vnesite poštno številko prejemnika.");
       required(draft.customerCity, "Vnesite kraj prejemnika.");
+      if (String(draft.customerPostalCode || "") && !/^\d{5}$/.test(String(draft.customerPostalCode))) errors.push("PLZ prejemnika mora imeti točno 5 številk.");
+      if (String(draft.customerEmail || "") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.customerEmail))) errors.push("E-poštni naslov prejemnika ni veljaven.");
+      if (String(draft.customerPhone || "") && !/^\+?[0-9][0-9 ()/.\-]{5,59}$/.test(String(draft.customerPhone))) errors.push("Telefon prejemnika ni veljaven.");
+      var normalizedCustomerVatId = String(draft.customerVatId || "").toUpperCase().replace(/[\s-]/g, "");
+      if (normalizedCustomerVatId && !/^[A-Z]{2}[A-Z0-9]{2,14}$/.test(normalizedCustomerVatId)) errors.push("USt-IdNr. prejemnika ni veljavna.");
+      if ([draft.customerName, draft.customerStreet, draft.customerCity, draft.customerEmail, draft.customerPhone, draft.customerVatId, draft.leitwegId, draft.buyerReference].some(function (value) { return /[\r\n]/.test(String(value || "")); })) errors.push("Podatki prejemnika ne smejo vsebovati preloma vrstice.");
       if (draft.customerType === "public") required(draft.leitwegId, "Za javnega naročnika je potrebna Leitweg-ID.");
       if (draft.customerType === "business" || draft.customerType === "public") required(draft.buyerReference || draft.leitwegId, "Za XRechnung vnesite Bestellnummer / Buyer reference.");
       if (draft.customerType === "business") required(draft.customerEmail, "Za XRechnung vnesite e-poštni naslov poslovnega prejemnika.");
       if (draft.customerType === "business" || draft.customerType === "public") required(profile.businessEmail, "Za XRechnung v nastavitvah dodajte poslovni e-poštni naslov izdajatelja.");
       if (draft.customerType === "business" || draft.customerType === "public") required(profile.businessPhone, "Za XRechnung v nastavitvah dodajte poslovni telefon izdajatelja.");
+      if (draft.workflowMode === "offer" && draft.customerType === "private") {
+        if (["business_premises", "distance", "off_premises", "urgent_repair"].indexOf(draft.consumerContractContext) === -1) {
+          errors.push("Izberite, kako bo sklenjena potrošniška pogodba.");
+        }
+        if (["distance", "off_premises"].indexOf(draft.consumerContractContext) !== -1) {
+          required(profile.businessEmail, "Za Widerrufsbelehrung v nastavitvah dodajte poslovni e-poštni naslov.");
+          required(profile.businessPhone, "Za Widerrufsbelehrung v nastavitvah dodajte poslovni telefon.");
+        }
+        if (draft.consumerContractContext === "urgent_repair") {
+          var urgentScopeLength = String(draft.urgentRepairScope || "").trim().length;
+          if (urgentScopeLength < 5 || urgentScopeLength > 500) errors.push("Natančno opišite nujno popravilo (od 5 do 500 znakov).");
+        }
+      }
     }
 
     if (step === 2 || step === 4) {
@@ -781,6 +1203,7 @@
         if (parseQuantityMilli(item.quantity) <= 0) errors.push("Količina pri postavki " + (index + 1) + " mora biti večja od 0.");
         if (parseMoneyToCents(item.unitPrice) < 0) errors.push("Cena pri postavki " + (index + 1) + " ne sme biti negativna.");
       });
+      if (calculateTotals(draft).grossCents <= 0) errors.push("Skupni znesek računa mora biti večji od 0,00 €.");
     }
 
     if (step === 3 || step === 4) {
@@ -791,15 +1214,40 @@
         if (!String(draft.customerVatId || "").trim()) errors.push("Reverse charge zahteva USt-IdNr. prejemnika.");
         if (!draft.reverseChargeConfirmed) errors.push("Potrdite, da so bili preverjeni pogoji § 13b UStG.");
       }
+      if (draft.constructionWithholding && draft.customerType === "private") errors.push("Bauabzugsteuer po § 48 EStG velja le za poslovnega ali javnega prejemnika.");
       if (draft.constructionWithholding && draft.exemptionCertificate === "unknown") errors.push("Pri Bauleistung izberite stanje Freistellungsbescheinigung.");
+      if (draft.handwerker35a && draft.customerType !== "private") errors.push("Handwerkerleistung po § 35a EStG je namenjena zasebnemu prejemniku.");
+      if (draft.consumerDefaultNotice && draft.customerType !== "private") errors.push("30-dnevno potrošniško opozorilo je dovoljeno le za zasebnega prejemnika.");
     }
 
     if (step === 4) {
       var readiness = profileReadiness(profile);
       if (readiness.live && !draft.finalConfirmed) errors.push("Pred pravno izdajo potrdite končni pregled.");
       if (!readiness.live && !draft.finalConfirmed) errors.push("Pred izdelavo testnega dokumenta potrdite končni pregled.");
+      var withholdingError = readiness.live ? liveConstructionWithholdingError(draft) : "";
+      if (withholdingError) errors.push(withholdingError);
     }
     return errors;
+  }
+
+  function liveInvoiceDateError(draft, today) {
+    var source = draft || {};
+    var businessToday = String(today || isoToday());
+    if (String(source.issueDate || "") !== businessToday) {
+      return "Datum izdaje pravega računa mora biti današnji nemški poslovni datum.";
+    }
+    if (String(source.serviceDate || "") > String(source.issueDate || "")) {
+      return "Datum izvedbe pravega računa ne sme biti v prihodnosti.";
+    }
+    return "";
+  }
+
+  function liveConstructionWithholdingError(draft) {
+    var source = draft || {};
+    if (source.constructionWithholding && source.exemptionCertificate === "missing") {
+      return "Pravi račun brez Freistellungsbescheinigung je zaklenjen, dokler POS ne podpira 15 % Bauabzugsteuer in pravilne uskladitve plačila.";
+    }
+    return "";
   }
 
   function taxNote(draft) {
@@ -813,10 +1261,15 @@
     return "Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).";
   }
 
+  function propertyRetentionNotice(draft) {
+    if (!draft || draft.customerType !== "private" || (!draft.propertyRelated && !draft.handwerker35a)) return "";
+    return "Der Leistungsempfänger ist verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).";
+  }
+
   function deliveryRecommendation(invoice, profile) {
     var draft = invoice && invoice.draft || {};
     var type = draft.customerType || "private";
-    var issueDate = String(draft.issueDate || "");
+    var serviceDate = String(draft.serviceDate || draft.issueDate || "");
     var turnoverBand = profile && profile.previousYearTurnoverBand || "unknown";
     if (type === "public") {
       return {
@@ -826,13 +1279,23 @@
       };
     }
     if (type === "business") {
-      var year = integer(issueDate.slice(0, 4), new Date().getFullYear());
-      var pdfAllowed = year <= 2026 || (year === 2027 && turnoverBand === "lte_800k");
-      var needsTurnoverDecision = year === 2027 && turnoverBand === "unknown";
+      var totals = invoice && invoice.totals || calculateTotals(draft);
+      var grossCents = Math.max(0, integer(totals && totals.grossCents, 0));
+      var taxMode = draft.taxMode || (profile && profile.taxStatus === "small_business" ? "small_business" : "regular");
+      var smallBusiness = taxMode === "small_business" || Boolean(profile && profile.taxStatus === "small_business");
+      var smallAmount = grossCents <= 25000 && taxMode !== "reverse_charge";
+      var exempt = smallBusiness || smallAmount;
+      var year = integer(serviceDate.slice(0, 4), integer(isoToday().slice(0, 4), new Date().getUTCFullYear()));
+      var pdfAllowed = exempt || year <= 2026 || (year === 2027 && turnoverBand === "lte_800k");
+      var needsTurnoverDecision = !exempt && year === 2027 && turnoverBand === "unknown";
+      var copy = smallBusiness
+        ? "Kot Kleinunternehmer lahko izdate PDF; strukturirani XML ostaja pripravljen."
+        : smallAmount ? "Za račun do 250 EUR je PDF dovoljen; strukturirani XML ostaja pripravljen."
+          : pdfAllowed ? "Strukturirani XML je pripravljen za prihodnja pravila." : "Za datum opravljene storitve je potreben strukturirani e-račun.";
       return {
         channel: "email", documentFormat: "xrechnung_pdf", structuredRequired: !pdfAllowed,
         pdfAllowed: pdfAllowed, pdfConsentRequired: true, needsTurnoverDecision: needsTurnoverDecision,
-        title: "XRechnung + berljivi PDF", copy: pdfAllowed ? "Strukturirani XML je pripravljen za prihodnja pravila." : "Za ta datum je potreben strukturirani e-račun.", badge: "XML + PDF"
+        title: "XRechnung + berljivi PDF", copy: copy, badge: "XML + PDF"
       };
     }
     return {
@@ -855,52 +1318,6 @@
     var iban = cleanIban(profile.iban);
     var amount = (invoice.totals.grossCents / 100).toFixed(2);
     return ["BCD", "002", "1", "SCT", "", profile.accountHolder || profile.legalName, iban, "EUR" + amount, "", "", invoice.number, ""].join("\n");
-  }
-
-  function buildXRechnungXml(invoice, profile) {
-    var draft = invoice.draft;
-    var totals = invoice.totals;
-    var exemption = taxNote(draft);
-    var supplierTaxScheme = draft.taxMode === "regular" ? "VAT" : "OTH";
-    var buyerReference = draft.buyerReference || draft.leitwegId;
-    if (!buyerReference || !profile.businessEmail || !draft.customerEmail) throw new Error("XRechnung nima vseh obveznih elektronskih naslovov in Buyer reference.");
-    var lines = draft.items.map(function (item, index) {
-      var calc = calculateItem(item, draft.priceMode, draft.taxMode);
-      var unitCode = item.unit === "Std." ? "HUR" : item.unit === "m²" ? "MTK" : item.unit === "Stk." ? "C62" : "C62";
-      return [
-        "  <cac:InvoiceLine>",
-        "    <cbc:ID>" + (index + 1) + "</cbc:ID>",
-        "    <cbc:InvoicedQuantity unitCode=\"" + unitCode + "\">" + (calc.quantityMilli / 1000).toFixed(3) + "</cbc:InvoicedQuantity>",
-        "    <cbc:LineExtensionAmount currencyID=\"EUR\">" + (calc.netCents / 100).toFixed(2) + "</cbc:LineExtensionAmount>",
-        "    <cac:Item><cbc:Name>" + escapeXml(item.description) + "</cbc:Name><cac:ClassifiedTaxCategory><cbc:ID>" + (draft.taxMode === "regular" ? "S" : "E") + "</cbc:ID><cbc:Percent>" + (calc.rateBps / 100).toFixed(2) + "</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:ClassifiedTaxCategory></cac:Item>",
-        "    <cac:Price><cbc:PriceAmount currencyID=\"EUR\">" + (calc.netCents / Math.max(1, calc.quantityMilli) * 10).toFixed(4) + "</cbc:PriceAmount></cac:Price>",
-        "  </cac:InvoiceLine>"
-      ].join("\n");
-    }).join("\n");
-    var taxSubtotals = Object.keys(totals.byRate).map(function (key) {
-      var rate = totals.byRate[key];
-      return "<cac:TaxSubtotal><cbc:TaxableAmount currencyID=\"EUR\">" + (rate.netCents / 100).toFixed(2) + "</cbc:TaxableAmount><cbc:TaxAmount currencyID=\"EUR\">" + (rate.taxCents / 100).toFixed(2) + "</cbc:TaxAmount><cac:TaxCategory><cbc:ID>" + (draft.taxMode === "regular" ? "S" : "E") + "</cbc:ID><cbc:Percent>" + (rate.rateBps / 100).toFixed(2) + "</cbc:Percent>" + (exemption ? "<cbc:TaxExemptionReason>" + escapeXml(exemption) + "</cbc:TaxExemptionReason>" : "") + "<cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory></cac:TaxSubtotal>";
-    }).join("");
-    return [
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
-      "<Invoice xmlns=\"urn:oasis:names:specification:ubl:schema:xsd:Invoice-2\" xmlns:cac=\"urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2\" xmlns:cbc=\"urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2\">",
-      "  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0</cbc:CustomizationID>",
-      "  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>",
-      "  <cbc:ID>" + escapeXml(invoice.number) + "</cbc:ID>",
-      "  <cbc:IssueDate>" + escapeXml(draft.issueDate) + "</cbc:IssueDate>",
-      "  <cbc:DueDate>" + escapeXml(invoice.dueDate) + "</cbc:DueDate>",
-      "  <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>",
-      "  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>",
-      "  <cbc:BuyerReference>" + escapeXml(buyerReference) + "</cbc:BuyerReference>",
-      "  <cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(profile.businessEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(profile.street) + "</cbc:StreetName><cbc:CityName>" + escapeXml(profile.city) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(profile.postalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyTaxScheme><cbc:CompanyID>" + escapeXml(profile.vatId || profile.taxNumber) + "</cbc:CompanyID><cac:TaxScheme><cbc:ID>" + supplierTaxScheme + "</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(profile.legalName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingSupplierParty>",
-      "  <cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(draft.customerEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(draft.customerStreet) + "</cbc:StreetName><cbc:CityName>" + escapeXml(draft.customerCity) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(draft.customerPostalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(draft.customerName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>",
-      "  <cac:Delivery><cbc:ActualDeliveryDate>" + escapeXml(draft.serviceDate) + "</cbc:ActualDeliveryDate></cac:Delivery>",
-      "  <cac:PaymentMeans><cbc:PaymentMeansCode>58</cbc:PaymentMeansCode><cbc:PaymentID>" + escapeXml(invoice.number) + "</cbc:PaymentID><cac:PayeeFinancialAccount><cbc:ID>" + escapeXml(cleanIban(profile.iban)) + "</cbc:ID><cbc:Name>" + escapeXml(profile.accountHolder || profile.legalName) + "</cbc:Name></cac:PayeeFinancialAccount></cac:PaymentMeans>",
-      "  <cac:TaxTotal><cbc:TaxAmount currencyID=\"EUR\">" + (totals.taxCents / 100).toFixed(2) + "</cbc:TaxAmount>" + taxSubtotals + "</cac:TaxTotal>",
-      "  <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID=\"EUR\">" + (totals.netCents / 100).toFixed(2) + "</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID=\"EUR\">" + (totals.netCents / 100).toFixed(2) + "</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID=\"EUR\">" + (totals.grossCents / 100).toFixed(2) + "</cbc:TaxInclusiveAmount><cbc:PayableAmount currencyID=\"EUR\">" + (totals.grossCents / 100).toFixed(2) + "</cbc:PayableAmount></cac:LegalMonetaryTotal>",
-      lines,
-      "</Invoice>"
-    ].join("\n");
   }
 
   var DATEV_BOOKING_HEADERS = (function () {
@@ -940,7 +1357,19 @@
   function datevTimestamp(value) {
     var date = value instanceof Date ? value : new Date(value || Date.now());
     function pad(number, length) { return String(number).padStart(length || 2, "0"); }
-    return date.getFullYear() + pad(date.getMonth() + 1) + pad(date.getDate()) + pad(date.getHours()) + pad(date.getMinutes()) + pad(date.getSeconds()) + pad(date.getMilliseconds(), 3);
+    if (Number.isNaN(date.getTime())) date = new Date();
+    try {
+      var parts = new Intl.DateTimeFormat("en", {
+        timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+      }).formatToParts(date);
+      var values = {};
+      parts.forEach(function (part) { values[part.type] = part.value; });
+      if (values.year && values.month && values.day && values.hour && values.minute && values.second) {
+        return values.year + values.month + values.day + values.hour + values.minute + values.second + pad(date.getUTCMilliseconds(), 3);
+      }
+    } catch (_) {}
+    return date.getUTCFullYear() + pad(date.getUTCMonth() + 1) + pad(date.getUTCDate()) + pad(date.getUTCHours()) + pad(date.getUTCMinutes()) + pad(date.getUTCSeconds()) + pad(date.getUTCMilliseconds(), 3);
   }
 
   function datevPeriod(value) {
@@ -1012,6 +1441,21 @@
     return fields.join(";");
   }
 
+  function berlinDateKey(value) {
+    var text = String(value || "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    var date = new Date(text);
+    if (Number.isNaN(date.getTime())) return "";
+    try {
+      var parts = new Intl.DateTimeFormat("en", {
+        timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(date);
+      var values = {};
+      parts.forEach(function (part) { values[part.type] = part.value; });
+      return values.year && values.month && values.day ? values.year + "-" + values.month + "-" + values.day : "";
+    } catch (_) { return ""; }
+  }
+
   function buildDatevExport(invoices, inputSettings, periodValue, now, options) {
     options = options || {};
     var settings = normalizeDatevSettings(inputSettings);
@@ -1019,7 +1463,7 @@
     var errors = validateDatevSettings(settings, periodValue);
     var bookings = [];
     var warnings = [];
-    function inPeriod(iso) { return period && String(iso || "").slice(0, 7) === period.key; }
+    function inPeriod(iso) { return period && berlinDateKey(iso).slice(0, 7) === period.key; }
     function appendParts(invoice, date, documentNumber, side, text, centsOverride, documentGuid) {
       var draft = invoice.draft || {};
       var totals = calculateTotals(draft);
@@ -1051,10 +1495,20 @@
       var draft = invoice.draft || {};
       if (inPeriod(draft.issueDate)) appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number), null, invoice.documentGuid);
       (invoice.adjustments || []).forEach(function (adjustment) {
-        var date = String(adjustment.createdAt || "").slice(0, 10);
+        var date = berlinDateKey(adjustment.createdAt);
         if (!inPeriod(date)) return;
         var adjustmentInvoice = adjustment.draft ? Object.assign({}, invoice, { draft: adjustment.draft }) : invoice;
         if (adjustment.type === "cancellation") appendParts(adjustmentInvoice, date, adjustment.number, "H", "Storno zu " + invoice.number, null, adjustment.documentGuid);
+        else if (adjustment.type === "credit_note") {
+          var groups = adjustment.snapshot && adjustment.snapshot.credit_tax_groups || [];
+          groups.forEach(function (group) {
+            var rate = integer(group.tax_rate_bps, 0);
+            var gross = integer(group.gross_cents, 0);
+            var revenueAccount = datevRevenueAccount(draft, rate, settings);
+            if (!revenueAccount) errors.push("Dobropis " + adjustment.number + " uporablja davčno stopnjo " + (rate / 100) + " %, ki nima DATEV konta.");
+            else if (gross > 0) bookings.push({ amountCents: gross, side: "H", account: settings.receivableAccount, counterAccount: revenueAccount, date: date, dueDate: invoice.dueDate, documentNumber: adjustment.number, text: "Gutschrift zu " + invoice.number, documentGuid: adjustment.documentGuid });
+          });
+        }
         else if (integer(adjustment.deltaGrossCents, 0) !== 0) appendParts(adjustmentInvoice, date, adjustment.number, adjustment.deltaGrossCents < 0 ? "H" : "S", "Korrektur zu " + invoice.number, adjustment.deltaGrossCents, adjustment.documentGuid);
       });
     });
@@ -1108,31 +1562,77 @@
     return merged;
   }
 
+  async function fetchAllRows(buildQuery, pageSize) {
+    var size = Math.min(Math.max(integer(pageSize, 500), 1), 1000);
+    var rows = [];
+    var offset = 0;
+    while (true) {
+      var result = await buildQuery().range(offset, offset + size - 1);
+      if (result.error) return { data: null, error: result.error };
+      var page = result.data || [];
+      rows = rows.concat(page);
+      if (page.length < size) return { data: rows, error: null };
+      offset += size;
+    }
+  }
+
+  function localStateSnapshot(current, connected, ownerUserId) {
+    var source = current || {};
+    var invoices = Array.isArray(source.invoices) ? source.invoices : [];
+    var localInvoices = invoices.filter(function (invoice) { return !invoice.serverStored; });
+    return Object.assign({}, source, {
+      profile: connected ? defaultProfile() : Object.assign(defaultProfile(), source.profile || {}),
+      invoices: localInvoices,
+      workOrders: [],
+      bankTransactions: [],
+      storageOwnerUserId: connected ? String(ownerUserId || source.storageOwnerUserId || "") : ""
+    });
+  }
+
+  function mergeBankTransactionRows(unmatchedRows, confirmedRows) {
+    var seen = Object.create(null);
+    return (unmatchedRows || []).concat(confirmedRows || []).filter(function (row) {
+      var id = String(row && row.id || "");
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    }).sort(function (left, right) {
+      var dateOrder = String(right.booked_on || "").localeCompare(String(left.booked_on || ""));
+      return dateOrder || String(right.id || "").localeCompare(String(left.id || ""));
+    });
+  }
+
   function archiveCapabilityView(capability) {
     var archive = capability || {};
-    var failed = Number(archive.failureCount || 0) > 0;
+    var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
     var unavailable = Boolean(archive.error);
     var pending = Boolean(archive.loading || (!archive.loaded && !unavailable));
-    var allVerified = Boolean(archive.loaded && !unavailable && !failed && Number(archive.uncheckedCount || 0) === 0);
+    var allVerified = Boolean(archive.loaded && !unavailable && !failed &&
+      Number(archive.uncheckedCount || 0) === 0 && Number(archive.replicaPendingCount || 0) === 0);
     var documentCount = Number(archive.documentCount || 0);
     var verifiedCount = Number(archive.verifiedCount || 0);
+    var replicatedCount = Number(archive.replicatedCount || 0);
     return {
       failed: failed,
       unavailable: unavailable,
       pending: pending,
       allVerified: allVerified,
-      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Celovit" : "Ni še preverjeno",
+      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Dvojno zaščiten" : "Kopiranje čaka",
       integrityText: pending || unavailable ? "—" : documentCount ? verifiedCount + " / " + documentCount + " preverjenih" : "ni izvirnikov",
-      backupText: pending ? "preverjam" : unavailable ? "ni dosegljivo" : archive.independentBackupReady ? "potrjena in obnovljena" : "ni potrjena",
+      backupText: pending ? "preverjam" : unavailable ? "ni dosegljivo" : archive.wormProviderReady
+        ? "AWS Object Lock: " + replicatedCount + " / " + documentCount
+        : "AWS Object Lock še ni povezan",
       copyText: pending
-        ? "Nalagam dejansko stanje nespremenljivih PDF/XML izvirnikov in ločene kopije …"
+        ? "Nalagam dejansko stanje PDF/XML izvirnikov in zaklenjenih ločenih kopij …"
         : unavailable
           ? "Stanja arhiva trenutno ni mogoče prebrati. Produkcija ostaja varno zaklenjena."
           : failed
-            ? "Najmanj en izvirnik ni prestal preverjanja. Produkcija ostaja zaklenjena."
+            ? "Najmanj en izvirnik ali njegova AWS kopija ni prestala preverjanja. Produkcija ostaja zaklenjena."
             : archive.productionReady
-              ? "PDF/XML izvirniki so nespremenljivi, šifrirani pri ponudniku in zaščiteni tudi z obnovljivo ločeno kopijo."
-              : "Izvirniki so nespremenljivi in šifrirani pri ponudniku. Produkcija ostaja zaklenjena, dokler ni potrjena še ločena obnovljiva kopija."
+              ? "PDF/XML izvirniki imajo preverjeno SHA-256 sled in ločeno AWS različico z 8-letnim Compliance zaklepom."
+              : allVerified
+                ? "Vsi trenutni izvirniki imajo preverjeno ločeno AWS Object Lock kopijo. Produkcija čaka poslovni AWS račun in Compliance način."
+                : "Izvirniki ostajajo v Supabase; ločene AWS Object Lock kopije se še pripravljajo. Produkcija ostaja zaklenjena."
     };
   }
 
@@ -1146,21 +1646,30 @@
   }
 
   var Core = {
+    isoToday: isoToday,
+    addDays: addDays,
     parseMoneyToCents: parseMoneyToCents,
     validateRefundAmountInput: validateRefundAmountInput,
     parseQuantityMilli: parseQuantityMilli,
     calculateItem: calculateItem,
     calculateTotals: calculateTotals,
     profileReadiness: profileReadiness,
+    validIban: validIban,
+    profileValidationError: profileValidationError,
+    profileChangeRequiresConfirmation: profileChangeRequiresConfirmation,
     profileForPreview: profileForPreview,
     validateStep: validateStep,
+    liveInvoiceDateError: liveInvoiceDateError,
+    liveConstructionWithholdingError: liveConstructionWithholdingError,
+    propertyRetentionNotice: propertyRetentionNotice,
     buildEpcPayload: buildEpcPayload,
-    buildXRechnungXml: buildXRechnungXml,
     deliveryRecommendation: deliveryRecommendation,
     defaultDatevSettings: defaultDatevSettings,
     normalizeDatevSettings: normalizeDatevSettings,
     validateDatevSettings: validateDatevSettings,
     buildDatevExport: buildDatevExport,
+    berlinDateKey: berlinDateKey,
+    datevTimestamp: datevTimestamp,
     datevDocumentNumber: datevDocumentNumber,
     DATEV_BOOKING_HEADERS: DATEV_BOOKING_HEADERS,
     profileToDatabase: profileToDatabase,
@@ -1172,21 +1681,38 @@
     parseBankCsv: parseBankCsv,
     parseCamt053: parseCamt053,
     parseBankStatement: parseBankStatement,
+    bankImportFileError: bankImportFileError,
+    MAX_BANK_IMPORT_BYTES: MAX_BANK_IMPORT_BYTES,
     matchBankTransaction: matchBankTransaction,
     resolveBankMatches: resolveBankMatches,
     invoiceOutstandingCents: invoiceOutstandingCents,
+    latestManualPaymentCandidate: latestManualPaymentCandidate,
     invoiceDaysOverdue: invoiceDaysOverdue,
     filterInvoices: filterInvoices,
     invoiceOverview: invoiceOverview,
     normalizePosRefreshScopes: normalizePosRefreshScopes,
     mergePosRefreshScopes: mergePosRefreshScopes,
+    fetchAllRows: fetchAllRows,
+    localStateSnapshot: localStateSnapshot,
+    mergeBankTransactionRows: mergeBankTransactionRows,
     archiveCapabilityView: archiveCapabilityView,
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
     paymentSummary: paymentSummary,
+    serverInvoiceToLocal: serverInvoiceToLocal,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
+    workOrderPayloadFromDraft: workOrderPayloadFromDraft,
+    workOrderFromServer: workOrderFromServer,
+    requiresEarlyStartEvidence: requiresEarlyStartEvidence,
+    requiresContractConfirmation: requiresContractConfirmation,
+    consumerServiceRightExpired: consumerServiceRightExpired,
+    consumerWithdrawalAvailable: consumerWithdrawalAvailable,
+    workOrderActions: workOrderActions,
+    withdrawalTaxCorrectionState: withdrawalTaxCorrectionState,
+    workOrderFinalState: workOrderFinalState,
+    prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
     defaultProfile: defaultProfile,
     defaultDraft: defaultDraft
   };
@@ -1201,6 +1727,7 @@
     client: typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient.auth ? supabaseKlient : null,
     userId: null,
     ready: false,
+    serverStateLoaded: false,
     bankReady: false,
     syncing: false,
     pendingRefreshScopes: {},
@@ -1230,23 +1757,25 @@
     { id: uid("fiskaly-item"), description: "Testmaterial", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" }
   ];
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
-  var archiveCapability = { loaded: false, loading: false, error: "", productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, retentionYears: 8, independentBackupReady: false };
+  var archiveCapability = { loaded: false, loading: false, error: "", productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, replicatedCount: 0, replicaPendingCount: 0, replicaFailureCount: 0, retentionYears: 8, independentBackupReady: false, wormProviderReady: false, wormEnvironment: "not_configured", objectLockMode: null };
   var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", latestTransfer: null, lastError: "" };
   var toastTimer = 0;
   var dialogCallback = null;
   var dialogValidator = null;
 
   function loadState() {
-    var initial = { profile: defaultProfile(), invoices: [], bankTransactions: [], draft: null, sequence: 0 };
+    var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0, storageOwnerUserId: "" };
     try {
-      var saved = JSON.parse(global.localStorage.getItem(STORAGE_KEY) || "null");
+      var saved = JSON.parse(global.sessionStorage.getItem(STORAGE_KEY) || global.localStorage.getItem(STORAGE_KEY) || "null");
       if (!saved || typeof saved !== "object") return initial;
       return {
         profile: Object.assign(defaultProfile(), saved.profile || {}),
         invoices: Array.isArray(saved.invoices) ? saved.invoices : [],
+        workOrders: Array.isArray(saved.workOrders) ? saved.workOrders : [],
         bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions : [],
         draft: saved.draft && typeof saved.draft === "object" ? saved.draft : null,
-        sequence: integer(saved.sequence, 0)
+        sequence: integer(saved.sequence, 0),
+        storageOwnerUserId: String(saved.storageOwnerUserId || "")
       };
     } catch (_error) {
       return initial;
@@ -1255,8 +1784,16 @@
 
   function persist() {
     try {
-      var localSnapshot = Object.assign({}, state, { bankTransactions: [] });
-      global.localStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+      var ownerUserId = backend.userId || state.storageOwnerUserId || "";
+      var connected = Boolean(backend.serverStateLoaded || ownerUserId);
+      var localSnapshot = localStateSnapshot(state, connected, ownerUserId);
+      if (connected) {
+        global.localStorage.removeItem(STORAGE_KEY);
+        global.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+      } else {
+        global.sessionStorage.removeItem(STORAGE_KEY);
+        global.localStorage.setItem(STORAGE_KEY, JSON.stringify(localSnapshot));
+      }
     } catch (_error) { /* lokalni fallback ni obvezen */ }
   }
 
@@ -1279,7 +1816,13 @@
     if (!backend.client) return null;
     var result = await backend.client.auth.getUser();
     if (result.error) throw result.error;
-    backend.userId = result.data && result.data.user && result.data.user.id || null;
+    var nextUserId = result.data && result.data.user && result.data.user.id || null;
+    if (nextUserId && state.storageOwnerUserId && state.storageOwnerUserId !== nextUserId) {
+      state = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0, storageOwnerUserId: "" };
+      try { global.sessionStorage.removeItem(STORAGE_KEY); } catch (_error) {}
+    }
+    backend.userId = nextUserId;
+    if (nextUserId) state.storageOwnerUserId = nextUserId;
     return backend.userId;
   }
 
@@ -1290,6 +1833,8 @@
       .select("user_id").single();
     if (result.error) throw result.error;
     backend.ready = true;
+    backend.serverStateLoaded = true;
+    persist();
     backendMessage("Sinhronizirano", "ready");
   }
 
@@ -1306,12 +1851,13 @@
     var result = await request;
     if (result.error) throw result.error;
     state.draft.serverId = result.data.id;
+    backend.serverStateLoaded = true;
     persist();
     backendMessage("Osnutek je varno shranjen", "ready");
     return result.data.id;
   }
 
-  function adjustmentFromServer(row, documentsByAdjustment) {
+  function adjustmentFromServer(row, documentsByAdjustment, einvoiceDocumentsByAdjustment) {
     return {
       id: row.id,
       number: row.adjustment_number,
@@ -1324,7 +1870,9 @@
       createdAt: row.issued_at,
       snapshot: row.snapshot || {},
       documentReady: Boolean(documentsByAdjustment && documentsByAdjustment[row.id]),
-      document: documentsByAdjustment && documentsByAdjustment[row.id] || null
+      document: documentsByAdjustment && documentsByAdjustment[row.id] || null,
+      einvoiceDocumentReady: Boolean(einvoiceDocumentsByAdjustment && einvoiceDocumentsByAdjustment[row.id]),
+      einvoiceDocument: einvoiceDocumentsByAdjustment && einvoiceDocumentsByAdjustment[row.id] || null
     };
   }
 
@@ -1402,7 +1950,7 @@
     }, 0);
     return {
       paidCents: paidCents,
-      status: currentStatus === "cancelled" ? "cancelled" : paidCents >= integer(grossCents, 0) ? "paid" : paidCents > 0 ? "partial" : "open"
+      status: currentStatus === "cancelled" ? "cancelled" : currentStatus === "credited" ? "credited" : paidCents >= integer(grossCents, 0) ? "paid" : paidCents > 0 ? "partial" : "open"
     };
   }
 
@@ -1415,7 +1963,11 @@
     var draft = draftFromDatabasePayload(effectivePayload, true);
     var payments = paymentsByInvoice && paymentsByInvoice[row.id] || [];
     var cancelled = adjustments.some(function (entry) { return entry.type === "cancellation"; });
-    var paymentState = paymentSummary(payments, row.gross_cents, cancelled ? "cancelled" : "open");
+    var creditDelta = adjustments.filter(function (entry) { return entry.type === "credit_note"; })
+      .reduce(function (sum, entry) { return sum + integer(entry.deltaGrossCents, 0); }, 0);
+    var adjustedGrossCents = Math.max(0, integer(row.gross_cents, 0) + creditDelta);
+    var hasCreditNote = creditDelta < 0;
+    var paymentState = paymentSummary(payments, adjustedGrossCents, cancelled ? "cancelled" : hasCreditNote && adjustedGrossCents === 0 ? "credited" : "open");
     return {
       id: row.id,
       number: row.invoice_number,
@@ -1429,6 +1981,8 @@
       isTest: Boolean(row.is_test),
       status: paymentState.status,
       paidCents: paymentState.paidCents,
+      adjustedGrossCents: adjustedGrossCents,
+      hasCreditNote: hasCreditNote,
       payments: payments,
       corrected: corrections.length > 0,
       adjustments: adjustments,
@@ -1454,7 +2008,8 @@
     state.invoices.forEach(function (invoice) {
       if (!invoice.serverStored) return;
       invoice.payments = paymentsByInvoice[invoice.id] || [];
-      var paymentState = paymentSummary(invoice.payments, invoice.totals && invoice.totals.grossCents, invoice.status);
+      var lockedStatus = invoice.status === "cancelled" ? "cancelled" : invoice.hasCreditNote && !invoice.adjustedGrossCents ? "credited" : "open";
+      var paymentState = paymentSummary(invoice.payments, invoice.adjustedGrossCents == null ? invoice.totals && invoice.totals.grossCents : invoice.adjustedGrossCents, lockedStatus);
       invoice.paidCents = paymentState.paidCents;
       invoice.status = paymentState.status;
     });
@@ -1476,6 +2031,20 @@
     });
   }
 
+  async function loadBankTransactionRows(userId) {
+    var columns = "id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at";
+    var responses = await Promise.all([
+      fetchAllRows(function () {
+        return backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "unmatched").order("booked_on", { ascending: false }).order("id", { ascending: false });
+      }),
+      fetchAllRows(function () {
+        return backend.client.from("pos_bank_transactions").select(columns).eq("user_id", userId).eq("status", "confirmed").order("booked_on", { ascending: false }).order("id", { ascending: false });
+      })
+    ]);
+    var error = responses.map(function (entry) { return entry.error; }).filter(Boolean)[0] || null;
+    return { data: error ? null : mergeBankTransactionRows(responses[0].data, responses[1].data), error: error };
+  }
+
   async function loadFullServerState(scopes) {
     if (!backend.client || backend.syncing) return;
     backend.syncing = true;
@@ -1487,20 +2056,32 @@
       var responses = await Promise.all([
         scopes.profile ? backend.client.from("pos_business_profiles").select("*").eq("user_id", userId).maybeSingle() : skipped(),
         scopes.draft ? backend.client.from("pos_invoice_drafts").select("id,payload,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1) : skipped(),
-        backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).limit(100),
-        backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
-        backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }),
-        backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId),
-        backend.client.from("pos_invoice_replacements").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }),
-        backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId),
-        scopes.bank ? backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200) : skipped()
+        fetchAllRows(function () { return backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).order("id", { ascending: false }); }),
+        fetchAllRows(function () { return backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId).order("adjustment_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_replacements").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("replacement_invoice_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_einvoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
+        scopes.bank ? loadBankTransactionRows(userId) : skipped(),
+        fetchAllRows(function () { return backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).order("id", { ascending: false }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,accepted_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_cancellations").select("work_order_id,status_before,reason,offer_document_id,offer_sha256,cancelled_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,value_compensation_informed,right_expiry_acknowledged,request_on_durable_medium,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_withdrawals").select("work_order_id,status_before,declared_on,evidence,value_compensation_review_required,received_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_documents").select("id,work_order_id,offer_sha256,accepted_on,sha256,byte_size,generator_version,created_at").eq("user_id", userId).order("created_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_settlements").select("*").eq("user_id", userId).order("assessed_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_refund_records").select("*").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_adjustment_einvoice_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("adjustment_id", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 11).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 23).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
+      backend.serverStateLoaded = true;
       if (responses[0].data) state.profile = profileFromDatabase(responses[0].data);
       var paymentsByInvoice = {};
       (responses[3].data || []).forEach(function (row) {
@@ -1514,10 +2095,12 @@
       (responses[10].data || []).forEach(function (entry) { einvoiceDocumentsByInvoice[entry.invoice_id] = entry; });
       var documentsByAdjustment = {};
       (responses[6].data || []).forEach(function (entry) { documentsByAdjustment[entry.adjustment_id] = entry; });
+      var einvoiceDocumentsByAdjustment = {};
+      (responses[22].data || []).forEach(function (entry) { einvoiceDocumentsByAdjustment[entry.adjustment_id] = entry; });
       var adjustmentsByInvoice = {};
       (responses[5].data || []).forEach(function (row) {
         if (!adjustmentsByInvoice[row.original_invoice_id]) adjustmentsByInvoice[row.original_invoice_id] = [];
-        adjustmentsByInvoice[row.original_invoice_id].push(adjustmentFromServer(row, documentsByAdjustment));
+        adjustmentsByInvoice[row.original_invoice_id].push(adjustmentFromServer(row, documentsByAdjustment, einvoiceDocumentsByAdjustment));
       });
       var eventsByDelivery = {};
       (responses[9].data || []).forEach(function (row) {
@@ -1530,6 +2113,30 @@
         deliveriesByInvoice[row.invoice_id].push(deliveryFromServer(row, eventsByDelivery));
       });
       var serverInvoices = (responses[2].data || []).map(function (row) { return serverInvoiceToLocal(row, paymentsByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice); });
+      var linksByWorkOrder = {};
+      (responses[13].data || []).forEach(function (link) {
+        if (!linksByWorkOrder[link.work_order_id]) linksByWorkOrder[link.work_order_id] = [];
+        linksByWorkOrder[link.work_order_id].push(link);
+      });
+      var acceptanceByWorkOrder = {};
+      (responses[14].data || []).forEach(function (acceptance) { acceptanceByWorkOrder[acceptance.work_order_id] = acceptance; });
+      var cancellationByWorkOrder = {};
+      (responses[15].data || []).forEach(function (cancellation) { cancellationByWorkOrder[cancellation.work_order_id] = cancellation; });
+      var earlyStartByWorkOrder = {};
+      (responses[16].data || []).forEach(function (entry) { earlyStartByWorkOrder[entry.work_order_id] = entry; });
+      var withdrawalByWorkOrder = {};
+      (responses[17].data || []).forEach(function (entry) { withdrawalByWorkOrder[entry.work_order_id] = entry; });
+      var contractDocumentByWorkOrder = {};
+      (responses[18].data || []).forEach(function (entry) { contractDocumentByWorkOrder[entry.work_order_id] = entry; });
+      var contractDeliveryByWorkOrder = {};
+      (responses[19].data || []).forEach(function (entry) { contractDeliveryByWorkOrder[entry.work_order_id] = entry; });
+      var withdrawalSettlementByWorkOrder = {};
+      (responses[20].data || []).forEach(function (entry) { withdrawalSettlementByWorkOrder[entry.work_order_id] = entry; });
+      var withdrawalRefundsByWorkOrder = {};
+      (responses[21].data || []).forEach(function (entry) {
+        if (!withdrawalRefundsByWorkOrder[entry.work_order_id]) withdrawalRefundsByWorkOrder[entry.work_order_id] = [];
+        withdrawalRefundsByWorkOrder[entry.work_order_id].push(entry);
+      });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -1539,6 +2146,29 @@
       serverInvoices.forEach(function (invoice) {
         invoicesById[invoice.id] = invoice;
         (invoice.adjustments || []).forEach(function (adjustment) { adjustmentsById[adjustment.id] = adjustment; });
+      });
+      Object.keys(linksByWorkOrder).forEach(function (workOrderId) {
+        linksByWorkOrder[workOrderId].forEach(function (link) {
+          var linkedInvoice = invoicesById[link.invoice_id] || null;
+          link.invoice = linkedInvoice;
+          link.invoice_number = linkedInvoice && linkedInvoice.number || "";
+          link.issue_date = linkedInvoice && linkedInvoice.draft && linkedInvoice.draft.issueDate || "";
+          link.paid_cents = linkedInvoice ? linkedInvoice.paidCents : 0;
+        });
+      });
+      state.workOrders = (responses[12].data || []).map(function (row) {
+        return workOrderFromServer(
+          row,
+          linksByWorkOrder[row.id] || [],
+          acceptanceByWorkOrder[row.id] || null,
+          cancellationByWorkOrder[row.id] || null,
+          earlyStartByWorkOrder[row.id] || null,
+          withdrawalByWorkOrder[row.id] || null,
+          contractDocumentByWorkOrder[row.id] || null,
+          contractDeliveryByWorkOrder[row.id] || null,
+          withdrawalSettlementByWorkOrder[row.id] || null,
+          withdrawalRefundsByWorkOrder[row.id] || []
+        );
       });
       (responses[7].data || []).forEach(function (relation) {
         var original = invoicesById[relation.original_invoice_id];
@@ -1605,7 +2235,7 @@
         add("deliveries", backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
         add("deliveryEvents", backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
       }
-      if (scopes.bank) add("bank", backend.client.from("pos_bank_transactions").select("id,booked_on,amount_cents,currency,external_reference,counterparty_name,counterparty_iban,remittance_info,source_account_id,source_account_name,source_account_iban,status,confirmed_invoice_id,confirmed_payment_id,confirmed_at").eq("user_id", userId).order("booked_on", { ascending: false }).limit(200));
+      if (scopes.bank) add("bank", loadBankTransactionRows(userId));
       var values = await Promise.all(requests);
       var responses = {};
       keys.forEach(function (key, index) { responses[key] = values[index]; });
@@ -1667,7 +2297,10 @@
     var backdrop = query("[data-dialog-backdrop]");
     var field = query("[data-dialog-field]");
     var input = query("[data-dialog-input]");
+    var select = query("[data-dialog-select]");
     var inputOptions = options && options.input;
+    var usesSelect = Boolean(inputOptions && Array.isArray(inputOptions.options));
+    var control = usesSelect ? select : input;
     query("[data-dialog-title]").textContent = title;
     query("[data-dialog-copy]").textContent = copy;
     query("[data-dialog-cancel]").hidden = Boolean(options && options.cancel === false);
@@ -1675,24 +2308,38 @@
     dialogCallback = options && options.onConfirm || null;
     dialogValidator = options && options.validate || null;
     field.hidden = !inputOptions;
-    input.value = inputOptions && inputOptions.value || "";
+    input.hidden = usesSelect;
+    select.hidden = !usesSelect;
+    select.innerHTML = usesSelect ? inputOptions.options.map(function (option) {
+      return "<option value=\"" + escapeHtml(option.value) + "\">" + escapeHtml(option.label) + "</option>";
+    }).join("") : "";
+    input.type = inputOptions && inputOptions.type || "text";
+    input.inputMode = inputOptions && inputOptions.inputMode || (input.type === "date" ? "" : "text");
+    input.min = inputOptions && inputOptions.min || "";
+    input.max = inputOptions && inputOptions.max || "";
+    control.value = inputOptions && inputOptions.value || "";
+    input.placeholder = inputOptions && inputOptions.placeholder || "";
+    input.maxLength = inputOptions && inputOptions.maxLength || 524288;
     query("[data-dialog-field-label]").textContent = inputOptions && inputOptions.label || "Znesek";
     query("[data-dialog-field-hint]").textContent = inputOptions && inputOptions.hint || "";
     backdrop.hidden = false;
     document.documentElement.classList.add("uj-modal-odprt");
     document.body.classList.add("uj-modal-odprt");
-    (inputOptions ? input : query("[data-dialog-confirm]")).focus();
-    if (inputOptions) input.select();
+    (inputOptions ? control : query("[data-dialog-confirm]")).focus();
+    if (inputOptions && !usesSelect && input.type !== "date") input.select();
   }
 
   function closeDialog(confirmed) {
-    var inputValue = query("[data-dialog-input]").value;
+    var input = query("[data-dialog-input]");
+    var select = query("[data-dialog-select]");
+    var control = select.hidden ? input : select;
+    var inputValue = control.value;
     if (confirmed && dialogValidator) {
       var validationMessage = dialogValidator(inputValue);
       if (validationMessage) {
         showToast(validationMessage);
-        query("[data-dialog-input]").focus();
-        query("[data-dialog-input]").select();
+        control.focus();
+        if (control === input && input.type !== "date") input.select();
         return;
       }
     }
@@ -1736,6 +2383,7 @@
     if (editorActions) editorActions.hidden = name !== "invoice";
     if (name === "home") renderHome();
     if (name === "invoices") renderInvoiceOverview();
+    if (name === "work-orders") renderWorkOrders();
     if (name === "settings") {
       fillForm(query("#pos-profile-form"), state.profile);
       loadFiskalyCapability(false);
@@ -1760,6 +2408,554 @@
     query("[data-mode-copy]").textContent = live ? "Varna izdaja je omogočena" : readiness.live && backend.ready ? "Čaka potrjena arhivska kopija" : readiness.live ? "Čaka varna povezava z bazo" : "Pravni računi so zaklenjeni";
     renderArchiveCapability();
     renderInvoiceList();
+  }
+
+  function workOrderStatusLabel(status) {
+    return {
+      draft: "Osnutek ponudbe", offered: "Ponudba zaklenjena", accepted: "Naročilo sprejeto",
+      in_progress: "Delo poteka", completed: "Delo zaključeno", invoiced: "Zaključni račun izdan", cancelled: "Preklicano",
+      withdrawn: "Potrošnikov odstop"
+    }[status] || status;
+  }
+
+  function workOrderActionLabel(action) {
+    return {
+      edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", contract_pdf: "Potrdilo pogodbe PDF", contract_delivery: "Zabeleži izročitev", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
+      progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči", withdraw: "Zabeleži odstop",
+      withdrawal_settlement: "Denarni pregled odstopa", withdrawal_refund: "Zabeleži vračilo",
+      withdrawal_tax_correction: "Uredi davčni Storno",
+      withdrawal_tax_credit: "Izdaj davčni dobropis"
+    }[action] || action;
+  }
+
+  function renderWorkOrders() {
+    var root = query("[data-work-order-list]");
+    if (!root) return;
+    var rows = state.workOrders || [];
+    query("[data-work-order-count]").textContent = rows.length ? rows.length + (rows.length === 1 ? " projekt" : " projektov") : "Ni projektov";
+    if (!rows.length) {
+      root.innerHTML = "<div class=\"pos-empty\"><span><svg><use href=\"#i-building\"/></svg></span><strong>Pripravite prvo ponudbo</strong><p>Po sprejemu se ponudba spremeni v naročilo, nato pa vodi do Abschlags- ali Schlussrechnung.</p></div>";
+      return;
+    }
+    root.innerHTML = rows.map(function (order) {
+      var actions = workOrderActions(order);
+      var finalState = workOrderFinalState(order, !profileReadiness(state.profile).live);
+      var progressTotal = finalState.progressPercent;
+      var actionHtml = actions.map(function (action) {
+        var blockedFinal = action === "final" && finalState.blocked;
+        return "<button type=\"button\" data-work-order-action=\"" + action + "\" data-work-order-id=\"" + escapeHtml(order.id) + "\"" + (blockedFinal ? " title=\"Končni račun je na voljo, ko so vsi delni računi v celoti plačani.\"" : "") + ">" + escapeHtml(workOrderActionLabel(action)) + "</button>";
+      }).join("");
+      var progressCopy = progressTotal ? progressTotal + " %" + (finalState.blocked ? " · plačilo odprto" : " · plačano") : "";
+      var acceptanceCopy = order.acceptanceEvidence ? (order.acceptedOn ? formatDate(order.acceptedOn) : formatGermanTimestampDate(order.acceptedAt)) + " · " + order.acceptanceEvidence : "";
+      var cancellationCopy = order.cancellationReason ? formatGermanTimestampDate(order.cancelledAt) + " · " + order.cancellationReason : "";
+      var earlyStartCopy = order.earlyStartEvidence ? formatGermanTimestampDate(order.earlyStartRecordedAt) + " · " + order.earlyStartEvidence : "";
+      var withdrawalCopy = order.withdrawalEvidence ? formatDate(order.withdrawalDeclaredOn) + " · " + order.withdrawalEvidence : "";
+      var contractDeliveryCopy = order.contractConfirmationDeliveryEvidence ? formatDate(order.contractConfirmationDeliveredOn) + " · " + (order.contractConfirmationDeliveryChannel === "paper" ? "papir" : "elektronsko") + " · " + order.contractConfirmationDeliveryEvidence : "";
+      var contractWarning = order.status === "accepted" && requiresContractConfirmation(order) && !order.contractConfirmationDeliveryEvidence ? "Pred začetkom dela ustvarite pogodbeno potrdilo PDF in dokazljivo zabeležite njegovo izročitev potrošniku na trajnem nosilcu." : "";
+      var withdrawalRefundRecorded = (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0);
+      var withdrawalRefundRemaining = Math.max(0, order.withdrawalRefundDueCents - withdrawalRefundRecorded);
+      var taxCorrection = withdrawalTaxCorrectionState(order);
+      var settlementCopy = order.withdrawalSettlementId ? "Vračilo " + formatMoney(order.withdrawalRefundDueCents) + " · Wertersatz " + formatMoney(order.withdrawalValueCompensationCents) + " · rok " + formatDate(order.withdrawalRefundDueOn) : "";
+      var refundCopy = withdrawalRefundRecorded ? formatMoney(withdrawalRefundRecorded) + " od " + formatMoney(order.withdrawalRefundDueCents) : "";
+      var withdrawalWarning = "";
+      if (order.status === "withdrawn" && !order.withdrawalSettlementId) withdrawalWarning = "Nadaljnje delo in novi računi so ustavljeni. Zdaj nespremenljivo ocenite plačila, morebitni Wertersatz in vračilo; nobeno plačilo se ne bo sprožilo samodejno.";
+      else if (order.status === "withdrawn" && withdrawalRefundRemaining > 0) withdrawalWarning = "Dokaz vračila še manjka za " + formatMoney(withdrawalRefundRemaining) + ". Zakonski rok: " + formatDate(order.withdrawalRefundDueOn) + ". Vračilo ni bilo samodejno izvedeno.";
+      else if (order.status === "withdrawn" && order.withdrawalConsumerBalanceReviewCents > 0) withdrawalWarning = "Wertersatz presega zadržano plačilo za " + formatMoney(order.withdrawalConsumerBalanceReviewCents) + ". POS ni ustvaril terjatve; potreben je ločen pravni in davčni pregled.";
+      else if (order.status === "withdrawn" && taxCorrection.kind === "full_cancellation") withdrawalWarning = "Vračilo je denarno urejeno, vendar aktivni račun še vedno izkazuje previsoko davčno osnovo. Po § 17 UStG izdajte nespremenljiv Storno; original ostane v arhivu.";
+      else if (order.status === "withdrawn" && taxCorrection.kind === "partial_correction") withdrawalWarning = "Potrebno je delno zmanjšanje davčne osnove za " + formatMoney(taxCorrection.reductionCents) + ". Izdajte nespremenljiv dobropis; priznani Wertersatz ostane obdavčljiv.";
+      else if (order.status === "withdrawn" && order.withdrawalSettlementId) withdrawalWarning = "Denarne posledice odstopa so ocenjene, zahtevano vračilo je dokazano oziroma ni potrebno in odprta davčna korekcija ni zaznana. POS ni samodejno premaknil denarja.";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (contractDeliveryCopy ? "<div><small>Potrdilo pogodbe izročeno</small><b data-fit-text title=\"" + escapeHtml(contractDeliveryCopy) + "\">" + escapeHtml(contractDeliveryCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (settlementCopy ? "<div><small>Denarni pregled</small><b data-fit-text title=\"" + escapeHtml(settlementCopy) + "\">" + escapeHtml(settlementCopy) + "</b></div>" : "") + (refundCopy ? "<div><small>Dokazano vračilo</small><b data-fit-text>" + escapeHtml(refundCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (contractWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(contractWarning) + "</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+    }).join("");
+    queryAll("[data-work-order-action]", root).forEach(function (button) {
+      button.addEventListener("click", function () {
+        var order = rows.filter(function (entry) { return entry.id === button.getAttribute("data-work-order-id"); })[0];
+        var action = button.getAttribute("data-work-order-action");
+        if (action === "edit") openWorkOrderForEdit(order);
+        else if (action === "pdf") downloadOfferPdf(order).then(function () { showToast("Nespremenljivi PDF ponudbe je prenesen."); }).catch(function (error) { showToast(error && error.message || "PDF ponudbe ni na voljo."); });
+        else if (action === "contract_pdf") downloadContractConfirmationPdf(order).then(function () { showToast("Nespremenljivo pogodbeno potrdilo je preneseno."); }).catch(function (error) { showToast(error && error.message || "Pogodbeno potrdilo ni na voljo."); });
+        else if (action === "contract_delivery") recordContractConfirmationDelivery(order);
+        else if (action === "withdrawal_settlement") assessConsumerWithdrawalSettlement(order);
+        else if (action === "withdrawal_refund") recordConsumerWithdrawalRefund(order);
+        else if (action === "withdrawal_tax_correction") {
+          var correction = withdrawalTaxCorrectionState(order);
+          if (correction.invoice) openAdjustmentSheet(correction.invoice, "cancellation");
+        }
+        else if (action === "withdrawal_tax_credit") createWithdrawalTaxCredit(order);
+        else if (action === "progress" || action === "final") startWorkOrderInvoice(order, action);
+        else transitionWorkOrder(order, action);
+      });
+    });
+    fitAllText();
+  }
+
+  function recordWorkOrderAcceptance(order) {
+    var offeredOn = berlinDateKey(order.offeredAt) || isoToday();
+    var today = berlinDateKey(new Date()) || isoToday();
+    openDialog("Kdaj je naročnik sprejel ponudbo?", "Vnesite dejanski nemški koledarski datum sprejema. Od tega datuma teče potrošnikov 14-dnevni rok; čas vnosa v POS se hrani ločeno.", {
+      confirmText: "Naprej",
+      input: {
+        type: "date",
+        label: "Datum sprejema",
+        hint: "Datum ne sme biti pred zaklepom ponudbe, v prihodnosti ali po izteku veljavnosti.",
+        value: today,
+        min: offeredOn,
+        max: today
+      },
+      validate: function (value) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "Vpišite veljaven datum sprejema.";
+        if (value < offeredOn || value > today || value > order.validUntil) return "Datum sprejema ni v dovoljenem obdobju ponudbe.";
+        return "";
+      },
+      onConfirm: function (acceptedOn) {
+        openDialog("Dokaz sprejema", "Potrdite le, če je naročnik ponudbo dejansko sprejel. Dokaz bo vezan na nespremenljivi PDF ponudbe.", {
+          confirmText: "Potrdi sprejem",
+          input: {
+            label: "Dokaz sprejema",
+            hint: "Vpišite način, osebo in referenco sprejema.",
+            placeholder: "E-pošta · Max Mustermann · sporočilo 22. 8. 2026",
+            maxLength: 500
+          },
+          validate: function (value) {
+            var length = String(value || "").trim().length;
+            return length < 5 || length > 500 ? "Vpišite dokaz sprejema (od 5 do 500 znakov)." : "";
+          },
+          onConfirm: async function (evidence) {
+            try {
+              var result = await backend.client.rpc("pos_accept_work_order", {
+                p_work_order_id: order.id,
+                p_evidence: String(evidence || "").trim(),
+                p_accepted_on: acceptedOn
+              }).single();
+              if (result.error) throw result.error;
+              var contractPdfError = "";
+              if (requiresContractConfirmation(order)) {
+                try { await ensureContractConfirmationDocument(order.id); }
+                catch (documentError) { contractPdfError = documentError && documentError.message || "Pogodbeno potrdilo še ni pripravljeno."; }
+              }
+              await loadServerState("invoices");
+              showView("work-orders");
+              showToast(contractPdfError ? "Sprejem je zapisan; pogodbeno potrdilo znova pripravite z njegovim gumbom PDF." : "Sprejem, datum in pogodbeno potrdilo so varno zapisani.");
+            } catch (error) { showToast(error && error.message || "Sprejema ni bilo mogoče zapisati."); }
+          }
+        });
+      }
+    });
+  }
+
+  function recordConsumerWithdrawal(order) {
+    var acceptedOn = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var today = berlinDateKey(new Date()) || isoToday();
+    var deadline = acceptedOn && addDays(acceptedOn, 14) || today;
+    var latest = deadline < today ? deadline : today;
+    openDialog("Datum potrošnikove izjave", "Vnesite datum, ko je potrošnik izjavo poslal. Za pravočasnost zadošča pravočasna odpošiljka, zato je ta datum lahko pred datumom prejema.", {
+      confirmText: "Naprej",
+      input: {
+        type: "date",
+        label: "Datum izjave o odstopu",
+        hint: "Dovoljen je datum od sprejema pogodbe do konca 14. dne, vendar ne v prihodnosti.",
+        value: latest,
+        min: acceptedOn,
+        max: latest
+      },
+      validate: function (value) {
+        if (!acceptedOn || !/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "Vpišite veljaven datum izjave o odstopu.";
+        if (value < acceptedOn || value > latest) return "Datum izjave ni znotraj dovoljenega 14-dnevnega obdobja.";
+        return "";
+      },
+      onConfirm: function (declaredOn) {
+        openDialog("Zabeleži potrošnikov odstop?", "S tem takoj ustavite nadaljnje delo in nove račune. Obstoječi računi, plačila in morebitni Wertersatz se ne spremenijo samodejno in zahtevajo ločen pregled.", {
+          confirmText: "Zabeleži odstop",
+          input: {
+            label: "Dokaz prejete izjave",
+            hint: "Vpišite kanal, osebo in referenco jasne izjave o odstopu.",
+            placeholder: "E-pošta · Max Mustermann · sporočilo 25. 8. 2026",
+            maxLength: 500
+          },
+          validate: function (value) {
+            var length = String(value || "").trim().length;
+            return length < 5 || length > 500 ? "Vpišite dokaz prejete izjave (od 5 do 500 znakov)." : "";
+          },
+          onConfirm: async function (evidence) {
+            try {
+              var result = await backend.client.rpc("pos_record_consumer_withdrawal", {
+                p_work_order_id: order.id,
+                p_declared_on: declaredOn,
+                p_evidence: String(evidence || "").trim()
+              }).single();
+              if (result.error) throw result.error;
+              await loadServerState("invoices");
+              showView("work-orders");
+              showToast("Odstop je nespremenljivo zapisan; delo in novi računi so ustavljeni.");
+            } catch (error) { showToast(error && error.message || "Odstopa ni bilo mogoče zapisati."); }
+          }
+        });
+      }
+    });
+  }
+
+  function retainedWorkOrderPaymentCents(order) {
+    return (order && order.invoiceLinks || []).reduce(function (total, link) {
+      var invoice = link && link.invoice;
+      if (!invoice) return total;
+      return total + (invoice.payments || []).reduce(function (sum, payment) {
+        if (["succeeded", "partially_refunded", "refunded"].indexOf(payment.status) === -1) return sum;
+        return sum + Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
+      }, 0);
+    }, 0);
+  }
+
+  function assessConsumerWithdrawalSettlement(order) {
+    if (!order || order.status !== "withdrawn" || order.withdrawalSettlementId) return;
+    var retained = retainedWorkOrderPaymentCents(order);
+    var submit = async function (valueCompensationCents, refundMethod, alternativeEvidence, reason) {
+      try {
+        var result = await backend.client.rpc("pos_assess_consumer_withdrawal_settlement", {
+          p_work_order_id: order.id,
+          p_value_compensation_cents: valueCompensationCents,
+          p_refund_method: refundMethod,
+          p_alternative_agreement_evidence: alternativeEvidence || null,
+          p_value_compensation_reason: reason || null
+        }).single();
+        if (result.error) throw result.error;
+        await loadServerState("invoices");
+        showView("work-orders");
+        showToast("Denarne posledice odstopa so nespremenljivo ocenjene; denar ni bil premaknjen.");
+      } catch (error) { showToast(error && error.message || "Denarnega pregleda ni bilo mogoče zapisati."); }
+    };
+    var chooseMethod = function (valueCompensationCents, reason) {
+      var estimatedRefund = Math.max(0, retained - valueCompensationCents);
+      if (!estimatedRefund) { submit(valueCompensationCents, "not_required", "", reason); return; }
+      openDialog("Način vračila", "Ocenjeno preostalo vračilo je " + formatMoney(estimatedRefund) + ". Po § 357 BGB uporabite isti način plačila, razen če je potrošnik izrecno in brez stroškov pristal na drugega.", {
+        confirmText: "Naprej",
+        input: {
+          label: "Način vračila",
+          value: "original",
+          options: [
+            { value: "original", label: "Prvotni način plačila" },
+            { value: "agreed_alternative", label: "Dogovorjena alternativa" }
+          ]
+        },
+        onConfirm: function (method) {
+          if (method === "original") { submit(valueCompensationCents, method, "", reason); return; }
+          openDialog("Dokaz dogovorjene alternative", "Vpišite dokaz, da je potrošnik izrecno pristal na drug način vračila in da zaradi tega nima stroškov.", {
+            confirmText: "Zaključi pregled",
+            input: { label: "Dokaz dogovora", placeholder: "E-pošta · Max Mustermann · dogovorjen IBAN · brez stroškov", maxLength: 500 },
+            validate: function (value) { var length = String(value || "").trim().length; return length < 5 || length > 500 ? "Vpišite dokaz dogovora (od 5 do 500 znakov)." : ""; },
+            onConfirm: function (evidence) { submit(valueCompensationCents, method, String(evidence || "").trim(), reason); }
+          });
+        }
+      });
+    };
+    var explainValueCompensation = function (valueCompensationCents) {
+      if (!valueCompensationCents) { chooseMethod(0, ""); return; }
+      openDialog("Utemeljitev Wertersatz", "Utemeljite sorazmerni znesek glede na dejansko opravljeno storitev in dogovorjeno skupno ceno. POS terjatve ne bo samodejno ustvaril.", {
+        confirmText: "Naprej",
+        input: { label: "Dokazljiva utemeljitev", placeholder: "Opravljenih 3 od 10 dogovorjenih ur · delovni zapisnik …", maxLength: 500 },
+        validate: function (value) { var length = String(value || "").trim().length; return length < 5 || length > 500 ? "Vpišite utemeljitev Wertersatz (od 5 do 500 znakov)." : ""; },
+        onConfirm: function (reason) { chooseMethod(valueCompensationCents, String(reason || "").trim()); }
+      });
+    };
+    if (!order.valueCompensationReviewRequired) { explainValueCompensation(0); return; }
+    openDialog("Ocena Wertersatz", "Vpišite 0,00 €, če Wertersatz ni utemeljen. Najvišja dovoljena osnova je pogodbena bruto vrednost " + formatMoney(order.grossCents) + ".", {
+      confirmText: "Naprej",
+      input: { label: "Wertersatz", hint: "Znesek ne sme presegati pogodbene bruto vrednosti.", value: "0,00", inputMode: "decimal", maxLength: 20 },
+      validate: function (value) {
+        var cents = parseMoneyToCents(value);
+        if (cents < 0 || cents > order.grossCents) return "Wertersatz mora biti med 0,00 € in " + formatMoney(order.grossCents) + ".";
+        return "";
+      },
+      onConfirm: function (value) { explainValueCompensation(parseMoneyToCents(value)); }
+    });
+  }
+
+  function originalRefundProvider(order) {
+    var providers = [];
+    (order && order.invoiceLinks || []).forEach(function (link) {
+      var invoice = link && link.invoice;
+      (invoice && invoice.payments || []).forEach(function (payment) {
+        if (["succeeded", "partially_refunded", "refunded"].indexOf(payment.status) === -1) return;
+        var provider = payment.provider === "stripe" ? "stripe"
+          : payment.method === "bank_transfer" || payment.provider === "finapi" ? "bank_transfer" : "other";
+        if (providers.indexOf(provider) === -1) providers.push(provider);
+      });
+    });
+    return providers[0] || "bank_transfer";
+  }
+
+  function recordConsumerWithdrawalRefund(order) {
+    if (!order || !order.withdrawalSettlementId) return;
+    var recorded = (order.withdrawalRefundRecords || []).reduce(function (sum, entry) { return sum + integer(entry.amount_cents, 0); }, 0);
+    var remaining = Math.max(0, order.withdrawalRefundDueCents - recorded);
+    if (!remaining) return;
+    openDialog("Znesek izvedenega vračila", "Zabeležite samo že dejansko izvedeno vračilo. Ta postopek ne sproži Stripe, banke ali nakazila. Preostalo za dokazovanje: " + formatMoney(remaining) + ".", {
+      confirmText: "Naprej",
+      input: { label: "Izvedeni znesek", value: (remaining / 100).toFixed(2).replace(".", ","), inputMode: "decimal", maxLength: 20 },
+      validate: function (value) {
+        var cents = parseMoneyToCents(value);
+        if (cents <= 0 || cents > remaining) return "Znesek mora biti med 0,01 € in " + formatMoney(remaining) + ".";
+        return "";
+      },
+      onConfirm: function (amountText) {
+        var amountCents = parseMoneyToCents(amountText);
+        var today = berlinDateKey(new Date()) || isoToday();
+        openDialog("Datum izvedenega vračila", "Vpišite datum, ko je bilo vračilo dejansko izvedeno.", {
+          confirmText: "Naprej",
+          input: { type: "date", label: "Datum vračila", value: today, max: today },
+          validate: function (value) { return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) && value <= today ? "" : "Vpišite veljaven datum vračila."; },
+          onConfirm: function (executedOn) {
+            openDialog("Kje je bilo vračilo izvedeno?", "Izberite dejanski kanal. Zapis je samo dokaz in ne bo sprožil zunanje transakcije.", {
+              confirmText: "Naprej",
+              input: { label: "Kanal vračila", value: order.withdrawalRefundMethod === "original" ? originalRefundProvider(order) : "bank_transfer", options: [
+                { value: "bank_transfer", label: "Bančno nakazilo" },
+                { value: "stripe", label: "Stripe" },
+                { value: "other", label: "Drugo" }
+              ] },
+              onConfirm: function (provider) {
+                openDialog("Referenca vračila", "Vpišite bančno referenco, Stripe refund ID ali drugo enolično oznako izvedene transakcije.", {
+                  confirmText: "Naprej",
+                  input: { label: "Referenca", placeholder: "Npr. RF-2026-0042 ali re_…", maxLength: 200 },
+                  validate: function (value) { var length = String(value || "").trim().length; return length < 3 || length > 200 ? "Vpišite veljavno referenco (od 3 do 200 znakov)." : ""; },
+                  onConfirm: function (reference) {
+                    openDialog("Dokaz izvedenega vračila", "Vpišite preverljivo evidenco, na primer bančni izpisek ali Stripe dogodek. Zapis bo nespremenljiv.", {
+                      confirmText: "Zabeleži dokaz",
+                      input: { label: "Dokaz", placeholder: "Bančni izpisek · vrstica 42 · 5. 9. 2026", maxLength: 500 },
+                      validate: function (value) { var length = String(value || "").trim().length; return length < 5 || length > 500 ? "Vpišite dokaz (od 5 do 500 znakov)." : ""; },
+                      onConfirm: async function (evidence) {
+                        try {
+                          var result = await backend.client.rpc("pos_record_consumer_withdrawal_refund", {
+                            p_work_order_id: order.id,
+                            p_amount_cents: amountCents,
+                            p_provider: provider,
+                            p_provider_reference: String(reference || "").trim(),
+                            p_evidence: String(evidence || "").trim(),
+                            p_executed_on: executedOn
+                          }).single();
+                          if (result.error) throw result.error;
+                          await loadServerState("invoices"); showView("work-orders");
+                          showToast("Dokaz izvedenega vračila je nespremenljivo zapisan; nobena transakcija ni bila sprožena.");
+                        } catch (error) { showToast(error && error.message || "Dokaza vračila ni bilo mogoče zapisati."); }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  async function recordContractConfirmationDelivery(order) {
+    try {
+      await ensureContractConfirmationDocument(order.id);
+    } catch (error) {
+      showToast(error && error.message || "Najprej je treba pripraviti pogodbeno potrdilo PDF.");
+      return;
+    }
+    var acceptedOn = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var today = berlinDateKey(new Date()) || isoToday();
+    var context = (order.lockedPayload || order.payload || {}).consumer_contract_context;
+    openDialog("Kako je bilo potrdilo izročeno?", "Izberite dejanski trajni nosilec, na katerem je potrošnik prejel nespremenljivo pogodbeno potrdilo.", {
+      confirmText: "Naprej",
+      input: {
+        label: "Način izročitve",
+        hint: "Papir ali elektronski trajni nosilec, na primer priponka PDF v e-pošti.",
+        value: "paper",
+        options: [
+          { value: "paper", label: "Papir" },
+          { value: "electronic", label: "Elektronsko (PDF)" }
+        ]
+      },
+      onConfirm: function (channel) {
+        openDialog("Kdaj je bilo potrdilo izročeno?", "Vpišite dejanski nemški koledarski datum izročitve. Ta datum mora biti po sklenitvi pogodbe in pred začetkom dela.", {
+          confirmText: "Naprej",
+          input: {
+            type: "date",
+            label: "Datum izročitve",
+            hint: "Datum ne sme biti pred datumom sprejema ali v prihodnosti.",
+            value: today,
+            min: acceptedOn,
+            max: today
+          },
+          validate: function (value) {
+            if (!acceptedOn || !/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "Vpišite veljaven datum izročitve.";
+            return value < acceptedOn || value > today ? "Datum izročitve ni v dovoljenem obdobju." : "";
+          },
+          onConfirm: function (deliveredOn) {
+            openDialog("Dokaz izročitve", "Vpišite preverljivo referenco, ki dokazuje, da je potrošnik potrdilo dejansko prejel.", {
+              confirmText: "Naprej",
+              input: {
+                label: "Dokaz izročitve",
+                hint: "Na primer podpisana kopija ali ID poslane e-pošte s PDF-priponko.",
+                placeholder: channel === "paper" ? "Podpisana papirna kopija · Max Mustermann · 22. 8. 2026" : "E-pošta s PDF-priponko · Message-ID …",
+                maxLength: 500
+              },
+              validate: function (value) {
+                var length = String(value || "").trim().length;
+                return length < 5 || length > 500 ? "Vpišite dokaz izročitve (od 5 do 500 znakov)." : "";
+              },
+              onConfirm: function (evidence) {
+                var save = function (consentEvidence) {
+                  backend.client.rpc("pos_record_contract_confirmation_delivery", {
+                    p_work_order_id: order.id,
+                    p_channel: channel,
+                    p_evidence: String(evidence || "").trim(),
+                    p_delivered_on: deliveredOn,
+                    p_electronic_consent_evidence: consentEvidence || null
+                  }).single().then(async function (result) {
+                    if (result.error) throw result.error;
+                    await loadServerState("invoices");
+                    showView("work-orders");
+                    showToast("Izročitev pogodbenega potrdila je nespremenljivo zapisana.");
+                  }).catch(function (error) { showToast(error && error.message || "Izročitve ni bilo mogoče zapisati."); });
+                };
+                if (channel !== "electronic" || ["off_premises", "urgent_repair"].indexOf(context) === -1) { save(""); return; }
+                openDialog("Soglasje za elektronski nosilec", "Pri pogodbi zunaj poslovnih prostorov je namesto papirja potreben dokaz, da je potrošnik soglašal z drugim trajnim nosilcem.", {
+                  confirmText: "Zabeleži izročitev",
+                  input: {
+                    label: "Dokaz soglasja",
+                    hint: "Vpišite podpisano izjavo, e-pošto ali drugo preverljivo referenco soglasja.",
+                    placeholder: "Podpisano soglasje · Max Mustermann · 22. 8. 2026",
+                    maxLength: 500
+                  },
+                  validate: function (value) {
+                    var length = String(value || "").trim().length;
+                    return length < 5 || length > 500 ? "Vpišite dokaz soglasja (od 5 do 500 znakov)." : "";
+                  },
+                  onConfirm: function (consentEvidence) { save(String(consentEvidence || "").trim()); }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  function transitionWorkOrder(order, action) {
+    if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
+    if (action === "accept") { recordWorkOrderAcceptance(order); return; }
+    if (action === "withdraw") { recordConsumerWithdrawal(order); return; }
+    if (action === "start" && requiresContractConfirmation(order) && !order.contractConfirmationDeliveryEvidence) {
+      showToast("Pred začetkom dela zabeležite izročitev pogodbenega potrdila potrošniku.");
+      return;
+    }
+    if (action === "offer" && !profileReadiness(state.profile).live) { showToast("Pravno ponudbo lahko pošljete šele po potrditvi popolnih podatkov podjetja in registra."); return; }
+    var earlyEvidenceRequired = action === "start" && requiresEarlyStartEvidence(order);
+    var copy = action === "offer" ? "Ponudba se bo zaklenila in dobila nespremenljiv PDF. Po prenosu jo pošljite naročniku."
+      : earlyEvidenceRequired ? "Pred iztekom 14 dni oziroma pri nujnem popravilu je potreben dokaz izrecne zahteve potrošnika za začetek dela."
+        : action === "cancel" ? "Preklic ostane zapisan v sled dogodkov."
+          : "Prehod se bo zapisal v sled projekta.";
+    openDialog(workOrderActionLabel(action) + "?", copy, {
+      confirmText: workOrderActionLabel(action),
+      input: action === "cancel" ? {
+        label: "Razlog preklica",
+        hint: "Razlog ostane nespremenljivo zapisan v sledi ponudbe.",
+        placeholder: "Npr. naročnik ni sprejel ponudbe v roku",
+        maxLength: 500
+      } : earlyEvidenceRequired ? {
+        label: "Dokaz zahteve za predčasni začetek",
+        hint: "Vpišite podpisano izjavo, e-pošto ali drugo referenco potrošnikove izrecne zahteve.",
+        placeholder: "Podpisana izjava iz PDF · Max Mustermann · 22. 8. 2026",
+        maxLength: 500
+      } : null,
+      validate: action === "cancel" || earlyEvidenceRequired ? function (value) {
+        var length = String(value || "").trim().length;
+        var label = action === "cancel" ? "Vpišite razlog preklica" : "Vpišite dokaz zahteve za predčasni začetek";
+        return length < 5 || length > 500 ? label + " (od 5 do 500 znakov)." : "";
+      } : null,
+      onConfirm: function (acceptanceEvidence) {
+        var execute = async function (acknowledgements) {
+          var facts = acknowledgements || {};
+          try {
+            var request = action === "cancel"
+                ? backend.client.rpc("pos_cancel_work_order", { p_work_order_id: order.id, p_reason: String(acceptanceEvidence || "").trim() })
+              : action === "start"
+                ? backend.client.rpc("pos_start_work_order", {
+                    p_work_order_id: order.id,
+                    p_evidence: String(acceptanceEvidence || "").trim(),
+                    p_value_compensation_informed: Boolean(facts.valueCompensationInformed),
+                    p_right_expiry_acknowledged: Boolean(facts.rightExpiryAcknowledged),
+                    p_request_on_durable_medium: Boolean(facts.requestOnDurableMedium)
+                  })
+                : backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action });
+            var result = await request.single();
+            if (result.error) throw result.error;
+            var offerPdfError = "";
+            if (action === "offer") {
+              try { await ensureOfferDocument(result.data && result.data.id || order.id); }
+              catch (documentError) { offerPdfError = documentError && documentError.message || "PDF ponudbe še ni pripravljen."; }
+            }
+            await loadServerState("invoices");
+            showView("work-orders");
+            showToast(offerPdfError ? "Ponudba je zaklenjena; PDF lahko znova pripravite z gumbom Ponudba PDF." : action === "offer" ? "Ponudba je zaklenjena in njen PDF original je pripravljen." : "Status projekta je varno posodobljen.");
+          } catch (error) { showToast(error && error.message || "Statusa ni bilo mogoče posodobiti."); }
+        };
+        var context = (order.lockedPayload || order.payload || {}).consumer_contract_context;
+        if (action === "start" && earlyEvidenceRequired && ["distance", "off_premises"].indexOf(context) !== -1) {
+          openDialog("Potrdite vsebino izjave", "Nadaljujte samo, če navedeni dokaz potrjuje, da je potrošnik izrecno zahteval predčasni začetek, prejel obvestilo o Wertersatz in potrdil, da pravica do odstopa po popolni izvedbi preneha." + (context === "off_premises" ? " Izjava mora biti na papirju ali drugem trajnem nosilcu." : ""), {
+            confirmText: "Izjava je potrjena",
+            onConfirm: function () {
+              execute({
+                valueCompensationInformed: true,
+                rightExpiryAcknowledged: true,
+                requestOnDurableMedium: context === "off_premises"
+              });
+            }
+          });
+        } else execute({});
+      }
+    });
+  }
+
+  function openWorkOrderInvoiceDraft(order, kind, percent) {
+    var draft = prepareWorkOrderInvoiceDraft(order, state.profile, kind, percent);
+    if (!draft) {
+      var finalState = kind === "final" ? workOrderFinalState(order, !profileReadiness(state.profile).live) : null;
+      showToast(finalState && finalState.blocked ? "Končni račun je varno omogočen šele, ko so vsi delni računi v celoti plačani." : "Naročilo še ni v pravilnem stanju za ta račun.");
+      return;
+    }
+    state.draft = draft;
+    currentStep = 1;
+    persist();
+    showView("invoice");
+    showToast(kind === "progress" ? "Abschlagsrechnung je pripravljena za preverjanje." : "Schlussrechnung je pripravljena za preverjanje.");
+  }
+
+  function openWorkOrderForEdit(order) {
+    if (!order || order.status !== "draft") { showToast("Samo neposlana ponudba je še spremenljiva."); return; }
+    var draft = draftFromDatabasePayload(order.payload, false);
+    draft.id = uid("draft");
+    draft.serverId = null;
+    draft.createdAt = new Date().toISOString();
+    draft.workflowMode = "offer";
+    draft.offerValidDays = String(Math.max(1, Math.round((Date.parse(order.validUntil + "T12:00:00Z") - Date.parse(isoToday() + "T12:00:00Z")) / 86400000)));
+    draft.workflowContext = { workOrderId: order.id, offerNumber: order.offerNumber };
+    draft.finalConfirmed = false;
+    state.draft = draft;
+    currentStep = 1;
+    persist();
+    showView("invoice");
+  }
+
+  function startWorkOrderInvoice(order, action) {
+    if (!order) return;
+    var replace = function (kind, percent) {
+      if (!state.draft) { openWorkOrderInvoiceDraft(order, kind, percent); return; }
+      openDialog("Zamenjati trenutni osnutek?", "Trenutni osnutek bo zamenjan z računom za " + (order.orderNumber || order.offerNumber) + ".", {
+        confirmText: "Pripravi račun", onConfirm: function () { openWorkOrderInvoiceDraft(order, kind, percent); }
+      });
+    };
+    if (action === "final") { replace("final", 0); return; }
+    var used = workOrderFinalState(order).progressPercent;
+    var maximum = Math.max(1, 99 - used);
+    openDialog("Pripraviti Abschlagsrechnung?", "Vnesite odstotek dejansko dokumentiranega Leistungsstand. Doslej izdano: " + used + " %.", {
+      confirmText: "Pripravi Abschlag",
+      input: { label: "Leistungsstand v %", value: String(Math.min(30, maximum)), hint: "Dovoljeno še največ " + maximum + " %." },
+      validate: function (value) { var percent = integer(value, 0); return percent < 1 || percent > maximum ? "Vnesite odstotek med 1 in " + maximum + "." : ""; },
+      onConfirm: function (value) { replace("progress", integer(value, 0)); }
+    });
   }
 
   function productionReady() {
@@ -1795,7 +2991,11 @@
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.ok) throw new Error(data.napaka || "Arhiva ni bilo mogoče preveriti.");
       archiveCapability = Object.assign({}, archiveCapability, data.archive || {}, { loaded: true, loading: false, error: "" });
-      if (showFeedback) showToast(archiveCapability.failureCount ? "Arhiv potrebuje pozornost." : "Vsi arhivirani izvirniki so preverjeni.");
+      if (showFeedback) {
+        if (archiveCapability.failureCount) showToast("Arhiv potrebuje pozornost.");
+        else if (archiveCapability.uncheckedCount) showToast("Paket je preverjen; preostanek arhiva bo preverjen v naslednjih paketih.");
+        else showToast("Vsi arhivirani izvirniki so preverjeni.");
+      }
     } catch (error) {
       archiveCapability.loading = false;
       archiveCapability.loaded = true;
@@ -1811,6 +3011,7 @@
     var overdueDays = invoiceDaysOverdue(invoice, today);
     if (overdueDays) return "Zapadlo · " + overdueDays + (overdueDays === 1 ? " dan" : " dni");
     if (invoice.status === "cancelled") return "Stornirano";
+    if (invoice.status === "credited") return "V celoti dobropisano";
     if (invoice.status === "paid") return "Plačano";
     if (invoice.status === "partial") return "Delno plačano";
     if (invoice.corrected) return "Popravljeno";
@@ -1820,8 +3021,8 @@
 
   function invoiceRowHtml(invoice, today) {
     var overdue = invoiceDaysOverdue(invoice, today) > 0;
-    var rowClass = overdue ? " is-overdue" : invoice.status === "paid" ? " is-paid" : invoice.status === "cancelled" ? " is-cancelled" : "";
-    var disabled = invoice.status === "cancelled" ? " disabled aria-label=\"Storniran račun\"" : "";
+    var rowClass = overdue ? " is-overdue" : invoice.status === "paid" ? " is-paid" : invoice.status === "cancelled" || invoice.status === "credited" ? " is-cancelled" : "";
+    var disabled = invoice.status === "cancelled" || invoice.hasCreditNote ? " disabled aria-label=\"Finančno popravljen račun\"" : "";
     return "<article class=\"pos-invoice-row" + rowClass + "\" data-invoice-id=\"" + escapeHtml(invoice.id) + "\" data-open-invoice=\"" + escapeHtml(invoice.id) + "\" tabindex=\"0\"><span class=\"pos-invoice-row__icon\"><svg><use href=\"#i-receipt\"/></svg></span><div class=\"pos-invoice-row__main\"><strong data-fit-text>" + escapeHtml(invoice.draft.customerName || "Brez prejemnika") + "</strong><small data-fit-text>" + escapeHtml(invoice.number) + " · " + escapeHtml(formatDate(invoice.draft.issueDate)) + "</small></div><button class=\"pos-invoice-row__amount pos-text-button\" type=\"button\" data-record-payment=\"" + escapeHtml(invoice.id) + "\"" + disabled + "><strong data-fit-text>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</strong><small>" + escapeHtml(invoiceStatusLabel(invoice, today)) + "</small></button></article>";
   }
 
@@ -1944,9 +3145,14 @@
 
     function adjustmentRowHtml(entry) {
       var cancellation = entry.type === "cancellation";
-      var title = cancellation ? "Stornorechnung" : "Rechnungsberichtigung";
+      var creditNote = entry.type === "credit_note";
+      var financial = cancellation || creditNote;
+      var title = cancellation ? "Stornorechnung" : creditNote ? "Gutschrift" : "Rechnungsberichtigung";
       var stateCopy = entry.documentReady ? "PDF" : "Pripravi PDF";
-      return "<article class=\"pos-adjustment-row " + (cancellation ? "is-cancellation" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(String(entry.createdAt || "").slice(0, 10)) + " · " + entry.reason) + "</small></div><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button></article>";
+      var structured = !creditNote && (invoice.draft.customerType === "business" || invoice.draft.customerType === "public");
+      var einvoiceStatus = entry.einvoiceDocument && (entry.einvoiceDocument.validation_status || entry.einvoiceDocument.validationStatus) || "pending";
+      var xmlCopy = entry.einvoiceDocumentReady && einvoiceStatus === "validated" ? "XML" : "Pripravi XML";
+      return "<article class=\"pos-adjustment-row " + (financial ? "is-cancellation" : "") + (creditNote ? " is-credit-note" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : creditNote ? "i-receipt" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + entry.reason) + "</small></div><div class=\"pos-adjustment-row__actions\"><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button>" + (structured ? "<button type=\"button\" data-download-adjustment-xrechnung=\"" + escapeHtml(entry.id) + "\">" + xmlCopy + "</button>" : "") + "</div></article>";
     }
     queryAll("[data-download-adjustment]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -1954,8 +3160,19 @@
         if (!entry) return;
         button.disabled = true;
         button.textContent = "Preverjam …";
-        try { await downloadAdjustmentPdf(entry); button.textContent = "PDF"; showToast("Arhivirani popravek je prenesen."); }
+        try { await downloadAdjustmentPdf(entry); button.textContent = "PDF"; showToast("Arhivirani računovodski dokument je prenesen."); }
         catch (error) { button.textContent = "Poskusi znova"; showToast(error.message || "Popravka ni bilo mogoče prenesti."); }
+        finally { button.disabled = false; }
+      });
+    });
+    queryAll("[data-download-adjustment-xrechnung]", list).forEach(function (button) {
+      button.addEventListener("click", async function () {
+        var entry = downloadable.filter(function (item) { return item.id === button.getAttribute("data-download-adjustment-xrechnung"); })[0];
+        if (!entry) return;
+        button.disabled = true;
+        button.textContent = "KoSIT …";
+        try { await downloadAdjustmentEinvoice(entry); button.textContent = "XML"; showToast("Arhivirani strukturirani popravek je prenesen."); }
+        catch (error) { button.textContent = "Poskusi znova"; showToast(error.message || "Strukturiranega popravka ni bilo mogoče prenesti."); }
         finally { button.disabled = false; }
       });
     });
@@ -2035,7 +3252,7 @@
       var retry = entry.status === "failed" && entry.attemptCount < entry.maxAttempts
         ? "<button type=\"button\" class=\"pos-delivery-row__retry\" data-retry-delivery=\"" + escapeHtml(entry.id) + "\" data-email=\"" + (entry.provider === "resend" ? "true" : "false") + "\">Ponovi</button>"
         : "";
-      return "<article class=\"pos-delivery-row\"><span class=\"pos-delivery-row__icon\"><svg><use href=\"#i-export\"/></svg></span><div class=\"pos-delivery-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(deliveryFormatLabel(entry.documentFormat) + " · " + deliveryChannelLabel(entry.channel)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(String(entry.createdAt || "").slice(0, 10)) + " · " + target + validation) + "</small></div><div class=\"pos-delivery-row__actions\"><span class=\"pos-delivery-row__status is-" + escapeHtml(entry.status) + "\">" + escapeHtml(deliveryStatusLabel(entry.status, entry)) + "</span>" + retry + "</div>" + deliveryTimeline(entry) + "</article>";
+      return "<article class=\"pos-delivery-row\"><span class=\"pos-delivery-row__icon\"><svg><use href=\"#i-export\"/></svg></span><div class=\"pos-delivery-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(deliveryFormatLabel(entry.documentFormat) + " · " + deliveryChannelLabel(entry.channel)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + target + validation) + "</small></div><div class=\"pos-delivery-row__actions\"><span class=\"pos-delivery-row__status is-" + escapeHtml(entry.status) + "\">" + escapeHtml(deliveryStatusLabel(entry.status, entry)) + "</span>" + retry + "</div>" + deliveryTimeline(entry) + "</article>";
     }).join("");
     queryAll("[data-retry-delivery]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -2103,7 +3320,7 @@
     });
     panel.hidden = !invoice.isTest;
     if (!invoice.isTest) return;
-    var outstanding = Math.max(0, integer(invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+    var outstanding = invoiceOutstandingCents(invoice);
     var title = "Stripe testno plačilo";
     var copy = "Točen odprti znesek " + formatMoney(outstanding) + " se preveri na strežniku.";
     var label = "Plačaj s kartico – TEST";
@@ -2116,7 +3333,7 @@
     query("[data-stripe-payment-title]").textContent = title;
     query("[data-stripe-payment-copy]").textContent = copy;
     buttonCopy.textContent = label;
-    button.disabled = !invoice.serverStored || !backend.ready || invoice.status === "cancelled" || invoice.status === "paid";
+    button.disabled = !invoice.serverStored || !backend.ready || invoice.status === "cancelled" || invoice.status === "credited" || invoice.status === "paid" || invoice.hasCreditNote;
     refundButton.hidden = !refundablePayment;
     refundButton.disabled = !invoice.serverStored || !backend.ready;
     if (refundablePayment) {
@@ -2138,7 +3355,7 @@
       var bankSource = transaction && (transaction.counterpartyName || transaction.sourceAccountName || transaction.sourceAccountIban);
       var reference = bankSource || payment.providerReference || (payment.provider === "stripe" ? "Stripe Sandbox" : "Potrjeno v POS");
       var dateSource = payment.paidAt || payment.createdAt;
-      var date = dateSource ? formatDate(String(dateSource).slice(0, 10)) : "Datum ni naveden";
+      var date = dateSource ? formatDate(berlinDateKey(dateSource)) : "Datum ni naveden";
       var isBank = Boolean(payment.sourceBankTransactionId || payment.method === "bank_transfer");
       var status = payment.status || "succeeded";
       var effective = Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
@@ -2515,7 +3732,7 @@
   }
 
   function openDeliverySheet(invoice) {
-    if (!invoice || invoice.status === "cancelled") { showToast("Storniranega računa ni dovoljeno poslati."); return; }
+    if (!invoice || invoice.status === "cancelled" || invoice.hasCreditNote) { showToast("Izvirnega računa po Stornu ali dobropisu ni dovoljeno ponovno poslati."); return; }
     if (!invoice.serverStored || !backend.ready) { showToast("Pošiljanje potrebuje varno shranjen račun."); return; }
     deliveryInvoiceId = invoice.id;
     deliveryRequestKey = randomUuid();
@@ -2628,17 +3845,17 @@
     query("[data-detail-issued]").textContent = formatDate(invoice.draft.issueDate);
     query("[data-detail-due]").textContent = formatDate(invoice.dueDate);
     query("[data-detail-method]").textContent = paymentMethodLabel(invoice.draft.paymentMethod);
-    query("[data-detail-payment-status]").textContent = invoice.status === "cancelled" ? "Storniert" : invoice.status === "paid" ? "Bezahlt" : invoice.status === "partial" ? "Teilbezahlt" : "Offen";
+    query("[data-detail-payment-status]").textContent = invoice.status === "cancelled" ? "Storniert" : invoice.status === "credited" ? "Gutgeschrieben" : invoice.status === "paid" ? "Bezahlt" : invoice.status === "partial" ? "Teilbezahlt" : "Offen";
     var status = query("[data-detail-status]");
     status.classList.toggle("is-paid", invoice.status === "paid");
     status.classList.toggle("is-test", invoice.isTest && invoice.status !== "paid");
-    status.classList.toggle("is-cancelled", invoice.status === "cancelled");
+    status.classList.toggle("is-cancelled", invoice.status === "cancelled" || invoice.status === "credited");
     status.classList.toggle("is-corrected", invoice.corrected && invoice.status === "open");
-    status.textContent = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
-    query("[data-detail-payment]").disabled = invoice.status === "cancelled";
-    query("[data-detail-copy]").disabled = invoice.status === "cancelled";
+    status.textContent = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "credited" ? "Dobropisano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
+    query("[data-detail-payment]").disabled = invoice.status === "cancelled" || invoice.hasCreditNote;
+    query("[data-detail-copy]").disabled = invoice.status === "cancelled" || invoice.hasCreditNote;
     query("[data-detail-correction]").disabled = invoice.status === "cancelled" || !invoice.serverStored;
-    query("[data-detail-send]").disabled = invoice.status === "cancelled" || !invoice.serverStored;
+    query("[data-detail-send]").disabled = invoice.status === "cancelled" || invoice.hasCreditNote || !invoice.serverStored;
     if (!invoice.serverStored) setDocumentState(invoice, "error", "Lokalni test nima strežniškega PDF originala.");
     else if (invoice.documentReady) setDocumentState(invoice, "ready", "Arhiviran in preverjen original");
     else {
@@ -2693,8 +3910,8 @@
       showToast("Stripe TEST potrebuje varno shranjen testni račun.");
       return;
     }
-    if (invoice.status === "cancelled" || invoice.status === "paid") {
-      showToast(invoice.status === "paid" ? "Račun je že plačan." : "Storniranega računa ni mogoče plačati.");
+    if (invoice.status === "cancelled" || invoice.status === "credited" || invoice.status === "paid" || invoice.hasCreditNote) {
+      showToast(invoice.hasCreditNote ? "Po dobropisu novih plačil na izvirni račun ni dovoljeno sprejeti." : invoice.status === "paid" ? "Račun je že plačan." : "Storniranega računa ni mogoče plačati.");
       return;
     }
     var button = query("[data-stripe-payment]");
@@ -2880,13 +4097,13 @@
     query("[data-adjustment-submit]").textContent = cancellation ? "Ustvari Storno" : "Ustvari popravek";
   }
 
-  function openAdjustmentSheet(invoice) {
+  function openAdjustmentSheet(invoice, initialType) {
     if (!invoice || !invoice.serverStored) { showToast("Popravek je na voljo po varni strežniški izdaji."); return; }
     if (invoice.status === "cancelled") { showToast("Storniranega računa ni mogoče ponovno popraviti."); return; }
     adjustmentInvoiceId = invoice.id;
     var form = query("#pos-adjustment-form");
     form.reset();
-    query("[name=adjustmentType][value=correction]", form).checked = true;
+    query("[name=adjustmentType][value=" + (initialType === "cancellation" ? "cancellation" : "correction") + "]", form).checked = true;
     var values = {
       customer_name: invoice.draft.customerName,
       customer_street: invoice.draft.customerStreet,
@@ -2963,10 +4180,27 @@
   }
 
   function startInvoice() {
-    if (!state.draft) state.draft = defaultDraft(state.profile);
+    var open = function () { state.draft = defaultDraft(state.profile); currentStep = 1; persist(); showView("invoice"); };
+    if (!state.draft) { open(); return; }
+    if (state.draft.workflowMode === "offer") {
+      openDialog("Zamenjati osnutek ponudbe?", "Trenutni osnutek ponudbe bo zamenjan z novim računom.", { confirmText: "Nov račun", onConfirm: open });
+      return;
+    }
     currentStep = 1;
-    persist();
     showView("invoice");
+  }
+
+  function startOffer() {
+    var create = function () {
+      state.draft = defaultDraft(state.profile);
+      state.draft.workflowMode = "offer";
+      state.draft.offerValidDays = "14";
+      currentStep = 1;
+      persist();
+      showView("invoice");
+    };
+    if (!state.draft) { create(); return; }
+    openDialog("Začeti novo ponudbo?", "Trenutni osnutek bo zamenjan z novo ponudbo.", { confirmText: "Nova ponudba", onConfirm: create });
   }
 
   function openReplacementDraft(invoice, cancellation) {
@@ -3031,6 +4265,27 @@
 
   function renderEditor() {
     if (!state.draft) state.draft = defaultDraft(state.profile);
+    var offerMode = state.draft.workflowMode === "offer";
+    var workflow = state.draft.workflowContext || {};
+    query("[data-close-editor]").setAttribute("aria-label", offerMode ? "Zapri ponudbo" : "Zapri račun");
+    query("[data-editor-steps-label]").setAttribute("aria-label", offerMode ? "Koraki ponudbe" : "Koraki računa");
+    query("[data-customer-step-label]").textContent = offerMode ? "Naročnik" : "Stranka";
+    query("[data-customer-step-title]").textContent = offerMode ? "Komu pošiljate ponudbo?" : "Komu izdajate račun?";
+    query("[data-issue-date-label]").textContent = offerMode ? "Datum ponudbe *" : "Datum izdaje *";
+    query("[data-service-date-label]").textContent = offerMode ? "Predvideni datum izvedbe *" : "Datum storitve *";
+    query("[data-draft-label]").textContent = offerMode ? (workflow.offerNumber ? "Urejanje " + workflow.offerNumber : "Nova ponudba") : workflow.invoiceKind === "progress" ? "Abschlagsrechnung · " + (workflow.orderNumber || "Auftrag") : workflow.invoiceKind === "final" ? "Schlussrechnung · " + (workflow.orderNumber || "Auftrag") : "Nov osnutek";
+    query("#invoice-title").textContent = offerMode ? "Pripravi ponudbo" : workflow.invoiceKind === "progress" ? "Pripravi Abschlagsrechnung" : workflow.invoiceKind === "final" ? "Pripravi Schlussrechnung" : "Izstavi račun";
+    query("[data-offer-validity]").hidden = !offerMode;
+    query("[data-final-confirm-title]").textContent = offerMode ? "Preveril sem ponudbo in vse dogovorjene postavke." : "Preveril sem podatke in davčno obravnavo.";
+    query("[data-final-confirm-copy]").textContent = offerMode ? "Po označitvi kot poslano se ponudba zaklene." : "Pri Testbetrieb bo dokument jasno označen kot testni in ni pravni račun.";
+    query("[data-service-step-title]").textContent = offerMode ? "Kaj ponujate?" : "Kaj je bilo opravljeno?";
+    query("[data-service-step-copy]").textContent = offerMode ? "Obseg, postavke in predvideni termin naj bodo razumljivi naročniku." : "Datumi, opis in postavke morajo jasno opisati izvedeno delo.";
+    query("[data-items-title]").textContent = offerMode ? "Postavke ponudbe" : "Postavke računa";
+    query("[data-items-copy]").textContent = offerMode ? "Cene in količine postanejo osnova naročila." : "Cene lahko vnašate neto ali bruto.";
+    query("[data-tax-step-title]").textContent = offerMode ? "Kako bo ponudba davčno obračunana?" : "Kako se račun davčno obravnava?";
+    query("[data-review-step-copy]").textContent = offerMode ? "Osnutek lahko še spreminjate; po označitvi kot poslano se zaklene." : "Po pravni izdaji vsebine ne bo mogoče prepisati; popravek bo nov dokument.";
+    queryAll("[data-invoice-only-output]").forEach(function (element) { element.hidden = offerMode; });
+    query("[data-issue-invoice]").textContent = offerMode ? (workflow.workOrderId ? "Posodobi ponudbo" : "Ustvari ponudbo") : "Ustvari testni račun";
     fillForm(query("#pos-invoice-form"), state.draft);
     var replacement = normalizeReplacementContext(state.draft);
     var banner = query("[data-replacement-banner]");
@@ -3091,10 +4346,15 @@
   function syncCustomerFields() {
     syncDraftFromForm();
     var business = state.draft.customerType === "business" || state.draft.customerType === "public";
+    var consumerOffer = state.draft.workflowMode === "offer" && state.draft.customerType === "private";
     query("[data-business-fields]").hidden = !business;
     query("[data-public-fields]").hidden = state.draft.customerType !== "public";
     query("[data-structured-buyer-reference]").hidden = !business;
+    query("[data-consumer-contract]").hidden = !consumerOffer;
+    query("[data-consumer-withdrawal-note]").hidden = !consumerOffer || ["unknown", "distance", "off_premises"].indexOf(state.draft.consumerContractContext) === -1;
+    query("[data-urgent-repair]").hidden = !consumerOffer || state.draft.consumerContractContext !== "urgent_repair";
     query("[data-customer-name-label]").textContent = state.draft.customerType === "private" ? "Ime in priimek *" : "Naziv organizacije *";
+    fitAllText();
   }
 
   function syncTaxFields() {
@@ -3155,7 +4415,7 @@
 
   function nextInvoiceNumber(isTest) {
     var next = state.sequence + 1;
-    var year = new Date().getFullYear();
+    var year = isoToday().slice(0, 4);
     var prefix = isTest ? "TEST-" + year + "-" : (state.profile.invoicePrefix || "RE-" + year + "-");
     return prefix + String(next).padStart(4, "0");
   }
@@ -3179,9 +4439,15 @@
     syncDraftFromForm();
     var invoice = currentInvoiceSnapshot();
     var draft = invoice.draft;
+    var offerMode = draft.workflowMode === "offer";
+    if (offerMode) {
+      invoice.number = draft.workflowContext && draft.workflowContext.offerNumber || "ANG-" + isoToday().slice(0, 4) + "-····";
+      invoice.dueDate = addDays(draft.issueDate, draft.offerValidDays);
+    }
     var profile = state.profile;
     var displayProfile = profileForPreview(profile, invoice.isTest);
     var errors = validateStep(draft, profile, 4);
+    if (offerMode && (integer(draft.offerValidDays, 0) < 1 || integer(draft.offerValidDays, 0) > 180)) errors.push("Veljavnost ponudbe mora biti med 1 in 180 dni.");
     var validation = query("[data-validation-summary]");
     validation.innerHTML = errors.length
       ? "<div class=\"pos-validation__errors\"><strong>Pred izdajo popravite:</strong><ul>" + errors.map(function (error) { return "<li>" + escapeHtml(error) + "</li>"; }).join("") + "</ul></div>"
@@ -3190,17 +4456,25 @@
       var calc = calculateItem(item, draft.priceMode, draft.taxMode);
       return "<tr><td>" + escapeHtml(item.description || "—") + "</td><td>" + escapeHtml(formatDecimalMilli(calc.quantityMilli)) + "</td><td>" + escapeHtml(formatMoney(calc.grossCents)) + "</td></tr>";
     }).join("");
-    var noteParts = [taxNote(draft), defaultNotice(draft)];
+    var noteParts = [taxNote(draft), defaultNotice(draft), propertyRetentionNotice(draft)];
     var replacement = normalizeReplacementContext(draft);
     if (replacement) noteParts.unshift("Nadomestni račun za " + replacement.cancellationNumber + "; prvotni račun " + replacement.originalInvoiceNumber + ".");
     if (draft.handwerker35a) noteParts.push("Davčno upravičeni stroški dela, vožnje in strojev: " + formatMoney(invoice.totals.eligible35aCents) + ". Končno upravičenost preveri Finanzamt.");
     if (draft.constructionWithholding) noteParts.push("Bauleistung: stanje Freistellungsbescheinigung – " + draft.exemptionCertificate + ".");
+    var deductions = invoice.totals.deductions || [];
+    if (deductions.length) noteParts.push("Vereinnahmte Teilentgelte und die darauf entfallende Umsatzsteuer sind gemäß § 14 Abs. 5 UStG abgesetzt.");
+    var totalsHtml = deductions.length
+      ? "<div class=\"pos-preview__total-row\"><span>Leistungswert netto</span><span>" + escapeHtml(formatMoney(invoice.totals.serviceNetCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer gesamt</span><span>" + escapeHtml(formatMoney(invoice.totals.serviceTaxCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Auftragssumme brutto</span><span>" + escapeHtml(formatMoney(invoice.totals.serviceGrossCents)) + "</span></div>" + deductions.map(function (entry) { return "<div class=\"pos-preview__total-row\"><span>Abschlag " + escapeHtml(entry.invoiceNumber || entry.invoiceId) + " · Netto " + escapeHtml(formatMoney(entry.netCents)) + " · USt. " + escapeHtml(formatMoney(entry.taxCents)) + "</span><span>− " + escapeHtml(formatMoney(entry.grossCents)) + "</span></div>"; }).join("") + "<div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Noch zu zahlen</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div>"
+      : "<div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div>";
     var preview = query("[data-invoice-preview]");
-    preview.classList.toggle("is-test", invoice.isTest);
-    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">Rechnung</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>Fällig am</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>Zahlungsart</small><strong>" + escapeHtml(draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>Rechnung an</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\"><div class=\"pos-preview__total-row\"><span>Netto</span><span>" + escapeHtml(formatMoney(invoice.totals.netCents)) + "</span></div><div class=\"pos-preview__total-row\"><span>Umsatzsteuer</span><span>" + escapeHtml(formatMoney(invoice.totals.taxCents)) + "</span></div><div class=\"pos-preview__total-row pos-preview__total-row--final\"><span>Gesamtbetrag</span><span>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</span></div></div><p class=\"pos-preview__note\">" + escapeHtml(noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
-    query("[data-issue-invoice]").textContent = invoice.isTest ? "Ustvari testni račun" : "Pravno izdaj račun";
+    preview.classList.toggle("is-test", invoice.isTest && !offerMode);
+    preview.innerHTML = "<div class=\"pos-preview__head\"><div class=\"pos-preview__seller\"><strong data-fit-text>" + escapeHtml(displayProfile.legalName || "Vaše podjetje") + "</strong><small data-fit-text>" + escapeHtml([displayProfile.street, displayProfile.postalCode, displayProfile.city].filter(Boolean).join(", ") || "Podatki podjetja še niso popolni") + "</small></div><span class=\"pos-preview__badge\">" + (offerMode ? "ANGEBOT" : invoice.isTest ? "TESTRECHNUNG" : "RECHNUNG") + "</span></div><h4 class=\"pos-preview__title\">" + (offerMode ? "Angebot" : "Rechnung") + "</h4><div class=\"pos-preview__number\">" + escapeHtml(invoice.number) + "</div><div class=\"pos-preview__meta\"><div><small>Ausstellungsdatum</small><strong>" + escapeHtml(formatDate(draft.issueDate)) + "</strong></div><div><small>Leistungsdatum</small><strong>" + escapeHtml(formatDate(draft.serviceDate)) + "</strong></div><div><small>" + (offerMode ? "Gültig bis" : "Fällig am") + "</small><strong>" + escapeHtml(formatDate(invoice.dueDate)) + "</strong></div><div><small>" + (offerMode ? "Status" : "Zahlungsart") + "</small><strong>" + escapeHtml(offerMode ? "Unverbindlich bis Annahme" : draft.paymentMethod === "sepa" ? "Überweisung" : draft.paymentMethod === "already_paid" ? "Bereits bezahlt" : "Externe Karte") + "</strong></div></div><div class=\"pos-preview__customer\"><small>" + (offerMode ? "Angebot für" : "Rechnung an") + "</small><strong data-fit-text>" + escapeHtml(draft.customerName || "—") + "</strong><span data-fit-text>" + escapeHtml([draft.customerStreet, draft.customerPostalCode, draft.customerCity].filter(Boolean).join(", ") || "—") + "</span></div><table class=\"pos-preview__table\"><thead><tr><th>Leistung</th><th>Menge</th><th>Betrag</th></tr></thead><tbody>" + items + "</tbody></table><div class=\"pos-preview__totals\">" + totalsHtml + "</div><p class=\"pos-preview__note\">" + escapeHtml(offerMode ? "Dieses Angebot ist bis zum genannten Datum gültig. Leistungsumfang und Preise werden erst mit Annahme verbindlich." : noteParts.filter(Boolean).join(" ") || "Bitte überweisen Sie den Rechnungsbetrag unter Angabe der Rechnungsnummer.") + "</p>";
+    query("[data-issue-invoice]").textContent = offerMode ? (draft.workflowContext && draft.workflowContext.workOrderId ? "Posodobi ponudbo" : "Ustvari ponudbo") : invoice.isTest ? "Ustvari testni račun" : "Pravno izdaj račun";
     query("[data-issue-invoice]").disabled = errors.length > 0;
-    renderQr(invoice);
+    if (offerMode) {
+      var oldQr = query(".pos-preview__qr", preview);
+      if (oldQr) oldQr.remove();
+    } else renderQr(invoice);
     fitAllText();
   }
 
@@ -3246,10 +4520,15 @@
 
   function issueInvoice() {
     syncDraftFromForm();
+    if (state.draft && state.draft.workflowMode === "offer") { issueOffer(); return; }
     var errors = validateStep(state.draft, state.profile, 4);
     if (errors.length) { renderPreview(); showToast(errors[0]); return; }
     var readiness = profileReadiness(state.profile);
     var live = productionReady();
+    var calendarError = live ? liveInvoiceDateError(state.draft, isoToday()) : "";
+    if (calendarError) { showToast(calendarError); return; }
+    var withholdingError = live ? liveConstructionWithholdingError(state.draft) : "";
+    if (withholdingError) { showToast(withholdingError); return; }
     var replacement = normalizeReplacementContext(state.draft);
     if (readiness.live && backend.ready && !archiveCapability.productionReady) {
       showToast("Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo in preizkus obnove.");
@@ -3293,6 +4572,30 @@
     );
   }
 
+  function issueOffer() {
+    syncDraftFromForm();
+    var errors = validateStep(state.draft, state.profile, 4);
+    var validDays = integer(state.draft.offerValidDays, 0);
+    if (validDays < 1 || validDays > 180) errors.push("Veljavnost ponudbe mora biti med 1 in 180 dni.");
+    if (errors.length) { renderPreview(); showToast(errors[0]); return; }
+    if (!backend.ready || !backend.client) { showToast("Ponudba potrebuje varno strežniško hrambo in številčenje."); return; }
+    var existingId = state.draft.workflowContext && state.draft.workflowContext.workOrderId || null;
+    openDialog(existingId ? "Posodobiti ponudbo?" : "Ustvariti ponudbo?", existingId ? "Spremembe bodo shranjene v osnutek. Poslana ponudba ostane nespremenljiva." : "Ponudba dobi zaporedno številko. Zaklene se šele, ko jo označite kot poslano.", {
+      confirmText: existingId ? "Posodobi" : "Ustvari ponudbo",
+      onConfirm: async function () {
+        try {
+          var result = await backend.client.rpc("pos_save_work_order", { p_work_order_id: existingId, p_payload: workOrderPayloadFromDraft(state.draft) }).single();
+          if (result.error) throw result.error;
+          state.draft = null;
+          persist();
+          await loadServerState("invoices");
+          showView("work-orders");
+          showToast(existingId ? "Osnutek ponudbe je posodobljen." : "Ponudba je varno ustvarjena.");
+        } catch (error) { showToast(error && error.message || "Ponudbe ni bilo mogoče shraniti."); }
+      }
+    });
+  }
+
   function downloadFile(filename, content, type) {
     var blob = new Blob([content], { type: type || "text/plain;charset=utf-8" });
     var url = URL.createObjectURL(blob);
@@ -3324,8 +4627,10 @@
     var invoice = state.invoices.filter(function (entry) { return entry.id === id; })[0];
     if (!invoice) return;
     if (invoice.status === "cancelled") { showToast("Storniranega računa ni mogoče označiti kot plačanega."); return; }
+    if (invoice.hasCreditNote) { showToast("Po dobropisu novih plačil na izvirni račun ni dovoljeno sprejeti."); return; }
     if (invoice.status === "paid") { showToast("Ta račun je že označen kot plačan."); return; }
-    openDialog("Označiti kot plačano?", invoice.number + " · " + formatMoney(invoice.totals.grossCents) + ". Ročna potrditev mora temeljiti na dejansko vidnem plačilu.", {
+    var outstandingCents = invoiceOutstandingCents(invoice);
+    openDialog("Označiti kot plačano?", invoice.number + " · preostanek " + formatMoney(outstandingCents) + ". Ročna potrditev mora temeljiti na dejansko vidnem plačilu.", {
       confirmText: "Potrdi plačilo",
       onConfirm: async function () {
         try {
@@ -3344,11 +4649,11 @@
           }
           if (!savedPayment) savedPayment = paymentFromServer({
             id: "local-" + Date.now(), invoice_id: invoice.id,
-            amount_cents: invoice.totals.grossCents - integer(invoice.paidCents, 0), currency: "EUR",
+            amount_cents: invoiceOutstandingCents(invoice), currency: "EUR",
             method: "manual", provider_reference: "Ročno potrjeno v POS", paid_at: paidAt
           });
           invoice.payments = (invoice.payments || []).concat([savedPayment]);
-          invoice.paidCents = invoice.totals.grossCents;
+          invoice.paidCents = invoice.adjustedGrossCents == null ? invoice.totals.grossCents : invoice.adjustedGrossCents;
           invoice.status = "paid";
           invoice.paidAt = paidAt;
           persist();
@@ -3362,9 +4667,114 @@
   }
 
   function requestLatestPayment() {
-    var invoice = state.invoices.filter(function (entry) { return entry.status === "open"; })[0];
+    var invoice = latestManualPaymentCandidate(state.invoices);
     if (!invoice) { showToast("Ni odprtega računa za plačilo."); return; }
     requestPayment(invoice.id);
+  }
+
+  async function posOfferPdfRequest(workOrderId, mode) {
+    var token = await apiSessionToken();
+    var action = mode || "download";
+    var response = await fetch("/api/pos-angebot-pdf?workOrderId=" + encodeURIComponent(workOrderId) + "&mode=" + encodeURIComponent(action), {
+      method: action === "metadata" ? "POST" : "GET",
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) {
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      throw new Error(body && body.napaka || "PDF ponudbe ni bilo mogoče pripraviti.");
+    }
+    return response;
+  }
+
+  async function ensureOfferDocument(workOrderId) {
+    var response = await posOfferPdfRequest(workOrderId, "metadata");
+    var body = await response.json();
+    return body.document;
+  }
+
+  async function downloadOfferPdf(order) {
+    if (!order || !order.id || order.status === "draft") throw new Error("PDF je na voljo šele po zaklepu ponudbe.");
+    var response = await posOfferPdfRequest(order.id, "download");
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = String(order.offerNumber || "Angebot").replace(/[^A-Za-z0-9._-]+/g, "-") + ".pdf";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  async function adjustmentEinvoiceRequest(adjustmentId, mode) {
+    var token = await apiSessionToken();
+    var response = await fetch("/api/pos-racun-korekcija-xrechnung?adjustmentId=" + encodeURIComponent(adjustmentId) + "&mode=" + encodeURIComponent(mode || "download"), {
+      method: mode === "download" ? "GET" : "POST", headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) {
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      throw new Error(body && body.napaka || "Strukturiranega popravka ni bilo mogoče pripraviti.");
+    }
+    return response;
+  }
+
+  async function downloadAdjustmentEinvoice(adjustment) {
+    var status = adjustment.einvoiceDocument && (adjustment.einvoiceDocument.validation_status || adjustment.einvoiceDocument.validationStatus) || "pending";
+    if (!adjustment.einvoiceDocumentReady || status !== "validated") {
+      var metadataResponse = await adjustmentEinvoiceRequest(adjustment.id, "validate");
+      var metadata = await metadataResponse.json();
+      adjustment.einvoiceDocumentReady = true;
+      adjustment.einvoiceDocument = metadata.document;
+      status = metadata.document && (metadata.document.validation_status || metadata.document.validationStatus) || "pending";
+      if (status === "failed") throw new Error(metadata.document.validationMessage || "KoSIT je strukturirani popravek zavrnil.");
+    }
+    var response = await adjustmentEinvoiceRequest(adjustment.id, "download");
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = adjustment.number.replace(/[^A-Za-z0-9._-]+/g, "-") + "-XRechnung.xml";
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  async function posContractConfirmationPdfRequest(workOrderId, mode) {
+    var token = await apiSessionToken();
+    var action = mode || "download";
+    var response = await fetch("/api/pos-pogodba-pdf?workOrderId=" + encodeURIComponent(workOrderId) + "&mode=" + encodeURIComponent(action), {
+      method: action === "metadata" ? "POST" : "GET",
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) {
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      throw new Error(body && body.napaka || "PDF pogodbenega potrdila ni bilo mogoče pripraviti.");
+    }
+    return response;
+  }
+
+  async function ensureContractConfirmationDocument(workOrderId) {
+    var response = await posContractConfirmationPdfRequest(workOrderId, "metadata");
+    var body = await response.json();
+    return body.document;
+  }
+
+  async function downloadContractConfirmationPdf(order) {
+    if (!order || !order.id || !requiresContractConfirmation(order) || ["draft", "offered"].indexOf(order.status) !== -1) {
+      throw new Error("Pogodbeno potrdilo je na voljo po sprejemu potrošniške ponudbe.");
+    }
+    var response = await posContractConfirmationPdfRequest(order.id, "download");
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = String(order.orderNumber || "Vertragsbestaetigung").replace(/[^A-Za-z0-9._-]+/g, "-") + "-Vertragsbestaetigung.pdf";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   }
 
   async function sha256Hex(text) {
@@ -3525,8 +4935,8 @@
       var ambiguity = resolvedMatches.ambiguities[String(transaction.id)] || "";
       var confirmedInvoice = transaction.confirmedInvoiceId && findInvoice(transaction.confirmedInvoiceId);
       var options = state.invoices.filter(function (invoice) {
-        var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
-        return invoice.serverStored && invoice.status !== "cancelled" && outstanding >= transaction.amountCents && outstanding > 0;
+        var outstanding = invoiceOutstandingCents(invoice);
+        return invoice.serverStored && !invoice.hasCreditNote && invoice.status !== "cancelled" && outstanding >= transaction.amountCents && outstanding > 0;
       });
       if (suggestion) options.sort(function (left, right) {
         if (left.id === suggestion.invoice.id) return -1;
@@ -3535,7 +4945,7 @@
       });
       var optionHtml = options.length ? (suggestion ? "" : "<option value=\"\" selected disabled>Izberite račun …</option>") + options.map(function (invoice) {
         var selected = suggestion && suggestion.invoice.id === invoice.id ? " selected" : "";
-        var outstanding = invoice.totals.grossCents - integer(invoice.paidCents, 0);
+        var outstanding = invoiceOutstandingCents(invoice);
         return "<option value=\"" + escapeHtml(invoice.id) + "\"" + selected + ">" + escapeHtml(invoice.number + " · " + invoice.draft.customerName + " · " + formatMoney(outstanding)) + "</option>";
       }).join("") : "<option value=\"\">Ni primernega odprtega računa</option>";
       var bottom = transaction.status === "confirmed"
@@ -3591,7 +5001,10 @@
 
   function importBankFile(file) {
     if (!file) return;
+    var fileError = bankImportFileError(file);
+    if (fileError) { showToast(fileError); return; }
     var reader = new FileReader();
+    reader.onerror = function () { showToast("Bančnega izpiska ni bilo mogoče prebrati."); };
     reader.onload = async function () {
       try {
         if (!backend.ready || !backend.userId) throw new Error("Za bančni uvoz je potrebna varna prijavljena hramba.");
@@ -3936,9 +5349,11 @@
   function bindEvents() {
     queryAll("[data-open-view]").forEach(function (button) { button.addEventListener("click", function () { showView(button.getAttribute("data-open-view")); }); });
     queryAll("[data-new-invoice]").forEach(function (button) { button.addEventListener("click", startInvoice); });
+    queryAll("[data-new-offer]").forEach(function (button) { button.addEventListener("click", startOffer); });
     query("[data-close-editor]").addEventListener("click", closeEditor);
     query("[data-save-draft]").addEventListener("click", async function () {
       syncDraftFromForm(); persist();
+      if (state.draft && state.draft.workflowMode === "offer") { showToast("Osnutek ponudbe je shranjen na tej napravi. Številko dobi ob ustvarjanju."); return; }
       if (!backend.ready) { showToast("Osnutek je lokalno shranjen; varna hramba ni povezana."); return; }
       try { await saveDraftToServer(); showToast("Osnutek je varno shranjen in sinhroniziran."); }
       catch (error) { showToast(error && error.message || "Osnutek je ostal shranjen samo lokalno."); }
@@ -3949,6 +5364,7 @@
     queryAll("[data-step]").forEach(function (button) { button.addEventListener("click", function () { var target = integer(button.getAttribute("data-step"), 1); if (target <= currentStep) setStep(target, false); else setStep(target, true); }); });
     query("[data-add-item]").addEventListener("click", addItem);
     queryAll("[name=customerType]").forEach(function (radio) { radio.addEventListener("change", syncCustomerFields); });
+    query("[name=consumerContractContext]").addEventListener("change", syncCustomerFields);
     queryAll("[name=taxMode]").forEach(function (radio) { radio.addEventListener("change", function () { state.draft.taxMode = radio.value; syncTaxFields(); renderItems(); }); });
     query("[name=constructionWithholding]").addEventListener("change", syncTaxFields);
     queryAll("[name=priceMode]").forEach(function (radio) { radio.addEventListener("change", function () { syncDraftFromForm(); renderItems(); }); });
@@ -3958,11 +5374,17 @@
       persist();
     });
     query("#pos-invoice-form").addEventListener("input", function (event) { if (event.target.matches("[data-fit-input]")) fitInput(event.target); });
-    query("#pos-profile-form").addEventListener("input", function (event) { if (event.target.matches("[data-fit-input]")) fitInput(event.target); });
+    query("#pos-profile-form").addEventListener("input", function (event) {
+      if (event.target.matches("[data-fit-input]")) fitInput(event.target);
+      if (profileChangeRequiresConfirmation(event.target.name)) query("[name=legalConfirmed]", event.currentTarget).checked = false;
+    });
     query("#pos-profile-form").addEventListener("submit", async function (event) {
       event.preventDefault();
       state.profile = readForm(event.currentTarget, state.profile);
       state.profile.iban = cleanIban(state.profile.iban);
+      state.profile.vatId = cleanVatId(state.profile.vatId);
+      var profileError = profileValidationError(state.profile);
+      if (profileError) { showToast(profileError); return; }
       var readiness = profileReadiness(state.profile);
       persist();
       if (backend.client) {
@@ -4102,6 +5524,7 @@
     query("[data-dialog-confirm]").addEventListener("click", function () { closeDialog(true); });
     query("[data-dialog-cancel]").addEventListener("click", function () { closeDialog(false); });
     query("[data-dialog-input]").addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); closeDialog(true); } });
+    query("[data-dialog-select]").addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); closeDialog(true); } });
     query("[data-dialog-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeDialog(false); });
     global.addEventListener("resize", fitAllText);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllText);
@@ -4120,6 +5543,7 @@
     if (currentView === "invoice") { previousStep(); return true; }
     if (currentView === "settings") { showView("home"); return true; }
     if (currentView === "invoices") { showView("home"); return true; }
+    if (currentView === "work-orders") { showView("home"); return true; }
     if (currentView === "invoice-detail") { activeInvoiceId = null; showView(invoiceDetailReturnView); return true; }
     return false;
   };

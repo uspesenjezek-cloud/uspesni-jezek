@@ -3,9 +3,12 @@
 const crypto = require("node:crypto");
 const supabase = require("../_lib/supabase-server");
 const { processClaimed, rpcRow } = require("../_lib/pos-delivery-runner");
+const requestJson = require("../_lib/pos-request-json");
+const MAX_BODY_BYTES = 16 * 1024;
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 
 function uuid(value) {
@@ -38,7 +41,10 @@ async function handler(req, res) {
 
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const deliveryId = uuid(req.body && req.body.deliveryId || req.query && req.query.deliveryId);
+  let body;
+  try { body = requestJson(req, MAX_BODY_BYTES); }
+  catch (error) { return json(res, error.status || 400, { ok: false, code: error.code, napaka: error.message }); }
+  const deliveryId = uuid(body.deliveryId || req.query && req.query.deliveryId);
   if (!deliveryId) return json(res, 400, { ok: false, napaka: "Neveljavna dostava." });
 
   const workerId = crypto.randomUUID();
@@ -112,4 +118,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { uuid, publicResult };
+module.exports._test = { uuid, publicResult, MAX_BODY_BYTES };

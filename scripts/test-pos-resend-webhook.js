@@ -51,6 +51,12 @@ assert.strictEqual(webhook._test.verifySvixSignature({
 }), true, "rotacija podpisov mora sprejeti katerikoli veljaven v1 podpis");
 assert.strictEqual(webhook._test.safeFailureCode({ data: { reason: "mailbox_full" } }), "mailbox_full", "kratka tehnicna koda je dovoljena");
 assert.strictEqual(webhook._test.safeFailureCode({ data: { reason: "blocked recipient@example.de\n" } }), "", "poljubno besedilo ali naslov ne sme v podatkovno sled");
+const eventNow = Date.parse("2026-08-21T12:00:00.000Z");
+assert.strictEqual(webhook._test.eventTimestamp({ created_at: "2026-08-21T12:05:01.000Z" }, eventNow), "", "prihodnji dogodek ne sme zastrupiti vrstnega reda");
+assert.strictEqual(webhook._test.eventTimestamp({ created_at: "2026-08-21T12:05:00.000Z" }, eventNow), "2026-08-21T12:05:00.000Z");
+assert.strictEqual(webhook._test.verifySvixSignature({
+  id: "x".repeat(241), timestamp, signature: "v1," + signature, rawBody, secret, nowSeconds: Number(timestamp),
+}), false, "predolg podpisni identifikator mora biti zavrnjen pred HMAC obdelavo");
 
 assert.match(migration, /create table private\.pos_resend_webhook_receipts/i);
 assert.match(migration, /svix_id text primary key/i);
@@ -76,4 +82,18 @@ assert.match(localServer, /\/api\/pos-dostava-webhook/);
   assert.ok(ui.includes(label), "UI mora vsebovati status: " + label);
 });
 
-console.log("POS Resend webhook testi: OK");
+void (async function verifyWebhookBodyLimit() {
+  assert.strictEqual(await webhook._test.rawRequestBody({ rawBody: Buffer.from("{}") }), "{}");
+  await assert.rejects(
+    () => webhook._test.rawRequestBody({ rawBody: Buffer.alloc(webhook._test.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+  await assert.rejects(
+    () => webhook._test.rawRequestBody({ rawBody: "x".repeat(webhook._test.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+  console.log("POS Resend webhook testi: OK");
+})().catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});

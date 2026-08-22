@@ -1,9 +1,11 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const providerJson = require("./provider-json");
 
 const TEST_BASE_URL = "https://kassensichv-middleware.fiskaly.com/api/v2";
 const LIVE_BASE_URL = "https://kassensichv.fiskaly.com/api/v2";
+const MAX_RESPONSE_BYTES = 1024 * 1024;
 
 function clean(value) {
   return String(value || "").trim();
@@ -50,8 +52,11 @@ async function requestJson(url, options, timeoutMs) {
     error.cause = cause;
     throw error;
   }
-  let body = null;
-  try { body = await response.json(); } catch (_) {}
+  const body = await providerJson.readJson(response, {
+    maxBytes: MAX_RESPONSE_BYTES,
+    code: "FISKALY_RESPONSE_TOO_LARGE",
+    message: "fiskaly SIGN DE je vrnil prevelik odgovor.",
+  });
   if (!response.ok) {
     const error = new Error("fiskaly SIGN DE trenutno ni dosegljiv.");
     error.code = "FISKALY_REQUEST_FAILED";
@@ -332,6 +337,7 @@ async function connectionStatus(source) {
 module.exports = {
   TEST_BASE_URL,
   LIVE_BASE_URL,
+  MAX_RESPONSE_BYTES,
   configuration,
   authenticate,
   connectionStatus,

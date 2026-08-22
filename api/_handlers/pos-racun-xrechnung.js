@@ -2,15 +2,18 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
 const {
   GENERATOR_VERSION, XRECHNUNG_VERSION, KOSIT_VALIDATOR_VERSION, KOSIT_CONFIG_VERSION, buildXRechnung
 } = require("../_lib/pos-xrechnung");
 
 const BUCKET = "pos-einvoice-originals";
 const MAX_REPORT_LENGTH = 65536;
+const MAX_XML_BYTES = 2 * 1024 * 1024;
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 function uuid(value) {
   const valueText = String(value || "");
@@ -43,17 +46,17 @@ async function readDocument(cfg, userId, invoiceId) {
   const rows = await supabase.pridobiVrstice(cfg, "pos_einvoice_documents", "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=*");
   return rows.length === 1 ? rows[0] : null;
 }
-async function invoiceIsCancelled(cfg, userId, invoiceId) {
-  const rows = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments", "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1");
-  return rows.length > 0;
-}
 async function downloadObject(cfg, path) {
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + BUCKET + "/" + encodedPath(path), {
     headers: supabase.serviceHeaders(cfg, { Accept: "application/xml" })
   }, 15000);
   if (response.status === 404 || response.status === 400) return null;
   if (!response.ok) throw Object.assign(new Error("Arhiviranega XRechnung dokumenta ni bilo mogoče prebrati."), { status: response.status });
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_XML_BYTES,
+    code: "POS_XRECHNUNG_ORIGINAL_TOO_LARGE",
+    message: "Arhivirani XRechnung presega dovoljeno velikost."
+  });
 }
 async function uploadObject(cfg, path, xml) {
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + BUCKET + "/" + encodedPath(path), {
@@ -114,7 +117,11 @@ async function validateWithKosit(xml, filename, env) {
     const options = { method: "POST", headers, body: xml };
     if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") options.signal = AbortSignal.timeout(50000);
     const response = await supabase.fetchZOmejitvijo(url, options, 30000);
-    const body = reportBody(await response.text());
+    const body = reportBody(await providerJson.readText(response, {
+      maxBytes: MAX_REPORT_LENGTH,
+      code: "KOSIT_RESPONSE_TOO_LARGE",
+      message: "KoSIT validator je vrnil preveliko poročilo.",
+    }));
     if (response.status === 200) return { status: "validated", report: { configured: true, httpStatus: 200, accepted: true, body } };
     if (response.status === 406) return { status: "failed", report: { configured: true, httpStatus: 406, accepted: false, body } };
     const message = response.status === 401 || response.status === 403
@@ -138,7 +145,7 @@ async function ensureDocument(cfg, invoice, userId) {
   xml = await downloadObject(cfg, path);
   if (!xml) {
     xml = buildXRechnung(invoice);
-    if (xml.length > 2 * 1024 * 1024) throw new Error("Ustvarjeni XRechnung je nepričakovano prevelik.");
+    if (xml.length > MAX_XML_BYTES) throw new Error("Ustvarjeni XRechnung je nepričakovano prevelik.");
     const uploaded = await uploadObject(cfg, path, xml);
     if (!uploaded) xml = await downloadObject(cfg, path);
   }
@@ -189,7 +196,9 @@ async function handler(req, res) {
   try {
     const invoice = await readInvoice(cfg, auth.user.id, invoiceId);
     if (!invoice) return json(res, 404, { ok: false, napaka: "Račun ne obstaja ali ni vaš." });
-    if (await invoiceIsCancelled(cfg, auth.user.id, invoiceId)) return json(res, 409, { ok: false, napaka: "Storniranega računa ni dovoljeno pripraviti za pošiljanje." });
+    // A cancellation does not replace or erase the issued structured original.
+    // Delivery has its own cancellation guard; this endpoint must keep the
+    // immutable XRechnung available for retention, audit and restoration.
     const result = await ensureDocument(cfg, invoice, auth.user.id);
     if (mode === "validate" || (req.method === "POST" && result.document.validation_status !== "validated")) {
       result.document = await runValidation(cfg, auth.user.id, invoice, result.document, result.xml);

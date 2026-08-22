@@ -8,6 +8,9 @@ const pdfModule = require("../api/_lib/pos-pdf");
 const adjustmentPdf = require("../api/_lib/pos-adjustment-pdf");
 const endpoint = require("../api/pos-racun-pdf");
 const adjustmentEndpoint = require("../api/pos-racun-korekcija");
+const pdfSource = fs.readFileSync(path.join(__dirname, "..", "api", "_lib", "pos-pdf.js"), "utf8");
+const pdfEndpointSource = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "pos-racun-pdf.js"), "utf8");
+const adjustmentEndpointSource = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "pos-racun-korekcija.js"), "utf8");
 
 function sampleInvoice(replacement) {
   const items = [];
@@ -46,6 +49,9 @@ function sampleInvoice(replacement) {
         legalName: "Uspešni Ježek - POS Test Čopič",
         legalForm: "GmbH",
         representative: "Erika Beispiel",
+        companySeat: "Berlin",
+        registerCourt: "Amtsgericht Charlottenburg",
+        registerNumber: "HRB 12345 B",
         street: "Lange Musterstraße 123",
         postalCode: "10115",
         city: "Berlin",
@@ -63,6 +69,7 @@ function sampleInvoice(replacement) {
         customer_postal_code: "20095",
         customer_city: "Hamburg",
         payment_method: "sepa",
+        property_related: true,
         handwerker_35a: true,
         construction_withholding: false,
         consumer_default_notice: true,
@@ -78,19 +85,26 @@ function sampleInvoice(replacement) {
 function sampleAdjustment(type) {
   const invoice = sampleInvoice();
   const correction = type === "correction";
+  const creditNote = type === "credit_note";
   const previous = Object.assign({}, invoice.snapshot.draft);
   const changes = correction ? { customer_street: "Neue Beispielallee 45", due_date: "2026-09-09" } : {};
   const effective = Object.assign({}, previous, changes);
+  const creditLines = creditNote ? invoice.snapshot.draft.items.slice(0, 2).map((item) => ({
+    description: item.description, tax_rate_bps: item.tax_rate_bps,
+    net_cents: item.net_cents, tax_cents: item.tax_cents, gross_cents: item.gross_cents
+  })) : [];
+  const creditNet = creditLines.reduce((sum, item) => sum + item.net_cents, 0);
+  const creditTax = creditLines.reduce((sum, item) => sum + item.tax_cents, 0);
   return {
     id: "22222222-2222-4222-8222-222222222222",
     original_invoice_id: invoice.id,
-    adjustment_number: correction ? "KORR-2026-0002" : "ST-2026-0002",
+    adjustment_number: correction ? "KORR-2026-0002" : creditNote ? "GS-2026-0002" : "ST-2026-0002",
     adjustment_type: type,
     reason: correction ? "Die Straße und das Fälligkeitsdatum waren unzutreffend." : "Der Rechnungsbetrag und die steuerliche Behandlung waren unzutreffend.",
     changes,
-    delta_net_cents: correction ? 0 : -invoice.net_cents,
-    delta_tax_cents: correction ? 0 : -invoice.tax_cents,
-    delta_gross_cents: correction ? 0 : -invoice.gross_cents,
+    delta_net_cents: correction ? 0 : creditNote ? -creditNet : -invoice.net_cents,
+    delta_tax_cents: correction ? 0 : creditNote ? -creditTax : -invoice.tax_cents,
+    delta_gross_cents: correction ? 0 : creditNote ? -(creditNet + creditTax) : -invoice.gross_cents,
     is_test: false,
     issued_at: "2026-08-19T14:00:00.000Z",
     snapshot: {
@@ -110,7 +124,8 @@ function sampleAdjustment(type) {
       original_draft: invoice.snapshot.draft,
       previous_draft: previous,
       effective_draft: effective,
-      changes
+      changes,
+      credit_lines: creditLines
     }
   };
 }
@@ -120,6 +135,24 @@ function sampleAdjustment(type) {
   assert.strictEqual(pdfModule.taxIdentityText({}), "");
   assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890" }), "Steuernummer: 12/345/67890");
   assert.strictEqual(pdfModule.taxIdentityText({ taxNumber: "12/345/67890", vatId: "DE123456789" }), "USt-IdNr.: DE123456789");
+  assert.match(pdfModule.propertyRetentionNote({ customer_type: "private", property_related: true }), /zwei Jahre aufzubewahren \(§ 14b Abs\. 1 UStG\)/);
+  assert.strictEqual(pdfModule.propertyRetentionNote({ customer_type: "business", property_related: true }), "");
+  assert.strictEqual(pdfModule.propertyRetentionNote({ customer_type: "private", property_related: false, handwerker_35a: false }), "");
+  assert.strictEqual(pdfModule.constructionWithholdingNote({ construction_withholding: false }), "");
+  assert.match(pdfModule.constructionWithholdingNote({ construction_withholding: true, exemption_certificate: "valid" }), /Freistellungsbescheinigung: gültig/);
+  assert.match(pdfModule.constructionWithholdingNote({ construction_withholding: true, exemption_certificate: "missing" }), /nicht vorgelegt/);
+  assert.deepStrictEqual(pdfModule.sellerLegalDisclosureLines(sampleInvoice().snapshot.seller), [
+    "Rechtsform: GmbH",
+    "Sitz: Berlin · Registergericht: Amtsgericht Charlottenburg · Registernummer: HRB 12345 B",
+    "Geschäftsführung: Erika Beispiel"
+  ]);
+  assert.match(pdfModule.paymentInstructions(sampleInvoice(), sampleInvoice().snapshot.seller, { testPayment: false })[0], /Überweisung/);
+  const alreadyPaidPdfInvoice = sampleInvoice();
+  alreadyPaidPdfInvoice.snapshot.draft.payment_method = "already_paid";
+  assert.strictEqual(pdfModule.paymentInstructions(alreadyPaidPdfInvoice, alreadyPaidPdfInvoice.snapshot.seller, { testPayment: false })[0], "Bereits bezahlt");
+  const cardPdfInvoice = sampleInvoice();
+  cardPdfInvoice.snapshot.draft.payment_method = "card_external";
+  assert.match(pdfModule.paymentInstructions(cardPdfInvoice, cardPdfInvoice.snapshot.seller, { testPayment: false })[0], /Kartenterminal/);
   const incompleteTestInvoice = sampleInvoice();
   incompleteTestInvoice.invoice_number = "TEST-2026-0001";
   incompleteTestInvoice.is_test = true;
@@ -134,6 +167,10 @@ function sampleAdjustment(type) {
   assert.strictEqual(endpoint._test.encodedPath("a b/c"), "a%20b/c");
   assert.strictEqual(endpoint._test.uuid("not-a-uuid"), "");
   assert.strictEqual(adjustmentEndpoint._test.objectPath("u", "a"), "u/adjustments/a/korrektur.pdf");
+  assert.match(pdfEndpointSource, /Cache-Control", "private, no-store, max-age=0"/);
+  assert.match(adjustmentEndpointSource, /Cache-Control", "private, no-store, max-age=0"/);
+  assert.match(adjustmentEndpointSource, /providerJson\.readBuffer\(response,[\s\S]*MAX_PDF_BYTES/);
+  assert.doesNotMatch(adjustmentEndpointSource, /response\.arrayBuffer\(/);
   assert.deepStrictEqual(pdfModule.taxGroups([
     { tax_rate_bps: 1900, net_cents: 10000, tax_cents: 1900 },
     { tax_rate_bps: 700, net_cents: 5000, tax_cents: 350 },
@@ -150,16 +187,41 @@ function sampleAdjustment(type) {
   assert.ok(pdf.getPageCount() >= 2, "Dolg realističen račun mora pravilno nadaljevati na novo stran.");
   assert.strictEqual(pdf.getTitle(), "Rechnung RE-2026-0001");
   assert.strictEqual(pdf.getCreator(), pdfModule.GENERATOR_VERSION);
-  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-4");
+  assert.strictEqual(pdfModule.GENERATOR_VERSION, "uj-pos-pdf-8");
+  assert.strictEqual(pdfModule.priceMode("gross"), "gross");
+  assert.strictEqual(pdfModule.priceMode("unexpected"), "net");
+  assert.strictEqual(pdfModule.lineDisplayAmount({ net_cents: 1000, gross_cents: 1190 }, "net"), 1000);
+  assert.strictEqual(pdfModule.lineDisplayAmount({ net_cents: 1000, gross_cents: 1190 }, "gross"), 1190);
 
   const incompleteTestBuffer = await pdfModule.ustvariRacunPdf(incompleteTestInvoice);
   const incompleteTestPdf = await PDFDocument.load(incompleteTestBuffer);
-  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-4");
+  assert.strictEqual(incompleteTestPdf.getCreator(), "uj-pos-pdf-8");
 
   const replacementBuffer = await pdfModule.ustvariRacunPdf(sampleInvoice(true));
   const replacementPdf = await PDFDocument.load(replacementBuffer);
   assert.strictEqual(replacementPdf.getPageCount(), pdf.getPageCount());
-  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-4");
+  assert.strictEqual(replacementPdf.getCreator(), "uj-pos-pdf-8");
+
+  const finalInvoice = sampleInvoice();
+  finalInvoice.snapshot.draft.workflow_context = {
+    work_order_id: "33333333-3333-4333-8333-333333333333",
+    invoice_kind: "final",
+    final_deductions: [{
+      invoice_id: "22222222-2222-4222-8222-222222222222", invoice_number: "RE-2026-0007", issue_date: "2026-07-15",
+      net_cents: 10000, tax_cents: 1900, gross_cents: 11900
+    }]
+  };
+  finalInvoice.net_cents -= 10000;
+  finalInvoice.tax_cents -= 1900;
+  finalInvoice.gross_cents -= 11900;
+  const finalBuffer = await pdfModule.ustvariRacunPdf(finalInvoice);
+  const finalPdf = await PDFDocument.load(finalBuffer);
+  assert.strictEqual(finalPdf.getCreator(), "uj-pos-pdf-8");
+  assert.match(pdfSource, /Auftragssumme brutto/);
+  assert.match(pdfSource, /Noch zu zahlen/);
+  assert.match(pdfSource, /§ 14 Abs\. 5 UStG/);
+  assert.match(pdfEndpointSource, /providerJson\.readBuffer\(response,[\s\S]*MAX_PDF_BYTES/);
+  assert.match(pdfEndpointSource, /POS_PDF_ORIGINAL_TOO_LARGE/);
 
   const correctionBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("correction"));
   const correctionPdf = await PDFDocument.load(correctionBuffer);
@@ -172,7 +234,12 @@ function sampleAdjustment(type) {
   assert.ok(cancellationPdf.getPageCount() >= 2, "Dolg Storno mora nadaljevati tabelo na novo stran.");
   assert.strictEqual(cancellationPdf.getTitle(), "Stornorechnung ST-2026-0002");
   assert.strictEqual(cancellationPdf.getCreator(), adjustmentPdf.GENERATOR_VERSION);
-  assert.strictEqual(adjustmentPdf.GENERATOR_VERSION, "uj-pos-adjustment-pdf-2");
+  assert.strictEqual(adjustmentPdf.GENERATOR_VERSION, "uj-pos-adjustment-pdf-4");
+  const creditBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("credit_note"));
+  const creditPdf = await PDFDocument.load(creditBuffer);
+  assert.strictEqual(creditPdf.getTitle(), "Gutschrift GS-2026-0002");
+  assert.strictEqual(creditPdf.getCreator(), "uj-pos-adjustment-pdf-4");
+  assert.strictEqual(adjustmentPdf.berlinDate("2026-12-31T23:30:00.000Z"), "2027-01-01");
 
   if (process.env.POS_PDF_SAMPLE_OUTPUT) {
     const output = path.resolve(process.env.POS_PDF_SAMPLE_OUTPUT);

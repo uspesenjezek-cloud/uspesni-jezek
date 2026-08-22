@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("crypto");
+const providerJson = require("./provider-json");
 
 const SANDBOX_BASE_URL = "https://sandbox.finapi.io/api/v2";
 const WEBFORM_SANDBOX_BASE_URL = "https://webform-sandbox.finapi.io";
@@ -8,6 +9,7 @@ const DEMO_BANK_ID = 280001;
 const DEMO_BANK_NAME = "finAPI Test Bank";
 const DEMO_BANK_INTERFACE = "XS2A";
 const tokenCache = new Map();
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 function clean(value) {
   return String(value || "").trim();
@@ -77,8 +79,11 @@ async function requestJson(cfg, path, options, timeoutMs) {
     error.retryable = true;
     throw error;
   }
-  let body = null;
-  try { body = await response.json(); } catch (_) {}
+  const body = await providerJson.readJson(response, {
+    maxBytes: MAX_RESPONSE_BYTES,
+    code: "FINAPI_RESPONSE_TOO_LARGE",
+    message: "finAPI je vrnil prevelik odgovor.",
+  });
   if (!response.ok) {
     const error = new Error("finAPI zahteva ni uspela.");
     error.code = errorCode(body) || "FINAPI_REQUEST_FAILED";
@@ -147,6 +152,26 @@ async function bankConnections(token, cfg) {
   return Array.isArray(body.connections) ? body.connections : [];
 }
 
+async function pagedCollection(token, cfg, path, query, property, timeoutMs) {
+  const rows = [];
+  let page = 1;
+  while (true) {
+    query.set("page", String(page));
+    const body = await requestJson(cfg, path + "?" + query.toString(), { headers: bearer(token) }, timeoutMs);
+    const current = Array.isArray(body[property]) ? body[property] : [];
+    rows.push.apply(rows, current);
+    const pageCount = Number(body.paging && body.paging.pageCount);
+    if (!Number.isSafeInteger(pageCount) || pageCount < 1 || page >= pageCount) break;
+    if (pageCount > 1000) {
+      const error = new Error("finAPI je vrnil neveljavno število strani.");
+      error.code = "FINAPI_PAGING_INVALID";
+      throw error;
+    }
+    page += 1;
+  }
+  return rows;
+}
+
 function demoConnection(connections) {
   return (connections || []).find(function (connection) {
     return Number(connection && (connection.bankId || connection.bank && connection.bank.id)) === DEMO_BANK_ID;
@@ -168,8 +193,8 @@ function normalizeAccount(row) {
 }
 
 async function accountsForUser(token, cfg) {
-  const body = await requestJson(cfg, "/accounts?page=1&perPage=500", { headers: bearer(token) }, 12000);
-  return (Array.isArray(body.accounts) ? body.accounts : []).map(normalizeAccount).filter(Boolean);
+  const rows = await pagedCollection(token, cfg, "/accounts", new URLSearchParams({ perPage: "500" }), "accounts", 12000);
+  return rows.map(normalizeAccount).filter(Boolean);
 }
 
 function verifiedWebFormUrl(value) {
@@ -245,12 +270,11 @@ async function incomingTransactions(token, cfg, days, accounts) {
     isAdjustingEntry: "false",
     isPotentialDuplicate: "false",
     minBankBookingDate: isoDateDaysAgo(Math.min(Math.max(Number(days) || 120, 14), 365)),
-    page: "1",
     perPage: "500",
     order: "finapiBookingDate,desc",
   });
-  const body = await requestJson(cfg, "/transactions?" + query.toString(), { headers: bearer(token) }, 15000);
-  return (Array.isArray(body.transactions) ? body.transactions : []).map(function (row) {
+  const rows = await pagedCollection(token, cfg, "/transactions", query, "transactions", 15000);
+  return rows.map(function (row) {
     return normalizeTransaction(row, accountsById);
   }).filter(Boolean);
 }
@@ -311,6 +335,7 @@ module.exports = {
   SANDBOX_BASE_URL,
   WEBFORM_SANDBOX_BASE_URL,
   DEMO_BANK_ID,
+  MAX_RESPONSE_BYTES,
   configuration,
   createDemoBankWebForm,
   statusForUser,
@@ -326,6 +351,7 @@ module.exports = {
     demoConnection,
     connectionBankName,
     normalizeAccount,
+    pagedCollection,
     accountsForUser,
     verifiedWebFormUrl,
     incomingTransactions,

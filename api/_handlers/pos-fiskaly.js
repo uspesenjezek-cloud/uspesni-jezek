@@ -2,6 +2,8 @@
 
 const supabase = require("../_lib/supabase-server");
 const fiskaly = require("../_lib/fiskaly-sign-de");
+const requestJson = require("../_lib/pos-request-json");
+const MAX_BODY_BYTES = 64 * 1024;
 
 function json(res, status, body) {
   res.status(status)
@@ -31,13 +33,18 @@ async function handler(req, res) {
   catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
+  let body = {};
+  if (req.method === "POST") {
+    try { body = requestJson(req, MAX_BODY_BYTES); }
+    catch (error) { return json(res, error.status || 400, { ok: false, code: error.code, napaka: error.message }); }
+  }
   try {
     if (req.method === "POST") {
-      const action = String(req.body && req.body.action || "");
+      const action = String(body.action || "");
       if (!["training-transaction", "training-receipt"].includes(action)) return json(res, 400, { ok: false, napaka: "Neznano fiskaly opravilo." });
       const transaction = action === "training-receipt"
-        ? await fiskaly.runTrainingReceipt(process.env, req.body && req.body.transactionId, req.body && req.body.receipt)
-        : await fiskaly.runTrainingTransaction(process.env, req.body && req.body.transactionId);
+        ? await fiskaly.runTrainingReceipt(process.env, body.transactionId, body.receipt)
+        : await fiskaly.runTrainingTransaction(process.env, body.transactionId);
       return json(res, 201, { ok: true, sandbox: true, live: false, cashModuleEnabled: false, transaction });
     }
     return json(res, 200, { ok: true, fiskaly: await fiskaly.connectionStatus() });
@@ -62,4 +69,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { unavailable };
+module.exports._test = { unavailable, MAX_BODY_BYTES };

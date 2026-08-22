@@ -30,8 +30,15 @@ function header(req, name) {
 }
 
 async function rawRequestBody(req) {
-  if (Buffer.isBuffer(req.rawBody)) return req.rawBody.toString("utf8");
-  if (typeof req.rawBody === "string") return req.rawBody;
+  if (Buffer.isBuffer(req.rawBody) || typeof req.rawBody === "string") {
+    const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(req.rawBody, "utf8");
+    if (raw.length > MAX_BODY_BYTES) {
+      const error = new Error("Webhook je prevelik.");
+      error.status = 413;
+      throw error;
+    }
+    return raw.toString("utf8");
+  }
   const chunks = [];
   let total = 0;
   for await (const chunk of req) {
@@ -49,6 +56,7 @@ async function rawRequestBody(req) {
 
 function webhookSecretBytes(secret) {
   const text = String(secret || "").trim();
+  if (text.length > 1024) return null;
   const encoded = text.startsWith("whsec_") ? text.slice(6) : text;
   if (!encoded) return null;
   try {
@@ -75,7 +83,9 @@ function signatureValues(value) {
 function verifySvixSignature(options) {
   const id = String(options && options.id || "");
   const timestamp = String(options && options.timestamp || "");
-  const signatures = signatureValues(options && options.signature);
+  const signature = String(options && options.signature || "");
+  if (id.length > 240 || timestamp.length > 20 || signature.length > 4096) return false;
+  const signatures = signatureValues(signature);
   const rawBody = String(options && options.rawBody || "");
   const secret = webhookSecretBytes(options && options.secret);
   const epoch = Number(timestamp);
@@ -87,10 +97,11 @@ function verifySvixSignature(options) {
   return signatures.some(function (candidate) { return safeEqual(candidate, expected); });
 }
 
-function eventTimestamp(payload) {
+function eventTimestamp(payload, nowMilliseconds) {
   const value = payload && (payload.created_at || payload.data && payload.data.created_at);
   const parsed = Date.parse(String(value || ""));
-  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : "";
+  const now = Number.isFinite(nowMilliseconds) ? nowMilliseconds : Date.now();
+  return Number.isFinite(parsed) && parsed <= now + MAX_CLOCK_SKEW_SECONDS * 1000 ? new Date(parsed).toISOString() : "";
 }
 
 function safeFailureCode(payload) {
@@ -177,4 +188,5 @@ module.exports._test = {
   signatureValues,
   verifySvixSignature,
   webhookSecretBytes,
+  MAX_BODY_BYTES,
 };

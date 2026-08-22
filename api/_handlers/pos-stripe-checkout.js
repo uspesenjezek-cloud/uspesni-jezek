@@ -1,8 +1,8 @@
 "use strict";
 
-const crypto = require("node:crypto");
 const supabase = require("../_lib/supabase-server");
 const stripeSandbox = require("../_lib/stripe-sandbox");
+const MAX_BODY_BYTES = 16 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -15,8 +15,29 @@ function uuid(value) {
 }
 
 function requestBody(req) {
-  if (req.body && typeof req.body === "object") return req.body;
+  const declared = Number(req && req.headers && req.headers["content-length"] || 0);
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    const error = new Error("Stripe TEST zahtevek je prevelik.");
+    error.status = 413;
+    throw error;
+  }
+  if (req.body && typeof req.body === "object") {
+    let serialized;
+    try { serialized = JSON.stringify(req.body); }
+    catch (_) { serialized = ""; }
+    if (!serialized || Buffer.byteLength(serialized, "utf8") > MAX_BODY_BYTES) {
+      const error = new Error("Stripe TEST zahtevek je prevelik ali neveljaven.");
+      error.status = 413;
+      throw error;
+    }
+    return req.body;
+  }
   if (typeof req.body === "string") {
+    if (Buffer.byteLength(req.body, "utf8") > MAX_BODY_BYTES) {
+      const error = new Error("Stripe TEST zahtevek je prevelik.");
+      error.status = 413;
+      throw error;
+    }
     try { return JSON.parse(req.body); } catch (_) {}
   }
   return {};
@@ -37,13 +58,13 @@ async function invoiceContext(cfg, userId, invoiceId) {
   const invoice = invoiceRows[0];
   if (!invoice) { const error = new Error("Testni račun ne obstaja."); error.status = 404; throw error; }
   if (!invoice.is_test) { const error = new Error("Stripe sandbox je dovoljen samo za testni račun."); error.status = 409; throw error; }
-  const [payments, cancellations] = await Promise.all([
+  const [payments, financialAdjustments] = await Promise.all([
     supabase.pridobiVrstice(cfg, "pos_payments",
       "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=amount_cents,refunded_cents,status"),
     supabase.pridobiVrstice(cfg, "pos_invoice_adjustments",
-      "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1"),
+      "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=in.(cancellation,credit_note)&select=id&limit=1"),
   ]);
-  if (cancellations.length) { const error = new Error("Storniranega računa ni mogoče plačati."); error.status = 409; throw error; }
+  if (financialAdjustments.length) { const error = new Error("Računa po Stornu ali dobropisu ni mogoče dodatno plačati."); error.status = 409; throw error; }
   const outstandingCents = Number(invoice.gross_cents) - effectivePaidCents(payments);
   if (!Number.isSafeInteger(outstandingCents) || outstandingCents <= 0) {
     const error = new Error("Račun je že v celoti plačan."); error.status = 409; throw error;
@@ -117,7 +138,9 @@ async function handler(req, res) {
   }
   const auth = await supabase.preveriUporabnika(req, authCfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const body = requestBody(req);
+  let body;
+  try { body = requestBody(req); }
+  catch (error) { return json(res, error.status || 400, { ok: false, napaka: error.message }); }
   const action = String(req.method === "GET" ? req.query && req.query.action || "status" : body.action || "create");
   const sessionId = String(req.method === "GET" ? req.query && req.query.sessionId || "" : body.sessionId || "");
   const stripe = stripeSandbox.createClient(stripeCfg);
@@ -158,7 +181,7 @@ async function handler(req, res) {
           request_id: requestId,
         },
       }, {
-        idempotencyKey: "uj-pos-test-refund:" + auth.user.id + ":" + paymentId + ":" + Number(payment.refunded_cents || 0) + ":" + amountCents,
+        idempotencyKey: "uj-pos-test-refund:" + auth.user.id + ":" + paymentId + ":" + requestId,
       });
       if (!refund || !String(refund.id || "").startsWith("re_")) {
         throw new Error("Stripe ni vrnil veljavnega TEST povračila.");
@@ -204,14 +227,17 @@ async function handler(req, res) {
     const requestId = uuid(body.requestId);
     if (!invoiceId || !requestId) return json(res, 400, { ok: false, napaka: "Manjka veljavna povezava z računom." });
     const context = await invoiceContext(serviceCfg, auth.user.id, invoiceId);
-    const attemptId = crypto.randomUUID();
+    // The browser request id is already a validated UUID. Reusing it as the
+    // provider attempt id keeps a retried HTTP request bound to the same
+    // Stripe idempotency result and the same database row.
+    const attemptId = requestId;
     const params = stripeSandbox.checkoutParams({
       baseUrl: stripeSandbox.safeBaseUrl(req), invoiceId, invoiceNumber: context.invoice.invoice_number,
       userId: auth.user.id, attemptId, amountCents: context.outstandingCents,
     });
     const session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.create(params, {
       idempotencyKey: "uj-pos-test:" + auth.user.id + ":" + invoiceId + ":" + requestId,
-    }), { userId: auth.user.id, invoiceId });
+    }), { userId: auth.user.id, invoiceId, attemptId });
     let registered;
     try {
       registered = rpcRow(await supabase.pokliciRpc(serviceCfg, "pos_register_stripe_checkout", {
@@ -241,4 +267,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { effectivePaidCents, publicPayment, refundRequestCents, requestBody, uuid };
+module.exports._test = { effectivePaidCents, publicPayment, refundRequestCents, requestBody, uuid, MAX_BODY_BYTES };

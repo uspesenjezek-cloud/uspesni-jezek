@@ -7,7 +7,10 @@
     { "source": "/api/mehka-boniteta", "destination": "/api/boniteta?handler=soft" },
     { "source": "/api/mehka-boniteta-opravilo", "destination": "/api/boniteta?handler=job" },
     { "source": "/api/pos-racun-pdf", "destination": "/api/pos?handler=invoice-pdf" },
+    { "source": "/api/pos-angebot-pdf", "destination": "/api/pos?handler=offer-pdf" },
+    { "source": "/api/pos-pogodba-pdf", "destination": "/api/pos?handler=contract-confirmation-pdf" },
     { "source": "/api/pos-racun-korekcija", "destination": "/api/pos?handler=invoice-adjustment" },
+    { "source": "/api/pos-racun-korekcija-xrechnung", "destination": "/api/pos?handler=adjustment-xrechnung" },
     { "source": "/api/pos-racun-xrechnung", "destination": "/api/pos?handler=invoice-xrechnung" },
     { "source": "/api/pos-dostava-sandbox", "destination": "/api/pos?handler=delivery-sandbox" },
     { "source": "/api/pos-dostava-delavec", "destination": "/api/pos?handler=delivery-worker" },
@@ -20,10 +23,22 @@
     { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" },
     { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" }
   ],
+  "headers": [
+    {
+      "source": "/app/pos-terminal.html",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.de.sentry.io; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:; upgrade-insecure-requests" }
+      ]
+    }
+  ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
     { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" },
-    { "path": "/api/pos-arhiv-delavec", "schedule": "23 4 1 * *" }
+    { "path": "/api/pos-arhiv-delavec", "schedule": "23 4 * * *" }
   ],
   "functions": {
     "api/obdelaj-opomine.js": {

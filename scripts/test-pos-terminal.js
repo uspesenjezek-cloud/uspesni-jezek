@@ -23,6 +23,14 @@ const issueConcurrencyMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_issue_concurrency_idempotency\.sql$/.test(name)).sort().pop()
   : null;
 const issueConcurrencyMigration = issueConcurrencyMigrationName ? fs.readFileSync(path.join(migrationsDir, issueConcurrencyMigrationName), "utf8") : "";
+const payloadLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_payload_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const payloadLimitsMigration = payloadLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, payloadLimitsMigrationName), "utf8") : "";
+const payloadInvokerMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_payload_invoker_wrappers\.sql$/.test(name)).sort().pop()
+  : null;
+const payloadInvokerMigration = payloadInvokerMigrationName ? fs.readFileSync(path.join(migrationsDir, payloadInvokerMigrationName), "utf8") : "";
 const manualPaymentMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_manual_payment_rpc\.sql$/.test(name)).sort().pop()
   : null;
@@ -39,6 +47,58 @@ const adjustmentsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_adjustments\.sql$/.test(name)).sort().pop()
   : null;
 const adjustmentsMigration = adjustmentsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentsMigrationName), "utf8") : "";
+const adjustmentLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_payload_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const adjustmentLimitsMigration = adjustmentLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentLimitsMigrationName), "utf8") : "";
+const adjustmentSourceMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_source_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const adjustmentSourceMigration = adjustmentSourceMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentSourceMigrationName), "utf8") : "";
+const adjustmentNullGuardsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_null_guards\.sql$/.test(name)).sort().pop()
+  : null;
+const adjustmentNullGuardsMigration = adjustmentNullGuardsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentNullGuardsMigrationName), "utf8") : "";
+const businessProfileInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_business_profile_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const businessProfileInvariantsMigration = businessProfileInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, businessProfileInvariantsMigrationName), "utf8") : "";
+const profileReconfirmationMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_profile_reconfirmation\.sql$/.test(name)).sort().pop()
+  : null;
+const profileReconfirmationMigration = profileReconfirmationMigrationName ? fs.readFileSync(path.join(migrationsDir, profileReconfirmationMigrationName), "utf8") : "";
+const sellerLegalIdentityMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_seller_legal_identity\.sql$/.test(name)).sort().pop()
+  : null;
+const sellerLegalIdentityMigration = sellerLegalIdentityMigrationName ? fs.readFileSync(path.join(migrationsDir, sellerLegalIdentityMigrationName), "utf8") : "";
+const invoicePartyValidationMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_party_validation\.sql$/.test(name)).sort().pop()
+  : null;
+const invoicePartyValidationMigration = invoicePartyValidationMigrationName ? fs.readFileSync(path.join(migrationsDir, invoicePartyValidationMigrationName), "utf8") : "";
+const invoiceEinvoicePartyRequirementsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_einvoice_party_requirements\.sql$/.test(name)).sort().pop()
+  : null;
+const invoiceEinvoicePartyRequirementsMigration = invoiceEinvoicePartyRequirementsMigrationName ? fs.readFileSync(path.join(migrationsDir, invoiceEinvoicePartyRequirementsMigrationName), "utf8") : "";
+const invoiceTaxEvidenceRequirementsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_tax_evidence_requirements\.sql$/.test(name)).sort().pop()
+  : null;
+const invoiceTaxEvidenceRequirementsMigration = invoiceTaxEvidenceRequirementsMigrationName ? fs.readFileSync(path.join(migrationsDir, invoiceTaxEvidenceRequirementsMigrationName), "utf8") : "";
+const alreadyPaidInvoicePaymentMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_already_paid_invoice_payment\.sql$/.test(name)).sort().pop()
+  : null;
+const alreadyPaidInvoicePaymentMigration = alreadyPaidInvoicePaymentMigrationName ? fs.readFileSync(path.join(migrationsDir, alreadyPaidInvoicePaymentMigrationName), "utf8") : "";
+const germanBusinessTimezoneMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_german_business_timezone\.sql$/.test(name)).sort().pop()
+  : null;
+const germanBusinessTimezoneMigration = germanBusinessTimezoneMigrationName ? fs.readFileSync(path.join(migrationsDir, germanBusinessTimezoneMigrationName), "utf8") : "";
+const positiveTotalMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_positive_total\.sql$/.test(name)).sort().pop()
+  : null;
+const positiveTotalMigration = positiveTotalMigrationName ? fs.readFileSync(path.join(migrationsDir, positiveTotalMigrationName), "utf8") : "";
+const privateRpcSurfaceMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_private_rpc_surface\.sql$/.test(name)).sort().pop()
+  : null;
+const privateRpcSurfaceMigration = privateRpcSurfaceMigrationName ? fs.readFileSync(path.join(migrationsDir, privateRpcSurfaceMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -59,6 +119,38 @@ const finapiMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_finapi_bank_provider\.sql$/.test(name)).sort().pop()
   : null;
 const finapiMigration = finapiMigrationName ? fs.readFileSync(path.join(migrationsDir, finapiMigrationName), "utf8") : "";
+const bankLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_bank_import_payload_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const bankLimitsMigration = bankLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, bankLimitsMigrationName), "utf8") : "";
+const internalJsonLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_internal_json_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const internalJsonLimitsMigration = internalJsonLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, internalJsonLimitsMigrationName), "utf8") : "";
+const moneyInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_money_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const moneyInvariantsMigration = moneyInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, moneyInvariantsMigrationName), "utf8") : "";
+const dateInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_date_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const dateInvariantsMigration = dateInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, dateInvariantsMigrationName), "utf8") : "";
+const liveCalendarMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_live_invoice_calendar_dates\.sql$/.test(name)).sort().pop()
+  : null;
+const liveCalendarMigration = liveCalendarMigrationName ? fs.readFileSync(path.join(migrationsDir, liveCalendarMigrationName), "utf8") : "";
+const liveBauabzugMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_live_construction_withholding_lock\.sql$/.test(name)).sort().pop()
+  : null;
+const liveBauabzugMigration = liveBauabzugMigrationName ? fs.readFileSync(path.join(migrationsDir, liveBauabzugMigrationName), "utf8") : "";
+const tenantInvariantsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_tenant_relationship_invariants\.sql$/.test(name)).sort().pop()
+  : null;
+const tenantInvariantsMigration = tenantInvariantsMigrationName ? fs.readFileSync(path.join(migrationsDir, tenantInvariantsMigrationName), "utf8") : "";
+const tenantIndexesMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_tenant_foreign_key_indexes\.sql$/.test(name)).sort().pop()
+  : null;
+const tenantIndexesMigration = tenantIndexesMigrationName ? fs.readFileSync(path.join(migrationsDir, tenantIndexesMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -68,15 +160,28 @@ const datevMigrationName = fs.existsSync(migrationsDir)
   : null;
 const datevMigration = datevMigrationName ? fs.readFileSync(path.join(migrationsDir, datevMigrationName), "utf8") : "";
 const apiRoot = path.basename(__dirname).toLowerCase() === "scripts" ? path.join(repoRoot, "api") : path.join(repoRoot, "api");
-const pdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-pdf.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-pdf.js"), "utf8") : "";
-const xrechnungApi = fs.existsSync(path.join(apiRoot, "pos-racun-xrechnung.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-xrechnung.js"), "utf8") : "";
-const deliveryApi = fs.existsSync(path.join(apiRoot, "pos-dostava-sandbox.js")) ? fs.readFileSync(path.join(apiRoot, "pos-dostava-sandbox.js"), "utf8") : "";
+const pdfApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-racun-pdf.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-racun-pdf.js"), "utf8") : "";
+const xrechnungApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-racun-xrechnung.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-racun-xrechnung.js"), "utf8") : "";
+const deliveryApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-dostava-sandbox.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-dostava-sandbox.js"), "utf8") : "";
 const deliveryWorkerApi = fs.existsSync(path.join(apiRoot, "_lib", "pos-delivery-worker.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "pos-delivery-worker.js"), "utf8") : "";
 const deliveryEmailApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-dostava-email.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-dostava-email.js"), "utf8") : "";
-const adjustmentPdfApi = fs.existsSync(path.join(apiRoot, "pos-racun-korekcija.js")) ? fs.readFileSync(path.join(apiRoot, "pos-racun-korekcija.js"), "utf8") : "";
+const adjustmentPdfApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-racun-korekcija.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-racun-korekcija.js"), "utf8") : "";
+const compatibilityWrappers = [
+  "pos-racun-pdf", "pos-racun-korekcija", "pos-racun-xrechnung", "pos-dostava-sandbox", "pos-dostava-delavec"
+].map(function (name) { return fs.readFileSync(path.join(apiRoot, name + ".js"), "utf8"); });
 const finapiApi = fs.existsSync(path.join(apiRoot, "_handlers", "pos-finapi.js")) ? fs.readFileSync(path.join(apiRoot, "_handlers", "pos-finapi.js"), "utf8") : "";
 const finapiLib = fs.existsSync(path.join(apiRoot, "_lib", "finapi-access.js")) ? fs.readFileSync(path.join(apiRoot, "_lib", "finapi-access.js"), "utf8") : "";
 const Core = require(path.join(assetRoot, "pos-terminal.js"));
+const requestJson = require(path.join(repoRoot, "api", "_lib", "pos-request-json.js"));
+assert.deepStrictEqual(requestJson({ headers: {}, body: '{"action":"test"}' }, 4096), { action: "test" });
+assert.throws(() => requestJson({ headers: { "content-length": "5000" }, body: {} }, 4096), (error) => error && error.status === 413 && error.code === "POS_REQUEST_BODY_TOO_LARGE");
+assert.throws(() => requestJson({ headers: {}, body: { payload: "x".repeat(5000) } }, 4096), (error) => error && error.status === 413);
+assert.throws(() => requestJson({ headers: {}, body: "[1,2,3]" }, 4096), (error) => error && error.status === 400);
+
+compatibilityWrappers.forEach(function (source) {
+  assert.match(source, /module\.exports = require\("\.\/_handlers\/pos-[a-z-]+"\);/);
+  assert.ok(source.trim().split(/\r?\n/).length <= 3, "POS združljivostna pot ne sme podvajati produkcijskega handlerja.");
+});
 
 assert.match(html, /data-view="home"/);
 assert.match(html, /data-view="settings"/);
@@ -128,10 +233,80 @@ assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && sup
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
 assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
+assert.match(js, /async function fetchAllRows\(buildQuery, pageSize\)/);
+assert.match(js, /buildQuery\(\)\.range\(offset, offset \+ size - 1\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{ return backend\.client\.from\("pos_invoices"\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{ return backend\.client\.from\("pos_payments"\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{ return backend\.client\.from\("pos_work_orders"\)/);
+assert.doesNotMatch(js, /\.from\("pos_invoices"\)[^;\n]*\.limit\(100\)/);
+assert.doesNotMatch(js, /\.from\("pos_work_orders"\)[^;\n]*\.limit\(100\)/);
+
+async function testFetchAllRows() {
+  const source = Array.from({ length: 1201 }, function (_value, index) { return { id: index + 1 }; });
+  const ranges = [];
+  const result = await Core.fetchAllRows(function () {
+    return {
+      range: async function (from, to) {
+        ranges.push([from, to]);
+        return { data: source.slice(from, to + 1), error: null };
+      }
+    };
+  }, 500);
+  assert.equal(result.error, null);
+  assert.equal(result.data.length, 1201);
+  assert.deepEqual(ranges, [[0, 499], [500, 999], [1000, 1499]]);
+
+  const expectedError = new Error("page failed");
+  const failed = await Core.fetchAllRows(function () {
+    return { range: async function () { return { data: null, error: expectedError }; } };
+  }, 500);
+  assert.equal(failed.data, null);
+  assert.equal(failed.error, expectedError);
+}
+
+const cachedState = Core.localStateSnapshot({
+  profile: { legalName: "Server GmbH", taxNumber: "12/345/67890", iban: "DE02120300000000202051" },
+  invoices: Array.from({ length: 125 }, function (_value, index) { return { id: "server-" + index, serverStored: true }; })
+    .concat([{ id: "local-test", serverStored: false }]),
+  workOrders: Array.from({ length: 125 }, function (_value, index) { return { id: "order-" + index }; }),
+  bankTransactions: [{ id: "bank-1" }],
+  draft: { id: "draft-1" }
+});
+assert.equal(cachedState.invoices.length, 1);
+assert.ok(cachedState.invoices.some(function (invoice) { return invoice.id === "local-test"; }));
+assert.equal(cachedState.workOrders.length, 0);
+assert.deepEqual(cachedState.bankTransactions, []);
+assert.equal(cachedState.draft.id, "draft-1");
+assert.equal(cachedState.profile.taxNumber, "12/345/67890");
+const connectedState = Core.localStateSnapshot(cachedState, true, "user-a");
+assert.equal(connectedState.profile.legalName, "");
+assert.equal(connectedState.profile.taxNumber, "");
+assert.equal(connectedState.profile.iban, "");
+assert.equal(connectedState.invoices.length, 1);
+assert.equal(connectedState.draft.id, "draft-1");
+assert.equal(connectedState.storageOwnerUserId, "user-a");
+assert.match(js, /global\.localStorage\.removeItem\(STORAGE_KEY\)/);
+assert.match(js, /global\.sessionStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(localSnapshot\)\)/);
+assert.match(js, /backend\.serverStateLoaded = true;\s+persist\(\);\s+backendMessage\("Sinhronizirano", "ready"\)/);
+assert.match(js, /var connected = Boolean\(backend\.serverStateLoaded \|\| ownerUserId\)/);
+assert.match(js, /state\.storageOwnerUserId !== nextUserId[\s\S]*global\.sessionStorage\.removeItem\(STORAGE_KEY\)/);
+assert.match(Core.propertyRetentionNotice({ customerType: "private", propertyRelated: true }), /zwei Jahre aufzubewahren \(§ 14b Abs\. 1 UStG\)/);
+assert.match(Core.propertyRetentionNotice({ customerType: "private", handwerker35a: true }), /zwei Jahre aufzubewahren/);
+assert.strictEqual(Core.propertyRetentionNotice({ customerType: "business", propertyRelated: true }), "");
+assert.match(html, /name="propertyRelated"/);
+const mergedBankRows = Core.mergeBankTransactionRows(
+  [{ id: "open-old", booked_on: "2024-01-01", status: "unmatched" }, { id: "duplicate", booked_on: "2025-01-01", status: "unmatched" }],
+  [{ id: "confirmed-new", booked_on: "2026-01-01", status: "confirmed" }, { id: "duplicate", booked_on: "2025-01-01", status: "confirmed" }]
+);
+assert.deepEqual(mergedBankRows.map(function (row) { return row.id; }), ["confirmed-new", "duplicate", "open-old"]);
+assert.match(js, /fetchAllRows\(function \(\) \{[\s\S]*\.eq\("status", "unmatched"\)/);
+assert.match(js, /fetchAllRows\(function \(\) \{[\s\S]*?eq\("status", "confirmed"\)/);
+assert.doesNotMatch(js, /eq\("status", "confirmed"\)[^\n]*\.limit\(200\)/);
+assert.doesNotMatch(js, /scopes\.bank \? backend\.client\.from\("pos_bank_transactions"\)[^;\n]*\.limit\(200\)/);
 assert.match(js, /loadServerState\("deliveries"\)/);
 assert.match(js, /loadServerState\("payments"\)/);
 assert.match(js, /loadServerState\(\["payments", "bank"\]\)/);
-assert.match(js, /scopes\.bank \? backend\.client\.from\("pos_bank_transactions"\)/);
+assert.match(js, /scopes\.bank \? loadBankTransactionRows\(userId\) : skipped\(\)/);
 assert.match(js, /pendingRefreshScopes = mergePosRefreshScopes/);
 assert.match(js, /\.rpc\("pos_import_bank_transactions"/);
 assert.match(js, /\.rpc\("pos_confirm_bank_transaction"/);
@@ -200,6 +375,23 @@ assert.match(css, /\.pos-datev-sheet[\s\S]*overflow-x:\s*hidden/);
 
 assert.strictEqual(Core.parseMoneyToCents("1.234,56 €"), 123456);
 assert.strictEqual(Core.parseQuantityMilli("1,25"), 1250);
+assert.strictEqual(Core.isoToday("2026-12-31T22:30:00.000Z"), "2026-12-31");
+assert.strictEqual(Core.isoToday("2026-12-31T23:30:00.000Z"), "2027-01-01");
+assert.strictEqual(Core.isoToday("2026-03-29T00:30:00.000Z"), "2026-03-29");
+assert.strictEqual(Core.isoToday("2026-03-29T22:30:00.000Z"), "2026-03-30");
+assert.strictEqual(Core.liveInvoiceDateError({ issueDate: "2026-08-22", serviceDate: "2026-08-21" }, "2026-08-22"), "");
+assert.match(Core.liveInvoiceDateError({ issueDate: "2026-08-21", serviceDate: "2026-08-21" }, "2026-08-22"), /današnji nemški poslovni datum/);
+assert.match(Core.liveInvoiceDateError({ issueDate: "2026-08-22", serviceDate: "2026-08-23" }, "2026-08-22"), /ne sme biti v prihodnosti/);
+assert.strictEqual(Core.liveConstructionWithholdingError({ constructionWithholding: true, exemptionCertificate: "valid" }), "");
+assert.strictEqual(Core.liveConstructionWithholdingError({ constructionWithholding: true, exemptionCertificate: "not_applicable" }), "");
+assert.match(Core.liveConstructionWithholdingError({ constructionWithholding: true, exemptionCertificate: "missing" }), /15 % Bauabzugsteuer/);
+assert.strictEqual(Core.addDays("2026-03-28", 1), "2026-03-29");
+assert.strictEqual(Core.addDays("2026-03-29", 1), "2026-03-30");
+assert.strictEqual(Core.addDays("2026-12-31", 1), "2027-01-01");
+assert.strictEqual(Core.addDays("2027-01-01", -1), "2026-12-31");
+assert.strictEqual(Core.defaultProfile("2026-12-31T23:30:00.000Z").invoicePrefix, "RE-2027-");
+assert.strictEqual(Core.datevTimestamp("2026-12-31T23:30:15.007Z"), "20270101003015007");
+assert.strictEqual(Core.datevTimestamp("2026-06-30T22:30:15.007Z"), "20260701003015007");
 assert.deepStrictEqual(Core.normalizePosRefreshScopes(), { profile: true, draft: true, invoices: true, bank: true });
 assert.deepStrictEqual(Core.normalizePosRefreshScopes("payments"), { payments: true });
 assert.deepStrictEqual(Core.normalizePosRefreshScopes(["deliveries", "bank"]), { deliveries: true, bank: true });
@@ -209,6 +401,27 @@ assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 400, refundedCents: 0
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1200, refundedCents: 200, status: "partially_refunded" }], 1000, "open"), { paidCents: 1000, status: "paid" });
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "failed" }], 1000, "open"), { paidCents: 0, status: "open" });
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "succeeded" }], 1000, "cancelled"), { paidCents: 1000, status: "cancelled" });
+assert.deepStrictEqual(Core.paymentSummary([], 0, "credited"), { paidCents: 0, status: "credited" });
+assert.strictEqual(Core.invoiceOutstandingCents({ adjustedGrossCents: 3000, paidCents: 3000, status: "paid" }), 0);
+assert.strictEqual(Core.invoiceOutstandingCents({ adjustedGrossCents: 3000, paidCents: 1000, status: "partial" }), 2000);
+const creditedInvoice = Core.serverInvoiceToLocal({
+  id: "invoice-credit-test", invoice_number: "RE-TEST", snapshot: { draft: {} },
+  due_date: "2026-08-30", net_cents: 10000, tax_cents: 1900, gross_cents: 11900,
+  eligible_35a_cents: 0, is_test: true, issued_at: "2026-08-22T10:00:00.000Z"
+}, {}, {}, {
+  "invoice-credit-test": [{ type: "credit_note", deltaGrossCents: -11900 }]
+}, {}, {});
+assert.strictEqual(creditedInvoice.adjustedGrossCents, 0);
+assert.strictEqual(creditedInvoice.hasCreditNote, true);
+assert.strictEqual(creditedInvoice.status, "credited");
+assert.strictEqual(Core.latestManualPaymentCandidate([
+  { id: "partial", status: "partial", totals: { grossCents: 1000 }, paidCents: 400 },
+  { id: "open", status: "open", totals: { grossCents: 1000 }, paidCents: 0 }
+]).id, "partial");
+assert.strictEqual(Core.latestManualPaymentCandidate([
+  { status: "paid", totals: { grossCents: 1000 }, paidCents: 1000 },
+  { status: "cancelled", totals: { grossCents: 1000 }, paidCents: 0 }
+]), null);
 
 const net = Core.calculateItem({ quantity: "2", unitPrice: "100,00", taxRate: "19" }, "net", "regular");
 assert.deepStrictEqual(
@@ -230,6 +443,11 @@ assert.deepStrictEqual(
 
 const profile = Core.defaultProfile();
 profile.legalName = "Muster Handwerk GmbH";
+profile.legalForm = "GmbH";
+profile.representative = "Erika Beispiel";
+profile.companySeat = "Berlin";
+profile.registerCourt = "Amtsgericht Charlottenburg";
+profile.registerNumber = "HRB 12345 B";
 profile.street = "Musterstraße 1";
 profile.postalCode = "10115";
 profile.city = "Berlin";
@@ -241,6 +459,19 @@ profile.iban = "DE02120300000000202051";
 profile.legalConfirmed = true;
 assert.strictEqual(Core.profileReadiness(profile).live, true);
 assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalName: "   " })).live, false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { registerNumber: "" })).live, false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { legalForm: "Einzelunternehmen", companySeat: "", registerCourt: "", registerNumber: "" })).live, true);
+assert.match(Core.profileValidationError(Object.assign({}, profile, { legalForm: "Sonstige" })), /podprto nemško pravno obliko/);
+assert.strictEqual(Core.validIban("DE02 1203 0000 0000 2020 51"), true);
+assert.strictEqual(Core.validIban("DE03 1203 0000 0000 2020 51"), false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { iban: "DE03120300000000202051" })).live, false);
+assert.strictEqual(Core.profileReadiness(Object.assign({}, profile, { vatId: "DE123", taxNumber: "" })).live, false);
+assert.match(Core.profileValidationError(Object.assign({}, profile, { iban: "DE03120300000000202051" })), /IBAN/);
+assert.strictEqual(Core.profileChangeRequiresConfirmation("iban"), true);
+assert.strictEqual(Core.profileChangeRequiresConfirmation("taxStatus"), true);
+assert.strictEqual(Core.profileChangeRequiresConfirmation("registerCourt"), true);
+assert.strictEqual(Core.profileChangeRequiresConfirmation("defaultDueDays"), false);
+assert.strictEqual(Core.profileChangeRequiresConfirmation("invoicePrefix"), false);
 assert.deepStrictEqual(Core.profileForPreview({ legalName: "   " }, true), {
   legalName: "TEST-Unternehmen", street: "Musterstraße 1", postalCode: "00000", city: "Teststadt"
 });
@@ -274,6 +505,10 @@ assert.deepStrictEqual({ amount: csvTransactions[0].amount_cents, date: csvTrans
 const camtTransactions = Core.parseCamt053(`<?xml version="1.0"?><BkToCstmrStmt><Stmt><Ntry><Amt Ccy="EUR">1.19</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-08-19</Dt></BookgDt><AcctSvcrRef>CAMT-REF-1</AcctSvcrRef><NtryDtls><TxDtls><RltdPties><Dbtr><Nm>Unicode-Test Žiga Čebelar</Nm></Dbtr><DbtrAcct><Id><IBAN>DE02120300000000202051</IBAN></Id></DbtrAcct></RltdPties><RmtInf><Ustrd>TEST-2026-0001</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry></Stmt></BkToCstmrStmt>`);
 assert.strictEqual(camtTransactions.length, 1);
 assert.deepStrictEqual({ amount: camtTransactions[0].amount_cents, date: camtTransactions[0].booked_on, reference: camtTransactions[0].external_reference }, { amount: 119, date: "2026-08-19", reference: "CAMT-REF-1" });
+assert.strictEqual(Core.bankImportFileError({ size: 1024 }), "");
+assert.match(Core.bankImportFileError({ size: 0 }), /prazen/i);
+assert.match(Core.bankImportFileError({ size: Core.MAX_BANK_IMPORT_BYTES + 1 }), /5 MB/);
+assert.match(js, /reader\.onerror = function \(\) \{ showToast\("Bančnega izpiska ni bilo mogoče prebrati\."\); \}/);
 const bankMatch = Core.matchBankTransaction(csvTransactions[0], [serverTestInvoice]);
 assert.strictEqual(bankMatch.invoice.id, "server-test");
 assert.strictEqual(bankMatch.score, 100);
@@ -366,6 +601,24 @@ draft.items[0].description = "Arbeitsleistung für die vollständige Sanierung";
 draft.items[0].unitPrice = "100,00";
 draft.finalConfirmed = true;
 assert.deepStrictEqual(Core.validateStep(draft, profile, 4), []);
+const zeroValueDraft = JSON.parse(JSON.stringify(draft));
+zeroValueDraft.items.forEach((item) => { item.unitPrice = "0,00"; });
+assert.ok(Core.validateStep(zeroValueDraft, profile, 2).some((entry) => /večji od 0,00/.test(entry)));
+assert.ok(positiveTotalMigrationName, "Manjka prepoved ničelnega pravnega POS računa.");
+assert.match(positiveTotalMigration, /check \(gross_cents > 0\)[\s\S]*validate constraint pos_invoices_positive_total_check/i);
+
+const invalidParty = JSON.parse(JSON.stringify(draft));
+invalidParty.customerPostalCode = "2009";
+invalidParty.customerEmail = "ni-email";
+invalidParty.customerPhone = "12";
+invalidParty.customerVatId = "napačno";
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /PLZ prejemnika/.test(entry)));
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /E-poštni naslov prejemnika/.test(entry)));
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /Telefon prejemnika/.test(entry)));
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /USt-IdNr\. prejemnika/.test(entry)));
+const multilineParty = JSON.parse(JSON.stringify(draft));
+multilineParty.customerName = "Kunde GmbH\nInjected";
+assert.ok(Core.validateStep(multilineParty, profile, 1).some((entry) => /preloma vrstice/.test(entry)));
 
 const privateReverse = JSON.parse(JSON.stringify(draft));
 privateReverse.customerType = "private";
@@ -377,6 +630,16 @@ const publicWithoutLeitweg = JSON.parse(JSON.stringify(draft));
 publicWithoutLeitweg.customerType = "public";
 publicWithoutLeitweg.leitwegId = "";
 assert.ok(Core.validateStep(publicWithoutLeitweg, profile, 1).some((entry) => /Leitweg-ID/.test(entry)));
+
+const privateConstruction = JSON.parse(JSON.stringify(draft));
+privateConstruction.customerType = "private";
+privateConstruction.constructionWithholding = true;
+privateConstruction.exemptionCertificate = "valid";
+assert.ok(Core.validateStep(privateConstruction, profile, 3).some((entry) => /§ 48 EStG/.test(entry)));
+
+const businessHandwerker = JSON.parse(JSON.stringify(draft));
+businessHandwerker.handwerker35a = true;
+assert.ok(Core.validateStep(businessHandwerker, profile, 3).some((entry) => /§ 35a EStG/.test(entry)));
 
 const invoice = {
   number: "RE-2026-0001",
@@ -437,11 +700,9 @@ const duplicateDocumentExport = Core.buildDatevExport([
   Object.assign({}, datevInvoice, { id: "datev-duplicate-b", number: "RE 1" })
 ], datevSettings, "2026-08", new Date("2026-08-20T09:00:00Z"));
 assert.ok(duplicateDocumentExport.errors.some((message) => /enak DATEV ključ/.test(message)));
-const xml = Core.buildXRechnungXml(invoice, profile);
-assert.match(xml, /xrechnung_3\.0/);
-assert.match(xml, /<cbc:InvoiceTypeCode>380<\/cbc:InvoiceTypeCode>/);
-assert.match(xml, /<cbc:PayableAmount currencyID="EUR">119\.00<\/cbc:PayableAmount>/);
-assert.match(xml, /Muster Handwerk GmbH/);
+assert.strictEqual(Core.buildXRechnungXml, undefined, "XRechnung sme nastati samo iz zaklenjenega računa na strežniku.");
+assert.doesNotMatch(js, /function buildXRechnungXml\(/);
+assert.match(js, /Točen XRechnung nastane iz zaklenjenih podatkov po izdaji/);
 
 const epc = Core.buildEpcPayload(invoice, profile);
 assert.match(epc, /^BCD\n002\n1\nSCT\n/);
@@ -456,13 +717,22 @@ const business2026 = Core.deliveryRecommendation(invoice, profile);
 assert.strictEqual(business2026.documentFormat, "xrechnung_pdf");
 assert.strictEqual(business2026.pdfAllowed, true);
 assert.strictEqual(business2026.structuredRequired, false);
-const business2027Unknown = Core.deliveryRecommendation({ draft: Object.assign({}, draft, { issueDate: "2027-04-01" }) }, profile);
+const business2027Unknown = Core.deliveryRecommendation({ totals: { grossCents: 50000 }, draft: Object.assign({}, draft, { issueDate: "2027-04-01", serviceDate: "2027-03-28" }) }, profile);
 assert.strictEqual(business2027Unknown.pdfAllowed, false);
 assert.strictEqual(business2027Unknown.needsTurnoverDecision, true);
 profile.previousYearTurnoverBand = "gt_800k";
 profile.datevSettings = datevSettings;
-const business2027Large = Core.deliveryRecommendation({ draft: Object.assign({}, draft, { issueDate: "2027-04-01" }) }, profile);
+const business2027Large = Core.deliveryRecommendation({ totals: { grossCents: 50000 }, draft: Object.assign({}, draft, { issueDate: "2027-04-01", serviceDate: "2027-03-28" }) }, profile);
 assert.strictEqual(business2027Large.structuredRequired, true);
+const business2028SmallAmount = Core.deliveryRecommendation({ totals: { grossCents: 25000 }, draft: Object.assign({}, draft, { issueDate: "2028-04-01", serviceDate: "2028-03-28" }) }, profile);
+assert.strictEqual(business2028SmallAmount.pdfAllowed, true);
+assert.strictEqual(business2028SmallAmount.structuredRequired, false);
+const business2028ReverseCharge = Core.deliveryRecommendation({ totals: { grossCents: 25000 }, draft: Object.assign({}, draft, { issueDate: "2028-04-01", serviceDate: "2028-03-28", taxMode: "reverse_charge" }) }, profile);
+assert.strictEqual(business2028ReverseCharge.pdfAllowed, false, "§ 33 UStDV ne velja za reverse charge po § 13b UStG.");
+const business2028SmallBusiness = Core.deliveryRecommendation({ totals: { grossCents: 50000 }, draft: Object.assign({}, draft, { issueDate: "2028-04-01", serviceDate: "2028-03-28", taxMode: "small_business" }) }, Object.assign({}, profile, { taxStatus: "small_business" }));
+assert.strictEqual(business2028SmallBusiness.pdfAllowed, true);
+const lateInvoiceForOldService = Core.deliveryRecommendation({ totals: { grossCents: 50000 }, draft: Object.assign({}, draft, { issueDate: "2028-01-10", serviceDate: "2026-12-20" }) }, profile);
+assert.strictEqual(lateInvoiceForOldService.pdfAllowed, true, "Prehodno pravilo se presoja po datumu prometa/storitve, ne po datumu izdaje.");
 const publicDelivery = Core.deliveryRecommendation({ draft: Object.assign({}, draft, { customerType: "public" }) }, profile);
 assert.deepStrictEqual({ channel: publicDelivery.channel, format: publicDelivery.documentFormat }, { channel: "ozg_re", format: "xrechnung" });
 
@@ -470,6 +740,12 @@ const dbProfile = Core.profileToDatabase(profile, "11111111-1111-4111-8111-11111
 assert.strictEqual(dbProfile.legal_name, "Muster Handwerk GmbH");
 assert.strictEqual(dbProfile.user_id, "11111111-1111-4111-8111-111111111111");
 assert.strictEqual(dbProfile.previous_year_turnover_band, "gt_800k");
+assert.strictEqual(dbProfile.company_seat, "Berlin");
+assert.strictEqual(dbProfile.register_court, "Amtsgericht Charlottenburg");
+assert.strictEqual(dbProfile.register_number, "HRB 12345 B");
+assert.strictEqual(Core.profileFromDatabase(dbProfile).registerNumber, "HRB 12345 B");
+assert.strictEqual(Core.profileToDatabase(Object.assign({}, profile, { vatId: "de-123 456 789" }), "user-1").vat_id, "DE123456789");
+assert.strictEqual(Core.draftToDatabasePayload(Object.assign(Core.defaultDraft(profile), { customerVatId: "de-123 456 789" })).customer_vat_id, "DE123456789");
 assert.strictEqual(dbProfile.business_phone, "+49 30 1234567");
 assert.strictEqual(Object.keys(dbProfile).some((key) => /^(?:next_.*_sequence|created_at|updated_at)$/.test(key)), false);
 assert.strictEqual(dbProfile.datev_settings.adviserNumber, "29098");
@@ -478,10 +754,14 @@ const dbDraft = Core.draftToDatabasePayload(draft);
 assert.strictEqual(dbDraft.items[0].unit_price_cents, 10000);
 assert.strictEqual(dbDraft.items[0].quantity_milli, 1000);
 assert.strictEqual(dbDraft.items[0].tax_rate_bps, 1900);
+assert.strictEqual(dbDraft.property_related, false);
+const propertyDbDraft = Core.draftToDatabasePayload(Object.assign({}, draft, { propertyRelated: true }));
+assert.strictEqual(propertyDbDraft.property_related, true);
 const restoredDraft = Core.draftFromDatabasePayload(dbDraft);
 assert.strictEqual(restoredDraft.customerName, draft.customerName);
 assert.strictEqual(restoredDraft.items[0].unitPrice, "100,00");
 assert.strictEqual(restoredDraft.finalConfirmed, false, "Obnovljen osnutek mora zahtevati nov končni pregled.");
+assert.strictEqual(Core.draftFromDatabasePayload(propertyDbDraft).propertyRelated, true);
 assert.deepStrictEqual(Core.buildAdjustmentChanges({ draft, dueDate: "2026-09-02" }, {
   customer_name: draft.customerName,
   customer_street: "Neue Straße 44",
@@ -500,7 +780,7 @@ assert.strictEqual(replacementDraft.customerName, draft.customerName);
 assert.strictEqual(replacementDraft.items[0].description, draft.items[0].description);
 assert.strictEqual(replacementDraft.finalConfirmed, false);
 assert.strictEqual(replacementDraft.einvoiceValidated, false);
-assert.strictEqual(replacementDraft.issueDate, new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+assert.strictEqual(replacementDraft.issueDate, Core.isoToday());
 assert.notStrictEqual(replacementDraft.items[0].id, draft.items[0].id);
 assert.deepStrictEqual(Core.normalizeReplacementContext(replacementDraft), {
   originalInvoiceId: "11111111-1111-4111-8111-111111111111",
@@ -536,6 +816,42 @@ assert.ok(draftOwnershipIndex > existingInvoiceIndex, "Obstoj osnutka se preveri
 assert.match(issueConcurrencyMigration, /security definer\s+set search_path = ''/i);
 assert.match(issueConcurrencyMigration, /revoke all on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.match(issueConcurrencyMigration, /grant execute on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) to authenticated, service_role/i);
+assert.ok(privateRpcSurfaceMigrationName, "Manjka zaprtje neposrednega dostopa do zasebnih POS RPC funkcij.");
+[
+  "pos_archive_readiness", "pos_confirm_bank_transaction", "pos_create_invoice_adjustment",
+  "pos_import_bank_transactions", "pos_import_finapi_transactions", "pos_issue_invoice",
+  "pos_issue_replacement_invoice", "pos_prepare_invoice_delivery", "pos_queue_invoice_delivery",
+  "pos_record_manual_payment", "pos_save_work_order", "pos_transition_work_order"
+].forEach((name) => {
+  assert.match(privateRpcSurfaceMigration, new RegExp("alter function public\\." + name + "\\([^;]*\\) security definer", "i"));
+});
+[
+  "pos_archive_readiness", "_pos_confirm_bank_transaction", "_pos_create_invoice_adjustment_validated",
+  "_pos_import_bank_transactions_validated", "_pos_import_finapi_transactions_validated",
+  "_pos_issue_invoice_validated", "_pos_issue_replacement_invoice_validated",
+  "_pos_prepare_invoice_delivery", "_pos_queue_invoice_delivery", "_pos_record_manual_payment",
+  "_pos_save_work_order_validated", "_pos_transition_work_order"
+].forEach((name) => {
+  assert.match(privateRpcSurfaceMigration, new RegExp("revoke execute on function private\\." + name.replace(/^_/, "\\_") + "\\([^;]*from authenticated", "i"));
+});
+assert.ok(payloadLimitsMigrationName, "Manjka omejitev strežniškega POS payload-a.");
+assert.match(payloadLimitsMigration, /octet_length\(p_payload::text\) > 524288/i);
+assert.match(payloadLimitsMigration, /customer_street[\s\S]*between 1 and 180/i);
+assert.match(payloadLimitsMigration, /customer_postal_code[\s\S]*between 1 and 12/i);
+assert.match(payloadLimitsMigration, /customer_email[\s\S]*> 320/i);
+assert.match(payloadLimitsMigration, /work_description[\s\S]*> 1200/i);
+assert.match(payloadLimitsMigration, /pos_invoice_drafts_payload_size_check[\s\S]*validate constraint pos_invoice_drafts_payload_size_check/i);
+assert.match(payloadLimitsMigration, /pos_invoices_snapshot_size_check[\s\S]*validate constraint pos_invoices_snapshot_size_check/i);
+assert.match(payloadLimitsMigration, /create or replace function public\.pos_issue_invoice[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadLimitsMigration, /create or replace function public\.pos_issue_replacement_invoice[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from authenticated/i);
+assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_issue_replacement_invoice\(uuid,jsonb,boolean,boolean,uuid\) from authenticated/i);
+assert.ok(payloadInvokerMigrationName, "Manjka neprivilegiran javni ovoj za POS izdajo.");
+assert.match(payloadInvokerMigration, /create or replace function private\._pos_issue_invoice_validated[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadInvokerMigration, /create or replace function private\._pos_issue_replacement_invoice_validated[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadInvokerMigration, /create or replace function public\.pos_issue_invoice[\s\S]*security invoker[\s\S]*private\._pos_issue_invoice_validated/i);
+assert.match(payloadInvokerMigration, /create or replace function public\.pos_issue_replacement_invoice[\s\S]*security invoker[\s\S]*private\._pos_issue_replacement_invoice_validated/i);
+assert.match(payloadInvokerMigration, /revoke all on function private\._pos_issue_invoice_validated\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.ok(manualPaymentMigrationName, "Manjka varna strežniška pot za ročno potrditev plačila.");
 assert.match(manualPaymentMigration, /revoke insert on table public\.pos_payments from authenticated/i);
 assert.match(manualPaymentMigration, /drop policy if exists pos_payment_insert_own/i);
@@ -579,6 +895,76 @@ assert.match(adjustmentsMigration, /p_adjustment_type not in \('correction','can
 assert.match(adjustmentsMigration, /v_net := -v_invoice\.net_cents/i);
 assert.match(adjustmentsMigration, /security definer\s+set search_path = ''/i);
 assert.match(adjustmentsMigration, /create or replace function public\.pos_create_invoice_adjustment[\s\S]*security invoker/i);
+assert.ok(adjustmentLimitsMigrationName, "Manjka omejitev payload-a popravka računa.");
+assert.match(adjustmentLimitsMigration, /octet_length\(p_changes::text\) > 65536/i);
+assert.match(adjustmentLimitsMigration, /jsonb_typeof\(v_value\) <> 'string'/i);
+assert.match(adjustmentLimitsMigration, /pos_invoice_adjustments_changes_size_check[\s\S]*validate constraint pos_invoice_adjustments_changes_size_check/i);
+assert.match(adjustmentLimitsMigration, /pos_invoice_adjustments_snapshot_size_check[\s\S]*2097152[\s\S]*validate constraint pos_invoice_adjustments_snapshot_size_check/i);
+assert.match(adjustmentLimitsMigration, /create or replace function private\._pos_create_invoice_adjustment_validated[\s\S]*security definer/i);
+assert.match(adjustmentLimitsMigration, /create or replace function public\.pos_create_invoice_adjustment[\s\S]*security invoker[\s\S]*private\._pos_create_invoice_adjustment_validated/i);
+assert.match(adjustmentLimitsMigration, /revoke execute on function private\._pos_create_invoice_adjustment\(uuid,text,text,jsonb,boolean\) from authenticated/i);
+assert.ok(adjustmentSourceMigrationName, "Manjkajo izvorne invariante popravkov računov.");
+assert.match(adjustmentSourceMigration, /pos_invoice_adjustments_kind_shape_check/i);
+assert.match(adjustmentSourceMigration, /adjustment_type = 'correction'[\s\S]*changes <> '\{\}'::jsonb[\s\S]*delta_gross_cents = 0/i);
+assert.match(adjustmentSourceMigration, /adjustment_type = 'cancellation'[\s\S]*delta_gross_cents < 0/i);
+assert.match(adjustmentSourceMigration, /new\.snapshot #>> '\{original_invoice,invoice_number\}' <> v_invoice\.invoice_number/i);
+assert.match(adjustmentSourceMigration, /new\.delta_gross_cents <> -v_invoice\.gross_cents/i);
+assert.match(adjustmentSourceMigration, /new\.changes \? 'due_date'[\s\S]*v_invoice\.issue_date \+ 365/i);
+assert.match(adjustmentSourceMigration, /create trigger pos_invoice_adjustments_validate_source[\s\S]*before insert on public\.pos_invoice_adjustments/i);
+assert.match(adjustmentSourceMigration, /validate constraint pos_invoice_adjustments_kind_shape_check/i);
+assert.ok(adjustmentNullGuardsMigrationName, "Manjkajo NULL-varovalke izvora popravkov.");
+assert.match(adjustmentNullGuardsMigration, /perform private\.pos_validate_adjustment_changes\(/i);
+assert.strictEqual((adjustmentNullGuardsMigration.match(/is distinct from/gi) || []).length, 9);
+assert.match(adjustmentNullGuardsMigration, /snapshot #>> '\{original_invoice,id\}' is distinct from v_invoice\.id::text/i);
+assert.match(adjustmentNullGuardsMigration, /snapshot #>> '\{original_invoice,gross_cents\}'\)::bigint is distinct from v_invoice\.gross_cents/i);
+assert.match(adjustmentNullGuardsMigration, /revoke all on function private\.pos_validate_adjustment_source\(\) from public, anon, authenticated/i);
+assert.ok(businessProfileInvariantsMigrationName, "Manjkajo varovalke poslovnega profila.");
+assert.match(businessProfileInvariantsMigration, /create or replace function private\.pos_iban_valid\(p_iban text\)/i);
+assert.match(businessProfileInvariantsMigration, /return v_remainder = 1/i);
+assert.match(businessProfileInvariantsMigration, /pos_business_profiles_german_tax_shape_check/i);
+assert.match(businessProfileInvariantsMigration, /vat_id = '' or vat_id ~ '\^DE\[0-9\]\{9\}\$'/i);
+assert.match(businessProfileInvariantsMigration, /pos_business_profiles_confirmation_check/i);
+assert.match(businessProfileInvariantsMigration, /grant execute on function private\.pos_iban_valid\(text\) to authenticated, service_role/i);
+assert.ok(profileReconfirmationMigrationName, "Manjka ponovna potrditev spremenjenega profila.");
+assert.match(profileReconfirmationMigration, /if old\.legal_confirmed and/i);
+assert.match(profileReconfirmationMigration, /new\.iban is distinct from old\.iban/i);
+assert.match(profileReconfirmationMigration, /new\.legal_confirmed := false/i);
+assert.match(profileReconfirmationMigration, /create trigger pos_business_profiles_reset_confirmation[\s\S]*before update on public\.pos_business_profiles/i);
+assert.ok(sellerLegalIdentityMigrationName, "Manjkajo pravni podatki izdajatelja za nemške poslovne dokumente.");
+assert.match(sellerLegalIdentityMigration, /add column company_seat text not null default ''/i);
+assert.match(sellerLegalIdentityMigration, /add column register_court text not null default ''/i);
+assert.match(sellerLegalIdentityMigration, /add column register_number text not null default ''/i);
+assert.match(sellerLegalIdentityMigration, /legal_form in \('Einzelunternehmen', 'e\.K\.', 'GbR', 'eGbR', 'UG \(haftungsbeschränkt\)', 'GmbH'\)/i);
+assert.match(sellerLegalIdentityMigration, /pos_invoices_live_seller_legal_identity_check[\s\S]*validate constraint pos_invoices_live_seller_legal_identity_check/i);
+assert.match(sellerLegalIdentityMigration, /create trigger pos_invoices_capture_seller_legal_identity[\s\S]*before insert on public\.pos_invoices/i);
+assert.match(sellerLegalIdentityMigration, /create trigger pos_work_orders_lock_seller_legal_identity[\s\S]*before update of status on public\.pos_work_orders/i);
+assert.match(sellerLegalIdentityMigration, /new\.locked_payload := jsonb_set[\s\S]*'\{seller\}'/i);
+assert.ok(invoicePartyValidationMigrationName, "Manjka strežniška validacija prejemnika računa.");
+assert.match(invoicePartyValidationMigration, /customer_postal_code[\s\S]*'\^\[0-9\]\{5\}\$'/i);
+assert.match(invoicePartyValidationMigration, /customer_email[\s\S]*\^\[\^\[:space:\]@\]\+@/i);
+assert.match(invoicePartyValidationMigration, /tax_mode[\s\S]*reverse_charge[\s\S]*v_vat_id = ''/i);
+assert.match(invoicePartyValidationMigration, /private\.pos_validate_invoice_payload\([\s\S]*private\.pos_validate_invoice_party_fields\(/i);
+assert.match(invoicePartyValidationMigration, /revoke all on function private\.pos_validate_invoice_party_fields\(jsonb\)[\s\S]*authenticated/i);
+assert.ok(invoiceEinvoicePartyRequirementsMigrationName, "Manjkajo strežniške zahteve za XRechnung kontakte.");
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_customer_type in \('business', 'public'\)[\s\S]*v_buyer_reference = '' and v_leitweg_id = ''/i);
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_customer_type = 'business' and v_email = ''/i);
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_seller_email[\s\S]*business_email[\s\S]*auth\.uid\(\)/i);
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_seller_phone = ''/i);
+assert.ok(invoiceTaxEvidenceRequirementsMigrationName, "Manjkajo strežniške zahteve za davčna dokazila računa.");
+assert.match(invoiceTaxEvidenceRequirementsMigration, /v_construction_withholding[\s\S]*v_customer_type not in \('business', 'public'\)/i);
+assert.match(invoiceTaxEvidenceRequirementsMigration, /v_exemption_certificate not in \('valid', 'missing', 'not_applicable'\)/i);
+assert.match(invoiceTaxEvidenceRequirementsMigration, /v_handwerker_35a[\s\S]*v_customer_type <> 'private'/i);
+assert.match(invoiceTaxEvidenceRequirementsMigration, /private\.pos_validate_invoice_tax_evidence\([\s\S]*private\.pos_validate_invoice_payload/i);
+assert.ok(alreadyPaidInvoicePaymentMigrationName, "Manjka atomaren zapis že plačanega računa.");
+assert.match(alreadyPaidInvoicePaymentMigration, /snapshot #>> '\{draft,payment_method\}' = 'already_paid'/i);
+assert.match(alreadyPaidInvoicePaymentMigration, /insert into public\.pos_payments[\s\S]*new\.gross_cents/i);
+assert.match(alreadyPaidInvoicePaymentMigration, /create trigger pos_invoices_record_already_paid[\s\S]*after insert on public\.pos_invoices/i);
+assert.match(alreadyPaidInvoicePaymentMigration, /invoice_issued_already_paid/i);
+assert.ok(germanBusinessTimezoneMigrationName, "Manjka nemški poslovni časovni pas za strežniške POS funkcije.");
+assert.match(germanBusinessTimezoneMigration, /_pos_create_invoice_adjustment\(uuid,text,text,jsonb,boolean\)[\s\S]*Europe\/Berlin/i);
+assert.match(germanBusinessTimezoneMigration, /_pos_save_work_order\(uuid,jsonb\)[\s\S]*Europe\/Berlin/i);
+assert.match(germanBusinessTimezoneMigration, /_pos_transition_work_order\(uuid,text\)[\s\S]*Europe\/Berlin/i);
+assert.match(germanBusinessTimezoneMigration, /_pos_import_finapi_transactions\(text,jsonb\)[\s\S]*Europe\/Berlin/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
@@ -651,6 +1037,60 @@ assert.match(finapiMigration, /security invoker/i);
 assert.match(finapiMigration, /security definer\s+set search_path = ''/i);
 assert.match(finapiMigration, /external_reference !~ '\^finapi:\[0-9\]\+\$'/i);
 assert.match(finapiMigration, /notify pgrst, 'reload schema'/i);
+assert.ok(bankLimitsMigrationName, "Manjka omejitev payload-a bančnega uvoza.");
+assert.match(bankLimitsMigration, /octet_length\(p_transactions::text\) > p_max_bytes/i);
+assert.match(bankLimitsMigration, /jsonb_typeof\(v_row->'amount_cents'\) not in \('number', 'string'\)/i);
+assert.match(bankLimitsMigration, /v_amount > 9223372036854775807/i);
+assert.match(bankLimitsMigration, /private\._pos_import_bank_transactions_validated[\s\S]*4194304/i);
+assert.match(bankLimitsMigration, /private\._pos_import_finapi_transactions_validated[\s\S]*2097152/i);
+assert.match(bankLimitsMigration, /create or replace function public\.pos_import_bank_transactions[\s\S]*security invoker[\s\S]*private\._pos_import_bank_transactions_validated/i);
+assert.match(bankLimitsMigration, /create or replace function public\.pos_import_finapi_transactions[\s\S]*security invoker[\s\S]*private\._pos_import_finapi_transactions_validated/i);
+assert.match(bankLimitsMigration, /revoke execute on function private\._pos_import_bank_transactions\(text,text,text,jsonb\) from authenticated/i);
+assert.match(bankLimitsMigration, /revoke execute on function private\._pos_import_finapi_transactions\(text,jsonb\) from authenticated/i);
+assert.ok(internalJsonLimitsMigrationName, "Manjkajo omejitve notranjih JSON zapisov POS.");
+assert.match(internalJsonLimitsMigration, /pos_audit_events_details_size_check[\s\S]*octet_length\(details::text\) <= 65536/i);
+assert.match(internalJsonLimitsMigration, /pos_datev_connections_services_size_check[\s\S]*jsonb_typeof\(services\) = 'array'/i);
+assert.match(internalJsonLimitsMigration, /pos_einvoice_documents_validation_report_size_check[\s\S]*2097152/i);
+assert.match(internalJsonLimitsMigration, /pos_payments_metadata_size_check[\s\S]*jsonb_typeof\(metadata\) = 'object'/i);
+assert.match(internalJsonLimitsMigration, /validate constraint pos_work_order_events_details_size_check/i);
+assert.ok(moneyInvariantsMigrationName, "Manjkajo denarne invariante POS.");
+assert.match(moneyInvariantsMigration, /gross_cents = net_cents \+ tax_cents/i);
+assert.match(moneyInvariantsMigration, /eligible_35a_cents between 0 and gross_cents/i);
+assert.match(moneyInvariantsMigration, /tax_mode = 'regular' or tax_cents = 0/i);
+assert.match(moneyInvariantsMigration, /pos_invoice_adjustments_money_invariant_check[\s\S]*delta_gross_cents = delta_net_cents \+ delta_tax_cents/i);
+assert.match(moneyInvariantsMigration, /pos_payments_amount_upper_bound_check[\s\S]*100000000000/i);
+assert.match(moneyInvariantsMigration, /validate constraint pos_bank_transactions_amount_upper_bound_check/i);
+assert.ok(dateInvariantsMigrationName, "Manjkajo datumske invariante POS.");
+assert.match(dateInvariantsMigration, /due_date between issue_date and issue_date \+ 365/i);
+assert.match(dateInvariantsMigration, /is_test and document_status = 'test'/i);
+assert.match(dateInvariantsMigration, /not is_test and document_status = 'issued'/i);
+assert.match(dateInvariantsMigration, /valid_until between[\s\S]*Europe\/Berlin[\s\S]*\+ 180/i);
+assert.match(dateInvariantsMigration, /create trigger pos_invoices_live_issue_date_guard[\s\S]*before insert or update of issue_date, is_test/i);
+assert.match(dateInvariantsMigration, /not new\.is_test[\s\S]*Europe\/Berlin[\s\S]*pg_catalog\.now/i);
+assert.match(dateInvariantsMigration, /revoke all on function private\.pos_enforce_live_invoice_issue_date\(\) from public, anon, authenticated/i);
+assert.match(dateInvariantsMigration, /validate constraint pos_work_orders_validity_window_check/i);
+assert.ok(liveCalendarMigrationName, "Manjka stroga koledarska varovalka pravih računov.");
+assert.match(liveCalendarMigration, /check \(is_test or service_date <= issue_date\) not valid/i);
+assert.match(liveCalendarMigration, /new\.issue_date is distinct from[\s\S]*Europe\/Berlin[\s\S]*pg_catalog\.now/i);
+assert.match(liveCalendarMigration, /validate constraint pos_invoices_live_service_date_check/i);
+assert.ok(liveBauabzugMigrationName, "Manjka produkcijska varovalka nepodprte Bauabzugsteuer.");
+assert.match(liveBauabzugMigration, /pos_invoices_live_bauabzug_support_check/i);
+assert.match(liveBauabzugMigration, /construction_withholding[\s\S]*exemption_certificate[\s\S]*missing/i);
+assert.match(liveBauabzugMigration, /validate constraint pos_invoices_live_bauabzug_support_check/i);
+assert.ok(tenantInvariantsMigrationName, "Manjkajo uporabniške invariante povezav POS.");
+assert.strictEqual((tenantInvariantsMigration.match(/foreign key \([^\n]+, user_id\)/gi) || []).length, 25);
+assert.strictEqual((tenantInvariantsMigration.match(/validate constraint pos_tenant_/gi) || []).length, 25);
+assert.strictEqual((tenantInvariantsMigration.match(/unique \(id, user_id\)/gi) || []).length, 10);
+assert.match(tenantInvariantsMigration, /pos_tenant_archive_record_invoice_fk[\s\S]*foreign key \(invoice_id, user_id\)/i);
+assert.match(tenantInvariantsMigration, /pos_tenant_payment_invoice_fk[\s\S]*references public\.pos_invoices\(id, user_id\)/i);
+assert.match(tenantInvariantsMigration, /pos_tenant_invoice_delivery_event_delivery_fk[\s\S]*references public\.pos_invoice_deliveries\(id, user_id\)/i);
+assert.match(tenantInvariantsMigration, /pos_tenant_work_order_invoice_order_fk[\s\S]*references public\.pos_work_orders\(id, user_id\)/i);
+assert.ok(tenantIndexesMigrationName, "Manjkajo pokrivni indeksi uporabniških tujih ključev POS.");
+assert.strictEqual((tenantIndexesMigration.match(/create index /gi) || []).length, 25);
+assert.strictEqual((tenantIndexesMigration.match(/\([^\n]+, user_id\)/gi) || []).length, 25);
+assert.match(tenantIndexesMigration, /pos_archive_records_invoice_user_idx[\s\S]*pos_archive_records\(invoice_id, user_id\)/i);
+assert.match(tenantIndexesMigration, /pos_payments_invoice_user_idx[\s\S]*pos_payments\(invoice_id, user_id\)/i);
+assert.match(tenantIndexesMigration, /pos_work_order_invoices_order_user_idx[\s\S]*pos_work_order_invoices\(work_order_id, user_id\)/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
@@ -668,4 +1108,9 @@ assert.match(finapiLib, /\/api\/webForms\/bankConnectionImport/);
 assert.doesNotMatch(finapiLib, /requestJson\(cfg, "\/bankConnections\/import"/);
 assert.match(finapiLib, /Do NOT route multiple application users|one end user/i);
 
-console.log("POS terminal: nemška logika, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
+testFetchAllRows().then(function () {
+  console.log("POS terminal: nemška logika, celotna zgodovina, dostavni predal, Supabase RLS in mobilna geometrija so preverjeni.");
+}).catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});

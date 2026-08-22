@@ -2,6 +2,7 @@
 
 const crypto = require("crypto");
 const supabase = require("./supabase-server");
+const providerJson = require("./provider-json");
 
 const CHECKER_VERSION = "pos-archive-integrity-v1";
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -22,11 +23,11 @@ async function readObject(cfg, record) {
   );
   if (response.status === 400 || response.status === 404) return null;
   if (!response.ok) throw Object.assign(new Error("Arhiviranega originala ni bilo mogoče prebrati."), { status: response.status });
-  const declaredLength = Number(response.headers.get("content-length") || 0);
-  if (declaredLength > MAX_BYTES) throw new Error("Arhivirani original presega dovoljeno velikost.");
-  const buffer = Buffer.from(await response.arrayBuffer());
-  if (buffer.length > MAX_BYTES) throw new Error("Arhivirani original presega dovoljeno velikost.");
-  return buffer;
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_BYTES,
+    code: "POS_ARCHIVE_OBJECT_TOO_LARGE",
+    message: "Arhivirani original presega dovoljeno velikost."
+  });
 }
 
 async function verifyRecord(cfg, record) {
@@ -82,6 +83,7 @@ async function verifyAndRecord(cfg, record) {
 module.exports = {
   CHECKER_VERSION,
   hash,
+  readObject,
   verifyRecord,
   verifyAndRecord,
   _test: { encodedPath, MAX_BYTES }

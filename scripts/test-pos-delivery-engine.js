@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
+const recipientValidationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822100000_pos_delivery_recipient_validation.sql"), "utf8");
 const migrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_delivery_dispatch_engine\.sql$/.test(name)).sort().pop();
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", migrationName), "utf8");
@@ -17,7 +18,20 @@ const liveMigration = fs.readFileSync(path.join(root, "supabase", "migrations", 
 const safeTestMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_resend_safe_test_mode\.sql$/.test(name)).sort().pop();
 const safeTestMigration = fs.readFileSync(path.join(root, "supabase", "migrations", safeTestMigrationName), "utf8");
-const api = fs.readFileSync(path.join(root, "api", "pos-dostava-sandbox.js"), "utf8");
+const einvoiceExemptionsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_einvoice_delivery_exemptions\.sql$/.test(name)).sort().pop();
+const einvoiceExemptionsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", einvoiceExemptionsMigrationName), "utf8");
+const einvoiceContextMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_invoice_einvoice_context\.sql$/.test(name)).sort().pop();
+const einvoiceContextMigration = fs.readFileSync(path.join(root, "supabase", "migrations", einvoiceContextMigrationName), "utf8");
+const deliveryLimitsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_delivery_field_limits\.sql$/.test(name)).sort().pop();
+const deliveryLimitsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", deliveryLimitsMigrationName), "utf8");
+const lifecycleMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_delivery_lifecycle_invariants\.sql$/.test(name)).sort().pop();
+assert.ok(lifecycleMigrationName, "Manjkajo invariante življenjskega cikla dostave.");
+const lifecycleMigration = fs.readFileSync(path.join(root, "supabase", "migrations", lifecycleMigrationName), "utf8");
+const api = fs.readFileSync(path.join(root, "api", "_handlers", "pos-dostava-sandbox.js"), "utf8");
 const providerSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-providers.js"), "utf8");
 const packageSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-package.js"), "utf8");
 const runnerSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-runner.js"), "utf8");
@@ -29,6 +43,9 @@ const packages = require(path.join(root, "api", "_lib", "pos-delivery-package.js
 const runner = require(path.join(root, "api", "_lib", "pos-delivery-runner.js"));
 const worker = require(path.join(root, "api", "pos-dostava-delavec.js"));
 const endpoint = require(path.join(root, "api", "pos-dostava-sandbox.js"));
+
+assert.match(api, /requestJson\(req, MAX_BODY_BYTES\)/);
+assert.match(emailEndpointSource, /requestJson\(req, MAX_BODY_BYTES\)/);
 
 assert.match(migration, /document_format in \('pdf','xrechnung_pdf'\)[\s\S]*pos_invoice_documents/);
 assert.match(migration, /document_format in \('xrechnung','xrechnung_pdf'\)[\s\S]*validation_status[\s\S]*<> 'validated'/);
@@ -60,11 +77,40 @@ assert.match(safeTestMigration, /public\.pos_apply_resend_test_webhook_event/);
 assert.match(safeTestMigration, /revoke all on function public\.pos_queue_resend_test_invoice_delivery\(uuid,uuid,boolean\) from public, anon, authenticated/);
 assert.match(safeTestMigration, /grant execute on function public\.pos_queue_resend_test_invoice_delivery\(uuid,uuid,boolean\) to service_role/);
 assert.doesNotMatch(safeTestMigration, /grant execute on function public\.pos_queue_resend_test_invoice_delivery[\s\S]*to authenticated/);
+assert.match(einvoiceExemptionsMigration, /invoice\.service_date < date '2027-01-01'/i);
+assert.match(einvoiceExemptionsMigration, /invoice\.gross_cents <= 25000 and invoice\.tax_mode <> 'reverse_charge'/i);
+assert.match(einvoiceExemptionsMigration, /invoice\.tax_mode = 'small_business'/i);
+assert.match(einvoiceExemptionsMigration, /previous_year_turnover_band = 'lte_800k'/i);
+assert.match(einvoiceExemptionsMigration, /before insert or update of document_format, status, provider, is_test/i);
+assert.match(einvoiceExemptionsMigration, /not private\.pos_invoice_pdf_delivery_allowed\(v_invoice\.id, v_user\)/i);
+assert.match(einvoiceContextMigration, /add column seller_previous_year_turnover_band text/i);
+assert.match(einvoiceContextMigration, /before insert on public\.pos_invoices/i);
+assert.match(einvoiceContextMigration, /select previous_year_turnover_band[\s\S]*where user_id = new\.user_id/i);
+assert.match(einvoiceContextMigration, /invoice\.seller_previous_year_turnover_band = 'lte_800k'/i);
+assert.doesNotMatch(einvoiceContextMigration, /join public\.pos_business_profiles/i);
+assert.match(einvoiceContextMigration, /validate constraint pos_invoices_seller_turnover_band_check/i);
+assert.match(deliveryLimitsMigration, /char_length\(recipient\) <= 320[\s\S]*recipient !~ E'\[\\\\r\\\\n\]'/i);
+assert.match(deliveryLimitsMigration, /char_length\(subject\) <= 240[\s\S]*subject !~ E'\[\\\\r\\\\n\]'/i);
+assert.match(deliveryLimitsMigration, /char_length\(message\) <= 4000/i);
+assert.match(deliveryLimitsMigration, /octet_length\(details::text\) <= 65536/i);
+assert.match(deliveryLimitsMigration, /validate constraint pos_invoice_delivery_events_details_check/i);
+assert.match(recipientValidationMigration, /channel <> 'email'[\s\S]*recipient\) ~\* '\^\[\^\[:space:\]@\]/i);
+assert.match(recipientValidationMigration, /routing_reference !~ E'\[\\r\\n\]'/i);
+assert.match(recipientValidationMigration, /validate constraint pos_invoice_deliveries_email_recipient_check/i);
+assert.match(lifecycleMigration, /pos_invoice_deliveries_lifecycle_check/i);
+assert.match(lifecycleMigration, /\(status = 'processing'\) = \(locked_at is not null\)/i);
+assert.match(lifecycleMigration, /status not in \('sent','delivered','delivery_delayed','bounced','complained','suppressed'\)[\s\S]*last_provider_event_at is not null/i);
+assert.match(lifecycleMigration, /new\.status = 'test_prepared' and new\.provider = 'not_connected'/i);
+assert.match(lifecycleMigration, /new\.is_test <> v_invoice_is_test/i);
+assert.match(lifecycleMigration, /before insert or update of invoice_id, user_id, status, provider, is_test/i);
+assert.match(lifecycleMigration, /revoke all on function private\.pos_validate_delivery_invoice_mode\(\) from public, anon, authenticated/i);
+assert.match(lifecycleMigration, /validate constraint pos_invoice_deliveries_lifecycle_check/i);
 
 assert.match(api, /supabase\.preveriUporabnika/);
 assert.match(api, /p_user_id: auth\.user\.id/);
 assert.match(api, /pos_claim_invoice_delivery/);
 assert.match(api, /processClaimed/);
+assert.match(api, /Cache-Control", "private, no-store, max-age=0"/);
 assert.match(api, /sent: false/);
 assert.match(api, /delivered: false/);
 assert.match(providerSource, /https:\/\/api\.resend\.com\/emails/);
@@ -77,6 +123,8 @@ assert.match(packageSource, /pos_invoice_documents/);
 assert.match(packageSource, /pos_einvoice_documents/);
 assert.match(packageSource, /validation_status !== "validated"/);
 assert.match(packageSource, /DELIVERY_ATTACHMENT_HASH_MISMATCH/);
+assert.match(packageSource, /providerJson\.readBuffer/);
+assert.doesNotMatch(packageSource, /response\.arrayBuffer\(/);
 assert.match(packageSource, /pos-invoice-originals/);
 assert.match(packageSource, /pos-einvoice-originals/);
 assert.match(runnerSource, /pos_finish_invoice_delivery/);
@@ -90,7 +138,7 @@ assert.match(emailEndpointSource, /EMAIL_DELIVERY_NOT_ENABLED/);
 assert.match(workerSource, /readiness\.testEnabled/);
 assert.match(workerSource, /pos_claim_resend_test_invoice_delivery/);
 assert.match(emailEndpointSource, /pos_queue_live_invoice_delivery/);
-assert.match(emailEndpointSource, /confirmed === true/);
+assert.match(emailEndpointSource, /body\.confirmed !== true/);
 assert.match(vercel, /"\/api\/pos-dostava-delavec"[\s\S]*"31 3 \* \* \*"/);
 assert.match(emailEndpointSource, /pos_queue_resend_test_invoice_delivery/);
 
@@ -104,6 +152,8 @@ assert.strictEqual(worker._test.safeEqual("a", "b"), false);
 assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3, "resend", true), /provider=eq\.resend[\s\S]*is_test=eq\.true/);
 
 (async function () {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server.js"));
+  const originalFetch = supabase.fetchZOmejitvijo;
   const content = Buffer.from("archived invoice bytes");
   const attachment = packages.verifyAttachment({
     kind: "invoice_pdf",
@@ -157,6 +207,14 @@ assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3
   assert.strictEqual(providers.validEmail("rechnung@example.de"), true);
   assert.strictEqual(providers.validEmail("bad\n@example.de"), false);
   assert.throws(() => packages.verifyAttachment(Object.assign({}, attachment, { sha256: "0".repeat(64) })), /celovitosti/);
+  supabase.fetchZOmejitvijo = async function () {
+    return new Response("PDF", { status: 200, headers: { "content-length": String(packages._test.MAX_PDF_BYTES + 1) } });
+  };
+  await assert.rejects(
+    () => packages._test.downloadObject({ url: "https://database.example", serviceKey: "test" }, "bucket", "path", "application/pdf", packages._test.MAX_PDF_BYTES),
+    function (error) { return error && error.code === "DELIVERY_ATTACHMENT_TOO_LARGE" && error.retryable === false; }
+  );
+  supabase.fetchZOmejitvijo = originalFetch;
   await assert.rejects(
     () => provider.deliver({
       delivery: { id: "x", invoice_id: "y", is_test: false },
@@ -195,6 +253,17 @@ assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3
   const resendPayload = JSON.parse(requests[0].options.body);
   assert.deepStrictEqual(resendPayload.to, ["kunde@example.de"]);
   assert.strictEqual(resendPayload.attachments[0].content, content.toString("base64"));
+  const oversizedResponseProvider = providers.providerFor("resend", {
+    env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>", POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true" },
+    fetch: async () => new Response("{}", {
+      status: 200,
+      headers: { "content-type": "application/json", "content-length": String(providers.MAX_PROVIDER_RESPONSE_BYTES + 1) },
+    }),
+  });
+  await assert.rejects(
+    () => oversizedResponseProvider.deliver(livePackage),
+    function (error) { return error && error.code === "RESEND_RESPONSE_TOO_LARGE" && error.retryable === true; }
+  );
   const testRequests = [];
   const safeTest = providers.providerFor("resend", {
     env: {

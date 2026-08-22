@@ -18,8 +18,11 @@ function json(res, status, body) {
 }
 
 async function rawRequestBody(req) {
-  if (Buffer.isBuffer(req.rawBody)) return req.rawBody.toString("utf8");
-  if (typeof req.rawBody === "string") return req.rawBody;
+  if (Buffer.isBuffer(req.rawBody) || typeof req.rawBody === "string") {
+    const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(req.rawBody, "utf8");
+    if (raw.length > MAX_BODY_BYTES) { const error = new Error("Webhook je prevelik."); error.status = 413; throw error; }
+    return raw.toString("utf8");
+  }
   const chunks = [];
   let total = 0;
   for await (const chunk of req) {
@@ -38,12 +41,20 @@ function uuid(value) {
 
 function objectId(value) { return typeof value === "string" ? value : value && value.id || ""; }
 
+function eventCreatedAt(value, nowMilliseconds) {
+  const seconds = Number(value);
+  if (!Number.isSafeInteger(seconds) || seconds <= 0) return "";
+  const date = new Date(seconds * 1000);
+  const now = Number.isFinite(nowMilliseconds) ? nowMilliseconds : Date.now();
+  return Number.isFinite(date.getTime()) && date.getTime() <= now + 5 * 60 * 1000 ? date.toISOString() : "";
+}
+
 function normalizeEvent(event) {
   const object = event && event.data && event.data.object || {};
   const metadata = object.metadata || {};
   const base = {
     eventId: String(event && event.id || ""), eventType: String(event && event.type || ""),
-    eventCreatedAt: new Date(Number(event && event.created || 0) * 1000).toISOString(),
+    eventCreatedAt: eventCreatedAt(event && event.created),
     livemode: Boolean(event && event.livemode), userId: uuid(metadata.user_id), invoiceId: uuid(metadata.invoice_id),
     attemptId: uuid(metadata.provider_attempt_id), checkoutSessionId: "", paymentIntentId: "",
     amountCents: 0, currency: String(object.currency || "").toUpperCase(), paymentStatus: String(object.payment_status || object.status || ""),
@@ -100,7 +111,12 @@ async function handler(req, res) {
       return json(res, 503, { ok: false, code: "STRIPE_REFUND_LOOKUP_FAILED", napaka: "Stripe povračila trenutno ni bilo mogoče povezati s testnim plačilom." });
     }
   }
-  if (!normalized.eventId.startsWith("evt_") || !Number.isSafeInteger(normalized.amountCents) || normalized.amountCents <= 0 || normalized.currency !== "EUR") {
+  if (!normalized.eventId.startsWith("evt_") || normalized.eventId.length > 240 || !normalized.eventCreatedAt
+      || normalized.checkoutSessionId.length > 240 || normalized.paymentIntentId.length > 240
+      || normalized.paymentStatus.length > 120 || !Number.isSafeInteger(normalized.amountCents)
+      || normalized.amountCents <= 0 || !Number.isSafeInteger(normalized.refundedCents)
+      || normalized.refundedCents < 0 || normalized.refundedCents > normalized.amountCents
+      || normalized.currency !== "EUR") {
     return json(res, 400, { ok: false, code: "INVALID_WEBHOOK_EVENT", napaka: "Stripe dogodek nima veljavnih podatkov." });
   }
   try {
@@ -132,4 +148,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { normalizeEvent, rawRequestBody, uuid };
+module.exports._test = { eventCreatedAt, normalizeEvent, rawRequestBody, uuid, MAX_BODY_BYTES };

@@ -10,12 +10,18 @@ const checkoutHandler = require(path.join(root, "api", "_handlers", "pos-stripe-
 const checkout = checkoutHandler._test;
 const webhook = require(path.join(root, "api", "_handlers", "pos-stripe-webhook"))._test;
 const posCore = require(path.join(root, "app", "pos-terminal.js"));
-const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260820202607_stripe_sandbox_invoice_payments.sql"), "utf8");
+const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260820204343_stripe_sandbox_invoice_payments.sql"), "utf8");
+const monotonicRefundMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821230949_pos_stripe_refunds_monotonic.sql"), "utf8");
+const paymentEventInvariantsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822054500_pos_payment_event_invariants.sql"), "utf8");
 const router = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "app", "pos-terminal.css"), "utf8");
+const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
+
+assert.match(localServer, /pathname === "\/api\/pos-stripe-checkout"[\s\S]*izvediLokalniApi\(req, res, posStripeCheckoutModul\)/);
+assert.match(localServer, /pathname === "\/api\/pos-stripe-webhook"[\s\S]*izvediLokalniApi\(req, res, posStripeWebhookModul\)/);
 
 assert.throws(() => stripeSandbox.configuration({}), /ključ še ni nastavljen/);
 assert.throws(() => stripeSandbox.configuration({ STRIPE_MODE: "live", STRIPE_SECRET_KEY: "sk_test_x", STRIPE_WEBHOOK_SECRET: "whsec_1234567890123456" }), /zaklenjen/);
@@ -23,6 +29,11 @@ assert.throws(() => stripeSandbox.configuration({ STRIPE_SECRET_KEY: "sk_live_fo
 assert.deepStrictEqual(stripeSandbox.configuration({
   STRIPE_MODE: "test", STRIPE_SECRET_KEY: "sk_test_example", STRIPE_WEBHOOK_SECRET: "whsec_1234567890123456",
 }), { mode: "test", secretKey: "sk_test_example", webhookSecret: "whsec_1234567890123456" });
+assert.strictEqual(stripeSandbox.safeBaseUrl({ headers: { host: "uspesni-jezek.vercel.app" } }, { NODE_ENV: "production" }), "https://uspesni-jezek.vercel.app");
+assert.strictEqual(stripeSandbox.safeBaseUrl({ headers: { host: "attacker.invalid" } }, { NODE_ENV: "production", VERCEL_URL: "uspesni-jezek-git-pos-preview.vercel.app" }), "https://uspesni-jezek-git-pos-preview.vercel.app");
+assert.strictEqual(stripeSandbox.safeBaseUrl({ headers: { host: "attacker.invalid" } }, { NODE_ENV: "production", STRIPE_RETURN_BASE_URL: "https://pos.example.de/path?q=1" }), "https://pos.example.de");
+assert.throws(() => stripeSandbox.safeBaseUrl({ headers: { "x-forwarded-host": "attacker-preview.vercel.app", host: "uspesni-jezek.vercel.app" } }, { NODE_ENV: "production" }), /povratna domena/i);
+assert.throws(() => stripeSandbox.safeBaseUrl({ headers: { host: "attacker.invalid" } }, { NODE_ENV: "production" }), /povratna domena/i);
 assert.strictEqual(stripeSandbox.assertTestPaymentIntent({
   id: "pi_test_refund", livemode: false, amount: 11900, currency: "eur",
   metadata: { test_mode: "true", user_id: "user-1", invoice_id: "invoice-1" },
@@ -53,6 +64,19 @@ assert.doesNotMatch(params.success_url, /%7BCHECKOUT_SESSION_ID%7D/);
 assert.match(params.cancel_url, /stripe=cancelled/);
 assert.doesNotMatch(params.cancel_url, /CHECKOUT_SESSION_ID|stripe_session_id/);
 assert.match(params.cancel_url, /invoice_id=11111111-1111-4111-8111-111111111111/);
+const checkoutSession = {
+  id: "cs_test_retry_safe", livemode: false, metadata: params.metadata,
+};
+assert.strictEqual(stripeSandbox.assertTestSession(checkoutSession, {
+  userId: params.metadata.user_id,
+  invoiceId: params.metadata.invoice_id,
+  attemptId: params.metadata.provider_attempt_id,
+}).id, checkoutSession.id);
+assert.throws(() => stripeSandbox.assertTestSession(checkoutSession, {
+  userId: params.metadata.user_id,
+  invoiceId: params.metadata.invoice_id,
+  attemptId: "44444444-4444-4444-8444-444444444444",
+}), /ni povezana/);
 
 assert.strictEqual(checkout.effectivePaidCents([
   { amount_cents: 10000, refunded_cents: 2500, status: "partially_refunded" },
@@ -64,6 +88,15 @@ assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_c
 assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 2500), 2500);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 11900, status: "refunded" }), /uspešno Stripe TEST plačilo/);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 10001), /ni veljaven/);
+assert.deepStrictEqual(checkout.requestBody({ headers: {}, body: { action: "status" } }), { action: "status" });
+assert.throws(
+  () => checkout.requestBody({ headers: { "content-length": String(checkout.MAX_BODY_BYTES + 1) }, body: {} }),
+  function (error) { return error && error.status === 413; }
+);
+assert.throws(
+  () => checkout.requestBody({ headers: {}, body: "x".repeat(checkout.MAX_BODY_BYTES + 1) }),
+  function (error) { return error && error.status === 413; }
+);
 assert.deepStrictEqual(posCore.validateRefundAmountInput("25,00", 11900), { amountCents: 2500, error: "" });
 assert.match(posCore.validateRefundAmountInput("0", 11900).error, /večji od 0/);
 assert.match(posCore.validateRefundAmountInput("120,00", 11900).error, /119,00/);
@@ -99,6 +132,10 @@ const refunded = webhook.normalizeEvent(Object.assign({}, baseEvent, {
 }));
 assert.strictEqual(refunded.refundedCents, 11900);
 assert.strictEqual(refunded.paymentIntentId, "pi_test");
+assert.strictEqual(webhook.eventCreatedAt("ni-cas"), "");
+const fixedNow = Date.parse("2026-08-21T12:00:00.000Z");
+assert.strictEqual(webhook.eventCreatedAt(String(fixedNow / 1000 + 301), fixedNow), "");
+assert.strictEqual(webhook.eventCreatedAt(String(fixedNow / 1000 + 300), fixedNow), "2026-08-21T12:05:00.000Z");
 
 assert.match(migration, /alter table public\.pos_payments[\s\S]*add column status text not null default 'succeeded'/i);
 assert.match(migration, /create table public\.pos_payment_events/i);
@@ -108,9 +145,26 @@ assert.match(migration, /p_amount_cents <> v_payment\.amount_cents/i);
 assert.match(migration, /grant execute on function public\.pos_apply_stripe_event[\s\S]*to service_role/i);
 assert.doesNotMatch(migration, /grant execute on function public\.pos_apply_stripe_event[\s\S]*to authenticated/i);
 assert.match(migration, /private\._pos_effective_paid_cents/i);
+assert.match(monotonicRefundMigration, /create or replace function private\.pos_preserve_refund_progress\(\)/i);
+assert.match(monotonicRefundMigration, /new\.refunded_cents < old\.refunded_cents[\s\S]*new\.refunded_cents := old\.refunded_cents/i);
+assert.match(monotonicRefundMigration, /new\.refunded_cents = new\.amount_cents[\s\S]*new\.status := 'refunded'/i);
+assert.match(monotonicRefundMigration, /create trigger pos_payments_refund_monotonic[\s\S]*before update on public\.pos_payments/i);
+assert.match(monotonicRefundMigration, /revoke all on function private\.pos_preserve_refund_progress\(\) from public, anon, authenticated/i);
+assert.match(paymentEventInvariantsMigration, /pos_payment_events_source_shape_check/i);
+assert.match(paymentEventInvariantsMigration, /external_event_id ~ '\^evt_\[A-Za-z0-9_\]\+\$'/i);
+assert.match(paymentEventInvariantsMigration, /event_created_at <= processed_at \+ interval '5 minutes'/i);
+assert.match(paymentEventInvariantsMigration, /summary->'test_mode' = 'true'::jsonb/i);
+assert.match(paymentEventInvariantsMigration, /v_payment\.provider is distinct from 'stripe'/i);
+assert.match(paymentEventInvariantsMigration, /v_payment\.method is distinct from 'stripe_card'/i);
+assert.match(paymentEventInvariantsMigration, /new\.event_created_at < v_payment\.created_at - interval '5 minutes'/i);
+assert.match(paymentEventInvariantsMigration, /create trigger pos_payment_events_validate_source[\s\S]*before insert on public\.pos_payment_events/i);
+assert.match(paymentEventInvariantsMigration, /validate constraint pos_payment_events_source_shape_check/i);
 assert.match(router, /"stripe-checkout": require\("\.\/_handlers\/pos-stripe-checkout"\)/);
 assert.match(router, /"stripe-webhook": require\("\.\/_handlers\/pos-stripe-webhook"\)/);
-assert.match(fs.readFileSync(path.join(root, "api", "_handlers", "pos-stripe-checkout.js"), "utf8"), /stripe\.refunds\.create/);
+const checkoutHandlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-stripe-checkout.js"), "utf8");
+assert.match(checkoutHandlerSource, /stripe\.refunds\.create/);
+assert.match(checkoutHandlerSource, /const attemptId = requestId;/);
+assert.match(checkoutHandlerSource, /assertTestSession[\s\S]*\{ userId: auth\.user\.id, invoiceId, attemptId \}/);
 assert.match(vercel, /\/api\/pos-stripe-checkout/);
 assert.match(vercel, /\/api\/pos-stripe-webhook/);
 assert.match(html, /Plačaj s kartico – TEST/);
@@ -193,6 +247,18 @@ async function testStatusHandler() {
   }
 }
 
+async function testWebhookBodyLimit() {
+  assert.strictEqual(await webhook.rawRequestBody({ rawBody: Buffer.from("{}") }), "{}");
+  await assert.rejects(
+    () => webhook.rawRequestBody({ rawBody: Buffer.alloc(webhook.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+  await assert.rejects(
+    () => webhook.rawRequestBody({ rawBody: "x".repeat(webhook.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+}
+
 async function testRefundHandler() {
   const originals = {
     userConfiguration: supabaseServer.uporabniskaKonfiguracija,
@@ -251,7 +317,10 @@ async function testRefundHandler() {
     assert.strictEqual(calls.refunds.length, 1);
     assert.strictEqual(calls.refunds[0].params.payment_intent, "pi_test_refund");
     assert.strictEqual(calls.refunds[0].params.metadata.request_id, request.body.requestId);
-    assert.match(calls.refunds[0].options.idempotencyKey, /:1900:2500$/);
+    assert.strictEqual(
+      calls.refunds[0].options.idempotencyKey,
+      "uj-pos-test-refund:22222222-2222-4222-8222-222222222222:33333333-3333-4333-8333-333333333333:" + request.body.requestId
+    );
     assert(calls.queries.some((entry) => entry.table === "pos_invoices" && entry.query.includes("is_test=eq.true")));
     assert(calls.queries.some((entry) => entry.table === "pos_payments" && entry.query.includes("user_id=eq.")));
   } finally {
@@ -264,7 +333,7 @@ async function testRefundHandler() {
   }
 }
 
-testStatusHandler().then(testRefundHandler).then(() => {
+testWebhookBodyLimit().then(testStatusHandler).then(testRefundHandler).then(() => {
   console.log("POS Stripe sandbox Checkout, refund API, webhook varovalke in plačilna sled: OK");
 }).catch((error) => {
   console.error(error);

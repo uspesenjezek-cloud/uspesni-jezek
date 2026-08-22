@@ -4,7 +4,7 @@ const fs = require("fs");
 const fontkit = require("@pdf-lib/fontkit");
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
 
-const GENERATOR_VERSION = "uj-pos-pdf-4";
+const GENERATOR_VERSION = "uj-pos-pdf-8";
 const FONT_REGULAR_PATH = require.resolve("./fonts/NotoSans-Regular.ttf");
 const FONT_BOLD_PATH = require.resolve("./fonts/NotoSans-Bold.ttf");
 const FONT_REGULAR = fs.readFileSync(FONT_REGULAR_PATH);
@@ -126,9 +126,35 @@ function taxIdentityText(seller) {
   return "";
 }
 
+function priceMode(value) {
+  return value === "gross" ? "gross" : "net";
+}
+
+function lineDisplayAmount(item, mode) {
+  return Number(item && item[priceMode(mode) === "gross" ? "gross_cents" : "net_cents"]) || 0;
+}
+
+function sellerLegalDisclosureLines(seller) {
+  const source = seller || {};
+  const form = safeText(source.legalForm);
+  const representative = safeText(source.representative);
+  const registered = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"].includes(form);
+  const lines = [];
+  if (form) lines.push("Rechtsform: " + form);
+  if (registered) {
+    lines.push("Sitz: " + safeText(source.companySeat) + " · Registergericht: " + safeText(source.registerCourt) + " · Registernummer: " + safeText(source.registerNumber));
+  }
+  if (representative) {
+    lines.push((form === "GmbH" || form === "UG (haftungsbeschränkt)" ? "Geschäftsführung: " : form === "Einzelunternehmen" || form === "e.K." ? "Inhaber/in: " : "Vertretungsberechtigte: ") + representative);
+  }
+  return lines;
+}
+
 function sellerForInvoice(invoice) {
   const source = invoice && invoice.snapshot && invoice.snapshot.seller || {};
-  const identityReady = [source.legalName, source.street, source.postalCode, source.city].every((value) => safeText(value));
+  const registered = ["e.K.", "eGbR", "UG (haftungsbeschränkt)", "GmbH"].includes(safeText(source.legalForm));
+  const identityReady = [source.legalName, source.legalForm, source.representative, source.street, source.postalCode, source.city].every((value) => safeText(value))
+    && (!registered || [source.companySeat, source.registerCourt, source.registerNumber].every((value) => safeText(value)));
   const paymentReady = Boolean(safeText(source.accountHolder) && safeText(source.iban));
   const taxReady = Boolean(taxIdentityText(source));
 
@@ -150,6 +176,48 @@ function sellerForInvoice(invoice) {
     testPayment: !paymentReady,
     testTax: !taxReady
   };
+}
+
+function propertyRetentionNote(draft) {
+  const source = draft || {};
+  if (source.customer_type !== "private" || (!source.property_related && !source.handwerker_35a)) return "";
+  return "Der Leistungsempfänger ist verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).";
+}
+
+function constructionWithholdingNote(draft) {
+  const source = draft || {};
+  if (!source.construction_withholding) return "";
+  const labels = {
+    valid: "gültig",
+    missing: "nicht vorgelegt",
+    not_applicable: "nicht relevant",
+    unknown: "noch nicht geprüft"
+  };
+  return "Bauleistung nach § 48 EStG. Freistellungsbescheinigung: " + (labels[source.exemption_certificate] || labels.unknown) + ".";
+}
+
+function paymentInstructions(invoice, seller, sellerInfo) {
+  const draft = invoice && invoice.snapshot && invoice.snapshot.draft || {};
+  if (sellerInfo && sellerInfo.testPayment) return [
+    "Keine Zahlung - TESTDOKUMENT",
+    "Kontoinhaber: TEST - kein echter Zahlungsempfänger",
+    "IBAN: NICHT VORHANDEN",
+    "Verwendungszweck: " + safeText(invoice.invoice_number)
+  ];
+  if (draft.payment_method === "already_paid") return [
+    "Bereits bezahlt",
+    "Der Rechnungsbetrag wurde bei Ausstellung als vollständig bezahlt bestätigt."
+  ];
+  if (draft.payment_method === "card_external") return [
+    "Zahlung über externes Kartenterminal",
+    "Die Kartenzahlung wird außerhalb dieses POS erfasst."
+  ];
+  return [
+    "Zahlung per Überweisung",
+    "Kontoinhaber: " + safeText(seller.accountHolder || seller.legalName),
+    "IBAN: " + safeText(seller.iban),
+    "Verwendungszweck: " + safeText(invoice.invoice_number)
+  ];
 }
 
 function drawTestWatermark(page, bold) {
@@ -201,8 +269,10 @@ async function ustvariRacunPdf(invoice) {
   addPage(false);
 
   const sellerAddress = [seller.street, [seller.postalCode, seller.city].filter(Boolean).join(" ")].filter(Boolean).map(safeText);
+  const sellerDisclosure = sellerLegalDisclosureLines(seller).flatMap((line) => wrap(line, regular, 7.2, 250));
   page.drawText("Absender", { x: PAGE.margin, y, font: bold, size: 7.5, color: COLORS.muted });
-  y = drawLines(page, [seller.legalName].concat(sellerAddress), PAGE.margin, y - 15, { font: regular, size: 9, lineHeight: 12 }) - 8;
+  y = drawLines(page, [seller.legalName].concat(sellerAddress), PAGE.margin, y - 15, { font: regular, size: 9, lineHeight: 12 });
+  y = drawLines(page, sellerDisclosure, PAGE.margin, y - 2, { font: regular, size: 7.2, lineHeight: 9, color: COLORS.muted }) - 8;
 
   const customer = [draft.customer_name, draft.customer_street, [draft.customer_postal_code, draft.customer_city].filter(Boolean).join(" ")].filter(Boolean);
   page.drawText("Rechnung an", { x: PAGE.margin, y, font: bold, size: 7.5, color: COLORS.muted });
@@ -227,14 +297,16 @@ async function ustvariRacunPdf(invoice) {
   page.drawText("Leistungen", { x: PAGE.margin, y, font: bold, size: 12, color: COLORS.tealDark });
   y -= 18;
 
+  const displayedPriceMode = priceMode(draft.price_mode);
+  const priceSuffix = displayedPriceMode === "gross" ? "brutto" : "netto";
   const columns = { desc: PAGE.margin, qty: 306, unit: 369, tax: 445, total: 547 };
   function tableHeader() {
     page.drawRectangle({ x: PAGE.margin, y: y - 5, width: PAGE.width - PAGE.margin * 2, height: 22, color: COLORS.pale });
     page.drawText("Beschreibung", { x: columns.desc + 7, y: y + 3, font: bold, size: 7.5, color: COLORS.tealDark });
     rightText(page, "Menge", columns.qty + 43, y + 3, bold, 7.5, COLORS.tealDark);
-    rightText(page, "Einzelpreis", columns.unit + 63, y + 3, bold, 7.5, COLORS.tealDark);
+    rightText(page, "E-Preis " + priceSuffix, columns.unit + 63, y + 3, bold, 7.1, COLORS.tealDark);
     rightText(page, "USt.", columns.tax + 38, y + 3, bold, 7.5, COLORS.tealDark);
-    rightText(page, "Betrag", columns.total, y + 3, bold, 7.5, COLORS.tealDark);
+    rightText(page, "Gesamt " + priceSuffix, columns.total, y + 3, bold, 7.1, COLORS.tealDark);
     y -= 14;
   }
   tableHeader();
@@ -249,38 +321,58 @@ async function ustvariRacunPdf(invoice) {
     rightText(page, qty, columns.qty + 43, y - 9, regular, 8, COLORS.ink);
     rightText(page, money(item.unit_price_cents), columns.unit + 63, y - 9, regular, 8, COLORS.ink);
     rightText(page, (Number(item.tax_rate_bps || 0) / 100) + " %", columns.tax + 38, y - 9, regular, 8, COLORS.ink);
-    rightText(page, money(item.gross_cents), columns.total, y - 9, bold, 8.3, COLORS.ink);
+    rightText(page, money(lineDisplayAmount(item, displayedPriceMode)), columns.total, y - 9, bold, 8.3, COLORS.ink);
     y -= rowHeight;
   });
 
   const vatRows = taxGroups(items);
-  const summaryRows = [["Nettobetrag", invoice.net_cents]].concat(
+  const workflow = draft.workflow_context && typeof draft.workflow_context === "object" ? draft.workflow_context : {};
+  const deductions = Array.isArray(workflow.final_deductions) ? workflow.final_deductions : [];
+  const serviceNetCents = items.reduce((sum, item) => sum + (Number(item && item.net_cents) || 0), 0);
+  const serviceTaxCents = items.reduce((sum, item) => sum + (Number(item && item.tax_cents) || 0), 0);
+  const serviceGrossCents = serviceNetCents + serviceTaxCents;
+  const summaryRows = [["Nettobetrag", serviceNetCents]].concat(
     vatRows.map((group) => ["USt. " + (group.tax_rate_bps / 100) + " %", group.tax_cents])
   );
-  if (!vatRows.length) summaryRows.push(["Umsatzsteuer", invoice.tax_cents]);
+  if (!vatRows.length) summaryRows.push(["Umsatzsteuer", serviceTaxCents]);
+  if (deductions.length) {
+    summaryRows.push(["Auftragssumme brutto", serviceGrossCents]);
+    deductions.forEach((entry) => {
+      summaryRows.push([
+        "Abschlag " + safeText(entry.invoice_number || entry.invoice_id) + " (Netto " + money(entry.net_cents) + ", USt. " + money(entry.tax_cents) + ")",
+        -(Number(entry.gross_cents) || 0)
+      ]);
+    });
+  }
   ensureSpace(130 + summaryRows.length * 18);
   const totalX = 335;
   const totalWidth = 212;
   y -= 5;
   summaryRows.forEach((entry) => {
-    page.drawText(entry[0], { x: totalX, y, font: regular, size: 9, color: COLORS.muted });
+    const labelSize = fitSize(entry[0], regular, 145, 9, 6.5);
+    page.drawText(entry[0], { x: totalX, y, font: regular, size: labelSize, color: COLORS.muted });
     rightText(page, money(entry[1]), totalX + totalWidth, y, regular, 9, COLORS.ink);
     y -= 18;
   });
   page.drawLine({ start: { x: totalX, y: y + 10 }, end: { x: totalX + totalWidth, y: y + 10 }, thickness: 1, color: COLORS.teal });
-  page.drawText("Gesamtbetrag", { x: totalX, y: y - 3, font: bold, size: 11, color: COLORS.tealDark });
+  page.drawText(deductions.length ? "Noch zu zahlen" : "Gesamtbetrag", { x: totalX, y: y - 3, font: bold, size: 11, color: COLORS.tealDark });
   rightText(page, money(invoice.gross_cents), totalX + totalWidth, y - 3, bold, 12, COLORS.tealDark);
   y -= 42;
 
   const notes = [];
+  notes.push("Positionspreise und -beträge sind " + priceSuffix + " ausgewiesen.");
   if (draft.replacement_cancellation_number && draft.replacement_original_number) {
     notes.push("Ersatzrechnung zur Stornorechnung " + safeText(draft.replacement_cancellation_number) + "; ursprüngliche Rechnung " + safeText(draft.replacement_original_number) + ".");
   }
   if (invoice.tax_mode === "small_business") notes.push("Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.");
   if (invoice.tax_mode === "reverse_charge") notes.push("Steuerschuldnerschaft des Leistungsempfängers gemäß § 13b UStG.");
+  if (deductions.length) notes.push("Vereinnahmte Teilentgelte und die darauf entfallende Umsatzsteuer wurden gemäß § 14 Abs. 5 UStG abgesetzt.");
   if (draft.handwerker_35a) notes.push("Begünstigte Arbeits-, Fahrt- und Maschinenkosten nach § 35a EStG: " + money(invoice.eligible_35a_cents) + ". Die steuerliche Anerkennung prüft das Finanzamt.");
+  const constructionNote = constructionWithholdingNote(draft);
+  if (constructionNote) notes.push(constructionNote);
   if (draft.consumer_default_notice && draft.customer_type === "private") notes.push("Sie geraten spätestens 30 Tage nach Fälligkeit und Zugang dieser Rechnung in Verzug (§ 286 Abs. 3 BGB).");
-  if (draft.customer_type === "private" && (draft.handwerker_35a || draft.construction_withholding)) notes.push("Hinweis: Bei Leistungen im Zusammenhang mit einem Grundstück ist diese Rechnung zwei Jahre aufzubewahren (§ 14b Abs. 1 UStG).");
+  const retentionNote = propertyRetentionNote(draft);
+  if (retentionNote) notes.push(retentionNote);
   if (invoice.is_test) notes.unshift("Dieses Dokument ist eine TESTRECHNUNG und nicht für den Rechts- oder Geschäftsverkehr bestimmt.");
   if (notes.length) {
     const noteLines = notes.flatMap((note) => wrap(note, regular, 8, PAGE.width - PAGE.margin * 2 - 18));
@@ -291,17 +383,7 @@ async function ustvariRacunPdf(invoice) {
     y -= noteHeight + 10;
   }
 
-  const paymentLines = sellerInfo.testPayment ? [
-    "Keine Zahlung - TESTDOKUMENT",
-    "Kontoinhaber: TEST - kein echter Zahlungsempfänger",
-    "IBAN: NICHT VORHANDEN",
-    "Verwendungszweck: " + safeText(invoice.invoice_number)
-  ] : [
-    "Zahlung per Überweisung",
-    "Kontoinhaber: " + safeText(seller.accountHolder || seller.legalName),
-    "IBAN: " + safeText(seller.iban),
-    "Verwendungszweck: " + safeText(invoice.invoice_number)
-  ];
+  const paymentLines = paymentInstructions(invoice, seller, sellerInfo);
   ensureSpace(86);
   page.drawText(paymentLines[0], { x: PAGE.margin, y, font: bold, size: 9.5, color: COLORS.tealDark });
   drawLines(page, paymentLines.slice(1), PAGE.margin, y - 16, { font: regular, size: 8.5, lineHeight: 12, color: COLORS.ink });
@@ -318,4 +400,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, priceMode, lineDisplayAmount, taxIdentityText, sellerLegalDisclosureLines, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, paymentInstructions, embedUnicodeFonts, ustvariRacunPdf };

@@ -10,6 +10,8 @@ const DEFAULT_SCOPES = [
   "datev:accounting:extf-files-import",
   "offline_access",
 ];
+const MAX_ENCRYPTED_SECRET_BYTES = 16 * 1024;
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 class DatevError extends Error {
   constructor(message, options) {
@@ -37,6 +39,12 @@ function secretKey(value, required) {
 function configuration(env) {
   const source = env || process.env;
   const mode = environment(source.DATEV_MODE);
+  if (mode === "production") {
+    throw new DatevError("Produkcijski DATEV prenos še ni omogočen.", {
+      code: "DATEV_PRODUCTION_LOCKED",
+      status: 409,
+    });
+  }
   const required = mode !== "mock";
   const clientId = String(source.DATEV_CLIENT_ID || "").trim();
   const clientSecret = String(source.DATEV_CLIENT_SECRET || "");
@@ -56,6 +64,12 @@ function configuration(env) {
 }
 
 function urls(mode) {
+  if (environment(mode) === "production") {
+    throw new DatevError("Produkcijski DATEV prenos še ni omogočen.", {
+      code: "DATEV_PRODUCTION_LOCKED",
+      status: 409,
+    });
+  }
   const sandbox = mode !== "production";
   return {
     authorize: sandbox ? "https://login.datev.de/openidsandbox/authorize" : "https://login.datev.de/openid/authorize",
@@ -75,6 +89,9 @@ function encryptBuffer(key, buffer) {
 }
 
 function decryptBuffer(key, value) {
+  if (Buffer.byteLength(String(value || ""), "utf8") > MAX_ENCRYPTED_SECRET_BYTES) {
+    throw new DatevError("DATEV seja je prevelika.", { code: "DATEV_TOKEN_TOO_LARGE", status: 401 });
+  }
   const payload = Buffer.from(String(value || ""), "base64url");
   if (payload.length < 29) throw new DatevError("DATEV seja je poškodovana.", { code: "DATEV_TOKEN_INVALID", status: 401 });
   const decipher = crypto.createDecipheriv("aes-256-gcm", key, payload.subarray(0, 12));
@@ -83,7 +100,12 @@ function decryptBuffer(key, value) {
 }
 
 function encryptSecret(cfg, value) {
-  return value ? encryptBuffer(cfg.tokenKey, Buffer.from(String(value), "utf8")) : "";
+  if (!value) return "";
+  const raw = Buffer.from(String(value), "utf8");
+  if (raw.length > 8 * 1024) {
+    throw new DatevError("DATEV žeton je prevelik.", { code: "DATEV_TOKEN_TOO_LARGE", status: 502 });
+  }
+  return encryptBuffer(cfg.tokenKey, raw);
 }
 
 function decryptSecret(cfg, value) {
@@ -124,10 +146,40 @@ function authorizationUrl(cfg, values) {
   return target.toString();
 }
 
+async function responseBuffer(response) {
+  const declared = Number(response.headers.get("content-length") || 0);
+  if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+    throw new DatevError("DATEV odgovor je prevelik.", { code: "DATEV_RESPONSE_TOO_LARGE", status: 502 });
+  }
+  if (!response.body || typeof response.body.getReader !== "function") {
+    const fallback = Buffer.from(await response.arrayBuffer());
+    if (fallback.length > MAX_RESPONSE_BYTES) {
+      throw new DatevError("DATEV odgovor je prevelik.", { code: "DATEV_RESPONSE_TOO_LARGE", status: 502 });
+    }
+    return fallback;
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const part = await reader.read();
+    if (part.done) break;
+    const chunk = Buffer.from(part.value);
+    total += chunk.length;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel().catch(function () {});
+      throw new DatevError("DATEV odgovor je prevelik.", { code: "DATEV_RESPONSE_TOO_LARGE", status: 502 });
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, total);
+}
+
 async function responseData(response) {
+  const body = (await responseBuffer(response)).toString("utf8");
   const type = String(response.headers.get("content-type") || "");
-  if (type.includes("json")) return response.json().catch(function () { return null; });
-  return response.text().catch(function () { return ""; });
+  if (type.includes("json")) { try { return JSON.parse(body); } catch (_) { return null; } }
+  return body;
 }
 
 async function checkedFetch(url, options, timeoutMs) {
@@ -311,5 +363,8 @@ module.exports = {
   uploadDocument,
   uploadExtf,
   urls,
-  _test: { createPkce, decryptBuffer, encryptBuffer, environment, secretKey },
+  _test: {
+    createPkce, decryptBuffer, encryptBuffer, environment, responseData, secretKey,
+    MAX_ENCRYPTED_SECRET_BYTES, MAX_RESPONSE_BYTES,
+  },
 };
