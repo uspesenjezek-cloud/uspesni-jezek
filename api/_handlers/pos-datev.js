@@ -3,9 +3,11 @@
 const crypto = require("node:crypto");
 const { DateTime } = require("luxon");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
 const datev = require("../_lib/datev-cloud");
 const Core = require("../../app/pos-terminal.js");
 const BERLIN_ZONE = "Europe/Berlin";
+const MAX_ARCHIVE_DOCUMENT_BYTES = 5 * 1024 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -119,11 +121,26 @@ function encodedPath(path) {
 }
 
 async function archiveContent(cfg, record) {
+  if (Number(record.byte_size) > MAX_ARCHIVE_DOCUMENT_BYTES) {
+    throw new datev.DatevError("Arhivirani DATEV dokument presega dovoljeno velikost.", { code: "DATEV_ARCHIVE_TOO_LARGE", status: 409 });
+  }
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + encodeURIComponent(record.storage_bucket) + "/" + encodedPath(record.storage_path), {
     headers: supabase.serviceHeaders(cfg, { Accept: record.original_media_type || "application/octet-stream" }),
   }, 20000);
   if (!response.ok) throw new datev.DatevError("Arhiviranega DATEV dokumenta ni mogoče prebrati.", { code: "DATEV_ARCHIVE_READ_FAILED", status: 502 });
-  const buffer = Buffer.from(await response.arrayBuffer());
+  let buffer;
+  try {
+    buffer = await providerJson.readBuffer(response, {
+      maxBytes: MAX_ARCHIVE_DOCUMENT_BYTES,
+      code: "DATEV_ARCHIVE_TOO_LARGE",
+      message: "Arhivirani DATEV dokument presega dovoljeno velikost.",
+    });
+  } catch (error) {
+    if (error && error.code === "DATEV_ARCHIVE_TOO_LARGE") {
+      throw new datev.DatevError(error.message, { code: error.code, status: 409 });
+    }
+    throw error;
+  }
   const hash = crypto.createHash("sha256").update(buffer).digest("hex");
   if (hash !== record.sha256 || buffer.length !== Number(record.byte_size)) {
     throw new datev.DatevError("Arhivirani dokument ni prestal preverjanja celovitosti.", { code: "DATEV_ARCHIVE_INTEGRITY_FAILED", status: 409 });
@@ -519,6 +536,6 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports._test = {
-  adjustmentLocal, berlinDate, berlinMonthKey, berlinPeriodBounds, chunks, pagedRows, period, periodPackage,
-  publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid,
+  adjustmentLocal, archiveContent, berlinDate, berlinMonthKey, berlinPeriodBounds, chunks, pagedRows, period, periodPackage,
+  publicConnection, publicJob, requestBody, rowsForIds, safeFilename, uuid, MAX_ARCHIVE_DOCUMENT_BYTES,
 };

@@ -145,6 +145,7 @@ assert.match(handler._test.periodPackage.toString(), /rowsForIds\(cfg, "pos_arch
 void (async function verifyDatevPagination() {
   const supabase = require(path.join(root, "api", "_lib", "supabase-server.js"));
   const originalRead = supabase.pridobiVrstice;
+  const originalFetch = supabase.fetchZOmejitvijo;
   const source = Array.from({ length: 1205 }, function (_, index) { return { id: index + 1 }; });
   const offsets = [];
   supabase.pridobiVrstice = async function (_, table, query) {
@@ -167,6 +168,24 @@ void (async function verifyDatevPagination() {
       /odgovor je prevelik/i
     );
     assert.throws(() => datev.encryptSecret(cfg, "x".repeat(8193)), /žeton je prevelik/i);
+    await assert.rejects(
+      () => handler._test.archiveContent({ url: "https://database.example" }, {
+        storage_bucket: "pos-invoice-originals", storage_path: "user/invoice/rechnung.pdf",
+        original_media_type: "application/pdf", byte_size: handler._test.MAX_ARCHIVE_DOCUMENT_BYTES + 1,
+      }),
+      function (error) { return error && error.code === "DATEV_ARCHIVE_TOO_LARGE" && error.status === 409; }
+    );
+    supabase.fetchZOmejitvijo = async function () {
+      return new Response("PDF", { status: 200, headers: { "content-length": String(handler._test.MAX_ARCHIVE_DOCUMENT_BYTES + 1) } });
+    };
+    await assert.rejects(
+      () => handler._test.archiveContent({ url: "https://database.example", serviceKey: "test" }, {
+        storage_bucket: "pos-invoice-originals", storage_path: "user/invoice/rechnung.pdf",
+        original_media_type: "application/pdf", byte_size: 3, sha256: "unused",
+      }),
+      function (error) { return error && error.code === "DATEV_ARCHIVE_TOO_LARGE" && error.status === 409; }
+    );
+    supabase.fetchZOmejitvijo = originalFetch;
 
     const all = await handler._test.pagedRows({}, "datev_test_rows", "select=id&order=id.asc", 500);
     assert.strictEqual(all.length, 1205);
@@ -185,6 +204,7 @@ void (async function verifyDatevPagination() {
     assert.deepStrictEqual(requestedGroups.map(function (group) { return group.length; }), [100, 100, 5]);
   } finally {
     supabase.pridobiVrstice = originalRead;
+    supabase.fetchZOmejitvijo = originalFetch;
   }
   console.log("POS DATEV mock, OAuth zaščita, PDF povezave, celotno obdobje in RLS so preverjeni.");
 })().catch(function (error) {
