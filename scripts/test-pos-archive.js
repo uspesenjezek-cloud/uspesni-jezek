@@ -250,12 +250,24 @@ async function testAwsRoundTrip() {
   const copied = await worm.copyAndVerify(client, testConfig, sampleRecord, original, new Date("2026-08-21T00:00:00Z"));
   assert.strictEqual(copied.objectVersionId, stored.versionId);
   assert.strictEqual(copied.remoteChecksumSha256, sampleRecord.sha256);
-  const recovered = await worm.recoverAndVerify(client, testConfig, Object.assign({}, sampleRecord, {
+  const recoveryRecord = Object.assign({}, sampleRecord, {
     replica_bucket: copied.bucket,
     replica_object_key: copied.objectKey,
     replica_object_version_id: copied.objectVersionId
-  }));
+  });
+  const recovered = await worm.recoverAndVerify(client, testConfig, recoveryRecord);
   assert.strictEqual(recovered.sha256, sampleRecord.sha256);
+  async function* oversizedBody() { yield Buffer.from("abc"); yield Buffer.from("def"); }
+  await assert.rejects(
+    () => worm._test.readBodyBounded(oversizedBody(), 5),
+    function (error) { return error && error.code === "AWS_RECOVERY_TOO_LARGE"; }
+  );
+  await assert.rejects(
+    () => worm.recoverAndVerify({ send: async function () {
+      return { Body: { async transformToByteArray() { return new Uint8Array(original); } } };
+    } }, testConfig, recoveryRecord),
+    function (error) { return error && error.code === "AWS_RECOVERY_INVALID"; }
+  );
   assert.ok(calls.some(function (call) { return call.name === "PutObjectCommand"; }));
   assert.ok(calls.some(function (call) { return call.name === "GetObjectCommand" && call.input.VersionId === stored.versionId; }));
 }

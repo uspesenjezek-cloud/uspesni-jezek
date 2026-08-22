@@ -12,6 +12,7 @@ const {
 const REQUIRED_REGION = "eu-central-1";
 const PROVIDER = "aws_s3_object_lock";
 const MAX_TEST_RETENTION_DAYS = 30;
+const MAX_ARCHIVE_BYTES = 5 * 1024 * 1024;
 
 function bool(value) {
   return String(value || "").toLowerCase() === "true";
@@ -80,6 +81,30 @@ function base64ToHex(value) {
   if (!text) return "";
   const buffer = Buffer.from(text, "base64");
   return buffer.length === 32 ? buffer.toString("hex") : "";
+}
+
+async function readBodyBounded(body, maxBytes) {
+  const limit = Math.min(Math.max(Number(maxBytes) || 0, 1), MAX_ARCHIVE_BYTES);
+  if (body && typeof body[Symbol.asyncIterator] === "function") {
+    const chunks = [];
+    let total = 0;
+    for await (const part of body) {
+      const chunk = Buffer.from(part);
+      total += chunk.length;
+      if (total > limit) {
+        if (typeof body.destroy === "function") body.destroy();
+        throw codedError("AWS_RECOVERY_TOO_LARGE", "Obnovljena AWS kopija presega dovoljeno velikost.");
+      }
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks, total);
+  }
+  if (body && typeof body.transformToByteArray === "function") {
+    const buffer = Buffer.from(await body.transformToByteArray());
+    if (buffer.length > limit) throw codedError("AWS_RECOVERY_TOO_LARGE", "Obnovljena AWS kopija presega dovoljeno velikost.");
+    return buffer;
+  }
+  throw codedError("AWS_RECOVERY_STREAM_UNSUPPORTED", "Obnovljene AWS kopije ni bilo mogoče prebrati.");
 }
 
 function objectKey(record) {
@@ -192,7 +217,7 @@ async function headObject(client, cfg, key, versionId) {
 
 async function copyAndVerify(client, cfg, record, buffer, nowValue) {
   if (!cfg.configured) throw codedError("AWS_ARCHIVE_NOT_CONFIGURED", "AWS arhiv še ni povezan.");
-  if (!Buffer.isBuffer(buffer) || buffer.length !== Number(record.byte_size)) {
+  if (!Buffer.isBuffer(buffer) || buffer.length !== Number(record.byte_size) || buffer.length > MAX_ARCHIVE_BYTES) {
     throw codedError("SOURCE_SIZE_MISMATCH", "Velikost izvirnika pred kopiranjem ni pravilna.");
   }
   const sourceHash = crypto.createHash("sha256").update(buffer).digest("hex");
@@ -266,14 +291,12 @@ async function recoverAndVerify(client, cfg, record) {
   } catch (error) {
     throw codedError(safeErrorCode(error), "AWS kopije ni bilo mogoče obnoviti.", error);
   }
-  if (!response || !response.Body || Number(response.ContentLength) > Number(record.byte_size)) {
+  const expectedSize = Number(record.byte_size);
+  const declaredSize = Number(response && response.ContentLength);
+  if (!response || !response.Body || !Number.isSafeInteger(expectedSize) || expectedSize < 1 || expectedSize > MAX_ARCHIVE_BYTES || declaredSize !== expectedSize) {
     throw codedError("AWS_RECOVERY_INVALID", "Obnovljena AWS kopija ni veljavna.");
   }
-  const bytes = typeof response.Body.transformToByteArray === "function"
-    ? await response.Body.transformToByteArray()
-    : null;
-  if (!bytes) throw codedError("AWS_RECOVERY_STREAM_UNSUPPORTED", "Obnovljene AWS kopije ni bilo mogoče prebrati.");
-  const buffer = Buffer.from(bytes);
+  const buffer = await readBodyBounded(response.Body, expectedSize);
   const checksum = crypto.createHash("sha256").update(buffer).digest("hex");
   if (buffer.length !== Number(record.byte_size) || checksum !== record.sha256) {
     throw codedError("AWS_RECOVERY_HASH_MISMATCH", "Obnovljena AWS kopija se ne ujema z izvirnikom.");
@@ -291,11 +314,13 @@ module.exports = {
   recoverAndVerify,
   safeErrorCode,
   _test: {
+    MAX_ARCHIVE_BYTES,
     MAX_TEST_RETENTION_DAYS,
     hexToBase64,
     base64ToHex,
     objectKey,
     retentionFor,
+    readBodyBounded,
     validateHead
   }
 };
