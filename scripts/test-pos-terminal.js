@@ -529,6 +529,19 @@ draft.items[0].unitPrice = "100,00";
 draft.finalConfirmed = true;
 assert.deepStrictEqual(Core.validateStep(draft, profile, 4), []);
 
+const invalidParty = JSON.parse(JSON.stringify(draft));
+invalidParty.customerPostalCode = "2009";
+invalidParty.customerEmail = "ni-email";
+invalidParty.customerPhone = "12";
+invalidParty.customerVatId = "napačno";
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /PLZ prejemnika/.test(entry)));
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /E-poštni naslov prejemnika/.test(entry)));
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /Telefon prejemnika/.test(entry)));
+assert.ok(Core.validateStep(invalidParty, profile, 1).some((entry) => /USt-IdNr\. prejemnika/.test(entry)));
+const multilineParty = JSON.parse(JSON.stringify(draft));
+multilineParty.customerName = "Kunde GmbH\nInjected";
+assert.ok(Core.validateStep(multilineParty, profile, 1).some((entry) => /preloma vrstice/.test(entry)));
+
 const privateReverse = JSON.parse(JSON.stringify(draft));
 privateReverse.customerType = "private";
 privateReverse.taxMode = "reverse_charge";

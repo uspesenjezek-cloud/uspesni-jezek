@@ -982,6 +982,12 @@
       required(draft.customerStreet, "Vnesite naslov prejemnika.");
       required(draft.customerPostalCode, "Vnesite poštno številko prejemnika.");
       required(draft.customerCity, "Vnesite kraj prejemnika.");
+      if (String(draft.customerPostalCode || "") && !/^\d{5}$/.test(String(draft.customerPostalCode))) errors.push("PLZ prejemnika mora imeti točno 5 številk.");
+      if (String(draft.customerEmail || "") && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(draft.customerEmail))) errors.push("E-poštni naslov prejemnika ni veljaven.");
+      if (String(draft.customerPhone || "") && !/^\+?[0-9][0-9 ()/.\-]{5,59}$/.test(String(draft.customerPhone))) errors.push("Telefon prejemnika ni veljaven.");
+      var normalizedCustomerVatId = String(draft.customerVatId || "").toUpperCase().replace(/[\s-]/g, "");
+      if (normalizedCustomerVatId && !/^[A-Z]{2}[A-Z0-9]{2,14}$/.test(normalizedCustomerVatId)) errors.push("USt-IdNr. prejemnika ni veljavna.");
+      if ([draft.customerName, draft.customerStreet, draft.customerCity, draft.customerEmail, draft.customerPhone, draft.customerVatId, draft.leitwegId, draft.buyerReference].some(function (value) { return /[\r\n]/.test(String(value || "")); })) errors.push("Podatki prejemnika ne smejo vsebovati preloma vrstice.");
       if (draft.customerType === "public") required(draft.leitwegId, "Za javnega naročnika je potrebna Leitweg-ID.");
       if (draft.customerType === "business" || draft.customerType === "public") required(draft.buyerReference || draft.leitwegId, "Za XRechnung vnesite Bestellnummer / Buyer reference.");
       if (draft.customerType === "business") required(draft.customerEmail, "Za XRechnung vnesite e-poštni naslov poslovnega prejemnika.");
