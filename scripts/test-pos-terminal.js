@@ -83,6 +83,10 @@ const alreadyPaidInvoicePaymentMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_already_paid_invoice_payment\.sql$/.test(name)).sort().pop()
   : null;
 const alreadyPaidInvoicePaymentMigration = alreadyPaidInvoicePaymentMigrationName ? fs.readFileSync(path.join(migrationsDir, alreadyPaidInvoicePaymentMigrationName), "utf8") : "";
+const germanBusinessTimezoneMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_german_business_timezone\.sql$/.test(name)).sort().pop()
+  : null;
+const germanBusinessTimezoneMigration = germanBusinessTimezoneMigrationName ? fs.readFileSync(path.join(migrationsDir, germanBusinessTimezoneMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -838,6 +842,11 @@ assert.match(alreadyPaidInvoicePaymentMigration, /snapshot #>> '\{draft,payment_
 assert.match(alreadyPaidInvoicePaymentMigration, /insert into public\.pos_payments[\s\S]*new\.gross_cents/i);
 assert.match(alreadyPaidInvoicePaymentMigration, /create trigger pos_invoices_record_already_paid[\s\S]*after insert on public\.pos_invoices/i);
 assert.match(alreadyPaidInvoicePaymentMigration, /invoice_issued_already_paid/i);
+assert.ok(germanBusinessTimezoneMigrationName, "Manjka nemški poslovni časovni pas za strežniške POS funkcije.");
+assert.match(germanBusinessTimezoneMigration, /_pos_create_invoice_adjustment\(uuid,text,text,jsonb,boolean\)[\s\S]*Europe\/Berlin/i);
+assert.match(germanBusinessTimezoneMigration, /_pos_save_work_order\(uuid,jsonb\)[\s\S]*Europe\/Berlin/i);
+assert.match(germanBusinessTimezoneMigration, /_pos_transition_work_order\(uuid,text\)[\s\S]*Europe\/Berlin/i);
+assert.match(germanBusinessTimezoneMigration, /_pos_import_finapi_transactions\(text,jsonb\)[\s\S]*Europe\/Berlin/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
