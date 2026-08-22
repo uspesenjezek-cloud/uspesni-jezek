@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
+const recipientValidationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822100000_pos_delivery_recipient_validation.sql"), "utf8");
 const migrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_delivery_dispatch_engine\.sql$/.test(name)).sort().pop();
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", migrationName), "utf8");
@@ -90,6 +91,9 @@ assert.match(deliveryLimitsMigration, /char_length\(subject\) <= 240[\s\S]*subje
 assert.match(deliveryLimitsMigration, /char_length\(message\) <= 4000/i);
 assert.match(deliveryLimitsMigration, /octet_length\(details::text\) <= 65536/i);
 assert.match(deliveryLimitsMigration, /validate constraint pos_invoice_delivery_events_details_check/i);
+assert.match(recipientValidationMigration, /channel <> 'email'[\s\S]*recipient\) ~\* '\^\[\^\[:space:\]@\]/i);
+assert.match(recipientValidationMigration, /routing_reference !~ E'\[\\r\\n\]'/i);
+assert.match(recipientValidationMigration, /validate constraint pos_invoice_deliveries_email_recipient_check/i);
 assert.match(lifecycleMigration, /pos_invoice_deliveries_lifecycle_check/i);
 assert.match(lifecycleMigration, /\(status = 'processing'\) = \(locked_at is not null\)/i);
 assert.match(lifecycleMigration, /status not in \('sent','delivered','delivery_delayed','bounced','complained','suppressed'\)[\s\S]*last_provider_event_at is not null/i);
