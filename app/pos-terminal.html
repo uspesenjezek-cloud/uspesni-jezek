@@ -20,7 +20,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260822-cancellation-proof-v23" defer></script>
+    <script src="pos-terminal.js?v=20260822-consumer-withdrawal-v24" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -319,6 +319,14 @@
               <div class="pos-field-row">
                 <label class="pos-field"><span>E-pošta</span><input type="email" name="customerEmail" autocomplete="email" data-fit-input maxlength="160" /></label>
                 <label class="pos-field"><span>Telefon</span><input type="tel" name="customerPhone" autocomplete="tel" data-fit-input maxlength="40" /></label>
+              </div>
+            </section>
+            <section class="pos-form-card pos-form-card--flat" data-consumer-contract hidden>
+              <label class="pos-field pos-field--full"><span>Kako bo sklenjena pogodba? *</span><select name="consumerContractContext" data-fit-input><option value="unknown">Izberite način sklenitve</option><option value="business_premises">V poslovnih prostorih izvajalca</option><option value="distance">Na daljavo (e-pošta, telefon, splet)</option><option value="off_premises">Zunaj poslovnih prostorov</option><option value="urgent_repair">Izrecno zahtevano nujno popravilo</option></select></label>
+              <div class="pos-notice" data-consumer-withdrawal-note><svg><use href="#i-info"/></svg><p>Pri pogodbi na daljavo ali zunaj poslovnih prostorov bo zaklenjeni PDF samodejno vseboval Widerrufsbelehrung, Muster-Widerrufsformular in izjavo za morebitni predčasni začetek dela.</p></div>
+              <div class="pos-conditional" data-urgent-repair hidden>
+                <label class="pos-field pos-field--full"><span>Natančen obseg nujnega popravila *</span><textarea name="urgentRepairScope" rows="3" maxlength="500" placeholder="Npr. zaustavitev aktivnega iztekanja in zamenjava nujno potrebnega ventila"></textarea></label>
+                <div class="pos-notice"><svg><use href="#i-info"/></svg><p>Izjema velja samo za izrecno zahtevano nujno popravilo in nujno potrebne nadomestne dele, ne za dodatna dela.</p></div>
               </div>
             </section>
           </section>

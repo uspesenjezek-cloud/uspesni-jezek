@@ -46,7 +46,10 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-cancellation-proof-v23/);
+assert.match(html, /pos-terminal\.js\?v=20260822-consumer-withdrawal-v24/);
+assert.match(html, /data-consumer-contract/);
+assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
+assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
 assert.match(html, /pos-terminal\.css\?v=20260821-final-deductions-v1/);
 assert.match(css, /\.pos-work-order__facts/);
 assert.match(css, /@media \(max-width: 479px\)[\s\S]*\.pos-work-order__facts/);
@@ -117,6 +120,24 @@ offerDraft.items = [{
 const payload = Core.workOrderPayloadFromDraft(offerDraft);
 assert.equal(payload.valid_until, "2026-09-20");
 assert.equal(payload.items[0].unit_price_cents, 10000);
+assert.equal(payload.consumer_contract_context, "not_applicable");
+
+const consumerOfferDraft = Core.defaultDraft(profile);
+consumerOfferDraft.workflowMode = "offer";
+consumerOfferDraft.customerName = "Max Mustermann";
+consumerOfferDraft.customerStreet = "Musterstraße 2";
+consumerOfferDraft.customerPostalCode = "10115";
+consumerOfferDraft.customerCity = "Berlin";
+consumerOfferDraft.projectName = "Reparatur";
+consumerOfferDraft.consumerContractContext = "distance";
+consumerOfferDraft.items = [{ id: "item-c", description: "Reparatur", category: "labour", quantity: "1", unit: "Std.", unitPrice: "100,00", taxRate: "19" }];
+assert.equal(Core.validateStep(consumerOfferDraft, profile, 1).filter((entry) => /Pogodba|sklenjena|način/i.test(entry)).length, 0);
+consumerOfferDraft.consumerContractContext = "unknown";
+assert.ok(Core.validateStep(consumerOfferDraft, profile, 1).some((entry) => /sklenjena potrošniška pogodba/.test(entry)));
+consumerOfferDraft.consumerContractContext = "urgent_repair";
+assert.ok(Core.validateStep(consumerOfferDraft, profile, 1).some((entry) => /nujno popravilo/.test(entry)));
+consumerOfferDraft.urgentRepairScope = "Zaustavitev aktivnega iztekanja in zamenjava nujnega ventila";
+assert.equal(Core.validateStep(consumerOfferDraft, profile, 1).filter((entry) => /nujno popravilo/.test(entry)).length, 0);
 
 const order = Core.workOrderFromServer({
   id: "11111111-1111-4111-8111-111111111111", offer_number: "ANG-2026-0001", order_number: "AUF-2026-0001",
@@ -131,6 +152,19 @@ assert.deepEqual(Core.workOrderActions("in_progress"), ["pdf", "complete", "prog
 assert.deepEqual(Core.workOrderActions("completed"), ["pdf", "final", "progress"]);
 assert.deepEqual(Core.workOrderActions("invoiced"), ["pdf"]);
 assert.deepEqual(Core.workOrderActions({ status: "cancelled", offeredAt: "2026-08-22T10:00:00Z" }), ["pdf"]);
+
+const earlyOrder = Object.assign({}, order, {
+  status: "accepted",
+  acceptedAt: "2026-08-22T10:00:00.000Z",
+  lockedPayload: Object.assign({}, payload, { customer_type: "private", consumer_contract_context: "distance" })
+});
+assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-08-30T10:00:00.000Z"), true);
+assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T21:59:59.000Z"), true);
+assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T22:00:00.000Z"), false);
+earlyOrder.lockedPayload.consumer_contract_context = "urgent_repair";
+assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-30T10:00:00.000Z"), true);
+earlyOrder.lockedPayload.customer_type = "business";
+assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-08-22T10:01:00.000Z"), false);
 
 const acceptanceMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_offer_acceptance_evidence\.sql$/.test(name)).sort().pop();
@@ -156,6 +190,39 @@ assert.match(cancellationMigration, /pos_work_orders_require_cancellation_eviden
 assert.match(cancellationMigration, /create or replace function public\.pos_cancel_work_order/i);
 assert.match(js, /rpc\("pos_cancel_work_order", \{ p_work_order_id: order\.id, p_reason:/);
 assert.match(js, /label: "Razlog preklica"[\s\S]*maxLength: 500/);
+
+const consumerMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_withdrawal_evidence\.sql$/.test(name)).sort().pop();
+assert.ok(consumerMigrationName, "Manjka zaščita potrošniškega odstopa in predčasnega začetka.");
+const consumerMigration = fs.readFileSync(path.join(root, "supabase", "migrations", consumerMigrationName), "utf8");
+assert.match(consumerMigration, /consumer_contract_context[\s\S]*business_premises[\s\S]*distance[\s\S]*off_premises[\s\S]*urgent_repair/i);
+assert.match(consumerMigration, /create table public\.pos_work_order_early_start_evidence/i);
+assert.match(consumerMigration, /pos_work_order_early_start_immutable[\s\S]*before update or delete/i);
+assert.match(consumerMigration, /pos_work_orders_require_consumer_early_start_evidence[\s\S]*before update of status/i);
+assert.match(consumerMigration, /old\.accepted_at \+ interval '14 days'/i);
+assert.match(consumerMigration, /create or replace function public\.pos_start_work_order/i);
+assert.match(consumerMigration, /foreign key \(offer_document_id, user_id\)[\s\S]*references public\.pos_offer_documents\(id, user_id\)/i);
+assert.match(js, /rpc\("pos_start_work_order", \{ p_work_order_id: order\.id, p_evidence:/);
+assert.match(js, /label: "Dokaz zahteve za predčasni začetek"[\s\S]*maxLength: 500/);
+const consumerIndexMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_withdrawal_evidence_indexes\.sql$/.test(name)).sort().pop();
+assert.ok(consumerIndexMigrationName, "Manjkajo indeksi dokazov predčasnega začetka.");
+const consumerIndexMigration = fs.readFileSync(path.join(root, "supabase", "migrations", consumerIndexMigrationName), "utf8");
+assert.match(consumerIndexMigration, /\(work_order_id, user_id\)/i);
+assert.match(consumerIndexMigration, /\(offer_document_id, user_id\)/i);
+const consumerLegacyMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_legacy_transition_guard\.sql$/.test(name)).sort().pop();
+assert.ok(consumerLegacyMigrationName, "Manjka zaščita starejših B2C ponudb brez pogodbenega konteksta.");
+const consumerLegacyMigration = fs.readFileSync(path.join(root, "supabase", "migrations", consumerLegacyMigrationName), "utf8");
+assert.match(consumerLegacyMigration, /new\.status in \('offered', 'accepted', 'in_progress'\)/i);
+assert.match(consumerLegacyMigration, /consumer_contract_context[\s\S]*business_premises[\s\S]*distance[\s\S]*off_premises[\s\S]*urgent_repair/i);
+assert.match(consumerLegacyMigration, /pos_work_orders_validate_consumer_contract_context[\s\S]*before update of status/i);
+const consumerPeriodMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_withdrawal_period_boundary\.sql$/.test(name)).sort().pop();
+assert.ok(consumerPeriodMigrationName, "Manjka pravilna meja 14-dnevnega potrošniškega roka.");
+const consumerPeriodMigration = fs.readFileSync(path.join(root, "supabase", "migrations", consumerPeriodMigrationName), "utf8");
+assert.match(consumerPeriodMigration, /at time zone 'Europe\/Berlin'\)::date[\s\S]*<= [\s\S]*::date \+ 14/i);
+assert.match(consumerPeriodMigration, /private\.pos_consumer_early_start_requires_evidence[\s\S]*private\._pos_start_work_order/i);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");

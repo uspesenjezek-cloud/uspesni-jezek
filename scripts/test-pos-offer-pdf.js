@@ -34,9 +34,10 @@ function workOrder() {
       seller: {
         legalName: "Muster Handwerk GmbH", legalForm: "GmbH", representative: "Erika Beispiel, Max Mustermann",
         companySeat: "Berlin", registerCourt: "Amtsgericht Charlottenburg", registerNumber: "HRB 12345 B",
-        street: "Musterstraße 1", postalCode: "10115", city: "Berlin", businessEmail: "angebot@muster-handwerk.de",
+        street: "Musterstraße 1", postalCode: "10115", city: "Berlin", businessEmail: "angebot@muster-handwerk.de", businessPhone: "+49 30 1234567",
         taxNumber: "12/345/67890", vatId: "DE123456789"
       },
+      customer_type: "business", consumer_contract_context: "not_applicable", urgent_repair_scope: "",
       customer_street: "Baustraße 5", customer_postal_code: "20095", customer_city: "Hamburg",
       issue_date: "2026-08-22", service_date: "2026-09-20", work_description: "Lieferung, Montage und dokumentierte Funktionsprüfung.",
       tax_mode: "regular", items
@@ -56,8 +57,28 @@ function workOrder() {
   const pdf = await PDFDocument.load(buffer);
   assert.ok(pdf.getPageCount() >= 2, "Dolga ponudba mora pravilno nadaljevati tabelo na novi strani.");
   assert.equal(pdf.getTitle(), "Angebot ANG-2026-0042");
-  assert.equal(pdf.getCreator(), "uj-pos-offer-pdf-2");
-  if (process.env.POS_OFFER_PDF_SAMPLE_OUTPUT) fs.writeFileSync(process.env.POS_OFFER_PDF_SAMPLE_OUTPUT, buffer);
+  assert.equal(pdf.getCreator(), "uj-pos-offer-pdf-3");
+
+  const consumerOffer = workOrder();
+  consumerOffer.customer_name = "Max Mustermann";
+  consumerOffer.locked_payload.customer_type = "private";
+  consumerOffer.locked_payload.consumer_contract_context = "distance";
+  const consumerBuffer = await generator.ustvariPonudboPdf(consumerOffer);
+  const consumerPdf = await PDFDocument.load(consumerBuffer);
+  assert.ok(consumerPdf.getPageCount() >= pdf.getPageCount() + 2, "B2C Fernabsatz mora dodati Widerrufsbelehrung in Muster-Widerrufsformular.");
+  assert.throws(() => generator.normalizeOffer(Object.assign({}, consumerOffer, { locked_payload: Object.assign({}, consumerOffer.locked_payload, { consumer_contract_context: "unknown" }) })), /načina sklenitve/);
+  assert.throws(() => generator.normalizeOffer(Object.assign({}, consumerOffer, { locked_payload: Object.assign({}, consumerOffer.locked_payload, { consumer_contract_context: "urgent_repair", urgent_repair_scope: "" }) })), /nujno popravilo/i);
+  if (process.env.POS_OFFER_PDF_SAMPLE_OUTPUT) fs.writeFileSync(process.env.POS_OFFER_PDF_SAMPLE_OUTPUT, consumerBuffer);
+  const urgentOffer = workOrder();
+  urgentOffer.customer_name = "Erika Beispiel";
+  urgentOffer.locked_payload.customer_type = "private";
+  urgentOffer.locked_payload.consumer_contract_context = "urgent_repair";
+  urgentOffer.locked_payload.urgent_repair_scope = "Absperren der akut undichten Leitung und Austausch des zwingend erforderlichen Ventils.";
+  const urgentBuffer = await generator.ustvariPonudboPdf(urgentOffer);
+  const urgentPdf = await PDFDocument.load(urgentBuffer);
+  assert.equal(urgentPdf.getPageCount(), pdf.getPageCount() + 1, "Nujno popravilo mora dodati omejeno izjavo o izrecni zahtevi.");
+  if (process.env.POS_URGENT_PDF_SAMPLE_OUTPUT) fs.writeFileSync(process.env.POS_URGENT_PDF_SAMPLE_OUTPUT, urgentBuffer);
+  assert.match(fs.readFileSync(path.join(root, "api", "_lib", "pos-offer-pdf.js"), "utf8"), /Widerrufsbelehrung[\s\S]*Muster-Widerrufsformular[\s\S]*Ausdrückliches Verlangen zum vorzeitigen Beginn/);
 
   assert.equal(endpoint._test.objectPath("u", "w"), "u/w/angebot.pdf");
   assert.equal(endpoint._test.encodedPath("a b/c"), "a%20b/c");

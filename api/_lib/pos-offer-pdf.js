@@ -3,7 +3,7 @@
 const { PDFDocument, rgb } = require("pdf-lib");
 const { safeText, money, dateDE, wrap, taxGroups, priceMode, lineDisplayAmount, taxIdentityText, sellerLegalDisclosureLines, embedUnicodeFonts } = require("./pos-pdf");
 
-const GENERATOR_VERSION = "uj-pos-offer-pdf-2";
+const GENERATOR_VERSION = "uj-pos-offer-pdf-3";
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.19, 0.18), muted: rgb(0.38, 0.48, 0.46),
@@ -29,6 +29,12 @@ function normalizeOffer(workOrder) {
   items.forEach((item) => {
     if (!safeText(item && item.description) || Number(item && item.quantity_milli) <= 0 || Number(item && item.gross_cents) < 0) throw new Error("Ponudba vsebuje neveljavno postavko.");
   });
+  if (payload.customer_type === "private") {
+    const context = safeText(payload.consumer_contract_context);
+    if (!["business_premises", "distance", "off_premises", "urgent_repair"].includes(context)) throw new Error("Ponudba nima veljavnega načina sklenitve potrošniške pogodbe.");
+    if (["distance", "off_premises"].includes(context) && ![seller.businessEmail, seller.businessPhone].every((value) => safeText(value))) throw new Error("Widerrufsbelehrung zahteva poslovni e-poštni naslov in telefon.");
+    if (context === "urgent_repair" && safeText(payload.urgent_repair_scope).length < 5) throw new Error("Nujno popravilo nima dovolj natančnega obsega.");
+  }
   return { workOrder, payload, seller, items };
 }
 
@@ -49,12 +55,12 @@ async function ustvariPonudboPdf(workOrder) {
   let page;
   let y;
 
-  function addPage(continuation) {
+  function addPage(continuation, headerLabel) {
     page = pdf.addPage([PAGE.width, PAGE.height]);
     pages.push(page);
     page.drawRectangle({ x: 0, y: PAGE.height - 88, width: PAGE.width, height: 88, color: COLORS.tealDark });
     page.drawText(safeText(seller.legalName), { x: PAGE.margin, y: PAGE.height - 48, font: bold, size: 15, color: COLORS.white });
-    rightText(page, continuation ? "ANGEBOT - FORTSETZUNG" : "ANGEBOT", PAGE.width - PAGE.margin, PAGE.height - 48, bold, 13, COLORS.white);
+    rightText(page, headerLabel || (continuation ? "ANGEBOT - FORTSETZUNG" : "ANGEBOT"), PAGE.width - PAGE.margin, PAGE.height - 48, bold, 13, COLORS.white);
     rightText(page, workOrder.offer_number, PAGE.width - PAGE.margin, PAGE.height - 65, regular, 8, COLORS.white);
     y = PAGE.height - 116;
   }
@@ -156,6 +162,71 @@ async function ustvariPonudboPdf(workOrder) {
   const taxIdentity = taxIdentityText(seller);
   if (taxIdentity) page.drawText(taxIdentity, { x: PAGE.margin, y, font: regular, size: 7.6, color: COLORS.muted });
   if (seller.businessEmail) rightText(page, seller.businessEmail, PAGE.width - PAGE.margin, y, regular, 7.6, COLORS.muted);
+
+  function drawWrappedParagraph(text, options) {
+    const settings = options || {};
+    const size = settings.size || 8.3;
+    const lineHeight = settings.lineHeight || 11.2;
+    const x = settings.x || PAGE.margin;
+    const width = settings.width || PAGE.width - PAGE.margin * 2;
+    wrap(text, settings.font || regular, size, width).forEach((line) => {
+      page.drawText(line, { x, y, font: settings.font || regular, size, color: settings.color || COLORS.ink });
+      y -= lineHeight;
+    });
+    y -= settings.after == null ? 8 : settings.after;
+  }
+
+  function addConsumerPage(title) {
+    addPage(false, "VERBRAUCHERINFORMATION");
+    page.drawText(title, { x: PAGE.margin, y, font: bold, size: 15, color: COLORS.tealDark });
+    y -= 24;
+  }
+
+  const consumerContext = payload.customer_type === "private" ? safeText(payload.consumer_contract_context) : "";
+  if (["distance", "off_premises"].includes(consumerContext)) {
+    addConsumerPage("Widerrufsbelehrung");
+    page.drawText("Widerrufsrecht", { x: PAGE.margin, y, font: bold, size: 10, color: COLORS.ink });
+    y -= 16;
+    drawWrappedParagraph("Sie haben das Recht, binnen vierzehn Tagen ohne Angabe von Gründen diesen Vertrag zu widerrufen.");
+    drawWrappedParagraph("Die Widerrufsfrist beträgt vierzehn Tage ab dem Tag des Vertragsabschlusses.");
+    drawWrappedParagraph("Um Ihr Widerrufsrecht auszuüben, müssen Sie uns (" + safeText(seller.legalName) + ", " + safeText(seller.street) + ", " + safeText(seller.postalCode) + " " + safeText(seller.city) + ", Telefon: " + safeText(seller.businessPhone) + ", E-Mail: " + safeText(seller.businessEmail) + ") mittels einer eindeutigen Erklärung (z. B. ein mit der Post versandter Brief oder eine E-Mail) über Ihren Entschluss, diesen Vertrag zu widerrufen, informieren. Sie können dafür das beigefügte Muster-Widerrufsformular verwenden, das jedoch nicht vorgeschrieben ist.");
+    drawWrappedParagraph("Zur Wahrung der Widerrufsfrist reicht es aus, dass Sie die Mitteilung über die Ausübung des Widerrufsrechts vor Ablauf der Widerrufsfrist absenden.");
+    page.drawText("Folgen des Widerrufs", { x: PAGE.margin, y, font: bold, size: 10, color: COLORS.ink });
+    y -= 16;
+    drawWrappedParagraph("Wenn Sie diesen Vertrag widerrufen, haben wir Ihnen alle Zahlungen, die wir von Ihnen erhalten haben, einschließlich der Lieferkosten (mit Ausnahme der zusätzlichen Kosten, die sich daraus ergeben, dass Sie eine andere Art der Lieferung als die von uns angebotene, günstigste Standardlieferung gewählt haben), unverzüglich und spätestens binnen vierzehn Tagen ab dem Tag zurückzuzahlen, an dem die Mitteilung über Ihren Widerruf dieses Vertrags bei uns eingegangen ist.");
+    drawWrappedParagraph("Für diese Rückzahlung verwenden wir dasselbe Zahlungsmittel, das Sie bei der ursprünglichen Transaktion eingesetzt haben, es sei denn, mit Ihnen wurde ausdrücklich etwas anderes vereinbart; in keinem Fall werden Ihnen wegen dieser Rückzahlung Entgelte berechnet.");
+    drawWrappedParagraph("Haben Sie verlangt, dass die Dienstleistungen während der Widerrufsfrist beginnen sollen, so haben Sie uns einen angemessenen Betrag zu zahlen, der dem Anteil der bis zu dem Zeitpunkt, zu dem Sie uns von der Ausübung des Widerrufsrechts hinsichtlich dieses Vertrags unterrichten, bereits erbrachten Dienstleistungen im Vergleich zum Gesamtumfang der im Vertrag vorgesehenen Dienstleistungen entspricht.");
+    page.drawText("Muster nach Anlage 1 zu Artikel 246a § 1 Absatz 2 Satz 2 EGBGB.", { x: PAGE.margin, y, font: regular, size: 6.8, color: COLORS.muted });
+
+    addConsumerPage("Muster-Widerrufsformular");
+    drawWrappedParagraph("Wenn Sie den Vertrag widerrufen wollen, dann füllen Sie bitte dieses Formular aus und senden Sie es zurück.");
+    drawWrappedParagraph("An: " + safeText(seller.legalName) + ", " + safeText(seller.street) + ", " + safeText(seller.postalCode) + " " + safeText(seller.city) + ", E-Mail: " + safeText(seller.businessEmail), { font: bold });
+    drawWrappedParagraph("Hiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag über den Kauf der folgenden Waren (*)/die Erbringung der folgenden Dienstleistung (*):");
+    drawWrappedParagraph("Angebot: " + safeText(workOrder.offer_number) + " · " + safeText(workOrder.title));
+    drawWrappedParagraph("Bestellt am (*): ______________________________________________");
+    drawWrappedParagraph("Name des/der Verbraucher(s): __________________________________");
+    drawWrappedParagraph("Anschrift des/der Verbraucher(s): ______________________________");
+    drawWrappedParagraph("Unterschrift des/der Verbraucher(s) (nur bei Mitteilung auf Papier):");
+    drawWrappedParagraph("________________________________________________________________");
+    drawWrappedParagraph("Datum: ______________________       (*) Unzutreffendes streichen.", { after: 18 });
+    page.drawLine({ start: { x: PAGE.margin, y }, end: { x: PAGE.width - PAGE.margin, y }, thickness: 0.8, color: COLORS.line });
+    y -= 23;
+    page.drawText("Ausdrückliches Verlangen zum vorzeitigen Beginn", { x: PAGE.margin, y, font: bold, size: 10, color: COLORS.tealDark });
+    y -= 17;
+    drawWrappedParagraph("[  ] Ich verlange ausdrücklich, dass der Unternehmer vor Ablauf der vierzehntägigen Widerrufsfrist mit der angebotenen Dienstleistung beginnt. Mir ist bekannt, dass ich bei einem Widerruf Wertersatz für die bis zum Widerruf erbrachten Leistungen schulde. Mir ist außerdem bekannt, dass mein Widerrufsrecht bei vollständiger Vertragserfüllung erlischt, wenn die gesetzlichen Voraussetzungen erfüllt sind.", { size: 8, lineHeight: 10.7 });
+    drawWrappedParagraph("Ort, Datum: ____________________   Unterschrift: ____________________", { after: 2 });
+    page.drawText("Diese Erklärung nur abgeben, wenn ein Beginn vor Ablauf der Widerrufsfrist gewünscht ist.", { x: PAGE.margin, y, font: regular, size: 6.8, color: COLORS.muted });
+  } else if (consumerContext === "urgent_repair") {
+    addConsumerPage("Ausdrücklich verlangte dringende Reparatur");
+    drawWrappedParagraph("Die Ausnahme vom Widerrufsrecht nach § 312g Absatz 2 Nummer 11 BGB gilt nur für ausdrücklich verlangte dringende Reparatur- oder Instandhaltungsarbeiten und unbedingt benötigte Ersatzteile. Weitere, nicht ausdrücklich verlangte Dienstleistungen oder nicht unbedingt benötigte Waren sind davon nicht umfasst.");
+    page.drawText("Genau beauftragter dringender Umfang", { x: PAGE.margin, y, font: bold, size: 10, color: COLORS.ink });
+    y -= 17;
+    drawWrappedParagraph(safeText(payload.urgent_repair_scope), { font: bold, size: 9, lineHeight: 12, after: 18 });
+    page.drawRectangle({ x: PAGE.margin, y: y - 108, width: PAGE.width - PAGE.margin * 2, height: 116, color: COLORS.pale, borderColor: COLORS.line, borderWidth: 0.8 });
+    y -= 18;
+    drawWrappedParagraph("[  ] Ich habe den Unternehmer ausdrücklich aufgefordert, mich zur Ausführung der oben bezeichneten dringenden Reparatur- oder Instandhaltungsarbeiten aufzusuchen. Mir ist bekannt, dass die Ausnahme nur den ausdrücklich verlangten Umfang und unbedingt erforderliche Ersatzteile erfasst.", { x: PAGE.margin + 12, width: PAGE.width - PAGE.margin * 2 - 24, size: 8, lineHeight: 10.8, after: 14 });
+    page.drawText("Ort, Datum: ____________________   Unterschrift: ____________________", { x: PAGE.margin + 12, y, font: regular, size: 8, color: COLORS.ink });
+  }
 
   pages.forEach((current, index) => {
     current.drawLine({ start: { x: PAGE.margin, y: 50 }, end: { x: PAGE.width - PAGE.margin, y: 50 }, thickness: 0.5, color: COLORS.line });

@@ -232,6 +232,8 @@
       dueDays: String(profile && profile.defaultDueDays || 14),
       paymentMethod: "sepa",
       consumerDefaultNotice: false,
+      consumerContractContext: "unknown",
+      urgentRepairScope: "",
       einvoiceValidated: false,
       finalConfirmed: false,
       replacementContext: null,
@@ -360,6 +362,12 @@
       due_days: clamp(integer(draft.dueDays, 14), 0, 365),
       payment_method: draft.paymentMethod,
       consumer_default_notice: Boolean(draft.consumerDefaultNotice),
+      consumer_contract_context: draft.customerType === "private"
+        ? (["business_premises", "distance", "off_premises", "urgent_repair"].indexOf(draft.consumerContractContext) !== -1 ? draft.consumerContractContext : "unknown")
+        : "not_applicable",
+      urgent_repair_scope: draft.customerType === "private" && draft.consumerContractContext === "urgent_repair"
+        ? String(draft.urgentRepairScope || "").trim()
+        : "",
       replacement_context: replacement ? {
         original_invoice_id: replacement.originalInvoiceId,
         original_invoice_number: replacement.originalInvoiceNumber,
@@ -423,6 +431,8 @@
       dueDays: String(source.due_days == null ? 14 : source.due_days),
       paymentMethod: source.payment_method,
       consumerDefaultNotice: Boolean(source.consumer_default_notice),
+      consumerContractContext: source.consumer_contract_context || "unknown",
+      urgentRepairScope: source.urgent_repair_scope || "",
       finalConfirmed: Boolean(issued),
       replacementContext: normalizeReplacementContext(source),
       workflowMode: "invoice",
@@ -444,7 +454,7 @@
     return payload;
   }
 
-  function workOrderFromServer(row, links, acceptance, cancellation) {
+  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart) {
     return {
       id: row.id,
       offerNumber: row.offer_number,
@@ -468,6 +478,8 @@
       acceptanceOfferSha256: acceptance && acceptance.offer_sha256 || "",
       cancellationReason: cancellation && cancellation.reason || "",
       cancellationStatusBefore: cancellation && cancellation.status_before || "",
+      earlyStartEvidence: earlyStart && earlyStart.evidence || "",
+      earlyStartRecordedAt: earlyStart && earlyStart.recorded_at || "",
       updatedAt: row.updated_at,
       invoiceLinks: links || []
     };
@@ -515,6 +527,17 @@
       blocked: blocked,
       progressPercent: progressLinks.reduce(function (sum, link) { return sum + integer(link.progress_percent, 0); }, 0)
     };
+  }
+
+  function requiresEarlyStartEvidence(order, now) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    if (source.customer_type !== "private") return false;
+    var context = source.consumer_contract_context;
+    if (context === "urgent_repair") return true;
+    if (["distance", "off_premises"].indexOf(context) === -1 || !order.acceptedAt) return false;
+    var acceptedDay = berlinDateKey(order.acceptedAt);
+    var currentDay = berlinDateKey(now || new Date());
+    return Boolean(acceptedDay && currentDay && currentDay <= addDays(acceptedDay, 14));
   }
 
   function workOrderActions(orderOrStatus) {
@@ -1036,6 +1059,19 @@
       if (draft.customerType === "business") required(draft.customerEmail, "Za XRechnung vnesite e-poštni naslov poslovnega prejemnika.");
       if (draft.customerType === "business" || draft.customerType === "public") required(profile.businessEmail, "Za XRechnung v nastavitvah dodajte poslovni e-poštni naslov izdajatelja.");
       if (draft.customerType === "business" || draft.customerType === "public") required(profile.businessPhone, "Za XRechnung v nastavitvah dodajte poslovni telefon izdajatelja.");
+      if (draft.workflowMode === "offer" && draft.customerType === "private") {
+        if (["business_premises", "distance", "off_premises", "urgent_repair"].indexOf(draft.consumerContractContext) === -1) {
+          errors.push("Izberite, kako bo sklenjena potrošniška pogodba.");
+        }
+        if (["distance", "off_premises"].indexOf(draft.consumerContractContext) !== -1) {
+          required(profile.businessEmail, "Za Widerrufsbelehrung v nastavitvah dodajte poslovni e-poštni naslov.");
+          required(profile.businessPhone, "Za Widerrufsbelehrung v nastavitvah dodajte poslovni telefon.");
+        }
+        if (draft.consumerContractContext === "urgent_repair") {
+          var urgentScopeLength = String(draft.urgentRepairScope || "").trim().length;
+          if (urgentScopeLength < 5 || urgentScopeLength > 500) errors.push("Natančno opišite nujno popravilo (od 5 do 500 znakov).");
+        }
+      }
     }
 
     if (step === 2 || step === 4) {
@@ -1538,6 +1574,7 @@
     replacementDraftFromInvoice: replacementDraftFromInvoice,
     workOrderPayloadFromDraft: workOrderPayloadFromDraft,
     workOrderFromServer: workOrderFromServer,
+    requiresEarlyStartEvidence: requiresEarlyStartEvidence,
     workOrderActions: workOrderActions,
     workOrderFinalState: workOrderFinalState,
     prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
@@ -1888,9 +1925,10 @@
         fetchAllRows(function () { return backend.client.from("pos_work_orders").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).order("id", { ascending: false }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_invoices").select("work_order_id,invoice_id,invoice_kind,progress_percent,net_cents,tax_cents,gross_cents,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("invoice_id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_work_order_cancellations").select("work_order_id,status_before,reason,offer_document_id,offer_sha256,cancelled_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_work_order_cancellations").select("work_order_id,status_before,reason,offer_document_id,offer_sha256,cancelled_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 16).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 17).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -1932,6 +1970,8 @@
       (responses[14].data || []).forEach(function (acceptance) { acceptanceByWorkOrder[acceptance.work_order_id] = acceptance; });
       var cancellationByWorkOrder = {};
       (responses[15].data || []).forEach(function (cancellation) { cancellationByWorkOrder[cancellation.work_order_id] = cancellation; });
+      var earlyStartByWorkOrder = {};
+      (responses[16].data || []).forEach(function (entry) { earlyStartByWorkOrder[entry.work_order_id] = entry; });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -1951,7 +1991,7 @@
           link.paid_cents = linkedInvoice ? linkedInvoice.paidCents : 0;
         });
       });
-      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || [], acceptanceByWorkOrder[row.id] || null, cancellationByWorkOrder[row.id] || null); });
+      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || [], acceptanceByWorkOrder[row.id] || null, cancellationByWorkOrder[row.id] || null, earlyStartByWorkOrder[row.id] || null); });
       (responses[7].data || []).forEach(function (relation) {
         var original = invoicesById[relation.original_invoice_id];
         var replacement = invoicesById[relation.replacement_invoice_id];
@@ -2211,7 +2251,8 @@
       var progressCopy = progressTotal ? progressTotal + " %" + (finalState.blocked ? " · plačilo odprto" : " · plačano") : "";
       var acceptanceCopy = order.acceptanceEvidence ? formatGermanTimestampDate(order.acceptedAt) + " · " + order.acceptanceEvidence : "";
       var cancellationCopy = order.cancellationReason ? formatGermanTimestampDate(order.cancelledAt) + " · " + order.cancellationReason : "";
-      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+      var earlyStartCopy = order.earlyStartEvidence ? formatGermanTimestampDate(order.earlyStartRecordedAt) + " · " + order.earlyStartEvidence : "";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
       button.addEventListener("click", function () {
@@ -2229,8 +2270,10 @@
   function transitionWorkOrder(order, action) {
     if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
     if (action === "offer" && !profileReadiness(state.profile).live) { showToast("Pravno ponudbo lahko pošljete šele po potrditvi popolnih podatkov podjetja in registra."); return; }
+    var earlyEvidenceRequired = action === "start" && requiresEarlyStartEvidence(order);
     var copy = action === "offer" ? "Ponudba se bo zaklenila in dobila nespremenljiv PDF. Po prenosu jo pošljite naročniku."
       : action === "accept" ? "Potrdite le, če je naročnik ponudbo dejansko sprejel."
+        : earlyEvidenceRequired ? "Pred iztekom 14 dni oziroma pri nujnem popravilu je potreben dokaz izrecne zahteve potrošnika za začetek dela."
         : action === "cancel" ? "Preklic ostane zapisan v sled dogodkov."
           : "Prehod se bo zapisal v sled projekta.";
     openDialog(workOrderActionLabel(action) + "?", copy, {
@@ -2245,10 +2288,16 @@
         hint: "Razlog ostane nespremenljivo zapisan v sledi ponudbe.",
         placeholder: "Npr. naročnik ni sprejel ponudbe v roku",
         maxLength: 500
+      } : earlyEvidenceRequired ? {
+        label: "Dokaz zahteve za predčasni začetek",
+        hint: "Vpišite podpisano izjavo, e-pošto ali drugo referenco potrošnikove izrecne zahteve.",
+        placeholder: "Podpisana izjava iz PDF · Max Mustermann · 22. 8. 2026",
+        maxLength: 500
       } : null,
-      validate: action === "accept" || action === "cancel" ? function (value) {
+      validate: action === "accept" || action === "cancel" || earlyEvidenceRequired ? function (value) {
         var length = String(value || "").trim().length;
-        return length < 5 || length > 500 ? (action === "accept" ? "Vpišite dokaz sprejema" : "Vpišite razlog preklica") + " (od 5 do 500 znakov)." : "";
+        var label = action === "accept" ? "Vpišite dokaz sprejema" : action === "cancel" ? "Vpišite razlog preklica" : "Vpišite dokaz zahteve za predčasni začetek";
+        return length < 5 || length > 500 ? label + " (od 5 do 500 znakov)." : "";
       } : null,
       onConfirm: async function (acceptanceEvidence) {
         try {
@@ -2256,7 +2305,9 @@
             ? backend.client.rpc("pos_accept_work_order", { p_work_order_id: order.id, p_evidence: String(acceptanceEvidence || "").trim() })
             : action === "cancel"
               ? backend.client.rpc("pos_cancel_work_order", { p_work_order_id: order.id, p_reason: String(acceptanceEvidence || "").trim() })
-            : backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action });
+            : action === "start"
+              ? backend.client.rpc("pos_start_work_order", { p_work_order_id: order.id, p_evidence: String(acceptanceEvidence || "").trim() })
+              : backend.client.rpc("pos_transition_work_order", { p_work_order_id: order.id, p_action: action });
           var result = await request.single();
           if (result.error) throw result.error;
           var offerPdfError = "";
@@ -3692,10 +3743,15 @@
   function syncCustomerFields() {
     syncDraftFromForm();
     var business = state.draft.customerType === "business" || state.draft.customerType === "public";
+    var consumerOffer = state.draft.workflowMode === "offer" && state.draft.customerType === "private";
     query("[data-business-fields]").hidden = !business;
     query("[data-public-fields]").hidden = state.draft.customerType !== "public";
     query("[data-structured-buyer-reference]").hidden = !business;
+    query("[data-consumer-contract]").hidden = !consumerOffer;
+    query("[data-consumer-withdrawal-note]").hidden = !consumerOffer || ["unknown", "distance", "off_premises"].indexOf(state.draft.consumerContractContext) === -1;
+    query("[data-urgent-repair]").hidden = !consumerOffer || state.draft.consumerContractContext !== "urgent_repair";
     query("[data-customer-name-label]").textContent = state.draft.customerType === "private" ? "Ime in priimek *" : "Naziv organizacije *";
+    fitAllText();
   }
 
   function syncTaxFields() {
@@ -4634,6 +4690,7 @@
     queryAll("[data-step]").forEach(function (button) { button.addEventListener("click", function () { var target = integer(button.getAttribute("data-step"), 1); if (target <= currentStep) setStep(target, false); else setStep(target, true); }); });
     query("[data-add-item]").addEventListener("click", addItem);
     queryAll("[name=customerType]").forEach(function (radio) { radio.addEventListener("change", syncCustomerFields); });
+    query("[name=consumerContractContext]").addEventListener("change", syncCustomerFields);
     queryAll("[name=taxMode]").forEach(function (radio) { radio.addEventListener("change", function () { state.draft.taxMode = radio.value; syncTaxFields(); renderItems(); }); });
     query("[name=constructionWithholding]").addEventListener("change", syncTaxFields);
     queryAll("[name=priceMode]").forEach(function (radio) { radio.addEventListener("change", function () { syncDraftFromForm(); renderItems(); }); });
