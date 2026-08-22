@@ -2,6 +2,7 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
 const {
   GENERATOR_VERSION, XRECHNUNG_VERSION, KOSIT_VALIDATOR_VERSION, KOSIT_CONFIG_VERSION, buildXRechnung
 } = require("../_lib/pos-xrechnung");
@@ -114,7 +115,11 @@ async function validateWithKosit(xml, filename, env) {
     const options = { method: "POST", headers, body: xml };
     if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") options.signal = AbortSignal.timeout(50000);
     const response = await supabase.fetchZOmejitvijo(url, options, 30000);
-    const body = reportBody(await response.text());
+    const body = reportBody(await providerJson.readText(response, {
+      maxBytes: MAX_REPORT_LENGTH,
+      code: "KOSIT_RESPONSE_TOO_LARGE",
+      message: "KoSIT validator je vrnil preveliko poročilo.",
+    }));
     if (response.status === 200) return { status: "validated", report: { configured: true, httpStatus: 200, accepted: true, body } };
     if (response.status === 406) return { status: "failed", report: { configured: true, httpStatus: 406, accepted: false, body } };
     const message = response.status === 401 || response.status === 403

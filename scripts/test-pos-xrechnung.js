@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const generator = require(path.join(repoRoot, "api", "_lib", "pos-xrechnung"));
+const providerJson = require(path.join(repoRoot, "api", "_lib", "provider-json"));
 const xrechnungHandler = require(path.join(repoRoot, "api", "pos-racun-xrechnung"))._test;
 const api = fs.readFileSync(path.join(repoRoot, "api", "_handlers", "pos-racun-xrechnung.js"), "utf8");
 const migration = fs.readFileSync(path.join(repoRoot, "supabase", "migrations", "20260819151900_pos_xrechnung_documents.sql"), "utf8");
@@ -145,11 +146,22 @@ assert.match(proxy, /mediaType == "application\/xml"/);
 assert.match(proxy, /r\.URL\.Path == "\/health"/);
 assert.match(proxy, /validatorReady\(40 \* time\.Second\)/);
 assert.match(api, /AbortSignal\.timeout\(50000\)/);
+assert.match(api, /providerJson\.readText\(response,[\s\S]*KOSIT_RESPONSE_TOO_LARGE/);
 assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
 assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
 assert.match(terminalHtml, /pos-terminal\.js\?v=20260822-full-history-v8/);
 assert.match(terminalJs, /validationMessage/);
 
-console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");
+void (async function verifyBoundedKositResponse() {
+  assert.strictEqual(await providerJson.readText(new Response("bericht"), { maxBytes: 1024 }), "bericht");
+  await assert.rejects(
+    () => providerJson.readText(new Response("x".repeat(1025)), { maxBytes: 1024, code: "KOSIT_RESPONSE_TOO_LARGE" }),
+    function (error) { return error && error.code === "KOSIT_RESPONSE_TOO_LARGE"; }
+  );
+  console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");
+})().catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});
 
 module.exports = { invoice, publicInvoice, reverseInvoice };
