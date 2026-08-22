@@ -3128,9 +3128,11 @@
 
     function adjustmentRowHtml(entry) {
       var cancellation = entry.type === "cancellation";
-      var title = cancellation ? "Stornorechnung" : "Rechnungsberichtigung";
+      var creditNote = entry.type === "credit_note";
+      var financial = cancellation || creditNote;
+      var title = cancellation ? "Stornorechnung" : creditNote ? "Gutschrift" : "Rechnungsberichtigung";
       var stateCopy = entry.documentReady ? "PDF" : "Pripravi PDF";
-      return "<article class=\"pos-adjustment-row " + (cancellation ? "is-cancellation" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + entry.reason) + "</small></div><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button></article>";
+      return "<article class=\"pos-adjustment-row " + (financial ? "is-cancellation" : "") + (creditNote ? " is-credit-note" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : creditNote ? "i-receipt" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + entry.reason) + "</small></div><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button></article>";
     }
     queryAll("[data-download-adjustment]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -3138,7 +3140,7 @@
         if (!entry) return;
         button.disabled = true;
         button.textContent = "Preverjam …";
-        try { await downloadAdjustmentPdf(entry); button.textContent = "PDF"; showToast("Arhivirani popravek je prenesen."); }
+        try { await downloadAdjustmentPdf(entry); button.textContent = "PDF"; showToast("Arhivirani računovodski dokument je prenesen."); }
         catch (error) { button.textContent = "Poskusi znova"; showToast(error.message || "Popravka ni bilo mogoče prenesti."); }
         finally { button.disabled = false; }
       });

@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-tax-credit-v30/);
+assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-tax-credit-v31/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -372,6 +372,7 @@ assert.match(js, /function withdrawalTaxCorrectionState\(order\)/);
 assert.match(js, /Po § 17 UStG izdajte nespremenljiv Storno/i);
 assert.match(js, /rpc\("pos_create_withdrawal_tax_credit_notes"/i);
 assert.match(js, /Dobropis bo nespremenljiv in ne bo sprožil vračila denarja/i);
+assert.match(js, /creditNote \? "Gutschrift" : "Rechnungsberichtigung"/i);
 
 const withdrawalCreditMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_withdrawal_tax_credit_notes\.sql$/.test(name)).sort().pop();
