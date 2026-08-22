@@ -31,5 +31,11 @@ assert.strictEqual(posHeaderMap["x-content-type-options"], "nosniff");
 assert.strictEqual(posHeaderMap["x-frame-options"], "DENY");
 assert.strictEqual(posHeaderMap["referrer-policy"], "no-referrer");
 assert.strictEqual(posHeaderMap["permissions-policy"], "camera=(), microphone=(), geolocation=(), payment=()");
+assert.match(posHeaderMap["content-security-policy"], /default-src 'self'/);
+assert.match(posHeaderMap["content-security-policy"], /script-src 'self'/);
+assert.match(posHeaderMap["content-security-policy"], /connect-src 'self' https:\/\/\*\.supabase\.co wss:\/\/\*\.supabase\.co https:\/\/\*\.ingest\.de\.sentry\.io/);
+assert.match(posHeaderMap["content-security-policy"], /object-src 'none'/);
+assert.match(posHeaderMap["content-security-policy"], /frame-ancestors 'none'/);
+assert.doesNotMatch(posHtml, /fonts\.(?:googleapis|gstatic)\.com/);
 
 console.log("POS terminal je pravilno povezan z začetnim zaslonom in skupno navigacijo.");
