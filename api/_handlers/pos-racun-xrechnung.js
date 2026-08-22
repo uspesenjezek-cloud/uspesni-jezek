@@ -44,10 +44,6 @@ async function readDocument(cfg, userId, invoiceId) {
   const rows = await supabase.pridobiVrstice(cfg, "pos_einvoice_documents", "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=*");
   return rows.length === 1 ? rows[0] : null;
 }
-async function invoiceIsCancelled(cfg, userId, invoiceId) {
-  const rows = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments", "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1");
-  return rows.length > 0;
-}
 async function downloadObject(cfg, path) {
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + BUCKET + "/" + encodedPath(path), {
     headers: supabase.serviceHeaders(cfg, { Accept: "application/xml" })
@@ -194,7 +190,9 @@ async function handler(req, res) {
   try {
     const invoice = await readInvoice(cfg, auth.user.id, invoiceId);
     if (!invoice) return json(res, 404, { ok: false, napaka: "Račun ne obstaja ali ni vaš." });
-    if (await invoiceIsCancelled(cfg, auth.user.id, invoiceId)) return json(res, 409, { ok: false, napaka: "Storniranega računa ni dovoljeno pripraviti za pošiljanje." });
+    // A cancellation does not replace or erase the issued structured original.
+    // Delivery has its own cancellation guard; this endpoint must keep the
+    // immutable XRechnung available for retention, audit and restoration.
     const result = await ensureDocument(cfg, invoice, auth.user.id);
     if (mode === "validate" || (req.method === "POST" && result.document.validation_status !== "validated")) {
       result.document = await runValidation(cfg, auth.user.id, invoice, result.document, result.xml);
