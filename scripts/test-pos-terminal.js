@@ -23,6 +23,14 @@ const issueConcurrencyMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_issue_concurrency_idempotency\.sql$/.test(name)).sort().pop()
   : null;
 const issueConcurrencyMigration = issueConcurrencyMigrationName ? fs.readFileSync(path.join(migrationsDir, issueConcurrencyMigrationName), "utf8") : "";
+const payloadLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_payload_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const payloadLimitsMigration = payloadLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, payloadLimitsMigrationName), "utf8") : "";
+const payloadInvokerMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_payload_invoker_wrappers\.sql$/.test(name)).sort().pop()
+  : null;
+const payloadInvokerMigration = payloadInvokerMigrationName ? fs.readFileSync(path.join(migrationsDir, payloadInvokerMigrationName), "utf8") : "";
 const manualPaymentMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_manual_payment_rpc\.sql$/.test(name)).sort().pop()
   : null;
@@ -626,6 +634,24 @@ assert.ok(draftOwnershipIndex > existingInvoiceIndex, "Obstoj osnutka se preveri
 assert.match(issueConcurrencyMigration, /security definer\s+set search_path = ''/i);
 assert.match(issueConcurrencyMigration, /revoke all on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.match(issueConcurrencyMigration, /grant execute on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) to authenticated, service_role/i);
+assert.ok(payloadLimitsMigrationName, "Manjka omejitev strežniškega POS payload-a.");
+assert.match(payloadLimitsMigration, /octet_length\(p_payload::text\) > 524288/i);
+assert.match(payloadLimitsMigration, /customer_street[\s\S]*between 1 and 180/i);
+assert.match(payloadLimitsMigration, /customer_postal_code[\s\S]*between 1 and 12/i);
+assert.match(payloadLimitsMigration, /customer_email[\s\S]*> 320/i);
+assert.match(payloadLimitsMigration, /work_description[\s\S]*> 1200/i);
+assert.match(payloadLimitsMigration, /pos_invoice_drafts_payload_size_check[\s\S]*validate constraint pos_invoice_drafts_payload_size_check/i);
+assert.match(payloadLimitsMigration, /pos_invoices_snapshot_size_check[\s\S]*validate constraint pos_invoices_snapshot_size_check/i);
+assert.match(payloadLimitsMigration, /create or replace function public\.pos_issue_invoice[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadLimitsMigration, /create or replace function public\.pos_issue_replacement_invoice[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_issue_invoice\(uuid,jsonb,boolean,boolean\) from authenticated/i);
+assert.match(payloadLimitsMigration, /revoke execute on function private\._pos_issue_replacement_invoice\(uuid,jsonb,boolean,boolean,uuid\) from authenticated/i);
+assert.ok(payloadInvokerMigrationName, "Manjka neprivilegiran javni ovoj za POS izdajo.");
+assert.match(payloadInvokerMigration, /create or replace function private\._pos_issue_invoice_validated[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadInvokerMigration, /create or replace function private\._pos_issue_replacement_invoice_validated[\s\S]*security definer[\s\S]*private\.pos_validate_invoice_payload/i);
+assert.match(payloadInvokerMigration, /create or replace function public\.pos_issue_invoice[\s\S]*security invoker[\s\S]*private\._pos_issue_invoice_validated/i);
+assert.match(payloadInvokerMigration, /create or replace function public\.pos_issue_replacement_invoice[\s\S]*security invoker[\s\S]*private\._pos_issue_replacement_invoice_validated/i);
+assert.match(payloadInvokerMigration, /revoke all on function private\._pos_issue_invoice_validated\(uuid,jsonb,boolean,boolean\) from public, anon/i);
 assert.ok(manualPaymentMigrationName, "Manjka varna strežniška pot za ročno potrditev plačila.");
 assert.match(manualPaymentMigration, /revoke insert on table public\.pos_payments from authenticated/i);
 assert.match(manualPaymentMigration, /drop policy if exists pos_payment_insert_own/i);
