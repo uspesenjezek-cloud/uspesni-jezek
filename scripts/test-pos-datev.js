@@ -17,6 +17,10 @@ const datevSettingsValidationMigrationName = fs.readdirSync(path.join(root, "sup
   .filter((name) => /pos_datev_settings_validation\.sql$/.test(name)).sort().pop();
 assert.ok(datevSettingsValidationMigrationName, "Manjka strežniška validacija DATEV nastavitev.");
 const datevSettingsValidationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", datevSettingsValidationMigrationName), "utf8");
+const datevProviderBoundsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_datev_provider_bounds\.sql$/.test(name)).sort().pop();
+assert.ok(datevProviderBoundsMigrationName, "Manjkajo omejitve odgovorov DATEV ponudnika.");
+const datevProviderBoundsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", datevProviderBoundsMigrationName), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821123000_pos_datev_cloud_integration.sql"), "utf8");
 const mockIsolationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821124359_datev_mock_job_isolation.sql"), "utf8");
 const repeatableMockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821132323_datev_repeatable_mock_runs.sql"), "utf8");
@@ -114,6 +118,8 @@ assert.match(datevSettingsValidationMigration, /clientNumber[\s\S]*\^\[0-9\]\{0,
 assert.match(datevSettingsValidationMigration, /pos_business_profiles_datev_settings_values_check[\s\S]*validate constraint pos_business_profiles_datev_settings_values_check/i);
 assert.match(datevSettingsValidationMigration, /immutable[\s\S]*set search_path = ''/i);
 assert.match(datevSettingsValidationMigration, /grant execute on function private\.pos_datev_settings_valid\(jsonb\) to authenticated, service_role/i);
+assert.match(datevProviderBoundsMigration, /octet_length\(access_token_encrypted\) <= 16384/i);
+assert.match(datevProviderBoundsMigration, /octet_length\(refresh_token_encrypted\) <= 16384/i);
 assert.match(localServer, /else void posredujZascitenApi\(req, res, requestUrl\.pathname \+ requestUrl\.search\)/);
 assert.match(localServer, /pathname === "\/__dev-source"/);
 
@@ -136,6 +142,18 @@ void (async function verifyDatevPagination() {
     return source.slice(offset, offset + limit);
   };
   try {
+    const normalResponse = new Response(JSON.stringify({ ok: true }), {
+      headers: { "content-type": "application/json" },
+    });
+    assert.deepStrictEqual(await datev._test.responseData(normalResponse), { ok: true });
+    await assert.rejects(
+      () => datev._test.responseData(new Response("{}", {
+        headers: { "content-type": "application/json", "content-length": String(datev._test.MAX_RESPONSE_BYTES + 1) },
+      })),
+      /odgovor je prevelik/i
+    );
+    assert.throws(() => datev.encryptSecret(cfg, "x".repeat(8193)), /žeton je prevelik/i);
+
     const all = await handler._test.pagedRows({}, "datev_test_rows", "select=id&order=id.asc", 500);
     assert.strictEqual(all.length, 1205);
     assert.deepStrictEqual(offsets, [0, 500, 1000]);
