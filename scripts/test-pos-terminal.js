@@ -71,6 +71,10 @@ const invoicePartyValidationMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_party_validation\.sql$/.test(name)).sort().pop()
   : null;
 const invoicePartyValidationMigration = invoicePartyValidationMigrationName ? fs.readFileSync(path.join(migrationsDir, invoicePartyValidationMigrationName), "utf8") : "";
+const invoiceEinvoicePartyRequirementsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_einvoice_party_requirements\.sql$/.test(name)).sort().pop()
+  : null;
+const invoiceEinvoicePartyRequirementsMigration = invoiceEinvoicePartyRequirementsMigrationName ? fs.readFileSync(path.join(migrationsDir, invoiceEinvoicePartyRequirementsMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -795,6 +799,11 @@ assert.match(invoicePartyValidationMigration, /customer_email[\s\S]*\^\[\^\[:spa
 assert.match(invoicePartyValidationMigration, /tax_mode[\s\S]*reverse_charge[\s\S]*v_vat_id = ''/i);
 assert.match(invoicePartyValidationMigration, /private\.pos_validate_invoice_payload\([\s\S]*private\.pos_validate_invoice_party_fields\(/i);
 assert.match(invoicePartyValidationMigration, /revoke all on function private\.pos_validate_invoice_party_fields\(jsonb\)[\s\S]*authenticated/i);
+assert.ok(invoiceEinvoicePartyRequirementsMigrationName, "Manjkajo strežniške zahteve za XRechnung kontakte.");
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_customer_type in \('business', 'public'\)[\s\S]*v_buyer_reference = '' and v_leitweg_id = ''/i);
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_customer_type = 'business' and v_email = ''/i);
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_seller_email[\s\S]*business_email[\s\S]*auth\.uid\(\)/i);
+assert.match(invoiceEinvoicePartyRequirementsMigration, /v_seller_phone = ''/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
