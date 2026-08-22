@@ -153,6 +153,8 @@ function sampleAdjustment(type) {
   assert.strictEqual(adjustmentEndpoint._test.objectPath("u", "a"), "u/adjustments/a/korrektur.pdf");
   assert.match(pdfEndpointSource, /Cache-Control", "private, no-store, max-age=0"/);
   assert.match(adjustmentEndpointSource, /Cache-Control", "private, no-store, max-age=0"/);
+  assert.match(adjustmentEndpointSource, /providerJson\.readBuffer\(response,[\s\S]*MAX_PDF_BYTES/);
+  assert.doesNotMatch(adjustmentEndpointSource, /response\.arrayBuffer\(/);
   assert.deepStrictEqual(pdfModule.taxGroups([
     { tax_rate_bps: 1900, net_cents: 10000, tax_cents: 1900 },
     { tax_rate_bps: 700, net_cents: 5000, tax_cents: 350 },

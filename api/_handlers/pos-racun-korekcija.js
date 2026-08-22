@@ -2,9 +2,11 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
 const { GENERATOR_VERSION, ustvariKorekcijskiPdf } = require("../_lib/pos-adjustment-pdf");
 
 const BUCKET = "pos-invoice-originals";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -46,7 +48,11 @@ async function downloadObject(cfg, path) {
   }, 15000);
   if (response.status === 404 || response.status === 400) return null;
   if (!response.ok) throw new Error("Arhiviranega popravka ni bilo mogoče prebrati.");
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_PDF_BYTES,
+    code: "POS_ADJUSTMENT_PDF_TOO_LARGE",
+    message: "Arhivirani PDF popravka presega dovoljeno velikost."
+  });
 }
 
 async function uploadObject(cfg, path, pdf) {

@@ -2,9 +2,12 @@
 
 const crypto = require("node:crypto");
 const supabase = require("./supabase-server");
+const providerJson = require("./provider-json");
 
 const PDF_BUCKET = "pos-invoice-originals";
 const XML_BUCKET = "pos-einvoice-originals";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+const MAX_XML_BYTES = 2 * 1024 * 1024;
 
 class DeliveryPackageError extends Error {
   constructor(message, options) {
@@ -75,7 +78,7 @@ async function readSingle(cfg, table, query, missingMessage) {
   return rows[0];
 }
 
-async function downloadObject(cfg, bucket, storagePath, mediaType) {
+async function downloadObject(cfg, bucket, storagePath, mediaType, maxBytes) {
   const response = await supabase.fetchZOmejitvijo(
     cfg.url + "/storage/v1/object/" + bucket + "/" + encodedPath(storagePath),
     { headers: supabase.serviceHeaders(cfg, { Accept: mediaType }) },
@@ -93,7 +96,18 @@ async function downloadObject(cfg, bucket, storagePath, mediaType) {
       retryable: response.status === 429 || response.status >= 500,
     });
   }
-  return Buffer.from(await response.arrayBuffer());
+  try {
+    return await providerJson.readBuffer(response, {
+      maxBytes,
+      code: "DELIVERY_ATTACHMENT_TOO_LARGE",
+      message: "Arhivirana dostavna priloga presega dovoljeno velikost.",
+    });
+  } catch (error) {
+    if (error && error.code === "DELIVERY_ATTACHMENT_TOO_LARGE") {
+      throw new DeliveryPackageError(error.message, { code: error.code, retryable: false });
+    }
+    throw error;
+  }
 }
 
 function assertOwnedPath(delivery, storagePath) {
@@ -116,7 +130,7 @@ async function pdfAttachment(cfg, delivery, baseName) {
     "Arhivirani PDF original manjka."
   );
   assertOwnedPath(delivery, metadata.storage_path);
-  const content = await downloadObject(cfg, PDF_BUCKET, metadata.storage_path, "application/pdf");
+  const content = await downloadObject(cfg, PDF_BUCKET, metadata.storage_path, "application/pdf", MAX_PDF_BYTES);
   return verifyAttachment({
     kind: "invoice_pdf",
     filename: baseName + ".pdf",
@@ -143,7 +157,7 @@ async function xmlAttachment(cfg, delivery, baseName) {
     });
   }
   assertOwnedPath(delivery, metadata.storage_path);
-  const content = await downloadObject(cfg, XML_BUCKET, metadata.storage_path, "application/xml");
+  const content = await downloadObject(cfg, XML_BUCKET, metadata.storage_path, "application/xml", MAX_XML_BYTES);
   return verifyAttachment({
     kind: "xrechnung_ubl",
     filename: baseName + "-XRechnung.xml",
@@ -203,4 +217,5 @@ module.exports = {
   safeFilename,
   sha256,
   verifyAttachment,
+  _test: { downloadObject, MAX_PDF_BYTES, MAX_XML_BYTES },
 };

@@ -120,6 +120,8 @@ assert.match(packageSource, /pos_invoice_documents/);
 assert.match(packageSource, /pos_einvoice_documents/);
 assert.match(packageSource, /validation_status !== "validated"/);
 assert.match(packageSource, /DELIVERY_ATTACHMENT_HASH_MISMATCH/);
+assert.match(packageSource, /providerJson\.readBuffer/);
+assert.doesNotMatch(packageSource, /response\.arrayBuffer\(/);
 assert.match(packageSource, /pos-invoice-originals/);
 assert.match(packageSource, /pos-einvoice-originals/);
 assert.match(runnerSource, /pos_finish_invoice_delivery/);
@@ -147,6 +149,8 @@ assert.strictEqual(worker._test.safeEqual("a", "b"), false);
 assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3, "resend", true), /provider=eq\.resend[\s\S]*is_test=eq\.true/);
 
 (async function () {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server.js"));
+  const originalFetch = supabase.fetchZOmejitvijo;
   const content = Buffer.from("archived invoice bytes");
   const attachment = packages.verifyAttachment({
     kind: "invoice_pdf",
@@ -200,6 +204,14 @@ assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3
   assert.strictEqual(providers.validEmail("rechnung@example.de"), true);
   assert.strictEqual(providers.validEmail("bad\n@example.de"), false);
   assert.throws(() => packages.verifyAttachment(Object.assign({}, attachment, { sha256: "0".repeat(64) })), /celovitosti/);
+  supabase.fetchZOmejitvijo = async function () {
+    return new Response("PDF", { status: 200, headers: { "content-length": String(packages._test.MAX_PDF_BYTES + 1) } });
+  };
+  await assert.rejects(
+    () => packages._test.downloadObject({ url: "https://database.example", serviceKey: "test" }, "bucket", "path", "application/pdf", packages._test.MAX_PDF_BYTES),
+    function (error) { return error && error.code === "DELIVERY_ATTACHMENT_TOO_LARGE" && error.retryable === false; }
+  );
+  supabase.fetchZOmejitvijo = originalFetch;
   await assert.rejects(
     () => provider.deliver({
       delivery: { id: "x", invoice_id: "y", is_test: false },

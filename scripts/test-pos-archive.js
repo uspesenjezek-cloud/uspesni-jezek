@@ -29,6 +29,8 @@ const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-a
 const localServer = fs.readFileSync(path.join(root, "scripts", "local-server.js"), "utf8");
 
 assert.strictEqual(archive.hash(Buffer.from("original")), "0682c5f2076f099c34cfdd15a9e063849ed437a49677e6fcc5b4198c76575be5");
+assert.match(archive.readObject.toString(), /providerJson\.readBuffer/);
+assert.doesNotMatch(archive.readObject.toString(), /arrayBuffer\(/);
 assert.match(migration, /create table public\.pos_archive_records/i);
 assert.match(migration, /create table public\.pos_archive_integrity_events/i);
 assert.match(migration, /retention_years smallint not null default 8/i);
