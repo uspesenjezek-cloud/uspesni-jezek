@@ -976,10 +976,10 @@
     var amount = integer(transaction.amountCents || transaction.amount_cents, 0);
     var searchText = normalizeBankText((transaction.remittanceInfo || transaction.remittance_info || "") + " " + (transaction.counterpartyName || transaction.counterparty_name || ""));
     var candidates = (Array.isArray(invoices) ? invoices : []).filter(function (invoice) {
-      var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
-      return invoice.serverStored && invoice.status !== "cancelled" && outstanding >= amount && outstanding > 0;
+      var outstanding = invoiceOutstandingCents(invoice);
+      return invoice.serverStored && !invoice.hasCreditNote && invoice.status !== "cancelled" && outstanding >= amount && outstanding > 0;
     }).map(function (invoice) {
-      var outstanding = Math.max(0, integer(invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+      var outstanding = invoiceOutstandingCents(invoice);
       var numberMatch = searchText.indexOf(normalizeBankText(invoice.number)) !== -1;
       var payerName = normalizeBankText(transaction.counterpartyName || transaction.counterparty_name || "");
       var customerName = normalizeBankText(invoice.draft && invoice.draft.customerName || "");
@@ -994,8 +994,11 @@
   }
 
   function invoiceOutstandingCents(invoice) {
-    if (!invoice || invoice.status === "cancelled") return 0;
-    return Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+    if (!invoice || invoice.status === "cancelled" || invoice.status === "credited") return 0;
+    var receivable = invoice.adjustedGrossCents == null
+      ? integer(invoice.totals && invoice.totals.grossCents, 0)
+      : integer(invoice.adjustedGrossCents, 0);
+    return Math.max(0, receivable - integer(invoice.paidCents, 0));
   }
 
   function bankImportFileError(file) {
@@ -1696,6 +1699,7 @@
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
     paymentSummary: paymentSummary,
+    serverInvoiceToLocal: serverInvoiceToLocal,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
     replacementDraftFromInvoice: replacementDraftFromInvoice,
@@ -1944,7 +1948,7 @@
     }, 0);
     return {
       paidCents: paidCents,
-      status: currentStatus === "cancelled" ? "cancelled" : paidCents >= integer(grossCents, 0) ? "paid" : paidCents > 0 ? "partial" : "open"
+      status: currentStatus === "cancelled" ? "cancelled" : currentStatus === "credited" ? "credited" : paidCents >= integer(grossCents, 0) ? "paid" : paidCents > 0 ? "partial" : "open"
     };
   }
 
@@ -1957,7 +1961,11 @@
     var draft = draftFromDatabasePayload(effectivePayload, true);
     var payments = paymentsByInvoice && paymentsByInvoice[row.id] || [];
     var cancelled = adjustments.some(function (entry) { return entry.type === "cancellation"; });
-    var paymentState = paymentSummary(payments, row.gross_cents, cancelled ? "cancelled" : "open");
+    var creditDelta = adjustments.filter(function (entry) { return entry.type === "credit_note"; })
+      .reduce(function (sum, entry) { return sum + integer(entry.deltaGrossCents, 0); }, 0);
+    var adjustedGrossCents = Math.max(0, integer(row.gross_cents, 0) + creditDelta);
+    var hasCreditNote = creditDelta < 0;
+    var paymentState = paymentSummary(payments, adjustedGrossCents, cancelled ? "cancelled" : hasCreditNote && adjustedGrossCents === 0 ? "credited" : "open");
     return {
       id: row.id,
       number: row.invoice_number,
@@ -1971,6 +1979,8 @@
       isTest: Boolean(row.is_test),
       status: paymentState.status,
       paidCents: paymentState.paidCents,
+      adjustedGrossCents: adjustedGrossCents,
+      hasCreditNote: hasCreditNote,
       payments: payments,
       corrected: corrections.length > 0,
       adjustments: adjustments,
@@ -1996,7 +2006,8 @@
     state.invoices.forEach(function (invoice) {
       if (!invoice.serverStored) return;
       invoice.payments = paymentsByInvoice[invoice.id] || [];
-      var paymentState = paymentSummary(invoice.payments, invoice.totals && invoice.totals.grossCents, invoice.status);
+      var lockedStatus = invoice.status === "cancelled" ? "cancelled" : invoice.hasCreditNote && !invoice.adjustedGrossCents ? "credited" : "open";
+      var paymentState = paymentSummary(invoice.payments, invoice.adjustedGrossCents == null ? invoice.totals && invoice.totals.grossCents : invoice.adjustedGrossCents, lockedStatus);
       invoice.paidCents = paymentState.paidCents;
       invoice.status = paymentState.status;
     });
@@ -2995,6 +3006,7 @@
     var overdueDays = invoiceDaysOverdue(invoice, today);
     if (overdueDays) return "Zapadlo · " + overdueDays + (overdueDays === 1 ? " dan" : " dni");
     if (invoice.status === "cancelled") return "Stornirano";
+    if (invoice.status === "credited") return "V celoti dobropisano";
     if (invoice.status === "paid") return "Plačano";
     if (invoice.status === "partial") return "Delno plačano";
     if (invoice.corrected) return "Popravljeno";
@@ -3004,8 +3016,8 @@
 
   function invoiceRowHtml(invoice, today) {
     var overdue = invoiceDaysOverdue(invoice, today) > 0;
-    var rowClass = overdue ? " is-overdue" : invoice.status === "paid" ? " is-paid" : invoice.status === "cancelled" ? " is-cancelled" : "";
-    var disabled = invoice.status === "cancelled" ? " disabled aria-label=\"Storniran račun\"" : "";
+    var rowClass = overdue ? " is-overdue" : invoice.status === "paid" ? " is-paid" : invoice.status === "cancelled" || invoice.status === "credited" ? " is-cancelled" : "";
+    var disabled = invoice.status === "cancelled" || invoice.hasCreditNote ? " disabled aria-label=\"Finančno popravljen račun\"" : "";
     return "<article class=\"pos-invoice-row" + rowClass + "\" data-invoice-id=\"" + escapeHtml(invoice.id) + "\" data-open-invoice=\"" + escapeHtml(invoice.id) + "\" tabindex=\"0\"><span class=\"pos-invoice-row__icon\"><svg><use href=\"#i-receipt\"/></svg></span><div class=\"pos-invoice-row__main\"><strong data-fit-text>" + escapeHtml(invoice.draft.customerName || "Brez prejemnika") + "</strong><small data-fit-text>" + escapeHtml(invoice.number) + " · " + escapeHtml(formatDate(invoice.draft.issueDate)) + "</small></div><button class=\"pos-invoice-row__amount pos-text-button\" type=\"button\" data-record-payment=\"" + escapeHtml(invoice.id) + "\"" + disabled + "><strong data-fit-text>" + escapeHtml(formatMoney(invoice.totals.grossCents)) + "</strong><small>" + escapeHtml(invoiceStatusLabel(invoice, today)) + "</small></button></article>";
   }
 
@@ -3289,7 +3301,7 @@
     });
     panel.hidden = !invoice.isTest;
     if (!invoice.isTest) return;
-    var outstanding = Math.max(0, integer(invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
+    var outstanding = invoiceOutstandingCents(invoice);
     var title = "Stripe testno plačilo";
     var copy = "Točen odprti znesek " + formatMoney(outstanding) + " se preveri na strežniku.";
     var label = "Plačaj s kartico – TEST";
@@ -3302,7 +3314,7 @@
     query("[data-stripe-payment-title]").textContent = title;
     query("[data-stripe-payment-copy]").textContent = copy;
     buttonCopy.textContent = label;
-    button.disabled = !invoice.serverStored || !backend.ready || invoice.status === "cancelled" || invoice.status === "paid";
+    button.disabled = !invoice.serverStored || !backend.ready || invoice.status === "cancelled" || invoice.status === "credited" || invoice.status === "paid" || invoice.hasCreditNote;
     refundButton.hidden = !refundablePayment;
     refundButton.disabled = !invoice.serverStored || !backend.ready;
     if (refundablePayment) {
@@ -3701,7 +3713,7 @@
   }
 
   function openDeliverySheet(invoice) {
-    if (!invoice || invoice.status === "cancelled") { showToast("Storniranega računa ni dovoljeno poslati."); return; }
+    if (!invoice || invoice.status === "cancelled" || invoice.hasCreditNote) { showToast("Izvirnega računa po Stornu ali dobropisu ni dovoljeno ponovno poslati."); return; }
     if (!invoice.serverStored || !backend.ready) { showToast("Pošiljanje potrebuje varno shranjen račun."); return; }
     deliveryInvoiceId = invoice.id;
     deliveryRequestKey = randomUuid();
@@ -3814,17 +3826,17 @@
     query("[data-detail-issued]").textContent = formatDate(invoice.draft.issueDate);
     query("[data-detail-due]").textContent = formatDate(invoice.dueDate);
     query("[data-detail-method]").textContent = paymentMethodLabel(invoice.draft.paymentMethod);
-    query("[data-detail-payment-status]").textContent = invoice.status === "cancelled" ? "Storniert" : invoice.status === "paid" ? "Bezahlt" : invoice.status === "partial" ? "Teilbezahlt" : "Offen";
+    query("[data-detail-payment-status]").textContent = invoice.status === "cancelled" ? "Storniert" : invoice.status === "credited" ? "Gutgeschrieben" : invoice.status === "paid" ? "Bezahlt" : invoice.status === "partial" ? "Teilbezahlt" : "Offen";
     var status = query("[data-detail-status]");
     status.classList.toggle("is-paid", invoice.status === "paid");
     status.classList.toggle("is-test", invoice.isTest && invoice.status !== "paid");
-    status.classList.toggle("is-cancelled", invoice.status === "cancelled");
+    status.classList.toggle("is-cancelled", invoice.status === "cancelled" || invoice.status === "credited");
     status.classList.toggle("is-corrected", invoice.corrected && invoice.status === "open");
-    status.textContent = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
-    query("[data-detail-payment]").disabled = invoice.status === "cancelled";
-    query("[data-detail-copy]").disabled = invoice.status === "cancelled";
+    status.textContent = invoice.status === "cancelled" ? "Stornirano" : invoice.status === "credited" ? "Dobropisano" : invoice.status === "paid" ? "Plačano" : invoice.status === "partial" ? "Delno plačano" : invoice.corrected ? "Popravljeno" : invoice.isTest ? "Test" : "Odprto";
+    query("[data-detail-payment]").disabled = invoice.status === "cancelled" || invoice.hasCreditNote;
+    query("[data-detail-copy]").disabled = invoice.status === "cancelled" || invoice.hasCreditNote;
     query("[data-detail-correction]").disabled = invoice.status === "cancelled" || !invoice.serverStored;
-    query("[data-detail-send]").disabled = invoice.status === "cancelled" || !invoice.serverStored;
+    query("[data-detail-send]").disabled = invoice.status === "cancelled" || invoice.hasCreditNote || !invoice.serverStored;
     if (!invoice.serverStored) setDocumentState(invoice, "error", "Lokalni test nima strežniškega PDF originala.");
     else if (invoice.documentReady) setDocumentState(invoice, "ready", "Arhiviran in preverjen original");
     else {
@@ -3879,8 +3891,8 @@
       showToast("Stripe TEST potrebuje varno shranjen testni račun.");
       return;
     }
-    if (invoice.status === "cancelled" || invoice.status === "paid") {
-      showToast(invoice.status === "paid" ? "Račun je že plačan." : "Storniranega računa ni mogoče plačati.");
+    if (invoice.status === "cancelled" || invoice.status === "credited" || invoice.status === "paid" || invoice.hasCreditNote) {
+      showToast(invoice.hasCreditNote ? "Po dobropisu novih plačil na izvirni račun ni dovoljeno sprejeti." : invoice.status === "paid" ? "Račun je že plačan." : "Storniranega računa ni mogoče plačati.");
       return;
     }
     var button = query("[data-stripe-payment]");
@@ -4596,6 +4608,7 @@
     var invoice = state.invoices.filter(function (entry) { return entry.id === id; })[0];
     if (!invoice) return;
     if (invoice.status === "cancelled") { showToast("Storniranega računa ni mogoče označiti kot plačanega."); return; }
+    if (invoice.hasCreditNote) { showToast("Po dobropisu novih plačil na izvirni račun ni dovoljeno sprejeti."); return; }
     if (invoice.status === "paid") { showToast("Ta račun je že označen kot plačan."); return; }
     var outstandingCents = invoiceOutstandingCents(invoice);
     openDialog("Označiti kot plačano?", invoice.number + " · preostanek " + formatMoney(outstandingCents) + ". Ročna potrditev mora temeljiti na dejansko vidnem plačilu.", {
@@ -4617,11 +4630,11 @@
           }
           if (!savedPayment) savedPayment = paymentFromServer({
             id: "local-" + Date.now(), invoice_id: invoice.id,
-            amount_cents: invoice.totals.grossCents - integer(invoice.paidCents, 0), currency: "EUR",
+            amount_cents: invoiceOutstandingCents(invoice), currency: "EUR",
             method: "manual", provider_reference: "Ročno potrjeno v POS", paid_at: paidAt
           });
           invoice.payments = (invoice.payments || []).concat([savedPayment]);
-          invoice.paidCents = invoice.totals.grossCents;
+          invoice.paidCents = invoice.adjustedGrossCents == null ? invoice.totals.grossCents : invoice.adjustedGrossCents;
           invoice.status = "paid";
           invoice.paidAt = paidAt;
           persist();
@@ -4870,8 +4883,8 @@
       var ambiguity = resolvedMatches.ambiguities[String(transaction.id)] || "";
       var confirmedInvoice = transaction.confirmedInvoiceId && findInvoice(transaction.confirmedInvoiceId);
       var options = state.invoices.filter(function (invoice) {
-        var outstanding = Math.max(0, integer(invoice.totals && invoice.totals.grossCents, 0) - integer(invoice.paidCents, 0));
-        return invoice.serverStored && invoice.status !== "cancelled" && outstanding >= transaction.amountCents && outstanding > 0;
+        var outstanding = invoiceOutstandingCents(invoice);
+        return invoice.serverStored && !invoice.hasCreditNote && invoice.status !== "cancelled" && outstanding >= transaction.amountCents && outstanding > 0;
       });
       if (suggestion) options.sort(function (left, right) {
         if (left.id === suggestion.invoice.id) return -1;
@@ -4880,7 +4893,7 @@
       });
       var optionHtml = options.length ? (suggestion ? "" : "<option value=\"\" selected disabled>Izberite račun …</option>") + options.map(function (invoice) {
         var selected = suggestion && suggestion.invoice.id === invoice.id ? " selected" : "";
-        var outstanding = invoice.totals.grossCents - integer(invoice.paidCents, 0);
+        var outstanding = invoiceOutstandingCents(invoice);
         return "<option value=\"" + escapeHtml(invoice.id) + "\"" + selected + ">" + escapeHtml(invoice.number + " · " + invoice.draft.customerName + " · " + formatMoney(outstanding)) + "</option>";
       }).join("") : "<option value=\"\">Ni primernega odprtega računa</option>";
       var bottom = transaction.status === "confirmed"

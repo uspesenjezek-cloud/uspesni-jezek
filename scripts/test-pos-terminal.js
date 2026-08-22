@@ -401,6 +401,19 @@ assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 400, refundedCents: 0
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1200, refundedCents: 200, status: "partially_refunded" }], 1000, "open"), { paidCents: 1000, status: "paid" });
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "failed" }], 1000, "open"), { paidCents: 0, status: "open" });
 assert.deepStrictEqual(Core.paymentSummary([{ amountCents: 1000, refundedCents: 0, status: "succeeded" }], 1000, "cancelled"), { paidCents: 1000, status: "cancelled" });
+assert.deepStrictEqual(Core.paymentSummary([], 0, "credited"), { paidCents: 0, status: "credited" });
+assert.strictEqual(Core.invoiceOutstandingCents({ adjustedGrossCents: 3000, paidCents: 3000, status: "paid" }), 0);
+assert.strictEqual(Core.invoiceOutstandingCents({ adjustedGrossCents: 3000, paidCents: 1000, status: "partial" }), 2000);
+const creditedInvoice = Core.serverInvoiceToLocal({
+  id: "invoice-credit-test", invoice_number: "RE-TEST", snapshot: { draft: {} },
+  due_date: "2026-08-30", net_cents: 10000, tax_cents: 1900, gross_cents: 11900,
+  eligible_35a_cents: 0, is_test: true, issued_at: "2026-08-22T10:00:00.000Z"
+}, {}, {}, {
+  "invoice-credit-test": [{ type: "credit_note", deltaGrossCents: -11900 }]
+}, {}, {});
+assert.strictEqual(creditedInvoice.adjustedGrossCents, 0);
+assert.strictEqual(creditedInvoice.hasCreditNote, true);
+assert.strictEqual(creditedInvoice.status, "credited");
 assert.strictEqual(Core.latestManualPaymentCandidate([
   { id: "partial", status: "partial", totals: { grossCents: 1000 }, paidCents: 400 },
   { id: "open", status: "open", totals: { grossCents: 1000 }, paidCents: 0 }

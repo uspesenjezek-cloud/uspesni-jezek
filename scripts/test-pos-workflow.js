@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-tax-credit-v31/);
+assert.match(html, /pos-terminal\.js\?v=20260822-financial-adjustment-guards-v32/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -384,6 +384,14 @@ assert.match(withdrawalCreditMigration, /jsonb_array_elements\(v_invoice\.snapsh
 assert.match(withdrawalCreditMigration, /credit_tax_groups/i);
 assert.match(withdrawalCreditMigration, /pos_payments_block_after_financial_adjustment[\s\S]*before insert or update of status/i);
 assert.match(withdrawalCreditMigration, /revoke all on function private\._pos_create_withdrawal_tax_credit_notes\(uuid,boolean\) from public,anon,authenticated/i);
+const deliveryGuardMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_financial_adjustment_delivery_guard\.sql$/.test(name)).sort().pop();
+assert.ok(deliveryGuardMigrationName, "Manjka blokada dostave originala po finančnem popravku.");
+const deliveryGuardMigration = fs.readFileSync(path.join(root, "supabase", "migrations", deliveryGuardMigrationName), "utf8");
+assert.match(deliveryGuardMigration, /adjustment_type in \('cancellation','credit_note'\)/i);
+assert.match(deliveryGuardMigration, /before insert or update of status on public\.pos_invoice_deliveries/i);
+assert.match(js, /adjustedGrossCents/);
+assert.match(js, /invoice\.hasCreditNote[\s\S]*novih plačil na izvirni račun ni dovoljeno sprejeti/i);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");
