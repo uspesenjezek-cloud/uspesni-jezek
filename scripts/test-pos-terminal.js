@@ -75,6 +75,10 @@ const bankLimitsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_bank_import_payload_limits\.sql$/.test(name)).sort().pop()
   : null;
 const bankLimitsMigration = bankLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, bankLimitsMigrationName), "utf8") : "";
+const internalJsonLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_internal_json_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const internalJsonLimitsMigration = internalJsonLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, internalJsonLimitsMigrationName), "utf8") : "";
 const finapiAccountMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /add_finapi_source_account\.sql$/.test(name)).sort().pop()
   : null;
@@ -793,6 +797,12 @@ assert.match(bankLimitsMigration, /create or replace function public\.pos_import
 assert.match(bankLimitsMigration, /create or replace function public\.pos_import_finapi_transactions[\s\S]*security invoker[\s\S]*private\._pos_import_finapi_transactions_validated/i);
 assert.match(bankLimitsMigration, /revoke execute on function private\._pos_import_bank_transactions\(text,text,text,jsonb\) from authenticated/i);
 assert.match(bankLimitsMigration, /revoke execute on function private\._pos_import_finapi_transactions\(text,jsonb\) from authenticated/i);
+assert.ok(internalJsonLimitsMigrationName, "Manjkajo omejitve notranjih JSON zapisov POS.");
+assert.match(internalJsonLimitsMigration, /pos_audit_events_details_size_check[\s\S]*octet_length\(details::text\) <= 65536/i);
+assert.match(internalJsonLimitsMigration, /pos_datev_connections_services_size_check[\s\S]*jsonb_typeof\(services\) = 'array'/i);
+assert.match(internalJsonLimitsMigration, /pos_einvoice_documents_validation_report_size_check[\s\S]*2097152/i);
+assert.match(internalJsonLimitsMigration, /pos_payments_metadata_size_check[\s\S]*jsonb_typeof\(metadata\) = 'object'/i);
+assert.match(internalJsonLimitsMigration, /validate constraint pos_work_order_events_details_size_check/i);
 assert.ok(finapiAccountMigrationName, "Manjka migracija za izvorni finAPI račun.");
 assert.match(finapiAccountMigration, /add column source_account_id text/i);
 assert.match(finapiAccountMigration, /add column source_account_name text/i);
