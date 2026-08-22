@@ -170,6 +170,30 @@ function constructionWithholdingNote(draft) {
   return "Bauleistung nach § 48 EStG. Freistellungsbescheinigung: " + (labels[source.exemption_certificate] || labels.unknown) + ".";
 }
 
+function paymentInstructions(invoice, seller, sellerInfo) {
+  const draft = invoice && invoice.snapshot && invoice.snapshot.draft || {};
+  if (sellerInfo && sellerInfo.testPayment) return [
+    "Keine Zahlung - TESTDOKUMENT",
+    "Kontoinhaber: TEST - kein echter Zahlungsempfänger",
+    "IBAN: NICHT VORHANDEN",
+    "Verwendungszweck: " + safeText(invoice.invoice_number)
+  ];
+  if (draft.payment_method === "already_paid") return [
+    "Bereits bezahlt",
+    "Der Rechnungsbetrag wurde bei Ausstellung als vollständig bezahlt bestätigt."
+  ];
+  if (draft.payment_method === "card_external") return [
+    "Zahlung über externes Kartenterminal",
+    "Die Kartenzahlung wird außerhalb dieses POS erfasst."
+  ];
+  return [
+    "Zahlung per Überweisung",
+    "Kontoinhaber: " + safeText(seller.accountHolder || seller.legalName),
+    "IBAN: " + safeText(seller.iban),
+    "Verwendungszweck: " + safeText(invoice.invoice_number)
+  ];
+}
+
 function drawTestWatermark(page, bold) {
   page.drawText("TESTRECHNUNG", {
     x: 103, y: 365, size: 48, font: bold, color: rgb(0.93, 0.84, 0.78),
@@ -328,17 +352,7 @@ async function ustvariRacunPdf(invoice) {
     y -= noteHeight + 10;
   }
 
-  const paymentLines = sellerInfo.testPayment ? [
-    "Keine Zahlung - TESTDOKUMENT",
-    "Kontoinhaber: TEST - kein echter Zahlungsempfänger",
-    "IBAN: NICHT VORHANDEN",
-    "Verwendungszweck: " + safeText(invoice.invoice_number)
-  ] : [
-    "Zahlung per Überweisung",
-    "Kontoinhaber: " + safeText(seller.accountHolder || seller.legalName),
-    "IBAN: " + safeText(seller.iban),
-    "Verwendungszweck: " + safeText(invoice.invoice_number)
-  ];
+  const paymentLines = paymentInstructions(invoice, seller, sellerInfo);
   ensureSpace(86);
   page.drawText(paymentLines[0], { x: PAGE.margin, y, font: bold, size: 9.5, color: COLORS.tealDark });
   drawLines(page, paymentLines.slice(1), PAGE.margin, y - 16, { font: regular, size: 8.5, lineHeight: 12, color: COLORS.ink });
@@ -355,4 +369,4 @@ async function ustvariRacunPdf(invoice) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, embedUnicodeFonts, ustvariRacunPdf };
+module.exports = { GENERATOR_VERSION, safeText, money, dateDE, wrap, taxGroups, taxIdentityText, sellerForInvoice, propertyRetentionNote, constructionWithholdingNote, paymentInstructions, embedUnicodeFonts, ustvariRacunPdf };

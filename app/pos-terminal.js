@@ -1103,6 +1103,12 @@
     var serviceTaxCents = totals.serviceTaxCents == null ? totals.taxCents : totals.serviceTaxCents;
     var serviceGrossCents = totals.serviceGrossCents == null ? totals.grossCents : totals.serviceGrossCents;
     var deductionGrossCents = totals.deductionGrossCents || 0;
+    var paymentMethod = draft.paymentMethod || "sepa";
+    var paymentCode = paymentMethod === "sepa" ? "58" : "1";
+    var paymentName = paymentMethod === "already_paid" ? "Bereits bezahlt" : paymentMethod === "card_external" ? "Externes Kartenterminal" : "SEPA-Überweisung";
+    var paymentAccount = paymentMethod === "sepa" ? "<cac:PayeeFinancialAccount><cbc:ID>" + escapeXml(cleanIban(profile.iban)) + "</cbc:ID><cbc:Name>" + escapeXml(profile.accountHolder || profile.legalName) + "</cbc:Name></cac:PayeeFinancialAccount>" : "";
+    var prepaidCents = paymentMethod === "already_paid" ? serviceGrossCents : deductionGrossCents;
+    var payableCents = paymentMethod === "already_paid" ? 0 : totals.grossCents;
     if (!buyerReference || !profile.businessEmail || !draft.customerEmail) throw new Error("XRechnung nima vseh obveznih elektronskih naslovov in Buyer reference.");
     var lines = draft.items.map(function (item, index) {
       var calc = calculateItem(item, draft.priceMode, draft.taxMode);
@@ -1138,9 +1144,9 @@
       "  <cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(profile.businessEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(profile.street) + "</cbc:StreetName><cbc:CityName>" + escapeXml(profile.city) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(profile.postalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyTaxScheme><cbc:CompanyID>" + escapeXml(profile.vatId || profile.taxNumber) + "</cbc:CompanyID><cac:TaxScheme><cbc:ID>" + supplierTaxScheme + "</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(profile.legalName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingSupplierParty>",
       "  <cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID=\"EM\">" + escapeXml(draft.customerEmail) + "</cbc:EndpointID><cac:PostalAddress><cbc:StreetName>" + escapeXml(draft.customerStreet) + "</cbc:StreetName><cbc:CityName>" + escapeXml(draft.customerCity) + "</cbc:CityName><cbc:PostalZone>" + escapeXml(draft.customerPostalCode) + "</cbc:PostalZone><cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country></cac:PostalAddress><cac:PartyLegalEntity><cbc:RegistrationName>" + escapeXml(draft.customerName) + "</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>",
       "  <cac:Delivery><cbc:ActualDeliveryDate>" + escapeXml(draft.serviceDate) + "</cbc:ActualDeliveryDate></cac:Delivery>",
-      "  <cac:PaymentMeans><cbc:PaymentMeansCode>58</cbc:PaymentMeansCode><cbc:PaymentID>" + escapeXml(invoice.number) + "</cbc:PaymentID><cac:PayeeFinancialAccount><cbc:ID>" + escapeXml(cleanIban(profile.iban)) + "</cbc:ID><cbc:Name>" + escapeXml(profile.accountHolder || profile.legalName) + "</cbc:Name></cac:PayeeFinancialAccount></cac:PaymentMeans>",
+      "  <cac:PaymentMeans><cbc:PaymentMeansCode name=\"" + escapeXml(paymentName) + "\">" + paymentCode + "</cbc:PaymentMeansCode><cbc:PaymentID>" + escapeXml(invoice.number) + "</cbc:PaymentID>" + paymentAccount + "</cac:PaymentMeans>",
       "  <cac:TaxTotal><cbc:TaxAmount currencyID=\"EUR\">" + (serviceTaxCents / 100).toFixed(2) + "</cbc:TaxAmount>" + taxSubtotals + "</cac:TaxTotal>",
-      "  <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID=\"EUR\">" + (serviceGrossCents / 100).toFixed(2) + "</cbc:TaxInclusiveAmount>" + (deductionGrossCents ? "<cbc:PrepaidAmount currencyID=\"EUR\">" + (deductionGrossCents / 100).toFixed(2) + "</cbc:PrepaidAmount>" : "") + "<cbc:PayableAmount currencyID=\"EUR\">" + (totals.grossCents / 100).toFixed(2) + "</cbc:PayableAmount></cac:LegalMonetaryTotal>",
+      "  <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID=\"EUR\">" + (serviceNetCents / 100).toFixed(2) + "</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID=\"EUR\">" + (serviceGrossCents / 100).toFixed(2) + "</cbc:TaxInclusiveAmount>" + (prepaidCents ? "<cbc:PrepaidAmount currencyID=\"EUR\">" + (prepaidCents / 100).toFixed(2) + "</cbc:PrepaidAmount>" : "") + "<cbc:PayableAmount currencyID=\"EUR\">" + (payableCents / 100).toFixed(2) + "</cbc:PayableAmount></cac:LegalMonetaryTotal>",
       lines,
       "</Invoice>"
     ].join("\n");

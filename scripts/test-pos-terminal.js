@@ -79,6 +79,10 @@ const invoiceTaxEvidenceRequirementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_tax_evidence_requirements\.sql$/.test(name)).sort().pop()
   : null;
 const invoiceTaxEvidenceRequirementsMigration = invoiceTaxEvidenceRequirementsMigrationName ? fs.readFileSync(path.join(migrationsDir, invoiceTaxEvidenceRequirementsMigrationName), "utf8") : "";
+const alreadyPaidInvoicePaymentMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_already_paid_invoice_payment\.sql$/.test(name)).sort().pop()
+  : null;
+const alreadyPaidInvoicePaymentMigration = alreadyPaidInvoicePaymentMigrationName ? fs.readFileSync(path.join(migrationsDir, alreadyPaidInvoicePaymentMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -601,6 +605,12 @@ const xml = Core.buildXRechnungXml(invoice, profile);
 assert.match(xml, /xrechnung_3\.0/);
 assert.match(xml, /<cbc:InvoiceTypeCode>380<\/cbc:InvoiceTypeCode>/);
 assert.match(xml, /<cbc:PayableAmount currencyID="EUR">119\.00<\/cbc:PayableAmount>/);
+const alreadyPaidDraft = JSON.parse(JSON.stringify(draft));
+alreadyPaidDraft.paymentMethod = "already_paid";
+const alreadyPaidClientXml = Core.buildXRechnungXml(Object.assign({}, invoice, { draft: alreadyPaidDraft, totals: Core.calculateTotals(alreadyPaidDraft) }), profile);
+assert.match(alreadyPaidClientXml, /<cbc:PaymentMeansCode name="Bereits bezahlt">1<\/cbc:PaymentMeansCode>/);
+assert.match(alreadyPaidClientXml, /<cbc:PrepaidAmount currencyID="EUR">119\.00<\/cbc:PrepaidAmount>/);
+assert.match(alreadyPaidClientXml, /<cbc:PayableAmount currencyID="EUR">0\.00<\/cbc:PayableAmount>/);
 assert.match(xml, /Muster Handwerk GmbH/);
 
 const epc = Core.buildEpcPayload(invoice, profile);
@@ -823,6 +833,11 @@ assert.match(invoiceTaxEvidenceRequirementsMigration, /v_construction_withholdin
 assert.match(invoiceTaxEvidenceRequirementsMigration, /v_exemption_certificate not in \('valid', 'missing', 'not_applicable'\)/i);
 assert.match(invoiceTaxEvidenceRequirementsMigration, /v_handwerker_35a[\s\S]*v_customer_type <> 'private'/i);
 assert.match(invoiceTaxEvidenceRequirementsMigration, /private\.pos_validate_invoice_tax_evidence\([\s\S]*private\.pos_validate_invoice_payload/i);
+assert.ok(alreadyPaidInvoicePaymentMigrationName, "Manjka atomaren zapis že plačanega računa.");
+assert.match(alreadyPaidInvoicePaymentMigration, /snapshot #>> '\{draft,payment_method\}' = 'already_paid'/i);
+assert.match(alreadyPaidInvoicePaymentMigration, /insert into public\.pos_payments[\s\S]*new\.gross_cents/i);
+assert.match(alreadyPaidInvoicePaymentMigration, /create trigger pos_invoices_record_already_paid[\s\S]*after insert on public\.pos_invoices/i);
+assert.match(alreadyPaidInvoicePaymentMigration, /invoice_issued_already_paid/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);

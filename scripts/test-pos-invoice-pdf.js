@@ -128,6 +128,13 @@ function sampleAdjustment(type) {
   assert.strictEqual(pdfModule.constructionWithholdingNote({ construction_withholding: false }), "");
   assert.match(pdfModule.constructionWithholdingNote({ construction_withholding: true, exemption_certificate: "valid" }), /Freistellungsbescheinigung: gültig/);
   assert.match(pdfModule.constructionWithholdingNote({ construction_withholding: true, exemption_certificate: "missing" }), /nicht vorgelegt/);
+  assert.match(pdfModule.paymentInstructions(sampleInvoice(), sampleInvoice().snapshot.seller, { testPayment: false })[0], /Überweisung/);
+  const alreadyPaidPdfInvoice = sampleInvoice();
+  alreadyPaidPdfInvoice.snapshot.draft.payment_method = "already_paid";
+  assert.strictEqual(pdfModule.paymentInstructions(alreadyPaidPdfInvoice, alreadyPaidPdfInvoice.snapshot.seller, { testPayment: false })[0], "Bereits bezahlt");
+  const cardPdfInvoice = sampleInvoice();
+  cardPdfInvoice.snapshot.draft.payment_method = "card_external";
+  assert.match(pdfModule.paymentInstructions(cardPdfInvoice, cardPdfInvoice.snapshot.seller, { testPayment: false })[0], /Kartenterminal/);
   const incompleteTestInvoice = sampleInvoice();
   incompleteTestInvoice.invoice_number = "TEST-2026-0001";
   incompleteTestInvoice.is_test = true;

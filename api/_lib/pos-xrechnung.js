@@ -124,6 +124,23 @@ function taxCategoryXml(details, includeExemption) {
   ].filter(Boolean).join("");
 }
 
+function paymentDetails(invoice) {
+  const method = text(invoice && invoice.draft && invoice.draft.payment_method) || "sepa";
+  if (method === "already_paid") return {
+    code: "1", name: "Bereits bezahlt", note: "Der Rechnungsbetrag wurde bereits vollständig bezahlt.",
+    includeAccount: false, prepaidCents: invoice.serviceGrossCents, payableCents: 0
+  };
+  if (method === "card_external") return {
+    code: "1", name: "Externes Kartenterminal", note: "Zahlung über ein externes Kartenterminal.",
+    includeAccount: false, prepaidCents: invoice.deductionGrossCents, payableCents: invoice.grossCents
+  };
+  return {
+    code: "58", name: "SEPA-Überweisung",
+    note: invoice.dueDate === invoice.issueDate ? "Zahlbar sofort ohne Abzug." : "Zahlbar bis " + invoice.dueDate + " ohne Abzug.",
+    includeAccount: true, prepaidCents: invoice.deductionGrossCents, payableCents: invoice.grossCents
+  };
+}
+
 function buildXRechnung(invoiceRow) {
   const invoice = normalizeInvoice(invoiceRow);
   const seller = invoice.seller, draft = invoice.draft;
@@ -157,7 +174,10 @@ function buildXRechnung(invoiceRow) {
   const sellerTax = [];
   if (text(seller.vatId)) sellerTax.push("      <cac:PartyTaxScheme>" + element("cbc:CompanyID", seller.vatId) + "<cac:TaxScheme>" + element("cbc:ID", "VAT") + "</cac:TaxScheme></cac:PartyTaxScheme>");
   if (text(seller.taxNumber)) sellerTax.push("      <cac:PartyTaxScheme>" + element("cbc:CompanyID", seller.taxNumber) + "<cac:TaxScheme>" + element("cbc:ID", "FC") + "</cac:TaxScheme></cac:PartyTaxScheme>");
-  const paymentNote = invoice.dueDate === invoice.issueDate ? "Zahlbar sofort ohne Abzug." : "Zahlbar bis " + invoice.dueDate + " ohne Abzug.";
+  const payment = paymentDetails(invoice);
+  const paymentAccount = payment.includeAccount
+    ? "<cac:PayeeFinancialAccount>" + element("cbc:ID", cleanIban(seller.iban)) + element("cbc:Name", seller.accountHolder) + "</cac:PayeeFinancialAccount>"
+    : "";
   const billingReferences = invoice.deductions.map((entry) => "  <cac:BillingReference><cac:InvoiceDocumentReference>" + element("cbc:ID", entry.invoiceNumber) + (validDate(entry.issueDate) ? element("cbc:IssueDate", entry.issueDate) : "") + "</cac:InvoiceDocumentReference></cac:BillingReference>").join("\n");
   const xml = [
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
@@ -185,15 +205,15 @@ function buildXRechnung(invoiceRow) {
     text(draft.customer_contact) || text(draft.customer_email) ? "      <cac:Contact>" + (text(draft.customer_contact) ? element("cbc:Name", draft.customer_contact) : "") + (text(draft.customer_email) ? element("cbc:ElectronicMail", draft.customer_email) : "") + "</cac:Contact>" : "",
     "    </cac:Party>", "  </cac:AccountingCustomerParty>",
     "  <cac:Delivery>" + element("cbc:ActualDeliveryDate", invoice.serviceDate) + "</cac:Delivery>",
-    "  <cac:PaymentMeans>" + element("cbc:PaymentMeansCode", "58") + element("cbc:PaymentID", invoice.number) + "<cac:PayeeFinancialAccount>" + element("cbc:ID", cleanIban(seller.iban)) + element("cbc:Name", seller.accountHolder) + "</cac:PayeeFinancialAccount></cac:PaymentMeans>",
-    "  <cac:PaymentTerms>" + element("cbc:Note", paymentNote) + "</cac:PaymentTerms>",
+    "  <cac:PaymentMeans>" + element("cbc:PaymentMeansCode", payment.code, { name: payment.name }) + element("cbc:PaymentID", invoice.number) + paymentAccount + "</cac:PaymentMeans>",
+    "  <cac:PaymentTerms>" + element("cbc:Note", payment.note) + "</cac:PaymentTerms>",
     "  <cac:TaxTotal>", "    " + element("cbc:TaxAmount", money(invoice.serviceTaxCents), { currencyID: "EUR" }), taxXml, "  </cac:TaxTotal>",
     "  <cac:LegalMonetaryTotal>",
     "    " + element("cbc:LineExtensionAmount", money(invoice.serviceNetCents), { currencyID: "EUR" }),
     "    " + element("cbc:TaxExclusiveAmount", money(invoice.serviceNetCents), { currencyID: "EUR" }),
     "    " + element("cbc:TaxInclusiveAmount", money(invoice.serviceGrossCents), { currencyID: "EUR" }),
-    invoice.deductionGrossCents ? "    " + element("cbc:PrepaidAmount", money(invoice.deductionGrossCents), { currencyID: "EUR" }) : "",
-    "    " + element("cbc:PayableAmount", money(invoice.grossCents), { currencyID: "EUR" }),
+    payment.prepaidCents ? "    " + element("cbc:PrepaidAmount", money(payment.prepaidCents), { currencyID: "EUR" }) : "",
+    "    " + element("cbc:PayableAmount", money(payment.payableCents), { currencyID: "EUR" }),
     "  </cac:LegalMonetaryTotal>", lineXml, "</ubl:Invoice>"
   ].filter(Boolean).join("\n");
   return Buffer.from(xml, "utf8");
@@ -202,5 +222,5 @@ function buildXRechnung(invoiceRow) {
 module.exports = {
   GENERATOR_VERSION, XRECHNUNG_VERSION, KOSIT_VALIDATOR_VERSION, KOSIT_CONFIG_VERSION,
   CUSTOMIZATION_ID, PROFILE_ID, buildXRechnung,
-  _test: { escapeXml, money, quantity, percentage, unitCode, taxDetails, normalizeInvoice, validateInvoice }
+  _test: { escapeXml, money, quantity, percentage, unitCode, taxDetails, paymentDetails, normalizeInvoice, validateInvoice }
 };

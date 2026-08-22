@@ -44,6 +44,7 @@ assert.match(xml, /<cbc:ProfileID>urn:fdc:peppol\.eu:2017:poacc:billing:01:1\.0<
 assert.match(xml, /<cbc:BuyerReference>PO-8842<\/cbc:BuyerReference>/);
 assert.match(xml, /<cbc:EndpointID schemeID="EM">rechnung@kunde-bau\.de<\/cbc:EndpointID>/);
 assert.match(xml, /<cbc:Telephone>\+49 30 1234567<\/cbc:Telephone>/);
+assert.match(xml, /<cbc:PaymentMeansCode name="SEPA-Überweisung">58<\/cbc:PaymentMeansCode>/);
 assert.match(xml, /<cbc:TaxAmount currencyID="EUR">38\.00<\/cbc:TaxAmount>/);
 assert.match(xml, /<cbc:PayableAmount currencyID="EUR">238\.00<\/cbc:PayableAmount>/);
 assert.match(xml, /<cbc:PriceAmount currencyID="EUR">100\.0000<\/cbc:PriceAmount>/);
@@ -79,6 +80,18 @@ const reverseInvoice = invoice({
 const reverseXml = generator.buildXRechnung(reverseInvoice).toString("utf8");
 assert.match(reverseXml, /<cbc:ID>AE<\/cbc:ID>/);
 assert.match(reverseXml, /<cbc:TaxExemptionReasonCode>VATEX-EU-AE<\/cbc:TaxExemptionReasonCode>/);
+
+const alreadyPaidInvoice = invoice({
+  snapshot: {
+    seller: invoice().snapshot.seller,
+    draft: Object.assign({}, invoice().snapshot.draft, { payment_method: "already_paid" })
+  }
+});
+const alreadyPaidXml = generator.buildXRechnung(alreadyPaidInvoice).toString("utf8");
+assert.match(alreadyPaidXml, /<cbc:PaymentMeansCode name="Bereits bezahlt">1<\/cbc:PaymentMeansCode>/);
+assert.match(alreadyPaidXml, /<cbc:PrepaidAmount currencyID="EUR">238\.00<\/cbc:PrepaidAmount>/);
+assert.match(alreadyPaidXml, /<cbc:PayableAmount currencyID="EUR">0\.00<\/cbc:PayableAmount>/);
+assert.doesNotMatch(alreadyPaidXml, /<cac:PayeeFinancialAccount>/);
 
 const finalInvoice = invoice({
   net_cents: 15000, tax_cents: 2850, gross_cents: 17850,
