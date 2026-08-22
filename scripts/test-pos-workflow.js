@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-tax-review-v29/);
+assert.match(html, /pos-terminal\.js\?v=20260822-withdrawal-tax-credit-v30/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -215,7 +215,7 @@ assert.deepEqual(Core.workOrderActions(fullCancellationState), ["pdf", "contract
 const partialTaxState = Object.assign({}, fullCancellationState, { withdrawalValueCompensationCents: 3000 });
 assert.equal(Core.withdrawalTaxCorrectionState(partialTaxState).kind, "partial_correction");
 assert.equal(Core.withdrawalTaxCorrectionState(partialTaxState).reductionCents, 8900);
-assert.deepEqual(Core.workOrderActions(partialTaxState), ["pdf", "contract_pdf"]);
+assert.deepEqual(Core.workOrderActions(partialTaxState), ["pdf", "contract_pdf", "withdrawal_tax_credit"]);
 assert.equal(Core.withdrawalTaxCorrectionState(Object.assign({}, fullCancellationState, {
   invoiceLinks: [{ invoice: Object.assign({}, activeWithdrawalInvoice, { status: "cancelled" }) }]
 })).required, false);
@@ -370,7 +370,19 @@ assert.match(js, /Ta postopek ne sproži Stripe, banke ali nakazila/i);
 assert.match(js, /Zakonski rok:[\s\S]*Vračilo ni bilo samodejno izvedeno/i);
 assert.match(js, /function withdrawalTaxCorrectionState\(order\)/);
 assert.match(js, /Po § 17 UStG izdajte nespremenljiv Storno/i);
-assert.match(js, /POS delnega davčnega dobropisa še ne izdaja/i);
+assert.match(js, /rpc\("pos_create_withdrawal_tax_credit_notes"/i);
+assert.match(js, /Dobropis bo nespremenljiv in ne bo sprožil vračila denarja/i);
+
+const withdrawalCreditMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_withdrawal_tax_credit_notes\.sql$/.test(name)).sort().pop();
+assert.ok(withdrawalCreditMigrationName, "Manjka nespremenljiv davčni dobropis za delni Wertersatz.");
+const withdrawalCreditMigration = fs.readFileSync(path.join(root, "supabase", "migrations", withdrawalCreditMigrationName), "utf8");
+assert.match(withdrawalCreditMigration, /adjustment_type in \('correction','cancellation','credit_note'\)/i);
+assert.match(withdrawalCreditMigration, /create or replace function public\.pos_create_withdrawal_tax_credit_notes/i);
+assert.match(withdrawalCreditMigration, /jsonb_array_elements\(v_invoice\.snapshot->'draft'->'items'\)/i);
+assert.match(withdrawalCreditMigration, /credit_tax_groups/i);
+assert.match(withdrawalCreditMigration, /pos_payments_block_after_financial_adjustment[\s\S]*before insert or update of status/i);
+assert.match(withdrawalCreditMigration, /revoke all on function private\._pos_create_withdrawal_tax_credit_notes\(uuid,boolean\) from public,anon,authenticated/i);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");

@@ -87,6 +87,19 @@ assert.strictEqual(linked.bookings.length, 2);
 const rows = linked.content.trim().split("\r\n").slice(2).map((line) => line.split(";"));
 assert.strictEqual(rows[0][19], '"BEDI ""11111111-1111-4111-8111-111111111111"""');
 assert.strictEqual(rows[1][19], '"BEDI ""22222222-2222-4222-8222-222222222222"""');
+const creditInvoice = Object.assign({}, invoice, { adjustments: [{
+  id: "credit-1", number: "GS-2026-0002", type: "credit_note",
+  createdAt: "2026-08-21T08:00:00Z", deltaGrossCents: -12425,
+  documentGuid: adjustmentGuid,
+  snapshot: { credit_tax_groups: [
+    { tax_rate_bps: 700, net_cents: 5000, tax_cents: 350, gross_cents: 5350 },
+    { tax_rate_bps: 1900, net_cents: 5945, tax_cents: 1130, gross_cents: 7075 }
+  ] }
+}] });
+const creditExport = Core.buildDatevExport([creditInvoice], settings, "2026-08", new Date("2026-08-21T10:00:00Z"));
+assert.deepStrictEqual(creditExport.errors, []);
+assert.strictEqual(creditExport.bookings.length, 3);
+assert.deepStrictEqual(creditExport.bookings.slice(1).map((booking) => [booking.amountCents, booking.side, booking.counterAccount]), [[5350, "H", "8300"], [7075, "H", "8400"]]);
 const missingLink = Core.buildDatevExport([Object.assign({}, invoice, { documentGuid: "" })], settings, "2026-08", new Date(), { requireDocumentLinks: true });
 assert.ok(missingLink.errors.some((message) => /nima veljavne DATEV povezave/.test(message)));
 const manual = Core.buildDatevExport([Object.assign({}, invoice, { documentGuid: "", adjustments: [] })], settings, "2026-08", new Date());

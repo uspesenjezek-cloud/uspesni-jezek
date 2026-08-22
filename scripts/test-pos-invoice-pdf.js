@@ -85,19 +85,26 @@ function sampleInvoice(replacement) {
 function sampleAdjustment(type) {
   const invoice = sampleInvoice();
   const correction = type === "correction";
+  const creditNote = type === "credit_note";
   const previous = Object.assign({}, invoice.snapshot.draft);
   const changes = correction ? { customer_street: "Neue Beispielallee 45", due_date: "2026-09-09" } : {};
   const effective = Object.assign({}, previous, changes);
+  const creditLines = creditNote ? invoice.snapshot.draft.items.slice(0, 2).map((item) => ({
+    description: item.description, tax_rate_bps: item.tax_rate_bps,
+    net_cents: item.net_cents, tax_cents: item.tax_cents, gross_cents: item.gross_cents
+  })) : [];
+  const creditNet = creditLines.reduce((sum, item) => sum + item.net_cents, 0);
+  const creditTax = creditLines.reduce((sum, item) => sum + item.tax_cents, 0);
   return {
     id: "22222222-2222-4222-8222-222222222222",
     original_invoice_id: invoice.id,
-    adjustment_number: correction ? "KORR-2026-0002" : "ST-2026-0002",
+    adjustment_number: correction ? "KORR-2026-0002" : creditNote ? "GS-2026-0002" : "ST-2026-0002",
     adjustment_type: type,
     reason: correction ? "Die Straße und das Fälligkeitsdatum waren unzutreffend." : "Der Rechnungsbetrag und die steuerliche Behandlung waren unzutreffend.",
     changes,
-    delta_net_cents: correction ? 0 : -invoice.net_cents,
-    delta_tax_cents: correction ? 0 : -invoice.tax_cents,
-    delta_gross_cents: correction ? 0 : -invoice.gross_cents,
+    delta_net_cents: correction ? 0 : creditNote ? -creditNet : -invoice.net_cents,
+    delta_tax_cents: correction ? 0 : creditNote ? -creditTax : -invoice.tax_cents,
+    delta_gross_cents: correction ? 0 : creditNote ? -(creditNet + creditTax) : -invoice.gross_cents,
     is_test: false,
     issued_at: "2026-08-19T14:00:00.000Z",
     snapshot: {
@@ -117,7 +124,8 @@ function sampleAdjustment(type) {
       original_draft: invoice.snapshot.draft,
       previous_draft: previous,
       effective_draft: effective,
-      changes
+      changes,
+      credit_lines: creditLines
     }
   };
 }
@@ -226,7 +234,11 @@ function sampleAdjustment(type) {
   assert.ok(cancellationPdf.getPageCount() >= 2, "Dolg Storno mora nadaljevati tabelo na novo stran.");
   assert.strictEqual(cancellationPdf.getTitle(), "Stornorechnung ST-2026-0002");
   assert.strictEqual(cancellationPdf.getCreator(), adjustmentPdf.GENERATOR_VERSION);
-  assert.strictEqual(adjustmentPdf.GENERATOR_VERSION, "uj-pos-adjustment-pdf-3");
+  assert.strictEqual(adjustmentPdf.GENERATOR_VERSION, "uj-pos-adjustment-pdf-4");
+  const creditBuffer = await adjustmentPdf.ustvariKorekcijskiPdf(sampleAdjustment("credit_note"));
+  const creditPdf = await PDFDocument.load(creditBuffer);
+  assert.strictEqual(creditPdf.getTitle(), "Gutschrift GS-2026-0002");
+  assert.strictEqual(creditPdf.getCreator(), "uj-pos-adjustment-pdf-4");
   assert.strictEqual(adjustmentPdf.berlinDate("2026-12-31T23:30:00.000Z"), "2027-01-01");
 
   if (process.env.POS_PDF_SAMPLE_OUTPUT) {

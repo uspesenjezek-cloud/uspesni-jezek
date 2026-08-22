@@ -58,13 +58,13 @@ async function invoiceContext(cfg, userId, invoiceId) {
   const invoice = invoiceRows[0];
   if (!invoice) { const error = new Error("Testni račun ne obstaja."); error.status = 404; throw error; }
   if (!invoice.is_test) { const error = new Error("Stripe sandbox je dovoljen samo za testni račun."); error.status = 409; throw error; }
-  const [payments, cancellations] = await Promise.all([
+  const [payments, financialAdjustments] = await Promise.all([
     supabase.pridobiVrstice(cfg, "pos_payments",
       "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=amount_cents,refunded_cents,status"),
     supabase.pridobiVrstice(cfg, "pos_invoice_adjustments",
-      "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1"),
+      "original_invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=in.(cancellation,credit_note)&select=id&limit=1"),
   ]);
-  if (cancellations.length) { const error = new Error("Storniranega računa ni mogoče plačati."); error.status = 409; throw error; }
+  if (financialAdjustments.length) { const error = new Error("Računa po Stornu ali dobropisu ni mogoče dodatno plačati."); error.status = 409; throw error; }
   const outstandingCents = Number(invoice.gross_cents) - effectivePaidCents(payments);
   if (!Number.isSafeInteger(outstandingCents) || outstandingCents <= 0) {
     const error = new Error("Račun je že v celoti plačan."); error.status = 409; throw error;

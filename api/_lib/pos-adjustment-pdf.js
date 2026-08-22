@@ -4,7 +4,7 @@ const { PDFDocument, rgb, degrees } = require("pdf-lib");
 const { DateTime } = require("luxon");
 const { safeText, money, dateDE, wrap, sellerLegalDisclosureLines, embedUnicodeFonts } = require("./pos-pdf");
 
-const GENERATOR_VERSION = "uj-pos-adjustment-pdf-3";
+const GENERATOR_VERSION = "uj-pos-adjustment-pdf-4";
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.19, 0.18), muted: rgb(0.38, 0.48, 0.46),
@@ -61,11 +61,13 @@ function adjustmentRows(adjustment) {
 async function ustvariKorekcijskiPdf(adjustment) {
   if (!adjustment || !adjustment.snapshot) throw new Error("Manjka zaklenjen posnetek popravka.");
   const cancellation = adjustment.adjustment_type === "cancellation";
+  const creditNote = adjustment.adjustment_type === "credit_note";
+  const financial = cancellation || creditNote;
   const pdf = await PDFDocument.create();
-  const title = cancellation ? "Stornorechnung " : "Rechnungsberichtigung ";
+  const title = cancellation ? "Stornorechnung " : creditNote ? "Gutschrift " : "Rechnungsberichtigung ";
   pdf.setTitle(title + safeText(adjustment.adjustment_number));
   pdf.setAuthor("Uspešni Ježek POS");
-  pdf.setSubject(cancellation ? "Stornorechnung" : "Rechnungsberichtigung");
+  pdf.setSubject(cancellation ? "Stornorechnung" : creditNote ? "Gutschrift" : "Rechnungsberichtigung");
   pdf.setCreator(GENERATOR_VERSION);
   pdf.setProducer(GENERATOR_VERSION);
   pdf.setCreationDate(new Date(adjustment.issued_at || Date.now()));
@@ -84,9 +86,9 @@ async function ustvariKorekcijskiPdf(adjustment) {
     page = pdf.addPage([PAGE.width, PAGE.height]);
     pages.push(page);
     if (adjustment.is_test) page.drawText("TESTDOKUMENT", { x: 116, y: 375, size: 46, font: bold, color: rgb(.93,.84,.78), rotate: degrees(28), opacity: .25 });
-    page.drawRectangle({ x: 0, y: PAGE.height - 92, width: PAGE.width, height: 92, color: cancellation ? COLORS.red : COLORS.tealDark });
+    page.drawRectangle({ x: 0, y: PAGE.height - 92, width: PAGE.width, height: 92, color: financial ? COLORS.red : COLORS.tealDark });
     page.drawText(safeText(seller.legalName || "Unternehmen"), { x: PAGE.margin, y: PAGE.height - 49, font: bold, size: 14, color: COLORS.white });
-    rightText(page, continuation ? "Fortsetzung" : (cancellation ? "STORNORECHNUNG" : "RECHNUNGSBERICHTIGUNG"), PAGE.width - PAGE.margin, PAGE.height - 48, bold, 12, COLORS.white);
+    rightText(page, continuation ? "Fortsetzung" : (cancellation ? "STORNORECHNUNG" : creditNote ? "GUTSCHRIFT" : "RECHNUNGSBERICHTIGUNG"), PAGE.width - PAGE.margin, PAGE.height - 48, bold, 12, COLORS.white);
     rightText(page, adjustment.adjustment_number, PAGE.width - PAGE.margin, PAGE.height - 66, regular, 8, COLORS.white);
     y = PAGE.height - 122;
   }
@@ -128,7 +130,7 @@ async function ustvariKorekcijskiPdf(adjustment) {
   drawWrapped(adjustment.reason, PAGE.margin, PAGE.width - PAGE.margin * 2, 9, 12, regular);
   y -= 13;
 
-  if (!cancellation) {
+  if (!financial) {
     const rows = adjustmentRows(adjustment);
     page.drawText("Berichtigte Angaben", { x: PAGE.margin, y, font: bold, size: 12, color: COLORS.tealDark });
     y -= 21;
@@ -150,25 +152,25 @@ async function ustvariKorekcijskiPdf(adjustment) {
     y -= 13;
     drawWrapped("Dieses Dokument berichtigt ausschließlich die oben genannten Angaben der Rechnung " + safeText(original.invoice_number) + ". Alle übrigen Rechnungsangaben bleiben unverändert (§ 31 Abs. 5 UStDV).", PAGE.margin + 10, PAGE.width - PAGE.margin * 2 - 20, 8, 10.5, regular);
   } else {
-    const items = Array.isArray(draft.items) ? draft.items : [];
+    const items = creditNote ? (Array.isArray(snapshot.credit_lines) ? snapshot.credit_lines : []) : (Array.isArray(draft.items) ? draft.items : []);
     const cols = { desc: PAGE.margin, qty: 318, tax: 425, total: PAGE.width - PAGE.margin };
     function header() {
       page.drawRectangle({ x: PAGE.margin, y: y - 5, width: PAGE.width - PAGE.margin * 2, height: 22, color: COLORS.pale });
-      page.drawText("Stornierte Leistung", { x: cols.desc + 7, y: y + 3, font: bold, size: 7.5, color: COLORS.tealDark });
+      page.drawText(creditNote ? "Gutgeschriebene Leistung" : "Stornierte Leistung", { x: cols.desc + 7, y: y + 3, font: bold, size: 7.5, color: COLORS.tealDark });
       rightText(page, "Menge", cols.qty + 40, y + 3, bold, 7.5, COLORS.tealDark);
       rightText(page, "USt.", cols.tax + 35, y + 3, bold, 7.5, COLORS.tealDark);
       rightText(page, "Betrag", cols.total, y + 3, bold, 7.5, COLORS.tealDark);
       y -= 15;
     }
-    page.drawText("Vollständige Stornierung", { x: PAGE.margin, y, font: bold, size: 12, color: COLORS.red });
+    page.drawText(creditNote ? "Teilweise Entgeltminderung" : "Vollständige Stornierung", { x: PAGE.margin, y, font: bold, size: 12, color: COLORS.red });
     y -= 21;
     header();
     items.forEach((item) => {
       const lines = wrap(item.description || "Leistung", regular, 8.2, 244);
       const height = Math.max(27, lines.length * 10 + 11);
-      if (y - height < 135) { addPage(true); page.drawText("Vollständige Stornierung (Fortsetzung)", { x: PAGE.margin, y, font: bold, size: 11, color: COLORS.red }); y -= 20; header(); }
+      if (y - height < 135) { addPage(true); page.drawText(creditNote ? "Teilweise Entgeltminderung (Fortsetzung)" : "Vollständige Stornierung (Fortsetzung)", { x: PAGE.margin, y, font: bold, size: 11, color: COLORS.red }); y -= 20; header(); }
       lines.forEach((line, i) => page.drawText(line, { x: cols.desc + 7, y: y - 9 - i * 10, font: regular, size: 8.2, color: COLORS.ink }));
-      rightText(page, String((Number(item.quantity_milli) || 0) / 1000).replace(".", ",") + " " + safeText(item.unit || ""), cols.qty + 40, y - 9, regular, 8, COLORS.ink);
+      rightText(page, creditNote ? "1" : String((Number(item.quantity_milli) || 0) / 1000).replace(".", ",") + " " + safeText(item.unit || ""), cols.qty + 40, y - 9, regular, 8, COLORS.ink);
       rightText(page, (Number(item.tax_rate_bps || 0) / 100) + " %", cols.tax + 35, y - 9, regular, 8, COLORS.ink);
       rightText(page, signedMoney(-(Number(item.gross_cents) || 0)), cols.total, y - 9, bold, 8.3, COLORS.red);
       y -= height;
@@ -182,10 +184,12 @@ async function ustvariKorekcijskiPdf(adjustment) {
       y -= 18;
     });
     page.drawLine({ start: { x: totalX, y: y + 10 }, end: { x: PAGE.width - PAGE.margin, y: y + 10 }, thickness: 1, color: COLORS.red });
-    page.drawText("Stornobetrag", { x: totalX, y: y - 3, font: bold, size: 11, color: COLORS.red });
+    page.drawText(creditNote ? "Gutschriftsbetrag" : "Stornobetrag", { x: totalX, y: y - 3, font: bold, size: 11, color: COLORS.red });
     rightText(page, signedMoney(adjustment.delta_gross_cents), PAGE.width - PAGE.margin, y - 3, bold, 12, COLORS.red);
     y -= 48;
-    drawWrapped("Die Rechnung " + safeText(original.invoice_number) + " wird vollständig aufgehoben. Die Umsatzsteuerkorrektur ist im maßgeblichen Besteuerungszeitraum zu berücksichtigen (§ 17 UStG).", PAGE.margin, PAGE.width - PAGE.margin * 2, 8, 10.5, regular);
+    drawWrapped(creditNote
+      ? "Das Entgelt der Rechnung " + safeText(original.invoice_number) + " wird nach dem Verbraucherwiderruf teilweise gemindert. Der anerkannte Wertersatz bleibt steuerpflichtig. Die Umsatzsteuerkorrektur ist im maßgeblichen Besteuerungszeitraum zu berücksichtigen (§ 17 UStG)."
+      : "Die Rechnung " + safeText(original.invoice_number) + " wird vollständig aufgehoben. Die Umsatzsteuerkorrektur ist im maßgeblichen Besteuerungszeitraum zu berücksichtigen (§ 17 UStG).", PAGE.margin, PAGE.width - PAGE.margin * 2, 8, 10.5, regular);
   }
 
   pages.forEach((current, index) => {
