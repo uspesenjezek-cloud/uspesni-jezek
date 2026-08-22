@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..");
 const generator = require(path.join(repoRoot, "api", "_lib", "pos-xrechnung"));
+const adjustmentGenerator = require(path.join(repoRoot, "api", "_lib", "pos-adjustment-xrechnung"));
 const providerJson = require(path.join(repoRoot, "api", "_lib", "provider-json"));
 const xrechnungHandler = require(path.join(repoRoot, "api", "pos-racun-xrechnung"))._test;
 const api = fs.readFileSync(path.join(repoRoot, "api", "_handlers", "pos-racun-xrechnung.js"), "utf8");
@@ -129,6 +130,44 @@ const broken = invoice({ gross_cents: 999 });
 assert.throws(() => generator.buildXRechnung(broken), /seštevki računa/i);
 assert.throws(() => generator.buildXRechnung(Object.assign(invoice(), { customer_type: "private" })), /podjetju ali javnemu/);
 
+function adjustment(type, overrides) {
+  const original = invoice();
+  return Object.assign({
+    id: "22222222-2222-4222-8222-222222222222",
+    adjustment_number: type === "cancellation" ? "ST-2026-0043" : "KORR-2026-0043",
+    adjustment_type: type,
+    reason: type === "cancellation" ? "Auftrag vollständig aufgehoben" : "Empfängeranschrift berichtigt",
+    issued_at: "2026-08-22T00:30:00+02:00",
+    snapshot: {
+      seller: original.snapshot.seller,
+      original_invoice: {
+        id: original.id, invoice_number: original.invoice_number, issue_date: original.issue_date,
+        service_date: original.service_date, due_date: original.due_date, tax_mode: original.tax_mode,
+        net_cents: original.net_cents, tax_cents: original.tax_cents, gross_cents: original.gross_cents
+      },
+      original_draft: original.snapshot.draft,
+      effective_draft: original.snapshot.draft
+    }
+  }, overrides || {});
+}
+
+const correctionXml = adjustmentGenerator.buildAdjustmentXRechnung(adjustment("correction")).toString("utf8");
+assert.match(correctionXml, /<ubl:Invoice[^>]+Invoice-2/);
+assert.match(correctionXml, /<cbc:ID>KORR-2026-0043<\/cbc:ID>/);
+assert.match(correctionXml, /<cbc:InvoiceTypeCode>384<\/cbc:InvoiceTypeCode>/);
+assert.match(correctionXml, /<cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>RE-2026-0042<\/cbc:ID><cbc:IssueDate>2026-08-19<\/cbc:IssueDate>/);
+assert.match(correctionXml, /Rechnungsberichtigung: Empfängeranschrift berichtigt/);
+
+const cancellationXml = adjustmentGenerator.buildAdjustmentXRechnung(adjustment("cancellation")).toString("utf8");
+assert.match(cancellationXml, /<ubl:CreditNote[^>]+CreditNote-2/);
+assert.match(cancellationXml, /<cbc:ID>ST-2026-0043<\/cbc:ID>/);
+assert.match(cancellationXml, /<cbc:CreditNoteTypeCode>381<\/cbc:CreditNoteTypeCode>/);
+assert.match(cancellationXml, /<cac:CreditNoteLine>[\s\S]*<cbc:CreditedQuantity unitCode="HUR">2<\/cbc:CreditedQuantity>/);
+assert.doesNotMatch(cancellationXml, /InvoiceLine|InvoicedQuantity|PaymentMeans|PaymentTerms|DueDate/);
+assert.match(cancellationXml, /<cbc:PayableAmount currencyID="EUR">238\.00<\/cbc:PayableAmount>/);
+assert.strictEqual(adjustmentGenerator._test.berlinDate("2026-12-31T23:30:00Z"), "2027-01-01");
+assert.throws(() => adjustmentGenerator.buildAdjustmentXRechnung(adjustment("credit_note")), /samo za Rechnungsberichtigung ali Storno/);
+
 assert.match(api, /preveriUporabnika\(req, cfg\)/);
 assert.match(api, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(api, /"x-upsert": "false"/);
@@ -188,7 +227,7 @@ void (async function verifyBoundedKositResponse() {
     () => providerJson.readBuffer(new Response("x".repeat(1025)), { maxBytes: 1024, code: "POS_ORIGINAL_TOO_LARGE" }),
     function (error) { return error && error.code === "POS_ORIGINAL_TOO_LARGE"; }
   );
-  console.log("POS XRechnung: deterministični UBL, arhiv, KoSIT adapter in RLS so preverjeni.");
+  console.log("POS XRechnung: račun, strukturirani popravek/Storno, arhiv, KoSIT adapter in RLS so preverjeni.");
 })().catch(function (error) {
   console.error(error);
   process.exitCode = 1;
