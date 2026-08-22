@@ -14,6 +14,7 @@ const missingDocumentMigration = fs.readFileSync(path.join(root, "supabase", "mi
 const userIntegrityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223224_pos_archive_user_integrity_batch.sql"), "utf8");
 const integrityPriorityMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821223844_pos_archive_integrity_batch_priority.sql"), "utf8");
 const retentionDeletionMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822023000_pos_retention_safe_user_deletion.sql"), "utf8");
+const sourceInvariantsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822040000_pos_archive_source_invariants.sql"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 const js = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
@@ -81,6 +82,14 @@ assert.match(retentionDeletionMigration, /from public\.pos_archive_records/i);
 assert.match(retentionDeletionMigration, /before delete on auth\.users/i);
 assert.match(retentionDeletionMigration, /errcode = '23503'/i);
 assert.match(retentionDeletionMigration, /revoke all on function private\.pos_block_unsafe_auth_user_delete\(\) from public, anon, authenticated/i);
+assert.match(sourceInvariantsMigration, /pos_archive_records_source_shape_check/i);
+assert.match(sourceInvariantsMigration, /source_table = 'pos_einvoice_documents'[\s\S]*storage_bucket = 'pos-einvoice-originals'[\s\S]*byte_size <= 2097152/i);
+assert.match(sourceInvariantsMigration, /source_table = 'pos_adjustment_documents'[\s\S]*document_kind = 'adjustment_pdf'/i);
+assert.match(sourceInvariantsMigration, /create trigger pos_archive_records_validate_source[\s\S]*before insert on public\.pos_archive_records/i);
+assert.match(sourceInvariantsMigration, /new\.retention_basis <> 'UStG § 14b; AO § 147'/i);
+assert.match(sourceInvariantsMigration, /new\.encryption_scope <> 'provider_managed_at_rest'/i);
+assert.match(sourceInvariantsMigration, /revoke all on function private\.pos_validate_archive_record_source\(\) from public, anon, authenticated/i);
+assert.match(sourceInvariantsMigration, /validate constraint pos_archive_records_source_shape_check/i);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
