@@ -47,6 +47,10 @@ const adjustmentsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_invoice_adjustments\.sql$/.test(name)).sort().pop()
   : null;
 const adjustmentsMigration = adjustmentsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentsMigrationName), "utf8") : "";
+const adjustmentLimitsMigrationName = fs.existsSync(migrationsDir)
+  ? fs.readdirSync(migrationsDir).filter((name) => /pos_adjustment_payload_limits\.sql$/.test(name)).sort().pop()
+  : null;
+const adjustmentLimitsMigration = adjustmentLimitsMigrationName ? fs.readFileSync(path.join(migrationsDir, adjustmentLimitsMigrationName), "utf8") : "";
 const replacementsMigrationName = fs.existsSync(migrationsDir)
   ? fs.readdirSync(migrationsDir).filter((name) => /pos_replacement_invoices\.sql$/.test(name)).sort().pop()
   : null;
@@ -695,6 +699,14 @@ assert.match(adjustmentsMigration, /p_adjustment_type not in \('correction','can
 assert.match(adjustmentsMigration, /v_net := -v_invoice\.net_cents/i);
 assert.match(adjustmentsMigration, /security definer\s+set search_path = ''/i);
 assert.match(adjustmentsMigration, /create or replace function public\.pos_create_invoice_adjustment[\s\S]*security invoker/i);
+assert.ok(adjustmentLimitsMigrationName, "Manjka omejitev payload-a popravka računa.");
+assert.match(adjustmentLimitsMigration, /octet_length\(p_changes::text\) > 65536/i);
+assert.match(adjustmentLimitsMigration, /jsonb_typeof\(v_value\) <> 'string'/i);
+assert.match(adjustmentLimitsMigration, /pos_invoice_adjustments_changes_size_check[\s\S]*validate constraint pos_invoice_adjustments_changes_size_check/i);
+assert.match(adjustmentLimitsMigration, /pos_invoice_adjustments_snapshot_size_check[\s\S]*2097152[\s\S]*validate constraint pos_invoice_adjustments_snapshot_size_check/i);
+assert.match(adjustmentLimitsMigration, /create or replace function private\._pos_create_invoice_adjustment_validated[\s\S]*security definer/i);
+assert.match(adjustmentLimitsMigration, /create or replace function public\.pos_create_invoice_adjustment[\s\S]*security invoker[\s\S]*private\._pos_create_invoice_adjustment_validated/i);
+assert.match(adjustmentLimitsMigration, /revoke execute on function private\._pos_create_invoice_adjustment\(uuid,text,text,jsonb,boolean\) from authenticated/i);
 assert.match(adjustmentPdfApi, /preveriUporabnika\(req, cfg\)/);
 assert.match(adjustmentPdfApi, /user_id=eq\." \+ encodeURIComponent\(userId\)/);
 assert.match(adjustmentPdfApi, /"x-upsert": "false"/);
