@@ -1,6 +1,7 @@
 "use strict";
 
 const { PDFDocument, rgb, degrees } = require("pdf-lib");
+const { DateTime } = require("luxon");
 const { safeText, money, dateDE, wrap, embedUnicodeFonts } = require("./pos-pdf");
 
 const GENERATOR_VERSION = "uj-pos-adjustment-pdf-2";
@@ -33,6 +34,11 @@ function rightText(page, text, right, y, font, size, color) {
 function signedMoney(cents) {
   const value = Number(cents) || 0;
   return (value < 0 ? "-" : "") + money(Math.abs(value));
+}
+
+function berlinDate(value) {
+  const date = DateTime.fromISO(String(value || ""), { setZone: true });
+  return date.isValid ? date.setZone("Europe/Berlin").toISODate() : "";
 }
 
 function displayValue(key, value) {
@@ -101,7 +107,7 @@ async function ustvariKorekcijskiPdf(adjustment) {
   page.drawText("Rechnungsnummer", { x: PAGE.margin + 13, y: y - 16, font: regular, size: 7.5, color: COLORS.muted });
   page.drawText(safeText(original.invoice_number), { x: PAGE.margin + 13, y: y - 34, font: bold, size: 10.5, color: COLORS.ink });
   rightText(page, "Ausgestellt: " + dateDE(original.issue_date), PAGE.width - PAGE.margin - 13, y - 16, regular, 8, COLORS.muted);
-  rightText(page, "Dokumentdatum: " + dateDE(String(adjustment.issued_at || "").slice(0, 10)), PAGE.width - PAGE.margin - 13, y - 34, bold, 8.5, COLORS.ink);
+  rightText(page, "Dokumentdatum: " + dateDE(berlinDate(adjustment.issued_at)), PAGE.width - PAGE.margin - 13, y - 34, bold, 8.5, COLORS.ink);
   y -= 86;
 
   page.drawText("Empfänger", { x: PAGE.margin, y, font: bold, size: 8, color: COLORS.muted });
@@ -183,4 +189,4 @@ async function ustvariKorekcijskiPdf(adjustment) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, FIELD_LABELS, adjustmentRows, signedMoney, ustvariKorekcijskiPdf };
+module.exports = { GENERATOR_VERSION, FIELD_LABELS, adjustmentRows, berlinDate, signedMoney, ustvariKorekcijskiPdf };

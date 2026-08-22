@@ -210,6 +210,7 @@ function sampleAdjustment(type) {
   assert.strictEqual(cancellationPdf.getTitle(), "Stornorechnung ST-2026-0002");
   assert.strictEqual(cancellationPdf.getCreator(), adjustmentPdf.GENERATOR_VERSION);
   assert.strictEqual(adjustmentPdf.GENERATOR_VERSION, "uj-pos-adjustment-pdf-2");
+  assert.strictEqual(adjustmentPdf.berlinDate("2026-12-31T23:30:00.000Z"), "2027-01-01");
 
   if (process.env.POS_PDF_SAMPLE_OUTPUT) {
     const output = path.resolve(process.env.POS_PDF_SAMPLE_OUTPUT);

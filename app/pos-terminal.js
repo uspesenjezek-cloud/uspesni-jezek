@@ -2439,7 +2439,7 @@
       var cancellation = entry.type === "cancellation";
       var title = cancellation ? "Stornorechnung" : "Rechnungsberichtigung";
       var stateCopy = entry.documentReady ? "PDF" : "Pripravi PDF";
-      return "<article class=\"pos-adjustment-row " + (cancellation ? "is-cancellation" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(String(entry.createdAt || "").slice(0, 10)) + " · " + entry.reason) + "</small></div><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button></article>";
+      return "<article class=\"pos-adjustment-row " + (cancellation ? "is-cancellation" : "") + "\"><span class=\"pos-adjustment-row__icon\"><svg><use href=\"#" + (cancellation ? "i-trash" : "i-info") + "\"/></svg></span><div class=\"pos-adjustment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(title + " · " + entry.number) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + entry.reason) + "</small></div><button type=\"button\" data-download-adjustment=\"" + escapeHtml(entry.id) + "\">" + stateCopy + "</button></article>";
     }
     queryAll("[data-download-adjustment]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -2528,7 +2528,7 @@
       var retry = entry.status === "failed" && entry.attemptCount < entry.maxAttempts
         ? "<button type=\"button\" class=\"pos-delivery-row__retry\" data-retry-delivery=\"" + escapeHtml(entry.id) + "\" data-email=\"" + (entry.provider === "resend" ? "true" : "false") + "\">Ponovi</button>"
         : "";
-      return "<article class=\"pos-delivery-row\"><span class=\"pos-delivery-row__icon\"><svg><use href=\"#i-export\"/></svg></span><div class=\"pos-delivery-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(deliveryFormatLabel(entry.documentFormat) + " · " + deliveryChannelLabel(entry.channel)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(String(entry.createdAt || "").slice(0, 10)) + " · " + target + validation) + "</small></div><div class=\"pos-delivery-row__actions\"><span class=\"pos-delivery-row__status is-" + escapeHtml(entry.status) + "\">" + escapeHtml(deliveryStatusLabel(entry.status, entry)) + "</span>" + retry + "</div>" + deliveryTimeline(entry) + "</article>";
+      return "<article class=\"pos-delivery-row\"><span class=\"pos-delivery-row__icon\"><svg><use href=\"#i-export\"/></svg></span><div class=\"pos-delivery-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(deliveryFormatLabel(entry.documentFormat) + " · " + deliveryChannelLabel(entry.channel)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(formatDate(berlinDateKey(entry.createdAt)) + " · " + target + validation) + "</small></div><div class=\"pos-delivery-row__actions\"><span class=\"pos-delivery-row__status is-" + escapeHtml(entry.status) + "\">" + escapeHtml(deliveryStatusLabel(entry.status, entry)) + "</span>" + retry + "</div>" + deliveryTimeline(entry) + "</article>";
     }).join("");
     queryAll("[data-retry-delivery]", list).forEach(function (button) {
       button.addEventListener("click", async function () {
@@ -2631,7 +2631,7 @@
       var bankSource = transaction && (transaction.counterpartyName || transaction.sourceAccountName || transaction.sourceAccountIban);
       var reference = bankSource || payment.providerReference || (payment.provider === "stripe" ? "Stripe Sandbox" : "Potrjeno v POS");
       var dateSource = payment.paidAt || payment.createdAt;
-      var date = dateSource ? formatDate(String(dateSource).slice(0, 10)) : "Datum ni naveden";
+      var date = dateSource ? formatDate(berlinDateKey(dateSource)) : "Datum ni naveden";
       var isBank = Boolean(payment.sourceBankTransactionId || payment.method === "bank_transfer");
       var status = payment.status || "succeeded";
       var effective = Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
