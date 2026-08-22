@@ -4,6 +4,7 @@ const { PDFDocument, rgb } = require("pdf-lib");
 const { safeText, money, dateDE, wrap, taxGroups, priceMode, lineDisplayAmount, taxIdentityText, sellerLegalDisclosureLines, embedUnicodeFonts } = require("./pos-pdf");
 
 const GENERATOR_VERSION = "uj-pos-offer-pdf-3";
+const CONTRACT_CONFIRMATION_GENERATOR_VERSION = "uj-pos-contract-confirmation-pdf-1";
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 const COLORS = {
   ink: rgb(0.08, 0.19, 0.18), muted: rgb(0.38, 0.48, 0.46),
@@ -237,4 +238,83 @@ async function ustvariPonudboPdf(workOrder) {
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
-module.exports = { GENERATOR_VERSION, normalizeOffer, ustvariPonudboPdf };
+async function ustvariPogodbenoPotrdiloPdf(workOrder, acceptance, archivedOfferPdf) {
+  const { payload, seller } = normalizeOffer(workOrder);
+  const acceptedOn = safeText(workOrder.accepted_on || acceptance && acceptance.accepted_on);
+  if (!safeText(workOrder.order_number) || !acceptedOn || !acceptance || !safeText(acceptance.offer_sha256)) {
+    throw new Error("Pogodbeno potrdilo zahteva naročilo, dejanski datum sprejema in dokaz arhivirane ponudbe.");
+  }
+  if (!["accepted", "in_progress", "completed", "invoiced", "withdrawn"].includes(safeText(workOrder.status))) {
+    throw new Error("Pogodbeno potrdilo je na voljo šele po sprejemu ponudbe.");
+  }
+  const sourceBytes = Buffer.isBuffer(archivedOfferPdf) ? archivedOfferPdf : Buffer.from(archivedOfferPdf || []);
+  if (sourceBytes.length < 4 || sourceBytes.subarray(0, 4).toString("ascii") !== "%PDF") {
+    throw new Error("Arhivirani PDF ponudbe ni veljaven.");
+  }
+
+  const source = await PDFDocument.load(sourceBytes, { updateMetadata: false });
+  const pdf = await PDFDocument.create();
+  pdf.setTitle("Vertragsbestätigung " + safeText(workOrder.order_number));
+  pdf.setAuthor("Uspešni Ježek POS");
+  pdf.setSubject("Vertragsbestätigung gemäß § 312f BGB");
+  pdf.setCreator(CONTRACT_CONFIRMATION_GENERATOR_VERSION);
+  pdf.setProducer(CONTRACT_CONFIRMATION_GENERATOR_VERSION);
+  const createdAt = new Date(acceptance.recorded_at || acceptance.accepted_at || Date.now());
+  pdf.setCreationDate(createdAt);
+  pdf.setModificationDate(createdAt);
+  const { regular, bold } = await embedUnicodeFonts(pdf);
+  const cover = pdf.addPage([PAGE.width, PAGE.height]);
+  cover.drawRectangle({ x: 0, y: PAGE.height - 110, width: PAGE.width, height: 110, color: COLORS.tealDark });
+  cover.drawText(safeText(seller.legalName), { x: PAGE.margin, y: PAGE.height - 52, font: bold, size: 15, color: COLORS.white });
+  rightText(cover, "VERTRAGSBESTÄTIGUNG", PAGE.width - PAGE.margin, PAGE.height - 52, bold, 12, COLORS.white);
+  rightText(cover, workOrder.order_number, PAGE.width - PAGE.margin, PAGE.height - 72, regular, 8, COLORS.white);
+
+  let y = PAGE.height - 154;
+  cover.drawText("Bestätigung des geschlossenen Vertrags", { x: PAGE.margin, y, font: bold, size: 17, color: COLORS.tealDark });
+  y -= 36;
+  const rows = [
+    ["Auftragsnummer", workOrder.order_number],
+    ["Angebotsnummer", workOrder.offer_number],
+    ["Vertrag geschlossen am", dateDE(acceptedOn)],
+    ["Auftraggeber", workOrder.customer_name],
+    ["Projekt", workOrder.title]
+  ];
+  rows.forEach(([label, value]) => {
+    cover.drawText(label, { x: PAGE.margin, y, font: regular, size: 8, color: COLORS.muted });
+    cover.drawText(safeText(value), { x: 205, y, font: bold, size: 9, color: COLORS.ink });
+    y -= 25;
+  });
+  y -= 12;
+  const paragraphs = [
+    "Dieses Dokument bestätigt den am " + dateDE(acceptedOn) + " geschlossenen Vertrag. Die folgenden Seiten geben den vereinbarten Vertragsinhalt einschließlich Leistungsbeschreibung, Preisen und der bei Vertragsschluss bereitgestellten Verbraucherinformationen wieder.",
+    "Die nachfolgenden Seiten sind die unveränderte, archivierte Angebotsfassung, auf die sich die Annahme bezieht. Angebotsnummer und SHA-256-Prüfsumme verbinden diese Bestätigung mit genau diesem Dokument.",
+    "SHA-256 des angenommenen Angebots: " + safeText(acceptance.offer_sha256)
+  ];
+  paragraphs.forEach((paragraph, index) => {
+    wrap(paragraph, index === 2 ? regular : regular, index === 2 ? 7.2 : 9, PAGE.width - PAGE.margin * 2).forEach((line) => {
+      cover.drawText(line, { x: PAGE.margin, y, font: regular, size: index === 2 ? 7.2 : 9, color: index === 2 ? COLORS.muted : COLORS.ink });
+      y -= index === 2 ? 9 : 12.5;
+    });
+    y -= 12;
+  });
+  cover.drawRectangle({ x: PAGE.margin, y: 112, width: PAGE.width - PAGE.margin * 2, height: 62, color: COLORS.pale, borderColor: COLORS.line, borderWidth: 0.7 });
+  cover.drawText("Dauerhafter Datenträger", { x: PAGE.margin + 14, y: 150, font: bold, size: 9, color: COLORS.tealDark });
+  wrap("Diese PDF-Datei ist zur unveränderten Aufbewahrung und Weitergabe bestimmt. Bitte stellen Sie sie dem Verbraucher entsprechend § 312f BGB auf Papier oder einem zulässigen dauerhaften Datenträger zur Verfügung.", regular, 7.8, PAGE.width - PAGE.margin * 2 - 28).forEach((line, index) => {
+    cover.drawText(line, { x: PAGE.margin + 14, y: 133 - index * 10, font: regular, size: 7.8, color: COLORS.ink });
+  });
+  cover.drawLine({ start: { x: PAGE.margin, y: 50 }, end: { x: PAGE.width - PAGE.margin, y: 50 }, thickness: 0.5, color: COLORS.line });
+  cover.drawText("Unveränderliche Vertragsbestätigung - " + CONTRACT_CONFIRMATION_GENERATOR_VERSION, { x: PAGE.margin, y: 34, font: regular, size: 6.7, color: COLORS.muted });
+  rightText(cover, "Seite 1 / " + (source.getPageCount() + 1), PAGE.width - PAGE.margin, 34, regular, 6.7, COLORS.muted);
+
+  const copiedPages = await pdf.copyPages(source, source.getPageIndices());
+  copiedPages.forEach((copiedPage) => pdf.addPage(copiedPage));
+  return Buffer.from(await pdf.save({ useObjectStreams: false }));
+}
+
+module.exports = {
+  GENERATOR_VERSION,
+  CONTRACT_CONFIRMATION_GENERATOR_VERSION,
+  normalizeOffer,
+  ustvariPonudboPdf,
+  ustvariPogodbenoPotrdiloPdf
+};

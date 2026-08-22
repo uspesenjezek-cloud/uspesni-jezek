@@ -46,7 +46,7 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260822-consumer-withdrawal-notice-v25/);
+assert.match(html, /pos-terminal\.js\?v=20260822-contract-confirmation-v26/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
 assert.match(html, /name="urgentRepairScope"[\s\S]*maxlength="500"/);
@@ -160,8 +160,10 @@ const earlyOrder = Object.assign({}, order, {
   acceptedOn: "2026-08-22",
   lockedPayload: Object.assign({}, payload, { customer_type: "private", consumer_contract_context: "distance" })
 });
-assert.deepEqual(Core.workOrderActions(earlyOrder), ["pdf", "start", "progress", "withdraw"]);
-assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { status: "in_progress" })), ["pdf", "complete", "progress", "withdraw"]);
+assert.equal(Core.requiresContractConfirmation(earlyOrder), true);
+assert.deepEqual(Core.workOrderActions(earlyOrder), ["pdf", "contract_pdf", "contract_delivery", "start", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { status: "in_progress" })), ["pdf", "contract_pdf", "contract_delivery", "complete", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { contractConfirmationDeliveryEvidence: "E-pošta s PDF" })), ["pdf", "contract_pdf", "start", "progress", "withdraw"]);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-08-30T10:00:00.000Z"), true);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T21:59:59.000Z"), true);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T22:00:00.000Z"), false);
@@ -250,6 +252,26 @@ assert.match(withdrawalMigration, /automatic_refund_performed', false/i);
 assert.match(withdrawalMigration, /create or replace function public\.pos_record_consumer_withdrawal/i);
 assert.match(js, /rpc\("pos_record_consumer_withdrawal", \{[\s\S]*p_declared_on: declaredOn[\s\S]*p_evidence:/);
 assert.match(js, /Obstoječi računi, plačila in morebitni Wertersatz se ne spremenijo samodejno/i);
+
+const confirmationMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_consumer_contract_confirmation\.sql$/.test(name)).sort().pop();
+assert.ok(confirmationMigrationName, "Manjka dokazljivo potrdilo potrošniške pogodbe na trajnem nosilcu.");
+const confirmationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", confirmationMigrationName), "utf8");
+assert.match(confirmationMigration, /create table public\.pos_contract_confirmation_documents/i);
+assert.match(confirmationMigration, /create table public\.pos_contract_confirmation_deliveries/i);
+assert.match(confirmationMigration, /pos_contract_confirmation_documents_immutable[\s\S]*before update or delete/i);
+assert.match(confirmationMigration, /pos_contract_confirmation_deliveries_immutable[\s\S]*before update or delete/i);
+assert.match(confirmationMigration, /pos_work_orders_require_contract_confirmation_delivery[\s\S]*before update of status/i);
+assert.match(confirmationMigration, /delivery\.delivered_on[\s\S]*<= \(new\.started_at at time zone 'Europe\/Berlin'\)::date/i);
+assert.match(confirmationMigration, /v_channel = 'electronic'[\s\S]*v_context in \('off_premises', 'urgent_repair'\)[\s\S]*v_consent/i);
+assert.match(confirmationMigration, /create or replace function public\.pos_record_contract_confirmation_delivery/i);
+assert.match(confirmationMigration, /revoke all on table public\.pos_contract_confirmation_documents from public, anon, authenticated/i);
+assert.match(confirmationMigration, /revoke all on table public\.pos_contract_confirmation_deliveries from public, anon, authenticated/i);
+assert.match(html, /data-dialog-select/);
+assert.match(js, /function requiresContractConfirmation\(order\)/);
+assert.match(js, /function recordContractConfirmationDelivery\(order\)/);
+assert.match(js, /rpc\("pos_record_contract_confirmation_delivery", \{[\s\S]*p_channel: channel[\s\S]*p_delivered_on: deliveredOn/);
+assert.match(js, /Pred začetkom dela zabeležite izročitev pogodbenega potrdila potrošniku/);
 
 const progress = Core.prepareWorkOrderInvoiceDraft(order, profile, "progress", 30);
 assert.equal(progress.workflowContext.invoiceKind, "progress");

@@ -454,7 +454,7 @@
     return payload;
   }
 
-  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart, withdrawal) {
+  function workOrderFromServer(row, links, acceptance, cancellation, earlyStart, withdrawal, contractDocument, contractDelivery) {
     return {
       id: row.id,
       offerNumber: row.offer_number,
@@ -487,6 +487,14 @@
       withdrawalStatusBefore: withdrawal && withdrawal.status_before || "",
       withdrawalReceivedAt: withdrawal && withdrawal.received_at || "",
       valueCompensationReviewRequired: Boolean(withdrawal && withdrawal.value_compensation_review_required),
+      contractConfirmationDocumentId: contractDocument && contractDocument.id || "",
+      contractConfirmationSha256: contractDocument && contractDocument.sha256 || "",
+      contractConfirmationCreatedAt: contractDocument && contractDocument.created_at || "",
+      contractConfirmationDeliveryChannel: contractDelivery && contractDelivery.channel || "",
+      contractConfirmationDeliveryRecipient: contractDelivery && contractDelivery.recipient || "",
+      contractConfirmationDeliveryEvidence: contractDelivery && contractDelivery.evidence || "",
+      contractConfirmationDeliveredOn: contractDelivery && contractDelivery.delivered_on || "",
+      contractConfirmationElectronicConsent: contractDelivery && contractDelivery.electronic_consent_evidence || "",
       updatedAt: row.updated_at,
       invoiceLinks: links || []
     };
@@ -547,6 +555,11 @@
     return Boolean(acceptedDay && currentDay && currentDay <= addDays(acceptedDay, 14));
   }
 
+  function requiresContractConfirmation(order) {
+    var source = order && (order.lockedPayload || order.payload) || {};
+    return source.customer_type === "private" && ["distance", "off_premises", "urgent_repair"].indexOf(source.consumer_contract_context) !== -1;
+  }
+
   function workOrderActions(orderOrStatus) {
     var order = orderOrStatus && typeof orderOrStatus === "object" ? orderOrStatus : null;
     var status = order ? order.status : orderOrStatus;
@@ -554,12 +567,14 @@
     var consumerWithdrawal = order && source.customer_type === "private" && ["distance", "off_premises"].indexOf(source.consumer_contract_context) !== -1;
     if (status === "draft") return ["edit", "offer", "cancel"];
     if (status === "offered") return ["pdf", "accept", "cancel"];
-    if (status === "accepted") return ["pdf", "start", "progress"].concat(consumerWithdrawal ? ["withdraw"] : []);
-    if (status === "in_progress") return ["pdf", "complete", "progress"].concat(consumerWithdrawal ? ["withdraw"] : []);
-    if (status === "completed") return ["pdf", "final", "progress"];
-    if (status === "invoiced") return ["pdf"];
+    var confirmation = order && requiresContractConfirmation(order);
+    var confirmationActions = confirmation ? ["contract_pdf"].concat(order.contractConfirmationDeliveryEvidence ? [] : ["contract_delivery"]) : [];
+    if (status === "accepted") return ["pdf"].concat(confirmationActions, ["start", "progress"], consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "in_progress") return ["pdf"].concat(confirmationActions, ["complete", "progress"], consumerWithdrawal ? ["withdraw"] : []);
+    if (status === "completed") return ["pdf"].concat(confirmationActions, ["final", "progress"]);
+    if (status === "invoiced") return ["pdf"].concat(confirmationActions);
     if (status === "cancelled" && order && order.offeredAt) return ["pdf"];
-    if (status === "withdrawn") return ["pdf"];
+    if (status === "withdrawn") return ["pdf"].concat(confirmationActions);
     return [];
   }
 
@@ -1585,6 +1600,7 @@
     workOrderPayloadFromDraft: workOrderPayloadFromDraft,
     workOrderFromServer: workOrderFromServer,
     requiresEarlyStartEvidence: requiresEarlyStartEvidence,
+    requiresContractConfirmation: requiresContractConfirmation,
     workOrderActions: workOrderActions,
     workOrderFinalState: workOrderFinalState,
     prepareWorkOrderInvoiceDraft: prepareWorkOrderInvoiceDraft,
@@ -1937,9 +1953,11 @@
         fetchAllRows(function () { return backend.client.from("pos_work_order_acceptances").select("work_order_id,offer_document_id,offer_sha256,evidence,accepted_at,accepted_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_cancellations").select("work_order_id,status_before,reason,offer_document_id,offer_sha256,cancelled_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_work_order_early_start_evidence").select("work_order_id,contract_context,evidence,offer_document_id,offer_sha256,started_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_work_order_withdrawals").select("work_order_id,status_before,declared_on,evidence,value_compensation_review_required,received_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_work_order_withdrawals").select("work_order_id,status_before,declared_on,evidence,value_compensation_review_required,received_at,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_documents").select("id,work_order_id,offer_sha256,accepted_on,sha256,byte_size,generator_version,created_at").eq("user_id", userId).order("created_at", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 18).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.slice(0, 20).map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -1985,6 +2003,10 @@
       (responses[16].data || []).forEach(function (entry) { earlyStartByWorkOrder[entry.work_order_id] = entry; });
       var withdrawalByWorkOrder = {};
       (responses[17].data || []).forEach(function (entry) { withdrawalByWorkOrder[entry.work_order_id] = entry; });
+      var contractDocumentByWorkOrder = {};
+      (responses[18].data || []).forEach(function (entry) { contractDocumentByWorkOrder[entry.work_order_id] = entry; });
+      var contractDeliveryByWorkOrder = {};
+      (responses[19].data || []).forEach(function (entry) { contractDeliveryByWorkOrder[entry.work_order_id] = entry; });
       if (scopes.bank) {
         backend.bankReady = !responses[11].error;
         state.bankTransactions = backend.bankReady ? (responses[11].data || []).map(bankTransactionFromServer) : [];
@@ -2004,7 +2026,18 @@
           link.paid_cents = linkedInvoice ? linkedInvoice.paidCents : 0;
         });
       });
-      state.workOrders = (responses[12].data || []).map(function (row) { return workOrderFromServer(row, linksByWorkOrder[row.id] || [], acceptanceByWorkOrder[row.id] || null, cancellationByWorkOrder[row.id] || null, earlyStartByWorkOrder[row.id] || null, withdrawalByWorkOrder[row.id] || null); });
+      state.workOrders = (responses[12].data || []).map(function (row) {
+        return workOrderFromServer(
+          row,
+          linksByWorkOrder[row.id] || [],
+          acceptanceByWorkOrder[row.id] || null,
+          cancellationByWorkOrder[row.id] || null,
+          earlyStartByWorkOrder[row.id] || null,
+          withdrawalByWorkOrder[row.id] || null,
+          contractDocumentByWorkOrder[row.id] || null,
+          contractDeliveryByWorkOrder[row.id] || null
+        );
+      });
       (responses[7].data || []).forEach(function (relation) {
         var original = invoicesById[relation.original_invoice_id];
         var replacement = invoicesById[relation.replacement_invoice_id];
@@ -2132,7 +2165,10 @@
     var backdrop = query("[data-dialog-backdrop]");
     var field = query("[data-dialog-field]");
     var input = query("[data-dialog-input]");
+    var select = query("[data-dialog-select]");
     var inputOptions = options && options.input;
+    var usesSelect = Boolean(inputOptions && Array.isArray(inputOptions.options));
+    var control = usesSelect ? select : input;
     query("[data-dialog-title]").textContent = title;
     query("[data-dialog-copy]").textContent = copy;
     query("[data-dialog-cancel]").hidden = Boolean(options && options.cancel === false);
@@ -2140,11 +2176,16 @@
     dialogCallback = options && options.onConfirm || null;
     dialogValidator = options && options.validate || null;
     field.hidden = !inputOptions;
+    input.hidden = usesSelect;
+    select.hidden = !usesSelect;
+    select.innerHTML = usesSelect ? inputOptions.options.map(function (option) {
+      return "<option value=\"" + escapeHtml(option.value) + "\">" + escapeHtml(option.label) + "</option>";
+    }).join("") : "";
     input.type = inputOptions && inputOptions.type || "text";
     input.inputMode = inputOptions && inputOptions.inputMode || (input.type === "date" ? "" : "text");
     input.min = inputOptions && inputOptions.min || "";
     input.max = inputOptions && inputOptions.max || "";
-    input.value = inputOptions && inputOptions.value || "";
+    control.value = inputOptions && inputOptions.value || "";
     input.placeholder = inputOptions && inputOptions.placeholder || "";
     input.maxLength = inputOptions && inputOptions.maxLength || 524288;
     query("[data-dialog-field-label]").textContent = inputOptions && inputOptions.label || "Znesek";
@@ -2152,18 +2193,21 @@
     backdrop.hidden = false;
     document.documentElement.classList.add("uj-modal-odprt");
     document.body.classList.add("uj-modal-odprt");
-    (inputOptions ? input : query("[data-dialog-confirm]")).focus();
-    if (inputOptions && input.type !== "date") input.select();
+    (inputOptions ? control : query("[data-dialog-confirm]")).focus();
+    if (inputOptions && !usesSelect && input.type !== "date") input.select();
   }
 
   function closeDialog(confirmed) {
-    var inputValue = query("[data-dialog-input]").value;
+    var input = query("[data-dialog-input]");
+    var select = query("[data-dialog-select]");
+    var control = select.hidden ? input : select;
+    var inputValue = control.value;
     if (confirmed && dialogValidator) {
       var validationMessage = dialogValidator(inputValue);
       if (validationMessage) {
         showToast(validationMessage);
-        query("[data-dialog-input]").focus();
-        if (query("[data-dialog-input]").type !== "date") query("[data-dialog-input]").select();
+        control.focus();
+        if (control === input && input.type !== "date") input.select();
         return;
       }
     }
@@ -2244,7 +2288,7 @@
 
   function workOrderActionLabel(action) {
     return {
-      edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
+      edit: "Uredi ponudbo", offer: "Zakleni ponudbo", pdf: "Ponudba PDF", contract_pdf: "Potrdilo pogodbe PDF", contract_delivery: "Zabeleži izročitev", accept: "Potrdi sprejem", start: "Začni delo", complete: "Zaključi delo",
       progress: "Abschlagsrechnung", final: "Schlussrechnung", cancel: "Prekliči", withdraw: "Zabeleži odstop"
     }[action] || action;
   }
@@ -2271,8 +2315,10 @@
       var cancellationCopy = order.cancellationReason ? formatGermanTimestampDate(order.cancelledAt) + " · " + order.cancellationReason : "";
       var earlyStartCopy = order.earlyStartEvidence ? formatGermanTimestampDate(order.earlyStartRecordedAt) + " · " + order.earlyStartEvidence : "";
       var withdrawalCopy = order.withdrawalEvidence ? formatDate(order.withdrawalDeclaredOn) + " · " + order.withdrawalEvidence : "";
+      var contractDeliveryCopy = order.contractConfirmationDeliveryEvidence ? formatDate(order.contractConfirmationDeliveredOn) + " · " + (order.contractConfirmationDeliveryChannel === "paper" ? "papir" : "elektronsko") + " · " + order.contractConfirmationDeliveryEvidence : "";
+      var contractWarning = order.status === "accepted" && requiresContractConfirmation(order) && !order.contractConfirmationDeliveryEvidence ? "Pred začetkom dela ustvarite pogodbeno potrdilo PDF in dokazljivo zabeležite njegovo izročitev potrošniku na trajnem nosilcu." : "";
       var withdrawalWarning = order.status === "withdrawn" ? "Nadaljnje delo in novi računi so ustavljeni. Obstoječi računi in plačila ostajajo nespremenjeni; preverite Storno/Gutschrift" + (order.valueCompensationReviewRequired ? " ter morebitni Wertersatz" : "") + ". Vračilo denarja ni bilo samodejno izvedeno." : "";
-      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
+      return "<article class=\"pos-work-order pos-work-order--" + escapeHtml(order.status) + "\"><div class=\"pos-work-order__top\"><div><small data-fit-text>" + escapeHtml(order.orderNumber || order.offerNumber) + "</small><strong data-fit-text data-fit-max=\"15\">" + escapeHtml(order.title) + "</strong></div><span>" + escapeHtml(workOrderStatusLabel(order.status)) + "</span></div><div class=\"pos-work-order__facts\"><div><small>Naročnik</small><b data-fit-text>" + escapeHtml(order.customerName) + "</b></div><div><small>Vrednost</small><b>" + escapeHtml(formatMoney(order.grossCents)) + "</b></div><div><small>Velja do</small><b>" + escapeHtml(formatDate(order.validUntil)) + "</b></div>" + (acceptanceCopy ? "<div><small>Dokaz sprejema</small><b data-fit-text title=\"" + escapeHtml(acceptanceCopy) + "\">" + escapeHtml(acceptanceCopy) + "</b></div>" : "") + (contractDeliveryCopy ? "<div><small>Potrdilo pogodbe izročeno</small><b data-fit-text title=\"" + escapeHtml(contractDeliveryCopy) + "\">" + escapeHtml(contractDeliveryCopy) + "</b></div>" : "") + (earlyStartCopy ? "<div><small>Predčasni začetek</small><b data-fit-text title=\"" + escapeHtml(earlyStartCopy) + "\">" + escapeHtml(earlyStartCopy) + "</b></div>" : "") + (withdrawalCopy ? "<div><small>Dokaz odstopa</small><b data-fit-text title=\"" + escapeHtml(withdrawalCopy) + "\">" + escapeHtml(withdrawalCopy) + "</b></div>" : "") + (cancellationCopy ? "<div><small>Razlog preklica</small><b data-fit-text title=\"" + escapeHtml(cancellationCopy) + "\">" + escapeHtml(cancellationCopy) + "</b></div>" : "") + (progressTotal ? "<div><small>Delni računi</small><b data-fit-text>" + escapeHtml(progressCopy) + "</b></div>" : "") + "</div>" + (finalState.blocked ? "<p class=\"pos-work-order__warning\">Končni račun čaka na celotno plačilo vseh delnih računov.</p>" : "") + (contractWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(contractWarning) + "</p>" : "") + (withdrawalWarning ? "<p class=\"pos-work-order__warning\">" + escapeHtml(withdrawalWarning) + "</p>" : "") + (actionHtml ? "<div class=\"pos-work-order__actions\">" + actionHtml + "</div>" : "") + "</article>";
     }).join("");
     queryAll("[data-work-order-action]", root).forEach(function (button) {
       button.addEventListener("click", function () {
@@ -2280,6 +2326,8 @@
         var action = button.getAttribute("data-work-order-action");
         if (action === "edit") openWorkOrderForEdit(order);
         else if (action === "pdf") downloadOfferPdf(order).then(function () { showToast("Nespremenljivi PDF ponudbe je prenesen."); }).catch(function (error) { showToast(error && error.message || "PDF ponudbe ni na voljo."); });
+        else if (action === "contract_pdf") downloadContractConfirmationPdf(order).then(function () { showToast("Nespremenljivo pogodbeno potrdilo je preneseno."); }).catch(function (error) { showToast(error && error.message || "Pogodbeno potrdilo ni na voljo."); });
+        else if (action === "contract_delivery") recordContractConfirmationDelivery(order);
         else if (action === "progress" || action === "final") startWorkOrderInvoice(order, action);
         else transitionWorkOrder(order, action);
       });
@@ -2326,9 +2374,14 @@
                 p_accepted_on: acceptedOn
               }).single();
               if (result.error) throw result.error;
+              var contractPdfError = "";
+              if (requiresContractConfirmation(order)) {
+                try { await ensureContractConfirmationDocument(order.id); }
+                catch (documentError) { contractPdfError = documentError && documentError.message || "Pogodbeno potrdilo še ni pripravljeno."; }
+              }
               await loadServerState("invoices");
               showView("work-orders");
-              showToast("Sprejem in dejanski datum pogodbe sta varno zapisana.");
+              showToast(contractPdfError ? "Sprejem je zapisan; pogodbeno potrdilo znova pripravite z njegovim gumbom PDF." : "Sprejem, datum in pogodbeno potrdilo so varno zapisani.");
             } catch (error) { showToast(error && error.message || "Sprejema ni bilo mogoče zapisati."); }
           }
         });
@@ -2387,10 +2440,101 @@
     });
   }
 
+  async function recordContractConfirmationDelivery(order) {
+    try {
+      await ensureContractConfirmationDocument(order.id);
+    } catch (error) {
+      showToast(error && error.message || "Najprej je treba pripraviti pogodbeno potrdilo PDF.");
+      return;
+    }
+    var acceptedOn = order.acceptedOn || berlinDateKey(order.acceptedAt);
+    var today = berlinDateKey(new Date()) || isoToday();
+    var context = (order.lockedPayload || order.payload || {}).consumer_contract_context;
+    openDialog("Kako je bilo potrdilo izročeno?", "Izberite dejanski trajni nosilec, na katerem je potrošnik prejel nespremenljivo pogodbeno potrdilo.", {
+      confirmText: "Naprej",
+      input: {
+        label: "Način izročitve",
+        hint: "Papir ali elektronski trajni nosilec, na primer priponka PDF v e-pošti.",
+        value: "paper",
+        options: [
+          { value: "paper", label: "Papir" },
+          { value: "electronic", label: "Elektronsko (PDF)" }
+        ]
+      },
+      onConfirm: function (channel) {
+        openDialog("Kdaj je bilo potrdilo izročeno?", "Vpišite dejanski nemški koledarski datum izročitve. Ta datum mora biti po sklenitvi pogodbe in pred začetkom dela.", {
+          confirmText: "Naprej",
+          input: {
+            type: "date",
+            label: "Datum izročitve",
+            hint: "Datum ne sme biti pred datumom sprejema ali v prihodnosti.",
+            value: today,
+            min: acceptedOn,
+            max: today
+          },
+          validate: function (value) {
+            if (!acceptedOn || !/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return "Vpišite veljaven datum izročitve.";
+            return value < acceptedOn || value > today ? "Datum izročitve ni v dovoljenem obdobju." : "";
+          },
+          onConfirm: function (deliveredOn) {
+            openDialog("Dokaz izročitve", "Vpišite preverljivo referenco, ki dokazuje, da je potrošnik potrdilo dejansko prejel.", {
+              confirmText: "Naprej",
+              input: {
+                label: "Dokaz izročitve",
+                hint: "Na primer podpisana kopija ali ID poslane e-pošte s PDF-priponko.",
+                placeholder: channel === "paper" ? "Podpisana papirna kopija · Max Mustermann · 22. 8. 2026" : "E-pošta s PDF-priponko · Message-ID …",
+                maxLength: 500
+              },
+              validate: function (value) {
+                var length = String(value || "").trim().length;
+                return length < 5 || length > 500 ? "Vpišite dokaz izročitve (od 5 do 500 znakov)." : "";
+              },
+              onConfirm: function (evidence) {
+                var save = function (consentEvidence) {
+                  backend.client.rpc("pos_record_contract_confirmation_delivery", {
+                    p_work_order_id: order.id,
+                    p_channel: channel,
+                    p_evidence: String(evidence || "").trim(),
+                    p_delivered_on: deliveredOn,
+                    p_electronic_consent_evidence: consentEvidence || null
+                  }).single().then(async function (result) {
+                    if (result.error) throw result.error;
+                    await loadServerState("invoices");
+                    showView("work-orders");
+                    showToast("Izročitev pogodbenega potrdila je nespremenljivo zapisana.");
+                  }).catch(function (error) { showToast(error && error.message || "Izročitve ni bilo mogoče zapisati."); });
+                };
+                if (channel !== "electronic" || ["off_premises", "urgent_repair"].indexOf(context) === -1) { save(""); return; }
+                openDialog("Soglasje za elektronski nosilec", "Pri pogodbi zunaj poslovnih prostorov je namesto papirja potreben dokaz, da je potrošnik soglašal z drugim trajnim nosilcem.", {
+                  confirmText: "Zabeleži izročitev",
+                  input: {
+                    label: "Dokaz soglasja",
+                    hint: "Vpišite podpisano izjavo, e-pošto ali drugo preverljivo referenco soglasja.",
+                    placeholder: "Podpisano soglasje · Max Mustermann · 22. 8. 2026",
+                    maxLength: 500
+                  },
+                  validate: function (value) {
+                    var length = String(value || "").trim().length;
+                    return length < 5 || length > 500 ? "Vpišite dokaz soglasja (od 5 do 500 znakov)." : "";
+                  },
+                  onConfirm: function (consentEvidence) { save(String(consentEvidence || "").trim()); }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
   function transitionWorkOrder(order, action) {
     if (!order || !backend.ready) { showToast("Varna hramba naročil ni povezana."); return; }
     if (action === "accept") { recordWorkOrderAcceptance(order); return; }
     if (action === "withdraw") { recordConsumerWithdrawal(order); return; }
+    if (action === "start" && requiresContractConfirmation(order) && !order.contractConfirmationDeliveryEvidence) {
+      showToast("Pred začetkom dela zabeležite izročitev pogodbenega potrdila potrošniku.");
+      return;
+    }
     if (action === "offer" && !profileReadiness(state.profile).live) { showToast("Pravno ponudbo lahko pošljete šele po potrditvi popolnih podatkov podjetja in registra."); return; }
     var earlyEvidenceRequired = action === "start" && requiresEarlyStartEvidence(order);
     var copy = action === "offer" ? "Ponudba se bo zaklenila in dobila nespremenljiv PDF. Po prenosu jo pošljite naročniku."
@@ -4217,6 +4361,43 @@
     global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   }
 
+  async function posContractConfirmationPdfRequest(workOrderId, mode) {
+    var token = await apiSessionToken();
+    var action = mode || "download";
+    var response = await fetch("/api/pos-pogodba-pdf?workOrderId=" + encodeURIComponent(workOrderId) + "&mode=" + encodeURIComponent(action), {
+      method: action === "metadata" ? "POST" : "GET",
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!response.ok) {
+      var body = null;
+      try { body = await response.json(); } catch (_error) {}
+      throw new Error(body && body.napaka || "PDF pogodbenega potrdila ni bilo mogoče pripraviti.");
+    }
+    return response;
+  }
+
+  async function ensureContractConfirmationDocument(workOrderId) {
+    var response = await posContractConfirmationPdfRequest(workOrderId, "metadata");
+    var body = await response.json();
+    return body.document;
+  }
+
+  async function downloadContractConfirmationPdf(order) {
+    if (!order || !order.id || !requiresContractConfirmation(order) || ["draft", "offered"].indexOf(order.status) !== -1) {
+      throw new Error("Pogodbeno potrdilo je na voljo po sprejemu potrošniške ponudbe.");
+    }
+    var response = await posContractConfirmationPdfRequest(order.id, "download");
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = String(order.orderNumber || "Vertragsbestaetigung").replace(/[^A-Za-z0-9._-]+/g, "-") + "-Vertragsbestaetigung.pdf";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    global.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
   async function sha256Hex(text) {
     if (!global.crypto || !global.crypto.subtle || !global.TextEncoder) throw new Error("Ta brskalnik ne podpira varnega prstnega odtisa datoteke.");
     var bytes = new global.TextEncoder().encode(String(text || ""));
@@ -4964,6 +5145,7 @@
     query("[data-dialog-confirm]").addEventListener("click", function () { closeDialog(true); });
     query("[data-dialog-cancel]").addEventListener("click", function () { closeDialog(false); });
     query("[data-dialog-input]").addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); closeDialog(true); } });
+    query("[data-dialog-select]").addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); closeDialog(true); } });
     query("[data-dialog-backdrop]").addEventListener("click", function (event) { if (event.target === event.currentTarget) closeDialog(false); });
     global.addEventListener("resize", fitAllText);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAllText);

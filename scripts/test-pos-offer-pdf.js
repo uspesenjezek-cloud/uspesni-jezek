@@ -6,9 +6,11 @@ const path = require("node:path");
 const { PDFDocument } = require("pdf-lib");
 const generator = require("../api/_lib/pos-offer-pdf");
 const endpoint = require("../api/pos-angebot-pdf");
+const confirmationEndpoint = require("../api/pos-pogodba-pdf");
 
 const root = path.resolve(__dirname, "..");
 const handlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-angebot-pdf.js"), "utf8");
+const confirmationHandlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-pogodba-pdf.js"), "utf8");
 const dispatcher = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const terminal = fs.readFileSync(path.join(root, "app", "pos-terminal.js"), "utf8");
@@ -68,6 +70,23 @@ function workOrder() {
   assert.ok(consumerPdf.getPageCount() >= pdf.getPageCount() + 2, "B2C Fernabsatz mora dodati Widerrufsbelehrung in Muster-Widerrufsformular.");
   assert.throws(() => generator.normalizeOffer(Object.assign({}, consumerOffer, { locked_payload: Object.assign({}, consumerOffer.locked_payload, { consumer_contract_context: "unknown" }) })), /načina sklenitve/);
   assert.throws(() => generator.normalizeOffer(Object.assign({}, consumerOffer, { locked_payload: Object.assign({}, consumerOffer.locked_payload, { consumer_contract_context: "urgent_repair", urgent_repair_scope: "" }) })), /nujno popravilo/i);
+  consumerOffer.status = "accepted";
+  consumerOffer.order_number = "AUF-2026-0042";
+  consumerOffer.accepted_on = "2026-08-22";
+  const offerSha256 = endpoint._test.sha256(consumerBuffer);
+  const confirmationBuffer = await generator.ustvariPogodbenoPotrdiloPdf(consumerOffer, {
+    id: "22222222-2222-4222-8222-222222222222",
+    accepted_on: "2026-08-22",
+    accepted_at: "2026-08-22T11:00:00.000Z",
+    recorded_at: "2026-08-22T11:05:00.000Z",
+    offer_sha256: offerSha256
+  }, consumerBuffer);
+  const confirmationPdf = await PDFDocument.load(confirmationBuffer);
+  assert.equal(confirmationPdf.getPageCount(), consumerPdf.getPageCount() + 1, "Potrdilo mora imeti naslovnico in nespremenljive strani sprejete ponudbe.");
+  assert.equal(confirmationPdf.getTitle(), "Vertragsbestätigung AUF-2026-0042");
+  assert.equal(confirmationPdf.getCreator(), "uj-pos-contract-confirmation-pdf-1");
+  if (process.env.POS_CONTRACT_CONFIRMATION_PDF_SAMPLE_OUTPUT) fs.writeFileSync(process.env.POS_CONTRACT_CONFIRMATION_PDF_SAMPLE_OUTPUT, confirmationBuffer);
+  await assert.rejects(() => generator.ustvariPogodbenoPotrdiloPdf(Object.assign({}, consumerOffer, { status: "offered" }), {}, consumerBuffer), /datum sprejema|dokaz/i);
   if (process.env.POS_OFFER_PDF_SAMPLE_OUTPUT) fs.writeFileSync(process.env.POS_OFFER_PDF_SAMPLE_OUTPUT, consumerBuffer);
   const urgentOffer = workOrder();
   urgentOffer.customer_name = "Erika Beispiel";
@@ -92,6 +111,19 @@ function workOrder() {
   assert.match(vercel, /"\/api\/pos-angebot-pdf"[\s\S]*handler=offer-pdf/);
   assert.match(terminal, /function downloadOfferPdf\(order\)/);
   assert.match(terminal, /Ponudba je zaklenjena in njen PDF original je pripravljen/);
+  assert.equal(confirmationEndpoint._test.objectPath("u", "w"), "u/w/vertragsbestaetigung.pdf");
+  assert.equal(confirmationEndpoint._test.encodedPath("a b/c"), "a%20b/c");
+  assert.equal(confirmationEndpoint._test.uuid("not-a-uuid"), "");
+  assert.match(confirmationHandlerSource, /preveriUporabnika\(req, cfg\)/);
+  assert.match(confirmationHandlerSource, /pos_work_order_acceptances/);
+  assert.match(confirmationHandlerSource, /offerDocument\.sha256 !== acceptance\.offer_sha256/);
+  assert.match(confirmationHandlerSource, /sha256\(offerPdf\) !== offerDocument\.sha256/);
+  assert.match(confirmationHandlerSource, /"x-upsert": "false"/);
+  assert.match(confirmationHandlerSource, /providerJson\.readBuffer\(response,[\s\S]*MAX_PDF_BYTES/);
+  assert.doesNotMatch(confirmationHandlerSource, /response\.arrayBuffer\(/);
+  assert.match(dispatcher, /"contract-confirmation-pdf": require\("\.\/_handlers\/pos-pogodba-pdf"\)/);
+  assert.match(vercel, /"\/api\/pos-pogodba-pdf"[\s\S]*handler=contract-confirmation-pdf/);
+  assert.match(terminal, /function downloadContractConfirmationPdf\(order\)/);
 
   assert.match(migration, /create table public\.pos_offer_documents/i);
   assert.match(migration, /foreign key \(work_order_id, user_id\)[\s\S]*references public\.pos_work_orders\(id, user_id\)/i);

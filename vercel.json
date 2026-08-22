@@ -8,6 +8,7 @@
     { "source": "/api/mehka-boniteta-opravilo", "destination": "/api/boniteta?handler=job" },
     { "source": "/api/pos-racun-pdf", "destination": "/api/pos?handler=invoice-pdf" },
     { "source": "/api/pos-angebot-pdf", "destination": "/api/pos?handler=offer-pdf" },
+    { "source": "/api/pos-pogodba-pdf", "destination": "/api/pos?handler=contract-confirmation-pdf" },
     { "source": "/api/pos-racun-korekcija", "destination": "/api/pos?handler=invoice-adjustment" },
     { "source": "/api/pos-racun-xrechnung", "destination": "/api/pos?handler=invoice-xrechnung" },
     { "source": "/api/pos-dostava-sandbox", "destination": "/api/pos?handler=delivery-sandbox" },

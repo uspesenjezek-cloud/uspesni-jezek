@@ -20,7 +20,7 @@
     <script src="supabase-client.js"></script>
     <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260822-consumer-withdrawal-notice-v25" defer></script>
+    <script src="pos-terminal.js?v=20260822-contract-confirmation-v26" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -524,6 +524,7 @@
         <label class="pos-dialog__field" data-dialog-field hidden>
           <span data-dialog-field-label>Znesek</span>
           <input type="text" inputmode="decimal" autocomplete="off" data-dialog-input aria-describedby="pos-dialog-field-hint" />
+          <select data-dialog-select aria-describedby="pos-dialog-field-hint" hidden></select>
           <small id="pos-dialog-field-hint" data-dialog-field-hint></small>
         </label>
         <div class="pos-dialog__actions"><button class="pos-secondary" type="button" data-dialog-cancel>Prekliči</button><button class="pos-primary" type="button" data-dialog-confirm>V redu</button></div>
