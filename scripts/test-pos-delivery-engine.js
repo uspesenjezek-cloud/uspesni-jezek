@@ -20,6 +20,9 @@ const safeTestMigration = fs.readFileSync(path.join(root, "supabase", "migration
 const einvoiceExemptionsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_einvoice_delivery_exemptions\.sql$/.test(name)).sort().pop();
 const einvoiceExemptionsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", einvoiceExemptionsMigrationName), "utf8");
+const einvoiceContextMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_invoice_einvoice_context\.sql$/.test(name)).sort().pop();
+const einvoiceContextMigration = fs.readFileSync(path.join(root, "supabase", "migrations", einvoiceContextMigrationName), "utf8");
 const deliveryLimitsMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter((name) => /pos_delivery_field_limits\.sql$/.test(name)).sort().pop();
 const deliveryLimitsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", deliveryLimitsMigrationName), "utf8");
@@ -76,6 +79,12 @@ assert.match(einvoiceExemptionsMigration, /invoice\.tax_mode = 'small_business'/
 assert.match(einvoiceExemptionsMigration, /previous_year_turnover_band = 'lte_800k'/i);
 assert.match(einvoiceExemptionsMigration, /before insert or update of document_format, status, provider, is_test/i);
 assert.match(einvoiceExemptionsMigration, /not private\.pos_invoice_pdf_delivery_allowed\(v_invoice\.id, v_user\)/i);
+assert.match(einvoiceContextMigration, /add column seller_previous_year_turnover_band text/i);
+assert.match(einvoiceContextMigration, /before insert on public\.pos_invoices/i);
+assert.match(einvoiceContextMigration, /select previous_year_turnover_band[\s\S]*where user_id = new\.user_id/i);
+assert.match(einvoiceContextMigration, /invoice\.seller_previous_year_turnover_band = 'lte_800k'/i);
+assert.doesNotMatch(einvoiceContextMigration, /join public\.pos_business_profiles/i);
+assert.match(einvoiceContextMigration, /validate constraint pos_invoices_seller_turnover_band_check/i);
 assert.match(deliveryLimitsMigration, /char_length\(recipient\) <= 320[\s\S]*recipient !~ E'\[\\\\r\\\\n\]'/i);
 assert.match(deliveryLimitsMigration, /char_length\(subject\) <= 240[\s\S]*subject !~ E'\[\\\\r\\\\n\]'/i);
 assert.match(deliveryLimitsMigration, /char_length\(message\) <= 4000/i);

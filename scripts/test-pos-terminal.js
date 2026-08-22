@@ -617,6 +617,7 @@ const dbProfile = Core.profileToDatabase(profile, "11111111-1111-4111-8111-11111
 assert.strictEqual(dbProfile.legal_name, "Muster Handwerk GmbH");
 assert.strictEqual(dbProfile.user_id, "11111111-1111-4111-8111-111111111111");
 assert.strictEqual(dbProfile.previous_year_turnover_band, "gt_800k");
+assert.strictEqual(Core.profileToDatabase(Object.assign({}, profile, { vatId: "de-123 456 789" }), "user-1").vat_id, "DE123456789");
 assert.strictEqual(dbProfile.business_phone, "+49 30 1234567");
 assert.strictEqual(Object.keys(dbProfile).some((key) => /^(?:next_.*_sequence|created_at|updated_at)$/.test(key)), false);
 assert.strictEqual(dbProfile.datev_settings.adviserNumber, "29098");

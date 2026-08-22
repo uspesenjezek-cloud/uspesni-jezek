@@ -275,7 +275,7 @@
       business_phone: String(profile.businessPhone || "").trim(),
       tax_status: profile.taxStatus === "small_business" ? "small_business" : "regular",
       tax_number: String(profile.taxNumber || "").trim(),
-      vat_id: String(profile.vatId || "").trim().toUpperCase(),
+      vat_id: cleanVatId(profile.vatId),
       previous_year_turnover_band: ["lte_800k", "gt_800k"].indexOf(profile.previousYearTurnoverBand) !== -1 ? profile.previousYearTurnoverBand : "unknown",
       account_holder: String(profile.accountHolder || "").trim(),
       iban: cleanIban(profile.iban),
