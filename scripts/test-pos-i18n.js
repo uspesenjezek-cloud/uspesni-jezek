@@ -21,7 +21,7 @@ function load(search) {
   return context.module.exports;
 }
 
-assert.match(html, /pos-terminal-i18n\.js\?v=20260822-de-market-v6/);
+assert.match(html, /pos-terminal-i18n\.js\?v=20260822-bauabzug-lock-v7/);
 assert.ok(html.indexOf("pos-terminal-i18n.js") < html.indexOf("pos-terminal.js"), "locale layer must load before POS behavior");
 assert.match(html, /<html lang="sl" class="pos-page">/, "Slovenian remains the default document language");
 
@@ -55,6 +55,7 @@ assert.equal(de.translate("60 dni"), "60 Tage");
 assert.equal(de.translate("Storitev, povezana z nepremičnino"), "Leistung im Zusammenhang mit einem Grundstück");
 assert.match(de.translate("Za zasebno stranko doda zakonsko opozorilo o dveletni hrambi dokazil (§ 14b UStG)."), /zweijährigen Aufbewahrung/);
 assert.match(de.translate("Bauabzugsteuer po § 48 EStG velja le za poslovnega ali javnega prejemnika."), /Bauabzugsteuer/);
+assert.match(de.translate("Pravi račun brez Freistellungsbescheinigung je zaklenjen, dokler POS ne podpira 15 % Bauabzugsteuer in pravilne uskladitve plačila."), /15-prozentigen Bauabzugsteuer/);
 assert.match(de.translate("Handwerkerleistung po § 35a EStG je namenjena zasebnemu prejemniku."), /privaten Leistungsempfänger/);
 
 const deLocale = load("?locale=de-DE");

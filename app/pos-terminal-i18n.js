@@ -525,6 +525,7 @@
     "Neuspešno": "Fehlgeschlagen",
     "Bauabzugsteuer po § 48 EStG velja le za poslovnega ali javnega prejemnika.": "Die Bauabzugsteuer nach § 48 EStG gilt nur bei einem unternehmerischen oder öffentlichen Leistungsempfänger.",
     "Pri Bauleistung izberite stanje Freistellungsbescheinigung.": "Wählen Sie bei einer Bauleistung den Status der Freistellungsbescheinigung.",
+    "Pravi račun brez Freistellungsbescheinigung je zaklenjen, dokler POS ne podpira 15 % Bauabzugsteuer in pravilne uskladitve plačila.": "Eine rechtsverbindliche Rechnung ohne Freistellungsbescheinigung bleibt gesperrt, bis der POS den 15-prozentigen Bauabzugsteuer- und Zahlungsabgleich vollständig unterstützt.",
     "Handwerkerleistung po § 35a EStG je namenjena zasebnemu prejemniku.": "Die Handwerkerleistung nach § 35a EStG ist für einen privaten Leistungsempfänger vorgesehen.",
     "30-dnevno potrošniško opozorilo je dovoljeno le za zasebnega prejemnika.": "Der 30-Tage-Verzugshinweis ist nur für einen privaten Leistungsempfänger zulässig."
   };

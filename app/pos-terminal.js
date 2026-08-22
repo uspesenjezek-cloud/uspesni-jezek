@@ -1035,6 +1035,8 @@
       var readiness = profileReadiness(profile);
       if (readiness.live && !draft.finalConfirmed) errors.push("Pred pravno izdajo potrdite končni pregled.");
       if (!readiness.live && !draft.finalConfirmed) errors.push("Pred izdelavo testnega dokumenta potrdite končni pregled.");
+      var withholdingError = readiness.live ? liveConstructionWithholdingError(draft) : "";
+      if (withholdingError) errors.push(withholdingError);
     }
     return errors;
   }
@@ -1047,6 +1049,14 @@
     }
     if (String(source.serviceDate || "") > String(source.issueDate || "")) {
       return "Datum izvedbe pravega računa ne sme biti v prihodnosti.";
+    }
+    return "";
+  }
+
+  function liveConstructionWithholdingError(draft) {
+    var source = draft || {};
+    if (source.constructionWithholding && source.exemptionCertificate === "missing") {
+      return "Pravi račun brez Freistellungsbescheinigung je zaklenjen, dokler POS ne podpira 15 % Bauabzugsteuer in pravilne uskladitve plačila.";
     }
     return "";
   }
@@ -1451,6 +1461,7 @@
     profileForPreview: profileForPreview,
     validateStep: validateStep,
     liveInvoiceDateError: liveInvoiceDateError,
+    liveConstructionWithholdingError: liveConstructionWithholdingError,
     propertyRetentionNotice: propertyRetentionNotice,
     buildEpcPayload: buildEpcPayload,
     deliveryRecommendation: deliveryRecommendation,
@@ -3787,6 +3798,8 @@
     var live = productionReady();
     var calendarError = live ? liveInvoiceDateError(state.draft, isoToday()) : "";
     if (calendarError) { showToast(calendarError); return; }
+    var withholdingError = live ? liveConstructionWithholdingError(state.draft) : "";
+    if (withholdingError) { showToast(withholdingError); return; }
     var replacement = normalizeReplacementContext(state.draft);
     if (readiness.live && backend.ready && !archiveCapability.productionReady) {
       showToast("Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo in preizkus obnove.");
