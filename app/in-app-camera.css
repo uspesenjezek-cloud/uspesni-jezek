@@ -1,0 +1,268 @@
+html.uj-kamera-odprta,
+html.uj-kamera-odprta body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.uj-kamera[hidden] { display: none !important; }
+
+.uj-kamera {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif;
+}
+
+.uj-kamera__zatemnitev {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .72);
+  backdrop-filter: blur(3px) saturate(.55);
+  -webkit-backdrop-filter: blur(3px) saturate(.55);
+}
+
+.uj-kamera__list {
+  position: absolute;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  left: 10px;
+  height: min(78.12dvh, 870px);
+  max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
+  min-height: 390px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 30px;
+  outline: none;
+  background: #09090a;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .62);
+}
+
+.uj-kamera__okno,
+.uj-kamera__video,
+.uj-kamera__slika {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.uj-kamera__okno { overflow: hidden; border-radius: inherit; background: #080809; }
+.uj-kamera__video,
+.uj-kamera__slika { display: block; object-fit: cover; }
+.uj-kamera__video[hidden],
+.uj-kamera__slika[hidden] { display: none !important; }
+
+.uj-kamera__okno::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 38%;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .82));
+  pointer-events: none;
+}
+
+.uj-kamera__nalaganje,
+.uj-kamera__napaka {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  place-items: center;
+  gap: 10px;
+  padding: 28px;
+  text-align: center;
+  background: #080809;
+}
+
+.uj-kamera__nalaganje[hidden],
+.uj-kamera__napaka[hidden] { display: none !important; }
+
+.uj-kamera__nalaganje span {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, .18);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: uj-kamera-vrti 800ms linear infinite;
+}
+
+.uj-kamera__nalaganje strong,
+.uj-kamera__napaka strong {
+  color: #f5f5f7;
+  font-size: .86rem;
+  font-weight: 650;
+}
+
+.uj-kamera__napaka p {
+  max-width: 250px;
+  margin: 0;
+  color: #a9a9ae;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.uj-kamera__poskusi {
+  min-height: 38px;
+  margin-top: 5px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  font: 650 .72rem/1 inherit;
+  cursor: pointer;
+}
+
+.uj-kamera__namig {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 3;
+  width: max-content;
+  max-width: calc(100% - 36px);
+  margin: 0;
+  padding: 7px 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, .11);
+  border-radius: 999px;
+  background: rgba(15, 15, 17, .62);
+  color: rgba(255, 255, 255, .84);
+  font-size: .63rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+
+.uj-kamera__namig[hidden] { display: none; }
+
+.uj-kamera__akcije {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  left: 20px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 64px 1fr 64px;
+  align-items: center;
+}
+
+.uj-kamera__akcije[hidden],
+.uj-kamera__pregled-akcije[hidden] { display: none !important; }
+
+.uj-kamera__zapri,
+.uj-kamera__galerija,
+.uj-kamera__sprozi,
+.uj-kamera__ponovi,
+.uj-kamera__uporabi,
+.uj-kamera__poskusi {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.uj-kamera__zapri,
+.uj-kamera__galerija {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 50%;
+  background: rgba(15, 13, 18, .7);
+  color: #fff;
+  box-shadow: 0 9px 24px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+
+.uj-kamera__zapri svg { width: 28px; height: 28px; stroke-width: 2.4; }
+
+.uj-kamera__galerija { justify-self: end; }
+.uj-kamera__galerija > span { display: flex; gap: 5px; align-items: center; }
+.uj-kamera__galerija i { display: block; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+
+.uj-kamera__sprozi {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, .3);
+  border-radius: 50%;
+  background: rgba(22, 20, 26, .72);
+  box-shadow: 0 0 0 4px rgba(7, 7, 8, .38);
+  cursor: pointer;
+}
+
+.uj-kamera__sprozi span {
+  display: block;
+  width: 59px;
+  height: 59px;
+  border-radius: 50%;
+  background: #f4f4f5;
+  transition: transform 110ms ease;
+}
+
+.uj-kamera__sprozi:not(:disabled):active span { transform: scale(.9); }
+.uj-kamera__sprozi:disabled { opacity: .42; cursor: wait; }
+
+.uj-kamera__pregled-akcije {
+  position: absolute;
+  right: 20px;
+  bottom: 22px;
+  left: 20px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 10px;
+}
+
+.uj-kamera__ponovi,
+.uj-kamera__uporabi {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+.uj-kamera__ponovi { background: rgba(17, 15, 20, .76); color: #fff; }
+.uj-kamera__uporabi { background: #f4f4f5; color: #111114; }
+.uj-kamera__uporabi svg { width: 19px; height: 19px; }
+
+.uj-kamera button:focus-visible { outline: 2px solid rgba(255, 255, 255, .92); outline-offset: 3px; }
+
+@keyframes uj-kamera-vrti { to { transform: rotate(360deg); } }
+
+@media (min-width: 621px) {
+  .uj-kamera__list {
+    right: 50%;
+    bottom: 22px;
+    left: auto;
+    width: min(430px, calc(100% - 44px));
+    height: min(94dvh, 820px);
+    transform: translateX(50%);
+  }
+}
+
+@media (max-height: 650px) {
+  .uj-kamera__list { height: min(85.68dvh, 630px); min-height: 340px; }
+  .uj-kamera__akcije { bottom: 12px; }
+  .uj-kamera__zapri,
+  .uj-kamera__galerija { width: 52px; height: 52px; }
+  .uj-kamera__sprozi { width: 68px; height: 68px; }
+  .uj-kamera__sprozi span { width: 53px; height: 53px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uj-kamera__nalaganje span { animation-duration: 1600ms; }
+  .uj-kamera__sprozi span { transition: none; }
+}
