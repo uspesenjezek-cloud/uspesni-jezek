@@ -329,12 +329,20 @@
     if (!tip || !nastavitve) return null;
 
     if (tip === "partial" || tip === "installment") {
-      var placilo = Number(nastavitve.paymentAmount);
-      if (!Number.isFinite(placilo) || placilo <= 0 || placilo >= dolg) {
+      var znesekVneseno = Number(nastavitve.paymentAmount);
+      if (!Number.isFinite(znesekVneseno) || znesekVneseno <= 0 || znesekVneseno >= dolg) {
         state.error = "Vnesite prejeti znesek, ki je večji od 0 in manjši od preostalega dolga.";
         return null;
       }
-      return { actionType: "partial_payment", settings: { paymentAmount: placilo, settlementType: tip } };
+      var kindVneseno = nastavitve.kind === "credit" || nastavitve.kind === "writeoff" ? nastavitve.kind : "cash";
+      if (kindVneseno === "cash") {
+        return { actionType: "partial_payment", settings: { paymentAmount: znesekVneseno, settlementType: tip } };
+      }
+      if (kindVneseno === "writeoff" && !nastavitve.reason) {
+        state.error = "Izberite razlog za odpust.";
+        return null;
+      }
+      return { actionType: "partial_settlement", settings: { kind: kindVneseno, amount: znesekVneseno, reason: kindVneseno === "writeoff" ? nastavitve.reason : null } };
     }
 
     if (tip === "credit_note") {

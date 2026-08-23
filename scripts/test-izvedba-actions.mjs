@@ -592,6 +592,12 @@ async function main() {
     assert.doesNotMatch(src, /state\.selectedSettlementType = "cancelled_invoice";\s*\n\s*state\.settlementSettings\.cancelled_invoice\.reason/);
   });
 
+  await test("izvedba.js: pripraviPoravnavoZaOddajo poslje partial_settlement za dobropis/odpust", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /actionType:\s*"partial_settlement"/);
+    assert.match(src, /kindVneseno === "writeoff" && !nastavitve\.reason/);
+  });
+
   console.log("\nUspešnih izvedba testov: " + passed);
 }
 
