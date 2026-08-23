@@ -215,6 +215,75 @@ async function main() {
     assert.match(rezultat.newPlan.steps[0].finalMessage, /40,00 €/);
   });
 
+  await test("partial_settlement (dobropis) - uspesen delni dobropis ne zapre primera", () => {
+    const rezultat = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 40 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(rezultat.ok, true);
+    assert.equal(rezultat.placiloZnesek, 40);
+    assert.equal(rezultat.placiloVrsta, "credit_note");
+    assert.equal(rezultat.settings.remainingAmount, 60);
+    assert.equal(rezultat.settings.reason, null);
+  });
+
+  await test("partial_settlement (odpust) - zahteva razlog", () => {
+    const brezRazloga = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "writeoff", amount: 40 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(brezRazloga.ok, false);
+    assert.equal(brezRazloga.code, "INVALID_SETTINGS");
+
+    const zRazlogom = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "writeoff", amount: 40, reason: "Dogovor z dolžnikom" },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(zRazlogom.ok, true);
+    assert.equal(zRazlogom.placiloVrsta, "cancelled_invoice");
+    assert.equal(zRazlogom.settings.reason, "Dogovor z dolžnikom");
+  });
+
+  await test("partial_settlement - znesek mora biti vecji od 0 in manjsi od preostanka", () => {
+    const nicelni = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 0 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(nicelni.ok, false);
+    assert.equal(nicelni.code, "INVALID_SETTINGS");
+
+    const previsoki = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 150 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(previsoki.ok, false);
+    assert.equal(previsoki.code, "PAYMENT_EXCEEDS_DEBT");
+
+    const enakPreostanku = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 100 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(enakPreostanku.ok, false);
+    assert.equal(enakPreostanku.code, "PAYMENT_EXCEEDS_DEBT");
+  });
+
+  await test("partial_settlement - zaokrozi znesek na 2 decimalki", () => {
+    const rezultat = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 33.336 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(rezultat.ok, true);
+    assert.equal(rezultat.placiloZnesek, 33.34);
+    assert.equal(rezultat.settings.remainingAmount, 66.66);
+  });
+
   await test("14) polno plačilo zaključi primer - vsi neposlani koraki cancelled, plan completed_paid", function () {
     const koraki = [
       korak({ id: "k1", stepId: "s1", executionState: "sent" }),
@@ -238,6 +307,8 @@ async function main() {
 
     const dobropis = core.validirajNastavitve("paid_in_full", { settlementType: "credit_note", settlementAmount: 100 }, { preostaliDolg: 100 });
     assert.equal(dobropis.ok, true);
+    const delniDobropis = core.validirajNastavitve("paid_in_full", { settlementType: "credit_note", settlementAmount: 22 }, { preostaliDolg: 100 });
+    assert.equal(delniDobropis.ok, false, "delni dobropis ne sme zaključiti primera");
     const plan = osnovniPlan([{ id: "s1" }]);
     const rezultat = core._test.izracunajPolnoPlacilo({ plan, koraki: [korak({ id: "k1", stepId: "s1", executionState: "scheduled" })], settings: dobropis.settings });
     assert.equal(rezultat.newPlan.status, "completed_credited");
@@ -381,6 +452,7 @@ async function main() {
   });
 
   await test("znesek obroka in dobropisa uporablja fokusno barvo svoje kartice", function () {
+    const src = citaj("app/izvedba.js");
     const css = citaj("app/izvedba.css");
     assert.match(css, /\.izvedba-action-card--poravnava-obrok\s*\{\s*--action-accent:#397fd0;/);
     assert.match(css, /\.izvedba-action-card--poravnava-dobropis\s*\{\s*--action-accent:#e89524;/);
@@ -388,6 +460,57 @@ async function main() {
       css,
       /\.izvedba-action-sheet \.izvedba-znesek__vnos:focus,[\s\S]{0,160}border: 2px solid var\(--action-accent\);[\s\S]{0,100}outline: 0;/
     );
+    assert.match(src, /credit_note: \{ nastavitev: "Celotni preostali dolg", badge: "Samodejno" \}/);
+    assert.match(src, /function izrisiSamodejniDobropis[\s\S]*?K\.formatirajEur\(vrednost\)[\s\S]*?checkCircle/);
+    assert.match(src, /if \(tip === "credit_note"\) \{[\s\S]*?nastavitve\.settlementAmount = trenutniPreostaliDolg\(\);[\s\S]*?return izrisiSamodejniDobropis/);
+    assert.match(src, /if \(tip === "credit_note"\) \{[\s\S]*?var dobropis = dolg;[\s\S]*?settlementAmount: dobropis/);
+    assert.match(css, /\.izvedba-action-sheet \.izvedba-znesek__vnos--samodejno\s*\{[\s\S]*?background: rgba\(var\(--action-rgb\), \.09\)/);
+  });
+
+  await test("19b) uspešen zaključek odpre Končane primere in označi pravkar rešeno zadevo", function () {
+    const izvedba = citaj("app/izvedba.js");
+    const koncani = citaj("app/koncani-primeri.js");
+    assert.match(izvedba, /if \(actionType === "paid_in_full"\)[\s\S]*?koncani-primeri\.html[\s\S]*?searchParams\.set\("nov", state\.zadevaId\)[\s\S]*?window\.location\.assign/);
+    assert.match(koncani, /searchParams\.get\("nov"\)/);
+    assert.match(koncani, /data-koncani-primer-id/);
+    assert.match(koncani, /\.koncani-kartica\.is-newly-completed/);
+  });
+
+  await test("izbrana poravnava je jasno poudarjena v barvi svoje kartice", function () {
+    const css = citaj("app/izvedba.css");
+    assert.match(
+      css,
+      /\.izvedba-action-card\.is-selected\s*\{[\s\S]*?border-color:\s*var\(--action-accent\);[\s\S]*?inset 0 0 0 1\.5px var\(--action-accent\)/
+    );
+    assert.match(
+      css,
+      /\.izvedba-action-card\.is-selected::after\s*\{[\s\S]*?content:\s*"\\2713";[\s\S]*?background:\s*var\(--action-accent\);[\s\S]*?color:\s*#fff/
+    );
+  });
+
+  await test("glavni gumb poravnave sledi barvi izbrane kartice", function () {
+    const src = citaj("app/izvedba.js");
+    const css = citaj("app/izvedba.css");
+    assert.match(src, /izvedba-action-sheet__panel--poravnava-' \+ K\.esc\(meta\.razred\)/);
+    assert.match(css, /\.izvedba-action-sheet__panel--poravnava-obrok\s*\{[^}]*--sheet-action:#397fd0;[^}]*--sheet-action-rgb:57,127,208/);
+    assert.match(css, /\.izvedba-action-sheet__panel--poravnava-dobropis\s*\{[^}]*--sheet-action:#e89524/);
+    assert.match(css, /\.izvedba-action-sheet__dejanje\s*\{[\s\S]*?rgba\(var\(--sheet-action-rgb\), \.92\)/);
+  });
+
+  await test("razlog za storno uporablja lasten meni v slogu kartice", function () {
+    const src = citaj("app/izvedba.js");
+    const css = citaj("app/izvedba.css");
+    assert.match(src, /data-settlement-reason-toggle/);
+    assert.match(src, /data-settlement-reason-option/);
+    assert.doesNotMatch(src, /<select data-settlement-reason/);
+    assert.match(src, /state\.settlementSettings\.cancelled_invoice\.reason = razlogMoznost\.getAttribute/);
+    assert.match(css, /\.izvedba-poravnava__razlog-meni\s*\{[\s\S]*?border-radius:\s*14px;[\s\S]*?box-shadow:/);
+  });
+
+  await test("dolg izbran razlog poveča polje in se ne odreže", function () {
+    const css = citaj("app/izvedba.css");
+    assert.match(css, /\.izvedba-poravnava__razlog-sprozi > span:first-child,[\s\S]*?white-space:\s*normal;[\s\S]*?word-break:\s*normal/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.izvedba-poravnava__razlog-sprozi\s*\{[^}]*min-height:\s*32px;[^}]*height:\s*auto/);
   });
 
   console.log("\nUspešnih izvedba testov: " + passed);

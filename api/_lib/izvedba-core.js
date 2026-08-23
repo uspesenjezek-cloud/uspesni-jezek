@@ -141,6 +141,38 @@ function validirajNastavitve(actionType, settings, context) {
     };
   }
 
+  if (actionType === "partial_settlement") {
+    var preostaliDolgNed = Number(context.preostaliDolg);
+    var kind = vhod.kind === "writeoff" ? "writeoff" : "credit";
+    var amountNed = Number(vhod.amount);
+    if (!(preostaliDolgNed > 0)) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Trenutni dolg ni znan." };
+    }
+    if (!Number.isFinite(amountNed) || amountNed <= 0) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Vnesite znesek, ki je večji od 0." };
+    }
+    if (amountNed >= preostaliDolgNed) {
+      return { ok: false, code: "PAYMENT_EXCEEDS_DEBT", napaka: "Znesek mora biti manjši od trenutnega preostalega dolga." };
+    }
+    if (kind === "writeoff" && !String(vhod.reason || "").trim()) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Razlog za odpust je obvezen." };
+    }
+    var placiloVrstaNed = kind === "writeoff" ? "cancelled_invoice" : "credit_note";
+    var placiloZnesekNed = zaokrozi2(amountNed);
+    var novPreostanekNed = zaokrozi2(preostaliDolgNed - placiloZnesekNed);
+    return {
+      ok: true,
+      settings: {
+        kind: kind,
+        amount: placiloZnesekNed,
+        remainingAmount: novPreostanekNed,
+        reason: kind === "writeoff" ? String(vhod.reason) : null
+      },
+      placiloZnesek: placiloZnesekNed,
+      placiloVrsta: placiloVrstaNed
+    };
+  }
+
   if (actionType === "paid_in_full") {
     var dovoljenePoravnave = ["full", "compensation", "credit_note", "cancelled_invoice"];
     var settlementType = dovoljenePoravnave.indexOf(vhod.settlementType) >= 0 ? vhod.settlementType : "full";
