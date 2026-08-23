@@ -1138,6 +1138,8 @@
         if (poravnavaSegment) {
           var poravnavaTip = poravnavaSegment.getAttribute("data-settlement-type");
           state.selectedSettlementType = poravnavaTip;
+          state.settlementReasonMenuOpen = false;
+          state.settlementReasonMenuTip = null;
           state.settlementSettings[poravnavaTip][poravnavaSegment.getAttribute("data-settlement-segment")] = poravnavaSegment.getAttribute("data-settlement-value");
           state.error = null;
           izrisiActionSheet();

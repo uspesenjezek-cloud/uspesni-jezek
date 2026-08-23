@@ -598,6 +598,11 @@ async function main() {
     assert.match(src, /kindVneseno === "writeoff" && !nastavitve\.reason/);
   });
 
+  await test("izvedba.js: preklop kind segmenta ponastavi odprt razlog meni", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /var poravnavaSegment = event\.target\.closest\("\[data-settlement-segment\]"\);\s*\n\s*if \(poravnavaSegment\) \{\s*\n\s*var poravnavaTip = poravnavaSegment\.getAttribute\("data-settlement-type"\);\s*\n\s*state\.selectedSettlementType = poravnavaTip;\s*\n\s*state\.settlementReasonMenuOpen = false;\s*\n\s*state\.settlementReasonMenuTip = null;/);
+  });
+
   console.log("\nUspešnih izvedba testov: " + passed);
 }
 
