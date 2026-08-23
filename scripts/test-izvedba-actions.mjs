@@ -523,6 +523,20 @@ async function main() {
     assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.izvedba-poravnava__razlog-sprozi\s*\{[^}]*min-height:\s*32px;[^}]*height:\s*auto/);
   });
 
+  await test("izracunajUkrep(partial_settlement) - uporabi izracunajDelnoPlacilo, primer ostane odprt", () => {
+    const ctx = {
+      plan: { version: "3", steps: [] },
+      koraki: [],
+      placiloZnesek: 40,
+      novPreostanek: 60,
+    };
+    const izracun = core.izracunajUkrep("partial_settlement", ctx);
+    assert.equal(izracun.ok, true);
+    assert.equal(izracun.placiloZnesek, 40);
+    assert.equal(izracun.newPlan.version, "4");
+    assert.deepEqual(izracun.korakiUpdates, []);
+  });
+
   console.log("\nUspešnih izvedba testov: " + passed);
 }
 

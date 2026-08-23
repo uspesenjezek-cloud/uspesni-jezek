@@ -523,6 +523,7 @@ function izracunajUkrep(actionType, ctx) {
     case "postpone_reminder": return izracunajPrestavitevOpomina(ctx);
     case "payment_promised": return izracunajObljuboPlacila(ctx);
     case "partial_payment": return izracunajDelnoPlacilo(ctx);
+    case "partial_settlement": return izracunajDelnoPlacilo(ctx);
     case "paid_in_full": return izracunajPolnoPlacilo(ctx);
     default: return { ok: false, code: "UNKNOWN_ACTION_TYPE" };
   }
