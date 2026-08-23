@@ -294,6 +294,16 @@ async function main() {
     assert.equal(rezultat.code, "PAYMENT_EXCEEDS_DEBT");
   });
 
+  await test("migracija: RPC izvedi_opomin_ukrep obravnava partial_settlement brez zapiranja primera", () => {
+    const sql = citaj("supabase/migrations/20260824090000_delna_nedenarna_poravnava.sql");
+    assert.match(sql, /p_action_type\s*=\s*'partial_settlement'/);
+    assert.match(sql, /poravnano_nedenarno\s*=\s*poravnano_nedenarno\s*\+\s*p_placilo_znesek/);
+    assert.match(sql, /insert into public\.zadeva_poravnave/);
+    // primer se pri partial_settlement NE sme zapreti - noben del te veje ne sme nastaviti status='Rešeno'
+    const partialSettlementVeja = sql.split("p_action_type = 'partial_settlement'")[1].split("elsif p_action_type")[0];
+    assert.doesNotMatch(partialSettlementVeja, /status\s*=\s*'Rešeno'/);
+  });
+
   await test("14) polno plačilo zaključi primer - vsi neposlani koraki cancelled, plan completed_paid", function () {
     const koraki = [
       korak({ id: "k1", stepId: "s1", executionState: "sent" }),
