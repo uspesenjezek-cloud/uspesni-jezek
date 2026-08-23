@@ -148,10 +148,13 @@ function validirajNastavitve(actionType, settings, context) {
     if (!(preostaliDolgNed > 0)) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Trenutni dolg ni znan." };
     }
-    if (!Number.isFinite(amountNed) || amountNed <= 0) {
+    if (!Number.isFinite(amountNed)) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Vnesite znesek, ki je večji od 0." };
     }
     var placiloZnesekNed = zaokrozi2(amountNed);
+    if (!(placiloZnesekNed > 0)) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Vnesite znesek, ki je večji od 0." };
+    }
     if (placiloZnesekNed >= preostaliDolgNed) {
       return { ok: false, code: "PAYMENT_EXCEEDS_DEBT", napaka: "Znesek mora biti manjši od trenutnega preostalega dolga." };
     }

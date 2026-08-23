@@ -294,6 +294,16 @@ async function main() {
     assert.equal(rezultat.code, "PAYMENT_EXCEEDS_DEBT");
   });
 
+  await test("partial_settlement - sub-cent znesek (0.004) se ne sme sprejeti kot veljaven z zaokrozenim 0", () => {
+    const rezultat = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 0.004 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(rezultat.ok, false);
+    assert.equal(rezultat.code, "INVALID_SETTINGS");
+  });
+
   await test("migracija: RPC izvedi_opomin_ukrep obravnava partial_settlement brez zapiranja primera", () => {
     const sql = citaj("supabase/migrations/20260824090000_delna_nedenarna_poravnava.sql");
     assert.match(sql, /p_action_type\s*=\s*'partial_settlement'/);
@@ -545,6 +555,25 @@ async function main() {
     assert.equal(izracun.placiloZnesek, 40);
     assert.equal(izracun.newPlan.version, "4");
     assert.deepEqual(izracun.korakiUpdates, []);
+  });
+
+  await test("partial_settlement - validirajNastavitve.settings.remainingAmount napaja izracunajUkrep.ctx.novPreostanek", () => {
+    const validacija = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 40 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(validacija.ok, true);
+
+    const ctx = {
+      plan: { version: "3", steps: [] },
+      koraki: [],
+      placiloZnesek: validacija.placiloZnesek,
+      novPreostanek: validacija.settings.remainingAmount,
+    };
+    const izracun = core.izracunajUkrep("partial_settlement", ctx);
+    assert.equal(izracun.ok, true);
+    assert.equal(izracun.newPlan.version, "4");
   });
 
   console.log("\nUspešnih izvedba testov: " + passed);

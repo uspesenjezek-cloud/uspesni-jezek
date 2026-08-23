@@ -131,7 +131,7 @@ begin
     values (
       p_zadeva_id,
       p_obrtnik_id,
-      p_placilo_vrsta,
+      case when p_placilo_vrsta = 'cancelled_invoice' then 'cancelled_invoice' else 'credit_note' end,
       p_placilo_znesek,
       current_date,
       nullif(p_settings->>'reason', ''),
