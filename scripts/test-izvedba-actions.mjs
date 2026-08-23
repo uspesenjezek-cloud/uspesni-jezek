@@ -576,6 +576,15 @@ async function main() {
     assert.equal(izracun.newPlan.version, "4");
   });
 
+  await test("izvedba.js: kartica delno placilo/obrok ima preklopnik Denar/Dobropis/Odpust", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /function izrisiPoravnavaRazlog\(tip\)/);
+    assert.match(src, /izrisiPoravnavaSegment\(tip,\s*"kind"/);
+    assert.match(src, /oznaka:\s*"Denar"/);
+    assert.match(src, /oznaka:\s*"Dobropis"/);
+    assert.match(src, /oznaka:\s*"Odpust"/);
+  });
+
   console.log("\nUspešnih izvedba testov: " + passed);
 }
 
