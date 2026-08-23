@@ -151,14 +151,14 @@ function validirajNastavitve(actionType, settings, context) {
     if (!Number.isFinite(amountNed) || amountNed <= 0) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Vnesite znesek, ki je večji od 0." };
     }
-    if (amountNed >= preostaliDolgNed) {
+    var placiloZnesekNed = zaokrozi2(amountNed);
+    if (placiloZnesekNed >= preostaliDolgNed) {
       return { ok: false, code: "PAYMENT_EXCEEDS_DEBT", napaka: "Znesek mora biti manjši od trenutnega preostalega dolga." };
     }
     if (kind === "writeoff" && !String(vhod.reason || "").trim()) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Razlog za odpust je obvezen." };
     }
     var placiloVrstaNed = kind === "writeoff" ? "cancelled_invoice" : "credit_note";
-    var placiloZnesekNed = zaokrozi2(amountNed);
     var novPreostanekNed = zaokrozi2(preostaliDolgNed - placiloZnesekNed);
     return {
       ok: true,

@@ -284,6 +284,16 @@ async function main() {
     assert.equal(rezultat.settings.remainingAmount, 66.66);
   });
 
+  await test("partial_settlement - rounding boundary: unrounded fits but rounded exceeds debt", () => {
+    const rezultat = core.validirajNastavitve(
+      "partial_settlement",
+      { kind: "credit", amount: 99.996 },
+      { preostaliDolg: 100 }
+    );
+    assert.equal(rezultat.ok, false);
+    assert.equal(rezultat.code, "PAYMENT_EXCEEDS_DEBT");
+  });
+
   await test("14) polno plačilo zaključi primer - vsi neposlani koraki cancelled, plan completed_paid", function () {
     const koraki = [
       korak({ id: "k1", stepId: "s1", executionState: "sent" }),
