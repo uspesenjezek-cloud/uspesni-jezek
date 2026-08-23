@@ -1271,6 +1271,15 @@
     });
   }
 
+  /* Testni/razvojni kavelj - omogoča ročno preverjanje poravnalnega
+     kontrolnika (Denar/Dobropis/Odpust) brez prijave/Supabase (glej npr.
+     javascript_tool preverjanje v razvoju). Ne vpliva na produkcijsko
+     delovanje strani. */
+  window.UJIzvedbaDebug = {
+    izrisiPoravnavaKontrolnik: izrisiPoravnavaKontrolnik,
+    state: state,
+  };
+
   // ---------- Zagon ----------
 
   var params = urlParametri();
