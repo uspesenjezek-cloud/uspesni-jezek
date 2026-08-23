@@ -1094,17 +1094,22 @@
       if (state.actionSheetMode === "payment") {
         var razlogMoznost = event.target.closest("[data-settlement-reason-option]");
         if (razlogMoznost) {
-          state.selectedSettlementType = "cancelled_invoice";
-          state.settlementSettings.cancelled_invoice.reason = razlogMoznost.getAttribute("data-settlement-reason-option");
+          var razlogTip = razlogMoznost.getAttribute("data-settlement-type");
+          state.selectedSettlementType = razlogTip;
+          state.settlementSettings[razlogTip].reason = razlogMoznost.getAttribute("data-settlement-reason-option");
           state.settlementReasonMenuOpen = false;
+          state.settlementReasonMenuTip = null;
           state.error = null;
           izrisiActionSheet();
           return;
         }
         var razlogSprozi = event.target.closest("[data-settlement-reason-toggle]");
         if (razlogSprozi) {
-          state.selectedSettlementType = "cancelled_invoice";
-          state.settlementReasonMenuOpen = !state.settlementReasonMenuOpen;
+          var razlogSproziTip = razlogSprozi.getAttribute("data-settlement-type");
+          state.selectedSettlementType = razlogSproziTip;
+          var zeOdprtZaTaTip = state.settlementReasonMenuOpen && state.settlementReasonMenuTip === razlogSproziTip;
+          state.settlementReasonMenuTip = zeOdprtZaTaTip ? null : razlogSproziTip;
+          state.settlementReasonMenuOpen = !zeOdprtZaTaTip;
           state.error = null;
           izrisiActionSheet();
           requestAnimationFrame(function () {
@@ -1212,6 +1217,7 @@
       event.preventDefault();
       if (state.settlementReasonMenuOpen) {
         state.settlementReasonMenuOpen = false;
+        state.settlementReasonMenuTip = null;
         izrisiActionSheet();
         var razlogSprozi = elActionSheet.querySelector("[data-settlement-reason-toggle]");
         if (razlogSprozi) razlogSprozi.focus({ preventScroll: true });

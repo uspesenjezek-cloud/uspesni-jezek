@@ -533,7 +533,7 @@ async function main() {
     assert.match(src, /data-settlement-reason-toggle/);
     assert.match(src, /data-settlement-reason-option/);
     assert.doesNotMatch(src, /<select data-settlement-reason/);
-    assert.match(src, /state\.settlementSettings\.cancelled_invoice\.reason = razlogMoznost\.getAttribute/);
+    assert.match(src, /state\.settlementSettings\[razlogTip\]\.reason = razlogMoznost\.getAttribute/);
     assert.match(css, /\.izvedba-poravnava__razlog-meni\s*\{[\s\S]*?border-radius:\s*14px;[\s\S]*?box-shadow:/);
   });
 
@@ -583,6 +583,13 @@ async function main() {
     assert.match(src, /oznaka:\s*"Denar"/);
     assert.match(src, /oznaka:\s*"Dobropis"/);
     assert.match(src, /oznaka:\s*"Odpust"/);
+  });
+
+  await test("izvedba.js: razlog-izbirnik ni vec trdo vezan samo na cancelled_invoice", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /razlogMoznost\.getAttribute\("data-settlement-type"\)/);
+    assert.match(src, /razlogSprozi\.getAttribute\("data-settlement-type"\)/);
+    assert.doesNotMatch(src, /state\.selectedSettlementType = "cancelled_invoice";\s*\n\s*state\.settlementSettings\.cancelled_invoice\.reason/);
   });
 
   console.log("\nUspešnih izvedba testov: " + passed);
