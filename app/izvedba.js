@@ -21,11 +21,11 @@
 
   var DEFAULT_SETTLEMENT_SETTINGS = {
     full: { dateMode: "today", settledAt: null },
-    partial: { paymentAmount: null, kind: "cash", reason: "" },
+    partial: { paymentAmount: null, kind: "cash", reason: "", customReason: "", datumKoraka: null },
     compensation: { dateMode: "today", settledAt: null },
-    installment: { paymentAmount: null, kind: "cash", reason: "" },
-    credit_note: { settlementAmount: null },
-    cancelled_invoice: { reason: "" },
+    installment: { paymentAmount: null, kind: "cash", reason: "", customReason: "", datumKoraka: null },
+    credit_note: { settlementAmount: null, rocnoUrejeno: false },
+    cancelled_invoice: { reason: "", customReason: "" },
   };
 
   var NastavitveIzidov = window.UJNastavitveIzidov;
@@ -67,12 +67,37 @@
   var elActionSheet = document.getElementById("izvedba-action-sheet");
   var actionSheetReturnFocus = null;
   var fitMerilnik = document.createElement("canvas").getContext("2d");
+  var sheetScrollY = 0;
+
+  function zakleniOzadjeSheeta() {
+    if (document.body.classList.contains("izvedba-sheet-open")) return;
+    document.body.classList.add("izvedba-sheet-open");
+    sheetScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.position = "fixed";
+    document.body.style.top = "-" + sheetScrollY + "px";
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+
+  function odkleniOzadjeSheeta() {
+    if (!document.body.classList.contains("izvedba-sheet-open")) return;
+    document.body.classList.remove("izvedba-sheet-open");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, sheetScrollY);
+  }
 
   var state = {
     zadevaId: null,
     zadeva: null,
     plan: null,
     steps: [],
+    ukrepi: [],
+    nacrtKoraki: [],
     currentStepId: null,
     serverVersion: "0",
     selectedActionType: null,
@@ -250,6 +275,7 @@
     state.zadeva = odgovor.zadeva;
     state.plan = odgovor.plan;
     state.steps = odgovor.steps || [];
+    state.ukrepi = odgovor.ukrepi || state.ukrepi || [];
     state.serverVersion = String((odgovor.plan && odgovor.plan.version) || odgovor.version || "0");
     // Ohrani trenutno odprt korak, če še obstaja v načrtu ali med izvedbenimi vrsticami.
     var korakiPlana = ((state.plan && state.plan.steps) || []).filter(function (step) {
@@ -295,8 +321,15 @@
   // ---------- Izbira kartice in nastavitve ----------
 
   function izberiAkcijo(actionType) {
+    var jeMenjava = state.selectedActionType !== actionType;
     state.selectedActionType = actionType;
     state.error = null;
+    if (actionType === "partial_payment") {
+      state.selectedSettlementType = "partial";
+      if (jeMenjava) {
+        state.settlementSettings.partial = JSON.parse(JSON.stringify(DEFAULT_SETTLEMENT_SETTINGS.partial));
+      }
+    }
   }
 
   function posodobiStevec(actionType, polje, delta) {
@@ -322,10 +355,48 @@
     return Number.isFinite(dolg) ? dolg : 0;
   }
 
+  function preostaliDolgPoNacrtu() {
+    var zaceten = trenutniPreostaliDolg();
+    var zaeNacrtovano = (state.nacrtKoraki || []).reduce(function (v, k) { return v + (Number(k.znesek) || 0); }, 0);
+    return Math.max(0, zaceten - zaeNacrtovano);
+  }
+
+  function jeNacrtZaprt() {
+    return (state.nacrtKoraki || []).some(function (k) { return k.actionType === "paid_in_full"; });
+  }
+
+  var BESEDA_ZAPOREDNEGA_KORAKA = { installment: "obrok", partial: "korak" };
+
+  function besedaZaSteviloKorakov(n) {
+    if (n === 1) return "korak";
+    if (n === 2) return "koraka";
+    if (n === 3 || n === 4) return "koraki";
+    return "korakov";
+  }
+
+  function naslednjaStevilkaKoraka(tip) {
+    var razredi = tip === "installment" ? ["obrok", "installment"] : tip === "partial" ? ["delno", "partial"] : null;
+    if (!razredi) return 1;
+    var steviloObstojecih = (state.ukrepi || []).filter(function (u) {
+      if (u.status !== "completed") return false;
+      var opis = opisUkrepaZaZgodovino(u);
+      return opis && razredi.indexOf(opis.razred) !== -1;
+    }).length;
+    var steviloNacrtovanih = (state.nacrtKoraki || []).filter(function (k) {
+      return razredi.indexOf(k.razred) !== -1;
+    }).length;
+    return steviloObstojecih + steviloNacrtovanih + 1;
+  }
+
+  function efektivenRazlog(nastavitve) {
+    if (nastavitve.reason === "other") return String(nastavitve.customReason || "").trim();
+    return nastavitve.reason || "";
+  }
+
   function pripraviPoravnavoZaOddajo() {
     var tip = state.selectedSettlementType;
     var nastavitve = state.settlementSettings[tip];
-    var dolg = trenutniPreostaliDolg();
+    var dolg = preostaliDolgPoNacrtu();
     if (!tip || !nastavitve) return null;
 
     if (tip === "partial" || tip === "installment") {
@@ -335,28 +406,39 @@
         return null;
       }
       var kindVneseno = nastavitve.kind === "credit" || nastavitve.kind === "writeoff" ? nastavitve.kind : "cash";
+      var settledAtVneseno = nastavitve.datumKoraka || new Date().toISOString();
       if (kindVneseno === "cash") {
-        return { actionType: "partial_payment", settings: { paymentAmount: znesekVneseno, settlementType: tip } };
+        return { actionType: "partial_payment", settings: { paymentAmount: znesekVneseno, settlementType: tip, settledAt: settledAtVneseno } };
       }
-      if (kindVneseno === "writeoff" && !nastavitve.reason) {
+      if (kindVneseno === "writeoff" && !efektivenRazlog(nastavitve)) {
         state.error = "Izberite razlog za odpust.";
         return null;
       }
-      return { actionType: "partial_settlement", settings: { kind: kindVneseno, amount: znesekVneseno, reason: kindVneseno === "writeoff" ? nastavitve.reason : null } };
+      return { actionType: "partial_settlement", settings: { kind: kindVneseno, amount: znesekVneseno, reason: kindVneseno === "writeoff" ? efektivenRazlog(nastavitve) : null, settledAt: settledAtVneseno } };
     }
 
     if (tip === "credit_note") {
-      var dobropis = dolg;
-      state.settlementSettings.credit_note.settlementAmount = dobropis;
-      return { actionType: "paid_in_full", settings: { settlementType: tip, settlementAmount: dobropis, settledAt: new Date().toISOString() } };
+      var vnesenDobropis = Number(nastavitve.settlementAmount);
+      if (!Number.isFinite(vnesenDobropis) || vnesenDobropis <= 0) {
+        state.error = "Vnesite znesek dobropisa.";
+        return null;
+      }
+      if (vnesenDobropis > dolg + 0.009) {
+        state.error = "Znesek dobropisa ne sme presegati preostalega dolga.";
+        return null;
+      }
+      if (Math.abs(vnesenDobropis - dolg) <= 0.009) {
+        return { actionType: "paid_in_full", settings: { settlementType: tip, settlementAmount: dolg, settledAt: new Date().toISOString() } };
+      }
+      return { actionType: "partial_settlement", settings: { kind: "credit", amount: vnesenDobropis, reason: null, settledAt: new Date().toISOString() } };
     }
 
     if (tip === "cancelled_invoice") {
-      if (!nastavitve.reason) {
+      if (!efektivenRazlog(nastavitve)) {
         state.error = "Izberite razlog za storno računa.";
         return null;
       }
-      return { actionType: "paid_in_full", settings: { settlementType: tip, reason: nastavitve.reason, settledAt: new Date().toISOString() } };
+      return { actionType: "paid_in_full", settings: { settlementType: tip, reason: efektivenRazlog(nastavitve), settledAt: new Date().toISOString() } };
     }
 
     var datum = nastavitve.dateMode === "custom" ? nastavitve.settledAt : new Date().toISOString();
@@ -367,9 +449,94 @@
     return { actionType: "paid_in_full", settings: { settlementType: tip, settledAt: datum } };
   }
 
+  function opisNacrtovanegaKoraka(tip, pripravljeno) {
+    var meta = SETTLEMENT_META[tip];
+    var s = pripravljeno.settings || {};
+    if (pripravljeno.actionType === "partial_payment") {
+      return { naslov: meta.naslov, znesek: Number(s.paymentAmount) || 0, ikona: meta.ikona, razred: meta.razred, datum: s.settledAt };
+    }
+    if (pripravljeno.actionType === "partial_settlement") {
+      var jeOdpust = s.kind === "writeoff";
+      return { naslov: jeOdpust ? "Odpust" : "Dobropis", znesek: Number(s.amount) || 0, ikona: jeOdpust ? "documentX" : "tag", razred: jeOdpust ? "storno" : "dobropis", datum: s.settledAt };
+    }
+    return { naslov: meta.naslov, znesek: preostaliDolgPoNacrtu(), ikona: meta.ikona, razred: meta.razred, datum: s.settledAt };
+  }
+
+  function dodajKorakVNacrt() {
+    var pripravljeno = pripraviPoravnavoZaOddajo();
+    if (!pripravljeno) return false;
+    var tip = state.selectedSettlementType;
+    var opis = opisNacrtovanegaKoraka(tip, pripravljeno);
+    state.nacrtKoraki.push({
+      tip: tip,
+      actionType: pripravljeno.actionType,
+      settings: pripravljeno.settings,
+      naslov: opis.naslov,
+      znesek: opis.znesek,
+      ikona: opis.ikona,
+      razred: opis.razred,
+      datum: opis.datum,
+    });
+    if (tip === "partial" || tip === "installment") {
+      state.settlementSettings[tip].paymentAmount = null;
+      state.settlementSettings[tip].reason = "";
+      state.settlementSettings[tip].customReason = "";
+      state.settlementSettings[tip].datumKoraka = null;
+    }
+    state.error = null;
+    return true;
+  }
+
+  function odstraniKorakIzNacrta(indeks) {
+    state.nacrtKoraki.splice(indeks, 1);
+  }
+
+  async function nastaviNovNacrt() {
+    if (state.isSubmitting || !state.nacrtKoraki.length) return;
+    state.isSubmitting = true;
+    state.error = null;
+    render();
+    try {
+      while (state.nacrtKoraki.length) {
+        var korak = state.nacrtKoraki[0];
+        var actionId = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now()) + Math.random();
+        var odgovor = await Api.executeAction({
+          zadevaId: state.zadevaId,
+          stepId: state.currentStepId,
+          version: state.serverVersion,
+          actionId: actionId,
+          actionType: korak.actionType,
+          settings: korak.settings,
+        });
+        if (!odgovor || odgovor.ok !== true) {
+          state.error = "Korak \"" + korak.naslov + "\" ni uspel: " + ((odgovor && odgovor.napaka) || "neznana napaka") + ".";
+          return;
+        }
+        uporabiOdgovor({ zadeva: odgovor.zadeva, plan: odgovor.plan, steps: odgovor.steps, version: odgovor.version, currentStepId: state.currentStepId });
+        state.nacrtKoraki.shift();
+        if (korak.actionType === "paid_in_full") {
+          var cilj = new URL("koncani-primeri.html", window.location.href);
+          cilj.searchParams.set("nov", state.zadevaId);
+          window.location.assign(cilj.href);
+          return;
+        }
+      }
+      state.selectedActionType = null;
+      state.selectedSettlementType = null;
+      state.actionSheetOpen = false;
+      odkleniOzadjeSheeta();
+    } catch (err) {
+      state.error = err.message || "Načrta trenutno ni bilo mogoče izvesti.";
+    } finally {
+      state.isSubmitting = false;
+      render();
+    }
+  }
+
   async function submitSelectedAction() {
     if (state.isSubmitting) return;
-    var pripravljeno = state.actionSheetMode === "payment"
+    var jePoravnavaTip = state.actionSheetMode === "payment" || state.selectedActionType === "partial_payment";
+    var pripravljeno = jePoravnavaTip
       ? pripraviPoravnavoZaOddajo()
       : (state.selectedActionType ? { actionType: state.selectedActionType, settings: state.settingsByAction[state.selectedActionType] } : null);
     if (!pripravljeno) {
@@ -378,7 +545,7 @@
     }
     var actionType = pripravljeno.actionType;
     var settings = pripravljeno.settings;
-    var pendingType = state.actionSheetMode === "payment" ? actionType + ":" + state.selectedSettlementType : actionType;
+    var pendingType = jePoravnavaTip ? actionType + ":" + state.selectedSettlementType : actionType;
 
     state.isSubmitting = true;
     state.error = null;
@@ -407,7 +574,7 @@
         state.selectedActionType = null;
         state.selectedSettlementType = null;
         state.actionSheetOpen = false;
-        document.body.classList.remove("izvedba-sheet-open");
+        odkleniOzadjeSheeta();
         state.pendingActionId = null;
         state.pendingActionType = null;
         if (actionType === "paid_in_full") {
@@ -497,6 +664,7 @@
     state.error = null;
     state.settlementSettings = JSON.parse(JSON.stringify(DEFAULT_SETTLEMENT_SETTINGS));
     state.settlementSettings.credit_note.settlementAmount = trenutniPreostaliDolg();
+    state.nacrtKoraki = [];
     state.actionSheetOpen = true;
     izrisiSticky();
     izrisiActionSheet();
@@ -699,9 +867,7 @@
       return K.izrisiStevec(actionType, "waitDays", nastavitve.waitDays, "dni");
     }
     if (actionType === "partial_payment") {
-      return '<label class="izvedba-znesek" data-action-control><span class="sr-only">Preostali dolg (€)</span>' +
-        '<input class="izvedba-znesek__vnos" data-znesek-polje="remainingAmount" type="number" inputmode="decimal" step="0.01" min="0.01" value="' + K.esc(nastavitve.remainingAmount != null ? nastavitve.remainingAmount : "") + '" placeholder="Vnesite znesek" />' +
-        '<span class="izvedba-znesek__ikona" aria-hidden="true">' + K.ikona("pencil") + '</span></label>';
+      return izrisiPoravnavaKontrolnik("partial", izbrano);
     }
     return "";
   }
@@ -737,55 +903,73 @@
   }
 
   function izrisiDatumVnos(actionType, polje, vrednost, oznaka) {
-    return '<label class="izvedba-action-sheet__datum"><span class="sr-only">' + K.esc(oznaka) + '</span>' +
-      '<span class="izvedba-action-sheet__datum-ikona" aria-hidden="true">' + K.ikona("calendar") + '</span>' +
-      '<span class="izvedba-action-sheet__datum-vrednost" data-izvedba-fit data-fit-min="9">' + K.esc(datumZaPrikaz(vrednost)) + '</span>' +
-      '<input type="datetime-local" aria-label="' + K.esc(oznaka) + '" data-action-type="' + K.esc(actionType) + '" data-datetime-polje="' + K.esc(polje) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" /></label>';
+    return '<div class="izvedba-action-sheet__datum">' +
+      '<button type="button" class="izvedba-action-sheet__datum-gumb" data-datum-vnos-odpri data-action-type="' + K.esc(actionType) + '" aria-label="' + K.esc(oznaka) + '">' +
+        '<span class="izvedba-action-sheet__datum-ikona" aria-hidden="true">' + K.ikona("calendar") + '</span>' +
+        '<span class="izvedba-action-sheet__datum-vrednost" data-izvedba-fit data-fit-min="9">' + K.esc(datumZaPrikaz(vrednost)) + '</span>' +
+      '</button>' +
+      '<input type="datetime-local" class="izvedba-segment__datum-skrit" tabindex="-1" aria-hidden="true" data-action-type="' + K.esc(actionType) + '" data-datetime-polje="' + K.esc(polje) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" />' +
+    '</div>';
   }
 
-  function izrisiActionCard(actionType) {
+  function izrisiActionSvicer() {
+    var gumbi = VRSTNI_RED_KARTIC.map(function (actionType) {
+      var meta = K.AKCIJE_META[actionType];
+      var sheetMeta = ACTION_SHEET_META[actionType];
+      var izbran = state.selectedActionType === actionType;
+      return '<button type="button" class="izvedba-poravnava-svicer__gumb izvedba-poravnava-svicer__gumb--akcija-' + K.esc(sheetMeta.razred) + (izbran ? ' is-selected' : '') + '" data-action-sheet-select="' + K.esc(actionType) + '" aria-pressed="' + String(izbran) + '">' +
+        '<span class="izvedba-poravnava-svicer__ikona" aria-hidden="true">' + K.ikona(sheetMeta.ikona) + '</span>' +
+        '<span data-izvedba-fit data-fit-min="7">' + K.esc(meta.naslov) + '</span></button>';
+    }).join('');
+    return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">1</span>Izberite naslednji korak</p>' +
+      '<div class="izvedba-poravnava-svicer" role="group">' + gumbi + '</div></div>';
+  }
+
+  function izrisiActionPodrobnosti() {
+    var actionType = state.selectedActionType;
+    if (!actionType) return "";
     var meta = K.AKCIJE_META[actionType];
     var sheetMeta = ACTION_SHEET_META[actionType];
-    var izbrano = state.selectedActionType === actionType;
-    return '<article class="izvedba-action-card izvedba-action-card--' + sheetMeta.razred + (izbrano ? ' is-selected' : '') + '" data-action-type="' + K.esc(actionType) + '">' +
-      '<button type="button" class="izvedba-action-card__izbira" data-action-sheet-select="' + K.esc(actionType) + '" aria-pressed="' + String(izbrano) + '">' +
-        '<span class="izvedba-action-card__ikona" aria-hidden="true">' + K.ikona(sheetMeta.ikona) + '</span>' +
-        '<span class="izvedba-action-card__naslov" data-izvedba-fit data-fit-min="8">' + K.esc(meta.naslov) + '</span>' +
-        '<span class="izvedba-action-card__opis">' + K.esc(sheetMeta.opis) + '</span>' +
-      '</button>' +
-      '<div class="izvedba-action-card__nastavitve">' +
-        '<div class="izvedba-action-card__label"><span>' + K.esc(sheetMeta.nastavitev) + '</span><span class="izvedba-action-card__badge">' + K.esc(sheetMeta.badge) + '</span></div>' +
-        podatkiZaKartico(actionType, izbrano) +
-      '</div>' +
-    '</article>';
+    return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">2</span>Podatki za ta korak</p>' +
+      '<div class="izvedba-poravnava-podrobnosti izvedba-poravnava-podrobnosti--akcija-' + K.esc(sheetMeta.razred) + '" data-action-type="' + K.esc(actionType) + '">' +
+        '<div class="izvedba-poravnava-podrobnosti__naslov" data-izvedba-fit data-fit-min="10">' + K.esc(meta.naslov) + '</div>' +
+        '<p class="izvedba-poravnava-podrobnosti__opis" data-izvedba-fit data-fit-min="8">' + K.esc(sheetMeta.opis) + '</p>' +
+        podatkiZaKartico(actionType, true) +
+      '</div></div>';
   }
 
   function izrisiPoravnavaSegment(tip, polje, moznosti, izbrana) {
-    return '<div class="izvedba-segment" role="group">' + moznosti.map(function (moznost) {
+    var razredSteviloMoznosti = moznosti.length === 3 ? ' izvedba-segment--tri' : '';
+    return '<div class="izvedba-segment' + razredSteviloMoznosti + '" role="group">' + moznosti.map(function (moznost) {
       return '<button type="button" class="izvedba-segment__gumb' + (moznost.vrednost === izbrana ? ' is-selected' : '') + '" ' +
         'data-settlement-segment="' + K.esc(polje) + '" data-settlement-value="' + K.esc(moznost.vrednost) + '" data-settlement-type="' + K.esc(tip) + '" ' +
         'data-izvedba-fit data-fit-min="8.5" aria-pressed="' + String(moznost.vrednost === izbrana) + '">' + K.esc(moznost.oznaka) + '</button>';
     }).join('') + '</div>';
   }
 
-  function izrisiPoravnavaDatum(tip, vrednost, oznaka) {
-    return '<label class="izvedba-action-sheet__datum"><span class="sr-only">' + K.esc(oznaka) + '</span>' +
-      '<span class="izvedba-action-sheet__datum-ikona" aria-hidden="true">' + K.ikona("calendar") + '</span>' +
-      '<span class="izvedba-action-sheet__datum-vrednost" data-izvedba-fit data-fit-min="9">' + K.esc(datumZaPrikaz(vrednost)) + '</span>' +
-      '<input type="datetime-local" aria-label="' + K.esc(oznaka) + '" data-settlement-datetime="settledAt" data-settlement-type="' + K.esc(tip) + '" max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" /></label>';
+  function izrisiPoravnavaDatum(tip, vrednost, oznaka, polje) {
+    var imePolja = polje || "settledAt";
+    return '<div class="izvedba-action-sheet__datum">' +
+      '<button type="button" class="izvedba-action-sheet__datum-gumb" data-settlement-datum-odpri data-settlement-type="' + K.esc(tip) + '" aria-label="' + K.esc(oznaka) + '">' +
+        '<span class="izvedba-action-sheet__datum-ikona" aria-hidden="true">' + K.ikona("calendar") + '</span>' +
+        '<span class="izvedba-action-sheet__datum-vrednost" data-izvedba-fit data-fit-min="9">' + K.esc(datumZaPrikaz(vrednost)) + '</span>' +
+      '</button>' +
+      '<input type="datetime-local" class="izvedba-segment__datum-skrit" tabindex="-1" aria-hidden="true" data-settlement-datetime="' + K.esc(imePolja) + '" data-settlement-type="' + K.esc(tip) + '" max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" />' +
+    '</div>';
   }
 
-  function izrisiPoravnavaZnesek(tip, polje, vrednost, placeholder) {
-    return '<label class="izvedba-znesek" data-action-control><span class="sr-only">' + K.esc(placeholder) + '</span>' +
+  function izrisiPoravnavaZnesek(tip, polje, vrednost, placeholder, pokaziUredi) {
+    return '<label class="izvedba-znesek' + (pokaziUredi ? ' izvedba-znesek--urejljivo' : '') + '" data-action-control><span class="sr-only">' + K.esc(placeholder) + '</span>' +
+      (pokaziUredi ? '<span class="izvedba-znesek__ikona-levo" aria-hidden="true">' + K.ikona("pencil") + '</span>' : '') +
       '<input class="izvedba-znesek__vnos" data-settlement-amount="' + K.esc(polje) + '" data-settlement-type="' + K.esc(tip) + '" data-izvedba-fit data-fit-min="9" ' +
       'type="number" inputmode="decimal" step="0.01" min="0.01" value="' + K.esc(vrednost != null ? vrednost : '') + '" placeholder="' + K.esc(placeholder) + '" />' +
-      '<span class="izvedba-znesek__ikona" aria-hidden="true">' + K.ikona("pencil") + '</span></label>';
+      '<span class="izvedba-znesek__ikona izvedba-znesek__ikona--eur" aria-hidden="true">€</span></label>';
   }
 
-  function izrisiSamodejniDobropis(vrednost) {
-    return '<div class="izvedba-znesek izvedba-znesek--samodejno" aria-label="Celotni znesek dobropisa">' +
-      '<output class="izvedba-znesek__vnos izvedba-znesek__vnos--samodejno" data-izvedba-fit data-fit-min="9">' + K.esc(K.formatirajEur(vrednost)) + '</output>' +
-      '<span class="izvedba-znesek__ikona" aria-hidden="true">' + K.ikona("checkCircle") + '</span></div>';
+  function izrisiZnesekSamoPrikaz(vrednost) {
+    return '<div class="izvedba-znesek izvedba-znesek--samo-prikaz" aria-label="Znesek kompenzacije">' +
+      '<output class="izvedba-znesek__vnos izvedba-znesek__vnos--samo-prikaz">' + K.esc(K.formatirajEur(vrednost)) + '</output>' +
+      '<span class="izvedba-znesek__ikona izvedba-znesek__ikona--eur" aria-hidden="true">€</span></div>';
   }
 
   function izrisiPoravnavaRazlog(tip) {
@@ -795,7 +979,7 @@
       { vrednost: "duplicate", oznaka: "Podvojen račun" },
       { vrednost: "incorrect", oznaka: "Napačen račun" },
       { vrednost: "agreement", oznaka: "Dogovor z dolžnikom" },
-      { vrednost: "other", oznaka: "Drugo" },
+      { vrednost: "other", oznaka: "Napiši sam" },
     ];
     var izbraniRazlog = nastavitve.reason || "";
     var izbranaMoznost = razlogi.find(function (razlog) { return razlog.vrednost === izbraniRazlog; }) || razlogi[0];
@@ -805,20 +989,57 @@
       return '<button type="button" class="izvedba-poravnava__razlog-moznost' + (jeIzbran ? ' is-selected' : '') + '" role="option" aria-selected="' + String(jeIzbran) + '" data-settlement-reason-option="' + K.esc(razlog.vrednost) + '" data-settlement-type="' + K.esc(tip) + '">' +
         '<span>' + K.esc(razlog.oznaka) + '</span><span class="izvedba-poravnava__razlog-kljukica" aria-hidden="true">✓</span></button>';
     }).join("");
+    var meniHtml = '<div class="izvedba-poravnava__razlog-meni" role="listbox" aria-label="Razlog"' + (jeOdprt ? '' : ' hidden') + '>' + moznosti + '</div>';
+    if (izbraniRazlog === "other") {
+      return '<div class="izvedba-poravnava__razlog' + (jeOdprt ? ' is-open' : '') + '">' +
+        '<div class="izvedba-poravnava__razlog-sprozi izvedba-poravnava__razlog-sprozi--lastno">' +
+          '<textarea class="izvedba-poravnava__razlog-lastno-vnos" data-settlement-custom-reason data-settlement-type="' + K.esc(tip) + '" rows="1" placeholder="Napišite razlog" aria-label="Vaš razlog">' + K.esc(nastavitve.customReason || "") + '</textarea>' +
+          '<button type="button" class="izvedba-poravnava__razlog-menjaj" data-settlement-reason-toggle data-settlement-type="' + K.esc(tip) + '" aria-haspopup="listbox" aria-expanded="' + String(jeOdprt) + '" aria-label="Izberite drug razlog"><span class="izvedba-poravnava__razlog-puscica" aria-hidden="true"></span></button>' +
+        '</div>' + meniHtml + '</div>';
+    }
     return '<div class="izvedba-poravnava__razlog' + (jeOdprt ? ' is-open' : '') + '">' +
       '<button type="button" class="izvedba-poravnava__razlog-sprozi" data-settlement-reason-toggle data-settlement-type="' + K.esc(tip) + '" aria-haspopup="listbox" aria-expanded="' + String(jeOdprt) + '">' +
         '<span data-izvedba-fit data-fit-min="9">' + K.esc(izbranaMoznost.oznaka) + '</span><span class="izvedba-poravnava__razlog-puscica" aria-hidden="true"></span></button>' +
-      '<div class="izvedba-poravnava__razlog-meni" role="listbox" aria-label="Razlog"' + (jeOdprt ? '' : ' hidden') + '>' + moznosti + '</div></div>';
+      meniHtml + '</div>';
+  }
+
+  function izrisiPoravnavaDatumSegment(tip) {
+    var nastavitve = state.settlementSettings[tip];
+    var jeDatumIzbran = nastavitve.dateMode === "custom";
+    var danesGumb = '<button type="button" class="izvedba-segment__gumb' + (jeDatumIzbran ? '' : ' is-selected') + '" ' +
+      'data-settlement-segment="dateMode" data-settlement-value="today" data-settlement-type="' + K.esc(tip) + '" ' +
+      'data-izvedba-fit data-fit-min="8.5" aria-pressed="' + String(!jeDatumIzbran) + '">Danes</button>';
+    var datumOznaka = jeDatumIzbran ? datumZaPrikaz(nastavitve.settledAt) : "Datum";
+    var datumGumb = '<button type="button" class="izvedba-segment__gumb izvedba-segment__gumb--datum' + (jeDatumIzbran ? ' is-selected' : '') + '" ' +
+      'data-settlement-datum-odpri data-settlement-type="' + K.esc(tip) + '" ' +
+      'data-izvedba-fit data-fit-min="8.5" aria-pressed="' + String(jeDatumIzbran) + '">' + K.esc(datumOznaka) + '</button>' +
+      '<input type="datetime-local" class="izvedba-segment__datum-skrit" tabindex="-1" aria-hidden="true" ' +
+        'data-settlement-datetime="settledAt" data-settlement-type="' + K.esc(tip) + '" data-settlement-datum-segment ' +
+        'max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(nastavitve.settledAt || new Date().toISOString())) + '" />';
+    return '<div class="izvedba-segment" role="group">' + danesGumb + datumGumb + '</div>';
+  }
+
+  function izrisiZnesekZaZakljucek(tip, izbrano, placeholder) {
+    var nastavitve = state.settlementSettings[tip];
+    if (!nastavitve.rocnoUrejeno) nastavitve.settlementAmount = preostaliDolgPoNacrtu();
+    var znesekPolje = izrisiPoravnavaZnesek(tip, "settlementAmount", nastavitve.settlementAmount, placeholder, true);
+    var jePolniZnesek = Math.abs((Number(nastavitve.settlementAmount) || 0) - preostaliDolgPoNacrtu()) <= 0.009;
+    var namig = jePolniZnesek
+      ? "Pokriva celoten preostali dolg — primer se bo zaprl."
+      : "Manjši znesek od preostanka — primer ostane odprt.";
+    return znesekPolje +
+      (izbrano ? '<p class="izvedba-poravnava__namig" data-izvedba-fit data-fit-min="7">' + K.esc(namig) + '</p>' : '');
   }
 
   function izrisiPoravnavaKontrolnik(tip, izbrano) {
     var nastavitve = state.settlementSettings[tip];
-    if (tip === "full" || tip === "compensation") {
-      var segment = izrisiPoravnavaSegment(tip, "dateMode", [
-        { vrednost: "today", oznaka: "Danes" },
-        { vrednost: "custom", oznaka: "Datum" },
-      ], nastavitve.dateMode);
-      return segment + (izbrano && nastavitve.dateMode === "custom" ? izrisiPoravnavaDatum(tip, nastavitve.settledAt, "Datum zaključka") : "");
+    if (tip === "full") {
+      return izrisiPoravnavaDatumSegment(tip);
+    }
+    if (tip === "compensation") {
+      var zneskKompenzacije = preostaliDolgPoNacrtu();
+      return izrisiPoravnavaDatumSegment(tip) + izrisiZnesekSamoPrikaz(zneskKompenzacije) +
+        (izbrano ? '<p class="izvedba-poravnava__namig" data-izvedba-fit data-fit-min="7">Pokriva celoten preostali dolg — primer se bo zaprl.</p>' : '');
     }
     if (tip === "partial" || tip === "installment") {
       var kindSegment = izrisiPoravnavaSegment(tip, "kind", [
@@ -827,35 +1048,150 @@
         { vrednost: "writeoff", oznaka: "Odpust" },
       ], nastavitve.kind || "cash");
       var znesekPolje = izrisiPoravnavaZnesek(tip, "paymentAmount", nastavitve.paymentAmount, "Vnesite znesek");
+      var datumPolje = izrisiPoravnavaDatum(tip, nastavitve.datumKoraka || new Date().toISOString(), "Datum koraka", "datumKoraka");
       var razlogPolje = izbrano && nastavitve.kind === "writeoff" ? izrisiPoravnavaRazlog(tip) : "";
-      return kindSegment + znesekPolje + razlogPolje;
+      var oznakaKoraka = '<p class="izvedba-poravnava__korak-oznaka">' + naslednjaStevilkaKoraka(tip) + '. ' + K.esc(BESEDA_ZAPOREDNEGA_KORAKA[tip] || "korak") + '</p>';
+      return kindSegment + oznakaKoraka + '<div class="izvedba-poravnava-znesek-datum">' + znesekPolje + datumPolje + '</div>' + razlogPolje;
     }
     if (tip === "credit_note") {
-      nastavitve.settlementAmount = trenutniPreostaliDolg();
-      return izrisiSamodejniDobropis(nastavitve.settlementAmount) +
-        (izbrano ? '<p class="izvedba-poravnava__namig" data-izvedba-fit data-fit-min="7">Za delno znižanje zneska popravite račun — primer ostane odprt.</p>' : '');
+      return izrisiZnesekZaZakljucek(tip, izbrano, "Vnesite znesek dobropisa");
     }
     return izrisiPoravnavaRazlog(tip);
   }
 
-  function izrisiPoravnavaKartico(tip) {
+  function izrisiPoravnavaSvicer() {
+    var zaprt = jeNacrtZaprt();
+    var gumbi = SETTLEMENT_ORDER.map(function (tip) {
+      var meta = SETTLEMENT_META[tip];
+      var izbran = state.selectedSettlementType === tip;
+      return '<button type="button" class="izvedba-poravnava-svicer__gumb izvedba-poravnava-svicer__gumb--' + K.esc(meta.razred) + (izbran ? ' is-selected' : '') + '" data-settlement-select="' + K.esc(tip) + '" aria-pressed="' + String(izbran) + '" ' + (zaprt ? 'disabled' : '') + '>' +
+        '<span class="izvedba-poravnava-svicer__ikona" aria-hidden="true">' + K.ikona(meta.ikona) + '</span>' +
+        '<span data-izvedba-fit data-fit-min="7">' + K.esc(meta.naslov) + '</span></button>';
+    }).join('');
+    return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">1</span>Izberite naslednji korak</p>' +
+      '<div class="izvedba-poravnava-svicer" role="group">' + gumbi + '</div></div>';
+  }
+
+  function izrisiPoravnavaPodrobnosti() {
+    var tip = state.selectedSettlementType;
     var meta = SETTLEMENT_META[tip];
-    var izbrano = state.selectedSettlementType === tip;
-    return '<article class="izvedba-action-card izvedba-action-card--poravnava-' + meta.razred + (izbrano ? ' is-selected' : '') + '" data-settlement-card="' + K.esc(tip) + '">' +
-      '<button type="button" class="izvedba-action-card__izbira" data-settlement-select="' + K.esc(tip) + '" aria-pressed="' + String(izbrano) + '">' +
-        '<span class="izvedba-action-card__ikona" aria-hidden="true">' + K.ikona(meta.ikona) + '</span>' +
-        '<span class="izvedba-action-card__naslov" data-izvedba-fit data-fit-min="8">' + K.esc(meta.naslov) + '</span>' +
-        '<span class="izvedba-action-card__opis" data-izvedba-fit data-fit-min="7.5">' + K.esc(meta.opis) + '</span>' +
-      '</button><div class="izvedba-action-card__nastavitve">' +
-        '<div class="izvedba-action-card__label"><span data-izvedba-fit data-fit-min="7.5">' + K.esc(meta.nastavitev) + '</span><span class="izvedba-action-card__badge" data-izvedba-fit data-fit-min="7">' + K.esc(meta.badge) + '</span></div>' +
-        izrisiPoravnavaKontrolnik(tip, izbrano) + '</div></article>';
+    if (!meta) return "";
+    var zaprt = jeNacrtZaprt();
+    var vsebinaKoraka = zaprt
+      ? '<p class="izvedba-poravnava__namig">Ta korak zapre primer — po njem ni mogoče dodati novega koraka. Odstranite ga zgoraj v "Potek primera", če želite izbrati drugega.</p>'
+      : izrisiPoravnavaKontrolnik(tip, true) + '<button type="button" class="izvedba-poravnava-dodaj-korak" data-nacrt-dodaj>+ Dodaj korak</button>';
+    return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">2</span>Podatki za ta korak</p>' +
+      '<div class="izvedba-poravnava-podrobnosti izvedba-poravnava-podrobnosti--' + K.esc(meta.razred) + '">' +
+        '<div class="izvedba-poravnava-podrobnosti__naslov" data-izvedba-fit data-fit-min="10">' + K.esc(meta.naslov) + '</div>' +
+        '<p class="izvedba-poravnava-podrobnosti__opis" data-izvedba-fit data-fit-min="8">' + K.esc(meta.opis) + '</p>' +
+        vsebinaKoraka +
+      '</div></div>';
+  }
+
+  function opisUkrepaZaZgodovino(ukrep) {
+    var nastavitve = ukrep.settings || {};
+    if (ukrep.action_type === "partial_payment") {
+      var jeObrok = nastavitve.settlementType === "installment";
+      return { naslov: jeObrok ? "Obrok" : "Delno plačilo", znesek: Number(nastavitve.paymentAmount) || 0, ikona: "coinCheck", razred: jeObrok ? "installment" : "partial" };
+    }
+    if (ukrep.action_type === "partial_settlement") {
+      var jeOdpust = nastavitve.kind === "writeoff";
+      return { naslov: jeOdpust ? "Odpust" : "Dobropis", znesek: Number(nastavitve.amount) || 0, ikona: jeOdpust ? "documentX" : "tag", razred: jeOdpust ? "cancelled_invoice" : "credit_note" };
+    }
+    if (ukrep.action_type === "paid_in_full") {
+      var vrsta = nastavitve.settlementType || "full";
+      var metaZakljucka = SETTLEMENT_META[vrsta] || SETTLEMENT_META.full;
+      return { naslov: metaZakljucka.naslov, znesek: vrsta === "credit_note" ? Number(nastavitve.settlementAmount) || 0 : null, ikona: metaZakljucka.ikona, razred: vrsta };
+    }
+    if (ukrep.action_type === "skip_current_step") {
+      return { naslov: "Korak preklican", znesek: null, ikona: "messageX", razred: "preklic" };
+    }
+    if (ukrep.action_type === "stop_plan") {
+      return { naslov: "Načrt ustavljen", znesek: null, ikona: "stopCircle", razred: "ustavi" };
+    }
+    if (ukrep.action_type === "handoff_to_lawyer") {
+      return { naslov: "Predano odvetniku", znesek: null, ikona: "scales", razred: "odvetnik" };
+    }
+    if (ukrep.action_type === "postpone_reminder") {
+      return { naslov: "Opomin prestavljen", znesek: null, ikona: "calendarArrow", razred: "prestavi" };
+    }
+    if (ukrep.action_type === "payment_promised") {
+      return { naslov: "Plačilo obljubljeno", znesek: null, ikona: "handshake", razred: "obljuba" };
+    }
+    return null;
+  }
+
+  function izrisiPotekPrimera() {
+    var obstojeciKronolosko = (state.ukrepi || [])
+      .filter(function (u) { return u.status === "completed"; })
+      .map(function (u) {
+        var opis = opisUkrepaZaZgodovino(u);
+        return opis ? Object.assign({ datum: u.completed_at, jeNacrtovan: false }, opis) : null;
+      })
+      .filter(Boolean);
+    var nacrtovani = (state.nacrtKoraki || []).map(function (korak) {
+      return { naslov: korak.naslov, znesek: korak.znesek, ikona: korak.ikona, razred: korak.razred, datum: korak.datum, jeNacrtovan: true };
+    });
+    var stevciPoTipu = {};
+    obstojeciKronolosko.concat(nacrtovani).forEach(function (korak) {
+      var skupina = korak.razred === "obrok" || korak.razred === "installment" ? "installment"
+        : korak.razred === "delno" || korak.razred === "partial" ? "partial" : null;
+      if (skupina && korak.znesek != null) {
+        stevciPoTipu[skupina] = (stevciPoTipu[skupina] || 0) + 1;
+        korak.zaporednaStevilka = stevciPoTipu[skupina];
+        korak.zaporednaSkupina = skupina;
+      }
+    });
+    var seznam = obstojeciKronolosko.slice().reverse().concat(nacrtovani);
+    var prvotniZnesek = Number(state.zadeva && state.zadeva.prvotniZnesek) || 0;
+    var indeksNacrtovanega = -1;
+    var vrstice = !seznam.length
+      ? '<p class="izvedba-poravnava-potek__prazno">Ni še zabeleženih korakov.</p>'
+      : seznam.map(function (korak, i) {
+      if (korak.jeNacrtovan) indeksNacrtovanega += 1;
+      var odstraniGumb = korak.jeNacrtovan
+        ? '<button type="button" class="izvedba-poravnava-korak__odstrani" data-nacrt-odstrani="' + indeksNacrtovanega + '" aria-label="Odstrani korak">×</button>'
+        : '';
+      var metaVsebina = (korak.jeNacrtovan ? '<span class="izvedba-poravnava-korak__pill">Korak ' + (i + 1) + '</span>' : '') +
+        '<span class="izvedba-poravnava-korak__info-datum">' + K.esc(K.formatirajDatumUro(korak.datum)) + '</span>';
+      var znesekVsebina;
+      if (korak.znesek != null) {
+        var znesekOznaka = korak.zaporednaStevilka
+          ? '<span class="izvedba-poravnava-korak__znesek-oznaka">' + korak.zaporednaStevilka + '. ' + K.esc(BESEDA_ZAPOREDNEGA_KORAKA[korak.zaporednaSkupina]) + '</span>'
+          : "";
+        znesekVsebina = '<span class="izvedba-poravnava-korak__znesek-blok">' + znesekOznaka + '<span class="izvedba-poravnava-korak__znesek">' + K.esc(K.formatirajEur(korak.znesek)) + '</span></span>';
+      } else {
+        znesekVsebina = '<span></span>';
+      }
+      return '<div class="izvedba-poravnava-korak izvedba-poravnava-korak--' + K.esc(korak.razred) + (korak.jeNacrtovan ? ' izvedba-poravnava-korak--nacrtovan' : '') + '">' +
+        '<span class="izvedba-poravnava-korak__stevilka" aria-hidden="true">' + (i + 1) + '</span>' +
+        '<span class="izvedba-poravnava-korak__ikona" aria-hidden="true">' + K.ikona(korak.ikona) + '</span>' +
+        '<span class="izvedba-poravnava-korak__info"><b data-izvedba-fit data-fit-min="8">' + K.esc(korak.naslov) + '</b><span class="izvedba-poravnava-korak__info-meta">' + metaVsebina + '</span></span>' +
+        znesekVsebina +
+        odstraniGumb +
+      '</div>';
+    }).join('');
+    return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">3</span>Potek primera' +
+      '<span class="izvedba-poravnava-cona__stevilo-korakov">' + seznam.length + ' ' + K.esc(besedaZaSteviloKorakov(seznam.length)) + '</span></p>' +
+      '<div class="izvedba-potek-zneski">' +
+        '<div class="izvedba-potek-zneski__stolpec">' +
+          '<span class="izvedba-potek-zneski__oznaka">Originalni znesek</span>' +
+          '<span class="izvedba-potek-zneski__vrednost">' + K.esc(K.formatirajEur(prvotniZnesek)) + '</span>' +
+        '</div>' +
+        '<div class="izvedba-potek-zneski__locilo" aria-hidden="true"></div>' +
+        '<div class="izvedba-potek-zneski__stolpec izvedba-potek-zneski__stolpec--preostanek">' +
+          '<span class="izvedba-potek-zneski__oznaka">Preostali znesek</span>' +
+          '<span class="izvedba-potek-zneski__vrednost">' + K.esc(K.formatirajEur(preostaliDolgPoNacrtu())) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="izvedba-poravnava-potek">' + vrstice + '</div></div>';
   }
 
   function izrisiPoravnavaSheet() {
     var meta = SETTLEMENT_META[state.selectedSettlementType];
-    var kartice = SETTLEMENT_ORDER.map(izrisiPoravnavaKartico).join("");
-    var dejanje = meta ? '<button type="button" class="izvedba-action-sheet__dejanje" data-action-sheet-confirm data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting ? 'disabled' : '') + '>' +
-      (state.isSubmitting ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span>' : '') + K.esc(meta.gumb) + '</button>' : '';
+    var steviloNacrtovanih = (state.nacrtKoraki || []).length;
+    var dejanje = meta ? '<button type="button" class="izvedba-action-sheet__dejanje" data-action-sheet-confirm data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting || steviloNacrtovanih === 0 ? 'disabled' : '') + '>' +
+      (state.isSubmitting ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span>' : '') + 'Potrdi' + '</button>' : '';
     elActionSheet.hidden = false;
     elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
       '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano izvedba-action-sheet__panel--poravnava-' + K.esc(meta.razred) + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
@@ -863,11 +1199,18 @@
         '<header class="izvedba-action-sheet__header"><span class="izvedba-action-sheet__header-ikona" aria-hidden="true">' + K.ikona("checkCircle") + '</span><div>' +
           '<h2 id="izvedba-action-sheet-title" data-izvedba-fit data-fit-min="14">Kako je bil račun poravnan?</h2><p>Izberite način in po potrebi dopolnite podatke.</p></div>' +
           '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button></header>' +
-        '<div class="izvedba-action-sheet__scroll"><div class="izvedba-action-sheet__mreza">' + kartice + '</div>' +
+        '<div class="izvedba-action-sheet__scroll">' + izrisiPoravnavaSvicer() + izrisiPoravnavaPodrobnosti() + izrisiPotekPrimera() +
           '<div class="izvedba-action-sheet__footer">' + (state.error ? '<p class="izvedba-action-sheet__napaka" role="alert">' + K.esc(state.error) + '</p>' : '') +
-            dejanje + '<button type="button" class="izvedba-action-sheet__nazaj" data-action-sheet-close>Nazaj</button></div></div></section>';
-    document.body.classList.add("izvedba-sheet-open");
-    requestAnimationFrame(function () { prilagodiBesediloOmejenemuPolju(elActionSheet); });
+            dejanje + '</div></div></section>';
+    zakleniOzadjeSheeta();
+    requestAnimationFrame(function () {
+      prilagodiBesediloOmejenemuPolju(elActionSheet);
+      var lastnoBesediloPolje = elActionSheet.querySelector("[data-settlement-custom-reason]");
+      if (lastnoBesediloPolje) {
+        lastnoBesediloPolje.style.height = "auto";
+        lastnoBesediloPolje.style.height = lastnoBesediloPolje.scrollHeight + "px";
+      }
+    });
   }
 
   function izrisiActionSheet() {
@@ -875,14 +1218,13 @@
     if (!state.actionSheetOpen) {
       elActionSheet.hidden = true;
       elActionSheet.innerHTML = "";
-      document.body.classList.remove("izvedba-sheet-open");
+      odkleniOzadjeSheeta();
       return;
     }
     if (state.actionSheetMode === "payment") {
       izrisiPoravnavaSheet();
       return;
     }
-    var kartice = VRSTNI_RED_KARTIC.map(izrisiActionCard).join("");
     var panelRazred = state.selectedActionType ? " izvedba-action-sheet__panel--" + ACTION_SHEET_META[state.selectedActionType].razred : "";
     var dejanje = state.selectedActionType
       ? '<button type="button" class="izvedba-action-sheet__dejanje" data-action-sheet-confirm data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting ? 'disabled' : '') + '>' +
@@ -890,20 +1232,19 @@
       : "";
     elActionSheet.hidden = false;
     elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
-      '<section class="izvedba-action-sheet__panel' + panelRazred + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
+      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--akcije' + panelRazred + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
         '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>' +
         '<header class="izvedba-action-sheet__header"><span class="izvedba-action-sheet__header-ikona" aria-hidden="true">' + K.ikona("xCircle") + '</span><div>' +
           '<h2 id="izvedba-action-sheet-title">Kaj želite narediti?</h2><p>Izberite možnost in po potrebi prilagodite priporočeno nastavitev.</p></div>' +
           '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button></header>' +
-        '<div class="izvedba-action-sheet__scroll">' +
-          '<div class="izvedba-action-sheet__mreza">' + kartice + '</div>' +
+        '<div class="izvedba-action-sheet__scroll">' + izrisiActionSvicer() + izrisiActionPodrobnosti() + izrisiPotekPrimera() +
           '<div class="izvedba-action-sheet__footer">' +
             (state.error ? '<p class="izvedba-action-sheet__napaka" role="alert">' + K.esc(state.error) + '</p>' : '') +
             dejanje + '<button type="button" class="izvedba-action-sheet__nazaj" data-action-sheet-close>Nazaj</button>' +
           '</div>' +
         '</div>' +
       '</section>';
-    document.body.classList.add("izvedba-sheet-open");
+    zakleniOzadjeSheeta();
     requestAnimationFrame(function () { prilagodiBesediloOmejenemuPolju(elActionSheet); });
   }
 
@@ -1096,55 +1437,100 @@
       }
       var confirm = event.target.closest("[data-action-sheet-confirm]");
       if (confirm) {
-        submitSelectedAction();
+        if (state.actionSheetMode === "payment") {
+          nastaviNovNacrt();
+        } else {
+          submitSelectedAction();
+        }
         return;
       }
       if (state.actionSheetMode === "payment") {
-        var razlogMoznost = event.target.closest("[data-settlement-reason-option]");
-        if (razlogMoznost) {
-          var razlogTip = razlogMoznost.getAttribute("data-settlement-type");
-          state.selectedSettlementType = razlogTip;
-          state.settlementSettings[razlogTip].reason = razlogMoznost.getAttribute("data-settlement-reason-option");
-          state.settlementReasonMenuOpen = false;
-          state.settlementReasonMenuTip = null;
-          state.error = null;
+        var nacrtDodaj = event.target.closest("[data-nacrt-dodaj]");
+        if (nacrtDodaj) {
+          dodajKorakVNacrt();
           izrisiActionSheet();
           return;
         }
-        var razlogSprozi = event.target.closest("[data-settlement-reason-toggle]");
-        if (razlogSprozi) {
-          var razlogSproziTip = razlogSprozi.getAttribute("data-settlement-type");
-          state.selectedSettlementType = razlogSproziTip;
-          var zeOdprtZaTaTip = state.settlementReasonMenuOpen && state.settlementReasonMenuTip === razlogSproziTip;
-          state.settlementReasonMenuTip = zeOdprtZaTaTip ? null : razlogSproziTip;
-          state.settlementReasonMenuOpen = !zeOdprtZaTaTip;
-          state.error = null;
-          izrisiActionSheet();
-          requestAnimationFrame(function () {
-            var prviRazlog = elActionSheet.querySelector(".izvedba-poravnava__razlog-moznost.is-selected");
-            if (state.settlementReasonMenuOpen && prviRazlog) prviRazlog.focus({ preventScroll: true });
-          });
-          return;
-        }
-        var poravnavaIzbira = event.target.closest("[data-settlement-select]");
-        if (poravnavaIzbira) {
-          state.selectedSettlementType = poravnavaIzbira.getAttribute("data-settlement-select");
-          state.settlementReasonMenuOpen = false;
-          state.error = null;
+        var nacrtOdstrani = event.target.closest("[data-nacrt-odstrani]");
+        if (nacrtOdstrani) {
+          odstraniKorakIzNacrta(Number(nacrtOdstrani.getAttribute("data-nacrt-odstrani")));
           izrisiActionSheet();
           return;
         }
-        var poravnavaSegment = event.target.closest("[data-settlement-segment]");
-        if (poravnavaSegment) {
-          var poravnavaTip = poravnavaSegment.getAttribute("data-settlement-type");
-          state.selectedSettlementType = poravnavaTip;
-          state.settlementReasonMenuOpen = false;
-          state.settlementReasonMenuTip = null;
-          state.settlementSettings[poravnavaTip][poravnavaSegment.getAttribute("data-settlement-segment")] = poravnavaSegment.getAttribute("data-settlement-value");
-          state.error = null;
-          izrisiActionSheet();
-          return;
+      }
+      var razlogMoznost = event.target.closest("[data-settlement-reason-option]");
+      if (razlogMoznost) {
+        var razlogTip = razlogMoznost.getAttribute("data-settlement-type");
+        state.selectedSettlementType = razlogTip;
+        state.settlementSettings[razlogTip].reason = razlogMoznost.getAttribute("data-settlement-reason-option");
+        state.settlementReasonMenuOpen = false;
+        state.settlementReasonMenuTip = null;
+        state.error = null;
+        izrisiActionSheet();
+        return;
+      }
+      var razlogSprozi = event.target.closest("[data-settlement-reason-toggle]");
+      if (razlogSprozi) {
+        var razlogSproziTip = razlogSprozi.getAttribute("data-settlement-type");
+        state.selectedSettlementType = razlogSproziTip;
+        var zeOdprtZaTaTip = state.settlementReasonMenuOpen && state.settlementReasonMenuTip === razlogSproziTip;
+        state.settlementReasonMenuTip = zeOdprtZaTaTip ? null : razlogSproziTip;
+        state.settlementReasonMenuOpen = !zeOdprtZaTaTip;
+        state.error = null;
+        izrisiActionSheet();
+        requestAnimationFrame(function () {
+          var prviRazlog = elActionSheet.querySelector(".izvedba-poravnava__razlog-moznost.is-selected");
+          if (state.settlementReasonMenuOpen && prviRazlog) prviRazlog.focus({ preventScroll: true });
+        });
+        return;
+      }
+      var poravnavaIzbira = event.target.closest("[data-settlement-select]");
+      if (poravnavaIzbira) {
+        var izbranTip = poravnavaIzbira.getAttribute("data-settlement-select");
+        state.selectedSettlementType = izbranTip;
+        state.settlementReasonMenuOpen = false;
+        state.error = null;
+        izrisiActionSheet();
+        return;
+      }
+      var datumOdpri = event.target.closest("[data-settlement-datum-odpri]");
+      if (datumOdpri) {
+        var odpriTip = datumOdpri.getAttribute("data-settlement-type");
+        var odpriInput = datumOdpri.parentElement.querySelector('input[type="datetime-local"][data-settlement-type="' + odpriTip + '"]');
+        if (odpriInput) {
+          try {
+            odpriInput.showPicker();
+          } catch (napakaOdpiranja) {
+            odpriInput.focus({ preventScroll: true });
+            odpriInput.click();
+          }
         }
+        return;
+      }
+      var datumVnosOdpri = event.target.closest("[data-datum-vnos-odpri]");
+      if (datumVnosOdpri) {
+        var vnosTip = datumVnosOdpri.getAttribute("data-action-type");
+        var vnosInput = datumVnosOdpri.parentElement.querySelector('input[type="datetime-local"][data-action-type="' + vnosTip + '"]');
+        if (vnosInput) {
+          try {
+            vnosInput.showPicker();
+          } catch (napakaOdpiranja2) {
+            vnosInput.focus({ preventScroll: true });
+            vnosInput.click();
+          }
+        }
+        return;
+      }
+      var poravnavaSegment = event.target.closest("[data-settlement-segment]");
+      if (poravnavaSegment) {
+        var poravnavaTip = poravnavaSegment.getAttribute("data-settlement-type");
+        state.selectedSettlementType = poravnavaTip;
+        state.settlementReasonMenuOpen = false;
+        state.settlementReasonMenuTip = null;
+        state.settlementSettings[poravnavaTip][poravnavaSegment.getAttribute("data-settlement-segment")] = poravnavaSegment.getAttribute("data-settlement-value");
+        state.error = null;
+        izrisiActionSheet();
+        return;
       }
       var stevec = event.target.closest("[data-stevec-korak]");
       if (stevec) {
@@ -1173,29 +1559,68 @@
     });
 
     elActionSheet.addEventListener("input", function (event) {
-      if (state.actionSheetMode === "payment") {
-        var poravnavaZnesek = event.target.closest("[data-settlement-amount]");
-        if (poravnavaZnesek) {
-          var znesekTip = poravnavaZnesek.getAttribute("data-settlement-type");
-          state.selectedSettlementType = znesekTip;
-          state.settlementSettings[znesekTip][poravnavaZnesek.getAttribute("data-settlement-amount")] = poravnavaZnesek.value === "" ? null : Number(poravnavaZnesek.value);
-          state.error = null;
-          prilagodiBesediloOmejenemuPolju(poravnavaZnesek.parentElement);
-          return;
+      var poravnavaZnesek = event.target.closest("[data-settlement-amount]");
+      if (poravnavaZnesek) {
+        var znesekTip = poravnavaZnesek.getAttribute("data-settlement-type");
+        state.selectedSettlementType = znesekTip;
+        state.settlementSettings[znesekTip][poravnavaZnesek.getAttribute("data-settlement-amount")] = poravnavaZnesek.value === "" ? null : Number(poravnavaZnesek.value);
+        state.error = null;
+        prilagodiBesediloOmejenemuPolju(poravnavaZnesek.parentElement);
+        if (znesekTip === "credit_note") {
+          state.settlementSettings.credit_note.rocnoUrejeno = true;
+          var namigEl = poravnavaZnesek.parentElement.parentElement.querySelector(".izvedba-poravnava__namig");
+          if (namigEl) {
+            var vneseniDobropis = Number(state.settlementSettings.credit_note.settlementAmount) || 0;
+            var jePolniDobropisVnos = Math.abs(vneseniDobropis - preostaliDolgPoNacrtu()) <= 0.009;
+            namigEl.textContent = jePolniDobropisVnos
+              ? "Pokriva celoten preostali dolg — primer se bo zaprl."
+              : "Manjši znesek od preostanka — primer ostane odprt.";
+          }
         }
-        var poravnavaDatum = event.target.closest("[data-settlement-datetime]");
-        if (poravnavaDatum) {
-          var datumTip = poravnavaDatum.getAttribute("data-settlement-type");
-          state.selectedSettlementType = datumTip;
-          var poravnavaDatumVrednost = poravnavaDatum.value ? new Date(poravnavaDatum.value) : null;
-          state.settlementSettings[datumTip].settledAt = poravnavaDatumVrednost && !Number.isNaN(poravnavaDatumVrednost.getTime()) ? poravnavaDatumVrednost.toISOString() : null;
+        return;
+      }
+      var poravnavaDatum = event.target.closest("[data-settlement-datetime]");
+      if (poravnavaDatum) {
+        var datumTip = poravnavaDatum.getAttribute("data-settlement-type");
+        var datumPolje = poravnavaDatum.getAttribute("data-settlement-datetime");
+        state.selectedSettlementType = datumTip;
+        var poravnavaDatumVrednost = poravnavaDatum.value ? new Date(poravnavaDatum.value) : null;
+        state.settlementSettings[datumTip][datumPolje] = poravnavaDatumVrednost && !Number.isNaN(poravnavaDatumVrednost.getTime()) ? poravnavaDatumVrednost.toISOString() : null;
+        if (poravnavaDatum.hasAttribute("data-settlement-datum-segment")) {
+          state.settlementSettings[datumTip].dateMode = "custom";
+          var poravnavaSegmentSkupina = poravnavaDatum.closest(".izvedba-segment");
+          if (poravnavaSegmentSkupina) {
+            var danesGumbEl = poravnavaSegmentSkupina.querySelector('[data-settlement-value="today"]');
+            if (danesGumbEl) {
+              danesGumbEl.classList.remove("is-selected");
+              danesGumbEl.setAttribute("aria-pressed", "false");
+            }
+            var datumGumbEl = poravnavaSegmentSkupina.querySelector("[data-settlement-datum-odpri]");
+            if (datumGumbEl) {
+              datumGumbEl.classList.add("is-selected");
+              datumGumbEl.setAttribute("aria-pressed", "true");
+              datumGumbEl.textContent = datumZaPrikaz(poravnavaDatum.value);
+              prilagodiBesediloOmejenemuPolju(poravnavaSegmentSkupina);
+            }
+          }
+        } else {
           var poravnavaDatumPrikaz = poravnavaDatum.parentElement.querySelector(".izvedba-action-sheet__datum-vrednost");
           if (poravnavaDatumPrikaz) {
             poravnavaDatumPrikaz.textContent = datumZaPrikaz(poravnavaDatum.value);
             prilagodiBesediloOmejenemuPolju(poravnavaDatum.parentElement);
           }
-          return;
         }
+        return;
+      }
+      var lastnoBesedilo = event.target.closest("[data-settlement-custom-reason]");
+      if (lastnoBesedilo) {
+        var besediloTip = lastnoBesedilo.getAttribute("data-settlement-type");
+        state.selectedSettlementType = besediloTip;
+        state.settlementSettings[besediloTip].customReason = lastnoBesedilo.value;
+        state.error = null;
+        lastnoBesedilo.style.height = "auto";
+        lastnoBesedilo.style.height = lastnoBesedilo.scrollHeight + "px";
+        return;
       }
       var znesek = event.target.closest("[data-znesek-polje]");
       if (znesek) {
@@ -1279,6 +1704,13 @@
      delovanje strani. */
   window.UJIzvedbaDebug = {
     izrisiPoravnavaKontrolnik: izrisiPoravnavaKontrolnik,
+    izrisiPoravnavaSvicer: izrisiPoravnavaSvicer,
+    izrisiPoravnavaPodrobnosti: izrisiPoravnavaPodrobnosti,
+    izrisiPotekPrimera: izrisiPotekPrimera,
+    izrisiActionSvicer: izrisiActionSvicer,
+    izrisiActionPodrobnosti: izrisiActionPodrobnosti,
+    izberiAkcijo: izberiAkcijo,
+    dodajKorakVNacrt: dodajKorakVNacrt,
     state: state,
   };
 

@@ -63,7 +63,7 @@ async function main() {
 
   await test("1) selectedActionType je skalar - naenkrat izbrana samo ena kartica", function () {
     const src = citaj("app/izvedba.js");
-    assert.match(src, /function izberiAkcijo\(actionType\)\s*{\s*state\.selectedActionType = actionType;/);
+    assert.match(src, /function izberiAkcijo\(actionType\)\s*{[\s\S]*?state\.selectedActionType = actionType;/);
   });
 
   await test("2) izbrana kartica dobi obrobo in kljukico (CSS)", function () {
@@ -430,7 +430,8 @@ async function main() {
 
   await test("19) offline/napaka pri pošiljanju ne prikaže lažnega uspeha (selectedActionType se počisti SAMO ob ok:true)", function () {
     const src = citaj("app/izvedba.js");
-    const blok = src.slice(src.indexOf("if (!odgovor || odgovor.ok !== true) {"), src.indexOf("} catch (err) {", src.indexOf("submitSelectedAction")));
+    const zacetekFunkcije = src.indexOf("async function submitSelectedAction");
+    const blok = src.slice(src.indexOf("if (!odgovor || odgovor.ok !== true) {", zacetekFunkcije), src.indexOf("} catch (err) {", zacetekFunkcije));
     assert.match(blok, /state\.selectedActionType = null;/);
     const idxNapake = blok.indexOf("obravnavajNapakoUkrepa(odgovor);");
     const idxUspeh = blok.indexOf("state.selectedActionType = null;");
@@ -491,10 +492,8 @@ async function main() {
       /\.izvedba-action-sheet \.izvedba-znesek__vnos:focus,[\s\S]{0,160}border: 2px solid var\(--action-accent\);[\s\S]{0,100}outline: 0;/
     );
     assert.match(src, /credit_note: \{ nastavitev: "Celotni preostali dolg", badge: "Samodejno" \}/);
-    assert.match(src, /function izrisiSamodejniDobropis[\s\S]*?K\.formatirajEur\(vrednost\)[\s\S]*?checkCircle/);
-    assert.match(src, /if \(tip === "credit_note"\) \{[\s\S]*?nastavitve\.settlementAmount = trenutniPreostaliDolg\(\);[\s\S]*?return izrisiSamodejniDobropis/);
-    assert.match(src, /if \(tip === "credit_note"\) \{[\s\S]*?var dobropis = dolg;[\s\S]*?settlementAmount: dobropis/);
-    assert.match(css, /\.izvedba-action-sheet \.izvedba-znesek__vnos--samodejno\s*\{[\s\S]*?background: rgba\(var\(--action-rgb\), \.09\)/);
+    assert.match(src, /if \(tip === "credit_note"\) \{[\s\S]*?if \(!nastavitve\.rocnoUrejeno\) nastavitve\.settlementAmount = preostaliDolgPoNacrtu\(\);[\s\S]*?izrisiPoravnavaZnesek\(tip, "settlementAmount"/);
+    assert.match(src, /if \(tip === "credit_note"\) \{[\s\S]*?var vnesenDobropis = Number\(nastavitve\.settlementAmount\);[\s\S]*?actionType: "paid_in_full"[\s\S]*?actionType: "partial_settlement"/);
   });
 
   await test("19b) uspešen zaključek odpre Končane primere in označi pravkar rešeno zadevo", function () {
@@ -595,7 +594,7 @@ async function main() {
   await test("izvedba.js: pripraviPoravnavoZaOddajo poslje partial_settlement za dobropis/odpust", () => {
     const src = citaj("app/izvedba.js");
     assert.match(src, /actionType:\s*"partial_settlement"/);
-    assert.match(src, /kindVneseno === "writeoff" && !nastavitve\.reason/);
+    assert.match(src, /kindVneseno === "writeoff" && !efektivenRazlog\(nastavitve\)/);
   });
 
   await test("izvedba.js: preklop kind segmenta ponastavi odprt razlog meni", () => {

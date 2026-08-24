@@ -1562,6 +1562,292 @@ body.izvedba-sheet-open { overflow: hidden; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px 18px;
 }
+
+/* Poravnava - 3 cone (izbira / podrobnosti / potek primera), glej
+   docs/superpowers/specs/2026-08-23-delna-nedenarna-poravnava-design.md */
+.izvedba-poravnava-cona { margin-bottom: 10px; }
+.izvedba-poravnava-cona__naslov {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+  color: #6b7c7c;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.izvedba-poravnava-cona__stevilo-korakov {
+  margin-left: auto;
+  color: #10797d;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.izvedba-poravnava-cona__stevilka {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e4e9e6;
+  color: #4b5a5a;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.izvedba-potek-zneski {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  margin: 0 0 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(16,121,125,.16);
+  background: linear-gradient(120deg, rgba(16,121,125,.06), rgba(16,121,125,.01));
+  overflow: hidden;
+}
+.izvedba-potek-zneski__stolpec {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+}
+.izvedba-potek-zneski__stolpec--preostanek { align-items: flex-end; text-align: right; }
+.izvedba-potek-zneski__locilo {
+  width: 1px;
+  align-self: stretch;
+  margin: 10px 0;
+  background: rgba(16,121,125,.18);
+}
+.izvedba-potek-zneski__oznaka {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #6b7c7c;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.izvedba-potek-zneski__vrednost {
+  font-size: 17px;
+  font-weight: 800;
+  color: #131716;
+  line-height: 1.2;
+}
+.izvedba-potek-zneski__stolpec--preostanek .izvedba-potek-zneski__vrednost { color: #10797d; }
+
+.izvedba-poravnava-svicer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.izvedba-poravnava-svicer__gumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 4px 6px;
+  border: 1.5px solid #e4e9e6;
+  border-radius: 13px;
+  background: #fff;
+  cursor: pointer;
+}
+.izvedba-poravnava-svicer__gumb span:last-child {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.15;
+  color: #4b5a5a;
+}
+.izvedba-poravnava-svicer__ikona {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+}
+.izvedba-poravnava-svicer__ikona svg { width: 15px; height: 15px; }
+.izvedba-poravnava-svicer__gumb--placano .izvedba-poravnava-svicer__ikona { background: #299b63; }
+.izvedba-poravnava-svicer__gumb--delno .izvedba-poravnava-svicer__ikona { background: #3aa99c; }
+.izvedba-poravnava-svicer__gumb--kompenzacija .izvedba-poravnava-svicer__ikona { background: #448bd3; }
+.izvedba-poravnava-svicer__gumb--obrok .izvedba-poravnava-svicer__ikona { background: #397fd0; }
+.izvedba-poravnava-svicer__gumb--dobropis .izvedba-poravnava-svicer__ikona { background: #e89524; }
+.izvedba-poravnava-svicer__gumb--storno .izvedba-poravnava-svicer__ikona { background: #cf4c4c; }
+.izvedba-poravnava-svicer__gumb.is-selected { border-color: currentColor; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.izvedba-poravnava-svicer__gumb--placano.is-selected { border-color: #299b63; }
+.izvedba-poravnava-svicer__gumb--delno.is-selected { border-color: #3aa99c; }
+.izvedba-poravnava-svicer__gumb--kompenzacija.is-selected { border-color: #448bd3; }
+.izvedba-poravnava-svicer__gumb--obrok.is-selected { border-color: #397fd0; }
+.izvedba-poravnava-svicer__gumb--dobropis.is-selected { border-color: #e89524; }
+.izvedba-poravnava-svicer__gumb--storno.is-selected { border-color: #cf4c4c; }
+.izvedba-poravnava-svicer__gumb.is-selected span:last-child { color: #131716; }
+.izvedba-poravnava-svicer__gumb:disabled { opacity: .4; cursor: not-allowed; }
+.izvedba-poravnava-svicer__gumb:disabled.is-selected { opacity: 1; }
+.izvedba-poravnava-svicer__gumb--akcija-preklic .izvedba-poravnava-svicer__ikona { background: #f25a24; }
+.izvedba-poravnava-svicer__gumb--akcija-ustavi .izvedba-poravnava-svicer__ikona { background: #d51f32; }
+.izvedba-poravnava-svicer__gumb--akcija-odvetnik .izvedba-poravnava-svicer__ikona { background: #6941b4; }
+.izvedba-poravnava-svicer__gumb--akcija-prestavi .izvedba-poravnava-svicer__ikona { background: #237bd4; }
+.izvedba-poravnava-svicer__gumb--akcija-obljuba .izvedba-poravnava-svicer__ikona { background: #ef8a00; }
+.izvedba-poravnava-svicer__gumb--akcija-delno .izvedba-poravnava-svicer__ikona { background: #169b8f; }
+.izvedba-poravnava-svicer__gumb--akcija-preklic.is-selected { border-color: #f25a24; }
+.izvedba-poravnava-svicer__gumb--akcija-ustavi.is-selected { border-color: #d51f32; }
+.izvedba-poravnava-svicer__gumb--akcija-odvetnik.is-selected { border-color: #6941b4; }
+.izvedba-poravnava-svicer__gumb--akcija-prestavi.is-selected { border-color: #237bd4; }
+.izvedba-poravnava-svicer__gumb--akcija-obljuba.is-selected { border-color: #ef8a00; }
+.izvedba-poravnava-svicer__gumb--akcija-delno.is-selected { border-color: #169b8f; }
+
+.izvedba-poravnava-podrobnosti {
+  border-radius: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--action-rgb, 41,155,99), .25);
+  background: linear-gradient(118deg, rgba(var(--action-rgb, 41,155,99), .06), rgba(var(--action-rgb, 41,155,99), .015));
+}
+.izvedba-poravnava-podrobnosti__naslov { font-size: 14.5px; font-weight: 700; margin-bottom: 2px; }
+.izvedba-poravnava-podrobnosti__opis { font-size: 11px; color: #6b7c7c; margin: 0 0 6px; line-height: 1.3; }
+.izvedba-poravnava-podrobnosti--placano { --action-rgb: 41,155,99; }
+.izvedba-poravnava-podrobnosti--delno { --action-rgb: 58,169,156; }
+.izvedba-poravnava-podrobnosti--kompenzacija { --action-rgb: 68,139,211; }
+.izvedba-poravnava-podrobnosti--obrok { --action-rgb: 57,127,208; }
+.izvedba-poravnava-podrobnosti--dobropis { --action-rgb: 232,149,36; }
+.izvedba-poravnava-podrobnosti--storno { --action-rgb: 207,76,76; }
+.izvedba-poravnava-podrobnosti--akcija-preklic { --action-rgb: 242,90,36; }
+.izvedba-poravnava-podrobnosti--akcija-ustavi { --action-rgb: 213,31,50; }
+.izvedba-poravnava-podrobnosti--akcija-odvetnik { --action-rgb: 105,65,180; }
+.izvedba-poravnava-podrobnosti--akcija-prestavi { --action-rgb: 35,123,212; }
+.izvedba-poravnava-podrobnosti--akcija-obljuba { --action-rgb: 239,138,0; }
+.izvedba-poravnava-podrobnosti--akcija-delno { --action-rgb: 22,155,143; }
+
+.izvedba-poravnava-potek {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 132px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.izvedba-poravnava-potek__prazno {
+  margin: 0;
+  padding: 12px 4px;
+  color: #8a9797;
+  font-size: 11.5px;
+  text-align: center;
+}
+.izvedba-poravnava-korak {
+  --korak-accent: #b6bebe;
+  display: grid;
+  grid-template-columns: 24px 32px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--korak-accent-rgb, 182,190,190), .28);
+  border-radius: 13px;
+  background: linear-gradient(118deg, rgba(var(--korak-accent-rgb, 182,190,190), .1), rgba(var(--korak-accent-rgb, 182,190,190), .02));
+}
+.izvedba-poravnava-korak__stevilka {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #eef1f0;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  color: #6b7c7c;
+}
+.izvedba-poravnava-korak__ikona {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--korak-accent);
+}
+.izvedba-poravnava-korak__ikona svg { width: 16px; height: 16px; }
+.izvedba-poravnava-korak--placano,
+.izvedba-poravnava-korak--full { --korak-accent: #299b63; --korak-accent-rgb: 41,155,99; }
+.izvedba-poravnava-korak--delno,
+.izvedba-poravnava-korak--partial { --korak-accent: #3aa99c; --korak-accent-rgb: 58,169,156; }
+.izvedba-poravnava-korak--kompenzacija,
+.izvedba-poravnava-korak--compensation { --korak-accent: #448bd3; --korak-accent-rgb: 68,139,211; }
+.izvedba-poravnava-korak--obrok,
+.izvedba-poravnava-korak--installment { --korak-accent: #397fd0; --korak-accent-rgb: 57,127,208; }
+.izvedba-poravnava-korak--dobropis,
+.izvedba-poravnava-korak--credit_note { --korak-accent: #e89524; --korak-accent-rgb: 232,149,36; }
+.izvedba-poravnava-korak--storno,
+.izvedba-poravnava-korak--cancelled_invoice { --korak-accent: #cf4c4c; --korak-accent-rgb: 207,76,76; }
+.izvedba-poravnava-korak--preklic { --korak-accent: #f25a24; --korak-accent-rgb: 242,90,36; }
+.izvedba-poravnava-korak--ustavi { --korak-accent: #d51f32; --korak-accent-rgb: 213,31,50; }
+.izvedba-poravnava-korak--odvetnik { --korak-accent: #6941b4; --korak-accent-rgb: 105,65,180; }
+.izvedba-poravnava-korak--prestavi { --korak-accent: #237bd4; --korak-accent-rgb: 35,123,212; }
+.izvedba-poravnava-korak--obljuba { --korak-accent: #ef8a00; --korak-accent-rgb: 239,138,0; }
+.izvedba-poravnava-korak__info { min-width: 0; }
+.izvedba-poravnava-korak__info b { display: block; font-size: 13.5px; font-weight: 700; color: #131716; line-height: 1.3; }
+.izvedba-poravnava-korak__info-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.izvedba-poravnava-korak__pill {
+  display: inline-block;
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  background: rgba(var(--korak-accent-rgb, 182,190,190), .16);
+  color: var(--korak-accent);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+.izvedba-poravnava-korak__info-datum { font-size: 10.5px; color: #6b7c7c; }
+.izvedba-poravnava-korak__znesek-blok { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.izvedba-poravnava-korak__znesek-oznaka { font-size: 9px; font-weight: 700; color: #131716; }
+.izvedba-poravnava-korak__znesek { font-size: 13.5px; font-weight: 800; color: var(--korak-accent); }
+.izvedba-poravnava-korak__odstrani {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: #eef1f0;
+  color: #8a9797;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.izvedba-poravnava__korak-oznaka {
+  margin: 6px 0 4px;
+  color: #131716;
+  font-size: 11px;
+  font-weight: 700;
+}
+.izvedba-poravnava-znesek-datum {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.izvedba-poravnava-znesek-datum .izvedba-znesek { flex: 1 1 0; min-width: 0; }
+.izvedba-poravnava-znesek-datum .izvedba-action-sheet__datum { flex: 1 1 0; min-width: 0; margin-top: 0; }
+
+.izvedba-poravnava-dodaj-korak {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1.5px solid rgba(var(--action-rgb, 16,121,125), .4);
+  border-radius: 12px;
+  background: rgba(var(--action-rgb, 16,121,125), .05);
+  color: rgb(var(--action-rgb, 16,121,125));
+  font-weight: 700;
+  font-size: 12.5px;
+  text-align: center;
+  cursor: pointer;
+}
 .izvedba-action-card {
   --action-accent: #d94932;
   --action-rgb: 217, 73, 50;
@@ -1751,6 +2037,9 @@ body.izvedba-sheet-open { overflow: hidden; }
   padding: 2px;
   overflow: visible;
 }
+.izvedba-action-sheet .izvedba-segment--tri {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .izvedba-action-sheet .izvedba-segment__gumb {
   min-width: 0;
   min-height: 56px;
@@ -1769,22 +2058,47 @@ body.izvedba-sheet-open { overflow: hidden; }
   color: var(--action-accent);
   box-shadow: inset 0 0 0 2px var(--action-accent);
 }
+.izvedba-segment__datum-skrit {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  pointer-events: none;
+}
 .izvedba-action-sheet__datum {
-  position: relative;
+  display: block;
+  margin-top: 8px;
+}
+.izvedba-action-sheet__datum-gumb {
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
   gap: 4px;
+  width: 100%;
   min-height: 50px;
-  margin-top: 8px;
   padding: 4px 10px;
   border: 1px solid rgba(var(--action-rgb), .28);
   border-radius: 12px;
   background: rgba(255,255,255,.62);
-  color: var(--action-accent);
+  color: rgb(var(--action-rgb, 16,121,125));
+  cursor: pointer;
 }
-.izvedba-action-sheet__datum-ikona,
-.izvedba-action-sheet__datum-ikona svg { width: 24px; height: 24px; }
+.izvedba-action-sheet__datum-gumb:focus-visible { box-shadow: inset 0 0 0 2px rgb(var(--action-rgb, 16,121,125)); outline: 0; }
+.izvedba-action-sheet__datum-ikona {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(var(--action-rgb), .13);
+}
+.izvedba-action-sheet__datum-ikona svg { width: 16px; height: 16px; }
 .izvedba-action-sheet__datum-vrednost {
   min-width: 0;
   width: 100%;
@@ -1793,20 +2107,8 @@ body.izvedba-sheet-open { overflow: hidden; }
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
+  text-align: left;
 }
-.izvedba-action-sheet__datum input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  border: 0;
-  outline: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.izvedba-action-sheet__datum:focus-within { box-shadow: inset 0 0 0 2px var(--action-accent); }
 .izvedba-action-sheet .izvedba-znesek {
   position: relative;
   display: block;
@@ -1822,25 +2124,21 @@ body.izvedba-sheet-open { overflow: hidden; }
   color: #101315;
   text-align: center;
 }
+.izvedba-znesek__vnos--samo-prikaz {
+  display: grid;
+  place-items: center;
+  border: 1.5px solid rgba(var(--action-rgb, 41,155,99), .34);
+  background: rgba(var(--action-rgb, 41,155,99), .09);
+  color: #131716;
+  font-weight: 750;
+  cursor: default;
+}
 .izvedba-action-sheet .izvedba-znesek__vnos:focus,
 .izvedba-action-sheet .izvedba-znesek__vnos:focus-visible {
   border: 2px solid var(--action-accent);
   outline: 0;
   outline-offset: 0;
   box-shadow: none;
-}
-.izvedba-action-sheet .izvedba-znesek__vnos--samodejno {
-  display: grid;
-  place-items: center;
-  border: 1.5px solid rgba(var(--action-rgb), .34);
-  background: rgba(var(--action-rgb), .09);
-  color: #6f4610;
-  font-weight: 750;
-  line-height: 1;
-  cursor: default;
-}
-.izvedba-action-sheet .izvedba-znesek--samodejno .izvedba-znesek__ikona {
-  color: var(--action-accent);
 }
 .izvedba-poravnava__namig {
   margin: 8px 0 0;
@@ -1881,6 +2179,43 @@ body.izvedba-sheet-open { overflow: hidden; }
   outline: 0;
   border-color: var(--action-accent);
   box-shadow: inset 0 0 0 1px var(--action-accent);
+}
+.izvedba-poravnava__razlog-sprozi--lastno {
+  cursor: default;
+  align-items: start;
+  padding: 8px 6px 8px 12px;
+}
+.izvedba-poravnava__razlog-sprozi--lastno:focus-within {
+  outline: 0;
+  border-color: var(--action-accent);
+  box-shadow: inset 0 0 0 1px var(--action-accent);
+}
+.izvedba-poravnava__razlog-lastno-vnos {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 24px;
+  margin: 3px 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #172329;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.3;
+  resize: none;
+  overflow: hidden;
+}
+.izvedba-poravnava__razlog-lastno-vnos:focus { outline: 0; }
+.izvedba-poravnava__razlog-menjaj {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 .izvedba-poravnava__razlog-puscica {
   justify-self: center;
@@ -1959,22 +2294,46 @@ body.izvedba-sheet-open { overflow: hidden; }
   place-items: center;
   width: 25px;
   height: 25px;
-  color: var(--action-accent);
+  color: rgb(var(--action-rgb, 41,155,99));
   transform: translateY(-50%);
   pointer-events: none;
 }
 .izvedba-znesek__ikona svg { width: 23px; height: 23px; }
+.izvedba-znesek__ikona--eur {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(var(--action-rgb), .13);
+  font-size: 13px;
+  font-weight: 800;
+}
+.izvedba-znesek__ikona-levo {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(var(--action-rgb), .13);
+  color: rgb(var(--action-rgb, 41,155,99));
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.izvedba-znesek__ikona-levo svg { width: 14px; height: 14px; }
+.izvedba-znesek--urejljivo .izvedba-znesek__vnos { padding-left: 46px; }
 .izvedba-action-sheet__footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   gap: 10px;
-  padding-top: 20px;
+  padding-top: 12px;
 }
 .izvedba-action-sheet__dejanje,
 .izvedba-action-sheet__nazaj {
   width: 100%;
-  min-height: 58px;
+  min-height: 52px;
   border-radius: 13px;
   font: inherit;
   font-size: 19px;
@@ -1994,6 +2353,11 @@ body.izvedba-sheet-open { overflow: hidden; }
   font-weight: 750;
 }
 .izvedba-action-sheet__dejanje:disabled { cursor: wait; opacity: .58; }
+.izvedba-action-sheet__panel--poravnano .izvedba-action-sheet__dejanje {
+  border: 1px solid rgba(77,148,148,.55);
+  background: linear-gradient(to top, #3d7676, #4d9494);
+  box-shadow: 0 8px 20px rgba(61,118,118,.18);
+}
 .izvedba-action-sheet__nazaj {
   width: 100%;
   min-height: 42px;
@@ -2019,6 +2383,13 @@ body.izvedba-sheet-open { overflow: hidden; }
     max-height: calc(100lvh - 44px);
     padding: 8px 14px calc(10px + env(safe-area-inset-bottom, 0px));
     border-radius: 26px 26px 0 0;
+  }
+  .izvedba-action-sheet__panel--poravnano,
+  .izvedba-action-sheet__panel--akcije {
+    height: 100lvh;
+    max-height: 100lvh;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    border-radius: 0;
   }
   .izvedba-action-sheet__rocaj { width: 40px; height: 4px; margin-bottom: 9px; }
   .izvedba-action-sheet__header { grid-template-columns: 34px minmax(0,1fr) 28px; gap: 8px; margin: 0 0 10px; padding-inline: 2px; }
@@ -2070,11 +2441,17 @@ body.izvedba-sheet-open { overflow: hidden; }
   .izvedba-poravnava__razlog-meni { bottom: calc(100% + 5px); gap: 2px; padding: 5px; border-radius: 11px; }
   .izvedba-poravnava__razlog-moznost { min-height: 30px; padding: 4px 7px; border-radius: 8px; font-size: 11px; }
   .izvedba-poravnava__razlog-kljukica { width: 18px; height: 18px; font-size: 10px; }
+  .izvedba-poravnava__razlog-lastno-vnos { font-size: 12px; min-height: 20px; }
   .izvedba-znesek__ikona { right: 8px; width: 18px; height: 18px; }
   .izvedba-znesek__ikona svg { width: 17px; height: 17px; }
-  .izvedba-action-sheet__datum { min-height: 34px; margin-top: 4px; grid-template-columns: 22px minmax(0,1fr); padding: 1px 6px; }
-  .izvedba-action-sheet__datum-ikona,
-  .izvedba-action-sheet__datum-ikona svg { width: 19px; height: 19px; }
+  .izvedba-znesek__ikona--eur { font-size: 10px; }
+  .izvedba-znesek__ikona-levo { left: 6px; width: 18px; height: 18px; }
+  .izvedba-znesek__ikona-levo svg { width: 11px; height: 11px; }
+  .izvedba-action-sheet .izvedba-znesek--urejljivo .izvedba-znesek__vnos { padding-left: 30px; }
+  .izvedba-action-sheet__datum { margin-top: 4px; }
+  .izvedba-action-sheet__datum-gumb { min-height: 34px; grid-template-columns: 22px minmax(0,1fr); padding: 1px 6px; }
+  .izvedba-action-sheet__datum-ikona { width: 19px; height: 19px; }
+  .izvedba-action-sheet__datum-ikona svg { width: 12px; height: 12px; }
   .izvedba-action-sheet__datum-vrednost { font-size: 12px; }
   .izvedba-action-sheet__footer { gap: 7px; padding-top: 7px; }
   .izvedba-action-sheet__dejanje { min-height: 51px; font-size: 14px; }
