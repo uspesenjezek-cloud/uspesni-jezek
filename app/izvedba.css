@@ -1812,7 +1812,7 @@ body.izvedba-sheet-open { overflow: hidden; }
   font-weight: 700;
 }
 .izvedba-poravnava-korak__info-datum { font-size: 10.5px; color: #6b7c7c; }
-.izvedba-poravnava-korak__znesek-blok { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.izvedba-poravnava-korak__znesek-blok { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; margin-right: 6px; }
 .izvedba-poravnava-korak__znesek-oznaka { font-size: 9px; font-weight: 700; color: #131716; }
 .izvedba-poravnava-korak__znesek { font-size: 13.5px; font-weight: 800; color: var(--korak-accent); }
 .izvedba-poravnava-korak__odstrani {
