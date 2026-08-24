@@ -491,6 +491,14 @@
     state.nacrtKoraki.splice(indeks, 1);
   }
 
+  function pomakniPotekNaDno() {
+    requestAnimationFrame(function () {
+      var potek = elActionSheet && elActionSheet.querySelector(".izvedba-poravnava-potek");
+      if (!potek) return;
+      potek.scrollTo({ top: potek.scrollHeight, behavior: "smooth" });
+    });
+  }
+
   async function nastaviNovNacrt() {
     if (state.isSubmitting || !state.nacrtKoraki.length) return;
     state.isSubmitting = true;
@@ -1451,6 +1459,7 @@
         if (nacrtDodaj) {
           dodajKorakVNacrt();
           izrisiActionSheet();
+          pomakniPotekNaDno();
           return;
         }
         var nacrtOdstrani = event.target.closest("[data-nacrt-odstrani]");
