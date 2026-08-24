@@ -76,8 +76,30 @@ async function handler(req, res) {
       cfg,
       "opomin_ukrepi",
       "zadeva_id=eq." + encodeURIComponent(zadevaId) +
-        "&select=action_id,step_id,action_type,status,created_at,completed_at&order=created_at.desc&limit=20"
+        "&select=action_id,step_id,action_type,status,settings,created_at,completed_at&order=created_at.desc&limit=20"
     );
+
+    var prodajalec = null;
+    try {
+      var profilVrstice = await db.pridobiVrstice(
+        cfg,
+        "pos_business_profiles",
+        "user_id=eq." + encodeURIComponent(auth.user.id) +
+          "&select=legal_name,street,postal_code,city,tax_number,vat_id,iban&limit=1"
+      );
+      var profil = profilVrstice[0] || null;
+      prodajalec = profil ? {
+        imePodjetja: profil.legal_name,
+        naslov: profil.street,
+        posta: profil.postal_code,
+        mesto: profil.city,
+        davcnaStevilka: profil.tax_number,
+        idZaDdv: profil.vat_id,
+        iban: profil.iban,
+      } : null;
+    } catch (profilErr) {
+      console.error("[pridobi-izvedbo] profil podjetja", profilErr.code || profilErr.message);
+    }
 
     var plan = zadeva.opomin_nacrt || {};
     var vkljuceniStepi = (plan.steps || []).filter(function (s) { return !s.isExcluded; });
@@ -109,6 +131,7 @@ async function handler(req, res) {
       plan: plan,
       steps: koraki,
       ukrepi: ukrepi,
+      prodajalec: prodajalec,
       currentStepId: trenutniStepId,
       totalSteps: vkljuceniStepi.length,
       emailNaVoljo: false,

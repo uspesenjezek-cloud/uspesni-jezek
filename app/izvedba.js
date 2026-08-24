@@ -114,6 +114,12 @@
     settlementReasonMenuOpen: false,
     settlementReasonMenuTip: null,
     settlementSettings: JSON.parse(JSON.stringify(DEFAULT_SETTLEMENT_SETTINGS)),
+    prodajalec: null,
+    actionSheetStep: "izbira",
+    razsirjenKorakPovzetka: null,
+    aktivenDokument: 0,
+    pregledDokumenta: null,
+    kanaliPosiljanja: { sms: true, email: true },
   };
 
   function urlParametri() {
@@ -276,6 +282,7 @@
     state.plan = odgovor.plan;
     state.steps = odgovor.steps || [];
     state.ukrepi = odgovor.ukrepi || state.ukrepi || [];
+    if (odgovor.prodajalec !== undefined) state.prodajalec = odgovor.prodajalec;
     state.serverVersion = String((odgovor.plan && odgovor.plan.version) || odgovor.version || "0");
     // Ohrani trenutno odprt korak, če še obstaja v načrtu ali med izvedbenimi vrsticami.
     var korakiPlana = ((state.plan && state.plan.steps) || []).filter(function (step) {
@@ -673,6 +680,11 @@
     state.settlementSettings = JSON.parse(JSON.stringify(DEFAULT_SETTLEMENT_SETTINGS));
     state.settlementSettings.credit_note.settlementAmount = trenutniPreostaliDolg();
     state.nacrtKoraki = [];
+    state.actionSheetStep = "izbira";
+    state.razsirjenKorakPovzetka = null;
+    state.aktivenDokument = 0;
+    state.pregledDokumenta = null;
+    state.kanaliPosiljanja = { sms: true, email: true };
     state.actionSheetOpen = true;
     izrisiSticky();
     izrisiActionSheet();
@@ -1200,7 +1212,186 @@
       '<div class="izvedba-poravnava-potek">' + vrstice + '</div></div>';
   }
 
+  function pozicijaTrenutnegaOpomina() {
+    var korakiPlana = ((state.plan && state.plan.steps) || []).filter(function (step) {
+      return step && !step.isExcluded;
+    });
+    var indeks = korakiPlana.findIndex(function (step, polozaj) {
+      return String(step.stepId || step.id || ("step-" + (polozaj + 1))) === String(state.currentStepId);
+    });
+    return indeks >= 0 ? indeks + 1 : korakiPlana.length || 1;
+  }
+
+  function sestaviPripovedPovzetka() {
+    var pozicija = pozicijaTrenutnegaOpomina();
+    var zadnji = (state.ukrepi || []).filter(function (u) { return u.status === "completed"; })[0];
+    var opisZadnjega = zadnji ? opisUkrepaZaZgodovino(zadnji) : null;
+    var steviloKorakov = (state.nacrtKoraki || []).length;
+    var prviStavek = opisZadnjega
+      ? "Pri <b>" + K.esc(String(pozicija)) + ". opominu</b> ste zabeležili " + K.esc(opisZadnjega.naslov.toLowerCase()) + "."
+      : "";
+    var drugiStavek = "Zdaj sledi nov plačilni plan z <b>" + steviloKorakov + " " + K.esc(besedaZaSteviloKorakov(steviloKorakov)) + "</b>.";
+    return '<div class="izvedba-poravnava-pripoved">' +
+      (prviStavek ? '<p>' + prviStavek + '</p>' : '') +
+      '<p>' + drugiStavek + '</p>' +
+    '</div>';
+  }
+
+  function izrisiKorakiPovzetka() {
+    var seznam = state.nacrtKoraki || [];
+    var vrstice = seznam.map(function (korak, i) {
+      var razsirjen = state.razsirjenKorakPovzetka === i;
+      var podrobnosti = '';
+      if (korak.settings) {
+        if (korak.settings.paymentAmount != null) podrobnosti += 'Prejeti znesek: ' + K.formatirajEur(korak.settings.paymentAmount) + '<br>';
+        if (korak.settings.kind === "writeoff" && korak.settings.reason) podrobnosti += 'Razlog: ' + K.esc(korak.settings.reason) + '<br>';
+      }
+      podrobnosti += 'Datum: ' + K.esc(K.formatirajDatumUro(korak.datum)) + '<br>';
+      var znesekVsebina = korak.znesek != null
+        ? '<span class="izvedba-poravnava-korak__znesek-blok"><span class="izvedba-poravnava-korak__znesek">' + K.esc(K.formatirajEur(korak.znesek)) + '</span></span>'
+        : '<span></span>';
+      return '<div class="izvedba-poravnava-korak izvedba-poravnava-korak--' + K.esc(korak.razred) + '">' +
+        '<span class="izvedba-poravnava-korak__stevilka" aria-hidden="true">' + (i + 1) + '</span>' +
+        '<span class="izvedba-poravnava-korak__ikona" aria-hidden="true">' + K.ikona(korak.ikona) + '</span>' +
+        '<span class="izvedba-poravnava-korak__info"><b data-izvedba-fit data-fit-min="8">' + K.esc(korak.naslov) + '</b><span class="izvedba-poravnava-korak__info-meta"><span class="izvedba-poravnava-korak__info-datum">' + (i + 1) + '. korak · ' + K.esc(K.formatirajDatumUro(korak.datum)) + '</span></span></span>' +
+        znesekVsebina +
+        '<button type="button" class="izvedba-poravnava-korak__razsiri' + (razsirjen ? ' is-razsirjen' : '') + '" data-povzetek-korak-razsiri="' + i + '" aria-label="Podrobnosti koraka" aria-expanded="' + String(razsirjen) + '">' + K.ikona("chevron") + '</button>' +
+        (razsirjen ? '<div class="izvedba-poravnava-korak__podrobnosti">' + podrobnosti + '</div>' : '') +
+      '</div>';
+    }).join('');
+    return '<div class="izvedba-povzetek-cona"><p class="izvedba-povzetek-cona__naslov">Koraki plačilnega načrta</p>' +
+      '<div class="izvedba-poravnava-potek izvedba-poravnava-potek--povzetek">' + vrstice + '</div></div>';
+  }
+
+  function izrisiKanaliPosiljanja() {
+    var imaTel = Boolean(state.zadeva && state.zadeva.telefonDolznika);
+    var imaEmail = Boolean(state.zadeva && state.zadeva.emailDolznika);
+    var smsOznaka = "SMS" + (imaTel ? " · " + K.esc(state.zadeva.telefonDolznika) : "");
+    var emailOznaka = "E-pošta" + (imaEmail ? " · " + K.esc(state.zadeva.emailDolznika) : "");
+    return '<div class="izvedba-povzetek-kanali">' +
+      '<button type="button" class="izvedba-povzetek-kanal' + (state.kanaliPosiljanja.sms ? ' is-selected' : '') + '" data-povzetek-kanal="sms" aria-pressed="' + String(state.kanaliPosiljanja.sms) + '" ' + (imaTel ? '' : 'disabled title="Dolžnik nima telefonske številke."') + '>' +
+        '<span class="izvedba-povzetek-kanal__kljukica" aria-hidden="true">' + K.ikona("checkCircle") + '</span>' + smsOznaka +
+      '</button>' +
+      '<button type="button" class="izvedba-povzetek-kanal' + (state.kanaliPosiljanja.email ? ' is-selected' : '') + '" data-povzetek-kanal="email" aria-pressed="' + String(state.kanaliPosiljanja.email) + '" ' + (imaEmail ? '' : 'disabled title="Dolžnik nima e-poštnega naslova."') + '>' +
+        '<span class="izvedba-povzetek-kanal__kljukica" aria-hidden="true">' + K.ikona("checkCircle") + '</span>' + emailOznaka +
+      '</button>' +
+    '</div>';
+  }
+
+  var DOKUMENT_NASLOV = { placano: "Potrdilo o plačilu", delno: "Račun", kompenzacija: "Potrdilo o kompenzaciji", obrok: "Račun", dobropis: "Dobropis", storno: "Dobropis" };
+
+  function pripraviDokumenteZaPredogled() {
+    var preostanek = trenutniPreostaliDolg();
+    return (state.nacrtKoraki || []).map(function (korak, i) {
+      var pred = preostanek;
+      var po = korak.znesek != null ? Math.max(0, preostanek - korak.znesek) : preostanek;
+      preostanek = po;
+      return {
+        naslov: DOKUMENT_NASLOV[korak.razred] || "Dokument",
+        stevilka: (state.zadeva && state.zadeva.stevilkaRacuna ? state.zadeva.stevilkaRacuna : "—") + "/" + (i + 1),
+        datum: korak.datum,
+        korakNaslov: korak.naslov,
+        znesek: korak.znesek,
+        pred: pred,
+        po: po,
+        razred: korak.razred,
+      };
+    });
+  }
+
+  function izrisiPredogledRacunov() {
+    var dokumenti = pripraviDokumenteZaPredogled();
+    if (!dokumenti.length) return "";
+    var i = Math.min(state.aktivenDokument || 0, dokumenti.length - 1);
+    var dok = dokumenti[i];
+    var prodajalec = state.prodajalec;
+    var glavaProdajalca = prodajalec
+      ? K.esc(prodajalec.imePodjetja || "") + (prodajalec.naslov ? '<br>' + K.esc(prodajalec.naslov) : '') + (prodajalec.mesto ? ', ' + K.esc(prodajalec.mesto) : '')
+      : '<span class="izvedba-poravnava__namig">Podatki podjetja še niso nastavljeni.</span>';
+    var zavihki = dokumenti.length > 1
+      ? '<div class="izvedba-povzetek-zavihki">' + dokumenti.map(function (d, di) {
+          return '<button type="button" class="izvedba-povzetek-zavihek' + (di === i ? ' is-selected' : '') + '" data-povzetek-dokument="' + di + '">' + (di + 1) + '. ' + K.esc(d.naslov.toLowerCase()) + '</button>';
+        }).join('') + '</div>'
+      : '';
+    return '<div class="izvedba-poravnava-podrobnosti izvedba-poravnava-podrobnosti--racun">' +
+      '<div class="izvedba-povzetek-racun-glava"><span class="izvedba-povzetek-racun-ikona" aria-hidden="true">' + K.ikona("receiptCheck") + '</span><span>Predogled računov</span><span class="izvedba-povzetek-racun-stevec">' + dokumenti.length + '</span></div>' +
+      zavihki +
+      '<div class="izvedba-povzetek-dokument">' +
+        '<div class="izvedba-povzetek-dokument__vrstica"><span>' + glavaProdajalca + '</span><span class="izvedba-povzetek-dokument__desno">' + K.esc(dok.naslov) + ' št. ' + K.esc(dok.stevilka) + '<br>Datum: ' + K.esc(K.formatirajDatumUro(dok.datum)) + '</span></div>' +
+        '<div class="izvedba-povzetek-dokument__postavke">' +
+          '<div class="izvedba-povzetek-dokument__vrstica"><span>Znesek pred korakom</span><span>' + K.esc(K.formatirajEur(dok.pred)) + '</span></div>' +
+          '<div class="izvedba-povzetek-dokument__vrstica izvedba-povzetek-dokument__vrstica--' + K.esc(dok.razred) + '"><span>' + K.esc(dok.korakNaslov) + '</span><span>' + (dok.znesek != null ? '−' + K.esc(K.formatirajEur(dok.znesek)) : '—') + '</span></div>' +
+        '</div>' +
+        '<div class="izvedba-povzetek-dokument__skupaj"><span>' + (dok.po <= 0 ? 'Za plačilo' : 'Preostanek') + '</span><span>' + K.esc(K.formatirajEur(dok.po)) + '</span></div>' +
+        '<button type="button" class="izvedba-poravnava-dodaj-korak" data-povzetek-poglej="' + i + '">Preglej celoten račun</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function izrisiPoravnavaPolniRacun() {
+    var dokumenti = pripraviDokumenteZaPredogled();
+    var i = Math.min(state.pregledDokumenta || 0, Math.max(0, dokumenti.length - 1));
+    var dok = dokumenti[i];
+    var prodajalec = state.prodajalec;
+    elActionSheet.hidden = false;
+    elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
+      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano izvedba-action-sheet__panel--poravnava-' + K.esc(dok ? dok.razred : "placano") + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
+        '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>' +
+        '<header class="izvedba-action-sheet__header izvedba-action-sheet__header--povzetek">' +
+          '<button type="button" class="izvedba-action-sheet__nazaj-puscica" data-povzetek-nazaj aria-label="Nazaj na povzetek"><span class="izvedba-action-sheet__nazaj-ikona" aria-hidden="true">' + K.ikona("chevron") + '</span></button>' +
+          '<h2 id="izvedba-action-sheet-title" data-izvedba-fit data-fit-min="14">' + (dok ? K.esc(dok.naslov) + ' ' + K.esc(dok.stevilka) : "Dokument") + '</h2>' +
+        '</header>' +
+        '<div class="izvedba-action-sheet__scroll"><div class="izvedba-pdf-list">' + (dok ? '' +
+          '<div class="izvedba-pdf">' +
+            '<div class="izvedba-pdf__glava">' +
+              '<div>' + (prodajalec ? '<b>' + K.esc(prodajalec.imePodjetja || "") + '</b><br>' + K.esc(prodajalec.naslov || "") + (prodajalec.posta || prodajalec.mesto ? '<br>' + K.esc((prodajalec.posta || "") + " " + (prodajalec.mesto || "")) : "") + (prodajalec.davcnaStevilka ? '<br>DŠ: ' + K.esc(prodajalec.davcnaStevilka) : "") + (prodajalec.iban ? '<br>IBAN: ' + K.esc(prodajalec.iban) : "") : 'Podatki podjetja še niso nastavljeni.') + '</div>' +
+              '<div class="izvedba-pdf__glava-desno"><b>' + K.esc(dok.naslov) + ' št. ' + K.esc(dok.stevilka) + '</b><br>Izdano: ' + K.esc(K.formatirajDatumUro(dok.datum)) + '</div>' +
+            '</div>' +
+            '<div class="izvedba-pdf__kupec"><b>Kupec:</b> ' + K.esc((state.zadeva && state.zadeva.imeDolznika) || "") + (state.zadeva && state.zadeva.opisDolga ? '<br>Opis: ' + K.esc(state.zadeva.opisDolga) : '') + '</div>' +
+            '<table class="izvedba-pdf__tabela"><tr><th>Postavka</th><th>Znesek</th></tr>' +
+              '<tr><td>Znesek pred korakom</td><td>' + K.esc(K.formatirajEur(dok.pred)) + '</td></tr>' +
+              '<tr><td>' + K.esc(dok.korakNaslov) + ' · ' + K.esc(K.formatirajDatumUro(dok.datum)) + '</td><td>' + (dok.znesek != null ? '−' + K.esc(K.formatirajEur(dok.znesek)) : '—') + '</td></tr>' +
+            '</table>' +
+            '<div class="izvedba-pdf__skupaj"><span>' + (dok.po <= 0 ? 'Za plačilo' : 'Preostanek') + '</span><span>' + K.esc(K.formatirajEur(dok.po)) + '</span></div>' +
+          '</div>'
+        : '<p>Dokument ni na voljo.</p>') + '</div></div>' +
+      '</section>';
+    zakleniOzadjeSheeta();
+  }
+
+  function izrisiPoravnavaPovzetek() {
+    var steviloNacrtovanih = (state.nacrtKoraki || []).length;
+    var dejanje = '<button type="button" class="izvedba-action-sheet__dejanje" data-action-sheet-confirm data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting || steviloNacrtovanih === 0 ? 'disabled' : '') + '>' +
+      (state.isSubmitting ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span>' : '') + 'Potrdi in pošlji' + '</button>';
+    elActionSheet.hidden = false;
+    elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
+      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
+        '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>' +
+        '<header class="izvedba-action-sheet__header izvedba-action-sheet__header--povzetek">' +
+          '<button type="button" class="izvedba-action-sheet__nazaj-puscica" data-povzetek-nazaj aria-label="Nazaj na izbiro koraka"><span class="izvedba-action-sheet__nazaj-ikona" aria-hidden="true">' + K.ikona("chevron") + '</span></button>' +
+          '<h2 id="izvedba-action-sheet-title" data-izvedba-fit data-fit-min="14">Povzetek načrta</h2>' +
+          '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button>' +
+        '</header>' +
+        '<div class="izvedba-action-sheet__scroll">' +
+          sestaviPripovedPovzetka() +
+          izrisiKorakiPovzetka() +
+          izrisiKanaliPosiljanja() +
+          izrisiPredogledRacunov() +
+          '<div class="izvedba-action-sheet__footer">' + (state.error ? '<p class="izvedba-action-sheet__napaka" role="alert">' + K.esc(state.error) + '</p>' : '') +
+            dejanje + '</div></div></section>';
+    zakleniOzadjeSheeta();
+    requestAnimationFrame(function () { prilagodiBesediloOmejenemuPolju(elActionSheet); });
+  }
+
   function izrisiPoravnavaSheet() {
+    if (state.pregledDokumenta != null) {
+      izrisiPoravnavaPolniRacun();
+      return;
+    }
+    if (state.actionSheetStep === "povzetek") {
+      izrisiPoravnavaPovzetek();
+      return;
+    }
     var meta = SETTLEMENT_META[state.selectedSettlementType];
     var steviloNacrtovanih = (state.nacrtKoraki || []).length;
     var dejanje = meta ? '<button type="button" class="izvedba-action-sheet__dejanje" data-action-sheet-confirm data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting || steviloNacrtovanih === 0 ? 'disabled' : '') + '>' +
@@ -1451,11 +1642,54 @@
       var confirm = event.target.closest("[data-action-sheet-confirm]");
       if (confirm) {
         if (state.actionSheetMode === "payment") {
-          nastaviNovNacrt();
+          if (state.actionSheetStep === "izbira") {
+            state.actionSheetStep = "povzetek";
+            izrisiActionSheet();
+          } else {
+            nastaviNovNacrt();
+          }
         } else {
           submitSelectedAction();
         }
         return;
+      }
+      var povzetekNazaj = event.target.closest("[data-povzetek-nazaj]");
+      if (povzetekNazaj) {
+        if (state.pregledDokumenta != null) {
+          state.pregledDokumenta = null;
+        } else {
+          state.actionSheetStep = "izbira";
+        }
+        izrisiActionSheet();
+        return;
+      }
+      if (state.actionSheetStep === "povzetek" && state.actionSheetMode === "payment") {
+        var korakRazsiri = event.target.closest("[data-povzetek-korak-razsiri]");
+        if (korakRazsiri) {
+          var indeksKoraka = Number(korakRazsiri.getAttribute("data-povzetek-korak-razsiri"));
+          state.razsirjenKorakPovzetka = state.razsirjenKorakPovzetka === indeksKoraka ? null : indeksKoraka;
+          izrisiActionSheet();
+          return;
+        }
+        var kanalGumb = event.target.closest("[data-povzetek-kanal]");
+        if (kanalGumb) {
+          var kanalIme = kanalGumb.getAttribute("data-povzetek-kanal");
+          state.kanaliPosiljanja[kanalIme] = !state.kanaliPosiljanja[kanalIme];
+          izrisiActionSheet();
+          return;
+        }
+        var dokumentZavihek = event.target.closest("[data-povzetek-dokument]");
+        if (dokumentZavihek) {
+          state.aktivenDokument = Number(dokumentZavihek.getAttribute("data-povzetek-dokument"));
+          izrisiActionSheet();
+          return;
+        }
+        var poglejCeloten = event.target.closest("[data-povzetek-poglej]");
+        if (poglejCeloten) {
+          state.pregledDokumenta = Number(poglejCeloten.getAttribute("data-povzetek-poglej"));
+          izrisiActionSheet();
+          return;
+        }
       }
       if (state.actionSheetMode === "payment") {
         var nacrtDodaj = event.target.closest("[data-nacrt-dodaj]");

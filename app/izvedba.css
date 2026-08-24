@@ -2690,3 +2690,182 @@ body.izvedba-sheet-open { overflow: hidden; }
   .izvedba-mini-korak { flex-basis: 72px; min-width: 72px; }
   .izvedba-mini-korak.is-current { flex-basis: 86px; min-width: 86px; }
 }
+
+.izvedba-action-sheet__header--povzetek {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.izvedba-action-sheet__header--povzetek h2 { flex: 1 1 0; min-width: 0; margin: 0; font-size: 17px; font-weight: 700; color: #131716; }
+.izvedba-action-sheet__nazaj-puscica {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d7e0de;
+  border-radius: 50%;
+  background: #fff;
+  color: #10797d;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.izvedba-action-sheet__nazaj-ikona svg { width: 16px; height: 16px; transform: rotate(180deg); }
+
+.izvedba-poravnava-pripoved {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(16,121,125,.07);
+  border: 1px solid rgba(16,121,125,.16);
+  margin-bottom: 18px;
+}
+.izvedba-poravnava-pripoved p { margin: 0; font-size: 12.5px; line-height: 1.55; color: #2f3f3e; }
+.izvedba-poravnava-pripoved p + p { margin-top: 6px; }
+
+.izvedba-povzetek-cona { margin-bottom: 18px; }
+.izvedba-povzetek-cona__naslov {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: #6b7c7c;
+}
+
+.izvedba-poravnava-potek--povzetek { max-height: none; overflow: visible; padding-right: 0; }
+.izvedba-poravnava-potek--povzetek .izvedba-poravnava-korak { position: relative; }
+.izvedba-poravnava-korak__razsiri {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  color: #8a9797;
+  cursor: pointer;
+}
+.izvedba-poravnava-korak__razsiri svg { width: 14px; height: 14px; transform: rotate(90deg); transition: transform .15s ease; }
+.izvedba-poravnava-korak__razsiri.is-razsirjen svg { transform: rotate(-90deg); }
+.izvedba-poravnava-korak__podrobnosti {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(0,0,0,.08);
+  font-size: 11.5px;
+  color: #5c6b6a;
+  line-height: 1.6;
+}
+
+.izvedba-povzetek-kanali { display: flex; gap: 8px; margin-bottom: 18px; }
+.izvedba-povzetek-kanal {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  border: 1px solid #d7e0de;
+  border-radius: 11px;
+  background: #fff;
+  color: #6b7c7c;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.izvedba-povzetek-kanal.is-selected { border-color: #71b4b3; background: #dff3f1; color: #159393; }
+.izvedba-povzetek-kanal:disabled { opacity: .45; cursor: not-allowed; }
+.izvedba-povzetek-kanal__kljukica { display: none; width: 14px; height: 14px; }
+.izvedba-povzetek-kanal__kljukica svg { width: 14px; height: 14px; }
+.izvedba-povzetek-kanal.is-selected .izvedba-povzetek-kanal__kljukica { display: grid; place-items: center; }
+
+.izvedba-poravnava-podrobnosti--racun { --action-rgb: 16,121,125; }
+.izvedba-povzetek-racun-glava {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #131716;
+}
+.izvedba-povzetek-racun-ikona { display: grid; place-items: center; color: #10797d; }
+.izvedba-povzetek-racun-ikona svg { width: 20px; height: 20px; }
+.izvedba-povzetek-racun-stevec {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  color: #10797d;
+  background: rgba(16,121,125,.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.izvedba-povzetek-zavihki { display: flex; gap: 8px; margin: 12px 0 4px; }
+.izvedba-povzetek-zavihek {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #d7e0de;
+  border-radius: 10px;
+  background: #fff;
+  color: #6b7c7c;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+.izvedba-povzetek-zavihek.is-selected { border-color: #71b4b3; background: #dff3f1; color: #159393; }
+.izvedba-povzetek-dokument { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.izvedba-povzetek-dokument__vrstica { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #5c6b6a; line-height: 1.5; }
+.izvedba-povzetek-dokument__desno { text-align: right; }
+.izvedba-povzetek-dokument__postavke { display: flex; flex-direction: column; gap: 7px; padding-top: 10px; border-top: 1px dashed #e4e9e6; }
+.izvedba-povzetek-dokument__postavke .izvedba-povzetek-dokument__vrstica { font-size: 12.5px; color: #131716; }
+.izvedba-povzetek-dokument__vrstica--dobropis span:last-child,
+.izvedba-povzetek-dokument__vrstica--storno span:last-child { color: #e89524; }
+.izvedba-povzetek-dokument__vrstica--placano span:last-child,
+.izvedba-povzetek-dokument__vrstica--delno span:last-child,
+.izvedba-povzetek-dokument__vrstica--obrok span:last-child { color: #299b63; }
+.izvedba-povzetek-dokument__skupaj {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #e4e9e6;
+  font-size: 14px;
+  font-weight: 800;
+  color: #131716;
+}
+.izvedba-povzetek-dokument__skupaj span:last-child { color: #10797d; }
+
+.izvedba-pdf-list { display: flex; flex-direction: column; gap: 16px; }
+.izvedba-pdf {
+  background: #fff;
+  border: 1px solid #e4e9e6;
+  border-radius: 6px;
+  padding: 24px 20px;
+  font-size: 12px;
+  color: #333;
+  line-height: 1.65;
+}
+.izvedba-pdf__glava { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.izvedba-pdf__glava-desno { text-align: right; }
+.izvedba-pdf__kupec { margin-bottom: 16px; padding-top: 12px; border-top: 1px solid #eee; }
+.izvedba-pdf__tabela { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+.izvedba-pdf__tabela th { text-align: left; padding: 6px 0; border-bottom: 1px solid #ddd; font-weight: 700; }
+.izvedba-pdf__tabela td { padding: 6px 0; }
+.izvedba-pdf__tabela th:last-child, .izvedba-pdf__tabela td:last-child { text-align: right; }
+.izvedba-pdf__skupaj {
+  display: flex;
+  justify-content: space-between;
+  border-top: 2px solid #131716;
+  padding-top: 10px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .izvedba-poravnava-pripoved { padding: 12px 14px; }
+  .izvedba-poravnava-pripoved p { font-size: 11.5px; }
+  .izvedba-povzetek-kanal { height: 32px; font-size: 11.5px; }
+  .izvedba-povzetek-zavihek { height: 30px; font-size: 10.5px; }
+}
