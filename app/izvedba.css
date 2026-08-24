@@ -1667,21 +1667,21 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-poravnava-svicer__gumb--akcija-obljuba { --svicer-rgb: 239,138,0; }
 .izvedba-poravnava-svicer__gumb--akcija-delno { --svicer-rgb: 22,155,143; }
 .izvedba-poravnava-svicer__gumb span:last-child {
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 800;
   text-align: center;
   line-height: 1.15;
-  color: #4b5a5a;
+  color: #3d4a49;
 }
 .izvedba-poravnava-svicer__ikona {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   color: #fff;
 }
-.izvedba-poravnava-svicer__ikona svg { width: 16px; height: 16px; }
+.izvedba-poravnava-svicer__ikona svg { width: 13px; height: 13px; }
 .izvedba-poravnava-svicer__gumb--placano .izvedba-poravnava-svicer__ikona { background: #299b63; }
 .izvedba-poravnava-svicer__gumb--delno .izvedba-poravnava-svicer__ikona { background: #3aa99c; }
 .izvedba-poravnava-svicer__gumb--kompenzacija .izvedba-poravnava-svicer__ikona { background: #448bd3; }
