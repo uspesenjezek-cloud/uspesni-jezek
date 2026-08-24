@@ -1649,11 +1649,23 @@ body.izvedba-sheet-open { overflow: hidden; }
   align-items: center;
   gap: 4px;
   padding: 7px 4px 6px;
-  border: 1.5px solid #e4e9e6;
+  border: 1.5px solid rgba(var(--svicer-rgb, 228,233,230), .4);
   border-radius: 13px;
-  background: #fff;
+  background: linear-gradient(145deg, rgba(var(--svicer-rgb, 228,233,230), .2), rgba(var(--svicer-rgb, 228,233,230), .04));
   cursor: pointer;
 }
+.izvedba-poravnava-svicer__gumb--placano { --svicer-rgb: 41,155,99; }
+.izvedba-poravnava-svicer__gumb--delno { --svicer-rgb: 58,169,156; }
+.izvedba-poravnava-svicer__gumb--kompenzacija { --svicer-rgb: 68,139,211; }
+.izvedba-poravnava-svicer__gumb--obrok { --svicer-rgb: 57,127,208; }
+.izvedba-poravnava-svicer__gumb--dobropis { --svicer-rgb: 232,149,36; }
+.izvedba-poravnava-svicer__gumb--storno { --svicer-rgb: 207,76,76; }
+.izvedba-poravnava-svicer__gumb--akcija-preklic { --svicer-rgb: 242,90,36; }
+.izvedba-poravnava-svicer__gumb--akcija-ustavi { --svicer-rgb: 213,31,50; }
+.izvedba-poravnava-svicer__gumb--akcija-odvetnik { --svicer-rgb: 105,65,180; }
+.izvedba-poravnava-svicer__gumb--akcija-prestavi { --svicer-rgb: 35,123,212; }
+.izvedba-poravnava-svicer__gumb--akcija-obljuba { --svicer-rgb: 239,138,0; }
+.izvedba-poravnava-svicer__gumb--akcija-delno { --svicer-rgb: 22,155,143; }
 .izvedba-poravnava-svicer__gumb span:last-child {
   font-size: 9.5px;
   font-weight: 700;
@@ -1676,7 +1688,11 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-poravnava-svicer__gumb--obrok .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #85bcf2 0%, #397fd0 55%, #1a3f6b 100%); }
 .izvedba-poravnava-svicer__gumb--dobropis .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #fac877 0%, #e89524 55%, #7a4c0f 100%); }
 .izvedba-poravnava-svicer__gumb--storno .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #ef9494 0%, #cf4c4c 55%, #6f2323 100%); }
-.izvedba-poravnava-svicer__gumb.is-selected { border-color: currentColor; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.izvedba-poravnava-svicer__gumb.is-selected {
+  border-color: currentColor;
+  background: linear-gradient(145deg, rgba(var(--svicer-rgb, 228,233,230), .34), rgba(var(--svicer-rgb, 228,233,230), .08));
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
 .izvedba-poravnava-svicer__gumb--placano.is-selected { border-color: #299b63; }
 .izvedba-poravnava-svicer__gumb--delno.is-selected { border-color: #3aa99c; }
 .izvedba-poravnava-svicer__gumb--kompenzacija.is-selected { border-color: #448bd3; }
