@@ -1725,10 +1725,19 @@ body.izvedba-sheet-open { overflow: hidden; }
   flex-direction: column;
   gap: 6px;
   max-height: 132px;
+  padding-right: 6px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16,121,125,.28) transparent;
+}
+.izvedba-poravnava-potek::-webkit-scrollbar { width: 3px; }
+.izvedba-poravnava-potek::-webkit-scrollbar-track { background: transparent; }
+.izvedba-poravnava-potek::-webkit-scrollbar-thumb {
+  background: rgba(16,121,125,.28);
+  border-radius: 3px;
 }
 .izvedba-poravnava-potek__prazno {
   margin: 0;
