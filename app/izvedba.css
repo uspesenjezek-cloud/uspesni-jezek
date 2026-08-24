@@ -2058,22 +2058,32 @@ body.izvedba-sheet-open { overflow: hidden; }
   color: var(--action-accent);
   box-shadow: inset 0 0 0 2px var(--action-accent);
 }
-.izvedba-segment__datum-skrit {
+.izvedba-action-sheet .izvedba-segment__gumb--datum {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.izvedba-segment__datum-prekrivni {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   border: 0;
+  outline: 0;
   opacity: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  pointer-events: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
 }
 .izvedba-action-sheet__datum {
+  position: relative;
   display: block;
   margin-top: 8px;
+  cursor: pointer;
 }
 .izvedba-action-sheet__datum-gumb {
   display: grid;
@@ -2087,9 +2097,22 @@ body.izvedba-sheet-open { overflow: hidden; }
   border-radius: 12px;
   background: rgba(255,255,255,.62);
   color: rgb(var(--action-rgb, 16,121,125));
+}
+.izvedba-action-sheet__datum-prekrivni {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  outline: 0;
+  opacity: 0;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
 }
-.izvedba-action-sheet__datum-gumb:focus-visible { box-shadow: inset 0 0 0 2px rgb(var(--action-rgb, 16,121,125)); outline: 0; }
+.izvedba-action-sheet__datum:focus-within .izvedba-action-sheet__datum-gumb { box-shadow: inset 0 0 0 2px rgb(var(--action-rgb, 16,121,125)); }
 .izvedba-action-sheet__datum-ikona {
   display: grid;
   place-items: center;

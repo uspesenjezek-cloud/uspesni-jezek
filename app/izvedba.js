@@ -903,13 +903,14 @@
   }
 
   function izrisiDatumVnos(actionType, polje, vrednost, oznaka) {
-    return '<div class="izvedba-action-sheet__datum">' +
-      '<button type="button" class="izvedba-action-sheet__datum-gumb" data-datum-vnos-odpri data-action-type="' + K.esc(actionType) + '" aria-label="' + K.esc(oznaka) + '">' +
+    return '<label class="izvedba-action-sheet__datum">' +
+      '<span class="izvedba-action-sheet__datum-gumb" aria-hidden="true">' +
         '<span class="izvedba-action-sheet__datum-ikona" aria-hidden="true">' + K.ikona("calendar") + '</span>' +
         '<span class="izvedba-action-sheet__datum-vrednost" data-izvedba-fit data-fit-min="9">' + K.esc(datumZaPrikaz(vrednost)) + '</span>' +
-      '</button>' +
-      '<input type="datetime-local" class="izvedba-segment__datum-skrit" tabindex="-1" aria-hidden="true" data-action-type="' + K.esc(actionType) + '" data-datetime-polje="' + K.esc(polje) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" />' +
-    '</div>';
+      '</span>' +
+      '<span class="sr-only">' + K.esc(oznaka) + '</span>' +
+      '<input type="datetime-local" class="izvedba-action-sheet__datum-prekrivni" aria-label="' + K.esc(oznaka) + '" data-action-type="' + K.esc(actionType) + '" data-datetime-polje="' + K.esc(polje) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" />' +
+    '</label>';
   }
 
   function izrisiActionSvicer() {
@@ -949,13 +950,14 @@
 
   function izrisiPoravnavaDatum(tip, vrednost, oznaka, polje) {
     var imePolja = polje || "settledAt";
-    return '<div class="izvedba-action-sheet__datum">' +
-      '<button type="button" class="izvedba-action-sheet__datum-gumb" data-settlement-datum-odpri data-settlement-type="' + K.esc(tip) + '" aria-label="' + K.esc(oznaka) + '">' +
+    return '<label class="izvedba-action-sheet__datum">' +
+      '<span class="izvedba-action-sheet__datum-gumb" aria-hidden="true">' +
         '<span class="izvedba-action-sheet__datum-ikona" aria-hidden="true">' + K.ikona("calendar") + '</span>' +
         '<span class="izvedba-action-sheet__datum-vrednost" data-izvedba-fit data-fit-min="9">' + K.esc(datumZaPrikaz(vrednost)) + '</span>' +
-      '</button>' +
-      '<input type="datetime-local" class="izvedba-segment__datum-skrit" tabindex="-1" aria-hidden="true" data-settlement-datetime="' + K.esc(imePolja) + '" data-settlement-type="' + K.esc(tip) + '" max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" />' +
-    '</div>';
+      '</span>' +
+      '<span class="sr-only">' + K.esc(oznaka) + '</span>' +
+      '<input type="datetime-local" class="izvedba-action-sheet__datum-prekrivni" aria-label="' + K.esc(oznaka) + '" data-settlement-datetime="' + K.esc(imePolja) + '" data-settlement-type="' + K.esc(tip) + '" max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(vrednost)) + '" />' +
+    '</label>';
   }
 
   function izrisiPoravnavaZnesek(tip, polje, vrednost, placeholder, pokaziUredi) {
@@ -1010,12 +1012,12 @@
       'data-settlement-segment="dateMode" data-settlement-value="today" data-settlement-type="' + K.esc(tip) + '" ' +
       'data-izvedba-fit data-fit-min="8.5" aria-pressed="' + String(!jeDatumIzbran) + '">Danes</button>';
     var datumOznaka = jeDatumIzbran ? datumZaPrikaz(nastavitve.settledAt) : "Datum";
-    var datumGumb = '<button type="button" class="izvedba-segment__gumb izvedba-segment__gumb--datum' + (jeDatumIzbran ? ' is-selected' : '') + '" ' +
-      'data-settlement-datum-odpri data-settlement-type="' + K.esc(tip) + '" ' +
-      'data-izvedba-fit data-fit-min="8.5" aria-pressed="' + String(jeDatumIzbran) + '">' + K.esc(datumOznaka) + '</button>' +
-      '<input type="datetime-local" class="izvedba-segment__datum-skrit" tabindex="-1" aria-hidden="true" ' +
+    var datumGumb = '<label class="izvedba-segment__gumb izvedba-segment__gumb--datum' + (jeDatumIzbran ? ' is-selected' : '') + '">' +
+      '<span data-izvedba-fit data-fit-min="8.5">' + K.esc(datumOznaka) + '</span>' +
+      '<input type="datetime-local" class="izvedba-segment__datum-prekrivni" aria-label="Datum zaključka" ' +
         'data-settlement-datetime="settledAt" data-settlement-type="' + K.esc(tip) + '" data-settlement-datum-segment ' +
-        'max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(nastavitve.settledAt || new Date().toISOString())) + '" />';
+        'max="' + K.esc(datumZaVnos(new Date().toISOString())) + '" value="' + K.esc(datumZaVnos(nastavitve.settledAt || new Date().toISOString())) + '" />' +
+    '</label>';
     return '<div class="izvedba-segment" role="group">' + danesGumb + datumGumb + '</div>';
   }
 
@@ -1493,34 +1495,6 @@
         izrisiActionSheet();
         return;
       }
-      var datumOdpri = event.target.closest("[data-settlement-datum-odpri]");
-      if (datumOdpri) {
-        var odpriTip = datumOdpri.getAttribute("data-settlement-type");
-        var odpriInput = datumOdpri.parentElement.querySelector('input[type="datetime-local"][data-settlement-type="' + odpriTip + '"]');
-        if (odpriInput) {
-          try {
-            odpriInput.showPicker();
-          } catch (napakaOdpiranja) {
-            odpriInput.focus({ preventScroll: true });
-            odpriInput.click();
-          }
-        }
-        return;
-      }
-      var datumVnosOdpri = event.target.closest("[data-datum-vnos-odpri]");
-      if (datumVnosOdpri) {
-        var vnosTip = datumVnosOdpri.getAttribute("data-action-type");
-        var vnosInput = datumVnosOdpri.parentElement.querySelector('input[type="datetime-local"][data-action-type="' + vnosTip + '"]');
-        if (vnosInput) {
-          try {
-            vnosInput.showPicker();
-          } catch (napakaOdpiranja2) {
-            vnosInput.focus({ preventScroll: true });
-            vnosInput.click();
-          }
-        }
-        return;
-      }
       var poravnavaSegment = event.target.closest("[data-settlement-segment]");
       if (poravnavaSegment) {
         var poravnavaTip = poravnavaSegment.getAttribute("data-settlement-type");
@@ -1595,11 +1569,11 @@
               danesGumbEl.classList.remove("is-selected");
               danesGumbEl.setAttribute("aria-pressed", "false");
             }
-            var datumGumbEl = poravnavaSegmentSkupina.querySelector("[data-settlement-datum-odpri]");
+            var datumGumbEl = poravnavaSegmentSkupina.querySelector(".izvedba-segment__gumb--datum");
             if (datumGumbEl) {
               datumGumbEl.classList.add("is-selected");
-              datumGumbEl.setAttribute("aria-pressed", "true");
-              datumGumbEl.textContent = datumZaPrikaz(poravnavaDatum.value);
+              var datumTekstEl = datumGumbEl.querySelector("span");
+              if (datumTekstEl) datumTekstEl.textContent = datumZaPrikaz(poravnavaDatum.value);
               prilagodiBesediloOmejenemuPolju(poravnavaSegmentSkupina);
             }
           }
