@@ -76,7 +76,7 @@ async function handler(req, res) {
       cfg,
       "opomin_ukrepi",
       "zadeva_id=eq." + encodeURIComponent(zadevaId) +
-        "&select=action_id,step_id,action_type,status,created_at,completed_at&order=created_at.desc&limit=20"
+        "&select=action_id,step_id,action_type,status,settings,created_at,completed_at&order=created_at.desc&limit=20"
     );
 
     var plan = zadeva.opomin_nacrt || {};

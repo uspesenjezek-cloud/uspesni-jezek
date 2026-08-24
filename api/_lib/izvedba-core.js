@@ -458,6 +458,35 @@ function izracunajDelnoPlacilo(ctx) {
   return { ok: true, newPlan: novPlan, korakiUpdates: [], placiloZnesek: placiloZnesek };
 }
 
+/* Razveljavitev že zabeležene poravnave mora popraviti tudi zneske v
+ * prihodnjih, še neposlanih sporočilih. RPC nato v isti transakciji vrne
+ * finančne stolpce in izbriše pripadajoči knjigovodski zapis. */
+function izracunajRazveljavitevPoravnave(ctx) {
+  var plan = ctx.plan, koraki = ctx.koraki, novPreostanek = Number(ctx.novPreostanek);
+  if (!Number.isFinite(novPreostanek) || novPreostanek <= 0) {
+    return { ok: false, code: "INVALID_SETTINGS", napaka: "Obnovljeni preostali dolg ni veljaven." };
+  }
+  var novPlan = JSON.parse(JSON.stringify(plan || {}));
+  if (ctx.zakljucnaPoravnava) {
+    novPlan.status = "active";
+    delete novPlan.settlement;
+  }
+  (novPlan.steps || []).forEach(function (step) {
+    var stepId = String(step.stepId || step.id || "");
+    var vrstice = (koraki || []).filter(function (k) { return String(k.stepId) === stepId; });
+    if (jeKorakPoslan(vrstice) || step.messageEditedManually) return;
+    if (typeof step.finalMessage === "string" && step.finalMessage) {
+      step.finalMessage = step.finalMessage.replace(
+        /\d+[.,]\d{2}\s?€/g,
+        String(novPreostanek.toFixed(2)).replace(".", ",") + " €"
+      );
+      step.messageNeedsReview = true;
+    }
+  });
+  novPlan.version = povecajVerzijo(plan || {});
+  return { ok: true, newPlan: novPlan, korakiUpdates: [] };
+}
+
 /* 13. Račun je bil poravnan (polno plačilo) */
 function izracunajPolnoPlacilo(ctx) {
   var plan = ctx.plan, koraki = ctx.koraki, settings = ctx.settings || {};
@@ -501,6 +530,7 @@ module.exports = {
   validirajNastavitve: validirajNastavitve,
   izracunajFingerprint: izracunajFingerprint,
   izracunajUkrep: izracunajUkrep,
+  izracunajRazveljavitevPoravnave: izracunajRazveljavitevPoravnave,
   _test: {
     najdiKorakVPlanu: najdiKorakVPlanu,
     vkljuceniKoraki: vkljuceniKoraki,

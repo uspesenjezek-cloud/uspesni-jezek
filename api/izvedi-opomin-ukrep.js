@@ -87,16 +87,18 @@ async function handler(req, res) {
         "opomin_ukrepi",
         "zadeva_id=eq." + encodeURIComponent(zadevaId) +
           "&action_id=eq." + encodeURIComponent(targetActionId) +
-          "&select=action_id,action_type,status&limit=1"
+          "&select=action_id,action_type,status,settings&limit=1"
       );
       var ciljniUkrep = ciljniUkrepi[0];
       if (!ciljniUkrep) {
         return res.status(404).json({ ok: false, code: "ACTION_NOT_FOUND", napaka: "Korak ni več na voljo." });
       }
-      if (ciljniUkrep.status !== "completed" || !["partial_payment", "partial_settlement"].includes(ciljniUkrep.action_type)) {
+      if (ciljniUkrep.status !== "completed" || !["partial_payment", "partial_settlement", "paid_in_full"].includes(ciljniUkrep.action_type)) {
         return res.status(409).json({ ok: false, code: "ACTION_NOT_REVERSIBLE", napaka: "Tega koraka ni mogoče odstraniti." });
       }
-      var tabelaPoravnave = ciljniUkrep.action_type === "partial_payment" ? "zadeva_placila" : "zadeva_poravnave";
+      var jeDenarnaPoravnava = ciljniUkrep.action_type === "partial_payment" ||
+        (ciljniUkrep.action_type === "paid_in_full" && String((ciljniUkrep.settings || {}).settlementType || "full") === "full");
+      var tabelaPoravnave = jeDenarnaPoravnava ? "zadeva_placila" : "zadeva_poravnave";
       var vrsticePoravnave = await db.pridobiVrstice(
         cfg,
         tabelaPoravnave,
@@ -117,6 +119,7 @@ async function handler(req, res) {
         plan: zadeva.opomin_nacrt || {},
         koraki: korakiZaRazveljavitev.map(korakVDto),
         novPreostanek: Number(zadeva.preostali_dolg) + vrnjeniZnesek,
+        zakljucnaPoravnava: ciljniUkrep.action_type === "paid_in_full",
       });
       if (!razveljavitev.ok) {
         return res.status(400).json(razveljavitev);

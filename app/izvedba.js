@@ -1228,7 +1228,7 @@
       ? '<p class="izvedba-poravnava-potek__prazno">Ni še zabeleženih korakov.</p>'
       : seznam.map(function (korak, i) {
       if (korak.jeNacrtovan) indeksNacrtovanega += 1;
-      var jeRazveljivUkrep = !korak.jeNacrtovan && ["partial_payment", "partial_settlement", "payment_promised", "stop_plan"].indexOf(korak.actionType) >= 0;
+      var jeRazveljivUkrep = !korak.jeNacrtovan && ["partial_payment", "partial_settlement", "paid_in_full", "payment_promised", "stop_plan"].indexOf(korak.actionType) >= 0;
       var odstraniGumb = korak.jeNacrtovan
         ? '<button type="button" class="izvedba-poravnava-korak__odstrani" data-nacrt-odstrani="' + indeksNacrtovanega + '" aria-label="Odstrani korak">×</button>'
         : jeRazveljivUkrep
