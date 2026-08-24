@@ -667,7 +667,7 @@
     actionSheetReturnFocus = document.activeElement;
     state.actionSheetMode = "payment";
     state.selectedActionType = null;
-    state.selectedSettlementType = "full";
+    state.selectedSettlementType = null;
     state.settlementReasonMenuOpen = false;
     state.error = null;
     state.settlementSettings = JSON.parse(JSON.stringify(DEFAULT_SETTLEMENT_SETTINGS));
@@ -1085,7 +1085,10 @@
   function izrisiPoravnavaPodrobnosti() {
     var tip = state.selectedSettlementType;
     var meta = SETTLEMENT_META[tip];
-    if (!meta) return "";
+    if (!meta) {
+      return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">2</span>Podatki za ta korak</p>' +
+        '<p class="izvedba-poravnava-potek__prazno">Najprej izberite korak zgoraj.</p></div>';
+    }
     var zaprt = jeNacrtZaprt();
     var vsebinaKoraka = zaprt
       ? '<p class="izvedba-poravnava__namig">Ta korak zapre primer — po njem ni mogoče dodati novega koraka. Odstranite ga zgoraj v "Potek primera", če želite izbrati drugega.</p>'
@@ -1204,7 +1207,7 @@
       (state.isSubmitting ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span>' : '') + 'Potrdi' + '</button>' : '';
     elActionSheet.hidden = false;
     elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
-      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano izvedba-action-sheet__panel--poravnava-' + K.esc(meta.razred) + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
+      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano' + (meta ? ' izvedba-action-sheet__panel--poravnava-' + K.esc(meta.razred) : '') + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
         '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>' +
         '<header class="izvedba-action-sheet__header"><span class="izvedba-action-sheet__header-ikona" aria-hidden="true">' + K.ikona("checkCircle") + '</span><div>' +
           '<h2 id="izvedba-action-sheet-title" data-izvedba-fit data-fit-min="14">Kako je bil račun poravnan?</h2><p>Izberite način in po potrebi dopolnite podatke.</p></div>' +
