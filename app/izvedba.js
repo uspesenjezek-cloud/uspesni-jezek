@@ -1164,7 +1164,7 @@
       if (korak.jeNacrtovan) indeksNacrtovanega += 1;
       var odstraniGumb = korak.jeNacrtovan
         ? '<button type="button" class="izvedba-poravnava-korak__odstrani" data-nacrt-odstrani="' + indeksNacrtovanega + '" aria-label="Odstrani korak">×</button>'
-        : '';
+        : '<button type="button" class="izvedba-poravnava-korak__odstrani" data-korak-zaklenjen aria-label="Korak je že izveden">×</button>';
       var metaVsebina = (korak.jeNacrtovan ? '<span class="izvedba-poravnava-korak__pill">Korak ' + (i + 1) + '</span>' : '') +
         '<span class="izvedba-poravnava-korak__info-datum">' + K.esc(K.formatirajDatumUro(korak.datum)) + '</span>';
       var znesekVsebina;
@@ -1471,6 +1471,12 @@
           izrisiActionSheet();
           return;
         }
+      }
+      var korakZaklenjen = event.target.closest("[data-korak-zaklenjen]");
+      if (korakZaklenjen) {
+        state.error = "Ta korak je že izveden in ga trenutno ni mogoče razveljaviti prek te aplikacije.";
+        izrisiActionSheet();
+        return;
       }
       var razlogMoznost = event.target.closest("[data-settlement-reason-option]");
       if (razlogMoznost) {
