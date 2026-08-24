@@ -15,6 +15,8 @@ var KODA_V_STATUS = {
   LAWYER_STEP_NOT_FOUND: 409,
   MISSING_HANDOFF_DATA: 422,
   PAYMENT_EXCEEDS_DEBT: 400,
+  ACTION_NOT_FOUND: 404,
+  ACTION_NOT_REVERSIBLE: 409,
   INVALID_SETTINGS: 400,
   INVALID_PAYMENT_AMOUNT: 400,
   UNKNOWN_ACTION_TYPE: 400,
@@ -73,6 +75,110 @@ async function handler(req, res) {
     }
     if (zadeva.obrtnik_id !== auth.user.id) {
       return res.status(403).json({ ok: false, code: "FORBIDDEN", napaka: "Zadeva ni vaša." });
+    }
+
+    if (actionType === "undo_settlement") {
+      var targetActionId = String(settings.targetActionId || "");
+      if (!targetActionId) {
+        return res.status(400).json({ ok: false, code: "MISSING_PARAMS", napaka: "Manjka korak za odstranitev." });
+      }
+      var ciljniUkrepi = await db.pridobiVrstice(
+        cfg,
+        "opomin_ukrepi",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&action_id=eq." + encodeURIComponent(targetActionId) +
+          "&select=action_id,action_type,status&limit=1"
+      );
+      var ciljniUkrep = ciljniUkrepi[0];
+      if (!ciljniUkrep) {
+        return res.status(404).json({ ok: false, code: "ACTION_NOT_FOUND", napaka: "Korak ni več na voljo." });
+      }
+      if (ciljniUkrep.status !== "completed" || !["partial_payment", "partial_settlement"].includes(ciljniUkrep.action_type)) {
+        return res.status(409).json({ ok: false, code: "ACTION_NOT_REVERSIBLE", napaka: "Tega koraka ni mogoče odstraniti." });
+      }
+      var tabelaPoravnave = ciljniUkrep.action_type === "partial_payment" ? "zadeva_placila" : "zadeva_poravnave";
+      var vrsticePoravnave = await db.pridobiVrstice(
+        cfg,
+        tabelaPoravnave,
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&action_id=eq." + encodeURIComponent(targetActionId) + "&select=znesek&limit=1"
+      );
+      var vrnjeniZnesek = Number(vrsticePoravnave[0] && vrsticePoravnave[0].znesek);
+      if (!(vrnjeniZnesek > 0)) {
+        return res.status(409).json({ ok: false, code: "ACTION_NOT_REVERSIBLE", napaka: "Finančni zapis koraka manjka." });
+      }
+      var korakiZaRazveljavitev = await db.pridobiVrstice(
+        cfg,
+        "opomin_koraki",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&select=id,step_id,step_index,recipient_index,kanal,status,execution_state,scheduled_at,sent_at,sporocilo,prejemnik"
+      );
+      var razveljavitev = core.izracunajRazveljavitevPoravnave({
+        plan: zadeva.opomin_nacrt || {},
+        koraki: korakiZaRazveljavitev.map(korakVDto),
+        novPreostanek: Number(zadeva.preostali_dolg) + vrnjeniZnesek,
+      });
+      if (!razveljavitev.ok) {
+        return res.status(400).json(razveljavitev);
+      }
+      var undoOdgovor = await db.pokliciRpc(cfg, "razveljavi_opomin_poravnavo", {
+        p_zadeva_id: zadevaId,
+        p_obrtnik_id: auth.user.id,
+        p_expected_version: version,
+        p_target_action_id: targetActionId,
+        p_new_plan: razveljavitev.newPlan,
+      });
+      if (!undoOdgovor || undoOdgovor.ok !== true) {
+        var undoKoda = (undoOdgovor && undoOdgovor.code) || "UNKNOWN_ERROR";
+        return res.status(KODA_V_STATUS[undoKoda] || 400).json(undoOdgovor || { ok: false, code: undoKoda });
+      }
+      undoOdgovor.ukrepi = await db.pridobiVrstice(
+        cfg,
+        "opomin_ukrepi",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&select=action_id,step_id,action_type,status,settings,created_at,completed_at&order=created_at.desc&limit=20"
+      );
+      return res.json(undoOdgovor);
+    }
+
+    if (actionType === "undo_payment_promise") {
+      var targetPromiseActionId = String(settings.targetActionId || "");
+      if (!targetPromiseActionId) {
+        return res.status(400).json({ ok: false, code: "MISSING_PARAMS", napaka: "Manjka korak za odstranitev." });
+      }
+      var ciljneObljube = await db.pridobiVrstice(
+        cfg,
+        "opomin_ukrepi",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&action_id=eq." + encodeURIComponent(targetPromiseActionId) +
+          "&select=action_id,action_type,status&limit=1"
+      );
+      var ciljnaObljuba = ciljneObljube[0];
+      if (!ciljnaObljuba) {
+        return res.status(404).json({ ok: false, code: "ACTION_NOT_FOUND", napaka: "Korak ni več na voljo." });
+      }
+      if (ciljnaObljuba.status !== "completed" || ciljnaObljuba.action_type !== "payment_promised") {
+        return res.status(409).json({ ok: false, code: "ACTION_NOT_REVERSIBLE", napaka: "Tega koraka ni mogoče odstraniti." });
+      }
+      var promiseUndoOdgovor = await db.pokliciRpc(cfg, "razveljavi_obljubo_placila", {
+        p_zadeva_id: zadevaId,
+        p_obrtnik_id: auth.user.id,
+        p_expected_version: version,
+        p_target_action_id: targetPromiseActionId,
+      });
+      if (!promiseUndoOdgovor || promiseUndoOdgovor.ok !== true) {
+        var promiseUndoKoda = (promiseUndoOdgovor && promiseUndoOdgovor.code) || "UNKNOWN_ERROR";
+        return res.status(KODA_V_STATUS[promiseUndoKoda] || 400).json(
+          promiseUndoOdgovor || { ok: false, code: promiseUndoKoda }
+        );
+      }
+      promiseUndoOdgovor.ukrepi = await db.pridobiVrstice(
+        cfg,
+        "opomin_ukrepi",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&select=action_id,step_id,action_type,status,settings,created_at,completed_at&order=created_at.desc&limit=20"
+      );
+      return res.json(promiseUndoOdgovor);
     }
 
     var validacija = core.validirajNastavitve(actionType, settings, { preostaliDolg: zadeva.preostali_dolg });
