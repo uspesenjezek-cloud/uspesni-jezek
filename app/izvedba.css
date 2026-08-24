@@ -1682,12 +1682,12 @@ body.izvedba-sheet-open { overflow: hidden; }
   color: #fff;
 }
 .izvedba-poravnava-svicer__ikona svg { width: 16px; height: 16px; }
-.izvedba-poravnava-svicer__gumb--placano .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #6fdba0 0%, #299b63 55%, #124a2d 100%); }
-.izvedba-poravnava-svicer__gumb--delno .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #7fe0d1 0%, #3aa99c 55%, #1c5951 100%); }
-.izvedba-poravnava-svicer__gumb--kompenzacija .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #8ec3f0 0%, #448bd3 55%, #204a72 100%); }
-.izvedba-poravnava-svicer__gumb--obrok .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #85bcf2 0%, #397fd0 55%, #1a3f6b 100%); }
-.izvedba-poravnava-svicer__gumb--dobropis .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #fac877 0%, #e89524 55%, #7a4c0f 100%); }
-.izvedba-poravnava-svicer__gumb--storno .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #ef9494 0%, #cf4c4c 55%, #6f2323 100%); }
+.izvedba-poravnava-svicer__gumb--placano .izvedba-poravnava-svicer__ikona { background: #299b63; }
+.izvedba-poravnava-svicer__gumb--delno .izvedba-poravnava-svicer__ikona { background: #3aa99c; }
+.izvedba-poravnava-svicer__gumb--kompenzacija .izvedba-poravnava-svicer__ikona { background: #448bd3; }
+.izvedba-poravnava-svicer__gumb--obrok .izvedba-poravnava-svicer__ikona { background: #397fd0; }
+.izvedba-poravnava-svicer__gumb--dobropis .izvedba-poravnava-svicer__ikona { background: #e89524; }
+.izvedba-poravnava-svicer__gumb--storno .izvedba-poravnava-svicer__ikona { background: #cf4c4c; }
 .izvedba-poravnava-svicer__gumb.is-selected {
   border-color: currentColor;
   background: linear-gradient(145deg, rgba(var(--svicer-rgb, 228,233,230), .34), rgba(var(--svicer-rgb, 228,233,230), .08));
@@ -1702,12 +1702,12 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-poravnava-svicer__gumb.is-selected span:last-child { color: #131716; }
 .izvedba-poravnava-svicer__gumb:disabled { opacity: .4; cursor: not-allowed; }
 .izvedba-poravnava-svicer__gumb:disabled.is-selected { opacity: 1; }
-.izvedba-poravnava-svicer__gumb--akcija-preklic .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #fbab7f 0%, #f25a24 55%, #7d2c0c 100%); }
-.izvedba-poravnava-svicer__gumb--akcija-ustavi .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #f18b96 0%, #d51f32 55%, #690f19 100%); }
-.izvedba-poravnava-svicer__gumb--akcija-odvetnik .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #ab8ee0 0%, #6941b4 55%, #34205a 100%); }
-.izvedba-poravnava-svicer__gumb--akcija-prestavi .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #7fb4ea 0%, #237bd4 55%, #103e6a 100%); }
-.izvedba-poravnava-svicer__gumb--akcija-obljuba .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #fac06e 0%, #ef8a00 55%, #7a4700 100%); }
-.izvedba-poravnava-svicer__gumb--akcija-delno .izvedba-poravnava-svicer__ikona { background: linear-gradient(145deg, #6cd0c3 0%, #169b8f 55%, #0b4d47 100%); }
+.izvedba-poravnava-svicer__gumb--akcija-preklic .izvedba-poravnava-svicer__ikona { background: #f25a24; }
+.izvedba-poravnava-svicer__gumb--akcija-ustavi .izvedba-poravnava-svicer__ikona { background: #d51f32; }
+.izvedba-poravnava-svicer__gumb--akcija-odvetnik .izvedba-poravnava-svicer__ikona { background: #6941b4; }
+.izvedba-poravnava-svicer__gumb--akcija-prestavi .izvedba-poravnava-svicer__ikona { background: #237bd4; }
+.izvedba-poravnava-svicer__gumb--akcija-obljuba .izvedba-poravnava-svicer__ikona { background: #ef8a00; }
+.izvedba-poravnava-svicer__gumb--akcija-delno .izvedba-poravnava-svicer__ikona { background: #169b8f; }
 .izvedba-poravnava-svicer__gumb--akcija-preklic.is-selected { border-color: #f25a24; }
 .izvedba-poravnava-svicer__gumb--akcija-ustavi.is-selected { border-color: #d51f32; }
 .izvedba-poravnava-svicer__gumb--akcija-odvetnik.is-selected { border-color: #6941b4; }
