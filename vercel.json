@@ -2,21 +2,75 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/app/pos-terminal.html",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=(), payment=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.de.sentry.io; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; manifest-src 'self'; worker-src 'self' blob:; upgrade-insecure-requests" }
+      ]
+    },
+    {
+      "source": "/app/bonitetna-preverba.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    },
+    {
+      "source": "/app/izvedba.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    },
+    {
+      "source": "/app/company-index/(.*).json.gz",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+        { "key": "Content-Encoding", "value": "gzip" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Permissions-Policy", "value": "camera=(self)" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/api/boniteta-pro", "destination": "/api/boniteta?handler=pro" },
     { "source": "/api/mehka-boniteta", "destination": "/api/boniteta?handler=soft" },
     { "source": "/api/mehka-boniteta-opravilo", "destination": "/api/boniteta?handler=job" },
     { "source": "/api/pos-racun-pdf", "destination": "/api/pos?handler=invoice-pdf" },
+    { "source": "/api/pos-angebot-pdf", "destination": "/api/pos?handler=offer-pdf" },
+    { "source": "/api/pos-pogodba-pdf", "destination": "/api/pos?handler=contract-confirmation-pdf" },
     { "source": "/api/pos-racun-korekcija", "destination": "/api/pos?handler=invoice-adjustment" },
+    { "source": "/api/pos-racun-korekcija-xrechnung", "destination": "/api/pos?handler=adjustment-xrechnung" },
     { "source": "/api/pos-racun-xrechnung", "destination": "/api/pos?handler=invoice-xrechnung" },
     { "source": "/api/pos-dostava-sandbox", "destination": "/api/pos?handler=delivery-sandbox" },
     { "source": "/api/pos-dostava-delavec", "destination": "/api/pos?handler=delivery-worker" },
+    { "source": "/api/pos-arhiv-delavec", "destination": "/api/pos?handler=archive-worker" },
+    { "source": "/api/pos-verfahrensdokumentation-pdf", "destination": "/api/pos?handler=procedure-documentation-pdf" },
     { "source": "/api/pos-dostava-email", "destination": "/api/pos?handler=delivery-email" },
-    { "source": "/api/pos-dostava-webhook", "destination": "/api/pos?handler=delivery-webhook" }
+    { "source": "/api/pos-dostava-webhook", "destination": "/api/pos?handler=delivery-webhook" },
+    { "source": "/api/pos-fiskaly", "destination": "/api/pos?handler=fiskaly-sign" },
+    { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" },
+    { "source": "/api/pos-stripe-checkout", "destination": "/api/pos?handler=stripe-checkout" },
+    { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" },
+    { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" },
+    { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
-    { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" }
+    { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" },
+    { "path": "/api/pos-arhiv-delavec", "schedule": "23 4 * * *" }
   ],
   "functions": {
     "api/obdelaj-opomine.js": {

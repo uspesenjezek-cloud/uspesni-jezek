@@ -381,6 +381,12 @@
     return "korakov";
   }
 
+  function besedaZaSteviloKorakovOrodnik(n) {
+    if (n === 1) return "korakom";
+    if (n === 2) return "korakoma";
+    return "koraki";
+  }
+
   function naslednjaStevilkaKoraka(tip) {
     var razredi = tip === "installment" ? ["obrok", "installment"] : tip === "partial" ? ["delno", "partial"] : null;
     if (!razredi) return 1;
@@ -1230,7 +1236,7 @@
     var prviStavek = opisZadnjega
       ? "Pri <b>" + K.esc(String(pozicija)) + ". opominu</b> ste zabeležili " + K.esc(opisZadnjega.naslov.toLowerCase()) + "."
       : "";
-    var drugiStavek = "Zdaj sledi nov plačilni plan z <b>" + steviloKorakov + " " + K.esc(besedaZaSteviloKorakov(steviloKorakov)) + "</b>.";
+    var drugiStavek = "Zdaj sledi nov plačilni plan z <b>" + steviloKorakov + " " + K.esc(besedaZaSteviloKorakovOrodnik(steviloKorakov)) + "</b>.";
     return '<div class="izvedba-poravnava-pripoved">' +
       (prviStavek ? '<p>' + prviStavek + '</p>' : '') +
       '<p>' + drugiStavek + '</p>' +
