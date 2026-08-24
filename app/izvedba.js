@@ -1319,17 +1319,19 @@
           return '<button type="button" class="izvedba-povzetek-zavihek' + (di === i ? ' is-selected' : '') + '" data-povzetek-dokument="' + di + '">' + (di + 1) + '. ' + K.esc(d.naslov.toLowerCase()) + '</button>';
         }).join('') + '</div>'
       : '';
-    return '<div class="izvedba-poravnava-podrobnosti izvedba-poravnava-podrobnosti--racun">' +
-      '<div class="izvedba-povzetek-racun-glava"><span class="izvedba-povzetek-racun-ikona" aria-hidden="true">' + K.ikona("receiptCheck") + '</span><span>Predogled računov</span><span class="izvedba-povzetek-racun-stevec">' + dokumenti.length + '</span></div>' +
-      zavihki +
-      '<div class="izvedba-povzetek-dokument">' +
-        '<div class="izvedba-povzetek-dokument__vrstica"><span>' + glavaProdajalca + '</span><span class="izvedba-povzetek-dokument__desno">' + K.esc(dok.naslov) + ' št. ' + K.esc(dok.stevilka) + '<br>Datum: ' + K.esc(K.formatirajDatumUro(dok.datum)) + '</span></div>' +
-        '<div class="izvedba-povzetek-dokument__postavke">' +
-          '<div class="izvedba-povzetek-dokument__vrstica"><span>Znesek pred korakom</span><span>' + K.esc(K.formatirajEur(dok.pred)) + '</span></div>' +
-          '<div class="izvedba-povzetek-dokument__vrstica izvedba-povzetek-dokument__vrstica--' + K.esc(dok.razred) + '"><span>' + K.esc(dok.korakNaslov) + '</span><span>' + (dok.znesek != null ? '−' + K.esc(K.formatirajEur(dok.znesek)) : '—') + '</span></div>' +
+    return '<div class="izvedba-povzetek-racun-kartica">' +
+      '<div class="izvedba-povzetek-racun-glava"><span class="izvedba-povzetek-racun-ikona" aria-hidden="true">' + K.ikona("receiptCheck") + '</span><span>Predogled računov</span><span class="izvedba-povzetek-racun-stevec">' + dokumenti.length + '</span><span class="izvedba-povzetek-racun-chevron" aria-hidden="true">' + K.ikona("chevron") + '</span></div>' +
+      '<div class="izvedba-povzetek-racun-telo">' +
+        zavihki +
+        '<div class="izvedba-povzetek-dokument">' +
+          '<div class="izvedba-povzetek-dokument__vrstica"><span>' + glavaProdajalca + '</span><span class="izvedba-povzetek-dokument__desno">' + K.esc(dok.naslov) + ' št. ' + K.esc(dok.stevilka) + '<br>Datum: ' + K.esc(K.formatirajDatumUro(dok.datum)) + '</span></div>' +
+          '<div class="izvedba-povzetek-dokument__postavke">' +
+            '<div class="izvedba-povzetek-dokument__vrstica"><span>Znesek pred korakom</span><span>' + K.esc(K.formatirajEur(dok.pred)) + '</span></div>' +
+            '<div class="izvedba-povzetek-dokument__vrstica izvedba-povzetek-dokument__vrstica--' + K.esc(dok.razred) + '"><span>' + K.esc(dok.korakNaslov) + '</span><span>' + (dok.znesek != null ? '−' + K.esc(K.formatirajEur(dok.znesek)) : '—') + '</span></div>' +
+          '</div>' +
+          '<div class="izvedba-povzetek-dokument__skupaj"><span>' + (dok.po <= 0 ? 'Za plačilo' : 'Preostanek') + '</span><span>' + K.esc(K.formatirajEur(dok.po)) + '</span></div>' +
+          '<button type="button" class="izvedba-poravnava-dodaj-korak" data-povzetek-poglej="' + i + '">Preglej celoten račun</button>' +
         '</div>' +
-        '<div class="izvedba-povzetek-dokument__skupaj"><span>' + (dok.po <= 0 ? 'Za plačilo' : 'Preostanek') + '</span><span>' + K.esc(K.formatirajEur(dok.po)) + '</span></div>' +
-        '<button type="button" class="izvedba-poravnava-dodaj-korak" data-povzetek-poglej="' + i + '">Preglej celoten račun</button>' +
       '</div>' +
     '</div>';
   }
