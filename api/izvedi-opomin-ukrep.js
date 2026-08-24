@@ -181,6 +181,46 @@ async function handler(req, res) {
       return res.json(promiseUndoOdgovor);
     }
 
+    if (actionType === "undo_stop_plan") {
+      var targetStopActionId = String(settings.targetActionId || "");
+      if (!targetStopActionId) {
+        return res.status(400).json({ ok: false, code: "MISSING_PARAMS", napaka: "Manjka ustavitev načrta za odstranitev." });
+      }
+      var ciljneUstavitve = await db.pridobiVrstice(
+        cfg,
+        "opomin_ukrepi",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&action_id=eq." + encodeURIComponent(targetStopActionId) +
+          "&select=action_id,action_type,status&limit=1"
+      );
+      var ciljnaUstavitev = ciljneUstavitve[0];
+      if (!ciljnaUstavitev) {
+        return res.status(404).json({ ok: false, code: "ACTION_NOT_FOUND", napaka: "Ustavitev načrta ni več na voljo." });
+      }
+      if (ciljnaUstavitev.status !== "completed" || ciljnaUstavitev.action_type !== "stop_plan") {
+        return res.status(409).json({ ok: false, code: "ACTION_NOT_REVERSIBLE", napaka: "Te ustavitve načrta ni mogoče odstraniti." });
+      }
+      var stopUndoOdgovor = await db.pokliciRpc(cfg, "razveljavi_ustavitev_opomin_nacrta", {
+        p_zadeva_id: zadevaId,
+        p_obrtnik_id: auth.user.id,
+        p_expected_version: version,
+        p_target_action_id: targetStopActionId,
+      });
+      if (!stopUndoOdgovor || stopUndoOdgovor.ok !== true) {
+        var stopUndoKoda = (stopUndoOdgovor && stopUndoOdgovor.code) || "UNKNOWN_ERROR";
+        return res.status(KODA_V_STATUS[stopUndoKoda] || 400).json(
+          stopUndoOdgovor || { ok: false, code: stopUndoKoda }
+        );
+      }
+      stopUndoOdgovor.ukrepi = await db.pridobiVrstice(
+        cfg,
+        "opomin_ukrepi",
+        "zadeva_id=eq." + encodeURIComponent(zadevaId) +
+          "&select=action_id,step_id,action_type,status,settings,created_at,completed_at&order=created_at.desc&limit=20"
+      );
+      return res.json(stopUndoOdgovor);
+    }
+
     var validacija = core.validirajNastavitve(actionType, settings, { preostaliDolg: zadeva.preostali_dolg });
     if (!validacija.ok) {
       var statusNastavitve = KODA_V_STATUS[validacija.code] || 400;
