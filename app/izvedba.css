@@ -346,12 +346,12 @@
 }
 
 .izvedba-segment__gumb.is-selected {
-  background: #2f7d6a;
+  background: var(--action-accent, #2f7d6a);
   color: #fff;
 }
 
 .izvedba-segment__gumb:focus-visible {
-  outline: 2px solid #2f7d6a;
+  outline: 2px solid var(--action-accent, #2f7d6a);
   outline-offset: -2px;
 }
 
@@ -1359,6 +1359,41 @@ body.stran--izvedba-primer .zo-sporocilo__telo {
   .izvedba-integrirana .zo-sledi__naslov { min-width: 0; font-size: clamp(14px, 4.75vw, 16px); }
 }
 
+.izvedba-posljizdaj-vrstica {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.izvedba-posljizdaj-vrstica .zo-akcija-glavna {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.izvedba-posljizdaj-vrstica__preklici {
+  flex: 0 1 auto;
+  max-width: 128px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 50px;
+  padding: 0 12px;
+  border: 1.5px solid rgba(var(--zo-accent-rgb), .32);
+  border-radius: 13px;
+  background: transparent;
+  color: var(--zo-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.izvedba-posljizdaj-vrstica__preklici svg { flex: 0 0 auto; width: 16px; height: 16px; }
+.izvedba-posljizdaj-vrstica__preklici span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+}
+
 /* Hitri dejanji sta del obstojece izvedbene kartice. Vedno ostaneta v eni
    vrstici; daljsi napis zmanjsa samo svojo pisavo in ne spremeni dimenzij. */
 .izvedba-hitre-akcije {
@@ -1565,7 +1600,7 @@ body.izvedba-sheet-open { overflow: hidden; }
 
 /* Poravnava - 3 cone (izbira / podrobnosti / potek primera), glej
    docs/superpowers/specs/2026-08-23-delna-nedenarna-poravnava-design.md */
-.izvedba-poravnava-cona { margin-bottom: 10px; }
+.izvedba-poravnava-cona { margin-bottom: 10px; min-width: 0; }
 .izvedba-poravnava-cona__naslov {
   display: flex;
   align-items: center;
@@ -1644,6 +1679,7 @@ body.izvedba-sheet-open { overflow: hidden; }
   gap: 7px;
 }
 .izvedba-poravnava-svicer__gumb {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1666,6 +1702,7 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-poravnava-svicer__gumb--akcija-prestavi { --svicer-rgb: 35,123,212; }
 .izvedba-poravnava-svicer__gumb--akcija-obljuba { --svicer-rgb: 239,138,0; }
 .izvedba-poravnava-svicer__gumb--akcija-delno { --svicer-rgb: 22,155,143; }
+.izvedba-poravnava-svicer__gumb--akcija-storno { --svicer-rgb: 207,76,76; }
 .izvedba-poravnava-svicer__gumb span:last-child {
   font-size: 10.5px;
   font-weight: 800;
@@ -1700,6 +1737,20 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-poravnava-svicer__gumb--dobropis.is-selected { border-color: #e89524; }
 .izvedba-poravnava-svicer__gumb--storno.is-selected { border-color: #cf4c4c; }
 .izvedba-poravnava-svicer__gumb.is-selected span:last-child { color: #131716; }
+.izvedba-poravnava-svicer__strni {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.85);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  color: rgb(var(--svicer-rgb, 51,51,51));
+}
+.izvedba-poravnava-svicer__strni svg { width: 10px; height: 10px; transform: rotate(-90deg); }
 .izvedba-poravnava-svicer__gumb:disabled { opacity: .4; cursor: not-allowed; }
 .izvedba-poravnava-svicer__gumb:disabled.is-selected { opacity: 1; }
 .izvedba-poravnava-svicer__gumb--akcija-preklic .izvedba-poravnava-svicer__ikona { background: #f25a24; }
@@ -1708,33 +1759,52 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-poravnava-svicer__gumb--akcija-prestavi .izvedba-poravnava-svicer__ikona { background: #237bd4; }
 .izvedba-poravnava-svicer__gumb--akcija-obljuba .izvedba-poravnava-svicer__ikona { background: #ef8a00; }
 .izvedba-poravnava-svicer__gumb--akcija-delno .izvedba-poravnava-svicer__ikona { background: #169b8f; }
+.izvedba-poravnava-svicer__gumb--akcija-storno .izvedba-poravnava-svicer__ikona { background: #cf4c4c; }
 .izvedba-poravnava-svicer__gumb--akcija-preklic.is-selected { border-color: #f25a24; }
 .izvedba-poravnava-svicer__gumb--akcija-ustavi.is-selected { border-color: #d51f32; }
 .izvedba-poravnava-svicer__gumb--akcija-odvetnik.is-selected { border-color: #6941b4; }
 .izvedba-poravnava-svicer__gumb--akcija-prestavi.is-selected { border-color: #237bd4; }
 .izvedba-poravnava-svicer__gumb--akcija-obljuba.is-selected { border-color: #ef8a00; }
 .izvedba-poravnava-svicer__gumb--akcija-delno.is-selected { border-color: #169b8f; }
+.izvedba-poravnava-svicer__gumb--akcija-storno.is-selected { border-color: #cf4c4c; }
 
 .izvedba-poravnava-podrobnosti {
+  position: relative;
   border-radius: 16px;
   padding: 10px 12px;
   border: 1px solid rgba(var(--action-rgb, 41,155,99), .25);
   background: linear-gradient(118deg, rgba(var(--action-rgb, 41,155,99), .06), rgba(var(--action-rgb, 41,155,99), .015));
 }
-.izvedba-poravnava-podrobnosti__naslov { font-size: 14.5px; font-weight: 700; margin-bottom: 2px; }
+.izvedba-poravnava-podrobnosti__naslov { padding-right: 26px; font-size: 14.5px; font-weight: 700; margin-bottom: 2px; }
 .izvedba-poravnava-podrobnosti__opis { font-size: 11px; color: #6b7c7c; margin: 0 0 6px; line-height: 1.3; }
-.izvedba-poravnava-podrobnosti--placano { --action-rgb: 41,155,99; }
-.izvedba-poravnava-podrobnosti--delno { --action-rgb: 58,169,156; }
-.izvedba-poravnava-podrobnosti--kompenzacija { --action-rgb: 68,139,211; }
-.izvedba-poravnava-podrobnosti--obrok { --action-rgb: 57,127,208; }
-.izvedba-poravnava-podrobnosti--dobropis { --action-rgb: 232,149,36; }
-.izvedba-poravnava-podrobnosti--storno { --action-rgb: 207,76,76; }
-.izvedba-poravnava-podrobnosti--akcija-preklic { --action-rgb: 242,90,36; }
-.izvedba-poravnava-podrobnosti--akcija-ustavi { --action-rgb: 213,31,50; }
-.izvedba-poravnava-podrobnosti--akcija-odvetnik { --action-rgb: 105,65,180; }
-.izvedba-poravnava-podrobnosti--akcija-prestavi { --action-rgb: 35,123,212; }
-.izvedba-poravnava-podrobnosti--akcija-obljuba { --action-rgb: 239,138,0; }
-.izvedba-poravnava-podrobnosti--akcija-delno { --action-rgb: 22,155,143; }
+.izvedba-poravnava-podrobnosti__strni {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid rgba(var(--action-rgb, 41,155,99), .35);
+  border-radius: 50%;
+  background: rgba(255,255,255,.75);
+  color: rgb(var(--action-rgb, 41,155,99));
+  cursor: pointer;
+}
+.izvedba-poravnava-podrobnosti__strni svg { width: 13px; height: 13px; transform: rotate(-90deg); }
+.izvedba-poravnava-podrobnosti--placano { --action-rgb: 41,155,99; --action-accent: #299b63; }
+.izvedba-poravnava-podrobnosti--delno { --action-rgb: 58,169,156; --action-accent: #3aa99c; }
+.izvedba-poravnava-podrobnosti--kompenzacija { --action-rgb: 68,139,211; --action-accent: #448bd3; }
+.izvedba-poravnava-podrobnosti--obrok { --action-rgb: 57,127,208; --action-accent: #397fd0; }
+.izvedba-poravnava-podrobnosti--dobropis { --action-rgb: 232,149,36; --action-accent: #e89524; }
+.izvedba-poravnava-podrobnosti--storno { --action-rgb: 207,76,76; --action-accent: #cf4c4c; }
+.izvedba-poravnava-podrobnosti--akcija-preklic { --action-rgb: 242,90,36; --action-accent: #f25a24; }
+.izvedba-poravnava-podrobnosti--akcija-ustavi { --action-rgb: 213,31,50; --action-accent: #d51f32; }
+.izvedba-poravnava-podrobnosti--akcija-odvetnik { --action-rgb: 105,65,180; --action-accent: #6941b4; }
+.izvedba-poravnava-podrobnosti--akcija-prestavi { --action-rgb: 35,123,212; --action-accent: #237bd4; }
+.izvedba-poravnava-podrobnosti--akcija-obljuba { --action-rgb: 239,138,0; --action-accent: #ef8a00; }
+.izvedba-poravnava-podrobnosti--akcija-delno { --action-rgb: 22,155,143; --action-accent: #169b8f; }
+.izvedba-poravnava-podrobnosti--akcija-storno { --action-rgb: 207,76,76; --action-accent: #cf4c4c; }
 
 .izvedba-poravnava-potek {
   display: flex;
@@ -1836,15 +1906,26 @@ body.izvedba-sheet-open { overflow: hidden; }
   place-items: center;
   width: 26px;
   height: 26px;
-  border: 1.5px solid rgba(207,76,76,.45);
+  border: 1.5px solid rgba(94,110,107,.32);
   border-radius: 50%;
-  background: rgba(207,76,76,.12);
-  color: #a83a3a;
+  background: rgba(94,110,107,.09);
+  color: #667a76;
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
+}
+.izvedba-poravnava-korak__izveden {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(var(--korak-accent-rgb, 41,155,99), .13);
+  color: var(--korak-accent);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .izvedba-poravnava__korak-oznaka {
@@ -1875,6 +1956,141 @@ body.izvedba-sheet-open { overflow: hidden; }
   text-align: center;
   cursor: pointer;
 }
+.izvedba-poravnava-dodaj-korak[disabled] { opacity: .45; cursor: not-allowed; }
+
+.izvedba-obrok-planer__glava {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 8px 0 5px;
+}
+.izvedba-obrok-planer__glava:first-child { margin-top: 0; }
+.izvedba-obrok-planer__pomoc { font-size: 10.5px; color: #6b7c7c; }
+.izvedba-obrok-planer__stevilke {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.izvedba-obrok-planer__stevilke::-webkit-scrollbar { display: none; }
+.izvedba-obrok-planer__stevilo-pill {
+  flex: 0 0 auto;
+  min-width: 34px;
+  min-height: 34px;
+  border: 1.5px solid rgba(var(--action-rgb, 57,127,208), .3);
+  border-radius: 999px;
+  background: #fff;
+  color: #183a3a;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.izvedba-obrok-planer__stevilo-pill.is-selected {
+  background: rgb(var(--action-rgb, 57,127,208));
+  border-color: rgb(var(--action-rgb, 57,127,208));
+  color: #fff;
+}
+.izvedba-obrok-planer__razmik {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.izvedba-obrok-planer__razmik-kartica {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border: 1.5px solid rgba(var(--action-rgb, 57,127,208), .28);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.izvedba-obrok-planer__razmik-kartica strong { font-size: 12px; color: #183a3a; }
+.izvedba-obrok-planer__razmik-kartica small { font-size: 10.5px; color: #6b7c7c; }
+.izvedba-obrok-planer__razmik-kartica.is-selected {
+  border-color: rgb(var(--action-rgb, 57,127,208));
+  background: rgba(var(--action-rgb, 57,127,208), .1);
+}
+.izvedba-obrok-planer__razmik-kartica.is-selected strong { color: rgb(var(--action-rgb, 57,127,208)); }
+.izvedba-obrok-planer__enakomerno {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin: 6px 0 10px;
+  padding: 6px 14px;
+  border: 1.5px solid rgba(var(--action-rgb, 57,127,208), .32);
+  border-radius: 999px;
+  background: rgba(255,255,255,.7);
+  color: #183a3a;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.izvedba-obrok-planer__enakomerno.is-selected {
+  border-color: rgb(var(--action-rgb, 57,127,208));
+  background: rgba(var(--action-rgb, 57,127,208), .12);
+  color: rgb(var(--action-rgb, 57,127,208));
+}
+.izvedba-obrok-planer__enakomerno-ikona {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(var(--action-rgb, 57,127,208), .4);
+  color: #fff;
+}
+.izvedba-obrok-planer__enakomerno-ikona svg { width: 16px; height: 16px; }
+.izvedba-obrok-planer__enakomerno.is-selected .izvedba-obrok-planer__enakomerno-ikona {
+  border-color: rgb(var(--action-rgb, 57,127,208));
+  background: rgb(var(--action-rgb, 57,127,208));
+}
+.izvedba-obrok-planer__vrstice { display: flex; flex-direction: column; gap: 8px; }
+.izvedba-obrok-planer__vrstica {
+  padding: 8px 10px 10px;
+  border: 1px solid rgba(var(--action-rgb, 57,127,208), .22);
+  border-radius: 12px;
+  background: rgba(255,255,255,.7);
+}
+.izvedba-obrok-planer__vrstica-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #183a3a;
+}
+.izvedba-obrok-planer__datum {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.izvedba-obrok-planer__datum-vnos {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--action-rgb, 57,127,208), .28);
+  border-radius: 12px;
+  background: #fff;
+  color: #183a3a;
+  font-size: 13px;
+}
+.izvedba-obrok-planer__vsota {
+  margin: 10px 0 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #b3541f;
+  text-align: center;
+}
+.izvedba-obrok-planer__vsota.is-ok { color: rgb(var(--action-rgb, 57,127,208)); }
+
 .izvedba-action-card {
   --action-accent: #d94932;
   --action-rgb: 217, 73, 50;
@@ -2449,7 +2665,17 @@ body.izvedba-sheet-open { overflow: hidden; }
   .izvedba-action-sheet__zapri { width: 28px; height: 28px; margin-top: 0; font-size: 21px; }
   .izvedba-action-sheet__header h2 { margin-bottom: 3px; font-size: 18px; }
   .izvedba-action-sheet__header p { font-size: 11.5px; line-height: 1.28; }
-  .izvedba-action-sheet__scroll { display: grid; grid-template-rows: auto auto; align-content: start; padding-inline: 1px; overflow-y: hidden; scrollbar-gutter: auto; }
+  .izvedba-action-sheet__scroll {
+    display: grid;
+    grid-template-rows: auto auto;
+    align-content: start;
+    padding-inline: 1px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: auto;
+  }
   .izvedba-action-sheet__mreza { min-height: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); align-content: start; gap: 7px; }
   .izvedba-action-card { grid-template-rows: minmax(76px, 1fr) auto; min-height: 132px; border-radius: 12px; }
   .izvedba-action-card.is-selected {
@@ -2713,14 +2939,59 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-action-sheet__nazaj-ikona svg { width: 16px; height: 16px; transform: rotate(180deg); }
 
 .izvedba-poravnava-pripoved {
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(16,121,125,.07);
-  border: 1px solid rgba(16,121,125,.16);
+  width: 100%;
+  padding: 11px;
+  border-radius: 16px;
+  background: #eef9f8;
+  border: 1px solid rgba(16,121,125,.22);
+  box-shadow: none;
+  box-sizing: border-box;
   margin-bottom: 18px;
 }
-.izvedba-poravnava-pripoved p { margin: 0; font-size: 12.5px; line-height: 1.55; color: #2f3f3e; }
-.izvedba-poravnava-pripoved p + p { margin-top: 6px; }
+.izvedba-poravnava-pripoved__glava {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.izvedba-poravnava-pripoved__ikona {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: #15969a;
+}
+.izvedba-poravnava-pripoved__ikona svg { width: 19px; height: 19px; }
+.izvedba-poravnava-pripoved__oznaka {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: #10797d;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.izvedba-poravnava-pripoved__datum {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid rgba(16,121,125,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.62);
+  color: #287a79;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 650;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.izvedba-poravnava-pripoved__besedilo {
+  padding: 0;
+}
+.izvedba-poravnava-pripoved__besedilo p { margin: 6px 0 0; color: #456260; font-size: 14px; line-height: 1.4; }
+.izvedba-poravnava-pripoved b { color: #173f3e; font-weight: 800; }
 
 .izvedba-povzetek-cona { margin-bottom: 18px; }
 .izvedba-povzetek-cona__naslov {
@@ -2734,6 +3005,8 @@ body.izvedba-sheet-open { overflow: hidden; }
 
 .izvedba-poravnava-potek--povzetek { max-height: none; overflow: visible; padding-right: 0; }
 .izvedba-poravnava-potek--povzetek .izvedba-poravnava-korak { position: relative; }
+.izvedba-poravnava-korak__akcije { display: inline-flex; align-items: center; gap: 5px; }
+.izvedba-poravnava-korak__akcije .izvedba-poravnava-korak__odstrani { width: 24px; height: 24px; }
 .izvedba-poravnava-korak__razsiri {
   display: grid;
   place-items: center;
@@ -2777,6 +3050,28 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-povzetek-kanal__kljukica { display: none; width: 14px; height: 14px; }
 .izvedba-povzetek-kanal__kljukica svg { width: 14px; height: 14px; }
 .izvedba-povzetek-kanal.is-selected .izvedba-povzetek-kanal__kljukica { display: grid; place-items: center; }
+.izvedba-povzetek-kanal__besedilo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1.05;
+}
+.izvedba-povzetek-kanal__oznaka {
+  color: #778584;
+  font-size: 10px;
+  font-weight: 700;
+}
+.izvedba-povzetek-kanal__vrednost {
+  max-width: 100%;
+  overflow: hidden;
+  color: #159393;
+  font-size: 11px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .izvedba-povzetek-racun-kartica {
   border: 1px solid #e4e9e6;
@@ -2875,8 +3170,7 @@ body.izvedba-sheet-open { overflow: hidden; }
 }
 
 @media (max-width: 480px) {
-  .izvedba-poravnava-pripoved { padding: 12px 14px; }
-  .izvedba-poravnava-pripoved p { font-size: 11.5px; }
-  .izvedba-povzetek-kanal { height: 32px; font-size: 11.5px; }
+  .izvedba-poravnava-pripoved { padding: 11px; }
+  .izvedba-povzetek-kanal { height: 34px; font-size: 11.5px; }
   .izvedba-povzetek-zavihek { height: 30px; font-size: 10.5px; }
 }

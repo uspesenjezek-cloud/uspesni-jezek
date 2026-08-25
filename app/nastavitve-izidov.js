@@ -34,7 +34,7 @@
       id: "partial",
       terminalen: false,
       naslov: "Delno plačilo",
-      opis: "Prejet je le del zneska.",
+      opis: "Prejet je le del zneska v denarju.",
       razred: "delno",
       barva: "#3aa99c",
       rgb: "58,169,156",
@@ -60,7 +60,7 @@
       id: "installment",
       terminalen: false,
       naslov: "Plačilo v obrokih",
-      opis: "Evidentirajte prejeti obrok.",
+      opis: "Evidentirajte prejete denarne obroke.",
       razred: "obrok",
       barva: "#397fd0",
       rgb: "57,127,208",
@@ -72,8 +72,8 @@
     credit_note: {
       id: "credit_note",
       terminalen: true,
-      naslov: "Zaključeno z dobropisom",
-      opis: "Preostali dolg je bil pokrit z dobropisom ali odpustom.",
+      naslov: "Dobropis",
+      opis: "Poravnajte znesek z dobropisom ali odpustom. Če znesek pokrije cel dolg, se primer zapre.",
       razred: "dobropis",
       barva: "#e89524",
       rgb: "232,149,36",
@@ -145,7 +145,7 @@
 
   /* Vrstni red kartic v "Kako je bil račun poravnan?" (samo terminalni +
      partial/installment, ki tam prav tako nastopata kot izbirni kartici). */
-  var VRSTNI_RED_PORAVNAVE = ["full", "partial", "compensation", "installment", "credit_note", "cancelled_invoice"];
+  var VRSTNI_RED_PORAVNAVE = ["full", "partial", "compensation", "installment", "credit_note"];
 
   function izid(id) {
     return IZIDI[id] || null;

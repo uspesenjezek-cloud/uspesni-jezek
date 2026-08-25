@@ -45,6 +45,8 @@
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
     chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
     bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+    bellOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 18H3s3-2 3-9a6.1 6.1 0 0 1 .29-1.86"/><path d="M10.27 3.18A6 6 0 0 1 18 9c0 2.08.27 3.72.65 4.97"/><path d="m3 3 18 18"/></svg>',
+    receiptCheck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6"/><path d="m9 13 2 2 4-4"/></svg>',
   };
 
   var STANJE_OZNAKE = {
@@ -68,6 +70,7 @@
     postpone_reminder: { naslov: "Prestavi opomin", ikona: "clock", gumb: "Prestavi opomin" },
     payment_promised: { naslov: "Dolžnik je obljubil plačilo", ikona: "handshake", gumb: "Počakaj {waitDays} dni" },
     partial_payment: { naslov: "Račun je delno poravnan", ikona: "coin", gumb: "Shrani delno plačilo" },
+    cancelled_invoice: { naslov: "Račun storniran", ikona: "documentX", gumb: "Potrdi storno računa" },
   };
 
   function ikona(ime) {
@@ -101,22 +104,31 @@
   /* Zgornji vodoravni swipe trak korakov. `koraki` = seznam {stepId,
      naslov, stepIndex, executionState, scheduledAt}, vsak vključen korak
      enkrat (agregirano prek kanalov). */
+  /* Koraki s temi stanji so dejansko izvedeni - krogec dobi polno barvo in
+     kljukico namesto številke, da je na prvi pogled vidno, kaj je opravljeno.
+     Namerno izključeni: skipped/cancelled/failed - ti niso bili uspešno
+     izvedeni, čeprav so "zaključeni" v smislu, da nanje ni več čakanja. */
+  function jeKorakIzveden(executionState) {
+    return executionState === "sent" || executionState === "handed_over";
+  }
+
   function izrisiSwipeTrak(koraki, trenutniStepId) {
     if (!koraki.length) return "";
     var kartice = koraki.map(function (k, i) {
       var razred = barvniRazredKoraka(k.stepIndex);
       var izbran = k.stepId === trenutniStepId;
+      var izveden = jeKorakIzveden(k.executionState);
       return (
-        '<button type="button" class="izvedba-mini-korak ' + razred + (izbran ? " is-current" : "") + '" ' +
+        '<button type="button" class="izvedba-mini-korak ' + razred + (izbran ? " is-current" : "") + (izveden ? " is-done" : "") + '" ' +
         'data-swipe-step="' + esc(k.stepId) + '" aria-current="' + (izbran ? "true" : "false") + '" ' +
         'aria-label="' + esc((i + 1) + " od " + koraki.length + ": " + k.naslov + ", " + oznakaStanja(k.executionState)) + '">' +
-        '<span class="izvedba-mini-korak__stevilka">' + esc(i + 1) + "</span>" +
-        '<span class="izvedba-mini-korak__naslov">' + esc(k.naslov) + "</span>" +
+        '<span class="izvedba-mini-korak__stevilka" aria-hidden="true">' + (izveden ? "✓" : esc(i + 1)) + "</span>" +
+        '<span class="izvedba-mini-korak__naslov" data-izvedba-fit data-fit-min="8">' + esc(k.naslov) + "</span>" +
         '<span class="izvedba-mini-korak__cas">' + esc(formatirajDatumUro(k.scheduledAt)) + "</span>" +
         '<span class="sr-only">' + esc(oznakaStanja(k.executionState)) + "</span>" +
         "</button>" +
         (i < koraki.length - 1
-          ? '<span class="izvedba-mini-puscica" aria-hidden="true">›</span>'
+          ? '<span class="izvedba-mini-povezava" aria-hidden="true"></span>'
           : "")
       );
     });
