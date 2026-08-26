@@ -1,3 +1,3 @@
 "use strict";
 
-module.exports = require("./_lib/pos-delivery-worker");
+module.exports = require("./_handlers/pos-dostava-delavec");

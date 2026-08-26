@@ -1,0 +1,56 @@
+-- Cover the composite tenant foreign keys in their declared column order.
+-- This keeps ownership validation and parent-row maintenance efficient as the
+-- retained invoice and archive history grows.
+
+create index pos_adjustment_documents_adjustment_user_idx
+  on public.pos_adjustment_documents(adjustment_id, user_id);
+create index pos_archive_integrity_events_record_user_idx
+  on public.pos_archive_integrity_events(archive_record_id, user_id);
+create index pos_archive_records_invoice_user_idx
+  on public.pos_archive_records(invoice_id, user_id);
+create index pos_archive_replica_events_record_user_idx
+  on public.pos_archive_replica_events(archive_record_id, user_id);
+create index pos_archive_replica_events_replica_user_idx
+  on public.pos_archive_replica_events(replica_id, user_id);
+create index pos_archive_replicas_record_user_idx
+  on public.pos_archive_replicas(archive_record_id, user_id);
+create index pos_bank_transactions_invoice_user_idx
+  on public.pos_bank_transactions(confirmed_invoice_id, user_id);
+create index pos_bank_transactions_payment_user_idx
+  on public.pos_bank_transactions(confirmed_payment_id, user_id);
+create index pos_bank_transactions_import_user_idx
+  on public.pos_bank_transactions(import_id, user_id);
+create index pos_datev_transfers_archive_user_idx
+  on public.pos_datev_document_transfers(archive_record_id, user_id);
+create index pos_einvoice_documents_invoice_user_idx
+  on public.pos_einvoice_documents(invoice_id, user_id);
+create index pos_einvoice_validation_document_user_idx
+  on public.pos_einvoice_validation_events(document_id, user_id);
+create index pos_invoice_adjustments_invoice_user_idx
+  on public.pos_invoice_adjustments(original_invoice_id, user_id);
+create index pos_invoice_deliveries_invoice_user_idx
+  on public.pos_invoice_deliveries(invoice_id, user_id);
+create index pos_invoice_delivery_events_delivery_user_idx
+  on public.pos_invoice_delivery_events(delivery_id, user_id);
+create index pos_invoice_documents_invoice_user_idx
+  on public.pos_invoice_documents(invoice_id, user_id);
+create index pos_replacements_cancellation_user_idx
+  on public.pos_invoice_replacements(cancellation_adjustment_id, user_id);
+create index pos_replacements_original_user_idx
+  on public.pos_invoice_replacements(original_invoice_id, user_id);
+create index pos_replacements_new_user_idx
+  on public.pos_invoice_replacements(replacement_invoice_id, user_id);
+create index pos_payment_events_payment_user_idx
+  on public.pos_payment_events(payment_id, user_id);
+create index pos_payments_invoice_user_idx
+  on public.pos_payments(invoice_id, user_id);
+create index pos_payments_bank_transaction_user_idx
+  on public.pos_payments(source_bank_transaction_id, user_id);
+create index pos_work_order_events_order_user_idx
+  on public.pos_work_order_events(work_order_id, user_id);
+create index pos_work_order_invoices_invoice_user_idx
+  on public.pos_work_order_invoices(invoice_id, user_id);
+create index pos_work_order_invoices_order_user_idx
+  on public.pos_work_order_invoices(work_order_id, user_id);
+
+;

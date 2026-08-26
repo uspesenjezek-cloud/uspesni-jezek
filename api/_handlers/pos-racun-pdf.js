@@ -2,12 +2,16 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
+const requestQuery = require("../_lib/pos-request-query");
 const { GENERATOR_VERSION, ustvariRacunPdf } = require("../_lib/pos-pdf");
 
 const BUCKET = "pos-invoice-originals";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 
 function uuid(value) {
@@ -49,7 +53,11 @@ async function downloadObject(cfg, path) {
     error.status = response.status;
     throw error;
   }
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_PDF_BYTES,
+    code: "POS_PDF_ORIGINAL_TOO_LARGE",
+    message: "Arhivirani PDF presega dovoljeno velikost."
+  });
 }
 
 async function uploadObject(cfg, path, pdf) {
@@ -107,7 +115,7 @@ async function ensureDocument(cfg, invoice, userId) {
   pdf = await downloadObject(cfg, path);
   if (!pdf) {
     pdf = await ustvariRacunPdf(invoice);
-    if (pdf.length > 5 * 1024 * 1024) throw new Error("Ustvarjeni PDF je nepričakovano prevelik.");
+    if (pdf.length > MAX_PDF_BYTES) throw new Error("Ustvarjeni PDF je nepričakovano prevelik.");
     const uploaded = await uploadObject(cfg, path, pdf);
     if (!uploaded) pdf = await downloadObject(cfg, path);
   }
@@ -132,14 +140,15 @@ async function handler(req, res) {
 
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const invoiceId = uuid(req.query && req.query.invoiceId);
+  const query = requestQuery(req);
+  const invoiceId = uuid(query.invoiceId);
   if (!invoiceId) return json(res, 400, { ok: false, napaka: "Neveljaven račun." });
 
   try {
     const invoice = await readInvoice(cfg, auth.user.id, invoiceId);
     if (!invoice) return json(res, 404, { ok: false, napaka: "Račun ne obstaja ali ni vaš." });
     const result = await ensureDocument(cfg, invoice, auth.user.id);
-    if (req.method === "POST" || String(req.query && req.query.mode) === "metadata") {
+    if (req.method === "POST" || String(query.mode) === "metadata") {
       return json(res, 200, { ok: true, document: {
         id: result.document.id, sha256: result.document.sha256, byteSize: result.document.byte_size,
         createdAt: result.document.created_at, generatorVersion: result.document.generator_version

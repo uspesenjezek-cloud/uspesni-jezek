@@ -2,9 +2,12 @@
 
 const crypto = require("node:crypto");
 const supabase = require("./supabase-server");
+const providerJson = require("./provider-json");
 
 const PDF_BUCKET = "pos-invoice-originals";
 const XML_BUCKET = "pos-einvoice-originals";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+const MAX_XML_BYTES = 2 * 1024 * 1024;
 
 class DeliveryPackageError extends Error {
   constructor(message, options) {
@@ -75,7 +78,7 @@ async function readSingle(cfg, table, query, missingMessage) {
   return rows[0];
 }
 
-async function downloadObject(cfg, bucket, storagePath, mediaType) {
+async function downloadObject(cfg, bucket, storagePath, mediaType, maxBytes) {
   const response = await supabase.fetchZOmejitvijo(
     cfg.url + "/storage/v1/object/" + bucket + "/" + encodedPath(storagePath),
     { headers: supabase.serviceHeaders(cfg, { Accept: mediaType }) },
@@ -93,11 +96,24 @@ async function downloadObject(cfg, bucket, storagePath, mediaType) {
       retryable: response.status === 429 || response.status >= 500,
     });
   }
-  return Buffer.from(await response.arrayBuffer());
+  try {
+    return await providerJson.readBuffer(response, {
+      maxBytes,
+      code: "DELIVERY_ATTACHMENT_TOO_LARGE",
+      message: "Arhivirana dostavna priloga presega dovoljeno velikost.",
+    });
+  } catch (error) {
+    if (error && error.code === "DELIVERY_ATTACHMENT_TOO_LARGE") {
+      throw new DeliveryPackageError(error.message, { code: error.code, retryable: false });
+    }
+    throw error;
+  }
 }
 
 function assertOwnedPath(delivery, storagePath) {
-  const expectedPrefix = delivery.user_id + "/" + delivery.invoice_id + "/";
+  const expectedPrefix = delivery.adjustment_id
+    ? delivery.user_id + "/adjustments/" + delivery.adjustment_id + "/"
+    : delivery.user_id + "/" + delivery.invoice_id + "/";
   if (!String(storagePath || "").startsWith(expectedPrefix)) {
     throw new DeliveryPackageError("Pot arhiviranega dokumenta ni vezana na ta račun.", {
       code: "DELIVERY_ARCHIVE_PATH_INVALID",
@@ -107,18 +123,21 @@ function assertOwnedPath(delivery, storagePath) {
 }
 
 async function pdfAttachment(cfg, delivery, baseName) {
+  const adjustment = Boolean(delivery.adjustment_id);
   const metadata = await readSingle(
     cfg,
-    "pos_invoice_documents",
+    adjustment ? "pos_adjustment_documents" : "pos_invoice_documents",
     "user_id=eq." + encodeURIComponent(delivery.user_id) +
-      "&invoice_id=eq." + encodeURIComponent(delivery.invoice_id) +
-      "&document_kind=eq.invoice_pdf&select=storage_path,sha256,byte_size,media_type",
-    "Arhivirani PDF original manjka."
+      "&" + (adjustment ? "adjustment_id" : "invoice_id") + "=eq." +
+        encodeURIComponent(adjustment ? delivery.adjustment_id : delivery.invoice_id) +
+      "&document_kind=eq." + (adjustment ? "adjustment_pdf" : "invoice_pdf") +
+      "&select=storage_path,sha256,byte_size,media_type",
+    adjustment ? "Arhivirani PDF popravek manjka." : "Arhivirani PDF original manjka."
   );
   assertOwnedPath(delivery, metadata.storage_path);
-  const content = await downloadObject(cfg, PDF_BUCKET, metadata.storage_path, "application/pdf");
+  const content = await downloadObject(cfg, PDF_BUCKET, metadata.storage_path, "application/pdf", MAX_PDF_BYTES);
   return verifyAttachment({
-    kind: "invoice_pdf",
+    kind: adjustment ? "adjustment_pdf" : "invoice_pdf",
     filename: baseName + ".pdf",
     mediaType: metadata.media_type,
     sha256: metadata.sha256,
@@ -128,13 +147,16 @@ async function pdfAttachment(cfg, delivery, baseName) {
 }
 
 async function xmlAttachment(cfg, delivery, baseName) {
+  const adjustment = Boolean(delivery.adjustment_id);
   const metadata = await readSingle(
     cfg,
-    "pos_einvoice_documents",
+    adjustment ? "pos_adjustment_einvoice_documents" : "pos_einvoice_documents",
     "user_id=eq." + encodeURIComponent(delivery.user_id) +
-      "&invoice_id=eq." + encodeURIComponent(delivery.invoice_id) +
-      "&document_kind=eq.xrechnung_ubl&select=storage_path,sha256,byte_size,media_type,validation_status",
-    "Arhivirani XRechnung original manjka."
+      "&" + (adjustment ? "adjustment_id" : "invoice_id") + "=eq." +
+        encodeURIComponent(adjustment ? delivery.adjustment_id : delivery.invoice_id) +
+      "&document_kind=eq." + (adjustment ? "adjustment_xrechnung_ubl" : "xrechnung_ubl") +
+      "&select=storage_path,sha256,byte_size,media_type,validation_status",
+    adjustment ? "Arhivirani strukturirani popravek manjka." : "Arhivirani XRechnung original manjka."
   );
   if (metadata.validation_status !== "validated") {
     throw new DeliveryPackageError("XRechnung pred dostavo ni KoSIT potrjen.", {
@@ -143,9 +165,9 @@ async function xmlAttachment(cfg, delivery, baseName) {
     });
   }
   assertOwnedPath(delivery, metadata.storage_path);
-  const content = await downloadObject(cfg, XML_BUCKET, metadata.storage_path, "application/xml");
+  const content = await downloadObject(cfg, XML_BUCKET, metadata.storage_path, "application/xml", MAX_XML_BYTES);
   return verifyAttachment({
-    kind: "xrechnung_ubl",
+    kind: adjustment ? "adjustment_xrechnung_ubl" : "xrechnung_ubl",
     filename: baseName + "-XRechnung.xml",
     mediaType: metadata.media_type,
     sha256: metadata.sha256,
@@ -166,10 +188,24 @@ async function buildDeliveryPackage(cfg, delivery) {
     "pos_invoices",
     "id=eq." + encodeURIComponent(delivery.invoice_id) +
       "&user_id=eq." + encodeURIComponent(delivery.user_id) +
-      "&select=id,invoice_number",
+      "&select=id,invoice_number,customer_type,customer_name,issue_date,service_date,due_date,tax_mode,net_cents,tax_cents,gross_cents,is_test,snapshot",
     "Račun za dostavo ne obstaja."
   );
-  const baseName = safeFilename(invoice.invoice_number || "Rechnung");
+  let documentNumber = invoice.invoice_number;
+  let adjustment = null;
+  if (delivery.adjustment_id) {
+    adjustment = await readSingle(
+      cfg,
+      "pos_invoice_adjustments",
+      "id=eq." + encodeURIComponent(delivery.adjustment_id) +
+        "&original_invoice_id=eq." + encodeURIComponent(delivery.invoice_id) +
+        "&user_id=eq." + encodeURIComponent(delivery.user_id) +
+        "&adjustment_type=in.(correction,cancellation,credit_note)&select=id,adjustment_number,adjustment_type,is_test,reason,issued_at,delta_net_cents,delta_tax_cents,delta_gross_cents,snapshot",
+      "Popravek za dostavo ne obstaja."
+    );
+    documentNumber = adjustment.adjustment_number;
+  }
+  const baseName = safeFilename(documentNumber || "Rechnung");
   const attachments = [];
   if (delivery.document_format === "pdf" || delivery.document_format === "xrechnung_pdf") {
     attachments.push(await pdfAttachment(cfg, delivery, baseName));
@@ -185,7 +221,9 @@ async function buildDeliveryPackage(cfg, delivery) {
   }
   return {
     delivery,
-    invoiceNumber: invoice.invoice_number,
+    invoice,
+    adjustment,
+    invoiceNumber: documentNumber,
     recipient: delivery.recipient,
     routingReference: delivery.routing_reference,
     subject: delivery.subject,
@@ -203,4 +241,5 @@ module.exports = {
   safeFilename,
   sha256,
   verifyAttachment,
+  _test: { downloadObject, MAX_PDF_BYTES, MAX_XML_BYTES },
 };

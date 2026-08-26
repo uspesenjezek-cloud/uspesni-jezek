@@ -25,16 +25,34 @@ async function finish(cfg, delivery, workerId, result) {
   }));
 }
 
+async function applyImmediateOpenapiResult(cfg, delivery, completed, providerResult, callRpc) {
+  if (!completed || !providerResult || providerResult.provider !== "openapi" || providerResult.delivered !== true) return completed;
+  try {
+    const applied = rpcRow(await (callRpc || supabase.pokliciRpc)(cfg, "pos_apply_openapi_invoice_event", {
+      p_provider_reference: providerResult.providerReference || "",
+      p_state: providerResult.remoteState || "",
+      p_external_status: providerResult.externalStatus || "",
+      p_event_at: null,
+      p_sandbox: Boolean(delivery && delivery.is_test),
+    }));
+    return applied || completed;
+  } catch (error) {
+    console.error("[pos-openapi-immediate-finalization]", error && error.stack || error);
+    return completed;
+  }
+}
+
 async function processClaimed(cfg, claimed, workerId) {
   try {
     const deliveryPackage = await buildDeliveryPackage(cfg, claimed);
     const provider = providerFor(claimed.provider);
     const providerResult = await provider.deliver(deliveryPackage);
-    const completed = await finish(cfg, claimed, workerId, {
+    let completed = await finish(cfg, claimed, workerId, {
       success: true,
       providerReference: providerResult.providerReference,
       retryable: false,
     });
+    completed = await applyImmediateOpenapiResult(cfg, claimed, completed, providerResult);
     return { ok: true, delivery: completed, providerResult };
   } catch (error) {
     const failed = await finish(cfg, claimed, workerId, {
@@ -46,4 +64,4 @@ async function processClaimed(cfg, claimed, workerId) {
   }
 }
 
-module.exports = { finish, processClaimed, rpcRow };
+module.exports = { applyImmediateOpenapiResult, finish, processClaimed, rpcRow };

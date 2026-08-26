@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "observedOn": "2026-08-26",
+  "cases": [
+    {
+      "kind": "cancellation",
+      "type": "381",
+      "providerReference": "6a8ed6b6920dea3d440e0bd1",
+      "documentNumber": "SBX-c575cb8b8e164028-TEST-ST-1787745223265",
+      "originalDocumentNumber": "SBX-1687e1c2364b44ff-TEST-LIVE-STORNO-1787745223265",
+      "billingReferenceDocumentNumber": "SBX-1687e1c2364b44ff-TEST-LIVE-STORNO-1787745223265",
+      "state": "SENT",
+      "externalStatus": "succeeded",
+      "providerEventAt": "2026-08-26T12:52:15.000Z"
+    },
+    {
+      "kind": "credit_note",
+      "type": "381",
+      "providerReference": "6a8ed6c4920dea3d440e0bd3",
+      "documentNumber": "SBX-fa3dca6d83c74727-TEST-GS-1787745223265",
+      "originalDocumentNumber": "SBX-f871e407b1be45b0-TEST-LIVE-GUTSCHRIFT-1787745223265",
+      "billingReferenceDocumentNumber": "SBX-f871e407b1be45b0-TEST-LIVE-GUTSCHRIFT-1787745223265",
+      "state": "SENT",
+      "externalStatus": "succeeded",
+      "providerEventAt": "2026-08-26T12:52:16.000Z"
+    }
+  ]
+}

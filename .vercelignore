@@ -27,7 +27,10 @@ api/boniteta-pro.js
 api/mehka-boniteta.js
 api/mehka-boniteta-opravilo.js
 api/pos-racun-pdf.js
+api/pos-angebot-pdf.js
+api/pos-pogodba-pdf.js
 api/pos-racun-korekcija.js
 api/pos-racun-xrechnung.js
 api/pos-dostava-sandbox.js
 api/pos-dostava-delavec.js
+api/pos-arhiv-delavec.js

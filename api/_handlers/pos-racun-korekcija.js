@@ -2,12 +2,16 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
+const requestQuery = require("../_lib/pos-request-query");
 const { GENERATOR_VERSION, ustvariKorekcijskiPdf } = require("../_lib/pos-adjustment-pdf");
 
 const BUCKET = "pos-invoice-originals";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 
 function uuid(value) {
@@ -45,7 +49,11 @@ async function downloadObject(cfg, path) {
   }, 15000);
   if (response.status === 404 || response.status === 400) return null;
   if (!response.ok) throw new Error("Arhiviranega popravka ni bilo mogoče prebrati.");
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_PDF_BYTES,
+    code: "POS_ADJUSTMENT_PDF_TOO_LARGE",
+    message: "Arhivirani PDF popravka presega dovoljeno velikost."
+  });
 }
 
 async function uploadObject(cfg, path, pdf) {
@@ -132,14 +140,15 @@ async function handler(req, res) {
 
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const adjustmentId = uuid(req.query && req.query.adjustmentId);
+  const query = requestQuery(req);
+  const adjustmentId = uuid(query.adjustmentId);
   if (!adjustmentId) return json(res, 400, { ok: false, napaka: "Neveljaven popravek." });
 
   try {
     const adjustment = await readAdjustment(cfg, auth.user.id, adjustmentId);
     if (!adjustment) return json(res, 404, { ok: false, napaka: "Popravek ne obstaja ali ni vaš." });
     const result = await ensureDocument(cfg, adjustment, auth.user.id);
-    if (req.method === "POST" || String(req.query && req.query.mode) === "metadata") {
+    if (req.method === "POST" || String(query.mode) === "metadata") {
       return json(res, 200, { ok: true, document: {
         id: result.document.id,
         sha256: result.document.sha256,

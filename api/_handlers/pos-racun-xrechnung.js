@@ -2,15 +2,19 @@
 
 const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
+const providerJson = require("../_lib/provider-json");
+const requestQuery = require("../_lib/pos-request-query");
 const {
-  GENERATOR_VERSION, XRECHNUNG_VERSION, KOSIT_VALIDATOR_VERSION, KOSIT_CONFIG_VERSION, buildXRechnung
+  GENERATOR_VERSION, XRECHNUNG_VERSION, KOSIT_VALIDATOR_VERSION, KOSIT_CONFIG_VERSION, buildXRechnung, preflightInvoice
 } = require("../_lib/pos-xrechnung");
 
 const BUCKET = "pos-einvoice-originals";
 const MAX_REPORT_LENGTH = 65536;
+const MAX_XML_BYTES = 2 * 1024 * 1024;
 
 function json(res, status, body) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8").end(JSON.stringify(body));
+  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("Cache-Control", "private, no-store, max-age=0").end(JSON.stringify(body));
 }
 function uuid(value) {
   const valueText = String(value || "");
@@ -19,19 +23,52 @@ function uuid(value) {
 function objectPath(userId, invoiceId) { return userId + "/" + invoiceId + "/xrechnung.xml"; }
 function encodedPath(path) { return path.split("/").map(encodeURIComponent).join("/"); }
 function sha256(buffer) { return crypto.createHash("sha256").update(buffer).digest("hex"); }
-function validatorConfigured() { return Boolean(String(process.env.KOSIT_VALIDATOR_URL || "").trim()); }
+function validatorSettings(env) {
+  const source = env || process.env;
+  const rawUrl = String(source.KOSIT_VALIDATOR_URL || "").trim();
+  const token = String(source.KOSIT_VALIDATOR_TOKEN || "").trim();
+  if (!rawUrl) return { configured: false, message: "KoSIT validator še ni povezan." };
+  let parsed;
+  try { parsed = new URL(rawUrl); } catch (_) { return { configured: false, message: "KoSIT URL ni veljaven." }; }
+  const local = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+  if (parsed.protocol !== "https:" && !(local && parsed.protocol === "http:")) {
+    return { configured: false, message: "KoSIT validator mora uporabljati HTTPS." };
+  }
+  if (token.length < 32) return { configured: false, message: "KoSIT dostopni token ni varno nastavljen." };
+  return { configured: true, url: parsed.toString().replace(/\/+$/, ""), token };
+}
+function validatorConfigured() { return validatorSettings().configured; }
 
 async function readInvoice(cfg, userId, invoiceId) {
   const rows = await supabase.pridobiVrstice(cfg, "pos_invoices", "id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=*");
   return rows.length === 1 ? rows[0] : null;
 }
+async function readDraft(cfg, userId, draftId) {
+  const rows = await supabase.pridobiVrstice(cfg, "pos_invoice_drafts", "id=eq." + encodeURIComponent(draftId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=id,user_id,payload");
+  return rows.length === 1 ? rows[0] : null;
+}
+async function readProfile(cfg, userId) {
+  const rows = await supabase.pridobiVrstice(cfg, "pos_business_profiles", "user_id=eq." + encodeURIComponent(userId) + "&select=*");
+  return rows.length === 1 ? rows[0] : null;
+}
+async function recordPreflight(cfg, userId, draft, xml, validation) {
+  const response = await supabase.fetchZOmejitvijo(cfg.url + "/rest/v1/pos_einvoice_preflight_validations", {
+    method: "POST",
+    headers: supabase.serviceHeaders(cfg, { "Content-Type": "application/json", Prefer: "return=representation" }),
+    body: JSON.stringify({
+      user_id: userId, draft_id: draft.id, payload: draft.payload, xml_sha256: sha256(xml),
+      validator_name: "KoSIT", validator_version: KOSIT_VALIDATOR_VERSION,
+      validator_config_version: KOSIT_CONFIG_VERSION, validation_report: validation.report,
+      validated_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+    })
+  }, 12000);
+  if (!response.ok) throw Object.assign(new Error("KoSIT predizdajnega dokaza ni bilo mogoče shraniti."), { status: response.status });
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows[0] : rows;
+}
 async function readDocument(cfg, userId, invoiceId) {
   const rows = await supabase.pridobiVrstice(cfg, "pos_einvoice_documents", "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&select=*");
   return rows.length === 1 ? rows[0] : null;
-}
-async function invoiceIsCancelled(cfg, userId, invoiceId) {
-  const rows = await supabase.pridobiVrstice(cfg, "pos_invoice_adjustments", "invoice_id=eq." + encodeURIComponent(invoiceId) + "&user_id=eq." + encodeURIComponent(userId) + "&adjustment_type=eq.cancellation&select=id&limit=1");
-  return rows.length > 0;
 }
 async function downloadObject(cfg, path) {
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + BUCKET + "/" + encodedPath(path), {
@@ -39,7 +76,11 @@ async function downloadObject(cfg, path) {
   }, 15000);
   if (response.status === 404 || response.status === 400) return null;
   if (!response.ok) throw Object.assign(new Error("Arhiviranega XRechnung dokumenta ni bilo mogoče prebrati."), { status: response.status });
-  return Buffer.from(await response.arrayBuffer());
+  return providerJson.readBuffer(response, {
+    maxBytes: MAX_XML_BYTES,
+    code: "POS_XRECHNUNG_ORIGINAL_TOO_LARGE",
+    message: "Arhivirani XRechnung presega dovoljeno velikost."
+  });
 }
 async function uploadObject(cfg, path, xml) {
   const response = await supabase.fetchZOmejitvijo(cfg.url + "/storage/v1/object/" + BUCKET + "/" + encodedPath(path), {
@@ -90,19 +131,27 @@ async function audit(cfg, userId, invoiceId, action, details) {
 }
 
 function reportBody(body) { return String(body || "").slice(0, MAX_REPORT_LENGTH); }
-async function validateWithKosit(xml, filename) {
-  const base = String(process.env.KOSIT_VALIDATOR_URL || "").trim();
-  if (!base) return { status: "pending", report: { configured: false, message: "KoSIT validator še ni povezan." } };
-  const url = base.replace(/\/+$/, "") + "/" + encodeURIComponent(filename || "xrechnung.xml");
+async function validateWithKosit(xml, filename, env) {
+  const settings = validatorSettings(env);
+  if (!settings.configured) return { status: "pending", report: { configured: false, message: settings.message } };
+  const url = settings.url + "/" + encodeURIComponent(filename || "xrechnung.xml");
   const headers = { "Content-Type": "application/xml", Accept: "application/xml, text/html;q=0.9" };
-  const token = String(process.env.KOSIT_VALIDATOR_TOKEN || "").trim();
-  if (token) headers.Authorization = "Bearer " + token;
+  headers.Authorization = "Bearer " + settings.token;
   try {
-    const response = await supabase.fetchZOmejitvijo(url, { method: "POST", headers, body: xml }, 25000);
-    const body = reportBody(await response.text());
+    const options = { method: "POST", headers, body: xml };
+    if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") options.signal = AbortSignal.timeout(50000);
+    const response = await supabase.fetchZOmejitvijo(url, options, 30000);
+    const body = reportBody(await providerJson.readText(response, {
+      maxBytes: MAX_REPORT_LENGTH,
+      code: "KOSIT_RESPONSE_TOO_LARGE",
+      message: "KoSIT validator je vrnil preveliko poročilo.",
+    }));
     if (response.status === 200) return { status: "validated", report: { configured: true, httpStatus: 200, accepted: true, body } };
     if (response.status === 406) return { status: "failed", report: { configured: true, httpStatus: 406, accepted: false, body } };
-    return { status: "pending", report: { configured: true, httpStatus: response.status, accepted: false, message: "Validator trenutno ni vrnil dokončnega rezultata.", body } };
+    const message = response.status === 401 || response.status === 403
+      ? "KoSIT validator je zavrnil strežniško prijavo."
+      : "Validator trenutno ni vrnil dokončnega rezultata.";
+    return { status: "pending", report: { configured: true, httpStatus: response.status, accepted: false, message, body } };
   } catch (error) {
     return { status: "pending", report: { configured: true, accepted: false, message: "KoSIT validator trenutno ni dosegljiv.", error: String(error && error.message || error).slice(0, 500) } };
   }
@@ -120,7 +169,7 @@ async function ensureDocument(cfg, invoice, userId) {
   xml = await downloadObject(cfg, path);
   if (!xml) {
     xml = buildXRechnung(invoice);
-    if (xml.length > 2 * 1024 * 1024) throw new Error("Ustvarjeni XRechnung je nepričakovano prevelik.");
+    if (xml.length > MAX_XML_BYTES) throw new Error("Ustvarjeni XRechnung je nepričakovano prevelik.");
     const uploaded = await uploadObject(cfg, path, xml);
     if (!uploaded) xml = await downloadObject(cfg, path);
   }
@@ -145,12 +194,17 @@ async function runValidation(cfg, userId, invoice, document, xml) {
   return updated;
 }
 function publicDocument(document) {
+  const report = document.validation_report && typeof document.validation_report === "object" ? document.validation_report : {};
+  const defaultMessage = document.validation_status === "validated" ? "KoSIT validacija uspešna."
+    : document.validation_status === "failed" ? "KoSIT je dokument zavrnil." : "KoSIT validacija še čaka.";
   return {
     id: document.id, sha256: document.sha256, byteSize: document.byte_size, createdAt: document.created_at,
     generatorVersion: document.generator_version, xrechnungVersion: document.xrechnung_version,
     validationStatus: document.validation_status, validatorVersion: document.validator_version,
     validatorConfigVersion: document.validator_config_version, validatedAt: document.validated_at,
-    validatorConfigured: validatorConfigured()
+    validatorConfigured: validatorConfigured(), validationAccepted: report.accepted === true,
+    validationHttpStatus: Number(report.httpStatus) || null,
+    validationMessage: String(report.message || defaultMessage).slice(0, 240)
   };
 }
 
@@ -160,13 +214,37 @@ async function handler(req, res) {
   try { cfg = supabase.konfiguracija(); } catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
-  const invoiceId = uuid(req.query && req.query.invoiceId);
-  const mode = String(req.query && req.query.mode || (req.method === "POST" ? "metadata" : "download"));
+  const query = requestQuery(req);
+  const mode = String(query.mode || (req.method === "POST" ? "metadata" : "download"));
+  if (mode === "preflight") {
+    const draftId = uuid(query.draftId);
+    if (req.method !== "POST") return json(res, 405, { ok: false, napaka: "Predizdajna validacija zahteva POST." });
+    if (!draftId) return json(res, 400, { ok: false, napaka: "Neveljaven osnutek." });
+    try {
+      const draft = await readDraft(cfg, auth.user.id, draftId);
+      const profile = await readProfile(cfg, auth.user.id);
+      if (!draft || !profile) return json(res, 404, { ok: false, napaka: "Osnutek ali profil ne obstaja." });
+      const xml = buildXRechnung(preflightInvoice(profile, draft.payload, draft.id));
+      const validation = await validateWithKosit(xml, "preflight-" + draft.id + ".xml");
+      if (validation.status !== "validated") {
+        const message = validation.report && (validation.report.message || validation.report.body) || "KoSIT predizdajna validacija ni uspela.";
+        return json(res, validation.status === "failed" ? 422 : 503, { ok: false, napaka: String(message).slice(0, 500) });
+      }
+      const evidence = await recordPreflight(cfg, auth.user.id, draft, xml, validation);
+      return json(res, 200, { ok: true, preflight: { draftId: draft.id, xmlSha256: evidence.xml_sha256, expiresAt: evidence.expires_at } });
+    } catch (error) {
+      console.error("[pos-racun-xrechnung:preflight]", error && error.stack || error);
+      return json(res, Number(error && error.status) || 500, { ok: false, napaka: error && error.message || "KoSIT predizdajna validacija ni uspela." });
+    }
+  }
+  const invoiceId = uuid(query.invoiceId);
   if (!invoiceId) return json(res, 400, { ok: false, napaka: "Neveljaven račun." });
   try {
     const invoice = await readInvoice(cfg, auth.user.id, invoiceId);
     if (!invoice) return json(res, 404, { ok: false, napaka: "Račun ne obstaja ali ni vaš." });
-    if (await invoiceIsCancelled(cfg, auth.user.id, invoiceId)) return json(res, 409, { ok: false, napaka: "Storniranega računa ni dovoljeno pripraviti za pošiljanje." });
+    // A cancellation does not replace or erase the issued structured original.
+    // Delivery has its own cancellation guard; this endpoint must keep the
+    // immutable XRechnung available for retention, audit and restoration.
     const result = await ensureDocument(cfg, invoice, auth.user.id);
     if (mode === "validate" || (req.method === "POST" && result.document.validation_status !== "validated")) {
       result.document = await runValidation(cfg, auth.user.id, invoice, result.document, result.xml);
@@ -184,4 +262,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { uuid, objectPath, encodedPath, sha256, validatorConfigured, reportBody, validateWithKosit, ensureDocument };
+module.exports._test = { uuid, objectPath, encodedPath, sha256, validatorSettings, validatorConfigured, reportBody, validateWithKosit, publicDocument, ensureDocument, readDraft, readProfile, recordPreflight };

@@ -14,6 +14,11 @@ const hardeningName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter(function (name) { return /pos_resend_webhook_hardening\.sql$/.test(name); })
   .sort().pop();
 const hardening = fs.readFileSync(path.join(root, "supabase", "migrations", hardeningName), "utf8");
+const submissionClockMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter(function (name) { return /pos_openapi_webhook_submission_clock\.sql$/.test(name); })
+  .sort().pop();
+assert.ok(submissionClockMigrationName, "Manjka ločitev lokalne ure oddaje od Resend dogodkov.");
+const submissionClockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", submissionClockMigrationName), "utf8");
 const safeTestName = fs.readdirSync(path.join(root, "supabase", "migrations"))
   .filter(function (name) { return /pos_resend_safe_test_mode\.sql$/.test(name); })
   .sort().pop();
@@ -51,6 +56,12 @@ assert.strictEqual(webhook._test.verifySvixSignature({
 }), true, "rotacija podpisov mora sprejeti katerikoli veljaven v1 podpis");
 assert.strictEqual(webhook._test.safeFailureCode({ data: { reason: "mailbox_full" } }), "mailbox_full", "kratka tehnicna koda je dovoljena");
 assert.strictEqual(webhook._test.safeFailureCode({ data: { reason: "blocked recipient@example.de\n" } }), "", "poljubno besedilo ali naslov ne sme v podatkovno sled");
+const eventNow = Date.parse("2026-08-21T12:00:00.000Z");
+assert.strictEqual(webhook._test.eventTimestamp({ created_at: "2026-08-21T12:05:01.000Z" }, eventNow), "", "prihodnji dogodek ne sme zastrupiti vrstnega reda");
+assert.strictEqual(webhook._test.eventTimestamp({ created_at: "2026-08-21T12:05:00.000Z" }, eventNow), "2026-08-21T12:05:00.000Z");
+assert.strictEqual(webhook._test.verifySvixSignature({
+  id: "x".repeat(241), timestamp, signature: "v1," + signature, rawBody, secret, nowSeconds: Number(timestamp),
+}), false, "predolg podpisni identifikator mora biti zavrnjen pred HMAC obdelavo");
 
 assert.match(migration, /create table private\.pos_resend_webhook_receipts/i);
 assert.match(migration, /svix_id text primary key/i);
@@ -62,6 +73,9 @@ assert.match(migration, /grant execute on function public\.pos_apply_resend_webh
 assert.doesNotMatch(migration, /grant execute[\s\S]*to authenticated[\s\S]*pos_apply_resend_webhook_event/i);
 assert.match(hardening, /alter table private\.pos_resend_webhook_receipts enable row level security/i);
 assert.match(hardening, /create index pos_resend_webhook_receipts_delivery_idx/i);
+assert.match(submissionClockMigration, /provider in \('openapi','resend'\) and is_test=false and status='sent'/i);
+assert.match(submissionClockMigration, /last_provider_event_at=null,[\s\S]*last_provider_event_type=''/i);
+assert.match(submissionClockMigration, /'delivery_'\|\|v_delivery\.provider\|\|'_provider_clock_reset'/i);
 assert.match(safeTest, /public\.pos_apply_resend_test_webhook_event/i);
 assert.match(safeTest, /provider = 'resend' and is_test = true and provider_reference = p_email_id/i);
 assert.match(safeTest, /sent_at = null[\s\S]*delivered_at = null/i);
@@ -76,4 +90,18 @@ assert.match(localServer, /\/api\/pos-dostava-webhook/);
   assert.ok(ui.includes(label), "UI mora vsebovati status: " + label);
 });
 
-console.log("POS Resend webhook testi: OK");
+void (async function verifyWebhookBodyLimit() {
+  assert.strictEqual(await webhook._test.rawRequestBody({ rawBody: Buffer.from("{}") }), "{}");
+  await assert.rejects(
+    () => webhook._test.rawRequestBody({ rawBody: Buffer.alloc(webhook._test.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+  await assert.rejects(
+    () => webhook._test.rawRequestBody({ rawBody: "x".repeat(webhook._test.MAX_BODY_BYTES + 1) }),
+    function (error) { return error && error.status === 413; }
+  );
+  console.log("POS Resend webhook testi: OK");
+})().catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});

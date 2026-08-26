@@ -5,21 +5,45 @@
   "description": "Statična spletna aplikacija za obrtnike (Slovenija/Nemčija) - Vercel build samo generira app/config.js iz environment variables, aplikacija sicer nima npm odvisnosti.",
   "scripts": {
     "dev": "node scripts/local-server.js --port 8001",
-    "build": "node scripts/generate-config.js && node scripts/build-sentry-browser.mjs",
+    "verify:local": "node scripts/verify-local-source.js --url http://localhost:8001",
+    "build": "node scripts/generate-config.js && node scripts/build-supabase-browser.mjs && node scripts/build-sentry-browser.mjs && node scripts/build-qrcode-browser.mjs",
+    "build:assets": "node scripts/build-supabase-browser.mjs && node scripts/build-sentry-browser.mjs && node scripts/build-qrcode-browser.mjs",
     "test": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js && node scripts/test-random.js && node scripts/test-scheduler.js && node scripts/test-predaja-koncni-pregled.js && node scripts/test-opomini-pregled.js && node scripts/test-paket-storitev.js && node scripts/test-predaja-sestavljalnik.mjs && node scripts/test-opomin-kartice-sync.mjs && node scripts/test-priporocilo-zagon.mjs && node scripts/test-izvedba-actions.mjs && node scripts/test-filter-ponudb.js && node scripts/test-aktivni-primeri.js && node scripts/test-identiteta-razveljavitev.mjs",
     "test:boniteta": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
     "test:sentry": "node scripts/test-sentry-privacy.js",
-    "test:integration": "node scripts/test-izvedba-rpc-integration.mjs"
+    "test:supabase-browser": "node scripts/build-supabase-browser.mjs && node scripts/test-supabase-browser-bundle.mjs",
+    "test:integration": "node scripts/test-izvedba-rpc-integration.mjs",
+    "test:pos-fiskaly": "node scripts/test-pos-fiskaly.js",
+    "test:pos-finapi": "node scripts/test-pos-finapi.js",
+    "test:pos-stripe": "node scripts/test-pos-stripe.js",
+    "test:pos-archive": "node scripts/test-pos-archive.js",
+    "test:pos-datev": "node scripts/test-pos-datev.js",
+    "test:pos-openapi": "node scripts/test-pos-openapi-invoice.js && node scripts/test-pos-delivery-engine.js",
+    "test:pos-i18n": "node scripts/test-pos-i18n.js",
+    "test:pos-workflow": "node scripts/test-pos-workflow.js",
+    "test:pos-offer": "node scripts/test-pos-offer-pdf.js",
+    "test:pos-database": "node scripts/test-pos-database-indexes.js",
+    "test:pos-boundaries": "node scripts/test-pos-request-boundaries.js",
+    "test:pos-readiness": "node scripts/test-pos-production-readiness.js",
+    "test:pos": "node scripts/run-pos-tests.js",
+    "check:pos-production": "node scripts/check-pos-production-readiness.js --strict",
+    "check:pos-migrations": "node scripts/check-pos-migration-deployment.js",
+    "check:openapi-contract": "node scripts/check-openapi-invoice-contract.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1116.0",
+    "@pdf-lib/fontkit": "1.1.1",
     "@sentry/browser": "^10.70.0",
     "@sentry/node": "^10.70.0",
     "@sparticuz/chromium": "^149.0.0",
+    "@supabase/supabase-js": "2.112.3",
     "esbuild": "^0.25.12",
     "jose": "6.2.9",
     "luxon": "3.7.2",
     "pdf-lib": "1.17.1",
-    "puppeteer-core": "^25.1.0"
+    "puppeteer-core": "^25.1.0",
+    "qrcode": "1.5.4",
+    "stripe": "22.5.0"
   },
   "devDependencies": {
     "pg": "8.13.1"

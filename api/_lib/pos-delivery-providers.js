@@ -1,9 +1,11 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const openapiInvoice = require("./pos-openapi-invoice");
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const MAX_RAW_ATTACHMENT_BYTES = 28 * 1024 * 1024;
+const MAX_PROVIDER_RESPONSE_BYTES = 64 * 1024;
 
 class DeliveryProviderError extends Error {
   constructor(message, options) {
@@ -40,7 +42,7 @@ function deliveryReadiness(env) {
 
 function sandboxReference(deliveryPackage) {
   const delivery = deliveryPackage.delivery;
-  const source = [delivery.id, delivery.invoice_id, delivery.attempt_count, deliveryPackage.manifestSha256].join(":");
+  const source = [delivery.id, delivery.invoice_id, delivery.channel, delivery.attempt_count, deliveryPackage.manifestSha256].join(":");
   return "sandbox-" + crypto.createHash("sha256").update(source).digest("hex").slice(0, 24);
 }
 
@@ -55,6 +57,16 @@ function sandboxProvider() {
       if (!delivery.is_test) {
         throw new DeliveryProviderError("Sandbox ne sme obdelati prave dostave.", { code: "SANDBOX_LIVE_DELIVERY_BLOCKED", retryable: false });
       }
+      const channel = String(delivery.channel || "");
+      if (!["email", "ozg_re", "peppol"].includes(channel)) {
+        throw new DeliveryProviderError("Sandbox je prejel neveljaven kanal dostave.", { code: "SANDBOX_CHANNEL_INVALID", retryable: false });
+      }
+      if ((channel === "ozg_re" || channel === "peppol") && !String(delivery.routing_reference || "").trim()) {
+        throw new DeliveryProviderError("Javnemu mock kanalu manjka Leitweg-ID.", { code: "SANDBOX_ROUTING_REFERENCE_MISSING", retryable: false });
+      }
+      if ((channel === "ozg_re" || channel === "peppol") && delivery.document_format !== "xrechnung") {
+        throw new DeliveryProviderError("Javni mock kanal sprejme samo preverjeni XRechnung XML.", { code: "SANDBOX_PUBLIC_FORMAT_INVALID", retryable: false });
+      }
       if (!deliveryPackage.attachments.length || deliveryPackage.attachments.some((attachment) => !Buffer.isBuffer(attachment.content))) {
         throw new DeliveryProviderError("Sandbox ni prejel preverjenih arhiviranih prilog.", { code: "SANDBOX_ATTACHMENTS_MISSING", retryable: false });
       }
@@ -64,6 +76,7 @@ function sandboxProvider() {
         status: "test_completed",
         sent: false,
         delivered: false,
+        simulatedChannel: channel,
       };
     },
   };
@@ -76,6 +89,31 @@ function validEmail(value) {
 
 function resendIdempotencyKey(deliveryPackage) {
   return ["invoice-delivery", deliveryPackage.delivery.id, deliveryPackage.manifestSha256.slice(0, 32)].join("/");
+}
+
+async function providerResponseJson(response) {
+  const declared = Number(response && response.headers && response.headers.get("content-length") || 0);
+  if (Number.isFinite(declared) && declared > MAX_PROVIDER_RESPONSE_BYTES) {
+    throw new DeliveryProviderError("E-poštni ponudnik je vrnil prevelik odgovor.", { code: "RESEND_RESPONSE_TOO_LARGE", retryable: true });
+  }
+  if (!response || !response.body || typeof response.body.getReader !== "function") {
+    try { return await response.json(); } catch (_) { return null; }
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  while (true) {
+    const part = await reader.read();
+    if (part.done) break;
+    const chunk = Buffer.from(part.value);
+    total += chunk.length;
+    if (total > MAX_PROVIDER_RESPONSE_BYTES) {
+      await reader.cancel().catch(function () {});
+      throw new DeliveryProviderError("E-poštni ponudnik je vrnil prevelik odgovor.", { code: "RESEND_RESPONSE_TOO_LARGE", retryable: true });
+    }
+    chunks.push(chunk);
+  }
+  try { return JSON.parse(Buffer.concat(chunks, total).toString("utf8")); } catch (_) { return null; }
 }
 
 function resendProvider(options) {
@@ -134,8 +172,7 @@ function resendProvider(options) {
       } catch (_) {
         throw new DeliveryProviderError("E-poštni ponudnik trenutno ni dosegljiv.", { code: "RESEND_NETWORK_ERROR", retryable: true });
       }
-      let body = null;
-      try { body = await response.json(); } catch (_) {}
+      const body = await providerResponseJson(response);
       if (!response.ok || !body || !body.id) {
         const retryable = response.status === 408 || response.status === 409 || response.status === 425 || response.status === 429 || response.status >= 500;
         throw new DeliveryProviderError(retryable ? "E-poštni ponudnik je začasno zavrnil pošiljanje." : "E-poštni ponudnik je zavrnil podatke pošiljanja.", {
@@ -158,14 +195,18 @@ function resendProvider(options) {
 function providerFor(name, options) {
   if (name === "sandbox") return sandboxProvider();
   if (name === "resend") return resendProvider(options);
+  if (name === "openapi") return openapiInvoice.provider(options);
   throw new DeliveryProviderError("Ponudnik dostave še ni konfiguriran.", { code: "DELIVERY_PROVIDER_NOT_CONFIGURED", retryable: false });
 }
 
 module.exports = {
   DeliveryProviderError,
+  MAX_PROVIDER_RESPONSE_BYTES,
   MAX_RAW_ATTACHMENT_BYTES,
   deliveryReadiness,
+  openapiInvoiceReadiness: openapiInvoice.readiness,
   providerFor,
+  providerResponseJson,
   resendIdempotencyKey,
   resendProvider,
   sandboxReference,
