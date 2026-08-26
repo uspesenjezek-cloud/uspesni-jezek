@@ -124,12 +124,12 @@ test("10–11. Odstranitev + razveljavi", () => {
   assert.equal(UJ.vsotaCents(plan.installments), 7564);
 });
 
-test("12–13. Min 2 / max 20", () => {
+test("12–13. Najmanjše dovoljeno število / max 20", () => {
   let plan = UJ.getInstallmentSuggestion({ totalDebtCents: 7564, priority: 5 });
-  plan = UJ.nastaviSteviloObrokov(plan, 2);
+  plan = UJ.nastaviSteviloObrokov(plan, UJ.MIN_OBROKOV);
   const rez = UJ.odstraniObrok(plan, plan.installments[0].id);
   assert.equal(rez.ok, false);
-  assert.equal(rez.code, "min_two");
+  assert.equal(rez.code, "min_count");
   plan = UJ.nastaviSteviloObrokov(plan, 25);
   assert.equal(plan.installmentCount, 20);
 });
@@ -262,6 +262,92 @@ test("Addon SL s 50 €", () => {
   assert.ok(plan.addonText.includes("50,00 €"));
   assert.ok(plan.addonText.includes("6,41 €"));
   assert.ok(plan.addonText.includes("28. 8. 2026"));
+});
+
+test("Delno plačilo: veljaven znesek, rok in preostanek", () => {
+  let plan = UJ.getInstallmentSuggestion({
+    totalDebtCents: 944600,
+    plannedSendDate: "2026-08-24",
+    language: "sl",
+  });
+  plan.paymentMode = "partial";
+  plan.partialAmountCents = 236150;
+  plan.partialDueDate = "2026-09-07";
+  plan.enabled = true;
+  plan = UJ.osveziAddon(plan, "sl");
+  const addon = plan.addonText.replace(/[\u00a0\u202f]/g, " ");
+  assert.equal(UJ.validatePlan(plan).ok, true);
+  assert.equal(UJ.jePlanUporaben(plan, 944600), true);
+  assert.ok(addon.includes("2361,50 €") || addon.includes("2.361,50 €"));
+  assert.ok(addon.includes("7084,50 €") || addon.includes("7.084,50 €"));
+  assert.ok(addon.includes("7. 9. 2026"));
+});
+
+test("Delno plačilo zavrne celoten dolg in prezgodnji datum", () => {
+  const plan = {
+    paymentMode: "partial",
+    totalDebtCents: 944600,
+    partialAmountCents: 944600,
+    partialDueDate: "2026-08-23",
+    plannedSendDate: "2026-08-24",
+  };
+  const validation = UJ.validatePlan(plan);
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.some((error) => error.code === "partial_full_amount"));
+  assert.ok(validation.errors.some((error) => error.code === "partial_date_early"));
+});
+
+test("Delno plačilo sestavi vse tri predloge za odprt preostanek", () => {
+  const plan = {
+    paymentMode: "partial",
+    totalDebtCents: 944600,
+    partialAmountCents: 250000,
+    partialDueDate: "2026-08-31",
+    partialRemainderMode: "open",
+    partialRemainderDueDate: "2026-09-30",
+    plannedSendDate: "2026-08-24",
+  };
+  plan.partialProposalType = "agreement";
+  const nemskiDogovor = UJ.sestaviAddonText(plan, "de").replace(/[\u00a0\u202f]/g, " ");
+  assert.ok(nemskiDogovor.includes("gemeinsam"));
+  assert.ok(nemskiDogovor.includes("2.500,00 €"));
+  assert.ok(nemskiDogovor.includes("6.946,00 €"));
+  plan.partialProposalType = "debtor_deadline";
+  assert.ok(UJ.sestaviAddonText(plan, "de").includes("bis wann"));
+  plan.partialProposalType = "fixed_deadline";
+  assert.ok(UJ.sestaviAddonText(plan, "de").includes("30.09.2026"));
+  assert.equal(UJ.validatePlan(plan).ok, true);
+});
+
+test("Delno plačilo sestavi vse tri predloge za dobropis", () => {
+  const plan = {
+    paymentMode: "partial",
+    totalDebtCents: 944600,
+    partialAmountCents: 250000,
+    partialDueDate: "2026-08-31",
+    partialRemainderMode: "credit_note",
+    plannedSendDate: "2026-08-24",
+  };
+  ["credit_payment", "credit_deadline", "credit_confirm"].forEach((type) => {
+    plan.partialProposalType = type;
+    assert.ok(UJ.sestaviAddonText(plan, "de").includes("Gutschrift"));
+  });
+});
+
+test("Ročni rok preostanka mora biti po prvem delnem plačilu", () => {
+  const plan = {
+    paymentMode: "partial",
+    totalDebtCents: 944600,
+    partialAmountCents: 250000,
+    partialDueDate: "2026-08-31",
+    partialRemainderMode: "open",
+    partialProposalType: "fixed_deadline",
+    partialRemainderDueDate: "2026-08-30",
+    plannedSendDate: "2026-08-24",
+  };
+  const validation = UJ.validatePlan(plan);
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.some((error) => error.code === "partial_remainder_date_early"));
 });
 
 console.log("\nUspešnih: " + ok);

@@ -193,9 +193,10 @@ async function main() {
   });
 
   await test("13) delno plačilo: validacija izračuna pravilen znesek plačila in mejo", function () {
-    const validacija = core.validirajNastavitve("partial_payment", { remainingAmount: 40 }, { preostaliDolg: 100 });
+    const validacija = core.validirajNastavitve("partial_payment", { remainingAmount: 40, settledAt: "2026-08-20T10:30:00Z" }, { preostaliDolg: 100 });
     assert.equal(validacija.ok, true);
     assert.equal(validacija.placiloZnesek, 60);
+    assert.equal(validacija.settings.settledAt, "2026-08-20T10:30:00.000Z");
 
     const previsoko = core.validirajNastavitve("partial_payment", { remainingAmount: 150 }, { preostaliDolg: 100 });
     assert.equal(previsoko.ok, false);
@@ -218,7 +219,7 @@ async function main() {
   await test("partial_settlement (dobropis) - uspesen delni dobropis ne zapre primera", () => {
     const rezultat = core.validirajNastavitve(
       "partial_settlement",
-      { kind: "credit", amount: 40 },
+      { kind: "credit", amount: 40, settledAt: "2026-08-20T11:45:00Z" },
       { preostaliDolg: 100 }
     );
     assert.equal(rezultat.ok, true);
@@ -226,6 +227,7 @@ async function main() {
     assert.equal(rezultat.placiloVrsta, "credit_note");
     assert.equal(rezultat.settings.remainingAmount, 60);
     assert.equal(rezultat.settings.reason, null);
+    assert.equal(rezultat.settings.settledAt, "2026-08-20T11:45:00.000Z");
   });
 
   await test("partial_settlement (odpust) - zahteva razlog", () => {
@@ -415,6 +417,187 @@ async function main() {
     assert.equal(u1.cancel_reason, "handoff_to_lawyer");
   });
 
+  await test("16bb) zgodovina in ocena tveganja se varno shranita v podatke predaje", function () {
+    const rezultat = core.validirajNastavitve("handoff_to_lawyer", {
+      lawyerHandoff: {
+        lawyerId: "joze_kovac",
+        historyBeforePlan: [{
+          tip: "partial",
+          naslov: "Delno plačilo",
+          znesek: 944,
+          settings: { paymentAmount: 944, settlementType: "partial" },
+        }],
+        riskAssessment: { latePayments: "2" },
+      },
+    });
+    assert.equal(rezultat.ok, true);
+    assert.equal(rezultat.settings.lawyerHandoff.historyBeforePlan[0].znesek, 944);
+    assert.equal(rezultat.settings.lawyerHandoff.riskAssessment.latePayments, "2");
+  });
+
+  await test("8b) vsi izvedbeni paneli ponujajo varen lastni opis", function () {
+    const js = citaj("app/izvedba.js");
+    const css = citaj("app/izvedba.css");
+    assert.ok((js.match(/gumbi \+= izrisiDrugoGumb/g) || []).length >= 2, "gumb Drugo mora biti v akcijskih in poravnalnih panelih");
+    assert.match(js, /data-action-custom-description/);
+    assert.match(js, /customActionActive[\s\S]*?izrisiDrugoPodrobnosti/);
+    assert.doesNotMatch(js, /Api\.executeAction\([\s\S]{0,300}actionType:\s*["']history_custom["']/, "lastni zgodovinski dogodek ne sme biti poslan kot izvršitvena akcija");
+    assert.match(css, /\.izvedba-poravnava-svicer__gumb--drugo\s*\{[^}]*grid-column:\s*1 \/ -1/);
+    assert.match(css, /\.izvedba-drugo__polje\s*\{[^}]*font-size:\s*16px/);
+    assert.match(css, /\.izvedba-poravnava-korak--drugo\s*\{[^}]*--korak-accent:\s*#567392/);
+    assert.match(css, /\.izvedba-poravnava-svicer__gumb--drugo\s*\{[^}]*--svicer-rgb:\s*82,111,145/);
+    assert.match(css, /\.izvedba-poravnava-cona__stevilka\s*\{[^}]*background:\s*rgba\(23,157,164,\.12\)[^}]*color:\s*#10797d/);
+    assert.match(css, /\.izvedba-poravnava-korak__stevilka\s*\{[^}]*background:\s*rgba\(var\(--korak-accent-rgb,[^)]+\),\s*\.12\)[^}]*color:\s*var\(--korak-accent,\s*#10797d\)/);
+    assert.match(css, /\.izvedba-poravnava-korak__odstrani\s*\{[^}]*padding:\s*0/);
+    assert.match(css, /\.izvedba-poravnava-svicer__gumb--kompenzacija\s*\{[^}]*--svicer-rgb:\s*86,160,94/);
+    assert.match(css, /\.izvedba-poravnava-podrobnosti--kompenzacija\s*\{[^}]*--action-rgb:\s*86,160,94/);
+    assert.match(css, /\.izvedba-poravnava-korak--compensation\s*\{[^}]*--korak-accent-rgb:\s*86,160,94/);
+    assert.match(css, /\.izvedba-poravnava-svicer__gumb--dobropis\s*\{[^}]*--svicer-rgb:\s*199,157,0/);
+    assert.match(css, /\.izvedba-poravnava-podrobnosti--dobropis\s*\{[^}]*--action-rgb:\s*199,157,0/);
+    assert.match(css, /\.izvedba-poravnava-korak--credit_note\s*\{[^}]*--korak-accent-rgb:\s*199,157,0/);
+    assert.match(js, /compensation:\s*\{[^}]*settlementAmount:\s*null[^}]*rocnoUrejeno:\s*false/);
+    assert.match(js, /tip === "compensation" && jeVnosZgodovine\(\)[\s\S]*?Vnesite znesek kompenzacije\.[\s\S]*?kind:\s*"compensation"/);
+    assert.match(js, /tip === "compensation"[\s\S]{0,300}izrisiPoravnavaZnesek\(tip, "settlementAmount", nastavitve\.settlementAmount, "Znesek kompenzacije", true\)/);
+    assert.match(js, /znesekTip === "credit_note" \|\| znesekTip === "compensation"/);
+    assert.match(js, /function pomakniPotekNaDno[\s\S]*scrollIntoView\(\{ behavior: "smooth", block: "center"/);
+    assert.match(js, /classList\.add\("is-pravkar-dodan"\)/);
+    assert.match(css, /@keyframes izvedba-korak-dodan/);
+    assert.match(citaj("app/neplacila-zgodovina.js"), /debug\.pomakniPotekNaDno\(\)/);
+  });
+
+  await test("16c) predaja ima štiri ločene funkcionalne korake in ohrani vse podatke", function () {
+    const src = citaj("app/izvedba.js");
+    const css = citaj("app/izvedba.css");
+    assert.match(src, /lawyerHandoff\.status === "prepared"[\s\S]*lawyerHandoff\.preparedSnapshot/);
+    assert.match(src, /screen: "zgodovina"/);
+    assert.match(src, /snapshot\.izbraniPaket \|\| lh\.selectedPackage/);
+    assert.match(src, /snapshot\.dokumenti \|\| lh\.documents/);
+    assert.match(src, /snapshot\.sporociloOdvetniku \|\| lh\.message/);
+    assert.match(src, /function dokumentiZaWizard[\s\S]*w\.preparedData\.documents/);
+    assert.match(src, /Možni dnevi predaje/);
+    assert.match(src, /opomin-predaja-sestavljalnik__cas-rezultat[\s\S]*opomin-predaja-sestavljalnik__cas-datum-ura/);
+    assert.match(src, /data-lawyer-handoff-date[\s\S]*data-lawyer-handoff-time/);
+    assert.match(src, /najzgodnejsiCasLawyerPredaje/);
+    assert.match(src, /Zgodovina[\s\S]*naslov: "Paket"[\s\S]*naslov: "Predaja"[\s\S]*naslov: "Pregled"/);
+    assert.match(src, /w\.screen === "zgodovina" \? izrisiOdvetnikZgodovino\(\)/);
+    assert.match(src, /data-lawyer-history-delay/);
+    assert.match(src, /historyBeforePlan: kopirajPodatke\(w\.historyEvents/);
+    assert.match(src, /riskAssessment: \{ latePayments: w\.historyLatePayments \}/);
+    assert.match(src, /Nadaljuj na izbiro paketa/);
+    assert.match(src, /w\.screen === "podrobnosti" \? izrisiOdvetnikPodrobnosti\(\)/);
+    assert.match(src, /Nadaljuj na podatke predaje/);
+    assert.match(src, /Preveri in potrdi podatke/);
+    assert.match(src, /lawyerDokumentPregledIkona[\s\S]*steviloVsehDokumentovZaWizard/);
+    assert.match(src, /opomin-predaja-sestavljalnik__sporocilo-svincnik[\s\S]*lawyerSvincnikIkona/);
+    assert.match(src, /data-lawyer-delete-details[\s\S]*state\.lawyerWizard\.screen = "paket"/);
+    assert.match(src, /opomin-predaja-sestavljalnik__locilo/);
+    assert.match(src, /zapustiOdvetnikZgodovino\(true\)[\s\S]*state\.lawyerWizard\.screen = "paket"/);
+    assert.match(src, /if \(!w\.preservePlanHandoff\) \{[\s\S]*settings\.lawyerHandoff/);
+    assert.match(src, /Potrdi oddajo/);
+    assert.match(src, /Potrditev ne pošlje ničesar odvetniku/);
+    assert.match(src, /Razumem, da moram paket odvetniku predati sam/);
+    assert.match(src, /opomin-predaja-pregled__cena[\s\S]*Končna cena[\s\S]*Skupaj/);
+    assert.match(src, /Kaj se je zgodilo\?/);
+    assert.match(src, /Kratek pregled neuspešnih korakov pred predajo odvetniku/);
+    assert.match(src, /vkljuceniKorakiZaSwipe\(\)[\s\S]*executionState === "sent"[\s\S]*state\.currentStepId/);
+    assert.match(src, /data-lawyer-history-toggle[\s\S]*data-lawyer-history-details/);
+    assert.match(src, /opomin-predaja-pregled__prihodnji-kartica[\s\S]*data-izvedba-fit data-fit-min="12"/);
+    assert.match(src, /expandedHistoryStepId[\s\S]*izrisiOdvetnikSheetZOhranjenimPomikom\(\)/);
+    assert.doesNotMatch(src, /Kaj se bo zgodilo naprej\?/);
+    assert.match(src, /data-lawyer-case-toggle[\s\S]*Vsi podatki o primeru/);
+    assert.match(src, /data-lawyer-details>Podrobno/);
+    assert.match(src, /data-lawyer-package-preview=[\s\S]*Preglej paket/);
+    assert.match(src, /data-lawyer-review-message[\s\S]*Vrni v prejšnje stanje[\s\S]*Shrani/);
+    assert.match(src, /Nazaj na 2\. korak[\s\S]*Izbriši 2\. korak[\s\S]*Shrani kot osnutek/);
+    assert.match(src, /Paket predate odvetniku[\s\S]*Običajno v 1–3 delovnih dneh[\s\S]*Po e-pošti ali telefonu/);
+    assert.match(src, /data-lawyer-handoff-date-display[\s\S]*data-lawyer-handoff-time-display/);
+    assert.match(css, /opomin-predaja-sestavljalnik__cas-vnosa input[\s\S]*position:\s*absolute;[\s\S]*opacity:\s*0/);
+    assert.match(css, /opomin-predaja-pregled__proces-korak[\s\S]*grid-template-rows:\s*38px minmax\(40px, auto\) minmax\(34px, auto\)/);
+    assert.match(css, /izvedba-action-sheet__panel--odvetnik-pregled[\s\S]*height:\s*100lvh;[\s\S]*border-radius:\s*0;/);
+    assert.match(css, /panel--odvetnik-pregled > \.izvedba-action-sheet__header[\s\S]*display:\s*none/);
+    assert.match(css, /panel--odvetnik-pregled \.izvedba-odvetnik-zgodovina__povzetek[\s\S]*border:\s*1px solid var\(--stage-border[\s\S]*background:\s*linear-gradient/);
+  });
+
+  await test("hitra dejanja so trije kompaktni gumbi, Pošlji pa ostane ločen v kartici", function () {
+    const src = citaj("app/izvedba.js");
+    const css = citaj("app/izvedba.css");
+    const html = citaj("app/izvedba.html");
+    assert.match(src, /izvedba-hitre-akcije[\s\S]*?Ne bo pla\\u010Dal[\s\S]*?Bo pla\\u010Dal[\s\S]*?Prekli\\u010Di opomin/);
+    assert.match(src, /izvedba-hitra-akcija--opomin[^>]*id="izvedba-gumb-preklici-hitro"/);
+    assert.match(src, /<div class="izvedba-posljizdaj-vrstica"><button[^>]*id="izvedba-gumb-posljizdaj"[^>]*>Pošlji<\/button><\/div>/);
+    assert.doesNotMatch(src, /id="izvedba-gumb-pozneje"/);
+    assert.match(css, /\.izvedba-posljizdaj-vrstica\s*\{[\s\S]*?margin-top:\s*4px;/);
+    assert.match(css, /\.izvedba-hitre-akcije\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+    assert.match(css, /\.izvedba-hitra-akcija\s*\{[\s\S]*?grid-template-rows:\s*24px auto;[\s\S]*?height:\s*66px;[\s\S]*?border-radius:\s*11px;[\s\S]*?font-weight:\s*800;/);
+    assert.match(css, /\.izvedba-hitra-akcija\s*\{[\s\S]*?box-shadow:\s*none;/);
+    assert.match(css, /\.izvedba-hitra-akcija--preklic\s*\{[\s\S]*?--hitra-rgb:\s*222, 79, 69;/);
+    assert.match(css, /\.izvedba-hitra-akcija--poravnano\s*\{[\s\S]*?--hitra-rgb:\s*41, 155, 99;/);
+    assert.match(css, /\.izvedba-hitra-akcija--opomin\s*\{[\s\S]*?--hitra-rgb:\s*83, 119, 158;/);
+    assert.match(css, /\.izvedba-hitra-akcija--opomin \.izvedba-hitra-akcija__besedilo\s*\{[\s\S]*?width:\s*min\(100%, 66px\);[\s\S]*?white-space:\s*normal;/);
+    assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.izvedba-hitra-akcija\s*\{[\s\S]*?grid-template-rows:\s*24px auto;[\s\S]*?height:\s*66px;[\s\S]*?border-radius:\s*11px;/);
+    assert.match(html, /izvedba\.css\?v=2026082[56]-[\w-]+/);
+    assert.match(html, /izvedba\.js\?v=2026082[56]-[\w-]+/);
+  });
+
+  await test("16c) vseh 6 ukrepov deluje tudi na starejšem načrtu brez materializiranih opomin_koraki", function () {
+    function legacyPlan() {
+      return osnovniPlan([
+        {
+          stepId: "stage-1", index: 1, kind: "sms", status: "confirmed",
+          sendAt: "2026-08-20T08:00:00.000Z", scheduledAt: "2026-08-20T08:00:00.000Z",
+          finalMessage: "Prosimo poravnajte 100,00 €.", messageEditedManually: false,
+        },
+        {
+          stepId: "stage-2", index: 2, kind: "sms", status: "confirmed",
+          sendAt: "2026-08-24T08:00:00.000Z", scheduledAt: "2026-08-24T08:00:00.000Z",
+          finalMessage: "Prosimo poravnajte 100,00 €.", messageEditedManually: false,
+        },
+        {
+          stepId: "stage-3", index: 3, kind: "manual_lawyer", status: "confirmed",
+          sendAt: "2026-08-28T08:00:00.000Z", scheduledAt: "2026-08-28T08:00:00.000Z",
+          lawyerHandoff: {
+            lawyerSnapshot: { name: "Odv. Novak" },
+            selectedPackage: { packageId: "osnovni" },
+            documents: [{ type: "invoice" }],
+            message: "Prosim za obravnavo.",
+          },
+        },
+      ]);
+    }
+
+    const rezultati = {
+      skip_current_step: core.izracunajUkrep("skip_current_step", {
+        plan: legacyPlan(), koraki: [], stepId: "stage-1", settings: { nextDelayDays: 0 },
+      }),
+      stop_plan: core.izracunajUkrep("stop_plan", {
+        plan: legacyPlan(), koraki: [], settings: { resumeMode: "manual", resumeAt: null },
+      }),
+      handoff_to_lawyer: core.izracunajUkrep("handoff_to_lawyer", {
+        plan: legacyPlan(), koraki: [], settings: { timingMode: "asap", scheduledHandoffAt: null },
+      }),
+      postpone_reminder: core.izracunajUkrep("postpone_reminder", {
+        plan: legacyPlan(), koraki: [], stepId: "stage-1", settings: { delayDays: 3 },
+      }),
+      payment_promised: core.izracunajUkrep("payment_promised", {
+        plan: legacyPlan(), koraki: [], settings: { waitDays: 4 },
+      }),
+      partial_payment: core.izracunajUkrep("partial_payment", {
+        plan: legacyPlan(), koraki: [], placiloZnesek: 25, novPreostanek: 75,
+      }),
+    };
+
+    Object.entries(rezultati).forEach(function ([tip, rezultat]) {
+      assert.equal(rezultat.ok, true, tip + " mora uspeti brez opomin_koraki vrstic");
+      assert.equal(rezultat.newPlan.version, "4", tip + " mora povečati verzijo načrta");
+    });
+    assert.equal(rezultati.skip_current_step.newPlan.steps[0].status, "skipped");
+    assert.equal(rezultati.skip_current_step.nextStepId, "stage-2");
+    assert.equal(rezultati.stop_plan.newPlan.status, "paused");
+    assert.equal(rezultati.payment_promised.newPlan.status, "waiting_for_promised_payment");
+    assert.equal(Date.parse(rezultati.postpone_reminder.newPlan.steps[0].sendAt), Date.parse("2026-08-23T08:00:00.000Z"));
+    assert.match(rezultati.partial_payment.newPlan.steps[0].finalMessage, /75,00 €/);
+  });
+
   // ---------- 17-20: strukturne preverbe (realtime, brez localStorage, fail-closed) ----------
 
   await test("17) Realtime dedupe primerja verzijo NUMERIČNO, ne kot niz", function () {
@@ -575,11 +758,12 @@ async function main() {
     assert.equal(izracun.newPlan.version, "4");
   });
 
-  await test("izvedba.js: kartica delno placilo/obrok ima preklopnik Denar/Dobropis/Odpust", () => {
+  await test("izvedba.js: denarna tokova sta ločena, kartica dobropisa pa preklaplja Dobropis/Odpust", () => {
     const src = citaj("app/izvedba.js");
     assert.match(src, /function izrisiPoravnavaRazlog\(tip\)/);
     assert.match(src, /izrisiPoravnavaSegment\(tip,\s*"kind"/);
-    assert.match(src, /oznaka:\s*"Denar"/);
+    assert.match(src, /tip === "partial"/);
+    assert.match(src, /tip === "installment"/);
     assert.match(src, /oznaka:\s*"Dobropis"/);
     assert.match(src, /oznaka:\s*"Odpust"/);
   });
@@ -594,12 +778,149 @@ async function main() {
   await test("izvedba.js: pripraviPoravnavoZaOddajo poslje partial_settlement za dobropis/odpust", () => {
     const src = citaj("app/izvedba.js");
     assert.match(src, /actionType:\s*"partial_settlement"/);
-    assert.match(src, /kindVneseno === "writeoff" && !efektivenRazlog\(nastavitve\)/);
+    assert.match(src, /kindDobropisOdpust === "writeoff" && !efektivenRazlog\(nastavitve\)/);
   });
 
   await test("izvedba.js: preklop kind segmenta ponastavi odprt razlog meni", () => {
     const src = citaj("app/izvedba.js");
     assert.match(src, /var poravnavaSegment = event\.target\.closest\("\[data-settlement-segment\]"\);\s*\n\s*if \(poravnavaSegment\) \{\s*\n\s*var poravnavaTip = poravnavaSegment\.getAttribute\("data-settlement-type"\);\s*\n\s*state\.selectedSettlementType = poravnavaTip;\s*\n\s*state\.settlementReasonMenuOpen = false;\s*\n\s*state\.settlementReasonMenuTip = null;/);
+  });
+
+  await test("19a) HTTP 409 uporabi strukturirano VERSION_CONFLICT napako in osveži stanje", function () {
+    const src = citaj("app/izvedba.js");
+    const zacetek = src.indexOf("async function submitSelectedAction");
+    const konec = src.indexOf("function obravnavajNapakoUkrepa", zacetek);
+    const blok = src.slice(zacetek, konec);
+    assert.match(blok, /err\s*&&\s*err\.podatki/);
+    assert.match(blok, /obravnavajNapakoUkrepa\(err\.podatki\)/);
+    assert.match(src, /koda === "VERSION_CONFLICT"[\s\S]*Api\.nalozi/);
+  });
+
+  await test("osnutek in že knjižena delna poravnava imata delujoč gumb za odstranitev", () => {
+    const src = citaj("app/izvedba.js");
+    const css = citaj("app/izvedba.css");
+    const api = citaj("api/izvedi-opomin-ukrep.js");
+    const migracija = citaj("supabase/migrations/20260824174942_undo_completed_settlement.sql");
+    assert.match(src, /data-nacrt-odstrani=\"' \+ i \+ '\" aria-label=\"Odstrani korak iz osnutka\"/);
+    assert.match(src, /data-ukrep-odstrani=\"' \+ K\.esc\(korak\.actionId\) \+ '\" data-ukrep-tip=\"' \+ K\.esc\(korak\.actionType\) \+ '\" aria-label=\"Odstrani izvedeni korak\"/);
+    assert.match(src, /async function odstraniIzvedenKorak\(actionId, actionType\)/);
+    assert.match(src, /actionType:\s*tipRazveljavitveUkrepa\(actionType\)/);
+    assert.match(src, /function ponastaviOsnutekPoravnave\(\)/);
+    assert.match(src, /function zapriActionSheet\(\) \{[\s\S]*?if \(state\.actionSheetMode === \"payment\"\) ponastaviOsnutekPoravnave\(\)/);
+    assert.match(src, /if \(!state\.nacrtKoraki\.length && state\.actionSheetStep === \"povzetek\"\) \{\s*state\.actionSheetStep = \"izbira\"/);
+    assert.match(api, /razveljavi_opomin_poravnavo/);
+    assert.match(migracija, /delete from public\.zadeva_placila/);
+    assert.match(migracija, /placano_skupaj = placano_skupaj - v_znesek/);
+    assert.match(migracija, /preostali_dolg = preostali_dolg \+ v_znesek/);
+    assert.match(migracija, /revoke all on function public\.razveljavi_opomin_poravnavo[^;]+from public, anon, authenticated/);
+    assert.match(css, /\.izvedba-poravnava-korak__akcije\s*\{[^}]*display:\s*inline-flex/);
+  });
+
+  await test("zaključno plačilo je mogoče odstraniti ter atomsko ponovno odpreti primer", () => {
+    const src = citaj("app/izvedba.js");
+    const api = citaj("api/izvedi-opomin-ukrep.js");
+    const migracija = citaj("supabase/migrations/20260824203035_undo_paid_in_full.sql");
+    const rezultat = core.izracunajRazveljavitevPoravnave({
+      plan: {
+        version: "7",
+        status: "completed_paid",
+        settlement: { type: "full", amount: 100 },
+        steps: [{ id: "s1", finalMessage: "Poravnajte 0,00 €.", status: "scheduled" }],
+      },
+      koraki: [{ stepId: "s1", executionState: "cancelled", status: "cancelled" }],
+      novPreostanek: 100,
+      zakljucnaPoravnava: true,
+    });
+    assert.equal(rezultat.ok, true);
+    assert.equal(rezultat.newPlan.status, "active");
+    assert.equal(rezultat.newPlan.version, "8");
+    assert.equal(Object.hasOwn(rezultat.newPlan, "settlement"), false);
+    assert.equal(rezultat.newPlan.steps[0].finalMessage, "Poravnajte 100,00 €.");
+    assert.match(src, /\["partial_payment", "partial_settlement", "paid_in_full", "payment_promised", "stop_plan"\]/);
+    assert.match(api, /\["partial_payment", "partial_settlement", "paid_in_full"\]/);
+    assert.match(api, /select=action_id,action_type,status,settings/);
+    assert.match(api, /ciljniUkrep\.action_type === "paid_in_full"[\s\S]*settlementType[\s\S]*tabelaPoravnave = jeDenarnaPoravnava \? "zadeva_placila" : "zadeva_poravnave"/);
+    assert.match(api, /zakljucnaPoravnava:\s*ciljniUkrep\.action_type === "paid_in_full"/);
+    assert.match(migracija, /action_type not in \('partial_payment', 'partial_settlement', 'paid_in_full'\)/);
+    assert.match(migracija, /v_ukrep_verzija <> v_verzija/);
+    assert.match(migracija, /status = case when v_ukrep\.action_type = 'paid_in_full' then v_prejsnji_status else status end/);
+    assert.match(migracija, /poravnano_at = case when v_ukrep\.action_type = 'paid_in_full' then null else poravnano_at end/);
+    assert.match(migracija, /cancel_reason = v_settlement_type/);
+    assert.match(migracija, /execution_state = 'scheduled'/);
+    assert.match(migracija, /delete from public\.zadeva_placila/);
+    assert.match(migracija, /delete from public\.zadeva_poravnave/);
+    assert.match(migracija, /revoke all on function public\.razveljavi_opomin_poravnavo[^;]+from public, anon, authenticated/);
+  });
+
+  await test("že zabeleženo obljubo plačila je mogoče odstraniti in varno razveljaviti", () => {
+    const src = citaj("app/izvedba.js");
+    const api = citaj("api/izvedi-opomin-ukrep.js");
+    const migracija = citaj("supabase/migrations/20260824183532_undo_payment_promise.sql");
+    const lokalniStreznik = citaj("scripts/local-server.js");
+    assert.match(src, /\["partial_payment", "partial_settlement", "paid_in_full", "payment_promised", "stop_plan"\]/);
+    assert.match(src, /if \(actionType === "payment_promised"\) return "undo_payment_promise"/);
+    assert.match(api, /actionType === "undo_payment_promise"/);
+    assert.match(api, /razveljavi_obljubo_placila/);
+    assert.match(migracija, /action_type <> 'payment_promised'/);
+    assert.match(migracija, /delete from public\.opomin_ukrepi/);
+    assert.match(migracija, /execution_state = case when v_prejsnji_rok is null then 'scheduled' else 'paused' end/);
+    assert.match(migracija, /revoke all on function public\.razveljavi_obljubo_placila[^;]+from public, anon, authenticated/);
+    assert.match(lokalniStreznik, /const izvediOpominUkrepModul = require\.resolve\("\.\.\/api\/izvedi-opomin-ukrep"\)/);
+    assert.match(lokalniStreznik, /pathname === "\/api\/izvedi-opomin-ukrep"/);
+    assert.match(lokalniStreznik, /izvediLokalniApi\(req, res, lokalniModul\)/);
+  });
+
+  await test("localhost uporablja isto aktualno izvedba kodo za branje in spremembo", () => {
+    const lokalniStreznik = citaj("scripts/local-server.js");
+    assert.match(lokalniStreznik, /const pridobiIzvedboModul = require\.resolve\("\.\.\/api\/pridobi-izvedbo"\)/);
+    assert.match(lokalniStreznik, /"\.vercel", "\.env\.production\.local"/);
+    assert.match(lokalniStreznik, /\^\\\[\(\?:SENSITIVE\|REDACTED\)\\\]\$\/i/);
+    assert.match(lokalniStreznik, /pathname === "\/api\/pridobi-izvedbo" \|\| pathname === "\/api\/izvedi-opomin-ukrep"/);
+    assert.match(lokalniStreznik, /pathname === "\/api\/pridobi-izvedbo" \? pridobiIzvedboModul : izvediOpominUkrepModul/);
+  });
+
+  await test("ustavitev načrta ima delujoč gumb za odstranitev in atomsko razveljavitev", () => {
+    const src = citaj("app/izvedba.js");
+    const api = citaj("api/izvedi-opomin-ukrep.js");
+    const migracija = citaj("supabase/migrations/20260824190948_undo_stopped_plan.sql");
+    assert.match(src, /\["partial_payment", "partial_settlement", "paid_in_full", "payment_promised", "stop_plan"\]/);
+    assert.match(src, /if \(actionType === "stop_plan"\) return "undo_stop_plan"/);
+    assert.match(api, /actionType === "undo_stop_plan"/);
+    assert.match(api, /razveljavi_ustavitev_opomin_nacrta/);
+    assert.match(migracija, /action_type <> 'stop_plan'/);
+    assert.match(migracija, /v_novi_plan := v_zadeva\.opomin_nacrt - 'pausedAt' - 'resumeAt' - 'resumeMode'/);
+    assert.match(migracija, /execution_state = 'scheduled'/);
+    assert.match(migracija, /delete from public\.opomin_ukrepi/);
+    assert.match(migracija, /revoke all on function public\.razveljavi_ustavitev_opomin_nacrta[^;]+from public, anon, authenticated/);
+  });
+
+  await test("povzetek plačilnega načrta jasno opiše dolžnika, dolg, datum in opomin", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /state\.poravnavaDogovorAt = new Date\(\)\.toISOString\(\)/);
+    assert.match(src, /zadeva\.imeDolznika/);
+    assert.match(src, /var znesekDolga = trenutniPreostaliDolg\(\)/);
+    assert.match(src, /Intl\.DateTimeFormat\("sl-SI"/);
+    assert.match(src, /izvedba-poravnava-pripoved__datum/);
+    assert.match(src, /dolga v višini/);
+    assert.match(src, /ni poravnal/);
+    assert.match(src, /\. opominu<\/b> je pristal/);
+    assert.doesNotMatch(src, /Zdaj sledi nov plačilni plan/);
+  });
+
+  await test("vnos zgodovine uporablja ločene pretekle dogodke brez prihodnjega načrtovalca", () => {
+    const src = citaj("app/izvedba.js");
+    const zgodovina = citaj("app/neplacila-zgodovina.js");
+    const css = citaj("app/izvedba.css");
+    assert.match(src, /function izrisiZgodovinaKontrolnik\(tip\)/);
+    assert.match(src, /tip === "partial" \|\| tip === "installment"/);
+    assert.match(src, /Podatki o dogodku/);
+    assert.match(src, /\+ Dodaj dogodek/);
+    assert.match(src, /korakDodan && jeVnosZgodovine\(\)\) state\.selectedSettlementType = null/);
+    assert.match(src, /jeZgodovina \? 'Dogodek ' : 'Korak '/);
+    assert.match(src, /besedaZaSteviloDogodkov/);
+    assert.match(src, /occurredAt/);
+    assert.match(zgodovina, /\+ Dodaj dogodek/);
+    assert.match(css, /\.stran--neplacila-zgodovina \.izvedba-poravnava-podrobnosti__naslov \{ margin-bottom: 8px; \}/);
   });
 
   console.log("\nUspešnih izvedba testov: " + passed);

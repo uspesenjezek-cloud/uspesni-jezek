@@ -98,6 +98,59 @@
     neutral: "Odločen",
   };
 
+  var VELJAVNI_TONI_KORAKA = [
+    "super_friendly",
+    "friendly",
+    "firm",
+    "strict",
+    "super_strict",
+    "super_evil",
+  ];
+
+  var BARVE_KORAKA_PO_MERI = [
+    { id: "mint", label: "Mint", hex: "#55b99a", toneId: "super_friendly", level: 1 },
+    { id: "green", label: "Zelena", hex: "#76aa57", toneId: "friendly", level: 2 },
+    { id: "lime", label: "Limeta", hex: "#a8b84c", toneId: "friendly", level: 2 },
+    { id: "yellow", label: "Rumena", hex: "#d2aa2e", toneId: "firm", level: 3 },
+    { id: "amber", label: "Jantarna", hex: "#d58b2d", toneId: "firm", level: 5 },
+    { id: "orange", label: "Oranžna", hex: "#ce7138", toneId: "strict", level: 6 },
+    { id: "peach", label: "Breskova", hex: "#d9875b", toneId: "strict", level: 6 },
+    { id: "coral", label: "Koralna", hex: "#cb6158", toneId: "super_strict", level: 8 },
+    { id: "red", label: "Rdeča", hex: "#b74954", toneId: "super_evil", level: 9 },
+    { id: "rose", label: "Vinsko rožnata", hex: "#b85e73", toneId: "super_strict", level: 8 },
+    { id: "pink", label: "Rožnata", hex: "#bf5c88", toneId: "firm", level: 8 },
+    { id: "magenta", label: "Magenta", hex: "#a95d9a", toneId: "firm", level: 7 },
+    { id: "purple", label: "Vijolična", hex: "#8762aa", toneId: "firm", level: 8 },
+    { id: "indigo", label: "Indigo", hex: "#6672b5", toneId: "friendly", level: 4 },
+    { id: "blue", label: "Modra", hex: "#4e84bd", toneId: "friendly", level: 2 },
+    { id: "sky", label: "Nebesno modra", hex: "#4e9fbe", toneId: "friendly", level: 2 },
+    { id: "aqua", label: "Akvamarin", hex: "#35a6a0", toneId: "friendly", level: 1 },
+    { id: "teal", label: "Turkizna", hex: "#168f90", toneId: "friendly", level: 1 },
+    { id: "emerald", label: "Smaragdna", hex: "#3f9d73", toneId: "friendly", level: 2 },
+    { id: "forest", label: "Temno zelena", hex: "#3f8768", toneId: "friendly", level: 2 },
+  ];
+
+  function normalizirajHexBarvo(value, fallback) {
+    var hex = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(hex) ? hex.toLowerCase() : String(fallback || "#55b99a");
+  }
+
+  /* Deset kartic za preoblikovanje izbranega opomina. Več kartic lahko
+     namenoma uporablja isti ton; razlikujejo se po mestu in predlogi
+     besedila, zato uporabnik ni omejen na en primerek posameznega tona. */
+  var PREDLOGE_PREOBLIKOVANJA = [
+    { id: "card-1", title: "Prijazen opomin", toneId: "super_friendly", messageIndex: 1 },
+    { id: "card-2", title: "Prijazen opomin", toneId: "friendly", messageIndex: 1 },
+    { id: "card-3", title: "Odločen opomin", toneId: "firm", messageIndex: 2 },
+    { id: "card-4", title: "Strog opomin", toneId: "strict", messageIndex: 3 },
+    { id: "card-5", title: "Zadnji opomin", toneId: "super_strict", messageIndex: 5 },
+    { id: "card-6", title: "Odločen opomin", toneId: "firm", messageIndex: 4 },
+    { id: "card-7", title: "Strog opomin", toneId: "strict", messageIndex: 4 },
+    { id: "card-8", title: "Formalni opomin", toneId: "strict", messageIndex: 5 },
+    { id: "card-9", title: "Zadnji formalni opomin", toneId: "super_strict", messageIndex: 5 },
+    { id: "card-10", title: "Zelo strog opomin", toneId: "super_evil", messageIndex: 5 },
+  ];
+
   function zdajIso() {
     return new Date().toISOString();
   }
@@ -742,19 +795,53 @@
     return stevecDatotek(n);
   }
 
+  function opisDogodkaPredNacrtom(dogodek) {
+    var d = dogodek || {};
+    var nastavitve = d.settings || {};
+    var tip = String(d.tip || d.razred || d.actionType || "");
+    var znesek = Number(
+      d.znesek != null ? d.znesek
+        : nastavitve.paymentAmount != null ? nastavitve.paymentAmount
+        : nastavitve.amount != null ? nastavitve.amount
+        : nastavitve.settlementAmount
+    );
+    var znesekBesedilo = Number.isFinite(znesek) && znesek > 0
+      ? " v višini " + formatirajZnesekDe(Math.round(znesek * 100))
+      : "";
+    if (tip === "partial" || tip === "delno") return "Račun je bil delno poravnan" + znesekBesedilo + ".";
+    if (tip === "installment" || tip === "obrok") return "Plačan je bil obrok" + znesekBesedilo + ".";
+    if (tip === "payment_promised" || tip === "obljuba") return "Dolžnik je obljubil plačilo.";
+    if (tip === "credit_note" || tip === "dobropis") return "Izdan je bil dobropis" + znesekBesedilo + ".";
+    if (tip === "compensation" || tip === "kompenzacija") return "Izvedena je bila kompenzacija" + znesekBesedilo + ".";
+    if (tip === "cancelled_invoice" || tip === "storno") return "Račun je bil odpisan oziroma storniran.";
+    var opis = String(nastavitve.description || d.naslov || "").trim();
+    if (!opis) return "Zabeležen je bil dodaten dogodek pri računu.";
+    return /[.!?]$/.test(opis) ? opis : opis + ".";
+  }
+
+  function povzetekDogodkovPredNacrtom(ctx) {
+    var dogodki = Array.isArray(ctx && ctx.historyBeforePlan) ? ctx.historyBeforePlan.filter(Boolean) : [];
+    return dogodki.map(opisDogodkaPredNacrtom).join(" ");
+  }
+
   /** Samodejno besedilo za "Sporočilo odvetniku" – odvisno od izbranega
       namena predaje. Kliče se le, dokler uporabnik sporočila ni ročno
       popravil (lawyerHandoff.messageEditedManually). */
   function sestaviSporociloOdvetniku(requestedAction, ctx) {
     var ime = String((ctx && ctx.imeDolznika) || "").trim() || "dolžnika";
     var znesek = formatirajZnesekDe((ctx && ctx.amountCents) || 0);
+    var povzetekDogodkov = povzetekDogodkovPredNacrtom(ctx);
+    var zgodovinaBesedilo = povzetekDogodkov
+      ? " Pred začetkom postopka se je pri računu zgodilo: " + povzetekDogodkov
+      : "";
     if (requestedAction === "review") {
       return (
         "Pozdravljeni, prosim za pregled primera dolga v višini " +
         znesek +
         " od dolžnika " +
         ime +
-        ". Priloženi so podatki primera, račun in zgodovina poslanih opominov."
+        ". Priloženi so podatki primera, račun in zgodovina poslanih opominov." +
+        zgodovinaBesedilo
       );
     }
     if (requestedAction === "legal_proceedings") {
@@ -763,7 +850,8 @@
         znesek +
         " od dolžnika " +
         ime +
-        ". Priloženi so podatki primera, račun in zgodovina poslanih opominov."
+        ". Priloženi so podatki primera, račun in zgodovina poslanih opominov." +
+        zgodovinaBesedilo
       );
     }
     return (
@@ -771,7 +859,8 @@
       znesek +
       " od dolžnika " +
       ime +
-      ". Priloženi so podatki primera, račun in zgodovina poslanih opominov."
+      ". Priloženi so podatki primera, račun in zgodovina poslanih opominov." +
+      zgodovinaBesedilo
     );
   }
 
@@ -788,10 +877,17 @@
       installment: {
         enabled: Boolean(dodatki.obrocno || (ip && ip.enabled)),
         planId: ip && ip.id ? String(ip.id) : null,
+        mode: ip && ip.paymentMode === "partial" ? "partial" : "installment",
         count:
           ip && ip.installmentCount != null
             ? Number(ip.installmentCount)
             : null,
+        partialAmountCents:
+          ip && ip.paymentMode === "partial"
+            ? Number(ip.partialAmountCents) || null
+            : null,
+        partialDueDate:
+          ip && ip.paymentMode === "partial" ? ip.partialDueDate || null : null,
       },
       bankTransfer: {
         enabled: Boolean(dodatki.trr),
@@ -929,6 +1025,10 @@
       stevilkaRacuna: podatkiKorak1 && podatkiKorak1.stevilkaRacuna,
       sporociloDolzniku: podatkiKorak2 && podatkiKorak2.sporociloDolzniku,
       amountCents: amountCents,
+      historyBeforePlan: Array.isArray(podatkiKorak1 && podatkiKorak1.zgodovinaPredNacrtom)
+        ? podatkiKorak1.zgodovinaPredNacrtom
+        : [],
+      remainingBeforePlan: Number(podatkiKorak1 && podatkiKorak1.preostaliDolgPredNacrtom) || (amountCents / 100),
     };
     var vsebina = vsebinaIzKorak2(podatkiKorak2);
     var osnovniCas = zdajIso();
@@ -1110,6 +1210,8 @@
     if (prviKorak.status === "confirmed" || prviKorak.confirmedAt) {
       prviKorak.status = "needs_review";
       prviKorak.messageNeedsReview = true;
+      prviKorak.reviewRequiredAt = zdajIso();
+      prviKorak.reviewRequiredRevision = "review-v1:" + prviKorak.reviewRequiredAt;
       prviKorak.snapshotHash = null;
       prviKorak.confirmedSnapshotHash = null;
       prviKorak.confirmedAt = null;
@@ -1141,10 +1243,17 @@
       stevilkaRacuna: podatkiKorak1 && podatkiKorak1.stevilkaRacuna,
       sporociloDolzniku: podatkiKorak2 && podatkiKorak2.sporociloDolzniku,
       amountCents: amountCents,
+      historyBeforePlan: Array.isArray(podatkiKorak1 && podatkiKorak1.zgodovinaPredNacrtom)
+        ? podatkiKorak1.zgodovinaPredNacrtom
+        : [],
     };
 
     plan.recommendationReason = sestaviRazlog(amountCents, overdue, toneId);
     plan.overdueDays = overdue;
+    plan.historyBeforePlan = Array.isArray(podatkiKorak1 && podatkiKorak1.zgodovinaPredNacrtom)
+      ? podatkiKorak1.zgodovinaPredNacrtom
+      : [];
+    plan.remainingBeforePlan = Number(podatkiKorak1 && podatkiKorak1.preostaliDolgPredNacrtom) || (amountCents / 100);
 
     /* SporoÄŤilo, izbrano v 2. koraku, vedno pripada prvi kartici.
        To preverimo loÄŤeno, da sprememba besedila ne premakne datumov. */
@@ -1181,6 +1290,37 @@
     }
     plan.identityHash = novIdentitetniHash;
 
+    /* Zgodovina pred načrtom ni del inputsHash (ne spreminja terminov), mora pa
+       vedno osvežiti samodejno sporočilo odvetniku. Zato to naredimo pred
+       hitrim izhodom za nespremenjene zneske/ton/zamudo. */
+    (plan.steps || []).forEach(function (s) {
+      if (s.kind !== "manual_lawyer") return;
+      if (!s.lawyerHandoff) s.lawyerHandoff = praznaPredajaOdvetniku();
+      if (s.lawyerHandoff.messageEditedManually) {
+        var prejsnjiPovzetek = String(s.lawyerHandoff.historySummaryAuto || "").trim();
+        var noviPovzetek = povzetekDogodkovPredNacrtom(ctx);
+        var osnovnoSporocilo = String(s.lawyerHandoff.message || "");
+        if (prejsnjiPovzetek) {
+          osnovnoSporocilo = osnovnoSporocilo.replace("\n\nPovzetek zgodovine: " + prejsnjiPovzetek, "");
+        }
+        var sporociloSPovzetkom = osnovnoSporocilo + (noviPovzetek ? "\n\nPovzetek zgodovine: " + noviPovzetek : "");
+        if (sporociloSPovzetkom !== s.lawyerHandoff.message) {
+          s.lawyerHandoff.message = sporociloSPovzetkom;
+          oznaciPredajaNeedsReview(s.lawyerHandoff);
+        }
+        s.lawyerHandoff.historySummaryAuto = noviPovzetek;
+        return;
+      }
+      var novoSporociloOdvetniku = sestaviSporociloOdvetniku(
+        s.lawyerHandoff.requestedAction,
+        ctx
+      );
+      if (novoSporociloOdvetniku !== s.lawyerHandoff.message) {
+        s.lawyerHandoff.message = novoSporociloOdvetniku;
+        oznaciPredajaNeedsReview(s.lawyerHandoff);
+      }
+    });
+
     if (plan.inputsHash === novHash) {
       return osveziPlanStatus(plan);
     }
@@ -1194,6 +1334,13 @@
     plan.totalDurationDays = odmiki[odmiki.length - 1] || 0;
     plan.recommendedGapDays = odmiki[1] != null ? odmiki[1] : 11;
     if (plan.keepStageIntervals == null) plan.keepStageIntervals = true;
+    /* Spodaj se vsem korakom dejansko prepiše razpored (sendAt/scheduledOffsetDays)
+       po sveže preračunanih "odmiki" (npr. ker je zamuda medtem prestopila nov
+       razred). Če _baseOffsets ne bi sledil isti spremembi, bi "priporočeni
+       razmik" ostal star in se ne bi nikoli več ujel z dejanskim razporedom –
+       kartica "Priporočen čas pošiljanja" bi zato trajno izgubila strnjen
+       prikaz in ostala v razprti obliki za VSE naslednje korake. */
+    plan._baseOffsets = odmiki.slice();
 
     var osnovniCasPlana =
       (plan.steps && plan.steps[0] &&
@@ -1241,6 +1388,8 @@
       if (step.status === "confirmed" || step.confirmedAt) {
         step.status = "needs_review";
         step.messageNeedsReview = true;
+        step.reviewRequiredAt = zdajIso();
+        step.reviewRequiredRevision = "review-v1:" + step.reviewRequiredAt;
         step.snapshotHash = null;
         step.confirmedSnapshotHash = null;
         step.confirmedAt = null;
@@ -1406,6 +1555,11 @@
     var pozicija = plan.steps.length - 1;
     var stariZadnji = plan.steps[pozicija];
     var noviZadnji = narediNovPlan(podatkiKorak1, podatkiKorak2).steps[pozicija];
+    /* Obrambna zaščita: če je bil načrt kdaj shranjen z neobičajnim
+       zaporedjem korakov (npr. korak dodan za "Predaja odvetniku"), sveži
+       vzorčni načrt na tej poziciji morda nima koraka. Brez tega bi
+       naslednja vrstica vrgla napako in izris cele strani bi se ustavil. */
+    if (!noviZadnji) return plan;
 
     /* Ohranimo uporabnikov termin in izklop koraka. */
     if (stariZadnji.scheduledOffsetDays != null) {
@@ -1465,15 +1619,29 @@
     return plan;
   }
 
+  /* Zadnja originalna kartica »Predaja odvetniku« je stalni zaključek načrta.
+     Števec jo zato vedno vključuje; gumba −/+ upravljata samo običajne opomine. */
+  function zagotoviVkljucenZadnjiRocniKorak(plan) {
+    var koraki = plan && plan.steps;
+    if (!Array.isArray(koraki) || !koraki.length) return plan;
+    var zadnji = koraki[koraki.length - 1];
+    if (zadnji.kind === "manual_lawyer" || zadnji.deliveryMode === "manual") {
+      zadnji.isExcluded = false;
+    }
+    return plan;
+  }
+
   function pridobiAliUstvari(podatkiKorak1, podatkiKorak2) {
     var plan = naloziOsnutek();
     if (!plan) {
       plan = narediNovPlan(podatkiKorak1, podatkiKorak2);
+      plan = zagotoviVkljucenZadnjiRocniKorak(plan);
       shraniOsnutek(plan);
       return plan;
     }
     if (jeStariStiriKoracniNacrt(plan)) {
       plan = nadgradiStariNacrt(plan, podatkiKorak1, podatkiKorak2);
+      plan = zagotoviVkljucenZadnjiRocniKorak(plan);
       shraniOsnutek(plan);
       return plan;
     }
@@ -1492,6 +1660,7 @@
     if (jeNeureljivZadnjiKorak(plan)) {
       plan = zamenjajNeureljivZadnjiKorak(plan, podatkiKorak1, podatkiKorak2);
     }
+    plan = zagotoviVkljucenZadnjiRocniKorak(plan);
     plan = uskladiZVhodi(plan, podatkiKorak1, podatkiKorak2);
     shraniOsnutek(plan);
     return plan;
@@ -1523,6 +1692,8 @@
       step.snapshotHash = null;
       step.confirmedSnapshotHash = null;
       step.messageNeedsReview = true;
+      step.reviewRequiredAt = zdajIso();
+      step.reviewRequiredRevision = "review-v1:" + step.reviewRequiredAt;
     }
   }
 
@@ -1755,6 +1926,11 @@
           plan.amountCents != null
             ? plan.amountCents
             : eurosToCents(podatkiKorak1 && podatkiKorak1.znesek),
+        historyBeforePlan: Array.isArray(plan && plan.historyBeforePlan)
+          ? plan.historyBeforePlan
+          : Array.isArray(podatkiKorak1 && podatkiKorak1.zgodovinaPredNacrtom)
+          ? podatkiKorak1.zgodovinaPredNacrtom
+          : [],
       };
       step.lawyerHandoff.message = sestaviSporociloOdvetniku(namen, ctx);
     }
@@ -2036,6 +2212,12 @@
       .filter(function (s) {
         return s.kind !== "manual_lawyer" && !s.isExcluded;
       }).length;
+    var zgodovinskiDogodki = Array.isArray(plan && plan.historyBeforePlan)
+      ? plan.historyBeforePlan.filter(Boolean)
+      : Array.isArray(k1.zgodovinaPredNacrtom)
+      ? k1.zgodovinaPredNacrtom.filter(Boolean)
+      : [];
+    var steviloZgodovinskihDogodkov = zgodovinskiDogodki.length;
 
     var dodatniDokumenti = dokumenti
       .filter(function (d) {
@@ -2085,15 +2267,23 @@
         })
       );
 
+    /* Stranka je lahko izrecno izjavila, da računa ne more priložiti (gumb
+       "Nimam" ob "Priložite račun"). Ta izjava šteje enako kot dejansko
+       priložen račun za pripravljenost predaje odvetniku – glej tudi
+       preveriPogojeZaPripravoPredaje spodaj. */
+    var racunNiNaVoljo = Boolean(k1.racunNiNaVoljo) && !racunFiles.length;
+
     var osnovniDokumenti = [
       {
         type: "invoice",
         title: "Račun",
-        status: racunFiles.length ? "ready" : "missing",
-        subtitle: besediloStevilaDatotek(racunFiles.length),
+        status: racunFiles.length || racunNiNaVoljo ? "ready" : "missing",
+        subtitle: racunNiNaVoljo
+          ? "Stranka nima računa"
+          : besediloStevilaDatotek(racunFiles.length),
         fileCount: racunFiles.length,
         files: racunFiles,
-        generatedReady: false,
+        generatedReady: racunNiNaVoljo,
         documentId: racunFiles.length ? racunFiles[0].id : null,
         storagePath: racunFiles.length ? racunFiles[0].storagePath || null : null,
       },
@@ -2112,14 +2302,16 @@
       },
       {
         type: "reminder_history",
-        title: "Zgodovina opominov",
-        status: steviloOpominov > 0 ? "ready" : "missing",
-        subtitle: steviloOpominov > 0
+        title: "Zgodovina primera",
+        status: steviloOpominov > 0 || steviloZgodovinskihDogodkov > 0 ? "ready" : "missing",
+        subtitle: steviloZgodovinskihDogodkov > 0
+          ? "Pripravljeno · " + steviloZgodovinskihDogodkov + " " + slovenskaOblika(steviloZgodovinskihDogodkov, ["dogodek", "dogodka", "dogodki", "dogodkov"])
+          : steviloOpominov > 0
           ? "Pripravljeno · " + stevecDatotek(zgodovinaFiles.length)
           : "Ni zapisov",
         fileCount: zgodovinaFiles.length,
         files: zgodovinaFiles,
-        generatedReady: steviloOpominov > 0,
+        generatedReady: steviloOpominov > 0 || steviloZgodovinskihDogodkov > 0,
         documentId: null,
         storagePath: null,
       },
@@ -2147,6 +2339,7 @@
       baseTotal: 4,
       allCount: 4 + dodatniDokumenti.length,
       reminderCount: steviloOpominov,
+      historyBeforePlanCount: steviloZgodovinskihDogodkov,
     };
   }
 
@@ -2175,7 +2368,12 @@
     var racunTile = dokStanje.osnovniDokumenti.find(function (d) {
       return d.type === "invoice";
     });
-    if (!racunTile || racunTile.status !== "ready" || !(racunTile.fileCount > 0)) {
+    var racunNiNaVoljoDeklarirano = Boolean(k1.racunNiNaVoljo) && !(racunTile && racunTile.fileCount > 0);
+    if (
+      !racunTile ||
+      racunTile.status !== "ready" ||
+      (!(racunTile.fileCount > 0) && !racunNiNaVoljoDeklarirano)
+    ) {
       manjkajoce.push("Priložen račun");
     }
 
@@ -2562,6 +2760,8 @@
     if (step.kind === "manual_lawyer") {
       step.status = "confirmed";
       step.messageNeedsReview = false;
+      step.reviewRequiredAt = null;
+      step.reviewRequiredRevision = null;
       step.confirmedAt = zdajIso();
       step.confirmedSnapshotHash = korakSnapshotHash(step);
       step.snapshotHash = step.confirmedSnapshotHash;
@@ -2573,6 +2773,8 @@
     step.finalMessage = t;
     step.status = "confirmed";
     step.messageNeedsReview = false;
+    step.reviewRequiredAt = null;
+    step.reviewRequiredRevision = null;
     step.confirmedAt = zdajIso();
     step.confirmedSnapshotHash = korakSnapshotHash(step);
     step.snapshotHash = step.confirmedSnapshotHash;
@@ -3080,20 +3282,11 @@
 
   /** Zadnji rocni korak je dostopen sele, ko so vsi vkljuceni koraki pred
       njim potrjeni. Izkljucene kartice se namenoma ne stejejo. */
+  /* Prej je bila kartica "Predaja odvetniku" zaklenjena, dokler niso bili
+     potrjeni vsi prejšnji koraki – uporabnik jo je izrecno hotel odklenjeno,
+     zato ta funkcija zdaj vedno vrne null (nič ne blokira). Klicna mesta
+     (poudarek na zaklenjeni kartici, blokada klika) ostanejo nedotaknjena. */
   function prviNepotrjenPredZadnjimKorakom(plan, ciljniIndex) {
-    if (!plan || !Array.isArray(plan.steps)) return null;
-    var ciljPolozaj = plan.steps.findIndex(function (step) {
-      return Number(step.index) === Number(ciljniIndex);
-    });
-    if (ciljPolozaj < 0) return null;
-    var cilj = plan.steps[ciljPolozaj];
-    if (!cilj || (cilj.kind !== "manual_lawyer" && cilj.deliveryMode !== "manual")) {
-      return null;
-    }
-    for (var i = 0; i < ciljPolozaj; i++) {
-      var step = plan.steps[i];
-      if (step && !step.isExcluded && step.status !== "confirmed") return step;
-    }
     return null;
   }
 
@@ -3146,6 +3339,318 @@
     return (plan.steps || []).filter(function (s) {
       return s.kind === "sms";
     }).length;
+  }
+
+  /** Spremeni samo ton izbranega samodejnega koraka. Uporabnikovo besedilo
+      ostane nedotaknjeno; že potrjen korak se zaradi spremembe vrne v pregled. */
+  function nastaviTonKoraka(plan, index, toneId) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var noviTon = String(toneId || "");
+    if (VELJAVNI_TONI_KORAKA.indexOf(noviTon) < 0) return plan;
+    var step = najdiKorak(plan, index);
+    if (
+      !step ||
+      step.isExcluded ||
+      step.kind === "manual_lawyer" ||
+      step.deliveryMode === "manual"
+    ) {
+      return plan;
+    }
+    if (step.toneId === noviTon) return plan;
+    step.toneId = noviTon;
+    if (step.status === "confirmed" || step.confirmedAt) {
+      step.status = "needs_review";
+      step.messageNeedsReview = true;
+      step.reviewRequiredAt = zdajIso();
+      step.reviewRequiredRevision = "review-v1:" + step.reviewRequiredAt;
+      step.snapshotHash = null;
+      step.confirmedSnapshotHash = null;
+      step.confirmedAt = null;
+    }
+    plan.updatedAt = zdajIso();
+    plan.stages = plan.steps;
+    return osveziPlanStatus(plan);
+  }
+
+  /** Izbrano kartico preoblikuje po eni od desetih predlog. Čas, kanali,
+      priloge in dodatki koraka ostanejo nespremenjeni; zamenjajo se le ton,
+      naziv predloge in samodejno besedilo opomina. */
+  function preoblikujOpomin(plan, index, predlogaId, ctx) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var step = najdiKorak(plan, index);
+    if (
+      !step ||
+      step.isExcluded ||
+      step.kind === "manual_lawyer" ||
+      step.deliveryMode === "manual" ||
+      step.status === "sent" ||
+      step.status === "processing"
+    ) {
+      return plan;
+    }
+    var predloga = PREDLOGE_PREOBLIKOVANJA.find(function (p) {
+      return p.id === String(predlogaId || "");
+    });
+    if (!predloga) return plan;
+
+    var vhod = Object.assign({}, ctx || {}, {
+      amountCents:
+        ctx && ctx.amountCents != null ? ctx.amountCents : plan.amountCents,
+      /* Prva predloga mora dobiti sveže standardno besedilo, ne besedila iz
+         prejšnjega koraka 2, saj je uporabnik izrecno zahteval preoblikovanje. */
+      sporociloDolzniku: "",
+    });
+    var novoBesedilo = sestaviGeneratedMessage(predloga.messageIndex, vhod);
+
+    step.toneId = predloga.toneId;
+    step.cardTemplateId = predloga.id;
+    step.cardTemplateTitle = predloga.title;
+    step.templateId = "reminder-" + predloga.id;
+    step.templateSelectionMode = "manual";
+    step.generatedMessage = novoBesedilo;
+    step.finalMessage = novoBesedilo;
+    step.messageEditedManually = false;
+    oznaciNeedsReview(step);
+    if (step.status !== "needs_review") step.status = "draft";
+    plan.updatedAt = zdajIso();
+    plan.stages = plan.steps;
+    return osveziPlanStatus(plan);
+  }
+
+  /** Ustvari uporabnikov samodejni korak iz prvega še neuporabljenega mesta.
+      Načrt ima največ deset mest (zadnje je predaja odvetniku), zato s tem ne
+      spreminjamo pogodbe shranjevanja ali vrstnega reda končnega koraka. */
+  function dodajKorakPoMeri(plan, podatki, ctx) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var naslov = String((podatki && podatki.title) || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 40);
+    var barvaId = String((podatki && podatki.colorId) || "mint");
+    var barva = BARVE_KORAKA_PO_MERI.find(function (item) {
+      return item.id === barvaId;
+    });
+    var predloga = PREDLOGE_PREOBLIKOVANJA.find(function (item) {
+      return item.id === String((podatki && podatki.templateId) || "");
+    }) || PREDLOGE_PREOBLIKOVANJA[0];
+    var korak = plan.steps.find(function (step) {
+      return step && step.isExcluded && step.kind !== "manual_lawyer" && step.deliveryMode !== "manual";
+    });
+    if (naslov.length < 2 || !barva || !korak) return plan;
+
+    korak.isExcluded = false;
+    korak.title = naslov;
+    korak.customCardTitle = naslov;
+    korak.customCardColor = barva.id;
+    korak.customCardColorHex = normalizirajHexBarvo(podatki && podatki.colorHex, barva.hex);
+    korak.customCardColorLevel = barva.level;
+    korak.customContentTemplateId = predloga.id;
+    var osebniTon = String((podatki && podatki.toneId) || "");
+    korak.toneId = VELJAVNI_TONI_KORAKA.indexOf(osebniTon) >= 0
+      ? osebniTon
+      : (predloga.toneId || barva.toneId);
+    korak.cardTemplateId = "custom-" + korak.id;
+    korak.cardTemplateTitle = naslov;
+    korak.templateId = "reminder-custom-" + korak.id;
+    korak.templateSelectionMode = "manual";
+    if (podatki && podatki.libraryId) {
+      korak.customCardLibraryId = String(podatki.libraryId).slice(0, 80);
+    }
+    var vhod = Object.assign({}, ctx || {}, {
+      amountCents: ctx && ctx.amountCents != null ? ctx.amountCents : plan.amountCents,
+      sporociloDolzniku: "",
+    });
+    var novoBesedilo = String((podatki && podatki.message) || "").trim() ||
+      sestaviGeneratedMessage(predloga.messageIndex || korak.index, vhod);
+    korak.generatedMessage = novoBesedilo;
+    korak.finalMessage = novoBesedilo;
+    korak.messageEditedManually = Boolean(String((podatki && podatki.message) || "").trim());
+    korak.paymentDeadline = Object.assign({}, korak.paymentDeadline || {}, {
+      enabled: Boolean(podatki && podatki.addons && podatki.addons.paymentDeadline),
+    });
+    korak.installment = Object.assign({}, korak.installment || {}, {
+      enabled: Boolean(podatki && podatki.addons && podatki.addons.installment),
+    });
+    korak.bankTransfer = Object.assign({}, korak.bankTransfer || {}, {
+      enabled: Boolean(podatki && podatki.addons && podatki.addons.bankTransfer),
+    });
+    korak.messageNeedsReview = false;
+    korak.status = "draft";
+    korak.reviewRequiredAt = zdajIso();
+    korak.reviewRequiredRevision = "review-v1:" + korak.reviewRequiredAt;
+    korak.confirmedAt = null;
+    korak.confirmedSnapshotHash = null;
+    korak.snapshotHash = null;
+    plan.selectedStageId = korak.id;
+    plan.updatedAt = zdajIso();
+    plan.stages = plan.steps;
+    return osveziPlanStatus(plan);
+  }
+
+  /** Na obstoječo samodejno kartico prenese uporabnikov shranjeni korak.
+      Čas, prejemniki, priloge in dodatki ostanejo vezani na trenutno kartico. */
+  function uporabiMojKorak(plan, index, podatki) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var step = najdiKorak(plan, index);
+    if (
+      !step ||
+      step.isExcluded ||
+      step.kind === "manual_lawyer" ||
+      step.deliveryMode === "manual" ||
+      step.status === "sent" ||
+      step.status === "processing"
+    ) {
+      return plan;
+    }
+    var naslov = String((podatki && podatki.title) || "")
+      .trim().replace(/\s+/g, " ").slice(0, 40);
+    var barvaId = String((podatki && podatki.colorId) || "mint");
+    var barva = BARVE_KORAKA_PO_MERI.find(function (item) {
+      return item.id === barvaId;
+    });
+    var ton = String((podatki && podatki.toneId) || "friendly");
+    if (naslov.length < 2 || !barva || VELJAVNI_TONI_KORAKA.indexOf(ton) < 0) {
+      return plan;
+    }
+
+    step.title = naslov;
+    step.customCardTitle = naslov;
+    step.customCardColor = barva.id;
+    step.customCardColorHex = normalizirajHexBarvo(podatki && podatki.colorHex, barva.hex);
+    step.customCardColorLevel = barva.level;
+    step.customCardLibraryId = String((podatki && podatki.id) || "").slice(0, 80);
+    step.customContentTemplateId = String((podatki && podatki.templateId) || "card-1");
+    step.toneId = ton;
+    step.cardTemplateId = "custom-" + step.id;
+    step.cardTemplateTitle = naslov;
+    step.templateId = "reminder-custom-" + step.id;
+    step.templateSelectionMode = "manual";
+    var osebnoBesedilo = String((podatki && podatki.message) || "").trim();
+    if (osebnoBesedilo) {
+      step.generatedMessage = osebnoBesedilo;
+      step.finalMessage = osebnoBesedilo;
+      step.messageEditedManually = true;
+    }
+    oznaciNeedsReview(step);
+    if (step.status !== "needs_review") step.status = "draft";
+    plan.updatedAt = zdajIso();
+    plan.stages = plan.steps;
+    return osveziPlanStatus(plan);
+  }
+
+  function predogledSporocilaKorakaPoMeri(plan, predlogaId, ctx) {
+    var predloga = PREDLOGE_PREOBLIKOVANJA.find(function (item) {
+      return item.id === String(predlogaId || "");
+    }) || PREDLOGE_PREOBLIKOVANJA[0];
+    var vhod = Object.assign({}, ctx || {}, {
+      amountCents: ctx && ctx.amountCents != null
+        ? ctx.amountCents
+        : plan && plan.amountCents,
+      sporociloDolzniku: "",
+    });
+    return sestaviGeneratedMessage(predloga.messageIndex || 1, vhod);
+  }
+
+  function zacniKorakPoMeri(plan, ctx) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var pred = plan.steps.find(function (step) {
+      return step && step.isExcluded && step.kind !== "manual_lawyer" && step.deliveryMode !== "manual";
+    });
+    if (!pred) return plan;
+    dodajKorakPoMeri(plan, {
+      title: "Nova kartica",
+      colorId: "mint",
+      colorHex: "#55b99a",
+      templateId: "card-1",
+      addons: { paymentDeadline: false, installment: false, bankTransfer: false },
+    }, ctx);
+    pred.customCardDraft = true;
+    plan.selectedStageId = pred.id;
+    return osveziPlanStatus(plan);
+  }
+
+  function posodobiVidezKorakaPoMeri(plan, index, podatki) {
+    var step = najdiKorak(plan, index);
+    if (!step || !step.customCardTitle || step.kind === "manual_lawyer") return plan;
+    var naslov = String((podatki && podatki.title) || step.customCardTitle || "")
+      .trim().replace(/\s+/g, " ").slice(0, 40);
+    var barvaId = String((podatki && podatki.colorId) || step.customCardColor || "mint");
+    var barva = BARVE_KORAKA_PO_MERI.find(function (item) { return item.id === barvaId; }) || BARVE_KORAKA_PO_MERI[0];
+    if (naslov.length >= 2) {
+      step.title = naslov;
+      step.customCardTitle = naslov;
+      step.cardTemplateTitle = naslov;
+    }
+    step.customCardColor = barva.id;
+    step.customCardColorHex = normalizirajHexBarvo(podatki && podatki.colorHex, barva.hex);
+    step.customCardColorLevel = barva.level;
+    plan.updatedAt = zdajIso();
+    plan.stages = plan.steps;
+    return osveziPlanStatus(plan);
+  }
+
+  function dokoncajKorakPoMeri(plan, index, podatki) {
+    var step = najdiKorak(plan, index);
+    var naslov = String((podatki && podatki.title) || "").trim().replace(/\s+/g, " ");
+    if (!step || !step.customCardDraft || naslov.length < 2) return plan;
+    posodobiVidezKorakaPoMeri(plan, index, podatki);
+    delete step.customCardDraft;
+    return osveziPlanStatus(plan);
+  }
+
+  function prekliciKorakPoMeri(plan, index, ctx) {
+    var step = najdiKorak(plan, index);
+    if (!step || !step.customCardDraft) return plan;
+    ponastaviPreoblikovanOpomin(plan, index, ctx);
+    step.isExcluded = true;
+    delete step.customCardDraft;
+    if (plan.selectedStageId === step.id) plan.selectedStageId = null;
+    return osveziPlanStatus(plan);
+  }
+
+  /** Aktivno kartico vrne na njeno prvotno samodejno predlogo. Čas,
+      prejemniki, priloge in dodatki ostanejo nedotaknjeni. */
+  function ponastaviPreoblikovanOpomin(plan, index, ctx) {
+    if (!plan || !Array.isArray(plan.steps)) return plan;
+    var step = najdiKorak(plan, index);
+    if (
+      !step ||
+      step.isExcluded ||
+      step.kind === "manual_lawyer" ||
+      step.deliveryMode === "manual" ||
+      step.status === "sent" ||
+      step.status === "processing"
+    ) {
+      return plan;
+    }
+    var meta = KORAKI_META[Math.max(0, Number(step.index || 1) - 1)];
+    if (!meta || meta.deliveryMode === "manual") return plan;
+    var vhod = Object.assign({}, ctx || {}, {
+      amountCents:
+        ctx && ctx.amountCents != null ? ctx.amountCents : plan.amountCents,
+    });
+    var novoBesedilo = sestaviGeneratedMessage(meta.order, vhod);
+
+    step.title = meta.title;
+    step.toneId = meta.toneId;
+    step.templateId = plan._step2TemplateSnapshot || null;
+    step.templateSelectionMode = "automatic";
+    delete step.cardTemplateId;
+    delete step.cardTemplateTitle;
+    delete step.customCardTitle;
+    delete step.customCardColor;
+    delete step.customCardColorHex;
+    delete step.customCardColorLevel;
+    delete step.customCardLibraryId;
+    delete step.customContentTemplateId;
+    step.generatedMessage = novoBesedilo;
+    step.finalMessage = novoBesedilo;
+    step.messageEditedManually = false;
+    oznaciNeedsReview(step);
+    if (step.status !== "needs_review") step.status = "draft";
+    plan.updatedAt = zdajIso();
+    plan.stages = plan.steps;
+    return osveziPlanStatus(plan);
   }
 
   function dodajKorak(plan) {
@@ -3231,6 +3736,8 @@
   var api = {
     KLJUC_SEJE: KLJUC_SEJE,
     KORAKI_META: KORAKI_META,
+    sestaviGeneratedMessage: sestaviGeneratedMessage,
+    zagotoviVkljucenZadnjiRocniKorak: zagotoviVkljucenZadnjiRocniKorak,
     eurosToCents: eurosToCents,
     izracunajZamudoDni: izracunajZamudoDni,
     preberiTonIzKorak2: preberiTonIzKorak2,
@@ -3274,6 +3781,19 @@
     odstraniKorak: odstraniKorak,
     dodajKorak: dodajKorak,
     steviloSmsKorakov: steviloSmsKorakov,
+    nastaviTonKoraka: nastaviTonKoraka,
+    preoblikujOpomin: preoblikujOpomin,
+    ponastaviPreoblikovanOpomin: ponastaviPreoblikovanOpomin,
+    dodajKorakPoMeri: dodajKorakPoMeri,
+    uporabiMojKorak: uporabiMojKorak,
+    predogledSporocilaKorakaPoMeri: predogledSporocilaKorakaPoMeri,
+    zacniKorakPoMeri: zacniKorakPoMeri,
+    posodobiVidezKorakaPoMeri: posodobiVidezKorakaPoMeri,
+    dokoncajKorakPoMeri: dokoncajKorakPoMeri,
+    prekliciKorakPoMeri: prekliciKorakPoMeri,
+    PREDLOGE_PREOBLIKOVANJA: PREDLOGE_PREOBLIKOVANJA,
+    BARVE_KORAKA_PO_MERI: BARVE_KORAKA_PO_MERI,
+    VELJAVNI_TONI_KORAKA: VELJAVNI_TONI_KORAKA,
     jeZadnjiKorakManualLawyer: jeZadnjiKorakManualLawyer,
     preracunajOdmikePoIzkljucitvi: preracunajOdmikePoIzkljucitvi,
     praznaPredajaOdvetniku: praznaPredajaOdvetniku,
@@ -3281,6 +3801,7 @@
     zamenjajNeureljivZadnjiKorak: zamenjajNeureljivZadnjiKorak,
     VELJAVNI_NAMENI_PREDAJE: VELJAVNI_NAMENI_PREDAJE,
     sestaviSporociloOdvetniku: sestaviSporociloOdvetniku,
+    povzetekDogodkovPredNacrtom: povzetekDogodkovPredNacrtom,
     posodobiOdvetnika: posodobiOdvetnika,
     posodobiDnevePredaje: posodobiDnevePredaje,
     posodobiCasPredajeOdvetniku: posodobiCasPredajeOdvetniku,

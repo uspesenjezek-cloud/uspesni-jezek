@@ -10,6 +10,8 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
+const childProcess = require("node:child_process");
 const citajRacunModul = require.resolve("../api/citaj-racun");
 const mehkaBonitetaModul = require.resolve("../api/mehka-boniteta");
 const mehkaBonitetaOpraviloModul = require.resolve("../api/mehka-boniteta-opravilo");
@@ -17,11 +19,21 @@ const mehkaBonitetaDelavecModul = require.resolve("../api/mehka-boniteta-delavec
 const bonitetaProModul = require.resolve("../api/boniteta-pro");
 const posRacunPdfModul = require.resolve("../api/pos-racun-pdf");
 const posRacunKorekcijaModul = require.resolve("../api/pos-racun-korekcija");
+const posRacunKorekcijaXrechnungModul = require.resolve("../api/_handlers/pos-racun-korekcija-xrechnung");
 const posRacunXrechnungModul = require.resolve("../api/pos-racun-xrechnung");
 const posDostavaSandboxModul = require.resolve("../api/pos-dostava-sandbox");
 const posDostavaDelavecModul = require.resolve("../api/pos-dostava-delavec");
 const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email");
 const posDostavaWebhookModul = require.resolve("../api/_handlers/pos-dostava-webhook");
+const posFiskalyModul = require.resolve("../api/_handlers/pos-fiskaly");
+const posFinapiModul = require.resolve("../api/_handlers/pos-finapi");
+const posStripeCheckoutModul = require.resolve("../api/_handlers/pos-stripe-checkout");
+const posStripeWebhookModul = require.resolve("../api/_handlers/pos-stripe-webhook");
+const posArhivModul = require.resolve("../api/_handlers/pos-arhiv");
+const posVerfahrensdokumentationModul = require.resolve("../api/_handlers/pos-verfahrensdokumentation-pdf");
+const posDatevModul = require.resolve("../api/_handlers/pos-datev");
+const pridobiIzvedboModul = require.resolve("../api/pridobi-izvedbo");
+const izvediOpominUkrepModul = require.resolve("../api/izvedi-opomin-ukrep");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
@@ -34,8 +46,15 @@ let nalozenaApiRazlicica = "";
 const portArgument = process.argv.indexOf("--port");
 const port = portArgument >= 0 ? Number(process.argv[portArgument + 1]) : 8001;
 const apiOrigin = (process.env.LOCAL_OCR_API_ORIGIN || "https://uspesni-jezek.vercel.app").replace(/\/$/, "");
+const izvedbaApiOrigin = (process.env.LOCAL_IZVEDBA_API_ORIGIN || "https://uspesni-jezek.vercel.app").replace(/\/$/, "");
+const izvedbaApiPoti = new Set([
+  "/api/pridobi-izvedbo",
+  "/api/izvedi-opomin-ukrep",
+  "/api/poslji-opomin-zdaj",
+]);
 const maxRequestBytes = 8 * 1024 * 1024;
-const versionSyncOznaka = '<script src="/app/version-sync.js?v=20260814-device-sync-v1"></script>';
+const versionSyncOznaka = '<script src="/app/version-sync.js?v=20260825-localhost-live-v4"></script>';
+const serverStartedAt = new Date().toISOString();
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -60,19 +79,34 @@ function posljiJson(res, status, podatki) {
   res.end(telo);
 }
 
+function preberiLokalnoOkolje(pot) {
+  try {
+    return fs.readFileSync(pot, "utf8");
+  } catch (_) {
+    return "";
+  }
+}
+
+function imaVeljavenServiceRole() {
+  const vrednost = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  return Boolean(vrednost && !/^\[(?:SENSITIVE|REDACTED)\]$/i.test(vrednost));
+}
+
 function naloziLokalnoSupabaseKonfiguracijo() {
   try {
     if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
-      const vir = fs.readFileSync(path.join(root, "app", "config.js"), "utf8");
+      const vir = preberiLokalnoOkolje(path.join(root, "app", "config.js"));
       const url = vir.match(/url:\s*["']([^"']+)["']/);
       const anonKey = vir.match(/anonKey:\s*["']([^"']+)["']/);
       if (url && !process.env.SUPABASE_URL) process.env.SUPABASE_URL = url[1];
       if (anonKey && !process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = anonKey[1];
     }
-    if (!process.env.OPENREGISTER_API_KEY || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET) {
-      const okolje = fs.readFileSync(path.join(root, ".env.local"), "utf8");
+    if (!process.env.OPENREGISTER_API_KEY || !process.env.APIFY_API_TOKEN || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
+      const okolje = preberiLokalnoOkolje(path.join(root, ".env.local"));
       const openregister = okolje.match(/^\s*OPENREGISTER_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openregister && !process.env.OPENREGISTER_API_KEY) process.env.OPENREGISTER_API_KEY = openregister[1].trim();
+      const apify = okolje.match(/^\s*APIFY_API_TOKEN\s*=\s*["']?([^\r\n"']+)/m);
+      if (apify && !process.env.APIFY_API_TOKEN) process.env.APIFY_API_TOKEN = apify[1].trim();
       const anthropic = okolje.match(/^\s*ANTHROPIC_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (anthropic && !process.env.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = anthropic[1].trim();
       const serviceRole = okolje.match(/^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^\r\n"']+)/m);
@@ -83,6 +117,23 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (resendWebhookSecret && !process.env.RESEND_WEBHOOK_SECRET) process.env.RESEND_WEBHOOK_SECRET = resendWebhookSecret[1].trim();
       const cronSecret = okolje.match(/^\s*CRON_SECRET\s*=\s*["']?([^\r\n"']+)/m);
       if (cronSecret && !process.env.CRON_SECRET) process.env.CRON_SECRET = cronSecret[1].trim();
+      const fiskalyKey = okolje.match(/^\s*FISKALY_API_KEY_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyKey && !process.env.FISKALY_API_KEY_TEST) process.env.FISKALY_API_KEY_TEST = fiskalyKey[1].trim();
+      const fiskalySecret = okolje.match(/^\s*FISKALY_API_SECRET_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalySecret && !process.env.FISKALY_API_SECRET_TEST) process.env.FISKALY_API_SECRET_TEST = fiskalySecret[1].trim();
+      const fiskalyMode = okolje.match(/^\s*FISKALY_SIGN_DE_MODE\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyMode && !process.env.FISKALY_SIGN_DE_MODE) process.env.FISKALY_SIGN_DE_MODE = fiskalyMode[1].trim();
+      const fiskalyTss = okolje.match(/^\s*FISKALY_TSS_ID_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyTss && !process.env.FISKALY_TSS_ID_TEST) process.env.FISKALY_TSS_ID_TEST = fiskalyTss[1].trim();
+      const fiskalyClient = okolje.match(/^\s*FISKALY_CLIENT_ID_TEST\s*=\s*["']?([^\r\n"']+)/m);
+      if (fiskalyClient && !process.env.FISKALY_CLIENT_ID_TEST) process.env.FISKALY_CLIENT_ID_TEST = fiskalyClient[1].trim();
+    }
+    if (!imaVeljavenServiceRole()) {
+      const vercelOkolje = preberiLokalnoOkolje(path.join(root, ".vercel", ".env.production.local"));
+      const serviceRole = vercelOkolje.match(/^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^\r\n"']+)/m);
+      if (serviceRole && !/^\[(?:SENSITIVE|REDACTED)\]$/i.test(serviceRole[1].trim())) {
+        process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRole[1].trim();
+      }
     }
   } catch (_) {
     // API bo vrnil jasno konfiguracijsko napako.
@@ -244,13 +295,172 @@ function izracunajRazlicicoAplikacije() {
   return [zadnjaSprememba, skupnaVelikost, steviloDatotek].join("-");
 }
 
+function izracunajRazlicicoSredstev(sredstva) {
+  const appMapa = path.resolve(root, "app");
+  const podpisi = [];
+
+  for (const sredstvo of sredstva) {
+    try {
+      const pathname = decodeURIComponent(new URL(sredstvo, "http://localhost").pathname);
+      const datoteka = path.resolve(root, `.${pathname}`);
+      if (datoteka !== appMapa && !datoteka.startsWith(`${appMapa}${path.sep}`)) continue;
+      const stat = fs.statSync(datoteka);
+      if (!stat.isFile()) continue;
+      podpisi.push([pathname, Math.floor(stat.mtimeMs), stat.size].join(":"));
+    } catch (_) {
+      // Neveljavno ali izbrisano sredstvo ne sme sesuti lokalnega predogleda.
+    }
+  }
+
+  podpisi.sort();
+  return crypto.createHash("sha256").update(podpisi.join("\n")).digest("hex").slice(0, 20);
+}
+
 function posljiRazlicicoAplikacije(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") {
     posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
     return;
   }
-  posljiJson(res, 200, { ok: true, version: izracunajRazlicicoAplikacije() });
+  const requestUrl = new URL(req.url, "http://localhost");
+  const sredstva = requestUrl.searchParams.getAll("asset");
+  const razlicica = sredstva.length
+    ? izracunajRazlicicoSredstev(sredstva)
+    : izracunajRazlicicoAplikacije();
+  posljiJson(res, 200, { ok: true, version: razlicica });
 }
+
+async function posredujZascitenApi(req, res, ciljnaPot) {
+  try {
+    const telo = ["GET", "HEAD"].includes(req.method) ? null : await preberiTelo(req);
+    const headers = {
+      Accept: req.headers.accept || "application/json",
+      Authorization: req.headers.authorization || "",
+    };
+    if (telo && telo.length) headers["Content-Type"] = req.headers["content-type"] || "application/json";
+    const odgovor = await fetch(`${apiOrigin}${ciljnaPot}`, {
+      method: req.method,
+      headers,
+      body: telo && telo.length ? telo : undefined,
+      signal: AbortSignal.timeout(60000),
+    });
+    const rezultat = Buffer.from(await odgovor.arrayBuffer());
+    res.writeHead(odgovor.status, {
+      "Content-Type": odgovor.headers.get("content-type") || "application/json; charset=utf-8",
+      "Content-Length": rezultat.length,
+      "Cache-Control": "no-store",
+    });
+    res.end(rezultat);
+  } catch (napaka) {
+    const jeTimeout = napaka && (napaka.name === "TimeoutError" || napaka.name === "AbortError");
+    posljiJson(res, 502, { ok: false, napaka: jeTimeout ? "Strežniški DATEV preizkus je trajal predolgo." : "Zaščitenega DATEV API-ja ni bilo mogoče doseči." });
+  }
+}
+
+function varniPrstniOdtisMape(mapa) {
+  const resenaPot = fs.realpathSync(mapa);
+  const kanonicnaPot = process.platform === "win32" ? resenaPot.toLowerCase() : resenaPot;
+  return crypto.createHash("sha256").update(kanonicnaPot).digest("hex").slice(0, 16);
+}
+
+function gitVrednost(argumenti) {
+  try {
+    return childProcess.execFileSync("git", argumenti, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch (_) { return ""; }
+}
+
+function identitetaLokalnegaVira() {
+  return {
+    workspaceName: path.basename(root), workspaceHash: varniPrstniOdtisMape(root),
+    branch: gitVrednost(["rev-parse", "--abbrev-ref", "HEAD"]) || "unknown",
+    commit: gitVrednost(["rev-parse", "--short=12", "HEAD"]) || "unknown",
+    dirty: Boolean(gitVrednost(["status", "--porcelain"])),
+    appVersion: izracunajRazlicicoAplikacije(), apiVersion: izracunajApiRazlicico(), serverStartedAt,
+  };
+}
+
+function posljiIdentitetoLokalnegaVira(req, res) {
+  if (req.method !== "GET") { posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." }); return; }
+  posljiJson(res, 200, { ok: true, localSource: identitetaLokalnegaVira() });
+}
+
+async function posredujIzvedbaApi(req, res, requestUrl) {
+  if (req.method !== "GET" && req.method !== "POST") {
+    posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
+    return;
+  }
+
+  try {
+    const imaTelo = req.method === "POST";
+    const telo = imaTelo ? await preberiTelo(req) : null;
+    const glave = { Accept: "application/json" };
+    if (req.headers.authorization) glave.Authorization = req.headers.authorization;
+    if (imaTelo) glave["Content-Type"] = req.headers["content-type"] || "application/json";
+
+    const cilj = new URL(requestUrl.pathname + requestUrl.search, izvedbaApiOrigin);
+    const odgovor = await fetch(cilj, {
+      method: req.method,
+      headers: glave,
+      body: imaTelo ? telo : undefined,
+      signal: AbortSignal.timeout(30000),
+    });
+    const rezultat = Buffer.from(await odgovor.arrayBuffer());
+    res.writeHead(odgovor.status, {
+      "Content-Type": odgovor.headers.get("content-type") || "application/json; charset=utf-8",
+      "Content-Length": rezultat.length,
+      "Cache-Control": "no-store",
+    });
+    res.end(rezultat);
+  } catch (napaka) {
+    const jeTimeout = napaka && (napaka.name === "TimeoutError" || napaka.name === "AbortError");
+    posljiJson(res, jeTimeout ? 504 : 502, {
+      ok: false,
+      code: jeTimeout ? "REMOTE_API_TIMEOUT" : "REMOTE_API_UNAVAILABLE",
+      napaka: jeTimeout
+        ? "Potrditev je trajala predolgo. Poskusite znova; dvojni zapis je preprečen."
+        : "Povezava s sistemom za zaključek primera trenutno ni uspela. Poskusite znova.",
+    });
+  }
+}
+
+function varniPrstniOdtisMape(mapa) {
+  const resenaPot = fs.realpathSync(mapa);
+  const kanonicnaPot = process.platform === "win32" ? resenaPot.toLowerCase() : resenaPot;
+  return crypto.createHash("sha256").update(kanonicnaPot).digest("hex").slice(0, 16);
+}
+
+function gitVrednost(argumenti) {
+  try {
+    return childProcess.execFileSync("git", argumenti, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch (_) {
+    return "";
+  }
+}
+
+function identitetaLokalnegaVira() {
+  return {
+    workspaceName: path.basename(root),
+    workspaceHash: varniPrstniOdtisMape(root),
+    branch: gitVrednost(["rev-parse", "--abbrev-ref", "HEAD"]) || "unknown",
+    commit: gitVrednost(["rev-parse", "--short=12", "HEAD"]) || "unknown",
+    dirty: Boolean(gitVrednost(["status", "--porcelain"])),
+    appVersion: izracunajRazlicicoAplikacije(),
+    apiVersion: izracunajApiRazlicico(),
+    serverStartedAt: serverStartedAt,
+  };
+}
+
+function posljiIdentitetoLokalnegaVira(req, res) {
+  if (req.method !== "GET") {
+    posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
+    return;
+  }
+  posljiJson(res, 200, { ok: true, localSource: identitetaLokalnegaVira() });
+}
+
 
 function postreziDatoteko(req, res) {
   let zahtevanaPot;
@@ -283,7 +493,10 @@ function postreziDatoteko(req, res) {
       return;
     }
 
-    const tipVsebine = mimeTypes[path.extname(datoteka).toLowerCase()] || "application/octet-stream";
+    const jeStisnjenIndeks = /[\\/]app[\\/]company-index[\\/][^\\/]+\.json\.gz$/i.test(datoteka);
+    const tipVsebine = jeStisnjenIndeks
+      ? "application/json; charset=utf-8"
+      : mimeTypes[path.extname(datoteka).toLowerCase()] || "application/octet-stream";
     if (path.extname(datoteka).toLowerCase() === ".html") {
       fs.readFile(datoteka, "utf8", (napakaBranja, html) => {
         if (napakaBranja) {
@@ -299,6 +512,7 @@ function postreziDatoteko(req, res) {
           "Content-Type": tipVsebine,
           "Content-Length": telo.length,
           "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Permissions-Policy": "camera=(self)",
           Pragma: "no-cache",
         });
         res.end(telo);
@@ -306,12 +520,12 @@ function postreziDatoteko(req, res) {
       return;
     }
 
-    res.writeHead(200, {
+    res.writeHead(200, Object.assign({
       "Content-Type": tipVsebine,
       "Content-Length": stat.size,
-      "Cache-Control": "no-store, no-cache, must-revalidate",
-      Pragma: "no-cache",
-    });
+      "Cache-Control": jeStisnjenIndeks ? "public, max-age=31536000, immutable" : "no-store, no-cache, must-revalidate",
+      "Permissions-Policy": "camera=(self)",
+    }, jeStisnjenIndeks ? { "Content-Encoding": "gzip" } : { Pragma: "no-cache" }));
     fs.createReadStream(datoteka).pipe(res);
   });
 }
@@ -320,6 +534,17 @@ const server = http.createServer((req, res) => {
   const requestUrl = new URL(req.url, "http://localhost");
   const pathname = requestUrl.pathname;
   req.query = Object.fromEntries(requestUrl.searchParams.entries());
+  if (!process.env.LOCAL_IZVEDBA_API_ORIGIN && (pathname === "/api/pridobi-izvedbo" || pathname === "/api/izvedi-opomin-ukrep")) {
+    naloziLokalnoSupabaseKonfiguracijo();
+    const lokalniModul = pathname === "/api/pridobi-izvedbo" ? pridobiIzvedboModul : izvediOpominUkrepModul;
+    if (imaVeljavenServiceRole()) void izvediLokalniApi(req, res, lokalniModul);
+    else void posredujIzvedbaApi(req, res, requestUrl);
+    return;
+  }
+  if (izvedbaApiPoti.has(pathname)) {
+    void posredujIzvedbaApi(req, res, requestUrl);
+    return;
+  }
   if (pathname === "/api/citaj-racun") {
     naloziLokalnoSupabaseKonfiguracijo();
     if (process.env.ANTHROPIC_API_KEY) void izvediLokalniApi(req, res, citajRacunModul);
@@ -370,6 +595,10 @@ const server = http.createServer((req, res) => {
     void izvediLokalniApi(req, res, posRacunXrechnungModul);
     return;
   }
+  if (pathname === "/api/pos-racun-korekcija-xrechnung") {
+    void izvediLokalniApi(req, res, posRacunKorekcijaXrechnungModul);
+    return;
+  }
   if (pathname === "/api/pos-dostava-sandbox") {
     void izvediLokalniApi(req, res, posDostavaSandboxModul);
     return;
@@ -386,8 +615,42 @@ const server = http.createServer((req, res) => {
     void izvediLokalniApi(req, res, posDostavaWebhookModul);
     return;
   }
+  if (pathname === "/api/pos-fiskaly") {
+    void izvediLokalniApi(req, res, posFiskalyModul);
+    return;
+  }
+  if (pathname === "/api/pos-finapi") {
+    void izvediLokalniApi(req, res, posFinapiModul);
+    return;
+  }
+  if (pathname === "/api/pos-stripe-checkout") {
+    void izvediLokalniApi(req, res, posStripeCheckoutModul);
+    return;
+  }
+  if (pathname === "/api/pos-stripe-webhook") {
+    void izvediLokalniApi(req, res, posStripeWebhookModul);
+    return;
+  }
+  if (pathname === "/api/pos-arhiv") {
+    void izvediLokalniApi(req, res, posArhivModul);
+    return;
+  }
+  if (pathname === "/api/pos-verfahrensdokumentation-pdf") {
+    void izvediLokalniApi(req, res, posVerfahrensdokumentationModul);
+    return;
+  }
+  if (pathname === "/api/pos-datev") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) void izvediLokalniApi(req, res, posDatevModul);
+    else void posredujZascitenApi(req, res, requestUrl.pathname + requestUrl.search);
+    return;
+  }
   if (pathname === "/__app-version") {
     posljiRazlicicoAplikacije(req, res);
+    return;
+  }
+  if (pathname === "/__dev-source") {
+    posljiIdentitetoLokalnegaVira(req, res);
     return;
   }
   postreziDatoteko(req, res);
@@ -395,6 +658,8 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`Lokalna aplikacija: http://localhost:${port}`);
+  const lokalniVir = identitetaLokalnegaVira();
+  console.log(`Vir: ${lokalniVir.workspaceName} · ${lokalniVir.branch} · ${lokalniVir.commit} · ${lokalniVir.workspaceHash}`);
   console.log(`Telefon v istem omrežju: http://IP-RACUNALNIKA:${port}`);
   naloziLokalnoSupabaseKonfiguracijo();
   console.log(process.env.ANTHROPIC_API_KEY

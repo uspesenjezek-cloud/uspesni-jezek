@@ -63,6 +63,7 @@
     var napakaEl = document.getElementById("trr-sheet-napaka");
 
     var odprt = false;
+    var originalEnabled = false;
     var zapiranjeDovoljeno = false;
     var casovnikZapiranja = null;
     var pendingOnClose = null;
@@ -133,10 +134,13 @@
     }
 
     function posodobiVsebinaVidnost() {
+      // Nastavitve računa so vedno vidne. Stikalo določa samo, ali se TRR
+      // dejansko doda v sporočilo, zato uporabnik ne potrebuje vmesnega koraka.
+      if (vsebina) vsebina.hidden = false;
       var on = Boolean(vkljuci && vkljuci.checked);
-      if (vsebina) vsebina.hidden = !on;
+      if (sheet) sheet.classList.toggle("trr-sheet--vkljucen", on);
       if (shraniGumb) {
-        shraniGumb.textContent = on ? "Shrani spremembe" : "Shrani in dodaj";
+        shraniGumb.textContent = originalEnabled ? "Shrani" : "Vklopi";
       }
     }
 
@@ -245,6 +249,7 @@
         namen: namen,
         vkljuceno: Boolean(trenutni && trenutni.accountId),
       };
+      originalEnabled = osnutek.vkljuceno;
       if (vkljuci) vkljuci.checked = osnutek.vkljuceno;
       if (sklicEl) sklicEl.value = osnutek.sklic;
       if (namenEl) namenEl.value = osnutek.namen;
@@ -446,6 +451,11 @@
     async function shraniInDodaj() {
       if (shranjevanje) return;
       nastaviNapako(false);
+      if (!originalEnabled && vkljuci) {
+        vkljuci.checked = true;
+        if (osnutek) osnutek.vkljuceno = true;
+        posodobiVsebinaVidnost();
+      }
       var vkljuceno = Boolean(vkljuci && vkljuci.checked);
       var r = izbranRacun();
       if (vkljuceno && !r) {
@@ -489,7 +499,7 @@
             shranjevanje = false;
             if (shraniGumb) {
               shraniGumb.disabled = false;
-              shraniGumb.textContent = "Shrani spremembe";
+              shraniGumb.textContent = originalEnabled ? "Shrani" : "Vklopi";
             }
             return;
           }
@@ -543,11 +553,9 @@
         if (shraniGumb) {
           shraniGumb.disabled = false;
           if (odprt) {
-            shraniGumb.textContent = vkljuci && vkljuci.checked
-              ? "Shrani spremembe"
-              : "Shrani in dodaj";
+            shraniGumb.textContent = originalEnabled ? "Shrani" : "Vklopi";
           } else {
-            shraniGumb.textContent = "Shrani spremembe";
+            shraniGumb.textContent = "Shrani";
           }
         }
       }

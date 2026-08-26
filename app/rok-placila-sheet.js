@@ -44,6 +44,7 @@
     var panel = document.getElementById("rok-sheet-panel");
     var naslov = document.getElementById("rok-sheet-naslov");
     var zapri = document.getElementById("rok-sheet-zapri");
+    var vkljuci = document.getElementById("rok-sheet-vkljuci");
     var samodejno = document.getElementById("rok-sheet-samodejno");
     var stevilke = document.getElementById("rok-sheet-stevilke");
     var datumPolje = document.getElementById("rok-sheet-datum");
@@ -67,6 +68,7 @@
     var hitroMeseci = document.getElementById("rok-sheet-hitro-meseci");
     var povzetekDatum = document.getElementById("rok-sheet-povzetek-datum");
     var povzetekRel = document.getElementById("rok-sheet-povzetek-rel");
+    var addon = document.getElementById("rok-sheet-addon");
 
     var odprt = false;
     var osnutek = null;
@@ -87,6 +89,8 @@
     var recCard = null;
     var previousSettingsSnapshot = null;
     var appliedRecommendationKey = null;
+    var draftEnabled = false;
+    var originalEnabled = false;
 
     function klon(obj) {
       return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -130,6 +134,8 @@
     function obnoviOsnutekRoka(snap) {
       if (!snap) return;
       osnutek = klon(snap);
+      draftEnabled = Boolean(osnutek.enabled);
+      posodobiVklopUi();
       if (samodejno) samodejno.checked = osnutek.mode !== "manual";
       if (datumPolje) datumPolje.value = osnutek.deadlineDate || "";
       posodobiPomoc();
@@ -227,8 +233,11 @@
       osnutek.termDays = days;
       osnutek.baseSendDate = base;
       osnutek.deadlineDate = UJ.izracunajRok(base, days);
+      osnutek.enabled = true;
+      draftEnabled = true;
 
       if (samodejno) samodejno.checked = true;
+      posodobiVklopUi();
       if (datumPolje) datumPolje.value = osnutek.deadlineDate;
       oznaciStevilko(linked);
       posodobiPomoc();
@@ -247,6 +256,15 @@
         },
         onUndo: function () {
           obnoviOsnutekRoka(previousSettingsSnapshot);
+          // Umik priporocila ne sme izklopiti same funkcije. Obdrzi
+          // obnovljeni datum kot rocno nastavitev, ki jo uporabnik se ureja.
+          if (osnutek) {
+            draftEnabled = true;
+            osnutek.enabled = true;
+            osnutek.mode = "manual";
+            posodobiVklopUi();
+            posodobiPomoc();
+          }
           previousSettingsSnapshot = null;
           appliedRecommendationKey = null;
         },
@@ -475,18 +493,20 @@
     }
 
     function posodobiIzbraniPovzetek() {
-      if (!povzetekDatum) return;
+      if (!povzetekDatum && !addon) return;
       var deadline =
         (osnutek && osnutek.deadlineDate) ||
         (datumPolje && datumPolje.value) ||
         "";
       if (!deadline) {
-        povzetekDatum.textContent = "—";
+        if (povzetekDatum) povzetekDatum.textContent = "—";
         if (povzetekRel) povzetekRel.textContent = "";
+        if (addon) addon.textContent = "—";
         return;
       }
-      povzetekDatum.textContent = formatDolgDatum(deadline);
+      if (povzetekDatum) povzetekDatum.textContent = formatDolgDatum(deadline);
       if (povzetekRel) povzetekRel.textContent = relativniOpisRoka(deadline);
+      if (addon) addon.textContent = UJ.sestaviVrsticoRoka(deadline, ugotoviJezik());
     }
 
     function bazaZaHitriIzbirnik() {
@@ -669,7 +689,7 @@
       var ze = Boolean(ctx.getPaymentDeadline() && ctx.getPaymentDeadline().enabled);
       posodobiDatumVidez(ze);
       if (shrani) {
-        shrani.textContent = ze ? "Shrani spremembe" : "Shrani in dodaj";
+        shrani.textContent = "Shrani";
       }
       if (odstrani) odstrani.hidden = !ze;
     }
@@ -812,7 +832,13 @@
         predOgledPressed = ctx.gumbRok.getAttribute("aria-pressed") === "true";
         prejsnjiFokus = document.activeElement;
         napolniOsnutekObOdprtju();
+        originalEnabled = Boolean(
+          ctx.getPaymentDeadline() && ctx.getPaymentDeadline().enabled
+        );
+        draftEnabled = originalEnabled;
+        osnutek.enabled = draftEnabled;
         napolniUiIzOsnutka();
+        posodobiVklopUi();
         previousSettingsSnapshot = null;
         appliedRecommendationKey = null;
         posodobiRazlagoPriporocila();
@@ -884,6 +910,8 @@
       forsiraPriporocilo = false;
       forsiraToneId = null;
       forsiraTermDays = null;
+      draftEnabled = false;
+      originalEnabled = false;
       if (casovnikZapiranja) {
         window.clearTimeout(casovnikZapiranja);
         casovnikZapiranja = null;
@@ -931,6 +959,8 @@
       ignoreOpenUntil = Date.now() + 450;
       osnutek = null;
       osnutekPrivzetih = null;
+      draftEnabled = false;
+      originalEnabled = false;
       if (casovnikZapiranja) {
         window.clearTimeout(casovnikZapiranja);
         casovnikZapiranja = null;
@@ -959,6 +989,20 @@
 
     async function shraniInDodaj() {
       if (!osnutek || shranjevanje) return;
+      if (!draftEnabled && originalEnabled) {
+        zapiranjeDovoljeno = true;
+        var odstranjeno = await odstraniRokIzSporocilaCeObstaja();
+        if (!odstranjeno) return;
+        predOgledPressed = false;
+        ctx.gumbRok.setAttribute("aria-pressed", "false");
+        zapriSheet(true, { shranjeno: true });
+        return;
+      }
+      if (!draftEnabled) {
+        draftEnabled = true;
+        osnutek.enabled = true;
+        posodobiVklopUi();
+      }
       if (!preveriDatum()) return;
 
       shranjevanje = true;
@@ -996,9 +1040,7 @@
             shranjevanje = false;
             if (shrani) {
               shrani.disabled = false;
-              shrani.textContent = trenutni && trenutni.enabled
-                ? "Shrani spremembe"
-                : "Shrani in dodaj";
+              shrani.textContent = "Shrani";
             }
             return;
           }
@@ -1042,7 +1084,7 @@
         if (shrani && odprt) {
           shrani.disabled = false;
           var ze = Boolean(ctx.getPaymentDeadline() && ctx.getPaymentDeadline().enabled);
-          shrani.textContent = ze ? "Shrani spremembe" : "Shrani in dodaj";
+          shrani.textContent = "Shrani";
         }
       }
     }
@@ -1084,16 +1126,12 @@
       zapriSheet(true);
     }
 
-    /** Izklopi: reset UI + odstrani rok (če obstaja) + zapri. */
-    async function izklopiRok() {
-      zapiranjeDovoljeno = true;
-      var ok = await odstraniRokIzSporocilaCeObstaja();
-      if (!ok) return;
-      resetirajOsnutekNaPrivzeto();
-      predOgledPressed = false;
-      ctx.gumbRok.setAttribute("aria-pressed", "false");
-      posodobiDatumVidez(false);
-      zapriSheet(true);
+    function posodobiVklopUi() {
+      if (vkljuci) vkljuci.checked = Boolean(draftEnabled);
+      if (osnutek) osnutek.enabled = Boolean(draftEnabled);
+      if (shrani && !shranjevanje) {
+        shrani.textContent = "Shrani";
+      }
     }
 
     ctx.gumbRok.addEventListener("click", function (dogodek) {
@@ -1124,11 +1162,19 @@
     }
     if (preklici) {
       preklici.addEventListener("click", function () {
-        izklopiRok();
+        zapiranjeDovoljeno = true;
+        zapriSheet(false);
       });
     }
     if (shrani) shrani.addEventListener("click", function () { shraniInDodaj(); });
     if (odstrani) odstrani.addEventListener("click", function () { odstraniRok(); });
+    if (vkljuci) {
+      vkljuci.addEventListener("change", function () {
+        draftEnabled = Boolean(vkljuci.checked);
+        if (osnutek) osnutek.enabled = draftEnabled;
+        posodobiVklopUi();
+      });
+    }
 
     if (samodejno) {
       samodejno.addEventListener("change", function () {
@@ -1147,7 +1193,6 @@
     }
 
     if (datumPolje) {
-      // Klik na prosojen date input nad »Ročno« → takoj ročni način.
       datumPolje.addEventListener("focus", function () {
         if (!osnutek) return;
         osnutek.mode = "manual";

@@ -26,6 +26,7 @@
     var backdrop = document.getElementById("obrocno-sheet-backdrop");
     var naslov = document.getElementById("obrocno-sheet-naslov");
     var gumbZapri = document.getElementById("obrocno-sheet-zapri");
+    var vkljuci = document.getElementById("obrocno-sheet-vkljuci");
     var nastavitve = document.getElementById("obrocno-sheet-nastavitve");
     var znacka = document.getElementById("obrocno-sheet-znacka");
     var znesekEl = document.getElementById("obrocno-sheet-znesek");
@@ -36,6 +37,7 @@
     var opozorilo = document.getElementById("obrocno-sheet-opozorilo");
     var stevilke = document.getElementById("obrocno-sheet-stevilke");
     var razmik = document.getElementById("obrocno-sheet-razmik");
+    var razmikIzbira = document.getElementById("obrocno-sheet-razmik-izbira");
     var seznam = document.getElementById("obrocno-sheet-seznam");
     var telo = sheet.querySelector(".rok-sheet__telo");
     var skupaj = document.getElementById("obrocno-sheet-skupaj");
@@ -55,6 +57,25 @@
     var recommendationHost = document.getElementById(
       "obrocno-sheet-recommendation"
     );
+    var nacinGumbi = Array.from(
+      sheet.querySelectorAll("[data-obrocno-nacin]")
+    );
+    var delnoPanel = document.getElementById("obrocno-sheet-delno");
+    var obrocnoPolja = document.getElementById("obrocno-sheet-obrocno-polja");
+    var delnoZnesek = document.getElementById("obrocno-sheet-delno-znesek");
+    var delnoDatum = document.getElementById("obrocno-sheet-delno-datum");
+    var delnoPreostanek = document.getElementById(
+      "obrocno-sheet-delno-preostanek"
+    );
+    var delnoDolgIzracun = document.getElementById("obrocno-sheet-delno-dolg-izracun");
+    var delnoPlaciloIzracun = document.getElementById("obrocno-sheet-delno-placilo-izracun");
+    var delnoPreostanekGumbi = Array.from(
+      sheet.querySelectorAll("[data-delno-preostanek]")
+    );
+    var delnoPredlogiPanel = document.getElementById("obrocno-sheet-delno-predlogi-panel");
+    var delnoPredlogi = document.getElementById("obrocno-sheet-delno-predlogi");
+    var delnoPreostanekDatumOvoj = document.getElementById("obrocno-sheet-delno-preostanek-datum-ovoj");
+    var delnoPreostanekDatum = document.getElementById("obrocno-sheet-delno-preostanek-datum");
 
     var odprt = false;
     var osnutek = null;
@@ -67,6 +88,7 @@
     var scrollY = 0;
     var scrollFokusCasovnik = null;
     var draftEnabled = false;
+    var draftIncluded = false;
     var originalEnabled = false;
     var originalPlan = null;
     var editingInstallmentId = null;
@@ -82,6 +104,10 @@
     var recCard = null;
     var previousSettingsSnapshot = null;
     var appliedRecommendationKey = null;
+    var enakomernoPotrjeno = false;
+    var nacinPlacila = "installment";
+    var delnoPredlogiRazsirjeni = true;
+    var delnoFitRaf = null;
 
     function klon(o) {
       return o ? JSON.parse(JSON.stringify(o)) : null;
@@ -97,6 +123,212 @@
         return Rok.ugotoviJezikSporocila(ctx.besediloPolje.value);
       }
       return "de";
+    }
+
+    function jeDelnoPlacilo() {
+      return nacinPlacila === "partial";
+    }
+
+    function privzetiDelniDatum() {
+      var osnova =
+        typeof ctx.bazaDatumaPosiljanja === "function"
+          ? ctx.bazaDatumaPosiljanja()
+          : UJ.danesYYYYMMDD();
+      return UJ.dodajKoledarskeDni(osnova || UJ.danesYYYYMMDD(), 7);
+    }
+
+    function zagotoviDelnaPolja(plan) {
+      if (!plan) return plan;
+      plan.paymentMode = "partial";
+      var total = Math.round(Number(plan.totalDebtCents) || 0);
+      var predlog = priporocenDelniZnesek(total);
+      if (!Number.isFinite(Number(plan.partialAmountCents)) || Number(plan.partialAmountCents) <= 0) {
+        plan.partialAmountCents = predlog;
+      }
+      if (!plan.partialDueDate) plan.partialDueDate = privzetiDelniDatum();
+      if (["open", "credit_note"].indexOf(plan.partialRemainderMode) < 0) {
+        plan.partialRemainderMode = "open";
+      }
+      var dovoljeni = plan.partialRemainderMode === "credit_note"
+        ? ["credit_payment", "credit_deadline", "credit_confirm"]
+        : ["agreement", "debtor_deadline", "fixed_deadline"];
+      if (dovoljeni.indexOf(plan.partialProposalType) < 0) {
+        plan.partialProposalType = plan.partialRemainderMode === "credit_note"
+          ? "credit_deadline"
+          : "agreement";
+      }
+      if (typeof plan.partialProposalConfirmed !== "boolean") {
+        plan.partialProposalConfirmed = false;
+      }
+      if (!plan.partialRemainderDueDate) {
+        plan.partialRemainderDueDate = UJ.dodajKoledarskeDni(plan.partialDueDate, 30);
+      }
+      return UJ.osveziAddon(plan, jezikAddon());
+    }
+
+    function priporocenDelniZnesek(totalCents) {
+      var total = Math.round(Number(totalCents) || 0);
+      var surovo = Math.max(1, Math.round(total / 4));
+      var korak = total >= 500000 ? 50000 : total >= 100000 ? 10000 : total >= 10000 ? 5000 : 100;
+      var predlog = Math.max(1, Math.round(surovo / korak) * korak);
+      if (predlog >= total) predlog = Math.max(0, total - 1);
+      return predlog;
+    }
+
+    function formatDelnoZnesek(cents, zEvrom) {
+      var surovo = UJ.formatCentsEditable(cents || 0);
+      var deli = surovo.split(",");
+      var celo = deli[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      var rezultat = celo + "," + (deli[1] || "00");
+      return rezultat + (zEvrom ? " €" : "");
+    }
+
+    function formatDelnoPriporocilo(cents) {
+      var evri = Math.round((Number(cents) || 0) / 100);
+      return String(evri).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " €";
+    }
+
+    function prilagodiDelnoVrednost(element) {
+      if (!element || !element.parentElement) return;
+      var najvec = 13;
+      var najmanj = 7;
+      element.style.fontSize = najvec + "px";
+      var razpolozljivo = Math.max(1, element.parentElement.clientWidth);
+      var potrebno = Math.max(1, element.scrollWidth);
+      if (potrebno > razpolozljivo) {
+        var velikost = Math.max(najmanj, Math.floor((najvec * razpolozljivo / potrebno) * 10) / 10);
+        element.style.fontSize = velikost + "px";
+      }
+    }
+
+    function prilagodiDelneVrednosti() {
+      if (delnoFitRaf != null) cancelAnimationFrame(delnoFitRaf);
+      delnoFitRaf = requestAnimationFrame(function () {
+        delnoFitRaf = null;
+        [delnoDolgIzracun, delnoPlaciloIzracun, delnoPreostanek].forEach(prilagodiDelnoVrednost);
+      });
+    }
+
+    function posodobiNacinUi() {
+      sheet.classList.toggle("obrocno-sheet--delno", jeDelnoPlacilo());
+      nacinGumbi.forEach(function (gumb) {
+        var aktiven = gumb.getAttribute("data-obrocno-nacin") === nacinPlacila;
+        gumb.classList.toggle("is-active", aktiven);
+        gumb.setAttribute("aria-selected", aktiven ? "true" : "false");
+        gumb.setAttribute("tabindex", aktiven ? "0" : "-1");
+      });
+      if (delnoPanel) delnoPanel.hidden = !jeDelnoPlacilo();
+      if (obrocnoPolja) obrocnoPolja.hidden = jeDelnoPlacilo();
+      if (recommendationHost) recommendationHost.hidden = false;
+      if (rokOknoEl && jeDelnoPlacilo()) rokOknoEl.hidden = true;
+      if (opozorilo && jeDelnoPlacilo()) opozorilo.hidden = true;
+      if (delnoZnesek && osnutek && document.activeElement !== delnoZnesek) {
+        delnoZnesek.value = formatDelnoZnesek(osnutek.partialAmountCents || 0, false);
+      }
+      if (delnoDatum && osnutek) delnoDatum.value = osnutek.partialDueDate || "";
+      if (jeDelnoPlacilo()) posodobiDelnoPredloge();
+    }
+
+    var DELNO_PREDLOGI = {
+      open: [
+        { id: "agreement", title: "Dogovorimo se o poplačilu", description: "Dolžnik odgovori in skupaj določite nadaljevanje.", recommended: true },
+        { id: "debtor_deadline", title: "Dolžnik predlaga rok", description: "Sporoči, kdaj lahko poravna preostanek." },
+        { id: "fixed_deadline", title: "Plačilo do novega roka", description: "Vi določite datum preostalega plačila." }
+      ],
+      credit_note: [
+        { id: "credit_payment", title: "Plačajte znižani znesek", description: "Po plačilu se preostanek zapre z dobropisom." },
+        { id: "credit_deadline", title: "Ponudba velja do roka", description: "Dobropis velja le ob pravočasnem plačilu.", recommended: true },
+        { id: "credit_confirm", title: "Najprej potrdite ponudbo", description: "Dolžnik mora ponudbo potrditi z odgovorom." }
+      ]
+    };
+
+    function predlogIkona(id) {
+      if (id === "agreement") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="M11 4H3a1 1 0 0 0-1 1"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.654.394a2 2 0 0 0 1.031.286H21a1 1 0 0 1 1 1"/><path d="M2 13.172a2 2 0 0 0 .586 1.414L8.5 20.5a1 1 0 1 0 3-3"/><path d="M22 13a1 1 0 0 1-1 1h-1"/></svg>';
+      if (id === "debtor_deadline") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.3" width="12" height="13.7" rx="2"/><path d="M7 3.3v3M11 3.3v3M3 9.8h12"/><circle cx="17" cy="17" r="4.2"/><path d="M17 15.1v2l1.5.9"/></svg>';
+      if (id === "fixed_deadline") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="5" width="17.2" height="15" rx="2.2"/><path d="M8 3v4M16 3v4M3.4 9.7h17.2"/><path d="M7.4 13.3h2M11 13.3h2M14.6 13.3h2M7.4 16.4h2M11 16.4h2"/></svg>';
+      if (id === "credit_payment") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M14.6 8.6a4 4 0 0 0-2.6-1c-2.2 0-4 1.9-4 4.4s1.8 4.4 4 4.4a4 4 0 0 0 2.6-1"/><path d="M7.4 10.5h4.6M7.4 13.4h4.6"/></svg>';
+      if (id === "credit_deadline") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="M12 7.8v4.5l3.1 1.8"/></svg>';
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="m8.1 12.3 2.5 2.5 5.3-5.5"/></svg>';
+    }
+
+    function smerIkona(odprto) {
+      var d = odprto ? "M6 12.6 10 8l4 4.6" : "M6 8 10 12.6l4-4.6";
+      return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
+    }
+
+    function kljukicaIkona() {
+      return '<svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 10.5 3.2 3.2L15 7"/></svg>';
+    }
+
+    function desnaPuscicaIkona() {
+      return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 5 5 5-5 5"/></svg>';
+    }
+
+    function zvezdicaIkona() {
+      return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2.7 2.72 5.52 6.09.88-4.4 4.29 1.04 6.06L12 16.59l-5.45 2.86 1.04-6.06-4.4-4.29 6.09-.88z"/></svg>';
+    }
+
+    function posodobiDelnoPredloge() {
+      if (!osnutek || !jeDelnoPlacilo()) return;
+      zagotoviDelnaPolja(osnutek);
+      var mode = osnutek.partialRemainderMode;
+      var jePotrjenPredlog = osnutek.partialProposalConfirmed === true;
+      var privzetiNasloviNacinov = {
+        open: "Preostanek ostane odprt",
+        credit_note: "Zapri z dobropisom"
+      };
+      var potrjeniPredlog = jePotrjenPredlog
+        ? DELNO_PREDLOGI[mode].find(function (predlog) {
+          return predlog.id === osnutek.partialProposalType;
+        })
+        : null;
+      if (delnoPredlogiPanel && delnoPredlogiPanel.parentElement) {
+        delnoPredlogiPanel.parentElement.classList.toggle("is-collapsed", !delnoPredlogiRazsirjeni);
+      }
+      var izbira = delnoPreostanekGumbi.length ? delnoPreostanekGumbi[0].parentElement : null;
+      if (izbira) izbira.classList.toggle("is-collapsed", !delnoPredlogiRazsirjeni);
+      delnoPreostanekGumbi.forEach(function (gumb) {
+        var izbraniMode = gumb.dataset.delnoPreostanek === mode;
+        var odprt = izbraniMode && delnoPredlogiRazsirjeni;
+        var potrjen = izbraniMode && jePotrjenPredlog;
+        gumb.classList.toggle("is-active", odprt || potrjen);
+        gumb.classList.toggle("is-open", odprt);
+        gumb.classList.toggle("is-confirmed", potrjen);
+        gumb.setAttribute("aria-checked", izbraniMode ? "true" : "false");
+        gumb.setAttribute("aria-expanded", odprt ? "true" : "false");
+        var naslovNacina = gumb.querySelector("strong");
+        if (naslovNacina) {
+          naslovNacina.textContent = potrjen && potrjeniPredlog
+            ? potrjeniPredlog.title
+            : privzetiNasloviNacinov[gumb.dataset.delnoPreostanek];
+          if (root.UJPrilagodiVelikostBesedila) {
+            root.requestAnimationFrame(function () {
+              root.UJPrilagodiVelikostBesedila(naslovNacina);
+            });
+          }
+        }
+        var smer = gumb.querySelector(".delno-resitev__smer");
+        if (smer) smer.innerHTML = smerIkona(odprt);
+      });
+      if (delnoPredlogiPanel) delnoPredlogiPanel.hidden = !delnoPredlogiRazsirjeni;
+      if (delnoPredlogi) {
+        delnoPredlogi.innerHTML = DELNO_PREDLOGI[mode].map(function (predlog) {
+          var aktiven = jePotrjenPredlog && osnutek.partialProposalType === predlog.id;
+          return '<div class="delno-resitev__predlog' + (predlog.recommended ? ' is-recommended' : '') + (aktiven ? ' is-active' : '') + '" data-delno-predlog-vrstica="' + predlog.id + '">' +
+            '<span class="delno-resitev__predlog-ikona" aria-hidden="true">' + predlogIkona(predlog.id) + '</span>' +
+            '<span class="delno-resitev__predlog-tekst"><strong data-fit-text data-fit-text-min="7.5" data-fit-text-container=".delno-resitev__predlog">' + predlog.title + '</strong><small data-fit-text data-fit-text-min="6" data-fit-text-lines="2" data-fit-text-container=".delno-resitev__predlog">' + predlog.description + '</small></span>' +
+            (predlog.recommended ? '<span class="delno-resitev__zvezdica" title="Priporočena izbira" aria-label="Priporočena izbira">' + zvezdicaIkona() + '</span>' : '<span class="delno-resitev__zvezdica" aria-hidden="true"></span>') +
+            '<button type="button" class="delno-resitev__indikator' + (aktiven ? ' is-active' : '') + '" data-delno-predlog="' + predlog.id + '" aria-label="Izberi: ' + predlog.title + '" aria-pressed="' + (aktiven ? 'true' : 'false') + '">' + (aktiven ? kljukicaIkona() : '') + '</button></div>';
+        }).join("");
+        if (root.UJPrilagodiVelikostBesedila) {
+          root.requestAnimationFrame(function () {
+            delnoPredlogi.querySelectorAll("[data-fit-text]").forEach(root.UJPrilagodiVelikostBesedila);
+          });
+        }
+      }
+      var potrebujeDatum = jePotrjenPredlog && mode === "open" && osnutek.partialProposalType === "fixed_deadline";
+      if (delnoPreostanekDatumOvoj) delnoPreostanekDatumOvoj.hidden = !potrebujeDatum;
+      if (delnoPreostanekDatum) delnoPreostanekDatum.value = osnutek.partialRemainderDueDate || "";
     }
 
     function besediloIntervala(type) {
@@ -314,6 +546,7 @@
     function posnetekOsnutkaObrocno() {
       return {
         draftEnabled: draftEnabled,
+        draftIncluded: draftIncluded,
         osnutek: osnutek ? klon(osnutek) : null,
       };
     }
@@ -321,6 +554,7 @@
     function obnoviOsnutekObrocno(snap) {
       if (!snap) return;
       draftEnabled = Boolean(snap.draftEnabled);
+      draftIncluded = Boolean(snap.draftIncluded);
       osnutek = snap.osnutek ? klon(snap.osnutek) : null;
       napolniOpozorilo();
       posodobiVklopUi();
@@ -340,6 +574,42 @@
       if (!recCard) return;
       var api = root.UJTonDodatkiPriporocila;
       var RC = root.UJRecommendationCard;
+      if (jeDelnoPlacilo()) {
+        var delniTotal = Math.round(Number(osnutek && osnutek.totalDebtCents) || 0);
+        var delniZnesek = priporocenDelniZnesek(delniTotal);
+        var delniDatum = privzetiDelniDatum();
+        var delniHash =
+          RC && typeof RC.contextHash === "function"
+            ? RC.contextHash({
+                kind: "delno",
+                amountCents: delniTotal,
+                partialAmountCents: delniZnesek,
+                dueDate: delniDatum,
+              })
+            : "delno|" + delniTotal + "|" + delniDatum;
+        recCard.setContent({
+          valueLabel: formatDelnoPriporocilo(delniZnesek),
+          description:
+            "Prvo delno plačilo poravnate do " +
+            UJ.formatDateSl(delniDatum) +
+            ". Preostanek nato uredite z izbrano možnostjo.",
+          contextHash: delniHash,
+          applyAriaLabel:
+            "Uporabi priporočilo za delno plačilo " +
+            UJ.formatCentsSl(delniZnesek),
+          ignoreAriaLabel: "Prezri priporočilo za delno plačilo",
+        });
+        if (
+          recCard.getStatus() === "applied" &&
+          appliedRecommendationKey &&
+          appliedRecommendationKey !== delniHash
+        ) {
+          recCard.setStatus("visible");
+          appliedRecommendationKey = null;
+          previousSettingsSnapshot = null;
+        }
+        return;
+      }
       if (!api || typeof api.sestaviPriporocila !== "function") {
         recCard.setContent({ valueLabel: "", description: "" });
         return;
@@ -400,11 +670,30 @@
           ? ctx.getTotalDebtCents()
           : 0;
       if (!Number.isFinite(total) || total <= 0) return;
+      if (jeDelnoPlacilo()) {
+        osnutek = zagotoviDelnaPolja(osnutek);
+        osnutek.paymentMode = "partial";
+        osnutek.partialAmountCents = priporocenDelniZnesek(total);
+        osnutek.partialDueDate = privzetiDelniDatum();
+        osnutek.partialRemainderMode = "open";
+        osnutek.partialProposalType = "agreement";
+        osnutek.partialProposalConfirmed = false;
+        osnutek.partialRemainderDueDate = UJ.dodajKoledarskeDni(osnutek.partialDueDate, 30);
+        osnutek.source = "suggested";
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        draftEnabled = true;
+        draftIncluded = true;
+        posodobiVklopUi();
+        izrisi();
+        if (recCard) appliedRecommendationKey = recCard.getContextHash();
+        return;
+      }
       osnutek = sveziPredlogIzPriporocila(total);
       osnutek = UJ.uskladiSteviloVrstic(osnutek);
       osnutek = zagotoviPriporocenoStevilo(osnutek);
       osnutek = uporabiRokOkno(osnutek, true);
       draftEnabled = true;
+      draftIncluded = true;
       napolniOpozorilo();
       posodobiVklopUi();
       izrisi();
@@ -421,6 +710,13 @@
         },
         onUndo: function () {
           obnoviOsnutekObrocno(previousSettingsSnapshot);
+          // Umik priporocila naj pusti obrocno placilo vklopljeno, da lahko
+          // uporabnik nacrt naprej nastavi rocno.
+          draftEnabled = true;
+          draftIncluded = true;
+          if (osnutek) osnutek.enabled = true;
+          posodobiVklopUi();
+          izrisi();
           previousSettingsSnapshot = null;
           appliedRecommendationKey = null;
         },
@@ -477,6 +773,17 @@
     }
 
     function nastaviKontroleOnemogocene(onemogocene) {
+      if (delnoZnesek) delnoZnesek.disabled = onemogocene;
+      if (delnoDatum) delnoDatum.disabled = onemogocene;
+      if (delnoPreostanekDatum) delnoPreostanekDatum.disabled = onemogocene;
+      delnoPreostanekGumbi.forEach(function (gumb) {
+        gumb.disabled = onemogocene;
+      });
+      if (delnoPredlogi) {
+        delnoPredlogi.querySelectorAll("button").forEach(function (gumb) {
+          gumb.disabled = onemogocene;
+        });
+      }
       if (stevilke) {
         stevilke.querySelectorAll("button").forEach(function (b) {
           b.disabled = onemogocene;
@@ -486,6 +793,12 @@
       if (razmik) {
         razmik.disabled = onemogocene;
         razmik.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+      }
+      if (razmikIzbira) {
+        razmikIzbira.querySelectorAll("[data-obrocno-razmik]").forEach(function (gumb) {
+          gumb.disabled = onemogocene;
+          gumb.setAttribute("aria-disabled", onemogocene ? "true" : "false");
+        });
       }
       if (enakomerno) {
         enakomerno.disabled = onemogocene;
@@ -512,6 +825,7 @@
     function posodobiVklopUi() {
       /* Nastavitve so vedno aktivne – vklop je samo spodnji gumb. */
       draftEnabled = true;
+      if (vkljuci) vkljuci.checked = Boolean(draftIncluded);
       if (nastavitve) {
         nastavitve.classList.remove("obrocno-sheet__nastavitve--disabled");
       }
@@ -521,7 +835,7 @@
     }
 
     function besediloShraniGumba() {
-      return originalEnabled ? "Shrani spremembe" : "Shrani in dodaj";
+      return originalEnabled ? "Shrani" : "Vklopi";
     }
 
     async function spremeniStevilo(st) {
@@ -546,6 +860,7 @@
       }
       osnutek = UJ.nastaviSteviloObrokov(osnutek, st);
       osnutek = uporabiRokOkno(osnutek, true);
+      ponastaviEnakomernoStanje();
       oznaciObrocnoPriporociloSpremenjeno();
       izrisi();
     }
@@ -554,11 +869,13 @@
       if (!osnutek) return;
       var v = draftEnabled ? UJ.validatePlan(osnutek) : { ok: true, errors: [], warnings: [] };
       if (skupaj) {
-        var sum = UJ.vsotaCents(osnutek.installments);
+        var sum = jeDelnoPlacilo()
+          ? Math.round(Number(osnutek.partialAmountCents) || 0)
+          : UJ.vsotaCents(osnutek.installments);
         skupaj.textContent =
-          "Skupaj " +
+          (jeDelnoPlacilo() ? "Delno plačilo " : "Skupaj ") +
           UJ.formatCentsSl(sum) +
-          (sum === osnutek.totalDebtCents
+          (jeDelnoPlacilo() || sum === osnutek.totalDebtCents
             ? ""
             : " / " + UJ.formatCentsSl(osnutek.totalDebtCents));
         skupaj.classList.toggle("obrocno-sheet__skupaj--ok", v.ok);
@@ -604,9 +921,23 @@
         }
       }
       if (addon) addon.textContent = osnutek.addonText || "";
+      if (delnoPreostanek) {
+        var delnoTotal = Math.round(Number(osnutek.totalDebtCents) || 0);
+        var delnoPlacilo = Math.round(Number(osnutek.partialAmountCents) || 0);
+        var delnoOstane = Math.max(0, delnoTotal - delnoPlacilo);
+        delnoPreostanek.textContent = formatDelnoZnesek(delnoOstane, true);
+        if (delnoDolgIzracun) delnoDolgIzracun.textContent = formatDelnoZnesek(delnoTotal, true);
+        if (delnoPlaciloIzracun) delnoPlaciloIzracun.textContent = formatDelnoZnesek(delnoPlacilo, true);
+        prilagodiDelneVrednosti();
+        posodobiDelnoPredloge();
+      }
       if (znacka) {
         znacka.textContent =
-          osnutek.source === "custom" ? "Prilagojen načrt" : "Samodejni predlog";
+          jeDelnoPlacilo()
+            ? "Delno plačilo"
+            : osnutek.source === "custom"
+              ? "Prilagojen načrt"
+              : "Samodejni predlog";
       }
     }
 
@@ -775,6 +1106,7 @@
       }
       osnutek = UJ.nastaviRocniZnesek(osnutek, id, cents);
       osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+      ponastaviEnakomernoStanje();
       pocistiNapakoUrejanja();
       // Najprej zapusti urejanje, nato osveži vse vrstice (vključno s to).
       if (!opts.obBlurju) {
@@ -1100,11 +1432,45 @@
       sporoci("Obrok odstranjen.");
     }
 
+    function posodobiRazmikIzbiro() {
+      if (!razmikIzbira || !osnutek) return;
+      razmikIzbira.querySelectorAll("[data-obrocno-razmik]").forEach(function (gumb) {
+        var izbran = gumb.getAttribute("data-obrocno-razmik") === osnutek.intervalType;
+        gumb.classList.toggle("obrocno-sheet__razmik-kartica--izbrana", izbran);
+        gumb.setAttribute("aria-checked", izbran ? "true" : "false");
+        gumb.tabIndex = izbran ? 0 : -1;
+      });
+    }
+
+    function posodobiEnakomernoUi() {
+      if (!enakomerno) return;
+      enakomerno.classList.toggle(
+        "obrocno-sheet__enakomerno--izbrano",
+        enakomernoPotrjeno
+      );
+      enakomerno.setAttribute(
+        "aria-pressed",
+        enakomernoPotrjeno ? "true" : "false"
+      );
+    }
+
+    function ponastaviEnakomernoStanje() {
+      enakomernoPotrjeno = false;
+      posodobiEnakomernoUi();
+    }
+
     function izrisi() {
-      if (osnutek) osnutek = UJ.uskladiSteviloVrstic(osnutek);
-      posodobiStevilkeUi();
-      if (razmik && osnutek) razmik.value = osnutek.intervalType;
-      izrisiVrstice();
+      if (osnutek && !jeDelnoPlacilo()) {
+        osnutek = UJ.uskladiSteviloVrstic(osnutek);
+        posodobiStevilkeUi();
+        if (razmik) razmik.value = osnutek.intervalType;
+        posodobiRazmikIzbiro();
+        posodobiEnakomernoUi();
+        izrisiVrstice();
+      } else if (seznam) {
+        seznam.innerHTML = "";
+      }
+      posodobiNacinUi();
       nastaviKontroleOnemogocene(!draftEnabled);
       posodobiPovzetek();
       napolniOpozorilo();
@@ -1151,6 +1517,10 @@
 
     function napolniOpozorilo() {
       if (!opozorilo || !osnutek) return;
+      if (jeDelnoPlacilo()) {
+        opozorilo.hidden = true;
+        return;
+      }
       var d = osnutek.overdueDaysSnapshot;
       if (d != null && d < 0) {
         opozorilo.hidden = false;
@@ -1350,9 +1720,15 @@
       } else if (existingUporaben) {
         osnutek = klon(existing);
         osnutek.totalDebtCents = total;
-        osnutek = UJ.uskladiSteviloVrstic(osnutek);
-        if (UJ.vsotaCents(osnutek.installments) !== total) {
-          osnutek = UJ.enakomernoRazdeli(osnutek);
+        nacinPlacila = osnutek.paymentMode === "partial" ? "partial" : "installment";
+        if (nacinPlacila === "partial") {
+          osnutek = zagotoviDelnaPolja(osnutek);
+        } else {
+          osnutek.paymentMode = "installment";
+          osnutek = UJ.uskladiSteviloVrstic(osnutek);
+          if (UJ.vsotaCents(osnutek.installments) !== total) {
+            osnutek = UJ.enakomernoRazdeli(osnutek);
+          }
         }
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
         draftEnabled = true;
@@ -1363,8 +1739,13 @@
         draftEnabled = true;
       }
 
+      if (!existingUporaben) {
+        nacinPlacila = "installment";
+        osnutek.paymentMode = "installment";
+      }
+
       // Pri predlogi ohrani shranjeno št.; sicer uskladi z ★ / tonom.
-      if (!opts.predlogaNacin) {
+      if (!opts.predlogaNacin && !jeDelnoPlacilo()) {
         osnutek = zagotoviPriporocenoStevilo(osnutek);
       }
 
@@ -1372,11 +1753,14 @@
       var razporediPoRoku =
         Boolean(forsiraPriporocilo) ||
         (!opts.predlogaNacin && !existingUporaben);
-      osnutek = uporabiRokOkno(osnutek, razporediPoRoku);
+      if (!jeDelnoPlacilo()) {
+        osnutek = uporabiRokOkno(osnutek, razporediPoRoku);
+      }
 
       originalEnabled = opts.predlogaNacin
         ? Boolean(opts.zacetnoEnabled)
         : Boolean(existingUporaben);
+      draftIncluded = true;
       originalPlan = existing ? klon(existing) : null;
 
       editingInstallmentId = null;
@@ -1389,10 +1773,12 @@
       if (editAkcije) editAkcije.hidden = true;
       if (nogaGlobal) nogaGlobal.hidden = false;
 
-      if (znesekEl) znesekEl.textContent = UJ.formatCentsSl(total);
+      if (znesekEl) znesekEl.textContent = formatDelnoZnesek(total, true);
       napolniOpozorilo();
       previousSettingsSnapshot = null;
       appliedRecommendationKey = null;
+      enakomernoPotrjeno = false;
+      delnoPredlogiRazsirjeni = true;
       posodobiRazlagoPriporocila();
       if (recCard && recCard.getStatus() !== "ignored") {
         recCard.setStatus("visible");
@@ -1457,6 +1843,7 @@
       if (scrollFokusCasovnik) clearTimeout(scrollFokusCasovnik);
       osnutek = null;
       draftEnabled = false;
+      draftIncluded = false;
       originalEnabled = false;
       originalPlan = null;
       forsiraPriporocilo = false;
@@ -1531,6 +1918,14 @@
       if (shranjevanje) return;
 
       if (!osnutek) return;
+      if (!draftIncluded && originalEnabled) {
+        await odstraniObrocno(true);
+        return;
+      }
+      if (!draftIncluded) {
+        draftIncluded = true;
+        posodobiVklopUi();
+      }
       osnutek = UJ.osveziAddon(osnutek, jezikAddon());
       var v = UJ.validatePlan(osnutek);
       if (!v.ok) {
@@ -1543,7 +1938,8 @@
         var okRok = await ctx.potrdiVprasanje({
           naslov: "Nadomestim rok plačila?",
           opis:
-            "Obročno plačilo bo nadomestilo enkratni rok plačila. Želite nadaljevati?",
+            (jeDelnoPlacilo() ? "Delno" : "Obročno") +
+            " plačilo bo nadomestilo enkratni rok plačila. Želite nadaljevati?",
           potrdiBesedilo: "Nadaljuj",
           stil: "primary",
         });
@@ -1612,15 +2008,17 @@
       }
     }
 
-    async function odstraniObrocno() {
+    async function odstraniObrocno(brezPotrditve) {
       if (shranjevanje) return;
-      var ok = await ctx.potrdiVprasanje({
-        naslov: "Odstranim obročno plačilo?",
-        opis: "Dodatek o obrokih bo odstranjen iz sporočila.",
-        potrdiBesedilo: "Odstrani",
-        stil: "nevarno",
-      });
-      if (!ok) return;
+      if (!brezPotrditve) {
+        var ok = await ctx.potrdiVprasanje({
+          naslov: "Odstranim plačilni predlog?",
+          opis: "Dodatek o plačilu bo odstranjen iz sporočila.",
+          potrdiBesedilo: "Odstrani",
+          stil: "nevarno",
+        });
+        if (!ok) return;
+      }
 
       shranjevanje = true;
       if (odstrani) odstrani.disabled = true;
@@ -1701,8 +2099,121 @@
       odstrani.addEventListener("click", function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        odstraniObrocno();
+        odstraniObrocno(false);
       });
+    }
+    if (vkljuci) {
+      vkljuci.addEventListener("change", function () {
+        draftIncluded = Boolean(vkljuci.checked);
+        posodobiVklopUi();
+      });
+    }
+    nacinGumbi.forEach(function (gumb) {
+      gumb.addEventListener("click", function () {
+        if (!osnutek || !draftEnabled) return;
+        var noviNacin = gumb.getAttribute("data-obrocno-nacin") || "installment";
+        if (noviNacin === nacinPlacila) return;
+        nacinPlacila = noviNacin;
+        if (jeDelnoPlacilo()) {
+          delnoPredlogiRazsirjeni = true;
+          osnutek = zagotoviDelnaPolja(osnutek);
+        } else {
+          osnutek.paymentMode = "installment";
+          osnutek = UJ.uskladiSteviloVrstic(osnutek);
+          osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+          napolniRokOknoUi(preberiRokOkno());
+        }
+        posodobiRazlagoPriporocila();
+        izrisi();
+        sporoci(
+          jeDelnoPlacilo()
+            ? "Izbrano je delno plačilo."
+            : "Izbrano je obročno plačilo."
+        );
+      });
+    });
+    if (delnoZnesek) {
+      delnoZnesek.addEventListener("input", function () {
+        if (!osnutek || !jeDelnoPlacilo()) return;
+        var filtrirano = UJ.filtrirajZnesekVnos(delnoZnesek.value);
+        if (filtrirano !== delnoZnesek.value) delnoZnesek.value = filtrirano;
+        var cents = UJ.parseAmountToCents(filtrirano);
+        osnutek.partialAmountCents = cents == null ? 0 : cents;
+        osnutek.source = "custom";
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        oznaciObrocnoPriporociloSpremenjeno();
+        posodobiPovzetek();
+      });
+      delnoZnesek.addEventListener("blur", function () {
+        if (!osnutek || !jeDelnoPlacilo()) return;
+        delnoZnesek.value = formatDelnoZnesek(osnutek.partialAmountCents || 0, false);
+      });
+      delnoZnesek.addEventListener("focus", function () {
+        if (!osnutek || !jeDelnoPlacilo()) return;
+        delnoZnesek.value = UJ.formatCentsEditable(osnutek.partialAmountCents || 0);
+        delnoZnesek.select();
+      });
+    }
+    if (delnoDatum) {
+      delnoDatum.addEventListener("change", function () {
+        if (!osnutek || !jeDelnoPlacilo()) return;
+        osnutek.partialDueDate = delnoDatum.value || "";
+        osnutek.source = "custom";
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        oznaciObrocnoPriporociloSpremenjeno();
+        posodobiPovzetek();
+      });
+    }
+    delnoPreostanekGumbi.forEach(function (gumb) {
+      gumb.addEventListener("click", function () {
+        if (!osnutek || !jeDelnoPlacilo()) return;
+        var noviMode = gumb.dataset.delnoPreostanek || "open";
+        if (osnutek.partialRemainderMode === noviMode) {
+          delnoPredlogiRazsirjeni = !delnoPredlogiRazsirjeni;
+        } else {
+          osnutek.partialRemainderMode = noviMode;
+          osnutek.partialProposalType = noviMode === "credit_note"
+            ? "credit_deadline"
+            : "agreement";
+          osnutek.partialProposalConfirmed = false;
+          delnoPredlogiRazsirjeni = true;
+        }
+        osnutek.source = "custom";
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        oznaciObrocnoPriporociloSpremenjeno();
+        posodobiPovzetek();
+      });
+    });
+    if (delnoPredlogi) {
+      delnoPredlogi.addEventListener("click", function (ev) {
+        var gumb = ev.target.closest(".delno-resitev__indikator[data-delno-predlog]");
+        if (!gumb || !osnutek || !jeDelnoPlacilo()) return;
+        var istiPotrjeniPredlog = osnutek.partialProposalConfirmed === true &&
+          osnutek.partialProposalType === gumb.dataset.delnoPredlog;
+        osnutek.partialProposalType = gumb.dataset.delnoPredlog;
+        osnutek.partialProposalConfirmed = !istiPotrjeniPredlog;
+        if (osnutek.partialProposalType === "fixed_deadline" && !osnutek.partialRemainderDueDate) {
+          osnutek.partialRemainderDueDate = UJ.dodajKoledarskeDni(osnutek.partialDueDate, 30);
+        }
+        osnutek.source = "custom";
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        oznaciObrocnoPriporociloSpremenjeno();
+        posodobiPovzetek();
+      });
+    }
+    if (delnoPreostanekDatum) {
+      delnoPreostanekDatum.addEventListener("change", function () {
+        if (!osnutek || !jeDelnoPlacilo()) return;
+        osnutek.partialRemainderDueDate = delnoPreostanekDatum.value || "";
+        osnutek.source = "custom";
+        osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        oznaciObrocnoPriporociloSpremenjeno();
+        posodobiPovzetek();
+      });
+    }
+    window.addEventListener("resize", prilagodiDelneVrednosti, { passive: true });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(prilagodiDelneVrednosti);
     }
     if (editPreklici) {
       // mousedown pred blur-jem inputa – sicer bi blur najprej potrdil.
@@ -1720,8 +2231,15 @@
       });
     }
     if (enakomerno) {
-      enakomerno.addEventListener("click", async function () {
+      enakomerno.addEventListener("click", async function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
         if (!osnutek || !draftEnabled) return;
+        if (enakomernoPotrjeno) {
+          ponastaviEnakomernoStanje();
+          sporoci("Enakomerna razdelitev ni več izbrana.");
+          return;
+        }
         var imaRocne = osnutek.installments.some(function (r) {
           return r.amountMode === "manual";
         });
@@ -1736,7 +2254,9 @@
         }
         osnutek = UJ.enakomernoRazdeli(osnutek);
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
+        enakomernoPotrjeno = true;
         izrisi();
+        sporoci("Znesek je enakomerno razdeljen med obroke.");
       });
     }
     if (razmik) {
@@ -1746,6 +2266,28 @@
         osnutek = UJ.osveziAddon(osnutek, jezikAddon());
         oznaciObrocnoPriporociloSpremenjeno();
         izrisi();
+      });
+    }
+    if (razmikIzbira && razmik) {
+      razmikIzbira.querySelectorAll("[data-obrocno-razmik]").forEach(function (gumb) {
+        gumb.addEventListener("click", function () {
+          if (!osnutek || !draftEnabled || gumb.disabled) return;
+          razmik.value = gumb.getAttribute("data-obrocno-razmik") || "monthly";
+          razmik.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        gumb.addEventListener("keydown", function (event) {
+          if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          var gumbi = Array.from(razmikIzbira.querySelectorAll("[data-obrocno-razmik]:not(:disabled)"));
+          var indeks = gumbi.indexOf(gumb);
+          if (event.key === "Home") indeks = 0;
+          else if (event.key === "End") indeks = gumbi.length - 1;
+          else indeks = (indeks + (event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1) + gumbi.length) % gumbi.length;
+          if (gumbi[indeks]) {
+            gumbi[indeks].click();
+            gumbi[indeks].focus();
+          }
+        });
       });
     }
     if (undoEl) {

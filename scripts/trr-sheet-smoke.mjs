@@ -194,6 +194,14 @@ step(
 await page.locator("#dodatek-trr").click();
 await page.waitForSelector("#trr-sheet:not([hidden])", { timeout: 10000 });
 step("odprt sheet", !(await page.locator("#trr-sheet").isHidden()));
+step(
+  "celoten meni je takoj viden",
+  await page.locator("#trr-sheet-vsebina").isVisible()
+);
+step(
+  "TRR je privzeto izklopljen",
+  !(await page.locator("#trr-sheet-vkljuci").isChecked())
+);
 
 await page.locator("#trr-sheet-vkljuci").check();
 step("prazno stanje", await page.locator("#trr-sheet-prazno").isVisible());

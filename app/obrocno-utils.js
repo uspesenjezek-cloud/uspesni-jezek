@@ -201,6 +201,17 @@
     );
   }
 
+  function formatCentsDe(cents) {
+    var n = Number(cents) || 0;
+    return (
+      (n / 100).toLocaleString("de-DE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        useGrouping: true,
+      }) + " €"
+    );
+  }
+
   /** Prikaz v polju (brez €): 12.935,20 */
   function formatCentsPolje(cents) {
     return formatCentsSl(cents).replace(/\s*€\s*$/, "").trim();
@@ -448,6 +459,7 @@
 
     var plan = {
       enabled: false,
+      paymentMode: "installment",
       source: "suggested",
       totalDebtCents: total,
       linkedProposalNumber:
@@ -516,6 +528,13 @@
    * Če totalDebtCents ni enak ali struktura ne drži – zavrzi.
    */
   function jePlanUporaben(plan, expectedTotalCents) {
+    if (plan && plan.paymentMode === "partial") {
+      var expectedPartial = Math.round(Number(expectedTotalCents));
+      if (!Number.isFinite(expectedPartial) || expectedPartial <= 0) return false;
+      if (Math.round(Number(plan.totalDebtCents)) !== expectedPartial) return false;
+      var partialValidation = validatePlan(plan);
+      return Boolean(partialValidation && partialValidation.ok);
+    }
     if (!plan || !Array.isArray(plan.installments)) return false;
     if (plan.installments.length < MIN_OBROKOV) return false;
     if (plan.installments.length > MAX_OBROKOV) return false;
@@ -645,6 +664,61 @@
     var pol = politika || PRIVZETA_POLITIKA;
     var errors = [];
     var warnings = [];
+    if (plan && plan.paymentMode === "partial") {
+      var partialTotal = Math.round(Number(plan.totalDebtCents) || 0);
+      var partialAmount = Math.round(Number(plan.partialAmountCents) || 0);
+      if (partialTotal <= 0) {
+        errors.push({ code: "partial_total", message: "Znesek dolga ni na voljo." });
+      }
+      if (partialAmount <= 0) {
+        errors.push({
+          code: "partial_amount",
+          message: "Vnesite znesek delnega plačila.",
+        });
+      } else if (partialAmount >= partialTotal) {
+        errors.push({
+          code: "partial_full_amount",
+          message: "Delno plačilo mora biti nižje od celotnega dolga.",
+        });
+      }
+      if (!parseLocalYYYYMMDD(plan.partialDueDate)) {
+        errors.push({
+          code: "partial_date",
+          message: "Izberite veljaven rok delnega plačila.",
+        });
+      } else {
+        var partialMinDate = plan.plannedSendDate || danesYYYYMMDD();
+        if (plan.partialDueDate < partialMinDate) {
+          errors.push({
+            code: "partial_date_early",
+            message: "Rok delnega plačila ne sme biti pred datumom pošiljanja.",
+          });
+        }
+      }
+      if (
+        plan.partialRemainderMode === "open" &&
+        plan.partialProposalType === "fixed_deadline"
+      ) {
+        if (!parseLocalYYYYMMDD(plan.partialRemainderDueDate)) {
+          errors.push({
+            code: "partial_remainder_date",
+            message: "Izberite veljaven rok plačila preostanka.",
+          });
+        } else if (plan.partialRemainderDueDate <= plan.partialDueDate) {
+          errors.push({
+            code: "partial_remainder_date_early",
+            message: "Rok preostanka mora biti poznejši od prvega delnega plačila.",
+          });
+        }
+      }
+      return {
+        ok: errors.length === 0,
+        errors: errors,
+        warnings: warnings,
+        sumCents: partialAmount,
+        diffCents: partialAmount - partialTotal,
+      };
+    }
     var rows = plan.installments || [];
     if (rows.length < MIN_OBROKOV) {
       errors.push({
@@ -760,6 +834,68 @@
 
   function sestaviAddonText(plan, jezik) {
     var j = jezik || "de";
+    if (plan && plan.paymentMode === "partial") {
+      var partialAmount = Math.round(Number(plan.partialAmountCents) || 0);
+      var total = Math.round(Number(plan.totalDebtCents) || 0);
+      var remaining = Math.max(0, total - partialAmount);
+      var partialDateObj = parseLocalYYYYMMDD(plan.partialDueDate);
+      var partialDate = formatDateSl(plan.partialDueDate);
+      if (partialDateObj && j === "de") {
+        partialDate =
+          String(partialDateObj.getDate()).padStart(2, "0") +
+          "." +
+          String(partialDateObj.getMonth() + 1).padStart(2, "0") +
+          "." +
+          partialDateObj.getFullYear();
+      } else if (partialDateObj && j === "en") {
+        partialDate =
+          partialDateObj.getDate() +
+          "/" +
+          (partialDateObj.getMonth() + 1) +
+          "/" +
+          partialDateObj.getFullYear();
+      }
+      var mode = plan.partialRemainderMode === "credit_note" ? "credit_note" : "open";
+      var type = plan.partialProposalType || (mode === "credit_note" ? "credit_deadline" : "agreement");
+      var remainderDateObj = parseLocalYYYYMMDD(plan.partialRemainderDueDate);
+      var remainderDate = formatDateSl(plan.partialRemainderDueDate);
+      if (remainderDateObj && j === "de") {
+        remainderDate = String(remainderDateObj.getDate()).padStart(2, "0") + "." +
+          String(remainderDateObj.getMonth() + 1).padStart(2, "0") + "." + remainderDateObj.getFullYear();
+      } else if (remainderDateObj && j === "en") {
+        remainderDate = remainderDateObj.getDate() + "/" + (remainderDateObj.getMonth() + 1) + "/" + remainderDateObj.getFullYear();
+      }
+      var amountText = j === "de" ? formatCentsDe(partialAmount) : formatCentsSl(partialAmount);
+      var remainingText = j === "de" ? formatCentsDe(remaining) : formatCentsSl(remaining);
+      if (j === "de") {
+        if (mode === "credit_note") {
+          if (type === "credit_confirm") return "Wir bieten Ihnen an, " + amountText + " zu zahlen und den verbleibenden Betrag von " + remainingText + " mit einer Gutschrift abzuschließen. Bitte bestätigen Sie dieses Angebot vorab durch eine Antwort auf diese Nachricht.";
+          if (type === "credit_payment") return "Zahlen Sie " + amountText + " bis zum " + partialDate + ". Nach Eingang der Zahlung wird der verbleibende Betrag von " + remainingText + " mit einer Gutschrift abgeschlossen.";
+          return "Unser Vergleichsangebot gilt bis zum " + partialDate + ": Zahlen Sie " + amountText + ". Nach fristgerechtem Zahlungseingang wird der verbleibende Betrag von " + remainingText + " mit einer Gutschrift abgeschlossen.";
+        }
+        if (type === "debtor_deadline") return "Zahlen Sie zunächst " + amountText + " bis zum " + partialDate + ". Teilen Sie uns bitte mit, bis wann Sie den verbleibenden Betrag von " + remainingText + " begleichen können.";
+        if (type === "fixed_deadline") return "Zahlen Sie zunächst " + amountText + " bis zum " + partialDate + ". Der verbleibende Betrag von " + remainingText + " ist bis zum " + remainderDate + " zu zahlen.";
+        return "Zahlen Sie zunächst " + amountText + " bis zum " + partialDate + ". Für den verbleibenden Betrag von " + remainingText + " finden wir gemeinsam eine passende Lösung. Antworten Sie einfach auf diese Nachricht.";
+      }
+      if (j === "en") {
+        if (mode === "credit_note") {
+          if (type === "credit_confirm") return "We offer to accept " + amountText + " and close the remaining " + remainingText + " with a credit note. Please confirm this offer by replying first.";
+          if (type === "credit_payment") return "Pay " + amountText + " by " + partialDate + ". Once received, the remaining " + remainingText + " will be closed with a credit note.";
+          return "This settlement offer is valid until " + partialDate + ": pay " + amountText + ". After timely payment, the remaining " + remainingText + " will be closed with a credit note.";
+        }
+        if (type === "debtor_deadline") return "First pay " + amountText + " by " + partialDate + ". Please tell us when you can settle the remaining " + remainingText + ".";
+        if (type === "fixed_deadline") return "First pay " + amountText + " by " + partialDate + ". The remaining " + remainingText + " is due by " + remainderDate + ".";
+        return "First pay " + amountText + " by " + partialDate + ". We will agree a suitable solution for the remaining " + remainingText + " together. Simply reply to this message.";
+      }
+      if (mode === "credit_note") {
+        if (type === "credit_confirm") return "Ponujamo plačilo " + amountText + ", preostalih " + remainingText + " pa zapremo z dobropisom. Ponudbo najprej potrdite z odgovorom na to sporočilo.";
+        if (type === "credit_payment") return "Plačajte " + amountText + " do " + partialDate + ". Po prejemu plačila bomo preostalih " + remainingText + " zaprli z dobropisom.";
+        return "Ponudba velja do " + partialDate + ": plačajte " + amountText + ". Ob pravočasnem plačilu bomo preostalih " + remainingText + " zaprli z dobropisom.";
+      }
+      if (type === "debtor_deadline") return "Najprej plačajte " + amountText + " do " + partialDate + ". Sporočite nam, do kdaj lahko poravnate preostalih " + remainingText + ".";
+      if (type === "fixed_deadline") return "Najprej plačajte " + amountText + " do " + partialDate + ". Preostalih " + remainingText + " poravnajte do " + remainderDate + ".";
+      return "Najprej plačajte " + amountText + " do " + partialDate + ". Za preostalih " + remainingText + " bomo skupaj našli ustrezno rešitev. Preprosto odgovorite na to sporočilo.";
+    }
     var rows = plan.installments || [];
     var n = rows.length;
     if (!n) return "";

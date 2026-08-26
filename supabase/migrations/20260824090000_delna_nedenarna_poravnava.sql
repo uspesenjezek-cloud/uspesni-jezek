@@ -104,7 +104,7 @@ begin
       p_obrtnik_id,
       p_placilo_znesek,
       case when p_placilo_vrsta = 'installment' then 'installment' else 'partial' end,
-      current_date,
+      coalesce(nullif(p_settings->>'settledAt', '')::date, current_date),
       p_action_id
     );
 
@@ -133,7 +133,7 @@ begin
       p_obrtnik_id,
       case when p_placilo_vrsta = 'cancelled_invoice' then 'cancelled_invoice' else 'credit_note' end,
       p_placilo_znesek,
-      current_date,
+      coalesce(nullif(p_settings->>'settledAt', '')::date, current_date),
       nullif(p_settings->>'reason', ''),
       p_action_id
     );

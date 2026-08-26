@@ -60,6 +60,93 @@ function zaokrozi2(vrednost) {
   return Math.round(Number(vrednost) * 100) / 100;
 }
 
+function obreziBesedilo(vrednost, maxDolzina) {
+  var s = String(vrednost == null ? "" : vrednost).trim();
+  return s.length > maxDolzina ? s.slice(0, maxDolzina) : s;
+}
+
+/* Vhod iz čarovnika na strani "Izvedba" (izvedba.js) - dopolni obstoječi
+   plan.steps[manual_lawyer].lawyerHandoff namesto polnega čarovnika iz
+   opomin-nacrt-ui.js. Neznana/manjkajoča polja se preprosto izpustijo -
+   preveriPredajoPopolno spodaj vseeno preveri popolnost pred izvedbo. */
+function sanitizirajLawyerHandoffPatch(vhod) {
+  if (!vhod || typeof vhod !== "object") return null;
+  var patch = {};
+  var imaPodatke = false;
+
+  if (vhod.lawyerId) {
+    patch.lawyerId = obreziBesedilo(vhod.lawyerId, 100);
+    imaPodatke = true;
+  }
+  var snap = vhod.lawyerSnapshot;
+  if (snap && typeof snap === "object") {
+    patch.lawyerSnapshot = {
+      name: obreziBesedilo(snap.name, 200),
+      officeName: obreziBesedilo(snap.officeName, 200),
+      email: obreziBesedilo(snap.email, 200),
+      phone: obreziBesedilo(snap.phone, 60),
+    };
+    imaPodatke = true;
+  }
+  var pkg = vhod.selectedPackage;
+  if (pkg && typeof pkg === "object" && pkg.packageId) {
+    patch.selectedPackage = {
+      packageId: obreziBesedilo(pkg.packageId, 100),
+      title: obreziBesedilo(pkg.title, 200),
+      priceCents: Number.isFinite(Number(pkg.priceCents)) ? Math.round(Number(pkg.priceCents)) : null,
+    };
+    imaPodatke = true;
+  }
+  if (Array.isArray(vhod.documents)) {
+    patch.documents = vhod.documents.slice(0, 20).map(function (d) {
+      return { id: obreziBesedilo(d && d.id, 60), title: obreziBesedilo(d && d.title, 200) };
+    }).filter(function (d) { return d.id; });
+    imaPodatke = true;
+  }
+  if (vhod.message != null) {
+    patch.message = obreziBesedilo(vhod.message, 2000);
+    imaPodatke = true;
+  }
+  if (Array.isArray(vhod.availableHandoffDays) && vhod.availableHandoffDays.length === 7) {
+    patch.availableHandoffDays = vhod.availableHandoffDays.map(Boolean);
+    imaPodatke = true;
+  }
+  if (Array.isArray(vhod.historyBeforePlan)) {
+    patch.historyBeforePlan = vhod.historyBeforePlan.slice(0, 30).map(function (dogodek) {
+      var d = dogodek && typeof dogodek === "object" ? dogodek : {};
+      var nastavitve = d.settings && typeof d.settings === "object" ? d.settings : {};
+      var znesek = Number(d.znesek != null ? d.znesek : nastavitve.paymentAmount);
+      return {
+        tip: obreziBesedilo(d.tip, 60),
+        actionType: obreziBesedilo(d.actionType, 60),
+        naslov: obreziBesedilo(d.naslov, 300),
+        znesek: Number.isFinite(znesek) ? znesek : null,
+        ikona: obreziBesedilo(d.ikona, 60),
+        razred: obreziBesedilo(d.razred, 60),
+        datum: obreziBesedilo(d.datum, 60),
+        settings: {
+          description: obreziBesedilo(nastavitve.description, 300),
+          occurredAt: obreziBesedilo(nastavitve.occurredAt || nastavitve.settledAt, 60),
+          paymentAmount: Number.isFinite(Number(nastavitve.paymentAmount)) ? Number(nastavitve.paymentAmount) : null,
+          settlementType: obreziBesedilo(nastavitve.settlementType, 60),
+          kind: obreziBesedilo(nastavitve.kind, 60),
+          reason: obreziBesedilo(nastavitve.reason, 300),
+        },
+      };
+    }).filter(function (d) { return d.tip || d.naslov; });
+    imaPodatke = true;
+  }
+  if (vhod.riskAssessment && typeof vhod.riskAssessment === "object") {
+    var latePayments = String(vhod.riskAssessment.latePayments == null ? "" : vhod.riskAssessment.latePayments);
+    if (["unknown", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9plus"].indexOf(latePayments) !== -1) {
+      patch.riskAssessment = { latePayments: latePayments };
+      imaPodatke = true;
+    }
+  }
+
+  return imaPodatke ? patch : null;
+}
+
 function validirajNastavitve(actionType, settings, context) {
   var vhod = settings && typeof settings === "object" ? settings : {};
   context = context || {};
@@ -95,7 +182,14 @@ function validirajNastavitve(actionType, settings, context) {
         return { ok: false, code: "INVALID_SETTINGS", napaka: "Datum predaje mora biti veljaven in v prihodnosti." };
       }
     }
-    return { ok: true, settings: { timingMode: timingMode, scheduledHandoffAt: scheduledHandoffAt ? scheduledHandoffAt.toISOString() : null } };
+    return {
+      ok: true,
+      settings: {
+        timingMode: timingMode,
+        scheduledHandoffAt: scheduledHandoffAt ? scheduledHandoffAt.toISOString() : null,
+        lawyerHandoff: sanitizirajLawyerHandoffPatch(vhod.lawyerHandoff),
+      },
+    };
   }
 
   if (actionType === "postpone_reminder") {
@@ -133,9 +227,18 @@ function validirajNastavitve(actionType, settings, context) {
       return { ok: false, code: "PAYMENT_EXCEEDS_DEBT", napaka: "Preostali dolg po plačilu mora biti manjši od trenutnega dolga." };
     }
     var placiloZnesek = zaokrozi2(preostaliDolg - remainingAmount);
+    var settledAtDelno = vhod.settledAt ? new Date(vhod.settledAt) : new Date();
+    if (Number.isNaN(settledAtDelno.getTime()) || settledAtDelno.getTime() > Date.now() + 300000) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Datum plačila ni veljaven." };
+    }
     return {
       ok: true,
-      settings: { remainingAmount: zaokrozi2(remainingAmount), paymentAmount: placiloZnesek, settlementType: settlementTypeDelno },
+      settings: {
+        remainingAmount: zaokrozi2(remainingAmount),
+        paymentAmount: placiloZnesek,
+        settlementType: settlementTypeDelno,
+        settledAt: settledAtDelno.toISOString()
+      },
       placiloZnesek: placiloZnesek,
       placiloVrsta: settlementTypeDelno
     };
@@ -163,13 +266,18 @@ function validirajNastavitve(actionType, settings, context) {
     }
     var placiloVrstaNed = kind === "writeoff" ? "cancelled_invoice" : "credit_note";
     var novPreostanekNed = zaokrozi2(preostaliDolgNed - placiloZnesekNed);
+    var settledAtNed = vhod.settledAt ? new Date(vhod.settledAt) : new Date();
+    if (Number.isNaN(settledAtNed.getTime()) || settledAtNed.getTime() > Date.now() + 300000) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Datum poravnave ni veljaven." };
+    }
     return {
       ok: true,
       settings: {
         kind: kind,
         amount: placiloZnesekNed,
         remainingAmount: novPreostanekNed,
-        reason: kind === "writeoff" ? String(vhod.reason) : null
+        reason: kind === "writeoff" ? String(vhod.reason) : null,
+        settledAt: settledAtNed.toISOString()
       },
       placiloZnesek: placiloZnesekNed,
       placiloVrsta: placiloVrstaNed
@@ -232,9 +340,19 @@ function izracunajFingerprint(podatki) {
 function najdiKorakVPlanu(plan, stepId) {
   var steps = (plan && plan.steps) || [];
   for (var i = 0; i < steps.length; i++) {
-    if (steps[i].id === stepId) return { step: steps[i], index: i };
+    if (String(steps[i].stepId || steps[i].id || ("step-" + (i + 1))) === String(stepId)) {
+      return { step: steps[i], index: i };
+    }
   }
   return null;
+}
+
+function idKoraka(step, index) {
+  return String((step && (step.stepId || step.id)) || ("step-" + (Number(index) + 1)));
+}
+
+function jePlanKorakZakljucen(step) {
+  return ["sent", "cancelled", "skipped"].indexOf(String((step && step.status) || "")) >= 0;
 }
 
 function vkljuceniKoraki(plan) {
@@ -259,12 +377,12 @@ function izracunajPreklicKoraka(ctx) {
   if (!najden) return { ok: false, code: "STEP_NOT_FOUND" };
 
   var trenutniKoraki = koraki.filter(function (k) { return k.stepId === stepId; });
-  if (!trenutniKoraki.length || jeKorakPoslan(trenutniKoraki)) {
+  if (jeKorakPoslan(trenutniKoraki) || (!trenutniKoraki.length && jePlanKorakZakljucen(najden.step))) {
     return { ok: false, code: "STEP_ALREADY_SENT" };
   }
 
   var vkljuceni = vkljuceniKoraki(plan);
-  var trenutniIndex = vkljuceni.findIndex(function (s) { return s.id === stepId; });
+  var trenutniIndex = vkljuceni.findIndex(function (s, index) { return idKoraka(s, index) === String(stepId); });
   if (trenutniIndex === -1) return { ok: false, code: "STEP_NOT_FOUND" };
 
   var korakiUpdates = trenutniKoraki.map(function (k) {
@@ -273,9 +391,13 @@ function izracunajPreklicKoraka(ctx) {
 
   var naslednjiStepId = null;
   for (var i = trenutniIndex + 1; i < vkljuceni.length; i++) {
-    var kandidatId = vkljuceni[i].id;
+    var kandidatId = idKoraka(vkljuceni[i], i);
     var kandidatKoraki = koraki.filter(function (k) { return k.stepId === kandidatId; });
-    if (kandidatKoraki.length && !jeKorakPoslan(kandidatKoraki)) { naslednjiStepId = kandidatId; break; }
+    if ((kandidatKoraki.length && !jeKorakPoslan(kandidatKoraki)) ||
+        (!kandidatKoraki.length && !jePlanKorakZakljucen(vkljuceni[i]))) {
+      naslednjiStepId = kandidatId;
+      break;
+    }
   }
 
   var novPlan = JSON.parse(JSON.stringify(plan));
@@ -286,9 +408,11 @@ function izracunajPreklicKoraka(ctx) {
     var zamikMs = nextDelayDays * 86400000;
     var osnovniCasMs = Date.now() + zamikMs;
     var naslednjiTrenutniKoraki = koraki.filter(function (k) { return k.stepId === naslednjiStepId; });
+    var naslednjiVPlanu = najdiKorakVPlanu(plan, naslednjiStepId);
     var staraZaporednaVrednostMs = naslednjiTrenutniKoraki.length
       ? Date.parse(naslednjiTrenutniKoraki[0].scheduledAt)
-      : osnovniCasMs;
+      : Date.parse(naslednjiVPlanu && (naslednjiVPlanu.step.sendAt || naslednjiVPlanu.step.scheduledAt));
+    if (!Number.isFinite(staraZaporednaVrednostMs)) staraZaporednaVrednostMs = osnovniCasMs;
     var razlikaMs = osnovniCasMs - staraZaporednaVrednostMs;
 
     naslednjiTrenutniKoraki.forEach(function (k) {
@@ -300,21 +424,23 @@ function izracunajPreklicKoraka(ctx) {
       noviNaslednji.step.scheduledAt = noviNaslednji.step.sendAt;
     }
 
-    var naslednjiIndexVSeznamu = vkljuceni.findIndex(function (s) { return s.id === naslednjiStepId; });
+    var naslednjiIndexVSeznamu = vkljuceni.findIndex(function (s, index) { return idKoraka(s, index) === naslednjiStepId; });
     for (var j = naslednjiIndexVSeznamu + 1; j < vkljuceni.length; j++) {
-      var poznejsiId = vkljuceni[j].id;
+      var poznejsiId = idKoraka(vkljuceni[j], j);
       var poznejsiKoraki = koraki.filter(function (k) { return k.stepId === poznejsiId; });
-      if (!poznejsiKoraki.length || jeKorakPoslan(poznejsiKoraki)) continue;
+      if (jeKorakPoslan(poznejsiKoraki) || (!poznejsiKoraki.length && jePlanKorakZakljucen(vkljuceni[j]))) continue;
       poznejsiKoraki.forEach(function (k) {
         var novCasMs = Date.parse(k.scheduledAt) + razlikaMs;
-        korakiUpdates.push({ id: k.id, scheduled_at: new Date(novCasMs).toISOString() });
+        if (Number.isFinite(novCasMs)) korakiUpdates.push({ id: k.id, scheduled_at: new Date(novCasMs).toISOString() });
       });
       var poznejsiVPlanu = najdiKorakVPlanu(novPlan, poznejsiId);
       if (poznejsiVPlanu) {
         var osnova = poznejsiVPlanu.step.sendAt || poznejsiVPlanu.step.scheduledAt;
         var novCasPlanMs = Date.parse(osnova) + razlikaMs;
-        poznejsiVPlanu.step.sendAt = new Date(novCasPlanMs).toISOString();
-        poznejsiVPlanu.step.scheduledAt = poznejsiVPlanu.step.sendAt;
+        if (Number.isFinite(novCasPlanMs)) {
+          poznejsiVPlanu.step.sendAt = new Date(novCasPlanMs).toISOString();
+          poznejsiVPlanu.step.scheduledAt = poznejsiVPlanu.step.sendAt;
+        }
       }
     }
   }
@@ -368,17 +494,26 @@ function izracunajPredajoOdvetniku(ctx) {
   var steps = (plan && plan.steps) || [];
   var lawyerStep = steps.filter(function (s) { return s.kind === "manual_lawyer"; }).pop();
   if (!lawyerStep) return { ok: false, code: "LAWYER_STEP_NOT_FOUND" };
+  var lawyerStepIndex = steps.indexOf(lawyerStep);
+  var lawyerStepId = idKoraka(lawyerStep, lawyerStepIndex);
 
-  var manjkajoce = preveriPredajoPopolno(lawyerStep.lawyerHandoff);
+  var novPlan = JSON.parse(JSON.stringify(plan));
+  var noviLawyerStep = najdiKorakVPlanu(novPlan, lawyerStepId).step;
+  if (settings.lawyerHandoff) {
+    noviLawyerStep.lawyerHandoff = Object.assign({}, noviLawyerStep.lawyerHandoff || {}, settings.lawyerHandoff);
+  }
+
+  var manjkajoce = preveriPredajoPopolno(noviLawyerStep.lawyerHandoff);
   if (manjkajoce.length) {
     return { ok: false, code: "MISSING_HANDOFF_DATA", missing: manjkajoce };
   }
 
   var vkljuceni = vkljuceniKoraki(plan);
   var korakiUpdates = [];
-  vkljuceni.forEach(function (s) {
-    if (s.id === lawyerStep.id) return;
-    var vrsticeKoraka = koraki.filter(function (k) { return k.stepId === s.id; });
+  vkljuceni.forEach(function (s, index) {
+    var stepId = idKoraka(s, index);
+    if (stepId === lawyerStepId) return;
+    var vrsticeKoraka = koraki.filter(function (k) { return k.stepId === stepId; });
     if (!vrsticeKoraka.length || jeKorakPoslan(vrsticeKoraka)) return;
     vrsticeKoraka.forEach(function (k) {
       korakiUpdates.push({ id: k.id, execution_state: "cancelled", status: "cancelled", cancel_reason: "handoff_to_lawyer" });
@@ -389,13 +524,11 @@ function izracunajPredajoOdvetniku(ctx) {
     ? settings.scheduledHandoffAt
     : new Date().toISOString();
 
-  var lawyerKoraki = koraki.filter(function (k) { return k.stepId === lawyerStep.id; });
+  var lawyerKoraki = koraki.filter(function (k) { return k.stepId === lawyerStepId; });
   lawyerKoraki.forEach(function (k) {
     korakiUpdates.push({ id: k.id, execution_state: "awaiting_confirmation", scheduled_at: novCas });
   });
 
-  var novPlan = JSON.parse(JSON.stringify(plan));
-  var noviLawyerStep = najdiKorakVPlanu(novPlan, lawyerStep.id).step;
   noviLawyerStep.status = "scheduled";
   noviLawyerStep.sendAt = novCas;
   noviLawyerStep.scheduledAt = novCas;
@@ -407,41 +540,47 @@ function izracunajPredajoOdvetniku(ctx) {
 /* 12.4 Prestavi opomin */
 function izracunajPrestavitevOpomina(ctx) {
   var plan = ctx.plan, koraki = ctx.koraki, stepId = ctx.stepId, delayDays = ctx.settings.delayDays;
+  var najden = najdiKorakVPlanu(plan, stepId);
+  if (!najden) return { ok: false, code: "STEP_NOT_FOUND" };
   var trenutniKoraki = koraki.filter(function (k) { return k.stepId === stepId; });
-  if (!trenutniKoraki.length || jeKorakPoslan(trenutniKoraki)) {
+  if (jeKorakPoslan(trenutniKoraki) || (!trenutniKoraki.length && jePlanKorakZakljucen(najden.step))) {
     return { ok: false, code: "STEP_ALREADY_SENT" };
   }
 
   var vkljuceni = vkljuceniKoraki(plan);
-  var trenutniIndex = vkljuceni.findIndex(function (s) { return s.id === stepId; });
+  var trenutniIndex = vkljuceni.findIndex(function (s, index) { return idKoraka(s, index) === String(stepId); });
   if (trenutniIndex === -1) return { ok: false, code: "STEP_NOT_FOUND" };
 
   var zamikMs = delayDays * 86400000;
   var korakiUpdates = [];
 
   for (var i = trenutniIndex; i < vkljuceni.length; i++) {
-    var id = vkljuceni[i].id;
+    var id = idKoraka(vkljuceni[i], i);
     var vrstice = koraki.filter(function (k) { return k.stepId === id; });
-    if (!vrstice.length || jeKorakPoslan(vrstice)) continue;
+    if (jeKorakPoslan(vrstice) || (!vrstice.length && jePlanKorakZakljucen(vkljuceni[i]))) continue;
     vrstice.forEach(function (k) {
       var novCasMs = Date.parse(k.scheduledAt) + zamikMs;
-      korakiUpdates.push({
-        id: k.id,
-        scheduled_at: new Date(novCasMs).toISOString(),
-        execution_state: "scheduled",
-      });
+      if (Number.isFinite(novCasMs)) {
+        korakiUpdates.push({
+          id: k.id,
+          scheduled_at: new Date(novCasMs).toISOString(),
+          execution_state: "scheduled",
+        });
+      }
     });
   }
 
   var novPlan = JSON.parse(JSON.stringify(plan));
   for (var j = trenutniIndex; j < vkljuceni.length; j++) {
-    var stepIdJ = vkljuceni[j].id;
+    var stepIdJ = idKoraka(vkljuceni[j], j);
     var vrsticeJ = koraki.filter(function (k) { return k.stepId === stepIdJ; });
-    if (!vrsticeJ.length || jeKorakPoslan(vrsticeJ)) continue;
+    if (jeKorakPoslan(vrsticeJ) || (!vrsticeJ.length && jePlanKorakZakljucen(vkljuceni[j]))) continue;
     var noviStep = najdiKorakVPlanu(novPlan, stepIdJ).step;
     var osnovaMs = Date.parse(noviStep.sendAt || noviStep.scheduledAt) + zamikMs;
-    noviStep.sendAt = new Date(osnovaMs).toISOString();
-    noviStep.scheduledAt = noviStep.sendAt;
+    if (Number.isFinite(osnovaMs)) {
+      noviStep.sendAt = new Date(osnovaMs).toISOString();
+      noviStep.scheduledAt = noviStep.sendAt;
+    }
     if (stepIdJ === stepId) noviStep.status = "scheduled";
   }
   novPlan.version = povecajVerzijo(plan);
@@ -493,6 +632,35 @@ function izracunajDelnoPlacilo(ctx) {
   return { ok: true, newPlan: novPlan, korakiUpdates: [], placiloZnesek: placiloZnesek };
 }
 
+/* Razveljavitev že zabeležene delne poravnave mora popraviti tudi zneske v
+ * prihodnjih, še neposlanih sporočilih. Sam RPC nato v isti transakciji vrne
+ * finančne stolpce in izbriše pripadajoči knjigovodski zapis. */
+function izracunajRazveljavitevPoravnave(ctx) {
+  var plan = ctx.plan, koraki = ctx.koraki, novPreostanek = Number(ctx.novPreostanek);
+  if (!Number.isFinite(novPreostanek) || novPreostanek <= 0) {
+    return { ok: false, code: "INVALID_SETTINGS", napaka: "Obnovljeni preostali dolg ni veljaven." };
+  }
+  var novPlan = JSON.parse(JSON.stringify(plan || {}));
+  if (ctx.zakljucnaPoravnava) {
+    novPlan.status = "active";
+    delete novPlan.settlement;
+  }
+  (novPlan.steps || []).forEach(function (step) {
+    var stepId = String(step.stepId || step.id || "");
+    var vrstice = (koraki || []).filter(function (k) { return String(k.stepId) === stepId; });
+    if (jeKorakPoslan(vrstice) || step.messageEditedManually) return;
+    if (typeof step.finalMessage === "string" && step.finalMessage) {
+      step.finalMessage = step.finalMessage.replace(
+        /\d+[.,]\d{2}\s?€/g,
+        String(novPreostanek.toFixed(2)).replace(".", ",") + " €"
+      );
+      step.messageNeedsReview = true;
+    }
+  });
+  novPlan.version = povecajVerzijo(plan || {});
+  return { ok: true, newPlan: novPlan, korakiUpdates: [] };
+}
+
 /* 13. Račun je bil poravnan (polno plačilo) */
 function izracunajPolnoPlacilo(ctx) {
   var plan = ctx.plan, koraki = ctx.koraki, settings = ctx.settings || {};
@@ -537,6 +705,7 @@ module.exports = {
   validirajNastavitve: validirajNastavitve,
   izracunajFingerprint: izracunajFingerprint,
   izracunajUkrep: izracunajUkrep,
+  izracunajRazveljavitevPoravnave: izracunajRazveljavitevPoravnave,
   _test: {
     najdiKorakVPlanu: najdiKorakVPlanu,
     vkljuceniKoraki: vkljuceniKoraki,
