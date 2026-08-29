@@ -23,6 +23,14 @@ var KODA_V_STATUS = {
   UNKNOWN_ACTION_TYPE: 400,
 };
 
+function parameterPoti(req, ime) {
+  try {
+    return new URL(String((req && req.url) || ""), "http://localhost").searchParams.get(ime) || "";
+  } catch (_) {
+    return "";
+  }
+}
+
 function korakVDto(vrstica) {
   return {
     id: vrstica.id,
@@ -40,7 +48,7 @@ function korakVDto(vrstica) {
 }
 
 async function handler(req, res) {
-  if (req.query && req.query.handler === "history-ai") {
+  if (parameterPoti(req, "handler") === "history-ai") {
     return razcleniZgodovino(req, res);
   }
   res.setHeader("Cache-Control", "no-store");
