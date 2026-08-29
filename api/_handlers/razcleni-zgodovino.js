@@ -114,6 +114,7 @@ async function handler(req, res) {
       remainingDebt: remainingDebt,
     });
     cached.payload = Object.assign({}, cached.payload, {
+      engineVersion: parser.ATENA_ENGINE_VERSION,
       contractVersion: CACHE_CONTRACT_VERSION,
       summary: revalidated.summary,
       needsClarification: revalidated.needsClarification,
@@ -146,6 +147,7 @@ async function handler(req, res) {
       ok: true,
       requestId: requestId,
       referenceDate: referenceDate,
+      engineVersion: parser.ATENA_ENGINE_VERSION,
       contractVersion: CACHE_CONTRACT_VERSION,
       model: parser.MODEL,
       semanticPlan: result.semanticPlan || null,

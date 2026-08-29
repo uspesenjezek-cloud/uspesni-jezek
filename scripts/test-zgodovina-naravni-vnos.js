@@ -61,11 +61,11 @@ async function main() {
   assert.equal(body.text.format.schema.required[0], "p", "Luna-first protokol mora zahtevati kompaktni strukturirani celotni plan");
   assert.ok(body.text.format.schema.required.includes("q"), "Luna mora ob resnični dvoumnosti vrniti eno strukturirano vprašanje");
   assert.ok(body.text.format.schema.required.includes("x"), "pojasnilo mora prinesti lasten izvorni dokaz");
-  assert.match(body.instructions, /numbered cards/);
-  assert.match(body.instructions, /typos, colloquial language/);
-  assert.match(body.instructions, /One card is one real event/);
-  assert.match(body.instructions, /start\+frequency\+end/);
-  assert.match(body.instructions, /c=card ID/);
+  assert.match(body.instructions, /numbered FATHER cards/);
+  assert.match(body.instructions, /typos, colloquial speech/);
+  assert.match(body.instructions, /One real event per card/);
+  assert.match(body.instructions, /catalog\.cards/);
+  assert.match(body.instructions, /final per-card EUR amounts/);
   assert.ok(body.text.format.schema.properties.p.items.required.includes("n"));
   assert.ok(body.text.format.schema.properties.p.items.required.includes("f"));
   assert.ok(body.text.format.schema.properties.p.items.required.includes("c"));
@@ -80,7 +80,8 @@ async function main() {
   assert.equal(Object.prototype.hasOwnProperty.call(bodyInput, "clauses"), false, "pred Luno ne sme biti parserjevih klavzul");
   assert.equal(Object.prototype.hasOwnProperty.call(bodyInput, "facts"), false, "pred Luno ne sme biti extractorjevih dejstev");
   assert.equal(bodyInput.sourceText, "Včeraj je nakazal 100 EUR.");
-  assert.equal(bodyInput.contractVersion, "history-fact-v73");
+  assert.equal(bodyInput.contractVersion, "history-fact-v74");
+  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v6");
   assert.equal(bodyInput.catalog.cards.length, 17);
   assert.equal(bodyInput.catalog.fields.length, 8);
   assert.equal(bodyInput.catalog.wire.length, 16, "vsaka wire spremenljivka mora imeti stabilen ID");
@@ -896,6 +897,7 @@ async function main() {
     var retry = await runHandler(request);
     assert.equal(first.statusCode, 200);
     assert.equal(first.payload.contractVersion, parser.CONTRACT_VERSION, "API mora razkriti različico avtoritativnega contracta");
+    assert.equal(first.payload.engineVersion, parser.ATENA_ENGINE_VERSION, "API mora razkriti različico Atena enginea");
     assert.equal(Object.prototype.hasOwnProperty.call(endpointOptions, "apiKey"), false, "handler mora Luni vedno prepustiti strežniški OPENAI_API_KEY");
     assert.equal(first.payload.semanticPlan.requested, true);
     assert.equal(first.payload.semanticPlan.attempted, false, "API mora razkriti, da Luna ni bila poskušena");
@@ -1739,7 +1741,8 @@ async function main() {
   var semanticPlanContext = { referenceDate: "2026-08-27", originalDebt: 9446, remainingDebt: 9446 };
   var semanticPlanContract = parser._test.buildFactContract(semanticPlanText);
   var semanticPlanLocal = parser._test.deterministicResult(semanticPlanText, semanticPlanContext);
-  assert.equal(parser.CONTRACT_VERSION, "history-fact-v73");
+  assert.equal(parser.CONTRACT_VERSION, "history-fact-v74");
+  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v6");
   assert.deepEqual(semanticPlanContract.facts.filter(function (fact) { return fact.kind === "money"; }).map(function (fact) { return fact.value; }), [5000, 100, 1000]);
   assert.deepEqual(semanticPlanLocal.candidates.map(function (candidate) { return [candidate.type, candidate.amount]; }), [
     ["partial_payment", 5000], ["partial_payment", 100], ["installment_payment", 1000],
@@ -2007,7 +2010,7 @@ async function main() {
   assert.deepEqual(typoCanonical.questionPlan[0].missing, ["paymentMethod"], "prvi kartici z dokazanim datumom sme manjkati samo način plačila");
   assert.equal(typoCanonical.projectedRemainingDebtEur, 4447, "9446 - 1000 - 2999 - 1000 mora ostati aritmetično 4447");
   assert.deepEqual(typoCanonical.semanticPlan.usage, { inputTokens: 1200, outputTokens: 900, totalTokens: 2100 });
-  assert.ok(typoCanonical.semanticPlan.requestBytes > 6500 && typoCanonical.semanticPlan.requestBytes < 6900);
+  assert.ok(typoCanonical.semanticPlan.requestBytes > 5200 && typoCanonical.semanticPlan.requestBytes < 5900);
 
   var compactWireText = "včeraj je plačal 300 evrov";
   var compactWire = await parser.analyze(compactWireText, {
@@ -2219,8 +2222,8 @@ async function main() {
   var changedAmountPlan = typoPlan.map(function (item) { return Object.assign({}, item); });
   changedAmountPlan[0].amountEur = 9999;
   var changedAmount = await canonicalAnalyze(typoText, changedAmountPlan);
-  assert.equal(changedAmount.semanticPlan.reason, "luna_authoritative_ledger_or_time_conflict");
-  assert.equal(changedAmount.candidates.length, 0);
+  assert.equal(changedAmount.semanticPlan.reason, "luna_canonical_plan_applied");
+  assert.equal(changedAmount.candidates[0].amount, 9999);
   var changedDatePlan = typoPlan.map(function (item) { return Object.assign({}, item); });
   changedDatePlan[0].occurredDate = "2026-07-22";
   var changedDate = await canonicalAnalyze(typoText, changedDatePlan);
@@ -2235,8 +2238,9 @@ async function main() {
   ]);
   assert.equal(inventedDuplicate.candidates.length, 2, "Lunine kartice gredo v obvezni človeški pregled brez engine veta");
   var negativeLedger = await canonicalAnalyze("plačal je 10000 evrov", [canonicalItem({ evidenceText: "plačal je 10000 evrov", amountEur: 10000, amountEvidenceText: "10000 evrov" })]);
-  assert.equal(negativeLedger.semanticPlan.reason, "luna_authoritative_ledger_or_time_conflict");
-  assert.equal(negativeLedger.candidates.length, 0);
+  assert.equal(negativeLedger.semanticPlan.reason, "luna_canonical_plan_applied");
+  assert.equal(negativeLedger.candidates[0].amount, 10000);
+  assert.equal(negativeLedger.projectedRemainingDebtEur, 0);
   var omittedKnown = await canonicalAnalyze("plačal je 1000 evrov nato je plačal 2000 evrov", [canonicalItem({ evidenceText: "plačal je 1000 evrov", amountEur: 1000, amountEvidenceText: "1000 evrov" })]);
   assert.equal(omittedKnown.semanticPlan.reason, "luna_canonical_plan_applied");
   var proposedAsCompleted = await canonicalAnalyze("predlagal je dobropis 1000 evrov", [canonicalItem({
@@ -2286,13 +2290,15 @@ async function main() {
   assert.doesNotMatch(questionRenderer, /preostanekPovzetekHtml\(\)/, "preostali dolg se ne sme pokazati pred zaključkom vprašanj");
   assert.match(historyCss, /zgodovina-ai-povzetek--preostali-dolg/);
   assert.doesNotMatch(page, /Govor obdela Handyjev Canary na tej napravi/, "odvečno tehnično pojasnilo ne sme biti prikazano uporabniku");
-  assert.match(page, /HISTORY_CONTRACT_VERSION = "history-fact-v73"/);
+  assert.match(page, /HISTORY_CONTRACT_VERSION = "history-fact-v74"/);
+  assert.match(page, /ATENA_ENGINE_VERSION = "atena-v6"/);
+  assert.match(page, /data-engine-version", ATENA_ENGINE_VERSION/);
   assert.match(page, /function lokalniDanesIso\(vrednost\)/);
   assert.match(page, /referenceDate: lokalniDanesIso\(\)/, "brskalnik mora API-ju poslati uporabnikov lokalni koledarski dan");
   assert.match(page, /function jeIzrecnoDokazanZnesek\(kandidat, znesek\)/);
   assert.match(page, /znesek > saldo \+ 0\.009 && !jeIzrecnoDokazanZnesek\(kandidat, znesek\)/);
   assert.match(html, /neplacila-zgodovina-relativni-datumi\.js\?v=20260828-history-contract-v31-local-date-v1-group-date-v1-collection-outcome-v1/);
-  assert.match(html, /neplacila-zgodovina\.js\?v=20260829-question-nav-v4-history-contract-v73[^"]*amount-relation-v2[^"]*compact-wire-v1[^"]*total-vs-each-v1[^"]*split-evidence-v1[^"]*explicit-remaining-v1[^"]*lean-luna-core-v1/);
+  assert.match(html, /neplacila-zgodovina\.js\?v=20260829-question-nav-v4-history-contract-v74[^"]*amount-relation-v2[^"]*compact-wire-v1[^"]*total-vs-each-v1[^"]*split-evidence-v1[^"]*explicit-remaining-v1[^"]*lean-luna-core-v1[^"]*luna-only-fields-v1/);
   assert.match(page, /Pripravljeni so " \+ stevilo \+ " dogodki\. Preverite podatke in dopolnite manjkajoče\./);
   assert.match(page, /Za varen vnos manjka en podatek\. Odgovorite na kratko vprašanje\./);
   assert.doesNotMatch(page, /Luna: OK|Luna je vrnila pravilno rešitev|Luna potrebuje kratek odgovor|Luna ni bila vključena/);
@@ -2419,7 +2425,7 @@ async function main() {
   assert.match(adapter, /endpointVerified === true/, "mobilni prenos mora ostati zaprt do preverbe DNS in TLS");
   assert.match(adapter, /__dev-atena-speech/);
   assert.match(adapter, /nemotron-3\.5-de-streaming/);
-  assert.match(adapter, /result\.language !== "de-DE"/);
+  assert.match(adapter, /result\.language === "de-DE"/);
   assert.match(adapter, /navigator\.mediaDevices/);
   assert.match(adapter, /navigator\.webkitGetUserMedia/);
   assert.match(adapter, /Mikrofon zahteva varno povezavo/);

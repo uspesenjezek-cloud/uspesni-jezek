@@ -1969,9 +1969,9 @@ html.wizard-goal-page {
 
 /* Atena: enoten naravni/ročni vnos dogodkov v vseh gostiteljskih tokovih. */
 .atena .atena__panel {
-  grid-template-rows: auto auto minmax(0, auto);
-  height: auto;
-  max-height: 100lvh;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: calc(100lvh - max(18px, env(safe-area-inset-top, 0px)));
+  max-height: calc(100lvh - max(18px, env(safe-area-inset-top, 0px)));
 }
 .atena .atena__ponastavi {
   align-self: start;

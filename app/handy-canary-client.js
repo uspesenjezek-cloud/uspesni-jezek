@@ -21,6 +21,12 @@
     return /^[,.;:!?)]/.test(next) ? before + next : before + " " + next;
   }
 
+  function sanitizeTranscript(value) {
+    var text = String(value || "").trim();
+    if (/^(\d)\1{7,}$/.test(text)) return "";
+    return text.replace(/(?:^|\s)(\d)\1{7,}(?=\s|$|[.,;:!?])/g, " ").replace(/\s{2,}/g, " ").trim();
+  }
+
   function createDownsampler(sourceRate) {
     if (sourceRate === 16000) return { process: function (input) { return new Float32Array(input); } };
     var ratio = sourceRate / 16000;
@@ -117,6 +123,11 @@
     var sessionText = "";
     var smoothedLevel = 0;
     var lastLevelAt = 0;
+    var lastCaptureAt = 0;
+    var captureWatchdog = 0;
+    var captureRestarting = false;
+    var captureRecoveryFailures = 0;
+    var workletRegistered = false;
 
     function notifyState(state, message) {
       if (typeof options.onState === "function") options.onState({ state: state, message: message });
@@ -152,10 +163,24 @@
       if (sessionId && path.indexOf("/session/") === 0 && path !== "/session/start") {
         requestOptions.headers["X-UJ-Prepis-Session"] = sessionId;
       }
-      var response = await fetch(API + path, requestOptions);
-      var body = await response.json().catch(function () { return {}; });
-      if (!response.ok || body.ok === false) throw new Error(body.error || "Atenin govorni prepis ni dosegljiv.");
-      return body;
+      var timeoutMs = path === "/health" ? 8000 : path === "/session/audio" ? 30000 : path === "/session/stop" ? 45000 : 30000;
+      var controller = typeof root.AbortController === "function" && !requestOptions.signal ? new root.AbortController() : null;
+      var timeout = 0;
+      if (controller) {
+        requestOptions.signal = controller.signal;
+        timeout = root.setTimeout(function () { controller.abort(); }, timeoutMs);
+      }
+      try {
+        var response = await fetch(API + path, requestOptions);
+        var body = await response.json().catch(function () { return {}; });
+        if (!response.ok || body.ok === false) throw new Error(body.error || "Atenin govorni prepis ni dosegljiv.");
+        return body;
+      } catch (error) {
+        if (controller && controller.signal.aborted) throw new Error("Povezava z Ateninim govornim servisom je trajala predolgo.");
+        throw error;
+      } finally {
+        if (timeout) root.clearTimeout(timeout);
+      }
     }
 
     async function getAccessToken() {
@@ -172,7 +197,8 @@
 
     function consume(result) {
       if (!result) return;
-      sessionText = String(result.finalText || result.text || appendText(result.committedText, result.tentativeText) || "").trim();
+      var nextText = sanitizeTranscript(result.finalText || result.text || appendText(result.committedText, result.tentativeText));
+      if (nextText) sessionText = nextText;
       notifyText();
     }
 
@@ -194,13 +220,13 @@
         if (recording && requestEpoch === epoch) notifyState("recording", "Poslušam …");
       }).catch(function (error) {
         if (requestEpoch !== epoch) return;
-        notifyError(error);
-        setTimeout(function () { stop().catch(function () {}); }, 0);
+        setTimeout(function () { failAndStop(error).catch(function () {}); }, 0);
       });
     }
 
     function capture(input) {
       if (!recording || !downsampler) return;
+      lastCaptureAt = Date.now();
       notifyLevel(input, false);
       var chunk = downsampler.process(input);
       if (!chunk.length) return;
@@ -209,37 +235,121 @@
       queueAudio(false);
     }
 
+    function clearCaptureWatchdog() {
+      if (captureWatchdog) root.clearInterval(captureWatchdog);
+      captureWatchdog = 0;
+      captureRestarting = false;
+      captureRecoveryFailures = 0;
+    }
+
+    function watchMicrophoneTracks(stream) {
+      if (!stream || typeof stream.getAudioTracks !== "function") return;
+      stream.getAudioTracks().forEach(function (track) {
+        var stalled = function () { if (recording && !stopping) lastCaptureAt = 0; };
+        track.addEventListener("mute", stalled);
+        track.addEventListener("ended", stalled);
+      });
+    }
+
+    async function failAndStop(error) {
+      await stop().catch(function () {});
+      notifyError(error instanceof Error ? error : new Error(String(error || "Mikrofonski tok se je ustavil.")));
+    }
+
+    async function restartCaptureIfStalled() {
+      if (!recording || stopping || captureRestarting || !audioContext || !sourceNode || !silentGain) return;
+      if (Date.now() - lastCaptureAt < 2500) return;
+      captureRestarting = true;
+      var replacementStream = null;
+      try {
+        if (audioContext.state !== "running" && typeof audioContext.resume === "function") {
+          await audioContext.resume().catch(function () {});
+        }
+        var currentTrack = mediaStream && mediaStream.getAudioTracks && mediaStream.getAudioTracks()[0];
+        var replaceStream = !currentTrack || currentTrack.readyState === "ended" || currentTrack.muted === true;
+        if (replaceStream) replacementStream = await requestMicrophone(microphoneConstraints());
+        var replacementSource = replacementStream
+          ? audioContext.createMediaStreamSource(replacementStream)
+          : sourceNode;
+        var replacementProcessor = await createProcessor(audioContext);
+        sourceNode.disconnect();
+        if (processorNode) {
+          if (processorNode.port) processorNode.port.onmessage = null;
+          if ("onaudioprocess" in processorNode) processorNode.onaudioprocess = null;
+          processorNode.disconnect();
+        }
+        if (replacementStream) {
+          mediaStream && mediaStream.getTracks().forEach(function (track) { track.stop(); });
+          mediaStream = replacementStream;
+          sourceNode = replacementSource;
+          watchMicrophoneTracks(mediaStream);
+        }
+        processorNode = replacementProcessor;
+        sourceNode.connect(processorNode);
+        processorNode.connect(silentGain);
+        lastCaptureAt = Date.now();
+        captureRecoveryFailures = 0;
+        notifyState("recording", "Poslušam …");
+      } catch (error) {
+        replacementStream && replacementStream.getTracks().forEach(function (track) { track.stop(); });
+        lastCaptureAt = Date.now();
+        captureRecoveryFailures += 1;
+        if (captureRecoveryFailures >= 3) {
+          setTimeout(function () { failAndStop(new Error("Mikrofonski tok se je ustavil in ga ni bilo mogoče obnoviti.")).catch(function () {}); }, 0);
+        } else {
+          notifyState("recording", "Obnavljam mikrofon …");
+        }
+      } finally {
+        captureRestarting = false;
+      }
+    }
+
+    function startCaptureWatchdog() {
+      clearCaptureWatchdog();
+      lastCaptureAt = Date.now();
+      captureWatchdog = root.setInterval(function () {
+        restartCaptureIfStalled().catch(function () {});
+      }, 1000);
+    }
+
     async function createProcessor(context) {
       if (context.audioWorklet && typeof AudioWorkletNode === "function") {
-        var source = "class UJHandyCapture extends AudioWorkletProcessor { process(inputs) { const input=inputs[0]&&inputs[0][0]; if(input){ const copy=new Float32Array(input); this.port.postMessage(copy.buffer,[copy.buffer]); } return true; } } registerProcessor('uj-handy-capture',UJHandyCapture);";
-        var url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
-        try { await context.audioWorklet.addModule(url); }
-        finally { URL.revokeObjectURL(url); }
+        if (!workletRegistered) {
+          var source = "class UJHandyCapture extends AudioWorkletProcessor { constructor(){ super(); this.frameSize=Math.max(128,Math.round(sampleRate*0.03)); this.buffer=new Float32Array(this.frameSize); this.offset=0; this.port.onmessage=(event)=>{ if(event.data&&event.data.command==='flush') this.flush(); }; } flush(){ if(!this.offset)return; const copy=this.buffer.slice(0,this.offset); this.offset=0; this.port.postMessage(copy.buffer,[copy.buffer]); } process(inputs){ const input=inputs[0]&&inputs[0][0]; if(input){ let cursor=0; while(cursor<input.length){ const take=Math.min(this.frameSize-this.offset,input.length-cursor); this.buffer.set(input.subarray(cursor,cursor+take),this.offset); this.offset+=take; cursor+=take; if(this.offset===this.frameSize)this.flush(); } } return true; } } registerProcessor('uj-handy-capture',UJHandyCapture);";
+          var url = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+          try { await context.audioWorklet.addModule(url); workletRegistered = true; }
+          finally { URL.revokeObjectURL(url); }
+        }
         var worklet = new AudioWorkletNode(context, "uj-handy-capture", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
         worklet.port.onmessage = function (event) { capture(new Float32Array(event.data)); };
+        worklet.onprocessorerror = function () { lastCaptureAt = 0; };
         return worklet;
       }
-      var processor = context.createScriptProcessor(4096, 1, 1);
+      var processor = context.createScriptProcessor(1024, 1, 1);
       processor.onaudioprocess = function (event) { capture(event.inputBuffer.getChannelData(0)); };
       return processor;
     }
 
     async function health() {
-      var result = await api("/health");
-      if (result.liveEngine !== EXPECTED_ENGINE || result.language !== "de-DE" || result.status !== "ready") {
-        throw new Error(result.error || "Atenin nemški prepis še ni pripravljen.");
+      var result;
+      var lastError;
+      for (var attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          result = await api("/health");
+          if (result.liveEngine === EXPECTED_ENGINE && result.language === "de-DE" && result.status === "ready") return result;
+          lastError = new Error(result && result.error || "Atenin nemški prepis še ni pripravljen.");
+        } catch (error) {
+          lastError = error;
+        }
+        if (attempt < 2) await new Promise(function (resolve) { setTimeout(resolve, 750); });
       }
-      return result;
+      throw lastError || new Error("Atenin nemški prepis še ni pripravljen.");
     }
 
     async function start(initialText) {
       if (recording) return;
-      var runtime = await health();
-      var recommendedFeedSamples = Number(runtime.directFeedSamples);
-      streamFeedSamples = Number.isInteger(recommendedFeedSamples) && recommendedFeedSamples >= 1280 && recommendedFeedSamples <= 17920
-        ? recommendedFeedSamples
-        : 17920;
       epoch += 1;
+      workletRegistered = false;
       chunks = [];
       sampleCount = 0;
       smoothedLevel = 0;
@@ -249,35 +359,41 @@
       baseText = String(initialText || "").trim();
       sessionText = "";
       notifyState("starting", "Odpiram mikrofon …");
-      sessionAccessToken = await getAccessToken();
-      var started;
       try {
-        started = await api("/session/start", { method: "POST" });
-      } catch (error) {
-        sessionAccessToken = "";
-        throw error;
-      }
-      sessionId = String(started.sessionId || "");
-      if (!sessionId) throw new Error("Nemotron ni vrnil varne snemalne seje.");
-      try {
-        mediaStream = await requestMicrophone(microphoneConstraints());
+        var runtimePromise = health();
+        var microphonePromise = requestMicrophone(microphoneConstraints());
         audioContext = createSpeechAudioContext();
-        await audioContext.resume();
+        var resumePromise = audioContext.resume();
+        runtimePromise.catch(function () {});
+        resumePromise.catch(function () {});
+        mediaStream = await microphonePromise;
+        await resumePromise;
+        var runtime = await runtimePromise;
+        var recommendedFeedSamples = Number(runtime.directFeedSamples);
+        streamFeedSamples = Number.isInteger(recommendedFeedSamples) && recommendedFeedSamples >= 1280 && recommendedFeedSamples <= 17920
+          ? recommendedFeedSamples
+          : 17920;
         sourceNode = audioContext.createMediaStreamSource(mediaStream);
         downsampler = createDownsampler(audioContext.sampleRate);
         processorNode = await createProcessor(audioContext);
         silentGain = audioContext.createGain();
         silentGain.gain.value = 0;
+        sessionAccessToken = await getAccessToken();
+        var started = await api("/session/start", { method: "POST" });
+        sessionId = String(started.sessionId || "");
+        if (!sessionId) throw new Error("Nemotron ni vrnil varne snemalne seje.");
         recording = true;
         sourceNode.connect(processorNode);
         processorNode.connect(silentGain);
         silentGain.connect(audioContext.destination);
-        mediaStream.getAudioTracks().forEach(function (track) {
-          track.addEventListener("ended", function () { if (recording && !stopping) stop().catch(function () {}); }, { once: true });
-        });
+        startCaptureWatchdog();
+        watchMicrophoneTracks(mediaStream);
         notifyState("recording", "Poslušam …");
       } catch (error) {
-        await api("/session/stop", { method: "POST" }).catch(function () {});
+        recording = false;
+        stopping = false;
+        clearCaptureWatchdog();
+        if (sessionId) await api("/session/stop", { method: "POST" }).catch(function () {});
         mediaStream && mediaStream.getTracks().forEach(function (track) { track.stop(); });
         await (audioContext && audioContext.close ? audioContext.close().catch(function () {}) : Promise.resolve());
         mediaStream = null;
@@ -286,6 +402,7 @@
         processorNode = null;
         silentGain = null;
         downsampler = null;
+        workletRegistered = false;
         sessionId = "";
         sessionAccessToken = "";
         notifyLevel(null, true);
@@ -297,8 +414,10 @@
       if (!recording && !mediaStream) return appendText(baseText, sessionText);
       if (stopping) return appendText(baseText, sessionText);
       stopping = true;
+      clearCaptureWatchdog();
       notifyState("stopping", "Zaključujem prepis …");
       try {
+        if (processorNode && processorNode.port && typeof processorNode.port.postMessage === "function") processorNode.port.postMessage({ command: "flush" });
         sourceNode && sourceNode.disconnect();
         await drainCaptureMessages();
         processorNode && processorNode.disconnect();
@@ -324,6 +443,9 @@
         chunks = [];
         sampleCount = 0;
         smoothedLevel = 0;
+        lastCaptureAt = 0;
+        captureRecoveryFailures = 0;
+        workletRegistered = false;
         stopping = false;
         notifyLevel(null, true);
         notifyState("ready", "Besedilo je pripravljeno");
@@ -338,8 +460,22 @@
       notifyText();
     }
 
+    function stopForPageExit() {
+      if (!recording || !API || !sessionId) return;
+      clearCaptureWatchdog();
+      recording = false;
+      epoch += 1;
+      sourceNode && sourceNode.disconnect();
+      mediaStream && mediaStream.getTracks().forEach(function (track) { track.stop(); });
+      var headers = { "X-UJ-Prepis-Session": sessionId };
+      if (sessionAccessToken) headers.Authorization = "Bearer " + sessionAccessToken;
+      fetch(API + "/session/stop", { method: "POST", headers: headers, keepalive: true }).catch(function () {});
+    }
+
+    if (root.addEventListener) root.addEventListener("pagehide", stopForPageExit);
+
     return { start: start, stop: stop, cancel: cancel, health: health, isRecording: function () { return recording; } };
   }
 
-  root.UJHandyCanary = { create: create, API: API, EXPECTED_ENGINE: EXPECTED_ENGINE, _test: { appendText: appendText, createDownsampler: createDownsampler, createSpeechAudioContext: createSpeechAudioContext, requestMicrophone: requestMicrophone, microphoneConstraints: microphoneConstraints, audioLevel: audioLevel } };
+  root.UJHandyCanary = { create: create, API: API, EXPECTED_ENGINE: EXPECTED_ENGINE, _test: { appendText: appendText, sanitizeTranscript: sanitizeTranscript, createDownsampler: createDownsampler, createSpeechAudioContext: createSpeechAudioContext, requestMicrophone: requestMicrophone, microphoneConstraints: microphoneConstraints, audioLevel: audioLevel } };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -11,7 +11,8 @@ var temporalEngine = require("./zgodovina-temporal-engine");
 var MODEL = "gpt-5.6-luna";
 var MODEL_TIMEOUT_MS = 18000;
 var MODEL_TIMEOUT_MAX_MS = 25000;
-var CONTRACT_VERSION = "history-fact-v73";
+var ATENA_ENGINE_VERSION = "atena-v6";
+var CONTRACT_VERSION = "history-fact-v74";
 var MAX_TEXT_LENGTH = 2000;
 var MAX_CLARIFICATION_ANSWER_LENGTH = 400;
 var MAX_CLARIFICATION_ROUNDS = 2;
@@ -2243,10 +2244,9 @@ function authoritativeFieldPresent(event, field) {
   return Boolean(trimText(event[field], 500));
 }
 
-function finalizeAuthoritativeCandidates(candidates, context, inheritedDiagnostics) {
+function finalizeSystemCandidates(candidates, context, inheritedDiagnostics) {
   var initialDebt = positiveAmount(context && context.remainingDebt) || positiveAmount(context && context.originalDebt) || 0;
   var balance = initialDebt;
-  var referenceDate = validIsoDate(context && context.referenceDate);
   var diagnostics = Array.isArray(inheritedDiagnostics) ? inheritedDiagnostics.slice() : [];
   var ledger = [];
   var finalized = (Array.isArray(candidates) ? candidates : []).slice(0, MAX_EVENTS).map(function (candidate, index) {
@@ -2255,13 +2255,7 @@ function finalizeAuthoritativeCandidates(candidates, context, inheritedDiagnosti
     if (!AUTHORITATIVE_RULES[event.type]) event.type = "custom";
     var before = balance;
     var amount = positiveAmount(event.amount);
-    var futureReduction = spec.balanceEffect === "subtract" && referenceDate && validIsoDate(event.occurredDate) && event.occurredDate > referenceDate;
-    if (event.type === "paid_in_full" && amount != null && Math.abs(amount - balance) > 0.005) diagnostics.push("paid_in_full_must_match_balance:" + index);
-    if (futureReduction) diagnostics.push("future_reduction_not_booked:" + index);
-    if (spec.balanceEffect === "subtract" && amount != null && !futureReduction) {
-      if (amount > balance + 0.005) diagnostics.push("amount_exceeds_balance:" + index);
-      else balance = roundMoney(balance - amount);
-    }
+    if (spec.balanceEffect === "subtract" && amount != null) balance = roundMoney(Math.max(0, balance - amount));
     event.fieldOrder = spec.fieldOrder.slice();
     event.requiredFields = spec.requiredFields.slice();
     event.fatherCategory = spec.fatherCategory;
@@ -2401,7 +2395,7 @@ function materializeAuthoritativeLunaPlan(review, context, sourceText) {
       if (occurredDate) previousOccurredDate = occurredDate;
     }
   });
-  var finalized = finalizeAuthoritativeCandidates(events, {
+  var finalized = finalizeSystemCandidates(events, {
     originalDebt: context && context.originalDebt,
     remainingDebt: context && context.remainingDebt,
     referenceDate: context && context.referenceDate,
@@ -2434,6 +2428,73 @@ function materializeAuthoritativeLunaPlan(review, context, sourceText) {
       summary: "Luna je pripravila kartice za uporabnikov pregled.",
       needsClarification: finalized.candidates.some(function (candidate) { return candidate.missing.length > 0; }),
       coverage: { complete: true, reason: "luna_authoritative_human_review", unconsumed: [], duplicates: [], unsupportedCandidates: [] },
+    }, finalized),
+  };
+}
+
+// Produkcijski v74 adapter ne razlaga Luninega pomena. Kataloške ID-je samo
+// preslika v UI-polja; statična pravila kartic določajo obrazec in ledger.
+function materializeLunaFieldPlan(review, context, sourceText) {
+  var items = review && Array.isArray(review.items) ? review.items.slice(0, MAX_EVENTS) : [];
+  var fullSpan = { start: 0, end: String(sourceText || "").length, text: String(sourceText || "") };
+  var events = items.map(function (item, index) {
+    var occurredDateApproximate = item.occurredDateApproximate === true || item.occurredDateStatus === "approximate";
+    return normalizeEvent({
+      type: item.eventType,
+      amount: item.amountEur,
+      occurredDate: item.occurredDate,
+      occurredDateUnknown: item.occurredDateUnknown === true || item.occurredDateStatus === "unknown",
+      occurredDateApproximate: occurredDateApproximate,
+      occurredDateApproximation: occurredDateApproximate ? trimText(item.occurredDate, 120) || trimText(item.occurredDateEvidenceText, 120) : null,
+      promisedDate: item.promisedDate,
+      promisedDateUnknown: item.promisedDateUnknown === true || item.promisedDateStatus === "unknown",
+      promisedDateApproximate: item.promisedDateApproximate === true || item.promisedDateStatus === "approximate",
+      promisedDateApproximation: item.promisedDateStatus === "approximate" ? trimText(item.promisedDate, 120) || trimText(item.promisedDateEvidenceText, 120) : null,
+      paymentMethod: item.paymentMethod,
+      communicationChannel: item.communicationChannel,
+      documentReference: item.documentReference,
+      reason: item.reason,
+      description: item.description,
+      confidence: "high",
+      inheritedFrom: null,
+      evidence: {
+        clauseId: null,
+        sourceSpan: fullSpan,
+        explicit: false,
+        reason: "luna_id_to_field_adapter",
+        amountRelation: item.amountRelation || null,
+      },
+    }, index);
+  });
+  var finalized = finalizeSystemCandidates(events, {
+    originalDebt: context && context.originalDebt,
+    remainingDebt: context && context.remainingDebt,
+  }, ["luna_id_to_field_adapter"]);
+  finalized.candidates = finalized.candidates.map(function (candidate, index) {
+    return Object.assign({}, candidate, {
+      cardNumber: index + 1,
+      cardTypeId: CARD_ID_BY_TYPE[candidate.type] || CARD_ID_BY_TYPE.custom,
+      fieldIds: (candidate.fieldOrder || []).map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }),
+      requiresHumanReview: true,
+    });
+  });
+  finalized.questionPlan = finalized.candidates.map(function (candidate, candidateIndex) {
+    return {
+      candidateIndex: candidateIndex,
+      fields: candidate.fieldOrder.slice(),
+      missing: candidate.missing.slice(),
+      cardNumber: candidateIndex + 1,
+      cardTypeId: candidate.cardTypeId,
+      fieldIds: candidate.fieldIds.slice(),
+      missingFieldIds: candidate.missing.map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }),
+    };
+  });
+  return {
+    ok: true,
+    result: Object.assign({
+      summary: "Luna je pripravila kartice za uporabnikov pregled.",
+      needsClarification: finalized.candidates.some(function (candidate) { return candidate.missing.length > 0; }),
+      coverage: { complete: true, reason: "luna_id_to_field_adapter", unconsumed: [], duplicates: [], unsupportedCandidates: [] },
     }, finalized),
   };
 }
@@ -2621,7 +2682,7 @@ function requestBody(text, context, userId) {
     reasoning: { effort: "low" },
     max_output_tokens: 2600,
     safety_identifier: safetyIdentifier(userId),
-    instructions: "Convert raw Slovenian conversation to compact numbered cards. Infer typos, colloquial language, ellipsis and inflection. Output keys: p=cards,q=clarification,x=exact clarification quote; card n=consecutive number,c=card ID,e=exact source quote,f=known fields; field i=field ID,v=value,e=exact source quote,r=date IDs [precision,status,anchor,direction,amount,unit,dayOfMonth], or [] for non-dates. For installment amount fields r=[651] means a stated TOTAL divided across the cards and r=[652] means EACH card amount. 'v N obrokih X' or 'N obrokov skupaj X' is total; only 'po X' or explicit 'vsak X' is each. Expand to N cards, keep the same exact amount quote, and make per-card values sum to the total; if total and each conflict, return clarification instead of guessing. Date v must always contain the final ISO date or period label. r uses catalog IDs: one month ago=[601,611,621,631,1,643,null], today=[601,611,621,632,0,641,null]. Relation amount is the count in its stated unit: 3 weeks=3, 2 weeks=2, never 21/14 days. Use catalog IDs for every enum; free text and ISO dates use strings. One card is one real event. Expand every repeat/series into final cards. For start+frequency+end, advance while date<=end and apply the amount step once each time. At 2026-08-28, '300 one month ago, then weekly 10 more until today' => 07-28/08-04/08-11/08-18/08-25 and 300/310/320/330/340. One month ago is exact 601,611; previous month without day is approximate month-only 602,612. AGO typos zajaj/nasaj/nazai/naazj/nzaaj mean nazaj and anchor to referenceDate. Nato/potem only orders cards and never changes that anchor; only explicit later/after-that anchors to previous event. Dated bare money in a payment sequence is always a separate partial_payment, even directly before an unpaid-remainder ending. Never add remaining_unpaid merely because a balance remains; add it only when the source explicitly states a remaining/non-payment outcome, then calculate it from debt.remaining and never reuse paid money as its amount. Omit unstated methods; unknown ID only when explicitly unknown. Nothing-more-paid endings ('potem nič več','ni več plačal','drugo/ostalo ni plačal') mean remaining_unpaid=debt.remaining after reductions, not unpaid_installment, and get no date field. Four installments, first 100, each next 10 higher => 100/110/120/130, not 460. Preserve source order. Never invent values. Cards require mandatory human review.",
+    instructions: "You are Luna, the only semantic parser. Convert the complete Slovenian source into compact numbered FATHER cards using catalog.cards [cardId,type,fieldIds,requiredFieldIds], catalog.fields and catalog.values. Understand typos, colloquial speech, ellipsis, inflection, negation, time and every listed card category; do not default everything to payment. Output p/q/x; each card is {n:consecutive,c:cardId,e:short source quote,f:known fields}; each field is {i:fieldId,v:final value,e:short source quote,r:relation IDs or []}. One real event per card, preserve source order and expand every repeat into separate cards. You alone decide category and values. Return final ISO dates and final per-card EUR amounts. For installments, 'v N obrokih X' or 'N obrokov skupaj X' means total X divided across N cards; 'N obrokov po X' or 'vsak X' means X on every card. Put r=[651] for stated total or r=[652] for stated each, and add field 8 as 'k/N obrok'. Add remaining_unpaid only when the source states a remaining or no-more-payment outcome; its amount is debt.remaining minus all completed reductions in these cards. If payment method is not stated, omit field 4; ID 406 is only for explicitly unknown. Omit unknown values unless explicitly unknown. Never invent an event. If meaning is materially ambiguous return p=[] with one short q and source quote x. Every card will be reviewed by a human.",
     input: JSON.stringify({
       contractVersion: CONTRACT_VERSION,
       sourceText: trimText(text, MAX_TEXT_LENGTH),
@@ -2698,68 +2759,36 @@ function parseLeanCompactPlan(output, sourceText) {
   if (!parsed || !Array.isArray(parsed.p) || parsed.p.length > MAX_EVENTS) return { ok: false, reason: "luna_compact_invalid_plan" };
   if (!parsed.p.length) {
     var question = trimText(parsed.q, 180);
-    var clarificationSpan = exactLeanEvidenceSpan(sourceText, parsed.x, 0, "");
-    if (!question || !clarificationSpan) return { ok: false, reason: "luna_compact_empty_without_clarification" };
+    if (!question || !trimText(parsed.x, 500)) return { ok: false, reason: "luna_compact_empty_without_clarification" };
     return {
       ok: true, verdict: "clarification", question: question,
-      clauseId: "luna-span:" + clarificationSpan.start + ":" + clarificationSpan.end,
-      clarificationSpan: clarificationSpan,
+      clauseId: "luna-clarification",
+      clarificationSpan: null,
     };
   }
   if (parsed.q != null || parsed.x != null) return { ok: false, reason: "luna_compact_plan_with_clarification" };
   var expanded = expandCompactPlanResponse(parsed);
   var items = [];
-  var previousStart = 0;
-  var previousEvidenceText = "";
   for (var index = 0; index < expanded.plan.length; index += 1) {
     var planItem = expanded.plan[index] || {};
     if (Number(planItem.cardNumber) !== index + 1 || Number(planItem.count) !== 1) return { ok: false, reason: "luna_compact_card_sequence" };
     if (!CARD_TYPE_BY_ID[Number(planItem.cardId)]) return { ok: false, reason: "luna_compact_card_domain" };
-    var eventSpan = exactLeanEvidenceSpan(sourceText, planItem.evidenceText, previousStart, previousEvidenceText);
-    if (!eventSpan) return { ok: false, reason: "luna_compact_event_evidence" };
-    previousStart = eventSpan.start;
-    previousEvidenceText = eventSpan.text;
-    var fields = Array.isArray(planItem.fields) ? planItem.fields : [];
-    for (var fieldIndex = 0; fieldIndex < fields.length; fieldIndex += 1) {
-      if (!exactLeanEvidenceSpan(sourceText, fields[fieldIndex] && fields[fieldIndex].evidenceText, 0, "")) {
-        return { ok: false, reason: "luna_compact_field_evidence" };
-      }
-    }
     var canonical = canonicalItemFromWire(planItem);
     if (!canonical.ok) return { ok: false, reason: canonical.reason || "luna_compact_field_domain" };
-    if (canonical.item.amountEur != null && canonical.item.amountRelation !== "total" && canonical.item.eventType !== "remaining_unpaid" && (
-      !numberEngine.extractNumberExpressions(canonical.item.amountEvidenceText || "").length
-      || !canonicalAmountSupported(canonical.item.amountEur, canonical.item.amountEvidenceText)
-    )) {
-      return { ok: false, reason: "luna_compact_amount_evidence" };
-    }
-    items.push(Object.assign({}, canonical.item, { clauseId: null, inheritedFrom: null, _eventSpan: eventSpan }));
-  }
-  var repeatedEvidence = new Map();
-  items.forEach(function (item) {
-    var key = item._eventSpan.start + ":" + item._eventSpan.end + ":" + item.eventType;
-    if (!repeatedEvidence.has(key)) repeatedEvidence.set(key, []);
-    repeatedEvidence.get(key).push(item);
-  });
-  for (var repeatedGroup of repeatedEvidence.values()) {
-    if (repeatedGroup.length < 2) continue;
-    var repeatEvidence = repeatedGroup[0].evidenceText;
-    var validInstallmentRepeat = repeatedGroup.every(function (item) {
-      return item.eventType === "installment_payment";
-    }) && canonicalRepeatCount(repeatEvidence) === repeatedGroup.length;
-    if (!validInstallmentRepeat) return { ok: false, reason: "luna_compact_duplicate_event" };
+    items.push(Object.assign({}, canonical.item, { clauseId: null, inheritedFrom: null }));
   }
   return { ok: true, verdict: "solution", canonical: true, items: items };
 }
 
 function leanSemanticResult(result, requestJson, payload, attempted, reason, status) {
   return Object.assign({}, result, {
+    engineVersion: ATENA_ENGINE_VERSION,
     contractVersion: CONTRACT_VERSION,
     semanticPlan: {
       requested: true,
       attempted: attempted === true,
       source: "luna_compact_contract",
-      reasons: ["luna_first_raw_source", "lean_runtime_no_local_semantics"],
+      reasons: ["luna_only_semantics", "local_id_mapping_only"],
       reason: reason,
       status: status,
       requestBytes: attempted === true ? Buffer.byteLength(requestJson || "", "utf8") : null,
@@ -2783,7 +2812,7 @@ function leanBlockedResult(context, requestJson, payload, attempted, reason, sta
     questionPlan: [], ledger: [], fieldOrder: [], requiredFields: [], missing: [],
     diagnostics: ["lean_contract_blocked:" + reason],
     coverage: { complete: false, reason: reason, unconsumed: [], duplicates: [], unsupportedCandidates: [] },
-    enginePath: ["luna", "compact_schema", "exact_evidence", "numeric_date_ledger", "human_review"],
+    enginePath: ["luna", "compact_schema", "id_to_field_adapter", "ledger", "human_review"],
   }, requestJson, payload, attempted, reason, status);
 }
 
@@ -2854,6 +2883,7 @@ async function analyze(text, context, options) {
         : result && result.clarification ? "CLARIFICATION_REQUIRED"
         : attempted === true ? "FAILED" : "NOT_ATTEMPTED";
     return Object.assign({}, result, {
+      engineVersion: ATENA_ENGINE_VERSION,
       contractVersion: CONTRACT_VERSION,
       semanticPlan: {
         requested: planDecision.shouldRequest,
@@ -2965,10 +2995,10 @@ async function analyze(text, context, options) {
     });
   }
   if (compactPlan.ok) {
-    var leanMaterialized = materializeAuthoritativeLunaPlan(compactPlan, context, sourceInput);
+    var leanMaterialized = materializeLunaFieldPlan(compactPlan, context, sourceInput);
     if (!leanMaterialized.ok) return leanBlockedResult(context, lunaRequestJson, payload, true, leanMaterialized.reason, "FAILED", null);
     leanMaterialized.result.diagnostics = (leanMaterialized.result.diagnostics || []).concat(["lean_luna_contract_applied"]);
-    leanMaterialized.result.enginePath = ["luna", "compact_schema", "exact_evidence", "numeric_date_ledger", "human_review"];
+    leanMaterialized.result.enginePath = ["luna", "compact_schema", "id_to_field_adapter", "ledger", "human_review"];
     return leanSemanticResult(leanMaterialized.result, lunaRequestJson, payload, true, "luna_compact_plan_applied", "OK");
   }
 
@@ -3046,6 +3076,7 @@ module.exports = {
   analyze: analyze,
   normalizeResult: normalizeResult,
   requestBody: requestBody,
+  ATENA_ENGINE_VERSION: ATENA_ENGINE_VERSION,
   CONTRACT_VERSION: CONTRACT_VERSION,
   MODEL: MODEL,
   MODEL_TIMEOUT_MS: MODEL_TIMEOUT_MS,

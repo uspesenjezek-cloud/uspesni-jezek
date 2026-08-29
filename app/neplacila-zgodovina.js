@@ -3,7 +3,8 @@
 
   var KLJUC_KORAK1 = "neplacilo-korak1-podatki";
   var KLJUC_ZGODOVINA = "neplacilo-zgodovina-podatki";
-  var HISTORY_CONTRACT_VERSION = "history-fact-v73";
+  var ATENA_ENGINE_VERSION = "atena-v6";
+  var HISTORY_CONTRACT_VERSION = "history-fact-v74";
   var debug = window.UJPoravnavaWidget;
   var jeVgrajenaZgodovina = document.body && document.body.classList.contains("stran--izvedba-primer");
   var relativniDatumi = window.UJZgodovinaRelativniDatumi;
@@ -100,7 +101,10 @@
     naravni.mode = shranjeno.naravniVnos.mode === "manual" ? "manual" : "natural";
     naravni.text = String(shranjeno.naravniVnos.text || "").slice(0, 2000);
     var shranjeniKandidati = Array.isArray(shranjeno.naravniVnos.candidates) ? shranjeno.naravniVnos.candidates.slice(0, 20) : [];
-    var zastarelContract = shranjeniKandidati.length > 0 && shranjeno.naravniVnos.contractVersion !== HISTORY_CONTRACT_VERSION;
+    var zastarelContract = shranjeniKandidati.length > 0 && (
+      shranjeno.naravniVnos.engineVersion !== ATENA_ENGINE_VERSION ||
+      shranjeno.naravniVnos.contractVersion !== HISTORY_CONTRACT_VERSION
+    );
     naravni.candidates = zastarelContract ? [] : shranjeniKandidati;
     naravni.requestId = zastarelContract ? "" : String(shranjeno.naravniVnos.requestId || "");
     var shranjenaFaza = ["input", "clarification", "clarification_exhausted", "questions", "review"].indexOf(shranjeno.naravniVnos.phase) >= 0 ? shranjeno.naravniVnos.phase : null;
@@ -149,6 +153,7 @@
         : stanjeVgrajenega.lawyerWizard;
       if (!ciljVgrajenega) return;
       ciljVgrajenega[stanjeVgrajenega.actionSheetMode === "payment" ? "paymentNaturalInput" : "historyNaturalInput"] = {
+        engineVersion: ATENA_ENGINE_VERSION,
         contractVersion: HISTORY_CONTRACT_VERSION,
         mode: naravni.mode,
         text: naravni.text,
@@ -177,6 +182,7 @@
       settingsByAction: debug.state.settingsByAction || {},
       drugoOsnutek: customDraft,
       naravniVnos: {
+        engineVersion: ATENA_ENGINE_VERSION,
         contractVersion: HISTORY_CONTRACT_VERSION,
         mode: naravni.mode,
         text: naravni.text,
@@ -1022,6 +1028,7 @@
     if (!cona) return;
     root.classList.add("atena");
     root.setAttribute("data-engine", "atena");
+    root.setAttribute("data-engine-version", ATENA_ENGINE_VERSION);
     var panel = root.querySelector(".izvedba-action-sheet__panel");
     if (panel) panel.classList.add("atena__panel");
     var glava = root.querySelector(".izvedba-action-sheet__header");
@@ -1126,7 +1133,7 @@
         throw new Error(data.napaka || "Besedila trenutno ni bilo mogoče razumeti.");
       }
       if (mojaGeneracija !== analizaGeneracija || data.requestId !== naravni.requestId) return;
-      if (data.contractVersion !== HISTORY_CONTRACT_VERSION) throw new Error("Razumevanje besedila je bilo posodobljeno. Osvežite stran in poskusite znova.");
+      if (data.engineVersion !== ATENA_ENGINE_VERSION || data.contractVersion !== HISTORY_CONTRACT_VERSION) throw new Error("Atena je bila posodobljena. Osvežite stran in poskusite znova.");
       var lunaStatus = data.semanticPlan && String(data.semanticPlan.status || "");
       var lunaSprejet = lunaStatus === "OK" || lunaStatus === "CORRECTED";
       naravni.candidates = lunaSprejet && Array.isArray(data.candidates) ? data.candidates.slice(0, 20) : [];

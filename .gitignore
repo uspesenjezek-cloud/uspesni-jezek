@@ -26,6 +26,16 @@ work/
 tools/
 .env*
 
+# Atenin Nemotron izvor mora biti sledljiv; modeli, DLL-i in drugi lokalni tools artefakti ostanejo ignorirani.
+!tools/
+tools/*
+!tools/slovenski-live-prepis/
+tools/slovenski-live-prepis/*
+!tools/slovenski-live-prepis/nemotron-stream-worker.ps1
+!tools/slovenski-live-prepis/setup.ps1
+!tools/slovenski-live-prepis/streaming-server.js
+!tools/slovenski-live-prepis/THIRD_PARTY_NOTICES.md
+
 .superpowers/
 
 # Varna predloga brez skrivnosti mora ostati sledljiva.

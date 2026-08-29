@@ -111,6 +111,11 @@ async function main() {
     }
   });
 
+  await test("8b) Atena ob kliku Bo plačal odpre skoraj celozaslonski panel", function () {
+    const css = citaj("app/neplacila-zgodovina.css");
+    assert.match(css, /\.atena \.atena__panel\s*\{[^}]*grid-template-rows:\s*auto auto minmax\(0, 1fr\);[^}]*height:\s*calc\(100lvh - max\(18px, env\(safe-area-inset-top, 0px\)\)\);[^}]*max-height:\s*calc\(100lvh - max\(18px, env\(safe-area-inset-top, 0px\)\)\);/);
+  });
+
   // ---------- 9-16: funkcionalna poslovna logika ----------
 
   await test("9) preklic koraka premakne naslednji neposlani korak naprej", function () {
@@ -524,7 +529,7 @@ async function main() {
     assert.match(css, /panel--odvetnik-pregled \.izvedba-odvetnik-zgodovina__povzetek[\s\S]*border:\s*1px solid var\(--stage-border[\s\S]*background:\s*linear-gradient/);
     assert.match(css, /\.izvedba-odvetnik-korak__naslov\s*\{[\s\S]*?font-size:\s*8px;[\s\S]*?white-space:\s*nowrap;/);
     assert.match(src, /\(zgodovinaVnos \|\| jePlacilniEngine\(\)\) && typeof window\.UJZgodovinaPoIzrisu === "function"/);
-    assert.match(html, /neplacila-zgodovina\.css\?v=20260828-lawyer-history-natural-v1-atena-v15-synced-action-speed-v1/);
+    assert.match(html, /neplacila-zgodovina\.css\?v=20260829-atena-near-full-sheet-v1/);
     assert.match(html, /neplacila-zgodovina\.js\?v=20260828-payment-history-natural-v1-atena-v16-stable-recording-v1/);
     assert.match(html, /izvedba\.js\?v=20260828-payment-history-natural-v2-atena-v3/);
     assert.match(src, /function jeAtena\(\)/);

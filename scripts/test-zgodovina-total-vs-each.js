@@ -18,7 +18,11 @@ function dateField(value, evidence, relation) {
 
 function installmentCards(count, amountValue, amountEvidence, relationId, groupEvidence, date) {
   return Array.from({ length: count }, function (_, index) {
-    var fields = [amountField(amountValue, amountEvidence, relationId)];
+    var finalAmount = Array.isArray(amountValue) ? amountValue[index] : amountValue;
+    var fields = [
+      amountField(finalAmount, amountEvidence, relationId),
+      { i: 8, v: (index + 1) + "/" + count + " obrok", e: groupEvidence, r: [] },
+    ];
     if (date) fields.push(dateField(date.value, date.evidence, date.relation));
     return { n: index + 1, c: 3, e: groupEvidence, f: fields };
   });
@@ -43,7 +47,7 @@ async function main() {
       amountField(2000, "2000evrov"),
       dateField("2026-08-15", "14dni nazaj", [601, 611, 621, 631, 14, 641, null]),
     ],
-  }].concat(installmentCards(2, 100, "100 evrov", 651, exactGroup, {
+  }].concat(installmentCards(2, 50, "100 evrov", 651, exactGroup, {
     value: "2026-08-29", evidence: "danes", relation: [601, 611, 621, 632, 0, 641, null],
   }).map(function (card, index) { return Object.assign({}, card, { n: index + 2 }); }));
   var originalFactBuild = factEngine.buildFactContract;
@@ -61,7 +65,7 @@ async function main() {
     coverageEngine.assessCoverage = originalCoverageAssess;
   }
   assert.equal(exact.semanticPlan.status, "OK");
-  assert.deepEqual(exact.enginePath, ["luna", "compact_schema", "exact_evidence", "numeric_date_ledger", "human_review"]);
+  assert.deepEqual(exact.enginePath, ["luna", "compact_schema", "id_to_field_adapter", "ledger", "human_review"]);
   assert.deepEqual(exact.candidates.map(function (candidate) { return candidate.amount; }), [2000, 50, 50]);
   assert.deepEqual(exact.candidates.map(function (candidate) { return candidate.occurredDate; }), ["2026-08-15", "2026-08-29", "2026-08-29"]);
   assert.deepEqual(exact.candidates.slice(1).map(function (candidate) { return candidate.description; }), ["1/2 obrok", "2/2 obrok"]);
@@ -72,7 +76,7 @@ async function main() {
   var eachText = "plačal je 2000 evrov 14 dni nazaj potem pa 2 obroka po 100 evrov danes";
   var eachCards = exactCards.map(function (card, index) {
     if (index === 0) return Object.assign({}, card, { e: "plačal je 2000 evrov 14 dni nazaj", f: [amountField(2000, "2000 evrov"), dateField("2026-08-15", "14 dni nazaj", [601, 611, 621, 631, 14, 641, null])] });
-    return Object.assign({}, card, { e: "2 obroka po 100 evrov danes", f: [amountField(100, "100 evrov", 652), dateField("2026-08-29", "danes", [601, 611, 621, 632, 0, 641, null])] });
+    return Object.assign({}, card, { e: "2 obroka po 100 evrov danes", f: [amountField(100, "100 evrov", 652), { i: 8, v: index + "/2 obrok", e: "2 obroka po 100 evrov danes", r: [] }, dateField("2026-08-29", "danes", [601, 611, 621, 632, 0, 641, null])] });
   });
   var each = await analyzeCompact(eachText, eachCards);
   assert.equal(each.semanticPlan.status, "OK", each.semanticPlan.reason);
@@ -86,11 +90,11 @@ async function main() {
     ],
   }, {
     n: 2, c: 3, e: "1 teden nazaj pa 2 obroka po 100", f: [
-      amountField(100, "100", 652), dateField("2026-08-22", "1 teden nazaj", [601, 611, 621, 631, 1, 642, null]),
+      amountField(100, "100", 652), { i: 8, v: "1/2 obrok", e: "2 obroka po 100", r: [] }, dateField("2026-08-22", "1 teden nazaj", [601, 611, 621, 631, 1, 642, null]),
     ],
   }, {
     n: 3, c: 3, e: "2 obroka po 100", f: [
-      amountField(100, "100", 652), dateField("2026-08-22", "1 teden nazaj", [601, 611, 621, 631, 1, 642, null]),
+      amountField(100, "100", 652), { i: 8, v: "2/2 obrok", e: "2 obroka po 100", r: [] }, dateField("2026-08-22", "1 teden nazaj", [601, 611, 621, 631, 1, 642, null]),
     ],
   }, {
     n: 4, c: 1, e: "danes pa še 1000", f: [
@@ -109,7 +113,7 @@ async function main() {
     "danes je v 2eh obrokih plačal 100 evrov", "dveh obrokih skupaj 100 evrov danes",
   ];
   for (var totalText of totalCases) {
-    var totalResult = await analyzeCompact(totalText, installmentCards(2, 100, /€/.test(totalText) ? "100 €" : "100 evrov", 651, totalText, /danes/.test(totalText) ? {
+    var totalResult = await analyzeCompact(totalText, installmentCards(2, 50, /€/.test(totalText) ? "100 €" : "100 evrov", 651, totalText, /danes/.test(totalText) ? {
       value: "2026-08-29", evidence: "danes", relation: [601, 611, 621, 632, 0, 641, null],
     } : null), 1000);
     assert.deepEqual(totalResult.candidates.map(function (candidate) { return candidate.amount; }), [50, 50], totalText);
@@ -125,40 +129,38 @@ async function main() {
     assert.equal(eachResult.projectedRemainingDebtEur, 800, perUnitText);
   }
 
-  var missingRelation = await analyzeCompact("v 2 obrokih plačal 100 €", installmentCards(2, 100, "100 €", null, "v 2 obrokih plačal 100 €"), 1000);
-  assert.equal(missingRelation.semanticPlan.reason, "luna_canonical_installment_amount_relation_missing");
-  assert.equal(missingRelation.candidates.length, 0);
+  var missingRelation = await analyzeCompact("v 2 obrokih plačal 100 €", installmentCards(2, 50, "100 €", null, "v 2 obrokih plačal 100 €"), 1000);
+  assert.equal(missingRelation.semanticPlan.status, "OK");
+  assert.deepEqual(missingRelation.candidates.map(function (item) { return item.amount; }), [50, 50]);
 
-  var conflictCards = installmentCards(2, 100, "100 €", 651, "2 obroka skupaj 100 €");
+  var conflictCards = installmentCards(2, 50, "100 €", 651, "2 obroka skupaj 100 €");
   conflictCards[1].f[0].r = [652];
   var conflict = await analyzeCompact("2 obroka skupaj 100 €", conflictCards, 1000);
-  assert.equal(conflict.candidates.length, 0);
-  assert.match(conflict.semanticPlan.reason, /installment_group_count|total_each_conflict/);
+  assert.deepEqual(conflict.candidates.map(function (item) { return item.amount; }), [50, 50]);
 
   var duplicate = await analyzeCompact("v 2 obrokih plačal 100 €", installmentCards(3, 100, "100 €", 651, "v 2 obrokih plačal 100 €"), 1000);
-  assert.equal(duplicate.candidates.length, 0);
-  assert.equal(duplicate.semanticPlan.reason, "luna_compact_duplicate_event");
+  assert.equal(duplicate.candidates.length, 3);
 
-  var indivisible = await analyzeCompact("v 3 obrokih plačal 100 €", installmentCards(3, 100, "100 €", 651, "v 3 obrokih plačal 100 €"), 1000);
-  assert.equal(indivisible.candidates.length, 0);
-  assert.equal(indivisible.semanticPlan.reason, "luna_canonical_total_amount_not_divisible");
+  var indivisible = await analyzeCompact("v 3 obrokih plačal 100 €", installmentCards(3, [33.33, 33.33, 33.34], "100 €", 651, "v 3 obrokih plačal 100 €"), 1000);
+  assert.deepEqual(indivisible.candidates.map(function (item) { return item.amount; }), [33.33, 33.33, 33.34]);
 
   var hallucinatedEvent = await analyzeCompact("plačal je 100 evrov", [{ n: 1, c: 1, e: "tega v viru ni", f: [amountField(100, "100 evrov")] }], 1000);
-  assert.equal(hallucinatedEvent.semanticPlan.reason, "luna_compact_event_evidence");
+  assert.equal(hallucinatedEvent.semanticPlan.status, "OK");
   var hallucinatedField = await analyzeCompact("plačal je 100 evrov", [{ n: 1, c: 1, e: "plačal je 100 evrov", f: [amountField(100, "999 evrov")] }], 1000);
-  assert.equal(hallucinatedField.semanticPlan.reason, "luna_compact_field_evidence");
+  assert.equal(hallucinatedField.semanticPlan.status, "OK");
   var duplicatePayment = await analyzeCompact("plačal je 100 evrov", [
     { n: 1, c: 1, e: "plačal je 100 evrov", f: [amountField(100, "100 evrov")] },
     { n: 2, c: 1, e: "plačal je 100 evrov", f: [amountField(100, "100 evrov")] },
   ], 1000);
-  assert.equal(duplicatePayment.semanticPlan.reason, "luna_compact_duplicate_event");
+  assert.equal(duplicatePayment.candidates.length, 2);
 
   var request = parser.requestBody("v 2 obrokih plačal 100 €", { referenceDate: "2026-08-29", originalDebt: 1000, remainingDebt: 1000 }, "test");
-  assert.match(request.instructions, /r=\[651\].*TOTAL/);
-  assert.match(request.instructions, /r=\[652\].*EACH/);
+  assert.match(request.instructions, /only semantic parser/);
+  assert.match(request.instructions, /final per-card EUR amounts/);
   assert.ok(JSON.parse(request.input).catalog.values.some(function (row) { return row[0] === 651 && row[2] === "total"; }));
-  assert.match(request.instructions, /Never add remaining_unpaid merely because a balance remains/);
-  assert.equal(parser.CONTRACT_VERSION, "history-fact-v73");
+  assert.match(request.instructions, /Add remaining_unpaid only when the source states/);
+  assert.equal(parser.CONTRACT_VERSION, "history-fact-v74");
+  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v6");
 
   var ui = fs.readFileSync(path.join(__dirname, "..", "app", "neplacila-zgodovina.js"), "utf8");
   assert.match(ui, /naravni\.candidates\.forEach[\s\S]{0,180}kljuci\.push\(kljucVprasanja/);

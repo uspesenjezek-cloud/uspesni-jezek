@@ -132,10 +132,10 @@ async function main() {
       calls += 1;
       var input = JSON.parse(request.input);
       assert.equal(input.version, undefined);
-      assert.equal(input.contractVersion, "history-fact-v73");
+      assert.equal(input.contractVersion, "history-fact-v74");
       assert.equal(input.sourceText, exactText, "Luna mora prejeti celotni izvorni opis");
-      assert.match(request.instructions, /numbered cards/);
-      assert.match(request.instructions, /mandatory human review/);
+      assert.match(request.instructions, /numbered FATHER cards/);
+      assert.match(request.instructions, /reviewed by a human/);
       assert.equal(input.catalog.cards.length, 17);
       assert.equal(Object.prototype.hasOwnProperty.call(input, "proposedPlan"), false);
       assert.equal(Object.prototype.hasOwnProperty.call(input, "clauses"), false);

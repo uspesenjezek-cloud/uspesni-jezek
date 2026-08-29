@@ -93,9 +93,9 @@ To je trajna oblikovna odločitev za vse prihodnje redne UI-ikone.
 
 Namen tega pravila je, da se nove funkcije že prvič izdelajo v obstoječem oblikovnem jeziku in ne zahtevajo naknadnega redizajna.
 
-## Atena — univerzalni vnosni engine
+## Atena v6 — univerzalni vnosni engine
 
-- `Atena` je kanonično ime skupnega enginea, s katerim obrtnik dogodke opiše z besedilom ali glasom, jih po potrebi izbere ročno, pregleda pripravljene strukturirane dogodke in jih šele nato varno potrdi.
+- `Atena` je kanonično ime skupnega enginea, njegova trenutna sistemska različica pa je `atena-v6`. Z njim obrtnik dogodke opiše z besedilom ali glasom, jih po potrebi izbere ročno, pregleda pripravljene strukturirane dogodke in jih šele nato varno potrdi.
 - Atena je ena skupna implementacija, ki se vgrajuje v različne tokove (med drugim zgodovina računa, predaja odvetniku in »Bo plačal«); ne izdeluj ločenih kopij ali vzporednih različic.
 - Privzeti način je »Povej ali napiši«, »Ročno izberi« je enakovreden rezervni način. »Povej na glas« je jasen samostojen sekundarni gumb, »Pripravi dogodke« pa primarni turkizni gumb.
 - Zgornja akcija se imenuje »Ponastavi« in uporablja ikono krožne ponovitve, ne koša. Razdelek pod vnosom se imenuje »Pripravljeni dogodki« in je brez praznega telesa kompakten; razširi se šele, ko dogodki obstajajo.
