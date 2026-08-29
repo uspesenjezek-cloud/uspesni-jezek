@@ -24,8 +24,16 @@ function test(name, fn) {
 }
 
 const htmlPath = path.join(__dirname, "..", "app", "neplacila.html");
+const zgodovinaHtmlPath = path.join(__dirname, "..", "app", "neplacila-zgodovina.html");
+const zgodovinaJsPath = path.join(__dirname, "..", "app", "neplacila-zgodovina.js");
+const posiljanjeHtmlPath = path.join(__dirname, "..", "app", "neplacila-posiljanje.html");
+const ocenaJsPath = path.join(__dirname, "..", "app", "ocena-tveganja.js");
 const appJsPath = path.join(__dirname, "..", "app", "app.js");
 const html = fs.readFileSync(htmlPath, "utf8");
+const zgodovinaHtml = fs.readFileSync(zgodovinaHtmlPath, "utf8");
+const zgodovinaJs = fs.readFileSync(zgodovinaJsPath, "utf8");
+const posiljanjeHtml = fs.readFileSync(posiljanjeHtmlPath, "utf8");
+const ocenaJs = fs.readFileSync(ocenaJsPath, "utf8");
 const appJs = fs.readFileSync(appJsPath, "utf8");
 
 test("HTML nima checkboxov SMS / E-pošta", () => {
@@ -75,7 +83,7 @@ test("CSS: ozek razmik med poljema, brez contact-help/kanal", () => {
   assert(/\.contact-inputs\s*\{[^}]*gap:\s*var\(--space-xs\)/s.test(css), "gap ni --space-xs");
 });
 
-test("potrjena strnjena postavitev ohrani funkcije in swipe namig", () => {
+test("ocena tveganja je umaknjena s 1. koraka in dostopna ob priporočilu", () => {
   const css = fs.readFileSync(
     path.join(__dirname, "..", "app", "styles.css"),
     "utf8"
@@ -83,9 +91,22 @@ test("potrjena strnjena postavitev ohrani funkcije in swipe namig", () => {
   assert(/KORAK 1 . potrjena strnjena postavitev/.test(css));
   assert(/#obrazec-neplacilo \.contact-inputs\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 1fr\)/s.test(css));
   assert(/#obrazec-neplacilo \.zadeva-obrazec__podvrstica--datumi/.test(css));
-  assert(/#obrazec-neplacilo \.ocena-tveganja__polje-vrednost\s*\{[^}]*border-bottom:\s*1px solid/s.test(css));
-  assert(/#obrazec-neplacilo \.ocena-tveganja__izbira\s*\{[^}]*4\.5/s.test(css));
-  assert(/id="ocena-tveganja-zamuda-vrednost"[^>]*data-fit-number/.test(html));
+  assert(!/<section class="ocena-tveganja"/.test(html), "kartica ocene tveganja je še vedno vidna na 1. koraku");
+  assert(/priporocilo-widget__naslov">Priporočilo za ta dolg<\/h3>[\s\S]*data-odpri-oceno-tveganja[\s\S]*Ocena tveganja/.test(posiljanjeHtml), "ob priporočilu manjka mali gumb ocene tveganja");
+  assert(/id="ocena-dolg-sheet" hidden[\s\S]*data-ocena-preklop="dolg"[\s\S]*data-ocena-preklop="zamuda"/.test(posiljanjeHtml), "nad nastavitvami dolga manjkata oba preklopna widgeta");
+  assert(/id="ocena-zamuda-sheet" hidden[\s\S]*data-ocena-preklop="dolg"[\s\S]*data-ocena-preklop="zamuda"/.test(posiljanjeHtml), "nad nastavitvami zamude manjkata oba preklopna widgeta");
+  assert(/pregledGumb\.addEventListener\("click"[\s\S]*odpriNastavitveOcene\("dolg"\)/.test(ocenaJs), "gumb ne odpre nastavitev neposredno");
+  assert(/\[data-ocena-preklop\][\s\S]*odpriNastavitveOcene\(this\.getAttribute\("data-ocena-preklop"\)\)/.test(ocenaJs), "preklop med nastavitvama ni povezan");
+});
+
+test("zgodovina zamud ostane nastavljiva, nadaljevanje brez izbire pa deluje", () => {
+  assert(!/data-zgodovina-zamud/.test(html), "izbira zgodovine je še vedno na 1. koraku");
+  assert(!/id="ocena-tveganja"|class="zgodovina-ocena/.test(zgodovinaHtml), "vprašanje je še vedno ločena vrstica nad mini karticami");
+  assert(/izvedba-poravnava-svicer__gumb--ocena[\s\S]*data-zgodovina-ocena-toggle[\s\S]*Pretekle zamude/.test(zgodovinaJs), "na 2. koraku manjka mini kartica za pretekle zamude");
+  assert(/svicer\.insertBefore\(ocenaGumb, svicer\.firstChild\)/.test(zgodovinaJs), "mini kartica ni vstavljena v obstoječi sklop kartic");
+  assert(/izvedba-poravnava-podrobnosti--ocena[\s\S]*Ali je dolžnik že kdaj zamudil s plačilom\?[\s\S]*data-zgodovina-zamud/.test(zgodovinaJs), "vprašanja niso izrisana v skupnem podrobnostnem panelu");
+  assert(/data-zgodovina-ocena-odgovor[\s\S]*data-zgodovina-ocena-shrani/.test(zgodovinaJs), "manjkajo dodatna vprašanja ali shranjevanje odgovora");
+  assert(/var zgodovinaZamud = korak1\.zgodovinaZamud;[\s\S]*shraniOcenoZamud\("unknown"\);[\s\S]*window\.location\.href = "neplacila-posiljanje\.html"/.test(zgodovinaJs), "nadaljevanje brez izbire ne nastavi varne privzete vrednosti");
 });
 
 test("app.js nima logike kljukic", () => {
@@ -119,11 +140,23 @@ test("vprasalni widget je locen in ima vedno viden kompaktni vnos", () => {
   assert(/#obrazec-neplacilo \.obrazec__polje--opravljeno-vprasanja \.opravljeno-bubble #opis-dolga\s*\{[^}]*height:\s*40px;[^}]*min-height:\s*40px/s.test(css));
   assert(/#obrazec-neplacilo \.obrazec__polje--opravljeno-vprasanja \.opravljeno-vprasanje__odgovor\s*\{[^}]*width:\s*100%;[^}]*padding:\s*0 0 5px/s.test(css));
   assert(/#obrazec-neplacilo \.obrazec__polje--opravljeno-vprasanja \.opravljeno-vprasanja__puscica\s*\{[^}]*width:\s*26px;[^}]*height:\s*26px/s.test(css));
-  assert(/transition:\s*height 160ms cubic-bezier\(0\.22, 1, 0\.36, 1\)/.test(css));
+  assert(/transition:\s*height var\(--opravljeno-visina-trajanje, 80ms\) cubic-bezier\(0\.22, 1, 0\.36, 1\)/.test(css));
   assert(/\.opravljeno-vprasanja__viewport--takojsnja-visina\s*\{[^}]*transition:\s*none !important/s.test(css));
+  assert(/\.opravljeno-vprasanja__viewport--programski-prehod\s*\{[^}]*scroll-snap-type:\s*none/s.test(css));
   assert(/Math\.max\([\s\S]{0,120}aktivnaStran\.scrollHeight[\s\S]{0,100}getBoundingClientRect\(\)\.height/.test(appJs));
   assert(/celotnaVisina > opravljenoVprasanjaViewport\.offsetHeight[\s\S]{0,220}viewport--takojsnja-visina/.test(appJs));
-  assert(/osveziVisinoOpravljenoVprasanje\(\);[\s\S]{0,180}opravljenoVprasanjaViewport\.scrollTo/.test(appJs));
+  assert(/osveziVisinoOpravljenoVprasanje\(gladko, true\);[\s\S]{0,180}animirajPomikOpravljenoVprasanje/.test(appJs));
+  assert(/const trajanje = 260;[\s\S]{0,300}Math\.pow\(1 - napredek, 4\)/.test(appJs));
+  assert(/scrollWidth - opravljenoVprasanjaViewport\.clientWidth/.test(appJs));
+  assert(/Math\.floor\(polozajMedStranmi\)[\s\S]{0,220}Math\.ceil\(polozajMedStranmi\)/.test(appJs));
+  assert(/visjaVidnaStran\.visina > opravljenoVprasanjaViewport\.offsetHeight[\s\S]{0,180}osveziVisinoOpravljenoVprasanje\(\s*false,\s*true,\s*visjaVidnaStran\.stranIndeks/.test(appJs));
+  assert(/opravljenoVprasanjaViewport\.scrollLeft - ciljniOdmikAktivneStrani[\s\S]{0,100}<= 1[\s\S]{0,120}osveziVisinoOpravljenoVprasanje\(true\)/.test(appJs));
+  assert(/Math\.abs\(celotnaVisina - trenutnaVisina\) > 0\.5[\s\S]{0,180}celotnaVisina < trenutnaVisina \? "80ms" : "120ms"/.test(appJs));
+  assert(/new ResizeObserver\([\s\S]{0,2600}opravljenoVelikostObserver\.observe\(stran\)/.test(appJs));
+  assert(/touchend",[\s\S]{0,120}zakljuciRocniPrehodOpravljenoVprasanje/.test(appJs));
+  assert(/rocniCiljOpravljenoVprasanje != null[\s\S]{0,180}osveziVisinoOpravljenoVprasanje\(\s*true,\s*false,\s*rocniCiljOpravljenoVprasanje/.test(appJs));
+  assert(/Math\.abs\(premik\) > 12[\s\S]{0,180}premik > 0[\s\S]{0,120}Math\.ceil[\s\S]{0,120}Math\.floor/.test(appJs));
+  assert(/Math\.abs\(trenutniOdmik - ciljniOdmik\) <= 1[\s\S]{0,100}rocniCiljOpravljenoVprasanje = null/.test(appJs));
   assert(/opisDolgaGlava\.addEventListener\("click"/.test(appJs));
   assert(/String\(priloga\.description \|\| ""\)\.trim\(\)\) priloga\.collapsed = true/.test(appJs));
   assert(/grid-template-columns:\s*minmax\(108px, 0\.72fr\) minmax\(0, 1\.28fr\)/.test(css));

@@ -5,15 +5,107 @@ var db = require("./_lib/supabase-server");
 var store = require("./_lib/boniteta-pro-store");
 var queue = require("./_lib/mehka-boniteta-queue");
 var openregister = require("./_lib/openregister-pro-client");
+var identitySearch = require("./_lib/openregister-identity-search");
+var debtorCompanyIdentity = require("./_lib/debtor-company-identity");
+var northdataAutocomplete = require("./_lib/northdata-directory-search");
+var northdataClient = require("./_lib/apify-northdata-client");
 var projectMonitor = require("./_lib/projektno-spremljanje");
+var financialRecheck = require("./_lib/financno-ponovno-preverjanje");
 var crif = require("./_lib/crif-priprava");
 var crifResult = require("./_lib/crif-rezultat");
+var bau650f = require("./_lib/bauhandwerkersicherung-service");
 var MONITOR_PREFERENCES = new Set(["basic", "representation", "financials", "documents", "ownership", "holdings", "insolvencies"]);
 
 function json(res, status, body) { res.setHeader("Cache-Control", "no-store"); return res.status(status).json(body); }
 function query(req, name) { if (req.query && req.query[name] != null) return String(req.query[name]); try { return new URL(req.url, "http://localhost").searchParams.get(name) || ""; } catch (_) { return ""; } }
 function preferences(input) { var values = (Array.isArray(input) ? input : []).map(String).filter(function (v) { return MONITOR_PREFERENCES.has(v); }); return Array.from(new Set(values)).slice(0, 7); }
+function monitoringFrequency(input) { var value = String(input || ""); if (!["daily", "weekly", "monthly"].includes(value)) throw Object.assign(new Error("Izberite veljavno pogostost spremljanja."), { status: 400, code: "INVALID_MONITORING_FREQUENCY" }); return value; }
+function monitoringToday(date) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Ljubljana", year: "numeric", month: "2-digit", day: "2-digit" }).format(date || new Date()); }
 function route(req) { var named = query(req, "route"); if (named) return named; return String(req.url || "").includes("boniteta-profili") ? "profiles" : "openregister"; }
+
+function validateMonitoringSchedule(input, todayOverride) {
+  var projectStartDate = String(input && input.projectStartDate || "").trim();
+  var projectEndDate = String(input && input.projectEndDate || "").trim();
+  var rawCheckTime = input && input.checkTime;
+  var checkTime = rawCheckTime == null || rawCheckTime === "" ? "12:00" : String(rawCheckTime).trim();
+  var startImmediately = input && input.startImmediately;
+  var explicitMonitoringStartDate = String(input && input.monitoringStartDate || "").trim();
+  function validDate(value) {
+    var match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return false;
+    var parsed = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    return parsed.toISOString().slice(0, 10) === value;
+  }
+  if (!validDate(projectStartDate) || !validDate(projectEndDate) || (!explicitMonitoringStartDate && typeof startImmediately !== "boolean")) {
+    throw Object.assign(new Error("Vnesite veljaven začetek in predvideni konec projekta."), { status: 400, code: "INVALID_MONITORING_SCHEDULE" });
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(checkTime)) {
+    throw Object.assign(new Error("Izberite veljavno uro preverbe."), { status: 400, code: "INVALID_MONITORING_TIME" });
+  }
+  var today = String(todayOverride || monitoringToday());
+  var monitoringStartDate = explicitMonitoringStartDate || (startImmediately ? today : projectStartDate);
+  if (!validDate(monitoringStartDate)) {
+    throw Object.assign(new Error("Izberite veljaven datum prve poizvedbe."), { status: 400, code: "INVALID_MONITORING_START_DATE" });
+  }
+  if (projectEndDate < projectStartDate) {
+    throw Object.assign(new Error("Konec projekta ne sme biti pred začetkom projekta."), { status: 400, code: "MONITORING_END_BEFORE_PROJECT_START" });
+  }
+  if (monitoringStartDate < today) {
+    throw Object.assign(new Error("Prva poizvedba se ne sme začeti v preteklosti."), { status: 400, code: "MONITORING_START_IN_PAST" });
+  }
+  if (projectEndDate < monitoringStartDate) {
+    throw Object.assign(new Error("Konec projekta ne sme biti pred prvo poizvedbo."), { status: 400, code: "MONITORING_END_BEFORE_MONITORING_START" });
+  }
+  return { projectStartDate: projectStartDate, projectEndDate: projectEndDate, checkTime: checkTime, startImmediately: monitoringStartDate === today, monitoringStartDate: monitoringStartDate };
+}
+
+function foundationDateEvidence(input, profile) {
+  var companyId = String(input && input.companyId || "").trim().toUpperCase();
+  var expectedId = String(profile && profile.company_id || "").trim().toUpperCase();
+  var date = String(input && input.date || "").trim();
+  if (!expectedId || companyId !== expectedId) throw Object.assign(new Error("Datum ni vezan na izbrano registrirano podjetje."), { status: 409, code: "COMPANY_ID_MISMATCH" });
+  var match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) throw Object.assign(new Error("Vnesite veljaven datum ustanovitve."), { status: 400, code: "INVALID_FOUNDATION_DATE" });
+  var parsed = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  var normalized = parsed.toISOString().slice(0, 10);
+  if (normalized !== date || Number(match[1]) < 1800 || normalized > new Date().toISOString().slice(0, 10)) {
+    throw Object.assign(new Error("Datum ustanovitve mora biti resničen pretekli datum."), { status: 400, code: "INVALID_FOUNDATION_DATE" });
+  }
+  return {
+    date: date,
+    companyId: expectedId,
+    source: "openregister_public_profile",
+    sourceUrl: "https://openregister.de/company/" + encodeURIComponent(expectedId),
+    captureMethod: "manual_user_transcription",
+    verificationStatus: "user_transcribed",
+    recordedAt: new Date().toISOString(),
+  };
+}
+
+async function watchedProfilesWithSchedule(cfg, userId) {
+  var rows = await store.listProfiles(cfg, userId, true);
+  return Promise.all((rows || []).map(async function (monitor) {
+    var schedule = await projectMonitor.get(cfg, userId, monitor.profile_id);
+    var profile = monitor && monitor.profile || {}, latest = profile.latest_check || {}, requestPayload = schedule && schedule.request_payload || {}, cardState = requestPayload.monitoringCardState || monitor.card_state || monitor.latest_comparison || monitor.openregister_payload && (monitor.openregister_payload.monitoringCardState || monitor.openregister_payload.latestComparison) || latest.monitoringCardState || null;
+    var lastStatus = String(schedule && schedule.last_result_status || "").toLowerCase(), completedStatus = ["clear", "not_found", "found", "possible_match", "match", "warning", "checked"].includes(lastStatus);
+    if (!cardState && schedule && schedule.last_check_at && completedStatus && requestPayload.monitoringBaseline) {
+      var current = Object.assign({ checkedAt: profile.checked_at || null }, latest);
+      try { cardState = projectMonitor.monitoringComparison(requestPayload.monitoringBaseline, current); } catch (_) { cardState = null; }
+    }
+    return Object.assign({}, monitor, { schedule: schedule || null, card_state: cardState });
+  }));
+}
+
+async function monitoringStateForProfile(cfg, userId, profile) {
+  var schedule = await projectMonitor.get(cfg, userId, profile.id);
+  if (!schedule) return null;
+  var latest = profile.latest_check || {}, requestPayload = schedule.request_payload || {}, cardState = requestPayload.monitoringCardState || latest.monitoringCardState || null;
+  var lastStatus = String(schedule.last_result_status || "").toLowerCase(), completedStatus = ["clear", "not_found", "found", "possible_match", "match", "warning", "checked"].includes(lastStatus);
+  if (!cardState && schedule.last_check_at && completedStatus && requestPayload.monitoringBaseline) {
+    try { cardState = projectMonitor.monitoringComparison(requestPayload.monitoringBaseline, Object.assign({ checkedAt: profile.checked_at || null }, latest)); } catch (_) { cardState = null; }
+  }
+  return { schedule: schedule, card_state: cardState };
+}
 
 async function profiles(req, res, cfg, auth) {
   if (!["GET", "POST", "DELETE"].includes(req.method)) return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
@@ -21,21 +113,17 @@ async function profiles(req, res, cfg, auth) {
     var view = query(req, "view");
     if (view === "alerts") return json(res, 200, { ok: true, alerts: await store.listAlerts(cfg, auth.user.id) });
     var id = query(req, "id");
-    if (id) { var profile = await store.getProfile(cfg, auth.user.id, id); return profile ? json(res, 200, { ok: true, profile: profile }) : json(res, 404, { ok: false, napaka: "Profil ni bil najden." }); }
-    return json(res, 200, { ok: true, profiles: await store.listProfiles(cfg, auth.user.id, view === "watched") });
+    if (id) { var profile = await store.getProfile(cfg, auth.user.id, id); return profile ? json(res, 200, { ok: true, profile: profile, monitoring: await monitoringStateForProfile(cfg, auth.user.id, profile) }) : json(res, 404, { ok: false, napaka: "Profil ni bil najden." }); }
+    if (view === "watched") return json(res, 200, { ok: true, profiles: await watchedProfilesWithSchedule(cfg, auth.user.id) });
+    return json(res, 200, { ok: true, profiles: await store.listProfiles(cfg, auth.user.id, false) });
   }
   var body = req.body && typeof req.body === "object" ? req.body : {};
   if (req.method === "DELETE") {
     var profileId = String(body.profileId || "");
     var profile = await store.getProfile(cfg, auth.user.id, profileId);
     if (!profile) return json(res, 404, { ok: false, napaka: "Profil ni bil najden." });
-    // Če ima profil plačljivo OpenRegister spremljanje, ga odstranimo najprej,
-    // da po brisanju lokalne vrstice ne ostane nevidna zunanja naročnina.
-    var monitor = await store.getMonitorByProfile(cfg, auth.user.id, profile.id);
-    if (monitor && profile.company_id) {
-      try { await openregister.deleteMonitor(profile.company_id); }
-      catch (deleteError) { if (deleteError.code !== "OPENREGISTER_NOT_FOUND") throw deleteError; }
-    }
+    // Spremljanje je izključno naš lokalni urnik in se ob brisanju profila
+    // odstrani prek preverjenih povezav ON DELETE CASCADE.
     // Profil in čakalna vrsta sta namensko ločena. Pred brisanjem profila zato
     // odstranimo tudi vse rezultate, dokazne posnetke in ponovne poskuse tega
     // podjetja, vendar izključno za prijavljenega uporabnika.
@@ -46,6 +134,24 @@ async function profiles(req, res, cfg, auth) {
     var purgedChecks = await queue.izbrisiPodatkeProfila(purgeCfg, auth.user.id, profile);
     var deleted = await store.deleteProfile(cfg, auth.user.id, profile.id);
     return json(res, 200, { ok: true, deleted: { id: deleted.id, legalName: deleted.legal_name, purgedChecks: purgedChecks } });
+  }
+  if (body.action === "save_foundation_date") {
+    var foundationProfile = await store.getProfile(cfg, auth.user.id, String(body.profileId || ""));
+    if (!foundationProfile) return json(res, 404, { ok: false, napaka: "Profil podjetja ni bil najden." });
+    var evidence = foundationDateEvidence(body, foundationProfile);
+    return json(res, 200, { ok: true, profile: await store.saveFoundationDateEvidence(cfg, auth.user.id, foundationProfile, evidence), evidence: evidence });
+  }
+  if (body.action === "import_northdata_run") {
+    var northDataProfile = await store.getProfile(cfg, auth.user.id, String(body.profileId || ""));
+    if (!northDataProfile) return json(res, 404, { ok: false, napaka: "Profil podjetja ni bil najden." });
+    var northData = await northdataClient.readExistingRun(body.runId, {
+      name: northDataProfile.legal_name,
+      registerNumber: northDataProfile.register_number,
+      registerCourt: northDataProfile.register_court,
+      address: northDataProfile.address || {},
+    });
+    if (northData.status !== "found") return json(res, 409, { ok: false, code: "NORTHDATA_COMPANY_MISMATCH", napaka: "Rezultat runa se ne ujema z izbranim podjetjem." });
+    return json(res, 200, { ok: true, profile: await store.saveNorthDataPayload(cfg, auth.user.id, northDataProfile, northData), northData: northData });
   }
   if (body.action === "mark_alert_read") return json(res, 200, { ok: true, alert: await store.markAlertRead(cfg, auth.user.id, String(body.alertId || "")) });
   if (body.action !== "save_check") return json(res, 400, { ok: false, napaka: "Neznana operacija." });
@@ -77,6 +183,39 @@ async function pro(req, res, cfg, auth) {
   var body = req.body && typeof req.body === "object" ? req.body : {};
   var action = req.method === "GET" ? query(req, "action") : String(body.action || "");
   if (action === "credits") return json(res, 200, { ok: true, credits: await openregister.credits() });
+  if (action === "autocomplete") {
+    return json(res, 410, { ok: false, code: "PAID_AUTOCOMPLETE_DISABLED", napaka: "Plačljivi autocomplete je izklopljen." });
+  }
+  if (action === "northdata_autocomplete") {
+    var northdata = await northdataAutocomplete.search(body.query, auth.user.id, { readCfg: cfg, accessToken: auth.token });
+    return json(res, 200, {
+      ok: true,
+      results: northdata.results,
+      cached: northdata.cached,
+      sharedCache: northdata.sharedCache,
+      cacheLayer: northdata.cacheLayer,
+      estimatedCostUsd: northdata.estimatedCostUsd,
+      sourceUrl: northdata.sourceUrl,
+    });
+  }
+  if (action === "identity_search") {
+    var identity = await identitySearch.search(body.query, auth.user.id);
+    return json(res, 200, { ok: true, results: identity.results, cached: identity.cached, creditsUsed: identity.cached ? 0 : 1 });
+  }
+  if (action === "debtor_company_search") {
+    var debtorSearch = await debtorCompanyIdentity.search(cfg, auth.user.id, body.query);
+    return json(res, 200, { ok: true, results: debtorSearch.results, cached: debtorSearch.cached, creditsUsed: debtorSearch.creditsUsed, maxCredits: 1 });
+  }
+  if (action === "debtor_company_select") {
+    var debtorSelection = await debtorCompanyIdentity.saveSelection(cfg, auth.user.id, body.identityProof);
+    return json(res, 200, { ok: true, company: debtorSelection.company, profileId: debtorSelection.profile && debtorSelection.profile.id || null, creditsUsed: 0, maxCredits: 1 });
+  }
+  if (action === "debtor_company_list") {
+    return json(res, 200, { ok: true, companies: await debtorCompanyIdentity.list(cfg, auth.user.id), creditsUsed: 0, maxCredits: 1 });
+  }
+  if (action === "company_lookup") {
+    return json(res, 200, { ok: true, company: await openregister.companyDetails(body.companyId), creditsUsed: 10 });
+  }
   if (action === "search") return json(res, 200, { ok: true, results: await openregister.advancedSearch(body) });
   var profileId = req.method === "GET" ? query(req, "profileId") : String(body.profileId || "");
   var profile = await store.getProfile(cfg, auth.user.id, profileId);
@@ -90,6 +229,9 @@ async function pro(req, res, cfg, auth) {
   if (action === "project_monitor_get") return json(res, 200, { ok: true, monitor: await projectMonitor.get(cfg, auth.user.id, profile.id), policy: projectMonitor.policy(Number(body.projectValue || 0)) });
   if (action === "project_monitor_save") return json(res, 200, { ok: true, monitor: await projectMonitor.save(cfg, auth.user.id, profile, body) });
   if (action === "project_monitor_delete") { await projectMonitor.remove(cfg, auth.user.id, profile.id); return json(res, 200, { ok: true }); }
+  if (action === "financial_recheck_get") return json(res, 200, { ok: true, recheck: await financialRecheck.get(cfg, auth.user.id, profile.id, req.method === "GET" ? query(req, "reason") : body.reason) });
+  if (action === "financial_recheck_save") return json(res, 200, { ok: true, recheck: await financialRecheck.save(cfg, auth.user.id, profile, body) });
+  if (action === "financial_recheck_delete") { await financialRecheck.remove(cfg, auth.user.id, profile.id, body.reason); return json(res, 200, { ok: true }); }
   if (action === "section") {
     var section = req.method === "GET" ? query(req, "section") : String(body.section || "");
     var force = req.method === "GET" ? query(req, "refresh") === "1" : Boolean(body.refresh);
@@ -102,21 +244,29 @@ async function pro(req, res, cfg, auth) {
   }
   if (action === "monitor_create") {
     var prefs = preferences(body.preferences); if (!prefs.length) return json(res, 400, { ok: false, napaka: "Izberite vsaj eno vrsto sprememb." });
-    var frequency = body.frequency === "daily" ? "daily" : "weekly", created = await openregister.createMonitor(profile.company_id, frequency, prefs), monitor;
+    var schedule = validateMonitoringSchedule(body);
+    var frequency = monitoringFrequency(body.frequency), previousSchedule = await projectMonitor.get(cfg, auth.user.id, profile.id), monitor;
+    await projectMonitor.saveMonitoring(cfg, auth.user.id, profile, Object.assign({}, schedule, { frequency: frequency }));
     try {
-      monitor = await store.upsertMonitor(cfg, auth.user.id, profile, frequency, prefs, created);
+      monitor = await store.upsertMonitor(cfg, auth.user.id, profile, frequency, prefs, {
+        source: "internal_recheck",
+        provider: "internal_recheck",
+        billing: "per_completed_recheck",
+        activationCredits: 0,
+        maxCreditsPerCompletedRecheck: 1,
+        intervalDays: projectMonitor.intervalDays(frequency),
+        monitoringSchedule: schedule,
+      });
     } catch (saveError) {
-      // Če lokalnega zapisa ni mogoče shraniti, odstranimo pravkar ustvarjeni
-      // plačljivi monitor, da uporabniku ne ostane nevidna naročnina.
-      try { await openregister.deleteMonitor(profile.company_id); } catch (_) {}
+      if (previousSchedule) await projectMonitor.restore(cfg, previousSchedule);
+      else await projectMonitor.remove(cfg, auth.user.id, profile.id);
       throw saveError;
     }
-    return json(res, 200, { ok: true, monitor: monitor, creditsUsed: frequency === "daily" ? 50 : 25 });
+    return json(res, 200, { ok: true, monitor: monitor, creditsUsed: 0, billing: "per_completed_recheck", maxCreditsPerCompletedRecheck: 1 });
   }
   if (action === "monitor_delete") {
-    try { await openregister.deleteMonitor(profile.company_id); }
-    catch (deleteError) { if (deleteError.code !== "OPENREGISTER_NOT_FOUND") throw deleteError; }
-    await store.deleteMonitor(cfg, auth.user.id, profile.company_id);
+    await projectMonitor.remove(cfg, auth.user.id, profile.id);
+    await store.deleteMonitorByProfile(cfg, auth.user.id, profile.id);
     return json(res, 200, { ok: true });
   }
   return json(res, 400, { ok: false, napaka: "Neznana OpenRegister Pro operacija." });
@@ -125,9 +275,9 @@ async function pro(req, res, cfg, auth) {
 async function handler(req, res) {
   var cfg; try { cfg = db.uporabniskaKonfiguracija(); } catch (_) { return json(res, 503, { ok: false, napaka: "Strežniška shramba ni povezana." }); }
   var auth = await db.preveriUporabnika(req, cfg); if (!auth.ok) return json(res, auth.status, { ok: false, napaka: auth.napaka }); cfg.userToken = auth.token;
-  try { var selected = route(req); return selected === "profiles" ? await profiles(req, res, cfg, auth) : selected === "crif" ? await crifRequests(req, res, cfg, auth) : await pro(req, res, cfg, auth); }
+  try { var selected = route(req); if (selected === "650f") { if (req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." }); return json(res, 200, Object.assign({ ok: true }, await bau650f.handle(cfg, auth.user.id, req.body || {}, store))); } return selected === "profiles" ? await profiles(req, res, cfg, auth) : selected === "crif" ? await crifRequests(req, res, cfg, auth) : await pro(req, res, cfg, auth); }
   catch (err) { console.error("[boniteta-pro]", err.code || err.message, err.details || ""); return json(res, err.status || 502, { ok: false, code: err.code || "BONITETA_PRO_FAILED", napaka: err.message || "Operacija ni uspela." }); }
 }
 
 module.exports = sentry.wrapHandler(handler, "/api/boniteta-pro");
-module.exports._test = { preferences: preferences, query: query, route: route, crifRequests: crifRequests, normalizeCrifResult: crifResult.normalize };
+module.exports._test = { preferences: preferences, monitoringFrequency: monitoringFrequency, monitoringToday: monitoringToday, query: query, route: route, validateMonitoringSchedule: validateMonitoringSchedule, foundationDateEvidence: foundationDateEvidence, watchedProfilesWithSchedule: watchedProfilesWithSchedule, crifRequests: crifRequests, normalizeCrifResult: crifResult.normalize };

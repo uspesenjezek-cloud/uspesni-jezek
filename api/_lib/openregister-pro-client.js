@@ -1,6 +1,8 @@
 "use strict";
 
 var API = "https://api.openregister.de/v1";
+var AUTOCOMPLETE_TTL_MS = 5 * 60 * 1000;
+var autocompleteCache = new Map();
 
 var SECTION_CONFIG = {
   company: { path: "company/{id}", credits: 10, ttlHours: 24 },
@@ -136,6 +138,43 @@ async function advancedSearch(input) {
   });
 }
 
+function osnovniZadetekPodjetja(input) {
+  var company = input && typeof input === "object" ? input : {};
+  return {
+    company_id: veljavenCompanyId(company.company_id || company.id),
+    name: String(company.name || company.legal_name || "").trim().slice(0, 240),
+    country: String(company.country || "DE").trim().slice(0, 3),
+    register_number: String(company.register_number || "").trim().slice(0, 80),
+    register_type: String(company.register_type || "").trim().slice(0, 10),
+    register_court: String(company.register_court || "").trim().slice(0, 160),
+    active: company.active !== false,
+  };
+}
+
+async function autocompleteCompanies(value) {
+  var query = String(value || "").trim().replace(/\s+/g, " ").slice(0, 120);
+  if (query.length < 3) throw napaka("Za iskanje vnesite vsaj tri znake.", 400, "AUTOCOMPLETE_QUERY_TOO_SHORT");
+  var cacheKey = query.toLocaleLowerCase("de-DE");
+  var cached = autocompleteCache.get(cacheKey);
+  if (cached && Date.now() - cached.savedAt < AUTOCOMPLETE_TTL_MS) {
+    return { results: cached.results, cached: true };
+  }
+  var data = await request("autocomplete/company?query=" + encodeURIComponent(query));
+  var results = (Array.isArray(data && data.results) ? data.results : [])
+    .map(osnovniZadetekPodjetja)
+    .filter(function (company) { return company.company_id && company.name; })
+    .slice(0, 8);
+  autocompleteCache.set(cacheKey, { savedAt: Date.now(), results: results });
+  if (autocompleteCache.size > 80) autocompleteCache.delete(autocompleteCache.keys().next().value);
+  return { results: results, cached: false };
+}
+
+async function companyDetails(companyId) {
+  var id = veljavenCompanyId(companyId);
+  if (!id) throw napaka("Izberite veljavno podjetje iz registra.", 400, "COMPANY_ID_REQUIRED");
+  return request("company/" + encodeURIComponent(id));
+}
+
 function kreditnoStanje(input) {
   var root = input && typeof input === "object" ? input : {};
   var data = root.credits && typeof root.credits === "object" ? root.credits : root;
@@ -224,6 +263,8 @@ module.exports = {
   request: request,
   section: section,
   advancedSearch: advancedSearch,
+  autocompleteCompanies: autocompleteCompanies,
+  companyDetails: companyDetails,
   credits: credits,
   kreditnoStanje: kreditnoStanje,
   document: document,

@@ -2,6 +2,9 @@
   "use strict";
 
   var STORAGE_KEY = "uj-pos-terminal-v1";
+  var BONITETA_OFFER_TRANSFER_KEY = "uj_boniteta_offer_transfer_v1";
+  var BONITETA_OFFER_TRANSFER_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  var BONITETA_OFFER_TRANSFER_FUTURE_SKEW_MS = 5 * 60 * 1000;
   var DATE_LOCALE = "de-DE";
   var CURRENCY = "EUR";
   var MAX_BANK_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -295,6 +298,80 @@
     return normalized.originalInvoiceId && normalized.cancellationAdjustmentId ? normalized : null;
   }
 
+  function normalizeBonitetaItem(source) {
+    source = source && typeof source === "object" ? source : {};
+    var company = source.company && typeof source.company === "object" ? source.company : {};
+    var verification = source.verification && typeof source.verification === "object" ? source.verification : {};
+    var status = String(company.identityStatus || verification.identityStatus || "");
+    if (["verified_register", "confirmed_impressum"].indexOf(status) === -1) return null;
+    if (!String(company.name || "").trim() || !String(company.street || "").trim() || !/^\d{5}$/.test(String(company.postalCode || "").trim()) || !String(company.city || "").trim()) return null;
+    return {
+      sourceProfileId: String(source.sourceProfileId || ""),
+      company: {
+        name: String(company.name).trim(),
+        street: String(company.street).trim(),
+        postalCode: String(company.postalCode).trim(),
+        city: String(company.city).trim(),
+        entityType: String(company.entityType || "company"),
+        registerNumber: String(company.registerNumber || ""),
+        registerCourt: String(company.registerCourt || ""),
+        companyId: String(company.companyId || ""),
+        sourceUrl: String(company.sourceUrl || ""),
+        identityStatus: status
+      },
+      verification: {
+        checkedAt: String(verification.checkedAt || ""),
+        sourceUrl: String(verification.sourceUrl || company.sourceUrl || ""),
+        identityStatus: status,
+        registerNumber: String(verification.registerNumber || company.registerNumber || ""),
+        registerCourt: String(verification.registerCourt || company.registerCourt || "")
+      },
+      resultSummary: {
+        level: String(source.resultSummary && source.resultSummary.level || ""),
+        title: String(source.resultSummary && source.resultSummary.title || "Preverba zaključena"),
+        insolvencyStatus: String(source.resultSummary && source.resultSummary.insolvencyStatus || "unverifiable")
+      },
+      recommendations: (Array.isArray(source.recommendations) ? source.recommendations : []).filter(function (entry) {
+        return entry && entry.key === "payment_security_650f";
+      }).slice(0, 1).map(function (entry) {
+        return { key: "payment_security_650f", selected: Boolean(entry.selected), status: "eligibility_review_required" };
+      })
+    };
+  }
+
+  function normalizeBonitetaContext(value, requireFresh) {
+    var source = value && typeof value === "object" ? value : {};
+    var transferredAt = String(source.transferredAt || "");
+    var expiresAt = String(source.expiresAt || "");
+    var version = Number(source.version);
+    if (version !== 1 && version !== 2) return null;
+    if (requireFresh) {
+      var transferredAtMs = Date.parse(transferredAt);
+      var expiresAtMs = Date.parse(expiresAt);
+      var nowMs = Date.now();
+      if (!Number.isFinite(transferredAtMs) || !Number.isFinite(expiresAtMs)
+        || transferredAtMs > nowMs + BONITETA_OFFER_TRANSFER_FUTURE_SKEW_MS
+        || expiresAtMs <= nowMs
+        || expiresAtMs <= transferredAtMs
+        || expiresAtMs - transferredAtMs > BONITETA_OFFER_TRANSFER_MAX_AGE_MS + BONITETA_OFFER_TRANSFER_FUTURE_SKEW_MS) return null;
+    }
+    var rawItems = version === 2 && Array.isArray(source.companies) ? source.companies.slice(0, 2) : [source];
+    var companies = rawItems.map(normalizeBonitetaItem);
+    if (!companies.length || companies.some(function (item) { return !item; })) return null;
+    var first = companies[0];
+    return {
+      version: version,
+      transferredAt: transferredAt,
+      expiresAt: expiresAt,
+      sourceProfileId: first.sourceProfileId,
+      company: first.company,
+      verification: first.verification,
+      resultSummary: first.resultSummary,
+      recommendations: first.recommendations,
+      companies: companies
+    };
+  }
+
   function defaultDraft(profile) {
     var today = isoToday();
     var taxMode = profile && profile.taxStatus === "small_business" ? "small_business" : "regular";
@@ -335,7 +412,8 @@
       replacementContext: null,
       workflowMode: "invoice",
       offerValidDays: "14",
-      workflowContext: null
+      workflowContext: null,
+      bonitetaContext: null
     };
   }
 
@@ -490,7 +568,8 @@
             gross_cents: entry.grossCents
           };
         }) : []
-      } : null
+      } : null,
+      boniteta_context: normalizeBonitetaContext(draft.bonitetaContext)
     };
   }
 
@@ -544,7 +623,8 @@
         invoiceKind: source.workflow_context.invoice_kind === "progress" ? "progress" : "final",
         progressPercent: integer(source.workflow_context.progress_percent, 0),
         finalDeductions: normalizeFinalDeductions(source.workflow_context.final_deductions)
-      } : null
+      } : null,
+      bonitetaContext: normalizeBonitetaContext(source.boniteta_context)
     });
   }
 
@@ -1819,6 +1899,8 @@
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
     paymentSummary: paymentSummary,
+    cashReceiptForInvoice: cashReceiptForInvoice,
+    applyLocalCashCheckouts: applyLocalCashCheckouts,
     serverInvoiceToLocal: serverInvoiceToLocal,
     buildAdjustmentChanges: buildAdjustmentChanges,
     normalizeReplacementContext: normalizeReplacementContext,
@@ -1891,14 +1973,14 @@
   var finapiBankCapability = { loaded: false, loading: false, syncing: false, configured: false, connected: false, pending: false, environment: "sandbox", bankName: "", lastError: false };
   var archiveCapability = { loaded: false, loading: false, error: "", productionReady: false, documentCount: 0, verifiedCount: 0, uncheckedCount: 0, failureCount: 0, replicatedCount: 0, replicaPendingCount: 0, replicaFailureCount: 0, retentionYears: 8, independentBackupReady: false, wormProviderReady: false, wormEnvironment: "not_configured", objectLockMode: null };
   var procedureVersions = [];
-  var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", latestTransfer: null, lastError: "" };
+  var datevCloudCapability = { loaded: false, loading: false, working: false, configured: false, connected: false, environment: "mock", clientName: "", consultantNumber: null, clientNumber: null, latestTransfer: null, lastError: "" };
   var toastTimer = 0;
   var dialogCallback = null;
   var dialogValidator = null;
   var modalStack = [];
 
   function loadState() {
-    var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0, storageOwnerUserId: "" };
+    var initial = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], cashCheckouts: [], cashMovements: [], draft: null, sequence: 0, storageOwnerUserId: "" };
     try {
       var saved = JSON.parse(global.sessionStorage.getItem(STORAGE_KEY) || global.localStorage.getItem(STORAGE_KEY) || "null");
       if (!saved || typeof saved !== "object") return initial;
@@ -1907,6 +1989,8 @@
         invoices: Array.isArray(saved.invoices) ? saved.invoices : [],
         workOrders: Array.isArray(saved.workOrders) ? saved.workOrders : [],
         bankTransactions: Array.isArray(saved.bankTransactions) ? saved.bankTransactions : [],
+        cashCheckouts: Array.isArray(saved.cashCheckouts) ? saved.cashCheckouts : [],
+        cashMovements: Array.isArray(saved.cashMovements) ? saved.cashMovements : [],
         draft: saved.draft && typeof saved.draft === "object" ? saved.draft : null,
         sequence: integer(saved.sequence, 0),
         storageOwnerUserId: String(saved.storageOwnerUserId || "")
@@ -1952,7 +2036,7 @@
     if (result.error) throw result.error;
     var nextUserId = result.data && result.data.user && result.data.user.id || null;
     if (nextUserId && state.storageOwnerUserId && state.storageOwnerUserId !== nextUserId) {
-      state = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], draft: null, sequence: 0, storageOwnerUserId: "" };
+      state = { profile: defaultProfile(), invoices: [], workOrders: [], bankTransactions: [], cashCheckouts: [], cashMovements: [], draft: null, sequence: 0, storageOwnerUserId: "" };
       try { global.sessionStorage.removeItem(STORAGE_KEY); } catch (_error) {}
     }
     backend.userId = nextUserId;
@@ -2094,6 +2178,68 @@
     };
   }
 
+  function cashReceiptForInvoice(invoice) {
+    if (!invoice || !invoice.isTest || invoice.status === "cancelled" || invoice.status === "credited" || invoice.hasCreditNote) return null;
+    var outstanding = invoiceOutstandingCents(invoice);
+    var draft = invoice.draft || {};
+    if (outstanding <= 0 || draft.workflowContext && Array.isArray(draft.workflowContext.finalDeductions) && draft.workflowContext.finalDeductions.length) return null;
+    var items = (draft.items || []).map(function (item) {
+      var calculated = calculateItem(item, draft.priceMode, draft.taxMode);
+      return {
+        description: String(item.description || "").trim(),
+        quantityMilli: calculated.quantityMilli,
+        unitGrossCents: calculated.quantityMilli > 0 ? roundDivide(calculated.grossCents * 1000, calculated.quantityMilli) : 0,
+        grossCents: calculated.grossCents,
+        vatRate: String(Math.round(calculated.rateBps / 100))
+      };
+    }).filter(function (item) { return item.description && item.quantityMilli > 0 && item.grossCents >= 0; });
+    if (!items.length || items.reduce(function (sum, item) { return sum + item.grossCents; }, 0) !== outstanding) return null;
+    var vatMap = {};
+    items.forEach(function (item) {
+      var rate = integer(item.vatRate, 0);
+      var net = rate ? roundDivide(item.grossCents * 100, 100 + rate) : item.grossCents;
+      if (!vatMap[item.vatRate]) vatMap[item.vatRate] = { vatRate: item.vatRate, netCents: 0, taxCents: 0, grossCents: 0 };
+      vatMap[item.vatRate].netCents += net;
+      vatMap[item.vatRate].taxCents += item.grossCents - net;
+      vatMap[item.vatRate].grossCents += item.grossCents;
+    });
+    return { schemaVersion: 1, paymentType: "CASH", currency: "EUR", grossCents: outstanding, items: items, totalsByVat: Object.keys(vatMap).sort().map(function (rate) { return vatMap[rate]; }) };
+  }
+
+  function applyLocalCashCheckouts(invoices, checkouts) {
+    var result = Array.isArray(invoices) ? invoices : [];
+    (Array.isArray(checkouts) ? checkouts : []).filter(function (checkout) { return checkout && checkout.state === "completed" && checkout.invoiceId; }).forEach(function (checkout) {
+      var invoice = result.filter(function (entry) { return entry.id === checkout.invoiceId; })[0];
+      if (!invoice) return;
+      var payments = invoice.payments || [];
+      var existingPayment = payments.filter(function (payment) { return payment.id === checkout.paymentId; })[0];
+      if (!existingPayment) {
+        payments = payments.concat([{
+          id: checkout.paymentId || "cash-" + checkout.id,
+          invoiceId: invoice.id,
+          amountCents: integer(checkout.receipt && checkout.receipt.grossCents, 0),
+          currency: "EUR",
+          method: "cash",
+          provider: "fiskaly",
+          providerReference: "Lokaler TSE-Mock · " + String(checkout.signature && checkout.signature.signatureCounter || "–"),
+          paidAt: checkout.completedAt || checkout.signature && checkout.signature.finishedAt || null,
+          status: (checkout.refund && checkout.refund.state === "completed") || checkout.refundedAt ? "refunded" : "succeeded",
+          refundedCents: (checkout.refund && checkout.refund.state === "completed") || checkout.refundedAt ? integer(checkout.receipt && checkout.receipt.grossCents, 0) : 0,
+          metadata: { training: true, cashCheckoutId: checkout.id }
+        }]);
+      } else if ((checkout.refund && checkout.refund.state === "completed") || checkout.refundedAt) {
+        existingPayment.status = "refunded";
+        existingPayment.refundedCents = integer(checkout.receipt && checkout.receipt.grossCents, 0);
+      }
+      invoice.payments = payments;
+      var locked = invoice.status === "cancelled" ? "cancelled" : invoice.status === "credited" ? "credited" : "open";
+      var summary = paymentSummary(payments, invoice.adjustedGrossCents == null ? invoice.totals && invoice.totals.grossCents : invoice.adjustedGrossCents, locked);
+      invoice.paidCents = summary.paidCents;
+      invoice.status = summary.status;
+    });
+    return result;
+  }
+
   function serverInvoiceToLocal(row, paymentsByInvoice, documentsByInvoice, adjustmentsByInvoice, deliveriesByInvoice, einvoiceDocumentsByInvoice) {
     var snapshot = row.snapshot || {};
     var adjustments = adjustmentsByInvoice && adjustmentsByInvoice[row.id] || [];
@@ -2156,6 +2302,7 @@
       invoice.paidCents = paymentState.paidCents;
       invoice.status = paymentState.status;
     });
+    applyLocalCashCheckouts(state.invoices, state.cashCheckouts);
   }
 
   function applyDeliveryRefresh(deliveryRows, eventRows) {
@@ -2200,7 +2347,7 @@
         scopes.profile ? backend.client.from("pos_business_profiles").select("*").eq("user_id", userId).maybeSingle() : skipped(),
         scopes.draft ? backend.client.from("pos_invoice_drafts").select("id,payload,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1) : skipped(),
         fetchAllRows(function () { return backend.client.from("pos_invoices").select("*").eq("user_id", userId).order("issued_at", { ascending: false }).order("id", { ascending: false }); }),
-        fetchAllRows(function () { return backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,metadata,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_invoice_documents").select("invoice_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId).order("invoice_id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_invoice_adjustments").select("*").eq("user_id", userId).order("issued_at", { ascending: true }).order("id", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_adjustment_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version").eq("user_id", userId).order("adjustment_id", { ascending: true }); }),
@@ -2342,7 +2489,7 @@
         };
       });
       var localTests = state.invoices.filter(function (invoice) { return !invoice.serverStored && invoice.isTest; });
-      state.invoices = mergeInvoiceSources(serverInvoices, localTests);
+      state.invoices = applyLocalCashCheckouts(mergeInvoiceSources(serverInvoices, localTests), state.cashCheckouts);
       if (responses[1].data && responses[1].data[0]) {
         state.draft = draftFromDatabasePayload(responses[1].data[0].payload, false);
         state.draft.serverId = responses[1].data[0].id;
@@ -2373,7 +2520,7 @@
       var requests = [];
       var keys = [];
       function add(key, request) { keys.push(key); requests.push(request); }
-      if (scopes.payments) add("payments", backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,created_at").eq("user_id", userId).order("created_at", { ascending: true }));
+      if (scopes.payments) add("payments", backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,metadata,created_at").eq("user_id", userId).order("created_at", { ascending: true }));
       if (scopes.deliveries) {
         add("deliveries", backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
         add("deliveryEvents", backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
@@ -3579,6 +3726,7 @@
 
   function paymentSourceLabel(payment) {
     if (payment.provider === "stripe" || payment.method === "stripe_card") return "Stripe kartica · TEST";
+    if (payment.method === "cash") return "Barzahlung · TSE MOCK";
     if (payment.sourceBankTransactionId || payment.method === "bank_transfer") return "Bančno nakazilo";
     if (payment.method === "external_card") return "Zunanja kartica";
     return "Ročna potrditev";
@@ -3644,6 +3792,180 @@
     }
   }
 
+  function localCashCheckoutForInvoice(invoice) {
+    var checkouts = (state.cashCheckouts || []).filter(function (entry) { return entry && entry.invoiceId === invoice.id && entry.state === "completed"; });
+    return checkouts[checkouts.length - 1] || null;
+  }
+
+  function cashCheckoutTransaction(checkout, useRefund) {
+    var event = useRefund && checkout && checkout.refund || checkout;
+    var signature = event && event.signature || {};
+    var receipt = event && event.receipt || checkout && checkout.receipt;
+    if (useRefund && receipt) {
+      receipt = Object.assign({}, receipt, {
+        grossCents: -integer(receipt.grossCents, 0),
+        items: (receipt.items || []).map(function (item) { return Object.assign({}, item, { grossCents: -integer(item.grossCents, 0), unitGrossCents: -integer(item.unitGrossCents, 0) }); }),
+        totalsByVat: (receipt.totalsByVat || []).map(function (row) { return Object.assign({}, row, { netCents: -integer(row.netCents, 0), taxCents: -integer(row.taxCents, 0), grossCents: -integer(row.grossCents, 0) }); })
+      });
+    }
+    return {
+      state: "FINISHED",
+      fiscalType: useRefund ? "REFUND" : "SALE",
+      transactionNumber: signature.signatureCounter || event && event.id,
+      paymentType: "CASH",
+      amount: (integer(receipt && receipt.grossCents, 0) / 100).toFixed(2),
+      currency: "EUR",
+      receipt: receipt,
+      signatureCounter: signature.signatureCounter,
+      signatureAlgorithm: signature.signatureAlgorithm,
+      tssSerialNumber: signature.tssSerialNumber,
+      clientSerialNumber: signature.clientSerialNumber,
+      qrCodeData: signature.qrCodeData,
+      startedAt: signature.startedAt,
+      finishedAt: signature.finishedAt || event && event.completedAt
+    };
+  }
+
+  function renderCashPayment(invoice) {
+    var panel = query("[data-cash-payment-panel]");
+    if (!panel) return;
+    var checkout = localCashCheckoutForInvoice(invoice);
+    var receipt = cashReceiptForInvoice(invoice);
+    var refunded = Boolean(checkout && (checkout.refund && checkout.refund.state === "completed" || checkout.refundedAt));
+    var recoveryRequired = Boolean(checkout && checkout.refund && checkout.refund.state === "recovery_required");
+    panel.hidden = !invoice.isTest;
+    if (!invoice.isTest) return;
+    panel.classList.toggle("is-paid", Boolean(checkout && !refunded));
+    panel.classList.toggle("is-refunded", refunded);
+    panel.classList.toggle("is-recovery", recoveryRequired);
+    query("[data-cash-payment-title]").textContent = recoveryRequired ? "TSE uskladitev je obvezna" : refunded ? "Gotovina povrnjena" : checkout ? "Gotovina zaključena" : "Gotovinsko plačilo · TRAINING";
+    query("[data-cash-payment-copy]").textContent = recoveryRequired
+      ? "Povračilo ni zabeleženo. Pred ponovitvijo je treba ročno preveriti stanje TSE transakcije."
+      : refunded
+      ? "Mock TSE prodaja in podpisano gotovinsko povračilo sta sledljiva v DSFinV-K TEST izvozu."
+      : checkout ? "Plačilo je bilo zapisano šele po zaključenem lokalnem mock TSE podpisu."
+      : receipt ? "Odprti znesek " + formatMoney(receipt.grossCents) + " bo zaključen atomarno z lokalnim mock TSE podpisom."
+      : "Ta račun ni primeren za varen lokalni gotovinski zaključek.";
+    var pay = query("[data-cash-payment]");
+    var refund = query("[data-cash-refund]");
+    var showReceipt = query("[data-cash-receipt]");
+    pay.hidden = Boolean(checkout && !refunded);
+    pay.disabled = !receipt || Boolean(checkout && !refunded);
+    refund.hidden = !checkout || refunded;
+    refund.disabled = !checkout || refunded || recoveryRequired;
+    showReceipt.hidden = !checkout;
+  }
+
+  async function requestLocalCashPayment(invoice) {
+    var receipt = cashReceiptForInvoice(invoice);
+    if (!receipt) { showToast("Račun ni primeren za varen gotovinski TRAINING zaključek."); return; }
+    var scope = invoice.id + ":" + receipt.grossCents;
+    openDialog("Gotovino zaključiti s TSE mockom?", invoice.number + " · " + formatMoney(receipt.grossCents) + ". Plačilo bo lokalno zapisano šele po popolnem mock TSE podpisu.", {
+      confirmText: "Potrdi gotovino · TEST",
+      onConfirm: async function () {
+        var button = query("[data-cash-payment]");
+        button.disabled = true;
+        try {
+          var requestKey = operationRequestId("cash-payment", scope);
+          var invoiceUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invoice.id) ? invoice.id : operationRequestId("cash-invoice", invoice.id);
+          var response = await posFetch("/api/pos-fiskaly", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "local-training-cash-checkout", invoiceId: invoiceUuid, requestKey: requestKey, transactionId: requestKey, confirmed: true, receipt: receipt })
+          });
+          var body = null;
+          try { body = await response.json(); } catch (_error) {}
+          if (!response.ok || !body || !body.ok || !body.checkout) throw new Error(body && body.napaka || "Lokalni gotovinski checkout ni uspel.");
+          var checkout = Object.assign({}, body.checkout, { fiscalInvoiceId: body.checkout.invoiceId, invoiceId: invoice.id, invoiceNumber: invoice.number, receipt: receipt });
+          state.cashCheckouts = (state.cashCheckouts || []).filter(function (entry) { return entry.id !== checkout.id; }).concat([checkout]);
+          applyLocalCashCheckouts([invoice], [checkout]);
+          persist();
+          clearOperationRequestId("cash-payment", scope);
+          renderInvoiceDetail(invoice.id);
+          renderSignedKassenbon(cashCheckoutTransaction(checkout));
+          activateModal(query("[data-fiskaly-receipt-backdrop]"), closeFiskalyReceiptSheet, query("[data-fiskaly-receipt-close]"));
+          showToast("Gotovina je lokalno zaključena z mock TSE podpisom.");
+        } finally { button.disabled = false; }
+      }
+    });
+  }
+
+  function showLocalCashReceipt(invoice) {
+    var checkout = localCashCheckoutForInvoice(invoice);
+    if (!checkout) return;
+    renderSignedKassenbon(cashCheckoutTransaction(checkout, Boolean(checkout.refund && checkout.refund.state === "completed")));
+    activateModal(query("[data-fiskaly-receipt-backdrop]"), closeFiskalyReceiptSheet, query("[data-fiskaly-receipt-close]"));
+  }
+
+  function refundLocalCashPayment(invoice) {
+    var checkout = localCashCheckoutForInvoice(invoice);
+    if (!checkout || (checkout.refund && checkout.refund.state === "completed") || checkout.refundedAt) return;
+    var amount = integer(checkout.receipt && checkout.receipt.grossCents, 0);
+    openDialog("Gotovino vrniti?", invoice.number + " · " + formatMoney(amount) + ". Povračilo bo zapisano šele po lastnem mock TSE podpisu.", {
+      confirmText: "Potrdi vračilo · TEST",
+      onConfirm: async function () {
+        var button = query("[data-cash-refund]");
+        button.disabled = true;
+        var scope = invoice.id + ":" + checkout.id + ":" + amount;
+        try {
+          var requestKey = operationRequestId("cash-refund", scope);
+          var invoiceUuid = checkout.fiscalInvoiceId || (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invoice.id) ? invoice.id : operationRequestId("cash-invoice", invoice.id));
+          var response = await posFetch("/api/pos-fiskaly", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "local-training-cash-refund", invoiceId: invoiceUuid, originalCheckoutId: checkout.id, requestKey: requestKey, transactionId: requestKey, confirmed: true, receipt: checkout.receipt })
+          });
+          var body = null;
+          try { body = await response.json(); } catch (_error) {}
+          if (!response.ok || !body || !body.ok || !body.refund) throw new Error(body && body.napaka || "Lokalno gotovinsko povračilo ni uspelo.");
+          checkout.refund = Object.assign({}, body.refund, { invoiceId: invoice.id, invoiceNumber: invoice.number, receipt: checkout.receipt, originalCheckoutId: checkout.id });
+          checkout.refundedAt = checkout.refund.completedAt;
+          applyLocalCashCheckouts([invoice], [checkout]);
+          persist();
+          clearOperationRequestId("cash-refund", scope);
+          renderInvoiceDetail(invoice.id);
+          renderSignedKassenbon(cashCheckoutTransaction(checkout, true));
+          activateModal(query("[data-fiskaly-receipt-backdrop]"), closeFiskalyReceiptSheet, query("[data-fiskaly-receipt-close]"));
+          showToast("Gotovinsko povračilo je zaključeno z lastnim mock TSE podpisom.");
+        } catch (error) {
+          if (body && body.refund && body.refund.state === "recovery_required") {
+            checkout.refund = Object.assign({}, body.refund, { invoiceId: invoice.id, invoiceNumber: invoice.number, receipt: checkout.receipt, originalCheckoutId: checkout.id });
+            persist();
+            renderInvoiceDetail(invoice.id);
+            showToast("Povračilo ni zabeleženo – potrebna je ročna TSE uskladitev.");
+            return;
+          }
+          throw error;
+        } finally { button.disabled = false; }
+      }
+    });
+  }
+
+  function recordLocalCashMovement(type) {
+    var deposit = type === "DEPOSIT";
+    openDialog(deposit ? "Gotovinski polog · TEST" : "Gotovinski dvig · TEST", "Dogodek bo ostal samo v lokalnem TRAINING Kassenbuchu.", {
+      confirmText: deposit ? "Potrdi polog" : "Potrdi dvig",
+      input: { label: "Znesek EUR", value: "0,00", inputMode: "decimal", placeholder: "0,00" },
+      validate: function (value) { return parseMoneyToCents(value) > 0 ? "" : "Vnesite pozitiven znesek."; },
+      onConfirm: function (value) {
+        var movement = { type: type, amountCents: parseMoneyToCents(value), occurredAt: new Date().toISOString(), reference: uid("cash-movement"), reason: deposit ? "Privateinlage TRAINING" : "Privatentnahme TRAINING" };
+        global.UJPosDsfinvk.normalizeMovement(movement);
+        state.cashMovements = (state.cashMovements || []).concat([movement]);
+        persist();
+        showToast(deposit ? "Gotovinski polog je zabeležen lokalno." : "Gotovinski dvig je zabeležen lokalno.");
+      }
+    });
+  }
+
+  function downloadDsfinvk() {
+    try {
+      if (!global.UJPosDsfinvk) throw new Error("DSFinV-K lokalni modul ni naložen.");
+      var result = global.UJPosDsfinvk.buildPackage(state.cashCheckouts, state.profile, { movements: state.cashMovements });
+      downloadFile(result.filename, result.content, "application/json;charset=utf-8");
+      showToast("DSFinV-K TRAINING paket je pripravljen.");
+    } catch (error) { showToast(error && error.message || "DSFinV-K TEST izvoza ni bilo mogoče pripraviti."); }
+  }
+
   function renderPaymentList(invoice) {
     var section = query("[data-detail-payments-section]");
     var list = query("[data-detail-payments-list]");
@@ -3660,9 +3982,10 @@
       var dateSource = payment.paidAt || payment.createdAt;
       var date = dateSource ? formatDate(berlinDateKey(dateSource)) : "Datum ni naveden";
       var isBank = Boolean(payment.sourceBankTransactionId || payment.method === "bank_transfer");
+      var isCash = payment.method === "cash";
       var status = payment.status || "succeeded";
       var effective = Math.max(0, integer(payment.amountCents, 0) - integer(payment.refundedCents, 0));
-      return "<article class=\"pos-payment-row\"><span class=\"pos-payment-row__icon" + (isBank ? "" : " is-manual") + "\"><svg><use href=\"#" + (isBank ? "i-bank" : payment.provider === "stripe" ? "i-card" : "i-check") + "\"/></svg></span><div class=\"pos-payment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(paymentSourceLabel(payment)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(date + " · " + reference) + "</small><span class=\"pos-payment-row__status is-" + escapeHtml(status) + "\">" + escapeHtml(paymentStatusLabel(payment)) + "</span></div><strong class=\"pos-payment-row__amount\" data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(status === "refunded" ? 0 : effective || payment.amountCents)) + "</strong></article>";
+      return "<article class=\"pos-payment-row\"><span class=\"pos-payment-row__icon" + (isBank ? "" : " is-manual") + "\"><svg><use href=\"#" + (isBank ? "i-bank" : isCash ? "i-receipt" : payment.provider === "stripe" ? "i-card" : "i-check") + "\"/></svg></span><div class=\"pos-payment-row__copy\"><strong data-fit-text data-fit-max=\"11\">" + escapeHtml(paymentSourceLabel(payment)) + "</strong><small data-fit-text data-fit-max=\"9\">" + escapeHtml(date + " · " + reference) + "</small><span class=\"pos-payment-row__status is-" + escapeHtml(status) + "\">" + escapeHtml(paymentStatusLabel(payment)) + "</span></div><strong class=\"pos-payment-row__amount\" data-fit-text data-fit-max=\"11\">" + escapeHtml(formatMoney(status === "refunded" ? 0 : effective || payment.amountCents)) + "</strong></article>";
     }).join("");
   }
 
@@ -3954,12 +4277,14 @@
 
   function renderSignedKassenbon(transaction) {
     var receipt = transaction.receipt || { items: [], totalsByVat: [], grossCents: 0 };
+    var isRefund = transaction.fiscalType === "REFUND";
     var profileName = String(state.profile.legalName || "WerkTech Lab – Testbetrieb");
     var profileAddress = [state.profile.street, [state.profile.postalCode, state.profile.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Geschäftsanschrift noch nicht hinterlegt";
     query("[data-kassenbon-company]").textContent = profileName;
     query("[data-kassenbon-address]").textContent = profileAddress;
     query("[data-kassenbon-date]").textContent = formatFiskalyTimestamp(transaction.finishedAt);
     query("[data-kassenbon-number]").textContent = String(transaction.transactionNumber || "–");
+    query("[data-kassenbon-kind]").textContent = isRefund ? "STORNOBELEG · TRAINING" : "TESTBELEG · TRAINING";
     query("[data-kassenbon-lines]").innerHTML = (receipt.items || []).map(function (item) {
       var vatLabel = String(item.vatRate) === "0" ? "Steuerfrei / 0 % (Test)" : "USt. " + item.vatRate + " %";
       return "<div class=\"pos-kassenbon-line\"><strong>" + escapeHtml(item.description) + "</strong><b>" + escapeHtml(formatMoney(item.grossCents)) + "</b><small>" + escapeHtml(formatDecimalMilli(item.quantityMilli) + " × " + formatMoney(item.unitGrossCents) + " · " + vatLabel) + "</small></div>";
@@ -3969,7 +4294,7 @@
       return "<div class=\"pos-kassenbon-tax\"><span>" + escapeHtml(vatLabel) + "</span><span>Netto " + escapeHtml(formatMoney(row.netCents)) + "</span><span>USt. " + escapeHtml(formatMoney(row.taxCents)) + "</span><strong>Brutto " + escapeHtml(formatMoney(row.grossCents)) + "</strong></div>";
     }).join("");
     query("[data-kassenbon-total]").textContent = formatMoney(receipt.grossCents);
-    query("[data-kassenbon-payment]").textContent = transaction.paymentType === "CASH" ? "Zahlungsart: Bar (TRAINING)" : "Zahlungsart: Karte / unbar (TRAINING)";
+    query("[data-kassenbon-payment]").textContent = isRefund ? "Erstattung: Bar (TRAINING)" : transaction.paymentType === "CASH" ? "Zahlungsart: Bar (TRAINING)" : "Zahlungsart: Karte / unbar (TRAINING)";
     query("[data-kassenbon-start]").textContent = formatFiskalyTimestamp(transaction.startedAt);
     query("[data-kassenbon-end]").textContent = formatFiskalyTimestamp(transaction.finishedAt);
     query("[data-kassenbon-client]").textContent = String(transaction.clientSerialNumber || "–");
@@ -4270,6 +4595,7 @@
     } else setEinvoiceState(invoice, "pending", "");
     renderPaymentList(invoice);
     renderStripePayment(invoice);
+    renderCashPayment(invoice);
     renderAdjustmentList(invoice);
     renderDeliveryList(invoice);
     fitAllText();
@@ -4616,6 +4942,58 @@
     openDialog("Začeti novo ponudbo?", "Trenutni osnutek bo zamenjan z novo ponudbo.", { confirmText: "Nova ponudba", onConfirm: create });
   }
 
+  function readBonitetaOfferTransfer() {
+    try {
+      return normalizeBonitetaContext(JSON.parse(global.sessionStorage.getItem(BONITETA_OFFER_TRANSFER_KEY) || "null"), true);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function offerDraftFromBoniteta(context) {
+    var draft = defaultDraft(state.profile);
+    var companies = Array.isArray(context.companies) ? context.companies : [context];
+    draft.workflowMode = "offer";
+    draft.offerValidDays = "14";
+    draft.customerType = "business";
+    if (companies.length === 1) {
+      draft.customerName = context.company.name;
+      draft.customerStreet = context.company.street;
+      draft.customerPostalCode = context.company.postalCode;
+      draft.customerCity = context.company.city;
+    }
+    draft.bonitetaContext = context;
+    return draft;
+  }
+
+  function importBonitetaOfferTransfer() {
+    var cleanUrl = new URL(global.location.href);
+    cleanUrl.searchParams.delete("from");
+    global.history.replaceState(null, "", cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    var context = readBonitetaOfferTransfer();
+    if (!context) {
+      try { global.sessionStorage.removeItem(BONITETA_OFFER_TRANSFER_KEY); } catch (_error) {}
+      showToast("Prenos iz bonitetne preverbe ni več na voljo. Podjetje prenesite ponovno.");
+      return;
+    }
+    var applyTransfer = function () {
+      state.draft = offerDraftFromBoniteta(context);
+      currentStep = 1;
+      persist();
+      try { global.sessionStorage.removeItem(BONITETA_OFFER_TRANSFER_KEY); } catch (_error) {}
+      showView("invoice");
+      showToast(context.companies.length > 1 ? "Primerjava obeh podjetij je prenesena. Izberite prejemnika ponudbe." : "Preverjeno podjetje je preneseno v osnutek ponudbe.");
+    };
+    if (!state.draft) {
+      applyTransfer();
+      return;
+    }
+    openDialog(context.companies.length > 1 ? "Prenesti obe podjetji v novo ponudbo?" : "Prenesti podjetje v novo ponudbo?", context.companies.length > 1 ? "Trenutni osnutek bo zamenjan. Primerjalni podatki obeh podjetij bodo dodani, prejemnika pa boste izbrali ročno." : "Trenutni osnutek bo zamenjan. Preverjeni podatki podjetja in izbrana priporočila bodo dodani novi ponudbi.", {
+      confirmText: "Prenesi",
+      onConfirm: applyTransfer
+    });
+  }
+
   function openReplacementDraft(invoice, cancellation) {
     var existingServerId = state.draft && state.draft.serverId || null;
     var draft = replacementDraftFromInvoice(invoice, cancellation, state.profile);
@@ -4701,6 +5079,16 @@
     queryAll("[data-invoice-only-output]").forEach(function (element) { element.hidden = offerMode; });
     query("[data-issue-invoice]").textContent = offerMode ? (workflow.workOrderId ? "Posodobi ponudbo" : "Ustvari ponudbo") : "Ustvari testni račun";
     fillForm(query("#pos-invoice-form"), state.draft);
+    var boniteta = offerMode ? normalizeBonitetaContext(state.draft.bonitetaContext) : null;
+    var bonitetaBanner = query("[data-boniteta-transfer]");
+    bonitetaBanner.hidden = !boniteta;
+    if (boniteta) {
+      var prenesenaPodjetja = Array.isArray(boniteta.companies) ? boniteta.companies : [boniteta];
+      query("[data-boniteta-transfer-company]").textContent = prenesenaPodjetja.length > 1 ? prenesenaPodjetja.map(function (item) { return item.company.name; }).join(" · ") : boniteta.company.name + " · " + [boniteta.company.street, boniteta.company.postalCode, boniteta.company.city].join(", ");
+      var selected650f = prenesenaPodjetja.some(function (item) { return item.recommendations.some(function (entry) { return entry.key === "payment_security_650f" && entry.selected; }); });
+      var checkedOn = boniteta.verification.checkedAt && Date.parse(boniteta.verification.checkedAt) ? formatDate(berlinDateKey(boniteta.verification.checkedAt)) : "datum ni naveden";
+      query("[data-boniteta-transfer-summary]").textContent = (prenesenaPodjetja.length > 1 ? "Prenesen je primerjalni povzetek obeh podjetij" : "Boniteta preverjena " + checkedOn) + " · " + (selected650f ? "§650f je označen za preverjanje pri ponudbi." : "Brez izbranega dodatnega priporočila.");
+    }
     var replacement = normalizeReplacementContext(state.draft);
     var banner = query("[data-replacement-banner]");
     banner.hidden = !replacement;
@@ -5708,6 +6096,8 @@
     datevCloudCapability.connected = Boolean(connection.connected);
     datevCloudCapability.environment = String(connection.environment || "mock");
     datevCloudCapability.clientName = String(connection.clientName || "");
+    datevCloudCapability.consultantNumber = Number.isInteger(Number(connection.consultantNumber)) && Number(connection.consultantNumber) > 0 ? Number(connection.consultantNumber) : null;
+    datevCloudCapability.clientNumber = Number.isInteger(Number(connection.clientNumber)) && Number(connection.clientNumber) > 0 ? Number(connection.clientNumber) : null;
     if (Object.prototype.hasOwnProperty.call(result || {}, "latestTransfer")) datevCloudCapability.latestTransfer = result.latestTransfer;
     if (Object.prototype.hasOwnProperty.call(result || {}, "transfer")) datevCloudCapability.latestTransfer = result.transfer;
     datevCloudCapability.lastError = "";
@@ -5720,6 +6110,9 @@
     var transferButton = query("[data-datev-transfer]");
     var latest = datevCloudCapability.latestTransfer;
     var busy = datevCloudCapability.loading || datevCloudCapability.working;
+    var connectedIdentifiers = [];
+    if (datevCloudCapability.consultantNumber) connectedIdentifiers.push("Berater " + datevCloudCapability.consultantNumber);
+    if (datevCloudCapability.clientNumber) connectedIdentifiers.push("Mandant " + datevCloudCapability.clientNumber);
     var exportResult = renderDatevSheet();
     var mockTest = datevCloudCapability.environment === "mock" && !exportResult.errors.length && !exportResult.bookings.length;
     box.classList.toggle("is-ready", datevCloudCapability.connected && !datevCloudCapability.lastError);
@@ -5728,13 +6121,13 @@
     query("[data-datev-cloud-badge]").textContent = datevCloudCapability.lastError ? "NAPAKA" : datevCloudCapability.environment.toUpperCase();
     query("[data-datev-cloud-status]").textContent = datevCloudCapability.loading ? "Preverjam varno povezavo …"
       : datevCloudCapability.working ? "Varno izvajam DATEV opravilo …"
-        : datevCloudCapability.lastError || (datevCloudCapability.connected ? "Povezano · pripravljeno za prenos" : datevCloudCapability.configured ? "Pripravljeno za povezavo" : "DATEV OAuth podatki še niso izdani");
+        : datevCloudCapability.lastError || (datevCloudCapability.connected ? connectedIdentifiers.length ? "Povezano · " + connectedIdentifiers.join(" · ") : "Povezano · pripravljeno za prenos" : datevCloudCapability.configured ? "Pripravljeno za povezavo" : "DATEV OAuth podatki še niso izdani");
     connectionButton.textContent = datevCloudCapability.connected ? "Prekini DATEV povezavo" : datevCloudCapability.environment === "mock" ? "Poveži mock okolje" : "Poveži DATEV sandbox";
     connectionButton.disabled = busy || !datevCloudCapability.configured || !backend.ready;
     transferButton.textContent = datevCloudCapability.working ? "Prenašam …" : mockTest ? "Preveri testni DATEV paket" : "Pošlji dokumente in knjižbe";
     transferButton.disabled = busy || !datevCloudCapability.connected || !backend.ready || Boolean(exportResult.errors.length || (!exportResult.bookings.length && !mockTest));
     query("[data-datev-cloud-latest]").textContent = latest
-      ? (latest.status === "succeeded" ? "Uspešno: " : latest.status === "processing" ? "DATEV še obdeluje: " : latest.status === "failed" ? "Neuspešno: " : "Priprava: ") + latest.period + " · " + Number(latest.documentCount || 0) + " dokumentov · " + Number(latest.bookingCount || 0) + " knjižb"
+      ? (latest.status === "succeeded" ? "Uspešno: " : latest.status === "processing" ? "DATEV še obdeluje: " : latest.status === "failed" ? "Neuspešno: " : "Priprava: ") + latest.period + " · " + Number(latest.documentCount || 0) + " dokumentov · " + Number(latest.bookingCount || 0) + " knjižb" + (latest.status === "failed" && latest.errorMessage ? " · " + String(latest.errorMessage) : "")
       : datevCloudCapability.environment === "mock" ? "Mock uporabi samo račune TEST-* in ničesar ne pošlje v pravi DATEV." : "Prenos vključuje arhivirane PDF-je in povezane EXTF knjižbe.";
   }
 
@@ -6016,6 +6409,12 @@
     query("[data-detail-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) requestPayment(invoice.id); });
     query("[data-stripe-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) startStripeCheckout(invoice); });
     query("[data-stripe-refund]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) refundStripePayment(invoice); });
+    query("[data-cash-payment]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) requestLocalCashPayment(invoice); });
+    query("[data-cash-refund]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) refundLocalCashPayment(invoice); });
+    query("[data-cash-receipt]").addEventListener("click", function () { var invoice = findInvoice(activeInvoiceId); if (invoice) showLocalCashReceipt(invoice); });
+    query("[data-cash-deposit]").addEventListener("click", function () { recordLocalCashMovement("DEPOSIT"); });
+    query("[data-cash-withdrawal]").addEventListener("click", function () { recordLocalCashMovement("WITHDRAWAL"); });
+    query("[data-dsfinvk-export]").addEventListener("click", downloadDsfinvk);
     query("[data-detail-correction]").addEventListener("click", function () {
       var invoice = findInvoice(activeInvoiceId);
       if (invoice) openAdjustmentSheet(invoice);
@@ -6079,6 +6478,7 @@
     var finapiReturn = returnParams.get("finapi");
     var datevReturn = returnParams.get("datev");
     var stripeReturn = returnParams.get("stripe");
+    var bonitetaReturn = returnParams.get("from") === "boniteta";
     var stripeSessionId = returnParams.get("stripe_session_id");
     var stripeInvoiceId = returnParams.get("invoice_id");
     var initialLoad = loadServerState().catch(function (error) {
@@ -6115,6 +6515,7 @@
         return handleStripeReturn({ state: stripeReturn, sessionId: stripeSessionId, invoiceId: stripeInvoiceId });
       });
     }
+    if (bonitetaReturn) initialLoad.then(importBonitetaOfferTransfer);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });

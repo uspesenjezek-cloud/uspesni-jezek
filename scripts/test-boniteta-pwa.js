@@ -39,18 +39,38 @@ assert(
 );
 assert(
   authGuard.includes('get("app-preview")') &&
+    authGuard.includes('window.location.hostname === "localhost"') &&
+    authGuard.includes('window.matchMedia("(max-width: 620px)").matches') &&
     authGuard.includes('sessionStorage.setItem("app-iphone-preview", "1")') &&
     authGuard.includes('classList.add("app-iphone-preview")'),
-  "Vse zaščitene kategorije morajo podpirati namenski predogled celotnega iPhona."
+  "Lokalni telefonski prikaz mora po resetu sam obnoviti predogled celotnega iPhona."
+);
+assert(
+  authGuard.includes("omogociNamiznoTouchDrsenje") &&
+    authGuard.includes('dogodek.pointerType !== "mouse"') &&
+    authGuard.includes("poisciDrsniVsebnik") &&
+    authGuard.includes("poteza.scroller.scrollTop -= premik") &&
+    authGuard.includes('dogodek.preventDefault()'),
+  "Namizni iPhone predogled mora omogočiti navpično drsenje z vlečenjem miške kot s prstom."
+);
+assert(
+  sharedCss.includes("html.app-iphone-preview.app-preview-touch-dragging") &&
+    sharedCss.includes("cursor: grabbing") &&
+    sharedCss.includes("user-select: none"),
+  "Med namiznim touch vlečenjem mora biti izbira besedila izključena in kazalec jasen."
 );
 assert(
   protectedPages.length >= 10 &&
     protectedPages.every(
       (page) =>
-        page.content.includes("styles.css?v=20260817-iphone-preview-v1") &&
-        page.content.includes("auth-zascita.js?v=20260817-iphone-preview-v1")
+        page.content.includes("styles.css?v=") &&
+        page.content.includes("auth-zascita.js?v=")
     ),
   "Vse zaščitene kategorije morajo naložiti svežo različico skupnega iPhone predogleda."
+);
+assert(
+  html.includes('auth-zascita.js?v=20260822-preview-touch-v16'),
+  "Bonitetna stran mora po popravku naložiti svežo različico iPhone predogleda."
 );
 assert(
   sharedCss.includes("html.app-iphone-preview body::before") && sharedCss.includes("height: 47px"),
@@ -63,15 +83,27 @@ assert(
   "Namizni app predogled mora prikazati iPhonov Dynamic Island."
 );
 assert(
-  html.includes('src="pwa-dev-refresh.js?v=20260817-v1"'),
+  html.includes('src="pwa-dev-refresh.js?v=20260822-stable-preview-v3"'),
   "Bonitetna PWA mora vključiti lokalno samodejno osveževanje."
 );
 assert(
-  devRefresh.includes('params.get("app") !== "1"') &&
+  devRefresh.includes('get("app-auto-refresh") === "1"') &&
+    devRefresh.includes("zahtevanoSamodejnoOsvezevanje || isPrivateHost") &&
+    devRefresh.includes("if (!samodejnoOsvezevanje) return;"),
+  "Samodejno osveževanje mora biti na lokalnem naslovu vedno vključeno."
+);
+assert(
+  html.includes('name="uj-build-version" content="20260822-company-card-autofit-v34"') &&
+    !devRefresh.includes('params.get("app") !== "1"') &&
+    devRefresh.includes('window.matchMedia("(display-mode: standalone)")') &&
+    devRefresh.includes("!isPrivateHost && !isStandalone") &&
+    devRefresh.includes("readServerBuild") &&
+    devRefresh.includes('searchParams.set("_uj_check"') &&
+    devRefresh.includes("serverBuild !== documentBuild") &&
     devRefresh.includes('cache: "no-store"') &&
     devRefresh.includes("visibilitychange") &&
     devRefresh.includes("window.location.replace"),
-  "Samodejno osveževanje mora biti omejeno na lokalni PWA način in zaznati vrnitev v aplikacijo."
+  "Samodejno osveževanje mora v lokalnem in nameščenem iPhone načinu zaznati star posnetek strani tudi ob prvem ponovnem odprtju."
 );
 assert(
   html.includes('src="pwa-viewport.js?v=20260817-v1"') &&

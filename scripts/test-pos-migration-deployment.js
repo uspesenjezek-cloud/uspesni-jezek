@@ -6,6 +6,7 @@ const path = require("node:path");
 const {
   POS_MIGRATION_ALLOWLIST,
   VERIFIED_SCHEMA_HISTORY_GAPS,
+  ATOMIC_MIGRATION_GROUPS,
   evaluatePendingMigrations,
   parseDryRunOutput,
 } = require("./check-pos-migration-deployment");
@@ -37,6 +38,15 @@ const mixed = evaluatePendingMigrations([allowed[0], unrelatedName]);
 assert.equal(mixed.safe, false, "neodobrena migracija mora blokirati POS deployment");
 assert.deepEqual(mixed.blocked, [unrelatedName]);
 assert.deepEqual(mixed.historyGaps, []);
+
+const cashMigrationGroup = ATOMIC_MIGRATION_GROUPS.find((group) => group.includes("20260826182713_pos_cash_checkout_state.sql"));
+assert.ok(cashMigrationGroup, "Gotovinski checkout in refund morata biti registrirana kot atomska migracijska skupina.");
+const partialCash = evaluatePendingMigrations([cashMigrationGroup[0]]);
+assert.equal(partialCash.safe, false, "Samo ena gotovinska migracija mora blokirati deployment.");
+assert.deepEqual(partialCash.incompleteGroups, [cashMigrationGroup]);
+const completeCashPair = evaluatePendingMigrations(cashMigrationGroup);
+assert.deepEqual(completeCashPair.incompleteGroups, [], "Celoten checkout/refund par ne sme biti označen kot nepopoln.");
+assert.deepEqual(completeCashPair.blocked, cashMigrationGroup, "Par ostaja neodobren in ga atomsko pravilo ne sme samodejno allowlistati.");
 
 const succeededStateMigration = fs.readdirSync(path.join(__dirname, "..", "supabase", "migrations"))
   .find((name) => /pos_openapi_succeeded_delivery_state\.sql$/.test(name));

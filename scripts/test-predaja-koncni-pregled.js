@@ -53,6 +53,7 @@ function k1() {
     telefonDolznika: "+38640123456",
     emailDolznika: "janez@example.com",
     znesek: 850,
+    opisDolga: "Izvedena montaža in predaja naročenih del.",
     stevilkaRacuna: "R-2026-0042",
     datumZapadlosti: "2026-06-15",
   };

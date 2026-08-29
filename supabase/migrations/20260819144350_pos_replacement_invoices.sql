@@ -10,21 +10,17 @@ create table public.pos_invoice_replacements (
   created_at timestamptz not null default now(),
   check (original_invoice_id <> replacement_invoice_id)
 );
-
 create index pos_invoice_replacements_user_created_idx
   on public.pos_invoice_replacements(user_id, created_at desc);
 create index pos_invoice_replacements_original_idx
   on public.pos_invoice_replacements(original_invoice_id, created_at);
-
 alter table public.pos_invoice_replacements enable row level security;
 revoke all on table public.pos_invoice_replacements from public, anon, authenticated;
 grant select on table public.pos_invoice_replacements to authenticated;
 grant all on table public.pos_invoice_replacements to service_role;
-
 create policy pos_invoice_replacements_select_own on public.pos_invoice_replacements
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
-
 create or replace function private.pos_prevent_replacement_mutation()
 returns trigger
 language plpgsql
@@ -35,11 +31,9 @@ begin
   raise exception 'Povezava nadomestnega računa je nespremenljiva.';
 end;
 $$;
-
 create trigger pos_invoice_replacements_immutable
 before update or delete on public.pos_invoice_replacements
 for each row execute function private.pos_prevent_replacement_mutation();
-
 create or replace function private._pos_issue_replacement_invoice(
   p_draft_id uuid,
   p_payload jsonb,
@@ -137,7 +131,6 @@ begin
   return v_replacement;
 end;
 $$;
-
 create or replace function public.pos_issue_replacement_invoice(
   p_draft_id uuid,
   p_payload jsonb,
@@ -158,12 +151,10 @@ as $$
     p_cancellation_adjustment_id
   );
 $$;
-
 revoke all on function private.pos_prevent_replacement_mutation() from public, anon, authenticated;
 revoke all on function private._pos_issue_replacement_invoice(uuid,jsonb,boolean,boolean,uuid) from public, anon;
 revoke all on function public.pos_issue_replacement_invoice(uuid,jsonb,boolean,boolean,uuid) from public, anon;
 grant execute on function private._pos_issue_replacement_invoice(uuid,jsonb,boolean,boolean,uuid) to authenticated, service_role;
 grant execute on function public.pos_issue_replacement_invoice(uuid,jsonb,boolean,boolean,uuid) to authenticated, service_role;
 grant execute on function private.pos_prevent_replacement_mutation() to service_role;
-
 notify pgrst, 'reload schema';

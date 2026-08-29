@@ -205,9 +205,14 @@ compatibilityWrappers.forEach(function (source) {
 });
 
 assert.match(html, /data-view="home"/);
-assert.match(html, /pos-terminal\.css\?v=20260826-hidden-state-v7/);
+assert.match(html, /pos-terminal\.css\?v=20260827-stripe-slate-v1/);
 assert.match(css, /\.pos-app \[hidden\]\s*\{[^}]*display:\s*none !important/);
-assert.match(html, /pos-terminal\.js\?v=20260826-pos-a11y-v10/);
+assert.match(html, /pos-terminal\.js\?v=20260828-datev-status-v1/);
+assert.match(html, /pos-dsfinvk\.js\?v=20260826-cash-recovery-export-v1/);
+assert.match(html, /data-cash-payment-panel/);
+assert.match(html, /data-cash-deposit/);
+assert.match(html, /data-cash-withdrawal/);
+assert.match(html, /data-dsfinvk-export/);
 assert.match(html, /data-step="1" aria-current="step"/);
 assert.match(js, /button\.setAttribute\("aria-current", "step"\)[\s\S]*button\.removeAttribute\("aria-current"\)/);
 assert.match(js, /setAttribute\("aria-invalid", "true"\)[\s\S]*focus\(\{ preventScroll: false \}\)/);
@@ -265,7 +270,7 @@ assert.match(js, /\.from\("pos_business_profiles"\)/);
 assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && supabaseKlient\.auth/);
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
-assert.match(js, /state\.invoices = mergeInvoiceSources\(serverInvoices, localTests\)/);
+assert.match(js, /state\.invoices = applyLocalCashCheckouts\(mergeInvoiceSources\(serverInvoices, localTests\), state\.cashCheckouts\)/);
 assert.match(js, /function activateModal\(backdrop, close, preferredFocus\)/);
 assert.match(js, /function deactivateModal\(backdrop\)/);
 assert.match(js, /function handleModalKeydown\(event\)/);
@@ -330,6 +335,24 @@ assert.equal(connectedState.profile.iban, "");
 assert.equal(connectedState.invoices.length, 1);
 assert.equal(connectedState.draft.id, "draft-1");
 assert.equal(connectedState.storageOwnerUserId, "user-a");
+const cashInvoice = {
+  id: "local-cash-invoice", number: "TEST-2026-CASH-1", isTest: true, serverStored: false,
+  status: "open", paidCents: 0, payments: [], adjustedGrossCents: 11900, totals: { grossCents: 11900 },
+  draft: { priceMode: "gross", taxMode: "regular", items: [{ description: "Arbeitszeit", quantity: "1", unitPrice: "119,00", taxRate: "19" }] }
+};
+const cashReceipt = Core.cashReceiptForInvoice(cashInvoice);
+assert.deepEqual({ grossCents: cashReceipt.grossCents, paymentType: cashReceipt.paymentType, vatRate: cashReceipt.items[0].vatRate }, { grossCents: 11900, paymentType: "CASH", vatRate: "19" });
+const completedCash = {
+  id: "checkout-1", invoiceId: cashInvoice.id, paymentId: "cash-payment-1", state: "completed", completedAt: "2026-08-26T12:00:00.000Z",
+  receipt: cashReceipt, signature: { signatureCounter: "1", finishedAt: "2026-08-26T12:00:00.000Z" }
+};
+Core.applyLocalCashCheckouts([cashInvoice], [completedCash, completedCash]);
+assert.equal(cashInvoice.payments.length, 1, "Idempotentni checkout ne sme podvojiti gotovinskega plačila.");
+assert.equal(cashInvoice.status, "paid");
+completedCash.refundedAt = "2026-08-26T12:05:00.000Z";
+Core.applyLocalCashCheckouts([cashInvoice], [completedCash]);
+assert.equal(cashInvoice.status, "open");
+assert.equal(cashInvoice.payments[0].status, "refunded");
 assert.match(js, /global\.localStorage\.removeItem\(STORAGE_KEY\)/);
 assert.match(js, /global\.sessionStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(localSnapshot\)\)/);
 assert.match(js, /backend\.serverStateLoaded = true;\s+persist\(\);\s+backendMessage\("Sinhronizirano", "ready"\)/);
@@ -373,6 +396,19 @@ assert.doesNotMatch(js, /\.from\("pos_payments"\)\.insert\(/);
 assert.match(js, /source_bank_transaction_id/);
 assert.match(js, /renderPaymentList\(invoice\)/);
 assert.match(js, /Bančno nakazilo/);
+assert.match(js, /requestLocalCashPayment\(invoice\)/);
+assert.match(js, /local-training-cash-checkout/);
+assert.match(js, /local-training-cash-refund/);
+assert.match(js, /checkout\.refund = Object\.assign/);
+assert.match(js, /fiscalInvoiceId: body\.checkout\.invoiceId/);
+assert.match(js, /checkout\.fiscalInvoiceId \|\|/);
+assert.match(js, /recoveryRequired = Boolean/);
+assert.match(js, /body\.refund\.state === "recovery_required"/);
+assert.match(js, /Povračilo ni zabeleženo – potrebna je ročna TSE uskladitev/);
+assert.match(js, /STORNOBELEG · TRAINING/);
+assert.doesNotMatch(js, /type: "REFUND"[\s\S]{0,300}state\.cashMovements/);
+assert.match(js, /renderCashPayment\(invoice\)/);
+assert.match(js, /UJPosDsfinvk\.buildPackage/);
 assert.match(js, /\.from\("pos_invoice_documents"\)/);
 assert.match(js, /\/api\/pos-racun-pdf\?invoiceId=/);
 assert.match(js, /\/api\/pos-racun-xrechnung\?invoiceId=/);

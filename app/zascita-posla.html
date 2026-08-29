@@ -10,16 +10,18 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260817-iphone-preview-v1" />
+    <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
-    <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
+    <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
+    <script src="auth-zascita.js?v=20260822-preview-touch-v16"></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body>
@@ -39,17 +41,16 @@
           <div class="kartica__gumbi">
             <a class="btn btn--cta" href="aktivni-primeri.html">Preveri odprte zadeve</a>
             <a class="btn btn--obris" href="neplacila.html#obrazec">Dodaj nov račun</a>
+            <a class="btn kartica__gumb-koncani" href="koncani-primeri.html">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+              Končani primeri
+            </a>
           </div>
         </article>
 
         <article class="kartica">
           <div class="kartica__naslovna-vrstica">
             <h2 class="kartica__naslov">Bonitetni center</h2>
-            <button class="kartica__crif-toggle" id="boniteta-crif-toggle" type="button" role="switch" aria-checked="true">
-              <span aria-hidden="true"></span>
-              <span data-fit-text>CRIF</span>
-              <strong id="boniteta-crif-toggle-state" data-fit-text>Vključen</strong>
-            </button>
           </div>
           <p class="kartica__opis">
             Pred začetkom dela preveri nemško podjetje ali obrtnika v javnih
@@ -69,6 +70,5 @@
       </div>
     </main>
       <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-      <script src="zascita-posla.js?v=20260817-crif-toggle-v1"></script>
   </body>
 </html>

@@ -3,6 +3,7 @@ var sentry = require("./_lib/sentry");
 
 var db = require("./_lib/supabase-server");
 var core = require("./_lib/izvedba-core");
+var razcleniZgodovino = require("./_handlers/razcleni-zgodovino");
 
 var KODA_V_STATUS = {
   NOT_FOUND: 404,
@@ -39,6 +40,9 @@ function korakVDto(vrstica) {
 }
 
 async function handler(req, res) {
+  if (req.query && req.query.handler === "history-ai") {
+    return razcleniZgodovino(req, res);
+  }
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, napaka: "Samo POST." });

@@ -32,6 +32,8 @@ assert.deepStrictEqual(wrapped._test, { parser: true });
 
 var generator = fs.readFileSync(path.join(__dirname, "generate-config.js"), "utf8");
 assert.ok(generator.includes("const SENTRY_CONFIG = globalThis.SENTRY_CONFIG"));
+assert.ok(generator.includes("SENSITIVE|REDACTED"));
+assert.ok(generator.includes("!/^https:\\/\\/[^\\s/]+\\.supabase\\.co"));
 
 var browserEntry = fs.readFileSync(path.join(__dirname, "..", "app", "sentry-entry.js"), "utf8");
 assert.ok(browserEntry.includes('setAttribute("data-sentry-ready", "true")'));

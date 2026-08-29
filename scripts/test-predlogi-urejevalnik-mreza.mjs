@@ -1,7 +1,8 @@
 /* Samostojen Node.js test za izracunajVelikostMreze – brez DOM, brez odvisnosti.
    Poganjaj: node scripts/test-predlogi-urejevalnik-mreza.mjs */
 
-import { izracunajVelikostMreze } from "../app/predlogi-urejevalnik.js";
+import { izracunajVelikostMreze, premakniPredlogoPoPrioriteti } from "../app/predlogi-urejevalnik.js";
+import { readFileSync } from "node:fs";
 
 let napake = 0;
 
@@ -40,6 +41,40 @@ testiraj(8, true, 9);
 
 // 8 obstoječih + urejanje => 8
 testiraj(8, false, 8);
+
+const prestavljenoNavzgor = premakniPredlogoPoPrioriteti(["1", "2", "3", "4", "5"], "4", "2", false);
+if (prestavljenoNavzgor.join(",") !== "1,4,2,3,5") {
+  console.error(`✗ NAPAKA: premik predloge navzgor = ${prestavljenoNavzgor.join(",")}`);
+  napake++;
+} else {
+  console.log("✓ OK: predloga se vstavi nad ciljno prioriteto");
+}
+
+const prestavljenoNavzdol = premakniPredlogoPoPrioriteti(["1", "2", "3", "4", "5"], "2", "4", true);
+if (prestavljenoNavzdol.join(",") !== "1,3,4,2,5") {
+  console.error(`✗ NAPAKA: premik predloge navzdol = ${prestavljenoNavzdol.join(",")}`);
+  napake++;
+} else {
+  console.log("✓ OK: predloga se vstavi pod ciljno prioriteto");
+}
+
+const urejevalnikVir = readFileSync(new URL("../app/predlogi-urejevalnik.js", import.meta.url), "utf8");
+if (!/kartica\.addEventListener\("pointerdown"/.test(urejevalnikVir)) {
+  console.error("✗ NAPAKA: vlečenje ni vezano na celotno kartico");
+  napake++;
+} else if (!/event\.target\.closest\("\.preview-button, \.predlog-gumb--uporabi"\)/.test(urejevalnikVir)) {
+  console.error("✗ NAPAKA: akcijska gumba nista izvzeta iz vlečenja kartice");
+  napake++;
+} else {
+  console.log("✓ OK: celotna kartica je območje vlečenja, akcijska gumba ostaneta klikljiva");
+}
+
+if (!/DOLGI_PRITISK_MS = 300/.test(urejevalnikVir) || !/stanje\.pripravljen = true/.test(urejevalnikVir)) {
+  console.error("✗ NAPAKA: mobilno vlečenje nima zakasnitve dolgega pritiska");
+  napake++;
+} else {
+  console.log("✓ OK: mobilno vlečenje se aktivira šele po 300 ms dolgem pritisku");
+}
 
 if (napake === 0) {
   console.log("\n✓ Vsi testi uspešni.");

@@ -9,19 +9,16 @@ alter table public.pos_invoice_deliveries
   add column locked_at timestamptz,
   add column locked_by uuid,
   add column completed_at timestamptz;
-
 alter table public.pos_invoice_deliveries
   drop constraint if exists pos_invoice_deliveries_status_check;
 alter table public.pos_invoice_deliveries
   add constraint pos_invoice_deliveries_status_check
   check (status in ('test_prepared','queued','processing','test_completed','sent','delivered','failed'));
-
 alter table public.pos_invoice_delivery_events
   drop constraint if exists pos_invoice_delivery_events_event_type_check;
 alter table public.pos_invoice_delivery_events
   add constraint pos_invoice_delivery_events_event_type_check
   check (event_type in ('prepared','queued','processing','test_completed','retry_scheduled','sent','delivered','failed'));
-
 drop index if exists public.pos_invoice_deliveries_status_idx;
 create index pos_invoice_deliveries_dispatch_queue_idx
   on public.pos_invoice_deliveries(next_attempt_at, created_at)
@@ -29,7 +26,6 @@ create index pos_invoice_deliveries_dispatch_queue_idx
 create index pos_invoice_deliveries_stale_lock_idx
   on public.pos_invoice_deliveries(locked_at)
   where status = 'processing';
-
 create or replace function public.pos_queue_invoice_delivery(
   p_delivery_id uuid,
   p_confirmed boolean default false
@@ -132,7 +128,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function private._pos_claim_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -184,7 +179,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function private._pos_finish_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -282,7 +276,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function public.pos_claim_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -295,7 +288,6 @@ set search_path = ''
 as $$
   select private._pos_claim_invoice_delivery(p_delivery_id, p_user_id, p_worker_id);
 $$;
-
 create or replace function public.pos_finish_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -315,10 +307,8 @@ as $$
     p_provider_reference, p_error, p_retryable
   );
 $$;
-
 revoke all on function public.pos_queue_invoice_delivery(uuid,boolean) from public, anon;
 grant execute on function public.pos_queue_invoice_delivery(uuid,boolean) to authenticated, service_role;
-
 revoke all on function private._pos_claim_invoice_delivery(uuid,uuid,uuid) from public, anon, authenticated;
 revoke all on function private._pos_finish_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) from public, anon, authenticated;
 revoke all on function public.pos_claim_invoice_delivery(uuid,uuid,uuid) from public, anon, authenticated;
@@ -327,5 +317,4 @@ grant execute on function private._pos_claim_invoice_delivery(uuid,uuid,uuid) to
 grant execute on function private._pos_finish_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) to service_role;
 grant execute on function public.pos_claim_invoice_delivery(uuid,uuid,uuid) to service_role;
 grant execute on function public.pos_finish_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) to service_role;
-
 notify pgrst, 'reload schema';

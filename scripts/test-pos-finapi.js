@@ -39,6 +39,12 @@ assert.match(userA.id, /^uj[a-z0-9]{32}$/);
 assert.ok(userA.password.length >= 13);
 assert.notStrictEqual(userA.password, userB.password);
 assert.deepStrictEqual(userA, Finapi._test.userCredentials("11111111-2222-4333-8444-555555555555", cfg));
+assert.deepStrictEqual(userA, Finapi._test.userCredentials("11111111-2222-4333-8444-555555555555".toUpperCase(), cfg), "Isti Supabase UUID mora imeti eno kanonično finAPI identiteto.");
+assert.throws(
+  function () { Finapi._test.userCredentials("user-1", cfg); },
+  function (error) { return error && error.code === "FINAPI_USER_INVALID"; },
+  "Poljuben niz ne sme ustvariti finAPI uporabniške preslikave."
+);
 
 const testAccounts = new Map([["41", { id: "41", name: "Geschäftskonto", iban: "DE89370400440532013000" }]]);
 assert.deepStrictEqual(Finapi._test.normalizeTransaction({
@@ -67,6 +73,36 @@ assert.deepStrictEqual(Finapi._test.normalizeTransaction({
 assert.strictEqual(Finapi._test.normalizeTransaction({ id: 92, amount: -1, currency: "EUR", bankBookingDate: "2026-08-20" }), null);
 assert.strictEqual(Finapi._test.normalizeTransaction({ id: 93, amount: 1, currency: "USD", bankBookingDate: "2026-08-20" }), null);
 assert.strictEqual(Finapi._test.normalizeTransaction({ id: 94, amount: 1, currency: "EUR", bankBookingDate: "2026-08-20", isPotentialDuplicate: true }), null);
+
+const repeatedTransaction = {
+  id: 95, accountId: 41, amount: 10, currency: "EUR", bankBookingDate: "2026-08-20",
+  counterpartName: "Muster Kunde", purpose: "RE-2026-0003", isAdjustingEntry: false, isPotentialDuplicate: false,
+};
+assert.strictEqual(
+  Finapi._test.reconcileTransactions([repeatedTransaction, Object.assign({}, repeatedTransaction)], Array.from(testAccounts.values())).length,
+  1,
+  "Popolnoma enaka ponovitev iste finAPI transakcije se sme uvoziti samo enkrat."
+);
+assert.throws(
+  function () { Finapi._test.reconcileTransactions([Object.assign({}, repeatedTransaction, { accountId: 999 })], Array.from(testAccounts.values())); },
+  function (error) { return error && error.code === "FINAPI_ACCOUNT_MAPPING_INVALID"; },
+  "Priliv z računom, ki ne pripada uporabnikovemu seznamu računov, mora biti zavrnjen."
+);
+assert.throws(
+  function () { Finapi._test.reconcileTransactions([repeatedTransaction, Object.assign({}, repeatedTransaction, { amount: 10.01 })], Array.from(testAccounts.values())); },
+  function (error) { return error && error.code === "FINAPI_TRANSACTION_CONFLICT"; },
+  "Isti finAPI transactionId z drugačnim zneskom mora fail-closed ustaviti usklajevanje."
+);
+assert.throws(
+  function () {
+    Finapi._test.reconcileTransactions([repeatedTransaction], [
+      { id: 41, name: "Geschäftskonto", iban: "DE89370400440532013000" },
+      { id: 41, name: "Anderes Konto", iban: "DE12500105170648489890" },
+    ]);
+  },
+  function (error) { return error && error.code === "FINAPI_ACCOUNT_MAPPING_CONFLICT"; },
+  "Nasprotujoča preslikava istega finAPI računa mora ustaviti uvoz."
+);
 
 async function run() {
   const originalFetch = global.fetch;

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="sl" class="wizard-status-page">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="color-scheme" content="light only" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <title>Zgodovina plačila – Uspešni Ježek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=20260827-wizard-four-step-v1-debt-summary-v4" />
+    <link rel="stylesheet" href="izvedba.css?v=20260828-zgodovina-svicer-pikice-v1" />
+    <link rel="stylesheet" href="neplacila-zgodovina.css?v=20260829-zgodovina-svicer-pikice-v6-replacement-v24-event-tone-v1-clarification-v1-limit-v1-apple-compact-v1-atena-v15-synced-action-speed-v1-full-action-label-v1" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js?v=20260827-local-preview-guard-v3"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
+  </head>
+  <body class="stran--sporocilo stran--neplacila-zgodovina wizard-status-header app-testna-vrstica-prisotna">
+    <div class="zgodovina-shell wizard-shell">
+      <div data-wizard-progress-header data-korak="2" data-wizard-zacetni-zaslon="zascita-posla.html"></div>
+      <section class="wizard-debt-summary" data-kompaktni-povzetek-dolga aria-label="Povzetek dolga"></section>
+
+      <main class="zgodovina-vsebina">
+        <p class="obrazec__napaka" id="zgodovina-napaka" role="alert" hidden></p>
+        <div class="izvedba-action-sheet" id="izvedba-action-sheet" hidden></div>
+
+        <div class="zgodovina-izvedba-scaffold" aria-hidden="true">
+          <div id="izvedba-swipe"></div>
+          <div id="izvedba-stevilo-korakov"></div>
+          <div id="izvedba-vsebina"></div>
+          <div id="izvedba-kartice"></div>
+          <div id="izvedba-sticky"></div>
+          <p id="izvedba-napaka"></p>
+        </div>
+      </main>
+    </div>
+
+    <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
+    <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
+
+    <!-- Spodnji meniji za "Ocena tveganja" (samo dizajn – odpiranje/logiko doda DeepSeek). -->
+    <div class="ocena-sheet" id="ocena-dolg-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri" data-ocena-dolg-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ocena-dolg-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo">
+            <h2 class="ocena-sheet__naslov" id="ocena-dolg-sheet-naslov" tabindex="-1">Meje višine dolga</h2>
+            <p class="ocena-sheet__podnaslov">Priporočene meje lahko prilagodite.</p>
+          </div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-dolg-zapri>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
+          </button>
+        </div>
+
+        <div class="ocena-sheet__telo">
+          <span class="ocena-sheet__priporocilo">Priporočene nastavitve</span>
+
+          <div class="ocena-sheet__vrstica">
+            <span class="ocena-sheet__vrstica-oznaka">Nizek dolg</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-nizek-od" inputmode="decimal" class="ocena-sheet__input" value="0" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis">do</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-nizek-do" inputmode="decimal" class="ocena-sheet__input" value="500" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+          </div>
+
+          <div class="ocena-sheet__vrstica">
+            <span class="ocena-sheet__vrstica-oznaka">Srednji dolg</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-srednji-od" inputmode="decimal" class="ocena-sheet__input" value="501" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis">do</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-srednji-do" inputmode="decimal" class="ocena-sheet__input" value="2000" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+          </div>
+
+          <div class="ocena-sheet__vrstica">
+            <span class="ocena-sheet__vrstica-oznaka">Visok dolg</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-visok-od" inputmode="decimal" class="ocena-sheet__input" value="2001" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis">do</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-visok-do" inputmode="decimal" class="ocena-sheet__input" value="5000" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+          </div>
+
+          <div class="ocena-sheet__vrstica ocena-sheet__vrstica--zadnja">
+            <span class="ocena-sheet__vrstica-oznaka">Ekstremni dolg</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-dolg-ekstremni-od" inputmode="decimal" class="ocena-sheet__input" value="5001" min="0" />
+              <span class="ocena-sheet__enota" aria-hidden="true">€</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis ocena-sheet__vrstica-opis--in-vec">in več</span>
+          </div>
+        </div>
+
+        <div class="ocena-sheet__noga">
+          <button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--obris" data-ocena-dolg-ponastavi>Ponastavi priporočeno</button>
+          <button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--primarni" data-ocena-dolg-shrani>Shrani</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ocena-sheet" id="ocena-zamuda-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri" data-ocena-zamuda-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ocena-zamuda-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo">
+            <h2 class="ocena-sheet__naslov" id="ocena-zamuda-sheet-naslov" tabindex="-1">Meje dolžine zamude</h2>
+            <p class="ocena-sheet__podnaslov">Zamuda se izračuna iz roka plačila.</p>
+          </div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-zamuda-zapri>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
+          </button>
+        </div>
+
+        <div class="ocena-sheet__telo">
+          <span class="ocena-sheet__priporocilo">Priporočene nastavitve</span>
+
+          <div class="ocena-sheet__vrstica">
+            <span class="ocena-sheet__vrstica-oznaka">Kratka zamuda</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-kratka-od" inputmode="numeric" class="ocena-sheet__input" value="1" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis">do</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-kratka-do" inputmode="numeric" class="ocena-sheet__input" value="7" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+          </div>
+
+          <div class="ocena-sheet__vrstica">
+            <span class="ocena-sheet__vrstica-oznaka">Srednja zamuda</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-srednja-od" inputmode="numeric" class="ocena-sheet__input" value="8" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis">do</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-srednja-do" inputmode="numeric" class="ocena-sheet__input" value="30" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+          </div>
+
+          <div class="ocena-sheet__vrstica">
+            <span class="ocena-sheet__vrstica-oznaka">Visoka zamuda</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-visoka-od" inputmode="numeric" class="ocena-sheet__input" value="31" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis">do</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-visoka-do" inputmode="numeric" class="ocena-sheet__input" value="60" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+          </div>
+
+          <div class="ocena-sheet__vrstica ocena-sheet__vrstica--zadnja">
+            <span class="ocena-sheet__vrstica-oznaka">Ekstremna zamuda</span>
+            <span class="ocena-sheet__vrstica-opis">od</span>
+            <span class="ocena-sheet__polje-z-enoto">
+              <input type="number" id="ocena-zamuda-ekstremna-od" inputmode="numeric" class="ocena-sheet__input" value="61" min="1" />
+              <span class="ocena-sheet__enota" aria-hidden="true">dni</span>
+            </span>
+            <span class="ocena-sheet__vrstica-opis ocena-sheet__vrstica-opis--in-vec">in več</span>
+          </div>
+        </div>
+
+        <div class="ocena-sheet__noga">
+          <button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--obris" data-ocena-zamuda-ponastavi>Ponastavi priporočeno</button>
+          <button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--primarni" data-ocena-zamuda-shrani>Shrani</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="nastavitve-izidov.js?v=20260825-revert-v6"></script>
+    <script src="izvedba-komponente.js?v=20260827-izbrisi-glava-v1-thumbs-up-v3"></script>
+    <script src="izvedba-api.js?v=20260818-egress-v1"></script>
+    <script src="ocena-tveganja.js?v=20260827-zgodovina-gumb-v2"></script>
+    <script src="app.js?v=20260827-wizard-four-step-v1-debt-summary-v4"></script>
+    <script src="izvedba.js?v=20260828-zgodovina-svicer-pikice-v1-replacement-v3-reminder-event-v1-atena-v3"></script>
+    <script src="handy-canary-client.js?v=20260829-atena-nemotron-raw-v6"></script>
+  <script src="neplacila-zgodovina-relativni-datumi.js?v=20260828-history-contract-v31-local-date-v1-group-date-v1-collection-outcome-v1"></script>
+  <script src="neplacila-zgodovina-zamenjava.js?v=20260828-replacement-state-v1"></script>
+  <script src="neplacila-zgodovina.js?v=20260829-question-nav-v4-history-contract-v73-local-date-v1-summary-v1-goal-step-v1-change-card-v1-replacement-v22-remaining-state-v1-always-review-v1-group-date-v1-amount-relation-v2-luna-solution-v1-fail-closed-v3-shorthand-relative-v1-trailing-group-v1-modal-temporal-v1-collection-action-v2-collection-outcome-v1-full-text-plan-v1-evidence-order-v1-luna-raw-first-v2-neutral-spans-v1-retrospective-action-v1-clarification-v1-limit-v1-payment-refusal-v1-installment-ordinal-v1-relative-month-day-v1-canonical-plan-v2-shared-group-time-v1-numbered-catalog-v1-proof-backed-expanded-repeat-v1-field-evidence-anchor-v1-normalized-relative-date-v1-clause-count-proof-v1-clause-numeric-proof-v1-luna-authoritative-human-review-v1-luna-count-instruction-v1-null-numeric-field-v1-luna-guided-errors-v8-luna-always-first-v1-direct-numbered-cards-v1-full-id-catalog-v1-periodic-series-v1-luna-guided-failures-v1-luna-ago-typo-map-v1-compact-wire-v1-luna-relation-units-v1-explicit-money-card-v1-craft-status-v1-edit-description-v1-apple-compact-v1-source-visible-v1-atena-v16-stable-recording-v1-auth-retry-v1-total-vs-each-v1-split-evidence-v1-explicit-remaining-v1-lean-luna-core-v1"></script>
+  </body>
+</html>

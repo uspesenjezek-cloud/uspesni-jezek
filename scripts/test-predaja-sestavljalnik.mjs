@@ -28,6 +28,9 @@ global.sessionStorage = {
 const require = createRequire(import.meta.url);
 const root = path.dirname(fileURLToPath(import.meta.url));
 const N = require(path.join(root, "..", "app", "opomin-nacrt.js"));
+const OcenaTveganja = require(path.join(root, "..", "app", "ocena-tveganja.js"));
+const TonPriporocilo = require(path.join(root, "..", "app", "ton-priporocilo.js"));
+const TonDodatki = require(path.join(root, "..", "app", "ton-dodatki-priporocila.js"));
 // Vir se normalizira na LF, da preverjanje niti ostane neodvisno od tega,
 // ali je datoteka na disku trenutno shranjena s CRLF (Windows) ali LF
 // (Unix) zaključki vrstic - to ni oslabitev testa, samo neobčutljivost
@@ -48,6 +51,14 @@ const appSrc = fs.readFileSync(
   path.join(root, "..", "app", "app.js"),
   "utf8"
 ).replace(/\r\n/g, "\n");
+const ocenaTveganjaSrc = fs.readFileSync(
+  path.join(root, "..", "app", "ocena-tveganja.js"),
+  "utf8"
+).replace(/\r\n/g, "\n");
+const tonPriporociloSrc = fs.readFileSync(
+  path.join(root, "..", "app", "ton-priporocilo.js"),
+  "utf8"
+).replace(/\r\n/g, "\n");
 const dolznikHtmlSrc = fs.readFileSync(
   path.join(root, "..", "app", "neplacila.html"),
   "utf8"
@@ -58,6 +69,14 @@ const posiljanjeHtmlSrc = fs.readFileSync(
 ).replace(/\r\n/g, "\n");
 const sporociloHtmlSrc = fs.readFileSync(
   path.join(root, "..", "app", "neplacila-sporocilo.html"),
+  "utf8"
+).replace(/\r\n/g, "\n");
+const izvedbaSrc = fs.readFileSync(
+  path.join(root, "..", "app", "izvedba.js"),
+  "utf8"
+).replace(/\r\n/g, "\n");
+const izvedbaCssSrc = fs.readFileSync(
+  path.join(root, "..", "app", "izvedba.css"),
   "utf8"
 ).replace(/\r\n/g, "\n");
 
@@ -80,6 +99,7 @@ function k1() {
     telefonDolznika: "+38640123456",
     emailDolznika: "janez@example.com",
     znesek: 850,
+    opisDolga: "Izvedena so bila dogovorjena obrtniška dela.",
     stevilkaRacuna: "R-2026-0042",
     datumZapadlosti: "2026-06-15",
   };
@@ -634,7 +654,8 @@ test("38. pripravljeni posnetek vsebuje izbrane dneve predaje", function () {
 test("39. vrstica dni je med izbiro odvetnika in dokumenti ter ima mobilni CSS", function () {
   var sestavljalnik = uiSrc.slice(uiSrc.indexOf("function htmlPredajaSestavljalnik"), uiSrc.indexOf("function htmlKoncniPregledVsebina"));
   assert.ok(sestavljalnik.indexOf("htmlPredajaOdvetnikPill") < sestavljalnik.indexOf("htmlPredajaDnevi"));
-  assert.ok(sestavljalnik.indexOf("htmlPredajaDnevi") < sestavljalnik.indexOf("htmlPredajaDokumenti"));
+  assert.ok(sestavljalnik.indexOf("htmlPredajaDnevi") < sestavljalnik.indexOf("htmlPredajaOdgovori"));
+  assert.ok(sestavljalnik.indexOf("htmlPredajaOdgovori") < sestavljalnik.indexOf("htmlPredajaDokumenti"));
   assert.ok(uiSrc.includes("Možni dnevi predaje"));
   assert.ok(uiSrc.includes("Po navodilih odvetnika"));
   assert.ok(uiSrc.includes("data-predaja-dan"));
@@ -830,14 +851,15 @@ test("51. priloga prvega koraka se z opisom prenese v končni posnetek", functio
   assert.equal(prenesena.descriptionQuestion, "Kdaj je nastala slika?");
 });
 
-test("52. oba zaslona vsebujeta enoten urejevalnik opisa priloge", function () {
+test("52. opis in dokazila so združeni v sestavljalniku predaje", function () {
   var appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
   var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
   assert.ok(appSrc.includes("racun-posiljanje__opis-vnos"));
   assert.ok(uiSrc.includes("data-predaja-datoteka-vnos"));
-  assert.ok(prviHtml.includes("opravljeno-bubble"));
-  assert.ok(prviHtml.includes("data-opravljeno-zahteva"));
-  assert.ok(prviHtml.indexOf("data-opravljeno-zahteva") > prviHtml.indexOf("Kaj je bilo opravljeno?"));
+  assert.ok(!prviHtml.includes("opravljeno-bubble"));
+  assert.ok(uiSrc.includes('data-dokument-odpri-tip="work_evidence"'));
+  assert.ok(uiSrc.includes(".concat(stanje.dodatniDokumenti || [])"));
+  assert.ok(uiSrc.includes("Kaj je bilo opravljeno?"));
   assert.ok(uiSrc.includes("Brez dodatnega opisa"));
 });
 
@@ -902,6 +924,9 @@ test("55. dokazilo se poveča in ureja v aplikaciji brez novega okna", function 
   assert.ok(appSrc.includes("odpriOpravljenoModal(priloga, indeks)"));
   assert.equal(modalSrc.includes("window.open"), false);
   assert.ok(stylesSrc.includes(".opravljeno-modal__medij"));
+  var navigacijaCss = fs.readFileSync(path.join(root, "..", "app", "testna-vrstica.css"), "utf8");
+  assert.match(navigacijaCss, /html\.uj-modal-odprt \.app-testna-vrstica[\s\S]*visibility: hidden !important;[\s\S]*pointer-events: none !important;/);
+  assert.ok(prviHtml.includes("testna-vrstica.css?v=20260818-tipkovnica-v4"));
 });
 
 test("56. izbrani odvetnik določi zahtevo za dokazilo opravljenega dela", function () {
@@ -933,9 +958,8 @@ test("56. izbrani odvetnik določi zahtevo za dokazilo opravljenega dela", funct
 
 test("57. uvoz dokazila takoj odpre zaporedni obrazec s priporočilom", function () {
   var appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
-  var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
-  assert.ok(prviHtml.includes('id="opravljeno-priporocilo-besedilo"'));
-  assert.ok(prviHtml.includes("Po priporočilu odvetnika priložite slike prvotnega stanja."));
+  assert.ok(uiSrc.includes("zahteva.recommendation"));
+  assert.ok(uiSrc.includes("Priložite dokazila, ki prikazujejo opravljeno delo."));
   assert.ok(appSrc.includes("PRIVZETA_ZAHTEVA_DOKAZILA_OPRAVLJENEGA"));
   assert.ok(appSrc.includes("descriptionRequired: zahteva.required"));
   assert.ok(appSrc.includes("requestAnimationFrame(odpriNaslednjeCakajoceDokazilo)"));
@@ -945,10 +969,8 @@ test("57. uvoz dokazila takoj odpre zaporedni obrazec s priporočilom", function
 
 test("58. brez slike odpre isti obvezni obrazec in se prenese v dokumente", function () {
   var appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
-  var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
   var pvSrc = fs.readFileSync(path.join(root, "..", "app", "priloge-vsebina.js"), "utf8");
-  assert.ok(prviHtml.includes("data-opravljeno-brez-slike"));
-  assert.ok(prviHtml.includes("Nimam slike"));
+  assert.ok(uiSrc.includes("data-kategorija-brez"));
   assert.ok(appSrc.includes("function dodajOpisBrezSlike"));
   assert.ok(appSrc.includes("opravljenoBrezSlike"));
   assert.ok(pvSrc.includes("textOnly: true"));
@@ -960,8 +982,7 @@ test("59. več slik iste zahteve je združenih v eni galeriji z enim opisom", fu
   var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
   assert.ok(prviHtml.includes('id="opravljeno-modal-galerija"'));
   assert.ok(prviHtml.includes('id="opravljeno-modal-dodaj"'));
-  assert.ok(prviHtml.includes('class="opravljeno-bubble__zahteva"'));
-  assert.ok(stylesSrc.includes(".opravljeno-bubble__zahteva > .opravljeno-bubble__seznam:not(:empty)"));
+  assert.ok(uiSrc.includes('data-dokument-odpri-tip="work_evidence"'));
   assert.ok(appSrc.includes("groupId"));
   assert.ok(appSrc.includes("prilogeSkupineDokazila"));
   assert.ok(appSrc.includes("clan.description = opis"));
@@ -993,46 +1014,61 @@ test("60. vse kategorije dokumentov uporabljajo enoten priporočilni skupinski s
   assert.equal(datoteke[1].groupId, groupId);
 });
 
-test("61. prvi korak uporablja vprašalne widgete namesto generičnega polja", function () {
+test("61. vprašalni widget je prestavljen v predajo odvetniku", function () {
   var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
-  assert.ok(prviHtml.includes("Od vas potrebujemo nekaj odgovorov"));
-  assert.ok(prviHtml.includes("opravljeno-vprasanje--besedilo"));
-  assert.ok(prviHtml.includes('id="opis-dolga"'));
-  assert.ok(prviHtml.includes("data-opravljeno-zahteva"));
-  assert.ok(stylesSrc.includes(".opravljeno-vprasanje__glava"));
+  assert.ok(!prviHtml.includes("Od vas potrebujemo nekaj odgovorov"));
+  assert.ok(uiSrc.includes("Od vas potrebujemo nekaj odgovorov"));
+  assert.doesNotMatch(appSrc, /const opazovalnikVprasanj = new ResizeObserver/);
+  assert.doesNotMatch(appSrc, /opravljenoVprasanjaViewport\.style\.height/);
+  assert.match(appSrc, /if \(Math\.abs\(novaSirina - zadnjaSirinaVprasanj\) < 1\) return;/);
+  assert.ok(uiSrc.includes("opravljeno-vprasanje--besedilo opravljeno-vprasanja__stran"));
+  assert.ok(uiSrc.includes('id="opomin-predaja-opis-dolga"'));
+  assert.ok(uiSrc.includes('data-dokument-odpri-tip="work_evidence"'));
+  assert.ok(stylesSrc.includes(".opomin-predaja-odgovori .opravljeno-vprasanje__glava"));
 });
 
-test("62. besedilni vprašalni widget se razširi in ima majhna gumba desno", function () {
+test("62. besedilni vprašalni widget se shrani sproti in podpira drsenje", function () {
   var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
   var appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
-  assert.ok(prviHtml.includes('id="opis-dolga-izbrisi"'));
-  assert.ok(prviHtml.includes('id="opis-dolga-shrani"'));
+  assert.ok(!prviHtml.includes('id="opis-dolga-izbrisi"'));
+  assert.ok(uiSrc.includes('predajaOpisDolga.addEventListener("input"'));
+  assert.ok(uiSrc.includes('predajaOdgovoriViewport.addEventListener("touchstart"'));
   assert.ok(appSrc.includes("nastaviUrejanjeOpisnegaVprasanja"));
+  assert.ok(appSrc.includes("--opravljeno-aktivna-visina"));
+  assert.match(appSrc, /opisDolgaVnos\.hidden = !jeUrejanje && jeShranjeno/);
   assert.ok(stylesSrc.includes(".opravljeno-vprasanje--urejanje #opis-dolga"));
+  assert.match(stylesSrc, /\.opravljeno-vprasanja__viewport\s*\{[\s\S]{0,100}height: var\(--opravljeno-aktivna-visina, auto\)/);
+  assert.match(stylesSrc, /\.opravljeno-vprasanja__viewport--animirana-visina\s*\{[\s\S]{0,120}--opravljeno-visina-trajanje, 80ms/);
+  assert.match(stylesSrc, /\.opravljeno-vprasanja__viewport--programski-prehod\s*\{[\s\S]{0,80}scroll-snap-type:\s*none/);
+  assert.ok(appSrc.includes("animirajPomikOpravljenoVprasanje"));
+  assert.doesNotMatch(appSrc, /narociVisinoAktivnegaOpravljenoVprasanja\((?:120|190), true\)/);
+  assert.match(appSrc, /let programskiCiljOpravljenoVprasanje = null/);
+  assert.match(appSrc, /if \(programskiCiljOpravljenoVprasanje != null\) \{\s*return;\s*\}/);
+  assert.match(stylesSrc, /\.opravljeno-vprasanje__shranjeni-odgovor\s*\{/);
   assert.ok(stylesSrc.includes("justify-content: flex-end"));
 });
 
-test("63. račun je ob datumih, vprašanja pa so drsni sklop", function () {
+test("63. račun ostane ob datumih, vprašanja pa so drsni sklop predaje", function () {
   var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
   var appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
   assert.ok(prviHtml.includes("racun-posiljanje__naslov-besedilo\">Priložite račun</span><span class=\"racun-posiljanje__stevec\""));
   assert.ok(!prviHtml.includes(">Račun za pošiljanje</h3>"));
-  assert.ok(prviHtml.indexOf('id="racun-posiljanje"') < prviHtml.indexOf('id="opravljeno-vprasanja-viewport"'));
-  assert.ok(prviHtml.includes('data-opravljeno-vprasanje="0"'));
-  assert.ok(prviHtml.includes('data-opravljeno-vprasanje="1"'));
+  assert.ok(!prviHtml.includes('id="opravljeno-vprasanja-viewport"'));
+  assert.ok(uiSrc.includes('data-predaja-odgovor-stran="0"'));
+  assert.ok(uiSrc.includes('data-predaja-odgovor-stran="1"'));
   assert.ok(prviHtml.includes("obrazec-razdelek--dolg"));
   assert.ok(prviHtml.includes("obrazec-racun-widget"));
-  assert.ok(prviHtml.includes("obrazec__polje--opravljeno-vprasanja"));
+  assert.ok(uiSrc.includes("opomin-predaja-odgovori__track"));
   assert.ok(appSrc.includes("prikaziOpravljenoVprasanje"));
   assert.ok(stylesSrc.includes("scroll-snap-type: x mandatory"));
 });
 
-test("64. obvezna vprašanja blokirajo nadaljevanje in niso vezana na fiksno število", function () {
+test("64. obvezna vprašanja blokirajo pripravo predaje", function () {
   var prviHtml = fs.readFileSync(path.join(root, "..", "app", "neplacila.html"), "utf8");
   var appSrc = fs.readFileSync(path.join(root, "..", "app", "app.js"), "utf8");
-  assert.ok(prviHtml.includes('data-opravljeno-obvezno="true"'));
-  assert.ok(prviHtml.includes('data-opravljeno-tip="text"'));
-  assert.ok(prviHtml.includes('data-opravljeno-tip="evidence"'));
+  assert.ok(!prviHtml.includes('data-opravljeno-obvezno="true"'));
+  assert.ok(uiSrc.includes('aria-required="true"'));
+  assert.ok(uiSrc.includes('data-dokument-odpri-tip="work_evidence"'));
   assert.ok(appSrc.includes("validirajOpravljenoVprasanja"));
   assert.ok(appSrc.includes("opravljenoVprasanjaStrani.filter"));
   assert.ok(appSrc.includes("if (!(await validirajOpravljenoVprasanja())) return;"));
@@ -1057,11 +1093,60 @@ test("65. izbira paketa samodejno izbere tudi odvetnika v spodnjem pillu", funct
   assert.ok(uiSrc.includes("shraniZahtevePrilogIzbranegaOdvetnika(lawyer)"));
 });
 
-test("66. pill odvetnika ima desno akcijo za pregled vseh odvetnikov", function () {
-  assert.ok(uiSrc.includes("Preglej vse odvetnike"));
-  assert.ok(uiSrc.includes("opomin-predaja-sestavljalnik__odvetnik-vsi"));
-  assert.ok(stylesSrc.includes(".opomin-predaja-sestavljalnik__odvetnik-vsi"));
-  assert.ok(uiSrc.includes('marketplaceTrigger.click()'));
+test("66. pill odvetnika privzeto skrči in odpira možne dneve predaje", function () {
+  assert.ok(uiSrc.includes("Možni dnevi predaje"));
+  assert.ok(uiSrc.includes("opomin-predaja-sestavljalnik__odvetnik-dnevi"));
+  assert.ok(uiSrc.includes("opomin-predaja-sestavljalnik__dnevi--strnjeno"));
+  assert.ok(uiSrc.includes('aria-expanded="'));
+  assert.ok(uiSrc.includes("predajaDneviRazsirjeni = !predajaDneviRazsirjeni"));
+  assert.ok(stylesSrc.includes(".opomin-predaja-sestavljalnik__dnevi--strnjeno"));
+  assert.ok(stylesSrc.includes("grid-template-rows: 0fr"));
+  assert.ok(stylesSrc.includes("margin-bottom: 18px"));
+  assert.ok(stylesSrc.includes("min-width: 112px"));
+  assert.ok(stylesSrc.includes("transform: rotate(90deg)"));
+});
+
+test("6a. opis opravljenega dela je obvezen šele pri predaji odvetniku", function () {
+  var t = pripravljenPlan();
+  var podatki = k1();
+  podatki.opisDolga = "";
+  var preverjeno = N.preveriPogojeZaPripravoPredaje(t.plan, t.idx, podatki, []);
+  assert.equal(preverjeno.ok, false);
+  assert.ok(preverjeno.manjkajoce.includes("Kaj je bilo opravljeno"));
+});
+
+test("66a. orodna vrstica odpre seznam vseh odvetnikov", function () {
+  assert.ok(uiSrc.includes('id="lp-preglej-vse-odvetnike"'));
+  assert.ok(uiSrc.includes('class="lp-filter-ponudb__preglej-odvetnike"'));
+  assert.ok(!uiSrc.includes('id="lp-filter-priporoceno"'));
+  assert.ok(uiSrc.includes('lpPreglejVseOdvetnike.addEventListener("click", lpOdpriOdvetnike)'));
+  assert.ok(stylesSrc.includes(".lp-filter-ponudb__preglej-odvetnike"));
+});
+
+test("66b. kratki vprašanji sta prestavljeni pod odvetnika", function () {
+  assert.ok(!dolznikHtmlSrc.includes('id="opravljeno-vprasanja-viewport"'));
+  assert.ok(!dolznikHtmlSrc.includes("Od vas potrebujemo nekaj odgovorov"));
+  assert.ok(uiSrc.includes('id="opomin-predaja-odgovori"'));
+  assert.ok(uiSrc.includes('id="opomin-predaja-opis-dolga"'));
+  assert.ok(uiSrc.includes('data-dokument-odpri-tip="work_evidence"'));
+  assert.ok(uiSrc.includes('class="opravljeno-vprasanja__uvod"'));
+  assert.ok(uiSrc.includes('id="opomin-predaja-opis-akcije" hidden'));
+  assert.ok(uiSrc.includes('id="opomin-predaja-opis-izbrisi">Izbriši'));
+  assert.ok(uiSrc.includes('id="opomin-predaja-opis-shrani">Shrani'));
+  assert.ok(uiSrc.includes('predajaOpisAkcije.hidden = false'));
+  assert.ok(uiSrc.includes('predajaOpisAkcije.hidden = true'));
+  assert.ok(uiSrc.includes('predajaOpisDolga.style.height = "auto"'));
+  assert.ok(uiSrc.includes('Math.max(46, predajaOpisDolga.scrollHeight + 2)'));
+  assert.ok(uiSrc.includes('uskladiVisinoPredajaOpisa();'));
+  assert.ok(uiSrc.includes('sessionStorage.setItem(\n            "neplacilo-korak1-podatki"'));
+  assert.ok(uiSrc.includes('shraniPredajaOpis(predajaOpisDolga.value)'));
+  assert.ok(!uiSrc.includes("Samodejno shranjeno"));
+  assert.ok(uiSrc.includes('predajaOdgovoriViewport.style.height = Math.ceil(aktivnaStran.scrollHeight) + "px"'));
+  assert.ok(!stylesSrc.includes('[data-predaja-odgovor-stran="1"] {\n  transform: translateY(-10px)'));
+  assert.ok(stylesSrc.includes(".opomin-predaja-odgovori__track"));
+  assert.ok(stylesSrc.includes(".opomin-predaja-odgovori__akcije[hidden]"));
+  assert.match(stylesSrc, /\.opomin-predaja-odgovori\.obrazec-razdelek--dolg \.opravljeno-vprasanja__navigacija\s*\{[\s\S]{0,140}margin-top:\s*-5px/);
+  assert.ok(appSrc.includes('podatki.get("opis") || obstojeci.opisDolga'));
 });
 
 test("67. končni pregled omogoča neposredno urejanje celotnega sporočila", function () {
@@ -1402,6 +1487,16 @@ test("95. brez checkboxa/manjkajočimi dokumenti CTA ostane disabled (canonical 
   assert.ok(blok.includes("!N.moznaPredajaOdvetniku(lh)"));
 });
 
+test("95a. potrditev ročne predaje je oblikovan izbirni gumb, ne sistemski kvadratek", function () {
+  assert.match(stylesSrc, /opomin-predaja-pregled__checkbox-label\s*\{[\s\S]*border-radius:\s*14px;[\s\S]*linear-gradient/);
+  assert.match(stylesSrc, /checkbox-label input\[type="checkbox"\][\s\S]*appearance:\s*none;[\s\S]*border-radius:\s*50%/);
+  assert.match(stylesSrc, /checkbox-label input\[type="checkbox"\]:checked::after[\s\S]*opacity:\s*1/);
+});
+
+test("95b. ikona pripravljenega primera je majhen ščit v enotnem krogu", function () {
+  assert.match(stylesSrc, /opomin-predaja-pregled__primer-ikona svg\s*\{[\s\S]*width:\s*18px;[\s\S]*height:\s*18px;[\s\S]*stroke-width:\s*2;/);
+});
+
 test("96. ponoven klik med izvajanjem ne izvede dvojnega zaključka", function () {
   var idx = uiSrc.indexOf('glavniGumb.addEventListener("click"');
   assert.ok(idx >= 0);
@@ -1440,7 +1535,10 @@ test("101. končna oddaja ne potrdi neizpolnjenih prejšnjih kartic", function (
     N.najdiKorak(plan, t.idx).status,
     "draft"
   );
-  assert.ok(N.prviNepotrjenPredZadnjimKorakom(plan, t.idx));
+  /* Uporabnik je izrecno zahteval, da kartica "Predaja odvetniku" ni več
+     zaklenjena dokler prejšnji koraki niso potrjeni – funkcija zdaj vedno
+     vrne null. */
+  assert.equal(N.prviNepotrjenPredZadnjimKorakom(plan, t.idx), null);
   plan.steps.forEach(function (step) {
     if (!step.isExcluded && step.kind !== "manual_lawyer") {
       N.potrdiKorak(plan, step.index, step.finalMessage || step.generatedMessage);
@@ -1494,11 +1592,11 @@ test("104. UI zaklene zadnjo kartico in ob kliku pokaže manjkajoči korak", fun
   assert.ok(stylesSrc.includes(".opomin-nacrt__stage--zaklenjen"));
 });
 
-test("105. povzetek nastavitev prvih devetih kartic je 30 % nižji, predaja pa ostane nespremenjena", function () {
+test("105. povzetek nastavitev prvih devetih kartic je nižji od polne kartice, predaja pa ostane nespremenjena", function () {
   assert.ok(uiSrc.includes('(jeManual ? "" : " opomin-nacrt-potrdi__readonly--kompakt")'));
   assert.match(
     stylesSrc,
-    /\.opomin-nacrt-potrdi__readonly--kompakt[\s\S]{0,180}\.opomin-nacrt-potrdi__readonly-postavka[\s\S]{0,180}height: 48px;[\s\S]{0,80}min-height: 48px;/
+    /\.opomin-nacrt-potrdi__readonly--kompakt[\s\S]{0,180}\.opomin-nacrt-potrdi__readonly-postavka[\s\S]{0,180}height: 56px;[\s\S]{0,80}min-height: 56px;/
   );
   assert.ok(uiSrc.includes("prilagodiKompaktneNastavitve"));
   assert.ok(uiSrc.includes('var najmanjsa = 9.5'));
@@ -1517,8 +1615,8 @@ test("107. obvestilo za naslednjo potrditev uporablja odobreno kompaktno postavi
   assert.ok(uiSrc.includes("opomin-nacrt-potrdi__obvestilo-korak"));
   assert.ok(uiSrc.includes("opomin-nacrt-potrdi__obvestilo-pika"));
   assert.ok(uiSrc.includes("prilagodiKompaktnoObvestilo"));
-  assert.match(stylesSrc, /\.opomin-nacrt-potrdi__obvestilo-naslov[\s\S]{0,180}height: 34px;/);
-  assert.match(stylesSrc, /\.opomin-nacrt-potrdi__obvestilo-opis[\s\S]{0,180}height: 26px;/);
+  assert.match(stylesSrc, /\.opomin-nacrt-potrdi__obvestilo-naslov[\s\S]{0,180}height: 38px;/);
+  assert.match(stylesSrc, /\.opomin-nacrt-potrdi__obvestilo-opis[\s\S]{0,180}height: 29px;/);
 });
 
 test("108. obvestilo in nastavitve vseh samodejnih kartic so en zložen element", function () {
@@ -1549,6 +1647,8 @@ test("110. dodatki so na 3. koraku pod SMS-oknom in uporabljajo obstoječe akcij
   assert.doesNotMatch(uiSrc, /vklopljeno: (?:rokAktiven|obrocAktiven|trrAktiven)/);
   assert.doesNotMatch(uiSrc, /class="step-addons-list"/);
   assert.match(stylesSrc, /\.opomin-sporocilo-dodatki\s*\{[\s\S]{0,180}margin-top: 12px/);
+  assert.match(stylesSrc, /\.opomin-sporocilo-dodatki \.sporocilo-dodatek__naslov\s*\{[\s\S]{0,180}color: #294945;[\s\S]{0,120}font-weight: 650;/);
+  assert.match(stylesSrc, /\.opomin-sporocilo-dodatki \.sporocilo-dodatek__stanje\s*\{[\s\S]{0,180}color: #59706c;[\s\S]{0,120}opacity: 1;/);
   assert.match(sporociloHtmlSrc, /aria-labelledby="dodatki-naslov" hidden aria-hidden="true"/);
 });
 
@@ -1557,13 +1657,65 @@ test("111. obrocno placilo ob odprtju vedno pokaze spodnja gumba", function () {
   assert.match(stylesSrc, /\.obrocno-sheet \.rok-sheet__noga\s*\{[\s\S]{0,180}grid-row: 3;[\s\S]{0,100}display: block;/);
 });
 
-test("112. postopek ima samo Dolznika in Posiljanje, sporocilo pa ostane varno izklopljeno", function () {
+test("112. postopek vodi prek zgodovine in cilja, sporocilo pa ostane varno izklopljeno", function () {
   assert.match(appSrc, /const KORAK_SPOROCILO_VKLJUCEN = false;/);
   assert.match(appSrc, /function zagotoviPodatkeSporocilaZaPosiljanje/);
-  assert.match(appSrc, /zagotoviPodatkeSporocilaZaPosiljanje\(noviKorak1\);[\s\S]{0,100}prehodNaStran\("neplacila-posiljanje\.html"\)/);
+  assert.match(appSrc, /zagotoviPodatkeSporocilaZaPosiljanje\(noviKorak1\);[\s\S]{0,100}prehodNaStran\("neplacila-zgodovina\.html"\)/);
+  assert.match(appSrc, /2: "neplacila-zgodovina\.html",[\s\S]{0,100}3: "neplacila-cilj\.html",[\s\S]{0,100}4: "neplacila-posiljanje\.html"/);
   assert.doesNotMatch(dolznikHtmlSrc, /data-korak="3"|>Sporočilo<|od 3:/);
   assert.doesNotMatch(posiljanjeHtmlSrc, /data-korak="3"|>Sporočilo<|od 3:/);
-  assert.match(stylesSrc, /\.debt-stepper\s*\{[\s\S]{0,520}grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(stylesSrc, /\.debt-stepper\s*\{[\s\S]{0,520}grid-template-columns: repeat\(4, minmax\(0, 1fr\)\);/);
+  assert.match(stylesSrc, /\.debt-stepper\s*\{[\s\S]{0,520}min-height: 44px;/);
+  assert.match(stylesSrc, /\.debt-step\s*\{[\s\S]{0,220}min-height: 44px;/);
+  assert.match(stylesSrc, /\.debt-step__content\s*\{[\s\S]{0,420}min-height: 44px;[\s\S]{0,160}padding: calc\(4px \+ var\(--wizard-safe-top\)\) 8px 4px;/);
+  assert.match(stylesSrc, /\.debt-step__number\s*\{[\s\S]{0,260}width: 30px;[\s\S]{0,140}height: 30px;[\s\S]{0,260}font-weight: 600;/);
+  assert.match(stylesSrc, /\.debt-step__icon svg\s*\{[\s\S]{0,100}width: 23px;[\s\S]{0,80}height: 23px;/);
+  assert.match(stylesSrc, /\.debt-step__label\s*\{[\s\S]{0,260}font-size: 14px;/);
+  [dolznikHtmlSrc, sporociloHtmlSrc, posiljanjeHtmlSrc].forEach(function (html) {
+    assert.match(html, /styles\.css\?v=[^"']+/,
+      "vsak korak mora naložiti trenutno različico skupnega sloga");
+    assert.match(html, /storage-priloge-cache\.js\?v=20260818-egress-v1/);
+    assert.match(html, /app\.js\?v=[^"']+/,
+      "vsak korak mora naložiti trenutno različico skupne logike");
+    assert.match(html, /data-wizard-progress-header/,
+      "vsak korak mora vsebovati sidro za dinamično izrisan prikaz napredka");
+  });
+  assert.match(stylesSrc, /\.debt-stepper\s*\{[\s\S]{0,760}border-radius: 14px;/);
+  assert.match(stylesSrc, /@view-transition\s*\{[\s\S]{0,80}navigation: auto;/);
+  assert.match(stylesSrc, /\.debt-stepper__selection\s*\{[\s\S]{0,520}border: 1px solid rgba\(61, 166, 159, 0\.28\);[\s\S]{0,120}border-radius: 12px;[\s\S]{0,420}transform: translate3d\(0, 0, 0\);/);
+  assert.match(stylesSrc, /\[data-wizard-progress-header\]\[data-korak="2"\] \.debt-stepper__selection\s*\{[\s\S]{0,120}translate3d\(calc\(100% \+ 3px\), 0, 0\)/);
+  assert.match(stylesSrc, /\.debt-stepper:has\(\.debt-step\[data-korak="2"\]\.debt-step--active\) \.debt-stepper__selection/);
+  assert.doesNotMatch(stylesSrc, /\.debt-step:nth-child\(2\)\.debt-step--active/);
+  assert.match(stylesSrc, /\.debt-stepper__selection\s*\{[\s\S]{0,760}backface-visibility: hidden;[\s\S]{0,80}will-change: transform;/);
+  assert.doesNotMatch(stylesSrc, /view-transition-name:\s*debt-wizard-selection/);
+  assert.match(appSrc, /class="debt-stepper__selection" aria-hidden="true"/);
+  assert.match(appSrc, /root\.dataset\.korak = String\(currentStep\);/);
+  assert.doesNotMatch(appSrc, /debt-step__status/);
+  assert.doesNotMatch(appSrc, /const statusMarker = el\.querySelector/);
+  assert.match(stylesSrc, /\.debt-step:first-child\s*\{[\s\S]{0,160}background: transparent;/);
+  assert.match(stylesSrc, /\.debt-step:last-child\s*\{[\s\S]{0,180}box-shadow: none;/);
+  assert.doesNotMatch(stylesSrc, /\.debt-step:first-child::before,\s*\.debt-step:first-child::after/);
+  assert.match(stylesSrc, /\.debt-step--active::after\s*\{[\s\S]{0,80}content: none;/);
+  assert.match(stylesSrc, /\.debt-step--complete \.debt-step__number\s*\{[\s\S]{0,260}background: linear-gradient\([\s\S]{0,120}color: #ffffff;/);
+  assert.match(stylesSrc, /body\.wizard-status-header \.wizard-topbar\s*\{[\s\S]{0,80}display: none !important;[\s\S]{0,180}height: 0 !important;[\s\S]{0,180}min-height: 0 !important;/);
+  assert.doesNotMatch(dolznikHtmlSrc, /class="wizard-topbar/);
+  assert.doesNotMatch(posiljanjeHtmlSrc, /class="wizard-topbar/);
+  assert.doesNotMatch(sporociloHtmlSrc, /class="wizard-topbar/);
+  assert.match(stylesSrc, /body\.wizard-status-header::before\s*\{[\s\S]{0,120}display: none !important;[\s\S]{0,80}height: 0 !important;/);
+  assert.match(stylesSrc, /html\.app-iphone-preview body\.wizard-status-header::before,[\s\S]{0,220}display: block !important;[\s\S]{0,120}height: 47px !important;/);
+  assert.match(stylesSrc, /html\.app-iphone-preview \.debt-stepper\s*\{[\s\S]{0,80}--wizard-safe-top: 0px;/);
+  assert.match(dolznikHtmlSrc, /wizard-status-header/);
+  assert.match(posiljanjeHtmlSrc, /wizard-status-header/);
+  assert.match(dolznikHtmlSrc, /apple-mobile-web-app-status-bar-style" content="black-translucent"/);
+  assert.match(posiljanjeHtmlSrc, /apple-mobile-web-app-status-bar-style" content="black-translucent"/);
+  assert.match(dolznikHtmlSrc, /apple-mobile-web-app-capable" content="yes"/);
+  assert.match(posiljanjeHtmlSrc, /apple-mobile-web-app-capable" content="yes"/);
+  assert.doesNotMatch(appSrc, /document\.body\.className\s*=\s*"stran--(?:neplacila|sporocilo)/);
+  assert.match(appSrc, /document\.body\.classList\.add\("stran--sporocilo", "stran--samo-obrazec"\)/);
+  assert.match(stylesSrc, /body\.stran--samo-obrazec::before,[\s\S]{0,180}display: none !important;[\s\S]{0,80}height: 0 !important;/);
+  assert.match(stylesSrc, /html\.wizard-status-page\s*\{[\s\S]{0,420}linear-gradient\(90deg,[\s\S]{0,180}50%/);
+  assert.match(dolznikHtmlSrc, /<html lang="sl" class="wizard-status-page">/);
+  assert.match(posiljanjeHtmlSrc, /<html lang="sl" class="wizard-status-page">/);
 });
 
 test("113. komentar racuna se shrani, skrči in prikaze tudi na Posiljanju", function () {
@@ -1588,5 +1740,160 @@ test("114. zgornja obvestilna kartica ima faded poudarek samo na levem in zgornj
   assert.match(stylesSrc, /\.opomin-nacrt-potrdi__obvestilo--barvno::after\s*\{[\s\S]{0,520}90deg[\s\S]{0,520}180deg/);
 });
 
-console.log("\n  Uspešnih: " + passed + "/115");
+test("115. stalna stranka se shrani in dejansko omehca priporoceni ton", function () {
+  assert.match(dolznikHtmlSrc, /id="stalna-stranka-widget"/);
+  assert.match(dolznikHtmlSrc, /id="stalna-stranka-stikalo"[\s\S]{0,100}role="switch"/);
+  assert.match(dolznikHtmlSrc, /id="stalna-stranka-rok" min="0" max="4" step="1" value="1"/);
+  assert.match(dolznikHtmlSrc, /id="stalna-stranka-trajanje" min="0" max="4" step="1" value="2"/);
+  assert.match(dolznikHtmlSrc, /id="stalna-stranka-placilo" min="0" max="4" step="1" value="1"/);
+  assert.doesNotMatch(dolznikHtmlSrc, /[😊😄🙂]/u);
+  assert.match(appSrc, /stalnaStranka: stalnaStrankaAktivna/);
+  assert.match(appSrc, /stalnaStrankaNastavitve: Object\.assign\(\{\}, stalnaStrankaNastavitve\)/);
+  assert.match(appSrc, /preferredTermDays: prednostniRokStalneStranke\(\)/);
+  assert.match(appSrc, /preferredInstallments: prednostniObrokiStalneStranke\(\)/);
+  assert.match(appSrc, /function jasenPovzetekStalneStranke/);
+  assert.match(appSrc, /Zelo prijazen ton/);
+  assert.match(appSrc, /Prijaznejši ton/);
+  assert.match(appSrc, /Ton ostane enak/);
+  assert.match(stylesSrc, /\.stalna-stranka__ton\s*\{[\s\S]{0,260}white-space: nowrap;/);
+  assert.match(ocenaTveganjaSrc, /function omehcajTonZaStalnoStranko/);
+  assert.match(ocenaTveganjaSrc, /function izracunajIntenzivnostStalneStranke/);
+  assert.match(ocenaTveganjaSrc, /Ton je omiljen za/);
+  assert.match(tonPriporociloSrc, /reasonCodes|returning_customer/);
+  assert.match(stylesSrc, /#obrazec-neplacilo \.stalna-stranka\s*\{/);
+  assert.match(stylesSrc, /\.stalna-stranka__stikalo\[aria-checked="true"\]/);
+  assert.match(stylesSrc, /#stalna-stranka-rok::-webkit-slider-thumb/);
+  assert.match(stylesSrc, /\.stalna-stranka-nastavitev\s*\{/);
+  assert.match(stylesSrc, /body\.app-testna-vrstica-prisotna \.ocena-sheet:not\(\[hidden\]\)\s*\{[\s\S]{0,180}bottom: calc\(48px \+ var\(--app-testna-safe-bottom/);
+  assert.match(stylesSrc, /body\.app-testna-vrstica-prisotna \.ocena-sheet__panel\s*\{[\s\S]{0,240}100dvh - 60px/);
+  assert.equal(OcenaTveganja.omehcajTonZaStalnoStranko("strict", 0), "strict");
+  assert.equal(OcenaTveganja.omehcajTonZaStalnoStranko("strict", 1), "firm");
+  assert.equal(OcenaTveganja.omehcajTonZaStalnoStranko("strict", 2), "friendly");
+  assert.equal(TonPriporocilo.omehcajTonZaStalnoStranko("strict", 1).id, "firm");
+  assert.equal(TonPriporocilo.izracunajIntenzivnostStalneStranke({ dodatniRokDni: 30, trajanje: "prvic", nacinPlacila: "v_celoti_takoj" }), 0);
+  assert.equal(TonPriporocilo.izracunajIntenzivnostStalneStranke({ dodatniRokDni: 7, trajanje: "eno_do_tri_leta", nacinPlacila: "po_novem_roku" }), 1);
+  assert.equal(TonPriporocilo.izracunajIntenzivnostStalneStranke({ dodatniRokDni: 21, trajanje: "eno_do_tri_leta", nacinPlacila: "po_novem_roku" }), 2);
+  assert.equal(TonPriporocilo.izracunajIntenzivnostStalneStranke({ dodatniRokDni: 7, trajanje: "vec_kot_pet_let", nacinPlacila: "po_novem_roku" }), 2);
+  const prednostno = TonDodatki.sestaviPriporocila({ toneId: "strict", overdueDays: 20, amountCents: 100000, preferredTermDays: 21, preferredInstallments: 4 });
+  assert.equal(prednostno.termDays, 21);
+  assert.equal(prednostno.installments, 4);
+});
+
+test("116. OCR racuna se potrdi v pregledu s fiksnim predogledom in urejanjem polj", function () {
+  assert.match(appSrc, /function zagotoviAiPregledRacuna\(\)/);
+  assert.match(appSrc, /id = "ai-racun-pregled"/);
+  assert.match(appSrc, /Ja, izgleda pravilno/);
+  assert.match(appSrc, /data-ai-racun-polje="naziv"/);
+  assert.match(appSrc, /data-ai-racun-polje="znesek"/);
+  assert.match(appSrc, /data-ai-racun-polje="stevilkaRacuna"/);
+  assert.match(appSrc, /data-ai-racun-polje="datum"/);
+  assert.match(appSrc, /data-ai-racun-polje="rokPlacila"/);
+  assert.match(appSrc, /data-ai-racun-polje="opis"/);
+  assert.match(appSrc, /data-ai-racun-polje="telefon"/);
+  assert.match(appSrc, /data-ai-racun-polje="email"/);
+  assert.match(appSrc, /const pregled = await odpriAiPregledRacuna\(datoteka, telo\.podatki\);/);
+  assert.match(appSrc, /izpolniPoljaIzAI\(pregled\.podatki\);/);
+  assert.match(appSrc, /function imaZeIzpolnjenaPoljaObrazca\(\)/);
+  assert.match(appSrc, /const ocrPolja = \[/);
+  assert.match(appSrc, /polje &&[\s\S]{0,100}!polje\.disabled/);
+  assert.match(appSrc, /if \(!potrebujePotrditev\)[\s\S]{0,180}inputEl\.click\(\);/);
+  assert.match(appSrc, /okno\.scrollLeft = vlecenje\.levo/);
+  assert.match(appSrc, /function pripraviSidroPovecave\(x, y\)/);
+  assert.match(appSrc, /uporabljenoSidro\.razmerjeX \* okno\.scrollWidth - uporabljenoSidro\.x/);
+  assert.match(appSrc, /pinca\.povecava \* \(trenutnaRazdalja \/ Math\.max\(1, pinca\.razdalja\)\)/);
+  assert.doesNotMatch(appSrc, /naslov: "Shranim tudi kot prilogo\?"/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__dialog\s*\{[\s\S]{0,260}grid-template-rows:[\s\S]{0,260}height: min\(920px/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__vsebina\s*\{[\s\S]{0,180}overflow-y: auto;/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__vsebina\s*\{[\s\S]{0,180}overflow-x: hidden;/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__okno\s*\{[\s\S]{0,220}overflow: auto;[\s\S]{0,120}touch-action: pan-x pan-y;/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__noga\s*\{[\s\S]{0,300}safe-area-inset-bottom/);
+  assert.match(stylesSrc, /@media \(max-width: 640px\)[\s\S]{0,160}grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__polje--siroko\s*\{[\s\S]{0,80}grid-column: 1 \/ -1;/);
+  assert.match(stylesSrc, /input\[type="date"\][\s\S]{0,420}padding-inline: 5px;/);
+  assert.match(stylesSrc, /\.ai-racun-pregled__polje--datum\s*\{[\s\S]{0,100}overflow: hidden;/);
+  assert.match(stylesSrc, /input\[type="date"\][\s\S]{0,180}-webkit-appearance: none;/);
+  assert.match(stylesSrc, /::-webkit-date-and-time-value\s*\{[\s\S]{0,140}text-align: center;/);
+});
+
+test("117. Supabase priloge ne ustvarjajo ponavljajocega egressa", function () {
+  assert.match(appSrc, /signedUrlPrilogeCache\.pridobi\(pot, sekunde \|\| 60\)/);
+  assert.match(appSrc, /cacheControl: "900"/);
+  assert.match(appSrc, /naloziPrilogoVStorageEnkrat/);
+  assert.match(appSrc, /crypto\.subtle\.digest/);
+  assert.match(appSrc, /opomin_aktiviran:opomin_nacrt->>serverActivatedAt/);
+  assert.doesNotMatch(appSrc, /\.from\("zadeve"\)[\s\S]{0,100}\.select\("\*"\)/);
+});
+
+test("118. kartice se upravljajo s plus minus in tonom izbrane kartice", function () {
+  assert.match(uiSrc, /id="opomin-kartice-minus"/);
+  assert.match(uiSrc, /id="opomin-kartice-plus"/);
+  assert.match(uiSrc, /data-nov-korak-barva=/);
+  assert.match(uiSrc, /data-nov-korak-ton=/);
+  assert.match(uiSrc, /var naslednjiObicajniKorak = \(plan\.steps \|\| \[\]\)\.find\(function \(item\) \{/);
+  assert.match(uiSrc, /item\.isExcluded && item\.kind !== "manual_lawyer" && item\.deliveryMode !== "manual"/);
+  assert.match(uiSrc, /var zadnji = odstranljivi\[odstranljivi\.length - 1\]/);
+  assert.doesNotMatch(uiSrc, /id="opomin-uredi-korake"/);
+  assert.doesNotMatch(uiSrc, /data-dodaj-korak/);
+  assert.match(stylesSrc, /\.opomin-nacrt__stevilo-kartic\s*\{/);
+  assert.match(stylesSrc, /\.opomin-nacrt__hitri-urejevalnik\s*\{/);
+  assert.match(stylesSrc, /\.opomin-nacrt__izbira-koraka--izbrana\s*\{/);
+  assert.match(stylesSrc, /\.opomin-nacrt__izbira-tona--izbrana\s*\{/);
+  assert.match(posiljanjeHtmlSrc, /styles\.css\?v=[^"']+/);
+  assert.match(posiljanjeHtmlSrc, /opomin-nacrt\.js\?v=[^"']+/);
+  assert.match(posiljanjeHtmlSrc, /opomin-nacrt-ui\.js\?v=[^"']+/);
+
+  var plan = N.narediNovPlan(
+    { imeDolznika: "Testni dolžnik", znesek: 9446, datumZapadlosti: "2026-08-01" },
+    { toneRecommendation: { selectedToneId: "friendly" }, sporociloDolzniku: "Izvirno besedilo" }
+  );
+  var prvi = plan.steps[0];
+  var sporociloPred = prvi.finalMessage;
+  prvi.status = "confirmed";
+  prvi.confirmedAt = new Date().toISOString();
+  plan = N.nastaviTonKoraka(plan, prvi.index, "super_strict");
+  assert.equal(prvi.toneId, "super_strict");
+  assert.equal(prvi.finalMessage, sporociloPred);
+  assert.equal(prvi.status, "needs_review");
+  var predaja = plan.steps.find(function (s) { return s.kind === "manual_lawyer"; });
+  N.nastaviTonKoraka(plan, predaja.index, "friendly");
+  assert.equal(predaja.toneId, null);
+});
+
+test("119. zgodovina racuna je vidna pod dokumenti in povzeta v sporocilu odvetniku", function () {
+  assert.match(izvedbaSrc, /state\.plan && state\.plan\.historyBeforePlan/);
+  assert.match(izvedbaSrc, /function zgodovinaPredNacrtomZaOdvetnika\(\)/);
+  assert.match(izvedbaSrc, /messageEditedManually: Boolean\(lh\.messageEditedManually\)/);
+  assert.doesNotMatch(izvedbaSrc, /messageEditedManually: Boolean\(pripravljenaPredaja\.message\)/);
+  assert.match(izvedbaSrc, /Pred začetkom postopka se je pri računu zgodilo naslednje:/);
+  assert.match(izvedbaSrc, /izvedba-odvetnik-zgodovina-pred-nacrtom__mreza/);
+  assert.match(izvedbaSrc, /Ti podatki so samodejno vključeni v kratko sporočilo odvetniku\./);
+  assert.match(izvedbaCssSrc, /\.izvedba-odvetnik-zgodovina-pred-nacrtom__mreza\s*\{[\s\S]{0,180}grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  assert.match(izvedbaCssSrc, /\.izvedba-odvetnik-zgodovina-pred-nacrtom__kartica\s*\{[\s\S]{0,260}min-height: 66px;/);
+  assert.match(uiSrc, /function htmlZgodovinskiDogodkiZaPredajo\(plan, podatkiKorak1\)/);
+  assert.match(uiSrc, /zgodovinaHtml \+\s*'<p class="opomin-predaja-sestavljalnik__dokumenti-napaka"/);
+  assert.match(stylesSrc, /\.opomin-predaja-zgodovina__mreza\s*\{[\s\S]{0,180}grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  assert.match(stylesSrc, /\.opomin-predaja-zgodovina__kartica\s*\{[\s\S]{0,320}min-height: 66px;/);
+  assert.match(izvedbaSrc, /var zaprt = !jeZgodovina && jeNacrtZaprt\(\);/);
+
+  var dogodki = [
+    { tip: "partial", naslov: "Delno plačilo", znesek: 1000, settings: { paymentAmount: 1000 } },
+    { tip: "credit_note", naslov: "Dobropis", znesek: 250, settings: { settlementAmount: 250 } },
+  ];
+  var sporocilo = N.sestaviSporociloOdvetniku("debt_collection", {
+    imeDolznika: "Testni dolžnik",
+    amountCents: 944600,
+    historyBeforePlan: dogodki,
+  });
+  assert.match(sporocilo, /Račun je bil delno poravnan v višini 1\.000,00/);
+  assert.match(sporocilo, /Izdan je bil dobropis v višini 250,00/);
+
+  var t = novPlanZKorakom10();
+  t.plan.historyBeforePlan = dogodki;
+  var stanje = N.dokumentnoStanjePredaje(t.plan, t.korak10.index, k1(), []);
+  var zgodovinaTile = stanje.osnovniDokumenti.find(function (d) { return d.type === "reminder_history"; });
+  assert.equal(zgodovinaTile.title, "Zgodovina primera");
+  assert.match(zgodovinaTile.subtitle, /2 dogodka/);
+});
+
+console.log("\n  Uspešnih: " + passed + "/122");
 console.log("Sestavljalnik \"Predaja odvetniku\": vsi testi uspešni\n");

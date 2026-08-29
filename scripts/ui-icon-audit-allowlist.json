@@ -1,0 +1,3473 @@
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "signature": "image:app/aktivni-primeri.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/aktivni-primeri.html:21",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/bonitetna-manifest.json:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/bonitetna-manifest.json:14",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/bonitetna-manifest.json:icon-512:image:db1b1e57180fe659d42d",
+      "source": "app/bonitetna-manifest.json:19",
+      "name": "icon-512",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/bonitetna-preverba.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/bonitetna-preverba.html:32",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/index.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/index.html:20",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/izvedba.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/izvedba.html:27",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/koncani-primeri.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/koncani-primeri.html:22",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/manifest.json:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/manifest.json:11",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/manifest.json:icon-512:image:db1b1e57180fe659d42d",
+      "source": "app/manifest.json:16",
+      "name": "icon-512",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/neplacila-posiljanje.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/neplacila-posiljanje.html:27",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/neplacila-sporocilo.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/neplacila-sporocilo.html:21",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/neplacila.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/neplacila.html:21",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/pos-terminal.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/pos-terminal.html:15",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/prijava.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/prijava.html:16",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/rast-priloznosti.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/rast-priloznosti.html:17",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/skrb-stranke-delavci.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/skrb-stranke-delavci.html:17",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/skupnost-obrtnikov.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/skupnost-obrtnikov.html:17",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/ugled-optimizacija.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/ugled-optimizacija.html:17",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "image:app/zascita-posla.html:icon-192:image:966c2ce654af7eba599f",
+      "source": "app/zascita-posla.html:17",
+      "name": "icon-192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/boniteta-pro.css:.bp-card-delete.is-deleting span::after:pseudo:b4935894c8ce16bde67b",
+      "source": "app/boniteta-pro.css:32",
+      "name": ".bp-card-delete.is-deleting span::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-dodatno__namen[open] summary b::after:pseudo:290b60dc49c987fd0258",
+      "source": "app/bonitetna-podjetje-grafike.css:412",
+      "name": ".boniteta-dodatno__namen[open] summary b::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-dodatno__osebe li.is-former .boniteta-dodatno__avatar::before:pseudo:afba2418d6aec23dc4b2",
+      "source": "app/bonitetna-podjetje-grafike.css:297",
+      "name": ".boniteta-dodatno__osebe li.is-former .boniteta-dodatno__avatar::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-financni-alarm__ponovitev output.is-success::before:pseudo:1dabba21cdad44541f6b",
+      "source": "app/bonitetna-podjetje-grafike.css:1371",
+      "name": ".boniteta-financni-alarm__ponovitev output.is-success::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-izstopa__dogodek-napis time::after:pseudo:a137f17a19a09cbe511b",
+      "source": "app/bonitetna-podjetje-grafike.css:251",
+      "name": ".boniteta-izstopa__dogodek-napis time::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-signal__likvidnost .is-down b::before:pseudo:07a2abcd3189716d1244",
+      "source": "app/bonitetna-podjetje-grafike.css:764",
+      "name": ".boniteta-signal__likvidnost .is-down b::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-signal__likvidnost .is-up b::before:pseudo:d2e966bf8db856200749",
+      "source": "app/bonitetna-podjetje-grafike.css:765",
+      "name": ".boniteta-signal__likvidnost .is-up b::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:.boniteta-signal__stabilno i::after:pseudo:7bb37df5cb369f1856c1",
+      "source": "app/bonitetna-podjetje-grafike.css:828",
+      "name": ".boniteta-signal__stabilno i::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:#boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica small::before:pseudo:6e01f78b9eb4142b2250",
+      "source": "app/bonitetna-podjetje-grafike.css:1589",
+      "name": "#boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica small::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:#boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica.is-interactive::after:pseudo:7bb37df5cb369f1856c1",
+      "source": "app/bonitetna-podjetje-grafike.css:1598",
+      "name": "#boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica.is-interactive::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-ustanovitev__starost::before:pseudo:99d0baba9648aed2d129",
+      "source": "app/bonitetna-podjetje-grafike.css:1440",
+      "name": "#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-ustanovitev__starost::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-podjetje-grafike.css:#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-zgornji-povzetek > .boniteta-identiteta-nadaljuj.is-complete::after:pseudo:7bb37df5cb369f1856c1",
+      "source": "app/bonitetna-podjetje-grafike.css:1731",
+      "name": "#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-zgornji-povzetek > .boniteta-identiteta-nadaljuj.is-complete::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css::is(#bp-profiles, #bp-watched) .bp-company-card__meta::before:pseudo:a137f17a19a09cbe511b",
+      "source": "app/bonitetna-preverba.css:7467",
+      "name": ":is(#bp-profiles, #bp-watched) .bp-company-card__meta::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:.boniteta-dodatno__namen[open] summary b::after:pseudo:2568c91fb8243fbc5fcd",
+      "source": "app/bonitetna-preverba.css:6507",
+      "name": ".boniteta-dodatno__namen[open] summary b::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb::after:pseudo:7bb37df5cb369f1856c1",
+      "source": "app/bonitetna-preverba.css:5544",
+      "name": ".boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:.stran--bonitetna .boniteta-lep-izbirnik__izbira.is-selected::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/bonitetna-preverba.css:3288",
+      "name": ".stran--bonitetna .boniteta-lep-izbirnik__izbira.is-selected::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status::before:pseudo:1dabba21cdad44541f6b",
+      "source": "app/bonitetna-preverba.css:1505",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--red::before:pseudo:8db71ed28b0f2f143256",
+      "source": "app/bonitetna-preverba.css:1517",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--red::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--red::before:pseudo:bb7208bc9b5d7c04f123",
+      "source": "app/bonitetna-preverba.css:6088",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--red::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before:pseudo:afba2418d6aec23dc4b2",
+      "source": "app/bonitetna-preverba.css:1534",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before:pseudo:de7d1b721a1e0632b7cf",
+      "source": "app/bonitetna-preverba.css:6076",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/bonitetna-preverba.css:#bp-profiles .bp-profile-card__izberi[aria-pressed=\"true\"]::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/bonitetna-preverba.css:7235",
+      "name": "#bp-profiles .bp-profile-card__izberi[aria-pressed=\"true\"]::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/izvedba.css:.izvedba-action-card.is-selected::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/izvedba.css:2271",
+      "name": ".izvedba-action-card.is-selected::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/izvedba.css:.izvedba-stevilo-korakov::before:pseudo:601afcee4bb7de7529e5",
+      "source": "app/izvedba.css:592",
+      "name": ".izvedba-stevilo-korakov::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/izvedba.css:.izvedba-swipe::after:pseudo:7bb37df5cb369f1856c1",
+      "source": "app/izvedba.css:540",
+      "name": ".izvedba-swipe::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/izvedba.css:.izvedba-swipe::before:pseudo:0685a836e46144a549d3",
+      "source": "app/izvedba.css:539",
+      "name": ".izvedba-swipe::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/pos-terminal.css:.pos-invoice-preview.is-test::before:pseudo:8edbefc9092a9aa64de5",
+      "source": "app/pos-terminal.css:783",
+      "name": ".pos-invoice-preview.is-test::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.lp-odvetnik-profil__storitve li::before:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:24826",
+      "name": ".lp-odvetnik-profil__storitve li::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrazec__polje:has(input.obrazec__polje--ai-izpolnjeno)::after, .obrazec__polje:has(textarea.obrazec__polje--ai-izpolnjeno)::after:pseudo:3191b52693ec28b46f82",
+      "source": "app/styles.css:3613",
+      "name": ".obrazec__polje:has(input.obrazec__polje--ai-izpolnjeno)::after, .obrazec__polje:has(textarea.obrazec__polje--ai-izpolnjeno)::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrocno-sheet__enakomerno--izbrano::after, .obrocno-sheet__enakomerno[aria-pressed=\"true\"]::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:12470",
+      "name": ".obrocno-sheet__enakomerno--izbrano::after, .obrocno-sheet__enakomerno[aria-pressed=\"true\"]::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrocno-sheet__skupaj--ok::after:pseudo:456509849d2dcb6e7ea5",
+      "source": "app/styles.css:12766",
+      "name": ".obrocno-sheet__skupaj--ok::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrocno-sheet--delno .obrocno-sheet__delno-povzetek-rezultat::after:pseudo:e2cb8198503d593ca804",
+      "source": "app/styles.css:12059",
+      "name": ".obrocno-sheet--delno .obrocno-sheet__delno-povzetek-rezultat::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrocno-sheet--delno .obrocno-sheet__znesek-kartica .rok-sheet__oznaka::before:pseudo:7a590b24d0f8aa5b10d3",
+      "source": "app/styles.css:11783",
+      "name": ".obrocno-sheet--delno .obrocno-sheet__znesek-kartica .rok-sheet__oznaka::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrocno-sheet--delno #obrocno-sheet-recommendation .recommendation-card__badge::before:pseudo:acc01ebc9cdfe4b6436e",
+      "source": "app/styles.css:11910",
+      "name": ".obrocno-sheet--delno #obrocno-sheet-recommendation .recommendation-card__badge::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.obrocno-sheet--delno #obrocno-sheet-recommendation .recommendation-card__button--apply::before:pseudo:4503f5b4cbdd0fcb5f46",
+      "source": "app/styles.css:11933",
+      "name": ".obrocno-sheet--delno #obrocno-sheet-recommendation .recommendation-card__button--apply::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.opomin-cas-sheet__bliznjica::before:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:19849",
+      "name": ".opomin-cas-sheet__bliznjica::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.opomin-nacrt__predizbor-postavka::after:pseudo:7bb37df5cb369f1856c1",
+      "source": "app/styles.css:19337",
+      "name": ".opomin-nacrt__predizbor-postavka::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.opomin-nacrt__stage-ovoj--urejanje:not(.opomin-nacrt__stage-ovoj--izkljucen) .opomin-nacrt__stage-odstrani::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:16904",
+      "name": ".opomin-nacrt__stage-ovoj--urejanje:not(.opomin-nacrt__stage-ovoj--izkljucen) .opomin-nacrt__stage-odstrani::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.opomin-predaja-pregled__checkbox-label input[type=\"checkbox\"]::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:34209",
+      "name": ".opomin-predaja-pregled__checkbox-label input[type=\"checkbox\"]::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.random-sheet__nacin:has(input:checked)::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:18215",
+      "name": ".random-sheet__nacin:has(input:checked)::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.random-sheet__rezultat:not(:empty)::before:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:18299",
+      "name": ".random-sheet__rezultat:not(:empty)::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.rok-sheet__hitro-gumb[aria-selected=\"true\"]::after:pseudo:1dabba21cdad44541f6b",
+      "source": "app/styles.css:13653",
+      "name": ".rok-sheet__hitro-gumb[aria-selected=\"true\"]::after",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "pseudo:app/styles.css:.stran--sporocilo #predlogi-okvir.predlogi-okvir::before:pseudo:641b9bedb453516b3b1d",
+      "source": "app/styles.css:8840",
+      "name": ".stran--sporocilo #predlogi-okvir.predlogi-okvir::before",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/aktivni-primeri.html:inline-aktivni-primeri-35:svg:218c26ff929e23291445",
+      "source": "app/aktivni-primeri.html:35",
+      "name": "inline-aktivni-primeri-35",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/aktivni-primeri.html:inline-aktivni-primeri-60:svg:1dc115ac9b10f3f1550a",
+      "source": "app/aktivni-primeri.html:60",
+      "name": "inline-aktivni-primeri-60",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:history:svg:e3f72342c131fa31c10e",
+      "source": "app/app.js:449",
+      "name": "history",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:ikonaSvincnika:svg:de29d413abefa3240a9f",
+      "source": "app/app.js:5806",
+      "name": "ikonaSvincnika",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:ikonaZvezdePrioriteta:svg:adca661d701fe8417f16",
+      "source": "app/app.js:5811",
+      "name": "ikonaZvezdePrioriteta",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-2868:svg:b70c5a944976082a20a3",
+      "source": "app/app.js:2868",
+      "name": "inline-app-2868",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-3216:svg:103b9c8531442d0f50a0",
+      "source": "app/app.js:3216",
+      "name": "inline-app-3216",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-3224:svg:d8b6dd1ba425f688ed56",
+      "source": "app/app.js:3224",
+      "name": "inline-app-3224",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-445:svg:297e79f0723c5cfac80c",
+      "source": "app/app.js:445",
+      "name": "inline-app-445",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-447:svg:e33a5a166d1200175337",
+      "source": "app/app.js:447",
+      "name": "inline-app-447",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-8205:svg:04a8bf618343ed46b5e8",
+      "source": "app/app.js:8205",
+      "name": "inline-app-8205",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:inline-app-8242:svg:04a8bf618343ed46b5e8",
+      "source": "app/app.js:8242",
+      "name": "inline-app-8242",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:send:svg:f10f231e74bf39988ccf",
+      "source": "app/app.js:453",
+      "name": "send",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:SVG_AI_SKEN:svg:1d3c47e251d86d066bb1",
+      "source": "app/app.js:3636",
+      "name": "SVG_AI_SKEN",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:SVG_OPCIJA_ISTI:svg:77a6e31146a59f9a2c21",
+      "source": "app/app.js:610",
+      "name": "SVG_OPCIJA_ISTI",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:SVG_OPCIJA_NOV:svg:6b371dcc3b356a43ad05",
+      "source": "app/app.js:612",
+      "name": "SVG_OPCIJA_NOV",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:SVG_POTRDI_IKONA_NEVARNO:svg:1236948025b9a89d3be9",
+      "source": "app/app.js:608",
+      "name": "SVG_POTRDI_IKONA_NEVARNO",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:SVG_POTRDI_IKONA_TURKIZ:svg:843aab3953c00bb8a397",
+      "source": "app/app.js:606",
+      "name": "SVG_POTRDI_IKONA_TURKIZ",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:SVG_PRILOGA_PDF:svg:ad0bc9ba442c97f0a42c",
+      "source": "app/app.js:1358",
+      "name": "SVG_PRILOGA_PDF",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/app.js:target:svg:53b80531f42ba107e00b",
+      "source": "app/app.js:451",
+      "name": "target",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-25:svg:583858623a907f77dfe1",
+      "source": "app/boniteta-sredisce.js:25",
+      "name": "inline-boniteta-sredisce-25",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-25:svg:62c37d5e8ecbe61f723c",
+      "source": "app/boniteta-sredisce.js:25",
+      "name": "inline-boniteta-sredisce-25",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-26:svg:b0ce63a86cf07d4d933e",
+      "source": "app/boniteta-sredisce.js:26",
+      "name": "inline-boniteta-sredisce-26",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-27:svg:3c47eb3f132b2ef95914",
+      "source": "app/boniteta-sredisce.js:27",
+      "name": "inline-boniteta-sredisce-27",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-28:svg:15e1a6e0e1b9d1015e9b",
+      "source": "app/boniteta-sredisce.js:28",
+      "name": "inline-boniteta-sredisce-28",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-281:svg:84303a8b376138daab7e",
+      "source": "app/boniteta-sredisce.js:281",
+      "name": "inline-boniteta-sredisce-281",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:2962654a18e17e7847e7",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:3e83c03e397e42bc14f6",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:95d343c53b61965a1c19",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:bd05864f01af1ebc25e4",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:c67088c6a53d54d94208",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:d05201efd0e3505e7a43",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:ec776bd5db81986631c8",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-282:svg:fdd3b720c66e604cfece",
+      "source": "app/boniteta-sredisce.js:282",
+      "name": "inline-boniteta-sredisce-282",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-286:svg:81eba47ee3947c45f9f3",
+      "source": "app/boniteta-sredisce.js:286",
+      "name": "inline-boniteta-sredisce-286",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-286:svg:88fce5eda5e802127025",
+      "source": "app/boniteta-sredisce.js:286",
+      "name": "inline-boniteta-sredisce-286",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-286:svg:c935dde8ece790b40a1c",
+      "source": "app/boniteta-sredisce.js:286",
+      "name": "inline-boniteta-sredisce-286",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-286:svg:d6e15cf338324096c69c",
+      "source": "app/boniteta-sredisce.js:286",
+      "name": "inline-boniteta-sredisce-286",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-286:svg:df7c20db7c7c951fa2e6",
+      "source": "app/boniteta-sredisce.js:286",
+      "name": "inline-boniteta-sredisce-286",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-29:svg:211139156a5089367108",
+      "source": "app/boniteta-sredisce.js:29",
+      "name": "inline-boniteta-sredisce-29",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-296:svg:211139156a5089367108",
+      "source": "app/boniteta-sredisce.js:296",
+      "name": "inline-boniteta-sredisce-296",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-296:svg:ea5292b4080964eb52aa",
+      "source": "app/boniteta-sredisce.js:296",
+      "name": "inline-boniteta-sredisce-296",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-30:svg:f76d426bbb7a9d14e038",
+      "source": "app/boniteta-sredisce.js:30",
+      "name": "inline-boniteta-sredisce-30",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-309:svg:6a7ac653ed74969c192a",
+      "source": "app/boniteta-sredisce.js:309",
+      "name": "inline-boniteta-sredisce-309",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-31:svg:04fc8b5f3895417bff46",
+      "source": "app/boniteta-sredisce.js:31",
+      "name": "inline-boniteta-sredisce-31",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-31:svg:bd0613518c8b39d55fa7",
+      "source": "app/boniteta-sredisce.js:31",
+      "name": "inline-boniteta-sredisce-31",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-316:svg:583858623a907f77dfe1",
+      "source": "app/boniteta-sredisce.js:316",
+      "name": "inline-boniteta-sredisce-316",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-316:svg:727cff6fa2f5e44880a8",
+      "source": "app/boniteta-sredisce.js:316",
+      "name": "inline-boniteta-sredisce-316",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:inline-boniteta-sredisce-317:svg:727cff6fa2f5e44880a8",
+      "source": "app/boniteta-sredisce.js:317",
+      "name": "inline-boniteta-sredisce-317",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/boniteta-sredisce.js:officialSvg:svg:7dec40e7da32e1566b03",
+      "source": "app/boniteta-sredisce.js:210",
+      "name": "officialSvg",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-1008:svg:d099e4358f3650a5f307",
+      "source": "app/bonitetna-preverba.html:1008",
+      "name": "inline-bonitetna-preverba-1008",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-101:svg:232a8b788a926df49848",
+      "source": "app/bonitetna-preverba.html:101",
+      "name": "inline-bonitetna-preverba-101",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-1012:svg:c633bf233c0bf9054ed1",
+      "source": "app/bonitetna-preverba.html:1012",
+      "name": "inline-bonitetna-preverba-1012",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-1016:svg:08d8816f6416e31972fd",
+      "source": "app/bonitetna-preverba.html:1016",
+      "name": "inline-bonitetna-preverba-1016",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-104:svg:de0354668b4151e7924a",
+      "source": "app/bonitetna-preverba.html:104",
+      "name": "inline-bonitetna-preverba-104",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-113:svg:232a8b788a926df49848",
+      "source": "app/bonitetna-preverba.html:113",
+      "name": "inline-bonitetna-preverba-113",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-128:svg:ceacf1a7a80a3adec9ee",
+      "source": "app/bonitetna-preverba.html:128",
+      "name": "inline-bonitetna-preverba-128",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-129:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:129",
+      "name": "inline-bonitetna-preverba-129",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-136:svg:36f1ef6464c52152663e",
+      "source": "app/bonitetna-preverba.html:136",
+      "name": "inline-bonitetna-preverba-136",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-172:svg:acd5141095919d9d7456",
+      "source": "app/bonitetna-preverba.html:172",
+      "name": "inline-bonitetna-preverba-172",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-191:svg:cc154e16a28e7aff58cc",
+      "source": "app/bonitetna-preverba.html:191",
+      "name": "inline-bonitetna-preverba-191",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-194:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:194",
+      "name": "inline-bonitetna-preverba-194",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-197:svg:2d610e3c19de5e6b9299",
+      "source": "app/bonitetna-preverba.html:197",
+      "name": "inline-bonitetna-preverba-197",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-200:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:200",
+      "name": "inline-bonitetna-preverba-200",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-203:svg:f13e0f7a71d68fda14d1",
+      "source": "app/bonitetna-preverba.html:203",
+      "name": "inline-bonitetna-preverba-203",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-216:svg:32e737a117ff4d7c869b",
+      "source": "app/bonitetna-preverba.html:216",
+      "name": "inline-bonitetna-preverba-216",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-223:svg:8a25c58fe2043ef2d43a",
+      "source": "app/bonitetna-preverba.html:223",
+      "name": "inline-bonitetna-preverba-223",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-239:svg:b70c5a944976082a20a3",
+      "source": "app/bonitetna-preverba.html:239",
+      "name": "inline-bonitetna-preverba-239",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-245:svg:6df001d8a8e11655dff7",
+      "source": "app/bonitetna-preverba.html:245",
+      "name": "inline-bonitetna-preverba-245",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-267:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:267",
+      "name": "inline-bonitetna-preverba-267",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-269:svg:108f1b5aaf439b81694f",
+      "source": "app/bonitetna-preverba.html:269",
+      "name": "inline-bonitetna-preverba-269",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-277:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:277",
+      "name": "inline-bonitetna-preverba-277",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-279:svg:fb81886f6612ef2e2f60",
+      "source": "app/bonitetna-preverba.html:279",
+      "name": "inline-bonitetna-preverba-279",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-310:svg:f13e0f7a71d68fda14d1",
+      "source": "app/bonitetna-preverba.html:310",
+      "name": "inline-bonitetna-preverba-310",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-318:svg:04a8bf618343ed46b5e8",
+      "source": "app/bonitetna-preverba.html:318",
+      "name": "inline-bonitetna-preverba-318",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-357:svg:ef0ab52039fbdfaa4955",
+      "source": "app/bonitetna-preverba.html:357",
+      "name": "inline-bonitetna-preverba-357",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-375:svg:437f1eca90336f328966",
+      "source": "app/bonitetna-preverba.html:375",
+      "name": "inline-bonitetna-preverba-375",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-388:svg:b7879b5ab805b2e49c09",
+      "source": "app/bonitetna-preverba.html:388",
+      "name": "inline-bonitetna-preverba-388",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-399:svg:583858623a907f77dfe1",
+      "source": "app/bonitetna-preverba.html:399",
+      "name": "inline-bonitetna-preverba-399",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-400:svg:583858623a907f77dfe1",
+      "source": "app/bonitetna-preverba.html:400",
+      "name": "inline-bonitetna-preverba-400",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-402:svg:3a3c2dafe36df7d4fdc5",
+      "source": "app/bonitetna-preverba.html:402",
+      "name": "inline-bonitetna-preverba-402",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-405:svg:583858623a907f77dfe1",
+      "source": "app/bonitetna-preverba.html:405",
+      "name": "inline-bonitetna-preverba-405",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-436:svg:64c4e07db8ad4a304a1e",
+      "source": "app/bonitetna-preverba.html:436",
+      "name": "inline-bonitetna-preverba-436",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-495:svg:211139156a5089367108",
+      "source": "app/bonitetna-preverba.html:495",
+      "name": "inline-bonitetna-preverba-495",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-506:svg:bdaf73dde1e44e08c97b",
+      "source": "app/bonitetna-preverba.html:506",
+      "name": "inline-bonitetna-preverba-506",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-560:svg:e7d363f22307efd7bd7c",
+      "source": "app/bonitetna-preverba.html:560",
+      "name": "inline-bonitetna-preverba-560",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-576:svg:b4e025f2608688388146",
+      "source": "app/bonitetna-preverba.html:576",
+      "name": "inline-bonitetna-preverba-576",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-577:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:577",
+      "name": "inline-bonitetna-preverba-577",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-583:svg:b70c5a944976082a20a3",
+      "source": "app/bonitetna-preverba.html:583",
+      "name": "inline-bonitetna-preverba-583",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-591:svg:1009ab632fd8eb5a398e",
+      "source": "app/bonitetna-preverba.html:591",
+      "name": "inline-bonitetna-preverba-591",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-592:svg:43eb6879fb30f821f86a",
+      "source": "app/bonitetna-preverba.html:592",
+      "name": "inline-bonitetna-preverba-592",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-593:svg:43ae7f93708ba0f11d58",
+      "source": "app/bonitetna-preverba.html:593",
+      "name": "inline-bonitetna-preverba-593",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-596:svg:304a64e29eb4c8fe1299",
+      "source": "app/bonitetna-preverba.html:596",
+      "name": "inline-bonitetna-preverba-596",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-597:svg:15e1a6e0e1b9d1015e9b",
+      "source": "app/bonitetna-preverba.html:597",
+      "name": "inline-bonitetna-preverba-597",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-598:svg:9564b057b42c91d68dab",
+      "source": "app/bonitetna-preverba.html:598",
+      "name": "inline-bonitetna-preverba-598",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-605:svg:dcab8d27acbffaf29efe",
+      "source": "app/bonitetna-preverba.html:605",
+      "name": "inline-bonitetna-preverba-605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-608:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:608",
+      "name": "inline-bonitetna-preverba-608",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-715:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:715",
+      "name": "inline-bonitetna-preverba-715",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-731:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:731",
+      "name": "inline-bonitetna-preverba-731",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-765:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.html:765",
+      "name": "inline-bonitetna-preverba-765",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-771:svg:b70c5a944976082a20a3",
+      "source": "app/bonitetna-preverba.html:771",
+      "name": "inline-bonitetna-preverba-771",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-81:svg:ba63ad54faf534036213",
+      "source": "app/bonitetna-preverba.html:81",
+      "name": "inline-bonitetna-preverba-81",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-85:svg:ed60a60994479b67c89f",
+      "source": "app/bonitetna-preverba.html:85",
+      "name": "inline-bonitetna-preverba-85",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-964:svg:b0ce63a86cf07d4d933e",
+      "source": "app/bonitetna-preverba.html:964",
+      "name": "inline-bonitetna-preverba-964",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-980:svg:ceacf1a7a80a3adec9ee",
+      "source": "app/bonitetna-preverba.html:980",
+      "name": "inline-bonitetna-preverba-980",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-982:svg:dfd3d656258c66fbf243",
+      "source": "app/bonitetna-preverba.html:982",
+      "name": "inline-bonitetna-preverba-982",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.html:inline-bonitetna-preverba-991:svg:42efe1233235f64e6651",
+      "source": "app/bonitetna-preverba.html:991",
+      "name": "inline-bonitetna-preverba-991",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:assets_change:svg:5168f620e8501c184a43",
+      "source": "app/bonitetna-preverba.js:2990",
+      "name": "assets_change",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:capital_stronger:svg:c116ae42b481e16bd9fc",
+      "source": "app/bonitetna-preverba.js:2994",
+      "name": "capital_stronger",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:capital:svg:f8b30f5cdcaf49636109",
+      "source": "app/bonitetna-preverba.js:2741",
+      "name": "capital",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:contact_mismatch:svg:8558064077f436b2760f",
+      "source": "app/bonitetna-preverba.js:3002",
+      "name": "contact_mismatch",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:court_change:svg:c5717c6f15908da40933",
+      "source": "app/bonitetna-preverba.js:3000",
+      "name": "court_change",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:dejavnost:svg:0788a0528ef4e534f194",
+      "source": "app/bonitetna-preverba.js:3798",
+      "name": "dejavnost",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:director_network:svg:02f89d0fb9056bd34d99",
+      "source": "app/bonitetna-preverba.js:3003",
+      "name": "director_network",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:equity_decline_material:svg:03d1c7646107dce0a339",
+      "source": "app/bonitetna-preverba.js:2993",
+      "name": "equity_decline_material",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:filing_gap:svg:28db6dcb0185f74a447b",
+      "source": "app/bonitetna-preverba.js:3004",
+      "name": "filing_gap",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:finance:svg:65bb25efd50ce38c3fd1",
+      "source": "app/bonitetna-preverba.js:2743",
+      "name": "finance",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:foundation:svg:1a30b9ba8ad539bddc45",
+      "source": "app/bonitetna-preverba.js:2740",
+      "name": "foundation",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:html:svg:2aeaf43ad4299fbcbd1b",
+      "source": "app/bonitetna-preverba.js:2929",
+      "name": "html",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-263:svg:bd0613518c8b39d55fa7",
+      "source": "app/bonitetna-preverba.js:263",
+      "name": "inline-bonitetna-preverba-263",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-264:svg:04fc8b5f3895417bff46",
+      "source": "app/bonitetna-preverba.js:264",
+      "name": "inline-bonitetna-preverba-264",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-2950:svg:a258ace1405b37d4ebd0",
+      "source": "app/bonitetna-preverba.js:2950",
+      "name": "inline-bonitetna-preverba-2950",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-2953:svg:8da4aac0448d5b65cff7",
+      "source": "app/bonitetna-preverba.js:2953",
+      "name": "inline-bonitetna-preverba-2953",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-2954:svg:5fa3c83f6ff5062d0ad9",
+      "source": "app/bonitetna-preverba.js:2954",
+      "name": "inline-bonitetna-preverba-2954",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-2961:svg:549a1b26a5b5457f5500",
+      "source": "app/bonitetna-preverba.js:2961",
+      "name": "inline-bonitetna-preverba-2961",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3006:svg:62f6dfd7c03b660d3830",
+      "source": "app/bonitetna-preverba.js:3006",
+      "name": "inline-bonitetna-preverba-3006",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3091:svg:3d2951536f3c96077285",
+      "source": "app/bonitetna-preverba.js:3091",
+      "name": "inline-bonitetna-preverba-3091",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3102:svg:9f4d0f2bb703533c6f54",
+      "source": "app/bonitetna-preverba.js:3102",
+      "name": "inline-bonitetna-preverba-3102",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3341:svg:43e5ad586432a216af20",
+      "source": "app/bonitetna-preverba.js:3341",
+      "name": "inline-bonitetna-preverba-3341",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3551:svg:cabba10e277f38e54dfc",
+      "source": "app/bonitetna-preverba.js:3551",
+      "name": "inline-bonitetna-preverba-3551",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3556:svg:b70c5a944976082a20a3",
+      "source": "app/bonitetna-preverba.js:3556",
+      "name": "inline-bonitetna-preverba-3556",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:inline-bonitetna-preverba-3557:svg:1dc115ac9b10f3f1550a",
+      "source": "app/bonitetna-preverba.js:3557",
+      "name": "inline-bonitetna-preverba-3557",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:leadership_turnover:svg:ade75c0678714da7d552",
+      "source": "app/bonitetna-preverba.js:2995",
+      "name": "leadership_turnover",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:leadership:svg:b489ecd8255b881afb55",
+      "source": "app/bonitetna-preverba.js:2742",
+      "name": "leadership",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:liquidity_weaker:svg:d5e20dacbc662a9ef380",
+      "source": "app/bonitetna-preverba.js:2991",
+      "name": "liquidity_weaker",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:lokacijskaIkona:svg:3f8beb0fde9d627bd39a",
+      "source": "app/bonitetna-preverba.js:3143",
+      "name": "lokacijskaIkona",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:loss_to_profit:svg:67e962abbf3a7b3958a9",
+      "source": "app/bonitetna-preverba.js:2986",
+      "name": "loss_to_profit",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:majority_owner:svg:ed07bfa24cb6118d7ee8",
+      "source": "app/bonitetna-preverba.js:2998",
+      "name": "majority_owner",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:negative_equity:svg:03d1c7646107dce0a339",
+      "source": "app/bonitetna-preverba.js:2992",
+      "name": "negative_equity",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:nevtralnaOsebaIkona:svg:27d3377cf6ec3663eacb",
+      "source": "app/bonitetna-preverba.js:3533",
+      "name": "nevtralnaOsebaIkona",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:new_company:svg:73b30196616bf36fef37",
+      "source": "app/bonitetna-preverba.js:3001",
+      "name": "new_company",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:oblika:svg:176439a1e66d4bd29cbf",
+      "source": "app/bonitetna-preverba.js:3801",
+      "name": "oblika",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:oblika:svg:3d6a1e76cb3009b97fc2",
+      "source": "app/bonitetna-preverba.js:3811",
+      "name": "oblika",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:oseba:svg:ef82e3772f86edee2293",
+      "source": "app/bonitetna-preverba.js:3799",
+      "name": "oseba",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:profit_decline_multi:svg:b84d3c39f9226f84c7e9",
+      "source": "app/bonitetna-preverba.js:2989",
+      "name": "profit_decline_multi",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:profit_drop:svg:b84d3c39f9226f84c7e9",
+      "source": "app/bonitetna-preverba.js:2987",
+      "name": "profit_drop",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:profit_growth:svg:df16acc0ea225ea14429",
+      "source": "app/bonitetna-preverba.js:2988",
+      "name": "profit_growth",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:profit_to_loss:svg:ce0279ac63022dfef7c5",
+      "source": "app/bonitetna-preverba.js:2985",
+      "name": "profit_to_loss",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:record:svg:e2489ebe3cf8ff74621b",
+      "source": "app/bonitetna-preverba.js:2744",
+      "name": "record",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:register:svg:58bf8776fa0cba80e17a",
+      "source": "app/bonitetna-preverba.js:3812",
+      "name": "register",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:register:svg:dad9e924a6eb8b9c9fb5",
+      "source": "app/bonitetna-preverba.js:3802",
+      "name": "register",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:reorganization:svg:190c31a08fc5a0e92032",
+      "source": "app/bonitetna-preverba.js:2996",
+      "name": "reorganization",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:sedez:svg:71cc3c01e5d155b9638e",
+      "source": "app/bonitetna-preverba.js:3810",
+      "name": "sedez",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:sedez:svg:fdd318d41a751aa8a737",
+      "source": "app/bonitetna-preverba.js:3800",
+      "name": "sedez",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:sodisce:svg:3cc8fbb70cd7c748e7b2",
+      "source": "app/bonitetna-preverba.js:3813",
+      "name": "sodisce",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:sodisce:svg:dad9e924a6eb8b9c9fb5",
+      "source": "app/bonitetna-preverba.js:3803",
+      "name": "sodisce",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:stable_management:svg:0f8e862b1a3db96308da",
+      "source": "app/bonitetna-preverba.js:2999",
+      "name": "stable_management",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/bonitetna-preverba.js:ug_to_gmbh:svg:f41677d0946f78087f50",
+      "source": "app/bonitetna-preverba.js:2997",
+      "name": "ug_to_gmbh",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/in-app-camera.js:inline-in-app-camera-38:svg:54bb0c0547a4022cd1c2",
+      "source": "app/in-app-camera.js:38",
+      "name": "inline-in-app-camera-38",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.html:inline-izvedba-41:svg:218c26ff929e23291445",
+      "source": "app/izvedba.html:41",
+      "name": "inline-izvedba-41",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-1697:svg:1dc115ac9b10f3f1550a",
+      "source": "app/izvedba.js:1697",
+      "name": "inline-izvedba-1697",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2273:svg:1dc115ac9b10f3f1550a",
+      "source": "app/izvedba.js:2273",
+      "name": "inline-izvedba-2273",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2643:svg:86e24bfa1478a7df7e79",
+      "source": "app/izvedba.js:2643",
+      "name": "inline-izvedba-2643",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2644:svg:26168c26a5eb99bd9b63",
+      "source": "app/izvedba.js:2644",
+      "name": "inline-izvedba-2644",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2645:svg:6e2d2aa2fec39b23f177",
+      "source": "app/izvedba.js:2645",
+      "name": "inline-izvedba-2645",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2646:svg:fd11ae45cbe0cee75ced",
+      "source": "app/izvedba.js:2646",
+      "name": "inline-izvedba-2646",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2650:svg:add8b281fadea1c2b64d",
+      "source": "app/izvedba.js:2650",
+      "name": "inline-izvedba-2650",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2651:svg:84a28e343910d1b61482",
+      "source": "app/izvedba.js:2651",
+      "name": "inline-izvedba-2651",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2652:svg:e80d2ded44c21f3efa67",
+      "source": "app/izvedba.js:2652",
+      "name": "inline-izvedba-2652",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2653:svg:a19669d5b4d4631436d8",
+      "source": "app/izvedba.js:2653",
+      "name": "inline-izvedba-2653",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2654:svg:5119a2403b7fd9bf3014",
+      "source": "app/izvedba.js:2654",
+      "name": "inline-izvedba-2654",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2658:svg:2e87f378954eebfbfcaf",
+      "source": "app/izvedba.js:2658",
+      "name": "inline-izvedba-2658",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2691:svg:bb384b5ece016dbd5341",
+      "source": "app/izvedba.js:2691",
+      "name": "inline-izvedba-2691",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2695:svg:d60f114c4ad767cfb404",
+      "source": "app/izvedba.js:2695",
+      "name": "inline-izvedba-2695",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2699:svg:fd899f3efe0b4d75da84",
+      "source": "app/izvedba.js:2699",
+      "name": "inline-izvedba-2699",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2703:svg:84498fbc3a353699d793",
+      "source": "app/izvedba.js:2703",
+      "name": "inline-izvedba-2703",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2829:svg:d415315baabe592df7ef",
+      "source": "app/izvedba.js:2829",
+      "name": "inline-izvedba-2829",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2841:svg:b70c5a944976082a20a3",
+      "source": "app/izvedba.js:2841",
+      "name": "inline-izvedba-2841",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-2853:svg:aca38c9d0864362f470b",
+      "source": "app/izvedba.js:2853",
+      "name": "inline-izvedba-2853",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-3034:svg:34b6ee70abc54e6887b6",
+      "source": "app/izvedba.js:3034",
+      "name": "inline-izvedba-3034",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-3041:svg:b70c5a944976082a20a3",
+      "source": "app/izvedba.js:3041",
+      "name": "inline-izvedba-3041",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-3062:svg:b70c5a944976082a20a3",
+      "source": "app/izvedba.js:3062",
+      "name": "inline-izvedba-3062",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-3068:svg:5d8ef250e9d11fe9e4df",
+      "source": "app/izvedba.js:3068",
+      "name": "inline-izvedba-3068",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-3091:svg:5d8ef250e9d11fe9e4df",
+      "source": "app/izvedba.js:3091",
+      "name": "inline-izvedba-3091",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/izvedba.js:inline-izvedba-3097:svg:6d9f9616f3e943a7a060",
+      "source": "app/izvedba.js:3097",
+      "name": "inline-izvedba-3097",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/koncani-primeri.html:inline-koncani-primeri-57:svg:1dc115ac9b10f3f1550a",
+      "source": "app/koncani-primeri.html:57",
+      "name": "inline-koncani-primeri-57",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/koncani-primeri.js:inline-koncani-primeri-29:svg:ff1dfb9e329c073befae",
+      "source": "app/koncani-primeri.js:29",
+      "name": "inline-koncani-primeri-29",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-cilj.html:inline-neplacila-cilj-43:svg:bc4332b8fc1d7d0d3344",
+      "source": "app/neplacila-cilj.html:43",
+      "name": "inline-neplacila-cilj-43",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-cilj.html:inline-neplacila-cilj-50:svg:5ea0def112d30341f4c2",
+      "source": "app/neplacila-cilj.html:50",
+      "name": "inline-neplacila-cilj-50",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-cilj.html:inline-neplacila-cilj-59:svg:f5129666799a2fdbd9f2",
+      "source": "app/neplacila-cilj.html:59",
+      "name": "inline-neplacila-cilj-59",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-cilj.html:inline-neplacila-cilj-64:svg:f589bd854a0e6e2082a0",
+      "source": "app/neplacila-cilj.html:64",
+      "name": "inline-neplacila-cilj-64",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-cilj.html:inline-neplacila-cilj-77:svg:89933a30f07b3f56533e",
+      "source": "app/neplacila-cilj.html:77",
+      "name": "inline-neplacila-cilj-77",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-cilj.js:inline-neplacila-cilj-33:svg:89933a30f07b3f56533e",
+      "source": "app/neplacila-cilj.js:33",
+      "name": "inline-neplacila-cilj-33",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:dobra:svg:fdc6a7f354268b34f153",
+      "source": "app/neplacila-podjetja-nedavna.js:940",
+      "name": "dobra",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-1074:svg:640523f054ed2605886b",
+      "source": "app/neplacila-podjetja-nedavna.js:1074",
+      "name": "inline-neplacila-podjetja-nedavna-1074",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-1089:svg:83fc026586a330aa2fae",
+      "source": "app/neplacila-podjetja-nedavna.js:1089",
+      "name": "inline-neplacila-podjetja-nedavna-1089",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-799:svg:e806d2a3c503012a48bd",
+      "source": "app/neplacila-podjetja-nedavna.js:799",
+      "name": "inline-neplacila-podjetja-nedavna-799",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-883:svg:edb28bfca62a0f9f6b69",
+      "source": "app/neplacila-podjetja-nedavna.js:883",
+      "name": "inline-neplacila-podjetja-nedavna-883",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-923:svg:b3fc71718f98158f5e29",
+      "source": "app/neplacila-podjetja-nedavna.js:923",
+      "name": "inline-neplacila-podjetja-nedavna-923",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-926:svg:a477444ad23ed8a7021e",
+      "source": "app/neplacila-podjetja-nedavna.js:926",
+      "name": "inline-neplacila-podjetja-nedavna-926",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-929:svg:72c37cc74eee371562a1",
+      "source": "app/neplacila-podjetja-nedavna.js:929",
+      "name": "inline-neplacila-podjetja-nedavna-929",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-931:svg:9830ee0593f70e8ee726",
+      "source": "app/neplacila-podjetja-nedavna.js:931",
+      "name": "inline-neplacila-podjetja-nedavna-931",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-966:svg:796f48a6ebe8d356fe14",
+      "source": "app/neplacila-podjetja-nedavna.js:966",
+      "name": "inline-neplacila-podjetja-nedavna-966",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:inline-neplacila-podjetja-nedavna-973:svg:b70c5a944976082a20a3",
+      "source": "app/neplacila-podjetja-nedavna.js:973",
+      "name": "inline-neplacila-podjetja-nedavna-973",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:nizka:svg:64db12429db50d53c9a6",
+      "source": "app/neplacila-podjetja-nedavna.js:942",
+      "name": "nizka",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-podjetja-nedavna.js:srednja:svg:aad6bc2e831d34124b5d",
+      "source": "app/neplacila-podjetja-nedavna.js:941",
+      "name": "srednja",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-123:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-posiljanje.html:123",
+      "name": "inline-neplacila-posiljanje-123",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-140:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-posiljanje.html:140",
+      "name": "inline-neplacila-posiljanje-140",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-157:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-posiljanje.html:157",
+      "name": "inline-neplacila-posiljanje-157",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-180:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-posiljanje.html:180",
+      "name": "inline-neplacila-posiljanje-180",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-271:svg:4cb958278b374e840940",
+      "source": "app/neplacila-posiljanje.html:271",
+      "name": "inline-neplacila-posiljanje-271",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-313:svg:b77f53f46140ef3fa542",
+      "source": "app/neplacila-posiljanje.html:313",
+      "name": "inline-neplacila-posiljanje-313",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-318:svg:a0577ed7530eaaa887ca",
+      "source": "app/neplacila-posiljanje.html:318",
+      "name": "inline-neplacila-posiljanje-318",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-354:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-posiljanje.html:354",
+      "name": "inline-neplacila-posiljanje-354",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-355:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-posiljanje.html:355",
+      "name": "inline-neplacila-posiljanje-355",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-356:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-posiljanje.html:356",
+      "name": "inline-neplacila-posiljanje-356",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-357:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-posiljanje.html:357",
+      "name": "inline-neplacila-posiljanje-357",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-448:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:448",
+      "name": "inline-neplacila-posiljanje-448",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-52:svg:115703aa3c6d7db39da2",
+      "source": "app/neplacila-posiljanje.html:52",
+      "name": "inline-neplacila-posiljanje-52",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-552:svg:e9e6cb9ac2ca67cf3fa6",
+      "source": "app/neplacila-posiljanje.html:552",
+      "name": "inline-neplacila-posiljanje-552",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-561:svg:9681d125ef4c3185ccd2",
+      "source": "app/neplacila-posiljanje.html:561",
+      "name": "inline-neplacila-posiljanje-561",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-567:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:567",
+      "name": "inline-neplacila-posiljanje-567",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-696:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:696",
+      "name": "inline-neplacila-posiljanje-696",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-702:svg:67a65a391acb2dca106c",
+      "source": "app/neplacila-posiljanje.html:702",
+      "name": "inline-neplacila-posiljanje-702",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-708:svg:35da0064347d5f570280",
+      "source": "app/neplacila-posiljanje.html:708",
+      "name": "inline-neplacila-posiljanje-708",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-712:svg:0482790d8aef59e21a1f",
+      "source": "app/neplacila-posiljanje.html:712",
+      "name": "inline-neplacila-posiljanje-712",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-718:svg:35da0064347d5f570280",
+      "source": "app/neplacila-posiljanje.html:718",
+      "name": "inline-neplacila-posiljanje-718",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-732:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:732",
+      "name": "inline-neplacila-posiljanje-732",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-741:svg:0482790d8aef59e21a1f",
+      "source": "app/neplacila-posiljanje.html:741",
+      "name": "inline-neplacila-posiljanje-741",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-761:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:761",
+      "name": "inline-neplacila-posiljanje-761",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-770:svg:0482790d8aef59e21a1f",
+      "source": "app/neplacila-posiljanje.html:770",
+      "name": "inline-neplacila-posiljanje-770",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-785:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:785",
+      "name": "inline-neplacila-posiljanje-785",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-posiljanje.html:inline-neplacila-posiljanje-98:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-posiljanje.html:98",
+      "name": "inline-neplacila-posiljanje-98",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-205:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-sporocilo.html:205",
+      "name": "inline-neplacila-sporocilo-205",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-228:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-sporocilo.html:228",
+      "name": "inline-neplacila-sporocilo-228",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-244:svg:3e1e077f2faa68cbe131",
+      "source": "app/neplacila-sporocilo.html:244",
+      "name": "inline-neplacila-sporocilo-244",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-267:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-sporocilo.html:267",
+      "name": "inline-neplacila-sporocilo-267",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-292:svg:2657dc4c13f92b90e6f4",
+      "source": "app/neplacila-sporocilo.html:292",
+      "name": "inline-neplacila-sporocilo-292",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-305:svg:212ae11612278b6ab77a",
+      "source": "app/neplacila-sporocilo.html:305",
+      "name": "inline-neplacila-sporocilo-305",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-317:svg:3e1e077f2faa68cbe131",
+      "source": "app/neplacila-sporocilo.html:317",
+      "name": "inline-neplacila-sporocilo-317",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-448:svg:2657dc4c13f92b90e6f4",
+      "source": "app/neplacila-sporocilo.html:448",
+      "name": "inline-neplacila-sporocilo-448",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-462:svg:212ae11612278b6ab77a",
+      "source": "app/neplacila-sporocilo.html:462",
+      "name": "inline-neplacila-sporocilo-462",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-478:svg:3e1e077f2faa68cbe131",
+      "source": "app/neplacila-sporocilo.html:478",
+      "name": "inline-neplacila-sporocilo-478",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-539:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-sporocilo.html:539",
+      "name": "inline-neplacila-sporocilo-539",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-564:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-sporocilo.html:564",
+      "name": "inline-neplacila-sporocilo-564",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-581:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-sporocilo.html:581",
+      "name": "inline-neplacila-sporocilo-581",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-598:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-sporocilo.html:598",
+      "name": "inline-neplacila-sporocilo-598",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-621:svg:d0394bf44f8e9db15a2c",
+      "source": "app/neplacila-sporocilo.html:621",
+      "name": "inline-neplacila-sporocilo-621",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-70:svg:05a1b26140828a3ae660",
+      "source": "app/neplacila-sporocilo.html:70",
+      "name": "inline-neplacila-sporocilo-70",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-738:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-sporocilo.html:738",
+      "name": "inline-neplacila-sporocilo-738",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-739:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-sporocilo.html:739",
+      "name": "inline-neplacila-sporocilo-739",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-740:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-sporocilo.html:740",
+      "name": "inline-neplacila-sporocilo-740",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-741:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila-sporocilo.html:741",
+      "name": "inline-neplacila-sporocilo-741",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-sporocilo.html:inline-neplacila-sporocilo-831:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-sporocilo.html:831",
+      "name": "inline-neplacila-sporocilo-831",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-zgodovina.html:inline-neplacila-zgodovina-134:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-zgodovina.html:134",
+      "name": "inline-neplacila-zgodovina-134",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-zgodovina.html:inline-neplacila-zgodovina-57:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila-zgodovina.html:57",
+      "name": "inline-neplacila-zgodovina-57",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-zgodovina.js:inline-neplacila-zgodovina-692:svg:11632393543543d35beb",
+      "source": "app/neplacila-zgodovina.js:692",
+      "name": "inline-neplacila-zgodovina-692",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-zgodovina.js:inline-neplacila-zgodovina-696:svg:b4b7513e11c10561c599",
+      "source": "app/neplacila-zgodovina.js:696",
+      "name": "inline-neplacila-zgodovina-696",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-zgodovina.js:inline-neplacila-zgodovina-813:svg:08fce17d8051985cba2d",
+      "source": "app/neplacila-zgodovina.js:813",
+      "name": "inline-neplacila-zgodovina-813",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila-zgodovina.js:inline-neplacila-zgodovina-979:svg:89933a30f07b3f56533e",
+      "source": "app/neplacila-zgodovina.js:979",
+      "name": "inline-neplacila-zgodovina-979",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-172:svg:297e79f0723c5cfac80c",
+      "source": "app/neplacila.html:172",
+      "name": "inline-neplacila-172",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-208:svg:297e79f0723c5cfac80c",
+      "source": "app/neplacila.html:208",
+      "name": "inline-neplacila-208",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-218:svg:297e79f0723c5cfac80c",
+      "source": "app/neplacila.html:218",
+      "name": "inline-neplacila-218",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-237:svg:da6e1d08cdfc38630718",
+      "source": "app/neplacila.html:237",
+      "name": "inline-neplacila-237",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-252:svg:26da4b33fa5db754531d",
+      "source": "app/neplacila.html:252",
+      "name": "inline-neplacila-252",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-272:svg:a1f163f0d0e9d8343129",
+      "source": "app/neplacila.html:272",
+      "name": "inline-neplacila-272",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-301:svg:67a65a391acb2dca106c",
+      "source": "app/neplacila.html:301",
+      "name": "inline-neplacila-301",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-326:svg:8706e8dfa73e9b54ebdb",
+      "source": "app/neplacila.html:326",
+      "name": "inline-neplacila-326",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-337:svg:8706e8dfa73e9b54ebdb",
+      "source": "app/neplacila.html:337",
+      "name": "inline-neplacila-337",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-359:svg:68484deaa0264440cbe8",
+      "source": "app/neplacila.html:359",
+      "name": "inline-neplacila-359",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-367:svg:aee6301dc3d0a57ca630",
+      "source": "app/neplacila.html:367",
+      "name": "inline-neplacila-367",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-371:svg:59727e1acc5351a4f09a",
+      "source": "app/neplacila.html:371",
+      "name": "inline-neplacila-371",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-375:svg:96c5b3f5cbf3ad56d59a",
+      "source": "app/neplacila.html:375",
+      "name": "inline-neplacila-375",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-383:svg:b7a812c3fa8495862352",
+      "source": "app/neplacila.html:383",
+      "name": "inline-neplacila-383",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-404:svg:d10d7ed093d9a894e89b",
+      "source": "app/neplacila.html:404",
+      "name": "inline-neplacila-404",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-416:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila.html:416",
+      "name": "inline-neplacila-416",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-422:svg:7acabd2817e280a99e95",
+      "source": "app/neplacila.html:422",
+      "name": "inline-neplacila-422",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-435:svg:93894385f6bd6c38336e",
+      "source": "app/neplacila.html:435",
+      "name": "inline-neplacila-435",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-452:svg:6f4351c765c4635884fd",
+      "source": "app/neplacila.html:452",
+      "name": "inline-neplacila-452",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-469:svg:1dc115ac9b10f3f1550a",
+      "source": "app/neplacila.html:469",
+      "name": "inline-neplacila-469",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-489:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:489",
+      "name": "inline-neplacila-489",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-499:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:499",
+      "name": "inline-neplacila-499",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-536:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:536",
+      "name": "inline-neplacila-536",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-613:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:613",
+      "name": "inline-neplacila-613",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-64:svg:1d3c47e251d86d066bb1",
+      "source": "app/neplacila.html:64",
+      "name": "inline-neplacila-64",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-690:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:690",
+      "name": "inline-neplacila-690",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-735:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:735",
+      "name": "inline-neplacila-735",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-740:svg:be6ad68de01ba56744dd",
+      "source": "app/neplacila.html:740",
+      "name": "inline-neplacila-740",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-750:svg:eec12db500bd92c1113d",
+      "source": "app/neplacila.html:750",
+      "name": "inline-neplacila-750",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-760:svg:453d916c22c1c41358d7",
+      "source": "app/neplacila.html:760",
+      "name": "inline-neplacila-760",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-769:svg:2afc5a5285800d3c6a0b",
+      "source": "app/neplacila.html:769",
+      "name": "inline-neplacila-769",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-788:svg:04a8bf618343ed46b5e8",
+      "source": "app/neplacila.html:788",
+      "name": "inline-neplacila-788",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-793:svg:437e01389b850ec9b399",
+      "source": "app/neplacila.html:793",
+      "name": "inline-neplacila-793",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-80:svg:aee6301dc3d0a57ca630",
+      "source": "app/neplacila.html:80",
+      "name": "inline-neplacila-80",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/neplacila.html:inline-neplacila-86:svg:59727e1acc5351a4f09a",
+      "source": "app/neplacila.html:86",
+      "name": "inline-neplacila-86",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-1347:svg:d0394bf44f8e9db15a2c",
+      "source": "app/obrocno-sheet.js:1347",
+      "name": "inline-obrocno-sheet-1347",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-246:svg:4835983fae60446dbdb9",
+      "source": "app/obrocno-sheet.js:246",
+      "name": "inline-obrocno-sheet-246",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-247:svg:527410a5ac0896ecf8cd",
+      "source": "app/obrocno-sheet.js:247",
+      "name": "inline-obrocno-sheet-247",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-248:svg:e4a7b85d2bd60accf96c",
+      "source": "app/obrocno-sheet.js:248",
+      "name": "inline-obrocno-sheet-248",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-249:svg:49d1dcf33a8b6911621f",
+      "source": "app/obrocno-sheet.js:249",
+      "name": "inline-obrocno-sheet-249",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-250:svg:a748324f44b6a8a8b727",
+      "source": "app/obrocno-sheet.js:250",
+      "name": "inline-obrocno-sheet-250",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-251:svg:d22df79d35c415ae9021",
+      "source": "app/obrocno-sheet.js:251",
+      "name": "inline-obrocno-sheet-251",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-256:svg:a4035a590fb78631a252",
+      "source": "app/obrocno-sheet.js:256",
+      "name": "inline-obrocno-sheet-256",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-260:svg:3fb957e206cc2b7b413c",
+      "source": "app/obrocno-sheet.js:260",
+      "name": "inline-obrocno-sheet-260",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-264:svg:d670d1d04a26d8659aa8",
+      "source": "app/obrocno-sheet.js:264",
+      "name": "inline-obrocno-sheet-264",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/obrocno-sheet.js:inline-obrocno-sheet-268:svg:77c334e4dd36ec68ddbb",
+      "source": "app/obrocno-sheet.js:268",
+      "name": "inline-obrocno-sheet-268",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:chevron:svg:b70c5a944976082a20a3",
+      "source": "app/opomin-nacrt-ui.js:7134",
+      "name": "chevron",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_AKTOVKA:svg:3d5c147d27c66bc0655c",
+      "source": "app/opomin-nacrt-ui.js:81",
+      "name": "IKONA_AKTOVKA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_CHEVRON_DOL:svg:b70c5a944976082a20a3",
+      "source": "app/opomin-nacrt-ui.js:123",
+      "name": "IKONA_CHEVRON_DOL",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_DOKUMENT:svg:1febba358b73064b10bc",
+      "source": "app/opomin-nacrt-ui.js:93",
+      "name": "IKONA_DOKUMENT",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_DOKUMENT:svg:fd11ae45cbe0cee75ced",
+      "source": "app/opomin-nacrt-ui.js:60",
+      "name": "IKONA_DOKUMENT",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_DOLZNIK:svg:297e79f0723c5cfac80c",
+      "source": "app/opomin-nacrt-ui.js:84",
+      "name": "IKONA_DOLZNIK",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_EMAIL:svg:0b57e4c0497e4bc461f9",
+      "source": "app/opomin-nacrt-ui.js:78",
+      "name": "IKONA_EMAIL",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_KAMERA:svg:aee6301dc3d0a57ca630",
+      "source": "app/opomin-nacrt-ui.js:66",
+      "name": "IKONA_KAMERA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_KLJUCAVNICA:svg:eaef746dbc073b46adee",
+      "source": "app/opomin-nacrt-ui.js:12",
+      "name": "IKONA_KLJUCAVNICA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_KLJUKICA_KROG:svg:ae54d4372f3066e37f4a",
+      "source": "app/opomin-nacrt-ui.js:90",
+      "name": "IKONA_KLJUKICA_KROG",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_KOLEDAR_MAJHNA:svg:d0394bf44f8e9db15a2c",
+      "source": "app/opomin-nacrt-ui.js:30",
+      "name": "IKONA_KOLEDAR_MAJHNA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_KOLEDAR:svg:d0394bf44f8e9db15a2c",
+      "source": "app/opomin-nacrt-ui.js:15",
+      "name": "IKONA_KOLEDAR",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_LUPA:svg:7936d1b79b654de3d418",
+      "source": "app/opomin-nacrt-ui.js:27",
+      "name": "IKONA_LUPA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_MAPA:svg:cbccd0a727d49a2411a3",
+      "source": "app/opomin-nacrt-ui.js:117",
+      "name": "IKONA_MAPA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_NALAGANJE_ORANZNA:svg:2da1c23d7ef26cb8225e",
+      "source": "app/opomin-nacrt-ui.js:96",
+      "name": "IKONA_NALAGANJE_ORANZNA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_NAMEN_EURO:svg:20968b165f7b42a6f868",
+      "source": "app/opomin-nacrt-ui.js:105",
+      "name": "IKONA_NAMEN_EURO",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_NAMEN_PREGLED:svg:160bbedbef3d878e613e",
+      "source": "app/opomin-nacrt-ui.js:102",
+      "name": "IKONA_NAMEN_PREGLED",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_NAMEN_SODISCE:svg:fee65eb20ec6ba316185",
+      "source": "app/opomin-nacrt-ui.js:108",
+      "name": "IKONA_NAMEN_SODISCE",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_NASMEH:svg:b4ea088f9a8b7a60fb3f",
+      "source": "app/opomin-nacrt-ui.js:57",
+      "name": "IKONA_NASMEH",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_OBROCNO:svg:3e1e077f2faa68cbe131",
+      "source": "app/opomin-nacrt-ui.js:48",
+      "name": "IKONA_OBROCNO",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_POSILJANJE:svg:d4f1fce8366cdc51a90c",
+      "source": "app/opomin-nacrt-ui.js:33",
+      "name": "IKONA_POSILJANJE",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDAJA_DOKUMENT_OKO:svg:21e370eb4acc87251328",
+      "source": "app/opomin-nacrt-ui.js:130",
+      "name": "IKONA_PREDAJA_DOKUMENT_OKO",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDAJA_DOKUMENT_PDF:svg:96a35cdbcf2e5f5ef459",
+      "source": "app/opomin-nacrt-ui.js:2393",
+      "name": "IKONA_PREDAJA_DOKUMENT_PDF",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDAJA_DOKUMENT:svg:160bbedbef3d878e613e",
+      "source": "app/opomin-nacrt-ui.js:127",
+      "name": "IKONA_PREDAJA_DOKUMENT",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDAJA_KLJUKICA_KROG:svg:ffe83683ea7c964888b2",
+      "source": "app/opomin-nacrt-ui.js:136",
+      "name": "IKONA_PREDAJA_KLJUKICA_KROG",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDAJA_PLUS_KROG:svg:36fc3aa75e6c213f433a",
+      "source": "app/opomin-nacrt-ui.js:139",
+      "name": "IKONA_PREDAJA_PLUS_KROG",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDAJA_SPOROCILO:svg:884024c2ccef447856b9",
+      "source": "app/opomin-nacrt-ui.js:133",
+      "name": "IKONA_PREDAJA_SPOROCILO",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_PREDLOGA:svg:ad0bc9ba442c97f0a42c",
+      "source": "app/opomin-nacrt-ui.js:42",
+      "name": "IKONA_PREDLOGA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_RANDOM:svg:c0612735c90e55328226",
+      "source": "app/opomin-nacrt-ui.js:21",
+      "name": "IKONA_RANDOM",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_ROK:svg:d0394bf44f8e9db15a2c",
+      "source": "app/opomin-nacrt-ui.js:45",
+      "name": "IKONA_ROK",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_SCIT_KLJUKICA:svg:115703aa3c6d7db39da2",
+      "source": "app/opomin-nacrt-ui.js:111",
+      "name": "IKONA_SCIT_KLJUKICA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_SLIKA:svg:b4f6edbd2b0e80b2091e",
+      "source": "app/opomin-nacrt-ui.js:72",
+      "name": "IKONA_SLIKA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_SMS:svg:9afe0a3ce2bed03b794f",
+      "source": "app/opomin-nacrt-ui.js:75",
+      "name": "IKONA_SMS",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_SPONKA:svg:0ac96c10c64468a52d87",
+      "source": "app/opomin-nacrt-ui.js:63",
+      "name": "IKONA_SPONKA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_SVINCNIK:svg:13aa4680e2c084892b70",
+      "source": "app/opomin-nacrt-ui.js:99",
+      "name": "IKONA_SVINCNIK",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_TEHTNICA:svg:e038e3ca2702b3b20258",
+      "source": "app/opomin-nacrt-ui.js:87",
+      "name": "IKONA_TEHTNICA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_TON:svg:b4ea088f9a8b7a60fb3f",
+      "source": "app/opomin-nacrt-ui.js:39",
+      "name": "IKONA_TON",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_TRR:svg:1a2da7962c2fab9ff5fa",
+      "source": "app/opomin-nacrt-ui.js:51",
+      "name": "IKONA_TRR",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_UREDI:svg:13aa4680e2c084892b70",
+      "source": "app/opomin-nacrt-ui.js:24",
+      "name": "IKONA_UREDI",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_UVOZI:svg:59727e1acc5351a4f09a",
+      "source": "app/opomin-nacrt-ui.js:69",
+      "name": "IKONA_UVOZI",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:IKONA_ZASTAVICA:svg:85f95b472eefd1378bf3",
+      "source": "app/opomin-nacrt-ui.js:114",
+      "name": "IKONA_ZASTAVICA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:ikonaFilter:svg:c4d8435113ee6722ca5b",
+      "source": "app/opomin-nacrt-ui.js:7133",
+      "name": "ikonaFilter",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:ikonaHtml:svg:c06da587f399be944b43",
+      "source": "app/opomin-nacrt-ui.js:6792",
+      "name": "ikonaHtml",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-1022:svg:1dc115ac9b10f3f1550a",
+      "source": "app/opomin-nacrt-ui.js:1022",
+      "name": "inline-opomin-nacrt-ui-1022",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-1128:svg:919430c434cb912d97fb",
+      "source": "app/opomin-nacrt-ui.js:1128",
+      "name": "inline-opomin-nacrt-ui-1128",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-1130:svg:cfcccde41df4becea31d",
+      "source": "app/opomin-nacrt-ui.js:1130",
+      "name": "inline-opomin-nacrt-ui-1130",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-11661:svg:1dc115ac9b10f3f1550a",
+      "source": "app/opomin-nacrt-ui.js:11661",
+      "name": "inline-opomin-nacrt-ui-11661",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-13122:svg:7f1eadbdbc50ca8265fb",
+      "source": "app/opomin-nacrt-ui.js:13122",
+      "name": "inline-opomin-nacrt-ui-13122",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-13473:svg:1dc115ac9b10f3f1550a",
+      "source": "app/opomin-nacrt-ui.js:13473",
+      "name": "inline-opomin-nacrt-ui-13473",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-14021:svg:b70c5a944976082a20a3",
+      "source": "app/opomin-nacrt-ui.js:14021",
+      "name": "inline-opomin-nacrt-ui-14021",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-2442:svg:d8b6dd1ba425f688ed56",
+      "source": "app/opomin-nacrt-ui.js:2442",
+      "name": "inline-opomin-nacrt-ui-2442",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-5663:svg:b70c5a944976082a20a3",
+      "source": "app/opomin-nacrt-ui.js:5663",
+      "name": "inline-opomin-nacrt-ui-5663",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7189:svg:026b505c1d0af5f5fdbc",
+      "source": "app/opomin-nacrt-ui.js:7189",
+      "name": "inline-opomin-nacrt-ui-7189",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7390:svg:d415315baabe592df7ef",
+      "source": "app/opomin-nacrt-ui.js:7390",
+      "name": "inline-opomin-nacrt-ui-7390",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7402:svg:86e24bfa1478a7df7e79",
+      "source": "app/opomin-nacrt-ui.js:7402",
+      "name": "inline-opomin-nacrt-ui-7402",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7405:svg:26168c26a5eb99bd9b63",
+      "source": "app/opomin-nacrt-ui.js:7405",
+      "name": "inline-opomin-nacrt-ui-7405",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7414:svg:a19669d5b4d4631436d8",
+      "source": "app/opomin-nacrt-ui.js:7414",
+      "name": "inline-opomin-nacrt-ui-7414",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7418:svg:557c3a9d852410da14ee",
+      "source": "app/opomin-nacrt-ui.js:7418",
+      "name": "inline-opomin-nacrt-ui-7418",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7423:svg:e80d2ded44c21f3efa67",
+      "source": "app/opomin-nacrt-ui.js:7423",
+      "name": "inline-opomin-nacrt-ui-7423",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7426:svg:84a28e343910d1b61482",
+      "source": "app/opomin-nacrt-ui.js:7426",
+      "name": "inline-opomin-nacrt-ui-7426",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7429:svg:5119a2403b7fd9bf3014",
+      "source": "app/opomin-nacrt-ui.js:7429",
+      "name": "inline-opomin-nacrt-ui-7429",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7440:svg:add8b281fadea1c2b64d",
+      "source": "app/opomin-nacrt-ui.js:7440",
+      "name": "inline-opomin-nacrt-ui-7440",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7500:svg:2e87f378954eebfbfcaf",
+      "source": "app/opomin-nacrt-ui.js:7500",
+      "name": "inline-opomin-nacrt-ui-7500",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7523:svg:1dc115ac9b10f3f1550a",
+      "source": "app/opomin-nacrt-ui.js:7523",
+      "name": "inline-opomin-nacrt-ui-7523",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7589:svg:17d91cb74d68190a8784",
+      "source": "app/opomin-nacrt-ui.js:7589",
+      "name": "inline-opomin-nacrt-ui-7589",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7607:svg:1dc115ac9b10f3f1550a",
+      "source": "app/opomin-nacrt-ui.js:7607",
+      "name": "inline-opomin-nacrt-ui-7607",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7845:svg:af6c49cee9eec9352d2e",
+      "source": "app/opomin-nacrt-ui.js:7845",
+      "name": "inline-opomin-nacrt-ui-7845",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-7871:svg:218c26ff929e23291445",
+      "source": "app/opomin-nacrt-ui.js:7871",
+      "name": "inline-opomin-nacrt-ui-7871",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-8520:svg:0e697a484697d9a8f55d",
+      "source": "app/opomin-nacrt-ui.js:8520",
+      "name": "inline-opomin-nacrt-ui-8520",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-8524:svg:60a5e6f0c9ab8d7c8132",
+      "source": "app/opomin-nacrt-ui.js:8524",
+      "name": "inline-opomin-nacrt-ui-8524",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-8599:svg:407dea0eba7e47d651e1",
+      "source": "app/opomin-nacrt-ui.js:8599",
+      "name": "inline-opomin-nacrt-ui-8599",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-8963:svg:04a8bf618343ed46b5e8",
+      "source": "app/opomin-nacrt-ui.js:8963",
+      "name": "inline-opomin-nacrt-ui-8963",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:inline-opomin-nacrt-ui-9037:svg:e0b5e8f7e24ae90d016d",
+      "source": "app/opomin-nacrt-ui.js:9037",
+      "name": "inline-opomin-nacrt-ui-9037",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/opomin-nacrt-ui.js:zvonec:svg:f18e7459bd96b1f629f3",
+      "source": "app/opomin-nacrt-ui.js:14734",
+      "name": "zvonec",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:bank:svg:90949a6e544e3266fc04",
+      "source": "app/pos-terminal.html:34",
+      "name": "bank",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:bank:svg:90949a6e544e3266fc04",
+      "source": "app/pos-terminal.html:99",
+      "name": "bank",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:bank:svg:90949a6e544e3266fc04",
+      "source": "app/pos-terminal.html:415",
+      "name": "bank",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:bank:svg:90949a6e544e3266fc04",
+      "source": "app/pos-terminal.html:540",
+      "name": "bank",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:bank:svg:90949a6e544e3266fc04",
+      "source": "app/pos-terminal.html:696",
+      "name": "bank",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:building:svg:059c612f9044931f6f8c",
+      "source": "app/pos-terminal.html:33",
+      "name": "building",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:building:svg:059c612f9044931f6f8c",
+      "source": "app/pos-terminal.html:84",
+      "name": "building",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:card:svg:aecedd34fe43441cc471",
+      "source": "app/pos-terminal.html:35",
+      "name": "card",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:card:svg:aecedd34fe43441cc471",
+      "source": "app/pos-terminal.html:94",
+      "name": "card",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:card:svg:aecedd34fe43441cc471",
+      "source": "app/pos-terminal.html:505",
+      "name": "card",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:card:svg:aecedd34fe43441cc471",
+      "source": "app/pos-terminal.html:508",
+      "name": "card",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:card:svg:aecedd34fe43441cc471",
+      "source": "app/pos-terminal.html:586",
+      "name": "card",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:check:svg:1dc115ac9b10f3f1550a",
+      "source": "app/pos-terminal.html:39",
+      "name": "check",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:check:svg:1dc115ac9b10f3f1550a",
+      "source": "app/pos-terminal.html:109",
+      "name": "check",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:check:svg:1dc115ac9b10f3f1550a",
+      "source": "app/pos-terminal.html:277",
+      "name": "check",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:check:svg:1dc115ac9b10f3f1550a",
+      "source": "app/pos-terminal.html:541",
+      "name": "check",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:36",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:104",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:141",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:285",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:414",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:458",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:467",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:476",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.html:523",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:42",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:205",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:347",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:350",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:385",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:542",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:556",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:578",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:679",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:739",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:info:svg:ff3c984a88f78bea2e4a",
+      "source": "app/pos-terminal.html:759",
+      "name": "info",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:lock:svg:d7f441a5225e7e8fc709",
+      "source": "app/pos-terminal.html:43",
+      "name": "lock",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:lock:svg:d7f441a5225e7e8fc709",
+      "source": "app/pos-terminal.html:157",
+      "name": "lock",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:lock:svg:d7f441a5225e7e8fc709",
+      "source": "app/pos-terminal.html:263",
+      "name": "lock",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:lock:svg:d7f441a5225e7e8fc709",
+      "source": "app/pos-terminal.html:447",
+      "name": "lock",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:lock:svg:d7f441a5225e7e8fc709",
+      "source": "app/pos-terminal.html:546",
+      "name": "lock",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:lock:svg:d7f441a5225e7e8fc709",
+      "source": "app/pos-terminal.html:786",
+      "name": "lock",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:mail:svg:a3c9cf14c2692d096da8",
+      "source": "app/pos-terminal.html:44",
+      "name": "mail",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:31",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:50",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:89",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:298",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:413",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:436",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:514",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:521",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:522",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:587",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.html:762",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:settings:svg:44ea3847afc616c43eb7",
+      "source": "app/pos-terminal.html:37",
+      "name": "settings",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:settings:svg:44ea3847afc616c43eb7",
+      "source": "app/pos-terminal.html:57",
+      "name": "settings",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:trash:svg:608ce436e74005420d2e",
+      "source": "app/pos-terminal.html:41",
+      "name": "trash",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.html:user:svg:eb8acb38f14035fa3b28",
+      "source": "app/pos-terminal.html:40",
+      "name": "user",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:building:svg:059c612f9044931f6f8c",
+      "source": "app/pos-terminal.js:2822",
+      "name": "building",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.js:3401",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:export:svg:0664a899182c06592c65",
+      "source": "app/pos-terminal.js:3703",
+      "name": "export",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.js:3465",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.js:3573",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:receipt:svg:eb338875ec2e3e3bad8d",
+      "source": "app/pos-terminal.js:3581",
+      "name": "receipt",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:trash:svg:608ce436e74005420d2e",
+      "source": "app/pos-terminal.js:4221",
+      "name": "trash",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/pos-terminal.js:trash:svg:608ce436e74005420d2e",
+      "source": "app/pos-terminal.js:5107",
+      "name": "trash",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/predlogi-urejevalnik.js:IKONA_SVINCNIKA:svg:de29d413abefa3240a9f",
+      "source": "app/predlogi-urejevalnik.js:22",
+      "name": "IKONA_SVINCNIKA",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/predlogi-urejevalnik.js:inline-predlogi-urejevalnik-1381:svg:d0394bf44f8e9db15a2c",
+      "source": "app/predlogi-urejevalnik.js:1381",
+      "name": "inline-predlogi-urejevalnik-1381",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/predlogi-urejevalnik.js:inline-predlogi-urejevalnik-1387:svg:3e1e077f2faa68cbe131",
+      "source": "app/predlogi-urejevalnik.js:1387",
+      "name": "inline-predlogi-urejevalnik-1387",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/predlogi-urejevalnik.js:inline-predlogi-urejevalnik-1392:svg:1a2da7962c2fab9ff5fa",
+      "source": "app/predlogi-urejevalnik.js:1392",
+      "name": "inline-predlogi-urejevalnik-1392",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/slovenski-prepis.html:inline-slovenski-prepis-16:svg:00b7c7f48d1b250a9779",
+      "source": "app/slovenski-prepis.html:16",
+      "name": "inline-slovenski-prepis-16",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/slovenski-prepis.html:inline-slovenski-prepis-39:svg:a4c5ed9187faff16e439",
+      "source": "app/slovenski-prepis.html:39",
+      "name": "inline-slovenski-prepis-39",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/slovenski-prepis.html:inline-slovenski-prepis-42:svg:026eb0c50940de3b2062",
+      "source": "app/slovenski-prepis.html:42",
+      "name": "inline-slovenski-prepis-42",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/slovenski-prepis.html:inline-slovenski-prepis-46:svg:d7f441a5225e7e8fc709",
+      "source": "app/slovenski-prepis.html:46",
+      "name": "inline-slovenski-prepis-46",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/testna-vrstica.js:inline-testna-vrstica-72:svg:218c26ff929e23291445",
+      "source": "app/testna-vrstica.js:72",
+      "name": "inline-testna-vrstica-72",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/testna-vrstica.js:inline-testna-vrstica-76:svg:a90b608880e8fe44161a",
+      "source": "app/testna-vrstica.js:76",
+      "name": "inline-testna-vrstica-76",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:alert:svg:3c6930b7f3f06def92be",
+      "source": "app/ton-widget.js:36",
+      "name": "alert",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:flame:svg:a636094c3f05a39b02d3",
+      "source": "app/ton-widget.js:38",
+      "name": "flame",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:inline-ton-widget-24:svg:790900d46f597d5ad712",
+      "source": "app/ton-widget.js:24",
+      "name": "inline-ton-widget-24",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:inline-ton-widget-32:svg:dfac88973e1160d3ce9e",
+      "source": "app/ton-widget.js:32",
+      "name": "inline-ton-widget-32",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:inline-ton-widget-34:svg:3c6930b7f3f06def92be",
+      "source": "app/ton-widget.js:34",
+      "name": "inline-ton-widget-34",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:meh:svg:000ac860985458a5ff42",
+      "source": "app/ton-widget.js:28",
+      "name": "meh",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:shield:svg:2190abc4bed0591bd49d",
+      "source": "app/ton-widget.js:30",
+      "name": "shield",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/ton-widget.js:smile:svg:b4ea088f9a8b7a60fb3f",
+      "source": "app/ton-widget.js:26",
+      "name": "smile",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-global.js:inline-zacasno-global-77:svg:6ae886ad90528676de93",
+      "source": "app/zacasno-global.js:77",
+      "name": "inline-zacasno-global-77",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.html:inline-zacasno-obvestila-23:svg:218c26ff929e23291445",
+      "source": "app/zacasno-obvestila.html:23",
+      "name": "inline-zacasno-obvestila-23",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.js:checkCircle:svg:430768887928c0b669d4",
+      "source": "app/zacasno-obvestila.js:50",
+      "name": "checkCircle",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.js:document:svg:160bbedbef3d878e613e",
+      "source": "app/zacasno-obvestila.js:36",
+      "name": "document",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.js:mail:svg:86e24bfa1478a7df7e79",
+      "source": "app/zacasno-obvestila.js:32",
+      "name": "mail",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.js:message:svg:593d3fb9924a7f8edd57",
+      "source": "app/zacasno-obvestila.js:30",
+      "name": "message",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.js:scales:svg:e038e3ca2702b3b20258",
+      "source": "app/zacasno-obvestila.js:38",
+      "name": "scales",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zacasno-obvestila.js:warning:svg:d778dba378044356fb2d",
+      "source": "app/zacasno-obvestila.js:34",
+      "name": "warning",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "svg:app/zascita-posla.html:inline-zascita-posla-45:svg:1dc115ac9b10f3f1550a",
+      "source": "app/zascita-posla.html:45",
+      "name": "inline-zascita-posla-45",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/boniteta-sredisce.js:simbol-2713:symbol:✓",
+      "source": "app/boniteta-sredisce.js:106",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/boniteta-sredisce.js:simbol-2713:symbol:✓",
+      "source": "app/boniteta-sredisce.js:191",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/boniteta-sredisce.js:simbol-2713:symbol:✓",
+      "source": "app/boniteta-sredisce.js:215",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-podjetje-grafike.css:simbol-2191:symbol:↑",
+      "source": "app/bonitetna-podjetje-grafike.css:766",
+      "name": "simbol-2191",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-podjetje-grafike.css:simbol-2193:symbol:↓",
+      "source": "app/bonitetna-podjetje-grafike.css:765",
+      "name": "simbol-2193",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-podjetje-grafike.css:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-podjetje-grafike.css:1372",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.css:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.css:3289",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.html:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.html:410",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2192:symbol:→",
+      "source": "app/bonitetna-preverba.js:272",
+      "name": "simbol-2192",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:493",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:494",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4017",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4019",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4024",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4029",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4031",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4034",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/bonitetna-preverba.js:simbol-2713:symbol:✓",
+      "source": "app/bonitetna-preverba.js:4647",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/izvedba.js:simbol-2605:symbol:★",
+      "source": "app/izvedba.js:2818",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/izvedba.js:simbol-2605:symbol:★",
+      "source": "app/izvedba.js:2840",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-posiljanje.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-posiljanje.html:620",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:123",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:198",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:238",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:277",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:290",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:303",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/neplacila-sporocilo.html:simbol-2605:symbol:★",
+      "source": "app/neplacila-sporocilo.html:376",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/opomin-nacrt-ui.js:simbol-2605:symbol:★",
+      "source": "app/opomin-nacrt-ui.js:5131",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/opomin-nacrt-ui.js:simbol-2605:symbol:★",
+      "source": "app/opomin-nacrt-ui.js:7368",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/opomin-nacrt-ui.js:simbol-2605:symbol:★",
+      "source": "app/opomin-nacrt-ui.js:8466",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/opomin-nacrt-ui.js:simbol-2605:symbol:★",
+      "source": "app/opomin-nacrt-ui.js:8484",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/opomin-nacrt-ui.js:simbol-2605:symbol:★",
+      "source": "app/opomin-nacrt-ui.js:8565",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/predlogi-urejevalnik.js:simbol-2605:symbol:★",
+      "source": "app/predlogi-urejevalnik.js:1351",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/predlogi-urejevalnik.js:simbol-2605:symbol:★",
+      "source": "app/predlogi-urejevalnik.js:1380",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/predlogi-urejevalnik.js:simbol-2605:symbol:★",
+      "source": "app/predlogi-urejevalnik.js:1386",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/recommendation-card.js:simbol-2605:symbol:★",
+      "source": "app/recommendation-card.js:40",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/recommendation-card.js:simbol-2605:symbol:★",
+      "source": "app/recommendation-card.js:58",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/recommendation-card.js:simbol-2605:symbol:★",
+      "source": "app/recommendation-card.js:64",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/styles.css:simbol-2713:symbol:✓",
+      "source": "app/styles.css:24827",
+      "name": "simbol-2713",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/ton-widget.js:simbol-2605:symbol:★",
+      "source": "app/ton-widget.js:383",
+      "name": "simbol-2605",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/zacasno-obvestila.js:simbol-25CF:symbol:●",
+      "source": "app/zacasno-obvestila.js:249",
+      "name": "simbol-25CF",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    },
+    {
+      "signature": "symbol:app/zacasno-obvestila.js:simbol-25CF:symbol:●",
+      "source": "app/zacasno-obvestila.js:339",
+      "name": "simbol-25CF",
+      "reason": "Obstoječa uporaba je evidentirana v katalogu in čaka pregled oziroma načrtovano uskladitev."
+    }
+  ]
+}

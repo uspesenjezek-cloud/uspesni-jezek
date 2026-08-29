@@ -16,6 +16,8 @@ assert.ok(
 assert.ok(widgetSrc.includes('addEventListener("uj:nacrt-pripravljen"'));
 assert.ok(widgetSrc.includes("var korak3Zagnan = false"));
 assert.ok(widgetSrc.includes("if (korak3Zagnan) return true"));
-assert.ok(htmlSrc.includes("app.js?v=20260815-racun-stevec-v19"));
+assert.ok(htmlSrc.includes("storage-priloge-cache.js?v=20260818-egress-v1"));
+assert.match(htmlSrc, /app\.js\?v=[^"']+/,
+  "začetni zaslon mora naložiti trenutno različico skupne aplikacijske logike");
 
 console.log("Zagon widgeta Priporocilo za ta dolg: vsi testi uspesni");

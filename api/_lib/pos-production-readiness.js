@@ -6,7 +6,7 @@ const wormArchive = require("./pos-worm-archive");
 const sandboxEvidenceVerifier = require("./pos-openapi-sandbox-evidence");
 const sandbox381Evidence = require("../../scripts/fixtures/openapi-de-381-sandbox-evidence.json");
 
-const VERSION = "pos-de-production-readiness-v9";
+const VERSION = "pos-de-production-readiness-v15";
 const MAX_ARCHIVE_READINESS_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_CONFIRMATION_FUTURE_SKEW_MS = 5 * 60 * 1000;
 
@@ -70,7 +70,7 @@ function assess(env, options) {
   const openapi = openapiInvoice.readiness(source);
   const openapiMissing = [];
   if (!text(source.OPENAPI_INVOICE_TOKEN)) openapiMissing.push("OPENAPI_INVOICE_TOKEN");
-  if (!text(source.OPENAPI_INVOICE_TOKEN_EXPIRES_AT)) openapiMissing.push("OPENAPI_INVOICE_TOKEN_EXPIRES_AT");
+  if (!text(source.OPENAPI_INVOICE_TOKEN_EXPIRES_AT) || !openapi.productionTokenFresh) openapiMissing.push("OPENAPI_INVOICE_TOKEN_EXPIRES_AT");
   if (text(source.OPENAPI_INVOICE_MODE).toLowerCase() !== "production") openapiMissing.push("OPENAPI_INVOICE_MODE=production");
   if (!enabled(source.POS_OPENAPI_INVOICE_ENABLED)) openapiMissing.push("POS_OPENAPI_INVOICE_ENABLED=true");
   if (!enabled(source.OPENAPI_INVOICE_SEND_ENABLED)) openapiMissing.push("OPENAPI_INVOICE_SEND_ENABLED=true");
@@ -78,7 +78,13 @@ function assess(env, options) {
   if (!validHttpsUrl(source.OPENAPI_INVOICE_WEBHOOK_URL)) openapiMissing.push("OPENAPI_INVOICE_WEBHOOK_URL");
   if (!enabled(source.OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_CONFIRMED)) openapiMissing.push("OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_CONFIRMED=true");
   if (text(source.OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_URL) !== text(source.OPENAPI_INVOICE_WEBHOOK_URL)) openapiMissing.push("OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_URL");
-  if (!text(source.OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT)) openapiMissing.push("OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT");
+  const publicPreflightDependenciesValid = enabled(source.OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_CONFIRMED)
+    && text(source.OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_URL) === text(source.OPENAPI_INVOICE_WEBHOOK_URL)
+    && openapi.webhookConfigured;
+  if (!text(source.OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT)
+    || (publicPreflightDependenciesValid && !openapi.webhookPublicPreflightConfirmed)) {
+    openapiMissing.push("OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT");
+  }
   checks.push(item(
     "openapi_einvoicing",
     "core",
@@ -223,12 +229,12 @@ function assess(env, options) {
   ));
   checks.push(item(
     "finapi_bank_sync",
-    "optional",
+    "core",
+    true,
     false,
-    false,
-    "sandbox_only",
-    [],
-    "Samodejna bančna sinhronizacija je omejena na finAPI sandbox; ročni uvoz ostaja na voljo."
+    "production_not_implemented",
+    ["finapi_production_integration_not_implemented"],
+    "finAPI je obvezen del produkcijskega bančnega toka, vendar je trenutno varno omejen na sandbox."
   ));
   checks.push(item(
     "datev_cloud_transfer",
@@ -241,12 +247,19 @@ function assess(env, options) {
   ));
   checks.push(item(
     "fiskaly_tse",
-    "out_of_scope",
-    false,
+    "core",
     true,
-    "cashless_scope",
-    [],
-    "Produkcijska TSE ni del brezgotovinskega računskega obsega; SIGN DE ostaja TRAINING."
+    false,
+    "local_training_complete",
+    [
+      "cash_checkout_migration_not_deployed",
+      "cash_refund_migration_not_deployed",
+      "fiskaly_production_credentials_and_tss_not_configured",
+      "dsfinvk_external_conformance_not_confirmed",
+      "cash_system_registration_not_confirmed",
+      "cash_legal_review_not_confirmed",
+    ],
+    "Lokalni TRAINING tok vključuje fail-closed checkout, idempotentni mock TSE, Kassenbon, ločeno TSE-podpisano povračilo s pripravljeno atomarno migracijo, pologe/dvige in DSFinV-K model. Produkcija ostaja blokirana do deploya migracij, produkcijskega SIGN DE/TSS, zunanje DSFinV-K potrditve, prijave sistema in pravnega pregleda."
   ));
 
   const blocking = checks.filter((check) => check.blocking);

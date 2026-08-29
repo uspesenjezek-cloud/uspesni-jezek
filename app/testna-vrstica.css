@@ -55,7 +55,11 @@ html.app-iphone-preview {
 html.uj-modal-odprt .app-testna-vrstica,
 html.uj-modal-odprt .boniteta-app-testna-vrstica,
 body.uj-modal-odprt .app-testna-vrstica,
-body.uj-modal-odprt .boniteta-app-testna-vrstica {
+body.uj-modal-odprt .boniteta-app-testna-vrstica,
+body.rok-sheet-odprt .app-testna-vrstica,
+body.rok-sheet-odprt .boniteta-app-testna-vrstica,
+body.obrocno-sheet-odprt .app-testna-vrstica,
+body.obrocno-sheet-odprt .boniteta-app-testna-vrstica {
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;

@@ -23,3 +23,10 @@ const SENTRY_CONFIG = globalThis.SENTRY_CONFIG = Object.freeze({
   environment: "development",
   release: "",
 });
+
+/* Lokalni predogled uporablja svoj same-origin proxy. Produkcijskega prenosa
+   ne vklopi, dokler DNS, TLS in namenski EU strežnik niso preverjeni. */
+const ATENA_SPEECH_CONFIG = globalThis.ATENA_SPEECH_CONFIG = Object.freeze({
+  baseUrl: "https://speech.uspesni-jezek.de",
+  endpointVerified: false,
+});

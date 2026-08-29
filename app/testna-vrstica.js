@@ -73,7 +73,7 @@
       '<span>Nazaj</span>',
       '</button>',
       '<a class="app-testna-vrstica__gumb" data-app-domov href="index.html" aria-label="Home – osnovni meni">',
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>',
       '<span>Home</span>',
       '</a>',
       '<span class="app-testna-vrstica__prazno" aria-hidden="true"></span>'

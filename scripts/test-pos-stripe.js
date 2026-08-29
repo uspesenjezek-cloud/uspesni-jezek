@@ -200,6 +200,12 @@ assert.match(js, /onConfirm: async function \(value\)/);
 assert.match(css, /\.pos-dialog__field\[hidden\] \{ display: none; \}/);
 assert.match(css, /font: 700 1rem\/1\.2/);
 assert.match(css, /\.pos-stripe-test\[hidden\], \.pos-stripe-test__refund\[hidden\] \{ display: none; \}/);
+const stripeTheme = css.slice(css.indexOf(".pos-stripe-test {"), css.indexOf(".pos-replacement-banner"));
+assert.match(stripeTheme, /border: 1px solid #bfd2df/);
+assert.match(stripeTheme, /background: linear-gradient\(145deg, #f1f6fa, #fff\)/);
+assert.match(stripeTheme, /\.pos-stripe-test__button \{[^}]*background: #567392/);
+assert.match(stripeTheme, /\.pos-stripe-test__refund \{[^}]*color: #405f7e; border-color: #bfd2df/);
+assert.doesNotMatch(stripeTheme, /#635bff|#564ee8|#5e4d87|#d8d1f3|#eee9f8|#faf8ff|#786f91/);
 assert.doesNotMatch(js, /STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|sk_test_|whsec_/);
 
 function stripeWebhookResponse() {

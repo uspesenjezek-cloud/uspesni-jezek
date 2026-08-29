@@ -22,6 +22,30 @@ async function validSignature(raw: string, headers: Headers, secret: string) {
   } catch (_) { return false; }
 }
 
+function eventTimestamp(event: Record<string, any>) {
+  for (const value of [event.occurred_at, event.created_at]) {
+    const parsed = new Date(String(value || ""));
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function validIsoDate(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const parsed = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return parsed.toISOString().slice(0, 10) === value;
+}
+
+function monitoringWindowAllows(monitor: Record<string, any>, date: string) {
+  const schedule = monitor.openregister_payload?.monitoringSchedule;
+  if (!schedule) return true;
+  const start = String(schedule.monitoringStartDate || "");
+  const end = String(schedule.projectEndDate || "");
+  if (!validIsoDate(start) || !validIsoDate(end)) return false;
+  return date >= start && date <= end;
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") return json(405, { ok: false });
   const raw = await request.text();
@@ -37,14 +61,17 @@ Deno.serve(async (request: Request) => {
   const monitorResponse = await fetch(`${url}/rest/v1/boniteta_monitorji?entity_id=eq.${encodeURIComponent(entityId)}&disabled=eq.false&select=*`, { headers });
   if (!monitorResponse.ok) return json(500, { ok: false });
   const monitors = await monitorResponse.json();
+  const occurredAt = eventTimestamp(event);
+  const occurredOn = occurredAt.slice(0, 10);
   for (const monitor of monitors) {
+    if (!monitoringWindowAllows(monitor, occurredOn)) continue;
     const response = await fetch(`${url}/rest/v1/boniteta_opozorila?on_conflict=user_id,external_event_id`, {
       method: "POST", headers: { ...headers, Prefer: "resolution=ignore-duplicates,return=minimal" },
       body: JSON.stringify({ user_id: monitor.user_id, profile_id: monitor.profile_id,
         external_event_id: String(event.id || request.headers.get("svix-id")),
         category: String(event.preference || event.category || event.type || "basic").slice(0, 80),
         title: String(event.title || "OpenRegister je zaznal spremembo podjetja").slice(0, 240),
-        payload: event, occurred_at: event.created_at || event.occurred_at || new Date().toISOString() }),
+        payload: event, occurred_at: occurredAt }),
     });
     if (!response.ok) return json(500, { ok: false });
   }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light only" />
+    <title>Končani primeri – Uspešni Ježek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
+    <link rel="stylesheet" href="koncani-primeri.css?v=20260824-podatki-kompakt-v2" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js"></script>
+    <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog />
+    <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
+    <script src="auth-zascita.js?v=20260822-preview-touch-v16"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
+  </head>
+  <body class="stran--koncani-primeri app-testna-vrstica-prisotna">
+    <div class="koncani-primeri-shell">
+      <main class="koncani-primeri-stran" data-koncani-primeri-root aria-busy="true">
+        <header class="koncani-primeri-uvod">
+          <p class="koncani-primeri-uvod__eyebrow">OPOZARJANJE NA NEPLAČILA</p>
+          <div class="koncani-primeri-uvod__naslovna-vrstica">
+            <h1>Končani primeri</h1>
+            <span class="koncani-primeri-uvod__stevec" data-koncani-stevec hidden>0</span>
+          </div>
+          <p>Pregled zaključenih zadev in prejetih plačil.</p>
+        </header>
+
+        <div class="koncani-primeri-filtri" role="tablist" aria-label="Vrsta zaključka">
+          <button type="button" role="tab" aria-selected="true" class="koncani-primeri-filter is-active" data-koncani-filter="all">Vsi</button>
+          <button type="button" role="tab" aria-selected="false" class="koncani-primeri-filter" data-koncani-filter="paid">Plačani</button>
+          <button type="button" role="tab" aria-selected="false" class="koncani-primeri-filter" data-koncani-filter="other">Drugače zaključeni</button>
+        </div>
+
+        <section class="koncani-primeri-vsebina" aria-live="polite">
+          <div class="koncani-primeri-nalaganje" data-koncani-nalaganje>
+            <span aria-hidden="true"></span>
+            Nalagam končane primere …
+          </div>
+          <div class="koncani-primeri-seznam" data-koncani-seznam hidden></div>
+          <div class="koncani-primeri-prazno" data-koncani-prazno hidden>
+            <span class="koncani-primeri-prazno__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            <h2>Končanih primerov še ni</h2>
+            <p data-koncani-prazno-opis>Ko zaključite primer, se bo samodejno prikazal tukaj.</p>
+            <a class="btn btn--obris" href="aktivni-primeri.html">Poglej odprte zadeve</a>
+          </div>
+          <p class="koncani-primeri-napaka" data-koncani-napaka role="alert" hidden>
+            Končanih primerov trenutno ni bilo mogoče naložiti.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="koncani-podrobnosti" data-koncani-podrobnosti aria-labelledby="koncani-podrobnosti-naslov">
+      <div class="koncani-podrobnosti__rocaj" aria-hidden="true"></div>
+      <header class="koncani-podrobnosti__glava">
+        <div>
+          <p>IZID PRIMERA</p>
+          <h2 id="koncani-podrobnosti-naslov">Podrobnosti zaključka</h2>
+        </div>
+        <button type="button" data-koncani-zapri aria-label="Zapri podrobnosti">×</button>
+      </header>
+      <div class="koncani-podrobnosti__vsebina" data-koncani-podrobnosti-vsebina></div>
+    </dialog>
+
+    <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
+    <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
+    <script src="izvedba-komponente.js?v=20260825-storno-akcija-meta-v2"></script>
+    <script src="nastavitve-izidov.js?v=20260825-revert-v6"></script>
+    <script src="koncani-primeri.js?v=20260824-podatki-kompakt-v2"></script>
+  </body>
+</html>

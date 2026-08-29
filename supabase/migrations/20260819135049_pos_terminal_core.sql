@@ -381,3 +381,5 @@ grant execute on function public.pos_issue_invoice(uuid,jsonb,boolean,boolean) t
 grant execute on function private.pos_set_updated_at(), private.pos_prevent_invoice_mutation() to service_role;
 
 notify pgrst, 'reload schema';
+
+;

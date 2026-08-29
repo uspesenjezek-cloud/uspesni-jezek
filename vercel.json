@@ -45,6 +45,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/razcleni-zgodovino", "destination": "/api/izvedi-opomin-ukrep?handler=history-ai" },
     { "source": "/api/boniteta-pro", "destination": "/api/boniteta?handler=pro" },
     { "source": "/api/mehka-boniteta", "destination": "/api/boniteta?handler=soft" },
     { "source": "/api/mehka-boniteta-opravilo", "destination": "/api/boniteta?handler=job" },

@@ -260,8 +260,11 @@
     var dolgVrednost = document.getElementById("ocena-tveganja-dolg-vrednost");
     var zamudaStatus = document.getElementById("ocena-tveganja-zamuda-status");
     var zamudaVrednost = document.getElementById("ocena-tveganja-zamuda-vrednost");
-    var znesek = znesekEl ? Number(String(znesekEl.value || "").replace(",", ".")) : 0;
-    var datumZapadlosti = datumEl ? datumEl.value : "";
+    var podatkiKorak1 = preberiPodatkeKorak1();
+    var znesek = znesekEl
+      ? Number(String(znesekEl.value || "").replace(",", "."))
+      : Number(podatkiKorak1.znesek || 0);
+    var datumZapadlosti = datumEl ? datumEl.value : (podatkiKorak1.datumZapadlosti || "");
     preberiUid().then(function (uid) {
       _trenutniUid = uid || null;
       var pragovi = preberiPragove(uid);
@@ -270,7 +273,7 @@
       if (dolgStatus) dolgStatus.textContent = dolg.kategorija;
       if (dolgVrednost) dolgVrednost.textContent = Number.isFinite(znesek) && znesek > 0 ? znesek.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €" : "—";
       if (zamudaStatus) zamudaStatus.textContent = zamuda.kategorija;
-      if (zamudaVrednost) zamudaVrednost.textContent = zamuda.dnevi != null ? (zamuda.dnevi <= 0 ? "0 dni" : zamuda.dnevi + " dni") : "—";
+      if (zamudaVrednost) zamudaVrednost.textContent = zamuda.dnevi != null ? (zamuda.dnevi <= 0 ? "0 dni" : zamuda.dnevi + " dni zamude") : "—";
     });
   }
 
@@ -381,6 +384,40 @@
       nastaviZamudaInpute(p);
     });
 
+    var pregledGumb = document.querySelector("[data-odpri-oceno-tveganja]");
+    var dolgSheet = document.getElementById("ocena-dolg-sheet");
+    var zamudaSheet = document.getElementById("ocena-zamuda-sheet");
+    function odpriNastavitveOcene(vrsta) {
+      var ciljniSheet = vrsta === "zamuda" ? zamudaSheet : dolgSheet;
+      if (!ciljniSheet) return;
+      _preskociBlur = true;
+      if (dolgSheet) dolgSheet.hidden = ciljniSheet !== dolgSheet;
+      if (zamudaSheet) zamudaSheet.hidden = ciljniSheet !== zamudaSheet;
+      if (pregledGumb) pregledGumb.setAttribute("aria-expanded", "true");
+      var naslov = ciljniSheet.querySelector(".ocena-sheet__naslov");
+      if (naslov) naslov.focus();
+      setTimeout(function () { _preskociBlur = false; }, 0);
+    }
+    if (pregledGumb && dolgSheet) {
+      pregledGumb.addEventListener("click", function () {
+        osveziKartice();
+        odpriNastavitveOcene("dolg");
+      });
+    }
+    var preklopiOcene = document.querySelectorAll("[data-ocena-preklop]");
+    for (var po = 0; po < preklopiOcene.length; po++) {
+      preklopiOcene[po].addEventListener("mousedown", function () { _preskociBlur = true; });
+      preklopiOcene[po].addEventListener("click", function () {
+        odpriNastavitveOcene(this.getAttribute("data-ocena-preklop"));
+      });
+    }
+    var zapriOceno = document.querySelectorAll("[data-ocena-dolg-zapri], [data-ocena-zamuda-zapri]");
+    for (var zo = 0; zo < zapriOceno.length; zo++) {
+      zapriOceno[zo].addEventListener("click", function () {
+        if (pregledGumb) pregledGumb.setAttribute("aria-expanded", "false");
+      });
+    }
+
     // --- Sync on input ---
     var dolgInputi = document.querySelectorAll("#ocena-dolg-nizek-do, #ocena-dolg-srednji-do, #ocena-dolg-visok-do");
     for (var di = 0; di < dolgInputi.length; di++) dolgInputi[di].addEventListener("input", syncOdVrednosti);
@@ -438,7 +475,9 @@
         this.setAttribute("aria-pressed", "true");
         var vrednost = this.getAttribute("data-zgodovina-zamud");
         shraniZgodovinoZamud(vrednost);
+        var dodatnaVprasanja = document.querySelector("[data-zgodovina-dodatna-vprasanja]");
         if (vrednost !== "unknown" && vrednost !== "0") odpriZgodovinaSheet(vrednost);
+        else if (dodatnaVprasanja) dodatnaVprasanja.hidden = true;
       });
     }
 
@@ -451,6 +490,8 @@
       obnoviZgodovinaSheetUI();
       var sheet = document.getElementById("ocena-zgodovina-sheet");
       if (sheet) sheet.hidden = false;
+      var dodatnaVprasanja = document.querySelector("[data-zgodovina-dodatna-vprasanja]");
+      if (dodatnaVprasanja) dodatnaVprasanja.hidden = false;
     }
 
     var povprasalniGumbi = document.querySelectorAll("[data-ocena-zgodovina-poravnal], [data-ocena-zgodovina-opomniti], [data-ocena-zgodovina-prekrsil]");
@@ -509,8 +550,9 @@
     document.addEventListener("keydown", function (ev) {
       if (ev.key === "Escape") {
         _preskociBlur = true;
-        var sheets = ["ocena-dolg-sheet", "ocena-zamuda-sheet", "ocena-zgodovina-sheet"];
+        var sheets = ["ocena-tveganja-sheet", "ocena-dolg-sheet", "ocena-zamuda-sheet", "ocena-zgodovina-sheet"];
         for (var s = 0; s < sheets.length; s++) { var el = document.getElementById(sheets[s]); if (el) el.hidden = true; }
+        if (pregledGumb) pregledGumb.setAttribute("aria-expanded", "false");
         setTimeout(function () { _preskociBlur = false; }, 0);
       }
     });
@@ -663,5 +705,9 @@
     izracunajIntenzivnostStalneStranke: izracunajIntenzivnostStalneStranke,
   };
   root.UJOcenaTveganja = api;
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", inicializirajUIOceno);
+    else inicializirajUIOceno();
+  }
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="sl" class="wizard-status-page">
   <head>
     <meta charset="UTF-8" />
@@ -13,18 +13,20 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260818-pregled-racuna-v22" />
+    <link rel="stylesheet" href="styles.css?v=20260829-kategorije-stevci-v33" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="prefetch" href="neplacila-posiljanje.html" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
-    <script src="supabase-client.js"></script>
-    <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="supabase-client.js?v=20260823-local-preview-guard-v1"></script>
+    <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
+    <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
+    <script src="auth-zascita.js?v=20260823-local-preview-guard-v1"></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="stran--neplacila app-testna-vrstica-prisotna wizard-status-header">
@@ -49,25 +51,7 @@
     <!-- Nazaj in Domov sta v stalni spodnji vrstici; zgoraj je samo status postopka. -->
     <div class="korak2-ovoj wizard-shell">
       <div class="korak2" id="neplacila-obrazec" aria-label="Dodaj novo zadevo">
-        <div data-wizard-progress-header data-korak="1" data-wizard-zacetni-zaslon="zascita-posla.html">
-          <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
-            <span class="debt-stepper__selection" aria-hidden="true"></span>
-            <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 2: Vnos dolžnika">
-              <span class="debt-step__content">
-                <span class="debt-step__number" aria-hidden="true">1</span>
-                <span class="debt-step__label">Dolžnik</span>
-              </span>
-              <span class="debt-step__line" aria-hidden="true"></span>
-            </a>
-            <a href="neplacila-posiljanje.html" class="debt-step" data-korak="2" aria-label="2 od 2: Pošiljanje">
-              <span class="debt-step__content">
-                <span class="debt-step__number" aria-hidden="true">2</span>
-                <span class="debt-step__label">Pošiljanje</span>
-              </span>
-              <span class="debt-step__line" aria-hidden="true"></span>
-            </a>
-          </nav>
-        </div>
+        <div data-wizard-progress-header data-korak="1" data-wizard-zacetni-zaslon="zascita-posla.html"></div>
 
         <main class="korak2__vsebina">
           <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
@@ -141,39 +125,62 @@
               </p>
 
               <div class="obrazec-razdelek obrazec-razdelek--dolznik">
-                <h3 class="obrazec-razdelek__naslov">
-                  <span class="obrazec-razdelek__stevilka" aria-hidden="true">1</span>
-                  Kdo vam dolguje?
-                </h3>
+                <div class="dolznik-izbira-kartica">
+                  <h3 class="obrazec-razdelek__naslov">
+                    <span class="obrazec-razdelek__stevilka" aria-hidden="true">1</span>
+                    Kdo vam dolguje?
+                  </h3>
 
-                <div class="tip-dolznika-preklop" role="group" aria-label="Vrsta dolžnika">
-                  <button
-                    type="button"
-                    class="tip-dolznika-preklop__gumb tip-dolznika-preklop__gumb--aktiven"
-                    data-vrsta-dolznika="podjetje"
-                    aria-pressed="true"
-                  >
-                    Podjetje
-                  </button>
-                  <button
-                    type="button"
-                    class="tip-dolznika-preklop__gumb"
-                    data-vrsta-dolznika="fizicna_oseba"
-                    aria-pressed="false"
-                  >
-                    Fizična oseba
-                  </button>
+                  <div class="tip-dolznika-preklop" role="group" aria-label="Vrsta dolžnika">
+                    <button
+                      type="button"
+                      class="tip-dolznika-preklop__gumb tip-dolznika-preklop__gumb--aktiven"
+                      data-vrsta-dolznika="podjetje"
+                      aria-pressed="true"
+                    >
+                      Podjetje
+                    </button>
+                    <button
+                      type="button"
+                      class="tip-dolznika-preklop__gumb"
+                      data-vrsta-dolznika="fizicna_oseba"
+                      aria-pressed="false"
+                    >
+                      Fizična oseba
+                    </button>
+                  </div>
+
+                  <section class="nedavna-podjetja" id="nedavna-podjetja" aria-labelledby="nedavna-podjetja-naslov" hidden>
+                    <h4 class="nedavna-podjetja__naslov" id="nedavna-podjetja-naslov">Nedavna podjetja</h4>
+                    <div class="nedavna-podjetja__vrstica">
+                      <div class="nedavna-podjetja__drsnik" role="region" aria-label="Nedavna podjetja; podrsajte levo ali desno">
+                        <div class="nedavna-podjetja__trak" id="nedavna-podjetja-trak" role="list"></div>
+                      </div>
+                      <button type="button" class="nedavna-podjetja__vec" id="nedavna-podjetja-vec" aria-haspopup="dialog" aria-controls="podjetja-sheet">
+                        <span class="nedavna-podjetja__vec-napis" data-fit-text data-fit-text-lines="2" data-fit-text-min="9">Več podjetij</span>
+                      </button>
+                    </div>
+                  </section>
                 </div>
 
+                <div class="dolznik-podatki-kartica">
                 <div class="vsebina-vrste-dolznika" id="sklop-podjetje">
-                  <div class="obrazec__polje">
+                  <div class="obrazec__polje obrazec__polje--podjetje-iskanje">
                     <label for="naziv-podjetja">Naziv podjetja</label>
                     <div class="obrazec__polje-z-ikono">
                       <span class="obrazec__polje-ikona" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
                       </span>
-                      <input type="text" id="naziv-podjetja" name="nazivPodjetja" required autocomplete="organization" />
+                      <input type="text" id="naziv-podjetja" name="nazivPodjetja" required autocomplete="organization" aria-autocomplete="list" aria-controls="naziv-podjetja-predlogi" aria-expanded="false" />
                     </div>
+                    <input type="hidden" id="openregister-company-id" name="openRegisterCompanyId" />
+                    <input type="hidden" id="openregister-register-type" name="openRegisterRegisterType" />
+                    <input type="hidden" id="openregister-register-number" name="openRegisterRegisterNumber" />
+                    <input type="hidden" id="openregister-register-court" name="openRegisterRegisterCourt" />
+                    <input type="hidden" id="openregister-legal-form" name="openRegisterLegalForm" />
+                    <input type="hidden" id="openregister-verified-at" name="openRegisterVerifiedAt" />
+                    <div class="podjetje-autocomplete" id="naziv-podjetja-predlogi" role="listbox" aria-label="Predlogi podjetij" hidden></div>
+                    <p class="podjetje-autocomplete__status" id="naziv-podjetja-status" role="status" aria-live="polite" hidden></p>
                   </div>
 
                   <div class="zadeva-obrazec__podvrstica">
@@ -276,6 +283,7 @@
                     <button type="button" class="stalna-stranka__nastavi" id="stalna-stranka-nastavi" aria-haspopup="dialog">Nastavi</button>
                   </div>
                 </section>
+                </div>
               </div>
 
               <div class="obrazec-razdelek obrazec-razdelek--dolg">
@@ -345,7 +353,7 @@
                 </div>
 
                 <section class="racun-posiljanje racun-posiljanje--kompaktno" id="racun-posiljanje" aria-labelledby="racun-posiljanje-naslov">
-                  <div class="racun-posiljanje__vrstica">
+                  <div class="racun-posiljanje__vrstica racun-posiljanje__vrstica--tri">
                     <div class="racun-posiljanje__oznaka">
                       <span class="racun-posiljanje__oznaka-ikona" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -354,7 +362,7 @@
                         <span class="racun-posiljanje__naslov-besedilo">Priložite račun</span><span class="racun-posiljanje__stevec" id="racun-posiljanje-stevec" aria-label="0 priloženih računov">0</span>
                       </h3>
                     </div>
-                    <div class="racun-posiljanje__akcije racun-posiljanje__akcije--orodna-vrstica">
+                    <div class="racun-posiljanje__akcije racun-posiljanje__akcije--orodna-vrstica racun-posiljanje__akcije--tri">
                       <button type="button" class="racun-posiljanje__gumb" data-priloga-slikaj>
                         <span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
                         Slikaj
@@ -362,6 +370,10 @@
                       <button type="button" class="racun-posiljanje__gumb" data-priloga-uvozi>
                         <span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></span>
                         Uvozi
+                      </button>
+                      <button type="button" class="racun-posiljanje__gumb racun-posiljanje__gumb--nimam" data-priloga-nimam aria-pressed="false">
+                        <span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9.5z"/><path d="M14 4v6h6"/><path d="m4 4 16 16"/></svg></span>
+                        Nimam
                       </button>
                     </div>
                   </div>
@@ -382,151 +394,14 @@
                 </section>
                 </div>
 
-                <div class="obrazec__polje obrazec__polje--opravljeno obrazec__polje--opravljeno-vprasanja">
-                  <div class="opravljeno-vprasanja__uvod">
-                    <span class="opravljeno-vprasanja__uvod-ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><path d="M12 18h.01"/><circle cx="12" cy="12" r="10"/></svg>
-                    </span>
-                    <div>
-                      <h3>Od vas potrebujemo nekaj odgovorov</h3>
-                      <p><span data-opravljeno-stevilo>2</span> kratka vprašanja · podrsajte levo ali desno</p>
-                    </div>
-                  </div>
-                  <div class="opravljeno-vprasanja__viewport" id="opravljeno-vprasanja-viewport">
-                    <div class="opravljeno-bubble" id="opravljeno-vprasanja-track">
-                    <section class="opravljeno-vprasanje opravljeno-vprasanje--besedilo opravljeno-vprasanja__stran" data-opravljeno-vprasanje="0" data-opravljeno-vprasanje-id="work_summary" data-opravljeno-tip="text" data-opravljeno-obvezno="true">
-                      <label class="opravljeno-vprasanje__glava" for="opis-dolga">
-                        <span class="opravljeno-vprasanje__stevilka" aria-hidden="true">1</span>
-                        <span>Kaj je bilo opravljeno?</span>
-                        <span class="obrazec__oznaka-opcijsko">obvezno</span>
-                      </label>
-                      <div class="opravljeno-vprasanje__odgovor">
-                        <textarea
-                          id="opis-dolga"
-                          name="opis"
-                          rows="4"
-                          placeholder="Vnesite odgovor …"
-                        ></textarea>
-                        <p class="opravljeno-vprasanje__shranjeni-odgovor" id="opis-dolga-shranjeno" hidden></p>
-                        <div class="opravljeno-vprasanje__akcije" aria-label="Dejanja odgovora">
-                          <button type="button" class="opravljeno-vprasanje__gumb opravljeno-vprasanje__gumb--izbrisi" id="opis-dolga-izbrisi">Izbriši</button>
-                          <button type="button" class="opravljeno-vprasanje__gumb opravljeno-vprasanje__gumb--shrani" id="opis-dolga-shrani">Shrani</button>
-                        </div>
-                      </div>
-                    </section>
-                    <section class="opravljeno-bubble__priloge opravljeno-vprasanja__stran" data-opravljeno-vprasanje="1" data-opravljeno-vprasanje-id="work_evidence" data-opravljeno-tip="evidence" data-opravljeno-obvezno="true">
-                      <div class="opravljeno-bubble__zahteva" data-opravljeno-zahteva>
-                        <div class="opravljeno-bubble__priporocilo" id="opravljeno-priporocilo" role="note">
-                          <span class="opravljeno-vprasanje__stevilka" aria-hidden="true">2</span>
-                          <span id="opravljeno-priporocilo-besedilo">Po priporočilu odvetnika priložite slike prvotnega stanja.</span>
-                          <div class="opravljeno-bubble__priporocilo-akcije">
-                            <button type="button" class="opravljeno-bubble__gumb" data-opravljeno-priloga-uvozi>Uvozi</button>
-                            <button type="button" class="opravljeno-bubble__gumb" data-opravljeno-priloga-slikaj>Slikaj</button>
-                            <button type="button" class="opravljeno-bubble__gumb opravljeno-bubble__gumb--brez-slike" data-opravljeno-brez-slike>Nimam slike</button>
-                          </div>
-                        </div>
-                        <div class="opravljeno-bubble__seznam" id="opravljeno-priloge-seznam" role="list"></div>
-                      </div>
-                    </section>
-                    </div>
-                  </div>
-                  <div class="opravljeno-vprasanja__navigacija" aria-label="Premikanje med vprašanji">
-                    <button type="button" class="opravljeno-vprasanja__puscica" data-opravljeno-prejsnje aria-label="Prejšnje vprašanje">←</button>
-                    <div class="opravljeno-vprasanja__pike" role="group" aria-label="Izberite vprašanje">
-                      <button type="button" class="opravljeno-vprasanja__pika opravljeno-vprasanja__pika--aktivna" data-opravljeno-pika="0" aria-label="Prvo vprašanje" aria-pressed="true"></button>
-                      <button type="button" class="opravljeno-vprasanja__pika" data-opravljeno-pika="1" aria-label="Drugo vprašanje" aria-pressed="false"></button>
-                    </div>
-                    <button type="button" class="opravljeno-vprasanja__puscica" data-opravljeno-naslednje aria-label="Naslednje vprašanje">→</button>
-                  </div>
-                    <input type="file" id="opravljeno-priloga-datoteka" accept="image/*,application/pdf" multiple hidden aria-label="Uvozi dokazila opravljenega dela" />
-                    <input type="file" id="opravljeno-priloga-fotoaparat" accept="image/*" capture="environment" hidden aria-label="Slikaj dokazilo opravljenega dela" />
-                </div>
               </div>
-
-              <section class="ocena-tveganja" id="ocena-tveganja" aria-labelledby="ocena-tveganja-naslov">
-                <div class="ocena-tveganja__glava">
-                  <span class="ocena-tveganja__glava-ikona" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
-                  </span>
-                  <div class="ocena-tveganja__glava-besedilo">
-                    <h3 class="ocena-tveganja__naslov" id="ocena-tveganja-naslov">Ocena tveganja</h3>
-                    <p class="ocena-tveganja__opis">Pomaga določiti primeren ton sporočila.</p>
-                  </div>
-                </div>
-
-                <div class="ocena-tveganja__vrstica">
-                  <button
-                    type="button"
-                    class="ocena-tveganja__polje"
-                    id="ocena-tveganja-dolg"
-                    data-odpri-nastavitve-dolga
-                    aria-haspopup="dialog"
-                  >
-                    <span class="ocena-tveganja__polje-ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></svg>
-                    </span>
-                    <span class="ocena-tveganja__polje-vsebina">
-                      <span class="ocena-tveganja__polje-oznaka">Višina dolga</span>
-                      <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-dolg-vrednost" data-fit-number data-fit-number-min="8">11,00 €</span>
-                      <span class="ocena-tveganja__polje-kategorija" id="ocena-tveganja-dolg-status">Nizek dolg</span>
-                    </span>
-                    <span class="ocena-tveganja__polje-nastavitve" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </span>
-                  </button>
-                  <span class="ocena-tveganja__vrstica-locilo" aria-hidden="true"></span>
-                  <button
-                    type="button"
-                    class="ocena-tveganja__polje"
-                    id="ocena-tveganja-zamuda"
-                    data-odpri-nastavitve-zamude
-                    aria-haspopup="dialog"
-                  >
-                    <span class="ocena-tveganja__polje-ikona" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    </span>
-                    <span class="ocena-tveganja__polje-vsebina">
-                      <span class="ocena-tveganja__polje-oznaka">Dolžina zamude</span>
-                      <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-zamuda-vrednost" data-fit-number data-fit-number-min="8">0 dni</span>
-                      <span class="ocena-tveganja__polje-kategorija" id="ocena-tveganja-zamuda-status">Ni zapadel</span>
-                    </span>
-                    <span class="ocena-tveganja__polje-nastavitve" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </span>
-                  </button>
-                </div>
-
-                <hr class="ocena-tveganja__locilo" aria-hidden="true" />
-
-                <p class="ocena-tveganja__vprasanje">Ali je dolžnik že kdaj zamudil s plačilom?</p>
-                <div class="ocena-tveganja__drsnik-ovoj">
-                  <div class="ocena-tveganja__izbira-vrstica" role="group" aria-label="Število preteklih zamud">
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="unknown" aria-pressed="false">Ne vem</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="0" aria-pressed="false">Ne</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="1" aria-pressed="false">1</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="2" aria-pressed="false">2</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="3" aria-pressed="false">3</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="4" aria-pressed="false">4</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="5" aria-pressed="false">5</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="6" aria-pressed="false">6</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="7" aria-pressed="false">7</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="8" aria-pressed="false">8</button>
-                    <button type="button" class="ocena-tveganja__izbira" data-zgodovina-zamud="9plus" aria-pressed="false">9+</button>
-                  </div>
-                </div>
-                <div class="ocena-tveganja__indikator" aria-hidden="true">
-                  <span class="ocena-tveganja__pika ocena-tveganja__pika--aktivna"></span>
-                  <span class="ocena-tveganja__pika"></span>
-                  <span class="ocena-tveganja__pika"></span>
-                </div>
-              </section>
 
               <div class="osnutek-akcije">
                 <button type="button" class="osnutek-akcije__izbrisi" id="gumb-izbrisi-osnutek" aria-label="Izbriši osnutek">Izbriši</button>
                 <button type="submit" class="btn btn--cta obrazec__gumb-naprej" id="gumb-naprej-korak1">
                   Naprej: sestavi opomin
                   <span class="btn__puscica" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                   </span>
                 </button>
               </div>
@@ -538,13 +413,13 @@
     <!-- Seznam IZVEN wizard-shell – ohišje čarovnika ostane enako kot na 2/3. -->
     <main class="app__vsebina neplacila-seznam-vsebina">
       <p class="obrazec__sporocilo" id="zadeva-dodana-sporocilo" hidden>
-        <span class="obrazec__sporocilo-ikona" aria-hidden="true">✓</span>
+        <span class="obrazec__sporocilo-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
         Zadeva je bila uspešno dodana med odprte zadeve.
       </p>
 
       <section class="zadeve-semafor" id="seznam" aria-label="Povzetek in filter zadev po statusu">
         <p class="zadeve-semafor__skupaj">
-          <span aria-hidden="true">🗒</span> Odprtih dolgov:
+          <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></svg></span> Odprtih dolgov:
           <strong id="semafor-odprtih">0</strong>
         </p>
 
@@ -557,7 +432,7 @@
             <span class="zadeve-semafor__puscica" aria-hidden="true">›</span>
             <span class="zadeve-semafor__glava">
               <span class="zadeve-semafor__ikona-ovoj" aria-hidden="true">
-                <span class="zadeve-semafor__ikona">⏳</span>
+                <span class="zadeve-semafor__ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M7 2c0 5 1 7 5 10-4 3-5 5-5 10M17 2c0 5-1 7-5 10 4 3 5 5 5 10"/></svg></span>
               </span>
               <span class="zadeve-semafor__stevilo" id="semafor-v-teku-stevilo">0</span>
             </span>
@@ -574,7 +449,7 @@
             <span class="zadeve-semafor__puscica" aria-hidden="true">›</span>
             <span class="zadeve-semafor__glava">
               <span class="zadeve-semafor__ikona-ovoj" aria-hidden="true">
-                <span class="zadeve-semafor__ikona">⚖</span>
+                <span class="zadeve-semafor__ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M5 8h14M8 3h8M5 8l-3 6h6L5 8ZM19 8l-3 6h6l-3-6ZM8 21h8"/></svg></span>
               </span>
               <span class="zadeve-semafor__stevilo" id="semafor-odvetnik-stevilo">0</span>
             </span>
@@ -591,7 +466,7 @@
             <span class="zadeve-semafor__puscica" aria-hidden="true">›</span>
             <span class="zadeve-semafor__glava">
               <span class="zadeve-semafor__ikona-ovoj" aria-hidden="true">
-                <span class="zadeve-semafor__ikona">✓</span>
+                <span class="zadeve-semafor__ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
               </span>
               <span class="zadeve-semafor__stevilo" id="semafor-reseno-stevilo">0</span>
             </span>
@@ -611,7 +486,7 @@
     </main>
 
     <div class="lightbox" id="lightbox" hidden>
-      <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri">✕</button>
+      <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
@@ -621,7 +496,7 @@
         <div class="opravljeno-modal__rocaj" aria-hidden="true"></div>
         <header class="opravljeno-modal__glava">
           <h2 class="opravljeno-modal__naslov" id="opravljeno-modal-naslov" tabindex="-1">Dokazilo opravljenega dela</h2>
-          <button type="button" class="opravljeno-modal__zapri" id="opravljeno-modal-zapri" aria-label="Zapri">✕</button>
+          <button type="button" class="opravljeno-modal__zapri" id="opravljeno-modal-zapri" aria-label="Zapri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
         </header>
         <div class="opravljeno-modal__vsebina">
           <div class="opravljeno-modal__medij" id="opravljeno-modal-medij">
@@ -658,7 +533,7 @@
             <p class="ocena-sheet__podnaslov">Priporočene meje lahko prilagodite.</p>
           </div>
           <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-dolg-zapri>
-            <span aria-hidden="true">✕</span>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
           </button>
         </div>
 
@@ -735,7 +610,7 @@
             <p class="ocena-sheet__podnaslov">Zamuda se izračuna iz roka plačila.</p>
           </div>
           <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-zamuda-zapri>
-            <span aria-hidden="true">✕</span>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
           </button>
         </div>
 
@@ -812,7 +687,7 @@
             <p class="ocena-sheet__podnaslov" id="ocena-zgodovina-izbrano">Izbrano: 1 zamuda</p>
           </div>
           <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-zgodovina-zapri>
-            <span aria-hidden="true">✕</span>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
           </button>
         </div>
 
@@ -857,7 +732,7 @@
             <h2 class="ocena-sheet__naslov" id="stalna-stranka-sheet-naslov" tabindex="-1">Kako naj vpliva na ton?</h2>
             <p class="ocena-sheet__podnaslov">Pravila dolga ostanejo enaka, prilagodi se samo način komunikacije.</p>
           </div>
-          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-stalna-stranka-zapri><span aria-hidden="true">✕</span></button>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-stalna-stranka-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
         </div>
         <div class="ocena-sheet__telo stalna-stranka-sheet__vsebina">
           <article class="stalna-stranka-nastavitev">
@@ -872,7 +747,7 @@
 
           <article class="stalna-stranka-nastavitev">
             <div class="stalna-stranka-nastavitev__glava">
-              <span class="stalna-stranka-nastavitev__ikona" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.6-4.6a2 2 0 0 0 0-2.8L16.4 9a2 2 0 0 0-2.8 0l-.6.6"/><path d="m13 7-2-2a1 1 0 0 0-1.4 0L5 9.6a2 2 0 0 0 0 2.8L7.6 15a2 2 0 0 0 2.8 0l.6-.6"/></svg></span>
+              <span class="stalna-stranka-nastavitev__ikona" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 0 0 1.4 0l4.6-4.6a2 2 0 0 0 0-2.8L16.4 9a2 2 0 0 0-2.8 0l-.6.6"/><path d="m13 7-2-2a1 1 0 0 0-1.4 0L5 9.6a2 2 0 0 0 0 2.8L7.6 15a2 2 0 0 0 2.8 0l.6-.6"/></svg></span>
               <span><strong>Poslujeva že …</strong><small>Daljši odnos pomeni več zaupanja pri tonu.</small></span>
               <output id="stalna-stranka-trajanje-vrednost" for="stalna-stranka-trajanje">1–3 leta</output>
             </div>
@@ -901,6 +776,82 @@
       </div>
     </div>
 
+    <div class="ocena-sheet podjetja-sheet" id="podjetja-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri seznam podjetij" data-podjetja-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="podjetja-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo">
+            <h2 class="ocena-sheet__naslov sr-only" id="podjetja-sheet-naslov" tabindex="-1">Podjetja</h2>
+            <p class="ocena-sheet__podnaslov">Izberite podjetje za ponovni vnos.</p>
+          </div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-podjetja-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
+        </div>
+        <div class="ocena-sheet__telo podjetja-sheet__telo">
+          <div class="podjetja-sheet__orodja">
+            <label class="podjetja-sheet__iskanje" for="podjetja-sheet-iskanje">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+              <input type="search" id="podjetja-sheet-iskanje" placeholder="Išči podjetje" autocomplete="off" />
+            </label>
+          </div>
+          <section class="podjetja-sheet__kategorije" aria-labelledby="podjetja-sheet-kategorije-naslov">
+            <div class="podjetja-sheet__kategorije-glava">
+              <h3 id="podjetja-sheet-kategorije-naslov">Moje kategorije</h3>
+              <button type="button" class="podjetja-sheet__kategorije-uredi" id="podjetja-sheet-kategorije-uredi" aria-pressed="false" hidden>Uredi kategorije</button>
+            </div>
+            <div class="podjetja-sheet__kategorije-dok">
+              <button type="button" class="podjetja-sheet__kategorija-vse" id="podjetja-sheet-kategorija-vse" role="tab" aria-selected="false">
+                <span>Vse</span><span class="podjetja-sheet__kategorija-stevilo" id="podjetja-sheet-vse-stevilo">0</span>
+              </button>
+              <button type="button" class="podjetja-sheet__nedavna-gumb podjetja-sheet__nedavna-gumb--aktiven" id="podjetja-sheet-nedavna" role="tab" aria-pressed="true">Nedavno</button>
+              <div class="podjetja-sheet__kategorije-viewport" id="podjetja-sheet-kategorije-viewport">
+                <div class="podjetja-sheet__kategorije-seznam" id="podjetja-sheet-kategorije-seznam" role="tablist" aria-label="Kategorije podjetij"></div>
+              </div>
+              <button type="button" class="podjetja-sheet__nova-kategorija" id="podjetja-sheet-nova-kategorija" aria-label="Nova kategorija">+</button>
+            </div>
+            <div class="podjetja-sheet__kategorije-pikice" id="podjetja-sheet-kategorije-pikice" aria-label="Strani kategorij" hidden></div>
+            <form class="podjetja-sheet__kategorija-obrazec" id="podjetja-sheet-kategorija-obrazec" hidden>
+              <label class="sr-only" for="podjetja-sheet-kategorija-ime">Ime nove kategorije</label>
+              <input type="text" id="podjetja-sheet-kategorija-ime" maxlength="40" placeholder="Ime kategorije" autocomplete="off" />
+              <button type="submit">Shrani</button>
+              <button type="button" data-podjetja-kategorija-preklic>Prekliči</button>
+            </form>
+            <form class="podjetja-sheet__kategorija-nastavitve" id="podjetja-sheet-kategorija-nastavitve" hidden>
+              <div class="podjetja-sheet__kategorija-nastavitve-glava">
+                <div>
+                  <strong>Nastavitve kategorije</strong>
+                  <span id="podjetja-sheet-kategorija-povzetek">0 podjetij</span>
+                </div>
+                <button type="button" class="podjetja-sheet__kategorija-nastavitve-zapri" data-podjetja-kategorija-nastavitve-zapri aria-label="Zapri nastavitve kategorije">×</button>
+              </div>
+              <label for="podjetja-sheet-kategorija-uredi-ime">Ime kategorije</label>
+              <input type="text" id="podjetja-sheet-kategorija-uredi-ime" maxlength="40" autocomplete="off" required />
+              <p class="podjetja-sheet__kategorija-nastavitve-namig">Za spremembo vrstnega reda kategorijo pridržite in povlecite.</p>
+              <div class="podjetja-sheet__kategorija-nastavitve-akcije">
+                <button type="button" class="podjetja-sheet__kategorija-izbrisi" id="podjetja-sheet-kategorija-izbrisi">Izbriši</button>
+                <button type="submit" class="podjetja-sheet__kategorija-shrani">Shrani spremembe</button>
+              </div>
+            </form>
+            <p class="podjetja-sheet__kategorije-prazno" id="podjetja-sheet-kategorije-prazno">Dodajte svojo kategorijo in vanjo shranite podjetja.</p>
+          </section>
+          <div class="podjetja-sheet__seznam-uvod">
+            <div class="podjetja-sheet__seznam-glava">
+              <p class="podjetja-sheet__seznam-naslov" id="podjetja-sheet-seznam-naslov">Nedavno uporabljena podjetja</p>
+              <div class="podjetja-sheet__seznam-akcije">
+                <button type="button" class="podjetja-sheet__dodaj-v-kategorije" id="podjetja-sheet-dodaj-v-kategorije" aria-pressed="false">Dodaj v kategorije</button>
+              </div>
+            </div>
+            <div class="podjetja-sheet__dodaj-navodilo-vrstica" id="podjetja-sheet-dodaj-navodilo-vrstica" hidden>
+              <p class="podjetja-sheet__dodaj-navodilo" id="podjetja-sheet-dodaj-navodilo">Izberite podjetje spodaj in kategorijo zgoraj.</p>
+              <button type="button" class="podjetja-sheet__dodaj-preklici" id="podjetja-sheet-dodaj-preklici">Prekliči</button>
+              <button type="button" class="podjetja-sheet__dodaj-potrdi" id="podjetja-sheet-dodaj-potrdi" disabled>Dodaj</button>
+            </div>
+          </div>
+          <div class="podjetja-sheet__seznam" id="podjetja-sheet-seznam"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
     <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
 
@@ -919,6 +870,8 @@
     </script>
     <script src="ocena-tveganja.js?v=20260818-stalna-trije-gradniki-v3"></script>
     <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
-    <script src="app.js?v=20260818-ocr-prazno-v15"></script>
+    <script src="neplacila-podjetje-autocomplete.js?v=20260828-one-credit-v11"></script>
+    <script src="neplacila-podjetja-nedavna.js?v=20260829-kos-podjetja-v22"></script>
+    <script src="app.js?v=20260828-kompaktne-podjetje-kartice-v4"></script>
   </body>
 </html>

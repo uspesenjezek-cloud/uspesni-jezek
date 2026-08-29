@@ -6,7 +6,7 @@ const { spawnSync } = require("node:child_process");
 
 const scriptsDir = __dirname;
 const tests = fs.readdirSync(scriptsDir)
-  .filter((name) => /^test-pos-.*\.js$/.test(name))
+  .filter((name) => /^test-pos-.*\.js$/.test(name) || name === "test-boniteta-offer-transfer.js")
   .sort();
 
 if (!tests.length) {

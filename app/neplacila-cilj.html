@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="sl" class="wizard-status-page wizard-goal-page">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="color-scheme" content="light only" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <title>Cilj za dolg – Uspešni Ježek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=20260827-wizard-four-step-v1-debt-summary-v4" />
+    <link rel="stylesheet" href="izvedba.css?v=20260827-obrok-nacin-placila-v2" />
+    <link rel="stylesheet" href="neplacila-zgodovina.css?v=20260827-question-nav-v4-voice-label-v1" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js?v=20260823-local-preview-guard-v1"></script>
+    <script src="auth-zascita.js?v=20260827-local-preview-guard-v3"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
+  </head>
+  <body class="stran--sporocilo stran--neplacila-zgodovina stran--neplacila-cilj wizard-status-header app-testna-vrstica-prisotna">
+    <div class="korak2-ovoj wizard-shell">
+      <div class="korak2">
+        <div data-wizard-progress-header data-korak="3" data-wizard-zacetni-zaslon="zascita-posla.html"></div>
+        <section class="wizard-debt-summary" data-kompaktni-povzetek-dolga aria-label="Povzetek dolga"></section>
+        <main class="zgodovina-vsebina wizard-goal-placeholder" aria-label="Cilj za dolg">
+          <p class="obrazec__napaka" id="cilj-napaka" role="alert" hidden></p>
+          <div class="izvedba-action-sheet" id="izvedba-action-sheet" hidden></div>
+          <div class="zgodovina-izvedba-scaffold" aria-hidden="true">
+            <div id="izvedba-swipe"></div>
+            <div id="izvedba-stevilo-korakov"></div>
+            <div id="izvedba-vsebina"></div>
+            <div id="izvedba-kartice"></div>
+            <div id="izvedba-sticky"></div>
+            <p id="izvedba-napaka"></p>
+          </div>
+          <div class="cilj-static-placeholder" hidden aria-hidden="true">
+            <section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano" aria-labelledby="cilj-placeholder-naslov">
+              <header class="izvedba-action-sheet__header zgodovina-ai-glava--z-izbrisom">
+                <span class="izvedba-action-sheet__header-ikona" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M21 12h-3"/></svg>
+                </span>
+                <div>
+                  <h2 id="cilj-placeholder-naslov">Kaj želite, da se zgodi?</h2>
+                  <p>Izberite, kaj želite doseči s tem dolgom.</p>
+                </div>
+                <button type="button" class="zgodovina-ai-pogovor__izbrisi-vse" aria-label="Izbriši pripravljeni cilj" aria-disabled="true">
+                  <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg></span>
+                  <span>Izbriši</span>
+                </button>
+              </header>
+
+              <div class="izvedba-action-sheet__scroll">
+                <section class="zgodovina-nacina" aria-label="Način izbire cilja">
+                  <div class="zgodovina-nacina__izbira" role="tablist" aria-label="Način izbire cilja">
+                    <button type="button" role="tab" aria-selected="true" class="is-selected">
+                      <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+                      <strong>Povej ali napiši</strong>
+                      <small>Hitrejši vnos</small>
+                    </button>
+                    <button type="button" role="tab" aria-selected="false">
+                      <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg></span>
+                      <strong>Ročno izberi</strong>
+                      <small>Možnosti cilja</small>
+                    </button>
+                  </div>
+
+                  <section class="zgodovina-ai" aria-label="Povejte ali napišite cilj">
+                    <label class="zgodovina-ai__vnos">
+                      <span class="sr-only">Opis želenega cilja</span>
+                      <textarea maxlength="2000" placeholder="Npr. želim čimprejšnje plačilo …"></textarea>
+                    </label>
+                    <div class="zgodovina-ai__akcije">
+                      <button type="button" class="zgodovina-ai__snemaj" aria-label="Povej na glas">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>
+                        <span class="zgodovina-ai__snemaj-napis"><span>Povej</span><span>na glas</span></span>
+                      </button>
+                      <button type="button" class="zgodovina-ai__razumi">Pripravi možnosti</button>
+                    </div>
+                  </section>
+                </section>
+
+                <section class="zgodovina-stanje-dolga" aria-labelledby="cilj-stanje-dolga-naslov">
+                  <h3 class="zgodovina-stanje-dolga__naslov" id="cilj-stanje-dolga-naslov">Stanje dolga</h3>
+                  <div class="izvedba-potek-zneski">
+                    <div class="izvedba-potek-zneski__stolpec">
+                      <span class="izvedba-potek-zneski__oznaka">Originalni znesek</span>
+                      <span class="izvedba-potek-zneski__vrednost" data-cilj-znesek>—</span>
+                    </div>
+                    <div class="izvedba-potek-zneski__locilo" aria-hidden="true"></div>
+                    <div class="izvedba-potek-zneski__stolpec izvedba-potek-zneski__stolpec--preostanek">
+                      <span class="izvedba-potek-zneski__oznaka">Preostali znesek</span>
+                      <span class="izvedba-potek-zneski__vrednost" data-cilj-znesek>—</span>
+                    </div>
+                  </div>
+                </section>
+
+                <div class="izvedba-poravnava-cona">
+                  <p class="izvedba-poravnava-cona__naslov">
+                    <span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">3</span>
+                    Izbrani cilj
+                    <span class="izvedba-poravnava-cona__stevilo-korakov">0 možnosti</span>
+                  </p>
+                  <div class="izvedba-poravnava-potek"><p class="izvedba-poravnava-potek__prazno">Cilj še ni izbran.</p></div>
+                </div>
+
+                <div class="izvedba-action-sheet__footer">
+                  <button type="button" class="izvedba-action-sheet__dejanje">Nadaljuj</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
+    <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
+
+    <script src="nastavitve-izidov.js?v=20260825-revert-v6"></script>
+    <script src="izvedba-komponente.js?v=20260827-izbrisi-glava-v1"></script>
+    <script src="izvedba-api.js?v=20260818-egress-v1"></script>
+    <script src="app.js?v=20260827-wizard-four-step-v1-debt-summary-v4"></script>
+    <script src="izvedba.js?v=20260827-obrok-nacin-placila-v2"></script>
+    <script src="neplacila-cilj.js?v=20260828-goal-next-v3-voice-label-v1"></script>
+  </body>
+</html>

@@ -5,6 +5,12 @@
 .devin/
 .vercel/
 
+# Lokalni runtime, razvojna orodja in testni dokazi niso del produkcijskega paketa.
+.codex-local-server*.log
+output/
+tools/
+.github/
+
 # Lokalna okolja in začasne datoteke
 .env*
 node_modules/

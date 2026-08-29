@@ -14,20 +14,52 @@
    4. auth-zascita.js (uporabi supabaseKlient za preverjanje prijave)
    ========================================================== */
 
-const supabaseKlient = supabase.createClient(
-  SUPABASE_CONFIG.url,
-  SUPABASE_CONFIG.anonKey,
-  {
-    auth: {
-      // Supabase privzeto uporablja brskalniško "Web Locks" ključavnico,
-      // da bi uskladil branje/osveževanje seje med več hkrati odprtimi
-      // zavihki. Znana napaka v tej knjižnici je, da ta ključavnica lahko
-      // ostane "obtičala" (npr. če stran zapustimo sredi preverjanja) -
-      // takrat vsak naslednji getSession() čaka do 30 sekund, preden se
-      // vda. Ker naša stran ne rabi usklajevanja seje med več zavihki,
-      // ta mehanizem tukaj preprosto izklopimo - preverjanje prijave je
-      // po tem skoraj takojšnje.
-      lock: async (_ime, _casOmejitve, izvedi) => izvedi(),
-    },
+let supabaseKlient = null;
+
+(function inicializirajSupabaseKlienta() {
+  const konfiguracija =
+    typeof SUPABASE_CONFIG !== "undefined" && SUPABASE_CONFIG
+      ? SUPABASE_CONFIG
+      : {};
+  const url = String(konfiguracija.url || "").trim();
+  const anonKey = String(konfiguracija.anonKey || "").trim();
+  const veljavenUrl = /^https:\/\/[^\s/]+(?:\/.*)?$/i.test(url);
+  const sdkNaVoljo =
+    typeof supabase !== "undefined" &&
+    supabase &&
+    typeof supabase.createClient === "function";
+  const jeLoopback = ["localhost", "127.0.0.1", "::1"].includes(
+    window.location.hostname
+  );
+
+  /* Neveljavna konfiguracija prej pusti `const supabaseKlient` v TDZ in
+     zato sesuje celoten načrt že ob varnem `typeof` preverjanju. V lokalnem
+     okolju ohranimo stabilno null vrednost in odpremo obstoječi razvojni
+     predogled; produkcijska prijava in njene meje ostanejo nespremenjene. */
+  if (!sdkNaVoljo || !veljavenUrl || !anonKey) {
+    console.warn("Povezava s Supabase ni nastavljena.");
+    globalThis.UJ_LOKALNI_PREDOGLED_BREZ_SUPABASE = jeLoopback;
+    if (
+      jeLoopback &&
+      new URLSearchParams(window.location.search).get("app-preview") !== "1"
+    ) {
+      const lokalniNaslov = new URL(window.location.href);
+      lokalniNaslov.searchParams.set("app-preview", "1");
+      window.location.replace(lokalniNaslov.href);
+    }
+    return;
   }
-);
+
+  try {
+    supabaseKlient = supabase.createClient(url, anonKey, {
+      auth: {
+        // Supabase privzeto uporablja brskalniško "Web Locks" ključavnico.
+        // Aplikacija tega usklajevanja med zavihki ne potrebuje.
+        lock: async (_ime, _casOmejitve, izvedi) => izvedi(),
+      },
+    });
+  } catch (_napaka) {
+    supabaseKlient = null;
+    console.warn("Povezave s Supabase ni bilo mogoče vzpostaviti.");
+  }
+})();

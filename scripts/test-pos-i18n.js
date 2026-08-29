@@ -23,7 +23,7 @@ function load(search) {
   return context.module.exports;
 }
 
-assert.match(html, /pos-terminal-i18n\.js\?v=20260826-openapi-381-v7/);
+assert.match(html, /pos-terminal-i18n\.js\?v=20260826-cash-recovery-v1/);
 assert.ok(html.indexOf("pos-terminal-i18n.js") < html.indexOf("pos-terminal.js"), "locale layer must load before POS behavior");
 assert.match(html, /<html lang="de" class="pos-page">/, "German is the default POS document language");
 
@@ -59,6 +59,10 @@ assert.equal(de.translate("Sinhronizirano"), "Synchronisiert");
 assert.equal(de.translate("Ni dosegljivo"), "Nicht erreichbar");
 assert.equal(de.translate("Glavna navigacija aplikacije"), "Hauptnavigation der Anwendung");
 assert.equal(de.translate("Začeti novo ponudbo?"), "Neues Angebot beginnen?");
+assert.equal(de.translate("Preneseno iz bonitetne preverbe"), "Aus der Bonitätsprüfung übernommen");
+assert.equal(de.translate("Brez izbranega dodatnega priporočila."), "Keine zusätzliche Empfehlung ausgewählt.");
+assert.equal(de.translate("Boniteta preverjena 26.8.2026 · §650f je označen za preverjanje pri ponudbi."), "Bonitätsprüfung am 26.8.2026 · § 650f ist zur Prüfung im Angebot markiert.");
+assert.equal(de.translate("Boniteta preverjena 26.8.2026 · Brez izbranega dodatnega priporočila."), "Bonitätsprüfung am 26.8.2026 · Keine zusätzliche Empfehlung ausgewählt.");
 assert.equal(de.translate("Dovoljeno še največ 40 %."), "Noch höchstens 40 % zulässig.");
 assert.equal(de.translate("Delni računi"), "Abschläge");
 assert.equal(de.translate("30 % · plačilo odprto"), "30 % · Zahlung offen");

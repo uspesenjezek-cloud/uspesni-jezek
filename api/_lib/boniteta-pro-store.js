@@ -2,6 +2,8 @@
 
 var crypto = require("node:crypto");
 var db = require("./supabase-server");
+var northdataClient = require("./apify-northdata-client");
+var northdataDetailsClient = require("./apify-northdata-details-client");
 
 async function rest(cfg, path, options) {
   var authHeaders = cfg.userToken ? {
@@ -35,7 +37,12 @@ function companyKey(data) {
 
 function compactJson(value, depth) {
   var level = Number(depth || 0);
-  if (level > 6 || value == null) return value == null ? null : "[skrajšano]";
+  // North Data finančna časovnica je gnezdena globlje od splošnega rezultata:
+  // latestCheck -> northData -> company -> financials -> metric -> values -> year/value.
+  // Prejšnja meja 6 je zato veljavne letnice in zneske zamenjala z "[skrajšano]"
+  // tik pred shranjevanjem profila. Omejitve velikosti nizov, polj in ključev
+  // ostajajo, dovolimo pa dovolj globine za celoten preverjeni podatkovni zapis.
+  if (level > 10 || value == null) return value == null ? null : "[skrajšano]";
   if (typeof value === "string") return value.slice(0, 5000);
   if (["number", "boolean"].includes(typeof value)) return value;
   if (Array.isArray(value)) return value.slice(0, 50).map(function (item) { return compactJson(item, level + 1); });
@@ -64,8 +71,86 @@ function uradnaRegistrskaPolja(input) {
   };
 }
 
+function veljavenNorthDataZaProfil(northData, input) {
+  var company = northData && northData.status === "found" && northData.company;
+  if (!company) return false;
+  var candidate = Object.assign({}, company, { url: company.sourceUrl || company.url });
+  return northdataClient.selectCompany([candidate], {
+    name: input && input.legalName,
+    registerNumber: input && input.registerNumber,
+    registerCourt: input && input.registerCourt,
+    address: input && input.address || {},
+  }).status === "found";
+}
+
+function veljavneNorthDataPodrobnostiZaProfil(details, input) {
+  var company = details && details.status === "found" && details.company;
+  if (!company) return false;
+  var official = { name: input && input.legalName, registerNumber: input && input.registerNumber, registerCourt: input && input.registerCourt, address: input && input.address || {} };
+  return northdataDetailsClient.selectCompany([
+    Object.assign({}, company, { url: company.sourceUrl || company.url }),
+  ], official, { status: "found", company: official }).status === "found";
+}
+
+function jeNedokoncanaUradnaPreverba(result) {
+  var insolvenca = result && result.insolvency || {};
+  var uradna = insolvenca.officialVerification || {};
+  var statusi = [insolvenca.status, uradna.status, insolvenca.evidenceStatus, uradna.evidenceStatus]
+    .map(function (value) { return String(value || "").toLowerCase(); });
+  var razlogi = [insolvenca.reason, uradna.reason, uradna.inputVerification && uradna.inputVerification.reason]
+    .map(function (value) { return String(value || "").toLowerCase(); }).filter(Boolean);
+  return statusi.includes("unavailable") || statusi.includes("failed") || statusi.includes("error") ||
+    razlogi.some(function (reason) {
+      return /(?:unavailable|failed|failure|timeout|timed_out|network_error|service_unavailable|capture_or_search_failed|evidence_capture_failed|browser_launch_failed|result_page_not_recognized|invalid_response|unexpected_error|too_many_results|invalid_register_filter|official_portal_.+failed|official_form_.+(?:unavailable|mismatch))/.test(reason);
+    });
+}
+
+function imaPopolnUradniInsolvencniRezultat(result) {
+  var insolvenca = result && result.insolvency || {};
+  var uradna = insolvenca.officialVerification || {};
+  return ["clear", "possible_match"].includes(String(insolvenca.status || "")) &&
+    uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
+}
+
+function izberiVarnoNajnovejsoPreverbo(obstojeci, incoming, incomingCheckedAt) {
+  var nova = incoming && typeof incoming === "object" ? incoming : {};
+  var stara = obstojeci && obstojeci.latest_check && typeof obstojeci.latest_check === "object" ? obstojeci.latest_check : {};
+  var staraInsolvenca = stara.insolvency || {};
+  var novaImaInsolvencnoPreverbo = Boolean(nova.insolvency && nova.insolvency.status && nova.insolvency.status !== "not_checked");
+  var novaJeNedokoncana = jeNedokoncanaUradnaPreverba(nova) ||
+    (novaImaInsolvencnoPreverbo && !imaPopolnUradniInsolvencniRezultat(nova));
+  var staraJeVeljavna = ["clear", "not_found", "found", "possible_match", "match", "warning"].includes(String(staraInsolvenca.status || ""));
+  if (novaJeNedokoncana && staraJeVeljavna) {
+    return { latestCheck: compactJson(stara, 0) || {}, checkedAt: obstojeci.checked_at || incomingCheckedAt || null, preserved: true };
+  }
+  return { latestCheck: compactJson(nova, 0) || {}, checkedAt: incomingCheckedAt || null, preserved: false, rejected: novaJeNedokoncana };
+}
+
 async function upsertProfile(cfg, userId, input) {
   var uradniRegister = uradnaRegistrskaPolja(input);
+  var obstojeci = uradniRegister.companyId ? await getProfileByCompanyId(cfg, userId, uradniRegister.companyId) : null;
+  var varnaPreverba = izberiVarnoNajnovejsoPreverbo(obstojeci, input.latestCheck, input.checkedAt);
+  if (varnaPreverba.rejected) {
+    throw Object.assign(new Error("Insolvenčna preverba brez zajetega uradnega rezultata se ne sme shraniti kot zaključena."), {
+      status: 409,
+      code: "INSOLVENCY_EVIDENCE_INCOMPLETE",
+    });
+  }
+  var latestCheck = varnaPreverba.latestCheck;
+  if (latestCheck.northData && !veljavenNorthDataZaProfil(latestCheck.northData, input)) latestCheck.northData = null;
+  if (latestCheck.northDataDetails && !veljavneNorthDataPodrobnostiZaProfil(latestCheck.northDataDetails, input)) latestCheck.northDataDetails = null;
+  if (uradniRegister.companyId && (!latestCheck.foundationDateEvidence || !latestCheck.northData || latestCheck.northData.status !== "found" || !latestCheck.northDataDetails || latestCheck.northDataDetails.status !== "found")) {
+    var obstojeciDokaz = obstojeci && obstojeci.latest_check && obstojeci.latest_check.foundationDateEvidence;
+    if (obstojeciDokaz && String(obstojeciDokaz.companyId || "").toUpperCase() === uradniRegister.companyId.toUpperCase()) latestCheck.foundationDateEvidence = compactJson(obstojeciDokaz, 0);
+    var obstojeciNorthData = obstojeci && obstojeci.latest_check && obstojeci.latest_check.northData;
+    if ((!latestCheck.northData || latestCheck.northData.status !== "found") && obstojeciNorthData && obstojeciNorthData.status === "found") {
+      latestCheck.northData = compactJson(obstojeciNorthData, 0);
+    }
+    var obstojeciNorthDataDetails = obstojeci && obstojeci.latest_check && obstojeci.latest_check.northDataDetails;
+    if ((!latestCheck.northDataDetails || latestCheck.northDataDetails.status !== "found") && obstojeciNorthDataDetails && obstojeciNorthDataDetails.status === "found") {
+      latestCheck.northDataDetails = compactJson(obstojeciNorthDataDetails, 0);
+    }
+  }
   var payload = {
     user_id: userId,
     company_key: companyKey(input),
@@ -76,8 +161,8 @@ async function upsertProfile(cfg, userId, input) {
     company_status: String(input.companyStatus || "").trim().slice(0, 40) || null,
     address: shortObject(input.address, ["street", "address", "postal_code", "postalCode", "city", "country"]),
     contact: shortObject(input.contact, ["website", "email", "phone"]),
-    latest_check: compactJson(input.latestCheck && typeof input.latestCheck === "object" ? input.latestCheck : {}, 0),
-    checked_at: input.checkedAt || new Date().toISOString(),
+    latest_check: latestCheck,
+    checked_at: varnaPreverba.checkedAt || new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
   if (!payload.legal_name) throw Object.assign(new Error("Manjka ime preverjenega podjetja."), { status: 400 });
@@ -87,6 +172,42 @@ async function upsertProfile(cfg, userId, input) {
     body: payload,
   });
   return Array.isArray(rows) ? rows[0] : rows;
+}
+
+async function getProfileByCompanyId(cfg, userId, companyId) {
+  var id = String(companyId || "").trim().toUpperCase();
+  if (!id) return null;
+  var rows = await rest(cfg, "boniteta_profili?user_id=eq." + encodeURIComponent(userId) +
+    "&company_id=eq." + encodeURIComponent(id) + "&select=*&limit=1");
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
+async function saveFoundationDateEvidence(cfg, userId, profile, evidence) {
+  var latestCheck = compactJson(profile && profile.latest_check && typeof profile.latest_check === "object" ? profile.latest_check : {}, 0) || {};
+  latestCheck.foundationDateEvidence = compactJson(evidence, 0);
+  var rows = await rest(cfg, "boniteta_profili?id=eq." + encodeURIComponent(profile.id) +
+    "&user_id=eq." + encodeURIComponent(userId), {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: { latest_check: latestCheck, updated_at: new Date().toISOString() },
+  });
+  var saved = Array.isArray(rows) ? rows[0] : rows;
+  if (!saved) throw Object.assign(new Error("Datuma ni bilo mogoče shraniti v vaš profil podjetja."), { status: 404 });
+  return saved;
+}
+
+async function saveNorthDataPayload(cfg, userId, profile, payload) {
+  var latestCheck = compactJson(profile && profile.latest_check && typeof profile.latest_check === "object" ? profile.latest_check : {}, 0) || {};
+  latestCheck.northData = compactJson(payload, 0);
+  var rows = await rest(cfg, "boniteta_profili?id=eq." + encodeURIComponent(profile.id) +
+    "&user_id=eq." + encodeURIComponent(userId), {
+    method: "PATCH",
+    headers: { Prefer: "return=representation" },
+    body: { latest_check: latestCheck, updated_at: new Date().toISOString() },
+  });
+  var saved = Array.isArray(rows) ? rows[0] : rows;
+  if (!saved) throw Object.assign(new Error("North Data podatkov ni bilo mogoče shraniti v vaš profil."), { status: 404 });
+  return saved;
 }
 
 async function listProfiles(cfg, userId, watchedOnly) {
@@ -154,7 +275,7 @@ async function upsertMonitor(cfg, userId, profile, frequency, preferences, paylo
     body: {
       user_id: userId,
       profile_id: profile.id,
-      entity_id: profile.company_id,
+      entity_id: profile.company_id || "internal:" + profile.id,
       frequency: frequency,
       preferences: preferences,
       disabled: Boolean(payload && payload.disabled),
@@ -167,6 +288,12 @@ async function upsertMonitor(cfg, userId, profile, frequency, preferences, paylo
 
 async function deleteMonitor(cfg, userId, entityId) {
   await rest(cfg, "boniteta_monitorji?user_id=eq." + encodeURIComponent(userId) + "&entity_id=eq." + encodeURIComponent(entityId), {
+    method: "DELETE", headers: { Prefer: "return=minimal" },
+  });
+}
+
+async function deleteMonitorByProfile(cfg, userId, profileId) {
+  await rest(cfg, "boniteta_monitorji?user_id=eq." + encodeURIComponent(userId) + "&profile_id=eq." + encodeURIComponent(profileId), {
     method: "DELETE", headers: { Prefer: "return=minimal" },
   });
 }
@@ -251,12 +378,16 @@ module.exports = {
   upsertProfile: upsertProfile,
   listProfiles: listProfiles,
   getProfile: getProfile,
+  getProfileByCompanyId: getProfileByCompanyId,
+  saveFoundationDateEvidence: saveFoundationDateEvidence,
+  saveNorthDataPayload: saveNorthDataPayload,
   getMonitorByProfile: getMonitorByProfile,
   deleteProfile: deleteProfile,
   getCache: getCache,
   putCache: putCache,
   upsertMonitor: upsertMonitor,
   deleteMonitor: deleteMonitor,
+  deleteMonitorByProfile: deleteMonitorByProfile,
   listAlerts: listAlerts,
   markAlertRead: markAlertRead,
   saveCrifRequest: saveCrifRequest,
@@ -266,5 +397,6 @@ module.exports = {
   openCrifDispute: openCrifDispute,
   saveCrifProviderResult: saveCrifProviderResult,
   compactJson: compactJson,
-  _test: { validUuid: validUuid, uradnaRegistrskaPolja: uradnaRegistrskaPolja },
+  jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba,
+  _test: { validUuid: validUuid, uradnaRegistrskaPolja: uradnaRegistrskaPolja, veljavenNorthDataZaProfil: veljavenNorthDataZaProfil, izberiVarnoNajnovejsoPreverbo: izberiVarnoNajnovejsoPreverbo, jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba, imaPopolnUradniInsolvencniRezultat: imaPopolnUradniInsolvencniRezultat },
 };

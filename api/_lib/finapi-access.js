@@ -43,14 +43,15 @@ function userCredentials(appUserId, cfg) {
   // finAPI zahteva strogo razmerje one end user -> one finAPI user.
   // Identiteto zato deterministično ločimo po Supabase uporabniku, geslo pa
   // izpeljemo samo na strežniku in ga nikoli ne vrnemo v brskalnik.
-  const rawId = clean(appUserId).replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-  if (!rawId) {
+  const normalizedUserId = clean(appUserId).toLowerCase();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(normalizedUserId)) {
     const error = new Error("Uporabniški identifikator ni veljaven.");
     error.code = "FINAPI_USER_INVALID";
     throw error;
   }
+  const rawId = normalizedUserId.replace(/-/g, "");
   const id = ("uj" + rawId).slice(0, 36);
-  const digest = crypto.createHmac("sha256", cfg.userKey).update("finapi-user:" + clean(appUserId)).digest("base64url");
+  const digest = crypto.createHmac("sha256", cfg.userKey).update("finapi-user:" + normalizedUserId).digest("base64url");
   return { id, password: "Wk!9-" + digest.slice(0, 40) };
 }
 
@@ -261,8 +262,40 @@ function normalizeTransaction(row, accountsById) {
   };
 }
 
+function reconcileTransactions(rows, accounts) {
+  const accountsById = new Map();
+  (Array.isArray(accounts) ? accounts : []).forEach(function (account) {
+    const normalized = normalizeAccount(account);
+    if (!normalized) return;
+    const existing = accountsById.get(normalized.id);
+    if (existing && JSON.stringify(existing) !== JSON.stringify(normalized)) {
+      const error = new Error("finAPI je vrnil nasprotujoče podatke bančnega računa.");
+      error.code = "FINAPI_ACCOUNT_MAPPING_CONFLICT";
+      throw error;
+    }
+    accountsById.set(normalized.id, normalized);
+  });
+  const byReference = new Map();
+  (Array.isArray(rows) ? rows : []).forEach(function (row) {
+    const normalized = normalizeTransaction(row, accountsById);
+    if (!normalized) return;
+    if (!normalized.source_account_id || !accountsById.has(normalized.source_account_id)) {
+      const error = new Error("finAPI priliva ni mogoče varno povezati z uporabnikovim bančnim računom.");
+      error.code = "FINAPI_ACCOUNT_MAPPING_INVALID";
+      throw error;
+    }
+    const existing = byReference.get(normalized.external_reference);
+    if (existing && JSON.stringify(existing) !== JSON.stringify(normalized)) {
+      const error = new Error("finAPI je vrnil nasprotujočo ponovitev iste transakcije.");
+      error.code = "FINAPI_TRANSACTION_CONFLICT";
+      throw error;
+    }
+    if (!existing) byReference.set(normalized.external_reference, normalized);
+  });
+  return Array.from(byReference.values());
+}
+
 async function incomingTransactions(token, cfg, days, accounts) {
-  const accountsById = new Map((accounts || []).map(function (account) { return [clean(account.id), account]; }));
   const query = new URLSearchParams({
     view: "bankView",
     direction: "income",
@@ -274,9 +307,7 @@ async function incomingTransactions(token, cfg, days, accounts) {
     order: "finapiBookingDate,desc",
   });
   const rows = await pagedCollection(token, cfg, "/transactions", query, "transactions", 15000);
-  return rows.map(function (row) {
-    return normalizeTransaction(row, accountsById);
-  }).filter(Boolean);
+  return reconcileTransactions(rows, accounts);
 }
 
 async function statusForUser(appUserId, source) {
@@ -351,6 +382,7 @@ module.exports = {
     demoConnection,
     connectionBankName,
     normalizeAccount,
+    reconcileTransactions,
     pagedCollection,
     accountsForUser,
     verifiedWebFormUrl,

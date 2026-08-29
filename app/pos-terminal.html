@@ -8,12 +8,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>POS terminal – Uspešni Ježek</title>
     <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260826-hidden-state-v7" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260827-stripe-slate-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
     <link rel="apple-touch-icon" href="icon-192.png" />
-  <script src="pos-terminal-i18n.js?v=20260826-openapi-381-v7"></script>
+  <script src="pos-terminal-i18n.js?v=20260826-cash-recovery-v1"></script>
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
@@ -22,7 +22,8 @@
     <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
     <script src="auth-zascita.js?v=20260821-iphone-ratio-v14"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
-    <script src="pos-terminal.js?v=20260826-pos-a11y-v10" defer></script>
+    <script src="pos-dsfinvk.js?v=20260826-cash-recovery-export-v1" defer></script>
+    <script src="pos-terminal.js?v=20260828-datev-status-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -68,7 +69,7 @@
       <section class="pos-view is-active" data-view="home" aria-labelledby="pos-home-title">
         <div class="pos-hero">
           <div>
-            <p class="pos-kicker">Nemčija · brezgotovinsko</p>
+            <p class="pos-kicker">Nemčija · gotovina in brezgotovinsko</p>
             <h2 id="pos-home-title">Kaj želite narediti?</h2>
             <p>Račun pripravite v nekaj korakih. Davčna pravila preverimo pred izdajo.</p>
           </div>
@@ -154,7 +155,7 @@
 
         <aside class="pos-law-note">
           <svg><use href="#i-lock"/></svg>
-          <div><strong>Brez gotovine, brez TSE</strong><p>Ta modul je namenoma omejen na račune in povsem ločena brezgotovinska plačila.</p></div>
+          <div><strong>Gotovina samo v TRAINING načinu</strong><p>Lokalni TSE mock ne ustvari pravega plačila ali davčnega Kassenbona; produkcija ostaja zaklenjena.</p></div>
         </aside>
       </section>
 
@@ -267,7 +268,7 @@
             <i data-fiskaly-dot></i>
             <div><strong data-fiskaly-status>Preverjam testno povezavo …</strong><small data-fiskaly-copy>Ključi ostanejo varno na strežniku.</small></div>
           </div>
-          <p class="pos-field-help">Ta različica nima gotovinske funkcije. Panel je samo TRAINING preizkus in nikoli ne podpisuje običajnih brezgotovinskih računov.</p>
+          <p class="pos-field-help">Gotovinski tok je lokalno popoln v TRAINING načinu. Produkcijska fiskaly/TSE aktivacija ostaja zaklenjena.</p>
           <div class="pos-fiskaly-actions">
             <button class="pos-inline-action" type="button" data-fiskaly-refresh>Preveri povezavo <svg><use href="#i-chevron"/></svg></button>
             <button class="pos-inline-action pos-inline-action--primary" type="button" data-fiskaly-test disabled>Testni Kassenbon <svg><use href="#i-chevron"/></svg></button>
@@ -275,6 +276,14 @@
           <div class="pos-fiskaly-result" data-fiskaly-result hidden aria-live="polite">
             <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>
             <p><strong>Testni podpis je uspel</strong><small data-fiskaly-result-copy>TRAINING · brez pravega računa ali plačila</small></p>
+          </div>
+          <div class="pos-fiskaly-local-tools">
+            <strong>Lokalni Kassenbuch · TEST</strong>
+            <div class="pos-fiskaly-actions pos-fiskaly-actions--cash">
+              <button class="pos-inline-action" type="button" data-cash-deposit>Kasseneinlage</button>
+              <button class="pos-inline-action" type="button" data-cash-withdrawal>Kassenentnahme</button>
+              <button class="pos-inline-action" type="button" data-dsfinvk-export>DSFinV-K TEST izvoz <svg><use href="#i-export"/></svg></button>
+            </div>
           </div>
         </section>
       </section>
@@ -299,6 +308,11 @@
         <form class="pos-form pos-invoice-form" id="pos-invoice-form" novalidate>
           <section class="pos-step-panel is-active" data-step-panel="1">
             <div class="pos-step-copy"><p class="pos-kicker">1 · Prejemnik</p><h3 data-customer-step-title>Komu izdajate račun?</h3><p>Izbira določa davčna pravila in obliko dokumenta.</p></div>
+            <aside class="pos-boniteta-transfer" data-boniteta-transfer hidden>
+              <strong>Preneseno iz bonitetne preverbe</strong>
+              <span data-boniteta-transfer-company></span>
+              <small data-boniteta-transfer-summary></small>
+            </aside>
             <div class="pos-choice pos-choice--three" data-customer-type>
               <label><input type="radio" name="customerType" value="private" checked /><span>Fizična oseba</span></label>
               <label><input type="radio" name="customerType" value="business" /><span>Podjetje</span></label>
@@ -496,6 +510,20 @@
           </div>
         </section>
 
+        <section class="pos-cash-test" data-cash-payment-panel hidden>
+          <div class="pos-cash-test__brand"><span><svg><use href="#i-receipt"/></svg></span><b>LOKALER TSE-MOCK · TEST</b></div>
+          <div class="pos-cash-test__copy">
+            <small>Gotovinsko plačilo brez pravega poslovnega dogodka</small>
+            <strong data-cash-payment-title>Barzahlung · TRAINING</strong>
+            <p data-cash-payment-copy>Checkout se zaključi šele po popolnem mock TSE podpisu.</p>
+          </div>
+          <div class="pos-cash-test__actions">
+            <button class="pos-primary" type="button" data-cash-payment><svg><use href="#i-receipt"/></svg><span>Plačaj z gotovino – TEST</span></button>
+            <button class="pos-secondary" type="button" data-cash-refund hidden><svg><use href="#i-receipt"/></svg><span>Vrni gotovino – TEST</span></button>
+            <button class="pos-secondary" type="button" data-cash-receipt hidden><svg><use href="#i-export"/></svg><span>Prikaži Kassenbon</span></button>
+          </div>
+        </section>
+
         <section class="pos-detail-adjustments" data-detail-adjustments-section hidden>
           <div class="pos-detail-adjustments__head">
             <div><p class="pos-kicker">Dokumentna sled</p><h3>Pot računa</h3></div>
@@ -570,7 +598,7 @@
 
         <section class="pos-fiskaly-signed" data-fiskaly-signed hidden aria-live="polite">
           <article class="pos-kassenbon">
-            <header><strong data-kassenbon-company>WerkTech Lab – Testbetrieb</strong><span data-kassenbon-address>Geschäftsanschrift noch nicht hinterlegt</span><b>TESTBELEG · TRAINING</b></header>
+            <header><strong data-kassenbon-company>WerkTech Lab – Testbetrieb</strong><span data-kassenbon-address>Geschäftsanschrift noch nicht hinterlegt</span><b data-kassenbon-kind>TESTBELEG · TRAINING</b></header>
             <div class="pos-kassenbon-meta"><span>Belegdatum</span><strong data-kassenbon-date>–</strong><span>Transaktion</span><strong data-kassenbon-number>–</strong></div>
             <div class="pos-kassenbon-lines" data-kassenbon-lines></div>
             <div class="pos-kassenbon-taxes" data-kassenbon-taxes></div>

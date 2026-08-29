@@ -11,11 +11,11 @@ node scripts/check-pos-production-readiness.js --json
 node scripts/check-pos-production-readiness.js --strict
 ```
 
-`--strict` vrne neuspešen izhodni status, dokler ni pripravljenih vseh šest
+`--strict` vrne neuspešen izhodni status, dokler ni pripravljenih vseh osem
 obveznih kontrol. Sam zagon kontrole ne kliče zunanjih ponudnikov in ničesar ne
 kupi ali aktivira.
 
-## Šest obveznih kontrol
+## Osem obveznih kontrol
 
 1. Supabase strežniška in javna konfiguracija.
 2. Openapi v produkcijskem načinu, z ločenim produkcijskim webhookom in odprtim
@@ -27,6 +27,10 @@ kupi ali aktivira.
 4. AWS S3 Object Lock v Frankfurtu z vključenim produkcijskim zapisovanjem.
 5. Potrjen končni nemški davčni oziroma pravni pregled.
 6. Potrjen pilot z dejanskim nemškim podjetjem in prejemnikom.
+7. Produkcijski finAPI onboarding, pogodbeni/regulativni model in produkcijski ključi.
+8. Produkcijski gotovinski tok z nameščeno checkout migracijo, produkcijskim fiskaly
+   SIGN DE/TSS, zunanjo potrditvijo DSFinV-K, prijavo sistema in ločeno pravno
+   potrditvijo gotovinskega obsega. Lokalni TRAINING/mock tok je dokončan.
 
 Okoljska kontrola arhiva ni zadnji dokaz. Tik pred zagonom mora
 `pos_archive_readiness` dodatno potrditi Object Lock, ločeno kopijo in uspešen
@@ -47,9 +51,34 @@ sme kopirati med predali ali ohraniti po preteku preveritvenega okna.
   Openapi.
 - Stripe je trenutno namenoma samo TEST. SEPA in preverjena ročna potrditev
   plačila ostajata na voljo.
-- finAPI je trenutno sandbox. Ročni uvoz bančnega izpiska ostaja na voljo.
-- DATEV Cloud je mock/sandbox. Preverljivi EXTF izvoz ostaja na voljo.
-- fiskaly SIGN DE je TRAINING in ni del brezgotovinskega produkcijskega obsega.
+- finAPI je trenutno sandbox in je obvezen produkcijski del; ročni uvoz bančnega
+  izpiska ni zadosten končni nadomestek.
+- Lokalno usklajevanje finAPI fail-closed zavrne priliv z neznanim računom,
+  nasprotujočo preslikavo računa ali isti transaction ID z drugačnimi podatki;
+  povsem enako ponovitev pred uvozom varno deduplicira.
+- DATEV Cloud je mock/sandbox. Preverljivi EXTF izvoz ostaja na voljo. Sandbox
+  povezava uporablja PKCE in svež `nonce`, povratni `state` je časovno omejen ter
+  dodatno vezan na isti brskalnik z `HttpOnly`, `Secure`, `SameSite=Lax` piškotkom.
+  Podpis ID žetona, issuer, audience in `nonce` se preverijo prek omejenega DATEV
+  OIDC discovery/JWKS toka, preden se povezava shrani.
+  Mandant se šteje za povezanega samo v istem okolju in šele po točnem ujemanju
+  Berater-/Mandantennummer ter servisa in scope-a Buchungsdatenservice.
+- DATEV refresh žetoni so enkratni. Atomski, tenant-omejen DB claim serializira
+  rotacijo; ob negotovem neuspehu se lokalna seja fail-closed prekine in zahteva
+  novo povezavo. Polling EXTF opravila spoštuje ponudnikov `Retry-After`, preveri
+  varno job URL, začasne napake obnovi z omejenim odmikom in po 30 minutah brez
+  končnega stanja opravilo zaključi kot napako. Celoten DATEV kontni/EXTF preflight
+  se izvede pred prvim zunanjim uploadom PDF-ja, zato napačne nastavitve ne morejo
+  povzročiti delnega provider prenosa. Evidenci prenesenega PDF-ja in EXTF opravila
+  sta vezani na točno okolje in DATEV client ID; mock ali drug mandant zato ne more
+  povzročiti napačnega preskoka dejanskega prenosa. Redirect URL in obvezni scopes so preverjeni
+  ob zagonu konfiguracije. POS pri aktivni povezavi pokaže Berater-/Mandantennummer,
+  pri neuspelem zadnjem prenosu pa tudi omejeno ponudnikovo sporočilo napake.
+  To so lokalne varovalke, ne dokaz DATEV sandbox ali produkcijske odobritve.
+- fiskaly SIGN DE je TRAINING. Lokalni fail-closed checkout, mock TSE, Kassenbon,
+  ločeno TSE-podpisano povračilo, pologi/dvigi in DSFinV-K model so pripravljeni in testirani. Migracija
+  za checkout in podpisana povračila nista produkcijsko nameščeni, SIGN DE/TSS ni produkcijsko aktiviran, DSFinV-K model
+  pa nima zunanje potrditve; zato gotovina ostaja obvezna, a blokirana produkcijska kontrola.
 
 ## Varni vrstni red aktivacije
 
@@ -247,3 +276,8 @@ dodatno preveri nespremenjen SHA-256
 dokaza, identiteto dveh različnih `381` primerov, skupni smoke-run ID in časovno
 bližino ponudnikovih dogodkov. Spremenjena ali ročno sestavljena fixture se ne šteje
 več kot uspešen provider dokaz in vrne `controlled_sandbox_381_evidence_invalid`.
+
+Readiness v10 pri prisotnem, vendar prekratko veljavnem produkcijskem žetonu ter
+starem ali prihodnjem javnem webhook preflightu dodatno navede točno neveljavno
+časovno okoljsko polje. Produkcijski zaklep je bil že prej fail-closed; sprememba
+izboljša operativno diagnostiko in ne odpira nobene dostavne poti.

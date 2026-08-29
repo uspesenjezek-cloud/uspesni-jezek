@@ -512,6 +512,10 @@
 .pos-fiskaly-result strong, .pos-fiskaly-result small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pos-fiskaly-result strong { color: var(--pos-ink); font-size: .66rem; }
 .pos-fiskaly-result small { margin-top: 2px; color: var(--pos-muted); font-size: .56rem; }
+.pos-fiskaly-local-tools { display: grid; margin-top: 10px; padding-top: 10px; gap: 8px; border-top: 1px solid #dce9e6; }
+.pos-fiskaly-local-tools > strong { color: var(--pos-ink); font-size: .62rem; }
+.pos-fiskaly-actions--cash { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.pos-fiskaly-actions--cash [data-dsfinvk-export] { grid-column: 1 / -1; }
 
 .pos-fiskaly-receipt-sheet { max-height: min(94vh,900px); }
 .pos-fiskaly-receipt-form { display: grid; margin-top: 12px; gap: 10px; }
@@ -571,8 +575,8 @@
 .pos-kassenbon-tse div { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: 8px; font-size: .5rem; }
 .pos-kassenbon-tse span { color: #65736f; }
 .pos-kassenbon-tse strong { overflow-wrap: anywhere; text-align: right; }
-.pos-kassenbon-qr { display: grid; grid-template-columns: 116px minmax(0,1fr); padding: 10px 0 4px; align-items: center; gap: 10px; }
-.pos-kassenbon-qr canvas { display: block; width: 116px; height: 116px; }
+.pos-kassenbon-qr { display: grid; grid-template-columns: 132px minmax(0,1fr); padding: 10px 0 4px; align-items: center; gap: 12px; }
+.pos-kassenbon-qr canvas { display: block; width: 132px; height: 132px; }
 .pos-kassenbon-qr p { min-width: 0; margin: 0; }
 .pos-kassenbon-qr strong, .pos-kassenbon-qr span { display: block; }
 .pos-kassenbon-qr strong { font-size: .58rem; }
@@ -718,6 +722,11 @@
 .pos-step-panel.is-active { display: block; animation: pos-view-in .16s ease-out; }
 .pos-step-copy { margin: 0 2px 13px; }
 .pos-step-copy h3 { font-size: 1.18rem; }
+.pos-boniteta-transfer { display: grid; gap: 3px; margin: 0 0 12px; padding: 11px 12px; border: 1px solid #b9ded8; border-radius: 14px; background: linear-gradient(135deg,#f4fbf9,#e9f7f3); color: #315d5e; }
+.pos-boniteta-transfer[hidden] { display: none !important; }
+.pos-boniteta-transfer strong { color: #087f87; font-size: .78rem; }
+.pos-boniteta-transfer span { color: #173f48; font-size: .76rem; font-weight: 750; }
+.pos-boniteta-transfer small { color: #5d7476; font-size: .66rem; line-height: 1.35; }
 
 .pos-items-head { margin: 15px 2px 8px; justify-content: space-between; gap: 10px; }
 .pos-items-head h3 { margin: 0; font-size: .86rem; }
@@ -1109,25 +1118,25 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 .pos-payment-row__status.is-pending { color: #8a5d15; background: #fff2cf; }
 .pos-payment-row__status.is-failed, .pos-payment-row__status.is-cancelled { color: #8e3f3a; background: #fce9e7; }
 .pos-payment-row__status.is-refunded, .pos-payment-row__status.is-partially_refunded { color: #5e4d87; background: #eee9f8; }
-.pos-stripe-test { display: grid; margin-top: 10px; padding: 14px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px; border: 1px solid #d8d1f3; border-radius: 17px; background: linear-gradient(145deg, #faf8ff, #fff); box-shadow: 0 8px 22px rgba(63, 47, 112, .06); }
+.pos-stripe-test { display: grid; margin-top: 10px; padding: 14px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px; border: 1px solid #bfd2df; border-radius: 17px; background: linear-gradient(145deg, #f1f6fa, #fff); box-shadow: 0 8px 22px rgba(86, 115, 146, .07); }
 .pos-stripe-test[hidden], .pos-stripe-test__refund[hidden] { display: none; }
 .pos-stripe-test__brand { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 10px; }
-.pos-stripe-test__brand span { color: #635bff; font-size: .86rem; font-weight: 900; letter-spacing: -.04em; }
-.pos-stripe-test__brand b { padding: 4px 7px; color: #5e4d87; border-radius: 99px; background: #eee9f8; font-size: .5rem; letter-spacing: .08em; }
+.pos-stripe-test__brand span { color: #567392; font-size: .86rem; font-weight: 900; letter-spacing: -.04em; }
+.pos-stripe-test__brand b { padding: 4px 7px; color: #405f7e; border-radius: 99px; background: #e9f1f6; font-size: .5rem; letter-spacing: .08em; }
 .pos-stripe-test__copy { min-width: 0; }
 .pos-stripe-test__copy small, .pos-stripe-test__copy strong, .pos-stripe-test__copy p { display: block; margin: 0; }
-.pos-stripe-test__copy small { color: #786f91; font-size: .54rem; }
+.pos-stripe-test__copy small { color: #60798f; font-size: .54rem; }
 .pos-stripe-test__copy strong { margin-top: 2px; overflow: hidden; color: var(--pos-ink); white-space: nowrap; text-overflow: ellipsis; font-size: .76rem; }
 .pos-stripe-test__copy p { margin-top: 3px; color: var(--pos-muted); font-size: .57rem; line-height: 1.35; }
 .pos-stripe-test__actions { display: grid; min-width: 150px; gap: 7px; }
-.pos-stripe-test__button { display: inline-flex; min-width: 150px; min-height: 42px; padding: 9px 12px; align-items: center; justify-content: center; gap: 7px; background: #635bff; white-space: nowrap; font-size: .62rem; }
-.pos-stripe-test__button:hover { background: #564ee8; }
+.pos-stripe-test__button { display: inline-flex; min-width: 150px; min-height: 42px; padding: 9px 12px; align-items: center; justify-content: center; gap: 7px; background: #567392; white-space: nowrap; font-size: .62rem; }
+.pos-stripe-test__button:hover { background: #405f7e; }
 .pos-stripe-test__button svg { width: 15px; height: 15px; }
-.pos-stripe-test__refund { display: inline-flex; min-width: 150px; min-height: 38px; padding: 8px 10px; align-items: center; justify-content: center; gap: 7px; color: #5e4d87; border-color: #d8d1f3; white-space: nowrap; font-size: .58rem; }
+.pos-stripe-test__refund { display: inline-flex; min-width: 150px; min-height: 38px; padding: 8px 10px; align-items: center; justify-content: center; gap: 7px; color: #405f7e; border-color: #bfd2df; white-space: nowrap; font-size: .58rem; }
 .pos-stripe-test__refund svg { width: 14px; height: 14px; }
 .pos-stripe-test.is-paid { border-color: #cbe5df; background: linear-gradient(145deg, #f0faf7, #fff); }
 .pos-stripe-test.is-failed, .pos-stripe-test.is-cancelled { border-color: #efd1cd; background: linear-gradient(145deg, #fff7f6, #fff); }
-.pos-stripe-test.is-refunded, .pos-stripe-test.is-partially_refunded { border-color: #d8d1f3; }
+.pos-stripe-test.is-refunded, .pos-stripe-test.is-partially_refunded { border-color: #bfd2df; }
 
 .pos-replacement-banner { display: grid; grid-template-columns: 38px minmax(0, 1fr); margin: 0 0 11px; padding: 10px; align-items: center; gap: 9px; border: 1px solid #acd7d1; border-radius: 15px; background: linear-gradient(145deg, #eaf8f5, #fff); }
 .pos-replacement-banner[hidden] { display: none; }
@@ -1139,6 +1148,23 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 .pos-replacement-banner small { margin-top: 2px; color: var(--pos-muted); font-size: .59rem; }
 
 .pos-detail-actions button:disabled { opacity: .48; cursor: not-allowed; }
+.pos-cash-test { display: grid; margin-top: 12px; padding: 14px; gap: 10px; border: 1px solid #b9dcd6; border-radius: 18px; background: linear-gradient(145deg,#edf9f6,#fff 75%); }
+.pos-cash-test[hidden] { display: none; }
+.pos-cash-test__brand { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pos-cash-test__brand > span { display: grid; width: 34px; height: 34px; place-items: center; color: #fff; border-radius: 11px; background: var(--pos-teal); }
+.pos-cash-test__brand svg { width: 17px; height: 17px; }
+.pos-cash-test__brand b { padding: 6px 8px; color: #765812; border-radius: 99px; background: #fff2cf; font-size: .56rem; }
+.pos-cash-test__copy small, .pos-cash-test__copy strong { display: block; }
+.pos-cash-test__copy small { color: var(--pos-muted); font-size: .58rem; }
+.pos-cash-test__copy strong { margin-top: 3px; color: var(--pos-ink); font-size: .76rem; }
+.pos-cash-test__copy p { margin: 4px 0 0; color: var(--pos-muted); font-size: .62rem; line-height: 1.35; }
+.pos-cash-test__actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.pos-cash-test__actions button:first-child, .pos-cash-test__actions [data-cash-receipt]:last-child { grid-column: 1 / -1; }
+.pos-cash-test__actions button { min-width: 0; min-height: 42px; }
+.pos-cash-test__actions svg { width: 16px; height: 16px; }
+.pos-cash-test.is-recovery { border-color: #e5c27c; background: linear-gradient(145deg,#fff8e8,#fff 75%); }
+.pos-cash-test.is-recovery .pos-cash-test__brand > span { background: #a56b16; }
+.pos-cash-test.is-recovery .pos-cash-test__copy strong { color: #7b4f0d; }
 
 .pos-adjustment-backdrop {
   position: fixed;
@@ -1333,6 +1359,8 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 @media (max-width: 479px) {
   .pos-stripe-test { grid-template-columns: minmax(0, 1fr); }
   .pos-stripe-test__actions, .pos-stripe-test__button, .pos-stripe-test__refund { width: 100%; min-width: 0; }
+  .pos-kassenbon-qr { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
+  .pos-kassenbon-qr p { width: 100%; }
   .pos-datev-cloud > [data-datev-connect], .pos-datev-cloud > [data-datev-transfer] { grid-column: 1 / 4; width: 100%; }
 }
 

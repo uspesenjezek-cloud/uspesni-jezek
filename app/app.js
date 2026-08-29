@@ -47,6 +47,14 @@ const CSS_RAZRED_STATUSA = {
    dokler obrtnik ne konča 3. koraka - glej inicializirajNeplacila (shrani)
    in inicializirajPosiljanje (prebere in na koncu izbriše). */
 const KLJUC_SEJE_KORAK1_PODATKI = "neplacilo-korak1-podatki";
+const KLJUC_SEJE_ZGODOVINA = "neplacilo-zgodovina-podatki";
+
+function soPodatkiKorak1Uporabni(podatki) {
+  if (!podatki || typeof podatki !== "object") return false;
+  const ime = String(podatki.imeDolznika || "").trim();
+  const znesek = String(podatki.znesek == null ? "" : podatki.znesek).trim();
+  return Boolean(ime && znesek);
+}
 
 /* ---------- Kanali pošiljanja (SMS / e-pošta) ---------- */
 function normalizirajKanale(k) {
@@ -232,11 +240,13 @@ const KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = "neplacilo-predlogi-nastavitve";
 window.KLJUC_MOJI_PREDLOGI_OSNOVA = KLJUC_MOJI_PREDLOGI_OSNOVA;
 window.KLJUC_PREDLOGI_NASTAVITVE_OSNOVA = KLJUC_PREDLOGI_NASTAVITVE_OSNOVA;
 
-/* URL-ji treh korakov postopka (klikljiv kazalnik napredka). */
+/* URL-ji štirih korakov postopka (klikljiv kazalnik napredka). */
 const KORAK_SPOROCILO_VKLJUCEN = false;
 const URL_KORAKI_POSTOPKA = {
   1: "neplacila.html#obrazec",
-  2: "neplacila-posiljanje.html",
+  2: "neplacila-zgodovina.html",
+  3: "neplacila-cilj.html",
+  4: "neplacila-posiljanje.html",
 };
 
 /* Prebere sejo 2. koraka (osnutek ali potrjeno). */
@@ -343,12 +353,14 @@ function shraniKorak1Fingerprint(podatkiAliHash) {
 }
 
 function imaSejoKorakov2ali3() {
+  if (sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA)) return true;
   if (sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI)) return true;
   if (sessionStorage.getItem("neplacilo-korak3-nacrt")) return true;
   return false;
 }
 
 function pocistiSejoKorakov2in3() {
+  sessionStorage.removeItem(KLJUC_SEJE_ZGODOVINA);
   sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
   if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
     window.UJOpominNacrt.pocistiOsnutek();
@@ -373,6 +385,12 @@ function oznaciKorak2ZaOsvezitevObIstemRacunu() {
 
 /* Najvišji dosežen korak: 2, če obstaja korak 1; 3 šele po potrditvi koraka 2. */
 function ugotoviMaxDosezenKorak() {
+  try {
+    const zgodovina = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA) || "null");
+    if (zgodovina && zgodovina.potrjena === true) return 3;
+  } catch (_napaka) {
+    // Neveljaven osnutek zgodovine ne odklene pošiljanja.
+  }
   if (sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI)) return 2;
   return 1;
 }
@@ -383,10 +401,18 @@ function ugotoviMaxDosezenKorak() {
    Korak 3: po »Shrani zadevo« se seja počisti – krogec 3 v čarovniku ne ostane. */
 function jeKorakIzpolnjen(stevilka) {
   if (stevilka === 1) return Boolean(sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI));
+  if (stevilka === 2) {
+    try {
+      const zgodovina = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA) || "null");
+      return Boolean(zgodovina && zgodovina.potrjena === true);
+    } catch (_napaka) {
+      return false;
+    }
+  }
   return false;
 }
 
-/* Skupna definicija korakov za WizardProgressHeader (vse 3 strani postopka). */
+/* Skupna definicija korakov za WizardProgressHeader (vse 4 strani postopka). */
 const WIZARD_KORAKI = [
   {
     number: 1,
@@ -396,8 +422,20 @@ const WIZARD_KORAKI = [
   },
   {
     number: 2,
-    shortLabel: "Pošiljanje",
-    fullTitle: "Pošiljanje",
+    shortLabel: "Zgodovina",
+    fullTitle: "Dosedanja zgodovina",
+    icon: "history",
+  },
+  {
+    number: 3,
+    shortLabel: "Cilj",
+    fullTitle: "Cilj za dolg",
+    icon: "target",
+  },
+  {
+    number: 4,
+    shortLabel: "Načrt",
+    fullTitle: "Načrt",
     icon: "send",
   },
 ];
@@ -406,9 +444,13 @@ const SVG_WIZARD_IKONE = {
   "user-round":
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>',
   "message-square-text":
-    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H8"/><path d="M16 12H8"/></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H8"/><path d="M16 12H8"/></svg>',
+  history:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>',
+  target:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
   send:
-    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
 };
 
 function posodobiDebtStepMarker(el, stanje, stevilka) {
@@ -433,7 +475,7 @@ function posodobiDebtStepMarker(el, stanje, stevilka) {
 
 /**
  * Skupna komponenta WizardProgressHeader – koraki + glava trenutnega koraka.
- * Uporabi se na vseh treh straneh postopka (placeholder [data-wizard-progress-header]).
+ * Uporabi se na vseh štirih straneh postopka (placeholder [data-wizard-progress-header]).
  */
 function renderWizardProgressHeader(opcije) {
   const root = document.querySelector("[data-wizard-progress-header]");
@@ -492,6 +534,71 @@ function inicializirajWizardProgressHeader(trenutniKorak) {
   renderWizardProgressHeader({ currentStep: korak, draftSaved: true });
   inicializirajKorakePostopka(korak);
 }
+window.UJInicializirajWizardProgressHeader = inicializirajWizardProgressHeader;
+
+function formatirajDatumKompaktnegaPovzetka(vrednost) {
+  const ujemanje = String(vrednost || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!ujemanje) return "—";
+  return Number(ujemanje[3]) + ". " + Number(ujemanje[2]) + ". " + ujemanje[1];
+}
+
+function izracunajDniZamudeKompaktnegaPovzetka(vrednost) {
+  const ujemanje = String(vrednost || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!ujemanje) return null;
+  const rok = Date.UTC(Number(ujemanje[1]), Number(ujemanje[2]) - 1, Number(ujemanje[3]));
+  const danes = new Date();
+  const danesUtc = Date.UTC(danes.getFullYear(), danes.getMonth(), danes.getDate());
+  return Math.max(0, Math.floor((danesUtc - rok) / 86400000));
+}
+
+function oznakaPreteklihZamudKompaktnegaPovzetka(vrednost) {
+  const oznaka = vrednost == null ? "" : String(vrednost);
+  if (!oznaka || oznaka === "unknown") return "—";
+  return oznaka === "9plus" ? "9+" : oznaka;
+}
+
+function osveziKompaktniPovzetekDolga(podatkiVhod) {
+  const koreni = document.querySelectorAll("[data-kompaktni-povzetek-dolga]");
+  if (!koreni.length) return;
+  let podatki = podatkiVhod && typeof podatkiVhod === "object" ? podatkiVhod : null;
+  if (!podatki) {
+    try {
+      podatki = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI) || "null");
+    } catch (_napaka) {
+      podatki = null;
+    }
+  }
+  if (!soPodatkiKorak1Uporabni(podatki)) return;
+
+  const ime = String(podatki.nazivPodjetja || podatki.imeDolznika || "—").trim() || "—";
+  const znesek = Number(podatki.znesek);
+  const dolg = Number.isFinite(znesek)
+    ? znesek.toLocaleString("sl-SI", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €"
+    : "—";
+  const virZapadlosti = podatki.rokPlacila || podatki.datumZapadlosti;
+  const dniZamude = izracunajDniZamudeKompaktnegaPovzetka(virZapadlosti);
+  const zamuda = dniZamude == null ? "—" : dniZamude + (dniZamude === 1 ? " dan" : " dni");
+  const zamudaRazred = dniZamude != null && dniZamude > 0 ? " is-alert" : "";
+
+  koreni.forEach((koren) => {
+    koren.innerHTML =
+      '<div class="debt-summary-skupina">' +
+        '<div class="debt-summary debt-summary--vrstica-1">' +
+          '<div class="debt-summary__amount-column"><span class="debt-summary__label">Dolžnik</span><span class="debt-summary__amount debt-summary__amount--sm wizard-debt-summary__dolznik" data-povzetek-dolznik data-fit-text data-fit-text-lines="2" data-fit-text-min="7" data-fit-text-container=".debt-summary__amount-column"></span></div>' +
+        '</div>' +
+        '<div class="debt-summary debt-summary--tri debt-summary--vrstica-2">' +
+          '<div class="debt-summary__amount-column wizard-debt-summary__status"><span class="debt-summary__label">Dolg</span><span class="debt-summary__amount debt-summary__amount--sm" data-povzetek-dolg data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wizard-debt-summary__status"></span></div>' +
+          '<div class="debt-summary__amount-column wizard-debt-summary__status"><span class="debt-summary__label">Zapadlost</span><span class="debt-summary__amount debt-summary__amount--sm" data-povzetek-zapadlost data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wizard-debt-summary__status"></span></div>' +
+          '<div class="debt-summary__category-column wizard-debt-summary__status wizard-debt-summary__status--zamuda' + zamudaRazred + '"><span class="debt-summary__label">Zamuda</span><span class="debt-summary__amount debt-summary__amount--sm" data-povzetek-zamuda data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wizard-debt-summary__status"></span></div>' +
+        '</div>' +
+      '</div>';
+    koren.querySelector("[data-povzetek-dolznik]").textContent = ime;
+    koren.querySelector("[data-povzetek-dolg]").textContent = dolg;
+    koren.querySelector("[data-povzetek-zapadlost]").textContent = formatirajDatumKompaktnegaPovzetka(virZapadlosti);
+    koren.querySelector("[data-povzetek-zamuda]").textContent = zamuda;
+  });
+}
+window.UJOsveziKompaktniPovzetekDolga = osveziKompaktniPovzetekDolga;
 
 /* ---------- Skupni potrditveni / opozorilni modal (namesto confirm/alert) ---------- */
 
@@ -1093,6 +1200,7 @@ function inicializirajIzbrisOsnutka() {
     });
     if (!potrjeno) return;
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_ZGODOVINA);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_FINGERPRINT);
     if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
@@ -1596,6 +1704,11 @@ function inicializirajNeplacila() {
   let messageAttachments = [];
   let workAttachments = [];
   let shouldSendAttachment = true;
+  /* "Nimam računa" - izrecna izjava, da računa ni mogoče priložiti; šteje
+     enako kot priložen račun pri pripravi predaje odvetniku (glej
+     N.preveriPogojeZaPripravoPredaje v opomin-nacrt.js). Živi v istem
+     korak1 osnutku kot ostale priloge, da je vidna tudi na 2. koraku. */
+  let racunNiNaVoljo = false;
   let aktivnaVrstaDolznika = "podjetje";
   const NAJVEC_PRILOG = 6;
   const NAJVECJA_VELIKOST_PRILOGE_B = 10 * 1024 * 1024; // 10 MB - enako kot v sql/003
@@ -1618,37 +1731,122 @@ function inicializirajNeplacila() {
   let programskiCiljOpravljenoVprasanje = null;
   let opravljenoVisinaFrame = 0;
   let opravljenoVisinaCasovnik = 0;
+  let opravljenoPomikFrame = 0;
+  let opravljenoTakojsnjaVisinaFrame = 0;
+  let opravljenoVelikostObserver = null;
+  let rocniZacetniOdmikOpravljenoVprasanje = 0;
+  let rocniCiljOpravljenoVprasanje = null;
 
-  function osveziVisinoAktivnegaOpravljenoVprasanja(animiraj = false) {
+  function osveziVisinoOpravljenoVprasanje(
+    animiraj = false,
+    predPomikom = false,
+    indeksZaVisino = aktivnoOpravljenoVprasanje
+  ) {
     if (!opravljenoVprasanjaViewport || !opravljenoVprasanjaStrani.length) return;
     cancelAnimationFrame(opravljenoVisinaFrame);
-    opravljenoVisinaFrame = requestAnimationFrame(() => {
-      const aktivnaStran = opravljenoVprasanjaStrani[aktivnoOpravljenoVprasanje];
+    const posodobiVisino = () => {
+      const aktivnaStran = opravljenoVprasanjaStrani[indeksZaVisino];
       if (!aktivnaStran) return;
-      const visina = Math.ceil(
+      const celotnaVisina = Math.ceil(
         Math.max(aktivnaStran.scrollHeight, aktivnaStran.getBoundingClientRect().height)
+      );
+      const trenutnaVisina = opravljenoVprasanjaViewport.getBoundingClientRect().height;
+      if (Math.abs(celotnaVisina - trenutnaVisina) > 0.5) {
+        opravljenoVprasanjaViewport.style.setProperty(
+          "--opravljeno-visina-trajanje",
+          celotnaVisina < trenutnaVisina ? "80ms" : "120ms"
+        );
+      }
+      const moraTakojRazkritiVisjoStran =
+        predPomikom && celotnaVisina > opravljenoVprasanjaViewport.offsetHeight;
+      opravljenoVprasanjaViewport.classList.toggle(
+        "opravljeno-vprasanja__viewport--takojsnja-visina",
+        moraTakojRazkritiVisjoStran
       );
       opravljenoVprasanjaViewport.classList.toggle(
         "opravljeno-vprasanja__viewport--animirana-visina",
-        Boolean(animiraj)
+        Boolean(animiraj) && !moraTakojRazkritiVisjoStran
       );
       opravljenoVprasanjaViewport.style.setProperty(
         "--opravljeno-aktivna-visina",
-        visina + "px"
+        celotnaVisina + "px"
       );
-    });
+      if (moraTakojRazkritiVisjoStran) {
+        cancelAnimationFrame(opravljenoTakojsnjaVisinaFrame);
+        opravljenoTakojsnjaVisinaFrame = requestAnimationFrame(() => {
+          opravljenoTakojsnjaVisinaFrame = requestAnimationFrame(() => {
+            opravljenoVprasanjaViewport.classList.remove(
+              "opravljeno-vprasanja__viewport--takojsnja-visina"
+            );
+          });
+        });
+      }
+    };
+    if (predPomikom) posodobiVisino();
+    else opravljenoVisinaFrame = requestAnimationFrame(posodobiVisino);
   }
 
   function narociVisinoAktivnegaOpravljenoVprasanja(zakasnitev = 0, animiraj = true) {
     window.clearTimeout(opravljenoVisinaCasovnik);
     opravljenoVisinaCasovnik = window.setTimeout(
-      () => osveziVisinoAktivnegaOpravljenoVprasanja(animiraj),
+      () => osveziVisinoOpravljenoVprasanje(animiraj),
       Math.max(0, Number(zakasnitev) || 0)
     );
   }
 
+  function prekiniProgramskiPrehodOpravljenoVprasanje() {
+    cancelAnimationFrame(opravljenoPomikFrame);
+    opravljenoPomikFrame = 0;
+    programskiCiljOpravljenoVprasanje = null;
+    opravljenoVprasanjaViewport?.classList.remove(
+      "opravljeno-vprasanja__viewport--programski-prehod"
+    );
+  }
+
+  function animirajPomikOpravljenoVprasanje(ciljniOdmik) {
+    if (!opravljenoVprasanjaViewport) return;
+    cancelAnimationFrame(opravljenoPomikFrame);
+    const zacetniOdmik = opravljenoVprasanjaViewport.scrollLeft;
+    const razdalja = ciljniOdmik - zacetniOdmik;
+    const zmanjsanoGibanje = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (zmanjsanoGibanje || Math.abs(razdalja) < 1) {
+      opravljenoVprasanjaViewport.scrollTo({ left: ciljniOdmik, behavior: "auto" });
+      programskiCiljOpravljenoVprasanje = null;
+      narociVisinoAktivnegaOpravljenoVprasanja(0, false);
+      return;
+    }
+
+    opravljenoVprasanjaViewport.classList.add(
+      "opravljeno-vprasanja__viewport--programski-prehod"
+    );
+    const zacetek = performance.now();
+    const trajanje = 260;
+    const korak = (zdaj) => {
+      if (programskiCiljOpravljenoVprasanje == null) return;
+      const napredek = Math.min(1, Math.max(0, (zdaj - zacetek) / trajanje));
+      const gladekNapredek = 1 - Math.pow(1 - napredek, 4);
+      opravljenoVprasanjaViewport.scrollLeft =
+        zacetniOdmik + razdalja * gladekNapredek;
+      if (napredek < 1) {
+        opravljenoPomikFrame = requestAnimationFrame(korak);
+        return;
+      }
+      opravljenoVprasanjaViewport.scrollTo({ left: ciljniOdmik, behavior: "auto" });
+      opravljenoPomikFrame = 0;
+      programskiCiljOpravljenoVprasanje = null;
+      requestAnimationFrame(() => {
+        opravljenoVprasanjaViewport.classList.remove(
+          "opravljeno-vprasanja__viewport--programski-prehod"
+        );
+      });
+      narociVisinoAktivnegaOpravljenoVprasanja(0, true);
+    };
+    opravljenoPomikFrame = requestAnimationFrame(korak);
+  }
+
   function prikaziOpravljenoVprasanje(indeks, gladko = true) {
     if (!opravljenoVprasanjaViewport || !opravljenoVprasanjaStrani.length) return;
+    rocniCiljOpravljenoVprasanje = null;
     aktivnoOpravljenoVprasanje = Math.max(
       0,
       Math.min(opravljenoVprasanjaStrani.length - 1, Number(indeks) || 0)
@@ -1661,11 +1859,19 @@ function inicializirajNeplacila() {
       pika.classList.toggle("opravljeno-vprasanja__pika--aktivna", jeAktivna);
       pika.setAttribute("aria-pressed", jeAktivna ? "true" : "false");
     });
-    opravljenoVprasanjaViewport.scrollTo({
-      left: aktivnoOpravljenoVprasanje * opravljenoVprasanjaViewport.clientWidth,
-      behavior: gladko ? "smooth" : "auto",
-    });
-    narociVisinoAktivnegaOpravljenoVprasanja(0, gladko);
+    const ciljniOdmik = Math.min(
+      aktivnoOpravljenoVprasanje * opravljenoVprasanjaViewport.clientWidth,
+      Math.max(
+        0,
+        opravljenoVprasanjaViewport.scrollWidth - opravljenoVprasanjaViewport.clientWidth
+      )
+    );
+    osveziVisinoOpravljenoVprasanje(gladko, true);
+    if (gladko) animirajPomikOpravljenoVprasanje(ciljniOdmik);
+    else {
+      prekiniProgramskiPrehodOpravljenoVprasanje();
+      opravljenoVprasanjaViewport.scrollTo({ left: ciljniOdmik, behavior: "auto" });
+    }
   }
 
   if (opravljenoVprasanjaViewport && opravljenoVprasanjaStrani.length) {
@@ -1691,11 +1897,41 @@ function inicializirajNeplacila() {
         opravljenoScrollFrame = requestAnimationFrame(() => {
           const sirina = opravljenoVprasanjaViewport.clientWidth || 1;
           if (programskiCiljOpravljenoVprasanje != null) {
-            const ciljniOdmik = programskiCiljOpravljenoVprasanje * sirina;
-            if (Math.abs(opravljenoVprasanjaViewport.scrollLeft - ciljniOdmik) > 2) return;
-            programskiCiljOpravljenoVprasanje = null;
+            return;
           }
-          const novIndeks = Math.round(opravljenoVprasanjaViewport.scrollLeft / sirina);
+          const polozajMedStranmi = opravljenoVprasanjaViewport.scrollLeft / sirina;
+          const levaStranIndeks = Math.max(0, Math.floor(polozajMedStranmi));
+          const desnaStranIndeks = Math.min(
+            opravljenoVprasanjaStrani.length - 1,
+            Math.ceil(polozajMedStranmi)
+          );
+          if (
+            rocniCiljOpravljenoVprasanje == null &&
+            levaStranIndeks !== desnaStranIndeks
+          ) {
+            const vidniStrani = [levaStranIndeks, desnaStranIndeks].map((stranIndeks) => {
+              const stran = opravljenoVprasanjaStrani[stranIndeks];
+              return {
+                stranIndeks,
+                visina: Math.ceil(
+                  Math.max(stran.scrollHeight, stran.getBoundingClientRect().height)
+                ),
+              };
+            });
+            const visjaVidnaStran = vidniStrani.reduce((visja, trenutna) =>
+              trenutna.visina > visja.visina ? trenutna : visja
+            );
+            if (visjaVidnaStran.visina > opravljenoVprasanjaViewport.offsetHeight) {
+              osveziVisinoOpravljenoVprasanje(
+                false,
+                true,
+                visjaVidnaStran.stranIndeks
+              );
+            }
+          }
+          const novIndeks = rocniCiljOpravljenoVprasanje == null
+            ? Math.round(opravljenoVprasanjaViewport.scrollLeft / sirina)
+            : rocniCiljOpravljenoVprasanje;
           if (novIndeks !== aktivnoOpravljenoVprasanje) {
             aktivnoOpravljenoVprasanje = Math.max(
               0,
@@ -1708,15 +1944,142 @@ function inicializirajNeplacila() {
             });
             narociVisinoAktivnegaOpravljenoVprasanja(0, true);
           }
+          const ciljniOdmikAktivneStrani = Math.min(
+            aktivnoOpravljenoVprasanje * sirina,
+            Math.max(
+              0,
+              opravljenoVprasanjaViewport.scrollWidth -
+                opravljenoVprasanjaViewport.clientWidth
+            )
+          );
+          if (
+            Math.abs(
+              opravljenoVprasanjaViewport.scrollLeft - ciljniOdmikAktivneStrani
+            ) <= 1
+          ) {
+            osveziVisinoOpravljenoVprasanje(true);
+            if (rocniCiljOpravljenoVprasanje === aktivnoOpravljenoVprasanje) {
+              rocniCiljOpravljenoVprasanje = null;
+            }
+          }
         });
       },
       { passive: true }
     );
-    const prekiniProgramskiPrehod = () => {
-      programskiCiljOpravljenoVprasanje = null;
+    const zacniRocniPrehodOpravljenoVprasanje = () => {
+      prekiniProgramskiPrehodOpravljenoVprasanje();
+      rocniCiljOpravljenoVprasanje = null;
+      rocniZacetniOdmikOpravljenoVprasanje = opravljenoVprasanjaViewport.scrollLeft;
     };
-    opravljenoVprasanjaViewport.addEventListener("pointerdown", prekiniProgramskiPrehod, { passive: true });
-    opravljenoVprasanjaViewport.addEventListener("touchstart", prekiniProgramskiPrehod, { passive: true });
+    const zakljuciRocniPrehodOpravljenoVprasanje = () => {
+      if (programskiCiljOpravljenoVprasanje != null) return;
+      const sirina = opravljenoVprasanjaViewport.clientWidth || 1;
+      const trenutniOdmik = opravljenoVprasanjaViewport.scrollLeft;
+      const premik = trenutniOdmik - rocniZacetniOdmikOpravljenoVprasanje;
+      let ciljniIndeks = Math.round(trenutniOdmik / sirina);
+      if (Math.abs(premik) > 12) {
+        ciljniIndeks = premik > 0
+          ? Math.ceil(trenutniOdmik / sirina)
+          : Math.floor(trenutniOdmik / sirina);
+      }
+      rocniCiljOpravljenoVprasanje = Math.max(
+        0,
+        Math.min(opravljenoVprasanjaStrani.length - 1, ciljniIndeks)
+      );
+      aktivnoOpravljenoVprasanje = rocniCiljOpravljenoVprasanje;
+      opravljenoVprasanjaPike.forEach((pika, pikaIndeks) => {
+        const jeAktivna = pikaIndeks === aktivnoOpravljenoVprasanje;
+        pika.classList.toggle("opravljeno-vprasanja__pika--aktivna", jeAktivna);
+        pika.setAttribute("aria-pressed", jeAktivna ? "true" : "false");
+      });
+      osveziVisinoOpravljenoVprasanje(
+        true,
+        false,
+        rocniCiljOpravljenoVprasanje
+      );
+      const ciljniOdmik = Math.min(
+        rocniCiljOpravljenoVprasanje * sirina,
+        Math.max(
+          0,
+          opravljenoVprasanjaViewport.scrollWidth -
+            opravljenoVprasanjaViewport.clientWidth
+        )
+      );
+      if (Math.abs(trenutniOdmik - ciljniOdmik) <= 1) {
+        rocniCiljOpravljenoVprasanje = null;
+      }
+    };
+    opravljenoVprasanjaViewport.addEventListener(
+      "pointerdown",
+      zacniRocniPrehodOpravljenoVprasanje,
+      { passive: true }
+    );
+    opravljenoVprasanjaViewport.addEventListener(
+      "touchstart",
+      zacniRocniPrehodOpravljenoVprasanje,
+      { passive: true }
+    );
+    opravljenoVprasanjaViewport.addEventListener(
+      "pointerup",
+      zakljuciRocniPrehodOpravljenoVprasanje,
+      { passive: true }
+    );
+    opravljenoVprasanjaViewport.addEventListener(
+      "touchend",
+      zakljuciRocniPrehodOpravljenoVprasanje,
+      { passive: true }
+    );
+    opravljenoVprasanjaViewport.addEventListener(
+      "touchcancel",
+      zakljuciRocniPrehodOpravljenoVprasanje,
+      { passive: true }
+    );
+    if (typeof ResizeObserver === "function") {
+      let opravljenoObserverFrame = 0;
+      opravljenoVelikostObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(opravljenoObserverFrame);
+        opravljenoObserverFrame = requestAnimationFrame(() => {
+          if (programskiCiljOpravljenoVprasanje != null) return;
+          if (rocniCiljOpravljenoVprasanje != null) {
+            osveziVisinoOpravljenoVprasanje(
+              true,
+              false,
+              rocniCiljOpravljenoVprasanje
+            );
+            return;
+          }
+          const sirina = opravljenoVprasanjaViewport.clientWidth || 1;
+          const polozajMedStranmi = opravljenoVprasanjaViewport.scrollLeft / sirina;
+          const levaStranIndeks = Math.max(0, Math.floor(polozajMedStranmi));
+          const desnaStranIndeks = Math.min(
+            opravljenoVprasanjaStrani.length - 1,
+            Math.ceil(polozajMedStranmi)
+          );
+          if (levaStranIndeks !== desnaStranIndeks) {
+            const vidniIndeksi = [levaStranIndeks, desnaStranIndeks];
+            const visjiIndeks = vidniIndeksi.reduce((visji, trenutni) => {
+              const visjaStran = opravljenoVprasanjaStrani[visji];
+              const trenutnaStran = opravljenoVprasanjaStrani[trenutni];
+              const visjaVisina = Math.max(
+                visjaStran.scrollHeight,
+                visjaStran.getBoundingClientRect().height
+              );
+              const trenutnaVisina = Math.max(
+                trenutnaStran.scrollHeight,
+                trenutnaStran.getBoundingClientRect().height
+              );
+              return trenutnaVisina > visjaVisina ? trenutni : visji;
+            });
+            osveziVisinoOpravljenoVprasanje(false, true, visjiIndeks);
+            return;
+          }
+          osveziVisinoOpravljenoVprasanje(true, false, levaStranIndeks);
+        });
+      });
+      opravljenoVprasanjaStrani.forEach((stran) =>
+        opravljenoVelikostObserver.observe(stran)
+      );
+    }
     // iOS ob prikazu tipkovnice spreminja samo višino viewporta. Na to se ne
     // odzivamo, ker bi ponovno drsenje med fokusom lahko zaklenilo dotike.
     let zadnjaSirinaVprasanj = opravljenoVprasanjaViewport.clientWidth;
@@ -1732,7 +2095,7 @@ function inicializirajNeplacila() {
     });
     requestAnimationFrame(() => prikaziOpravljenoVprasanje(0, false));
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => osveziVisinoAktivnegaOpravljenoVprasanja(false));
+      document.fonts.ready.then(() => osveziVisinoOpravljenoVprasanje(false));
     }
   }
 
@@ -1821,6 +2184,12 @@ function inicializirajNeplacila() {
       nastavi("nazivPodjetja", osnutek.nazivPodjetja || osnutek.imeDolznika);
       nastavi("davcnaStevilka", osnutek.davcnaStevilka);
       nastavi("kontaktnaOseba", osnutek.kontaktnaOseba);
+      nastavi("openRegisterCompanyId", osnutek.openRegisterCompanyId);
+      nastavi("openRegisterRegisterType", osnutek.openRegisterRegisterType);
+      nastavi("openRegisterRegisterNumber", osnutek.openRegisterRegisterNumber);
+      nastavi("openRegisterRegisterCourt", osnutek.openRegisterRegisterCourt);
+      nastavi("openRegisterLegalForm", osnutek.openRegisterLegalForm);
+      nastavi("openRegisterVerifiedAt", osnutek.openRegisterVerifiedAt);
       nastavi("ime", osnutek.ime);
       nastavi("priimek", osnutek.priimek);
       nastavi("telefon", osnutek.telefonDolznika);
@@ -1963,6 +2332,7 @@ function inicializirajNeplacila() {
   const racunSeznam = document.getElementById("racun-posiljanje-seznam");
   const racunDodajSe = document.getElementById("racun-posiljanje-dodaj-se");
   const racunStevec = document.getElementById("racun-posiljanje-stevec");
+  const gumbRacunNimam = document.querySelector("[data-priloga-nimam]");
   const racunKanaliVsi = document.getElementById("racun-posiljanje-kanali-vsi");
   const racunKanaliVsiIzbira = document.getElementById("racun-posiljanje-kanali-vsi-izbira");
   const prilogaLimitOpozoriloEl = document.getElementById("priloga-limit-opozorilo");
@@ -2091,6 +2461,7 @@ function inicializirajNeplacila() {
         attachmentMeta: meta,
         privzetiKanali: priv,
         shouldSendAttachment: shouldSendAttachment,
+        racunNiNaVoljo: racunNiNaVoljo,
       })
     );
   }
@@ -2134,6 +2505,7 @@ function inicializirajNeplacila() {
       if (priloga && String(priloga.description || "").trim()) priloga.collapsed = true;
     });
     shouldSendAttachment = true;
+    racunNiNaVoljo = Boolean(p.racunNiNaVoljo) && !messageAttachments.length;
     sinhronizirajPrilogeZaNalaganje();
   }
 
@@ -2349,6 +2721,14 @@ function inicializirajNeplacila() {
     if (racunPrazno) racunPrazno.hidden = ima;
     if (racunPolno) racunPolno.hidden = !ima;
     if (racunDodajSe) racunDodajSe.hidden = dosezenaMeja;
+    if (gumbRacunNimam) {
+      gumbRacunNimam.disabled = ima;
+      gumbRacunNimam.setAttribute("aria-pressed", racunNiNaVoljo ? "true" : "false");
+      gumbRacunNimam.classList.toggle(
+        "racun-posiljanje__gumb--aktiven",
+        racunNiNaVoljo && !ima
+      );
+    }
     if (prilogaLimitOpozoriloEl) prilogaLimitOpozoriloEl.hidden = !dosezenaMeja;
     if (racunSeznam) {
       racunSeznam.querySelectorAll("img[data-object-url]").forEach((img) => {
@@ -2485,7 +2865,7 @@ function inicializirajNeplacila() {
           povzetekOpisa.innerHTML =
             '<span class="racun-posiljanje__opis-povzetek-oznaka">Komentar</span>' +
             '<span class="racun-posiljanje__opis-povzetek-besedilo"></span>' +
-            '<span class="racun-posiljanje__opis-povzetek-puscica" aria-hidden="true">⌄</span>';
+            '<span class="racun-posiljanje__opis-povzetek-puscica" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>';
           povzetekOpisa.querySelector(".racun-posiljanje__opis-povzetek-oznaka").textContent =
             vprasanje.textContent;
           povzetekOpisa.querySelector(".racun-posiljanje__opis-povzetek-besedilo").textContent =
@@ -2841,7 +3221,7 @@ function inicializirajNeplacila() {
       povecaj.className = "opravljeno-priloga__povecaj";
       povecaj.setAttribute("aria-hidden", "true");
       povecaj.innerHTML =
-        '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="5.5"></circle><path d="m15 15 4 4"></path></svg>';
+        '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="5.5"></circle><path d="m15 15 4 4"></path></svg>';
       ikona.appendChild(povecaj);
       const ime = document.createElement("span");
       ime.className = "opravljeno-priloga__ime";
@@ -2993,6 +3373,7 @@ function inicializirajNeplacila() {
   function dodajIzbranePriloge(datoteke, izvor) {
     const seznam = Array.from(datoteke || []);
     if (!seznam.length) return;
+    if (racunNiNaVoljo) racunNiNaVoljo = false;
     const izvorPriloge = izvor || "manual_attachment";
     const telEl = document.getElementById("telefon-dolznika");
     const emailEl = document.getElementById("email-dolznika");
@@ -3062,6 +3443,14 @@ function inicializirajNeplacila() {
       if (gumbPrilogaFotoaparat) gumbPrilogaFotoaparat.click();
     });
   });
+  if (gumbRacunNimam) {
+    gumbRacunNimam.addEventListener("click", () => {
+      if (gumbRacunNimam.disabled) return;
+      racunNiNaVoljo = !racunNiNaVoljo;
+      syncPrilogeVSejoKorak1();
+      izrisiIzbranePriloge();
+    });
+  }
   document.querySelectorAll("[data-opravljeno-priloga-uvozi]").forEach((gumb) => {
     gumb.addEventListener("click", () => {
       if (gumbOpravljenoDatoteka) gumbOpravljenoDatoteka.click();
@@ -3113,9 +3502,36 @@ function inicializirajNeplacila() {
     return vrednostPolja("nazivPodjetja");
   }
 
+  function uskladiJezikNedavnihDolznikov(vrsta) {
+    const jeFizicnaOseba = vrsta === "fizicna_oseba";
+    const naslov = document.getElementById("nedavna-podjetja-naslov");
+    const drsnik = document.querySelector(".nedavna-podjetja__drsnik");
+    const vecGumb = document.getElementById("nedavna-podjetja-vec");
+    const vecNapis = vecGumb && vecGumb.querySelector(".nedavna-podjetja__vec-napis");
+    const naslovBesedilo = jeFizicnaOseba ? "Nedavne osebe" : "Nedavna podjetja";
+    const vecBesedilo = jeFizicnaOseba ? "Več oseb" : "Več podjetij";
+
+    if (naslov) naslov.textContent = naslovBesedilo;
+    if (drsnik) {
+      drsnik.setAttribute(
+        "aria-label",
+        naslovBesedilo + "; podrsajte levo ali desno"
+      );
+    }
+    if (vecNapis) {
+      vecNapis.textContent = vecBesedilo;
+      vecNapis.classList.toggle(
+        "nedavna-podjetja__vec-napis--osebe",
+        jeFizicnaOseba
+      );
+    }
+    if (vecGumb) vecGumb.setAttribute("aria-label", vecBesedilo);
+  }
+
   function nastaviVrstoDolznika(vrsta, opcije) {
     const nova = vrsta === "fizicna_oseba" ? "fizicna_oseba" : "podjetje";
     const tiha = Boolean(opcije && opcije.tiha);
+    uskladiJezikNedavnihDolznikov(nova);
     if (aktivnaVrstaDolznika === nova) {
       // Uskladi samo razrede/ARIA (obnovljen osnutek ali privzeti prikaz).
       document
@@ -3918,12 +4334,19 @@ function inicializirajNeplacila() {
   }
 
   async function nalozizadeve() {
-    const { data, error } = await supabaseKlient
+    const osnovnaPoljaZadev = "id, ime_dolznika, znesek, opis_dolga, datum_zapadlosti, status, ustvarjeno_at, racun_datoteke_poti, opomin_aktiviran:opomin_nacrt->>serverActivatedAt";
+    const razsirjenaPoljaZadev = "id, ime_dolznika, vrsta_dolznika, znesek, opis_dolga, datum_zapadlosti, status, ustvarjeno_at, openregister_company_id, register_type, register_number, register_court, legal_form, davcna_stevilka, kontaktna_oseba, podjetje_preverjeno_at, telefon_dolznika, email_dolznika, racun_datoteke_poti, opomin_aktiviran:opomin_nacrt->>serverActivatedAt";
+    let rezultat = await supabaseKlient
       .from("zadeve")
-      .select(
-        "id, ime_dolznika, znesek, opis_dolga, datum_zapadlosti, status, ustvarjeno_at, racun_datoteke_poti, opomin_aktiviran:opomin_nacrt->>serverActivatedAt"
-      )
+      .select(razsirjenaPoljaZadev)
       .order("ustvarjeno_at", { ascending: false });
+    if (rezultat.error && /column zadeve\.[a-z0-9_]+ does not exist|schema cache/i.test(rezultat.error.message || "")) {
+      rezultat = await supabaseKlient
+        .from("zadeve")
+        .select(osnovnaPoljaZadev)
+        .order("ustvarjeno_at", { ascending: false });
+    }
+    const { data, error } = rezultat;
 
     if (error) {
       pokaziNapako(
@@ -4254,6 +4677,7 @@ function inicializirajNeplacila() {
 
   async function osveziSeznam() {
     vseZadeve = await nalozizadeve();
+    document.dispatchEvent(new CustomEvent("uj:zadeve-nalozene", { detail: vseZadeve }));
     izrisiSemafor(vseZadeve);
     osveziPrikazSeznama();
   }
@@ -4579,6 +5003,12 @@ function inicializirajNeplacila() {
         nazivPodjetja: String(podatki.get("nazivPodjetja") || "").trim(),
         davcnaStevilka: String(podatki.get("davcnaStevilka") || "").trim() || null,
         kontaktnaOseba: String(podatki.get("kontaktnaOseba") || "").trim() || null,
+        openRegisterCompanyId: String(podatki.get("openRegisterCompanyId") || "").trim() || null,
+        openRegisterRegisterType: String(podatki.get("openRegisterRegisterType") || "").trim() || null,
+        openRegisterRegisterNumber: String(podatki.get("openRegisterRegisterNumber") || "").trim() || null,
+        openRegisterRegisterCourt: String(podatki.get("openRegisterRegisterCourt") || "").trim() || null,
+        openRegisterLegalForm: String(podatki.get("openRegisterLegalForm") || "").trim() || null,
+        openRegisterVerifiedAt: String(podatki.get("openRegisterVerifiedAt") || "").trim() || null,
         ime: ime,
         priimek: priimek,
         telefonDolznika: String(podatki.get("telefon") || "").trim(),
@@ -4586,7 +5016,7 @@ function inicializirajNeplacila() {
         stalnaStranka: stalnaStrankaAktivna,
         stalnaStrankaNastavitve: Object.assign({}, stalnaStrankaNastavitve),
         znesek: znesekIzObrazcaZaOsnutek(podatki.get("znesek")),
-        opisDolga: String(podatki.get("opis") || "").trim(),
+        opisDolga: String(podatki.get("opis") || obstojeci.opisDolga || "").trim(),
         datumIzdajeRacuna: podatki.get("datumIzdaje") || null,
         datumZapadlosti: podatki.get("datum") || null,
         stevilkaRacuna: String(podatki.get("stevilkaRacuna") || "").trim() || null,
@@ -4707,7 +5137,9 @@ function inicializirajNeplacila() {
     const telefonDolznika = String(podatki.get("telefon") || "").trim();
     const emailDolznika = String(podatki.get("email") || "").trim();
     const datumZapadlosti = podatki.get("datum");
-    const opisDolga = String(podatki.get("opis") || "").trim();
+    const opisDolga = String(
+      podatki.get("opis") || preberiObstojeciOsnutekKorak1().opisDolga || ""
+    ).trim();
 
     // Napake so prikazane pod ustreznim sklopom, brez skoka na vrh strani.
     if (!datumZapadlosti) return;
@@ -4729,48 +5161,14 @@ function inicializirajNeplacila() {
 
     if (!(await validirajOpravljenoVprasanja())) return;
 
-    // Ocena tveganja: odgovor mora biti izpolnjen in se mora ohraniti tudi
-    // po sestavi novega objekta za 2. in 3. korak.
+    // Ocena tveganja je odslej na 2. koraku (Zgodovina). Tukaj ohranimo
+    // morebitno že shranjeno izbiro, vendar 1. koraka zaradi nje ne blokiramo.
     let korak1Podatki = {};
     try {
       const korak1Raw = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
       korak1Podatki = korak1Raw ? JSON.parse(korak1Raw) : {};
-      const izbraniGumbZgodovine = document.querySelector(
-        '#ocena-tveganja [data-zgodovina-zamud][aria-pressed="true"]'
-      );
-      const zgodovinaIzTrenutneIzbire = izbraniGumbZgodovine
-        ? izbraniGumbZgodovine.getAttribute("data-zgodovina-zamud")
-        : null;
-      const zgodovinaJeIzbrana =
-        zgodovinaIzTrenutneIzbire != null &&
-        String(zgodovinaIzTrenutneIzbire) !== "";
-      if (!zgodovinaJeIzbrana) {
-        if (typeof potrdiVprasanje === "function") {
-          await potrdiVprasanje({
-            naslov: "Izpolnite oceno tveganja",
-            opis: "Pred nadaljevanjem izberite, ali je dolžnik že kdaj zamudil s plačilom.",
-            potrdiBesedilo: "V redu",
-            samoEnGumb: true,
-            stil: "primary",
-          });
-        }
-        return;
-      }
-      // Vedno uporabi trenutno vidno izbiro in ne morebitnega starega
-      // odgovora, ki je ostal v osnutku prejšnjega prikaza.
-      korak1Podatki.zgodovinaZamud = zgodovinaIzTrenutneIzbire;
     } catch (_napakaOcene) {
       korak1Podatki = {};
-      if (typeof potrdiVprasanje === "function") {
-        await potrdiVprasanje({
-          naslov: "Izpolnite oceno tveganja",
-          opis: "Podatkov ocene ni bilo mogoče prebrati. Ponovno izberite odgovor in nadaljujte.",
-          potrdiBesedilo: "V redu",
-          samoEnGumb: true,
-          stil: "primary",
-        });
-      }
-      return;
     }
 
     const manjkaOpisPriloge = messageAttachments.concat(workAttachments).some(
@@ -4834,6 +5232,18 @@ function inicializirajNeplacila() {
         aktivnaVrstaDolznika === "podjetje" ? davcnaStevilka : null,
       kontaktnaOseba:
         aktivnaVrstaDolznika === "podjetje" ? kontaktnaOseba : null,
+      openRegisterCompanyId:
+        aktivnaVrstaDolznika === "podjetje" ? String(podatki.get("openRegisterCompanyId") || "").trim() || null : null,
+      openRegisterRegisterType:
+        aktivnaVrstaDolznika === "podjetje" ? String(podatki.get("openRegisterRegisterType") || "").trim() || null : null,
+      openRegisterRegisterNumber:
+        aktivnaVrstaDolznika === "podjetje" ? String(podatki.get("openRegisterRegisterNumber") || "").trim() || null : null,
+      openRegisterRegisterCourt:
+        aktivnaVrstaDolznika === "podjetje" ? String(podatki.get("openRegisterRegisterCourt") || "").trim() || null : null,
+      openRegisterLegalForm:
+        aktivnaVrstaDolznika === "podjetje" ? String(podatki.get("openRegisterLegalForm") || "").trim() || null : null,
+      openRegisterVerifiedAt:
+        aktivnaVrstaDolznika === "podjetje" ? String(podatki.get("openRegisterVerifiedAt") || "").trim() || null : null,
       ime: aktivnaVrstaDolznika === "fizicna_oseba" ? ime : null,
       priimek: aktivnaVrstaDolznika === "fizicna_oseba" ? priimek : null,
       telefonDolznika,
@@ -4910,7 +5320,7 @@ function inicializirajNeplacila() {
     sessionStorage.setItem(KLJUC_SEJE_KORAK1_PODATKI, JSON.stringify(noviKorak1));
     shraniKorak1Fingerprint(novHash);
     zagotoviPodatkeSporocilaZaPosiljanje(noviKorak1);
-    prehodNaStran("neplacila-posiljanje.html");
+    prehodNaStran("neplacila-zgodovina.html");
   });
 
   /* Če se obrtnik pravkar vrnil iz 3. koraka po uspešno dodani zadevi,
@@ -5149,16 +5559,20 @@ function inicializirajSporociloDolzniku() {
   }
 
   const podatkiKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
-  if (!podatkiKorak1Json) {
+  let podatkiKorak1 = null;
+  try {
+    podatkiKorak1 = podatkiKorak1Json ? JSON.parse(podatkiKorak1Json) : null;
+  } catch (_napaka) {
+    podatkiKorak1 = null;
+  }
+  if (!soPodatkiKorak1Uporabni(podatkiKorak1)) {
     window.location.href = "neplacila.html#obrazec";
     return;
   }
-
   inicializirajWizardProgressHeader(2);
   inicializirajIzbrisOsnutka();
   pokaziKratkoObvestiloCeObstaja();
 
-  const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   uskladiAttachmentKanaleVKorak1(podatkiKorak1);
   sessionStorage.setItem(
     KLJUC_SEJE_KORAK1_PODATKI,
@@ -5391,10 +5805,10 @@ function inicializirajSporociloDolzniku() {
   const ikonaSvincnika =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
   const ikonaKljukice =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   /* Mala rumena zvezda (zgoraj levo) pri številki 1 – cifra »1« ostane glavna. */
   const ikonaZvezdePrioriteta =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
+    '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
 
   function htmlStevilkaZvezda() {
     return (
@@ -7788,7 +8202,7 @@ function inicializirajSporociloDolzniku() {
 
   if (gumbPrezriRok) {
     gumbPrezriRok.innerHTML =
-      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#111111" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/></svg>';
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg>';
     gumbPrezriRok.style.color = "#111111";
     gumbPrezriRok.addEventListener("click", () => prezriPriporocilo("rok"));
   }
@@ -7825,7 +8239,7 @@ function inicializirajSporociloDolzniku() {
 
   if (gumbPrezriObrocno) {
     gumbPrezriObrocno.innerHTML =
-      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="#111111" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4z"/></svg>';
+      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg>';
     gumbPrezriObrocno.style.color = "#111111";
     gumbPrezriObrocno.addEventListener("click", () =>
       prezriPriporocilo("obrocno")
@@ -8615,7 +9029,11 @@ function inicializirajSporociloDolzniku() {
     posodobiNamigeTonaDodatkov();
   }
 
-  if (typeof supabaseKlient !== "undefined" && supabaseKlient.auth) {
+  if (
+    typeof supabaseKlient !== "undefined" &&
+    supabaseKlient &&
+    supabaseKlient.auth
+  ) {
     supabaseKlient.auth
       .getSession()
       .then(({ data }) => {
@@ -8649,19 +9067,41 @@ async function inicializirajPosiljanje() {
 
   const podatkiKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
   let podatkiKorak2Json = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
-  if (!podatkiKorak1Json) {
+  let podatkiKorak1 = null;
+  try {
+    podatkiKorak1 = podatkiKorak1Json ? JSON.parse(podatkiKorak1Json) : null;
+  } catch (_napaka) {
+    podatkiKorak1 = null;
+  }
+  if (!soPodatkiKorak1Uporabni(podatkiKorak1)) {
     window.location.href = "neplacila.html#obrazec";
     return;
   }
+  osveziKompaktniPovzetekDolga(podatkiKorak1);
+  let podatkiZgodovine = null;
+  try {
+    podatkiZgodovine = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA) || "null");
+  } catch (_napaka) {
+    podatkiZgodovine = null;
+  }
+  if (!podatkiZgodovine || podatkiZgodovine.potrjena !== true) {
+    window.location.href = "neplacila-zgodovina.html";
+    return;
+  }
+  podatkiKorak1.zgodovinaPredNacrtom = Array.isArray(podatkiZgodovine.dogodki)
+    ? podatkiZgodovine.dogodki
+    : [];
+  podatkiKorak1.preostaliDolgPredNacrtom = Number.isFinite(Number(podatkiZgodovine.preostaliZnesek))
+    ? Number(podatkiZgodovine.preostaliZnesek)
+    : Number(podatkiKorak1.znesek);
   if (!podatkiKorak2Json) {
-    zagotoviPodatkeSporocilaZaPosiljanje(JSON.parse(podatkiKorak1Json));
+    zagotoviPodatkeSporocilaZaPosiljanje(podatkiKorak1);
     podatkiKorak2Json = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
   }
 
-  inicializirajWizardProgressHeader(2);
+  inicializirajWizardProgressHeader(4);
   inicializirajIzbrisOsnutka();
 
-  const podatkiKorak1 = JSON.parse(podatkiKorak1Json);
   const podatkiKorak2 = JSON.parse(podatkiKorak2Json);
   uskladiAttachmentKanaleVKorak1(podatkiKorak1);
   const razKanali = razpolozljiviKanaliIzKontaktov(
@@ -8748,15 +9188,33 @@ async function inicializirajPosiljanje() {
     });
     planZaShranjevanje.stages = planZaShranjevanje.steps;
 
+    const prvotniZnesek = Number(podatkiKorak1.znesek);
+    if (!Number.isFinite(prvotniZnesek) || prvotniZnesek <= 0) {
+      throw new Error("Znesek dolga ni veljaven. Vrnite se na prvi korak in ga preverite.");
+    }
+
     let zadevaId = podatkiKorak1.zadevaId || null;
     if (!zadevaId) {
       const { data, error } = await supabaseKlient
         .from("zadeve")
         .insert({
           ime_dolznika: podatkiKorak1.imeDolznika,
+          vrsta_dolznika: podatkiKorak1.vrstaDolznika || "podjetje",
+          openregister_company_id: podatkiKorak1.openRegisterCompanyId || null,
+          register_type: podatkiKorak1.openRegisterRegisterType || null,
+          register_number: podatkiKorak1.openRegisterRegisterNumber || null,
+          register_court: podatkiKorak1.openRegisterRegisterCourt || null,
+          legal_form: podatkiKorak1.openRegisterLegalForm || null,
+          davcna_stevilka: podatkiKorak1.davcnaStevilka || null,
+          kontaktna_oseba: podatkiKorak1.kontaktnaOseba || null,
+          podjetje_preverjeno_at: podatkiKorak1.openRegisterVerifiedAt || null,
           telefon_dolznika: podatkiKorak1.telefonDolznika || null,
           email_dolznika: podatkiKorak1.emailDolznika || null,
-          znesek: podatkiKorak1.znesek,
+          znesek: prvotniZnesek,
+          prvotni_znesek: prvotniZnesek,
+          preostali_dolg: prvotniZnesek,
+          placano_skupaj: 0,
+          poravnano_nedenarno: 0,
           opis_dolga: podatkiKorak1.opisDolga,
           datum_izdaje_racuna: podatkiKorak1.datumIzdajeRacuna,
           datum_zapadlosti: podatkiKorak1.datumZapadlosti,
@@ -8850,6 +9308,7 @@ async function inicializirajPosiljanje() {
     }
 
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_ZGODOVINA);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_FINGERPRINT);
     if (window.UJOpominNacrt.pocistiOsnutek) {
@@ -8890,6 +9349,7 @@ async function inicializirajPosiljanje() {
   window.dispatchEvent(new CustomEvent("uj:nacrt-pripravljen"));
 }
 
+osveziKompaktniPovzetekDolga();
 inicializirajNeplacila();
 inicializirajSporociloDolzniku();
 inicializirajPosiljanje();
@@ -8970,8 +9430,9 @@ function prilagodiVelikostZneska(el) {
    besedila. Tako se velikost ne preračunava z dvema različnima praviloma. */
 window.UJPrilagodiVelikostVrednosti = prilagodiVelikostZneska;
 
-/* ---------- Samodejno prilagajanje besedila v kompaktnih pill elementih ----------
-   Daljša imena in vrednosti ostanejo v eni vrstici znotraj svojega okvirja.
+/* ---------- Samodejno prilagajanje besedila v kompaktnih elementih ----------
+   Daljša imena in vrednosti ostanejo znotraj svojega okvirja. Privzeto se
+   preverja ena vrstica, data-fit-text-lines pa omogoči omejeno večvrstičnost.
    Velikost se zmanjša samo toliko, kolikor je potrebno, in nikoli pod mejo,
    zapisano v data-fit-text-min. Elementi brez prostora oziroma skriti elementi
    se preračunajo ob naslednji DOM ali resize spremembi. */
@@ -9065,12 +9526,28 @@ function prilagodiVelikostKompaktnegaBesedila(el) {
 
   const sirina = el.clientWidth;
   if (!sirina) return;
+  const omejitevVrstic = Number.parseInt(el.getAttribute("data-fit-text-lines"), 10);
+  const jeVecvrsticno = Number.isFinite(omejitevVrstic) && omejitevVrstic > 1;
+  const selektorOkvirja = el.getAttribute("data-fit-text-container");
+  const okvir = selektorOkvirja ? el.closest(selektorOkvirja) : null;
+
+  function seOkvirPrilega() {
+    return !okvir || okvir.scrollHeight <= okvir.clientHeight + 0.5;
+  }
 
   function sePrilega() {
+    if (jeVecvrsticno) {
+      const slog = getComputedStyle(el);
+      const velikost = Number.parseFloat(slog.fontSize);
+      const visinaVrstice = Number.parseFloat(slog.lineHeight) || velikost * 1.2;
+      return el.scrollWidth <= sirina + 0.5 &&
+        el.scrollHeight <= visinaVrstice * omejitevVrstic + 0.5 &&
+        seOkvirPrilega();
+    }
     const range = document.createRange();
     range.selectNodeContents(el);
     const natancnaSirina = range.getBoundingClientRect().width;
-    return el.scrollWidth <= sirina && natancnaSirina <= sirina - 0.5;
+    return el.scrollWidth <= sirina && natancnaSirina <= sirina - 0.5 && seOkvirPrilega();
   }
 
   const osnovnaVelikost = Number.parseFloat(getComputedStyle(el).fontSize);
@@ -9078,7 +9555,7 @@ function prilagodiVelikostKompaktnegaBesedila(el) {
 
   const mejaAtributa = Number.parseFloat(el.getAttribute("data-fit-text-min"));
   const najmanjsaVelikost = Number.isFinite(mejaAtributa)
-    ? Math.max(7.5, mejaAtributa)
+    ? Math.max(6, mejaAtributa)
     : 9;
   let spodnja = Math.min(najmanjsaVelikost, osnovnaVelikost);
   let zgornja = osnovnaVelikost;

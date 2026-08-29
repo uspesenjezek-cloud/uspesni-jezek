@@ -6,7 +6,6 @@
 alter table public.pos_business_profiles
   add column business_phone text not null default ''
   check (char_length(business_phone) <= 60);
-
 create table public.pos_einvoice_documents (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -30,7 +29,6 @@ create table public.pos_einvoice_documents (
   unique (storage_path),
   check ((validation_status = 'validated' and validated_at is not null) or (validation_status <> 'validated' and validated_at is null))
 );
-
 create table public.pos_einvoice_validation_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -39,7 +37,6 @@ create table public.pos_einvoice_validation_events (
   report jsonb not null default '{}'::jsonb check (jsonb_typeof(report) = 'object'),
   created_at timestamptz not null default now()
 );
-
 create index pos_einvoice_documents_user_created_idx
   on public.pos_einvoice_documents(user_id, created_at desc);
 create index pos_einvoice_documents_pending_idx
@@ -49,20 +46,17 @@ create index pos_einvoice_validation_events_document_created_idx
   on public.pos_einvoice_validation_events(document_id, created_at desc);
 create index pos_einvoice_validation_events_user_created_idx
   on public.pos_einvoice_validation_events(user_id, created_at desc);
-
 alter table public.pos_einvoice_documents enable row level security;
 alter table public.pos_einvoice_validation_events enable row level security;
 revoke all on table public.pos_einvoice_documents, public.pos_einvoice_validation_events from public, anon, authenticated;
 grant select on table public.pos_einvoice_documents, public.pos_einvoice_validation_events to authenticated;
 grant all on table public.pos_einvoice_documents, public.pos_einvoice_validation_events to service_role;
-
 create policy pos_einvoice_documents_select_own on public.pos_einvoice_documents
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 create policy pos_einvoice_validation_events_select_own on public.pos_einvoice_validation_events
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
-
 create or replace function private.pos_protect_einvoice_document()
 returns trigger
 language plpgsql
@@ -87,25 +81,20 @@ begin
   return new;
 end;
 $$;
-
 create trigger pos_einvoice_documents_protected
 before update or delete on public.pos_einvoice_documents
 for each row execute function private.pos_protect_einvoice_document();
-
 create trigger pos_einvoice_validation_events_immutable
 before update or delete on public.pos_einvoice_validation_events
 for each row execute function private.pos_prevent_invoice_mutation();
-
 revoke all on function private.pos_protect_einvoice_document() from public, anon, authenticated;
 grant execute on function private.pos_protect_einvoice_document() to service_role;
-
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('pos-einvoice-originals', 'pos-einvoice-originals', false, 2097152, array['application/xml'])
 on conflict (id) do update set
   public = false,
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
-
 -- Brskalnik nima storage.objects politike. XML prebira le endpoint, ki najprej
 -- preveri JWT in lastništvo računa ter nato ponovno preveri SHA-256.
 
@@ -131,7 +120,6 @@ as $$
     true
   );
 $$;
-
 create or replace function public.pos_issue_replacement_invoice(
   p_draft_id uuid,
   p_payload jsonb,
@@ -154,10 +142,8 @@ as $$
     p_cancellation_adjustment_id
   );
 $$;
-
 revoke all on function public.pos_issue_invoice(uuid,jsonb,boolean,boolean) from public, anon;
 revoke all on function public.pos_issue_replacement_invoice(uuid,jsonb,boolean,boolean,uuid) from public, anon;
 grant execute on function public.pos_issue_invoice(uuid,jsonb,boolean,boolean) to authenticated, service_role;
 grant execute on function public.pos_issue_replacement_invoice(uuid,jsonb,boolean,boolean,uuid) to authenticated, service_role;
-
 notify pgrst, 'reload schema';

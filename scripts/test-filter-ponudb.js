@@ -174,7 +174,7 @@ assert.equal(N.najdiKorak(ponovnoNalozen, ixC).lawyerHandoff.customLawyers[0].ra
 /* UI vir – ključni gradniki filtra. */
 const uiSource = fs.readFileSync(path.join(__dirname, "../app/opomin-nacrt-ui.js"), "utf8");
 const cssSource = fs.readFileSync(path.join(__dirname, "../app/styles.css"), "utf8");
-assert.match(uiSource, /id="lp-filter-priporoceno"/);
+assert.match(uiSource, /id="lp-filter-ponudb-nacin"/);
 assert.match(uiSource, /id="lp-filter-ponudb-odpri"/);
 assert.match(uiSource, /id="lp-filter-ponudb-ovoj"/);
 assert.match(uiSource, /id="lp-filter-ponudb-uporabi"/);

@@ -24,11 +24,27 @@ const datevProviderBoundsMigration = fs.readFileSync(path.join(root, "supabase",
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821123000_pos_datev_cloud_integration.sql"), "utf8");
 const mockIsolationMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821124359_datev_mock_job_isolation.sql"), "utf8");
 const repeatableMockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821132323_datev_repeatable_mock_runs.sql"), "utf8");
+const refreshLockMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260828131500_pos_datev_refresh_rotation_lock.sql"), "utf8");
+const documentScopeMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260828143000_pos_datev_document_scope.sql"), "utf8");
 const vercel = JSON.parse(fs.readFileSync(path.join(root, "vercel.json"), "utf8"));
 
 const cfg = datev.configuration({ DATEV_MODE: "mock" });
 assert.strictEqual(cfg.mode, "mock");
 assert.throws(() => datev.configuration({ DATEV_MODE: "sandbox" }), /nastavitve še niso izdane/i);
+const sandboxEnvironment = {
+  DATEV_MODE: "sandbox", DATEV_CLIENT_ID: "sandbox-client", DATEV_CLIENT_SECRET: "sandbox-secret",
+  DATEV_REDIRECT_URI: "https://uspesni-jezek.vercel.app/api/pos-datev?action=callback",
+  DATEV_TOKEN_ENCRYPTION_KEY: "k".repeat(32),
+};
+assert.strictEqual(datev.configuration(sandboxEnvironment).mode, "sandbox");
+assert.throws(() => datev.configuration(Object.assign({}, sandboxEnvironment, {
+  DATEV_REDIRECT_URI: "https://example.com/callback",
+})), /nastavitve še niso izdane/i);
+assert.throws(() => datev.configuration(Object.assign({}, sandboxEnvironment, {
+  DATEV_SCOPES: "openid datev:accounting:clients",
+})), /scopes niso varno konfigurirani/i);
+assert.strictEqual(datev._test.validRedirectUri("https://example.com/api/pos-datev?action=callback"), true);
+assert.strictEqual(datev._test.validRedirectUri("https://example.com/api/pos-datev?action=callback#fragment"), false);
 assert.throws(
   () => datev.configuration({
     DATEV_MODE: "production",
@@ -49,16 +65,34 @@ const state = datev.sealState(cfg, { userId: "11111111-1111-4111-8111-1111111111
 assert.strictEqual(datev.openState(cfg, state).verifier, "secret");
 assert.throws(() => datev.openState(cfg, state.slice(0, -2) + "aa"), /ni veljavna/i);
 const authUrl = new URL(datev.authorizationUrl(cfg, { userId: "11111111-1111-4111-8111-111111111111" }));
+const authState = datev.openState(cfg, authUrl.searchParams.get("state"));
 assert.strictEqual(authUrl.hostname, "login.datev.de");
 assert.strictEqual(authUrl.searchParams.get("code_challenge_method"), "S256");
 assert.ok(authUrl.searchParams.get("code_challenge"));
 assert.ok(authUrl.searchParams.get("nonce"));
+assert.strictEqual(authUrl.searchParams.get("nonce"), authState.nonce);
+assert.ok(authState.nonce.length >= 20);
 assert.strictEqual(authUrl.searchParams.get("enableWindowsSso"), "true");
 assert.match(authUrl.searchParams.get("scope"), /accounting:documents/);
 assert.strictEqual(datev.normalizedClientId("29098", "55003"), "29098-55003");
 assert.strictEqual(datev.hasBuchungsdatenservice(datev.mockClient("29098", "55003")), true);
+assert.strictEqual(datev.hasBuchungsdatenservice({ services: [{ name: "Buchungsdatenservice", scopes: [] }] }), false);
+assert.strictEqual(datev.hasBuchungsdatenservice({ services: [{ name: "Drug servis", scopes: ["datev:accounting:extf-files-import"] }] }), false);
 assert.strictEqual(datev.supportsDocumentExtension({ allowed_file_extensions: ["jpg", "PDF"] }, ".pdf"), true);
 assert.throws(() => datev.safeJobUrl(cfg, "https://example.com/job/1"), /neveljavno povezavo/i);
+assert.strictEqual(datev._test.parseRetryAfter("0", 5), 1);
+assert.strictEqual(datev._test.parseRetryAfter("999", 5), 300);
+assert.strictEqual(datev._test.parseRetryAfter("neveljavno", 7), 7);
+assert.strictEqual(handler._test.cookie({ headers: { cookie: "other=1; " + handler._test.DATEV_OAUTH_COOKIE + "=abc%20123" } }, handler._test.DATEV_OAUTH_COOKIE), "abc 123");
+assert.strictEqual(handler._test.sameSecret(handler._test.oauthBindingHash("browser-secret"), handler._test.oauthBindingHash("browser-secret")), true);
+assert.strictEqual(handler._test.sameSecret(handler._test.oauthBindingHash("browser-secret"), handler._test.oauthBindingHash("other-browser")), false);
+assert.throws(() => handler._test.tokenExpiry({ access_token: "", expires_in: 600 }), /neveljavno žetonsko sejo/i);
+assert.throws(() => handler._test.tokenExpiry({ access_token: "token", expires_in: Infinity }), /neveljavno žetonsko sejo/i);
+assert.ok(Date.parse(handler._test.tokenExpiry({ access_token: "token", expires_in: 600 })) > Date.now());
+assert.deepStrictEqual(handler._test.publicConnection(cfg, { environment: "sandbox", status: "connected", datev_client_id: "secret-client" }), {
+  configured: true, environment: "mock", connected: false, status: "disconnected", clientId: "",
+  consultantNumber: null, clientNumber: null, clientName: "", lastVerifiedAt: null, lastErrorCode: "",
+});
 
 const profile = Core.defaultProfile();
 const draft = Core.defaultDraft(profile);
@@ -70,6 +104,11 @@ draft.items[0].unitPrice = "100,00";
 const settings = Object.assign(Core.defaultDatevSettings("03"), {
   adviserNumber: "29098", clientNumber: "55003", confirmed: true,
 });
+assert.strictEqual(handler._test.validateTransferSettings(settings, "2026-08"), settings);
+assert.throws(
+  () => handler._test.validateTransferSettings(Object.assign({}, settings, { confirmed: false }), "2026-08"),
+  function (error) { return error && error.code === "DATEV_SETTINGS_INCOMPLETE" && error.status === 409; }
+);
 const invoiceGuid = "11111111-1111-4111-8111-111111111111";
 const adjustmentGuid = "22222222-2222-4222-8222-222222222222";
 const invoice = {
@@ -137,6 +176,9 @@ assert.match(browserJs, /function transferDatevCloud\(/);
 assert.match(browserJs, /mockTest \? "test-transfer" : "transfer"/);
 assert.match(browserJs, /Preveri testni DATEV paket/);
 assert.match(browserJs, /Mock uporabi samo račune TEST-\*/);
+assert.match(browserJs, /connectedIdentifiers\.push\("Berater " \+ datevCloudCapability\.consultantNumber\)/);
+assert.match(browserJs, /connectedIdentifiers\.push\("Mandant " \+ datevCloudCapability\.clientNumber\)/);
+assert.match(browserJs, /latest\.status === "failed" && latest\.errorMessage \? " · " \+ String\(latest\.errorMessage\)/);
 assert.match(handlerSource, /action === "transfer" \|\| action === "test-transfer"/);
 assert.match(handlerSource, /is_test=eq\." \+ testFilter/);
 assert.match(handlerSource, /issued_at=gte\." \+ encodeURIComponent\(bounds\.startUtc\)/);
@@ -148,8 +190,26 @@ assert.match(mockIsolationMigration, /user_id, period, environment/i);
 assert.match(repeatableMockMigration, /environment <> 'mock'[\s\S]*preparing','processing','succeeded/i);
 assert.match(repeatableMockMigration, /environment = 'mock'[\s\S]*preparing','processing'/i);
 assert.doesNotMatch(repeatableMockMigration, /environment = 'mock'[\s\S]*preparing','processing','succeeded'/i);
+assert.match(refreshLockMigration, /refresh_claim_id uuid/i);
+assert.match(refreshLockMigration, /refresh_claimed_at < now\(\) - interval '2 minutes'/i);
+assert.match(refreshLockMigration, /security definer[\s\S]*set search_path = ''/i);
+assert.match(refreshLockMigration, /revoke all on function public\.claim_pos_datev_refresh\(uuid, text, uuid\) from public, anon, authenticated/i);
+assert.match(refreshLockMigration, /grant execute on function public\.claim_pos_datev_refresh\(uuid, text, uuid\) to service_role/i);
+assert.match(documentScopeMigration, /add column environment text/i);
+assert.match(documentScopeMigration, /add column datev_client_id text/i);
+assert.match(documentScopeMigration, /unique \(user_id, archive_record_id, environment, datev_client_id\)/i);
+assert.match(documentScopeMigration, /unique \(user_id, request_id, environment, datev_client_id\)/i);
+assert.match(documentScopeMigration, /pos_datev_transfer_jobs\(user_id, period, environment, datev_client_id\)/i);
+assert.match(handlerSource, /documentTransfer\(db, userId, record, datevCfg\.mode, client\.id\)/);
+assert.match(handlerSource, /createJob\(db, userId, requestId, selectedPeriod, datevCfg\.mode, connection\.datev_client_id/);
 assert.match(handlerSource, /request_id=eq\." \+ encodeURIComponent\(requestId\)/);
 assert.match(handlerSource, /environment=eq\." \+ encodeURIComponent\(mode\)/);
+assert.match(handlerSource, /user_id=eq\." \+ encodeURIComponent\(userId\) \+ "&id=eq\." \+ encodeURIComponent\(id\)/);
+assert.match(handlerSource, /rpc\/claim_pos_datev_refresh/);
+assert.match(handlerSource, /refresh_claim_id=eq\." \+ encodeURIComponent\(claimId\)/);
+assert.match(handlerSource, /if \(!rotatedRefresh\) throw new datev\.DatevError/);
+assert.doesNotMatch(handlerSource, /tokens\.refresh_token \|\| refresh/);
+assert.ok(handlerSource.indexOf("Core.buildDatevExport(pack.invoices") < handlerSource.indexOf("await datev.uploadDocument"), "EXTF preflight mora biti pred prvim DATEV dokumentnim uploadom.");
 assert.match(handlerSource, /repeatableMock \? "preparing,processing" : "preparing,processing,succeeded"/);
 assert.match(browserJs, /authorizationUrl\.hostname !== "login\.datev\.de"/);
 assert.match(browserJs, /Mock uporabi samo račune TEST-\*/);
@@ -170,6 +230,17 @@ assert.match(localServer, /else void posredujZascitenApi\(req, res, requestUrl\.
 assert.match(localServer, /pathname === "\/__dev-source"/);
 
 assert.deepStrictEqual(handler._test.chunks([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+const pollNow = Date.parse("2026-08-28T12:00:00.000Z");
+assert.strictEqual(handler._test.jobPollState({ created_at: "2026-08-28T11:59:00.000Z", updated_at: "2026-08-28T11:59:58.000Z", retry_after_seconds: 5 }, pollNow), "wait");
+assert.strictEqual(handler._test.jobPollState({ created_at: "2026-08-28T11:59:00.000Z", updated_at: "2026-08-28T11:59:50.000Z", retry_after_seconds: 5 }, pollNow), "poll");
+assert.strictEqual(handler._test.jobPollState({ created_at: "2026-08-28T11:30:00.000Z", updated_at: "2026-08-28T11:59:59.000Z", retry_after_seconds: 5 }, pollNow), "expired");
+assert.deepStrictEqual(handler._test.pollFailureChanges({ code: "DATEV_NETWORK_FAILED", message: "temporary", retryable: true }, pollNow), {
+  retry_after_seconds: 30, error_code: "DATEV_NETWORK_FAILED", error_message: "temporary",
+});
+assert.deepStrictEqual(handler._test.pollFailureChanges({ code: "DATEV_HTTP_404", message: "terminal" }, pollNow), {
+  status: "failed", completed_at: "2026-08-28T12:00:00.000Z", retry_after_seconds: 0,
+  error_code: "DATEV_HTTP_404", error_message: "terminal",
+});
 assert.doesNotMatch(handler._test.periodPackage.toString(), /&limit=(?:500|1000|1500)/);
 assert.match(handler._test.periodPackage.toString(), /pagedRows\(cfg, "pos_invoices"/);
 assert.match(handler._test.periodPackage.toString(), /rowsForIds\(cfg, "pos_archive_records"/);
@@ -211,6 +282,53 @@ void (async function verifyDatevPagination() {
       /odgovor je prevelik/i
     );
     assert.throws(() => datev.encryptSecret(cfg, "x".repeat(8193)), /žeton je prevelik/i);
+    const jose = await import("jose");
+    const keyPair = await jose.generateKeyPair("ES256");
+    const publicJwk = await jose.exportJWK(keyPair.publicKey);
+    publicJwk.kid = "datev-test-key";
+    const oidcNonce = "nonce-for-datev-test-123456";
+    const idToken = await new jose.SignJWT({ nonce: oidcNonce })
+      .setProtectedHeader({ alg: "ES256", kid: publicJwk.kid })
+      .setIssuer(datev.urls(cfg.mode).issuer)
+      .setAudience(cfg.clientId)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(keyPair.privateKey);
+    supabase.fetchZOmejitvijo = async function (url) {
+      const data = String(url).includes(".well-known")
+        ? { issuer: datev.urls(cfg.mode).issuer, jwks_uri: datev.urls(cfg.mode).issuer + "/jwks" }
+        : { keys: [publicJwk] };
+      return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } });
+    };
+    assert.strictEqual((await datev.validateIdToken(cfg, idToken, oidcNonce)).nonce, oidcNonce);
+    await assert.rejects(
+      () => datev.validateIdToken(cfg, idToken, "drug-nonce-123456789012"),
+      function (error) { return error && error.code === "DATEV_ID_TOKEN_INVALID" && error.status === 401; }
+    );
+    supabase.fetchZOmejitvijo = async function () {
+      return new Response(JSON.stringify({
+        id: "29098-55004", consultant_number: 29098, client_number: 55004,
+        services: [{ name: "Buchungsdatenservice", scopes: ["datev:accounting:extf-files-import"] }],
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    };
+    await assert.rejects(
+      () => datev.getClient(cfg, "token", "29098", "55003"),
+      function (error) { return error && error.code === "DATEV_PERMISSION_MISSING" && error.status === 403; }
+    );
+    supabase.fetchZOmejitvijo = async function () {
+      return new Response(JSON.stringify({ status: "processing" }), {
+        status: 202,
+        headers: {
+          "content-type": "application/json", "retry-after": "999",
+          location: "https://accounting-extf-files.api.datev.de/platform-sandbox/v3/clients/29098-55003/jobs/job-1",
+        },
+      });
+    };
+    const upload = await datev.uploadExtf(cfg, "token", "29098-55003", {
+      filename: "EXTF.csv", content: "EXTF", referenceId: "request-1",
+    });
+    assert.strictEqual(upload.retryAfter, 300);
+    assert.strictEqual(upload.jobId, "job-1");
     await assert.rejects(
       () => handler._test.archiveContent({ url: "https://database.example" }, {
         storage_bucket: "pos-invoice-originals", storage_path: "user/invoice/rechnung.pdf",
@@ -228,6 +346,65 @@ void (async function verifyDatevPagination() {
       }),
       function (error) { return error && error.code === "DATEV_ARCHIVE_TOO_LARGE" && error.status === 409; }
     );
+    supabase.fetchZOmejitvijo = originalFetch;
+
+    const transferRows = [];
+    const paginationRead = supabase.pridobiVrstice;
+    supabase.pridobiVrstice = async function (_, table, query) {
+      assert.strictEqual(table, "pos_datev_document_transfers");
+      const params = new URLSearchParams(query);
+      const filterValue = function (name) { return String(params.get(name) || "").replace(/^eq\./, ""); };
+      return transferRows.filter(function (row) {
+        return row.user_id === filterValue("user_id") && row.archive_record_id === filterValue("archive_record_id") &&
+          row.environment === filterValue("environment") && row.datev_client_id === filterValue("datev_client_id");
+      });
+    };
+    supabase.fetchZOmejitvijo = async function (_, options) {
+      const body = JSON.parse(options.body);
+      const row = Object.assign({ id: "transfer-" + (transferRows.length + 1) }, body);
+      transferRows.push(row);
+      return new Response(JSON.stringify([row]), { status: 201, headers: { "content-type": "application/json" } });
+    };
+    const archiveRecord = { id: "archive-record-1" };
+    const mockTransfer = await handler._test.documentTransfer({ url: "https://database.example" }, "user-1", archiveRecord, "mock", "29098-55003");
+    const sandboxTransfer = await handler._test.documentTransfer({ url: "https://database.example" }, "user-1", archiveRecord, "sandbox", "29098-55003");
+    const otherClientTransfer = await handler._test.documentTransfer({ url: "https://database.example" }, "user-1", archiveRecord, "sandbox", "29098-55004");
+    const repeatedSandboxTransfer = await handler._test.documentTransfer({ url: "https://database.example" }, "user-1", archiveRecord, "sandbox", "29098-55003");
+    assert.deepStrictEqual([mockTransfer.id, sandboxTransfer.id, otherClientTransfer.id, repeatedSandboxTransfer.id],
+      ["transfer-1", "transfer-2", "transfer-3", "transfer-2"]);
+    assert.strictEqual(transferRows.length, 3, "DATEV PDF idempotency mora biti izoliran po okolju in mandantu.");
+
+    const jobRows = [];
+    supabase.pridobiVrstice = async function (_, table, query) {
+      assert.strictEqual(table, "pos_datev_transfer_jobs");
+      const params = new URLSearchParams(query);
+      const filterValue = function (name) { return String(params.get(name) || "").replace(/^eq\./, ""); };
+      return jobRows.filter(function (row) {
+        return (!params.has("user_id") || row.user_id === filterValue("user_id")) &&
+          (!params.has("request_id") || row.request_id === filterValue("request_id")) &&
+          (!params.has("environment") || row.environment === filterValue("environment")) &&
+          (!params.has("datev_client_id") || row.datev_client_id === filterValue("datev_client_id"));
+      });
+    };
+    supabase.fetchZOmejitvijo = async function (_, options) {
+      const body = JSON.parse(options.body);
+      const duplicate = jobRows.some(function (row) {
+        return row.user_id === body.user_id && row.request_id === body.request_id &&
+          row.environment === body.environment && row.datev_client_id === body.datev_client_id;
+      });
+      if (duplicate) return new Response(JSON.stringify({ code: "23505" }), { status: 409, headers: { "content-type": "application/json" } });
+      const row = Object.assign({ id: "job-" + (jobRows.length + 1) }, body);
+      jobRows.push(row);
+      return new Response(JSON.stringify([row]), { status: 201, headers: { "content-type": "application/json" } });
+    };
+    const requestId = "11111111-1111-4111-8111-111111111111";
+    const selectedPeriod = handler._test.period("2026-08");
+    const firstClientJob = await handler._test.createJob({ url: "https://database.example" }, "user-1", requestId, selectedPeriod, "sandbox", "29098-55003");
+    const secondClientJob = await handler._test.createJob({ url: "https://database.example" }, "user-1", requestId, selectedPeriod, "sandbox", "29098-55004");
+    const repeatedFirstClientJob = await handler._test.createJob({ url: "https://database.example" }, "user-1", requestId, selectedPeriod, "sandbox", "29098-55003");
+    assert.deepStrictEqual([firstClientJob.id, secondClientJob.id, repeatedFirstClientJob.id], ["job-1", "job-2", "job-1"]);
+    assert.strictEqual(jobRows.length, 2, "DATEV EXTF opravilo mora biti izolirano po mandantu.");
+    supabase.pridobiVrstice = paginationRead;
     supabase.fetchZOmejitvijo = originalFetch;
 
     const all = await handler._test.pagedRows({}, "datev_test_rows", "select=id&order=id.asc", 500);

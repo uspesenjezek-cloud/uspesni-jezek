@@ -22,6 +22,13 @@ const VERIFIED_SCHEMA_HISTORY_GAPS = new Set([
   "20260824090000_delna_nedenarna_poravnava.sql",
 ]);
 
+const ATOMIC_MIGRATION_GROUPS = [
+  [
+    "20260826182713_pos_cash_checkout_state.sql",
+    "20260826194158_pos_cash_refund_state.sql",
+  ],
+];
+
 function parseDryRunOutput(output) {
   const clean = String(output || "").replace(/\u001b\[[0-9;]*m/g, "");
   const lines = clean.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -41,17 +48,23 @@ function parseDryRunOutput(output) {
 
 function evaluatePendingMigrations(migrations) {
   const pending = [...new Set(migrations.map((name) => String(name).trim()))].sort();
+  const pendingSet = new Set(pending);
   const historyGaps = pending.filter((name) => VERIFIED_SCHEMA_HISTORY_GAPS.has(name));
   const blocked = pending.filter(
     (name) => !POS_MIGRATION_ALLOWLIST.has(name) && !VERIFIED_SCHEMA_HISTORY_GAPS.has(name)
   );
   const allowed = pending.filter((name) => POS_MIGRATION_ALLOWLIST.has(name));
+  const incompleteGroups = ATOMIC_MIGRATION_GROUPS.filter(function (group) {
+    const count = group.filter((name) => pendingSet.has(name)).length;
+    return count > 0 && count < group.length;
+  });
   return {
     pending,
     allowed,
     historyGaps,
     blocked,
-    safe: blocked.length === 0 && historyGaps.length === 0,
+    incompleteGroups,
+    safe: blocked.length === 0 && historyGaps.length === 0 && incompleteGroups.length === 0,
   };
 }
 
@@ -90,7 +103,12 @@ function main() {
     assessment.blocked.forEach((name) => console.error(`  - ${name}`));
   }
 
-  if (assessment.historyGaps.length || assessment.blocked.length) {
+  if (assessment.incompleteGroups.length) {
+    console.error("\nBLOKIRANO: odvisne migracije morajo biti v čakalni vrsti skupaj:");
+    assessment.incompleteGroups.forEach((group) => console.error(`  - ${group.join(" + ")}`));
+  }
+
+  if (assessment.historyGaps.length || assessment.blocked.length || assessment.incompleteGroups.length) {
     console.error("\nVarovalka je izvedla samo --dry-run. Nobena migracija ni bila objavljena.");
     process.exitCode = 1;
     return;
@@ -115,6 +133,7 @@ if (require.main === module) {
 module.exports = {
   POS_MIGRATION_ALLOWLIST,
   VERIFIED_SCHEMA_HISTORY_GAPS,
+  ATOMIC_MIGRATION_GROUPS,
   evaluatePendingMigrations,
   parseDryRunOutput,
 };

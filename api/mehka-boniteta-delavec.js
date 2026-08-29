@@ -4,8 +4,10 @@ var sentry = require("./_lib/sentry");
 var crypto = require("crypto");
 var db = require("./_lib/supabase-server");
 var queue = require("./_lib/mehka-boniteta-queue");
-var mehkaBoniteta = require("./mehka-boniteta");
+var mehkaBoniteta = require("./_handlers/mehka-boniteta");
 var projectMonitor = require("./_lib/projektno-spremljanje");
+var financialRecheck = require("./_lib/financno-ponovno-preverjanje");
+var debtorCompanyIdentity = require("./_lib/debtor-company-identity");
 
 function varnoEnako(a, b) {
   var aa = Buffer.from(String(a || ""));
@@ -16,6 +18,17 @@ function varnoEnako(a, b) {
 function bearer(req) {
   var match = String(req.headers && req.headers.authorization || "").match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : "";
+}
+
+function jeLokalnaZahteva(req) {
+  var naslov = String(req && req.socket && req.socket.remoteAddress || "").toLowerCase();
+  return naslov === "127.0.0.1" || naslov === "::1" || naslov === "::ffff:127.0.0.1";
+}
+
+function jeLokalniPredogled(req) {
+  return process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE === "true" && jeLokalnaZahteva(req) &&
+    String(req && req.headers && req.headers["x-uj-local-preview"] || "") === "1" &&
+    bearer(req) === "local-preview";
 }
 
 function ujemanjeCron(req) {
@@ -33,12 +46,22 @@ function navidezniOdgovor() {
   };
 }
 
-function prehodnaNapaka(status, payload) {
+function jeNedokoncanaUradnaInsolvencnaPreverba(payload) {
+  var insolvenca = payload && payload.insolvency || {};
+  var uradna = insolvenca.officialVerification || {};
+  if (!insolvenca.status) return false;
+  if (projectMonitor.jeNedokoncanaUradnaPreverba(payload)) return true;
+  if (!["clear", "possible_match"].includes(insolvenca.status)) return false;
+  return uradna.evidenceStatus !== "captured" || !uradna.evidenceImage;
+}
+
+function prehodnaNapaka(status, payload, job) {
   if (status >= 500) return true;
   if (!payload || !payload.ok) return false;
-  // Uspešen odgovor z nedosegljivim virom je veljaven rumen rezultat, ne
-  // tehnična napaka. Uporabniku ga pokažemo takoj in iste dolge preverbe ne
-  // ponavljamo trikrat. Ponovimo le izrecno označeno prehodno napako.
+  // Brez zajetega rezultata uradnega portala preverba ni zaključena. Enako
+  // velja za ročno preverbo in spremljanje: delni rezultat se ponovi in se ne
+  // sme shraniti kot zadnja uspešna preverba.
+  if (jeNedokoncanaUradnaInsolvencnaPreverba(payload)) return true;
   return payload.retryable === true;
 }
 
@@ -47,9 +70,10 @@ function vrsticaZakljucka(value) {
 }
 
 async function varnoZakljuciSpremljanje(cfg, job, success, payload) {
-  if (!job || !job.project_monitor_id) return;
+  if (!job || (!job.project_monitor_id && !job.financial_recheck_id)) return;
   try {
-    await projectMonitor.finish(cfg, job, success, payload);
+    if (job.project_monitor_id) await projectMonitor.finish(cfg, job, success, payload);
+    if (job.financial_recheck_id) await financialRecheck.finish(cfg, job, success, payload);
   } catch (err) {
     // Rezultat preverbe je že varno shranjen v čakalni vrsti. Napaka pri
     // posodobitvi projektnega urnika ga ne sme spremeniti v neuspešno opravilo
@@ -71,7 +95,7 @@ async function izvediJob(cfg, job) {
     await mehkaBoniteta(req, res);
     var status = Number(res.state.status || 500);
     var payload = res.state.payload || { ok: false, napaka: "Preverjanje ni vrnilo rezultata." };
-    var retryable = prehodnaNapaka(status, payload);
+    var retryable = prehodnaNapaka(status, payload, job);
     var success = status >= 200 && status < 300 && !retryable;
     rezultatPridobljen = true;
     var zakljucek = vrsticaZakljucka(await queue.zakljuci(cfg, job, {
@@ -121,14 +145,19 @@ async function handler(req, res) {
     cfg = { url: lokalniUrl, serviceKey: lokalniAnonKljuc };
   }
 
-  if (!ujemanjeCron(req)) {
+  var cronRequest = ujemanjeCron(req);
+  if (!cronRequest && !jeLokalniPredogled(req)) {
     var auth = await db.preveriUporabnika(req, cfg);
     if (!auth.ok) return res.status(auth.status).json({ ok: false, napaka: auth.napaka });
   }
 
   try {
+    if (cronRequest && req.body && req.body.source === "debtor-company-identity-heartbeat") {
+      var debtorRefresh = await debtorCompanyIdentity.refreshDue();
+      return res.json({ ok: true, processed: debtorRefresh ? 1 : 0, debtorCompany: debtorRefresh });
+    }
     // Ena funkcija požene eno težko brskalniško preverbo. Več funkcij se lahko
-    // zažene hkrati; baza globalno dovoli 30 opravil, od tega največ 10
+    // zažene hkrati; baza globalno dovoli 30 opravil, od tega največ 20
     // insolvenčnih poizvedb na uradni portal.
     var jobs = await queue.prevzemi(cfg, 1);
     // Ročna uporabniška preverba ima vedno prednost. Projektni razporejevalnik
@@ -139,6 +168,11 @@ async function handler(req, res) {
         await projectMonitor.schedule(cfg);
       } catch (scheduleError) {
         console.error("[mehka-boniteta-delavec:schedule]", scheduleError.code || scheduleError.message);
+      }
+      try {
+        await financialRecheck.schedule(cfg);
+      } catch (financialScheduleError) {
+        console.error("[mehka-boniteta-delavec:financial-recheck-schedule]", financialScheduleError.code || financialScheduleError.message);
       }
       jobs = await queue.prevzemi(cfg, 1);
     }
@@ -155,8 +189,10 @@ module.exports = sentry.wrapHandler(handler, "/api/mehka-boniteta-delavec");
 module.exports._test = {
   varnoEnako: varnoEnako,
   prehodnaNapaka: prehodnaNapaka,
+  jeNedokoncanaUradnaInsolvencnaPreverba: jeNedokoncanaUradnaInsolvencnaPreverba,
   navidezniOdgovor: navidezniOdgovor,
   izvediJob: izvediJob,
   vrsticaZakljucka: vrsticaZakljucka,
   varnoZakljuciSpremljanje: varnoZakljuciSpremljanje,
+  jeLokalniPredogled: jeLokalniPredogled,
 };

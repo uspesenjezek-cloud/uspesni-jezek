@@ -83,7 +83,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function public.pos_queue_live_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -96,7 +95,6 @@ set search_path = ''
 as $$
   select private._pos_queue_live_invoice_delivery(p_delivery_id, p_user_id, p_confirmed);
 $$;
-
 create or replace function private._pos_claim_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -138,7 +136,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function private._pos_finish_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -208,15 +205,12 @@ begin
   return v_delivery;
 end;
 $$;
-
 revoke all on function private._pos_queue_live_invoice_delivery(uuid,uuid,boolean) from public, anon, authenticated;
 revoke all on function public.pos_queue_live_invoice_delivery(uuid,uuid,boolean) from public, anon, authenticated;
 grant execute on function private._pos_queue_live_invoice_delivery(uuid,uuid,boolean) to service_role;
 grant execute on function public.pos_queue_live_invoice_delivery(uuid,uuid,boolean) to service_role;
-
 revoke all on function private._pos_claim_invoice_delivery(uuid,uuid,uuid) from public, anon, authenticated;
 revoke all on function private._pos_finish_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) from public, anon, authenticated;
 grant execute on function private._pos_claim_invoice_delivery(uuid,uuid,uuid) to service_role;
 grant execute on function private._pos_finish_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) to service_role;
-
 notify pgrst, 'reload schema';

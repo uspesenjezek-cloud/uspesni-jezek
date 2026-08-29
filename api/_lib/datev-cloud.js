@@ -36,6 +36,23 @@ function secretKey(value, required) {
   return crypto.createHash("sha256").update(raw || "datev-mock-only-local-key").digest();
 }
 
+function validRedirectUri(value) {
+  try {
+    const target = new URL(String(value || ""));
+    return target.protocol === "https:" && !target.username && !target.password && !target.hash &&
+      target.pathname === "/api/pos-datev" && target.searchParams.get("action") === "callback";
+  } catch (_) { return false; }
+}
+
+function normalizedScopes(value) {
+  const scopes = Array.from(new Set(String(value || DEFAULT_SCOPES.join(" ")).trim().split(/\s+/).filter(Boolean)));
+  const invalid = scopes.length > 32 || scopes.some(function (scope) {
+    return scope.length > 160 || !/^[A-Za-z0-9:._/-]+$/.test(scope);
+  }) || DEFAULT_SCOPES.some(function (required) { return !scopes.includes(required); });
+  if (invalid) throw new DatevError("DATEV OAuth scopes niso varno konfigurirani.", { code: "DATEV_NOT_CONFIGURED", status: 503 });
+  return scopes;
+}
+
 function configuration(env) {
   const source = env || process.env;
   const mode = environment(source.DATEV_MODE);
@@ -49,7 +66,7 @@ function configuration(env) {
   const clientId = String(source.DATEV_CLIENT_ID || "").trim();
   const clientSecret = String(source.DATEV_CLIENT_SECRET || "");
   const redirectUri = String(source.DATEV_REDIRECT_URI || "").trim();
-  if (required && (!clientId || !clientSecret || !/^https:\/\//i.test(redirectUri))) {
+  if (required && (!clientId || clientId.length > 200 || !clientSecret || Buffer.byteLength(clientSecret, "utf8") > 8192 || !validRedirectUri(redirectUri))) {
     throw new DatevError("DATEV sandbox nastavitve še niso izdane.", { code: "DATEV_NOT_CONFIGURED", status: 503 });
   }
   return {
@@ -57,7 +74,7 @@ function configuration(env) {
     clientId: clientId || "uj-datev-mock",
     clientSecret,
     redirectUri: redirectUri || "https://uspesni-jezek.vercel.app/api/pos-datev?action=callback",
-    scopes: String(source.DATEV_SCOPES || DEFAULT_SCOPES.join(" ")).trim().split(/\s+/).filter(Boolean),
+    scopes: normalizedScopes(source.DATEV_SCOPES),
     tokenKey: secretKey(source.DATEV_TOKEN_ENCRYPTION_KEY, required),
     appVersion: String(source.DATEV_APP_VERSION || "1.0.0").slice(0, 40),
   };
@@ -72,6 +89,7 @@ function urls(mode) {
   }
   const sandbox = mode !== "production";
   return {
+    issuer: sandbox ? "https://login.datev.de/openidsandbox" : "https://login.datev.de/openid",
     authorize: sandbox ? "https://login.datev.de/openidsandbox/authorize" : "https://login.datev.de/openid/authorize",
     token: sandbox ? "https://sandbox-api.datev.de/token" : "https://api.datev.de/token",
     revoke: sandbox ? "https://sandbox-api.datev.de/revoke" : "https://api.datev.de/revoke",
@@ -79,6 +97,50 @@ function urls(mode) {
     documents: "https://accounting-documents.api.datev.de/" + (sandbox ? "platform-sandbox" : "platform") + "/v2",
     extf: "https://accounting-extf-files.api.datev.de/" + (sandbox ? "platform-sandbox" : "platform") + "/v3",
   };
+}
+
+function safeOidcUrl(cfg, value) {
+  const issuer = new URL(urls(cfg.mode).issuer + "/");
+  const target = new URL(String(value || ""), issuer);
+  if (target.protocol !== "https:" || target.origin !== issuer.origin || !target.pathname.startsWith(issuer.pathname)) {
+    throw new DatevError("DATEV OIDC konfiguracija ni veljavna.", { code: "DATEV_OIDC_INVALID", status: 502 });
+  }
+  return target.toString();
+}
+
+async function validateIdToken(cfg, idToken, nonce) {
+  const token = String(idToken || "");
+  if (!token || Buffer.byteLength(token, "utf8") > 32 * 1024 || !String(nonce || "")) {
+    throw new DatevError("DATEV identitetni žeton manjka.", { code: "DATEV_ID_TOKEN_INVALID", status: 502 });
+  }
+  const issuer = urls(cfg.mode).issuer;
+  const discovery = await checkedFetch(safeOidcUrl(cfg, issuer + "/.well-known/openid-configuration"), {
+    headers: { Accept: "application/json" },
+  }, 15000);
+  const metadata = discovery.data || {};
+  if (String(metadata.issuer || "").replace(/\/$/, "") !== issuer || !metadata.jwks_uri) {
+    throw new DatevError("DATEV OIDC konfiguracija ni veljavna.", { code: "DATEV_OIDC_INVALID", status: 502 });
+  }
+  const jwks = await checkedFetch(safeOidcUrl(cfg, metadata.jwks_uri), { headers: { Accept: "application/json" } }, 15000);
+  if (!jwks.data || !Array.isArray(jwks.data.keys)) {
+    throw new DatevError("DATEV podpisnih ključev ni bilo mogoče preveriti.", { code: "DATEV_OIDC_INVALID", status: 502 });
+  }
+  try {
+    const jose = await import("jose");
+    const verified = await jose.jwtVerify(token, jose.createLocalJWKSet(jwks.data), {
+      issuer, audience: cfg.clientId,
+    });
+    if (!sameText(verified.payload.nonce, nonce)) throw new Error("nonce mismatch");
+    return verified.payload;
+  } catch (_) {
+    throw new DatevError("DATEV identitetni žeton ni veljaven.", { code: "DATEV_ID_TOKEN_INVALID", status: 401 });
+  }
+}
+
+function sameText(left, right) {
+  const first = Buffer.from(String(left || ""), "utf8");
+  const second = Buffer.from(String(right || ""), "utf8");
+  return first.length > 0 && first.length === second.length && crypto.timingSafeEqual(first, second);
 }
 
 function encryptBuffer(key, buffer) {
@@ -132,7 +194,8 @@ function createPkce() {
 
 function authorizationUrl(cfg, values) {
   const pkce = createPkce();
-  const state = sealState(cfg, Object.assign({}, values, { verifier: pkce.verifier, nonce: crypto.randomUUID() }));
+  const nonce = crypto.randomBytes(24).toString("base64url");
+  const state = sealState(cfg, Object.assign({}, values, { verifier: pkce.verifier, nonce }));
   const target = new URL(urls(cfg.mode).authorize);
   target.searchParams.set("client_id", cfg.clientId);
   target.searchParams.set("redirect_uri", cfg.redirectUri);
@@ -141,7 +204,7 @@ function authorizationUrl(cfg, values) {
   target.searchParams.set("code_challenge", pkce.challenge);
   target.searchParams.set("code_challenge_method", "S256");
   target.searchParams.set("state", state);
-  target.searchParams.set("nonce", crypto.randomBytes(24).toString("base64url"));
+  target.searchParams.set("nonce", nonce);
   target.searchParams.set("enableWindowsSso", "true");
   return target.toString();
 }
@@ -248,7 +311,8 @@ function normalizedClientId(consultantNumber, clientNumber) {
 
 function hasBuchungsdatenservice(client) {
   return Boolean((client && client.services || []).some(function (service) {
-    return service && (service.name === "Buchungsdatenservice" || (service.scopes || []).includes("datev:accounting:extf-files-import"));
+    return service && service.name === "Buchungsdatenservice" &&
+      Array.isArray(service.scopes) && service.scopes.includes("datev:accounting:extf-files-import");
   }));
 }
 
@@ -257,7 +321,8 @@ async function getClient(cfg, token, consultantNumber, clientNumber) {
   const target = urls(cfg.mode).clients + "/clients/" + encodeURIComponent(expected);
   const result = await checkedFetch(target, { headers: tokenHeaders(cfg, token) }, 15000);
   const client = result.data && !Array.isArray(result.data) ? result.data : null;
-  if (!client || !hasBuchungsdatenservice(client)) {
+  if (!client || String(client.id || "") !== expected || Number(client.consultant_number) !== Number(consultantNumber) ||
+      Number(client.client_number) !== Number(clientNumber) || !hasBuchungsdatenservice(client)) {
     throw new DatevError("Izbrani DATEV mandant nima dovoljenja Buchungsdatenservice.", { code: "DATEV_PERMISSION_MISSING", status: 403 });
   }
   return client;
@@ -303,9 +368,24 @@ async function uploadExtf(cfg, token, clientId, payload) {
     body: Buffer.from(payload.content, "utf8"),
   }, 30000);
   const location = String(result.response.headers.get("location") || "");
-  const retryAfter = Math.min(Math.max(Number(result.response.headers.get("retry-after") || 5), 1), 300);
+  const retryAfter = parseRetryAfter(result.response.headers.get("retry-after"), 5);
   if (!location) throw new DatevError("DATEV ni vrnil povezave za preverjanje opravila.", { code: "DATEV_JOB_LOCATION_MISSING" });
-  return { location, retryAfter, jobId: location.split("/").filter(Boolean).pop() || "" };
+  const safeLocation = safeJobUrl(cfg, location);
+  const jobId = safeLocation.split("/").filter(Boolean).pop() || "";
+  if (safeLocation.length > 500 || jobId.length > 240) {
+    throw new DatevError("DATEV je vrnil predolgo povezavo opravila.", { code: "DATEV_JOB_LOCATION_INVALID" });
+  }
+  return { location: safeLocation, retryAfter, jobId };
+}
+
+function parseRetryAfter(value, fallback) {
+  const defaultSeconds = Math.min(Math.max(Number(fallback) || 5, 1), 300);
+  const raw = String(value || "").trim();
+  if (!raw) return defaultSeconds;
+  if (/^\d+$/.test(raw)) return Math.min(Math.max(Number(raw), 1), 300);
+  const target = Date.parse(raw);
+  if (!Number.isFinite(target)) return defaultSeconds;
+  return Math.min(Math.max(Math.ceil((target - Date.now()) / 1000), 1), 300);
 }
 
 function safeJobUrl(cfg, location) {
@@ -325,6 +405,7 @@ async function getJob(cfg, token, location) {
     status: raw === "success" || raw === "succeeded" ? "succeeded" : raw === "failed" || raw === "error" ? "failed" : "processing",
     code: String(data.error_code || data.code || ""),
     message: String(data.error_message || data.message || ""),
+    retryAfter: parseRetryAfter(result.response.headers.get("retry-after"), 5),
     raw: data,
   };
 }
@@ -362,9 +443,11 @@ module.exports = {
   tokenHeaders,
   uploadDocument,
   uploadExtf,
+  validateIdToken,
   urls,
   _test: {
-    createPkce, decryptBuffer, encryptBuffer, environment, responseData, secretKey,
+    createPkce, decryptBuffer, encryptBuffer, environment, normalizedScopes, parseRetryAfter, responseData, safeOidcUrl,
+    secretKey, validRedirectUri,
     MAX_ENCRYPTED_SECRET_BYTES, MAX_RESPONSE_BYTES,
   },
 };

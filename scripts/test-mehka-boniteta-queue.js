@@ -7,6 +7,7 @@ var path = require("node:path");
 process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE = "true";
 
 var queue = require("../api/_lib/mehka-boniteta-queue");
+var identityEvidence = require("../api/_lib/identity-evidence");
 var supabaseServer = require("../api/_lib/supabase-server");
 var worker = require("../api/mehka-boniteta-delavec")._test;
 var projectMonitor = require("../api/_lib/projektno-spremljanje");
@@ -72,8 +73,12 @@ async function main() {
       "stari HS256 žeton mora sprožiti osvežitev seje, ne nedosegljivega Auth API-ja");
     assert.equal(zahtevanaOsvezitev.retryable, true);
 
-    assert.equal(require("../vercel.json").functions["api/mehka-boniteta-opravilo.js"].maxDuration, 30,
-      "hladni zajem javnega ključa in rezervna auth pot morata imeti dovolj skupnega časa");
+    var vercelConfig = require("../vercel.json");
+    assert.equal(vercelConfig.functions["api/boniteta.js"].maxDuration, 60,
+      "združena bonitetna funkcija mora imeti dovolj časa za auth in čakalno vrsto");
+    assert.ok(vercelConfig.rewrites.some(function (rewrite) {
+      return rewrite.source === "/api/mehka-boniteta-opravilo" && rewrite.destination === "/api/boniteta?handler=job";
+    }), "javna pot čakalne vrste mora kazati na združeni job handler");
 
     assert.equal(supabaseServer._test.omejenCas(5000, 12000), 5000,
       "rezervni auth poskus mora ostati znotraj skupne omejitve strežniške funkcije");
@@ -130,28 +135,13 @@ async function main() {
     global.fetch = prvotniAuthFetch;
   }
 
-  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v37-openregister-register-reference");
-  assert.equal(
-    queue.cacheKey({ ime: "Cache GmbH" }),
-    require("node:crypto").createHash("sha256").update(JSON.stringify({
-      cacheVersion: "impressum-parser-v37-openregister-register-reference",
-      faza: "identiteta",
-      ime: "cache gmbh",
-      naslov: "",
-      postnaStevilka: "",
-      kraj: "",
-      spletnaStran: "",
-      openregister: false,
-      potrjenoIme: "",
-      potrjeniNaziv: "",
-      potrjeniNosilec: "",
-      potrjeniNaslov: "",
-      potrjenaPosta: "",
-      potrjeniKraj: "",
-      companyId: "",
-    })).digest("hex"),
-    "ključ mora vsebovati različico parserja"
-  );
+  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v49-scrapling-acquisition-fallback");
+  assert.match(queue.cacheKey({ ime: "Cache GmbH" }), /^[a-f0-9]{64}$/,
+    "ključ predpomnilnika mora biti stabilen SHA-256");
+  assert.equal(queue.cacheKey({ ime: " Cache   GmbH " }), queue.cacheKey({ ime: "cache gmbh" }),
+    "normalizirano isto podjetje mora ponovno uporabiti isto opravilo");
+  assert.notEqual(queue.cacheKey({ ime: "Cache GmbH", openRegisterCompanyId: "DE-HRB-1" }), queue.cacheKey({ ime: "Cache GmbH" }),
+    "druga registrska identiteta ne sme ponovno uporabiti napačnega opravila");
   assert.notEqual(
     queue.cacheKey({ confirmedIdentity: { confirmed: true, name: "Primer GmbH", representativeName: "Erika Beispiel" } }),
     queue.cacheKey({ confirmedIdentity: { confirmed: true, name: "Primer GmbH", representativeName: "Max Muster" } }),
@@ -205,7 +195,7 @@ async function main() {
   var starSiv = await queue.pridobi({}, "isti-uporabnik", starSivId);
   assert.equal(starSiv.result.identityEvidence.screenshotReady, false,
     "čakalna vrsta mora star avtomatski posnetek po odkritju delnih sivih slojev razveljaviti");
-  assert.equal(starSiv.result.identityEvidence.evidenceContractVersion, "identity-evidence-contract-v1");
+  assert.equal(starSiv.result.identityEvidence.evidenceContractVersion, identityEvidence.CONTRACT_VERSION);
 
   var starPrazenId = "a877dc5f-8fba-4ced-8db5-e61c0403b460";
   queue._test.pomnilnik.jobs.set(starPrazenId, {
@@ -228,7 +218,7 @@ async function main() {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), result_payload: {
       identityEvidence: {
         status: "captured", imageDataUrl: "data:image/jpeg;base64,QUJDRA==",
-        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v16-visible-content-overlay-isolation",
+        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v17-preserve-legal-modal",
         viewportOverlaysRemoved: true,
       },
     },
@@ -251,14 +241,19 @@ async function main() {
     return queue.prevzemi({}, 1);
   }))).flat();
   assert.equal(mesaniPrevzemi.length, 30, "skupaj mora biti prevzetih največ trideset opravil");
-  assert.equal(mesaniPrevzemi.filter(function (job) { return job.faza === "insolvenca"; }).length, 10, "uradnih insolvenčnih opravil mora biti največ deset");
-  assert.equal(mesaniPrevzemi.filter(function (job) { return job.faza === "identiteta"; }).length, 20, "preostala mesta lahko uporabijo preverbe identitete");
+  assert.equal(mesaniPrevzemi.filter(function (job) { return job.faza === "insolvenca"; }).length, 20, "uradnih insolvenčnih opravil mora biti največ dvajset");
+  assert.equal(mesaniPrevzemi.filter(function (job) { return job.faza === "identiteta"; }).length, 10, "preostalih deset mest lahko uporabijo preverbe identitete");
 
   queue._test.ponastaviPomnilnik();
   var telo = { ime: "Cache GmbH", naslov: "Musterstraße 1", postnaStevilka: "10115", kraj: "Berlin" };
   var prvi = await queue.ustvari({}, "user-a", telo);
   var claim = (await queue.prevzemi({}, 1))[0];
-  await queue.zakljuci({}, claim, { success: true, result: { ok: true, cachedResult: true } });
+  var veljavenPredpomnjeniRezultat = {
+    ok: true, cachedResult: true,
+    identity: { status: "verified_register", companyId: "DE-HRB-X-12345" },
+    identityEvidence: { status: "verified_api", companyId: "DE-HRB-X-12345" },
+  };
+  await queue.zakljuci({}, claim, { success: true, result: veljavenPredpomnjeniRezultat });
   var drugi = await queue.ustvari({}, "user-b", telo);
   assert.equal(prvi.status, "queued");
   assert.equal(drugi.status, "queued", "uporabnik ne sme dobiti rezultata ali dokazil drugega uporabnika");
@@ -267,6 +262,14 @@ async function main() {
   assert.equal(istiUporabnik.status, "completed");
   assert.equal(istiUporabnik.cached, true);
   assert.equal(istiUporabnik.result.cachedResult, true);
+  assert.equal(queue._test.jeRezultatPrimerenZaPredpomnilnik({
+    ok: true,
+    identity: { status: "probable_impressum" },
+    identityEvidence: { status: "unavailable", reason: "capture_failed" },
+    result: { level: "yellow", title: "Vira ni bilo mogoče prikazati" },
+  }, "identiteta"), false, "neuspešen zajem dokazila se mora ob naslednjem kliku vedno ponoviti");
+  assert.equal(queue._test.jeRezultatPrimerenZaPredpomnilnik(veljavenPredpomnjeniRezultat, "identiteta"), true,
+    "uradno OpenRegister dokazilo se lahko varno ponovno uporabi");
   var izbrisanih = await queue.izbrisiPodatkeProfila({}, "user-a", {
     legal_name: "Cache GmbH",
     address: { street: "Musterstraße 1", postal_code: "10115", city: "Berlin" },
@@ -304,6 +307,38 @@ async function main() {
   assert.equal(queue._test.opraviloPripadaProfilu({
     id: "job-company", request_payload: { confirmedIdentity: { companyId: "DE-HRB-123" } }, result_payload: {},
   }, { company_id: "DE-HRB-123", legal_name: "Drugo ime GmbH", address: {}, contact: {}, latest_check: {} }), true);
+  assert.equal(queue._test.opraviloPripadaProfilu({
+    id: "job-same-company", request_payload: {
+      spletnaStran: "https://skupina.example.test/pravna-oseba-b",
+      confirmedIdentity: { companyId: "DE-HRB-R0001-10001", registerNumber: "HRB 10001" },
+    }, result_payload: {},
+  }, {
+    company_id: "DE-HRB-R0001-10001", legal_name: "Pravna oseba A GmbH", register_number: "HRB 10001",
+    address: { street: "Skupna ulica 12", postal_code: "10115" },
+    contact: { website: "https://skupina.example.test/pravna-oseba-a" }, latest_check: {},
+  }), true, "isti uradni company ID mora ostati pozitivna vez");
+  assert.equal(queue._test.opraviloPripadaProfilu({
+    id: "job-different-company", request_payload: {
+      ime: "Pravna oseba A GmbH", naslov: "Skupna ulica 12", postnaStevilka: "10115",
+      spletnaStran: "https://skupina.example.test/pravna-oseba-b",
+      confirmedIdentity: { companyId: "DE-HRB-R0001-20002", registerNumber: "HRB 20002" },
+    }, result_payload: {},
+  }, {
+    company_id: "DE-HRB-R0001-10001", legal_name: "Pravna oseba A GmbH", register_number: "HRB 10001",
+    address: { street: "Skupna ulica 12", postal_code: "10115" },
+    contact: { website: "https://skupina.example.test/pravna-oseba-a" }, latest_check: {},
+  }), false, "različna uradna company ID-ja morata premagati isto ime, naslov in domeno");
+  assert.equal(queue._test.opraviloPripadaProfilu({
+    id: "job-known-but-conflicting", request_payload: {
+      ime: "Pravna oseba A GmbH", naslov: "Skupna ulica 12", postnaStevilka: "10115",
+      spletnaStran: "https://skupina.example.test/pravna-oseba-b", registerNumber: "HRB 20002",
+    }, result_payload: {},
+  }, {
+    company_id: "", legal_name: "Pravna oseba A GmbH", register_number: "HRB 10001",
+    address: { street: "Skupna ulica 12", postal_code: "10115" },
+    contact: { website: "https://skupina.example.test/pravna-oseba-a" },
+    latest_check: { queueJobId: "job-known-but-conflicting" },
+  }), false, "znani ID opravila ne sme obiti jasno različne registrske številke");
   assert.equal(queue._test.opraviloPripadaProfilu({
     id: "job-other", request_payload: { ime: "Cache GmbH", postnaStevilka: "60325" }, result_payload: {},
   }, { company_id: "", legal_name: "Cache GmbH", address: { postal_code: "10115" }, contact: {}, latest_check: {} }), false,
@@ -357,9 +392,19 @@ async function main() {
 
   assert.equal(worker.prehodnaNapaka(502, null), true);
   assert.equal(worker.prehodnaNapaka(200, { ok: true, identityEvidence: { status: "unavailable" } }), false);
-  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }), false);
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }), true,
+    "tudi ročna insolvenčna preverba brez uradnega dokaza mora ostati nedokončana in se ponoviti");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }, { project_monitor_id: "monitor-1" }), true,
+    "samodejno spremljanje mora začasno nedosegljiv uradni vir ponoviti in ne sme prepisati zadnjega uspešnega rezultata");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", officialVerification: { status: "unavailable" } } }, { project_monitor_id: "monitor-1" }), true,
+    "samodejno spremljanje ne sme zaključiti preverbe brez dokončanega uradnega koraka");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", evidenceStatus: "unavailable", reason: "capture_or_search_failed", officialVerification: { status: "clear" } } }, { project_monitor_id: "monitor-1" }), true,
+    "samodejno spremljanje mora prepoznati nepopoln dokaz tudi, kadar zunanji status pomotoma ostane clear");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, retryable: true }), true);
-  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", officialVerification: { status: "clear" } } }), false);
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", officialVerification: { status: "clear" } } }), true,
+    "status clear brez zajetega uradnega posnetka ni terminalni uspeh");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", officialVerification: { status: "clear", evidenceStatus: "captured", evidenceImage: "data:image/jpeg;base64,QUJD" } } }), false,
+    "clear z zajetim uradnim rezultatom ostane terminalni uspeh");
   assert.equal(worker.vrsticaZakljucka([{ status: "queued" }]).status, "queued");
   var prvotniFinish = projectMonitor.finish;
   var prvotniConsoleError = console.error;
@@ -377,6 +422,7 @@ async function main() {
 
   var osnovnaMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260815232735_mehka_boniteta_cakalna_vrsta.sql"), "utf8");
   var migracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260815234001_mehka_boniteta_trideset_skupaj_deset_insolvenca.sql"), "utf8");
+  var vzporednaMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260827010500_monitoring_twenty_parallel_workers.sql"), "utf8");
   var izbrisMigracija = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260816170712_uporabnik_lahko_izbrise_svoje_preverbe.sql"), "utf8");
   assert.match(migracija, /for update skip locked/i);
   assert.match(migracija, /30 - count\(\*\)/i);
@@ -388,6 +434,14 @@ async function main() {
   assert.equal((izbrisMigracija.match(/auth\.uid\(\).*user_id/g) || []).length, 2, "obe RLS pravili morata preveriti lastnika");
   assert.match(izbrisMigracija, /revoke all on table public\.mehka_boniteta_opravila from anon/i);
   assert.match(migracija, /grant execute.*service_role/i);
+  assert.match(vzporednaMigracija, /limit 20/i, "scheduler mora atomsko uvrstiti do 20 zapadlih monitoringov");
+  assert.match(vzporednaMigracija, /20 - count\(\*\) filter/i, "insolvenčna meja mora biti 20");
+  assert.match(vzporednaMigracija, /generate_series\(1, demand\.worker_count\)/i, "vsako zapadlo opravilo mora dobiti ločen worker");
+  assert.match(vzporednaMigracija, /least\(20,/i, "fan-out mora ostati omejen na 20");
+  assert.match(vzporednaMigracija, /source = 'user'[\s\S]*status in \('queued', 'processing'\)/i, "ročne uporabniške poizvedbe morajo ustaviti batch scheduling");
+  assert.match(vzporednaMigracija, /source = 'project_monitor'[\s\S]*status = 'queued'[\s\S]*generate_series/i, "heartbeat sme fan-outati samo ob dejanskem monitoring povpraševanju");
+  assert.match(vzporednaMigracija, /cron\.unschedule\(v_job_id\)[\s\S]*'\* \* \* \* \*'/i, "stari cron mora biti varno zamenjan z minutnim heartbeat jobom");
+  assert.match(workerVir, /največ 20[\s\S]*insolvenčnih/i, "worker mora dokumentirati dvajset hkratnih insolvenčnih slotov");
   var zanesljivost = fs.readFileSync(path.join(koren, "supabase", "migrations", "20260816170000_boniteta_zanesljivost_cakalne_vrste.sql"), "utf8");
   assert.match(zanesljivost, /j\.status in \('completed', 'failed'\)/i, "retry ne sme premakniti projektnega urnika");
   assert.match(zanesljivost, /available_at = case/i, "potekli lease mora dobiti odmik pred ponovitvijo");
@@ -400,13 +454,28 @@ async function main() {
   assert.match(ui, /mehka-boniteta-delavec/);
   assert.match(ui, /Pred vami je še/);
   assert.match(ui, /naslednjePrebujanje/);
+  assert.match(ui, /zakljucekPrebujenegaDelavca/,
+    "UI mora po zaključku prebujenega delavca rezultat prebrati takoj");
+  assert.match(ui, /preteklo < 3000[\s\S]*processing\" \? 300 : 400/,
+    "začetno preverjanje statusa mora biti odzivnejše od starega 1–1,8 s intervala");
+  assert.doesNotMatch(ui, /job\.status === \"processing\" \? 1000 : 1800/,
+    "stari počasni fiksni interval ne sme ostati v čakalni zanki");
   assert.match(ui, /55 \* 1000/, "widget uporabnika ne sme več minut držati na vrtečem kolescu");
   assert.match(ui, /krajiTrenutnePoste\.length > 1/, "pri poštni številki z več kraji mora biti izbira izrecna");
+  assert.match(ui, /Podjetja nismo našli\. Izberite naslednji korak spodaj\./,
+    "prebrana stran brez potrjene identitete ne sme biti napačno označena kot neberljiva");
+  assert.match(ui, /stranJeDejanskoNedosegljiva/,
+    "sporočilo o neberljivi strani mora biti omejeno na dejanske napake dostopa");
+  var api = fs.readFileSync(path.join(koren, "api", "_handlers", "mehka-boniteta.js"), "utf8");
+  assert.match(api, /pravniKontrolnik\.click\(\)/,
+    "vgrajeni Impressum mora biti pred zajemom dokazila varno odprt");
+  assert.match(api, /pripraviOpenRegisterVnosIzImpressuma/,
+    "OpenRegister mora prejeti naziv, register in lokacijo iz preverjenega Impressuma");
   var lokalniStreznik = fs.readFileSync(path.join(koren, "scripts", "local-server.js"), "utf8");
   assert.match(lokalniStreznik, /osveziApiCeJeSpremenjen/, "lokalni strežnik mora osvežiti API samo ob spremembi različice");
   assert.match(lokalniStreznik, /novaRazlicica === nalozenaApiRazlicica/);
 
-  console.log("✓ Čakalna vrsta sprejme 100 zahtev: največ 30 skupaj in 10 insolvenčnih.");
+  console.log("✓ Čakalna vrsta sprejme 100 zahtev: največ 30 skupaj in 20 insolvenčnih.");
   console.log("✓ Ponovitve, lastništvo rezultatov in predpomnilnik delujejo.");
   console.log("✓ Migracija uporablja SKIP LOCKED, RLS in najmanjše privilegije.");
 }

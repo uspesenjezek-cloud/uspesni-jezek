@@ -1,86 +1,60 @@
-# ZAPISNIK — Uspešni Ježek (stanje ob koncu seje 2026-08-25, pozni del)
+# ZAPISNIK — Uspešni Ježek (stanje ob koncu seje 2026-08-26)
 
-Ta dokument je namenjen predaji konteksta novemu pogovoru. Prilepi ga na začetek novega pogovora, da agent takoj razume, kje smo. **Ta datoteka nadomesti prejšnjo verzijo** — prejšnja je opisovala Bonitetni center/`neplacila-posiljanje.html` (glej razdelek 6 spodaj za skrajšan povzetek tega); ta seja se je skoraj v celoti vrtela okoli `app/izvedba.js` (dialog "Kaj želite narediti?" / "Kako je bil račun poravnan?").
+Ta dokument je namenjen predaji konteksta novemu pogovoru. Prilepi ga na začetek novega pogovora, da agent takoj razume, kje smo. **Ta datoteka nadomesti prejšnjo verzijo** (opisovala je `izvedba.js` dialog "Kaj želite narediti?"/"Kako je bil račun poravnan?" — glej razdelek 5 spodaj za skrajšan povzetek in trenutno stanje tega). Ta seja je pokrivala tri ločene teme: (1) nadaljevanje/popravek čarovnika "Posreduj takoj odvetniku" v `izvedba.js`, (2) obsežen večkrožni pregled dokončanosti nemškega POS terminala, (3) začetna raziskava Apple-like redesigna kartic "Podjetja" v Bonitetnem centru.
 
 ## 1. Okolje
 
 - Kanoničen delovni direktorij: `C:\Users\jkjob\Desktop\uspesen jezik git`
 - Edini pravi produkcijski naslov: `https://uspesni-jezek.vercel.app/app/index.html` (Vercel projekt `uspesni-jezek`)
 - Lokalni dev strežnik `http://localhost:8001` samo za interno testiranje
-- **V repozitoriju hkrati dela vsaj eno drugo AI orodje ("Codex").** Pred vsakim posegom v skupno datoteko znova `Read`/`Grep` trenutno stanje.
-- **Nič iz te seje ni bilo commitano ali objavljeno na Vercel.** Vse spremembe spodaj so samo na disku (`app/izvedba.js`, `app/izvedba.css`, `app/izvedba-komponente.js`, `app/nastavitve-izidov.js`, `app/koncani-primeri.html`, `app/izvedba.html`). Cache-busting `?v=` oznake so dvignjene sproti, trenutno stanje: `izvedba.js` v29, `izvedba.css` v15, `izvedba-komponente.js` v2, `nastavitve-izidov.js` v6 (po revertu — glej razdelek 4).
+- **V repozitoriju hkrati dela vsaj eno drugo AI orodje ("Codex").** Pred vsakim posegom v skupno datoteko znova `Read`/`Grep` trenutno stanje — v tej seji je Codex vzporedno commital ogromno POS kode (glej razdelek 2) in tudi sam urejal `izvedba.css`/`izvedba.html` (bump verzij) medtem ko sem jaz delal na isti datoteki.
 
-## 2. KRITIČNA LEKCIJA (velja še naprej): objava ni opcijska
+## 2. POS terminal — dokončanost ~87 %, podrobno preverjeno v 5 krogih
 
-1. Po vsakem funkcionalnem popravku poženi ustrezen test.
-2. Dvigni cache-busting `?v=` na VSEH `<link>`/`<script>` referencah spremenjenih datotek.
-3. `git add` samo dotaknjene datoteke.
-4. `git commit`, nato `vercel deploy --prod --yes`.
-5. Preveri z `curl` na produkcijskem URL-ju, da je nova `?v=` in vsebina dejansko tam.
-6. Šele nato sporoči uporabniku "objavljeno".
+**Ključno dejstvo seje:** ogromen kup (~150 datotek, ~116 SQL migracij, ves POS/OpenAPI/DATEV/Stripe/finAPI/Fiskaly/WORM arhiv razvoj od 19.–26. 8.) je bil MED to sejo dejansko **commitan** s strani drugega agenta (`1474119 feat(pos): harden German POS and OpenAPI readiness`, mergean v `8c057d6`). Prej je bilo vse to necommitano na disku.
 
-## 3. Nova arhitektura v `izvedba.js`: dve ločeni "kaj se je zgodilo" poti
+**Cloud pregled (`uspesni-jezek-openapi-test.vercel.app`) je BLOKIRAN** — Vercel Deployment Protection/SSO preusmeri na `vercel.com/login`, ni to aplikacijska avtentikacija. Cloud pregled ni dal NOBENE funkcionalne ugotovitve. Za pravi zunanji pregled bi lastnik moral izklopiti Vercel Deployment Protection ali dati "Protection Bypass for Automation" token.
 
-Obstajata dva ločena sistema (dva `actionSheetMode`):
-- **`"actions"`** — dialog "Kaj želite narediti?", kartice iz `VRSTNI_RED_KARTIC`, odpre se prek `odpriActionSheet(filterKartic)`.
-- **`"payment"`** — dialog "Kako je bil račun poravnan?", kartice iz `SETTLEMENT_ORDER` (`nastavitve-izidov.js`), odpre se prek `racunPoravnan()`.
+**Lokalni pregled (5 krogov, zadnji round 5 je dokončen)** — polna najdba v spominu: `project_pos_terminal_audit_findings.md`. Povzetek:
+- **Koda/arhitektura: ~92 %** — vsi prejšnji arhitekturni riziki (RPC timeout 18/18, KoSIT preflight gate resničen na strežniku in ni obhoden s klienta, WORM/GoBD arhiv za vseh 7 vrst dokumentov, double-click zaščita na dveh nivojih, 0 nevarnih `grant...to anon`) so bili PONOVNO preverjeni in POTRJENI kot pravilno rešeni. `node scripts/run-pos-tests.js` (23 datotek + Vercel proračun) uspe v celoti.
+- **Zaupanje v teste: ~82 %** — v round 5 prebranih 21/24 testnih datotek (ne le vzorec), večina je prava izračunana poslovna logika, ne string-match.
+- **Ročno preverjeni 3 finančni izračuni** (DDV razdelitev, Schlussrechnung odbitek Abschlagsrechnung, €250 Kleinbetragsrechnung prag) — vsi matematično pravilni.
+- **Edini preostali KODNI manko: 13 neprevedenih slovenskih nizov** v `app/pos-terminal.js` (natančen seznam z vrsticami v spominu) — šest od njih ("Dokaz ...") je v pravno občutljivem toku odstopa potrošnika (Widerrufsrecht), prednostno popravi te. Poleg tega razširi `highConfidenceSlovenianUi` regex v `scripts/test-pos-i18n.js:~176`, da jih test v prihodnje zazna.
+- **Produkcijska pripravljenost: 0/6 vrat (`node scripts/check-pos-production-readiness.js`)** — a NOBENA od 6 blokad ni kodna. 4 so zunanja konfiguracija (Supabase prod ključi, OpenAPI e-računi žeton+webhook, S3 WORM poverilnice), 2 sta namerni človeški potrditvi (`POS_DE_LEGAL_REVIEW_CONFIRMED`, `POS_DE_PILOT_ACCEPTED`).
+- **Realen "ozek grlo" do prave produkcije: odprtje nemške firme + VAT/davčna številka** (~2-6+ tednov, nemška birokracija) — od tega so odvisni OpenAPI produkcijski žeton in smiseln pilot pri obrtniku. Infrastruktura (Supabase/S3) in i18n prevodi NISO odvisni od tega in jih lahko kdorkoli dokonča vzporedno/takoj.
 
-Na zaslonu za pošiljanje opomina (`zo-sledi__vsebina`, funkcija `dodajHitraDejanja()`) so zdaj **trije** gumbi:
-- Majhen **"Prekliči opomin"** zraven "Pošlji" (`izvedba-gumb-preklici-hitro`) → odpre "actions" filtrirano na `["skip_current_step", "stop_plan", "postpone_reminder"]`.
-- **"Ne bo plačal"** (`izvedba-gumb-preklic`, staro ime "Prekliči opomin") → odpre "actions" filtrirano na `["handoff_to_lawyer", "partial_payment", "cancelled_invoice"]`.
-- **"Bo plačal"** (`izvedba-gumb-poravnano`, staro ime "Račun je bil poravnan") → `racunPoravnan()`, "payment" način, prikaže `SETTLEMENT_ORDER` **plus** dodatno kartico "Dolžnik je obljubil plačilo" (glej spodaj).
+**Za Codex, konkretna naloga, če jo prevzame:** prevedi seznam 13 nizov v `app/pos-terminal-i18n.js` + razširi test regex. To je edino preostalo kodno delo na POS terminalu, ki ga je ta pregled našel.
 
-`state.aktivniFilterKartic` (array ali `null`) filtrira `VRSTNI_RED_KARTIC` v `izrisiActionSvicer()`. Resetira se na `null` v `zapriActionSheet()`.
+## 3. `izvedba.js` — čarovnik "Posreduj takoj odvetniku" (PREVZEL CODEX, ne dokončano z moje strani)
 
-### Prestavljanje kartic med "Ne bo plačal" / "Bo plačal" — KLJUČNA LEKCIJA
+Uporabnik je zahteval nov čarovnik na kartici "Posreduj takoj odvetniku" (znotraj "Ne bo plačal" menija), ki naj izgleda IDENTIČNO obstoječi "Predaja odvetniku" (10. korak glavnega načrtovalca opominov v `opomin-nacrt-ui.js`), a brez uvažanja celega 677 KB `opomin-nacrt-ui.js` modula (tuja DOM/globalna vezava).
 
-Uporabnik je zahteval premikanje kartic med meniji. Prvi poskus (preimenovanje skupne oznake v `nastavitve-izidov.js`, da "izgleda" kot ista kartica) je bil **eksplicitno zavrnjen** ("kdo ti je to naročil", "izbrisal si kartico") — `nastavitve-izidov.js` je skupen vir za CEL sistem (uporablja ga tudi `koncani-primeri.js`), zato preimenovanje tam vpliva na zgodovinski prikaz povsod, ne samo na en gumb. **Pravilo:** za "premakni kartico med meniji" nikoli ne preimenuj/spreminjaj skupnih `nastavitve-izidov.js`/`SETTLEMENT_META` vnosov — namesto tega dodaj/odstrani ločen vnos v ustreznem seznamu (`VRSTNI_RED_KARTIC` filter oz. ročno vrinjena kartica v `izrisiPoravnavaSvicer()`), ki cilja isti podatkovni tip, a je vizualno/podatkovno ločena entiteta.
+**Pristop, ki je bil dogovorjen in delno izveden:**
+- Backend: `api/_lib/izvedba-core.js` — `handoff_to_lawyer` akcija zdaj sprejme neobvezen `lawyerHandoff` patch (funkcija `sanitizirajLawyerHandoffPatch`), ki se v enem atomskem RPC klicu zapiše v `plan.steps[manual_lawyer].lawyerHandoff` PRED `preveriPredajoPopolno` preverbo. Brez nove SQL migracije (obstoječi RPC `izvedi_opomin_ukrep` ima generično vejo za poljuben `actionType`). Vseh 63 testov v `scripts/test-izvedba-actions.mjs` prehaja (vključno s tem, da sem popravil en krhek test, ki je preverjal točen `?v=` niz namesto vzorca).
+- Frontend: nov `state.actionSheetMode = "lawyer"` v `izvedba.js`, 3-zaslonski čarovnik (paket+odvetnik → čas/dokumenti/sporočilo → pregled+potrditev) prek `odpriOdvetnikCarovnik()`/`izrisiOdvetnikSheet()`.
+- **KLJUČNA LEKCIJA (uporabnik se je razjezil "WTF NO"):** prvi poskus sem naredil z lastnimi na novo izmišljenimi CSS razredi (`izvedba-odvetnik-*`) namesto ponovne uporabe pravega markupa. Uporabnik je eksplicitno zahteval "kopiraj kot vse pri predaji odvetniku, ne izumljaj po svoje". **Popravek:** ker `app/izvedba.html` že nalaga `styles.css` (globalni), sem markup prepisal na DOBESEDNO iste razrede kot original (`lp-predaja-povzetek__*`, `lp-paket-kartica__*`, `opomin-predaja-sestavljalnik__*`, `opomin-predaja-pregled__*`) — brez ene same nove vizualne CSS vrstice. Ostal je samo en na novo izmišljen del: `.izvedba-odvetnik-seznam`/`.izvedba-odvetnik-vrstica` za preklop med 3 odvetniki (original tega nima kot preprost seznam, ampak kot poln popup, ki je bil namerno izpuščen iz obsega).
+- **Pravilo za naprej:** "kopiraj kot original" pomeni dobesedno iste razrede/markup, NE nov dizajn po lastnem okusu, tudi če je "podoben" ali "v istem slogu". Preveri, ali je skupni CSS/styles.css že naložen na ciljni strani, preden izmišljaš karkoli novega.
+- **Najden in popravljen resen bug:** obstoječe mobilno pravilo `.izvedba-action-sheet__scroll { display:grid; grid-template-rows: auto auto; }` (v `@media` bloku) ni imelo `grid-template-columns`, zato se je stolpec širil na `max-content` katerekoli notranje vsebine — dosedanje kartice tega niso razkrile, nov karusel paketov pa je (674px namesto 360px, cel sheet je bil prekinjen/odrezan). **Popravek: dodaj `grid-template-columns: minmax(0, 1fr);`** — to je splošno uporaben "grid blowout" popravek, uporaben tudi drugje v tem projektu, če se podoben simptom pojavi.
+- Tudi popravljen manjkajoč ovijajoči `<div class="opomin-predaja-sestavljalnik">` (daje `position:relative` in padding za lebdečo pill odvetnika in "krvaveč" rob dnevi-kartice) in narobe parsan format datuma (`K.formatirajDatumUro(...).split(" ")[0]` je dajalo samo "12." namesto "12. 12. 2022" — uporabi obstoječ `datumSamoZaPrikaz()` helper namesto tega).
+- **Trenutno stanje: NIČ ni bilo commitano.** Uporabnik je rekel "bo prevzel Codex" — jaz sem se ustavil. Datoteke na disku (necommitano): `app/izvedba.js`, `app/izvedba.css`, `app/izvedba.html` (cache-busting), `api/_lib/izvedba-core.js`, `scripts/test-izvedba-actions.mjs`. Pred nadaljnjim posegom PREBERI, kaj je Codex morda že spremenil.
+- **Namerno izpuščeno iz obsega (po dogovoru z uporabnikom, ne pozabi):** filter "Priporočeno/Mešane ponudbe" dropdown, gumb "Predogled" na paket kartici, sestavljalnik paketa po meri, nalaganje datotek za dokument "Pogodba ali ponudba" (dokumenti se avtomatsko štejejo za pripravljene iz obstoječih podatkov primera, brez upload UI-ja).
 
-Trenutno stanje (po več krogih popravkov):
-- **"Ne bo plačal"**: `handoff_to_lawyer` (Posreduj takoj odvetniku), `partial_payment` (Račun je delno poravnan), `cancelled_invoice` (Račun storniran).
-- **"Bo plačal"**: `full, partial, compensation, installment, credit_note` (iz `SETTLEMENT_ORDER`) **plus** ročno vrinjena kartica `payment_promised` (Dolžnik je obljubil plačilo) — glej `izrisiPoravnavaSvicer()`.
+## 4. Bonitetni center — "Podjetja" kartice, Apple-like redesign (SAMO RAZISKAVA, nič v kodi)
 
-### "Dolžnik je obljubil plačilo" znotraj "Bo plačal" — vzorec za mešanje sistemov
+Uporabnik je pokazal posnetke zaslona kartic v "Podjetja" zavihku (spodnja navigacija Preveri/Spremljano/Podjetja) — vsaka kartica: avatar z inicialkami, ime podjetja, HRB/HRA + naslov, status pilula (Aktivna/Neaktivna), vrstica "Brez zaznanih objav"/"Zaznane posebnosti", dva gumba (Odpri profil / Spremljaj).
 
-Ta kartica je edina, ki ne spada v noben od dveh seznamov naravno (ni `SETTLEMENT_ORDER` tip, nima zneska, ki bi zmanjšal dolg). Prvi poskus (klik preklopi cel zaslon na "actions" način) je uporabnik zavrnil ("naj dela kot druge kartice"). **Končna rešitev, ki DELUJE in naj se uporabi kot vzorec za podobne primere:**
+- **Točne komponente v kodi NISEM našel/potrdil** — poskusil sem `boniteta-sredisce.js` (razred `boniteta-spremljanje-podjetje` obstaja, a je to DRUGA komponenta — nastavitev spremljanja enega podjetja, ne seznam kartic iz posnetka). `bonitetna-preverba.js`/`.css` in `bonitetna-podjetje-grafike.css` so verjetni kandidati (glej opombo v razdelku 5 spodaj o konkurenci teh dveh CSS datotek). **Naslednji korak: uporabi Explore agent ali natančnejši grep za točen razred te specifične kartice**, preden karkoli implementiraš.
+- Naredil sem SAMO dva vizualna mockupa prek `mcp__visualize` orodja (ne v pravi kodi) — prva verzija (tanjši, text-link akcije) je bila zavrnjena kot premalo "Apple-like/lepa". Druga verzija (v teku odobritve): mehkejši tonirani avatar (ne poln teal), status kot pika+besedilo poleg imena namesto pilule zgoraj desno, status vrstica kot tonirana ploščica brez trde obrobe, primarni gumb poln/okrogel ("Odpri profil"), sekundarni kot kvadraten ikonski gumb ("Spremljaj" z `ti-bookmark-plus`) — v slogu iOS Kontaktov/App Store kartic.
+- **Ni bilo potrjeno s strani uporabnika, ali je v2 dovolj dobra** — pred implementacijo v pravo kodo vprašaj za potrditev smeri, nato najdi pravo komponento in uredi obstoječo (ne nov mockup), po pravilih iz `CLAUDE.md` (§6).
 
-- Kartica se izriše ročno v `izrisiPoravnavaSvicer()` z `data-settlement-select="payment_promised"` (isti generični klik-mehanizem kot ostale, brez posebnega handlerja).
-- `izrisiPoravnavaPodrobnosti()`: ker `SETTLEMENT_META["payment_promised"]` ne obstaja, uporabi lokalni `OBLJUBA_SETTLEMENT_META` konstanto namesto tega.
-- `izrisiPoravnavaKontrolnik()`: veja `if (tip === "payment_promised") return podatkiZaKartico("payment_promised", izbrano);` — **ponovno uporabi obstoječo actions-markup**, brez podvajanja.
-- `pripraviPoravnavoZaOddajo()`: posebna veja na vrhu funkcije (PRED `if (!tip || !nastavitve) return null;`, ker `state.settlementSettings.payment_promised` ne obstaja) — bere iz `state.settingsByAction.payment_promised`.
-- `opisNacrtovanegaKoraka()`: posebna veja, `znesek: null` (obljuba NE sme zmanjšati `preostaliDolgPoNacrtu()` — samo dejansko prejet denar sme).
-- Rezultat: kartica se obnaša 1:1 enako kot ostale (isti "+ Dodaj korak", ista "Potek primera" akumulacija, isti "Potrdi" na koncu), lahko se meša z pravimi denarnimi koraki v istem načrtu — preverjeno.
+## 5. Prejšnja tema (`izvedba.js` "Kaj želite narediti?"/"Kako je bil račun poravnan?") — SKRAJŠANO
 
-### Dobropis/Odpust — združitev (prejšnji del te seje)
-
-- "Zaključeno z dobropisom" preimenovano nazaj v **"Dobropis"** (`nastavitve-izidov.js`), zdaj vsebuje notranjo izbiro Dobropis/Odpust (prej ločeno).
-- Odstranjena izbira Dobropis/Odpust iz "Delno plačilo" IN iz naprednega načrtovalca "Plačilo v obrokih" (oba zdaj samo denar).
-- `VRSTNI_RED_PORAVNAVE`/`SETTLEMENT_ORDER` nima več `cancelled_invoice` (prestavljen v "actions" sistem, glej zgoraj).
-
-### Napreden načrtovalec obrokov (`izrisiObrokPlaner`, prvi del te seje)
-
-- Znotraj "Plačilo v obrokih": izbira števila obrokov (pill 1-20, brez drsnika — `scrollbar-width:none`), razmik (teden/2 tedna/mesec/ročno, privzeto BREZ izbire), "Enakomerno razdeli" kot velik okrogel gumb (privzeto izklopljen), seznam vrstic (znesek+datum), en sam gumb na dnu, ki se sklanja po številu ("Dodaj obrok"/"Dodaj oba obroka"/"Dodaj vse N obroke"/"Dodaj vseh N obrokov v načrt").
-- **Znana omejitev (ni bug, obstoječe pravilo)**: zadnji obrok v enakomerno razdeljenem načrtu vedno pade z napako, ker `installment` tip ne sme pokriti celotnega preostalega dolga (obstoječa validacija). Prvi N-1 obrokov se doda uspešno.
-
-### Popravljen bug: gol `addEventListener("click", odpriActionSheet)`
-
-Ker `odpriActionSheet(filterKartic)` zdaj sprejme parameter, vsaka vezava kot gol referenčni klic (brez `function(){...}` ovoja) pošlje klik-`Event` namesto filtra → `state.aktivniFilterKartic.indexOf is not a function` → podre cel izris in obesi celoten zaslon (vsi gumbi videti "mrtvi"). **Pravilo:** pri VSAKEM `addEventListener` klicu na funkcijo, ki sprejme argumente, vedno ovij v anonimno funkcijo, nikoli gole reference.
-
-### Testna past te seje
-
-`window.UJIzvedbaDebug` (izpostavljen v `izvedba.js`) omogoča klic notranjih render-funkcij neposredno (`izrisiActionSheet()`, `izberiAkcijo()` ...), kar **obide** dejansko vezavo gumbov (`addEventListener`). Zgornji bug je ušel mimo ravno zato, ker sem testiral prek debug-hooka namesto s pravim `.click()` na DOM gumbu. **Pravilo za naprej:** za preverjanje click-handler vezav vedno simuliraj pravi DOM `.click()` na dejanskem gumbu (ne kliči notranje funkcije neposredno), sicer napake v vezavi ostanejo neopažene.
-
-## 4. Vzorec, ki je povzročil resno nezaupanje uporabnika — NE PONOVI
-
-Ko je uporabnik rekel "premakni kartico X v gumb Y", sem prvič poskusil "bližnjico" (preimenovanje skupne oznake namesto dejanskega premika) — uporabnik je to pravilno prepoznal kot prikrito izbris, ne premik, in se je močno razjezil ("KDO TI JE TO NAROČIL", "KARTICO SI IZBRISAL"). **Pravilo:** "premakni/prestavi kartico" pomeni: (1) fizično odstrani iz izvornega seznama/filtra, (2) fizično dodaj v ciljni seznam kot ločen, prepoznaven UI element z lastnim imenom/ikono — NIKOLI z zanašanjem na to, da "podoben obstoječ element že to pokriva". Če ciljni sistem tehnično ne podpira te kartice naravno (drugačen podatkovni model), to eksplicitno povej uporabniku IN vprašaj za smer, preden kar koli spremeniš — ne izberi sam "elegantne" bližnjice.
-
-## 5. Trenutno stanje cache-busting oznak (za naslednji `Edit`)
-
-- `app/izvedba.html`: `izvedba.css?v=20260825-storno-v-akcije-v15`, `izvedba.js?v=20260825-obljuba-inline-v29`, `izvedba-komponente.js?v=20260825-storno-akcija-meta-v2`, `nastavitve-izidov.js?v=20260825-revert-v6`
-- `app/koncani-primeri.html`: `izvedba-komponente.js?v=20260825-storno-akcija-meta-v2`, `nastavitve-izidov.js?v=20260825-revert-v6`
-
-## 6. Prejšnja seja (Bonitetni center, `neplacila-posiljanje.html`) — SKRAJŠANO, verjetno preseženo
+Ta arhitektura (dva `actionSheetMode`: `"actions"` in `"payment"`, `VRSTNI_RED_KARTIC`/`SETTLEMENT_ORDER`, kartica "Dolžnik je obljubil plačilo" kot mešani vzorec, napredni načrtovalec obrokov) je bila DOKONČANA in COMMITANA v prejšnji seji (glej git log `ac7c52a`, `333553c`). Podrobnosti o vzorcih (npr. "premakni kartico" pravilo, gol `addEventListener` past, `UJIzvedbaDebug` testna past) najdeš v git zgodovini te datoteke, če jih boš rabil — niso ponovno navedene tu, ker je ta del zaključen.
 
 - `bonitetna-preverba.css` in `bonitetna-podjetje-grafike.css` tekmujeta za iste razrede — pri delu na "Podatki podjetja" register-card pogledu vedno preveri OBE datoteki.
-- Ikone/majhne elemente vedno preveri pri PRAVI velikosti (1×), ne samo povečano — past, ki je stala veliko časa.
-- `app/neplacila-posiljanje.html` (`.delno-resitev`) je bil obsežno predelan, a obstaja sum, da ga je vmes prepisalo drugo orodje ("Codex") — pred kakršnim koli posegom najprej znova preberi dejansko stanje, ne domnevaj.
+- Ikone/majhne elemente vedno preveri pri PRAVI velikosti (1×), ne samo povečano.
+
+## 6. Nerešeno/odprto
+
+- Uporabnik je vprašal "kaj sva rekla da je kategorija 20 v spominu" — v spominu NI bilo nič ujemajočega, tudi po grep-u cele kode. Ostalo nepojasnjeno, ni bilo dodatnega konteksta.
+- Cache-busting trenutno stanje `izvedba.html`: `izvedba.css?v=20260825-odvetnik-carovnik-grid-overflow-fix-v23` (zadnja znana, Codex jo je morda že spremenil), `izvedba.js?v=20260825-odvetnik-carovnik-datum-fix-v34` — PREVERI SVEŽE STANJE pred vsakim `Edit`.

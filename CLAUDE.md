@@ -1,6 +1,6 @@
 # Obvezna navodila za Claude — Uspešni Ježek
 
-Ta datoteka je trajni oblikovni in izvedbeni dogovor projekta. Pred vsakim posegom preberi tudi `AGENTS.md`. Pri delu na Bonitetnem centru obvezno preberi `docs/BONITETA-REGRESSION-GUARDRAILS.md`.
+Ta datoteka je trajni oblikovni in izvedbeni dogovor projekta. Pred vsakim posegom preberi tudi `AGENTS.md`. Pri delu na Bonitetnem centru obvezno preberi `docs/BONITETA-REGRESSION-GUARDRAILS.md` in `docs/BONITETA-MERE.md`.
 
 ## 1. Vrstni red virov resnice
 
@@ -46,21 +46,9 @@ Ta datoteka je trajni oblikovni in izvedbeni dogovor projekta. Pred vsakim poseg
 - Upoštevaj `env(safe-area-inset-top)` in `env(safe-area-inset-bottom)`.
 - Pri primerjavi zaslonov loči: fizično višino telefona `844px`, sistemski zgornji prostor, fiksno spodnjo navigacijo in dejansko vsebinsko območje.
 
-## 5. Trenutno potrjene mobilne mere Bonitetnega centra
+## 5. Mobilne mere Bonitetnega centra
 
-Pri širini do `620px` so naslednje mere trenutna osnova, ne predlog za samovoljno spreminjanje:
-
-- zeleni hero: najmanj `160px`, notranji odmik `12px 20px 26px`, spodnji desni radij `40px`;
-- naslovna vrstica: razmik `12px`; začasni gumb nazaj `30 × 30px`;
-- glavni vnos: višina `46px`; potrditveni krog `58 × 58px`;
-- kartica treh načinov vnosa: overlap `-22px`, stranski odmik `10px`, radij `22px`;
-- trije vnosni elementi: najmanj `98px`, radij `14px`, medsebojni razmik `7px`;
-- izbira vrste preverbe: dva enako široka stolpca; vsak najmanj `204px`;
-- gumb `Začni preverbo`: najmanj `46px`, isti mehak teal gradient kot potrjeni CTA;
-- spodnja navigacija: posamezen element najmanj `66px`, fiksna `8px + safe-area` od dna;
-- vsebina rezervira `128px + safe-area` pod spodnjo navigacijo.
-
-Če uporabnik zahteva spremembo ene mere, spremeni samo prizadeti sloj. Ne preoblikuj preostalih kartic in ne vračaj že zavrnjenih proporcev.
+Glej `docs/BONITETA-MERE.md` — preberi to datoteko samo, kadar dejansko delaš na Bonitetnem centru.
 
 ## 6. Način dela pri vsaki UI-spremembi
 
@@ -74,6 +62,7 @@ Pri širini do `620px` so naslednje mere trenutna osnova, ne predlog za samovolj
 8. Preveri dejansko dejanje, prazno stanje, nalaganje, napako in uspeh, kadar jih sprememba lahko prizadene.
 9. Za PWA preveri nameščeno aplikacijo ali jasno napiši, če dejanskega telefonskega prikaza nisi mogel potrditi.
 10. Ne razglasi vizualne skladnosti samo zato, ker testi uspejo.
+11. Po zadnji spremembi odpri točen prizadeti URL povsem na novo, ponovi dejanski uporabnikov tok in naredi nov posnetek zaslona. Primerjaj ga z uporabnikovo sliko in navodilom; že odprt zavihek ali starejši posnetek ne šteje. Če se ne ujema, nadaljuj s popravljanjem in ne razglasi naloge za končano. To velja za vse agente in prihodnje pogovore na projektu.
 
 ## 7. Prepovedane bližnjice
 
@@ -88,3 +77,19 @@ Pri širini do `620px` so naslednje mere trenutna osnova, ne predlog za samovolj
 ## 8. Začasni elementi
 
 Element z razredom `.boniteta-zacasno-nazaj` je trenutno izrecno začasen gumb za vrnitev iz Bonitetnega centra na `index.html`. Ne odstrani, ne preoblikuj v trajno globalno navigacijo in ne razširjaj na druge strani brez uporabnikovega navodila.
+
+## 9. Objava in preverjanje na Vercelu
+
+- Delaj samo v kanoničnem projektu: `C:\Users\jkjob\Desktop\uspesen jezik git`.
+- Edini uporabniški in končni preverjevalni naslov je: `https://uspesni-jezek.vercel.app/app/index.html`.
+- `http://localhost:8001` uporabljaj samo interno med razvojem. Ne prikazuj ga uporabniku in ga ne uporabljaj za končno potrditev.
+- Razvoj in sprotno vizualno preverjanje (ali sprememba sploh izgleda in deluje pravilno) potekata na `8001`. Delo se nadaljuje brez čakanja na Vercel — objava je ločen, zadnji korak, ne pogoj za nadaljevanje razvoja.
+- Pred zaključkom spremembe izvedi ustrezne teste.
+- Če testi uspejo, spremembo objavi na obstoječi Vercel produkcijski projekt `uspesni-jezek`.
+- Pred preverjanjem na Vercelu potrdi, da stran dejansko streže pravi, sveži vir (ne stare predpomnjene različice) — po potrebi z novo cache-busting oznako ali trdim osvežitvijo.
+- Nato preveri dejansko spremenjeno stran na stalnem Vercel naslovu.
+- Naloge ne označi kot končane, dokler sprememba ni objavljena in preverjena na Vercelu.
+- Če objava na Vercel trenutno ni mogoča (npr. omejitev števila objav), to blokira samo sam korak objave in končne potrditve — ne razvoja. Razvoj, popravki in vizualno preverjanje na `8001` se nadaljujejo naprej; uporabniku jasno povej, da končna objava/potrditev še čaka.
+- Vedno uporabljaj isti Vercel projekt in isti URL. Ne ustvarjaj novega projekta, novega produkcijskega naslova, začasne povezave `trycloudflare` ali kakršnekoli ločene kopije.
+- Ne objavi različice, če katerikoli pomemben test ne uspe. To pomeni teste, ki dejansko pokrivajo spremenjene datoteke — ne celotnega `npm test`. Ker v repozitoriju hkrati dela več agentov, je lahko kadarkoli neuspešen nepovezan test iz tuje, nedokončane spremembe; tak test ne sme blokirati objave, mora pa biti uporabniku jasno omenjen.
+- Ohrani vse obstoječe spremembe drugih agentov in ne prepisuj njihovega dela.

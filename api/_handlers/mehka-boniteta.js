@@ -3,6 +3,13 @@ var sentry = require("../_lib/sentry");
 
 var db = require("../_lib/supabase-server");
 var identityEvidenceContract = require("../_lib/identity-evidence");
+var northDataClient = require("../_lib/apify-northdata-client");
+var northDataDetailsClient = require("../_lib/apify-northdata-details-client");
+var northDataFinancialGuard = require("../../app/bonitetna-finance-guard");
+var northdataAutocomplete = require("../_lib/apify-northdata-autocomplete");
+var identitySearch = require("../_lib/openregister-identity-search");
+var scraplingImpressum = require("../_lib/scrapling-impressum-client");
+var scraplingInsolvency = require("../_lib/scrapling-insolvency-client");
 var dns = require("node:dns").promises;
 var net = require("node:net");
 var fs = require("node:fs");
@@ -18,11 +25,14 @@ var OPENREGISTER_INSOLVENCY_SEARCH = "https://api.openregister.de/v1/search/inso
 var OPENREGISTER_INSOLVENCY_DETAIL = "https://api.openregister.de/v1/insolvency/";
 var OPENREGISTER_SEARCH = "https://api.openregister.de/v0/search/company";
 var OPENREGISTER_WEB = "https://openregister.de";
+var OPENREGISTER_IDENTITY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+var openRegisterIdentityCache = globalThis.__ujOpenRegisterIdentityCache || (globalThis.__ujOpenRegisterIdentityCache = new Map());
+var openRegisterIdentityInFlight = globalThis.__ujOpenRegisterIdentityInFlight || (globalThis.__ujOpenRegisterIdentityInFlight = new Map());
 var OFFENBACH_GEWERBE = "https://www.offenbach.de/vv/oe/verwaltung/Ordnungsamt_Gewerbe.php?loc=de";
 var USER_AGENT = "Uspesni-Jezek-soft-business-check/1.0";
 var BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 var IDENTITY_EVIDENCE_VERSION = identityEvidenceContract.CAPTURE_VERSION;
-var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v4-safe-court-option-resolution";
+var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v11-proof-required-terminal";
 var MAX_IMPRESSUM_BYTES = 5 * 1024 * 1024;
 var IMPRESSUM_HEADING_PATTERN = /\b(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\b/i;
 var LEGAL_PROVIDER_IDENTITY_PATTERN = /(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Anbieter\s+dieser\s+(?:Website|Webseite)|Verantwortliche(?:r)?\s+Anbieter(?:\s+dieses\s+Internetauftritts)?(?:\s+im\s+datenschutzrechtlichen\s+Sinne)?\s+ist|Verantwortliche\s+Stelle(?:\s+im\s+Sinne\s+der\s+Datenschutzgesetze)?\s*(?:ist|:)|Diensteanbieter\s+(?:im\s+Sinne|gem(?:äß|ass)))/i;
@@ -170,6 +180,7 @@ function pripraviVnosZaPreverbo(telo) {
     kraj: varnoBesedilo(telo && telo.kraj, 80),
     spletnaStran: varnoBesedilo(telo && telo.spletnaStran, 240),
     registerNumber: varnoBesedilo(telo && telo.registerNumber, 120),
+    registerCourt: varnoBesedilo(telo && telo.registerCourt, 120),
     vatId: varnoBesedilo(telo && telo.vatId, 80),
   };
   if (jeSpletniNaslovNamestoImena(vnos.ime)) {
@@ -186,7 +197,7 @@ function uporabiOpenRegisterZaIdentiteto(telo) {
 }
 
 function pripraviOpenRegisterVnosZaPotrditev(telo, vnos) {
-  var referenca = telo && telo.confirmedIdentity && telo.confirmedIdentity.companyId;
+  var referenca = telo && telo.confirmedIdentity && telo.confirmedIdentity.companyId || telo && telo.openRegisterCompanyId;
   var companyId = razcleniOpenRegisterVnos(varnoBesedilo(referenca, 120)).companyId;
   if (companyId) return Object.assign({}, vnos, { ime: companyId });
   if (vnos && razcleniOpenRegisterVnos(vnos.registerNumber).registerNumber) {
@@ -248,6 +259,16 @@ function pripraviRocnoHwkDokazilo(telo, vnos, javniProfil, zbornica) {
   };
 }
 
+function normalizirajObrnjenoImeOsebe(vrednost) {
+  var surovo = varnoBesedilo(vrednost, 180);
+  var deli = surovo.split(",");
+  if (deli.length !== 2) return surovo;
+  var priimek = deli[0].trim();
+  var ime = deli[1].trim();
+  if (!priimek || !ime || /\d|[@<>]/.test(priimek + ime)) return surovo;
+  return ime + " " + priimek;
+}
+
 function pripraviPotrditevIdentitete(telo, identiteta) {
   var surovo = telo && telo.confirmedIdentity;
   if (!surovo || typeof surovo !== "object") return { status: "not_provided" };
@@ -260,7 +281,7 @@ function pripraviPotrditevIdentitete(telo, identiteta) {
   var naslov = varnoBesedilo(surovo.street, 140);
   var postnaStevilka = varnoBesedilo(surovo.postalCode, 5);
   var kraj = varnoBesedilo(surovo.city, 80);
-  var potrjeniNosilecVnosa = pocistiImeOsebe(varnoBesedilo(surovo.representativeName, 180));
+  var potrjeniNosilecVnosa = pocistiImeOsebe(normalizirajObrnjenoImeOsebe(surovo.representativeName));
   var jePravnaDruzba = jeNazivPravneDruzbe(ime);
   var nazivJePravnaDruzba = jeNazivPravneDruzbe(naziv);
   var imaMocnoPravnoVlogo = function (osebnoIme) {
@@ -305,6 +326,10 @@ function pripraviPotrditevIdentitete(telo, identiteta) {
   }
 
   if (identiteta.status === "verified_register") {
+    if (jeRegistriraniTrgovecOpenRegister({ name: identiteta.ime || identiteta.naziv, legal_form: identiteta.legalForm }) &&
+        !jeVerjetnoImeOsebe(pocistiImeOsebe(identiteta.nosilec))) {
+      return { status: "invalid", reason: "registered_merchant_owner_required" };
+    }
     var uradnaPolja = [
       [ime, identiteta.ime, normaliziraj],
       [naslov, identiteta.naslov, normalizirajNaslov],
@@ -387,6 +412,76 @@ function pripraviPotrditevIdentitete(telo, identiteta) {
   };
 }
 
+function pripraviSamodejnoRegistrskoPotrditev(identiteta, dokaziloIdentitete, dokaziloImpressuma) {
+  if (!identiteta || identiteta.status !== "verified_register") {
+    return { status: "not_available", reason: "verified_register_required" };
+  }
+  if (!dokaziloIdentitete || dokaziloIdentitete.evidenceReady !== true || dokaziloIdentitete.evidenceKind !== "structured_api") {
+    return { status: "not_available", reason: "official_identity_evidence_unavailable" };
+  }
+  if (!identiteta.ime || !identiteta.companyId || !identiteta.registerNumber ||
+      String(identiteta.naslov || "").length < 3 || !/^\d{5}$/.test(String(identiteta.postnaStevilka || "")) ||
+      String(identiteta.kraj || "").length < 2) {
+    return { status: "not_available", reason: "official_identity_incomplete" };
+  }
+  var registriraniTrgovec = jeRegistriraniTrgovecOpenRegister({
+    name: identiteta.ime || identiteta.naziv,
+    legal_form: identiteta.legalForm,
+  });
+  if (registriraniTrgovec) {
+    if (!jeVerjetnoImeOsebe(pocistiImeOsebe(identiteta.nosilec))) {
+      return { status: "not_available", reason: "registered_merchant_owner_required" };
+    }
+    if (!dokaziloImpressuma || dokaziloImpressuma.screenshotReady !== true) {
+      return { status: "not_available", reason: "registered_merchant_evidence_unavailable" };
+    }
+  }
+  return {
+    status: "valid",
+    identity: Object.assign({}, identiteta, {
+      automaticallyVerified: true,
+      verificationMode: registriraniTrgovec
+        ? "openregister_impressum_automatic"
+        : "openregister_automatic",
+    }),
+  };
+}
+
+function pripraviPotrditevIdentiteteZaZahtevo(telo, identiteta, dokaziloIdentitete, dokaziloImpressuma) {
+  if (identiteta && identiteta.status === "verified_register" && telo && telo.confirmedIdentity) {
+    var trenutniCompanyId = razcleniOpenRegisterVnos(varnoBesedilo(identiteta.companyId, 120)).companyId;
+    var zahtevaniCompanyId = razcleniOpenRegisterVnos(varnoBesedilo(
+      telo.confirmedIdentity.companyId || telo.openRegisterCompanyId,
+      120
+    )).companyId;
+    if (zahtevaniCompanyId) {
+      if (!trenutniCompanyId || normaliziraj(zahtevaniCompanyId) !== normaliziraj(trenutniCompanyId)) {
+        return { status: "invalid", reason: "official_company_id_mismatch" };
+      }
+      if (!jeRegistriraniTrgovecOpenRegister({
+        name: identiteta.ime || identiteta.naziv,
+        legal_form: identiteta.legalForm,
+      })) {
+        return pripraviSamodejnoRegistrskoPotrditev(
+          identiteta,
+          dokaziloIdentitete,
+          dokaziloImpressuma
+        );
+      }
+    }
+  }
+
+  var potrditev = pripraviPotrditevIdentitete(telo, identiteta);
+  if (potrditev.status === "not_provided" && identiteta && identiteta.status === "verified_register") {
+    return pripraviSamodejnoRegistrskoPotrditev(
+      identiteta,
+      dokaziloIdentitete,
+      dokaziloImpressuma
+    );
+  }
+  return potrditev;
+}
+
 function pocistiNazivDruzbe(vrednost) {
   var naziv = String(vrednost || "")
     .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
@@ -423,6 +518,18 @@ function kanonicniPravniNaziv(vrednost) {
 
 function jeNazivPravneDruzbe(vrednost) {
   return /\b(?:GmbH|mbH|UG(?:\s*\(haftungsbeschr(?:ä|a)nkt\))?|AG|GbR|OHG|KG|e\.?\s*K\.?|PartG|eG|(?:n\.?\s*)?e\.?\s*V\.?)\b/i.test(String(vrednost || ""));
+}
+
+function razberiPravnoOblikoIzNaziva(vrednost) {
+  var naziv = String(vrednost || "");
+  if (/\bGmbH\s*&\s*Co\.?\s*KG\b/i.test(naziv)) return "GmbH & Co. KG";
+  if (/\bUG\s*\(haftungsbeschr(?:ä|a)nkt\)\b/i.test(naziv)) return "UG (haftungsbeschränkt)";
+  if (/\be\.?\s*K\.?\b/i.test(naziv)) return "e.K.";
+  var zadetek = naziv.match(/\b(?:GmbH|mbH|AG|GbR|OHG|KG|PartG|eG|e\.?\s*V\.?)\b/i);
+  if (!zadetek) return "";
+  if (/^mbh$/i.test(zadetek[0])) return "mbH";
+  if (/^e\.?\s*v\.?$/i.test(zadetek[0])) return "e.V.";
+  return zadetek[0].replace(/^gmbh$/i, "GmbH").replace(/^gbr$/i, "GbR").replace(/^ohg$/i, "OHG");
 }
 
 var OSEBNI_NAZIVI_PRED_IMENOM = [
@@ -760,14 +867,23 @@ async function fetchJavniHtml(zacetniUrl) {
     await preveriJavniSpletniNaslov(url.toString());
     var odgovor;
     for (var httpPoskus = 0; httpPoskus < 3; httpPoskus += 1) {
-      odgovor = await fetchZRokom(url, {
-        redirect: "manual",
-        // Najprej se pošteno predstavimo kot aplikacija. Če WAF nebrowserski
-        // profil zavrne s 403/5xx, naslednji poskus uporabi običajen brskalniški
-        // profil; istega 429 nikoli ne obidemo z menjavo profila.
-        headers: { "User-Agent": httpPoskus === 0 ? USER_AGENT : BROWSER_USER_AGENT, Accept: "text/html,application/xhtml+xml" },
-      }, 10000);
-      var zacasnaHttpNapaka = odgovor.status === 429 || odgovor.status >= 500;
+      try {
+        odgovor = await fetchZRokom(url, {
+          redirect: "manual",
+          // Najprej se pošteno predstavimo kot aplikacija. Če WAF nebrowserski
+          // profil zavrne s 403/5xx, naslednji poskus uporabi običajen brskalniški
+          // profil. Omejitve 429 ne ponavljamo in je ne obidemo z drugim profilom.
+          headers: { "User-Agent": httpPoskus === 0 ? USER_AGENT : BROWSER_USER_AGENT, Accept: "text/html,application/xhtml+xml" },
+        }, 10000);
+      } catch (omreznaNapaka) {
+        // Prekinjen TLS/DNS klic nima HTTP statusa. Prej je tak prehoden padec
+        // takoj označil celotno spletno stran kot nedosegljivo, čeprav je
+        // naslednji klic uspel. Ponovimo ga enako omejeno kot 5xx odgovore.
+        if (httpPoskus === 2) throw omreznaNapaka;
+        await new Promise(function (resolve) { setTimeout(resolve, 350 * (httpPoskus + 1)); });
+        continue;
+      }
+      var zacasnaHttpNapaka = odgovor.status >= 500;
       if (!zacasnaHttpNapaka || httpPoskus === 2) break;
       var retryAfter = Number(odgovor.headers.get("retry-after") || 0);
       var zakasnitev = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 500 * (httpPoskus + 1);
@@ -1515,6 +1631,35 @@ function imaPopolnoImpressumIdentiteto(subjekt) {
     /^\d{5}$/.test(String(subjekt.postnaStevilka || "")) && String(subjekt.kraj || "").trim().length >= 2);
 }
 
+async function poisciImpressumSScrapling(urlji, vnos, pravniKontekst) {
+  for (var i = 0; i < urlji.length; i += 1) {
+    var ciljniUrl = String(urlji[i] || "");
+    var varenUrl;
+    try { varenUrl = await preveriJavniSpletniNaslov(ciljniUrl); } catch (_) { continue; }
+    var rezultat = await scraplingImpressum.fetchImpressum(varenUrl.toString());
+    if (rezultat.status === "not_configured" || rezultat.status === "invalid_configuration" || rezultat.status === "unavailable") continue;
+    if (rezultat.status === "robots_disallowed" || rezultat.status === "rate_limited") {
+      return {
+        status: "blocked",
+        reason: rezultat.status === "rate_limited" ? "website_rate_limited" : "robots_disallowed",
+        httpStatus: rezultat.status === "rate_limited" ? 429 : null,
+        sourceUrl: varenUrl.toString(),
+      };
+    }
+    if (rezultat.status !== "found") continue;
+    if (!jeUrlVPravnemKontekstu(rezultat.finalUrl, pravniKontekst)) continue;
+    if (jeNedosegljivaNadomestnaStran(rezultat.html)) continue;
+    if (!jePravniIdentitetniDokument(rezultat.html, rezultat.finalUrl)) continue;
+    var subjekt = razcleniImpressum(rezultat.html, rezultat.finalUrl, vnos) ||
+      razcleniVidniImpressumTekst(rezultat.text, rezultat.finalUrl, vnos);
+    if (!imaPopolnoImpressumIdentiteto(subjekt) || razlogNeujemanjaIdentiteteZVnosom(subjekt, vnos)) continue;
+    subjekt.sourceKind = jeImpressumDokument(rezultat.html, rezultat.finalUrl) ? "impressum" : "labelled_provider_page";
+    subjekt.acquisition = "scrapling_" + rezultat.mode;
+    return { status: "found", subjekt: subjekt, sourceUrl: rezultat.finalUrl, acquisition: subjekt.acquisition };
+  }
+  return null;
+}
+
 async function poisciVImpressumu(vnos) {
   if (!vnos.spletnaStran) return { status: "not_provided" };
   try {
@@ -1581,7 +1726,28 @@ async function poisciVImpressumu(vnos) {
         if (napakeBranja.filter(function (koda) { return /WEBSITE_SERVER_ERROR_\d{3}/.test(koda); }).length >= 2) break;
       }
     }
+    var omejitevDostopa = napakeBranja.find(function (koda) { return /WEBSITE_RATE_LIMITED_429/.test(koda); });
+    if (omejitevDostopa) {
+      return {
+        status: "unavailable",
+        reason: "website_rate_limited",
+        httpStatus: 429,
+        attempts: napakeBranja.length,
+        sourceUrl: osnova.toString(),
+      };
+    }
     if (!uspesnoPrebrane) {
+      var scraplingRezultat = await poisciImpressumSScrapling(poti.slice(0, 2).map(String), vnos, pravniKontekst);
+      if (scraplingRezultat && scraplingRezultat.status === "found") return scraplingRezultat;
+      if (scraplingRezultat && scraplingRezultat.status === "blocked") {
+        return {
+          status: "unavailable",
+          reason: scraplingRezultat.reason,
+          httpStatus: scraplingRezultat.httpStatus,
+          attempts: napakeBranja.length,
+          sourceUrl: scraplingRezultat.sourceUrl || osnova.toString(),
+        };
+      }
       var brskalniskiRezultat = await poisciImpressumZBrskalnikom(poti.slice(0, 2).map(String), vnos, pravniKontekst);
       if (brskalniskiRezultat && imaPopolnoImpressumIdentiteto(brskalniskiRezultat.subjekt) &&
           !razlogNeujemanjaIdentiteteZVnosom(brskalniskiRezultat.subjekt, vnos)) return brskalniskiRezultat;
@@ -1597,6 +1763,16 @@ async function poisciVImpressumu(vnos) {
     // Tudi začetna stran je lahko dejanski pravni dokument: pri dinamičnih
     // straneh je Impressum vgrajen v domačo stran in ga razkrije šele brskalnik.
     var fallbackUrlji = [najdenImpressumBrezNosilca, osnova.toString()].concat(poti.filter(function (pot) { return jeOcitenPravniUrl(pot); }).map(String)).filter(Boolean);
+    var scraplingFallback = await poisciImpressumSScrapling(Array.from(new Set(fallbackUrlji)).slice(0, 2), vnos, pravniKontekst);
+    if (scraplingFallback && scraplingFallback.status === "found") return scraplingFallback;
+    if (scraplingFallback && scraplingFallback.status === "blocked") {
+      return {
+        status: "unavailable",
+        reason: scraplingFallback.reason,
+        httpStatus: scraplingFallback.httpStatus,
+        sourceUrl: scraplingFallback.sourceUrl || osnova.toString(),
+      };
+    }
     var fallbackRezultat = await poisciImpressumZBrskalnikom(Array.from(new Set(fallbackUrlji)).slice(0, 2), vnos, pravniKontekst);
     if (fallbackRezultat && imaPopolnoImpressumIdentiteto(fallbackRezultat.subjekt) &&
         !razlogNeujemanjaIdentiteteZVnosom(fallbackRezultat.subjekt, vnos)) return fallbackRezultat;
@@ -1658,6 +1834,52 @@ function pocistiRegistrskoSodisce(vrednost) {
     .trim();
 }
 
+function razcleniNazivZaVarnoUjemanje(vrednost) {
+  var pravneOblike = new Set(["ag", "eg", "gbr", "gmbh", "kg", "mbh", "ohg", "partg", "se", "ug"]);
+  var vezniki = new Set(["co", "das", "der", "die", "und", "von", "zu"]);
+  var kanonicno = String(vrednost || "")
+    .replace(/\bmbh\b/gi, " GmbH ")
+    .replace(/gesellschaft\s+mit\s+beschr[aä]nkter\s+haftung/gi, " GmbH ")
+    .replace(/unternehmergesellschaft\s*\(?haftungsbeschr[aä]nkt\)?/gi, " UG ")
+    .replace(/offene\s+handelsgesellschaft/gi, " OHG ")
+    .replace(/kommanditgesellschaft/gi, " KG ")
+    .replace(/aktiengesellschaft/gi, " AG ")
+    .replace(/eingetragene\s+genossenschaft/gi, " eG ")
+    .replace(/gesellschaft\s+b[uü]rgerlichen\s+rechts/gi, " GbR ");
+  var vsi = Array.from(new Set(normaliziraj(kanonicno).split(" ").filter(function (token) {
+    return token.length >= 2;
+  })));
+  return {
+    vsi: vsi,
+    razlikovalni: vsi.filter(function (token) { return !pravneOblike.has(token) && !vezniki.has(token); }),
+    pravneOblike: vsi.filter(function (token) { return pravneOblike.has(token); }),
+  };
+}
+
+function oceniVarnoUjemanjeNaziva(iskanoIme, najdenoIme) {
+  var iskano = normaliziraj(iskanoIme);
+  var najdeno = normaliziraj(najdenoIme);
+  if (!iskano || !najdeno) return 0;
+  if (iskano === najdeno) return 200;
+  var zahteva = razcleniNazivZaVarnoUjemanje(iskanoIme);
+  var kandidat = razcleniNazivZaVarnoUjemanje(najdenoIme);
+  var kandidatVsi = new Set(kandidat.vsi);
+  if (!zahteva.razlikovalni.length || zahteva.razlikovalni.some(function (token) {
+    return !kandidatVsi.has(token);
+  })) return 0;
+  if (zahteva.pravneOblike.some(function (token) { return !kandidatVsi.has(token); })) return 0;
+  var score = zahteva.razlikovalni.length * 60 + zahteva.pravneOblike.length * 30;
+  var zadnjiIndex = -1;
+  if (zahteva.razlikovalni.every(function (token) {
+    var index = kandidat.vsi.indexOf(token, zadnjiIndex + 1);
+    if (index < 0) return false;
+    zadnjiIndex = index;
+    return true;
+  })) score += 20;
+  if (najdeno.includes(iskano) || iskano.includes(najdeno)) score += 45;
+  return score;
+}
+
 function oceniOpenRegisterZadetek(kandidat, vnos) {
   var register = razcleniOpenRegisterReferenco(vnos);
   if (register.companyId && String(kandidat && kandidat.company_id || "").toUpperCase() === register.companyId) return 500;
@@ -1672,20 +1894,15 @@ function oceniOpenRegisterZadetek(kandidat, vnos) {
   var popolnoRegistrskoUjemanje = register.registerNumber && String(kandidat && kandidat.register_number || "") === register.registerNumber &&
     (!register.registerType || String(kandidat && kandidat.register_type || "").toUpperCase() === register.registerType.toUpperCase());
   if (popolnoRegistrskoUjemanje) {
-    var sodisceSeUjema = !iskanoSodisce || !najdenoSodisce || iskanoSodisce === najdenoSodisce;
     var nazivSeUjema = Boolean(iskano && najdeno && (iskano === najdeno || najdeno.includes(iskano) || iskano.includes(najdeno)));
     // Prepis sodišča iz Impressuma je lahko tipkarsko napačen. Točnega registra
     // ne zavrnemo, kadar ga neodvisno potrdita naziv ali lokacija; uradno ime
     // sodišča nato vedno prevzamemo iz OpenRegisterja.
-    if (sodisceSeUjema) return iskanoSodisce && najdenoSodisce ? 500 : 450;
-    return nazivSeUjema || lokacijskeTocke >= 80 ? 440 + lokacijskeTocke : 0;
+    if (iskanoSodisce && najdenoSodisce && iskanoSodisce === najdenoSodisce) return 500 + lokacijskeTocke;
+    return nazivSeUjema || lokacijskeTocke >= 80 ? 440 + lokacijskeTocke + (nazivSeUjema ? 60 : 0) : 0;
   }
   if (!iskano || !najdeno) return 0;
-  if (iskano === najdeno) return 200 + lokacijskeTocke;
-  var iskaniDeli = iskano.split(" ").filter(function (del) { return del.length > 1; });
-  var najdeniDeli = new Set(najdeno.split(" "));
-  var skupni = iskaniDeli.filter(function (del) { return najdeniDeli.has(del); }).length;
-  return skupni * 25 + (najdeno.includes(iskano) || iskano.includes(najdeno) ? 45 : 0) + lokacijskeTocke;
+  return oceniVarnoUjemanjeNaziva(vnos.ime, kandidat && kandidat.name) + lokacijskeTocke;
 }
 
 function izberiOpenRegisterZadetek(rezultati, vnos) {
@@ -1716,19 +1933,64 @@ function sestaviOpenRegisterIskalniUrl(vnos) {
     // začetni filter. Ista številka se lahko ponovi pri več sodiščih, zato vse
     // kandidate razločimo z uradnim nazivom in celotno lokacijo.
   } else {
-    url.searchParams.set("query", vnos.ime);
+    // Nekateri starejši registrski nazivi uporabljajo končnico »mbH«, medtem
+    // ko jo ponudnik indeksira kot GmbH ali kot izpisano pravno obliko. Pri
+    // iskanju odstranimo samo to končno okrajšavo; varni ocenjevalnik spodaj
+    // mora še vedno potrditi vse razlikovalne besede in enakovredno obliko.
+    var iskalniNaziv = String(vnos.ime || "").replace(/\s+mbh\s*$/i, "").trim();
+    url.searchParams.set("query", iskalniNaziv || vnos.ime);
   }
   url.searchParams.set("page", "1");
-  url.searchParams.set("per_page", "50");
+  // OpenRegister v0 dovoljuje največ 30 zadetkov na stran.
+  url.searchParams.set("per_page", "30");
   return url;
 }
 
-async function poisciOpenRegister(vnos) {
-  var kljuc = String(process.env.OPENREGISTER_API_KEY || "").trim();
-  if (!kljuc) return { status: "not_configured", sourceUrl: OPENREGISTER_WEB };
+function kopirajOpenRegisterRezultat(rezultat, predpomnjeno) {
+  var kopija = Object.assign({}, rezultat || {});
+  if (rezultat && rezultat.company) {
+    kopija.company = Object.assign({}, rezultat.company);
+    if (rezultat.company.address) kopija.company.address = Object.assign({}, rezultat.company.address);
+  }
+  if (Array.isArray(rezultat && rezultat.candidates)) kopija.candidates = rezultat.candidates.map(function (kandidat) { return Object.assign({}, kandidat); });
+  if (predpomnjeno) kopija.cached = true;
+  return kopija;
+}
+
+function preberiOpenRegisterIdentityCache(kljuc) {
+  var zapis = openRegisterIdentityCache.get(kljuc);
+  if (!zapis) return null;
+  if (Date.now() - zapis.savedAt >= OPENREGISTER_IDENTITY_CACHE_TTL_MS) {
+    openRegisterIdentityCache.delete(kljuc);
+    return null;
+  }
+  return kopirajOpenRegisterRezultat(zapis.result, true);
+}
+
+function shraniOpenRegisterIdentityCache(kljuc, rezultat) {
+  if (!rezultat || !["found", "not_found", "ambiguous"].includes(rezultat.status)) return;
+  openRegisterIdentityCache.set(kljuc, { savedAt: Date.now(), result: kopirajOpenRegisterRezultat(rezultat, false) });
+  if (openRegisterIdentityCache.size > 400) openRegisterIdentityCache.delete(openRegisterIdentityCache.keys().next().value);
+}
+
+function ponastaviOpenRegisterIdentityCache() {
+  openRegisterIdentityCache.clear();
+  openRegisterIdentityInFlight.clear();
+}
+
+async function fetchPlacljiviVirEnkrat(url, moznosti, rokMs) {
+  var kontrolnik = new AbortController();
+  var casovnik = setTimeout(function () { kontrolnik.abort(); }, rokMs || 12000);
   try {
-    var url = sestaviOpenRegisterIskalniUrl(vnos);
-    var odgovor = await fetchZRokom(url, {
+    return await fetch(url, Object.assign({}, moznosti || {}, { signal: kontrolnik.signal }));
+  } finally {
+    clearTimeout(casovnik);
+  }
+}
+
+async function izvediOpenRegisterIdentityIskanje(url, vnos, kljuc) {
+  try {
+    var odgovor = await fetchPlacljiviVirEnkrat(url, {
       headers: { Authorization: "Bearer " + kljuc, Accept: "application/json", "User-Agent": USER_AGENT },
     }, 12000);
     if (odgovor.status === 401 || odgovor.status === 403) return { status: "not_configured", reason: "not_configured", httpStatus: odgovor.status, sourceUrl: OPENREGISTER_WEB };
@@ -1744,6 +2006,28 @@ async function poisciOpenRegister(vnos) {
     return Object.assign({ sourceUrl: sourceUrl, queryUrl: url.toString() }, izbor);
   } catch (_) {
     return { status: "unavailable", reason: "network_error", sourceUrl: OPENREGISTER_WEB };
+  }
+}
+
+async function poisciOpenRegister(vnos, moznosti) {
+  var kljuc = String(process.env.OPENREGISTER_API_KEY || "").trim();
+  if (!kljuc) return { status: "not_configured", sourceUrl: OPENREGISTER_WEB };
+  var url = sestaviOpenRegisterIskalniUrl(vnos);
+  var cacheKey = url.toString();
+  var forceFresh = Boolean(moznosti && moznosti.forceFresh);
+  var predpomnjeno = forceFresh ? null : preberiOpenRegisterIdentityCache(cacheKey);
+  if (predpomnjeno) return predpomnjeno;
+  var tekoca = forceFresh ? null : openRegisterIdentityInFlight.get(cacheKey);
+  if (tekoca) return kopirajOpenRegisterRezultat(await tekoca, true);
+  var poizvedba = izvediOpenRegisterIdentityIskanje(url, vnos, kljuc).then(function (rezultat) {
+    shraniOpenRegisterIdentityCache(cacheKey, rezultat);
+    return rezultat;
+  });
+  if (!forceFresh) openRegisterIdentityInFlight.set(cacheKey, poizvedba);
+  try {
+    return kopirajOpenRegisterRezultat(await poizvedba, false);
+  } finally {
+    if (openRegisterIdentityInFlight.get(cacheKey) === poizvedba) openRegisterIdentityInFlight.delete(cacheKey);
   }
 }
 
@@ -2145,12 +2429,16 @@ function normalizirajKrajZaDopolnitev(vrednost) {
 }
 
 function preveriImpressumDopolnitevRegistriranegaTrgovca(openregister, javniProfil) {
-  if (!openregister || openregister.status !== "found" || !jeRegistriraniTrgovecOpenRegister(openregister.company)) {
-    return { matched: false, reason: "not_registered_merchant" };
+  if (!openregister || openregister.status !== "found" || !openregister.company) {
+    return { matched: false, reason: "official_identity_missing" };
   }
   var subjekt = javniProfil && javniProfil.status === "found" && javniProfil.subjekt;
   var nosilec = subjekt && pocistiImeOsebe(subjekt.nosilec || subjekt.ime);
-  if (!subjekt || !jeVerjetnoImeOsebe(nosilec)) return { matched: false, reason: "representative_missing" };
+  var zastopniki = subjekt && (subjekt.zastopniki || []).map(pocistiImeOsebe).filter(jeVerjetnoImeOsebe) || [];
+  if (jeVerjetnoImeOsebe(nosilec) && !zastopniki.some(function (ime) { return normaliziraj(ime) === normaliziraj(nosilec); })) {
+    zastopniki.unshift(nosilec);
+  }
+  if (!subjekt || !zastopniki.length) return { matched: false, reason: "representative_missing" };
 
   var uradniNaslov = openregister.company.address || {};
   var postaSeUjema = Boolean(uradniNaslov.postal_code && subjekt.postnaStevilka) &&
@@ -2163,18 +2451,39 @@ function preveriImpressumDopolnitevRegistriranegaTrgovca(openregister, javniProf
     return { matched: false, reason: "official_address_mismatch" };
   }
 
-  var mocnaPravnaVloga = Array.isArray(subjekt.vloge) && subjekt.vloge.some(function (vloga) {
-    return normaliziraj(vloga && vloga.ime) === normaliziraj(nosilec) &&
-      !/^(?:Neoznačena oseba|Inhaltlich verantwortlich)$/i.test(String(vloga && vloga.vloga || ""));
+  var registriraniTrgovec = jeRegistriraniTrgovecOpenRegister(openregister.company);
+  var nazivSeUjema = normaliziraj(subjekt.naziv || subjekt.ime) === normaliziraj(openregister.company.name);
+  var impressumRegister = razcleniOpenRegisterVnos(subjekt.registerNumber);
+  var uradniRegister = razcleniOpenRegisterVnos([
+    openregister.company.register_type, openregister.company.register_number,
+  ].filter(Boolean).join(" "));
+  var registerSeUjema = Boolean(impressumRegister.registerNumber && uradniRegister.registerNumber) &&
+    impressumRegister.registerNumber === uradniRegister.registerNumber &&
+    (!impressumRegister.registerType || impressumRegister.registerType === uradniRegister.registerType);
+  if (!registriraniTrgovec && !nazivSeUjema && !registerSeUjema) {
+    return { matched: false, reason: "official_identity_mismatch" };
+  }
+
+  var mocneVloge = (subjekt.vloge || []).filter(function (vloga) {
+    return !/^(?:Neoznačena oseba|Inhaltlich verantwortlich)$/i.test(String(vloga && vloga.vloga || ""));
+  }).map(function (vloga) {
+    return pocistiImeOsebe(vloga && vloga.ime);
+  }).filter(Boolean);
+  var potrjeniZastopniki = zastopniki.filter(function (ime) {
+    return mocneVloge.some(function (imeVloge) { return normaliziraj(imeVloge) === normaliziraj(ime); });
   });
   var nosilecVRegistrskemImenu = normaliziraj(openregister.company.name).indexOf(normaliziraj(nosilec)) >= 0;
-  if (!mocnaPravnaVloga && !nosilecVRegistrskemImenu) {
+  if (registriraniTrgovec && jeVerjetnoImeOsebe(nosilec) && nosilecVRegistrskemImenu &&
+      !potrjeniZastopniki.some(function (ime) { return normaliziraj(ime) === normaliziraj(nosilec); })) {
+    potrjeniZastopniki.unshift(nosilec);
+  }
+  if (!potrjeniZastopniki.length) {
     return { matched: false, reason: "representative_not_linked_to_registered_identity" };
   }
-  return { matched: true, representative: nosilec };
+  return { matched: true, representative: potrjeniZastopniki[0], representatives: potrjeniZastopniki };
 }
 
-function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
+function sestaviIdentiteto(openregister, _odstranjeniHwk, javniProfil, vnos) {
   if (openregister && openregister.status === "found" && openregister.company) {
     var podjetje = openregister.company;
     var naslov = podjetje.address || {};
@@ -2188,9 +2497,11 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
       postnaStevilka: naslov.postal_code || "",
       kraj: naslov.city || "",
       companyId: podjetje.company_id || "",
-      legalForm: podjetje.legal_form || "",
+      legalForm: razberiPravnoOblikoIzNaziva(podjetje.name) || podjetje.legal_form || "",
       registerNumber: [podjetje.register_type, podjetje.register_number].filter(Boolean).join(" "),
       registerCourt: podjetje.register_court || "",
+      purpose: typeof podjetje.purpose === "string" ? podjetje.purpose.trim() : "",
+      incorporatedAt: podjetje.incorporation_date || podjetje.incorporated_at || "",
       registerCourtSource: "openregister_verified",
       active: podjetje.active !== false,
       source: "openregister",
@@ -2201,16 +2512,18 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
         street: naslov.street || "",
         postalCode: naslov.postal_code || "",
         city: naslov.city || "",
-        legalForm: podjetje.legal_form || "",
+        legalForm: razberiPravnoOblikoIzNaziva(podjetje.name) || podjetje.legal_form || "",
         registerNumber: [podjetje.register_type, podjetje.register_number].filter(Boolean).join(" "),
         registerCourt: podjetje.register_court || "",
+        purpose: typeof podjetje.purpose === "string" ? podjetje.purpose.trim() : "",
+        incorporatedAt: podjetje.incorporation_date || podjetje.incorporated_at || "",
       },
     };
     var dopolnitev = preveriImpressumDopolnitevRegistriranegaTrgovca(openregister, javniProfil);
     if (dopolnitev.matched) {
       var impressumSubjekt = javniProfil.subjekt;
       registrskaIdentiteta.nosilec = dopolnitev.representative;
-      registrskaIdentiteta.zastopniki = [dopolnitev.representative];
+      registrskaIdentiteta.zastopniki = dopolnitev.representatives.slice();
       registrskaIdentiteta.vloge = (impressumSubjekt.vloge || []).map(function (vloga) {
         return Object.assign({}, vloga, { ime: pocistiImeOsebe(vloga && vloga.ime) });
       }).filter(function (vloga) { return vloga.ime; });
@@ -2225,20 +2538,6 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
     }
     return registrskaIdentiteta;
   }
-  if (hwk && hwk.status === "found" && hwk.subjekt) {
-    var hwkSubjekt = Object.assign({}, hwk.subjekt, {
-      status: "verified_directory",
-      confidence: "medium",
-      entityType: hwk.subjekt.entityType || razdeliImeZaInsolvenco(hwk.subjekt.ime).vrsta,
-      naziv: vnos.ime,
-      source: "hwk",
-    });
-    if (hwkSubjekt.entityType !== "company") {
-      hwkSubjekt.ime = pocistiImeOsebe(hwkSubjekt.ime);
-      hwkSubjekt.naziv = jeVerjetnoImeOsebe(hwkSubjekt.naziv) ? pocistiImeOsebe(hwkSubjekt.naziv) : hwkSubjekt.naziv;
-    }
-    return normalizirajOsebnaPoljaIdentitete(hwkSubjekt);
-  }
   if (javniProfil && javniProfil.status === "found" && javniProfil.subjekt) {
     var impressumSubjekt = Object.assign({}, javniProfil.subjekt, {
       status: "probable_impressum",
@@ -2249,6 +2548,9 @@ function sestaviIdentiteto(openregister, hwk, javniProfil, vnos) {
     });
     impressumSubjekt.nosilec = pocistiImeOsebe(impressumSubjekt.nosilec);
     impressumSubjekt.zastopniki = (impressumSubjekt.zastopniki || []).map(pocistiImeOsebe).filter(Boolean);
+    if (!impressumSubjekt.legalForm) {
+      impressumSubjekt.legalForm = razberiPravnoOblikoIzNaziva(impressumSubjekt.naziv || impressumSubjekt.ime);
+    }
     impressumSubjekt.vloge = (impressumSubjekt.vloge || []).map(function (vloga) {
       return Object.assign({}, vloga, { ime: pocistiImeOsebe(vloga && vloga.ime) });
     }).filter(function (vloga) { return vloga.ime; });
@@ -2339,7 +2641,7 @@ function preveriUjemanjeLokacije(vnos, identiteta) {
   };
 }
 
-function sestaviVire(openregister, hwk, javniProfil, vnos) {
+function sestaviVire(openregister, _odstranjeniHwk, javniProfil, vnos) {
   var jeOznacenaPravnaStran = Boolean(javniProfil && javniProfil.subjekt && javniProfil.subjekt.sourceKind === "labelled_provider_page");
   var viri = [
     {
@@ -2353,17 +2655,17 @@ function sestaviVire(openregister, hwk, javniProfil, vnos) {
         : openregister.status === "disabled"
           ? "Preverjanje identitete prek OpenRegisterja je izklopljeno."
         : openregister.status === "not_configured"
-          ? "API še ni povezan; preverjanje se nadaljuje z rezervnimi viri."
+          ? "API še ni povezan; identiteto lahko potrdi samo veljaven Impressum."
           : openregister.status === "ambiguous"
             ? "Najdenih je več možnih družb."
             : openregister.status === "unavailable"
               ? (openregister.reason === "insufficient_credits"
-                ? "OpenRegister API nima dovolj kreditov. Javni zapis lahko odprete neposredno; preverjanje se nadaljuje z Impressumom."
+                ? "OpenRegister API ključ, ki ga uporablja aplikacija, nima dostopa do razpoložljive kvote. Javni zapis lahko odprete neposredno; preverjanje se nadaljuje z Impressumom."
                 : openregister.reason === "rate_limited"
-                  ? "OpenRegister je začasno omejil število zahtev; preverjanje se nadaljuje z rezervnimi viri."
+                  ? "OpenRegister je začasno omejil število zahtev; identiteto lahko potrdi samo veljaven Impressum."
                   : openregister.reason === "network_error"
-                    ? "Povezava z OpenRegisterjem je začasno prekinjena; preverjanje se nadaljuje z rezervnimi viri."
-                    : "OpenRegister API trenutno ni dosegljiv; preverjanje se nadaljuje z rezervnimi viri.")
+                    ? "Povezava z OpenRegisterjem je začasno prekinjena; identiteto lahko potrdi samo veljaven Impressum."
+                    : "OpenRegister API trenutno ni dosegljiv; identiteto lahko potrdi samo veljaven Impressum.")
               : "Registrirana družba s tem imenom ni najdena.",
     },
     {
@@ -2396,7 +2698,9 @@ function sestaviVire(openregister, hwk, javniProfil, vnos) {
                     : javniProfil.reason === "website_server_error"
                       ? "Spletni strežnik podjetja po več poskusih še vedno vrača napako " + (javniProfil.httpStatus || "5xx") + ". Brez vsebine Impressuma identitete ni varno potrditi."
                       : javniProfil.reason === "website_rate_limited"
-                        ? "Spletni strežnik podjetja začasno omejuje dostop (429). Sistem je poizvedbo večkrat ponovil; poskusite pozneje."
+                        ? "Spletni strežnik podjetja začasno omejuje dostop (429). Omejitve nismo obšli; poskusite pozneje."
+                      : javniProfil.reason === "robots_disallowed"
+                        ? "Spletno mesto v robots.txt ne dovoljuje samodejnega branja te pravne strani. Omejitve ne bomo obšli."
                     : /^(?:legal_source_context_mismatch|entered_(?:postal|city|street)_context_mismatch)$/.test(javniProfil.reason || "")
                       ? "Varnostno varovalo je zavrnilo Impressum druge poslovalnice ali pravnega subjekta. Uporabljena bo samo neposredno vnesena pravna stran oziroma stran v istem spletnem kontekstu."
                     : javniProfil.status === "unavailable"
@@ -2438,7 +2742,10 @@ function cookiesIzOdgovora(odgovor) {
 }
 
 async function zazeniBrskalnikZaDokazilo() {
-  var puppeteer = require("puppeteer-core");
+  // puppeteer-core 25 je ESM. Dinamični import deluje tudi iz tega CommonJS
+  // handlerja in prepreči produkcijski ERR_REQUIRE_ESM pred zagonom brskalnika.
+  var puppeteerModul = await import("puppeteer-core");
+  var puppeteer = puppeteerModul.default || puppeteerModul;
   if (process.platform === "win32") {
     var lokalnePoti = [
       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -2459,7 +2766,7 @@ async function zazeniBrskalnikZaDokazilo() {
     lokalniBrowser.__mehkaBonitetaTempProfile = zacasniProfil;
     return lokalniBrowser;
   }
-  var chromiumModul = require("@sparticuz/chromium");
+  var chromiumModul = await import("@sparticuz/chromium");
   var chromium = chromiumModul.default || chromiumModul;
   chromium.setGraphicsMode = false;
   return puppeteer.launch({
@@ -3235,17 +3542,11 @@ async function skrijPiskotkovnoPasicoZaPosnetek(stran) {
   return skritih;
 }
 
-function dolociVirDokazilaIdentitete(identiteta, openregister, hwk, javniProfil) {
+function dolociVirDokazilaIdentitete(identiteta, openregister, _odstranjeniHwk, javniProfil) {
   if (identiteta && identiteta.status === "verified_register") {
     return {
       sourceUrl: openregister && openregister.sourceUrl || "",
       sourceLabel: "OpenRegister",
-    };
-  }
-  if (identiteta && identiteta.status === "verified_directory") {
-    return {
-      sourceUrl: hwk && hwk.subjekt && hwk.subjekt.sourceUrl || "",
-      sourceLabel: hwk && hwk.chamberName || "Handwerkskammer",
     };
   }
   if (identiteta && ["probable_impressum", "confirmed_impressum"].includes(identiteta.status)) {
@@ -3278,24 +3579,10 @@ function sestaviApiDokaziloIdentitete(identiteta, openregister) {
   };
 }
 
-async function zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProfil) {
+async function zajemiDokaziloIdentitete(identiteta, openregister, _odstranjeniHwk, javniProfil) {
   var apiDokazilo = sestaviApiDokaziloIdentitete(identiteta, openregister);
   if (apiDokazilo) return apiDokazilo;
-  if (identiteta && identiteta.status === "verified_directory" && hwk && hwk.manualEvidence) {
-    return {
-      status: "captured",
-      imageDataUrl: hwk.manualEvidence.imageDataUrl,
-      capturedAt: hwk.manualEvidence.capturedAt,
-      sourceUrl: hwk.manualEvidence.sourceUrl || HANDWERKER_RADAR_SEARCH,
-      sourceLabel: (hwk.chamberName || "Handwerkskammer") + " – ročno zajet uradni rezultat",
-      evidenceMode: "user_uploaded_official_screenshot",
-      captureVersion: "user-uploaded-official-screenshot-v1",
-      viewportOverlaysRemoved: true,
-      screenshotReady: true,
-      evidenceContractVersion: identityEvidenceContract.CONTRACT_VERSION,
-    };
-  }
-  var vir = dolociVirDokazilaIdentitete(identiteta, openregister, hwk, javniProfil);
+  var vir = dolociVirDokazilaIdentitete(identiteta, openregister, null, javniProfil);
   if (!vir || !vir.sourceUrl) return null;
   var varenUrl = await preveriJavniSpletniNaslov(vir.sourceUrl);
   var browser = await zazeniBrskalnikZaDokazilo();
@@ -3395,13 +3682,13 @@ function sestaviImpressumIdentitetoZaDopolnilniPosnetek(identiteta, javniProfil)
   });
 }
 
-async function zajemiDopolnilnoImpressumDokazilo(identiteta, hwk, javniProfil) {
+async function zajemiDopolnilnoImpressumDokazilo(identiteta, _odstranjeniHwk, javniProfil) {
   var impressumIdentiteta = sestaviImpressumIdentitetoZaDopolnilniPosnetek(identiteta, javniProfil);
   if (!impressumIdentiteta) return null;
   var dokazilo = await zajemiDokaziloIdentitete(
     impressumIdentiteta,
     { status: "not_found" },
-    hwk,
+    null,
     javniProfil
   );
   if (!dokazilo) return null;
@@ -3426,6 +3713,12 @@ function pripraviDokaziloZaOdgovor(dokazilo) {
     sourceUrl: dokazilo.sourceUrl,
     sourceLabel: dokazilo.sourceLabel,
     companyId: dokazilo.companyId || "",
+    officialName: dokazilo.officialName || "",
+    officialStreet: dokazilo.officialStreet || "",
+    officialPostalCode: dokazilo.officialPostalCode || "",
+    officialCity: dokazilo.officialCity || "",
+    legalForm: dokazilo.legalForm || "",
+    active: dokazilo.active,
     registerNumber: dokazilo.registerNumber || "",
     registerCourt: dokazilo.registerCourt || "",
     screenshotReady: identityEvidenceContract.jePosnetekPrikazljiv(dokazilo),
@@ -3543,7 +3836,7 @@ function razlogOpenRegisterInsolvencneNapake(status) {
 async function pridobiOpenRegisterInsolvencnePodrobnosti(kandidat, kljuc) {
   var url = OPENREGISTER_INSOLVENCY_DETAIL + encodeURIComponent(kandidat.id);
   try {
-    var odgovor = await fetchZRokom(url, {
+    var odgovor = await fetchPlacljiviVirEnkrat(url, {
       headers: { Authorization: "Bearer " + kljuc, Accept: "application/json", "User-Agent": USER_AGENT },
     }, 12000);
     if (!odgovor.ok) {
@@ -3790,8 +4083,9 @@ async function preberiUradnaInsolvencnaPolja(stran) {
 
 async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
   return stran.evaluate(function (nastavitve) {
+    var jeIskanaOseba = Boolean(String(nastavitve.polja.ime || "").trim());
     var barve = {
-      blue: { rob: "#2f70d6", ozadje: "rgba(47, 112, 214, .14)", naziv: "Ime podjetja" },
+      blue: { rob: "#1769e0", ozadje: "rgba(23, 105, 224, .24)", naziv: jeIskanaOseba ? "Ime in priimek" : "Ime podjetja" },
       green: { rob: "#2d8a68", ozadje: "rgba(45, 138, 104, .14)", naziv: "Kraj" },
       violet: { rob: "#7657bd", ozadje: "rgba(118, 87, 189, .14)", naziv: "Register" },
       amber: { rob: "#b8751d", ozadje: "rgba(184, 117, 29, .15)", naziv: "Zadeva" },
@@ -3799,15 +4093,24 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
     function normalizirajVrednost(vrednost) {
       return String(vrednost || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
     }
+    var obarvaniToni = {};
     function pobarvaj(element, ton) {
       if (!element || !barve[ton]) return false;
       element.style.setProperty("background-color", barve[ton].ozadje, "important");
-      element.style.setProperty("box-shadow", "inset 0 0 0 2px " + barve[ton].rob, "important");
+      element.style.setProperty("box-shadow", "inset 0 0 0 3px " + barve[ton].rob, "important");
+      element.style.setProperty("outline", "2px solid " + barve[ton].rob, "important");
+      element.style.setProperty("outline-offset", "1px", "important");
       element.style.setProperty("border-radius", "5px", "important");
       element.dataset.uspesniJezekPrimerjava = ton;
+      obarvaniToni[ton] = true;
       return true;
     }
     var obarvanih = 0;
+    function najdiUradnoPolje(kljuc) {
+      var selektor = nastavitve.selektorji[kljuc];
+      if (!selektor) return null;
+      return document.querySelector('[name="' + selektor + '"]') || document.getElementById(selektor);
+    }
     var povezavePolj = [
       ["firmaPriimek", "blue"], ["ime", "blue"], ["kraj", "green"],
       ["registrskoSodisce", "violet"], ["vrstaRegistra", "violet"], ["registrskaStevilka", "violet"],
@@ -3815,12 +4118,16 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
     ];
     povezavePolj.forEach(function (povezava) {
       if (!nastavitve.polja[povezava[0]]) return;
-      var element = document.querySelector('[name="' + nastavitve.selektorji[povezava[0]] + '"]');
+      var element = najdiUradnoPolje(povezava[0]);
       if (pobarvaj(element, povezava[1])) obarvanih += 1;
     });
 
     var iskaniPojmi = {
-      blue: [[nastavitve.polja.firmaPriimek, nastavitve.polja.ime].filter(Boolean).join(" "), nastavitve.polja.firmaPriimek],
+      blue: [
+        [nastavitve.polja.firmaPriimek, nastavitve.polja.ime].filter(Boolean).join(" "),
+        nastavitve.polja.firmaPriimek,
+        nastavitve.polja.ime,
+      ],
       green: [nastavitve.polja.kraj],
       violet: [[nastavitve.polja.vrstaRegistra, nastavitve.polja.registrskaStevilka].filter(Boolean).join(" "), nastavitve.polja.registrskoSodisce],
       amber: [[nastavitve.polja.oddelek, nastavitve.polja.oznaka, nastavitve.polja.stevilka && nastavitve.polja.leto
@@ -3848,8 +4155,7 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
       naslov.style.cssText = "margin-bottom:7px;font-weight:700";
       legenda.appendChild(naslov);
       Object.keys(barve).forEach(function (ton) {
-        var imaVrednost = povezavePolj.some(function (povezava) { return povezava[1] === ton && nastavitve.polja[povezava[0]]; });
-        if (!imaVrednost) return;
+        if (!obarvaniToni[ton]) return;
         var znacka = document.createElement("span");
         znacka.textContent = barve[ton].naziv;
         znacka.style.cssText = "display:inline-block;margin:0 6px 4px 0;padding:3px 7px;border:1px solid " + barve[ton].rob + ";border-radius:999px;background:" + barve[ton].ozadje + ";color:#263c3a;font-size:11px";
@@ -3861,7 +4167,12 @@ async function oznaciUjemajocePodatkeNaUradnemPosnetku(stran, polja) {
       legenda.appendChild(pojasnilo);
       glava.insertAdjacentElement("afterend", legenda);
     }
-    return { status: "applied", highlightedElements: obarvanih, annotationVersion: "colour-linked-proof-v1" };
+    return {
+      status: "applied",
+      highlightedElements: obarvanih,
+      highlightedTones: Object.keys(obarvaniToni),
+      annotationVersion: "colour-linked-proof-v5-highlighted-tones",
+    };
   }, { polja: polja || {}, selektorji: URADNA_INSOLVENCNA_POLJA });
 }
 
@@ -3919,6 +4230,15 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
       inputVerification: { status: "blocked", reason: strogVhod.reason },
     };
   }
+  // Scrapling preverja samo dovoljeno javno vstopno stran. To je neblokirajoč
+  // zdravstveni signal in ne odloča o dovoljenju za spodnjo, uporabniško
+  // sproženo oddajo potrjenih podatkov v uradni obrazec.
+  var predpregled = { status: "pending", reason: "in_progress" };
+  void scraplingInsolvency.preflightOfficialInsolvencyPortal().then(function (rezultatPredpregleda) {
+    predpregled = rezultatPredpregleda || { status: "unavailable", reason: "invalid_response" };
+  }).catch(function () {
+    predpregled = { status: "unavailable", reason: "service_unavailable" };
+  });
   var register = strogVhod.register;
   var imenskiPogoji = strogVhod.imenskiPogoji;
   var browser = await zazeniBrskalnikZaDokazilo();
@@ -4126,6 +4446,13 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
       publicationsLimited: objaveMeta.length > steviloObjav,
       evidenceStatus: dokaziloJeVeljavno ? "captured" : "unavailable",
       evidenceVersion: OFFICIAL_INSOLVENCY_EVIDENCE_VERSION,
+      automationPreflight: {
+        status: predpregled.status || "unavailable",
+        reason: predpregled.reason || "",
+        portalReachable: Boolean(predpregled.portalReachable),
+        transactionMode: predpregled.transactionMode || "authorized_form_submission",
+        serviceVersion: predpregled.serviceVersion || "",
+      },
       inputVerification: oddaja.inputVerification,
       screenshotAnnotation: oznakePosnetka,
       evidenceImage: dokaziloJeVeljavno ? "data:image/jpeg;base64," + posnetek : "",
@@ -4154,6 +4481,16 @@ async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
   throw zadnjaNapaka || new Error("OFFICIAL_INSOLVENCY_CHECK_FAILED");
 }
 
+function razlogNapakeUradnegaInsolvencnegaPortala(napaka) {
+  var opis = String(napaka && [napaka.code, napaka.name, napaka.message].filter(Boolean).join(" ") || "").toLowerCase();
+  if (/timeout|timed out|waiting failed/.test(opis)) return "official_portal_timeout";
+  if (/screenshot|capture|image/.test(opis)) return "evidence_capture_failed";
+  if (/browser|chromium|puppeteer|executable|module/.test(opis)) return "browser_launch_failed";
+  if (/selector|form|element/.test(opis)) return "official_form_unavailable";
+  if (/navigation|net::|connection|socket|dns|fetch/.test(opis)) return "official_portal_navigation_failed";
+  return "unexpected_error";
+}
+
 function sestaviRezultatSamoUradnegaPortala(subjekt, uradniRezultat, openregisterFallbackReason) {
   var uradni = uradniRezultat || { status: "unavailable", reason: "capture_or_search_failed", evidenceStatus: "unavailable" };
   return {
@@ -4167,7 +4504,7 @@ function sestaviRezultatSamoUradnegaPortala(subjekt, uradniRezultat, openregiste
     searchedPostalCode: varnoBesedilo(subjekt && subjekt.postnaStevilka, 5),
     source: "official_insolvency_portal",
     sourceLabel: "Insolvenzbekanntmachungen",
-    sourceUrl: INSOLVENCY_PORTAL,
+    sourceUrl: uradni.sourceUrl || INSOLVENCY_PORTAL,
     checkedAt: uradni.checkedAt || new Date().toISOString(),
     evidenceStatus: uradni.evidenceStatus || "unavailable",
     officialVerification: uradni,
@@ -4185,7 +4522,7 @@ async function preveriSamoUradniInsolvencniPortalVarno(subjekt, openregisterFall
     console.error("[mehka-boniteta:official-only-insolvency]", napakaUradnegaVira.message);
     return sestaviRezultatSamoUradnegaPortala(subjekt, {
       status: "unavailable",
-      reason: "capture_or_search_failed",
+      reason: razlogNapakeUradnegaInsolvencnegaPortala(napakaUradnegaVira),
       source: "official_insolvency_portal",
       sourceLabel: "Insolvenzbekanntmachungen",
       sourceUrl: INSOLVENCY_PORTAL,
@@ -4217,7 +4554,9 @@ async function preveriInsolvenco(subjekt, moznosti) {
   if (preverjeniImenskiPogoji.vrsta === "unknown") {
     return { status: "not_checked", reason: "identity_type_unresolved" };
   }
-  var uporabiOpenRegister = !moznosti || moznosti.uporabiOpenRegister !== false;
+  // Plačljivi OpenRegister insolvency ni del uporabniške mehke preverbe.
+  // Brez izrecnega internega vklopa vedno uporabimo uradni javni portal.
+  var uporabiOpenRegister = Boolean(moznosti && moznosti.uporabiOpenRegister === true);
   if (!uporabiOpenRegister) {
     return preveriSamoUradniInsolvencniPortalVarno(subjekt, "disabled");
   }
@@ -4237,7 +4576,7 @@ async function preveriInsolvenco(subjekt, moznosti) {
   var zahteva = sestaviOpenRegisterInsolvencnoIskanje(subjekt);
   var odgovor;
   try {
-    odgovor = await fetchZRokom(OPENREGISTER_INSOLVENCY_SEARCH, {
+    odgovor = await fetchPlacljiviVirEnkrat(OPENREGISTER_INSOLVENCY_SEARCH, {
       method: "POST",
       headers: {
         Authorization: "Bearer " + kljuc,
@@ -4299,7 +4638,7 @@ async function preveriInsolvenco(subjekt, moznosti) {
     console.error("[mehka-boniteta:official-insolvency]", napakaUradnegaVira.message);
     rezultat.officialVerification = {
       status: "unavailable",
-      reason: "capture_or_search_failed",
+      reason: razlogNapakeUradnegaInsolvencnegaPortala(napakaUradnegaVira),
       source: "official_insolvency_portal",
       sourceLabel: "Insolvenzbekanntmachungen",
       sourceUrl: INSOLVENCY_PORTAL,
@@ -4321,7 +4660,8 @@ function sestaviSklep(identiteta, insolvenca, javniProfil) {
       website_too_large: "Stran je prevelika za varno branje. Vnesite neposredno povezavo do Impressuma.",
       website_unreachable: "Spletna stran se ni odzvala ali je blokirala varen samodejni dostop. Poskusite ponovno ali vnesite neposredni URL Impressuma.",
       website_server_error: "Spletni strežnik podjetja po več poskusih še vedno vrača napako " + (javniProfil && javniProfil.httpStatus || "5xx") + ". Brez vsebine Impressuma identitete in insolvenčne preverbe ni varno izvesti.",
-      website_rate_limited: "Spletni strežnik podjetja začasno omejuje dostop (429). Sistem je poizvedbo večkrat ponovil; poskusite pozneje.",
+      website_rate_limited: "Spletni strežnik podjetja začasno omejuje dostop (429). Omejitve nismo obšli; poskusite pozneje.",
+      robots_disallowed: "Spletno mesto v robots.txt ne dovoljuje samodejnega branja te pravne strani. Omejitve ne bomo obšli; vnesite uradni registrski vir ali podatke preverite ročno.",
       legal_source_context_mismatch: "Varnostno varovalo je zavrnilo preusmeritev na Impressum druge poslovalnice ali pravnega subjekta. Napačni podatki niso bili sprejeti.",
       entered_postal_context_mismatch: "Impressum druge poslovalnice ali subjekta ima drugačno poštno številko. Napačni podatki niso bili sprejeti.",
       entered_city_context_mismatch: "Impressum druge poslovalnice ali subjekta ima drug kraj. Napačni podatki niso bili sprejeti.",
@@ -4339,6 +4679,18 @@ function sestaviSklep(identiteta, insolvenca, javniProfil) {
   if (insolvenca && insolvenca.reason === "identity_evidence_unavailable") {
     return { level: "yellow", title: "Vira ni bilo mogoče prikazati", message: "Podatki so najdeni, vendar posnetka oziroma dokazila vira ni bilo mogoče pripraviti. Insolvenčna poizvedba ni bila izvedena." };
   }
+  if (insolvenca && insolvenca.reason === "official_identity_evidence_unavailable") {
+    return { level: "yellow", title: "Registrski dokaz ni popoln", message: "OpenRegister je vrnil podjetje, vendar strukturiranega registrskega dokaza ni bilo mogoče varno shraniti. North Data in insolvenčna poizvedba nista bila izvedena." };
+  }
+  if (insolvenca && insolvenca.reason === "official_identity_incomplete") {
+    return { level: "yellow", title: "Registrski podatki niso popolni", message: "OpenRegisterjev zapis nima celotnega uradnega naslova ali registra. Samodejno nadaljevanje je zato ustavljeno." };
+  }
+  if (insolvenca && insolvenca.reason === "registered_merchant_owner_required") {
+    return { level: "yellow", title: "Potreben je nosilec obrti", message: "Pri samostojnem registriranem trgovcu moramo pred insolvenčno poizvedbo potrditi osebnega nosilca. Dodajte spletno stran podjetja ali neposredno povezavo do Impressuma." };
+  }
+  if (insolvenca && insolvenca.reason === "registered_merchant_evidence_unavailable") {
+    return { level: "yellow", title: "Impressuma ni bilo mogoče dokazati", message: "Nosilec je razbran, vendar dokaznega posnetka Impressuma ni bilo mogoče pripraviti. Insolvenčna poizvedba ni bila izvedena." };
+  }
   if (identiteta.status === "probable_impressum") {
     return { level: "yellow", title: "Preverite razbrane podatke", message: "Sistem je podatke razbral iz Impressuma. Primerjajte jih s posnetkom, po potrebi popravite in potrdite insolvenčno poizvedbo." };
   }
@@ -4355,7 +4707,7 @@ function sestaviSklep(identiteta, insolvenca, javniProfil) {
     return { level: "yellow", title: "Pravna vloga osebe ni dovolj jasna", message: "Prikazanega naziva ni mogoče zanesljivo razvrstiti kot osebo ali podjetje. Insolvenčna poizvedba zato ni bila izvedena." };
   }
   if (insolvenca && insolvenca.status === "not_checked") {
-    return { level: "yellow", title: "Podatki čakajo na vašo potrditev", message: "Insolvenčna poizvedba se izvede šele, ko pregledate prikazane podatke in kliknete potrditev." };
+    return { level: "yellow", title: "Preverjanje ni bilo dokončano", message: "Prikazani podatki še nimajo vseh dokazov, potrebnih za varno samodejno insolvenčno poizvedbo." };
   }
   if (!insolvenca || insolvenca.status === "unavailable") {
     if (insolvenca && insolvenca.verificationMode === "official_portal_only") {
@@ -4383,6 +4735,9 @@ function sestaviSklep(identiteta, insolvenca, javniProfil) {
   }
   if (identiteta.status === "confirmed_manual") {
     return { level: "yellow", title: "Insolvenčna poizvedba je izvedena z ročnim vnosom", message: "Za uporabniško potrjeno ime in kraj ni bila najdena insolvenčna objava. Identiteta ni bila potrjena z registrom ali Impressumom, zato to ni dokaz solventnosti." };
+  }
+  if (insolvenca.verificationMode === "official_portal_only") {
+    return { level: "green", title: "Osnovna mehka preverba je uspešna", message: "Uradni portal Insolvenzbekanntmachungen za preverjene iskalne podatke ni vrnil insolvenčne objave." };
   }
   return { level: "green", title: "Osnovna mehka preverba je uspešna", message: "OpenRegister in uradni portal za preverjene iskalne podatke nista vrnila insolvenčne publikacije." };
 }
@@ -4418,15 +4773,57 @@ async function handler(req, res) {
 
   var telo = req.body && typeof req.body === "object" ? req.body : {};
   var vnos = pripraviVnosZaPreverbo(telo);
+  var podpisanoOpenRegisterPodjetje = null;
+  if (telo.openRegisterIdentityProof) {
+    podpisanoOpenRegisterPodjetje = identitySearch.verifyCompanyProof(telo.openRegisterIdentityProof, auth.user.id);
+    if (!podpisanoOpenRegisterPodjetje) {
+      return odgovorJson(res, 400, { ok: false, code: "OPENREGISTER_SELECTION_EXPIRED", napaka: "Izbira podjetja je potekla. Poiščite ga znova." });
+    }
+  }
+  var podpisanNorthDataPredlog = null;
+  if (telo.companyIndexSource === "northdata_names" || telo.companyIndexProof) {
+    podpisanNorthDataPredlog = northdataAutocomplete.verifySuggestionProof(telo.companyIndexProof, auth.user.id);
+    var northDataImeSeUjema = podpisanNorthDataPredlog && normaliziraj(podpisanNorthDataPredlog.name) === normaliziraj(vnos.ime);
+    var northDataKonflikt = Boolean(telo.openRegisterCompanyId || telo.openRegisterIdentityProof || vnos.registerNumber || vnos.registerCourt);
+    if (!northDataImeSeUjema || northDataKonflikt) {
+      return odgovorJson(res, 400, { ok: false, code: "NORTHDATA_SELECTION_INVALID", napaka: "Izbira podjetja ni veljavna. Poiščite ga znova." });
+    }
+  }
   var popolnRocniVnos = Boolean(vnos.ime && vnos.naslov.length >= 3 && /^\d{5}$/.test(vnos.postnaStevilka) && vnos.kraj.length >= 2);
-  if (!vnos.spletnaStran && !popolnRocniVnos) {
+  var odprtiRegister = razcleniOpenRegisterVnos(vnos.registerNumber);
+  var izbranoRegistrskoPodjetje = Boolean(vnos.ime && (
+    razcleniOpenRegisterVnos(varnoBesedilo(telo.openRegisterCompanyId, 120)).companyId ||
+    podpisanoOpenRegisterPodjetje ||
+    (telo.companyIndexSource === "offeneregister" && vnos.ime) ||
+    podpisanNorthDataPredlog
+  ));
+  if (!vnos.spletnaStran && !popolnRocniVnos && !izbranoRegistrskoPodjetje) {
     return odgovorJson(res, 400, { ok: false, code: "INVALID_INPUT", napaka: "Vnesite spletno stran ali pa ročno izpolnite ime in celoten naslov podjetja." });
+  }
+  var openRegisterIskanjeOpravljeno = false;
+  async function poisciOpenRegisterNajvecEnkrat(iskalniVnos) {
+    if (openRegisterIskanjeOpravljeno) {
+      return { status: "unavailable", reason: "one_credit_budget_preserved", sourceUrl: OPENREGISTER_WEB };
+    }
+    openRegisterIskanjeOpravljeno = true;
+    return poisciOpenRegister(iskalniVnos, {
+      forceFresh: telo.monitoringMode === "internal_recheck" || telo.recheckMode === "saved_profile",
+    });
   }
   try {
     var openregisterIdentitetaVklopljena = uporabiOpenRegisterZaIdentiteto(telo);
     var openregisterOsnovniVnos = pripraviOpenRegisterVnosZaPotrditev(telo, vnos);
-    var openregister = openregisterIdentitetaVklopljena && openregisterOsnovniVnos.ime
-      ? await poisciOpenRegister(openregisterOsnovniVnos)
+    var openregister = podpisanoOpenRegisterPodjetje
+      ? {
+        status: "found",
+        company: podpisanoOpenRegisterPodjetje,
+        cached: true,
+        sourceUrl: OPENREGISTER_WEB + "/company/" + encodeURIComponent(podpisanoOpenRegisterPodjetje.company_id),
+        queryUrl: identitySearch.SEARCH_URL,
+        reusedSignedSelection: true,
+      }
+      : openregisterIdentitetaVklopljena && openregisterOsnovniVnos.ime
+      ? await poisciOpenRegisterNajvecEnkrat(openregisterOsnovniVnos)
       : openregisterIdentitetaVklopljena
         ? { status: "not_found", sourceUrl: OPENREGISTER_WEB }
         : { status: "disabled", reason: "user_disabled_identity_lookup", sourceUrl: OPENREGISTER_WEB };
@@ -4445,15 +4842,23 @@ async function handler(req, res) {
     }
     if (openregisterIdentitetaVklopljena && openregister.status !== "found" && javniProfil.status === "found" && javniProfil.subjekt) {
       var openregisterVnos = pripraviOpenRegisterVnosIzImpressuma(vnos, javniProfil.subjekt);
-      if (openregisterVnos.ime) openregister = await poisciOpenRegister(openregisterVnos);
+      if (openregisterVnos.ime) openregister = await poisciOpenRegisterNajvecEnkrat(openregisterVnos);
     }
 
-    var hwk = { status: "disabled", reason: "temporarily_disabled" };
-    var identiteta = sestaviIdentiteto(openregister, hwk, javniProfil, vnos);
+    var identiteta = sestaviIdentiteto(openregister, null, javniProfil, vnos);
     if (identiteta.status === "unresolved" && popolnRocniVnos) {
       identiteta = sestaviRocnoIdentiteto(vnos) || identiteta;
     }
-    var viri = sestaviVire(openregister, hwk, javniProfil, vnos);
+    var northData = {
+      status: "skipped", reason: "user_confirmation_required", source: "northdata_apify",
+      sourceLabel: "North Data prek Apify", sourceUrl: northDataClient.NORTH_DATA_ROOT,
+    };
+    var northDataDetails = {
+      status: "skipped", reason: "primary_northdata_required", source: "northdata_details_apify",
+      sourceLabel: "North Data – dopolnilni podatki", sourceUrl: northDataClient.NORTH_DATA_ROOT,
+    };
+    var viri = sestaviVire(openregister, null, javniProfil, vnos);
+    viri.push(northDataClient.sourceEntry(northData));
     if (identiteta.status === "unresolved") {
       return odgovorJson(res, 200, {
         ok: true,
@@ -4462,7 +4867,7 @@ async function handler(req, res) {
         identity: identiteta,
         sources: viri,
         openregister: openregister,
-        hwk: hwk,
+        northData: northData,
         publicProfile: javniProfil,
         identityEvidence: { status: "not_captured", reason: "identity_not_resolved" },
         insolvency: { status: "not_checked", reason: "identity_not_resolved" },
@@ -4484,7 +4889,7 @@ async function handler(req, res) {
         identityEvidence: { status: "unavailable", reason: "user_input_is_not_evidence" },
         sources: viri,
         openregister: openregister,
-        hwk: hwk,
+        northData: northData,
         publicProfile: javniProfil,
         insolvency: brezPreverljivegaVira,
         result: sestaviSklep(identiteta, brezPreverljivegaVira, javniProfil),
@@ -4494,14 +4899,14 @@ async function handler(req, res) {
     var dokaziloIdentitete = null;
     if (!dokaziloIdentitete || (dokaziloIdentitete.status === "captured" && !identityEvidenceContract.jePosnetekPrikazljiv(dokaziloIdentitete))) {
       try {
-        dokaziloIdentitete = await zajemiDokaziloIdentitete(identiteta, openregister, hwk, javniProfil);
+        dokaziloIdentitete = await zajemiDokaziloIdentitete(identiteta, openregister, null, javniProfil);
       } catch (napakaDokazilaIdentitete) {
         console.error("[mehka-boniteta:identity-evidence]", napakaDokazilaIdentitete.message);
       }
     }
     if (!dokaziloIdentitete) {
       var nepreverjenaInsolvenca = { status: "not_checked", reason: "identity_evidence_unavailable" };
-      var virNeuspelegaDokazila = dolociVirDokazilaIdentitete(identiteta, openregister, hwk, javniProfil) || {};
+      var virNeuspelegaDokazila = dolociVirDokazilaIdentitete(identiteta, openregister, null, javniProfil) || {};
       return odgovorJson(res, 200, {
         ok: true,
         checkedAt: new Date().toISOString(),
@@ -4515,7 +4920,7 @@ async function handler(req, res) {
         },
         sources: viri,
         openregister: openregister,
-        hwk: hwk,
+        northData: northData,
         publicProfile: javniProfil,
         insolvency: nepreverjenaInsolvenca,
         result: sestaviSklep(identiteta, nepreverjenaInsolvenca, javniProfil),
@@ -4526,7 +4931,7 @@ async function handler(req, res) {
     var dokaziloImpressuma = null;
     if (identiteta.status === "verified_register" && identiteta.impressumSourceUrl) {
       try {
-        dokaziloImpressuma = await zajemiDopolnilnoImpressumDokazilo(identiteta, hwk, javniProfil);
+        dokaziloImpressuma = await zajemiDopolnilnoImpressumDokazilo(identiteta, null, javniProfil);
       } catch (napakaDokazilaImpressuma) {
         console.error("[mehka-boniteta:impressum-evidence]", napakaDokazilaImpressuma.message);
         dokaziloImpressuma = {
@@ -4539,7 +4944,30 @@ async function handler(req, res) {
       }
     }
     var dokaziloImpressumaOdgovor = pripraviDokaziloZaOdgovor(dokaziloImpressuma);
-    var potrditev = pripraviPotrditevIdentitete(telo, identiteta);
+    var potrditev = pripraviPotrditevIdentiteteZaZahtevo(
+      telo,
+      identiteta,
+      dokaziloIdentiteteOdgovor,
+      dokaziloImpressumaOdgovor
+    );
+    if (potrditev.status === "not_available" && identiteta.status === "verified_register") {
+      var registrskaPrepreka = { status: "not_checked", reason: potrditev.reason };
+      return odgovorJson(res, 200, {
+        ok: true,
+        checkedAt: new Date().toISOString(),
+        scope: "Nemčija – mehka preverba",
+        confirmationRequired: false,
+        identity: identiteta,
+        identityEvidence: dokaziloIdentiteteOdgovor,
+        impressumEvidence: dokaziloImpressumaOdgovor,
+        sources: viri,
+        openregister: openregister,
+        northData: northData,
+        publicProfile: javniProfil,
+        insolvency: registrskaPrepreka,
+        result: sestaviSklep(identiteta, registrskaPrepreka, javniProfil),
+      });
+    }
     if (potrditev.status === "invalid") {
       var sporocilaPotrditve = {
         confirmation_missing: "Potrdite, da ste podatke primerjali s prikazanim virom.",
@@ -4549,6 +4977,8 @@ async function handler(req, res) {
         confirmed_representative_invalid: "Nosilec oziroma zastopnik mora biti zanesljivo prepoznano osebno ime.",
         identity_unavailable: "Identiteta za to potrditev ni več na voljo. Preverjanje začnite znova.",
         official_data_mismatch: "Pri registriranem podjetju se potrjeni podatki ne ujemajo z OpenRegister. Popravite vnos ali začnite novo preverjanje.",
+        official_company_id_mismatch: "Izbrano podjetje se ne ujema z aktualnim zapisom OpenRegister. Preverjanje začnite znova.",
+        registered_merchant_owner_required: "Pri samostojnem registriranem trgovcu mora biti osebni nosilec potrjen iz Impressuma ali uradnega imenika.",
       };
       return odgovorJson(res, 400, {
         ok: false,
@@ -4568,7 +4998,7 @@ async function handler(req, res) {
         impressumEvidence: dokaziloImpressumaOdgovor,
         sources: viri,
         openregister: openregister,
-        hwk: hwk,
+        northData: northData,
         publicProfile: javniProfil,
         insolvency: cakaNaPotrditev,
         result: sestaviSklep(identiteta, cakaNaPotrditev, javniProfil),
@@ -4587,16 +5017,52 @@ async function handler(req, res) {
       missingFields: [],
       mismatchedFields: [],
     };
-    var insolvenca;
-    try {
-      insolvenca = await preveriInsolvenco(
-        pripraviIdentitetoZaInsolvencnoPoizvedbo(identiteta),
-        { uporabiOpenRegister: openregisterIdentitetaVklopljena }
+    var svezaNorthDataPreverba = telo.recheckMode === "saved_profile" || telo.monitoringMode === "internal_recheck";
+    var northDataPromise = northDataClient.enrichVerifiedIdentity(openregister, identiteta, {
+      allowConfirmedImpressum: identiteta.status === "confirmed_impressum" &&
+        identiteta.source === "impressum" && dokaziloIdentiteteOdgovor &&
+        dokaziloIdentiteteOdgovor.screenshotReady === true,
+      disableCache: svezaNorthDataPreverba,
+    }).then(async function (osnovnaDopolnitev) {
+      var dodatnaDopolnitev = await northDataDetailsClient.enrichAfterPrimary(
+        openregister, osnovnaDopolnitev.identity, osnovnaDopolnitev.northData,
+        { disableCache: svezaNorthDataPreverba }
       );
-    } catch (insolventnaNapaka) {
+      return { primary: osnovnaDopolnitev, details: dodatnaDopolnitev };
+    });
+    var insolvencaPromise = preveriInsolvenco(
+      pripraviIdentitetoZaInsolvencnoPoizvedbo(identiteta),
+      // OpenRegister je v celotni preverbi dovoljen največ enkrat za identiteto.
+      // Insolventnost se preveri brez dodatnega 10-kreditnega API-klica.
+      { uporabiOpenRegister: false }
+    ).catch(function (insolventnaNapaka) {
       console.error("[mehka-boniteta:insolvency]", insolventnaNapaka.message);
-      insolvenca = { status: "unavailable", reason: "unexpected_error", sourceUrl: INSOLVENCY_PORTAL };
+      return { status: "unavailable", reason: "unexpected_error", sourceUrl: INSOLVENCY_PORTAL };
+    });
+    var vzporedniRezultati = await Promise.all([northDataPromise, insolvencaPromise]);
+    var northDataPaket = vzporedniRezultati[0];
+    var northDataObogatitev = northDataPaket.primary;
+    identiteta = northDataObogatitev.identity;
+    northData = northDataObogatitev.northData;
+    northDataDetails = northDataPaket.details.northDataDetails;
+    if (northData && northData.status === "found" && northData.company) {
+      var zasciteniFinancniPodatki = northDataFinancialGuard.uskladi(
+        northData.company,
+        northDataDetails && northDataDetails.status === "found" ? northDataDetails.company : null
+      );
+      northData = Object.assign({}, northData, {
+        company: zasciteniFinancniPodatki.company,
+        financialGuard: {
+          version: zasciteniFinancniPodatki.version,
+          changed: zasciteniFinancniPodatki.changed,
+          issues: zasciteniFinancniPodatki.issues,
+        },
+      });
     }
+    viri = viri.filter(function (vir) { return vir.id !== "northdata"; });
+    viri.push(northDataObogatitev.source);
+    viri.push(northDataPaket.details.source);
+    var insolvenca = vzporedniRezultati[1];
     return odgovorJson(res, 200, {
       ok: true,
       checkedAt: new Date().toISOString(),
@@ -4608,7 +5074,8 @@ async function handler(req, res) {
       locationMatch: potrjenaLokacija,
       sources: viri,
       openregister: openregister,
-      hwk: hwk,
+      northData: northData,
+      northDataDetails: northDataDetails,
       publicProfile: javniProfil,
       insolvency: insolvenca,
       result: sestaviSklep(identiteta, insolvenca, javniProfil),
@@ -4650,6 +5117,8 @@ handler._test = {
   dolociUradnoIzbirnoMoznost: dolociUradnoIzbirnoMoznost,
   presodiUradniInsolvencniRezultat: presodiUradniInsolvencniRezultat,
   preveriUradniInsolvencniPortal: preveriUradniInsolvencniPortal,
+  preveriUradniInsolvencniPortalEnkrat: preveriUradniInsolvencniPortalEnkrat,
+  razlogNapakeUradnegaInsolvencnegaPortala: razlogNapakeUradnegaInsolvencnegaPortala,
   dolociVirDokazilaIdentitete: dolociVirDokazilaIdentitete,
   sestaviPojmeDokazilaIdentitete: sestaviPojmeDokazilaIdentitete,
   sestaviObveznePojmeDokazilaIdentitete: sestaviObveznePojmeDokazilaIdentitete,
@@ -4673,6 +5142,7 @@ handler._test = {
   jeFrankfurt: jeFrankfurt,
   razcleniImpressum: razcleniImpressum,
   razcleniVidniImpressumTekst: razcleniVidniImpressumTekst,
+  poisciImpressumSScrapling: poisciImpressumSScrapling,
   poisciImpressumZBrskalnikom: poisciImpressumZBrskalnikom,
   izlociPravniImpressumBlok: izlociPravniImpressumBlok,
   besediloIzHtml: besediloIzHtml,
@@ -4700,14 +5170,18 @@ handler._test = {
   sestaviHwkIskalniUrl: sestaviHwkIskalniUrl,
   pripraviRocnoHwkDokazilo: pripraviRocnoHwkDokazilo,
   pripraviPotrditevIdentitete: pripraviPotrditevIdentitete,
+  pripraviSamodejnoRegistrskoPotrditev: pripraviSamodejnoRegistrskoPotrditev,
+  pripraviPotrditevIdentiteteZaZahtevo: pripraviPotrditevIdentiteteZaZahtevo,
   jeZasebenIp: jeZasebenIp,
   poisciVImpressumu: poisciVImpressumu,
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,
   poisciOpenRegister: poisciOpenRegister,
+  ponastaviOpenRegisterIdentityCache: ponastaviOpenRegisterIdentityCache,
   razcleniOpenRegisterVnos: razcleniOpenRegisterVnos,
   razcleniOpenRegisterReferenco: razcleniOpenRegisterReferenco,
   razlogOpenRegisterIdentitetneNapake: razlogOpenRegisterIdentitetneNapake,
   pocistiRegistrskoSodisce: pocistiRegistrskoSodisce,
+  oceniVarnoUjemanjeNaziva: oceniVarnoUjemanjeNaziva,
   sestaviIdentiteto: sestaviIdentiteto,
   sestaviRocnoIdentiteto: sestaviRocnoIdentiteto,
   normalizirajNaslov: normalizirajNaslov,
@@ -4723,6 +5197,7 @@ handler._test = {
   uporabiOpenRegisterZaIdentiteto: uporabiOpenRegisterZaIdentiteto,
   pocistiNazivDruzbe: pocistiNazivDruzbe,
   jeNazivPravneDruzbe: jeNazivPravneDruzbe,
+  razberiPravnoOblikoIzNaziva: razberiPravnoOblikoIzNaziva,
   razlogNapakeBranjaSpletneStrani: razlogNapakeBranjaSpletneStrani,
   jeNedosegljivaNadomestnaStran: jeNedosegljivaNadomestnaStran,
   httpStatusNapakeSpletneStrani: httpStatusNapakeSpletneStrani,

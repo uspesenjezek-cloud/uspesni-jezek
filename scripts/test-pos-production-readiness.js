@@ -29,12 +29,22 @@ const envExample = fs.readFileSync(path.join(__dirname, "..", ".env.example"), "
 ].forEach((name) => assert.match(envExample, new RegExp("^" + name + "=false$", "m"), name + " mora biti v predlogi fail-closed"));
 
 const empty = readiness.assess({});
-assert.strictEqual(empty.version, "pos-de-production-readiness-v9");
+assert.strictEqual(empty.version, "pos-de-production-readiness-v15");
 assert.strictEqual(empty.ready, false);
-assert.strictEqual(empty.summary.blockingTotal, 6);
+assert.strictEqual(empty.summary.blockingTotal, 8);
 assert.strictEqual(empty.summary.blockingReady, 0);
 assert.strictEqual(empty.checks.find((check) => check.id === "stripe_card_payments").blocking, false);
-assert.strictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").ready, true);
+assert.strictEqual(empty.checks.find((check) => check.id === "finapi_bank_sync").blocking, true);
+assert.strictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").blocking, true);
+assert.deepStrictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").missing, [
+  "cash_checkout_migration_not_deployed",
+  "cash_refund_migration_not_deployed",
+  "fiskaly_production_credentials_and_tss_not_configured",
+  "dsfinvk_external_conformance_not_confirmed",
+  "cash_system_registration_not_confirmed",
+  "cash_legal_review_not_confirmed",
+]);
+assert.strictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").status, "local_training_complete");
 assert.strictEqual(empty.checks.find((check) => check.id === "openapi_multi_company_onboarding").status, "cost_locked");
 assert.deepStrictEqual(
   empty.checks.find((check) => check.id === "openapi_financial_adjustments").missing,
@@ -87,12 +97,12 @@ const completeEnv = {
   POS_DE_PILOT_ACCEPTED_AT: new Date().toISOString(),
 };
 const complete = readiness.assess(completeEnv);
-assert.strictEqual(complete.ready, true);
+assert.strictEqual(complete.ready, false);
 assert.deepStrictEqual(complete.summary, {
-  blockingTotal: 6,
+  blockingTotal: 8,
   blockingReady: 6,
-  blockingRemaining: 0,
-  optionalNotReady: 5,
+  blockingRemaining: 2,
+  optionalNotReady: 4,
 });
 assert.strictEqual(complete.checks.find((check) => check.id === "openapi_einvoicing").status, "ready");
 const sendLocked = readiness.assess(Object.assign({}, {
@@ -109,6 +119,25 @@ const sendLocked = readiness.assess(Object.assign({}, {
 }));
 assert.strictEqual(sendLocked.checks.find((check) => check.id === "openapi_einvoicing").ready, false);
 assert.ok(sendLocked.checks.find((check) => check.id === "openapi_einvoicing").missing.includes("OPENAPI_INVOICE_SEND_ENABLED=true"));
+
+const expiringToken = readiness.assess(Object.assign({}, completeEnv, {
+  OPENAPI_INVOICE_TOKEN_EXPIRES_AT: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+}));
+assert.strictEqual(expiringToken.checks.find((check) => check.id === "openapi_einvoicing").ready, false);
+assert.ok(expiringToken.checks.find((check) => check.id === "openapi_einvoicing").missing.includes("OPENAPI_INVOICE_TOKEN_EXPIRES_AT"));
+
+const stalePublicPreflight = readiness.assess(Object.assign({}, completeEnv, {
+  OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+}));
+assert.strictEqual(stalePublicPreflight.checks.find((check) => check.id === "openapi_einvoicing").ready, false);
+assert.ok(stalePublicPreflight.checks.find((check) => check.id === "openapi_einvoicing").missing.includes("OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT"));
+
+const futurePublicPreflight = readiness.assess(Object.assign({}, completeEnv, {
+  OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT: new Date(Date.now() + 6 * 60 * 1000).toISOString(),
+}));
+assert.strictEqual(futurePublicPreflight.checks.find((check) => check.id === "openapi_einvoicing").ready, false);
+assert.ok(futurePublicPreflight.checks.find((check) => check.id === "openapi_einvoicing").missing.includes("OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_AT"));
+
 assert.strictEqual(complete.checks.find((check) => check.id === "openapi_multi_company_onboarding").status, "cost_locked");
 assert.strictEqual(complete.checks.find((check) => check.id === "openapi_webhook_reconciliation").status, "cost_locked");
 assert.deepStrictEqual(

@@ -4,7 +4,6 @@
 alter table public.pos_invoice_deliveries
   add column last_provider_event_at timestamptz,
   add column last_provider_event_type text not null default '';
-
 alter table public.pos_invoice_deliveries
   drop constraint if exists pos_invoice_deliveries_status_check;
 alter table public.pos_invoice_deliveries
@@ -13,11 +12,9 @@ alter table public.pos_invoice_deliveries
     'test_prepared','queued','processing','test_completed','sent','delivered','failed',
     'delivery_delayed','bounced','complained','suppressed'
   ));
-
 alter table public.pos_invoice_delivery_events
   add column provider_event_id text,
   add column provider_event_at timestamptz;
-
 alter table public.pos_invoice_delivery_events
   drop constraint if exists pos_invoice_delivery_events_event_type_check;
 alter table public.pos_invoice_delivery_events
@@ -26,14 +23,12 @@ alter table public.pos_invoice_delivery_events
     'prepared','queued','processing','test_completed','retry_scheduled','sent','delivered','failed',
     'delivery_delayed','bounced','complained','suppressed','opened','clicked'
   ));
-
 create unique index pos_invoice_delivery_events_provider_event_uidx
   on public.pos_invoice_delivery_events(provider_event_id)
   where provider_event_id is not null;
 create unique index pos_invoice_deliveries_resend_reference_uidx
   on public.pos_invoice_deliveries(provider_reference)
   where provider = 'resend' and is_test = false and provider_reference <> '';
-
 create table private.pos_resend_webhook_receipts (
   svix_id text primary key check (length(svix_id) between 1 and 240),
   event_type text not null check (event_type in (
@@ -47,10 +42,8 @@ create table private.pos_resend_webhook_receipts (
   received_at timestamptz not null default now(),
   processed_at timestamptz
 );
-
 revoke all on table private.pos_resend_webhook_receipts from public, anon, authenticated;
 grant select, insert, update on table private.pos_resend_webhook_receipts to service_role;
-
 create or replace function private._pos_apply_resend_webhook_event(
   p_svix_id text,
   p_event_type text,
@@ -226,7 +219,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.pos_apply_resend_webhook_event(
   p_svix_id text,
   p_event_type text,
@@ -243,7 +235,6 @@ as $$
     p_svix_id, p_event_type, p_email_id, p_event_created_at, p_failure_code
   );
 $$;
-
 revoke all on function private._pos_apply_resend_webhook_event(text,text,text,timestamptz,text)
   from public, anon, authenticated;
 revoke all on function public.pos_apply_resend_webhook_event(text,text,text,timestamptz,text)
@@ -252,5 +243,4 @@ grant execute on function private._pos_apply_resend_webhook_event(text,text,text
   to service_role;
 grant execute on function public.pos_apply_resend_webhook_event(text,text,text,timestamptz,text)
   to service_role;
-
 notify pgrst, 'reload schema';

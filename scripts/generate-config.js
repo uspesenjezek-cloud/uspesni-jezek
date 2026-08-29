@@ -19,10 +19,25 @@ const anonKey = process.env.SUPABASE_ANON_KEY;
 const sentryDsn = process.env.SENTRY_DSN || "";
 const sentryEnvironment = process.env.VERCEL_ENV || process.env.NODE_ENV || "development";
 const sentryRelease = process.env.VERCEL_GIT_COMMIT_SHA || "";
+const atenaSpeechBaseUrl = "https://speech.uspesni-jezek.de";
+const atenaSpeechEndpointVerified = process.env.ATENA_SPEECH_ENDPOINT_VERIFIED === "true" && sentryEnvironment === "production";
 
 if (!url || !anonKey) {
   console.error(
     "Manjkata SUPABASE_URL in/ali SUPABASE_ANON_KEY environment variables (Vercel Project Settings -> Environment Variables) - app/config.js ne bo ustvarjen."
+  );
+  process.exit(1);
+}
+
+// Nikoli ne prepiši delujoče lokalne/produkcijske konfiguracije s primerom iz
+// predloge. To se lahko zgodi, če nekdo zažene build s testnimi env vrednostmi.
+if (
+  !/^https:\/\/[^\s/]+\.supabase\.co\/?$/i.test(url) ||
+  /YOUR_|PLACEHOLDER|EXAMPLE|SENSITIVE|REDACTED/i.test(url) ||
+  /YOUR_|PLACEHOLDER|EXAMPLE|SENSITIVE|REDACTED/i.test(anonKey)
+) {
+  console.error(
+    "SUPABASE_URL ali SUPABASE_ANON_KEY vsebuje testno vrednost - app/config.js ne bo prepisan."
   );
   process.exit(1);
 }
@@ -47,6 +62,13 @@ const SENTRY_CONFIG = globalThis.SENTRY_CONFIG = Object.freeze({
   dsn: ${JSON.stringify(sentryDsn)},
   environment: ${JSON.stringify(sentryEnvironment)},
   release: ${JSON.stringify(sentryRelease)},
+});
+
+/* Endpoint je namerno pripet na en zaupanja vreden hostname. Produkcijski
+   prenos ostane zaprt do ločene potrditve DNS, TLS in strežnika. */
+const ATENA_SPEECH_CONFIG = globalThis.ATENA_SPEECH_CONFIG = Object.freeze({
+  baseUrl: ${JSON.stringify(atenaSpeechBaseUrl)},
+  endpointVerified: ${JSON.stringify(atenaSpeechEndpointVerified)},
 });
 `;
 

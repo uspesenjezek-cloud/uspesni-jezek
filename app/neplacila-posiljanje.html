@@ -19,128 +19,43 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260818-pregled-racuna-v22" />
-    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <link rel="stylesheet" href="styles.css?v=20260829-korak-gradient-v4" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260823-sheet-akcije-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link rel="prefetch" href="neplacila.html#obrazec" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
+    <script src="config.js?v=20260823-obnovljena-konfiguracija-v1"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
-    <script src="supabase-client.js"></script>
-    <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="supabase-client.js?v=20260823-local-preview-guard-v1"></script>
+    <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
+    <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
+    <script src="auth-zascita.js?v=20260824-local-preview-guard-v2"></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="stran--sporocilo app-testna-vrstica-prisotna wizard-status-header">
     <div class="korak2-ovoj wizard-shell">
     <div class="korak2">
-      <div data-wizard-progress-header data-korak="2" data-wizard-zacetni-zaslon="zascita-posla.html">
-        <nav class="debt-stepper" data-koraki-postopek aria-label="Koraki postopka">
-          <span class="debt-stepper__selection" aria-hidden="true"></span>
-          <a href="neplacila.html#obrazec" class="debt-step" data-korak="1" aria-label="1 od 2: Vnos dolžnika">
-            <span class="debt-step__content">
-              <span class="debt-step__number" aria-hidden="true">1</span>
-              <span class="debt-step__label">Dolžnik</span>
-            </span>
-            <span class="debt-step__line" aria-hidden="true"></span>
-          </a>
-          <a href="neplacila-posiljanje.html" class="debt-step" data-korak="2" aria-label="2 od 2: Pošiljanje">
-            <span class="debt-step__content">
-              <span class="debt-step__number" aria-hidden="true">2</span>
-              <span class="debt-step__label">Pošiljanje</span>
-            </span>
-            <span class="debt-step__line" aria-hidden="true"></span>
-          </a>
-        </nav>
+      <div data-wizard-progress-header data-korak="4" data-wizard-zacetni-zaslon="zascita-posla.html"></div>
+      <section class="wizard-debt-summary" data-kompaktni-povzetek-dolga aria-label="Povzetek dolga"></section>
+      <div class="wizard-plan-actions">
+        <button
+          type="button"
+          class="priporocilo-widget__ocena-gumb wizard-plan-risk-button"
+          data-odpri-oceno-tveganja
+          aria-haspopup="dialog"
+          aria-controls="ocena-dolg-sheet"
+          aria-expanded="false"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Ocena tveganja</span>
+        </button>
       </div>
 
       <main class="korak2__vsebina korak2__vsebina--opomin">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
-
-        <!-- Priporočilo za ta dolg: samostojen widget (ton + ključni podatki + časovnica) -->
-        <div class="tone-recommendation-section priporocilo-widget" id="tone-recommendation-section" hidden aria-hidden="true">
-          <section class="ton-widget" id="ton-widget" aria-label="Priporočilo za ta dolg">
-            <header class="priporocilo-widget__glava">
-              <span class="priporocilo-widget__ikona" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a2 2 0 0 1 0-4h6a2 2 0 0 1 0 4Z"/><path d="M12 18v-6"/></svg>
-              </span>
-              <h3 class="priporocilo-widget__naslov">Priporočilo za ta dolg</h3>
-            </header>
-
-            <div class="debt-summary-skupina" id="ton-povzetek">
-              <div class="debt-summary debt-summary--vrstica-1">
-                <div class="debt-summary__amount-column">
-                  <span class="debt-summary__label">Dolžnik</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-dolznik-znacka">—</span>
-                </div>
-                <div class="debt-summary__category-column">
-                  <span class="debt-summary__label">Dolg</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-znesek-znacka">—</span>
-                </div>
-              </div>
-              <div class="debt-summary debt-summary--tri debt-summary--vrstica-2">
-                <div class="debt-summary__amount-column">
-                  <span class="debt-summary__label">Zapadlost</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zapadlost-znacka">—</span>
-                </div>
-                <div class="debt-summary__category-column">
-                  <span class="debt-summary__label">Zamuda</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-cas-tekst">—</span>
-                </div>
-                <div class="debt-summary__category-column">
-                  <span class="debt-summary__label">Pretekle zamude</span>
-                  <span class="debt-summary__amount debt-summary__amount--sm" id="ton-zgodovina-znacka">—</span>
-                </div>
-              </div>
-              <!-- Ohranjen za obstoječo logiko ton-widget.js (posodobiGlava), v novem widgetu ni prikazan -->
-              <span class="debt-category-pill sr-only" id="ton-kategorija-znacka"></span>
-            </div>
-
-            <div class="tone-carousel" id="ton-carousel">
-              <div
-                class="tone-carousel__viewport"
-                id="ton-tir"
-                role="radiogroup"
-                aria-label="Izberite ton sporočila"
-              ></div>
-            </div>
-            <p class="sr-only" id="ton-aria-live" aria-live="polite"></p>
-
-            <p class="priporocilo-widget__razlaga" id="priporocilo-razlaga">
-              Ton je predlagan glede na znesek in zapadlost.
-            </p>
-
-            <button
-              type="button"
-              class="priporocilo-timeline-row"
-              id="priporocilo-casovnica-vrstica"
-              aria-label="Predlagana časovnica opominjanja"
-            >
-              <span class="priporocilo-timeline-row__ikona" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-              </span>
-              <span class="priporocilo-timeline-row__besedilo">
-                <span class="priporocilo-timeline-row__eyebrow">Predlagana časovnica</span>
-                <span class="priporocilo-timeline-row__glavno">
-                  <span class="priporocilo-timeline-row__stevilo" id="priporocilo-casovnica-koraki">— korakov</span>
-                  <span class="priporocilo-timeline-row__trajanje" id="priporocilo-casovnica-trajanje"></span>
-                </span>
-              </span>
-              <span class="priporocilo-timeline-row__chevron" aria-hidden="true">›</span>
-            </button>
-
-            <button
-              type="button"
-              class="priporocilo-widget__uporabi"
-              id="priporocilo-uporabi-gumb"
-            >
-              <span class="priporocilo-widget__uporabi-zvezda" aria-hidden="true">★</span>
-              Uporabi priporočeno
-            </button>
-          </section>
-        </div>
 
         <!-- Glavni zaslon načrta (JS) – priloge so znotraj »Vsebina koraka« -->
         <div id="opomin-nacrt-glavni" class="opomin-nacrt"></div>
@@ -180,15 +95,23 @@
             Nastavi rok plačila
           </h2>
           <button type="button" class="rok-sheet__zapri" id="rok-sheet-zapri" aria-label="Zapri">
-            ✕
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
           </button>
         </div>
 
         <div class="rok-sheet__telo">
+          <label class="rok-sheet__stikalo">
+            <span class="rok-sheet__stikalo-besedilo">Vključi rok plačila v sporočilo</span>
+            <input type="checkbox" id="rok-sheet-vkljuci" />
+            <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
+          </label>
           <div id="rok-sheet-recommendation" class="recommendation-host"></div>
 
-          <section class="rok-sheet__hitro" id="rok-sheet-hitro" aria-label="Hitra izbira">
-            <h3 class="rok-sheet__hitro-naslov">Hitra izbira</h3>
+          <section class="rok-sheet__hitro" id="rok-sheet-hitro" aria-label="Ročna izbira roka plačila">
+            <div class="rok-sheet__hitro-glava">
+              <h3 class="rok-sheet__hitro-naslov">Nastavi rok plačila ročno</h3>
+              <span class="rok-sheet__hitro-znacka">Hitra izbira</span>
+            </div>
             <p class="rok-sheet__hitro-izhodisce" id="rok-sheet-hitro-izhodisce">
               Od danes: —
             </p>
@@ -252,58 +175,61 @@
             id="rok-sheet-povzetek"
             aria-label="Izbrani rok plačila"
           >
-            <div class="rok-sheet__povzetek-ikona" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+            <div class="rok-sheet__povzetek-zgoraj">
+              <div class="rok-sheet__povzetek-ikona" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+              </div>
+              <div class="rok-sheet__povzetek-tekst">
+                <p class="rok-sheet__povzetek-oznaka">Izbrani rok plačila</p>
+                <p class="rok-sheet__povzetek-datum" id="rok-sheet-povzetek-datum">—</p>
+                <div class="rok-sheet__povzetek-meta">
+                  <p class="rok-sheet__povzetek-rel" id="rok-sheet-povzetek-rel"></p>
+                </div>
+              </div>
             </div>
-            <div class="rok-sheet__povzetek-tekst">
-              <p class="rok-sheet__povzetek-oznaka">Izbrani rok plačila</p>
-              <p class="rok-sheet__povzetek-datum" id="rok-sheet-povzetek-datum">—</p>
-              <p class="rok-sheet__povzetek-rel" id="rok-sheet-povzetek-rel"></p>
+            <div class="rok-sheet__povzetek-akcija">
+              <p class="rok-sheet__povzetek-namig">Določite točni datum</p>
+              <div class="rok-sheet__povzetek-dostop" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </div>
             </div>
-            <div class="rok-sheet__povzetek-rocno-ovoj">
-              <span class="rok-sheet__povzetek-rocno" aria-hidden="true">Ročno</span>
-              <input
-                type="date"
-                class="rok-sheet__datum rok-sheet__datum--rocno"
-                id="rok-sheet-datum"
-                required
-                aria-label="Ročno nastavi rok plačila"
-              />
-            </div>
+            <input
+              type="date"
+              class="rok-sheet__datum rok-sheet__datum--rocno"
+              id="rok-sheet-datum"
+              required
+              aria-label="Spremeni izbrani rok plačila"
+            />
           </section>
 
-          <label class="rok-sheet__stikalo">
-            <span class="rok-sheet__stikalo-besedilo">Samodejni rok</span>
-            <input type="checkbox" id="rok-sheet-samodejno" checked />
-            <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
-          </label>
-
-          <p class="rok-sheet__pomoc" id="rok-sheet-pomoc">
-            <span class="rok-sheet__pomoc-zvezda" id="rok-sheet-pomoc-zvezda" hidden aria-hidden="true">★</span>
-            <span id="rok-sheet-pomoc-besedilo">Privzeto: 5 dni od pošiljanja</span>
-          </p>
           <p class="rok-sheet__napaka" id="rok-sheet-napaka" hidden>
             Rok plačila ne sme biti pred datumom pošiljanja.
           </p>
+
+          <h3 class="obrocno-sheet__addon-naslov">Dodatek k glavnemu sporočilu</h3>
+          <p class="obrocno-sheet__addon-pomoc">
+            To besedilo bo dodano na konec glavnega sporočila.
+          </p>
+          <div class="obrocno-sheet__addon" id="rok-sheet-addon" aria-live="polite">—</div>
         </div>
 
         <div class="rok-sheet__noga">
-          <div class="rok-sheet__noga-vrsta">
-            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="rok-sheet-preklici">
-              Izklopi
-            </button>
-            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="rok-sheet-shrani">
-              Shrani in dodaj
-            </button>
-          </div>
           <button type="button" class="rok-sheet__odstrani" id="rok-sheet-odstrani" hidden>
             Odstrani rok iz sporočila
           </button>
+          <div class="rok-sheet__noga-vrsta">
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="rok-sheet-preklici">
+              Prekliči
+            </button>
+            <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="rok-sheet-shrani">
+              Shrani
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom sheet: Obročno plačilo -->
+    <!-- Bottom sheet: Obročno ali delno plačilo -->
     <div class="rok-sheet obrocno-sheet" id="obrocno-sheet" hidden>
       <button
         type="button"
@@ -321,17 +247,29 @@
         <div class="rok-sheet__rocaj" aria-hidden="true"></div>
         <div class="rok-sheet__glava">
           <h2 class="rok-sheet__naslov" id="obrocno-sheet-naslov" tabindex="-1">
-            Nastavi obročno plačilo
+            Predlagaj plačilno rešitev
           </h2>
           <button type="button" class="rok-sheet__zapri" id="obrocno-sheet-zapri" aria-label="Zapri">
             <span aria-hidden="true">×</span>
           </button>
         </div>
         <div class="rok-sheet__telo">
+          <label class="rok-sheet__stikalo">
+            <span class="rok-sheet__stikalo-besedilo">Dodaj predlog v sporočilo</span>
+            <input type="checkbox" id="obrocno-sheet-vkljuci" />
+            <span class="rok-sheet__stikalo-tir" aria-hidden="true"></span>
+          </label>
+          <div class="obrocno-sheet__nacin" role="tablist" aria-label="Način plačila">
+            <button type="button" class="obrocno-sheet__nacin-gumb" id="obrocno-sheet-nacin-delno" data-obrocno-nacin="partial" role="tab" aria-selected="false">Delno plačilo</button>
+            <button type="button" class="obrocno-sheet__nacin-gumb is-active" id="obrocno-sheet-nacin-obrocno" data-obrocno-nacin="installment" role="tab" aria-selected="true">Obročno plačilo</button>
+          </div>
           <div id="obrocno-sheet-recommendation" class="recommendation-host"></div>
 
           <div class="obrocno-sheet__nastavitve" id="obrocno-sheet-nastavitve">
             <div class="obrocno-sheet__znesek-kartica">
+              <span class="obrocno-sheet__dolg-ikona" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h13a3 3 0 0 1 3 3v7.5a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2h12v3.5"/><path d="M16 12h6v5h-6a2.5 2.5 0 0 1 0-5Z"/><circle cx="17" cy="14.5" r=".7" fill="currentColor" stroke="none"/></svg>
+              </span>
               <div class="obrocno-sheet__znesek-levo">
                 <p class="rok-sheet__oznaka">Znesek dolga</p>
                 <p class="obrocno-sheet__znesek-vrednost" id="obrocno-sheet-znesek">—</p>
@@ -342,10 +280,59 @@
                   </p>
                 </div>
               </div>
-              <span class="obrocno-sheet__znacka" id="obrocno-sheet-znacka">Samodejni predlog</span>
             </div>
             <p class="obrocno-sheet__opozorilo" id="obrocno-sheet-opozorilo" hidden></p>
 
+            <section class="obrocno-sheet__delno" id="obrocno-sheet-delno" aria-label="Nastavitve delnega plačila" hidden>
+              <div class="obrocno-sheet__delno-mreza">
+                <label class="obrocno-sheet__delno-polje">
+                  <span>Predlagani znesek</span>
+                  <span class="obrocno-sheet__delno-vnos">
+                    <input type="text" inputmode="decimal" autocomplete="off" id="obrocno-sheet-delno-znesek" placeholder="0,00" />
+                    <b aria-hidden="true">€</b>
+                  </span>
+                </label>
+                <label class="obrocno-sheet__delno-polje">
+                  <span>Rok plačila</span>
+                  <input type="date" id="obrocno-sheet-delno-datum" />
+                </label>
+              </div>
+              <div class="obrocno-sheet__delno-povzetek" aria-live="polite">
+                <span><small>Dolg</small><strong id="obrocno-sheet-delno-dolg-izracun">—</strong></span>
+                <i aria-hidden="true">−</i>
+                <span><small>Delno plačilo</small><strong id="obrocno-sheet-delno-placilo-izracun">—</strong></span>
+                <i aria-hidden="true">=</i>
+                <span class="obrocno-sheet__delno-povzetek-rezultat"><small>Preostane</small><strong id="obrocno-sheet-delno-preostanek">—</strong></span>
+              </div>
+
+              <fieldset class="delno-resitev">
+                <legend class="delno-resitev__naslov">Kaj se zgodi s preostankom?</legend>
+                <div class="delno-resitev__okvir">
+                  <div class="delno-resitev__izbira" role="radiogroup" aria-label="Ravnanje s preostankom dolga">
+                    <button type="button" class="delno-resitev__nacin is-active" data-delno-preostanek="open" role="radio" aria-checked="true" aria-expanded="true" aria-controls="obrocno-sheet-delno-predlogi-panel">
+                      <span class="delno-resitev__nacin-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.3l3 1.8"/></svg></span>
+                      <strong data-fit-text data-fit-text-min="8" data-fit-text-lines="2">Preostanek<br />ostane odprt</strong>
+                      <i class="delno-resitev__smer" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="delno-resitev__nacin" data-delno-preostanek="credit_note" role="radio" aria-checked="false" aria-expanded="false" aria-controls="obrocno-sheet-delno-predlogi-panel">
+                      <span class="delno-resitev__nacin-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3h7l4 4v14h-11z"/><path d="M12.5 3v4h4"/><path d="M8 12.5h4l3 3-3.3 3.3-3.7-3.7z"/><circle cx="9.3" cy="13.8" r=".55" fill="currentColor" stroke="none"/></svg></span>
+                      <strong data-fit-text data-fit-text-min="8" data-fit-text-lines="2">Zapri z<br />dobropisom</strong>
+                      <i class="delno-resitev__smer" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <div class="delno-resitev__vsebina" id="obrocno-sheet-delno-predlogi-panel">
+                    <div class="delno-resitev__predlogi" id="obrocno-sheet-delno-predlogi"></div>
+                    <label class="delno-resitev__datum" id="obrocno-sheet-delno-preostanek-datum-ovoj" hidden>
+                      <span>Rok plačila preostanka</span>
+                      <input type="date" id="obrocno-sheet-delno-preostanek-datum" />
+                    </label>
+                  </div>
+                </div>
+              </fieldset>
+
+            </section>
+
+            <div id="obrocno-sheet-obrocno-polja">
             <div class="obrocno-sheet__stevilo-vrsta">
               <p class="rok-sheet__oznaka" id="obrocno-sheet-stevilo-oznaka">Število obrokov</p>
               <p class="obrocno-sheet__stevilke-pomoc">do 20</p>
@@ -361,9 +348,15 @@
             </div>
 
             <div class="obrocno-sheet__razmik-vrsta">
-              <label class="rok-sheet__oznaka" for="obrocno-sheet-razmik">Razmik med obroki</label>
+              <p class="rok-sheet__oznaka" id="obrocno-sheet-razmik-oznaka">Razmik med obroki</p>
             </div>
-            <select class="obrocno-sheet__razmik" id="obrocno-sheet-razmik">
+            <div class="obrocno-sheet__razmik-izbira" id="obrocno-sheet-razmik-izbira" role="radiogroup" aria-labelledby="obrocno-sheet-razmik-oznaka">
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="weekly" role="radio" aria-checked="false"><span><strong>Vsak teden</strong><small>7 dni</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="biweekly" role="radio" aria-checked="false"><span><strong>Vsaka 2 tedna</strong><small>14 dni</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="monthly" role="radio" aria-checked="true"><span><strong>Vsak mesec</strong><small>Koledarsko</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="custom" role="radio" aria-checked="false"><span><strong>Ročno</strong><small>Izberem datume</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
+            </div>
+            <select class="obrocno-sheet__razmik" id="obrocno-sheet-razmik" hidden aria-hidden="true" tabindex="-1">
               <option value="weekly">Vsak teden</option>
               <option value="biweekly">Vsaka 2 tedna</option>
               <option value="monthly" selected>Vsak mesec</option>
@@ -372,20 +365,22 @@
 
             <div class="obrocno-sheet__nacrt-glava">
               <p class="rok-sheet__oznaka">Načrt obrokov</p>
-              <button type="button" class="rok-sheet__povezava" id="obrocno-sheet-enakomerno">
-                Enakomerno razdeli
-              </button>
             </div>
+            <button type="button" class="obrocno-sheet__enakomerno" id="obrocno-sheet-enakomerno" aria-pressed="false">
+              <span class="obrocno-sheet__enakomerno-ikona" aria-hidden="true">€</span>
+              <span>Enakomerno razdeli € med obroke</span>
+            </button>
             <div class="obrocno-sheet__seznam" id="obrocno-sheet-seznam"></div>
             <p class="obrocno-sheet__skupaj" id="obrocno-sheet-skupaj">Skupaj —</p>
             <p class="rok-sheet__napaka" id="obrocno-sheet-napaka" hidden></p>
             <p class="obrocno-sheet__undo-vrsta" id="obrocno-sheet-undo" hidden>
               <button type="button" class="rok-sheet__povezava">Razveljavi</button>
             </p>
+            </div>
 
             <h3 class="obrocno-sheet__addon-naslov">Dodatek k glavnemu sporočilu</h3>
             <p class="obrocno-sheet__addon-pomoc">
-              To besedilo bo dodano na konec glavnega sporočila.
+              To besedilo se doda na konec SMS-a ali e-pošte.
             </p>
             <div class="obrocno-sheet__addon" id="obrocno-sheet-addon" aria-live="polite"></div>
           </div>
@@ -398,17 +393,17 @@
             role="alert"
             hidden
           ></p>
+          <button type="button" class="rok-sheet__odstrani" id="obrocno-sheet-odstrani" hidden>
+            Odstrani plačilni predlog iz sporočila
+          </button>
           <div class="rok-sheet__noga-vrsta" id="obrocno-sheet-noga-global">
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="obrocno-sheet-preklici">
-              Izklopi
+              Prekliči
             </button>
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="obrocno-sheet-shrani">
-              Shrani in dodaj
+              Shrani
             </button>
           </div>
-          <button type="button" class="rok-sheet__odstrani" id="obrocno-sheet-odstrani" hidden>
-            Odstrani obročno iz sporočila
-          </button>
           <div class="obrocno-sheet__edit-akcije" id="obrocno-sheet-edit-akcije" hidden>
             <button
               type="button"
@@ -450,7 +445,7 @@
             Podatki za nakazilo
           </h2>
           <button type="button" class="rok-sheet__zapri" id="trr-sheet-zapri" aria-label="Zapri">
-            ✕
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
           </button>
         </div>
         <div class="rok-sheet__telo">
@@ -535,10 +530,10 @@
         <div class="rok-sheet__noga">
           <div class="rok-sheet__noga-vrsta">
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--obris" id="trr-sheet-preklici">
-              Izklopi
+              Prekliči
             </button>
             <button type="button" class="rok-sheet__gumb rok-sheet__gumb--primarni" id="trr-sheet-shrani">
-              Shrani in dodaj
+              Vklopi
             </button>
           </div>
         </div>
@@ -569,7 +564,7 @@
                 </svg>
                 <span>Ponastavi</span>
               </button>
-              <button type="button" class="rok-sheet__zapri" id="random-sheet-zapri" aria-label="Zapri">✕</button>
+              <button type="button" class="rok-sheet__zapri" id="random-sheet-zapri" aria-label="Zapri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
             </div>
           </div>
           <p class="random-sheet__podnaslov">Sistem rahlo premakne uro znotraj tvojih meja, da sporočila niso vedno poslana ob istem času.</p>
@@ -688,8 +683,106 @@
       </div>
     </div>
 
+    <div class="ocena-sheet ocena-sheet--pregled" id="ocena-tveganja-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri" data-ocena-tveganja-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ocena-tveganja-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo">
+            <h2 class="ocena-sheet__naslov" id="ocena-tveganja-sheet-naslov" tabindex="-1">Ocena tveganja</h2>
+            <p class="ocena-sheet__podnaslov">Ocena je samodejna. Meje prilagodite samo, če želite.</p>
+          </div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-tveganja-zapri>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
+          </button>
+        </div>
+        <div class="ocena-sheet__telo">
+          <div class="ocena-tveganja__vrstica ocena-tveganja__vrstica--pregled">
+            <button type="button" class="ocena-tveganja__polje" id="ocena-tveganja-dolg" data-odpri-nastavitve-dolga aria-haspopup="dialog">
+              <span class="ocena-tveganja__polje-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></svg></span>
+              <span class="ocena-tveganja__polje-vsebina">
+                <span class="ocena-tveganja__polje-oznaka">Višina dolga</span>
+                <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-dolg-vrednost" hidden>—</span>
+                <span class="ocena-tveganja__polje-kategorija" id="ocena-tveganja-dolg-status" data-fit-text data-fit-text-min="9">Samodejno</span>
+              </span>
+              <span class="ocena-tveganja__polje-nastavitve" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="ocena-tveganja__polje-nastavi">Nastavi</span>
+            </button>
+            <button type="button" class="ocena-tveganja__polje" id="ocena-tveganja-zamuda" data-odpri-nastavitve-zamude aria-haspopup="dialog">
+              <span class="ocena-tveganja__polje-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></span>
+              <span class="ocena-tveganja__polje-vsebina">
+                <span class="ocena-tveganja__polje-oznaka">Dolžina zamude</span>
+                <span class="ocena-tveganja__polje-vrednost" id="ocena-tveganja-zamuda-vrednost" data-fit-text data-fit-text-min="8.5">—</span>
+                <span class="ocena-tveganja__polje-kategorija" id="ocena-tveganja-zamuda-status" hidden>Samodejno</span>
+              </span>
+              <span class="ocena-tveganja__polje-nastavitve" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="ocena-tveganja__polje-nastavi">Nastavi</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ocena-sheet" id="ocena-dolg-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri" data-ocena-dolg-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ocena-dolg-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo"><h2 class="ocena-sheet__naslov" id="ocena-dolg-sheet-naslov" tabindex="-1">Meje višine dolga</h2><p class="ocena-sheet__podnaslov">Priporočene meje lahko prilagodite.</p></div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-dolg-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
+        </div>
+        <div class="ocena-sheet__telo">
+          <div class="ocena-sheet__preklop" role="tablist" aria-label="Vrsta ocene tveganja">
+            <button type="button" class="ocena-sheet__preklop-gumb is-active" role="tab" aria-selected="true" data-ocena-preklop="dolg">
+              <span class="ocena-sheet__preklop-ikona" aria-hidden="true">€</span>
+              <span>Višina dolga</span>
+            </button>
+            <button type="button" class="ocena-sheet__preklop-gumb" role="tab" aria-selected="false" data-ocena-preklop="zamuda">
+              <span class="ocena-sheet__preklop-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></span>
+              <span>Dolžina zamude</span>
+            </button>
+          </div>
+          <span class="ocena-sheet__priporocilo">Priporočene nastavitve</span>
+          <div class="ocena-sheet__vrstica"><span class="ocena-sheet__vrstica-oznaka">Nizek dolg</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-nizek-od" inputmode="decimal" class="ocena-sheet__input" value="0" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span><span class="ocena-sheet__vrstica-opis">do</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-nizek-do" inputmode="decimal" class="ocena-sheet__input" value="500" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span></div>
+          <div class="ocena-sheet__vrstica"><span class="ocena-sheet__vrstica-oznaka">Srednji dolg</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-srednji-od" inputmode="decimal" class="ocena-sheet__input" value="501" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span><span class="ocena-sheet__vrstica-opis">do</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-srednji-do" inputmode="decimal" class="ocena-sheet__input" value="2000" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span></div>
+          <div class="ocena-sheet__vrstica"><span class="ocena-sheet__vrstica-oznaka">Visok dolg</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-visok-od" inputmode="decimal" class="ocena-sheet__input" value="2001" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span><span class="ocena-sheet__vrstica-opis">do</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-visok-do" inputmode="decimal" class="ocena-sheet__input" value="5000" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span></div>
+          <div class="ocena-sheet__vrstica ocena-sheet__vrstica--zadnja"><span class="ocena-sheet__vrstica-oznaka">Ekstremni dolg</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-dolg-ekstremni-od" inputmode="decimal" class="ocena-sheet__input" value="5001" min="0" /><span class="ocena-sheet__enota" aria-hidden="true">€</span></span><span class="ocena-sheet__vrstica-opis ocena-sheet__vrstica-opis--in-vec">in več</span></div>
+        </div>
+        <div class="ocena-sheet__noga"><button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--obris" data-ocena-dolg-ponastavi>Ponastavi priporočeno</button><button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--primarni" data-ocena-dolg-shrani>Shrani</button></div>
+      </div>
+    </div>
+
+    <div class="ocena-sheet" id="ocena-zamuda-sheet" hidden>
+      <button type="button" class="ocena-sheet__backdrop" aria-label="Zapri" data-ocena-zamuda-zapri></button>
+      <div class="ocena-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ocena-zamuda-sheet-naslov">
+        <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
+        <div class="ocena-sheet__glava">
+          <div class="ocena-sheet__glava-besedilo"><h2 class="ocena-sheet__naslov" id="ocena-zamuda-sheet-naslov" tabindex="-1">Meje dolžine zamude</h2><p class="ocena-sheet__podnaslov">Zamuda se izračuna iz roka plačila.</p></div>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-zamuda-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
+        </div>
+        <div class="ocena-sheet__telo">
+          <div class="ocena-sheet__preklop" role="tablist" aria-label="Vrsta ocene tveganja">
+            <button type="button" class="ocena-sheet__preklop-gumb" role="tab" aria-selected="false" data-ocena-preklop="dolg">
+              <span class="ocena-sheet__preklop-ikona" aria-hidden="true">€</span>
+              <span>Višina dolga</span>
+            </button>
+            <button type="button" class="ocena-sheet__preklop-gumb is-active" role="tab" aria-selected="true" data-ocena-preklop="zamuda">
+              <span class="ocena-sheet__preklop-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg></span>
+              <span>Dolžina zamude</span>
+            </button>
+          </div>
+          <span class="ocena-sheet__priporocilo">Priporočene nastavitve</span>
+          <div class="ocena-sheet__vrstica"><span class="ocena-sheet__vrstica-oznaka">Kratka zamuda</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-kratka-od" inputmode="numeric" class="ocena-sheet__input" value="1" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span><span class="ocena-sheet__vrstica-opis">do</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-kratka-do" inputmode="numeric" class="ocena-sheet__input" value="7" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span></div>
+          <div class="ocena-sheet__vrstica"><span class="ocena-sheet__vrstica-oznaka">Srednja zamuda</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-srednja-od" inputmode="numeric" class="ocena-sheet__input" value="8" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span><span class="ocena-sheet__vrstica-opis">do</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-srednja-do" inputmode="numeric" class="ocena-sheet__input" value="30" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span></div>
+          <div class="ocena-sheet__vrstica"><span class="ocena-sheet__vrstica-oznaka">Visoka zamuda</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-visoka-od" inputmode="numeric" class="ocena-sheet__input" value="31" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span><span class="ocena-sheet__vrstica-opis">do</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-visoka-do" inputmode="numeric" class="ocena-sheet__input" value="60" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span></div>
+          <div class="ocena-sheet__vrstica ocena-sheet__vrstica--zadnja"><span class="ocena-sheet__vrstica-oznaka">Ekstremna zamuda</span><span class="ocena-sheet__vrstica-opis">od</span><span class="ocena-sheet__polje-z-enoto"><input type="number" id="ocena-zamuda-ekstremna-od" inputmode="numeric" class="ocena-sheet__input" value="61" min="1" /><span class="ocena-sheet__enota" aria-hidden="true">dni</span></span><span class="ocena-sheet__vrstica-opis ocena-sheet__vrstica-opis--in-vec">in več</span></div>
+        </div>
+        <div class="ocena-sheet__noga"><button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--obris" data-ocena-zamuda-ponastavi>Ponastavi priporočeno</button><button type="button" class="ocena-sheet__gumb ocena-sheet__gumb--primarni" data-ocena-zamuda-shrani>Shrani</button></div>
+      </div>
+    </div>
+
     <div class="lightbox" id="lightbox" hidden>
-      <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri">✕</button>
+      <button type="button" class="lightbox__zapri" id="lightbox-zapri" aria-label="Zapri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
       <img class="lightbox__slika" id="lightbox-slika" src="" alt="Priloga računa" />
     </div>
 
@@ -699,24 +792,23 @@
     <script src="priloge-konstante.js?v=20260808-vk-priloge"></script>
     <script src="priloge-vsebina.js?v=20260813-skupina-slik-v6"></script>
     <script src="rok-placila-utils.js?v=20260808-opomin-vsebina"></script>
-    <script src="rok-placila-sheet.js?v=20260818-stalna-trije-gradniki-v1"></script>
-    <script src="obrocno-utils.js?v=20260808-opomin-vsebina"></script>
-    <script src="obrocno-sheet.js?v=20260818-stalna-trije-gradniki-v1"></script>
-    <script src="trr-sheet.js?v=20260809-gumbi-poenoteni"></script>
+    <script src="rok-placila-sheet.js?v=20260823-umik-priporocila-v1"></script>
+    <script src="obrocno-utils.js?v=20260824-delno-exact-v3"></script>
+    <script src="obrocno-sheet.js?v=20260824-delno-resitev-reference-v9"></script>
+    <script src="trr-sheet.js?v=20260823-trr-celoten-meni-v1"></script>
     <script src="ton-dodatki-priporocila.js?v=20260818-stalna-trije-gradniki-v1"></script>
     <script src="predloga-payment-settings.js?v=20260810-korak3-parity"></script>
     <script src="recommendation-card.js?v=20260809-x-kompakten"></script>
-    <script src="ocena-tveganja.js?v=20260818-stalna-trije-gradniki-v3"></script>
+    <script src="ocena-tveganja.js?v=20260827-ocena-tveganja-preklop-v1"></script>
     <script src="ton-priporocilo.js?v=20260818-stalna-trije-gradniki-v3"></script>
     <script src="ton-predloge.js?v=20260810-korak3-predloge"></script>
     <script src="ton-widget.js?v=20260812-brez-utripa-v2"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
-    <script src="opomin-kartice-sync.js?v=20260814-celoten-osnutek-sync-v4"></script>
-    <script src="opomin-nacrt.js?v=20260814-identity-hash-v1"></script>
-    <script src="opomin-nacrt-ui.js?v=20260818-osnutek-akcije-v1"></script>
-    <script src="predlogi-urejevalnik.js?v=20260810-uredi-brez-zoomiranja"></script>
+    <script src="opomin-kartice-sync.js?v=20260823-confirmation-refresh-v6"></script>
+    <script src="opomin-nacrt.js?v=20260826-zgodovina-odvetnik-v4"></script>
+    <script src="opomin-nacrt-ui.js?v=20260829-korak-gradient-v1"></script>
+    <script src="predlogi-urejevalnik.js?v=20260828-dolgi-pritisk-drag-v1"></script>
     <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
-    <script src="app.js?v=20260818-ocr-prazno-v15"></script>
-    <script src="priporocilo-widget.js?v=20260814-dolznik-zapadlost-v2"></script>
+    <script src="app.js?v=20260827-wizard-four-step-v1-debt-summary-v4"></script>
   </body>
 </html>

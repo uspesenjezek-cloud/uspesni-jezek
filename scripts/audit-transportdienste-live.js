@@ -35,8 +35,8 @@ function browserExecutable() {
   return candidates.find(function (candidate) { return fs.existsSync(candidate); });
 }
 
-async function discover(page) {
-  await page.goto("https://top-angebot.de/kategorien/transportdienste", { waitUntil: "domcontentloaded", timeout: 60000 });
+async function discover(page, categoryUrl) {
+  await page.goto(categoryUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
   await new Promise(function (resolve) { setTimeout(resolve, 1200); });
   var rounds = 0;
   while (rounds < 50) {
@@ -196,16 +196,31 @@ async function main() {
   var executablePath = browserExecutable();
   if (!executablePath) throw new Error("Local Chrome/Edge executable was not found.");
   var args = process.argv.slice(2);
+  var categoryArg = args.find(function (arg) { return arg.startsWith("--category="); });
+  var categoryUrl = categoryArg ? categoryArg.slice("--category=".length) : "https://top-angebot.de/kategorien/transportdienste";
+  var categorySlug = new URL(categoryUrl).pathname.split("/").filter(Boolean).pop() || "category";
+  outputDir = path.join(root, "output", "playwright", categorySlug.replace(/[^a-z0-9-]+/gi, "-"));
+  reportPath = path.join(outputDir, "live-audit.json");
   var limitArg = args.find(function (arg) { return arg.startsWith("--limit="); });
   var startArg = args.find(function (arg) { return arg.startsWith("--start="); });
   var matchArg = args.find(function (arg) { return arg.startsWith("--match="); });
   var limit = limitArg ? Number(limitArg.split("=")[1]) : Infinity;
   var start = startArg ? Math.max(0, Number(startArg.split("=")[1]) || 0) : 0;
+  if (startArg || limitArg) {
+    reportPath = path.join(outputDir, "live-audit-" + start + "-" + (Number.isFinite(limit) ? limit : "all") + ".json");
+  }
   var full = args.includes("--full");
   var useOpenRegister = args.includes("--openregister");
   var browser = await puppeteer.launch({ executablePath: executablePath, headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
   var page = await browser.newPage();
-  var discovery = await discover(page);
+  fs.mkdirSync(outputDir, { recursive: true });
+  var discoveryPath = path.join(outputDir, "discovery.json");
+  var discovery = fs.existsSync(discoveryPath) && !args.includes("--refresh-discovery")
+    ? JSON.parse(fs.readFileSync(discoveryPath, "utf8"))
+    : await discover(page, categoryUrl);
+  if (!fs.existsSync(discoveryPath) || args.includes("--refresh-discovery")) {
+    fs.writeFileSync(discoveryPath, JSON.stringify(discovery, null, 2));
+  }
   if (args.includes("--discover-only")) {
     console.log(JSON.stringify({ profileCount: discovery.profileCount, websiteCount: discovery.websites.length }));
     await browser.close().catch(function () {});
@@ -218,7 +233,7 @@ async function main() {
     })
     : discovery.websites;
   var websites = discoveredWebsites.slice(start, Number.isFinite(limit) ? start + limit : discoveredWebsites.length);
-  var report = { startedAt: new Date().toISOString(), profileCount: discovery.profileCount, discoveredWebsiteCount: discovery.websites.length, startOffset: start, full: full, useOpenRegister: useOpenRegister, results: [] };
+  var report = { startedAt: new Date().toISOString(), categoryUrl: categoryUrl, profileCount: discovery.profileCount, discoveredWebsiteCount: discovery.websites.length, startOffset: start, full: full, useOpenRegister: useOpenRegister, results: [] };
   saveReport(report);
   var handler = require("../api/mehka-boniteta");
 

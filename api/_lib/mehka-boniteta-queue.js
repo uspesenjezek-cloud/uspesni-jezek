@@ -4,11 +4,23 @@ var crypto = require("crypto");
 var db = require("./supabase-server");
 var identityEvidenceContract = require("./identity-evidence");
 var MAX_CONCURRENCY = 30;
-var MAX_INSOLVENCY_CONCURRENCY = 10;
+var MAX_INSOLVENCY_CONCURRENCY = 20;
 // Del ključa predpomnilnika mora napredovati, kadar se spremeni parser,
 // odločanje ali zajem dokaznega posnetka. Tako star siv oziroma prekrit
 // posnetek po popravku ne more znova prekriti novega pravilnega zajema.
 var CACHE_VERSION = identityEvidenceContract.CACHE_VERSION;
+var INSOLVENCY_CACHE_VERSION = "official-insolvency-v11-proof-required-terminal";
+var NORTHDATA_ENRICHMENT_VERSION = "northdata-apify-v10-financial-invariants";
+var COMPANY_IDENTITY_SEARCH_VERSION = "company-index-v1-one-credit-proof";
+
+function razlicicaDostopaDoVirov() {
+  var skrivnosti = [
+    String(process.env.OPENREGISTER_API_KEY || "").trim(),
+    String(process.env.APIFY_API_TOKEN || "").trim(),
+  ].join("|");
+  if (skrivnosti === "|") return "sources-none";
+  return "sources-" + crypto.createHash("sha256").update(skrivnosti).digest("hex").slice(0, 12);
+}
 
 var globalniPomnilnik = global.__UJ_MEHKA_BONITETA_QUEUE__;
 if (!globalniPomnilnik) {
@@ -36,14 +48,20 @@ function fazaZahteve(telo) {
 
 function cacheKey(telo) {
   var potrjeno = telo && telo.confirmedIdentity || {};
+  var faza = fazaZahteve(telo);
   var podatki = {
-    cacheVersion: CACHE_VERSION,
-    faza: fazaZahteve(telo),
+    cacheVersion: CACHE_VERSION + ":" + NORTHDATA_ENRICHMENT_VERSION + ":" + COMPANY_IDENTITY_SEARCH_VERSION + ":" + razlicicaDostopaDoVirov() +
+      (faza === "insolvenca" ? ":" + INSOLVENCY_CACHE_VERSION : ""),
+    faza: faza,
     ime: normaliziraj(telo && telo.ime),
     naslov: normaliziraj(telo && telo.naslov),
     postnaStevilka: normaliziraj(telo && telo.postnaStevilka),
     kraj: normaliziraj(telo && telo.kraj),
     spletnaStran: normaliziraj(telo && telo.spletnaStran).replace(/\/$/, ""),
+    openRegisterCompanyId: normaliziraj(telo && telo.openRegisterCompanyId),
+    registerNumber: normaliziraj(telo && telo.registerNumber),
+    registerCourt: normaliziraj(telo && telo.registerCourt),
+    companyIndexSource: normaliziraj(telo && telo.companyIndexSource),
     openregister: Boolean(telo && telo.uporabiOpenRegisterIdentiteto),
     potrjenoIme: normaliziraj(potrjeno.name),
     potrjeniNaziv: normaliziraj(potrjeno.businessName),
@@ -74,7 +92,9 @@ function jeRezultatPrimerenZaPredpomnilnik(rezultat, faza) {
   var insolvenca = rezultat.insolvency || {};
   var uradna = insolvenca.officialVerification || {};
   return ["clear", "possible_match"].includes(insolvenca.status) &&
-    uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
+    uradna.evidenceStatus === "captured" &&
+    uradna.evidenceVersion === INSOLVENCY_CACHE_VERSION &&
+    Boolean(uradna.evidenceImage);
 }
 
 function javniPosnetek(job, position) {
@@ -98,7 +118,10 @@ function javniPosnetek(job, position) {
       spletnaStran: String(zahteva.spletnaStran || "").slice(0, 240),
       kraj: String(zahteva.kraj || "").slice(0, 100),
       registerNumber: String(zahteva.registerNumber || "").slice(0, 120),
+      registerCourt: String(zahteva.registerCourt || "").slice(0, 120),
       vatId: String(zahteva.vatId || "").slice(0, 80),
+      openRegisterCompanyId: String(zahteva.openRegisterCompanyId || "").slice(0, 120),
+      companyIndexSource: String(zahteva.companyIndexSource || "").slice(0, 40),
       uporabiOpenRegisterIdentiteto: Boolean(zahteva.uporabiOpenRegisterIdentiteto),
     },
     result: identityEvidenceContract.obogatiRezultat(job.result_payload || null),
@@ -180,7 +203,7 @@ async function ustvari(cfg, userId, telo) {
       aktivni.reused = true;
       return javniPosnetek(aktivni, izracunajPozicijoPomnilnik(aktivni));
     }
-    var najden = Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
+    var najden = telo && telo.recheckMode === "saved_profile" ? null : Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
       return job.user_id === userId && job.cache_key === kljuc && job.status === "completed" && job.result_payload &&
         Date.now() - new Date(job.finished_at).getTime() <= cacheTtlMs(faza) &&
         jeRezultatPrimerenZaPredpomnilnik(job.result_payload, faza);
@@ -201,7 +224,7 @@ async function ustvari(cfg, userId, telo) {
     aktivno.reused = true;
     return javniPosnetek(aktivno, await pozicija(cfg, aktivno));
   }
-  var cached = await najdiPredpomnjeno(cfg, userId, kljuc, faza);
+  var cached = telo && telo.recheckMode === "saved_profile" ? null : await najdiPredpomnjeno(cfg, userId, kljuc, faza);
   var zapis = {
     user_id: userId,
     faza: faza,
@@ -252,6 +275,34 @@ async function pridobi(cfg, userId, id) {
     job = Array.isArray(odgovor.data) && odgovor.data.length === 1 ? odgovor.data[0] : null;
   }
   return javniPosnetek(job, await pozicija(cfg, job));
+}
+
+function imaVeljavenUradniInsolvencniRezultat(rezultat) {
+  var insolvenca = rezultat && rezultat.insolvency || {};
+  var uradna = insolvenca.officialVerification || {};
+  return ["clear", "possible_match"].includes(insolvenca.status) &&
+    uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
+}
+
+async function pridobiNajnovejseZaProfil(cfg, userId, profile) {
+  var jobs;
+  if (uporabiPomnilnik() && !(cfg && cfg.forceRemoteQueue)) {
+    jobs = Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
+      return job.user_id === userId && job.status === "completed" && job.result_payload &&
+        opraviloPripadaProfilu(job, profile) && imaVeljavenUradniInsolvencniRezultat(job.result_payload);
+    });
+  } else {
+    var pot = "mehka_boniteta_opravila?user_id=eq." + encodeURIComponent(userId) +
+      "&status=eq.completed&result_payload=not.is.null&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at,finished_at&order=finished_at.desc&limit=500";
+    var odgovor = await rest(cfg, pot);
+    jobs = (Array.isArray(odgovor.data) ? odgovor.data : []).filter(function (job) {
+      return opraviloPripadaProfilu(job, profile) && imaVeljavenUradniInsolvencniRezultat(job.result_payload);
+    });
+  }
+  jobs.sort(function (a, b) {
+    return new Date(b.finished_at || b.updated_at || b.created_at).getTime() - new Date(a.finished_at || a.updated_at || a.created_at).getTime();
+  });
+  return jobs.length ? javniPosnetek(jobs[0], 0) : null;
 }
 
 async function prevzemi(cfg, limit) {
@@ -409,6 +460,29 @@ function vrednosti(source, keys) {
   return keys.map(function (key) { return normaliziraj(object[key]); }).filter(Boolean);
 }
 
+function registrskaIdentiteta(vrednost) {
+  var besedilo = normaliziraj(vrednost);
+  if (!besedilo) return null;
+  var ujemanje = besedilo.match(/\b(hra|hrb|gnr|pr|vr)\s*[-.:]?\s*([a-z0-9][a-z0-9\s./-]*)/i);
+  var vrsta = ujemanje ? ujemanje[1] : "";
+  var stevilka = (ujemanje ? ujemanje[2] : besedilo).replace(/[^a-z0-9]/g, "");
+  return stevilka ? { vrsta: vrsta, stevilka: stevilka } : null;
+}
+
+function registrskeIdentitete(sources) {
+  return sources.reduce(function (seznam, source) {
+    vrednosti(source, ["registerNumber", "register_number"]).forEach(function (vrednost) {
+      var identiteta = registrskaIdentiteta(vrednost);
+      if (identiteta) seznam.push(identiteta);
+    });
+    return seznam;
+  }, []);
+}
+
+function enakaRegistrskaIdentiteta(prva, druga) {
+  return prva.stevilka === druga.stevilka && (!prva.vrsta || !druga.vrsta || prva.vrsta === druga.vrsta);
+}
+
 function opraviloPripadaProfilu(job, profile) {
   var request = job && job.request_payload || {};
   var result = job && job.result_payload || {};
@@ -418,16 +492,30 @@ function opraviloPripadaProfilu(job, profile) {
   var address = profile && profile.address || {};
   var contact = profile && profile.contact || {};
   var latest = profile && profile.latest_check || {};
+  var profileInsolvency = latest.insolvency || {};
+  var profileOfficial = profileInsolvency.officialVerification || {};
+  var profileFields = profileOfficial.inputVerification && profileOfficial.inputVerification.fields || {};
+  var jobInsolvency = result.insolvency || {};
+  var jobOfficial = jobInsolvency.officialVerification || {};
+  var jobFields = jobOfficial.inputVerification && jobOfficial.inputVerification.fields || {};
   var knownJobIds = [].concat(latest.queueJobIds || [], latest.queue_job_ids || [], latest.queueJobId || [], latest.queue_job_id || [])
     .map(String).filter(Boolean);
-
-  if (knownJobIds.includes(String(job && job.id || ""))) return true;
 
   var profileCompanyId = normaliziraj(profile && profile.company_id);
   var jobCompanyIds = vrednosti(confirmed, ["companyId", "company_id"])
     .concat(vrednosti(identity, ["companyId", "company_id"]))
     .concat(vrednosti(evidence, ["companyId", "company_id"]))
     .concat(vrednosti(result, ["companyId", "company_id"]));
+  if (profileCompanyId && jobCompanyIds.length && !jobCompanyIds.includes(profileCompanyId)) return false;
+
+  var profileRegisters = registrskeIdentitete([profile, profileInsolvency, profileOfficial]);
+  var jobRegisters = registrskeIdentitete([request, confirmed, identity, evidence, result, jobInsolvency, jobOfficial]);
+  if (!(profileCompanyId && jobCompanyIds.length) && profileRegisters.length && jobRegisters.length &&
+      !profileRegisters.some(function (profileRegister) {
+        return jobRegisters.some(function (jobRegister) { return enakaRegistrskaIdentiteta(profileRegister, jobRegister); });
+      })) return false;
+
+  if (knownJobIds.includes(String(job && job.id || ""))) return true;
   if (profileCompanyId && jobCompanyIds.includes(profileCompanyId)) return true;
 
   var profileDomain = spletniKljuc(contact.website);
@@ -435,19 +523,33 @@ function opraviloPripadaProfilu(job, profile) {
     .map(spletniKljuc).filter(Boolean);
   if (profileDomain && jobDomains.includes(profileDomain)) return true;
 
-  var profileName = normaliziraj(profile && profile.legal_name);
-  if (!profileName) return false;
+  var profileNames = vrednosti(profile, ["legal_name"])
+    .concat(vrednosti(profileInsolvency, ["searchedName", "searched_name"]))
+    .concat(vrednosti(profileOfficial, ["searchedName", "searched_name"]))
+    .concat([
+      normaliziraj([profileFields.ime, profileFields.firmaPriimek].filter(Boolean).join(" ")),
+      normaliziraj([profileFields.firmaPriimek, profileFields.ime].filter(Boolean).join(" ")),
+    ]).filter(Boolean);
+  if (!profileNames.length) return false;
   var jobNames = vrednosti(request, ["ime", "legalName", "legal_name"])
     .concat(vrednosti(confirmed, ["name", "businessName", "legalName", "legal_name"]))
     .concat(vrednosti(identity, ["ime", "naziv", "name", "legalName", "legal_name"]))
-    .concat(vrednosti(evidence, ["ime", "naziv", "name", "legalName", "legal_name"]));
-  if (!jobNames.includes(profileName)) return false;
+    .concat(vrednosti(evidence, ["ime", "naziv", "name", "legalName", "legal_name"]))
+    .concat(vrednosti(jobInsolvency, ["searchedName", "searched_name"]))
+    .concat(vrednosti(jobOfficial, ["searchedName", "searched_name"]))
+    .concat([
+      normaliziraj([jobFields.ime, jobFields.firmaPriimek].filter(Boolean).join(" ")),
+      normaliziraj([jobFields.firmaPriimek, jobFields.ime].filter(Boolean).join(" ")),
+    ]).filter(Boolean);
+  if (!profileNames.some(function (name) { return jobNames.includes(name); })) return false;
 
-  var profilePostal = normaliziraj(address.postal_code || address.postalCode);
+  var profilePostal = normaliziraj(address.postal_code || address.postalCode || profileInsolvency.searchedPostalCode || profileFields.postnaStevilka);
   var jobPostals = vrednosti(request, ["postnaStevilka", "postalCode", "postal_code"])
     .concat(vrednosti(confirmed, ["postalCode", "postal_code"]))
     .concat(vrednosti(identity, ["postnaStevilka", "postalCode", "postal_code"]))
-    .concat(vrednosti(evidence, ["postnaStevilka", "postalCode", "postal_code"]));
+    .concat(vrednosti(evidence, ["postnaStevilka", "postalCode", "postal_code"]))
+    .concat(vrednosti(jobInsolvency, ["searchedPostalCode", "searched_postal_code"]))
+    .concat(vrednosti(jobFields, ["postnaStevilka", "postalCode", "postal_code"]));
   if (profilePostal && jobPostals.includes(profilePostal)) return true;
 
   var profileStreet = normaliziraj(address.street || address.address);
@@ -547,6 +649,12 @@ async function izbrisiOpravilo(cfg, userId, id) {
 function opraviloImaEnakVnos(a, b) {
   var prvi = a && a.request_payload || {};
   var drugi = b && b.request_payload || {};
+  var prviRegisterId = normaliziraj(prvi.openRegisterCompanyId);
+  var drugiRegisterId = normaliziraj(drugi.openRegisterCompanyId);
+  if (prviRegisterId || drugiRegisterId) return Boolean(prviRegisterId && drugiRegisterId && prviRegisterId === drugiRegisterId);
+  var prviRegister = [prvi.registerNumber, prvi.registerCourt].map(normaliziraj).join("|");
+  var drugiRegister = [drugi.registerNumber, drugi.registerCourt].map(normaliziraj).join("|");
+  if (prviRegister !== "|" || drugiRegister !== "|") return prviRegister !== "|" && prviRegister === drugiRegister;
   var prviUrl = spletniKljuc(prvi.spletnaStran);
   var drugiUrl = spletniKljuc(drugi.spletnaStran);
   if (prviUrl || drugiUrl) return Boolean(prviUrl && drugiUrl && prviUrl === drugiUrl);
@@ -564,6 +672,7 @@ module.exports = {
   cacheKey: cacheKey,
   ustvari: ustvari,
   pridobi: pridobi,
+  pridobiNajnovejseZaProfil: pridobiNajnovejseZaProfil,
   seznamAktivnih: seznamAktivnih,
   prevzemi: prevzemi,
   zakljuci: zakljuci,
@@ -573,6 +682,9 @@ module.exports = {
   pridobiLokalnaOpravilaPoDomeni: pridobiLokalnaOpravilaPoDomeni,
   _test: {
     CACHE_VERSION: CACHE_VERSION,
+    INSOLVENCY_CACHE_VERSION: INSOLVENCY_CACHE_VERSION,
+    NORTHDATA_ENRICHMENT_VERSION: NORTHDATA_ENRICHMENT_VERSION,
+    razlicicaDostopaDoVirov: razlicicaDostopaDoVirov,
     MAX_CONCURRENCY: MAX_CONCURRENCY,
     MAX_INSOLVENCY_CONCURRENCY: MAX_INSOLVENCY_CONCURRENCY,
     ponastaviPomnilnik: ponastaviPomnilnik,
@@ -580,6 +692,7 @@ module.exports = {
     izracunajPozicijoPomnilnik: izracunajPozicijoPomnilnik,
     najdiAktivno: najdiAktivno,
     opraviloPripadaProfilu: opraviloPripadaProfilu,
+    imaVeljavenUradniInsolvencniRezultat: imaVeljavenUradniInsolvencniRezultat,
     opraviloImaEnakVnos: opraviloImaEnakVnos,
     jeRezultatPrimerenZaPredpomnilnik: jeRezultatPrimerenZaPredpomnilnik,
     spletniGostitelj: spletniGostitelj,

@@ -2,7 +2,6 @@
 alter table public.pos_business_profiles
   add column if not exists next_adjustment_sequence bigint not null default 1
   check (next_adjustment_sequence > 0);
-
 create table public.pos_invoice_adjustments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -20,7 +19,6 @@ create table public.pos_invoice_adjustments (
   issued_at timestamptz not null default now(),
   unique (user_id, adjustment_number)
 );
-
 create index pos_invoice_adjustments_user_issued_idx
   on public.pos_invoice_adjustments(user_id, issued_at desc);
 create index pos_invoice_adjustments_original_idx
@@ -28,7 +26,6 @@ create index pos_invoice_adjustments_original_idx
 create unique index pos_invoice_adjustments_single_cancellation_uidx
   on public.pos_invoice_adjustments(original_invoice_id)
   where adjustment_type = 'cancellation';
-
 create table public.pos_adjustment_documents (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -43,31 +40,26 @@ create table public.pos_adjustment_documents (
   unique (adjustment_id, document_kind),
   unique (storage_path)
 );
-
 create index pos_adjustment_documents_user_created_idx
   on public.pos_adjustment_documents(user_id, created_at desc);
-
 alter table public.pos_invoice_adjustments enable row level security;
 alter table public.pos_adjustment_documents enable row level security;
 revoke all on table public.pos_invoice_adjustments from public, anon, authenticated;
 revoke all on table public.pos_adjustment_documents from public, anon, authenticated;
 grant select on table public.pos_invoice_adjustments, public.pos_adjustment_documents to authenticated;
 grant all on table public.pos_invoice_adjustments, public.pos_adjustment_documents to service_role;
-
 create policy pos_invoice_adjustments_select_own on public.pos_invoice_adjustments
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
 create policy pos_adjustment_documents_select_own on public.pos_adjustment_documents
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
-
 create trigger pos_invoice_adjustments_immutable
 before update or delete on public.pos_invoice_adjustments
 for each row execute function private.pos_prevent_invoice_mutation();
 create trigger pos_adjustment_documents_immutable
 before update or delete on public.pos_adjustment_documents
 for each row execute function private.pos_prevent_invoice_mutation();
-
 drop policy if exists pos_payment_insert_own on public.pos_payments;
 create policy pos_payment_insert_own on public.pos_payments
   for insert to authenticated with check (
@@ -82,7 +74,6 @@ create policy pos_payment_insert_own on public.pos_payments
       where a.original_invoice_id = invoice_id and a.adjustment_type = 'cancellation'
     )
   );
-
 create or replace function private._pos_create_invoice_adjustment(
   p_invoice_id uuid,
   p_adjustment_type text,
@@ -231,7 +222,6 @@ begin
   return v_adjustment;
 end;
 $$;
-
 create or replace function public.pos_create_invoice_adjustment(
   p_invoice_id uuid,
   p_adjustment_type text,
@@ -248,10 +238,8 @@ as $$
     p_invoice_id,p_adjustment_type,p_reason,p_changes,p_confirmed
   );
 $$;
-
 revoke all on function private._pos_create_invoice_adjustment(uuid,text,text,jsonb,boolean) from public, anon;
 revoke all on function public.pos_create_invoice_adjustment(uuid,text,text,jsonb,boolean) from public, anon;
 grant execute on function private._pos_create_invoice_adjustment(uuid,text,text,jsonb,boolean) to authenticated, service_role;
 grant execute on function public.pos_create_invoice_adjustment(uuid,text,text,jsonb,boolean) to authenticated, service_role;
-
 notify pgrst, 'reload schema';

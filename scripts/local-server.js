@@ -34,15 +34,26 @@ const posVerfahrensdokumentationModul = require.resolve("../api/_handlers/pos-ve
 const posDatevModul = require.resolve("../api/_handlers/pos-datev");
 const pridobiIzvedboModul = require.resolve("../api/pridobi-izvedbo");
 const izvediOpominUkrepModul = require.resolve("../api/izvedi-opomin-ukrep");
+  const razcleniZgodovinoModul = require.resolve("../api/_handlers/razcleni-zgodovino");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
 // hranimo v pomnilniku procesa, zato razvoj ne zahteva že izvedene migracije.
 process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE = "true";
+process.env.POS_LOCAL_MOCKS_ENABLED = "true";
 
 const root = path.resolve(__dirname, "..");
 const apiRoot = path.join(root, "api") + path.sep;
+const canaryDataRoot = process.env.UJ_SPEECH_HOME || path.join(process.env.LOCALAPPDATA || "", "UspesniJezek", "speech");
+const canaryModel = path.join(canaryDataRoot, "model", "canary-1b-v2-Q5_K_M.gguf");
+const canaryServer = path.join(root, "tools", "slovenski-live-prepis", "canary-progressive-server.js");
+const atenaNemotronModel = path.join(canaryDataRoot, "model", "nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf");
+const atenaNemotronServer = path.join(root, "tools", "slovenski-live-prepis", "streaming-server.js");
 let nalozenaApiRazlicica = "";
+let lokalniCanaryProces = null;
+let lokalniCanaryPreverjen = false;
+let lokalniAtenaNemotronProces = null;
+let lokalniAtenaNemotronPreverjen = false;
 const portArgument = process.argv.indexOf("--port");
 const port = portArgument >= 0 ? Number(process.argv[portArgument + 1]) : 8001;
 const apiOrigin = (process.env.LOCAL_OCR_API_ORIGIN || "https://uspesni-jezek.vercel.app").replace(/\/$/, "");
@@ -79,6 +90,74 @@ function posljiJson(res, status, podatki) {
   res.end(telo);
 }
 
+function zazeniLokalniCanary() {
+  if (lokalniCanaryPreverjen || process.env.UJ_DISABLE_AUTO_CANARY === "true") return;
+  lokalniCanaryPreverjen = true;
+  if (!fs.existsSync(canaryModel) || !fs.existsSync(canaryServer)) {
+    console.warn("Lokalni govor ni nameščen. Po potrebi zaženite: npm run setup:slovenski-prepis");
+    return;
+  }
+  const preveri = http.get({ hostname: "127.0.0.1", port: 8765, path: "/health", timeout: 1000 }, (odziv) => {
+    odziv.resume();
+    console.log("Lokalni Handy/Canary je že zagnan.");
+  });
+  preveri.on("timeout", () => preveri.destroy());
+  preveri.on("error", () => {
+    lokalniCanaryProces = childProcess.spawn(process.execPath, [canaryServer], {
+      cwd: root,
+      env: process.env,
+      stdio: ["ignore", "inherit", "inherit"],
+      windowsHide: true,
+    });
+    lokalniCanaryProces.once("error", (napaka) => {
+      console.warn("Lokalnega Handy/Canary servisa ni bilo mogoče zagnati:", napaka.message);
+    });
+    lokalniCanaryProces.once("exit", (koda) => {
+      if (koda && process.exitCode == null) console.warn(`Lokalni Handy/Canary se je ustavil (koda ${koda}).`);
+      lokalniCanaryProces = null;
+    });
+    console.log("Zaganjam lokalni Handy/Canary za samostojni slovenski prepis …");
+  });
+}
+
+function ustaviLokalniCanary() {
+  if (lokalniCanaryProces && !lokalniCanaryProces.killed) lokalniCanaryProces.kill();
+}
+
+function zazeniLokalniAtenaNemotron() {
+  if (lokalniAtenaNemotronPreverjen || process.env.UJ_DISABLE_AUTO_NEMOTRON === "true") return;
+  lokalniAtenaNemotronPreverjen = true;
+  if (!fs.existsSync(atenaNemotronModel) || !fs.existsSync(atenaNemotronServer)) {
+    console.warn("Atenin nemški Nemotron 3.5 ni nameščen. Zaženite: npm run setup:slovenski-prepis");
+    return;
+  }
+  const preveri = http.get({ hostname: "127.0.0.1", port: 8766, path: "/health", timeout: 1000 }, (odziv) => {
+    odziv.resume();
+    console.log("Atenin nemški Nemotron 3.5 je že zagnan.");
+  });
+  preveri.on("timeout", () => preveri.destroy());
+  preveri.on("error", () => {
+    lokalniAtenaNemotronProces = childProcess.spawn(process.execPath, [atenaNemotronServer], {
+      cwd: root,
+      env: process.env,
+      stdio: ["ignore", "inherit", "inherit"],
+      windowsHide: true,
+    });
+    lokalniAtenaNemotronProces.once("error", (napaka) => {
+      console.warn("Ateninega Nemotron servisa ni bilo mogoče zagnati:", napaka.message);
+    });
+    lokalniAtenaNemotronProces.once("exit", (koda) => {
+      if (koda && process.exitCode == null) console.warn(`Atenin Nemotron se je ustavil (koda ${koda}).`);
+      lokalniAtenaNemotronProces = null;
+    });
+    console.log("Zaganjam Nemotron 3.5 za Atenin nemški prepis v živo …");
+  });
+}
+
+function ustaviLokalniAtenaNemotron() {
+  if (lokalniAtenaNemotronProces && !lokalniAtenaNemotronProces.killed) lokalniAtenaNemotronProces.kill();
+}
+
 function preberiLokalnoOkolje(pot) {
   try {
     return fs.readFileSync(pot, "utf8");
@@ -101,7 +180,7 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (url && !process.env.SUPABASE_URL) process.env.SUPABASE_URL = url[1];
       if (anonKey && !process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = anonKey[1];
     }
-    if (!process.env.OPENREGISTER_API_KEY || !process.env.APIFY_API_TOKEN || !process.env.ANTHROPIC_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
+    if (!process.env.OPENREGISTER_API_KEY || !process.env.APIFY_API_TOKEN || !process.env.ANTHROPIC_API_KEY || !process.env.OPENAI_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
       const okolje = preberiLokalnoOkolje(path.join(root, ".env.local"));
       const openregister = okolje.match(/^\s*OPENREGISTER_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openregister && !process.env.OPENREGISTER_API_KEY) process.env.OPENREGISTER_API_KEY = openregister[1].trim();
@@ -109,6 +188,8 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (apify && !process.env.APIFY_API_TOKEN) process.env.APIFY_API_TOKEN = apify[1].trim();
       const anthropic = okolje.match(/^\s*ANTHROPIC_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (anthropic && !process.env.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = anthropic[1].trim();
+      const openai = okolje.match(/^\s*OPENAI_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
+      if (openai && !process.env.OPENAI_API_KEY) process.env.OPENAI_API_KEY = openai[1].trim();
       const serviceRole = okolje.match(/^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (serviceRole && !process.env.SUPABASE_SERVICE_ROLE_KEY) process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRole[1].trim();
       const webhookSecret = okolje.match(/^\s*OPENREGISTER_WEBHOOK_SECRET\s*=\s*["']?([^\r\n"']+)/m);
@@ -383,6 +464,82 @@ function posljiIdentitetoLokalnegaVira(req, res) {
   posljiJson(res, 200, { ok: true, localSource: identitetaLokalnegaVira() });
 }
 
+function posredujLokalniCanary(req, res, requestUrl) {
+  const dovoljenaPot = requestUrl.pathname.replace(/^\/__dev-handy-canary/, "");
+  if (!["/health", "/session/start", "/session/audio", "/session/stop"].includes(dovoljenaPot)) {
+    posljiJson(res, 404, { ok: false, error: "Canary pot ne obstaja." });
+    return;
+  }
+  const dovoljeneMetode = dovoljenaPot === "/health" ? ["GET"] : ["POST"];
+  if (!dovoljeneMetode.includes(req.method)) {
+    posljiJson(res, 405, { ok: false, error: "Metoda ni dovoljena." });
+    return;
+  }
+  const headers = {};
+  if (req.headers["content-type"]) headers["content-type"] = req.headers["content-type"];
+  if (req.headers["content-length"]) headers["content-length"] = req.headers["content-length"];
+  if (req.headers["x-uj-prepis-session"]) headers["x-uj-prepis-session"] = req.headers["x-uj-prepis-session"];
+  const proxy = http.request({
+    hostname: "127.0.0.1",
+    port: 8765,
+    path: dovoljenaPot + requestUrl.search,
+    method: req.method,
+    headers,
+    timeout: 15000,
+  }, (canaryRes) => {
+    res.writeHead(canaryRes.statusCode || 502, {
+      "Content-Type": canaryRes.headers["content-type"] || "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    canaryRes.pipe(res);
+  });
+  proxy.on("timeout", () => proxy.destroy(new Error("Canary timeout")));
+  proxy.on("error", () => {
+    if (!res.headersSent) posljiJson(res, 503, { ok: false, error: "Lokalni slovenski Handy/Canary ni zagnan." });
+    else res.destroy();
+  });
+  req.pipe(proxy);
+}
+
+function posredujLokalniAtenaNemotron(req, res, requestUrl) {
+  const dovoljenaPot = requestUrl.pathname.replace(/^\/__dev-atena-speech/, "");
+  if (!["/health", "/session/start", "/session/audio", "/session/stop"].includes(dovoljenaPot)) {
+    posljiJson(res, 404, { ok: false, error: "Atenina govorna pot ne obstaja." });
+    return;
+  }
+  const dovoljeneMetode = dovoljenaPot === "/health" ? ["GET"] : ["POST"];
+  if (!dovoljeneMetode.includes(req.method)) {
+    posljiJson(res, 405, { ok: false, error: "Metoda ni dovoljena." });
+    return;
+  }
+  const headers = {};
+  if (req.headers["content-type"]) headers["content-type"] = req.headers["content-type"];
+  if (req.headers["content-length"]) headers["content-length"] = req.headers["content-length"];
+  if (req.headers["x-uj-prepis-session"]) headers["x-uj-prepis-session"] = req.headers["x-uj-prepis-session"];
+  const proxy = http.request({
+    hostname: "127.0.0.1",
+    port: 8766,
+    path: dovoljenaPot + requestUrl.search,
+    method: req.method,
+    headers,
+    timeout: 300000,
+  }, (nemotronRes) => {
+    res.writeHead(nemotronRes.statusCode || 502, {
+      "Content-Type": nemotronRes.headers["content-type"] || "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    nemotronRes.pipe(res);
+  });
+  proxy.on("timeout", () => proxy.destroy(new Error("Nemotron timeout")));
+  proxy.on("error", () => {
+    if (!res.headersSent) posljiJson(res, 503, { ok: false, error: "Atenin lokalni nemški prepis ni zagnan." });
+    else res.destroy();
+  });
+  req.pipe(proxy);
+}
+
 async function posredujIzvedbaApi(req, res, requestUrl) {
   if (req.method !== "GET" && req.method !== "POST") {
     posljiJson(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
@@ -534,6 +691,14 @@ const server = http.createServer((req, res) => {
   const requestUrl = new URL(req.url, "http://localhost");
   const pathname = requestUrl.pathname;
   req.query = Object.fromEntries(requestUrl.searchParams.entries());
+  if (pathname.startsWith("/__dev-handy-canary/")) {
+    posredujLokalniCanary(req, res, requestUrl);
+    return;
+  }
+  if (pathname.startsWith("/__dev-atena-speech/")) {
+    posredujLokalniAtenaNemotron(req, res, requestUrl);
+    return;
+  }
   if (!process.env.LOCAL_IZVEDBA_API_ORIGIN && (pathname === "/api/pridobi-izvedbo" || pathname === "/api/izvedi-opomin-ukrep")) {
     naloziLokalnoSupabaseKonfiguracijo();
     const lokalniModul = pathname === "/api/pridobi-izvedbo" ? pridobiIzvedboModul : izvediOpominUkrepModul;
@@ -543,6 +708,11 @@ const server = http.createServer((req, res) => {
   }
   if (izvedbaApiPoti.has(pathname)) {
     void posredujIzvedbaApi(req, res, requestUrl);
+    return;
+  }
+  if (pathname === "/api/razcleni-zgodovino") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    void izvediLokalniApi(req, res, razcleniZgodovinoModul);
     return;
   }
   if (pathname === "/api/citaj-racun") {
@@ -665,7 +835,21 @@ server.listen(port, "0.0.0.0", () => {
   console.log(process.env.ANTHROPIC_API_KEY
     ? "Branje dokumentov uporablja lokalno API-funkcijo."
     : `Branje računov je povezano z: ${apiOrigin}/api/citaj-racun`);
+  zazeniLokalniCanary();
+  zazeniLokalniAtenaNemotron();
   console.log("Za ustavitev pritisnite Ctrl+C.");
+});
+
+process.once("exit", () => { ustaviLokalniCanary(); ustaviLokalniAtenaNemotron(); });
+process.once("SIGINT", () => {
+  ustaviLokalniCanary();
+  ustaviLokalniAtenaNemotron();
+  server.close(() => process.exit(0));
+});
+process.once("SIGTERM", () => {
+  ustaviLokalniCanary();
+  ustaviLokalniAtenaNemotron();
+  server.close(() => process.exit(0));
 });
 
 server.on("error", (napaka) => {

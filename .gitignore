@@ -11,10 +11,22 @@ ngrok.exe
 .vercel
 .env*
 
+# Lokalni runtime izpisi in vizualni dokazi niso del izvorne kode.
+.codex-local-server*.log
+output/
+
 # Odvisnosti in začasne datoteke za lokalno testiranje
 node_modules/
 tmp-visual/
 .playwright-cli/
 work/
+.cache/
 .claude/settings.local.json
+.claude/launch.json
+tools/
 .env*
+
+.superpowers/
+
+# Varna predloga brez skrivnosti mora ostati sledljiva.
+!.env.example

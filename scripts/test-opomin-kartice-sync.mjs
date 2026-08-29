@@ -10,12 +10,26 @@ const source = fs.readFileSync(
   "utf8"
 );
 
+assert.doesNotMatch(source, /location\.reload\(\)/, "Živa sinhronizacija ne sme osveževati cele strani");
+assert.match(source, /uj:opomin-sinhroniziran/, "Živa sinhronizacija mora obvestiti odprti uporabniški vmesnik");
+assert.match(
+  source,
+  /if \(!prisili && oddaljeniCas && lokalniCas > oddaljeniCas\) return plan/,
+  "Starejša oddaljena nastavitev ne sme prepisati svežega lokalnega klika"
+);
+assert.match(
+  source,
+  /zadnjiOsnutekCas = Math\.max\([\s\S]*?Date\.parse\(osnutekCasObKliki\)/,
+  "Čas lokalnega osnutka mora biti označen že ob kliku"
+);
+
 const key = "neplacilo-korak3-nacrt";
 const key1 = "neplacilo-korak1-podatki";
 const key2 = "neplacilo-korak2-podatki";
 const storage = new Map();
 const writes = [];
 const draftWrites = [];
+const realtimeHandlers = new Map();
 let remote = {
   vkljuceni_indeksi: [1, 2, 3, 4, 5, 6, 10],
   client_id: "iphone",
@@ -56,11 +70,33 @@ const localPlan = {
       : {}),
   })),
 };
+localPlan.steps[0] = {
+  ...localPlan.steps[0],
+  status: "confirmed",
+  confirmedAt: "2026-08-13T11:20:00.000Z",
+  confirmedSnapshotHash: "potrjeno-pred-osvezitvijo",
+  snapshotHash: "potrjeno-pred-osvezitvijo",
+  sendAt: "2026-08-13T12:00:00.000Z",
+  scheduledAt: "2026-08-13T12:00:00.000Z",
+  scheduledOffsetDays: 0,
+  toneId: "friendly",
+  finalMessage: "Potrjeno sporocilo pred osvezitvijo",
+  paymentDeadline: { enabled: false, days: null },
+  installment: { enabled: false, count: null },
+  bankTransfer: { enabled: false, accountId: null },
+};
 storage.set(key, JSON.stringify(localPlan));
 storage.set(key1, JSON.stringify({ imeDolznika: "Stari PC", znesek: "11" }));
 storage.set(key2, JSON.stringify({ sporociloDolzniku: "Staro sporocilo" }));
 
 const phonePlan = structuredClone(localPlan);
+phonePlan.steps[0].status = "needs_review";
+phonePlan.steps[0].confirmedAt = null;
+phonePlan.steps[0].confirmedSnapshotHash = null;
+phonePlan.steps[0].snapshotHash = null;
+phonePlan.steps[0].sendAt = "2026-08-13T12:01:00.000Z";
+phonePlan.steps[0].scheduledAt = "2026-08-13T12:01:00.000Z";
+phonePlan.steps[0].paymentDeadline = { enabled: true, days: 14 };
 phonePlan.steps[9].lawyerHandoff = structuredClone(remote.predaja_odvetniku.lawyerHandoff);
 let remoteDraft = {
   korak1: { imeDolznika: "Telefon Dolznik", znesek: "9446", stevilkaRacuna: "Nsjs" },
@@ -136,7 +172,10 @@ const supabaseKlient = {
   },
   channel() {
     return {
-      on() { return this; },
+      on(_event, config, callback) {
+        realtimeHandlers.set(config.table, callback);
+        return this;
+      },
       subscribe() { return this; },
     };
   },
@@ -167,13 +206,32 @@ const sync = context.UJOpominKarticeSync;
 
 await sync.naloziPredZagonom();
 assert.equal(writes.length, 0, "Osvezitev ne sme zapisati starega lokalnega stanja");
-assert.equal(draftWrites.length, 0, "PC ob osvezitvi ne sme prepisati telefonskega osnutka");
+assert.equal(
+  draftWrites.length,
+  1,
+  "Osvezitev mora zdruzeno lokalno potrditev vrniti v skupni osnutek"
+);
 let plan = JSON.parse(storage.get(key));
 assert.equal(JSON.parse(storage.get(key1)).imeDolznika, "Telefon Dolznik");
 assert.equal(JSON.parse(storage.get(key1)).znesek, "9446");
 assert.equal(
   JSON.parse(storage.get(key2)).sporociloDolzniku,
   "Najnovejse sporocilo s telefona"
+);
+assert.equal(
+  plan.steps[0].status,
+  "confirmed",
+  "Potrjena kljukica mora ostati tudi po osvezitvi strani"
+);
+assert.equal(
+  remoteDraft.nacrt.steps[0].status,
+  "confirmed",
+  "Ohranjena kljukica mora biti popravljena tudi v skupnem osnutku"
+);
+assert.equal(
+  draftWrites[0].p_korak1.imeDolznika,
+  "Telefon Dolznik",
+  "Zdruzevanje kljukice ne sme vrniti starih podatkov dolznika"
 );
 assert.deepEqual(
   plan.steps.filter((step) => !step.isExcluded).map((step) => step.index),
@@ -254,6 +312,80 @@ assert.equal(
   "Deveta kartica mora ohraniti potrditev"
 );
 
+// Regresija: sprotni zapis druge naprave lahko nastane tik pred lokalno
+// potrditvijo. Če vsebina kartice ostane enaka, ne sme odstraniti kljukice.
+const lokalnoPotrjenPlan = structuredClone(plan);
+lokalnoPotrjenPlan.steps[0] = {
+  ...lokalnoPotrjenPlan.steps[0],
+  status: "confirmed",
+  confirmedAt: "2026-08-23T14:00:00.000Z",
+  confirmedSnapshotHash: "enaka-vsebina",
+  snapshotHash: "enaka-vsebina",
+  sendAt: "2026-08-23T16:00:00.000Z",
+  scheduledOffsetDays: 0,
+  toneId: "friendly",
+  finalMessage: "Enako potrjeno sporocilo",
+  paymentDeadline: { enabled: false, days: null },
+  installment: { enabled: false, planId: null, count: null },
+  bankTransfer: { enabled: false, accountId: null },
+};
+storage.set(key, JSON.stringify(lokalnoPotrjenPlan));
+const zastarelOddaljeniPlan = structuredClone(lokalnoPotrjenPlan);
+zastarelOddaljeniPlan.steps[0].status = "needs_review";
+zastarelOddaljeniPlan.steps[0].confirmedAt = null;
+zastarelOddaljeniPlan.steps[0].confirmedSnapshotHash = null;
+zastarelOddaljeniPlan.steps[0].snapshotHash = null;
+zastarelOddaljeniPlan.steps[0].sendAt = "2026-08-23T16:01:00.000Z";
+zastarelOddaljeniPlan.steps[0].scheduledAt = "2026-08-23T16:01:00.000Z";
+zastarelOddaljeniPlan.steps[0].paymentDeadline = { enabled: true, days: 14 };
+zastarelOddaljeniPlan.steps[0].installment = { enabled: false, count: null };
+const osnutekHandler = realtimeHandlers.get("opomin_osnutek_sync");
+assert.equal(typeof osnutekHandler, "function", "Poslusalec skupnega osnutka mora biti povezan");
+osnutekHandler({
+  new: {
+    korak1: JSON.parse(storage.get(key1)),
+    korak2: JSON.parse(storage.get(key2)),
+    nacrt: zastarelOddaljeniPlan,
+    client_id: "druga-naprava",
+    sync_updated_at: new Date(Date.now() + 60_000).toISOString(),
+  },
+});
+assert.equal(
+  JSON.parse(storage.get(key)).steps[0].status,
+  "confirmed",
+  "Enaka oddaljena vsebina ne sme odstraniti lokalne kljukice"
+);
+await new Promise((resolve) => setTimeout(resolve, 0));
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(
+  draftWrites.at(-1).p_nacrt.steps[0].status,
+  "confirmed",
+  "Ohranjena kljukica se mora vrniti tudi v skupni osnutek"
+);
+
+// Resnicna sprememba vsebine mora potrditveni status se vedno razveljaviti.
+const spremenjenOddaljeniPlan = structuredClone(lokalnoPotrjenPlan);
+spremenjenOddaljeniPlan.steps[0].status = "needs_review";
+spremenjenOddaljeniPlan.steps[0].confirmedAt = null;
+spremenjenOddaljeniPlan.steps[0].finalMessage = "Dejansko spremenjeno sporocilo";
+spremenjenOddaljeniPlan.steps[0].reviewRequiredAt = "2026-08-23T14:01:00.000Z";
+spremenjenOddaljeniPlan.steps[0].reviewRequiredRevision =
+  "review-v1:2026-08-23T14:01:00.000Z";
+osnutekHandler({
+  new: {
+    korak1: JSON.parse(storage.get(key1)),
+    korak2: JSON.parse(storage.get(key2)),
+    nacrt: spremenjenOddaljeniPlan,
+    client_id: "druga-naprava",
+    sync_updated_at: new Date(Date.now() + 120_000).toISOString(),
+  },
+});
+assert.equal(
+  JSON.parse(storage.get(key)).steps[0].status,
+  "needs_review",
+  "Spremenjena vsebina mora zahtevati novo potrditev"
+);
+
 const iphoneStorage = new Map([
   [key, JSON.stringify(phonePlan)],
   [key1, JSON.stringify({ imeDolznika: "iPhone je prvi vir", znesek: "9446" })],
@@ -302,5 +434,62 @@ vm.runInNewContext(source, iphoneContext, { filename: "opomin-kartice-sync-iphon
 await iphoneContext.UJOpominKarticeSync.naloziPredZagonom();
 assert.equal(iphoneDraftWrites.length, 1, "Prazen skupni osnutek mora prvi napolniti iPhone");
 assert.equal(iphoneDraftWrites[0].p_korak1.imeDolznika, "iPhone je prvi vir");
+
+// Regresija: oddaljeni zapis z objekti, vendar brez podatkov računa, ne sme
+// prepisati veljavnega lokalnega osnutka in pustiti praznega drugega koraka.
+const invalidStorage = new Map([
+  [key, JSON.stringify(localPlan)],
+  [key1, JSON.stringify({ imeDolznika: "Veljavni lokalni dolznik", znesek: "780" })],
+  [key2, JSON.stringify({ sporociloDolzniku: "Veljavno lokalno sporocilo" })],
+]);
+const invalidDraftWrites = [];
+const invalidSupabase = {
+  auth: supabaseKlient.auth,
+  from(table) {
+    return {
+      select() {
+        return {
+          eq() {
+            return {
+              async maybeSingle() {
+                return {
+                  data:
+                    table === "opomin_osnutek_sync"
+                      ? { korak1: {}, korak2: {}, nacrt: { steps: [] }, sync_updated_at: "2026-08-22T08:00:00.000Z" }
+                      : structuredClone(remote),
+                  error: null,
+                };
+              },
+            };
+          },
+        };
+      },
+    };
+  },
+  async rpc(name, payload) {
+    if (name === "sinhroniziraj_opomin_osnutek") invalidDraftWrites.push(structuredClone(payload));
+    return { data: null, error: null };
+  },
+  channel: supabaseKlient.channel,
+};
+const invalidContext = {
+  ...context,
+  supabaseKlient: invalidSupabase,
+  navigator: { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+  sessionStorage: {
+    getItem(name) { return invalidStorage.get(name) ?? null; },
+    setItem(name, value) { invalidStorage.set(name, value); },
+  },
+};
+invalidContext.window = invalidContext;
+vm.runInNewContext(source, invalidContext, { filename: "opomin-kartice-sync-invalid-remote.js" });
+await invalidContext.UJOpominKarticeSync.naloziPredZagonom();
+assert.equal(
+  JSON.parse(invalidStorage.get(key1)).imeDolznika,
+  "Veljavni lokalni dolznik",
+  "Prazen oddaljeni osnutek ne sme izbrisati lokalnih podatkov računa"
+);
+assert.equal(invalidDraftWrites.length, 1, "Veljavni lokalni osnutek mora nadomestiti prazen oddaljeni zapis");
+assert.equal(invalidDraftWrites[0].p_korak1.znesek, "780");
 
 console.log("Sinhronizacija kartic med napravami: vsi testi uspesni");

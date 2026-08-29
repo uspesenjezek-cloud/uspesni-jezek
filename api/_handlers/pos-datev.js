@@ -11,6 +11,8 @@ const Core = require("../../app/pos-terminal.js");
 const BERLIN_ZONE = "Europe/Berlin";
 const MAX_ARCHIVE_DOCUMENT_BYTES = 5 * 1024 * 1024;
 const MAX_BODY_BYTES = 16 * 1024;
+const DATEV_OAUTH_COOKIE = "__Host-uj-datev-oauth";
+const DATEV_JOB_TIMEOUT_MS = 30 * 60 * 1000;
 
 function json(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8")
@@ -19,6 +21,40 @@ function json(res, status, body) {
 
 function requestBody(req) {
   return requestJson(req, MAX_BODY_BYTES);
+}
+
+function cookie(req, name) {
+  const source = String(req && req.headers && req.headers.cookie || "");
+  for (const part of source.split(";")) {
+    const separator = part.indexOf("=");
+    if (separator < 0 || part.slice(0, separator).trim() !== name) continue;
+    try { return decodeURIComponent(part.slice(separator + 1).trim()); } catch (_) { return ""; }
+  }
+  return "";
+}
+
+function oauthBindingHash(value) {
+  return crypto.createHash("sha256").update(String(value || ""), "utf8").digest("base64url");
+}
+
+function sameSecret(left, right) {
+  const first = Buffer.from(String(left || ""), "utf8");
+  const second = Buffer.from(String(right || ""), "utf8");
+  return first.length > 0 && first.length === second.length && crypto.timingSafeEqual(first, second);
+}
+
+function setOauthCookie(res, value, maxAge) {
+  res.setHeader("Set-Cookie", DATEV_OAUTH_COOKIE + "=" + encodeURIComponent(String(value || "")) +
+    "; Path=/; Max-Age=" + Math.max(0, Number(maxAge) || 0) + "; HttpOnly; Secure; SameSite=Lax");
+}
+
+function tokenExpiry(tokens) {
+  const accessToken = String(tokens && tokens.access_token || "");
+  const expiresIn = Number(tokens && tokens.expires_in);
+  if (!accessToken || Buffer.byteLength(accessToken, "utf8") > 8192 || !Number.isInteger(expiresIn) || expiresIn < 1 || expiresIn > 86400) {
+    throw new datev.DatevError("DATEV je vrnil neveljavno žetonsko sejo.", { code: "DATEV_TOKEN_RESPONSE_INVALID", status: 502 });
+  }
+  return new Date(Date.now() + expiresIn * 1000).toISOString();
 }
 
 function uuid(value) {
@@ -74,13 +110,46 @@ async function patchConnection(cfg, userId, changes) {
   return rows[0] || null;
 }
 
+async function patchClaimedConnection(cfg, userId, claimId, changes) {
+  const rows = await rest(cfg, "pos_datev_connections", {
+    method: "PATCH", query: "?user_id=eq." + encodeURIComponent(userId) + "&refresh_claim_id=eq." + encodeURIComponent(claimId),
+    headers: { "Content-Type": "application/json" }, body: Object.assign({}, changes, { updated_at: new Date().toISOString() }),
+  });
+  return rows[0] || null;
+}
+
+async function claimRefresh(db, connection, datevCfg) {
+  const claimId = crypto.randomUUID();
+  const rows = await rest(db, "rpc/claim_pos_datev_refresh", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: {
+      p_user_id: connection.user_id, p_environment: connection.environment, p_claim_id: claimId,
+    },
+  });
+  if (rows[0]) return { claimId, connection: rows[0] };
+  const current = await connectionForUser(db, connection.user_id);
+  if (current && current.environment === connection.environment && current.status === "connected" &&
+      current.token_expires_at && new Date(current.token_expires_at).getTime() > Date.now() + 60000) {
+    const token = datev.decryptSecret(datevCfg, current.access_token_encrypted);
+    if (!token) throw new datev.DatevError("DATEV seja je poškodovana. Povežite jo znova.", { code: "DATEV_RECONNECT_REQUIRED", status: 401 });
+    return { claimId: "", connection: current, token };
+  }
+  if (!current || current.environment !== connection.environment || current.status !== "connected") {
+    throw new datev.DatevError("DATEV seja ni več povezana. Povežite jo znova.", { code: "DATEV_RECONNECT_REQUIRED", status: 401 });
+  }
+  throw new datev.DatevError("DATEV žetonska seja se že varno osvežuje. Poskusite znova.", {
+    code: "DATEV_REFRESH_IN_PROGRESS", status: 409, retryable: true,
+  });
+}
+
 function publicConnection(cfg, row) {
+  const sameEnvironment = Boolean(row && row.environment === cfg.mode);
+  const current = sameEnvironment ? row : null;
   return {
     configured: cfg.mode === "mock" || Boolean(cfg.clientId && cfg.clientSecret), environment: cfg.mode,
-    connected: Boolean(row && row.status === "connected"), status: row && row.status || "disconnected",
-    clientId: row && row.datev_client_id || "", consultantNumber: row && row.consultant_number || null,
-    clientNumber: row && row.client_number || null, clientName: row && row.client_name || "",
-    lastVerifiedAt: row && row.last_verified_at || null, lastErrorCode: row && row.last_error_code || "",
+    connected: Boolean(current && current.status === "connected"), status: current && current.status || "disconnected",
+    clientId: current && current.datev_client_id || "", consultantNumber: current && current.consultant_number || null,
+    clientNumber: current && current.client_number || null, clientName: current && current.client_name || "",
+    lastVerifiedAt: current && current.last_verified_at || null, lastErrorCode: current && current.last_error_code || "",
   };
 }
 
@@ -94,23 +163,54 @@ async function profileSettings(cfg, userId) {
   return settings;
 }
 
-async function accessForConnection(cfg, db, connection) {
-  if (cfg.mode === "mock") return { token: "datev-mock-token", connection };
-  if (!connection || connection.status !== "connected") throw new datev.DatevError("DATEV še ni povezan.", { code: "DATEV_NOT_CONNECTED", status: 409 });
-  if (connection.token_expires_at && new Date(connection.token_expires_at).getTime() > Date.now() + 60000) {
-    return { token: datev.decryptSecret(cfg, connection.access_token_encrypted), connection };
-  }
-  const refresh = datev.decryptSecret(cfg, connection.refresh_token_encrypted);
-  if (!refresh) throw new datev.DatevError("DATEV seja je potekla. Povežite jo znova.", { code: "DATEV_RECONNECT_REQUIRED", status: 401 });
-  const tokens = await datev.refreshAccessToken(cfg, refresh);
-  const updated = await patchConnection(db, connection.user_id, {
-    status: "connected",
-    access_token_encrypted: datev.encryptSecret(cfg, tokens.access_token),
-    refresh_token_encrypted: datev.encryptSecret(cfg, tokens.refresh_token || refresh),
-    token_expires_at: new Date(Date.now() + Number(tokens.expires_in || 600) * 1000).toISOString(),
-    last_error_code: "",
+function validateTransferSettings(settings, periodKey) {
+  const errors = Core.validateDatevSettings(settings, periodKey);
+  if (errors.length) throw new datev.DatevError(errors[0], {
+    code: "DATEV_SETTINGS_INCOMPLETE", status: 409, details: errors,
   });
-  return { token: tokens.access_token, connection: updated };
+  return settings;
+}
+
+async function accessForConnection(cfg, db, connection) {
+  if (!connection || connection.status !== "connected" || connection.environment !== cfg.mode) {
+    throw new datev.DatevError("DATEV še ni povezan v izbranem okolju.", { code: "DATEV_NOT_CONNECTED", status: 409 });
+  }
+  if (cfg.mode === "mock") return { token: "datev-mock-token", connection };
+  if (connection.token_expires_at && new Date(connection.token_expires_at).getTime() > Date.now() + 60000) {
+    const token = datev.decryptSecret(cfg, connection.access_token_encrypted);
+    if (!token) throw new datev.DatevError("DATEV seja je poškodovana. Povežite jo znova.", { code: "DATEV_RECONNECT_REQUIRED", status: 401 });
+    return { token, connection };
+  }
+  if (!datev.decryptSecret(cfg, connection.refresh_token_encrypted)) {
+    throw new datev.DatevError("DATEV seja je potekla. Povežite jo znova.", { code: "DATEV_RECONNECT_REQUIRED", status: 401 });
+  }
+  const claim = await claimRefresh(db, connection, cfg);
+  if (claim.token) return { token: claim.token, connection: claim.connection };
+  const claimedConnection = claim.connection;
+  try {
+    const refresh = datev.decryptSecret(cfg, claimedConnection.refresh_token_encrypted);
+    if (!refresh) throw new datev.DatevError("DATEV seja je potekla. Povežite jo znova.", { code: "DATEV_RECONNECT_REQUIRED", status: 401 });
+    const tokens = await datev.refreshAccessToken(cfg, refresh);
+    const expiresAt = tokenExpiry(tokens);
+    const rotatedRefresh = String(tokens.refresh_token || "");
+    if (!rotatedRefresh) throw new datev.DatevError("DATEV ni vrnil novega enkratnega refresh žetona.", { code: "DATEV_TOKEN_RESPONSE_INVALID", status: 502 });
+    const updated = await patchClaimedConnection(db, connection.user_id, claim.claimId, {
+      status: "connected", access_token_encrypted: datev.encryptSecret(cfg, tokens.access_token),
+      refresh_token_encrypted: datev.encryptSecret(cfg, rotatedRefresh), token_expires_at: expiresAt,
+      refresh_claim_id: null, refresh_claimed_at: null, last_error_code: "",
+    });
+    if (!updated) throw new datev.DatevError("DATEV rotacije žetona ni bilo mogoče varno shraniti.", { code: "DATEV_REFRESH_STATE_LOST", status: 503 });
+    return { token: tokens.access_token, connection: updated };
+  } catch (error) {
+    await patchClaimedConnection(db, connection.user_id, claim.claimId, {
+      status: "disconnected", access_token_encrypted: "", refresh_token_encrypted: "", token_expires_at: null,
+      refresh_claim_id: null, refresh_claimed_at: null, last_error_code: "DATEV_RECONNECT_REQUIRED",
+    }).catch(function () {});
+    if (error && error.code === "DATEV_REFRESH_STATE_LOST") throw error;
+    throw new datev.DatevError("DATEV žetona ni mogoče varno ponovno uporabiti. Povežite DATEV znova.", {
+      code: "DATEV_RECONNECT_REQUIRED", status: 401,
+    });
+  }
 }
 
 function safeFilename(value) {
@@ -149,28 +249,31 @@ async function archiveContent(cfg, record) {
   return buffer;
 }
 
-async function documentTransfer(cfg, userId, record) {
+async function documentTransfer(cfg, userId, record, environment, datevClientId) {
+  const scope = "&environment=eq." + encodeURIComponent(environment) +
+    "&datev_client_id=eq." + encodeURIComponent(datevClientId);
   const existing = await supabase.pridobiVrstice(cfg, "pos_datev_document_transfers",
-    "user_id=eq." + encodeURIComponent(userId) + "&archive_record_id=eq." + encodeURIComponent(record.id) + "&select=*&limit=1");
+    "user_id=eq." + encodeURIComponent(userId) + "&archive_record_id=eq." + encodeURIComponent(record.id) + scope + "&select=*&limit=1");
   if (existing[0]) return existing[0];
   try {
     const rows = await rest(cfg, "pos_datev_document_transfers", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: {
-        user_id: userId, archive_record_id: record.id, document_guid: crypto.randomUUID(), status: "pending",
+        user_id: userId, archive_record_id: record.id, environment, datev_client_id: datevClientId,
+        document_guid: crypto.randomUUID(), status: "pending",
       },
     });
     return rows[0];
   } catch (error) {
     if (error.code !== "DATEV_DUPLICATE") throw error;
     const rows = await supabase.pridobiVrstice(cfg, "pos_datev_document_transfers",
-      "user_id=eq." + encodeURIComponent(userId) + "&archive_record_id=eq." + encodeURIComponent(record.id) + "&select=*&limit=1");
+      "user_id=eq." + encodeURIComponent(userId) + "&archive_record_id=eq." + encodeURIComponent(record.id) + scope + "&select=*&limit=1");
     return rows[0];
   }
 }
 
-async function patchDocumentTransfer(cfg, id, changes) {
+async function patchDocumentTransfer(cfg, userId, id, changes) {
   const rows = await rest(cfg, "pos_datev_document_transfers", {
-    method: "PATCH", query: "?id=eq." + encodeURIComponent(id), headers: { "Content-Type": "application/json" },
+    method: "PATCH", query: "?user_id=eq." + encodeURIComponent(userId) + "&id=eq." + encodeURIComponent(id), headers: { "Content-Type": "application/json" },
     body: Object.assign({}, changes, { updated_at: new Date().toISOString() }),
   });
   return rows[0] || null;
@@ -311,12 +414,15 @@ async function periodPackage(cfg, userId, selectedPeriod, options) {
   };
 }
 
-async function createJob(cfg, userId, requestId, selectedPeriod, mode, options) {
+async function createJob(cfg, userId, requestId, selectedPeriod, mode, datevClientId, options) {
   const repeatableMock = mode === "mock" && Boolean(options && options.testOnly);
+  const scope = "&environment=eq." + encodeURIComponent(mode) +
+    "&datev_client_id=eq." + encodeURIComponent(datevClientId);
   try {
     const rows = await rest(cfg, "pos_datev_transfer_jobs", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: {
-        user_id: userId, request_id: requestId, period: selectedPeriod.key, environment: mode, status: "preparing",
+        user_id: userId, request_id: requestId, period: selectedPeriod.key, environment: mode,
+        datev_client_id: datevClientId, status: "preparing",
       },
     });
     return rows[0];
@@ -324,20 +430,20 @@ async function createJob(cfg, userId, requestId, selectedPeriod, mode, options) 
     if (error.code !== "DATEV_DUPLICATE") throw error;
     const sameRequest = await supabase.pridobiVrstice(cfg, "pos_datev_transfer_jobs",
       "user_id=eq." + encodeURIComponent(userId) + "&request_id=eq." + encodeURIComponent(requestId) +
-      "&select=*&limit=1");
+      scope + "&select=*&limit=1");
     if (sameRequest[0]) return sameRequest[0];
     const reusableStatuses = repeatableMock ? "preparing,processing" : "preparing,processing,succeeded";
     const rows = await supabase.pridobiVrstice(cfg, "pos_datev_transfer_jobs",
       "user_id=eq." + encodeURIComponent(userId) + "&period=eq." + encodeURIComponent(selectedPeriod.key) +
-      "&environment=eq." + encodeURIComponent(mode) + "&status=in.(" + reusableStatuses + ")&select=*&order=created_at.desc&limit=1");
+      scope + "&status=in.(" + reusableStatuses + ")&select=*&order=created_at.desc&limit=1");
     if (rows[0]) return rows[0];
     throw error;
   }
 }
 
-async function patchJob(cfg, id, changes) {
+async function patchJob(cfg, userId, id, changes) {
   const rows = await rest(cfg, "pos_datev_transfer_jobs", {
-    method: "PATCH", query: "?id=eq." + encodeURIComponent(id), headers: { "Content-Type": "application/json" },
+    method: "PATCH", query: "?user_id=eq." + encodeURIComponent(userId) + "&id=eq." + encodeURIComponent(id), headers: { "Content-Type": "application/json" },
     body: Object.assign({}, changes, { updated_at: new Date().toISOString() }),
   });
   return rows[0] || null;
@@ -352,9 +458,30 @@ function publicJob(row) {
   } : null;
 }
 
+function jobPollState(row, now) {
+  const current = Number(now === undefined ? Date.now() : now);
+  const createdAt = Date.parse(row && row.created_at || "");
+  const updatedAt = Date.parse(row && row.updated_at || "");
+  if (!Number.isFinite(createdAt) || current - createdAt >= DATEV_JOB_TIMEOUT_MS) return "expired";
+  const waitMs = Math.min(Math.max(Number(row && row.retry_after_seconds) || 0, 0), 300) * 1000;
+  return Number.isFinite(updatedAt) && current - updatedAt < waitMs ? "wait" : "poll";
+}
+
+function pollFailureChanges(error, now) {
+  const code = String(error && error.code || "DATEV_JOB_POLL_FAILED").slice(0, 100);
+  const message = String(error && error.message || "DATEV stanja opravila ni bilo mogoče preveriti.").slice(0, 500);
+  if (error && error.retryable) return {
+    retry_after_seconds: 30, error_code: code, error_message: message,
+  };
+  return {
+    status: "failed", completed_at: new Date(now || Date.now()).toISOString(), retry_after_seconds: 0,
+    error_code: code, error_message: message,
+  };
+}
+
 async function executeTransfer(datevCfg, db, connection, token, userId, settings, selectedPeriod, requestId, options) {
   const testOnly = Boolean(options && options.testOnly);
-  let job = await createJob(db, userId, requestId, selectedPeriod, datevCfg.mode, { testOnly });
+  let job = await createJob(db, userId, requestId, selectedPeriod, datevCfg.mode, connection.datev_client_id, { testOnly });
   if (job.status === "succeeded" || job.status === "processing") return job;
   const pack = await periodPackage(db, userId, selectedPeriod, { testOnly });
   if (!pack.invoices.length) throw new datev.DatevError(testOnly ? "V izbranem mesecu ni testnih računov za DATEV mock preizkus." : "V izbranem mesecu ni pravnih računov za DATEV.", { code: "DATEV_PERIOD_EMPTY", status: 409 });
@@ -368,7 +495,7 @@ async function executeTransfer(datevCfg, db, connection, token, userId, settings
   const recordsByInvoice = Object.create(null);
   const recordsByAdjustment = Object.create(null);
   for (const record of pack.records) {
-    const transfer = await documentTransfer(db, userId, record);
+    const transfer = await documentTransfer(db, userId, record, datevCfg.mode, client.id);
     record.datevTransfer = transfer;
     if (record.source_table === "pos_invoice_documents") recordsByInvoice[record.invoice_id] = record;
     else recordsByAdjustment[record.adjustment_id] = record;
@@ -384,6 +511,9 @@ async function executeTransfer(datevCfg, db, connection, token, userId, settings
       adjustment.documentGuid = record.datevTransfer.document_guid;
     }
   }
+  const result = Core.buildDatevExport(pack.invoices, settings, selectedPeriod.key, new Date(), { requireDocumentLinks: true });
+  if (result.errors.length) throw new datev.DatevError(result.errors[0], { code: "DATEV_EXTF_INVALID", status: 409, details: result.errors });
+  if (testOnly) result.filename = "EXTF_TEST_Buchungsstapel_" + selectedPeriod.key.replace("-", "") + ".csv";
   let transferredCount = 0;
   for (const record of pack.records) {
     const transfer = record.datevTransfer;
@@ -402,22 +532,19 @@ async function executeTransfer(datevCfg, db, connection, token, userId, settings
           metadata: { category: "WerkTech Lab", folder: "Ausgangsrechnungen", register: selectedPeriod.key, note: label },
         });
       }
-      await patchDocumentTransfer(db, transfer.id, {
+      await patchDocumentTransfer(db, userId, transfer.id, {
         status: "transferred", provider_document_id: String(provider.id || transfer.document_guid),
         transferred_at: new Date().toISOString(), last_error_code: "",
       });
       transferredCount += 1;
     } catch (error) {
-      await patchDocumentTransfer(db, transfer.id, { status: "error", transferred_at: null, last_error_code: error.code || "DATEV_DOCUMENT_FAILED" });
+      await patchDocumentTransfer(db, userId, transfer.id, { status: "error", transferred_at: null, last_error_code: error.code || "DATEV_DOCUMENT_FAILED" });
       throw error;
     }
   }
-  const result = Core.buildDatevExport(pack.invoices, settings, selectedPeriod.key, new Date(), { requireDocumentLinks: true });
-  if (result.errors.length) throw new datev.DatevError(result.errors[0], { code: "DATEV_EXTF_INVALID", status: 409, details: result.errors });
-  if (testOnly) result.filename = "EXTF_TEST_Buchungsstapel_" + selectedPeriod.key.replace("-", "") + ".csv";
   const hash = crypto.createHash("sha256").update(result.content, "utf8").digest("hex");
   if (datevCfg.mode === "mock") {
-    return patchJob(db, job.id, {
+    return patchJob(db, userId, job.id, {
       status: "succeeded", provider_job_id: "mock-" + job.id, provider_location: "", retry_after_seconds: 0,
       file_name: result.filename, file_sha256: hash, booking_count: result.bookings.length,
       document_count: transferredCount, completed_at: new Date().toISOString(), error_code: "", error_message: "",
@@ -427,7 +554,7 @@ async function executeTransfer(datevCfg, db, connection, token, userId, settings
     filename: result.filename, content: result.content,
     referenceId: "WerkTech_" + selectedPeriod.key.replace("-", "_") + "_" + job.id,
   });
-  return patchJob(db, job.id, {
+  return patchJob(db, userId, job.id, {
     status: "processing", provider_job_id: upload.jobId, provider_location: upload.location,
     retry_after_seconds: upload.retryAfter, file_name: result.filename, file_sha256: hash,
     booking_count: result.bookings.length, document_count: transferredCount, error_code: "", error_message: "",
@@ -438,11 +565,17 @@ async function callback(req, res, datevCfg, db, query) {
   const fallback = "/app/pos-terminal.html?datev=error";
   try {
     if (datevCfg.mode === "mock") return res.status(302).setHeader("Location", fallback).end();
-    if (query.error) throw new datev.DatevError("DATEV povezava je bila preklicana.", { code: "DATEV_AUTH_CANCELLED", status: 400 });
     const state = datev.openState(datevCfg, query.state);
+    const binding = cookie(req, DATEV_OAUTH_COOKIE);
+    if (!sameSecret(oauthBindingHash(binding), state.browserBindingHash)) {
+      throw new datev.DatevError("DATEV povezovalna seja ne pripada temu brskalniku.", { code: "DATEV_STATE_BROWSER_MISMATCH", status: 400 });
+    }
+    if (query.error) throw new datev.DatevError("DATEV povezava je bila preklicana.", { code: "DATEV_AUTH_CANCELLED", status: 400 });
     if (!uuid(state.userId) || !query.code) throw new datev.DatevError("DATEV povratna povezava ni veljavna.", { code: "DATEV_CALLBACK_INVALID", status: 400 });
     const settings = await profileSettings(db, state.userId);
     const tokens = await datev.exchangeCode(datevCfg, query.code, state.verifier);
+    const expiresAt = tokenExpiry(tokens);
+    await datev.validateIdToken(datevCfg, tokens.id_token, state.nonce);
     const client = await datev.getClient(datevCfg, tokens.access_token, settings.adviserNumber, settings.clientNumber);
     await saveConnection(db, {
       user_id: state.userId, environment: datevCfg.mode, status: "connected", datev_client_id: client.id,
@@ -450,12 +583,14 @@ async function callback(req, res, datevCfg, db, query) {
       client_name: String(client.name || ""), services: client.services || [],
       access_token_encrypted: datev.encryptSecret(datevCfg, tokens.access_token),
       refresh_token_encrypted: datev.encryptSecret(datevCfg, tokens.refresh_token || ""),
-      token_expires_at: new Date(Date.now() + Number(tokens.expires_in || 600) * 1000).toISOString(),
+      token_expires_at: expiresAt,
       last_verified_at: new Date().toISOString(), last_error_code: "", updated_at: new Date().toISOString(),
     });
+    setOauthCookie(res, "", 0);
     return res.status(302).setHeader("Location", "/app/pos-terminal.html?datev=connected").end();
   } catch (error) {
     console.error("[pos-datev-callback]", String(error && (error.code || error.name) || "UNKNOWN"));
+    setOauthCookie(res, "", 0);
     return res.status(302).setHeader("Location", fallback + "&datev_code=" + encodeURIComponent(error.code || "DATEV_CALLBACK_FAILED")).end();
   }
 }
@@ -478,16 +613,35 @@ async function handler(req, res) {
     let connection = await connectionForUser(db, auth.user.id);
     if (action === "status") {
       let latest = null;
+      let jobScope = "user_id=eq." + encodeURIComponent(auth.user.id) +
+        "&environment=eq." + encodeURIComponent(datevCfg.mode);
+      if (connection && connection.environment === datevCfg.mode && connection.datev_client_id) {
+        jobScope += "&datev_client_id=eq." + encodeURIComponent(connection.datev_client_id);
+      }
       const jobs = await supabase.pridobiVrstice(db, "pos_datev_transfer_jobs",
-        "user_id=eq." + encodeURIComponent(auth.user.id) + "&select=*&order=created_at.desc&limit=1");
+        jobScope + "&select=*&order=created_at.desc&limit=1");
       latest = jobs[0] || null;
-      if (latest && latest.status === "processing" && connection) {
-        const access = await accessForConnection(datevCfg, db, connection);
-        const result = await datev.getJob(datevCfg, access.token, latest.provider_location);
-        if (result.status !== "processing") latest = await patchJob(db, latest.id, {
-          status: result.status, completed_at: new Date().toISOString(), error_code: result.code,
-          error_message: result.message.slice(0, 500), retry_after_seconds: 0,
+      if (latest && latest.status === "processing") {
+        const pollState = jobPollState(latest);
+        if (pollState === "expired") latest = await patchJob(db, auth.user.id, latest.id, {
+          status: "failed", completed_at: new Date().toISOString(), error_code: "DATEV_JOB_TIMEOUT",
+          error_message: "DATEV opravilo v dovoljenem času ni vrnilo končnega stanja.", retry_after_seconds: 0,
         });
+        else if (pollState === "poll" && connection) {
+          try {
+            const access = await accessForConnection(datevCfg, db, connection);
+            connection = access.connection;
+            const result = await datev.getJob(datevCfg, access.token, latest.provider_location);
+            latest = await patchJob(db, auth.user.id, latest.id, result.status === "processing" ? {
+              retry_after_seconds: result.retryAfter, error_code: "", error_message: "",
+            } : {
+              status: result.status, completed_at: new Date().toISOString(), error_code: result.code,
+              error_message: result.message.slice(0, 500), retry_after_seconds: 0,
+            });
+          } catch (error) {
+            latest = await patchJob(db, auth.user.id, latest.id, pollFailureChanges(error));
+          }
+        }
       }
       return json(res, 200, { ok: true, datev: publicConnection(datevCfg, connection), latestTransfer: publicJob(latest) });
     }
@@ -503,7 +657,11 @@ async function handler(req, res) {
         });
         return json(res, 200, { ok: true, datev: publicConnection(datevCfg, connection) });
       }
-      return json(res, 200, { ok: true, authorizationUrl: datev.authorizationUrl(datevCfg, { userId: auth.user.id }) });
+      const browserBinding = crypto.randomBytes(32).toString("base64url");
+      setOauthCookie(res, browserBinding, 900);
+      return json(res, 200, { ok: true, authorizationUrl: datev.authorizationUrl(datevCfg, {
+        userId: auth.user.id, browserBindingHash: oauthBindingHash(browserBinding),
+      }) });
     }
     if (action === "disconnect") {
       if (connection && datevCfg.mode !== "mock") {
@@ -517,7 +675,8 @@ async function handler(req, res) {
       }
       if (connection) connection = await patchConnection(db, auth.user.id, {
         status: "disconnected", access_token_encrypted: "", refresh_token_encrypted: "", token_expires_at: null,
-        last_error_code: "", datev_client_id: "", consultant_number: null, client_number: null, client_name: "", services: [],
+        refresh_claim_id: null, refresh_claimed_at: null, last_error_code: "", datev_client_id: "",
+        consultant_number: null, client_number: null, client_name: "", services: [],
       });
       return json(res, 200, { ok: true, datev: publicConnection(datevCfg, connection) });
     }
@@ -528,6 +687,7 @@ async function handler(req, res) {
       const requestId = uuid(body.requestId);
       if (!selectedPeriod || !requestId) return json(res, 400, { ok: false, napaka: "DATEV obdobje ali zahtevek ni veljaven." });
       const settings = await profileSettings(db, auth.user.id);
+      validateTransferSettings(settings, selectedPeriod.key);
       if (!connection || connection.status !== "connected") throw new datev.DatevError("Najprej povežite DATEV.", { code: "DATEV_NOT_CONNECTED", status: 409 });
       const access = await accessForConnection(datevCfg, db, connection);
       try {
@@ -535,8 +695,10 @@ async function handler(req, res) {
         return json(res, job.status === "succeeded" ? 200 : 202, { ok: true, datev: publicConnection(datevCfg, access.connection), transfer: publicJob(job) });
       } catch (error) {
         const jobs = await supabase.pridobiVrstice(db, "pos_datev_transfer_jobs",
-          "user_id=eq." + encodeURIComponent(auth.user.id) + "&request_id=eq." + encodeURIComponent(requestId) + "&select=*&limit=1");
-        if (jobs[0] && ["preparing", "processing"].includes(jobs[0].status)) await patchJob(db, jobs[0].id, {
+          "user_id=eq." + encodeURIComponent(auth.user.id) + "&request_id=eq." + encodeURIComponent(requestId) +
+          "&environment=eq." + encodeURIComponent(datevCfg.mode) + "&datev_client_id=eq." +
+          encodeURIComponent(access.connection.datev_client_id) + "&select=*&limit=1");
+        if (jobs[0] && ["preparing", "processing"].includes(jobs[0].status)) await patchJob(db, auth.user.id, jobs[0].id, {
           status: "failed", completed_at: new Date().toISOString(), retry_after_seconds: 0,
           error_code: String(error.code || "DATEV_TRANSFER_FAILED").slice(0, 100),
           error_message: String(error.message || "DATEV prenos ni uspel.").slice(0, 500),
@@ -556,6 +718,8 @@ async function handler(req, res) {
 
 module.exports = handler;
 module.exports._test = {
-  adjustmentLocal, archiveContent, berlinDate, berlinMonthKey, berlinPeriodBounds, chunks, pagedRows, period, periodPackage,
-  publicConnection, publicJob, recordsForPeriod, requestBody, rowsForIds, safeFilename, uuid, MAX_ARCHIVE_DOCUMENT_BYTES, MAX_BODY_BYTES,
+  adjustmentLocal, archiveContent, berlinDate, berlinMonthKey, berlinPeriodBounds, chunks, cookie, createJob, documentTransfer, jobPollState, oauthBindingHash,
+  pagedRows, period, periodPackage, publicConnection, publicJob, recordsForPeriod, requestBody, rowsForIds, safeFilename,
+  sameSecret, tokenExpiry, validateTransferSettings, pollFailureChanges, uuid, DATEV_JOB_TIMEOUT_MS, DATEV_OAUTH_COOKIE,
+  MAX_ARCHIVE_DOCUMENT_BYTES, MAX_BODY_BYTES,
 };

@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const client = require(path.join(root, "api", "_lib", "fiskaly-sign-de"));
 const handler = fs.readFileSync(path.join(root, "api", "_handlers", "pos-fiskaly.js"), "utf8");
+const handlerModule = require(path.join(root, "api", "_handlers", "pos-fiskaly.js"));
 const router = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
@@ -63,13 +64,17 @@ assert.match(handler, /preveriUporabnika/);
 assert.match(handler, /Cache-Control/);
 assert.match(handler, /training-transaction/);
 assert.match(handler, /training-receipt/);
+assert.match(handler, /local-training-cash-checkout/);
+assert.match(handler, /local-training-cash-refund/);
+assert.match(handler, /recovery && recovery\.state === cash\.STATES\.RECOVERY_REQUIRED/);
+assert.match(handler, /POS_LOCAL_MOCKS_ENABLED/);
 assert.match(handler, /requestJson\(req, MAX_BODY_BYTES\)/);
 assert.doesNotMatch(handler, /api_secret|FISKALY_API_SECRET_TEST/);
 assert.match(router, /"fiskaly-sign": require\("\.\/_handlers\/pos-fiskaly"\)/);
 assert.match(vercel, /\/api\/pos-fiskaly/);
 assert.match(html, /data-fiskaly-status/);
-assert.match(html, /Ta različica nima gotovinske funkcije/);
-assert.doesNotMatch(html, /uporabnik izrecno ne aktivira/);
+assert.match(html, /Gotovinski tok je lokalno popoln v TRAINING načinu/);
+assert.doesNotMatch(html, /Ta različica nima gotovinske funkcije/);
 assert.match(html, /data-fiskaly-test/);
 assert.match(html, /data-fiskaly-result/);
 assert.match(html, /data-fiskaly-receipt-backdrop/);
@@ -78,7 +83,7 @@ assert.match(html, /data-kassenbon-tss/);
 assert.match(html, /data-kassenbon-counter/);
 assert.match(html, /data-kassenbon-qr/);
 assert.match(html, /TRAINING – brez pravega poslovnega dogodka/);
-assert.match(html, /pos-terminal\.css\?v=20260826-hidden-state-v7/);
+assert.match(html, /pos-terminal\.css\?v=20260827-stripe-slate-v1/);
 assert.match(html, /qrcode\.bundle\.js\?v=20260820-local-qr-v1/);
 assert.doesNotMatch(html, /cdn\.jsdelivr\.net\/npm\/qrcode/);
 assert.match(js, /loadFiskalyCapability/);
@@ -90,8 +95,8 @@ assert.match(js, /fiskalyRetryable/);
 assert.match(js, /integrationReady/);
 assert.match(js, /configured:\s*false[\s\S]*lastError:\s*true/);
 assert.doesNotMatch(js, /FISKALY_API_(?:KEY|SECRET)/);
-assert.match(scopeDocument, /keine Kassenfunktion/i);
-assert.match(scopeDocument, /eigenes Projekt/i);
+assert.match(scopeDocument, /auch Barzahlungen unterstützen/i);
+assert.match(scopeDocument, /DSFinV-K-Export/i);
 assert.match(scopeDocument, /cashModuleEnabled.*false/i);
 assert.match(css, /\.pos-fiskaly-receipt-sheet/);
 assert.match(css, /\.pos-fiskaly-receipt-form\[hidden\]\s*\{\s*display:\s*none/);
@@ -167,7 +172,49 @@ async function verifyTrainingFlow() {
   }
 }
 
-verifyTrainingFlow().then(function () {
+async function verifyLocalCashHandler() {
+  const previous = process.env.POS_LOCAL_MOCKS_ENABLED;
+  process.env.POS_LOCAL_MOCKS_ENABLED = "true";
+  const requestKey = "5c9242f4-12d0-4409-91a9-92265116f7f0";
+  const req = {
+    method: "POST", headers: {}, body: {
+      action: "local-training-cash-checkout", invoiceId: "63f3fa9e-6c8b-4fe9-949b-534ad16132cf",
+      requestKey, transactionId: requestKey, confirmed: true,
+      receipt: { paymentType: "CASH", currency: "EUR", grossCents: 11900, items: [{ description: "Arbeitszeit", grossCents: 11900, vatRate: "19" }] }
+    }
+  };
+  async function invoke() {
+    return new Promise(function (resolve, reject) {
+      const response = { statusCode: 0, headers: {}, status(code) { this.statusCode = code; return this; }, setHeader(name, value) { this.headers[name] = value; return this; }, end(body) { try { resolve({ status: this.statusCode, body: JSON.parse(body) }); } catch (error) { reject(error); } } };
+      Promise.resolve(handlerModule(req, response)).catch(reject);
+    });
+  }
+  try {
+    const first = await invoke();
+    const repeated = await invoke();
+    assert.strictEqual(first.status, 201);
+    assert.strictEqual(first.body.checkout.state, "completed");
+    assert.strictEqual(first.body.checkout.signature.tssSerialNumber, "mock-tss");
+    assert.strictEqual(repeated.body.checkout.paymentId, first.body.checkout.paymentId, "Ponovitev lokalnega checkouta mora ostati idempotentna.");
+    const refundKey = "7bf2b660-8a4f-44da-8a01-2cadc1d0e93c";
+    req.body = {
+      action: "local-training-cash-refund", invoiceId: "63f3fa9e-6c8b-4fe9-949b-534ad16132cf",
+      originalCheckoutId: first.body.checkout.id, requestKey: refundKey, transactionId: refundKey, confirmed: true,
+      receipt: first.body.checkout.receipt
+    };
+    const refund = await invoke();
+    const repeatedRefund = await invoke();
+    assert.strictEqual(refund.status, 201);
+    assert.strictEqual(refund.body.refund.state, "completed");
+    assert.strictEqual(refund.body.refund.signature.fiscalType, "REFUND");
+    assert.strictEqual(repeatedRefund.body.refund.id, refund.body.refund.id, "Ponovitev lokalnega povračila mora ostati idempotentna.");
+  } finally {
+    if (previous == null) delete process.env.POS_LOCAL_MOCKS_ENABLED;
+    else process.env.POS_LOCAL_MOCKS_ENABLED = previous;
+  }
+}
+
+Promise.all([verifyTrainingFlow(), verifyLocalCashHandler()]).then(function () {
   console.log("POS fiskaly SIGN DE testna povezava, TRAINING košarica in Kassenbon: OK");
 }).catch(function (error) {
   console.error(error);

@@ -6,6 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Uspešni Ježek" />
+    <meta name="uj-build-version" content="20260823-profile-route-v36" />
     <script>
       if (
         window.matchMedia("(display-mode: standalone)").matches ||
@@ -21,18 +22,21 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260818-soft-expansions-v2" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260819-clean-result-header-v6" />
-    <link rel="stylesheet" href="boniteta-pro.css?v=20260816-profiles-delete-v6" />
+    <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260827-saved-result-actions-v286" />
+    <link rel="stylesheet" href="bonitetna-podjetje-grafike.css?v=20260827-compact-review-v157" />
+    <link rel="stylesheet" href="boniteta-pro.css?v=20260826-watched-card-v9" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="bonitetna-manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
     <script src="supabase-client.js"></script>
-    <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
+    <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
+    <script src="auth-zascita.js?v=20260822-preview-touch-v16"></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
     <style>
       .boniteta-kraj-izbira { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -74,11 +78,11 @@
       <form class="boniteta-obrazec" id="boniteta-obrazec" novalidate data-boniteta-flow-panel="soft">
         <section class="boniteta-hero" aria-labelledby="boniteta-naslov">
           <a class="boniteta-zacasno-nazaj" href="index.html" aria-label="Nazaj na glavno stran" title="Začasno: nazaj">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 6-6 6 6 6"></path></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 6-6 6 6 6"></path></svg>
           </a>
           <div class="boniteta-hero__naslovna-vrstica">
             <span class="boniteta-hero__scit" aria-hidden="true">
-              <svg viewBox="0 0 48 56" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 48 56" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M24 3 5 11v14c0 13 7.4 22.8 19 28 11.6-5.2 19-15 19-28V11L24 3Z"></path>
                 <path d="m15.5 27 6 6 12-13"></path>
               </svg>
@@ -86,32 +90,80 @@
             <div class="boniteta-hero__title-copy">
               <div class="boniteta-hero__title-line">
                 <h1 id="boniteta-naslov">Bonitetna preverba</h1>
-                <div class="boniteta-hero__test-controls" aria-label="Testni predogledi">
-                  <button class="boniteta-test-toggle" id="boniteta-test-toggle" type="button" role="switch" aria-checked="false" aria-label="Vključi testni predogled preverbe">
-                    <span class="boniteta-test-toggle__label">TEST</span>
-                    <span class="boniteta-test-toggle__state" aria-hidden="true">OFF</span>
-                    <span class="boniteta-test-toggle__track" aria-hidden="true"><span></span></span>
-                  </button>
-                  <button class="boniteta-open-preview" id="boniteta-open-preview" type="button" aria-pressed="false" aria-label="Odpri testni predogled podatkov OpenRegister">OPEN</button>
-                </div>
               </div>
-              <p>Preveri novo stranko</p>
+              <p id="boniteta-hero-podnaslov">Preveri podjetje, osebo ali spletno stran</p>
             </div>
           </div>
-          <label id="boniteta-hero-label" for="boniteta-hero-spletna-stran">Spletna stran podjetja</label>
+          <label id="boniteta-hero-label" for="boniteta-hero-spletna-stran">Podjetje, oseba ali spletna stran</label>
           <div class="boniteta-hero__iskanje">
-            <input id="boniteta-hero-spletna-stran" type="url" inputmode="url" autocomplete="url" placeholder="https://www.podjetje.de" maxlength="240" aria-describedby="boniteta-hero-status" />
-            <button type="button" id="boniteta-nacin-spletna" aria-label="Poišči podatke podjetja">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m5 12.5 4.2 4.2L19 7"></path>
+            <input id="boniteta-hero-spletna-stran" type="search" inputmode="search" autocomplete="off" placeholder="Ime, oseba, podjetje ali URL" maxlength="240" aria-autocomplete="list" aria-expanded="false" aria-controls="boniteta-hero-zadetki" aria-describedby="boniteta-hero-status" />
+            <button type="button" class="boniteta-hero__pocisti" id="boniteta-hero-pocisti" aria-label="Izbriši celoten vnos" title="Izbriši celoten vnos" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"></path></svg>
+            </button>
+            <button type="button" id="boniteta-nacin-spletna" hidden aria-hidden="true" tabindex="-1" aria-label="Samodejno poišči pravo osebo ali podjetje" title="Samodejno določi vir in poišči">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path>
               </svg>
             </button>
+            <div class="boniteta-hero__zadetki" id="boniteta-hero-zadetki" role="listbox" aria-label="Predlogi nemških podjetij" hidden></div>
           </div>
-          <div class="boniteta-hero__podjetje" id="boniteta-hero-podjetje" hidden>
+          <div class="boniteta-hero__podjetje" id="boniteta-hero-podjetje" role="button" tabindex="0" aria-label="Spremeni izbrano podjetje" title="Dotaknite se za urejanje" hidden>
             <strong id="boniteta-hero-podjetje-ime" data-fit-text data-fit-text-min="11"></strong>
-            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.2 4.2L19 7"></path></svg></span>
+            <button id="boniteta-hero-podjetje-odstrani" type="button" aria-label="Odstrani izbrano podjetje">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"></path></svg>
+            </button>
+          </div>
+          <div class="boniteta-primerjava" id="boniteta-primerjava">
+            <div class="boniteta-primerjava__tabi" id="boniteta-primerjava-tabi" role="tablist" aria-label="Podjetji za primerjavo" hidden>
+              <div class="boniteta-primerjava__slot">
+                <button class="is-active" type="button" role="tab" aria-selected="true" data-primerjava-slot="0"><b>1.</b><span>podjetje</span></button>
+                <button class="boniteta-primerjava__odstrani" type="button" data-primerjava-odstrani="0" aria-label="Odstrani prvo podjetje iz primerjave" hidden>×</button>
+              </div>
+              <div class="boniteta-primerjava__slot">
+                <button type="button" role="tab" aria-selected="false" data-primerjava-slot="1"><b>2.</b><span>podjetje</span></button>
+                <button class="boniteta-primerjava__odstrani" type="button" data-primerjava-odstrani="1" aria-label="Odstrani drugo podjetje iz primerjave" hidden>×</button>
+              </div>
+            </div>
+            <button class="boniteta-primerjava__preklop" id="boniteta-primerjava-preklop" type="button" aria-label="Primerjaj podjetji" aria-pressed="false">
+              <svg class="boniteta-primerjava__znak" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/></svg>
+              <span>Primerjaj podjetji</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i>
+            </button>
           </div>
           <p class="boniteta-hero__status" id="boniteta-hero-status" role="alert" hidden></p>
+        </section>
+
+        <section class="boniteta-primerjava-rezultat" id="boniteta-primerjava-rezultat" aria-labelledby="boniteta-primerjava-rezultat-naslov" hidden>
+          <header class="boniteta-primerjava-rezultat__status-widget"><div><small class="boniteta-primerjava-rezultat__kicker">PRIMERJAVA PODJETIJ</small><div class="boniteta-primerjava-rezultat__povzetek" id="boniteta-primerjava-rezultat-povzetek"></div></div><button type="button" id="boniteta-primerjava-zapri" aria-label="Zapri primerjavo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8 8 8M16 8l-8 8" /></svg></button></header>
+          <div class="boniteta-primerjava-rezultat__vsebinski-widget">
+            <div class="boniteta-primerjava-rezultat__krmilna-celota">
+              <nav class="boniteta-primerjava-rezultat__zavihki" aria-label="Področje primerjave">
+                <button type="button" data-primerjava-pogled="overview" aria-pressed="true">Hiter pregled</button>
+                <button type="button" data-primerjava-pogled="finance" aria-pressed="false">Finance</button>
+                <button type="button" data-primerjava-pogled="warnings" aria-pressed="false">Ostalo</button>
+              </nav>
+              <div class="boniteta-primerjava-rezultat__krmila" id="boniteta-primerjava-rezultat-krmila"></div>
+              <div class="boniteta-primerjava-rezultat__harmonika" id="boniteta-primerjava-rezultat-harmonika">
+                <div class="boniteta-primerjava-rezultat__ugotovitev" aria-live="polite">
+                  <div class="boniteta-primerjava-rezultat__ugotovitev-besedilo">
+                    <h2 id="boniteta-primerjava-rezultat-naslov">Ključna primerjava podjetij</h2>
+                    <p id="boniteta-primerjava-rezultat-opis"></p>
+                  </div>
+                  <nav class="boniteta-primerjava-podpogledi" aria-label="Obseg povzetka">
+                    <button type="button" data-primerjava-podpogled="important" aria-pressed="true">Na kratko</button>
+                    <button type="button" data-primerjava-podpogled="details" aria-pressed="false">Podrobno</button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+            <div class="boniteta-primerjava-rezultat__panel" id="boniteta-primerjava-rezultat-mreza" data-primerjava-panel="overview"></div>
+            <div class="boniteta-primerjava-rezultat__panel" data-primerjava-panel="finance" hidden></div>
+            <div class="boniteta-primerjava-rezultat__panel" data-primerjava-panel="warnings" hidden></div>
+          </div>
+          <div class="boniteta-spremljanje-vstop boniteta-spremljanje-vstop--primerjava" hidden>
+            <button type="button" id="boniteta-primerjava-spremljaj">Spremljaj podjetji</button>
+            <button type="button" id="boniteta-primerjava-prenesi">Prenesi v ponudbo</button>
+            <button type="button" id="boniteta-primerjava-zapri-spodaj">Zapri</button>
+          </div>
         </section>
 
         <section class="ai-zajem boniteta-zajem" id="boniteta-zajem" aria-labelledby="boniteta-zajem-naslov">
@@ -120,9 +172,13 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10.3 3.8 2.5 17.3A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.7L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg>
             </span>
             <div>
-              <span class="boniteta-zajem__rezerva-oznaka">SPLETNE STRANI NI BILO MOGOČE PREBRATI</span>
+              <span class="boniteta-zajem__rezerva-oznaka" id="boniteta-spletna-rezerva-oznaka">PODJETJA NISMO NAŠLI</span>
               <h2 id="boniteta-spletna-rezerva-naslov">Kako želite dodati podatke?</h2>
-              <p id="boniteta-spletna-rezerva-opis">Nadaljujte z računom, ponudbo ali ročnim vnosom. Pred insolvenčno preverbo boste vse podatke še pregledali.</p>
+              <p id="boniteta-spletna-rezerva-opis">Vnesite spletno stran podjetja ali nadaljujte brez nje.</p>
+              <div class="boniteta-zajem__rezerva-akcije" id="boniteta-spletna-rezerva-akcije">
+                <button type="button" id="boniteta-rezerva-spletna">OK, zmenjeno</button>
+                <button type="button" id="boniteta-rezerva-brez-spletne">Nima spletne strani</button>
+              </div>
             </div>
           </div>
           <div class="boniteta-zajem__locilo"><h2 id="boniteta-zajem-naslov">Ali dodajate stranko drugače</h2></div>
@@ -135,13 +191,13 @@
               <span class="boniteta-zajem__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7 8.5 4h7L17 7"/><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="3.5"/></svg></span>
               <strong data-fit-text>Slikaj</strong><span data-fit-text>Račun ali ponudbo</span>
               <span class="boniteta-zajem__datoteka" data-zajem-datoteka hidden></span>
-              <span class="boniteta-zajem__uspeh" data-zajem-uspeh hidden><b aria-hidden="true">✓</b> Pravilno razbrano</span>
+              <span class="boniteta-zajem__uspeh" data-zajem-uspeh hidden><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></b> Pravilno razbrano</span>
             </button>
             <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-uvozi">
               <span class="boniteta-zajem__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21H6z"/><path d="M14 2.5v4h4"/><text x="12" y="16" fill="currentColor" stroke="none" text-anchor="middle" font-family="Arial, sans-serif" font-size="5.2" font-weight="800">PDF</text></svg></span>
               <strong data-fit-text>Uvozi PDF</strong><span data-fit-text>Izberi dokument</span>
               <span class="boniteta-zajem__datoteka" data-zajem-datoteka hidden></span>
-              <span class="boniteta-zajem__uspeh" data-zajem-uspeh hidden><b aria-hidden="true">✓</b> Pravilno razbrano</span>
+              <span class="boniteta-zajem__uspeh" data-zajem-uspeh hidden><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></b> Pravilno razbrano</span>
             </button>
             <button type="button" class="boniteta-zajem__nacin" id="boniteta-nacin-rocno">
               <span class="boniteta-zajem__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.5"/><path d="m13 11 7.2-7.2a1.8 1.8 0 0 1 2.5 2.5L15.5 13 12 14z"/></svg></span>
@@ -152,37 +208,89 @@
           <input type="file" id="boniteta-zajem-datoteka" accept="image/*,application/pdf" hidden aria-label="Uvozi dokument za razbiranje strank" />
         </section>
 
-        <section class="crif-flow-picker" aria-labelledby="crif-flow-picker-title">
+        <section class="crif-flow-picker" aria-label="Vrsta preverbe">
           <div class="crif-flow-picker__visual">
-            <div class="crif-flow-picker__heading">
-              <h2 id="crif-flow-picker-title">Izberite vrsto preverbe</h2>
-              <p>Izberite obseg podatkov.</p>
-            </div>
+            <details class="boniteta-priporocilo" id="boniteta-priporocilo">
+              <summary class="boniteta-priporocilo__povzetek" aria-controls="boniteta-priporocilo-vsebina">
+                <span class="boniteta-priporocilo__ikona" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M8.4 15.2A7 7 0 1 1 15.6 15.2C14.6 16 14 17 14 18h-4c0-1-.6-2-1.6-2.8Z"/></svg>
+                </span>
+                <span class="boniteta-priporocilo__povzetek-tekst">
+                  <strong id="boniteta-priporocilo-povzetek-naslov" data-fit-text data-fit-text-min="11">Katera preverba je prava zame?</strong>
+                  <small id="boniteta-priporocilo-povzetek-opis" data-fit-text data-fit-text-min="9">Predlog za ta posel</small>
+                </span>
+                <span class="boniteta-priporocilo__puscica" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 9.5 5 5 5-5"/></svg>
+                </span>
+              </summary>
+              <div class="boniteta-priporocilo__vsebina" id="boniteta-priporocilo-vsebina">
+                <div class="boniteta-priporocilo__preklop" role="tablist" aria-label="Vrsta podatkov">
+                  <button class="is-active" id="boniteta-priporocilo-zavihek-posel" type="button" role="tab" aria-selected="true" aria-controls="boniteta-priporocilo-posel">Ta posel</button>
+                  <button id="boniteta-priporocilo-zavihek-profil" type="button" role="tab" aria-selected="false" aria-controls="boniteta-priporocilo-profil">O meni <span id="boniteta-priporocilo-profil-stanje" aria-hidden="true">!</span></button>
+                </div>
+                <div class="boniteta-profil-opozorilo" id="boniteta-profil-opozorilo" role="alert" hidden>
+                  <span class="boniteta-profil-opozorilo__ikona" aria-hidden="true">!</span>
+                  <div><strong>Najprej izpolnite podatke »O meni«</strong><p>Tako lahko znesek primerjamo z vašimi običajnimi projekti.</p></div>
+                </div>
+                <div class="boniteta-priporocilo__zavihek" id="boniteta-priporocilo-posel" role="tabpanel" aria-labelledby="boniteta-priporocilo-zavihek-posel">
+                  <div class="boniteta-priporocilo__polja">
+                    <label><span>Vrednost projekta</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-vrednost" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 18.000" data-fit-input><b>€</b></span></label>
+                    <label><span>Največ še neplačano</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-izpostavljenost" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 8.000" data-fit-input><b>€</b></span></label>
+                    <div class="boniteta-priporocilo__polje"><label for="boniteta-priporocilo-trajanje">Trajanje projekta</label><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-trajanje" type="text" inputmode="numeric" maxlength="3" placeholder="npr. 4" data-fit-input><span class="boniteta-trajanje-enota"><button id="boniteta-trajanje-enota-gumb" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="boniteta-trajanje-enota-meni"><span data-trajanje-enota-oznaka>mesecev</span><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></button><span id="boniteta-trajanje-enota-meni" class="boniteta-trajanje-enota__meni" role="listbox" aria-label="Enota trajanja" hidden><button type="button" role="option" data-trajanje-enota="days" aria-selected="false">dni</button><button type="button" role="option" data-trajanje-enota="weeks" aria-selected="false">tedni</button><button type="button" role="option" data-trajanje-enota="months" aria-selected="true">meseci</button></span></span></span></div>
+                    <label><span>Poznate stranko?</span><select id="boniteta-priporocilo-izkusnja"><option value="">Izberite</option><option value="new">Ne, nova je</option><option value="good">Da, plačuje pravočasno</option><option value="late">Da, včasih zamuja</option><option value="unpaid">Dolguje nam</option></select></label>
+                    <label class="boniteta-priporocilo__placilo"><span>Kdaj pričakujete plačilo?</span><select id="boniteta-priporocilo-placilo"><option value="">Izberite</option><option value="prepayment">Pred začetkom del</option><option value="milestone">Po mejnikih</option><option value="after_completion">Po zaključku del</option><option value="invoice">Po računu z rokom plačila</option></select></label>
+                  </div>
+                  <button class="boniteta-priporocilo__pokazi" id="boniteta-priporocilo-pokazi" type="button" disabled>Pokaži moj predlog</button>
+                  <article class="boniteta-priporocilo__rezultat" id="boniteta-priporocilo-rezultat" aria-live="polite" hidden>
+                    <span class="boniteta-priporocilo__rezultat-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/><circle cx="18" cy="7" r="3"/><path d="m20.2 9.2 2 2"/></svg></span>
+                    <div><strong id="boniteta-priporocilo-rezultat-naslov">Priporočamo mehko preverbo</strong><p id="boniteta-priporocilo-rezultat-razlog"></p><span id="boniteta-priporocilo-placilni-predlog"></span><span id="boniteta-priporocilo-ponovitev"></span><button id="boniteta-priporocilo-spremeni" type="button">Spremeni odgovore</button></div>
+                  </article>
+                  <div class="boniteta-priporocilo__dejanja">
+                    <button class="boniteta-priporocilo__zavrni" id="boniteta-priporocilo-zavrni" type="button" hidden>Ne, hvala</button>
+                    <button class="boniteta-priporocilo__uporabi" id="boniteta-priporocilo-uporabi" type="button" hidden data-fit-text>Uporabi priporočilo</button>
+                  </div>
+                </div>
+                <div class="boniteta-priporocilo__zavihek" id="boniteta-priporocilo-profil" role="tabpanel" aria-labelledby="boniteta-priporocilo-zavihek-profil" hidden>
+                  <div id="boniteta-poslovni-profil-obrazec" class="boniteta-priporocilo__polja">
+                    <label class="boniteta-priporocilo__placilo"><span>S čim se ukvarjate?</span><select id="boniteta-poslovni-profil-dejavnost" required><option value="">Izberite dejavnost</option><option value="vodovod">Vodovodne inštalacije</option><option value="elektro">Elektroinštalacije</option><option value="gradbenistvo">Gradbeništvo</option><option value="mizarstvo">Mizarstvo</option><option value="servis">Servis in vzdrževanje</option><option value="prevozi">Prevozi in logistika</option><option value="svetovanje">Svetovanje in storitve</option><option value="finance">Finance in zavarovanje</option><option value="drugo">Drugo</option></select></label>
+                    <label><span>Običajna vrednost projekta</span><select id="boniteta-poslovni-profil-obicajna-vrednost" required><option value="">Izberite</option><option value="2000">Do 2.000 €</option><option value="5000">2–5.000 €</option><option value="15000">5–15.000 €</option><option value="50000">Več kot 15.000 €</option></select></label>
+                    <label><span>Koliko običajno založite?</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-poslovni-profil-zalozek" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 2.000" required data-fit-input><b>€</b></span></label>
+                    <label class="boniteta-priporocilo__placilo"><span>Kdaj bi vas neplačilo resno prizadelo?</span><select id="boniteta-poslovni-profil-kriticni-znesek" required><option value="">Izberite znesek</option><option value="2000">2.000 €</option><option value="5000">5.000 €</option><option value="10000">10.000 €</option><option value="25000">Več kot 10.000 €</option></select></label>
+                    <button class="boniteta-priporocilo__pokazi boniteta-poslovni-profil__shrani" id="boniteta-poslovni-profil-shrani" type="button">Shrani moje podatke</button>
+                  </div>
+                </div>
+              </div>
+            </details>
             <div class="crif-flow-picker__options" role="group" aria-label="Globina preverbe">
               <button class="crif-flow-picker__option is-active" type="button" data-boniteta-flow-card="soft" data-boniteta-flow-start="soft" aria-pressed="true">
                 <span class="crif-flow-picker__main">
-                  <span class="crif-flow-picker__selected" aria-hidden="true">✓</span>
+                  <span class="crif-flow-picker__selected" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
                   <span class="crif-flow-picker__price" data-fit-text>Brezplačno</span>
                   <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 220 150" fill="none"><path d="M70 25 25 47v34c0 30 18 52 45 66 27-14 45-36 45-66V47L70 25Z" fill="#f8fcfb" stroke="#0b6267" stroke-width="7"/><path d="m49 79 15 15 29-36" stroke="#0b6267" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><rect x="119" y="48" width="76" height="78" rx="10" fill="#fff" stroke="#7caeaa" stroke-width="3"/><circle cx="146" cy="76" r="10" fill="#d8eeeb" stroke="#0b6267" stroke-width="2.5"/><path d="M131 111c0-14 6-22 15-22s15 8 15 22" fill="#b9dbd7" stroke="#0b6267" stroke-width="2.5"/><path d="M170 69h14M170 80h14M170 92h11" stroke="#0b6267" stroke-width="3" stroke-linecap="round"/><path d="M15 132h34M172 34h31" stroke="#9dceca" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 8"/><path d="M181 20v14M174 27h14" stroke="#b5dcda" stroke-width="3" stroke-linecap="round"/></svg></span>
                   <strong data-fit-text>Mehka preverba</strong>
                   <span class="crif-flow-picker__description">Preveri identiteto in insolventnost.</span>
                 </span>
-                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>IZBRANO</span><small>Klikni za podrobnosti ›</small></span><b aria-hidden="true" hidden>→</b></span>
+                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>IZBRANO</span><small>Klikni za podrobnosti ›</small></span><b aria-hidden="true" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b></span>
               </button>
               <button class="crif-flow-picker__option" type="button" data-boniteta-flow-card="crif" data-boniteta-flow-start="crif" aria-pressed="false">
                 <span class="crif-flow-picker__main">
-                  <span class="crif-flow-picker__selected" aria-hidden="true">✓</span>
+                  <span class="crif-flow-picker__selected" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
                   <span class="crif-flow-picker__price crif-flow-picker__price--paid" data-fit-text>20 €</span>
                   <span class="crif-flow-picker__illustration" aria-hidden="true"><svg viewBox="0 0 220 150" fill="none"><path d="M43 22h84l22 22v86H43z" fill="#fff" stroke="#0b6267" stroke-width="3"/><path d="M127 22v23h22M60 47h44M60 59h31" stroke="#0b6267" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M63 108V88M79 108V72M95 108V95M111 108V64" stroke="#078e8c" stroke-width="7"/><rect x="150" y="57" width="58" height="66" rx="9" fill="#f8fcfb" stroke="#7caeaa" stroke-width="3"/><path d="m162 104 12-13 10 7 14-20" stroke="#0b6267" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="162" cy="104" r="3.5" fill="#0b6267"/><circle cx="174" cy="91" r="3.5" fill="#0b6267"/><circle cx="184" cy="98" r="3.5" fill="#0b6267"/><circle cx="198" cy="78" r="3.5" fill="#0b6267"/><circle cx="135" cy="101" r="23" fill="rgba(255,255,255,.88)" stroke="#0b6267" stroke-width="6"/><path d="m152 118 18 19" stroke="#0b6267" stroke-width="8" stroke-linecap="round"/><path d="M190 30v14M183 37h14" stroke="#b5dcda" stroke-width="3" stroke-linecap="round"/></svg></span>
                   <strong data-fit-text>Podrobna preverba</strong>
                   <span class="crif-flow-picker__description">Pridobi razširjene podatke in analizo.</span>
                 </span>
-                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>Preglej in izberi</span><small hidden>Klikni za podrobnosti ›</small></span><b aria-hidden="true">→</b></span>
+                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>Preglej in izberi</span><small hidden>Klikni za podrobnosti ›</small></span><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b></span>
               </button>
             </div>
-            <button class="crif-flow-picker__start" id="boniteta-flow-start" type="button">
-              <span data-fit-text>Preveri podjetje</span><b aria-hidden="true">→</b>
-            </button>
+            <div class="boniteta-flow-actions" id="boniteta-flow-actions">
+              <button class="boniteta-flow-actions__review" id="boniteta-primerjava-preglej" type="button" aria-hidden="true" tabindex="-1" disabled>
+                <span data-fit-text>Preveri podjetje</span>
+              </button>
+              <button class="crif-flow-picker__start" id="boniteta-flow-start" type="button">
+                <span data-fit-text>Preveri podjetje</span><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b>
+              </button>
+            </div>
           </div>
           <p class="crif-temp-legend" hidden>Rdeča pika začasno označuje dele, ki so vezani na CRIF.</p>
         </section>
@@ -194,61 +302,61 @@
           <div class="boniteta-izbira-stranke__seznam" id="boniteta-izbira-stranke-seznam"></div>
         </section>
 
-        <div class="boniteta-vnos-podrobnosti" id="boniteta-vnos-podrobnosti" hidden>
+        <div class="boniteta-vnos-podrobnosti" id="boniteta-vnos-podrobnosti" aria-labelledby="boniteta-vnos-naslov" hidden>
+          <button class="boniteta-rocni-modal__ozadje" id="boniteta-rocni-modal-ozadje" type="button" aria-label="Zapri ročni vnos" hidden></button>
+          <div class="boniteta-vnos-podrobnosti__kartica">
           <div class="boniteta-vnos-podrobnosti__glava">
-            <p class="boniteta-rezultat__oznaka" id="boniteta-vnos-oznaka">POTRDITEV PODATKOV</p>
-            <h3 id="boniteta-vnos-naslov">Preverite razbrane podatke</h3>
-            <p id="boniteta-vnos-opis">Po potrebi popravite podatke, nato začnite preverjanje.</p>
+            <span class="boniteta-rocni-modal__ikona" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.5"/><path d="m13 11 7.2-7.2a1.8 1.8 0 0 1 2.5 2.5L15.5 13 12 14z"/></svg>
+            </span>
+            <div>
+              <p class="boniteta-rezultat__oznaka" id="boniteta-vnos-oznaka">POTRDITEV PODATKOV</p>
+              <h3 id="boniteta-vnos-naslov">Preverite razbrane podatke</h3>
+              <p id="boniteta-vnos-opis">Po potrebi popravite podatke, nato začnite preverjanje.</p>
+            </div>
+            <button class="boniteta-rocni-modal__zapri" id="boniteta-rocni-modal-zapri" type="button" aria-label="Zapri ročni vnos" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg>
+            </button>
           </div>
 
+          <div class="boniteta-rocni-modal__vsebina">
         <div class="boniteta-polje boniteta-polje--celo" data-boniteta-rocni-podatek>
-          <label for="boniteta-ime">Ime podjetja ali obrtnika (če ga poznate)</label>
-          <input id="boniteta-ime" name="ime" type="text" autocomplete="organization" placeholder="Sistem ga lahko razbere iz spletne strani" maxlength="240" data-fit-input data-fit-input-min="8" />
-        </div>
-
-        <div class="boniteta-polje boniteta-polje--celo boniteta-spletna-izbira">
           <label for="boniteta-spletna-stran">Spletna stran podjetja</label>
-          <input id="boniteta-spletna-stran" name="spletnaStran" type="text" inputmode="url" autocomplete="url" placeholder="npr. heizungsmeisterei-duman.de" maxlength="240" data-fit-input data-fit-input-min="8" aria-describedby="boniteta-spletna-status" />
-          <button class="boniteta-brez-spletne" id="boniteta-brez-spletne" type="button" aria-pressed="false" data-boniteta-rocni-podatek>
-            <span aria-hidden="true">○</span>
-            <strong>Nima spletne strani</strong>
-          </button>
-          <span class="boniteta-polje__status" id="boniteta-spletna-status">Spletna stran nam pomaga najti pravo ime nosilca v Impressumu.</span>
+          <input id="boniteta-spletna-stran" name="spletnaStran" type="text" inputmode="url" autocomplete="url" placeholder="npr. heizungsmeisterei-duman.de" maxlength="240" data-fit-input data-fit-input-min="8" />
         </div>
 
-        <div class="boniteta-preklop" id="boniteta-openregister-preklop-okvir">
-          <div class="boniteta-preklop__besedilo">
-            <strong>OpenRegister za identiteto</strong>
-            <span>Ko je izklopljen, celoten OpenRegister preskočimo. Identiteto razberemo iz Impressuma, insolventnost pa preverimo samo v uradnem registru s posnetkom.</span>
-          </div>
-          <label class="boniteta-stikalo" for="boniteta-openregister-identiteta">
-            <input id="boniteta-openregister-identiteta" type="checkbox" role="switch" aria-describedby="boniteta-openregister-status" checked />
-            <span class="boniteta-stikalo__tir" aria-hidden="true"><span></span></span>
-            <strong id="boniteta-openregister-status">ON</strong>
-          </label>
+        <div class="boniteta-polje boniteta-polje--celo boniteta-rocni-modal__podvojeno boniteta-rocni-modal__identiteta" data-boniteta-rocni-podatek>
+          <label for="boniteta-ime">Ime podjetja ali ime in priimek osebe</label>
+          <input id="boniteta-ime" name="ime" type="text" autocomplete="name" placeholder="npr. O&amp;F KFZ Technik ali Fahrudin Klee" maxlength="240" data-fit-input data-fit-input-min="8" />
         </div>
 
         <div class="boniteta-polje boniteta-polje--celo" data-boniteta-rocni-podatek>
           <label for="boniteta-naslov-podjetja">Ulica in hišna številka</label>
-          <input id="boniteta-naslov-podjetja" name="naslov" type="text" autocomplete="street-address" placeholder="Sistem ga lahko razbere iz Impressuma" maxlength="140" data-fit-input data-fit-input-min="8" />
-          <span class="boniteta-polje__status">Če imate spletno stran, lahko naslov najprej pustite prazen.</span>
+          <input id="boniteta-naslov-podjetja" name="naslov" type="text" autocomplete="street-address" placeholder="npr. Lietzenseeufer 1" maxlength="140" data-fit-input data-fit-input-min="8" />
         </div>
 
         <div class="boniteta-polja-vrstica" data-boniteta-rocni-podatek>
           <div class="boniteta-polje">
             <label for="boniteta-posta">Poštna številka</label>
-            <input id="boniteta-posta" name="postnaStevilka" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="npr. 60385" maxlength="5" pattern="[0-9]{5}" data-fit-input data-fit-input-min="10" />
+            <input id="boniteta-posta" name="postnaStevilka" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="npr. 14057" maxlength="5" pattern="[0-9]{5}" data-fit-input data-fit-input-min="10" />
           </div>
           <div class="boniteta-polje">
             <label for="boniteta-kraj">Kraj</label>
-            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Razbere se ali določi samodejno" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" />
+            <input id="boniteta-kraj" name="kraj" type="text" autocomplete="address-level2" placeholder="Kraj" maxlength="80" list="boniteta-kraji" data-fit-input data-fit-input-min="8" />
             <datalist id="boniteta-kraji"></datalist>
-            <div class="boniteta-kraj-izbira" id="boniteta-kraj-izbira" role="group" aria-label="Izberite kraj za poštno številko" hidden></div>
-            <span class="boniteta-polje__status" id="boniteta-kraj-status" aria-live="polite"></span>
           </div>
         </div>
 
-        <div class="boniteta-polja-vrstica" data-boniteta-rocni-podatek>
+        <div class="boniteta-kraj-predlogi" id="boniteta-kraj-predlogi" hidden>
+          <span class="boniteta-polje__status" id="boniteta-kraj-status" aria-live="polite"></span>
+          <div class="boniteta-kraj-izbira" id="boniteta-kraj-izbira" role="group" aria-label="Izberite kraj za poštno številko" hidden></div>
+        </div>
+
+        <button class="boniteta-dodatni-preklop" id="boniteta-dodatni-preklop" type="button" aria-expanded="false" aria-controls="boniteta-dodatni-podatki" hidden>
+          <span>Dodatni podatki <small>(neobvezno)</small></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></svg>
+        </button>
+        <div class="boniteta-polja-vrstica" id="boniteta-dodatni-podatki" data-boniteta-rocni-podatek>
           <div class="boniteta-polje">
             <label for="boniteta-register">Registrska številka <span class="boniteta-polje__neobvezno">(če obstaja)</span></label>
             <input id="boniteta-register" name="registerNumber" type="text" placeholder="npr. HRB 12345" maxlength="120" data-fit-input data-fit-input-min="8" />
@@ -261,16 +369,93 @@
 
         <p class="boniteta-obrazec__namig" id="boniteta-vnos-namig">Preverite, da ime in celoten naslov pripadata isti izbrani stranki.</p>
         <p class="boniteta-napaka" id="boniteta-napaka" role="alert" hidden></p>
+          </div>
 
         <button class="boniteta-gumb" id="boniteta-gumb" type="submit">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="7"></circle>
             <path d="m20 20-4-4"></path>
           </svg>
           <span>Poišči podatke</span>
         </button>
+          </div>
         </div>
       </form>
+
+      <section class="boniteta-spremljanje-nastavitev" id="boniteta-spremljanje-nastavitev" aria-labelledby="boniteta-spremljanje-naslov" hidden>
+        <header class="boniteta-spremljanje-nastavitev__glava">
+          <span class="boniteta-spremljanje-nastavitev__glava-ikona" id="boniteta-spremljanje-glava-ikona" aria-hidden="true" hidden>
+            <svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></svg>
+          </span>
+          <div class="boniteta-spremljanje-nastavitev__glava-besedilo">
+            <h1 id="boniteta-spremljanje-naslov">NASTAVI SPREMLJANJE</h1>
+            <p id="boniteta-spremljanje-opis" hidden>V ponudbo se prenesejo varnostna in plačilna priporočila glede na trenutno stanje podjetja.</p>
+          </div>
+          <button type="button" id="boniteta-spremljanje-zapri" aria-label="Zapri nastavitve spremljanja">×</button>
+        </header>
+        <section class="boniteta-ponudba-podjetja" id="boniteta-ponudba-podjetja" hidden aria-labelledby="boniteta-ponudba-podjetja-naslov">
+          <div><strong id="boniteta-ponudba-podjetja-naslov">Katero podjetje želite prenesti?</strong><small>Izberite eno podjetje ali primerjalni povzetek obeh.</small></div>
+          <div class="boniteta-ponudba-podjetja__izbire" role="group" aria-label="Podjetja za prenos v ponudbo">
+            <button type="button" data-offer-company-choice="0" aria-pressed="false"><span class="boniteta-ponudba-podjetja__stevilka">1.</span><strong data-fit-text data-fit-text-min="7" data-fit-text-lines="2" data-fit-text-container="button">Prvo podjetje</strong><span class="boniteta-ponudba-podjetja__izbrano" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button>
+            <button type="button" data-offer-company-choice="1" aria-pressed="false"><span class="boniteta-ponudba-podjetja__stevilka">2.</span><strong data-fit-text data-fit-text-min="7" data-fit-text-lines="2" data-fit-text-container="button">Drugo podjetje</strong><span class="boniteta-ponudba-podjetja__izbrano" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span></button>
+            <button class="boniteta-ponudba-podjetja__obe" type="button" data-offer-company-choice="both" aria-pressed="false">
+              <span class="boniteta-ponudba-podjetja__obe-ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h4"/><circle cx="17" cy="17" r="4"/><path d="m15.4 17 1.1 1.1 2.2-2.3"/></svg></span>
+              <span class="boniteta-ponudba-podjetja__obe-besedilo"><strong>Obe podjetji</strong><small>Primerjalni povzetek obeh</small></span>
+              <span class="boniteta-ponudba-podjetja__znacka">Priporočeno</span>
+              <span class="boniteta-ponudba-podjetja__izbrano" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+            </button>
+          </div>
+        </section>
+        <section class="boniteta-spremljanje-priporocilo" id="boniteta-spremljanje-priporocilo">
+          <span aria-hidden="true">✓</span>
+          <div><strong id="boniteta-spremljanje-priporocilo-naslov">Priporočilo</strong><p id="boniteta-spremljanje-priporocilo-razlog">Najbolje je, da spremljanje začnete že danes.</p></div>
+          <label class="boniteta-spremljanje-priporocilo__preklop" aria-label="Uporabi priporočene nastavitve"><input id="boniteta-spremljanje-priporoceno" type="checkbox" checked><i aria-hidden="true"></i></label>
+          <input id="boniteta-ponudba-spremljanje" type="checkbox" checked hidden>
+        </section>
+        <section class="boniteta-ponudba-izbire" id="boniteta-ponudba-izbire" hidden aria-label="Možnosti prenosa v ponudbo">
+          <section class="boniteta-650f" id="boniteta-650f" hidden aria-label="Zavarovanje plačila">
+            <article class="boniteta-650f__widget" data-650f-widget hidden>
+              <button class="boniteta-650f__izbira" type="button" data-650f-acknowledge aria-pressed="false">
+                <span class="boniteta-650f__izbira-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <span><strong>Zavarovanje plačila (§650f)</strong><small>Prenesi priporočilo v ponudbo za poznejše preverjanje. Tukaj se nič ne pošlje.</small></span>
+              </button>
+              <p class="boniteta-650f__status" data-650f-choice-status>Priporočilo ni izbrano.</p>
+            </article>
+          </section>
+        </section>
+        <section class="boniteta-spremljanje-obdobje" id="boniteta-spremljanje-obdobje" aria-labelledby="boniteta-spremljanje-obdobje-naslov">
+          <div class="boniteta-spremljanje-obdobje__glava">
+            <strong id="boniteta-spremljanje-obdobje-naslov">Obdobje spremljanja</strong>
+            <small>Vnesite začetek in predvideni konec projekta.</small>
+          </div>
+          <div class="boniteta-spremljanje-obdobje__datumi">
+            <label><span>Začetek projekta</span><input id="boniteta-spremljanje-od" type="date" required></label>
+            <label><span>Konec projekta</span><input id="boniteta-spremljanje-do" type="date" required></label>
+          </div>
+          <div class="boniteta-spremljanje-obdobje__locnica" aria-hidden="true">
+            <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></span>
+          </div>
+          <div class="boniteta-spremljanje-obdobje__prva-poizvedba">
+            <div class="boniteta-spremljanje-obdobje__prva-glava">
+              <strong id="boniteta-spremljanje-prva-naslov">Priporočena prva poizvedba se začne</strong>
+            </div>
+            <div>
+              <label><span class="sr-only">Datum prve poizvedbe</span><input id="boniteta-spremljanje-zacetek" type="date" required aria-label="Datum prve poizvedbe"></label>
+              <label class="boniteta-spremljanje-obdobje__ura"><span class="sr-only">Ura prve poizvedbe</span><input id="boniteta-spremljanje-ura" type="time" value="12:00" step="60" required aria-label="Ura prve poizvedbe"></label>
+            </div>
+          </div>
+        </section>
+        <div class="boniteta-spremljanje-podjetja" id="boniteta-spremljanje-podjetja"></div>
+        <footer class="boniteta-spremljanje-nastavitev__zakljucek" id="boniteta-spremljanje-zakljucek">
+          <strong id="boniteta-spremljanje-povzetek" hidden>Spremljali bomo podjetje</strong>
+          <p id="boniteta-spremljanje-ritem" hidden>Priporočene spremembe · tedensko</p>
+          <p class="boniteta-spremljanje-strosek" id="boniteta-spremljanje-strosek" hidden></p>
+          <p class="boniteta-spremljanje-napaka" id="boniteta-spremljanje-napaka" role="alert" hidden></p>
+          <button type="button" id="boniteta-spremljanje-vklopi">Vklopi spremljanje</button>
+          <button type="button" id="boniteta-spremljanje-izklopi" hidden>Izklopi spremljanje</button>
+          <small hidden>Nastavitve lahko kadar koli spremenite pod Podjetja.</small>
+        </footer>
+      </section>
 
       <header class="boniteta-rezultat-okno" id="boniteta-rezultat-okno" hidden>
         <div>
@@ -291,15 +476,37 @@
       </section>
 
       <section class="boniteta-rezultat" id="boniteta-rezultat" aria-live="polite" hidden data-boniteta-flow-panel="soft">
-        <div class="boniteta-rezultat__glava">
-          <span class="boniteta-rezultat__status" id="boniteta-status-ikona" aria-hidden="true"></span>
-          <div>
-            <p class="boniteta-rezultat__oznaka">REZULTAT MEHKE PREVERBE</p>
-            <h2 id="boniteta-rezultat-naslov"></h2>
-            <p id="boniteta-rezultat-opis"></p>
+        <section class="boniteta-monitoring-primerjava" id="boniteta-monitoring-primerjava" aria-labelledby="boniteta-monitoring-primerjava-naslov" hidden>
+          <header class="boniteta-monitoring-primerjava__glava">
+            <button type="button" id="boniteta-monitoring-primerjava-nazaj" aria-label="Nazaj na spremljanje">‹</button>
+            <div>
+              <p>SPREMLJANJE · PRIMERJAVA PREVERJANJ</p>
+              <h2 id="boniteta-monitoring-primerjava-naslov">Kaj se je spremenilo</h2>
+              <span id="boniteta-monitoring-primerjava-podjetje" data-fit-text data-fit-text-min="9"></span>
+            </div>
+          </header>
+          <article class="boniteta-monitoring-primerjava__status" id="boniteta-monitoring-primerjava-status">
+            <span aria-hidden="true" id="boniteta-monitoring-primerjava-ikona"></span>
+            <div><strong id="boniteta-monitoring-primerjava-oznaka"></strong><p id="boniteta-monitoring-primerjava-opis"></p></div>
+            <b id="boniteta-monitoring-primerjava-znacka"></b>
+          </article>
+          <div class="boniteta-monitoring-primerjava__casi" aria-label="Časa primerjanih preverjanj">
+            <span><small>PREJŠNJA PREVERBA</small><strong id="boniteta-monitoring-primerjava-prej" data-fit-text data-fit-text-min="8"></strong></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></i>
+            <span><small>NOVA PREVERBA</small><strong id="boniteta-monitoring-primerjava-zdaj" data-fit-text data-fit-text-min="8"></strong></span>
           </div>
-        </div>
-
+          <section class="boniteta-monitoring-primerjava__spremembe">
+            <div class="boniteta-monitoring-primerjava__naslov">
+              <div><p>PRIMERJAVA PODATKOV</p><h3>Spremenjeni podatki</h3></div>
+              <span id="boniteta-monitoring-primerjava-stevilo"></span>
+            </div>
+            <div class="boniteta-monitoring-primerjava__seznam" id="boniteta-monitoring-primerjava-seznam"></div>
+          </section>
+          <section class="boniteta-monitoring-primerjava__nespremenjeno">
+            <div><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span><p><strong>Ostali preverjeni podatki so nespremenjeni</strong><small>Prikazane so samo razlike med prejšnjo in novo preverbo.</small></p></div>
+          </section>
+          <button class="boniteta-monitoring-primerjava__nazaj-spodaj" id="boniteta-monitoring-primerjava-nazaj-spodaj" type="button">Nazaj na spremljanje</button>
+        </section>
         <div class="boniteta-metodologija" id="boniteta-metodologija" hidden>
           <div class="boniteta-metodologija__glava">
             <div>
@@ -346,22 +553,65 @@
         </div>
 
         <div class="boniteta-rezultat__sklop" id="boniteta-hwk-sklop">
+          <div class="boniteta-podjetje-zgornji-povzetek">
           <div class="boniteta-rezultat__sklop-glava">
             <div class="boniteta-podjetje-glava__vsebina">
+              <span class="boniteta-register-hero__ikona" aria-hidden="true">
+                <svg viewBox="0 0 48 56" fill="none"><path d="M24 3 5 11v14c0 13 7.7 22.8 19 28 11.3-5.2 19-15 19-28V11L24 3Z"/><path d="m15 27 6 6 13-16"/></svg>
+              </span>
               <p class="boniteta-rezultat__oznaka">BONITETNA PREVERBA</p>
               <h3 id="boniteta-identiteta-naslov">Identiteta in registrski podatki</h3>
               <div class="boniteta-podjetje-glava" id="boniteta-podjetje-glava" hidden>
                 <span class="boniteta-podjetje-glava__monogram" id="boniteta-podjetje-monogram" aria-hidden="true">—</span>
                 <div class="boniteta-podjetje-glava__opis">
-                  <strong id="boniteta-podjetje-ime" data-fit-text data-fit-text-min="12"></strong>
+                  <strong id="boniteta-podjetje-ime" data-fit-text data-fit-text-min="9" data-fit-text-lines="3"></strong>
                   <span id="boniteta-podjetje-preverjeno"></span>
                 </div>
               </div>
             </div>
             <span class="boniteta-znacka" id="boniteta-hwk-status"></span>
           </div>
-          <p class="boniteta-podjetje-podnaslov" id="boniteta-podjetje-podnaslov" hidden>Osnovni podatki</p>
-          <dl class="boniteta-podatki boniteta-podatki--identiteta" id="boniteta-hwk-podatki"></dl>
+          <button class="boniteta-identiteta-nadaljuj" id="boniteta-identiteta-nadaljuj" type="button" hidden>
+            <span class="boniteta-identiteta-nadaljuj__ikona" aria-hidden="true">
+              <svg class="boniteta-identiteta-nadaljuj__ikona-cta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2 5.8 5.9v4.7c0 4.1 2.2 7.1 6.2 9.2 4-2.1 6.2-5.1 6.2-9.2V5.9L12 3.2Z"/><circle cx="12" cy="10.5" r="2.55" fill="currentColor" fill-opacity=".08"/><path d="m13.85 12.35 4.8 4.8" stroke-width="2"/></svg>
+              <span class="boniteta-identiteta-nadaljuj__ikona-rezultat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            </span>
+            <span class="boniteta-identiteta-nadaljuj__vsebina">
+              <small>2. KORAK</small>
+              <strong data-fit-text data-fit-text-min="9">Preveri insolventnost</strong>
+              <span data-fit-text data-fit-text-min="8">Preverjanje uradnih objav</span>
+              <b><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></i><em><small>NASLEDNJI KORAK</small>Preveri insolventnost</em><i aria-hidden="true">›</i></b>
+            </span>
+            <span class="boniteta-identiteta-nadaljuj__puscica" aria-hidden="true">›</span>
+          </button>
+          </div>
+          <section class="boniteta-podjetje-pregled" id="boniteta-podjetje-pregled" hidden aria-label="Podatki podjetja">
+            <div class="boniteta-podjetje-navigacije">
+              <nav class="boniteta-podjetje-navigacija boniteta-podjetje-navigacija--glavna" id="boniteta-podjetje-navigacija" role="tablist" aria-label="Glavni podatki podjetja">
+                <button id="boniteta-podjetje-podnaslov" type="button" data-podjetje-pogled="kljucni" role="tab" aria-selected="true" aria-controls="boniteta-podjetje-kljucni"><span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg><b data-fit-text data-fit-text-min="9">Pregled</b><small>Ni na voljo</small></span></button>
+                <button type="button" data-podjetje-pogled="finance" role="tab" aria-selected="false" aria-controls="boniteta-podjetje-podrobnosti"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V11M10 19V6M16 19v-4M22 19V3"/><path d="M3 19h19"/></svg><b data-fit-text data-fit-text-min="9">Finance</b><small data-fit-text data-fit-text-min="7">Ni na voljo</small></span></button>
+                <button type="button" data-podjetje-pogled="izstopa" role="tab" aria-selected="false" aria-controls="boniteta-podjetje-podrobnosti"><span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.8 4.8L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-2.2L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg><b data-fit-text data-fit-text-min="9">Kaj izstopa</b><small>Ni na voljo</small><em class="boniteta-podjetje-navigacija__opozorila" data-izstopa-opozorila hidden>0</em></span></button>
+              </nav>
+              <nav class="boniteta-podjetje-navigacija boniteta-podjetje-navigacija--sekundarna" id="boniteta-podjetje-sekundarna-navigacija" role="tablist" aria-label="Dodatni podatki podjetja">
+                <button type="button" data-podjetje-pogled="pot" role="tab" aria-selected="false" aria-controls="boniteta-podjetje-podrobnosti"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M8.5 17h2.2c1.7 0 2.4-1.1 2.4-2.5v-5c0-1.4.7-2.5 2.4-2.5h.1"/></svg><b data-fit-text data-fit-text-min="8">Pot</b><small data-fit-text data-fit-text-min="7">Ni na voljo</small></span></button>
+                <button type="button" data-podjetje-pogled="dodatno" role="tab" aria-selected="false" aria-controls="boniteta-podjetje-podrobnosti"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><b data-fit-text data-fit-text-min="8">Dodatno</b><small data-fit-text data-fit-text-min="7">Ni na voljo</small></span></button>
+                <button type="button" data-podjetje-pogled="plus" role="tab" aria-selected="false" aria-controls="boniteta-podjetje-podrobnosti"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg><b data-fit-text data-fit-text-min="8">Plus</b><small data-fit-text data-fit-text-min="7">Ni na voljo</small></span></button>
+              </nav>
+            </div>
+            <div class="boniteta-podjetje-pogledi" id="boniteta-podjetje-pogledi">
+              <div class="boniteta-podjetje-kljucni" id="boniteta-podjetje-kljucni" role="tabpanel">
+                <div class="boniteta-podjetje-ustanovitev" id="boniteta-podjetje-ustanovitev" hidden>
+                  <h4>Na kratko</h4>
+                  <span class="boniteta-podjetje-ustanovitev__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4v3M19 4v3M4 9h16M5 6h14a1 1 0 0 1 1 1v13H4V7a1 1 0 0 1 1-1Z"/><path d="M8 13h3M13 13h3M8 17h3M13 17h3"/></svg></span>
+                  <span class="boniteta-podjetje-ustanovitev__opis"><small>USTANOVLJENO</small><strong id="boniteta-podjetje-ustanovitev-datum"></strong><b class="boniteta-podjetje-ustanovitev__starost" id="boniteta-podjetje-ustanovitev-starost"><span class="boniteta-podjetje-ustanovitev__starost-vrednost" data-fit-text data-fit-text-min="8"><strong id="boniteta-podjetje-ustanovitev-leta"></strong><em id="boniteta-podjetje-ustanovitev-leta-enota"></em><small><span id="boniteta-podjetje-ustanovitev-meseci"></span><span id="boniteta-podjetje-ustanovitev-meseci-enota"></span></small></span></b></span>
+                  <span class="boniteta-podjetje-ustanovitev__status"><small>REGISTER</small><strong id="boniteta-podjetje-status-podjetja" data-fit-text data-fit-text-min="9"></strong></span>
+                  <span class="boniteta-podjetje-ustanovitev__kljukica" aria-label="Datum ustanovitve je potrjen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+                </div>
+                <dl class="boniteta-podatki boniteta-podatki--identiteta" id="boniteta-hwk-podatki"></dl>
+              </div>
+              <div class="boniteta-podjetje-podrobnosti" id="boniteta-podjetje-podrobnosti" role="tabpanel" hidden></div>
+            </div>
+          </section>
           <figure class="boniteta-uradni-posnetek" id="boniteta-identiteta-posnetek" hidden>
             <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
               <a class="boniteta-posnetek-povecava__url" id="boniteta-identiteta-url" href="#" target="_blank" rel="noopener" aria-label="Odpri dejanski vir posnetka">
@@ -369,12 +619,6 @@
                 <strong>Vir</strong>
                 <output></output>
               </a>
-              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka identitete">
-                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
-                <output data-posnetek-stopnja aria-live="polite">100 %</output>
-                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
-                <button class="boniteta-posnetek-povecava__prilagodi" type="button" data-posnetek-prilagodi>Prilagodi</button>
-              </div>
               <div class="boniteta-posnetek-povecava__okno" data-posnetek-okno tabindex="0" aria-label="Posnetek identitete. Povečano sliko lahko pomikate.">
                 <img id="boniteta-identiteta-slika" alt="Posnetek registrskega vira, ki potrjuje identiteto podjetja ali obrtnika" draggable="false" />
               </div>
@@ -382,11 +626,67 @@
             <figcaption>
               <strong>Posnetek uporabljenega vira</strong>
               <span id="boniteta-identiteta-cas"></span>
-              <a id="boniteta-identiteta-prenos" href="#" download="potrditev-identitete.jpg">Prenesi posnetek</a>
+              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka identitete">
+                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
+                <output data-posnetek-stopnja aria-live="polite">100 %</output>
+                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
+              </div>
             </figcaption>
           </figure>
           <p class="boniteta-dokazilo-status" id="boniteta-identiteta-dokazilo-status" role="status" hidden></p>
           <a class="boniteta-vir" id="boniteta-hwk-vir" href="#" target="_blank" rel="noopener">Odpri uporabljeni vir ↗</a>
+        </div>
+
+        <section class="boniteta-insolvenca-okno" id="boniteta-insolvenca-okno" aria-labelledby="boniteta-insolvenca-okno-naslov" hidden>
+          <header class="boniteta-insolvenca-okno__glava">
+            <button class="boniteta-insolvenca-okno__nazaj" id="boniteta-insolvenca-nazaj" type="button" aria-label="Nazaj na podatke podjetja">‹</button>
+            <div>
+              <p id="boniteta-insolvenca-korak">1. KORAK · POTRDITEV PODATKOV</p>
+              <h2 id="boniteta-insolvenca-okno-naslov">Preveri insolventnost</h2>
+              <span id="boniteta-insolvenca-okno-opis">Najprej preverite, ali so podatki podjetja pravilni.</span>
+            </div>
+          </header>
+
+          <figure class="boniteta-potrditev-dokaz" id="boniteta-potrditev-dokaz" hidden>
+            <div class="boniteta-potrditev-dokaz__glava">
+              <div>
+                <span>Vir podatkov</span>
+                <strong id="boniteta-potrditev-dokaz-naslov">Posnetek Impressuma</strong>
+              </div>
+              <a id="boniteta-potrditev-dokaz-vir" href="#" target="_blank" rel="noopener">Odpri vir ↗</a>
+            </div>
+            <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
+              <div class="boniteta-potrditev-dokaz__okno boniteta-posnetek-povecava__okno" data-posnetek-okno tabindex="0" aria-label="Posnetek Impressuma. Povečano sliko lahko pomikate.">
+                <img id="boniteta-potrditev-dokaz-slika" alt="Posnetek Impressuma z uporabljenimi podatki podjetja" draggable="false" />
+              </div>
+            </div>
+            <figcaption>
+              <span id="boniteta-potrditev-dokaz-cas"></span>
+              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka Impressuma">
+                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
+                <output data-posnetek-stopnja aria-live="polite">100 %</output>
+                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
+              </div>
+            </figcaption>
+          </figure>
+          <article class="boniteta-potrditev-api-dokaz" id="boniteta-potrditev-api-dokaz" hidden>
+            <header class="boniteta-potrditev-api-dokaz__glava">
+              <div>
+                <span>Uradni registrski dokaz</span>
+                <strong>OpenRegister API</strong>
+              </div>
+              <a id="boniteta-potrditev-api-dokaz-vir" href="#" target="_blank" rel="noopener">Odpri vir ↗</a>
+            </header>
+            <dl class="boniteta-potrditev-api-dokaz__mreza">
+              <div><dt>Pravno ime</dt><dd id="boniteta-potrditev-api-dokaz-ime"></dd></div>
+              <div><dt>Sedež</dt><dd id="boniteta-potrditev-api-dokaz-naslov"></dd></div>
+              <div><dt>Register</dt><dd id="boniteta-potrditev-api-dokaz-register"></dd></div>
+              <div><dt>ID podjetja</dt><dd id="boniteta-potrditev-api-dokaz-id"></dd></div>
+            </dl>
+            <p id="boniteta-potrditev-api-dokaz-cas"></p>
+          </article>
+          <p class="boniteta-potrditev-dokaz__napaka" id="boniteta-potrditev-dokaz-napaka" role="status" hidden></p>
+
           <div class="boniteta-potrditev-identitete" id="boniteta-potrditev-identitete" hidden>
             <h4 id="boniteta-potrditev-naslov">Preverite podatke pred insolvenčno poizvedbo</h4>
             <p id="boniteta-potrditev-opis">Primerjajte polja s prikazanim virom. Če je sistem kaj narobe razbral, podatek popravite.</p>
@@ -394,7 +694,7 @@
               <label id="boniteta-potrdi-ime-oznaka">Pravno ime
                 <input id="boniteta-potrdi-ime" type="text" maxlength="180" data-fit-input />
               </label>
-              <label>Poslovni naziv (če se razlikuje)
+              <label id="boniteta-potrdi-naziv-ovoj">Poslovni naziv (če se razlikuje)
                 <input id="boniteta-potrdi-naziv" type="text" maxlength="180" data-fit-input />
               </label>
               <label id="boniteta-potrdi-nosilec-ovoj">Nosilec oziroma zastopnik
@@ -409,27 +709,32 @@
               <label>Kraj
                 <input id="boniteta-potrdi-kraj" type="text" maxlength="80" data-fit-input />
               </label>
-              <label class="boniteta-potrditev-identitete__potrditev">
-                <input id="boniteta-potrdi-checkbox" type="checkbox" />
-                <span id="boniteta-potrditev-kljukica">Podatke sem primerjal s prikazanim virom in so pravilni.</span>
-              </label>
+              <div class="boniteta-potrditev-identitete__akcije">
+                <label class="boniteta-potrditev-identitete__potrditev">
+                  <input id="boniteta-potrdi-checkbox" type="checkbox" />
+                  <span class="boniteta-potrditev-identitete__potrditev-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+                  <span class="boniteta-potrditev-identitete__potrditev-besedilo">
+                    <strong id="boniteta-potrditev-kljukica">Podatki so pravilni</strong>
+                    <small id="boniteta-potrditev-kljukica-opis">Potrdite za nadaljevanje</small>
+                  </span>
+                </label>
+                <button class="boniteta-potrditev-identitete__gumb" id="boniteta-potrditev-gumb" type="button" disabled>
+                  <span data-potrditev-gumb-label data-fit-text data-fit-text-min="9">Preveri insolventnost</span>
+                </button>
+              </div>
               <p class="boniteta-potrditev-identitete__napaka" id="boniteta-potrditev-napaka" role="alert" hidden></p>
-              <button class="boniteta-potrditev-identitete__gumb" id="boniteta-potrditev-gumb" type="button">Podatki so pravilni – preveri insolventnost</button>
             </div>
           </div>
-        </div>
 
         <div class="boniteta-rezultat__sklop" id="boniteta-insolvenca-sklop" hidden>
-          <div class="boniteta-rezultat__sklop-glava">
-            <h3>Insolvenčna preverba</h3>
-            <span class="boniteta-znacka" id="boniteta-insolvenca-status"></span>
-          </div>
-          <p class="boniteta-insolvenca-opis" id="boniteta-insolvenca-opis"></p>
-          <p class="boniteta-barvna-primerjava__namig" id="boniteta-barvna-primerjava-namig" hidden>
-            <span aria-hidden="true">✓</span>
-            Enaka barva pomeni isti preverjeni podatek v kartici in na uradnem posnetku.
-          </p>
-          <dl class="boniteta-podatki boniteta-podatki--primerjava" id="boniteta-insolvenca-podatki"></dl>
+          <section class="boniteta-insolvenca-izid" aria-live="polite">
+            <span class="boniteta-insolvenca-izid__ikona" id="boniteta-insolvenca-izid-ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            <div class="boniteta-insolvenca-izid__vsebina">
+              <strong class="boniteta-znacka" id="boniteta-insolvenca-status" data-fit-text data-fit-text-min="10"></strong>
+              <p class="boniteta-insolvenca-opis" id="boniteta-insolvenca-opis"></p>
+            </div>
+            <span class="boniteta-insolvenca-izid__znacka" id="boniteta-insolvenca-izid-znacka">PREVERJENO</span>
+          </section>
           <figure class="boniteta-uradni-posnetek" id="boniteta-insolvenca-posnetek" hidden>
             <div class="boniteta-barvna-primerjava__legenda" aria-label="Legenda barv na uradnem posnetku">
               <span class="boniteta-barvna-primerjava__znacka boniteta-barvna-primerjava__znacka--blue" data-primerjava-ton="blue">Ime podjetja</span>
@@ -438,26 +743,32 @@
               <span class="boniteta-barvna-primerjava__znacka boniteta-barvna-primerjava__znacka--amber" data-primerjava-ton="amber">Zadeva</span>
             </div>
             <div class="boniteta-posnetek-povecava" data-posnetek-povecava>
-              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka insolvenčnega registra">
-                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
-                <output data-posnetek-stopnja aria-live="polite">100 %</output>
-                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
-                <button class="boniteta-posnetek-povecava__prilagodi" type="button" data-posnetek-prilagodi>Prilagodi</button>
-              </div>
               <div class="boniteta-posnetek-povecava__okno" data-posnetek-okno tabindex="0" aria-label="Posnetek insolvenčnega registra. Povečano sliko lahko pomikate.">
                 <img id="boniteta-insolvenca-slika" alt="Posnetek državnega insolvenčnega registra z rezultatom preverbe" draggable="false" />
               </div>
             </div>
             <figcaption>
-              <strong>Druga potrditev: uradni insolvenčni register</strong>
+              <strong>Uradni insolvenčni register</strong>
               <span id="boniteta-insolvenca-cas"></span>
-              <a id="boniteta-insolvenca-prenos" href="#" download="uradna-insolvencna-preverba.jpg">Prenesi posnetek</a>
+              <div class="boniteta-posnetek-povecava__orodja" role="group" aria-label="Povečava posnetka insolvenčnega registra">
+                <button type="button" data-posnetek-pomanjsaj aria-label="Pomanjšaj posnetek">−</button>
+                <output data-posnetek-stopnja aria-live="polite">100 %</output>
+                <button type="button" data-posnetek-povecaj aria-label="Povečaj posnetek">+</button>
+              </div>
             </figcaption>
           </figure>
+          <div class="boniteta-insolvenca-podatki-glava">
+            <h3>Uporabljeni iskalni podatki</h3>
+          </div>
+          <dl class="boniteta-podatki boniteta-podatki--primerjava" id="boniteta-insolvenca-podatki"></dl>
+          <p class="boniteta-barvna-primerjava__namig" id="boniteta-barvna-primerjava-namig" hidden>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>
+            Barva povezuje podatek z uradnim posnetkom.
+          </p>
           <div class="boniteta-objave" id="boniteta-objave" hidden>
             <button class="boniteta-objave__gumb" id="boniteta-objave-gumb" type="button" aria-expanded="false" aria-controls="boniteta-objave-seznam">
               <span id="boniteta-objave-gumb-tekst">Preglej uradne objave</span>
-              <span class="boniteta-objave__puscica" aria-hidden="true">⌄</span>
+              <span class="boniteta-objave__puscica" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
             </button>
             <div class="boniteta-objave__seznam" id="boniteta-objave-seznam" hidden></div>
           </div>
@@ -465,7 +776,9 @@
             <a class="boniteta-vir" id="boniteta-insolvenca-api-vir" href="https://docs.openregister.de/endpoint/search-insolvency" target="_blank" rel="noopener" hidden>Podrobnosti vira OpenRegister API ↗</a>
             <a class="boniteta-vir" id="boniteta-insolvenca-vir" href="https://neu.insolvenzbekanntmachungen.de/ap/suche.jsf" target="_blank" rel="noopener">Ročno preveri v uradnem insolvenčnem registru ↗</a>
           </div>
+          <button class="boniteta-insolvenca-okno__nazaj-spodaj" id="boniteta-insolvenca-nazaj-spodaj" type="button">Nazaj na podatke podjetja</button>
         </div>
+        </section>
 
         <div class="boniteta-rezultat__sklop boniteta-preverjeni-viri">
           <div class="boniteta-rezultat__sklop-glava">
@@ -477,54 +790,55 @@
           <div class="boniteta-viri" id="boniteta-viri"></div>
         </div>
 
-        <div class="boniteta-rezultat__sklop boniteta-razsiritve" id="boniteta-razsiritve" hidden>
-          <div class="boniteta-rezultat__sklop-glava">
-            <div>
-              <p class="boniteta-rezultat__oznaka">PODROBNI OPENREGISTER PODATKI</p>
-              <h3>Potrebujete več informacij?</h3>
-            </div>
-            <span class="boniteta-znacka boniteta-znacka--green">10–25 kreditov</span>
-          </div>
-          <p class="boniteta-razsiritve__opis">Osnovna preverba je zaključena. Podjetje, lastnike, finance ali dokumente pridobimo samo po vaši izbiri.</p>
-          <div class="boniteta-krediti" id="boniteta-krediti" aria-live="polite">
-            <div class="boniteta-krediti__graf" aria-hidden="true"><span id="boniteta-krediti-lok"></span><b id="boniteta-krediti-stevilo">—</b></div>
-            <div><strong id="boniteta-krediti-naslov">Preverjam razpoložljive kredite …</strong><span id="boniteta-krediti-opis">Stanje se bere neposredno iz OpenRegister računa.</span></div>
-          </div>
-          <button class="boniteta-razsiritve__odpri" id="boniteta-razsiritve-odpri" type="button" aria-expanded="false" aria-controls="boniteta-razsiritve-moznosti">
-            <span><strong data-fit-text>Poglej podrobne možnosti</strong><small>Podjetje · lastniki · finance · dokumenti</small></span><b aria-hidden="true">⌄</b>
-          </button>
-          <div class="boniteta-razsiritve__moznosti" id="boniteta-razsiritve-moznosti" hidden>
-            <div class="boniteta-razsiritve__mreza">
-              <a class="boniteta-razsiritev" data-boniteta-razsiritev="company" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">§</span><strong data-fit-text>Podatki podjetja</strong><small>Register, status in zastopanje</small><b data-fit-text>10 kreditov <span aria-hidden="true">→</span></b></a>
-              <a class="boniteta-razsiritev" data-boniteta-razsiritev="ownership" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">◎</span><strong data-fit-text>Lastniki in povezave</strong><small>Dva povezana registrska sklopa</small><b data-fit-text>20 kreditov <span aria-hidden="true">→</span></b></a>
-              <a class="boniteta-razsiritev" data-boniteta-razsiritev="financials" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">↗</span><strong data-fit-text>Finančni podatki</strong><small>Objavljeni izkazi in grafi</small><b data-fit-text>10 kreditov <span aria-hidden="true">→</span></b></a>
-              <a class="boniteta-razsiritev" data-boniteta-razsiritev="documents" href="#"><span class="boniteta-razsiritev__ikona" aria-hidden="true">▤</span><strong data-fit-text>Uradni dokumenti</strong><small>Seznam registrskih dokumentov</small><b data-fit-text>10 kreditov <span aria-hidden="true">→</span></b></a>
-            </div>
-            <p class="boniteta-razsiritve__namig">Če so podatki za podjetje še sveže shranjeni, jih ponovno prikažemo brez novega zunanjega klica.</p>
-          </div>
-          <button class="boniteta-razsiritve__odpri boniteta-pro-test__toggle" id="boniteta-pro-test-toggle" type="button" aria-expanded="false" aria-controls="boniteta-pro-test" hidden>
-            <span><strong data-fit-text>PRO · odpri podrobni predogled</strong><small>Podjetje · lastniki · finance · dokumenti</small></span><b aria-hidden="true">⌄</b>
-          </button>
-          <div class="boniteta-pro-test" id="boniteta-pro-test" hidden>
-            <div class="boniteta-pro-test__glava">
-              <p class="boniteta-rezultat__oznaka">PRO · TESTNI PREDOGLED</p>
-              <h3>Podrobni podatki podjetja</h3>
-              <p>Vsi podatki so izmišljeni. OpenRegister ni bil poklican, kredit ni bil porabljen in nič se ne shrani.</p>
-            </div>
-            <nav class="boniteta-pro-test__zavihki" aria-label="PRO podrobnosti podjetja">
-              <button type="button" class="is-active" data-pro-test-tab="company">Podjetje</button>
-              <button type="button" data-pro-test-tab="ownership">Lastniki</button>
-              <button type="button" data-pro-test-tab="financials">Finance</button>
-              <button type="button" data-pro-test-tab="documents">Dokumenti</button>
-              <button type="button" data-pro-test-tab="insolvency">Insolvenca</button>
-              <button type="button" data-pro-test-tab="monitoring">Spremljanje</button>
-            </nav>
-            <div class="boniteta-pro-test__vsebina" id="boniteta-pro-test-content" aria-live="polite"></div>
-          </div>
-        </div>
+        <div class="boniteta-rezultat__sklop boniteta-razsiritve" id="boniteta-razsiritve" hidden></div>
 
+        <section class="boniteta-inline-profil" id="boniteta-inline-profil" aria-labelledby="bp-section-heading" hidden>
+          <header class="boniteta-inline-profil__glava">
+            <div>
+              <p class="boniteta-rezultat__oznaka">PODROBNOSTI PODJETJA</p>
+              <h3 id="bp-section-heading">Vse na istem mestu</h3>
+              <p>Izberi sklop. Plačljivi podatki se pridobijo šele po tvoji izrecni potrditvi.</p>
+            </div>
+            <button class="boniteta-inline-profil__zapri" id="bp-inline-close" type="button" aria-label="Zapri podrobnosti">×</button>
+          </header>
+          <p id="bp-profile-error" class="bp-error" role="alert" hidden></p>
+          <div id="bp-profile-loading" class="bp-state">Nalagam profil …</div>
+          <div id="bp-profile" hidden>
+            <span id="bp-profile-eyebrow" hidden></span>
+            <span id="bp-pro-preview-banner" hidden></span>
+            <span id="bp-name" hidden></span>
+            <span id="bp-subtitle" hidden></span>
+            <a id="bp-recheck" href="#" hidden></a>
+            <span id="bp-level" hidden></span>
+            <dl id="bp-summary" hidden></dl>
+            <nav class="bp-tabs" aria-label="Podrobnosti podjetja">
+              <button data-tab="overview" class="is-active" type="button">Povzetek</button>
+              <button data-tab="company" type="button">Podjetje</button>
+              <button data-tab="ownership" type="button">Vodstvo in lastništvo</button>
+              <button data-tab="financials" type="button">Finance</button>
+              <button data-tab="documents" type="button">Dokumenti in zgodovina</button>
+              <button data-tab="insolvency" type="button">Insolvenca</button>
+              <button data-tab="monitoring" type="button">Spremljanje</button>
+            </nav>
+            <section class="bp-panel boniteta-inline-profil__vsebina">
+              <div id="bp-section-title" class="bp-panel-head"><h3>Rezultat zadnje preverbe</h3></div>
+              <p id="bp-section-credit" class="bp-credit"></p>
+              <div id="bp-section-state" class="bp-state" hidden></div>
+              <div id="bp-section-content"></div>
+            </section>
+          </div>
+        </section>
+
+        <div class="boniteta-primerjava-potrditev" id="boniteta-primerjava-potrditev" hidden>
+          <p id="boniteta-primerjava-opozorilo" role="alert" hidden>Najprej zaključite korak »Preveri insolventnost«.</p>
+          <button class="boniteta-primerjava-nadaljuj" id="boniteta-primerjava-dodaj" type="button"><span>Dodaj prvo podjetje</span></button>
+        </div>
+        <div class="boniteta-spremljanje-vstop boniteta-spremljanje-vstop--dejanja" id="boniteta-eno-spremljanje-vstop" hidden>
+          <button type="button" id="boniteta-prenesi-v-ponudbo" hidden>Prenesi v ponudbo</button>
+          <button type="button" id="boniteta-eno-spremljaj">Spremljaj podjetje</button>
+          <button type="button" id="boniteta-eno-zapri-spodaj">Zapri</button>
+        </div>
         <p class="boniteta-omejitev" id="boniteta-omejitev">Odsotnost insolvenčnega zadetka ni popolna bonitetna garancija.</p>
-        <a class="boniteta-ponovi" id="boniteta-odpri-profil" href="bonitetna-preverba.html#profiles" hidden>Odpri celoten profil podjetja</a>
         <button class="boniteta-ponovi boniteta-izbrisi-preverbo" id="boniteta-izbrisi-preverbo" type="button" hidden>Izbriši vse podatke tega preverjanja</button>
         <button class="boniteta-ponovi" id="boniteta-ponovi" type="button">Preveri drugo stranko</button>
       </section>
@@ -642,31 +956,45 @@
       </section>
     </main>
 
-    <section class="bp-main boniteta-center-active" id="boniteta-center-active" aria-labelledby="boniteta-center-active-title" hidden>
-      <section class="bp-hero boniteta-active-hero">
-        <div>
-          <p class="bp-eyebrow">AKTIVNA OPRAVILA</p>
-          <h2 id="boniteta-center-active-title">Preverbe v teku</h2>
-          <p>Tukaj so preverjanja, ki še čakajo, se izvajajo ali potrebujejo nadaljevanje.</p>
-        </div>
-        <button class="bp-secondary" id="boniteta-active-refresh" type="button">Osveži</button>
-      </section>
+    <section class="bp-main boniteta-center-active" id="boniteta-center-active" aria-label="Spremljana podjetja" hidden>
       <p id="boniteta-active-error" class="bp-error" role="alert" hidden></p>
-      <section class="bp-panel boniteta-active-panel">
-        <div class="bp-panel-head"><h3>Aktivne preverbe</h3><span id="boniteta-active-count" class="bp-badge">0</span></div>
-        <div id="boniteta-active-state" class="bp-state">Nalagam preverbe v teku …</div>
-        <div id="boniteta-active-grid" class="bp-grid"></div>
+      <section id="bp-watched" class="bp-panel boniteta-watched-panel" aria-label="Spremljana podjetja">
+        <header class="boniteta-seznam-naslov"><h2>Spremljano</h2></header>
+        <section class="boniteta-watched-summary" aria-labelledby="boniteta-watched-summary-title">
+          <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <div><strong id="boniteta-watched-summary-title">Spremljamo 0 podjetij</strong><p>Pomembne spremembe sporočimo takoj.</p></div>
+        </section>
+        <span id="boniteta-active-count" hidden>0</span>
+        <div id="bp-watched-state" class="bp-state">Nalagam spremljanje …</div>
+        <div id="bp-watched-grid" class="bp-grid bp-profiles-list"></div>
       </section>
     </section>
 
-    <section class="bp-main boniteta-center-workspace" id="boniteta-center-workspace" aria-labelledby="boniteta-center-workspace-title" hidden>
-      <section class="bp-hero boniteta-center-hero"><div><p class="bp-eyebrow">VSE NA ENEM MESTU</p><h2 id="boniteta-center-workspace-title">Moja podjetja</h2><p>Odprite shranjen profil, spremljanje ali opozorila. Dodatni podatki se pridobijo šele, ko jih potrebujete.</p></div><button class="bp-primary" type="button" data-boniteta-center-view="new">+ Nova preverba</button></section>
-      <nav class="bp-nav bp-subnav" aria-label="Pregled podjetij">
-        <button data-view="profiles" class="is-active" type="button" data-fit-text>Podjetja</button><button data-view="watched" type="button" data-fit-text>Spremljanje</button><button data-view="alerts" type="button" data-fit-text>Opozorila</button><button class="crif-temp-action" data-crif-element data-view="crif" type="button" data-fit-text title="Začasna oznaka: ta del je vezan na CRIF">Analize</button><button data-view="search" type="button" data-fit-text>Iskanje v registru</button>
-      </nav>
+    <section class="bp-main boniteta-center-workspace" id="boniteta-center-workspace" aria-label="Podjetja" hidden>
       <p id="bp-error" class="bp-error" role="alert" hidden></p>
-      <section id="bp-profiles" class="bp-panel"><div class="bp-panel-head"><h3>Preverjena podjetja</h3><span id="bp-profile-count" class="bp-badge">0</span></div><div id="bp-profiles-state" class="bp-state">Nalagam preverjene stranke …</div><div id="bp-profiles-grid" class="bp-grid"></div></section>
-      <section id="bp-watched" class="bp-panel" hidden><div class="bp-panel-head"><h3>Spremljana podjetja</h3><span class="bp-badge">Spremljanje sprememb</span></div><div id="bp-watched-state" class="bp-state">Nalagam spremljanje …</div><div id="bp-watched-grid" class="bp-grid"></div></section>
+      <section id="bp-profiles" class="bp-panel" aria-label="Preverjena podjetja">
+        <header class="boniteta-seznam-naslov"><h2>Podjetja</h2></header>
+        <span id="bp-profile-count" hidden>0</span>
+        <section class="boniteta-profili-primerjava" id="boniteta-profili-primerjava" aria-label="Izbor podjetij za primerjavo">
+          <button class="boniteta-profili-primerjava__preklop" id="boniteta-profili-primerjava-preklop" type="button" aria-expanded="false" aria-controls="boniteta-profili-primerjava-vsebina">
+            <span class="boniteta-profili-primerjava__ikona" aria-hidden="true"><svg class="boniteta-primerjava__znak" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/></svg></span>
+            <strong>Primerjaj podjetji</strong>
+            <span class="boniteta-profili-primerjava__razpri" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 14 5-5 5 5"/></svg></span>
+          </button>
+          <div class="boniteta-profili-primerjava__vsebina" id="boniteta-profili-primerjava-vsebina" hidden>
+            <div class="boniteta-profili-primerjava__vrstice">
+              <div class="boniteta-profili-primerjava__vrstica" data-profili-primerjava-mesto="0"></div>
+              <div class="boniteta-profili-primerjava__vrstica" data-profili-primerjava-mesto="1"></div>
+            </div>
+            <button class="boniteta-profili-primerjava__akcija" id="boniteta-profili-primerjava-akcija" type="button" disabled>
+              <span>Primerjaj izbrani podjetji</span>
+              <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></i>
+            </button>
+          </div>
+        </section>
+        <div id="bp-profiles-state" class="bp-state">Nalagam preverjene stranke …</div>
+        <div id="bp-profiles-grid" class="bp-grid bp-profiles-list"></div>
+      </section>
       <section id="bp-alerts" class="bp-panel" hidden><div class="bp-panel-head"><h3>Opozorila o spremembah</h3><button id="bp-refresh-alerts" class="bp-secondary" type="button">Osveži</button></div><div id="bp-alerts-state" class="bp-state">Nalagam opozorila …</div><div id="bp-alerts-grid" class="bp-grid"></div></section>
       <section id="bp-crif" class="bp-panel" data-crif-element hidden><div class="bp-panel-head"><div><h3 class="crif-temp-mark">Pripravljene poglobljene analize</h3><p class="bp-note">Do aktivacije CRIF se shranijo samo priprave, brez zunanje poizvedbe in stroška.</p></div><span class="bp-badge bp-badge--yellow crif-temp-mark">Pogodba v pripravi</span></div><div id="bp-crif-state" class="bp-state">Nalagam pripravljene analize …</div><div id="bp-crif-grid" class="bp-grid"></div></section>
       <section id="bp-search" class="bp-panel" hidden><div class="bp-panel-head"><h3>Iskanje v nemškem registru</h3><span class="bp-badge">10 kreditov</span></div>
@@ -682,10 +1010,10 @@
       </button>
       <button type="button" data-boniteta-center-view="active" aria-pressed="false">
         <span class="boniteta-center-nav__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span class="boniteta-center-nav__badge" id="boniteta-active-nav-count" hidden>0</span></span>
-        <span data-fit-text>V teku</span>
+        <span data-fit-text>Spremljano</span>
       </button>
       <button type="button" data-boniteta-center-view="profiles" aria-pressed="false">
-        <span class="boniteta-center-nav__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="boniteta-center-nav__ikona" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
         <span data-fit-text>Podjetja</span>
       </button>
     </nav>
@@ -694,10 +1022,16 @@
       <span>Testna vrstica</span>
     </div>
 
-    <script src="app.js?v=20260815-boniteta-fit-v3"></script>
-    <script src="bonitetna-preverba.js?v=20260819-company-art-v41"></script>
-    <script src="boniteta-sredisce.js?v=20260819-company-card-v23"></script>
+    <script src="app.js?v=20260819-container-fit-v5"></script>
+    <script src="bonitetna-finance-guard.js?v=20260825-financial-invariants-v2"></script>
+    <script src="bonitetna-signali.js?v=20260826-financial-severity-v20"></script>
+    <script src="bauhandwerkersicherung.js?v=20260826-eligibility-v2"></script>
+    <script src="boniteta-dokazna-hramba.js?v=20260825-insolvency-evidence-idb-v2"></script>
+    <script src="bonitetna-preverba.js?v=20260827-saved-result-guard-v215"></script>
+    <script src="boniteta-profil.js?v=20260827-monitoring-comparison-v16"></script>
+  <script src="boniteta-sredisce.js?v=20260827-monitoring-settings-v189"></script>
+    <script src="bauhandwerkersicherung-ui.js?v=20260826-offer-security-visible-v14"></script>
     <script src="pwa-viewport.js?v=20260817-v1"></script>
-    <script src="pwa-dev-refresh.js?v=20260817-v1"></script>
+    <script src="pwa-dev-refresh.js?v=20260822-stable-preview-v3"></script>
   </body>
 </html>

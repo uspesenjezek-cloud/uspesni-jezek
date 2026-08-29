@@ -446,6 +446,9 @@ async function main() {
     assert.match(css, /\.izvedba-drugo__polje\s*\{[^}]*font-size:\s*16px/);
     assert.match(css, /\.izvedba-poravnava-korak--drugo\s*\{[^}]*--korak-accent:\s*#567392/);
     assert.match(css, /\.izvedba-poravnava-svicer__gumb--drugo\s*\{[^}]*--svicer-rgb:\s*82,111,145/);
+    assert.match(css, /panel--odvetnik-zgodovina \.izvedba-poravnava-svicer__gumb--drugo,[\s\S]*?panel--poravnano \.izvedba-poravnava-svicer__gumb--drugo\s*\{[^}]*grid-column:\s*auto;[^}]*min-height:\s*66px;[^}]*flex-direction:\s*column;/);
+    assert.match(citaj("app/neplacila-zgodovina.js"), /obstojeciDrugo\.removeAttribute\("data-action-custom"\)[\s\S]*obstojeciDrugo\.setAttribute\("data-zgodovina-drugo", ""\)/);
+    assert.match(citaj("app/neplacila-zgodovina.js"), /classList\.toggle\("is-selected", customActive\)[\s\S]*setAttribute\("aria-pressed", String\(customActive\)\)/);
     assert.match(css, /\.izvedba-poravnava-cona__stevilka\s*\{[^}]*background:\s*rgba\(23,157,164,\.12\)[^}]*color:\s*#10797d/);
     assert.match(css, /\.izvedba-poravnava-korak__stevilka\s*\{[^}]*background:\s*rgba\(var\(--korak-accent-rgb,[^)]+\),\s*\.12\)[^}]*color:\s*var\(--korak-accent,\s*#10797d\)/);
     assert.match(css, /\.izvedba-poravnava-korak__odstrani\s*\{[^}]*padding:\s*0/);
@@ -468,6 +471,8 @@ async function main() {
   await test("16c) predaja ima štiri ločene funkcionalne korake in ohrani vse podatke", function () {
     const src = citaj("app/izvedba.js");
     const css = citaj("app/izvedba.css");
+    const historyCss = citaj("app/neplacila-zgodovina.css");
+    const html = citaj("app/izvedba.html");
     assert.match(src, /lawyerHandoff\.status === "prepared"[\s\S]*lawyerHandoff\.preparedSnapshot/);
     assert.match(src, /screen: "zgodovina"/);
     assert.match(src, /snapshot\.izbraniPaket \|\| lh\.selectedPackage/);
@@ -480,7 +485,8 @@ async function main() {
     assert.match(src, /najzgodnejsiCasLawyerPredaje/);
     assert.match(src, /Zgodovina[\s\S]*naslov: "Paket"[\s\S]*naslov: "Predaja"[\s\S]*naslov: "Pregled"/);
     assert.match(src, /w\.screen === "zgodovina" \? izrisiOdvetnikZgodovino\(\)/);
-    assert.match(src, /data-lawyer-history-delay/);
+    assert.doesNotMatch(src, /data-lawyer-history-delay/);
+    assert.doesNotMatch(src, /function izrisiOdvetnikOcenoTveganja/);
     assert.match(src, /historyBeforePlan: kopirajPodatke\(w\.historyEvents/);
     assert.match(src, /riskAssessment: \{ latePayments: w\.historyLatePayments \}/);
     assert.match(src, /Nadaljuj na izbiro paketa/);
@@ -516,6 +522,22 @@ async function main() {
     assert.match(css, /izvedba-action-sheet__panel--odvetnik-pregled[\s\S]*height:\s*100lvh;[\s\S]*border-radius:\s*0;/);
     assert.match(css, /panel--odvetnik-pregled > \.izvedba-action-sheet__header[\s\S]*display:\s*none/);
     assert.match(css, /panel--odvetnik-pregled \.izvedba-odvetnik-zgodovina__povzetek[\s\S]*border:\s*1px solid var\(--stage-border[\s\S]*background:\s*linear-gradient/);
+    assert.match(css, /\.izvedba-odvetnik-korak__naslov\s*\{[\s\S]*?font-size:\s*8px;[\s\S]*?white-space:\s*nowrap;/);
+    assert.match(src, /\(zgodovinaVnos \|\| jePlacilniEngine\(\)\) && typeof window\.UJZgodovinaPoIzrisu === "function"/);
+    assert.match(html, /neplacila-zgodovina\.css\?v=20260828-lawyer-history-natural-v1-atena-v15-synced-action-speed-v1/);
+    assert.match(html, /neplacila-zgodovina\.js\?v=20260828-payment-history-natural-v1-atena-v16-stable-recording-v1/);
+    assert.match(html, /izvedba\.js\?v=20260828-payment-history-natural-v2-atena-v3/);
+    assert.match(src, /function jeAtena\(\)/);
+    assert.match(src, /Pripravljeni dogodki/);
+    assert.match(src, /jeAtenaVnos \? '' : '<span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">3<\/span>'/);
+    assert.match(src, /atena__nadaljuj-brez/);
+    assert.match(src, /jeAtena\(\) \? 'Kaj se je do zdaj zgodilo\?'/);
+    assert.match(src, /jeRazsirjeniPlacilniEngine[\s\S]*?\["full", "partial", "compensation", "installment", "credit_note", "payment_promised", "unpaid_installment", "payment_failed", "invoice_dispute", "cancelled_invoice", "insolvency"\]/);
+    assert.match(src, /function jePlacilniDogodkovniTip\(tip\)[\s\S]*?"unpaid_installment"[\s\S]*?"payment_failed"[\s\S]*?"invoice_dispute"[\s\S]*?"cancelled_invoice"[\s\S]*?"insolvency"/);
+    assert.match(src, /state\.assistedHistoryInputActive = true;[\s\S]*?finally[\s\S]*?state\.assistedHistoryInputActive = prejsnjiAssistedHistoryInput/);
+    assert.match(css, /panel--poravnano \.izvedba-poravnava-svicer__gumb--drugo[\s\S]*?grid-column:\s*auto/);
+    assert.match(historyCss, /\.atena \.atena__ponastavi\s*\{[\s\S]*?align-self:\s*start;[\s\S]*?margin-top:\s*4px;/);
+    assert.match(historyCss, /\.zgodovina-ai__vnos textarea\s*\{[\s\S]*?max-height:\s*none;[\s\S]*?resize:\s*none;[\s\S]*?overflow-y:\s*hidden;/);
   });
 
   await test("hitra dejanja so trije kompaktni gumbi, Pošlji pa ostane ločen v kartici", function () {
@@ -535,8 +557,8 @@ async function main() {
     assert.match(css, /\.izvedba-hitra-akcija--opomin\s*\{[\s\S]*?--hitra-rgb:\s*83, 119, 158;/);
     assert.match(css, /\.izvedba-hitra-akcija--opomin \.izvedba-hitra-akcija__besedilo\s*\{[\s\S]*?width:\s*min\(100%, 66px\);[\s\S]*?white-space:\s*normal;/);
     assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.izvedba-hitra-akcija\s*\{[\s\S]*?grid-template-rows:\s*24px auto;[\s\S]*?height:\s*66px;[\s\S]*?border-radius:\s*11px;/);
-    assert.match(html, /izvedba\.css\?v=2026082[56]-[\w-]+/);
-    assert.match(html, /izvedba\.js\?v=2026082[56]-[\w-]+/);
+    assert.match(html, /izvedba\.css\?v=2026082[5678]-[\w-]+/);
+    assert.match(html, /izvedba\.js\?v=2026082[5678]-[\w-]+/);
   });
 
   await test("16c) vseh 6 ukrepov deluje tudi na starejšem načrtu brez materializiranih opomin_koraki", function () {
@@ -921,6 +943,39 @@ async function main() {
     assert.match(src, /occurredAt/);
     assert.match(zgodovina, /\+ Dodaj dogodek/);
     assert.match(css, /\.stran--neplacila-zgodovina \.izvedba-poravnava-podrobnosti__naslov \{ margin-bottom: 8px; \}/);
+  });
+
+  await test("plačane obroke v zgodovini je mogoče vnesti kot strnjen seznam", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /if \(tip === "installment"\)[\s\S]*?Obrok je plačan[\s\S]*?Dogovor o obrokih/);
+    assert.match(src, /zagotoviObrokPlaner\(\);\s*return obrokiIzbira \+ izrisiObrokPlaner\(\);/);
+    assert.match(src, /jePlacanaZgodovina[\s\S]*?nastavitve\.paymentMethod/);
+    assert.match(src, /jePlacanaZgodovina \? 'Dodaj ' \+ K\.esc\(sklonjenoDodajObroke/);
+    assert.match(src, /var omejitevDatuma = jePlacanaZgodovina \? ' max=/);
+    assert.match(src, /if \(jeVnosZgodovine\(\)\) state\.selectedSettlementType = null;/);
+  });
+
+  await test("vsak datum dogodka omogoča neznan ali približen vnos", () => {
+    const src = citaj("app/izvedba.js");
+    const css = citaj("app/neplacila-zgodovina.css");
+    assert.match(src, /data-history-date-unknown/);
+    assert.match(src, /data-history-date-approx=/);
+    assert.match(src, /data-history-date-approximation=/);
+    assert.match(src, /placeholder="Npr\. začetek maja 2025"/);
+    assert.match(src, /function zgodovinaDatumJeVeljaven/);
+    assert.match(src, /data-obrok-planer-datum-unknown/);
+    assert.match(src, /data-obrok-planer-datum-approx=/);
+    assert.match(src, /data-obrok-planer-datum-approximation=/);
+    assert.match(src, /datumPribliznoAktivno/);
+    assert.match(css, /\.zgodovina-dogodek__datum\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto auto/);
+    assert.match(css, /\.zgodovina-dogodek__datum-priblizno/);
+    assert.match(css, /\.izvedba-obrok-planer__datum-moznosti/);
+  });
+
+  await test("izbira kartice ohrani vodoravni položaj seznama", () => {
+    const src = citaj("app/izvedba.js");
+    assert.match(src, /var prejsnjiSvicerScrollLeft = prejsnjiSvicer \? prejsnjiSvicer\.scrollLeft : null/);
+    assert.match(src, /noviSvicer\.scrollLeft = Math\.min\(prejsnjiSvicerScrollLeft/);
   });
 
   console.log("\nUspešnih izvedba testov: " + passed);

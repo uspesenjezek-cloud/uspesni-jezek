@@ -3,6 +3,7 @@ var sentry = require("../_lib/sentry");
 
 var db = require("../_lib/supabase-server");
 var queue = require("../_lib/mehka-boniteta-queue");
+var profileStore = require("../_lib/boniteta-pro-store");
 
 function odgovorJson(res, status, podatki) {
   return res.status(status).json(podatki);
@@ -24,6 +25,17 @@ function pridobiLokalnoPreglednoDomeno(req) {
 function jeLokalnaZahteva(req) {
   var naslov = String(req && req.socket && req.socket.remoteAddress || "").toLowerCase();
   return naslov === "127.0.0.1" || naslov === "::1" || naslov === "::ffff:127.0.0.1";
+}
+
+function pridobiProfileId(req) {
+  if (req.query && req.query.profileId) return String(req.query.profileId);
+  try { return new URL(req.url, "http://localhost").searchParams.get("profileId") || ""; } catch (_) { return ""; }
+}
+
+function jeLokalniPredogled(req) {
+  return process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE === "true" && jeLokalnaZahteva(req) &&
+    String(req && req.headers && req.headers["x-uj-local-preview"] || "") === "1" &&
+    /^Bearer\s+local-preview$/i.test(String(req && req.headers && req.headers.authorization || ""));
 }
 
 async function handler(req, res) {
@@ -61,7 +73,9 @@ async function handler(req, res) {
     cfg = { url: lokalniUrl, serviceKey: lokalniAnonKljuc };
   }
 
-  var auth = await db.preveriUporabnika(req, cfg);
+  var auth = jeLokalniPredogled(req)
+    ? { ok: true, token: "", user: { id: "00000000-0000-0000-0000-000000000001" } }
+    : await db.preveriUporabnika(req, cfg);
   if (!auth.ok) return odgovorJson(res, auth.status, {
     ok: false,
     code: auth.code || "AUTH_FAILED",
@@ -94,6 +108,23 @@ async function handler(req, res) {
     }
 
     var id = pridobiId(req);
+    var profileId = pridobiProfileId(req);
+    if (!id && profileId) {
+      if (!/^[0-9a-f-]{36}$/i.test(profileId)) {
+        return odgovorJson(res, 400, { ok: false, napaka: "Manjka veljaven profil preverjanja." });
+      }
+      var profileCfg = cfg.isService === true ? cfg : Object.assign({}, cfg, {
+        publicKey: String(process.env.SUPABASE_ANON_KEY || cfg.publicKey || cfg.serviceKey || ""),
+        userToken: auth.token,
+        isService: false,
+        forceRemoteQueue: true,
+      });
+      var profile = await profileStore.getProfile(profileCfg, auth.user.id, profileId);
+      if (!profile) return odgovorJson(res, 404, { ok: false, napaka: "Profil ni bil najden." });
+      var profileJob = await queue.pridobiNajnovejseZaProfil(profileCfg, auth.user.id, profile);
+      if (!profileJob) return odgovorJson(res, 404, { ok: false, napaka: "Dokazno preverjanje za ta profil ni bilo najdeno." });
+      return odgovorJson(res, 200, { ok: true, job: profileJob });
+    }
     if (!id) {
       var aktivnaOpravila = await queue.seznamAktivnih(cfg, auth.user.id);
       return odgovorJson(res, 200, { ok: true, jobs: aktivnaOpravila });
@@ -117,7 +148,9 @@ async function handler(req, res) {
 module.exports = sentry.wrapHandler(handler, "/api/mehka-boniteta-opravilo");
 module.exports._test = {
   pridobiId: pridobiId,
+  pridobiProfileId: pridobiProfileId,
   pridobiLokalnoDomeno: pridobiLokalnoDomeno,
   pridobiLokalnoPreglednoDomeno: pridobiLokalnoPreglednoDomeno,
   jeLokalnaZahteva: jeLokalnaZahteva,
+  jeLokalniPredogled: jeLokalniPredogled,
 };

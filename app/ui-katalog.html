@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light only" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <title>UI katalog – Uspešni Ježek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="ui-katalog.css?v=20260826-v7" />
+  </head>
+  <body>
+    <header class="katalog-topbar">
+      <a href="index.html" aria-label="Nazaj v aplikacijo">← Nazaj</a>
+      <span>Razvojni pregled</span>
+    </header>
+
+    <aside class="father-widget" id="father-widget" aria-live="polite" hidden>
+      <header class="father-widget__glava"><strong>FATHERJI</strong><span id="father-widget-mode">Klikni FATHER za dodajanje</span></header>
+      <div class="father-widget__seznam" id="father-widget-list"></div>
+      <button class="father-widget__ustavi" id="father-widget-stop" type="button">Končaj dodajanje</button>
+    </aside>
+
+    <main class="katalog" id="katalog">
+      <section class="katalog-uvod" aria-labelledby="katalog-naslov">
+        <p class="katalog-kicker">Uspešni Ježek · UI referenca</p>
+        <h1 id="katalog-naslov">Ikone in oblikovni jezik</h1>
+        <p>Živ inventurni pregled dejanskih virov v <code>app/</code>. Zelena oznaka <strong>USKLAJENO</strong> pomeni, da je bila prejšnja odločitev OFF že uporabljena v izvorni kodi. Znova označite samo ikone, ki tudi po uskladitvi še niso prave.</p>
+        <div class="katalog-uskladitev" id="katalog-uskladitev" hidden></div>
+        <div class="katalog-povzetki" id="katalog-povzetki" aria-live="polite"></div>
+      </section>
+
+      <section class="druzine" aria-labelledby="druzine-naslov">
+        <div class="odsek-stevilka" aria-hidden="true">01</div>
+        <div class="odsek-vsebina">
+          <p class="katalog-kicker">Razvrščeno po dejanski grafiki, ne po besedah</p>
+          <h2 id="druzine-naslov">Grafične skupine ikon</h2>
+          <p class="druzine-uvod">Skupine nastanejo iz dejanske SVG geometrije, smeri poti, fill/stroke in izrisanega znaka. Pri vsaki ikoni lahko spremeniš <strong>številko skupine</strong>; enaka številka pomeni isto skupino. Nato klikni <strong>FATHER</strong> pri grafiki, po kateri naj se pozneje oblikujejo vse ostale v tej skupini.</p>
+          <div class="druzine-povzetek" id="druzine-povzetek"></div>
+          <div class="druzine-orodja">
+            <label><span>Iskanje grafike ali številke</span><input id="druzine-iskanje" type="search" placeholder="Kljukica, ime ikone, skupina 12 …" autocomplete="off" /></label>
+            <label><span>Prikaz</span><select id="druzine-prikaz"><option value="multi" selected>Skupine z različicami</option><option value="all">Vse skupine</option><option value="single">Samo samostojne</option></select></label>
+            <label><span>Izbira</span><select id="druzine-izbira"><option value="">Vse</option><option value="pending">Čaka FATHER</option><option value="selected">FATHER izbran</option></select></label>
+            <div class="druzine-akcije">
+              <button type="button" id="druzine-izvozi">Izvozi skupine in FATHER</button>
+              <button type="button" id="druzine-uvozi">Uvozi izbiro</button>
+              <input id="druzine-uvoz-datoteka" type="file" accept="application/json,.json" hidden />
+              <button type="button" id="druzine-pocisti" class="je-nezen">Počisti skupine/FATHER</button>
+            </div>
+          </div>
+          <p class="druzine-stevec" id="druzine-stevec" aria-live="polite"></p>
+          <div class="druzine-seznam" id="druzine-seznam"></div>
+        </div>
+      </section>
+
+      <section class="katalog-orodja" aria-label="Iskanje in filtri">
+        <label class="katalog-iskanje">
+          <span>Iskanje</span>
+          <input id="iskanje" type="search" placeholder="Ime, datoteka, stran ali kontekst …" autocomplete="off" />
+        </label>
+        <label><span>Tip</span><select id="filter-tip"><option value="">Vsi tipi</option><option value="svg">SVG</option><option value="symbol">Unicode/emoji</option><option value="image">Slika</option><option value="pseudo">CSS pseudo-element</option></select></label>
+        <label><span>Obseg</span><select id="filter-obseg"><option value="active" selected>Aktivne ikone</option><option value="canonical">Samo register</option><option value="illustration">Ilustracije in grafike</option><option value="orphan">Nepovezani / stari viri</option><option value="">Vse zaznano</option></select></label>
+        <label><span>Stanje</span><select id="filter-odlocitev"><option value="">Vsa stanja</option><option value="resolved">Usklajeno</option><option value="unreviewed">Neoznačeno</option><option value="ok">OK</option><option value="off">OFF / za uskladitev</option></select></label>
+        <label><span>Stran</span><select id="filter-stran"><option value="">Vse strani</option></select></label>
+        <div class="katalog-akcije">
+          <button type="button" id="izvozi">Izvozi JSON</button>
+          <button type="button" id="uvozi">Uvozi JSON</button>
+          <input id="uvoz-datoteka" type="file" accept="application/json,.json" hidden />
+          <button type="button" id="pocisti" class="je-nezen">Počisti oznake</button>
+        </div>
+      </section>
+
+      <section class="oblikovni-jezik" aria-labelledby="oblikovni-naslov">
+        <div class="odsek-stevilka" aria-hidden="true">02</div>
+        <div class="odsek-vsebina">
+          <p class="katalog-kicker">Kanonična pravila iz dejanskih CSS komponent</p>
+          <h2 id="oblikovni-naslov">Oblikovni jezik</h2>
+          <div class="pravila-mreza">
+            <article class="pravilo-kartica">
+              <h3>Line ikone</h3>
+              <div class="ikona-velikosti" id="kanonicne-ikone"></div>
+              <p>Za redne in ponavljajoče se UI-ikone: pogled 24×24, <code>currentColor</code>, <code>fill="none"</code>, 2 px ter zaobljeni zaključki in spoji. Prikazne velikosti so 14, 18 in 22 px. Posebne CTA-, statusne in ilustrativne grafike se uskladijo šele po izrecni odločitvi.</p>
+            </article>
+            <article class="pravilo-kartica">
+              <h3>Barve</h3>
+              <div class="barvni-vzorci">
+                <span style="--vzorec:#2f3736">Besedilo <b>#2f3736</b></span>
+                <span style="--vzorec:#3f9998">Native turkizna <b>#3f9998</b></span>
+                <span style="--vzorec:#567392">Drugo <b>#567392</b></span>
+                <span style="--vzorec:#6941b4">Odvetnik <b>#6941b4</b></span>
+              </div>
+            </article>
+            <article class="pravilo-kartica pravilo-kartica--gradient">
+              <h3>Nežen gradient in okvir</h3>
+              <p>Mehak prehod 145°, enopikselski barvni okvir, brez težke sence. Radiji 11, 16 in 18 px sledijo obstoječim karticam.</p>
+            </article>
+            <article class="pravilo-kartica pravilo-kartica--izbrana">
+              <h3>Izbrano stanje</h3>
+              <p>Izbrana kartica dobi jasen 2 px okvir lastne barve. Ikona, odprte podrobnosti in dodani dogodek uporabljajo isto barvo.</p>
+            </article>
+          </div>
+          <div class="prepovedani-vzorci"><strong>Ne uporabljaj:</strong> polnih dekorativnih krogov za line ikone, vijolične zunaj odvetniškega toka, turkizne za »Drugo / opiši sam«, neusklajene barve ikone in izbrane kartice ali privzetega modrega focus ringa.</div>
+        </div>
+      </section>
+
+      <section class="inventurna-glava" aria-labelledby="inventurna-naslov">
+        <div class="odsek-stevilka" aria-hidden="true">03</div>
+        <div class="odsek-vsebina">
+          <p class="katalog-kicker">Ponovljiva inventura</p>
+          <h2 id="inventurna-naslov">Vse zaznane ikone</h2>
+          <p id="rezultat-stevec" aria-live="polite"></p>
+        </div>
+      </section>
+      <div class="ikone-mreza" id="ikone-mreza"></div>
+      <p class="katalog-prazno" id="katalog-prazno" hidden>Za izbrane filtre ni zadetkov.</p>
+    </main>
+
+    <template id="ikona-predloga">
+      <article class="ikona-kartica">
+        <div class="ikona-predogled" aria-hidden="true"></div>
+        <div class="ikona-vsebina">
+          <div class="ikona-naslovna-vrstica"><h3></h3><div class="ikona-oznake"><span class="ikona-status" hidden></span><span class="ikona-tip"></span></div></div>
+          <p class="ikona-geometrija"></p>
+          <p class="ikona-viri"></p>
+          <details><summary>Pojavitve in kontekst</summary><div class="ikona-pojavitve"></div></details>
+          <div class="ikona-odlocitev" role="group" aria-label="Ocena ikone">
+            <button type="button" data-decision="ok">OK</button>
+            <button type="button" data-decision="off">OFF / za uskladitev</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <template id="druzina-predloga">
+      <article class="druzina-kartica">
+        <header class="druzina-glava">
+          <div><p class="druzina-meta"></p><h3></h3><p class="druzina-opis"></p></div>
+          <span class="druzina-stanje">ČAKA FATHER</span>
+        </header>
+        <div class="druzina-razlicice" role="radiogroup"></div>
+      </article>
+    </template>
+
+    <template id="druzina-razlicica-predloga">
+      <article class="druzina-razlicica">
+        <span class="druzina-razlicica__predogled" aria-hidden="true"></span>
+        <span class="druzina-razlicica__vsebina"><strong></strong><small></small><span class="druzina-razlicica__oznaka"></span></span>
+        <div class="druzina-razlicica__kontrole">
+          <label><span>Št. skupine</span><input class="druzina-stevilka-vnos" type="number" min="1" max="9999" step="1" inputmode="numeric" /></label>
+          <button class="druzina-father" type="button">FATHER</button>
+        </div>
+        <details class="druzina-razlicica__zakaj"><summary>Zakaj je uporabljena</summary><div class="druzina-razlicica__pojavitve"></div></details>
+      </article>
+    </template>
+
+    <script src="izvedba-komponente.js?v=20260826-ui-katalog-v1"></script>
+    <script src="ui-katalog.js?v=20260826-v7"></script>
+  </body>
+</html>

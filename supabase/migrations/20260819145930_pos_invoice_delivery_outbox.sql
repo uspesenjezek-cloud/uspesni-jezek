@@ -4,7 +4,6 @@
 alter table public.pos_business_profiles
   add column previous_year_turnover_band text not null default 'unknown'
   check (previous_year_turnover_band in ('unknown','lte_800k','gt_800k'));
-
 create table public.pos_invoice_deliveries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -31,7 +30,6 @@ create table public.pos_invoice_deliveries (
   updated_at timestamptz not null default now(),
   unique (user_id, request_key)
 );
-
 create index pos_invoice_deliveries_user_created_idx
   on public.pos_invoice_deliveries(user_id, created_at desc);
 create index pos_invoice_deliveries_invoice_created_idx
@@ -39,7 +37,6 @@ create index pos_invoice_deliveries_invoice_created_idx
 create index pos_invoice_deliveries_status_idx
   on public.pos_invoice_deliveries(status, created_at)
   where status in ('queued','failed');
-
 create table public.pos_invoice_delivery_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -48,38 +45,30 @@ create table public.pos_invoice_delivery_events (
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
-
 create index pos_invoice_delivery_events_user_created_idx
   on public.pos_invoice_delivery_events(user_id, created_at desc);
 create index pos_invoice_delivery_events_delivery_created_idx
   on public.pos_invoice_delivery_events(delivery_id, created_at);
-
 alter table public.pos_invoice_deliveries enable row level security;
 alter table public.pos_invoice_delivery_events enable row level security;
-
 revoke all on table public.pos_invoice_deliveries, public.pos_invoice_delivery_events
   from public, anon, authenticated;
 grant select on table public.pos_invoice_deliveries, public.pos_invoice_delivery_events
   to authenticated;
 grant all on table public.pos_invoice_deliveries, public.pos_invoice_delivery_events
   to service_role;
-
 create policy pos_invoice_deliveries_select_own on public.pos_invoice_deliveries
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
-
 create policy pos_invoice_delivery_events_select_own on public.pos_invoice_delivery_events
   for select to authenticated
   using ((select auth.uid()) is not null and (select auth.uid()) = user_id);
-
 create trigger pos_invoice_deliveries_updated_at
 before update on public.pos_invoice_deliveries
 for each row execute function private.pos_set_updated_at();
-
 create trigger pos_invoice_delivery_events_immutable
 before update or delete on public.pos_invoice_delivery_events
 for each row execute function private.pos_prevent_invoice_mutation();
-
 create or replace function private._pos_prepare_invoice_delivery(
   p_invoice_id uuid,
   p_request_key uuid,
@@ -229,7 +218,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function public.pos_prepare_invoice_delivery(
   p_invoice_id uuid,
   p_request_key uuid,
@@ -260,7 +248,6 @@ as $$
     p_confirmed
   );
 $$;
-
 revoke all on function private._pos_prepare_invoice_delivery(uuid,uuid,text,text,text,text,text,text,boolean,boolean)
   from public, anon;
 revoke all on function public.pos_prepare_invoice_delivery(uuid,uuid,text,text,text,text,text,text,boolean,boolean)
@@ -269,5 +256,4 @@ grant execute on function private._pos_prepare_invoice_delivery(uuid,uuid,text,t
   to authenticated, service_role;
 grant execute on function public.pos_prepare_invoice_delivery(uuid,uuid,text,text,text,text,text,text,boolean,boolean)
   to authenticated, service_role;
-
 notify pgrst, 'reload schema';

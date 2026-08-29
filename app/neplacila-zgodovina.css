@@ -1,0 +1,2183 @@
+.stran--neplacila-zgodovina {
+  --zgodovina-delno-rgb: 23, 157, 164;
+  --zgodovina-placano-v-celoti-rgb: 34, 151, 105;
+  --zgodovina-obrok-rgb: 51, 137, 229;
+  --zgodovina-dogovor-obroki-rgb: 85, 106, 183;
+  --zgodovina-neplacan-obrok-rgb: 222, 79, 69;
+  --zgodovina-preostanek-rgb: 185, 61, 76;
+  --zgodovina-obljuba-rgb: 241, 112, 18;
+  --zgodovina-podaljsanje-rgb: 180, 115, 46;
+  --zgodovina-opomin-rgb: 201, 151, 26;
+  --zgodovina-dobropis-rgb: 151, 145, 30;
+  --zgodovina-kompenzacija-rgb: 86, 160, 94;
+  --zgodovina-storno-rgb: 157, 65, 75;
+  --zgodovina-neuspesno-placilo-rgb: 224, 100, 75;
+  --zgodovina-ugovor-rgb: 205, 129, 36;
+  --zgodovina-izjava-rgb: 66, 124, 154;
+  --zgodovina-insolventnost-rgb: 89, 103, 112;
+  --zgodovina-drugo-rgb: 86, 115, 146;
+  min-height: 100vh;
+  background: #fbfcfb;
+  color: #172f2d;
+}
+
+.zgodovina-zamenjava__opis {
+  margin: 0;
+  color: #5f6b69;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.zgodovina-zamenjava__vrstica {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.zgodovina-zamenjava__akcije {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.zgodovina-zamenjava__potrdi,
+.zgodovina-zamenjava__preklic {
+  min-height: 38px;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.zgodovina-zamenjava__potrdi {
+  min-width: 92px;
+  padding: 0 15px;
+  border: 1px solid #3f9998;
+  color: #fff;
+  background: linear-gradient(180deg, #55aaa9 0%, #3f9998 100%);
+  box-shadow: 0 6px 16px rgba(63, 153, 152, .18);
+}
+
+.zgodovina-zamenjava__preklic {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  padding: 0;
+  border: 1px solid rgba(47, 55, 54, .14);
+  color: #52605e;
+  background: rgba(255, 255, 255, .82);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.zgodovina-zamenjava__potrdi:disabled {
+  cursor: default;
+  opacity: .45;
+  box-shadow: none;
+}
+
+.zgodovina-zamenjava__potrdi:focus-visible,
+.zgodovina-zamenjava__preklic:focus-visible {
+  outline: 2px solid rgba(63, 153, 152, .34);
+  outline-offset: 2px;
+}
+
+@media (max-width: 430px) {
+  .zgodovina-zamenjava__potrdi {
+    min-width: 84px;
+    padding-inline: 12px;
+  }
+}
+
+/* Na 3. koraku naj se pod vsebino ne pokaže turkizno ozadje statusne glave. */
+html.wizard-goal-page {
+  background-color: #fbfcfb;
+}
+
+.zgodovina-shell {
+  width: min(100%, 430px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: max(10px, env(safe-area-inset-top, 0px)) 7px 26px;
+  box-sizing: border-box;
+}
+
+/* iOS lahko vsebino pri drsenju riše pod prosojno statusno vrstico. Ta plast
+   ohrani sistemsko območje čisto, dejanski odmik pa še vedno poda safe-area. */
+@supports (height: env(safe-area-inset-top, 0px)) {
+  html:not(.app-iphone-preview) body.stran--neplacila-zgodovina.wizard-status-header::before {
+    content: "" !important;
+    display: block !important;
+    width: 100% !important;
+    height: env(safe-area-inset-top, 0px) !important;
+    background: #fbfcfb !important;
+  }
+
+  html:not(.app-iphone-preview) .stran--neplacila-zgodovina .zgodovina-shell::before {
+    content: "";
+    position: fixed;
+    z-index: 9999;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    background: #fbfcfb;
+    pointer-events: none;
+  }
+}
+
+.zgodovina-vsebina { margin-top: 10px; }
+
+.zgodovina-ocena {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+}
+
+.stran--neplacila-zgodovina .zgodovina-ocena__gumb {
+  --svicer-rgb: 41, 163, 162;
+  width: calc((100% - 14px) / 3);
+  min-width: 0;
+  min-height: 66px;
+}
+
+.stran--neplacila-zgodovina .zgodovina-ocena__gumb .izvedba-poravnava-svicer__ikona svg {
+  width: 23px;
+  height: 23px;
+}
+
+.zgodovina-ocena__vprasanja {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid rgba(41, 163, 162, 0.28);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(41, 163, 162, 0.065), rgba(41, 163, 162, 0.015));
+}
+
+.zgodovina-ocena__vprasanja .ocena-tveganja__vprasanje {
+  margin: 0 0 7px;
+  font-size: 12px;
+}
+
+.zgodovina-ocena__dodatna {
+  display: grid;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(41, 163, 162, 0.18);
+}
+
+.zgodovina-ocena__izbrano {
+  margin: 0;
+  color: #168e94;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.zgodovina-ocena__shrani {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 1px;
+}
+
+.zgodovina-ocena__dodatna .ocena-sheet__vprasanje-blok,
+.zgodovina-ocena__dodatna .ocena-sheet__da-ne,
+.zgodovina-ocena__dodatna .ocena-sheet__da-ne-gumb {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.zgodovina-ocena__dodatna[hidden],
+.zgodovina-ocena__vprasanja[hidden] {
+  display: none !important;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja {
+  margin: 0 0 10px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina {
+  padding: 10px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__locilo {
+  margin: 8px 0 7px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__vprasanje {
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__vrstica {
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje {
+  grid-template-columns: 25px minmax(0, 1fr) 16px;
+  grid-template-rows: 25px 20px 15px;
+  gap: 0 5px;
+  min-height: 70px;
+  padding: 4px 7px 3px;
+  border-color: #d4e5e2;
+  border-radius: 11px;
+  background: #f9fcfb;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-ikona {
+  grid-column: 1;
+  grid-row: 1;
+  width: 25px;
+  height: 25px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-ikona svg {
+  width: 13px;
+  height: 13px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-vsebina {
+  display: contents;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-vrednost[hidden],
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-kategorija[hidden] {
+  display: none !important;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-oznaka {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  width: auto;
+  min-height: 0;
+  font-size: 9.5px;
+  line-height: 1.15;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-vrednost:not([hidden]),
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-kategorija:not([hidden]) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: center;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #168e94;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-nastavitve {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-nastavitve svg {
+  width: 14px;
+  height: 14px;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-nastavi {
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  align-self: end;
+  width: 100%;
+  padding-top: 3px;
+  color: #168e94;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__polje-nastavi::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 15%;
+  width: 70%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(87, 116, 112, 0.16) 16%, rgba(87, 116, 112, 0.16) 84%, transparent 100%);
+}
+
+.stran--neplacila-zgodovina .ocena-tveganja--zgodovina .ocena-tveganja__indikator {
+  display: none;
+}
+.zgodovina-izvedba-scaffold { display: none !important; }
+
+.stran--neplacila-zgodovina .izvedba-action-sheet {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  display: block;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__backdrop,
+.stran--neplacila-zgodovina .izvedba-action-sheet__rocaj,
+.stran--neplacila-zgodovina .izvedba-action-sheet__zapri {
+  display: none;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__panel {
+  position: static;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 13px 10px 18px;
+  border: 1px solid #dce9e6;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(33, 77, 72, 0.07);
+  overflow: visible;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__header {
+  grid-template-columns: 31px minmax(0, 1fr);
+  gap: 7px;
+  margin: 0 2px 7px;
+  align-items: center;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__header.zgodovina-ai-glava--z-izbrisom {
+  grid-template-columns: 31px minmax(0, 1fr) auto;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__header-ikona,
+.stran--neplacila-zgodovina .izvedba-action-sheet__header-ikona svg {
+  width: 30px;
+  height: 30px;
+  color: #4d9b99;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__header h2 {
+  margin-bottom: 2px;
+  font-size: 18px;
+  line-height: 1.12;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__header p {
+  font-size: 11px;
+  line-height: 1.25;
+  color: #708582;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__scroll {
+  padding: 0;
+  overflow: visible;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga {
+  margin: 0 0 9px;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga__naslov {
+  margin: 0 0 4px;
+  color: #70817f;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga .izvedba-potek-zneski {
+  min-height: 50px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga .izvedba-potek-zneski__stolpec {
+  justify-content: center;
+  gap: 1px;
+  padding: 6px 10px;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga .izvedba-potek-zneski__locilo {
+  margin: 8px 0;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga .izvedba-potek-zneski__oznaka {
+  font-size: 8.5px;
+}
+
+.stran--neplacila-zgodovina .zgodovina-stanje-dolga .izvedba-potek-zneski__vrednost {
+  font-size: 16px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer {
+  display: grid;
+  grid-template-columns: none;
+  grid-template-rows: repeat(2, 66px);
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 14px) / 3);
+  gap: 7px;
+  padding: 1px 2px 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 2px;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer::-webkit-scrollbar { display: none; }
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb { scroll-snap-align: start; }
+.zgodovina-svicer__pikice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 8px;
+  margin: 5px 0 0;
+}
+
+.zgodovina-svicer__pikica {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c7d8d5;
+}
+
+.zgodovina-svicer__pikica.is-active {
+  width: 7px;
+  height: 7px;
+  background: #3f9998;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb:not(.izvedba-poravnava-svicer__gumb--drugo) {
+  min-height: 66px;
+  gap: 3px;
+  padding: 5px 3px;
+  border-width: 1px;
+  border-color: rgba(var(--svicer-rgb), .22);
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(var(--svicer-rgb), .075), rgba(var(--svicer-rgb), .018));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb:not(.izvedba-poravnava-svicer__gumb--drugo) span:last-child {
+  color: #2f3736;
+  font-size: 10.5px;
+  line-height: 12px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb:not(.izvedba-poravnava-svicer__gumb--drugo) .izvedba-poravnava-svicer__ikona {
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(var(--svicer-rgb), .88);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb:not(.izvedba-poravnava-svicer__gumb--drugo) .izvedba-poravnava-svicer__ikona svg {
+  width: 23px;
+  height: 23px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--delno {
+  --svicer-rgb: var(--zgodovina-delno-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--placano-v-celoti {
+  --svicer-rgb: var(--zgodovina-placano-v-celoti-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--obrok {
+  --svicer-rgb: var(--zgodovina-obrok-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--neplacan-obrok {
+  --svicer-rgb: var(--zgodovina-neplacan-obrok-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--akcija-obljuba {
+  --svicer-rgb: var(--zgodovina-obljuba-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--dobropis {
+  --svicer-rgb: var(--zgodovina-dobropis-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--kompenzacija {
+  --svicer-rgb: var(--zgodovina-kompenzacija-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--storno {
+  --svicer-rgb: var(--zgodovina-storno-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--neuspesno-placilo { --svicer-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--ugovor { --svicer-rgb: var(--zgodovina-ugovor-rgb); }
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--insolventnost { --svicer-rgb: var(--zgodovina-insolventnost-rgb); }
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--ocena { --svicer-rgb: 41, 163, 162; }
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--ocena {
+  --action-rgb: 41, 163, 162;
+  --action-accent: rgb(var(--action-rgb));
+}
+
+.zgodovina-ocena-panel__polje {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 9px;
+}
+
+.zgodovina-ocena-panel__polje > span {
+  color: #475d5a;
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.zgodovina-ocena-panel__izbire {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.zgodovina-ocena-panel__izbire::-webkit-scrollbar { display: none; }
+
+.zgodovina-ocena-panel__izbire button,
+.zgodovina-ocena-panel__da-ne button {
+  min-width: 0;
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid rgba(var(--action-rgb), .3);
+  border-radius: 10px;
+  color: #526764;
+  background: rgba(var(--action-rgb), .035);
+  font: 750 10px/1.15 Inter, sans-serif;
+}
+
+.zgodovina-ocena-panel__izbire button {
+  flex: 0 0 43px;
+  padding: 6px 7px;
+}
+
+.zgodovina-ocena-panel__izbire button:first-child { flex-basis: 70px; }
+.zgodovina-ocena-panel__izbire button:nth-child(2) { flex-basis: 48px; }
+
+.zgodovina-ocena-panel__izbire button.is-selected,
+.zgodovina-ocena-panel__da-ne button.is-selected {
+  border-width: 2px;
+  border-color: rgb(var(--action-rgb));
+  color: rgb(var(--action-rgb));
+  background: rgba(var(--action-rgb), .1);
+}
+
+.zgodovina-ocena-panel__dodatna {
+  display: grid;
+  gap: 8px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(var(--action-rgb), .18);
+}
+
+.zgodovina-ocena-panel__dodatna .zgodovina-ocena-panel__polje { margin-top: 0; }
+
+.zgodovina-ocena-panel__da-ne {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+.zgodovina-ocena-panel__shrani { margin-top: 10px; }
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--delno {
+  --action-rgb: var(--zgodovina-delno-rgb);
+  --action-accent: rgb(var(--zgodovina-delno-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--placano-v-celoti {
+  --action-rgb: var(--zgodovina-placano-v-celoti-rgb);
+  --action-accent: rgb(var(--zgodovina-placano-v-celoti-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--obrok {
+  --action-rgb: var(--zgodovina-obrok-rgb);
+  --action-accent: rgb(var(--zgodovina-obrok-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--neplacan-obrok {
+  --action-rgb: var(--zgodovina-neplacan-obrok-rgb);
+  --action-accent: rgb(var(--zgodovina-neplacan-obrok-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--akcija-obljuba {
+  --action-rgb: var(--zgodovina-obljuba-rgb);
+  --action-accent: rgb(var(--zgodovina-obljuba-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--dobropis {
+  --action-rgb: var(--zgodovina-dobropis-rgb);
+  --action-accent: rgb(var(--zgodovina-dobropis-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--kompenzacija {
+  --action-rgb: var(--zgodovina-kompenzacija-rgb);
+  --action-accent: rgb(var(--zgodovina-kompenzacija-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--storno {
+  --action-rgb: var(--zgodovina-storno-rgb);
+  --action-accent: rgb(var(--zgodovina-storno-rgb));
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--neuspesno-placilo { --action-rgb: var(--zgodovina-neuspesno-placilo-rgb); --action-accent: rgb(var(--zgodovina-neuspesno-placilo-rgb)); }
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--ugovor { --action-rgb: var(--zgodovina-ugovor-rgb); --action-accent: rgb(var(--zgodovina-ugovor-rgb)); }
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--insolventnost { --action-rgb: var(--zgodovina-insolventnost-rgb); --action-accent: rgb(var(--zgodovina-insolventnost-rgb)); }
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--delno,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--partial {
+  --korak-accent: rgb(var(--zgodovina-delno-rgb));
+  --korak-accent-rgb: var(--zgodovina-delno-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--placano-v-celoti {
+  --korak-accent: rgb(var(--zgodovina-placano-v-celoti-rgb));
+  --korak-accent-rgb: var(--zgodovina-placano-v-celoti-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--obrok,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--installment {
+  --korak-accent: rgb(var(--zgodovina-obrok-rgb));
+  --korak-accent-rgb: var(--zgodovina-obrok-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--neplacan-obrok {
+  --korak-accent: rgb(var(--zgodovina-neplacan-obrok-rgb));
+  --korak-accent-rgb: var(--zgodovina-neplacan-obrok-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--obljuba {
+  --korak-accent: rgb(var(--zgodovina-obljuba-rgb));
+  --korak-accent-rgb: var(--zgodovina-obljuba-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--dobropis,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--credit_note {
+  --korak-accent: rgb(var(--zgodovina-dobropis-rgb));
+  --korak-accent-rgb: var(--zgodovina-dobropis-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--kompenzacija,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--compensation {
+  --korak-accent: rgb(var(--zgodovina-kompenzacija-rgb));
+  --korak-accent-rgb: var(--zgodovina-kompenzacija-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--storno,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--cancelled_invoice {
+  --korak-accent: rgb(var(--zgodovina-storno-rgb));
+  --korak-accent-rgb: var(--zgodovina-storno-rgb);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--neuspesno-placilo { --korak-accent: rgb(var(--zgodovina-neuspesno-placilo-rgb)); --korak-accent-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--ugovor { --korak-accent: rgb(var(--zgodovina-ugovor-rgb)); --korak-accent-rgb: var(--zgodovina-ugovor-rgb); }
+.stran--neplacila-zgodovina .izvedba-poravnava-korak--insolventnost { --korak-accent: rgb(var(--zgodovina-insolventnost-rgb)); --korak-accent-rgb: var(--zgodovina-insolventnost-rgb); }
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb:not(.izvedba-poravnava-svicer__gumb--drugo).is-selected {
+  border-width: 2px;
+  border-color: rgb(var(--svicer-rgb));
+  background: linear-gradient(145deg, rgba(var(--svicer-rgb), .14), rgba(var(--svicer-rgb), .035));
+  box-shadow: 0 0 0 1px rgba(var(--svicer-rgb), .08), 0 3px 9px rgba(22, 58, 54, .05);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-cona:has(.izvedba-poravnava-svicer) {
+  margin-bottom: 7px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-potek__prazno {
+  margin-block: 10px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--drugo {
+  --svicer-rgb: 82, 111, 145;
+  grid-column: auto;
+  min-height: 66px;
+  padding: 5px 3px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  border-width: 1px;
+  border-color: rgba(82, 111, 145, 0.34);
+  border-radius: 11px;
+  background: linear-gradient(145deg, #edf3f9, #fafcff);
+  color: #526f91;
+  box-shadow: none;
+}
+
+.zgodovina-neplacan-obrok__polja { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
+.zgodovina-neplacan-obrok__polja > label { display: grid; gap: 5px; min-width: 0; color: #5d7471; font-size: 9px; font-weight: 700; }
+.zgodovina-neplacan-obrok__polja input { width: 100%; min-width: 0; min-height: 44px; padding: 9px 10px; border: 1px solid rgba(var(--zgodovina-neplacan-obrok-rgb), .45); border-radius: 11px; box-sizing: border-box; color: #2f3736; background: #fff; font: 700 16px/1.2 Inter, sans-serif; }
+.zgodovina-neplacan-obrok__datum { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; min-width: 0; }
+.zgodovina-neplacan-obrok__datum button { min-width: 62px; min-height: 44px; padding: 0 9px; border: 1px solid rgba(var(--zgodovina-neplacan-obrok-rgb), .45); border-radius: 11px; color: rgb(var(--zgodovina-neplacan-obrok-rgb)); background: #fff8f7; font: 750 10px/1 Inter, sans-serif; }
+.zgodovina-neplacan-obrok__datum button.is-selected { color: #fff; background: rgb(var(--zgodovina-neplacan-obrok-rgb)); }
+.zgodovina-neplacan-obrok__datum input:disabled { color: #8a9b98; background: #f2f6f5; opacity: 1; }
+
+.zgodovina-dogodek__izbire { display: flex; gap: 6px; margin-bottom: 9px; }
+.zgodovina-dogodek__izbire button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 6px 7px; border: 1px solid rgba(var(--action-rgb), .3); border-radius: 10px; color: #526764; background: rgba(var(--action-rgb), .035); font: 750 9px/1.15 Inter, sans-serif; }
+.zgodovina-dogodek__izbire button.is-selected { border-width: 2px; border-color: rgb(var(--action-rgb)); color: rgb(var(--action-rgb)); background: rgba(var(--action-rgb), .1); }
+.zgodovina-dogodek__polja { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; min-width: 0; }
+.zgodovina-dogodek__polje { display: grid; align-content: start; gap: 5px; min-width: 0; color: #5d7471; font-size: 9px; font-weight: 700; }
+.zgodovina-dogodek__polje--polno { grid-column: 1 / -1; }
+.zgodovina-dogodek__polje > span:first-child small { color: #8a9b98; font-size: 8px; font-weight: 600; }
+.zgodovina-dogodek__polje input,
+.zgodovina-dogodek__polje select,
+.zgodovina-dogodek__polje textarea { width: 100%; min-width: 0; min-height: 44px; padding: 9px 10px; border: 1px solid rgba(var(--action-rgb), .34); border-radius: 11px; box-sizing: border-box; color: #2f3736; background: #fff; font: 700 16px/1.2 Inter, sans-serif; }
+.zgodovina-dogodek__polje select { height: 44px; padding: 0 36px 0 11px; appearance: none; -webkit-appearance: none; font-size: 12px; line-height: 44px; }
+.zgodovina-kontrolnik__select { position: relative; display: block; min-width: 0; }
+.zgodovina-kontrolnik__select-gumb,
+.zgodovina-kontrolnik__select-seznam { display: none; }
+
+@media all {
+  .zgodovina-kontrolnik__native {
+    position: absolute;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 1px !important;
+    margin: -1px;
+    padding: 0 !important;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .zgodovina-kontrolnik__select-gumb {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 10px 0 11px;
+    border: 1px solid rgba(var(--action-rgb), .34);
+    border-radius: 11px;
+    color: #2f3736;
+    background: #fff;
+    font: 700 12px/1.2 Inter, sans-serif;
+    text-align: left;
+  }
+  .zgodovina-kontrolnik__select-gumb svg {
+    flex: 0 0 17px;
+    width: 17px;
+    height: 17px;
+    color: rgb(var(--action-rgb));
+    transform: rotate(90deg);
+    transition: transform 160ms ease;
+  }
+  .zgodovina-kontrolnik__select.is-open { z-index: 40; }
+  .zgodovina-kontrolnik__select.is-open .zgodovina-kontrolnik__select-gumb {
+    border-color: rgb(var(--action-rgb));
+    box-shadow: 0 0 0 2px rgba(var(--action-rgb), .12);
+  }
+  .zgodovina-kontrolnik__select.is-open .zgodovina-kontrolnik__select-gumb svg { transform: rotate(-90deg); }
+  .zgodovina-kontrolnik__select-seznam {
+    position: absolute;
+    z-index: 40;
+    right: 0;
+    bottom: calc(100% + 6px);
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
+    border: 1px solid rgba(var(--action-rgb), .25);
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(28, 67, 63, .16);
+  }
+  .zgodovina-kontrolnik__select-seznam[hidden] { display: none; }
+  .zgodovina-kontrolnik__select-seznam button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 7px 9px;
+    border: 1px solid rgba(var(--action-rgb), .2);
+    border-radius: 10px;
+    color: #38514e;
+    background: rgba(255,255,255,.96);
+    font: 650 11px/1.2 Inter, sans-serif;
+    text-align: left;
+  }
+  .zgodovina-kontrolnik__select-seznam button span { min-width: 0; overflow-wrap: anywhere; }
+  .zgodovina-kontrolnik__select-seznam button svg { flex: 0 0 15px; width: 15px; height: 15px; color: transparent; }
+  .zgodovina-kontrolnik__select-seznam button.is-selected {
+    border-color: rgb(var(--action-rgb));
+    color: #fff;
+    background: rgb(var(--action-rgb));
+  }
+  .zgodovina-kontrolnik__select-seznam button.is-selected svg { color: currentColor; }
+}
+.zgodovina-dogodek__polje input:focus-visible,
+.zgodovina-dogodek__polje select:focus-visible,
+.zgodovina-dogodek__polje textarea:focus-visible,
+.zgodovina-neplacan-obrok__polja input:focus-visible { outline: 0; border-color: rgb(var(--action-rgb)); box-shadow: 0 0 0 2px rgba(var(--action-rgb), .15); }
+.zgodovina-dogodek__polje textarea { min-height: 68px; resize: vertical; font-size: 12px; line-height: 1.35; }
+.zgodovina-dogodek__datum { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 5px; min-width: 0; }
+.zgodovina-dogodek__datum button { min-width: 56px; min-height: 44px; padding: 0 7px; border: 1px solid rgba(var(--action-rgb), .34); border-radius: 11px; color: rgb(var(--action-rgb)); background: rgba(var(--action-rgb), .05); font: 750 9px/1 Inter, sans-serif; }
+.zgodovina-dogodek__datum button.is-selected { color: #fff; background: rgb(var(--action-rgb)); }
+.zgodovina-dogodek__datum input:disabled { color: #8a9b98; background: #f2f6f5; opacity: 1; }
+.zgodovina-dogodek__datum-priblizno { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0 11px; border: 1px solid rgba(var(--action-rgb), .34); border-radius: 11px; background: #fff; color: #173837; font: 600 12px/1.2 Inter, sans-serif; }
+.zgodovina-dogodek__polje > .izvedba-znesek { margin: 0; }
+.zgodovina-obroki__dogovor-meta { display: grid; gap: 9px; margin-bottom: 10px; }
+.zgodovina-obroki__dogovor-meta .zgodovina-dogodek__polje { min-width: 0; }
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__panel--poravnava-obrok .izvedba-poravnava-podrobnosti--obrok {
+  padding: 9px;
+  border: 1px solid rgba(var(--action-rgb, 51,137,229), .25);
+  border-radius: 16px;
+  background: linear-gradient(118deg, rgba(var(--action-rgb, 51,137,229), .06), rgba(var(--action-rgb, 51,137,229), .015));
+}
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--obrok > .izvedba-poravnava-podrobnosti__naslov {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0 0 7px;
+  padding-right: 50px;
+  box-sizing: border-box;
+}
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--obrok .zgodovina-dogodek__izbire { margin-bottom: 7px; }
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--obrok .zgodovina-obroki__dogovor-meta { gap: 6px; margin-bottom: 7px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__glava { margin: 5px 0 4px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__stevilke {
+  --zgodovina-obrok-pill: clamp(38px, calc((100% - 24px) / 7), 48px);
+  gap: 4px;
+  padding-bottom: 1px;
+}
+.stran--neplacila-zgodovina .izvedba-obrok-planer__stevilo-pill {
+  width: var(--zgodovina-obrok-pill);
+  min-width: var(--zgodovina-obrok-pill);
+  height: var(--zgodovina-obrok-pill);
+  min-height: var(--zgodovina-obrok-pill);
+  box-sizing: border-box;
+}
+.stran--neplacila-zgodovina .izvedba-obrok-planer__razmik { gap: 5px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__razmik-kartica { min-height: 44px; padding: 5px 9px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__razmik-kartica strong { font-size: 11px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__razmik-kartica small { font-size: 9px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__enakomerno { min-height: 44px; margin: 5px 0 7px; padding: 4px 10px; font-size: 11px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__enakomerno-ikona { width: 26px; height: 26px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstice { gap: 6px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica { padding: 5px 7px 7px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica-telo { padding-top: 4px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica .izvedba-poravnava-znesek-datum { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: stretch; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica .izvedba-znesek,
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum { width: 100%; min-width: 0; height: 44px; min-height: 44px; margin: 0; box-sizing: border-box; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica .izvedba-znesek__vnos,
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-vnos { width: 100%; height: 44px; min-height: 44px; padding-block: 0; border-width: 1px; border-radius: 11px; box-sizing: border-box; line-height: 42px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-vnos { padding-inline: 10px 7px; appearance: none; -webkit-appearance: none; font-size: 13px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-vnos::-webkit-date-and-time-value { min-width: 0; margin: 0; padding: 0; text-align: left; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-vnos::-webkit-calendar-picker-indicator { width: 18px; height: 18px; margin: 0; padding: 0; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-moznosti { gap: 5px; margin-top: 5px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-moznosti button,
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-priblizno { min-height: 44px; border-radius: 11px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__datum-priblizno { margin-top: 5px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__dodaj { min-height: 44px; margin-top: 6px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vsota { margin: 6px 0 2px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer > .izvedba-poravnava-dodaj-korak { min-height: 44px; margin-top: 6px; padding: 7px; }
+@media (max-width: 320px) {
+  .zgodovina-dogodek__datum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .zgodovina-dogodek__datum input { grid-column: 1 / -1; }
+  .stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica .izvedba-poravnava-znesek-datum { grid-template-columns: minmax(0, 1fr); }
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-poravnava-znesek-datum {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-obrok-planer__vrstica .izvedba-poravnava-znesek-datum {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+
+@media (max-width: 320px) {
+  .stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-obrok-planer__vrstica .izvedba-poravnava-znesek-datum {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-znesek,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-action-sheet__datum {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin-inline: 0;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-poravnava-dodaj-korak {
+  margin-top: 12px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--drugo .izvedba-poravnava-svicer__ikona {
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  background: transparent;
+  color: #567392;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--drugo .izvedba-poravnava-svicer__ikona svg {
+  width: 18px;
+  height: 18px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb--drugo.is-selected {
+  border-color: #526f91;
+  background: linear-gradient(145deg, #dfe9f4, #f1f5fa);
+}
+
+/* Enoten vizualni primitive za vse ročne kartice dogodkov. Poslovna polja
+   ostanejo specializirana; ta plast poenoti samo geometrijo in stanja. */
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti {
+  --zgodovina-control-height: 44px;
+  --zgodovina-control-radius: 11px;
+  padding: 9px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti__strni {
+  top: 6px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+  overflow: visible;
+  background: transparent;
+  line-height: 0;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__panel--poravnava-obrok .izvedba-poravnava-podrobnosti__strni {
+  top: 6px;
+  right: 6px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti__strni::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1.5px solid rgba(var(--action-rgb, 41,155,99), .35);
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,.78);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti__strni svg {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 14px;
+  height: 14px;
+  overflow: visible;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-segment,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-segment__gumb,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-znesek,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-znesek__vnos,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-action-sheet__datum,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-action-sheet__datum-gumb,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-poravnava__razlog-sprozi,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-poravnava__razlog-moznost,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .zgodovina-dogodek__izbire button,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .zgodovina-ocena-panel__izbire button,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .zgodovina-ocena-panel__da-ne button,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-poravnava-dodaj-korak,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .zgodovina-drugo__datum input {
+  min-height: var(--zgodovina-control-height);
+  box-sizing: border-box;
+  border-radius: var(--zgodovina-control-radius);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-segment {
+  height: var(--zgodovina-control-height);
+  padding: 0;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-segment__gumb {
+  height: var(--zgodovina-control-height);
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-znesek__vnos,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-action-sheet__datum-gumb {
+  height: var(--zgodovina-control-height);
+  padding-block: 0;
+  border-width: 1px;
+  line-height: 42px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input[type="date"],
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input[type="datetime-local"] {
+  width: 100%;
+  height: var(--zgodovina-control-height);
+  min-height: var(--zgodovina-control-height);
+  padding-block: 0;
+  box-sizing: border-box;
+  line-height: 42px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input[type="date"]::-webkit-date-and-time-value,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input[type="datetime-local"]::-webkit-date-and-time-value {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input[type="date"]::-webkit-calendar-picker-indicator,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti button:hover:not(:disabled) {
+  border-color: rgba(var(--action-rgb), .55);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti button:focus-visible,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti input:focus-visible,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti select:focus-visible,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti textarea:focus-visible {
+  outline: 0;
+  border-color: rgb(var(--action-rgb));
+  box-shadow: 0 0 0 2px rgba(var(--action-rgb), .15);
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti :disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .zgodovina-drugo__datum input {
+  height: var(--zgodovina-control-height);
+  padding-block: 0;
+}
+
+.stran--neplacila-zgodovina .izvedba-obrok-planer__vrstica-preklop,
+.stran--neplacila-zgodovina .izvedba-obrok-planer__odstrani,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak__odstrani,
+.stran--neplacila-zgodovina .zgodovina-ai__akcije button,
+.stran--neplacila-zgodovina .zgodovina-ai__potrdi {
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.stran--neplacila-zgodovina .izvedba-obrok-planer__odstrani,
+.stran--neplacila-zgodovina .izvedba-poravnava-korak__odstrani {
+  width: 44px;
+  height: 44px;
+  border-color: transparent;
+  background: radial-gradient(circle at center, #f3f7f6 0 14px, transparent 15px);
+}
+
+.zgodovina-drugo__polje {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid rgba(92, 116, 111, 0.32);
+  border-radius: 12px;
+  background: rgba(92, 116, 111, 0.04);
+  color: #172f2d;
+  font: 500 14px/1.42 Inter, sans-serif;
+}
+
+.zgodovina-drugo__datum {
+  display: grid;
+  gap: 5px;
+  margin-top: 9px;
+  color: #657a77;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.zgodovina-drugo__datum input {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid rgba(92, 116, 111, 0.25);
+  border-radius: 11px;
+  background: #fff;
+  color: #172f2d;
+  font: 600 14px Inter, sans-serif;
+}
+
+.zgodovina-nacina {
+  margin: 8px 0 10px;
+}
+
+.zgodovina-nacina__izbira {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.zgodovina-nacina__izbira button {
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 1px 7px;
+  min-width: 0;
+  min-height: 57px;
+  padding: 7px 8px;
+  border: 2px solid transparent;
+  border-radius: 13px;
+  color: #47615e;
+  background: linear-gradient(145deg, #f4f9f8, #fbfdfc);
+  box-sizing: border-box;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zgodovina-nacina__izbira button > span {
+  grid-row: 1 / -1;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  color: #3f9998;
+}
+
+.zgodovina-nacina__izbira button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.zgodovina-nacina__izbira button strong,
+.zgodovina-nacina__izbira button small {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.zgodovina-nacina__izbira button strong {
+  align-self: end;
+  color: #263f3d;
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.zgodovina-nacina__izbira button small {
+  align-self: start;
+  color: #7a8f8c;
+  font-size: 8.5px;
+  line-height: 1.15;
+}
+
+.zgodovina-nacina__izbira button.is-selected {
+  border-color: #4ca4a2;
+  background: linear-gradient(145deg, #e9f7f5, #f8fcfb);
+  box-shadow: 0 3px 10px rgba(35, 119, 115, .08);
+}
+
+.zgodovina-nacina__izbira button:focus-visible,
+.zgodovina-ai button:focus-visible,
+.zgodovina-ai textarea:focus-visible,
+.zgodovina-ai input:focus-visible {
+  outline: 0;
+  border-color: #3f9998;
+  box-shadow: 0 0 0 2px rgba(63, 153, 152, .16);
+}
+
+.zgodovina-nacina__rocno-opis {
+  margin: 0 2px 8px;
+  color: #728683;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.zgodovina-ai {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.zgodovina-ai__glava {
+  display: grid;
+  grid-template-columns: 29px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.zgodovina-ai__glava-ikona {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  color: #3f9998;
+}
+
+.zgodovina-ai__glava-ikona svg { width: 24px; height: 24px; }
+.zgodovina-ai__glava h3 { margin: 0 0 2px; color: #1e4542; font-size: 13px; line-height: 1.15; }
+.zgodovina-ai__glava p { margin: 0; color: #718582; font-size: 9.5px; line-height: 1.35; }
+
+.zgodovina-ai__vnos { display: block; }
+.zgodovina-ai__vnos textarea {
+  display: block;
+  width: 100%;
+  min-height: 91px;
+  max-height: none;
+  padding: 10px 11px;
+  resize: none;
+  overflow-y: hidden;
+  border: 1px solid #c8dcda;
+  border-radius: 12px;
+  box-sizing: border-box;
+  color: #263b39;
+  background: #fff;
+  font: 500 16px/1.42 Inter, sans-serif;
+}
+
+.zgodovina-ai__vnos textarea::placeholder { color: #93a3a0; }
+
+.zgodovina-ai__akcije {
+  display: grid;
+  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+  gap: 7px;
+  margin-top: 8px;
+  transition: grid-template-columns .468s cubic-bezier(.22, 1, .36, 1), gap .468s cubic-bezier(.22, 1, .36, 1);
+}
+.zgodovina-ai__akcije.is-analyzing { grid-template-columns: minmax(0, 0fr) minmax(0, 1fr); gap: 0; }
+.zgodovina-ai__akcije.is-recording {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0fr);
+  gap: 0;
+  transition-duration: .468s, .468s;
+}
+
+.zgodovina-ai__akcije button,
+.zgodovina-ai__potrdi {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid #8dc7c2;
+  border-radius: 12px;
+  font: 700 11px/1.2 Inter, sans-serif;
+  cursor: pointer;
+}
+
+.zgodovina-ai__snemaj {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 7px;
+  color: #137f7d;
+  background: #f4fbfa;
+  overflow: hidden;
+  transition: opacity .3s ease, transform .468s cubic-bezier(.22, 1, .36, 1), padding .468s cubic-bezier(.22, 1, .36, 1), border-width .2s ease, font-size .3s ease;
+}
+.zgodovina-ai__akcije.is-recording .zgodovina-ai__snemaj { font-size: 14px; }
+.zgodovina-ai__akcije.is-analyzing .zgodovina-ai__snemaj {
+  min-width: 0;
+  padding-inline: 0;
+  border-width: 0;
+  opacity: 0;
+  transform: translateX(-12px) scale(.96);
+  pointer-events: none;
+}
+.zgodovina-ai__akcije.is-recording .zgodovina-ai__razumi {
+  min-width: 0;
+  padding-inline: 0;
+  border-width: 0;
+  opacity: 0;
+  transform: translateX(12px) scale(.96);
+  transition-duration: .195s, .468s, .468s, .2s;
+  pointer-events: none;
+}
+
+.zgodovina-ai__snemaj svg { width: 17px; height: 17px; flex: 0 0 17px; }
+.zgodovina-ai__snemaj-napis {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+.zgodovina-ai__snemaj.is-recording {
+  padding-inline: 15px 52px;
+  border-color: #d84f49;
+  color: #fff;
+  background: linear-gradient(135deg, #ef665f, #cf3f3a);
+  box-shadow: 0 7px 18px rgba(207, 63, 58, .2);
+  transition-duration: .3s, .468s, .468s, .2s;
+}
+.zgodovina-ai__glasnost {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 27px;
+  height: 22px;
+  transform: translateY(-50%);
+}
+.zgodovina-ai__glasnost i {
+  display: block;
+  width: 3px;
+  height: calc(4px + 14px * var(--voice-bar, .12));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .95);
+  transition: height 70ms linear;
+}
+.zgodovina-ai__razumi,
+.zgodovina-ai__potrdi { padding: 0 10px; border-color: #168f91; color: #fff; background: linear-gradient(145deg, #2caaa7, #0e8a8e); }
+.zgodovina-ai__razumi {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  transition: opacity .3s ease, transform .72s cubic-bezier(.22, 1, .36, 1), padding .72s cubic-bezier(.22, 1, .36, 1), border-width .2s ease, font-size .3s ease;
+}
+.zgodovina-ai__akcije.is-analyzing .zgodovina-ai__razumi { font-size: 14px; }
+.zgodovina-ai__akcije.is-analyzing .zgodovina-ai__razumi:disabled {
+  opacity: 1;
+  background: linear-gradient(105deg, #229d9d 0%, #35aaa7 46%, #168d91 100%);
+  background-size: 180% 100%;
+  box-shadow: 0 7px 18px rgba(22, 143, 145, .2);
+  animation: atena-priprava-ozadje 2.4s ease-in-out infinite;
+}
+.zgodovina-ai__akcije.is-analyzing .zgodovina-ai__razumi .izvedba-sticky__loader {
+  position: absolute;
+  left: 14px;
+  flex: 0 0 auto;
+}
+.zgodovina-ai__razumi [data-ai-analyze-status] {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  padding-inline: 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  white-space: nowrap;
+}
+.zgodovina-ai__razumi [data-ai-analyze-status].is-changing { animation: atena-priprava-besedilo 1.05s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes atena-priprava-ozadje {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes atena-priprava-besedilo {
+  from { opacity: .2; transform: translateY(3px) scale(.82); letter-spacing: -.025em; }
+  to { opacity: 1; transform: translateY(0) scale(1); letter-spacing: .01em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zgodovina-ai__akcije,
+  .zgodovina-ai__snemaj,
+  .zgodovina-ai__razumi,
+  .zgodovina-ai__glasnost i { transition-duration: .01ms; }
+  .zgodovina-ai__akcije.is-analyzing .zgodovina-ai__razumi:disabled,
+  .zgodovina-ai__razumi [data-ai-analyze-status].is-changing { animation: none; }
+}
+.zgodovina-ai__akcije button:disabled,
+.zgodovina-ai__potrdi:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
+
+.zgodovina-ai__zasebnost {
+  margin: 7px 2px 0;
+  color: #7d908d;
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
+.zgodovina-ai__status {
+  margin: 8px 0 0;
+  padding: 8px 9px;
+  border-radius: 10px;
+  color: #476966;
+  background: #edf6f4;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.zgodovina-ai__status.is-error { color: #a3403a; background: #fff0ee; }
+.zgodovina-ai__status.is-ready { color: #187a67; background: #eaf7f1; }
+
+.zgodovina-ai-pojasnilo {
+  position: relative;
+  display: block;
+  padding: 10px;
+  border: 1px solid rgba(63, 153, 152, .22);
+  border-radius: 16px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, .98), rgba(244, 250, 248, .96));
+  box-shadow: 0 8px 22px rgba(39, 74, 69, .07), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+.zgodovina-ai-pojasnilo__ikona {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(63, 153, 152, .2);
+  border-radius: 50%;
+  color: #2f8f8d;
+  background: rgba(63, 153, 152, .11);
+  font: 750 14px/1 Inter, sans-serif;
+}
+.zgodovina-ai-pojasnilo__vsebina { min-width: 0; }
+.zgodovina-ai-pojasnilo__oznaka {
+  margin: 1px 0 3px 38px;
+  color: #4f817d;
+  font: 700 8px/1.2 Inter, sans-serif;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.zgodovina-ai-pojasnilo h3 {
+  min-height: 24px;
+  margin: 0 0 8px 38px;
+  color: #2f3736;
+  font: 700 13px/1.25 Inter, sans-serif;
+}
+.zgodovina-ai-pojasnilo textarea {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  max-height: 92px;
+  padding: 9px 11px;
+  resize: vertical;
+  border: 1px solid #c9dcda;
+  border-radius: 12px;
+  box-sizing: border-box;
+  color: #2f3736;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: inset 0 1px 2px rgba(42, 74, 69, .04);
+  font: 500 16px/1.35 Inter, sans-serif;
+}
+.zgodovina-ai-pojasnilo textarea:focus { border-color: rgba(63, 153, 152, .72); outline: 0; box-shadow: 0 0 0 3px rgba(63, 153, 152, .1); }
+.zgodovina-ai-pojasnilo__namig { margin: 4px 2px 0; color: #7a8e8b; font-size: 8px; line-height: 1.3; }
+.zgodovina-ai-pojasnilo__besedilo { margin: 0; color: #556d69; font-size: 11px; line-height: 1.45; }
+.zgodovina-ai-pojasnilo--izcrpano { border-color: rgba(190, 143, 45, .28); background: linear-gradient(155deg, #fffefa, #fff8ea); }
+.zgodovina-ai-pojasnilo--izcrpano .zgodovina-ai-pojasnilo__ikona { color: #8a6514; border-color: rgba(190, 143, 45, .2); background: rgba(234, 190, 91, .2); }
+.zgodovina-ai-pojasnilo__akcije { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.zgodovina-ai-pojasnilo__akcije button {
+  min-height: 36px;
+  margin: 0;
+  border: 1px solid rgba(63, 153, 152, .3);
+  border-radius: 10px;
+  color: #327f7c;
+  background: rgba(255, 255, 255, .78);
+  font: 700 10px/1.2 Inter, sans-serif;
+  cursor: pointer;
+}
+.zgodovina-ai-pojasnilo__akcije .zgodovina-ai__potrdi { color: #fff; border-color: #3f9998; background: linear-gradient(180deg, #45a3a1, #318e8e); box-shadow: 0 4px 10px rgba(49, 142, 142, .16); }
+.zgodovina-ai-pojasnilo__akcije button:disabled { cursor: not-allowed; opacity: .5; }
+.zgodovina-ai-pojasnilo .zgodovina-ai__status { margin-top: 7px; padding: 5px 7px; border-radius: 8px; font-size: 8px; line-height: 1.3; }
+
+.zgodovina-ai-pogovor { --vprasanje-rgb: 63, 153, 152; min-width: 0; }
+.zgodovina-ai-pogovor--delno { --vprasanje-rgb: var(--zgodovina-delno-rgb); }
+.zgodovina-ai-pogovor--placano-v-celoti { --vprasanje-rgb: var(--zgodovina-placano-v-celoti-rgb); }
+.zgodovina-ai-pogovor--obrok { --vprasanje-rgb: var(--zgodovina-obrok-rgb); }
+.zgodovina-ai-pogovor--dogovor-obroki { --vprasanje-rgb: var(--zgodovina-dogovor-obroki-rgb); }
+.zgodovina-ai-pogovor--neplacan-obrok { --vprasanje-rgb: var(--zgodovina-neplacan-obrok-rgb); }
+.zgodovina-ai-pogovor--preostanek { --vprasanje-rgb: var(--zgodovina-preostanek-rgb); }
+.zgodovina-ai-pogovor--akcija-obljuba { --vprasanje-rgb: var(--zgodovina-obljuba-rgb); }
+.zgodovina-ai-pogovor--podaljsanje { --vprasanje-rgb: var(--zgodovina-podaljsanje-rgb); }
+.zgodovina-ai-pogovor--akcija-opomin { --vprasanje-rgb: var(--zgodovina-opomin-rgb); }
+.zgodovina-ai-pogovor--dobropis { --vprasanje-rgb: var(--zgodovina-dobropis-rgb); }
+.zgodovina-ai-pogovor--kompenzacija { --vprasanje-rgb: var(--zgodovina-kompenzacija-rgb); }
+.zgodovina-ai-pogovor--storno { --vprasanje-rgb: var(--zgodovina-storno-rgb); }
+.zgodovina-ai-pogovor--neuspesno-placilo { --vprasanje-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.zgodovina-ai-pogovor--ugovor { --vprasanje-rgb: var(--zgodovina-ugovor-rgb); }
+.zgodovina-ai-pogovor--izjava { --vprasanje-rgb: var(--zgodovina-izjava-rgb); }
+.zgodovina-ai-pogovor--insolventnost { --vprasanje-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-pogovor--drugo { --vprasanje-rgb: var(--zgodovina-drugo-rgb); }
+.zgodovina-ai-pogovor__opis {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0 0 10px;
+  min-height: 44px;
+  padding: 8px 36px 8px 10px;
+  overflow-wrap: anywhere;
+  border: 1px solid rgba(var(--vprasanje-rgb), .22);
+  border-radius: 11px;
+  color: #486360;
+  background: #f8fbfa;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+.zgodovina-ai-pogovor__opis:hover { border-color: rgba(var(--vprasanje-rgb), .48); }
+.zgodovina-ai-pogovor__opis:focus-visible { outline: 2px solid rgba(var(--vprasanje-rgb), .4); outline-offset: 2px; }
+.zgodovina-ai-pogovor__opis-svincnik {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 7px;
+  color: rgb(var(--vprasanje-rgb));
+  background: rgba(var(--vprasanje-rgb), .1);
+  pointer-events: none;
+}
+.zgodovina-ai-pogovor__opis-svincnik svg { width: 14px; height: 14px; }
+.zgodovina-ai-pogovor__opis--urejanje { padding: 0; cursor: text; background: #fff; border-color: rgba(var(--vprasanje-rgb), .58); }
+.zgodovina-ai-pogovor__opis--urejanje textarea {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  max-height: 104px;
+  padding: 9px 36px 9px 10px;
+  border: 0;
+  border-radius: inherit;
+  box-sizing: border-box;
+  color: #355653;
+  background: transparent;
+  font: 500 16px/1.3 Inter, sans-serif;
+  resize: vertical;
+  scrollbar-width: none;
+}
+.zgodovina-ai-pogovor__opis--urejanje textarea::-webkit-scrollbar { display: none; }
+.zgodovina-ai-pogovor__opis--urejanje textarea:focus { outline: 0; }
+.zgodovina-ai-pogovor__opis--urejanje:focus-within { border-color: rgba(var(--vprasanje-rgb), .78); outline: 0; box-shadow: none; }
+.zgodovina-ai-napredek {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin: 2px 3px 5px;
+  isolation: isolate;
+}
+.zgodovina-ai-napredek > i {
+  position: absolute;
+  z-index: 0;
+  right: 22px;
+  left: 22px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: rgba(63, 153, 152, .22);
+}
+.zgodovina-ai-napredek > button {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.zgodovina-ai-napredek > button::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 42px;
+  height: 12px;
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, .35) 8%,
+    rgba(255, 255, 255, .82) 18%,
+    #fff 28%,
+    #fff 72%,
+    rgba(255, 255, 255, .82) 82%,
+    rgba(255, 255, 255, .35) 92%,
+    rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+.zgodovina-ai-napredek > button > span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(var(--korak-rgb, var(--vprasanje-rgb)), .38);
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: rgb(var(--korak-rgb, var(--vprasanje-rgb)));
+  background: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+.zgodovina-ai-napredek > button > span svg { width: 14px; height: 14px; stroke-width: 2; }
+.zgodovina-ai-napredek > button:focus-visible { outline: 3px solid rgba(25, 143, 145, .22); outline-offset: 2px; }
+.zgodovina-ai-napredek > button.is-tone-delno { --korak-rgb: var(--zgodovina-delno-rgb); }
+.zgodovina-ai-napredek > button.is-tone-placano-v-celoti { --korak-rgb: var(--zgodovina-placano-v-celoti-rgb); }
+.zgodovina-ai-napredek > button.is-tone-obrok { --korak-rgb: var(--zgodovina-obrok-rgb); }
+.zgodovina-ai-napredek > button.is-tone-dogovor-obroki { --korak-rgb: var(--zgodovina-dogovor-obroki-rgb); }
+.zgodovina-ai-napredek > button.is-tone-neplacan-obrok { --korak-rgb: var(--zgodovina-neplacan-obrok-rgb); }
+.zgodovina-ai-napredek > button.is-tone-preostanek { --korak-rgb: var(--zgodovina-preostanek-rgb); }
+.zgodovina-ai-napredek > button.is-tone-akcija-obljuba { --korak-rgb: var(--zgodovina-obljuba-rgb); }
+.zgodovina-ai-napredek > button.is-tone-podaljsanje { --korak-rgb: var(--zgodovina-podaljsanje-rgb); }
+.zgodovina-ai-napredek > button.is-tone-akcija-opomin { --korak-rgb: var(--zgodovina-opomin-rgb); }
+.zgodovina-ai-napredek > button.is-tone-dobropis { --korak-rgb: var(--zgodovina-dobropis-rgb); }
+.zgodovina-ai-napredek > button.is-tone-kompenzacija { --korak-rgb: var(--zgodovina-kompenzacija-rgb); }
+.zgodovina-ai-napredek > button.is-tone-storno { --korak-rgb: var(--zgodovina-storno-rgb); }
+.zgodovina-ai-napredek > button.is-tone-neuspesno-placilo { --korak-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.zgodovina-ai-napredek > button.is-tone-ugovor { --korak-rgb: var(--zgodovina-ugovor-rgb); }
+.zgodovina-ai-napredek > button.is-tone-izjava { --korak-rgb: var(--zgodovina-izjava-rgb); }
+.zgodovina-ai-napredek > button.is-tone-insolventnost { --korak-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-napredek > button.is-tone-drugo { --korak-rgb: var(--zgodovina-drugo-rgb); }
+.zgodovina-ai-napredek > button.is-tone-povzetek { --korak-rgb: 63, 153, 152; }
+.zgodovina-ai-napredek > button.is-completed > span { border-color: rgb(var(--korak-rgb, var(--vprasanje-rgb))); color: #fff; background: rgb(var(--korak-rgb, var(--vprasanje-rgb))); }
+.zgodovina-ai-napredek > button.is-current > span {
+  border-color: rgb(var(--korak-rgb, var(--vprasanje-rgb)));
+  color: #fff;
+  background: rgb(var(--korak-rgb, var(--vprasanje-rgb)));
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(var(--korak-rgb, var(--vprasanje-rgb)));
+}
+.zgodovina-ai-napredek > button.is-tone-povzetek > span {
+  border: 0;
+  border-radius: 8px;
+  color: rgb(var(--korak-rgb));
+  background: transparent;
+  box-shadow: none;
+}
+.zgodovina-ai-napredek > button.is-tone-povzetek > span svg { width: 24px; height: 24px; }
+.zgodovina-ai-napredek > button.is-tone-povzetek.is-current > span {
+  color: rgb(var(--korak-rgb));
+  background: transparent;
+  box-shadow: none;
+}
+.zgodovina-ai-napredek > button.is-tone-povzetek.is-current > span svg {
+  stroke-width: 2.8;
+  filter: drop-shadow(0 0 .35px currentColor);
+}
+.zgodovina-ai-napredek > span.is-gap { border: 0; color: #6b8581; background: #f7fbfa; }
+.zgodovina-ai-vprasanje {
+  --vprasanje-rgb: 63, 153, 152;
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .32);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(var(--vprasanje-rgb), .075), #fff 68%);
+}
+.zgodovina-ai-vprasanje--delno { --vprasanje-rgb: var(--zgodovina-delno-rgb); }
+.zgodovina-ai-vprasanje--placano-v-celoti { --vprasanje-rgb: var(--zgodovina-placano-v-celoti-rgb); }
+.zgodovina-ai-vprasanje--obrok { --vprasanje-rgb: var(--zgodovina-obrok-rgb); }
+.zgodovina-ai-vprasanje--dogovor-obroki { --vprasanje-rgb: var(--zgodovina-dogovor-obroki-rgb); }
+.zgodovina-ai-vprasanje--neplacan-obrok { --vprasanje-rgb: var(--zgodovina-neplacan-obrok-rgb); }
+.zgodovina-ai-vprasanje--preostanek { --vprasanje-rgb: var(--zgodovina-preostanek-rgb); }
+.zgodovina-ai-vprasanje--akcija-obljuba { --vprasanje-rgb: var(--zgodovina-obljuba-rgb); }
+.zgodovina-ai-vprasanje--podaljsanje { --vprasanje-rgb: var(--zgodovina-podaljsanje-rgb); }
+.zgodovina-ai-vprasanje--akcija-opomin { --vprasanje-rgb: var(--zgodovina-opomin-rgb); }
+.zgodovina-ai-vprasanje--dobropis { --vprasanje-rgb: var(--zgodovina-dobropis-rgb); }
+.zgodovina-ai-vprasanje--kompenzacija { --vprasanje-rgb: var(--zgodovina-kompenzacija-rgb); }
+.zgodovina-ai-vprasanje--storno { --vprasanje-rgb: var(--zgodovina-storno-rgb); }
+.zgodovina-ai-vprasanje--neuspesno-placilo { --vprasanje-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.zgodovina-ai-vprasanje--ugovor { --vprasanje-rgb: var(--zgodovina-ugovor-rgb); }
+.zgodovina-ai-vprasanje--izjava { --vprasanje-rgb: var(--zgodovina-izjava-rgb); }
+.zgodovina-ai-vprasanje--insolventnost { --vprasanje-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-vprasanje--drugo { --vprasanje-rgb: var(--zgodovina-drugo-rgb); }
+.zgodovina-ai-vprasanje__ikona { display: grid; place-items: center; align-self: start; width: 30px; height: 30px; border: 1px solid rgba(var(--vprasanje-rgb), .2); border-radius: 10px; color: rgb(var(--vprasanje-rgb)); background: rgba(var(--vprasanje-rgb), .13); }
+.zgodovina-ai-vprasanje__ikona svg { width: 18px; height: 18px; }
+.zgodovina-ai-vprasanje h4 { margin: 1px 0 2px; color: #203f3c; font-size: 13px; line-height: 1.25; }
+.zgodovina-ai-vprasanje p { margin: 0; color: #788d89; font-size: 8.5px; line-height: 1.3; }
+.zgodovina-ai-vprasanje__spremeni {
+  align-self: start;
+  margin-right: 12px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .34);
+  border-radius: 9px;
+  color: rgb(var(--vprasanje-rgb));
+  background: rgba(255, 255, 255, .88);
+  font: 750 9px/1 Inter, sans-serif;
+  cursor: pointer;
+}
+.zgodovina-ai-vprasanje__spremeni:hover { background: rgba(var(--vprasanje-rgb), .08); }
+.zgodovina-ai-vprasanje__spremeni:focus-visible { outline: 2px solid rgba(var(--vprasanje-rgb), .22); outline-offset: 2px; }
+.zgodovina-ai-vprasanje__odstrani {
+  position: absolute;
+  z-index: 4;
+  top: -9px;
+  right: -7px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  border: 2px solid #8a9795;
+  border-radius: 50%;
+  box-sizing: border-box;
+  color: #8a9795;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(47, 55, 54, .14);
+  cursor: pointer;
+}
+.zgodovina-ai-vprasanje__odstrani::before { content: ""; position: absolute; inset: -10px; }
+.zgodovina-ai-vprasanje__odstrani svg { width: 14px; height: 14px; }
+.zgodovina-ai-vprasanje__odstrani:hover { background: #f2f5f4; }
+.zgodovina-ai-vprasanje__odstrani:focus-visible { outline: 2px solid rgba(138, 151, 149, .3); outline-offset: 2px; }
+.zgodovina-ai-vprasanje label { display: block; grid-column: 1 / -1; min-width: 0; }
+.zgodovina-ai-vprasanje__polja { display: grid; grid-column: 1 / -1; gap: 9px; min-width: 0; }
+.zgodovina-ai-vprasanje__polja label { display: grid; gap: 4px; }
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 7px;
+}
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-amount { grid-column: 1; grid-row: 1; }
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-payment-method { grid-column: 2; grid-row: 1; }
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-date { grid-column: 1 / -1; grid-row: 2; }
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-amount,
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-payment-method {
+  grid-template-rows: minmax(25px, auto) 44px;
+}
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-amount .zgodovina-ai-vprasanje__znesek,
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-amount .zgodovina-ai-vprasanje__znesek input,
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-payment-method .zgodovina-ai-vprasanje__izbira-gumb {
+  height: 44px;
+  min-height: 44px;
+}
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno .zgodovina-ai-vprasanje__izbira-gumb {
+  box-sizing: border-box;
+  min-width: 0;
+  padding-inline: 10px 8px;
+}
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno .zgodovina-ai-vprasanje__izbira-gumb > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-payment-method .zgodovina-ai-vprasanje__izbira-seznam {
+  right: 0;
+  left: auto;
+  width: calc(200% + 7px);
+  box-sizing: border-box;
+  transform-origin: right bottom;
+  animation: zgodovina-izbira-odpri 180ms cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes zgodovina-izbira-odpri {
+  from { opacity: 0; transform: translateY(5px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zgodovina-ai-vprasanje__polja--placilo-kompaktno .zgodovina-ai-vprasanje__izbira-seznam { animation: none; }
+}
+.zgodovina-ai-vprasanje__oznaka { color: rgb(var(--vprasanje-rgb)); font-size: 10px; font-weight: 750; line-height: 1.25; }
+.zgodovina-ai-vprasanje__oznaka-vrstica {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.zgodovina-ai-vprasanje__datum-namig {
+  margin-left: auto;
+  color: #748784;
+  font-size: 8.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+}
+.zgodovina-ai-vprasanje input,
+.zgodovina-ai-vprasanje select,
+.zgodovina-ai-vprasanje textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 10px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .5);
+  border-radius: 11px;
+  box-sizing: border-box;
+  color: #263b39;
+  background: #fff;
+  font: 600 16px/1.3 Inter, sans-serif;
+}
+.zgodovina-ai-vprasanje input:focus-visible,
+.zgodovina-ai-vprasanje select:focus-visible,
+.zgodovina-ai-vprasanje textarea:focus-visible,
+.zgodovina-ai-vprasanje button:focus-visible {
+  outline: 0;
+  border-color: rgb(var(--vprasanje-rgb));
+  box-shadow: 0 0 0 2px rgba(var(--vprasanje-rgb), .16);
+}
+.zgodovina-ai-vprasanje input[type="date"] { max-width: 100%; -webkit-appearance: none; appearance: none; overflow: hidden; }
+.zgodovina-ai-vprasanje__datum { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; min-width: 0; }
+.zgodovina-ai-vprasanje__datum--obljuba { grid-template-columns: minmax(0, 1fr) auto auto; }
+.zgodovina-ai-vprasanje__datum > button,
+.zgodovina-ai-vprasanje__znesek-vrstica > button {
+  min-width: 66px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .5);
+  border-radius: 11px;
+  color: rgb(var(--vprasanje-rgb));
+  background: rgba(var(--vprasanje-rgb), .045);
+  font: 750 10px/1 Inter, sans-serif;
+}
+.zgodovina-ai-vprasanje__datum--obljuba > button:last-child { min-width: 72px; padding-inline: 8px; }
+.zgodovina-ai-vprasanje__datum > button.is-selected,
+.zgodovina-ai-vprasanje__znesek-vrstica > button:active { border-color: rgb(var(--vprasanje-rgb)); color: #fff; background: rgb(var(--vprasanje-rgb)); }
+.zgodovina-ai-vprasanje__datum > input:disabled { color: #8a9b98; background: #f2f6f5; opacity: 1; }
+.zgodovina-ai-vprasanje__izbira { position: relative; display: grid; min-width: 0; }
+.zgodovina-ai-vprasanje__izbira.is-open { z-index: 30; }
+.zgodovina-ai-vprasanje__izbira-input { display: none !important; }
+.zgodovina-ai-vprasanje__izbira-gumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .5);
+  border-radius: 11px;
+  color: #263b39;
+  background: #fff;
+  font: 650 15px/1.25 Inter, sans-serif;
+  text-align: left;
+}
+.zgodovina-ai-vprasanje__izbira-gumb svg { flex: 0 0 18px; width: 18px; height: 18px; fill: none; stroke: rgb(var(--vprasanje-rgb)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 160ms ease; }
+.zgodovina-ai-vprasanje__izbira.is-open .zgodovina-ai-vprasanje__izbira-gumb { border-color: rgb(var(--vprasanje-rgb)); box-shadow: 0 0 0 3px rgba(var(--vprasanje-rgb), .1); }
+.zgodovina-ai-vprasanje__izbira.is-open .zgodovina-ai-vprasanje__izbira-gumb svg { transform: rotate(180deg); }
+.zgodovina-ai-vprasanje__izbira-seznam {
+  position: absolute;
+  z-index: 30;
+  top: auto;
+  right: 0;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .22);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(28, 67, 63, .16);
+}
+.zgodovina-ai-vprasanje__izbira-seznam[hidden] { display: none; }
+.zgodovina-ai-vprasanje__izbira-seznam button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .2);
+  border-radius: 10px;
+  color: #38514e;
+  background: rgba(255,255,255,.92);
+  font: 650 11px/1.2 Inter, sans-serif;
+  text-align: left;
+}
+.zgodovina-ai-vprasanje__izbira-seznam button svg { flex: 0 0 15px; width: 15px; height: 15px; fill: none; stroke: transparent; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.zgodovina-ai-vprasanje__izbira-seznam button.is-selected { border-color: rgb(var(--vprasanje-rgb)); color: #fff; background: rgb(var(--vprasanje-rgb)); box-shadow: 0 3px 9px rgba(var(--vprasanje-rgb), .18); }
+.zgodovina-ai-vprasanje__izbira-seznam button.is-selected svg { stroke: currentColor; }
+.zgodovina-ai-vprasanje textarea { min-height: 72px; resize: vertical; }
+.zgodovina-ai-vprasanje__znesek-vrstica { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; min-width: 0; }
+.zgodovina-ai-vprasanje__znesek { position: relative; display: block; }
+.zgodovina-ai-vprasanje__znesek input { padding-right: 30px; }
+.zgodovina-ai-vprasanje__znesek b { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: rgb(var(--vprasanje-rgb)); font-size: 12px; }
+.zgodovina-ai-pogovor__akcije { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 7px; margin-top: 9px; }
+.zgodovina-ai-pogovor__akcije button {
+  min-width: 0;
+  min-height: 41px;
+  padding: 0 9px;
+  border: 1px solid rgba(var(--vprasanje-rgb), .5);
+  border-radius: 11px;
+  color: #178f91;
+  background: #fff;
+  font: 750 10px/1.2 Inter, sans-serif;
+}
+.zgodovina-ai-pogovor__akcije button:first-child { border-color: #2aa2a3; color: #178f91; background: #fff; }
+.zgodovina-ai-pogovor__akcije button:last-child { border-color: #178f91; color: #fff; background: linear-gradient(145deg, #32aaa9, #178f91); }
+.zgodovina-ai-pogovor__akcije button:disabled { cursor: not-allowed; opacity: .42; }
+.zgodovina-ai-pogovor__potrditev { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: center; margin: 9px 0 7px; }
+.zgodovina-ai-pogovor__potrditev > span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; color: #198b80; background: #e2f5ef; }
+.zgodovina-ai-pogovor__potrditev svg { width: 20px; height: 20px; }
+.zgodovina-ai-pogovor__potrditev h4 { margin: 0 0 2px; color: #214340; font-size: 13px; }
+.zgodovina-ai-pogovor__potrditev p { margin: 0; color: #748b87; font-size: 8.5px; }
+.zgodovina-ai-pogovor__izbrisi-vse { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 72px; min-height: 34px; padding: 0 10px; border: 1px solid #c8d7d4; border-radius: 10px; color: #617572; background: #f8fbfa; font: 750 9px/1 Inter, sans-serif; cursor: pointer; }
+.zgodovina-ai-pogovor__izbrisi-vse span { display: inline-flex; align-items: center; }
+.zgodovina-ai-pogovor__izbrisi-vse svg { width: 14px; height: 14px; }
+.zgodovina-ai-pogovor__izbrisi-vse:hover { border-color: #9fc4bf; color: #315f5a; background: #f0f8f6; }
+.zgodovina-ai-pogovor__izbrisi-vse:focus-visible { outline: 2px solid rgba(22, 143, 145, .24); outline-offset: 2px; }
+.zgodovina-ai-pogovor__izbrisi-vse:disabled { cursor: default; opacity: .45; }
+
+/* Atena: enoten naravni/ročni vnos dogodkov v vseh gostiteljskih tokovih. */
+.atena .atena__panel {
+  grid-template-rows: auto auto minmax(0, auto);
+  height: auto;
+  max-height: 100lvh;
+}
+.atena .atena__ponastavi {
+  align-self: start;
+  min-width: 82px;
+  margin-top: 4px;
+  border-color: #c8d7d4;
+  background: rgba(248, 251, 250, .92);
+  color: #617572;
+}
+.atena .izvedba-poravnava-cona--atena-dogodki {
+  margin: 2px 0 0;
+  padding: 0 2px;
+}
+.atena .zgodovina-ai__status { margin-top: 5px; }
+.atena .izvedba-poravnava-cona--atena-dogodki.is-empty {
+  margin-bottom: 0;
+}
+.atena .izvedba-poravnava-cona--atena-dogodki .izvedba-poravnava-cona__naslov {
+  min-height: 32px;
+  margin: 0;
+  padding: 0 5px;
+  border-block: 1px solid #e5efed;
+  letter-spacing: .015em;
+}
+.atena .izvedba-poravnava-cona--atena-dogodki:not(.is-empty) .izvedba-poravnava-potek {
+  margin-top: 7px;
+}
+.atena .izvedba-action-sheet__footer {
+  padding-top: 9px;
+}
+.atena .izvedba-action-sheet__dejanje.atena__nadaljuj-brez {
+  min-height: 44px;
+  border: 1px solid #8dc7c2;
+  background: linear-gradient(180deg, #f7fcfb 0%, #edf8f6 100%);
+  box-shadow: none;
+  color: #246d69;
+  font-size: 13px;
+}
+.zgodovina-ai-povzetki { display: grid; gap: 6px; }
+.zgodovina-ai-povzetek {
+  --povzetek-rgb: 63, 153, 152;
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(var(--povzetek-rgb), .25);
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(var(--povzetek-rgb), .07), #fff 72%);
+}
+.zgodovina-ai-povzetek--delno { --povzetek-rgb: var(--zgodovina-delno-rgb); }
+.zgodovina-ai-povzetek--placano-v-celoti { --povzetek-rgb: var(--zgodovina-placano-v-celoti-rgb); }
+.zgodovina-ai-povzetek--obrok { --povzetek-rgb: var(--zgodovina-obrok-rgb); }
+.zgodovina-ai-povzetek--dogovor-obroki { --povzetek-rgb: var(--zgodovina-dogovor-obroki-rgb); }
+.zgodovina-ai-povzetek--neplacan-obrok { --povzetek-rgb: var(--zgodovina-neplacan-obrok-rgb); }
+.zgodovina-ai-povzetek--preostanek { --povzetek-rgb: var(--zgodovina-preostanek-rgb); }
+.zgodovina-ai-povzetek--preostali-dolg { border-width: 1.5px; background: linear-gradient(145deg, rgba(var(--povzetek-rgb), .12), #fff 72%); }
+.zgodovina-ai-povzetek--preostali-dolg p b { color: rgb(var(--povzetek-rgb)); font-size: 11px; font-weight: 850; }
+.zgodovina-ai-povzetek--akcija-obljuba { --povzetek-rgb: var(--zgodovina-obljuba-rgb); }
+.zgodovina-ai-povzetek--podaljsanje { --povzetek-rgb: var(--zgodovina-podaljsanje-rgb); }
+.zgodovina-ai-povzetek--akcija-opomin { --povzetek-rgb: var(--zgodovina-opomin-rgb); }
+.zgodovina-ai-povzetek--dobropis { --povzetek-rgb: var(--zgodovina-dobropis-rgb); }
+.zgodovina-ai-povzetek--kompenzacija { --povzetek-rgb: var(--zgodovina-kompenzacija-rgb); }
+.zgodovina-ai-povzetek--storno { --povzetek-rgb: var(--zgodovina-storno-rgb); }
+.zgodovina-ai-povzetek--neuspesno-placilo { --povzetek-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.zgodovina-ai-povzetek--ugovor { --povzetek-rgb: var(--zgodovina-ugovor-rgb); }
+.zgodovina-ai-povzetek--izjava { --povzetek-rgb: var(--zgodovina-izjava-rgb); }
+.zgodovina-ai-povzetek--insolventnost { --povzetek-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-povzetek--drugo { --povzetek-rgb: var(--zgodovina-drugo-rgb); }
+.zgodovina-ai-povzetek > span { display: grid; place-items: center; color: rgb(var(--povzetek-rgb)); }
+.zgodovina-ai-povzetek svg { width: 20px; height: 20px; }
+.zgodovina-ai-povzetek div { min-width: 0; }
+.zgodovina-ai-povzetek strong { display: block; color: #2e403e; font-size: 10px; }
+.zgodovina-ai-povzetek p { margin: 2px 0 0; overflow-wrap: anywhere; color: #687e7a; font-size: 8.5px; line-height: 1.3; }
+.zgodovina-ai-povzetek__akcije { display: flex !important; gap: 4px; align-items: center; color: rgb(var(--povzetek-rgb)); }
+.zgodovina-ai-povzetek__akcije button { min-height: 28px; padding: 0 8px; border: 0; border-radius: 9px; color: rgb(var(--povzetek-rgb)); background: rgba(var(--povzetek-rgb), .1); font: 750 8.5px/1 Inter, sans-serif; cursor: pointer; }
+.zgodovina-ai-povzetek__akcije button:last-child { width: 28px; padding: 0; border-radius: 50%; color: #7c908d; background: rgba(86, 116, 111, .08); font-size: 17px; }
+.zgodovina-ai-povzetek.is-editing { align-items: start; }
+.zgodovina-ai-povzetek__urejanje {
+  grid-column: 1 / -1;
+  margin-top: 1px;
+  padding: 9px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(var(--povzetek-rgb), .18);
+  border-radius: 0;
+  background: transparent;
+}
+.zgodovina-ai-povzetek__urejanje .zgodovina-ai-vprasanje__polja { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.zgodovina-ai-povzetek__urejanje .zgodovina-ai-vprasanje__polja label.is-full { grid-column: 1 / -1; }
+.zgodovina-ai-povzetek__urejanje small { font-size: 7.5px; font-weight: 500; }
+.zgodovina-ai-povzetek__urejanje .zgodovina-ai-osnutek__manjka,
+.zgodovina-ai-povzetek__urejanje .zgodovina-ai-osnutek__pripravljen { grid-column: 1 / -1; }
+.zgodovina-ai-osnutki { margin-top: 11px; }
+.zgodovina-ai-osnutki__glava { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.zgodovina-ai-osnutki__glava h3 { margin: 0 0 2px; color: #214340; font-size: 12px; line-height: 1.2; }
+.zgodovina-ai-osnutki__glava p { margin: 0; color: #788b88; font-size: 8.5px; line-height: 1.3; }
+.zgodovina-ai-osnutki__glava > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 9px; color: #147f7d; background: #e2f3f1; font-size: 10px; font-weight: 800; }
+
+.zgodovina-ai-osnutek {
+  --osnutek-rgb: 63, 153, 152;
+  margin-top: 7px;
+  padding: 9px;
+  border: 1px solid rgba(var(--osnutek-rgb), .28);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(var(--osnutek-rgb), .065), #fff 60%);
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+.zgodovina-ai-osnutek--delno { --osnutek-rgb: var(--zgodovina-delno-rgb); }
+.zgodovina-ai-osnutek--placano-v-celoti { --osnutek-rgb: var(--zgodovina-placano-v-celoti-rgb); }
+.zgodovina-ai-osnutek--obrok { --osnutek-rgb: var(--zgodovina-obrok-rgb); }
+.zgodovina-ai-osnutek--dogovor-obroki { --osnutek-rgb: var(--zgodovina-dogovor-obroki-rgb); }
+.zgodovina-ai-osnutek--neplacan-obrok { --osnutek-rgb: var(--zgodovina-neplacan-obrok-rgb); }
+.zgodovina-ai-osnutek--preostanek { --osnutek-rgb: var(--zgodovina-preostanek-rgb); }
+.zgodovina-ai-osnutek--akcija-obljuba { --osnutek-rgb: var(--zgodovina-obljuba-rgb); }
+.zgodovina-ai-osnutek--podaljsanje { --osnutek-rgb: var(--zgodovina-podaljsanje-rgb); }
+.zgodovina-ai-osnutek--akcija-opomin { --osnutek-rgb: var(--zgodovina-opomin-rgb); }
+.zgodovina-ai-osnutek--dobropis { --osnutek-rgb: var(--zgodovina-dobropis-rgb); }
+.zgodovina-ai-osnutek--kompenzacija { --osnutek-rgb: var(--zgodovina-kompenzacija-rgb); }
+.zgodovina-ai-osnutek--storno { --osnutek-rgb: var(--zgodovina-storno-rgb); }
+.zgodovina-ai-osnutek--neuspesno-placilo { --osnutek-rgb: var(--zgodovina-neuspesno-placilo-rgb); }
+.zgodovina-ai-osnutek--ugovor { --osnutek-rgb: var(--zgodovina-ugovor-rgb); }
+.zgodovina-ai-osnutek--izjava { --osnutek-rgb: var(--zgodovina-izjava-rgb); }
+.zgodovina-ai-osnutek--insolventnost { --osnutek-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-osnutek--drugo { --osnutek-rgb: var(--zgodovina-drugo-rgb); }
+
+.zgodovina-ai-osnutek header {
+  display: grid;
+  grid-template-columns: 22px 23px minmax(0, 1fr) 28px;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.zgodovina-ai-osnutek__stevilka { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 8px; color: rgb(var(--osnutek-rgb)); background: rgba(var(--osnutek-rgb), .1); font-size: 9px; font-weight: 800; }
+.zgodovina-ai-osnutek__ikona { display: grid; place-items: center; color: rgb(var(--osnutek-rgb)); }
+.zgodovina-ai-osnutek__ikona svg { width: 19px; height: 19px; }
+.zgodovina-ai-osnutek header strong { min-width: 0; color: #2f3736; font-size: 11px; white-space: nowrap; overflow: hidden; }
+.zgodovina-ai-osnutek header button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; color: #7c908d; background: rgba(86, 116, 111, .08); font-size: 18px; line-height: 1; cursor: pointer; }
+
+.zgodovina-ai-osnutek__polja { display: grid; width: 100%; max-width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.zgodovina-ai-osnutek__polje { display: grid; width: 100%; max-width: 100%; min-width: 0; gap: 4px; color: #657a77; font-size: 9px; font-weight: 700; }
+.zgodovina-ai-osnutek__polje--polno { grid-column: 1 / -1; }
+.zgodovina-ai-osnutek__polje small { font-size: 7.5px; font-weight: 500; }
+.zgodovina-ai-osnutek__polje input,
+.zgodovina-ai-osnutek__polje select,
+.zgodovina-ai-osnutek__polje textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 9px;
+  border: 1px solid rgba(var(--osnutek-rgb), .3);
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: #263b39;
+  background: rgba(255, 255, 255, .92);
+  font: 600 16px/1.3 Inter, sans-serif;
+}
+.zgodovina-ai-osnutek__polje select {
+  appearance: auto;
+  max-width: 100%;
+}
+.zgodovina-ai-osnutek__polje input[type="date"] {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  overflow: hidden;
+}
+.zgodovina-ai-osnutek__polje input[type="date"]::-webkit-date-and-time-value {
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+}
+.zgodovina-ai-osnutek__polje input[type="date"]::-webkit-calendar-picker-indicator {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  padding: 0;
+}
+.zgodovina-ai-osnutek__polje textarea { min-height: 68px; resize: vertical; }
+.zgodovina-ai-osnutek__znesek { position: relative; display: block; min-width: 0; }
+.zgodovina-ai-osnutek__znesek input { padding-right: 27px; }
+.zgodovina-ai-osnutek__znesek b { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: rgb(var(--osnutek-rgb)); font-size: 12px; }
+.zgodovina-ai-osnutek__manjka,
+.zgodovina-ai-osnutek__pripravljen { margin: 7px 1px 0; font-size: 8.5px; font-weight: 650; line-height: 1.25; }
+.zgodovina-ai-osnutek__manjka { color: #b14c44; }
+.zgodovina-ai-osnutek__pripravljen { color: #27806d; }
+.zgodovina-ai__potrdi { width: 100%; margin-top: 9px; }
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__footer {
+  position: static;
+  padding: 8px 0 0;
+  background: transparent;
+}
+
+@media (max-width: 340px) {
+  .zgodovina-ai__akcije:not(.is-analyzing):not(.is-recording) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 700px) {
+  .zgodovina-shell { width: min(100%, 520px); }
+}

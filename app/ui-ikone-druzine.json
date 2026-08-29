@@ -1,0 +1,3940 @@
+{
+  "schemaVersion": 2,
+  "sourceInventorySchemaVersion": 1,
+  "summary": {
+    "icons": 326,
+    "families": 277,
+    "multiVariantFamilies": 36,
+    "singletonFamilies": 241
+  },
+  "rules": "Izključno grafična geometrija: dejanski znak, SVG elementi, poti, smeri koordinat ter fill/stroke. Imena, selectorji in besedilni pomen ne vplivajo na razvrščanje.",
+  "families": [
+    {
+      "id": "grafika-001",
+      "number": 1,
+      "label": "Grafična skupina 001 · kljukica",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:kljukica",
+      "visualLabel": "kljukica",
+      "visualEvidence": "prepoznana geometrija · kljukica",
+      "members": [
+        "ikona-499ec5e15db5",
+        "ikona-98dababb2d30",
+        "ikona-8d76e208c3cd",
+        "ikona-2f375ab08e98",
+        "ikona-123675d8b056",
+        "ikona-332196f18fc1"
+      ],
+      "recommendedId": "ikona-499ec5e15db5",
+      "occurrences": 52
+    },
+    {
+      "id": "grafika-002",
+      "number": 2,
+      "label": "Grafična skupina 002 · puščica desno",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:puščica-desno",
+      "visualLabel": "puščica desno",
+      "visualEvidence": "prepoznana geometrija · puščica-desno",
+      "members": [
+        "ikona-60918a352c2e",
+        "ikona-ac0039288c01",
+        "ikona-c32d884aa730",
+        "ikona-d977e990f2f0"
+      ],
+      "recommendedId": "ikona-60918a352c2e",
+      "occurrences": 74
+    },
+    {
+      "id": "grafika-003",
+      "number": 3,
+      "label": "Grafična skupina 003 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-dcccd7868704",
+        "ikona-1ae86e6b2ec6",
+        "ikona-1b15c2db3450",
+        "ikona-5063b97b7691"
+      ],
+      "recommendedId": "ikona-dcccd7868704",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-004",
+      "number": 4,
+      "label": "Grafična skupina 004 · puščica levo",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:puščica-levo",
+      "visualLabel": "puščica levo",
+      "visualEvidence": "prepoznana geometrija · puščica-levo",
+      "members": [
+        "ikona-4eac42fdf81e",
+        "ikona-41c8714479b4",
+        "ikona-0be138352c94"
+      ],
+      "recommendedId": "ikona-4eac42fdf81e",
+      "occurrences": 7
+    },
+    {
+      "id": "grafika-005",
+      "number": 5,
+      "label": "Grafična skupina 005 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-bae04f66719b",
+        "ikona-2e24b9a1f7ee",
+        "ikona-5e9107ae75c3"
+      ],
+      "recommendedId": "ikona-bae04f66719b",
+      "occurrences": 7
+    },
+    {
+      "id": "grafika-006",
+      "number": 6,
+      "label": "Grafična skupina 006 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++--",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti m:4:++--",
+      "members": [
+        "ikona-7c48e19de2b7",
+        "ikona-cf3d40fe5daf",
+        "ikona-20ba537d35e8"
+      ],
+      "recommendedId": "ikona-7c48e19de2b7",
+      "occurrences": 6
+    },
+    {
+      "id": "grafika-007",
+      "number": 7,
+      "label": "Grafična skupina 007 · pika",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:pika",
+      "visualLabel": "pika",
+      "visualEvidence": "dejanski znak · pika",
+      "members": [
+        "ikona-6c65c02b380e",
+        "ikona-6eb532b19416",
+        "ikona-578ef2823861"
+      ],
+      "recommendedId": "ikona-6c65c02b380e",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-008",
+      "number": 8,
+      "label": "Grafična skupina 008 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvl:5:+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.8 · path:1, circle:1 · smeri poti mvl:5:+++++",
+      "members": [
+        "ikona-87030efc7162",
+        "ikona-7cce45f4c12e",
+        "ikona-426e748e9ab1"
+      ],
+      "recommendedId": "ikona-87030efc7162",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-009",
+      "number": 9,
+      "label": "Grafična skupina 009 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ml:6:++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti ml:6:++++++",
+      "members": [
+        "ikona-b801e36c2ac4",
+        "ikona-2c6765005191"
+      ],
+      "recommendedId": "ikona-b801e36c2ac4",
+      "occurrences": 36
+    },
+    {
+      "id": "grafika-010",
+      "number": 10,
+      "label": "Grafična skupina 010 · razpiranje dol",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:razpiranje-dol",
+      "visualLabel": "razpiranje dol",
+      "visualEvidence": "prepoznana geometrija · razpiranje-dol",
+      "members": [
+        "ikona-f9f5c620cb6c",
+        "ikona-74fcc14842c3"
+      ],
+      "recommendedId": "ikona-f9f5c620cb6c",
+      "occurrences": 17
+    },
+    {
+      "id": "grafika-011",
+      "number": 11,
+      "label": "Grafična skupina 011 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvav:11:+++++00++0+",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mvav:11:+++++00++0+",
+      "members": [
+        "ikona-f336e406fe5f",
+        "ikona-a37be3f2f792"
+      ],
+      "recommendedId": "ikona-f336e406fe5f",
+      "occurrences": 12
+    },
+    {
+      "id": "grafika-012",
+      "number": 12,
+      "label": "Grafična skupina 012 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvl:5:+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mvl:5:+++++",
+      "members": [
+        "ikona-8118daa9f836",
+        "ikona-91747c573288"
+      ],
+      "recommendedId": "ikona-8118daa9f836",
+      "occurrences": 12
+    },
+    {
+      "id": "grafika-013",
+      "number": 13,
+      "label": "Grafična skupina 013 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallz:15:++++00+++++-++-|mh:3:+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mallz:15:++++00+++++-++-|mh:3:+++",
+      "members": [
+        "ikona-fe27eebfd078",
+        "ikona-64e7fe10b6d6"
+      ],
+      "recommendedId": "ikona-fe27eebfd078",
+      "occurrences": 9
+    },
+    {
+      "id": "grafika-014",
+      "number": 14,
+      "label": "Grafična skupina 014 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvmvmh:9:+++++++++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mvmvmh:9:+++++++++",
+      "members": [
+        "ikona-cf604d4f588c",
+        "ikona-6b021c8acc59"
+      ],
+      "recommendedId": "ikona-cf604d4f588c",
+      "occurrences": 6
+    },
+    {
+      "id": "grafika-015",
+      "number": 15,
+      "label": "Grafična skupina 015 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000|mhmh:6:++++++|mvh:4:++++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti mhavahavz:27:+++++000-++++000+++++000|mhmh:6:++++++|mvh:4:++++",
+      "members": [
+        "ikona-8ba325b58f11",
+        "ikona-61715c8c7471"
+      ],
+      "recommendedId": "ikona-8ba325b58f11",
+      "occurrences": 6
+    },
+    {
+      "id": "grafika-016",
+      "number": 16,
+      "label": "Grafična skupina 016 · path:2, circle:1, polyline:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:0|line:0|polyline:1|polygon:0|ellipse:0:mc:8:+++-+-+0|mhavah:19:+++++000-++++000+++",
+      "visualLabel": "path:2, circle:1, polyline:1",
+      "visualEvidence": "line:2 · path:2, circle:1, polyline:1 · smeri poti mc:8:+++-+-+0|mhavah:19:+++++000-++++000+++",
+      "members": [
+        "ikona-69901f7a6cbf",
+        "ikona-e1ca4d6d7004"
+      ],
+      "recommendedId": "ikona-69901f7a6cbf",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-017",
+      "number": 17,
+      "label": "Grafična skupina 017 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mal:13:++-+++00+-0++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mal:13:++-+++00+-0++",
+      "members": [
+        "ikona-cf5b9ebc30fa",
+        "ikona-ab943729173a"
+      ],
+      "recommendedId": "ikona-cf5b9ebc30fa",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-018",
+      "number": 18,
+      "label": "Grafična skupina 018 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlz:7:+++++++|mvmh:6:++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "fill:ni navedeno · path:2 · smeri poti mhlz:7:+++++++|mvmh:6:++++++",
+      "members": [
+        "ikona-8727ba5a7a5e",
+        "ikona-70a7c26250d3"
+      ],
+      "recommendedId": "ikona-8727ba5a7a5e",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-019",
+      "number": 19,
+      "label": "Grafična skupina 019 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti m:4:++++",
+      "members": [
+        "ikona-1ce6db1f333a",
+        "ikona-dc3548a22d97"
+      ],
+      "recommendedId": "ikona-1ce6db1f333a",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-020",
+      "number": 20,
+      "label": "Grafična skupina 020 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcs:12:+++-+-+-++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcs:12:+++-+-+-++++",
+      "members": [
+        "ikona-9302db4f378b",
+        "ikona-f6e39fe96a76"
+      ],
+      "recommendedId": "ikona-9302db4f378b",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-021",
+      "number": 21,
+      "label": "Grafična skupina 021 · znak 2191",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-2191",
+      "visualLabel": "znak 2191",
+      "visualEvidence": "dejanski znak · znak-2191",
+      "members": [
+        "ikona-a22af0049382",
+        "ikona-b0f7e2a31db5"
+      ],
+      "recommendedId": "ikona-a22af0049382",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-022",
+      "number": 22,
+      "label": "Grafična skupina 022 · znak 2193",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-2193",
+      "visualLabel": "znak 2193",
+      "visualEvidence": "dejanski znak · znak-2193",
+      "members": [
+        "ikona-d40c5274ba14",
+        "ikona-83249ed610ba"
+      ],
+      "recommendedId": "ikona-d40c5274ba14",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-023",
+      "number": 23,
+      "label": "Grafična skupina 023 · križec",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:križec",
+      "visualLabel": "križec",
+      "visualEvidence": "dejanski znak · križec",
+      "members": [
+        "ikona-e54cc2c13785",
+        "ikona-d511385e571d"
+      ],
+      "recommendedId": "ikona-e54cc2c13785",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-024",
+      "number": 24,
+      "label": "Grafična skupina 024 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:1:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcaca:35:+++-+-+-++000++++000++0+|mh:3:+++|mh:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "fill:1 · path:3 · smeri poti mcaca:35:+++-+-+-++000++++000++0+|mh:3:+++|mh:3:+++",
+      "members": [
+        "ikona-806467c0d88e",
+        "ikona-16f2c479b55f"
+      ],
+      "recommendedId": "ikona-806467c0d88e",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-025",
+      "number": 25,
+      "label": "Grafična skupina 025 · SVG oblika",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:0|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "SVG oblika",
+      "visualEvidence": "fill:ni navedeno · brez standardnih elementov · smeri poti —",
+      "members": [
+        "ikona-3237ad08e5ae",
+        "ikona-8a2d6324a1ad"
+      ],
+      "recommendedId": "ikona-3237ad08e5ae",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-026",
+      "number": 26,
+      "label": "Grafična skupina 026 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-1aed6391218f",
+        "ikona-18ece9ff3aeb"
+      ],
+      "recommendedId": "ikona-1aed6391218f",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-027",
+      "number": 27,
+      "label": "Grafična skupina 027 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvl:5:+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "fill:ni navedeno · path:1, circle:1 · smeri poti mvl:5:+++++",
+      "members": [
+        "ikona-cda73beed669",
+        "ikona-b0dd1a116502"
+      ],
+      "recommendedId": "ikona-cda73beed669",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-028",
+      "number": 28,
+      "label": "Grafična skupina 028 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.7:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvl:5:+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.7 · path:1, circle:1 · smeri poti mvl:5:+++++",
+      "members": [
+        "ikona-891597c0b588",
+        "ikona-c76c8d8e67b2"
+      ],
+      "recommendedId": "ikona-891597c0b588",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-029",
+      "number": 29,
+      "label": "Grafična skupina 029 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmh:6:++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.8 · path:1, circle:1 · smeri poti mvmh:6:++++++",
+      "members": [
+        "ikona-513a2fd23252",
+        "ikona-ca5dd282e4e2"
+      ],
+      "recommendedId": "ikona-513a2fd23252",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-030",
+      "number": 30,
+      "label": "Grafična skupina 030 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti m:6:++++++",
+      "members": [
+        "ikona-42fdde3bfcf7",
+        "ikona-847300e338ec"
+      ],
+      "recommendedId": "ikona-42fdde3bfcf7",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-031",
+      "number": 31,
+      "label": "Grafična skupina 031 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmlmhv:15:++++++-+++-++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmlmhv:15:++++++-+++-++++",
+      "members": [
+        "ikona-970a8adc6f9f",
+        "ikona-d2cd14a1f559"
+      ],
+      "recommendedId": "ikona-970a8adc6f9f",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-032",
+      "number": 32,
+      "label": "Grafična skupina 032 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-a220c667dd11",
+        "ikona-d349dfea7b97"
+      ],
+      "recommendedId": "ikona-a220c667dd11",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-033",
+      "number": 33,
+      "label": "Grafična skupina 033 · path:1, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvcsvmcv:23:++-0-+-+-++++++++0+++++",
+      "visualLabel": "path:1, circle:2",
+      "visualEvidence": "line:2 · path:1, circle:2 · smeri poti mvcsvmcv:23:++-0-+-+-++++++++0+++++",
+      "members": [
+        "ikona-5b5260abb609",
+        "ikona-fc53658e313f"
+      ],
+      "recommendedId": "ikona-5b5260abb609",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-034",
+      "number": 34,
+      "label": "Grafična skupina 034 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|mz:8:++-+----",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:4:++++|mz:8:++-+----",
+      "members": [
+        "ikona-ba7835a49ac6",
+        "ikona-38d33b716095"
+      ],
+      "recommendedId": "ikona-ba7835a49ac6",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-035",
+      "number": 35,
+      "label": "Grafična skupina 035 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvcvlz:20:+++++0+-+-+------++-",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:6:+++++-|mvcvlz:20:+++++0+-+-+------++-",
+      "members": [
+        "ikona-38c46ff484b7",
+        "ikona-eee9bc091649"
+      ],
+      "recommendedId": "ikona-38c46ff484b7",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-036",
+      "number": 36,
+      "label": "Grafična skupina 036 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mahalaz:28:++++++000+++++000+-++++0|mh:3:+++|mv:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti mahalaz:28:++++++000+++++000+-++++0|mh:3:+++|mv:3:+++",
+      "members": [
+        "ikona-d673a99631aa",
+        "ikona-e67d60bdeff8"
+      ],
+      "recommendedId": "ikona-d673a99631aa",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-037",
+      "number": 37,
+      "label": "Grafična skupina 037 · path:3, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mv:3:+++|mv:3:+++",
+      "visualLabel": "path:3, rect:1",
+      "visualEvidence": "line:2 · path:3, rect:1 · smeri poti mh:3:+++|mv:3:+++|mv:3:+++",
+      "members": [
+        "ikona-13a21e142dc4"
+      ],
+      "recommendedId": "ikona-13a21e142dc4",
+      "occurrences": 28
+    },
+    {
+      "id": "grafika-038",
+      "number": 38,
+      "label": "Grafična skupina 038 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mm:8:++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mm:8:++++++++",
+      "members": [
+        "ikona-20ca283c8092"
+      ],
+      "recommendedId": "ikona-20ca283c8092",
+      "occurrences": 24
+    },
+    {
+      "id": "grafika-039",
+      "number": 39,
+      "label": "Grafična skupina 039 · zvezda",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:zvezda",
+      "visualLabel": "zvezda",
+      "visualEvidence": "dejanski znak · zvezda",
+      "members": [
+        "ikona-190491ae73ed"
+      ],
+      "recommendedId": "ikona-190491ae73ed",
+      "occurrences": 22
+    },
+    {
+      "id": "grafika-040",
+      "number": 40,
+      "label": "Grafična skupina 040 · slikovna grafika",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "image:image:966c2ce654af7eba599f",
+      "visualLabel": "slikovna grafika",
+      "visualEvidence": "slikovna datoteka",
+      "members": [
+        "ikona-cf9af49984ee"
+      ],
+      "recommendedId": "ikona-cf9af49984ee",
+      "occurrences": 17
+    },
+    {
+      "id": "grafika-041",
+      "number": 41,
+      "label": "Grafična skupina 041 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmh:9:+++++++++|mhvlvz:13:++++---+---++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhmhmh:9:+++++++++|mhvlvz:13:++++---+---++",
+      "members": [
+        "ikona-c088440baf62"
+      ],
+      "recommendedId": "ikona-c088440baf62",
+      "occurrences": 14
+    },
+    {
+      "id": "grafika-042",
+      "number": 42,
+      "label": "Grafična skupina 042 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:ml:6:++-+++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti ml:6:++-+++",
+      "members": [
+        "ikona-94c78303eb04"
+      ],
+      "recommendedId": "ikona-94c78303eb04",
+      "occurrences": 13
+    },
+    {
+      "id": "grafika-043",
+      "number": 43,
+      "label": "Grafična skupina 043 · kljukica v krogu",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:kljukica-v-krogu",
+      "visualLabel": "kljukica v krogu",
+      "visualEvidence": "prepoznana geometrija · kljukica-v-krogu",
+      "members": [
+        "ikona-a8da91584eb7"
+      ],
+      "recommendedId": "ikona-a8da91584eb7",
+      "occurrences": 12
+    },
+    {
+      "id": "grafika-044",
+      "number": 44,
+      "label": "Grafična skupina 044 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000|mvah:11:+++++000+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhavahavz:27:+++++000-++++000+++++000|mvah:11:+++++000+++",
+      "members": [
+        "ikona-ce5838f96c33"
+      ],
+      "recommendedId": "ikona-ce5838f96c33",
+      "occurrences": 12
+    },
+    {
+      "id": "grafika-045",
+      "number": 45,
+      "label": "Grafična skupina 045 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmmlmvhv:16:+++0-++--++++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvmmlmvhv:16:+++0-++--++++++-",
+      "members": [
+        "ikona-e813c90df859"
+      ],
+      "recommendedId": "ikona-e813c90df859",
+      "occurrences": 11
+    },
+    {
+      "id": "grafika-046",
+      "number": 46,
+      "label": "Grafična skupina 046 · path:1, polyline:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:1|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000",
+      "visualLabel": "path:1, polyline:1",
+      "visualEvidence": "line:2 · path:1, polyline:1 · smeri poti mhavahavz:27:+++++000-++++000+++++000",
+      "members": [
+        "ikona-56e785392609"
+      ],
+      "recommendedId": "ikona-56e785392609",
+      "occurrences": 11
+    },
+    {
+      "id": "grafika-047",
+      "number": 47,
+      "label": "Grafična skupina 047 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmh:6:+++0-+",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mvmh:6:+++0-+",
+      "members": [
+        "ikona-7ca767fc30d0"
+      ],
+      "recommendedId": "ikona-7ca767fc30d0",
+      "occurrences": 11
+    },
+    {
+      "id": "grafika-048",
+      "number": 48,
+      "label": "Grafična skupina 048 · path:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mahlvahaz:28:++++00+-++-++++00++-+++0|mh:3:+++|mh:3:+++|mh:3:+++",
+      "visualLabel": "path:4",
+      "visualEvidence": "line:2 · path:4 · smeri poti mahlvahaz:28:++++00+-++-++++00++-+++0|mh:3:+++|mh:3:+++|mh:3:+++",
+      "members": [
+        "ikona-b09c94324d3c"
+      ],
+      "recommendedId": "ikona-b09c94324d3c",
+      "occurrences": 10
+    },
+    {
+      "id": "grafika-049",
+      "number": 49,
+      "label": "Grafična skupina 049 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallz:15:++++0+++++++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mallz:15:++++0+++++++++-",
+      "members": [
+        "ikona-80a40b6cfba2"
+      ],
+      "recommendedId": "ikona-80a40b6cfba2",
+      "occurrences": 9
+    },
+    {
+      "id": "grafika-050",
+      "number": 50,
+      "label": "Grafična skupina 050 · path:1, line:2, polyline:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:2|polyline:1|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000",
+      "visualLabel": "path:1, line:2, polyline:1",
+      "visualEvidence": "line:2 · path:1, line:2, polyline:1 · smeri poti mhavahavz:27:+++++000-++++000+++++000",
+      "members": [
+        "ikona-eb13a0dc1b7c"
+      ],
+      "recommendedId": "ikona-eb13a0dc1b7c",
+      "occurrences": 9
+    },
+    {
+      "id": "grafika-051",
+      "number": 51,
+      "label": "Grafična skupina 051 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++000-0",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti ma:9:++++000-0",
+      "members": [
+        "ikona-b6b276ce11f4"
+      ],
+      "recommendedId": "ikona-b6b276ce11f4",
+      "occurrences": 9
+    },
+    {
+      "id": "grafika-052",
+      "number": 52,
+      "label": "Grafična skupina 052 · path:1, circle:1, line:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:2|polyline:0|polygon:0|ellipse:0:ms:10:+++++++-+-",
+      "visualLabel": "path:1, circle:1, line:2",
+      "visualEvidence": "line:2 · path:1, circle:1, line:2 · smeri poti ms:10:+++++++-+-",
+      "members": [
+        "ikona-c186ab90357d"
+      ],
+      "recommendedId": "ikona-c186ab90357d",
+      "occurrences": 8
+    },
+    {
+      "id": "grafika-053",
+      "number": 53,
+      "label": "Grafična skupina 053 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mh:3:+++",
+      "members": [
+        "ikona-c5e2300a01ba"
+      ],
+      "recommendedId": "ikona-c5e2300a01ba",
+      "occurrences": 7
+    },
+    {
+      "id": "grafika-054",
+      "number": 54,
+      "label": "Grafična skupina 054 · plus",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:plus",
+      "visualLabel": "plus",
+      "visualEvidence": "prepoznana geometrija · plus",
+      "members": [
+        "ikona-c5af00a74e00"
+      ],
+      "recommendedId": "ikona-c5af00a74e00",
+      "occurrences": 6
+    },
+    {
+      "id": "grafika-055",
+      "number": 55,
+      "label": "Grafična skupina 055 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mv:3:++-",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:2 · path:2, circle:1 · smeri poti mh:3:+++|mv:3:++-",
+      "members": [
+        "ikona-0d2453b0c65e"
+      ],
+      "recommendedId": "ikona-0d2453b0c65e",
+      "occurrences": 6
+    },
+    {
+      "id": "grafika-056",
+      "number": 56,
+      "label": "Grafična skupina 056 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++000+0|mh:3:+++|mv:3:+++",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "line:2 · path:3, circle:1 · smeri poti ma:9:++++000+0|mh:3:+++|mv:3:+++",
+      "members": [
+        "ikona-38a7b515cf70"
+      ],
+      "recommendedId": "ikona-38a7b515cf70",
+      "occurrences": 6
+    },
+    {
+      "id": "grafika-057",
+      "number": 57,
+      "label": "Grafična skupina 057 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mmvmvmvmvmh:21:+++-++++++-++-++-++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mmvmvmvmvmh:21:+++-++++++-++-++-++++",
+      "members": [
+        "ikona-e3c72a0fa998"
+      ],
+      "recommendedId": "ikona-e3c72a0fa998",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-058",
+      "number": 58,
+      "label": "Grafična skupina 058 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mhmh:6:++++++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mhmh:6:++++++",
+      "members": [
+        "ikona-503a2671c740"
+      ],
+      "recommendedId": "ikona-503a2671c740",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-059",
+      "number": 59,
+      "label": "Grafična skupina 059 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlhavahavahlz:40:++-+++++000-++++000+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mhlhavahavahlz:40:++-+++++000-++++000+++++",
+      "members": [
+        "ikona-2b8a5dac5aae"
+      ],
+      "recommendedId": "ikona-2b8a5dac5aae",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-060",
+      "number": 60,
+      "label": "Grafična skupina 060 · path:1, circle:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mal:13:++--++000-0++",
+      "visualLabel": "path:1, circle:1, rect:1",
+      "visualEvidence": "line:2 · path:1, circle:1, rect:1 · smeri poti mal:13:++--++000-0++",
+      "members": [
+        "ikona-f55173d4f015"
+      ],
+      "recommendedId": "ikona-f55173d4f015",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-061",
+      "number": 61,
+      "label": "Grafična skupina 061 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvahahavhahava:51:+++++000--+++0000++++00+|mvahav:19:+++++000+++++000+--",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mvahahavhahava:51:+++++000--+++0000++++00+|mvahav:19:+++++000+++++000+--",
+      "members": [
+        "ikona-2d0c06035bfa"
+      ],
+      "recommendedId": "ikona-2d0c06035bfa",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-062",
+      "number": 62,
+      "label": "Grafična skupina 062 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++---+|mv:3:+++|mvahav:19:+++++00+-++++00+---",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti m:6:++---+|mv:3:+++|mvahav:19:+++++00+-++++00+---",
+      "members": [
+        "ikona-68f0863242b1"
+      ],
+      "recommendedId": "ikona-68f0863242b1",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-063",
+      "number": 63,
+      "label": "Grafična skupina 063 · path:3, polyline:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:1|polygon:0|ellipse:0:mh:3:+++|mh:3:+++|mhavahavz:27:+++++000-++++000+++++000",
+      "visualLabel": "path:3, polyline:1",
+      "visualEvidence": "line:2 · path:3, polyline:1 · smeri poti mh:3:+++|mh:3:+++|mhavahavz:27:+++++000-++++000+++++000",
+      "members": [
+        "ikona-d2b58e88652e"
+      ],
+      "recommendedId": "ikona-d2b58e88652e",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-064",
+      "number": 64,
+      "label": "Grafična skupina 064 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2.2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mll:6:++-+++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2.2 · path:1, circle:1 · smeri poti mll:6:++-+++",
+      "members": [
+        "ikona-d4cbb43ac78b"
+      ],
+      "recommendedId": "ikona-d4cbb43ac78b",
+      "occurrences": 5
+    },
+    {
+      "id": "grafika-065",
+      "number": 65,
+      "label": "Grafična skupina 065 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmhmhmvmv:18:++++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmhmhmhmvmv:18:++++++++++++++++++",
+      "members": [
+        "ikona-3bf436f4e54e"
+      ],
+      "recommendedId": "ikona-3bf436f4e54e",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-066",
+      "number": 66,
+      "label": "Grafična skupina 066 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|malalalaz:36:++++000--++++000-+-+++00",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:4:++++|malalalaz:36:++++000--++++000-+-+++00",
+      "members": [
+        "ikona-b1bbaf3e533e"
+      ],
+      "recommendedId": "ikona-b1bbaf3e533e",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-067",
+      "number": 67,
+      "label": "Grafična skupina 067 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|mz:10:++-+----+-",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:4:++++|mz:10:++-+----+-",
+      "members": [
+        "ikona-3b503fecb26a"
+      ],
+      "recommendedId": "ikona-3b503fecb26a",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-068",
+      "number": 68,
+      "label": "Grafična skupina 068 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|msvlvcz:18:+++-+-+---++0+++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:6:+++++-|msvlvcz:18:+++-+-+---++0+++++",
+      "members": [
+        "ikona-e5c724efbb3e"
+      ],
+      "recommendedId": "ikona-e5c724efbb3e",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-069",
+      "number": 69,
+      "label": "Grafična skupina 069 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mv:3:+++",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:2 · path:2, circle:1 · smeri poti mh:3:+++|mv:3:+++",
+      "members": [
+        "ikona-af58c09c8024"
+      ],
+      "recommendedId": "ikona-af58c09c8024",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-070",
+      "number": 70,
+      "label": "Grafična skupina 070 · path:5",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:5|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++++-+|m:6:++++-+|mah:12:++++++000+++|mhal:12:+++++00+++++|mhalah:20:+++++000+-++++00++-+",
+      "visualLabel": "path:5",
+      "visualEvidence": "line:2 · path:5 · smeri poti m:6:++++-+|m:6:++++-+|mah:12:++++++000+++|mhal:12:+++++00+++++|mhalah:20:+++++000+-++++00++-+",
+      "members": [
+        "ikona-c37df7893cc7"
+      ],
+      "recommendedId": "ikona-c37df7893cc7",
+      "occurrences": 4
+    },
+    {
+      "id": "grafika-071",
+      "number": 71,
+      "label": "Grafična skupina 071 · rect:1, line:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:0|circle:0|rect:1|line:3|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "rect:1, line:3",
+      "visualEvidence": "line:2 · rect:1, line:3 · smeri poti —",
+      "members": [
+        "ikona-2ac687930ad9"
+      ],
+      "recommendedId": "ikona-2ac687930ad9",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-072",
+      "number": 72,
+      "label": "Grafična skupina 072 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mahlvahaz:28:++++00+-++-++++00++-+++0",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mahlvahaz:28:++++00+-++-++++00++-+++0",
+      "members": [
+        "ikona-1421d45553ca"
+      ],
+      "recommendedId": "ikona-1421d45553ca",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-073",
+      "number": 73,
+      "label": "Grafična skupina 073 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mavahalahavaz:50:++++000+-+++000---++00+-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mavahalahavaz:50:++++000+-+++000---++00+-",
+      "members": [
+        "ikona-d2b3f6cb777f"
+      ],
+      "recommendedId": "ikona-d2b3f6cb777f",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-074",
+      "number": 74,
+      "label": "Grafična skupina 074 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvhvmhlmvmv:21:+++++++++0-++++++++-+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmvhvmhlmvmv:21:+++++++++0-++++++++-+",
+      "members": [
+        "ikona-08d7f3d9329b"
+      ],
+      "recommendedId": "ikona-08d7f3d9329b",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-075",
+      "number": 75,
+      "label": "Grafična skupina 075 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvlvmhmhmhmhmvhv:25:++++-+++++++0+++++0+++-+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvlvmhmhmhmhmvhv:25:++++-+++++++0+++++0+++-+",
+      "members": [
+        "ikona-9f60411c881f"
+      ],
+      "recommendedId": "ikona-9f60411c881f",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-076",
+      "number": 76,
+      "label": "Grafična skupina 076 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmlazmlazmhmh:31:+++++-+++000+0++-+++000+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvmlazmlazmhmh:31:+++++-+++000+0++-+++000+",
+      "members": [
+        "ikona-7fddec32dea0"
+      ],
+      "recommendedId": "ikona-7fddec32dea0",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-077",
+      "number": 77,
+      "label": "Grafična skupina 077 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mamvmh:15:++++000+0++++++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mamvmh:15:++++000+0++++++",
+      "members": [
+        "ikona-b6147561f668"
+      ],
+      "recommendedId": "ikona-b6147561f668",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-078",
+      "number": 78,
+      "label": "Grafična skupina 078 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvahav:19:+++++000---++000-++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mvahav:19:+++++000---++000-++",
+      "members": [
+        "ikona-29447ba0e9d4"
+      ],
+      "recommendedId": "ikona-29447ba0e9d4",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-079",
+      "number": 79,
+      "label": "Grafična skupina 079 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mml:8:++-+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mml:8:++-+++++",
+      "members": [
+        "ikona-35e254a155f2"
+      ],
+      "recommendedId": "ikona-35e254a155f2",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-080",
+      "number": 80,
+      "label": "Grafična skupina 080 · path:1, circle:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:3|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallahavz:50:++++00+-+++00+--+++-++00",
+      "visualLabel": "path:1, circle:3",
+      "visualEvidence": "line:2 · path:1, circle:3 · smeri poti mallahavz:50:++++00+-+++00+--+++-++00",
+      "members": [
+        "ikona-fff3248fb319"
+      ],
+      "recommendedId": "ikona-fff3248fb319",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-081",
+      "number": 81,
+      "label": "Grafična skupina 081 · path:2, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mv:3:+++",
+      "visualLabel": "path:2, rect:1",
+      "visualEvidence": "line:2 · path:2, rect:1 · smeri poti mh:3:+++|mv:3:+++",
+      "members": [
+        "ikona-f9791dd52d91"
+      ],
+      "recommendedId": "ikona-f9791dd52d91",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-082",
+      "number": 82,
+      "label": "Grafična skupina 082 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mh:3:+++|mhvlz:12:++++---+---+",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti m:6:+++++-|mh:3:+++|mhvlz:12:++++---+---+",
+      "members": [
+        "ikona-ea61a61ae746"
+      ],
+      "recommendedId": "ikona-ea61a61ae746",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-083",
+      "number": 83,
+      "label": "Grafična skupina 083 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhahah:19:++-++0+00++++0++0++|mv:3:+++|mv:3:++-",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "line:2 · path:3, circle:1 · smeri poti mhahah:19:++-++0+00++++0++0++|mv:3:+++|mv:3:++-",
+      "members": [
+        "ikona-a2bd4bc3bd7d"
+      ],
+      "recommendedId": "ikona-a2bd4bc3bd7d",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-084",
+      "number": 84,
+      "label": "Grafična skupina 084 · path:5",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:5|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mh:3:+++|mh:3:+++|mhavahavz:27:+++++000-++++000+++++000|mvah:11:+++++000+++",
+      "visualLabel": "path:5",
+      "visualEvidence": "line:2 · path:5 · smeri poti mh:3:+++|mh:3:+++|mh:3:+++|mhavahavz:27:+++++000-++++000+++++000|mvah:11:+++++000+++",
+      "members": [
+        "ikona-a499728649d7"
+      ],
+      "recommendedId": "ikona-a499728649d7",
+      "occurrences": 3
+    },
+    {
+      "id": "grafika-085",
+      "number": 85,
+      "label": "Grafična skupina 085 · znak 2212",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-2212",
+      "visualLabel": "znak 2212",
+      "visualEvidence": "dejanski znak · znak-2212",
+      "members": [
+        "ikona-1425afb84972"
+      ],
+      "recommendedId": "ikona-1425afb84972",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-086",
+      "number": 86,
+      "label": "Grafična skupina 086 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "fill:ni navedeno · path:1, circle:1 · smeri poti m:4:++++",
+      "members": [
+        "ikona-e0926d858a4b"
+      ],
+      "recommendedId": "ikona-e0926d858a4b",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-087",
+      "number": 87,
+      "label": "Grafična skupina 087 · path:1, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmhmh:12:++++++++++++",
+      "visualLabel": "path:1, circle:2",
+      "visualEvidence": "fill:ni navedeno · path:1, circle:2 · smeri poti mhmhmhmh:12:++++++++++++",
+      "members": [
+        "ikona-d18da7cb2292"
+      ],
+      "recommendedId": "ikona-d18da7cb2292",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-088",
+      "number": 88,
+      "label": "Grafična skupina 088 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++-++|mvav:18:+++++000++++000+-+",
+      "visualLabel": "path:2",
+      "visualEvidence": "fill:ni navedeno · path:2 · smeri poti m:6:+++-++|mvav:18:+++++000++++000+-+",
+      "members": [
+        "ikona-da20082072ed"
+      ],
+      "recommendedId": "ikona-da20082072ed",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-089",
+      "number": 89,
+      "label": "Grafična skupina 089 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+--",
+      "visualLabel": "path:2",
+      "visualEvidence": "fill:ni navedeno · path:2 · smeri poti m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+--",
+      "members": [
+        "ikona-693671e95de6"
+      ],
+      "recommendedId": "ikona-693671e95de6",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-090",
+      "number": 90,
+      "label": "Grafična skupina 090 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.8 · path:1, circle:1 · smeri poti m:4:++++",
+      "members": [
+        "ikona-c0d433bd8d25"
+      ],
+      "recommendedId": "ikona-c0d433bd8d25",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-091",
+      "number": 91,
+      "label": "Grafična skupina 091 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malz:15:+++-++00+++++++|mhavahav:27:+++++000-++++000+++++000",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti malz:15:+++-++00+++++++|mhavahav:27:+++++000-++++000+++++000",
+      "members": [
+        "ikona-07b79244f9b2"
+      ],
+      "recommendedId": "ikona-07b79244f9b2",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-092",
+      "number": 92,
+      "label": "Grafična skupina 092 · circle:1, line:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:0|circle:1|rect:0|line:2|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "circle:1, line:2",
+      "visualEvidence": "line:2 · circle:1, line:2 · smeri poti —",
+      "members": [
+        "ikona-3f0e043e51e9"
+      ],
+      "recommendedId": "ikona-3f0e043e51e9",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-093",
+      "number": 93,
+      "label": "Grafična skupina 093 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malalal:31:++-+++000+++-++0+0---+++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti malalal:31:++-+++000+++-++0+0---+++",
+      "members": [
+        "ikona-1155a1aea75f"
+      ],
+      "recommendedId": "ikona-1155a1aea75f",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-094",
+      "number": 94,
+      "label": "Grafična skupina 094 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlclvcz:36:+++++-++++++++-+++0+-+-+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhlclvcz:36:+++++-++++++++-+++0+-+-+",
+      "members": [
+        "ikona-5c79614b5370"
+      ],
+      "recommendedId": "ikona-5c79614b5370",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-095",
+      "number": 95,
+      "label": "Grafična skupina 095 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvmvmvmvmhmlhz:23:+++++++++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmvmvmvmvmhmlhz:23:+++++++++++++++++++++++",
+      "members": [
+        "ikona-fcfd2f5f4774"
+      ],
+      "recommendedId": "ikona-fcfd2f5f4774",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-096",
+      "number": 96,
+      "label": "Grafična skupina 096 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mlm:8:++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mlm:8:++++++++",
+      "members": [
+        "ikona-5776d775a4a3"
+      ],
+      "recommendedId": "ikona-5776d775a4a3",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-097",
+      "number": 97,
+      "label": "Grafična skupina 097 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mlmhv:12:+++++-+++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mlmhv:12:+++++-+++++-",
+      "members": [
+        "ikona-949d6ca46ef5"
+      ],
+      "recommendedId": "ikona-949d6ca46ef5",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-098",
+      "number": 98,
+      "label": "Grafična skupina 098 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvaacaavaaca:65:+++++00++-++00++++0+++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvaacaavaaca:65:+++++00++-++00++++0+++++",
+      "members": [
+        "ikona-2d4eb6db2bdf"
+      ],
+      "recommendedId": "ikona-2d4eb6db2bdf",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-099",
+      "number": 99,
+      "label": "Grafična skupina 099 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvaahalalaaz:92:+++++00+-+++00+--++00+--",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvaahalalaaz:92:+++++00+-+++00+--++00+--",
+      "members": [
+        "ikona-676579ae81aa"
+      ],
+      "recommendedId": "ikona-676579ae81aa",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-100",
+      "number": 100,
+      "label": "Grafična skupina 100 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvhmlmhv:16:+++++++++-+++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvhmlmhv:16:+++++++++-+++++-",
+      "members": [
+        "ikona-640ea63d2fd9"
+      ],
+      "recommendedId": "ikona-640ea63d2fd9",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-101",
+      "number": 101,
+      "label": "Grafična skupina 101 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mclaclhalah:45:+++++-+-+-+-++00+++++-+-",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mclaclhalah:45:+++++-+-+-+-++00+++++-+-",
+      "members": [
+        "ikona-d8f6f586b5a4"
+      ],
+      "recommendedId": "ikona-d8f6f586b5a4",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-102",
+      "number": 102,
+      "label": "Grafična skupina 102 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malavhvalllaahvhallavhvalllahvhaz:150:++++000++++-+--++000--++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti malavhvalllaahvhallavhvalllahvhaz:150:++++000++++-+--++000--++",
+      "members": [
+        "ikona-999597e82c63"
+      ],
+      "recommendedId": "ikona-999597e82c63",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-103",
+      "number": 103,
+      "label": "Grafična skupina 103 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavalalalalavalalalalavahavalalalalavalalalalavaz:210:++-++000-++++00+-+-+++00",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mhavalalalalavalalalalavahavalalalalavalalalalavaz:210:++-++000-++++00+-+-+++00",
+      "members": [
+        "ikona-28171fd27158"
+      ],
+      "recommendedId": "ikona-28171fd27158",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-104",
+      "number": 104,
+      "label": "Grafična skupina 104 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:msz:18:+++-+-++++-+-+----",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti msz:18:+++-+-++++-+-+----",
+      "members": [
+        "ikona-7fc29ca0c22e"
+      ],
+      "recommendedId": "ikona-7fc29ca0c22e",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-105",
+      "number": 105,
+      "label": "Grafična skupina 105 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++0+0-+|mvh:4:+++-",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti ma:9:++++0+0-+|mvh:4:+++-",
+      "members": [
+        "ikona-e305e7e53a2f"
+      ],
+      "recommendedId": "ikona-e305e7e53a2f",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-106",
+      "number": 106,
+      "label": "Grafična skupina 106 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++00+-0|machs:20:++++000-00+-+-++----",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti ma:9:++++00+-0|machs:20:++++000-00+-+-++----",
+      "members": [
+        "ikona-dbfef9f51140"
+      ],
+      "recommendedId": "ikona-dbfef9f51140",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-107",
+      "number": 107,
+      "label": "Grafična skupina 107 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcmc:16:+++++++0+++++++0|mvmhmhmmlmlhlzmlhlz:31:+++++++++++++++++++-++--",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mcmc:16:+++++++0+++++++0|mvmhmhmmlmlhlzmlhlz:31:+++++++++++++++++++-++--",
+      "members": [
+        "ikona-5a6364e1aa90"
+      ],
+      "recommendedId": "ikona-5a6364e1aa90",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-108",
+      "number": 108,
+      "label": "Grafična skupina 108 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcs:12:+++-+-+-++++|ml:6:+++++-",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:2 · path:2, circle:1 · smeri poti mcs:12:+++-+-+-++++|ml:6:+++++-",
+      "members": [
+        "ikona-95519b1e2bdf"
+      ],
+      "recommendedId": "ikona-95519b1e2bdf",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-109",
+      "number": 109,
+      "label": "Grafična skupina 109 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ml:6:+++++-|mv:3:+++",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:2 · path:2, circle:1 · smeri poti ml:6:+++++-|mv:3:+++",
+      "members": [
+        "ikona-391c55c0261c"
+      ],
+      "recommendedId": "ikona-391c55c0261c",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-110",
+      "number": 110,
+      "label": "Grafična skupina 110 · path:2, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvl:5:+++++",
+      "visualLabel": "path:2, circle:2",
+      "visualEvidence": "line:2 · path:2, circle:2 · smeri poti m:6:+++++-|mvl:5:+++++",
+      "members": [
+        "ikona-f2f44f86da73"
+      ],
+      "recommendedId": "ikona-f2f44f86da73",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-111",
+      "number": 111,
+      "label": "Grafična skupina 111 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:maac:28:++++000--++000++0++++++0|mh:3:+++|mh:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti maac:28:++++000--++000++0++++++0|mh:3:+++|mh:3:+++",
+      "members": [
+        "ikona-5ac7219c090d"
+      ],
+      "recommendedId": "ikona-5ac7219c090d",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-112",
+      "number": 112,
+      "label": "Grafična skupina 112 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhz:7:+++++++|msz:18:+++-+-++++-+-+----|mvhmhmh:10:++++++++++",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "line:2 · path:3, circle:1 · smeri poti mhlvhz:7:+++++++|msz:18:+++-+-++++-+-+----|mvhmhmh:10:++++++++++",
+      "members": [
+        "ikona-23a6407ca3e4"
+      ],
+      "recommendedId": "ikona-23a6407ca3e4",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-113",
+      "number": 113,
+      "label": "Grafična skupina 113 · path:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|ma:9:++++00+-0|mac:15:++++00+++0+++++|mhsa:14:++++-+-++00++-",
+      "visualLabel": "path:4",
+      "visualEvidence": "line:2 · path:4 · smeri poti m:4:++++|ma:9:++++00+-0|mac:15:++++00+++0+++++|mhsa:14:++++-+-++00++-",
+      "members": [
+        "ikona-b715bca05a90"
+      ],
+      "recommendedId": "ikona-b715bca05a90",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-114",
+      "number": 114,
+      "label": "Grafična skupina 114 · path:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mlhl:7:++-++++|mvhv:5:+++++|mvmv:6:++++++",
+      "visualLabel": "path:4",
+      "visualEvidence": "line:2 · path:4 · smeri poti mh:3:+++|mlhl:7:++-++++|mvhv:5:+++++|mvmv:6:++++++",
+      "members": [
+        "ikona-55c2df38dc11"
+      ],
+      "recommendedId": "ikona-55c2df38dc11",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-115",
+      "number": 115,
+      "label": "Grafična skupina 115 · path:4, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++",
+      "visualLabel": "path:4, rect:1",
+      "visualEvidence": "line:2 · path:4, rect:1 · smeri poti mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++",
+      "members": [
+        "ikona-5a6d44612e51"
+      ],
+      "recommendedId": "ikona-5a6d44612e51",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-116",
+      "number": 116,
+      "label": "Grafična skupina 116 · path:4, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mhav:11:+++++00++++|mhav:11:+++++00+---|mvah:11:+++++00++-+|mvah:11:+++++00+-+-",
+      "visualLabel": "path:4, rect:1",
+      "visualEvidence": "line:2 · path:4, rect:1 · smeri poti mhav:11:+++++00++++|mhav:11:+++++00+---|mvah:11:+++++00++-+|mvah:11:+++++00+-+-",
+      "members": [
+        "ikona-f341727d0683"
+      ],
+      "recommendedId": "ikona-f341727d0683",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-117",
+      "number": 117,
+      "label": "Grafična skupina 117 · path:5, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:5|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++|mv:3:+++",
+      "visualLabel": "path:5, rect:1",
+      "visualEvidence": "line:2 · path:5, rect:1 · smeri poti mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++|mv:3:+++",
+      "members": [
+        "ikona-2723e19035eb"
+      ],
+      "recommendedId": "ikona-2723e19035eb",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-118",
+      "number": 118,
+      "label": "Grafična skupina 118 · path:9, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:9|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++",
+      "visualLabel": "path:9, rect:1",
+      "visualEvidence": "line:2 · path:9, rect:1 · smeri poti mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++",
+      "members": [
+        "ikona-f4091112fc79"
+      ],
+      "recommendedId": "ikona-f4091112fc79",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-119",
+      "number": 119,
+      "label": "Grafična skupina 119 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2.5:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ml:6:++-+--",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2.5 · path:1, circle:1 · smeri poti ml:6:++-+--",
+      "members": [
+        "ikona-f29292ef1a33"
+      ],
+      "recommendedId": "ikona-f29292ef1a33",
+      "occurrences": 2
+    },
+    {
+      "id": "grafika-120",
+      "number": 120,
+      "label": "Grafična skupina 120 · znak 2026",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-2026",
+      "visualLabel": "znak 2026",
+      "visualEvidence": "dejanski znak · znak-2026",
+      "members": [
+        "ikona-698d733ed99c"
+      ],
+      "recommendedId": "ikona-698d733ed99c",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-121",
+      "number": 121,
+      "label": "Grafična skupina 121 · znak 21",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-21",
+      "visualLabel": "znak 21",
+      "visualEvidence": "dejanski znak · znak-21",
+      "members": [
+        "ikona-2ed70e104255"
+      ],
+      "recommendedId": "ikona-2ed70e104255",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-122",
+      "number": 122,
+      "label": "Grafična skupina 122 · znak 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf",
+      "visualLabel": "znak 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf 20 20 25cf",
+      "visualEvidence": "dejanski znak · znak-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf-20-20-25cf",
+      "members": [
+        "ikona-7d042df0a860"
+      ],
+      "recommendedId": "ikona-7d042df0a860",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-123",
+      "number": 123,
+      "label": "Grafična skupina 123 · znak 2726",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-2726",
+      "visualLabel": "znak 2726",
+      "visualEvidence": "dejanski znak · znak-2726",
+      "members": [
+        "ikona-400885239873"
+      ],
+      "recommendedId": "ikona-400885239873",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-124",
+      "number": 124,
+      "label": "Grafična skupina 124 · znak 44 6f 6c 67",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-44-6f-6c-67",
+      "visualLabel": "znak 44 6f 6c 67",
+      "visualEvidence": "dejanski znak · znak-44-6f-6c-67",
+      "members": [
+        "ikona-7ae429335496"
+      ],
+      "recommendedId": "ikona-7ae429335496",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-125",
+      "number": 125,
+      "label": "Grafična skupina 125 · znak 50 72 65 64 6c 6f 67 20 73 69 73 74 65 6d 61 3a",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-50-72-65-64-6c-6f-67-20-73-69-73-74-65-6d-61-3a",
+      "visualLabel": "znak 50 72 65 64 6c 6f 67 20 73 69 73 74 65 6d 61 3a",
+      "visualEvidence": "dejanski znak · znak-50-72-65-64-6c-6f-67-20-73-69-73-74-65-6d-61-3a",
+      "members": [
+        "ikona-a5092842f9ae"
+      ],
+      "recommendedId": "ikona-a5092842f9ae",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-126",
+      "number": 126,
+      "label": "Grafična skupina 126 · znak 53 54 41 52 4f 53 54",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-53-54-41-52-4f-53-54",
+      "visualLabel": "znak 53 54 41 52 4f 53 54",
+      "visualEvidence": "dejanski znak · znak-53-54-41-52-4f-53-54",
+      "members": [
+        "ikona-e8cd0ade5852"
+      ],
+      "recommendedId": "ikona-e8cd0ade5852",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-127",
+      "number": 127,
+      "label": "Grafična skupina 127 · znak 53 6b 72 69 6a",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-53-6b-72-69-6a",
+      "visualLabel": "znak 53 6b 72 69 6a",
+      "visualEvidence": "dejanski znak · znak-53-6b-72-69-6a",
+      "members": [
+        "ikona-0102b8c8bc2a"
+      ],
+      "recommendedId": "ikona-0102b8c8bc2a",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-128",
+      "number": 128,
+      "label": "Grafična skupina 128 · znak 53 6b 72 69 6a 20 7a 61 70 69 73",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-53-6b-72-69-6a-20-7a-61-70-69-73",
+      "visualLabel": "znak 53 6b 72 69 6a 20 7a 61 70 69 73",
+      "visualEvidence": "dejanski znak · znak-53-6b-72-69-6a-20-7a-61-70-69-73",
+      "members": [
+        "ikona-269e3a554d0c"
+      ],
+      "recommendedId": "ikona-269e3a554d0c",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-129",
+      "number": 129,
+      "label": "Grafična skupina 129 · znak 54 45 53 54 52 45 43 48 4e 55 4e 47",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-54-45-53-54-52-45-43-48-4e-55-4e-47",
+      "visualLabel": "znak 54 45 53 54 52 45 43 48 4e 55 4e 47",
+      "visualEvidence": "dejanski znak · znak-54-45-53-54-52-45-43-48-4e-55-4e-47",
+      "members": [
+        "ikona-59f3e39d3d20"
+      ],
+      "recommendedId": "ikona-59f3e39d3d20",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-130",
+      "number": 130,
+      "label": "Grafična skupina 130 · znak 55 70 6f 72 61 62 69",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-55-70-6f-72-61-62-69",
+      "visualLabel": "znak 55 70 6f 72 61 62 69",
+      "visualEvidence": "dejanski znak · znak-55-70-6f-72-61-62-69",
+      "members": [
+        "ikona-16cf38c7dc36"
+      ],
+      "recommendedId": "ikona-16cf38c7dc36",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-131",
+      "number": 131,
+      "label": "Grafična skupina 131 · znak 69",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-69",
+      "visualLabel": "znak 69",
+      "visualEvidence": "dejanski znak · znak-69",
+      "members": [
+        "ikona-d2cbac10edb1"
+      ],
+      "recommendedId": "ikona-d2cbac10edb1",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-132",
+      "number": 132,
+      "label": "Grafična skupina 132 · znak 70 72 65 6f 73 74 61 6e 6b 61",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "glyph:znak-70-72-65-6f-73-74-61-6e-6b-61",
+      "visualLabel": "znak 70 72 65 6f 73 74 61 6e 6b 61",
+      "visualEvidence": "dejanski znak · znak-70-72-65-6f-73-74-61-6e-6b-61",
+      "members": [
+        "ikona-85169a0c2f90"
+      ],
+      "recommendedId": "ikona-85169a0c2f90",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-133",
+      "number": 133,
+      "label": "Grafična skupina 133 · razpiranje",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "motif:razpiranje",
+      "visualLabel": "razpiranje",
+      "visualEvidence": "dejanski znak · razpiranje",
+      "members": [
+        "ikona-f603027cd36f"
+      ],
+      "recommendedId": "ikona-f603027cd36f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-134",
+      "number": 134,
+      "label": "Grafična skupina 134 · rect:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:0|circle:0|rect:4|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "rect:4",
+      "visualEvidence": "fill:ni navedeno · rect:4 · smeri poti —",
+      "members": [
+        "ikona-baa7bcd50e68"
+      ],
+      "recommendedId": "ikona-baa7bcd50e68",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-135",
+      "number": 135,
+      "label": "Grafična skupina 135 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++-++",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti m:6:+++-++",
+      "members": [
+        "ikona-0dc744857ae3"
+      ],
+      "recommendedId": "ikona-0dc744857ae3",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-136",
+      "number": 136,
+      "label": "Grafična skupina 136 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++++-+",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti m:6:++++-+",
+      "members": [
+        "ikona-6f0a64db1f8b"
+      ],
+      "recommendedId": "ikona-6f0a64db1f8b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-137",
+      "number": 137,
+      "label": "Grafična skupina 137 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mamvhmamvh:26:++++000--++++++++000++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti mamvhmamvh:26:++++000--++++++++000++++",
+      "members": [
+        "ikona-eba83332add4"
+      ],
+      "recommendedId": "ikona-eba83332add4",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-138",
+      "number": 138,
+      "label": "Grafična skupina 138 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhzmvhmhmh:17:+++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti mhlvhzmvhmhmh:17:+++++++++++++++++",
+      "members": [
+        "ikona-fc8737dd640f"
+      ],
+      "recommendedId": "ikona-fc8737dd640f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-139",
+      "number": 139,
+      "label": "Grafična skupina 139 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvhvmlhlmvmv:21:++++++++++++++-++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti mhmvhvmlhlmvmv:21:++++++++++++++-++++++",
+      "members": [
+        "ikona-ad4480a6612e"
+      ],
+      "recommendedId": "ikona-ad4480a6612e",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-140",
+      "number": 140,
+      "label": "Grafična skupina 140 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ml:6:++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti ml:6:++++++",
+      "members": [
+        "ikona-34c991fdc5e3"
+      ],
+      "recommendedId": "ikona-34c991fdc5e3",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-141",
+      "number": 141,
+      "label": "Grafična skupina 141 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mllz:20:++++++-+++++-++---+-",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti mllz:20:++++++-+++++-++---+-",
+      "members": [
+        "ikona-b2284aaf519f"
+      ],
+      "recommendedId": "ikona-b2284aaf519f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-142",
+      "number": 142,
+      "label": "Grafična skupina 142 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mml:8:++++++-+",
+      "visualLabel": "path:1",
+      "visualEvidence": "fill:ni navedeno · path:1 · smeri poti mml:8:++++++-+",
+      "members": [
+        "ikona-6f40a2129e35"
+      ],
+      "recommendedId": "ikona-6f40a2129e35",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-143",
+      "number": 143,
+      "label": "Grafična skupina 143 · path:1, ellipse:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:1:mvcsvmvcsv:28:+++0++++++-+-++++0++++++",
+      "visualLabel": "path:1, ellipse:1",
+      "visualEvidence": "fill:ni navedeno · path:1, ellipse:1 · smeri poti mvcsvmvcsv:28:+++0++++++-+-++++0++++++",
+      "members": [
+        "ikona-8dea5d0a89c7"
+      ],
+      "recommendedId": "ikona-8dea5d0a89c7",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-144",
+      "number": 144,
+      "label": "Grafična skupina 144 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmh:6:++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "fill:ni navedeno · path:1, circle:1 · smeri poti mvmh:6:++++++",
+      "members": [
+        "ikona-8867f2b1bc1b"
+      ],
+      "recommendedId": "ikona-8867f2b1bc1b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-145",
+      "number": 145,
+      "label": "Grafična skupina 145 · path:1, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:1|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhcvch:17:++++0+-+--0-+-+-+",
+      "visualLabel": "path:1, circle:2",
+      "visualEvidence": "fill:ni navedeno · path:1, circle:2 · smeri poti mhcvch:17:++++0+-+--0-+-+-+",
+      "members": [
+        "ikona-202bf68d8ea2"
+      ],
+      "recommendedId": "ikona-202bf68d8ea2",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-146",
+      "number": 146,
+      "label": "Grafična skupina 146 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mvmvmvmv:12:++++++++-+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "fill:ni navedeno · path:2 · smeri poti mh:3:+++|mvmvmvmv:12:++++++++-+++",
+      "members": [
+        "ikona-4d9d24323842"
+      ],
+      "recommendedId": "ikona-4d9d24323842",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-147",
+      "number": 147,
+      "label": "Grafična skupina 147 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhz:7:+++++++|mvhmhmh:10:++++++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "fill:ni navedeno · path:2 · smeri poti mhlvhz:7:+++++++|mvhmhmh:10:++++++++++",
+      "members": [
+        "ikona-128a67478b8e"
+      ],
+      "recommendedId": "ikona-128a67478b8e",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-148",
+      "number": 148,
+      "label": "Grafična skupina 148 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmhmh:12:++++++++++++|mvmvmhmhavhvaz:29:++++++++++++++00++++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "fill:ni navedeno · path:2 · smeri poti mhmhmhmh:12:++++++++++++|mvmvmhmhavhvaz:29:++++++++++++++00++++++++",
+      "members": [
+        "ikona-ff10d3e55343"
+      ],
+      "recommendedId": "ikona-ff10d3e55343",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-149",
+      "number": 149,
+      "label": "Grafična skupina 149 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:fill:ni navedeno:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mhlvhz:7:+++++++|mvhmhmh:10:++++++++++",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "fill:ni navedeno · path:3, circle:1 · smeri poti m:6:+++++-|mhlvhz:7:+++++++|mvhmhmh:10:++++++++++",
+      "members": [
+        "ikona-322f749a3391"
+      ],
+      "recommendedId": "ikona-322f749a3391",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-150",
+      "number": 150,
+      "label": "Grafična skupina 150 · path:1, line:3, polyline:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.7:path:1|circle:0|rect:0|line:3|polyline:1|polygon:0|ellipse:0:mhavahavlz:29:+++++000-++++000+++++000",
+      "visualLabel": "path:1, line:3, polyline:1",
+      "visualEvidence": "line:1.7 · path:1, line:3, polyline:1 · smeri poti mhavahavlz:29:+++++000-++++000+++++000",
+      "members": [
+        "ikona-48d464caef1a"
+      ],
+      "recommendedId": "ikona-48d464caef1a",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-151",
+      "number": 151,
+      "label": "Grafična skupina 151 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.7:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.7 · path:1, circle:1 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-143280cc4178"
+      ],
+      "recommendedId": "ikona-143280cc4178",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-152",
+      "number": 152,
+      "label": "Grafična skupina 152 · path:2, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.7:path:2|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mhmhmhmhmh:15:+++++++++++++++|mvmvmh:9:+++++++++",
+      "visualLabel": "path:2, rect:1",
+      "visualEvidence": "line:1.7 · path:2, rect:1 · smeri poti mhmhmhmhmh:15:+++++++++++++++|mvmvmh:9:+++++++++",
+      "members": [
+        "ikona-00b8aa9e6581"
+      ],
+      "recommendedId": "ikona-00b8aa9e6581",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-153",
+      "number": 153,
+      "label": "Grafična skupina 153 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.7:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:macsa:26:++++000---0-+-+++++++000|mhmh:6:++++++",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:1.7 · path:2, circle:1 · smeri poti macsa:26:++++000---0-+-+++++++000|mhmh:6:++++++",
+      "members": [
+        "ikona-db72b569ee33"
+      ],
+      "recommendedId": "ikona-db72b569ee33",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-154",
+      "number": 154,
+      "label": "Grafična skupina 154 · path:5",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.7:path:5|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:11:++++++0+0+-|mah:10:++++00+-+-|mala:18:++++000++++++0+0+-|malalalalaha:55:++++++0+0+---++000-0-+++|mha:10:+++++000-+",
+      "visualLabel": "path:5",
+      "visualEvidence": "line:1.7 · path:5 · smeri poti ma:11:++++++0+0+-|mah:10:++++00+-+-|mala:18:++++000++++++0+0+-|malalalalaha:55:++++++0+0+---++000-0-+++|mha:10:+++++000-+",
+      "members": [
+        "ikona-83f6e607aa57"
+      ],
+      "recommendedId": "ikona-83f6e607aa57",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-155",
+      "number": 155,
+      "label": "Grafična skupina 155 · SVG oblika",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:0|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "SVG oblika",
+      "visualEvidence": "line:1.8 · brez standardnih elementov · smeri poti —",
+      "members": [
+        "ikona-b4821c4a85b0"
+      ],
+      "recommendedId": "ikona-b4821c4a85b0",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-156",
+      "number": 156,
+      "label": "Grafična skupina 156 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:1.8 · path:1 · smeri poti —",
+      "members": [
+        "ikona-40227cd3eec8"
+      ],
+      "recommendedId": "ikona-40227cd3eec8",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-157",
+      "number": 157,
+      "label": "Grafična skupina 157 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++++-+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:1.8 · path:1 · smeri poti m:6:++++-+",
+      "members": [
+        "ikona-0bda60178bec"
+      ],
+      "recommendedId": "ikona-0bda60178bec",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-158",
+      "number": 158,
+      "label": "Grafična skupina 158 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallz:15:++++0+++++++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:1.8 · path:1 · smeri poti mallz:15:++++0+++++++++-",
+      "members": [
+        "ikona-8caf98dc97c7"
+      ],
+      "recommendedId": "ikona-8caf98dc97c7",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-159",
+      "number": 159,
+      "label": "Grafična skupina 159 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ml:6:++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:1.8 · path:1 · smeri poti ml:6:++++++",
+      "members": [
+        "ikona-101ecd91bd9b"
+      ],
+      "recommendedId": "ikona-101ecd91bd9b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-160",
+      "number": 160,
+      "label": "Grafična skupina 160 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvaahacalalacaz:90:+++++00+-+++00+--++00+--",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:1.8 · path:1 · smeri poti mvaahacalalacaz:90:+++++00+-+++00+--++00+--",
+      "members": [
+        "ikona-369355f9d865"
+      ],
+      "recommendedId": "ikona-369355f9d865",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-161",
+      "number": 161,
+      "label": "Grafična skupina 161 · path:1, line:2, polyline:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:0|line:2|polyline:1|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000",
+      "visualLabel": "path:1, line:2, polyline:1",
+      "visualEvidence": "line:1.8 · path:1, line:2, polyline:1 · smeri poti mhavahavz:27:+++++000-++++000+++++000",
+      "members": [
+        "ikona-57e2fa14f1c8"
+      ],
+      "recommendedId": "ikona-57e2fa14f1c8",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-162",
+      "number": 162,
+      "label": "Grafična skupina 162 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:1.8 · path:1, rect:1 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-0534ebd4c49c"
+      ],
+      "recommendedId": "ikona-0534ebd4c49c",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-163",
+      "number": 163,
+      "label": "Grafična skupina 163 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvav:11:+++++00++0+",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:1.8 · path:1, rect:1 · smeri poti mvav:11:+++++00++0+",
+      "members": [
+        "ikona-888214eb5fbb"
+      ],
+      "recommendedId": "ikona-888214eb5fbb",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-164",
+      "number": 164,
+      "label": "Grafična skupina 164 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++00++0",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.8 · path:1, circle:1 · smeri poti ma:9:++++00++0",
+      "members": [
+        "ikona-024b272db7bf"
+      ],
+      "recommendedId": "ikona-024b272db7bf",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-165",
+      "number": 165,
+      "label": "Grafična skupina 165 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malavhvaalaahvhaalllavhvalaahvhaz:150:++++000++++-+--++000--++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:1.8 · path:1, circle:1 · smeri poti malavhvaalaahvhaalllavhvalaahvhaz:150:++++000++++-+--++000--++",
+      "members": [
+        "ikona-ca8f7593353f"
+      ],
+      "recommendedId": "ikona-ca8f7593353f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-166",
+      "number": 166,
+      "label": "Grafična skupina 166 · path:1, circle:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:1|circle:1|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mhl:7:+++++++",
+      "visualLabel": "path:1, circle:1, rect:1",
+      "visualEvidence": "line:1.8 · path:1, circle:1, rect:1 · smeri poti mhl:7:+++++++",
+      "members": [
+        "ikona-3e9e44886471"
+      ],
+      "recommendedId": "ikona-3e9e44886471",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-167",
+      "number": 167,
+      "label": "Grafična skupina 167 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:8:+++-+++-|mhv:4:++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti m:8:+++-+++-|mhv:4:++++",
+      "members": [
+        "ikona-9facdf787609"
+      ],
+      "recommendedId": "ikona-9facdf787609",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-168",
+      "number": 168,
+      "label": "Grafična skupina 168 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mal:11:++++0+0+-++|mvh:4:++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mal:11:++++0+0+-++|mvh:4:++++",
+      "members": [
+        "ikona-016985cf1da6"
+      ],
+      "recommendedId": "ikona-016985cf1da6",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-169",
+      "number": 169,
+      "label": "Grafična skupina 169 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallz:15:++++00+++++-++-|mh:3:+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mallz:15:++++00+++++-++-|mh:3:+++",
+      "members": [
+        "ikona-bb7b1426e733"
+      ],
+      "recommendedId": "ikona-bb7b1426e733",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-170",
+      "number": 170,
+      "label": "Grafična skupina 170 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mvahahvahav:36:+++++000--+++0000+++++00",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mh:3:+++|mvahahvahav:36:+++++000--+++0000+++++00",
+      "members": [
+        "ikona-8e83d6f28fac"
+      ],
+      "recommendedId": "ikona-8e83d6f28fac",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-171",
+      "number": 171,
+      "label": "Grafična skupina 171 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000|mvhmhmh:10:++++++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mhavahavz:27:+++++000-++++000+++++000|mvhmhmh:10:++++++++++",
+      "members": [
+        "ikona-3bddfc4a7b68"
+      ],
+      "recommendedId": "ikona-3bddfc4a7b68",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-172",
+      "number": 172,
+      "label": "Grafična skupina 172 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhz:7:+++++++|mvh:4:++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mhlvhz:7:+++++++|mvh:4:++++",
+      "members": [
+        "ikona-c34e82524613"
+      ],
+      "recommendedId": "ikona-c34e82524613",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-173",
+      "number": 173,
+      "label": "Grafična skupina 173 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhz:5:+++++|mvmh:6:++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mhz:5:+++++|mvmh:6:++++++",
+      "members": [
+        "ikona-fcdb227c667b"
+      ],
+      "recommendedId": "ikona-fcdb227c667b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-174",
+      "number": 174,
+      "label": "Grafična skupina 174 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvhvmhmhmhmh:17:++-++++++++++++++|mvlv:8:++++-+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:1.8 · path:2 · smeri poti mvhvmhmhmhmh:17:++-++++++++++++++|mvlv:8:++++-+++",
+      "members": [
+        "ikona-734fded60bfe"
+      ],
+      "recommendedId": "ikona-734fded60bfe",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-175",
+      "number": 175,
+      "label": "Grafična skupina 175 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|mvcvlz:20:+++++0++++++-+-+-+++",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:1.8 · path:2, circle:1 · smeri poti m:4:++++|mvcvlz:20:+++++0++++++-+-+-+++",
+      "members": [
+        "ikona-051d65b0e042"
+      ],
+      "recommendedId": "ikona-051d65b0e042",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-176",
+      "number": 176,
+      "label": "Grafična skupina 176 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|mvmvmvmh:12:++++++++-+++",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:1.8 · path:2, circle:1 · smeri poti m:4:++++|mvmvmvmh:12:++++++++-+++",
+      "members": [
+        "ikona-01843f26fbd8"
+      ],
+      "recommendedId": "ikona-01843f26fbd8",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-177",
+      "number": 177,
+      "label": "Grafična skupina 177 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavahavahv:36:+++++00++++++00+-++++00+|mhvhaz:12:++++-++00+0-",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:1.8 · path:2, circle:1 · smeri poti mhavahavahv:36:+++++00++++++00+-++++00+|mhvhaz:12:++++-++00+0-",
+      "members": [
+        "ikona-50e642bcd40a"
+      ],
+      "recommendedId": "ikona-50e642bcd40a",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-178",
+      "number": 178,
+      "label": "Grafična skupina 178 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:machcz:22:++++0++++++++++-0-----|mh:3:+++|mh:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:1.8 · path:3 · smeri poti machcz:22:++++0++++++++++-0-----|mh:3:+++|mh:3:+++",
+      "members": [
+        "ikona-8b55fea5d5ae"
+      ],
+      "recommendedId": "ikona-8b55fea5d5ae",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-179",
+      "number": 179,
+      "label": "Grafična skupina 179 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mh:3:+++|ms:10:+++++++-+-",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "line:1.8 · path:3, circle:1 · smeri poti mh:3:+++|mh:3:+++|ms:10:+++++++-+-",
+      "members": [
+        "ikona-444fe63ea61b"
+      ],
+      "recommendedId": "ikona-444fe63ea61b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-180",
+      "number": 180,
+      "label": "Grafična skupina 180 · path:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:4|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mlhl:7:++-++++|mvhv:5:+++++|mvmv:6:++++++",
+      "visualLabel": "path:4",
+      "visualEvidence": "line:1.8 · path:4 · smeri poti mh:3:+++|mlhl:7:++-++++|mvhv:5:+++++|mvmv:6:++++++",
+      "members": [
+        "ikona-370a62610ad4"
+      ],
+      "recommendedId": "ikona-370a62610ad4",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-181",
+      "number": 181,
+      "label": "Grafična skupina 181 · path:5",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:5|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|m:4:++++|mhv:4:++++|ml:4:++++|mvh:4:+++-",
+      "visualLabel": "path:5",
+      "visualEvidence": "line:1.8 · path:5 · smeri poti m:4:++++|m:4:++++|mhv:4:++++|ml:4:++++|mvh:4:+++-",
+      "members": [
+        "ikona-1f376f5d93ac"
+      ],
+      "recommendedId": "ikona-1f376f5d93ac",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-182",
+      "number": 182,
+      "label": "Grafična skupina 182 · path:8, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:1.8:path:8|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|m:4:++++|m:4:+++-|m:4:+++-|mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++",
+      "visualLabel": "path:8, circle:1",
+      "visualEvidence": "line:1.8 · path:8, circle:1 · smeri poti m:4:++++|m:4:++++|m:4:+++-|m:4:+++-|mh:3:+++|mh:3:+++|mv:3:+++|mv:3:+++",
+      "members": [
+        "ikona-2c4051687d65"
+      ],
+      "recommendedId": "ikona-2c4051687d65",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-183",
+      "number": 183,
+      "label": "Grafična skupina 183 · rect:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:0|circle:0|rect:2|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "rect:2",
+      "visualEvidence": "line:2 · rect:2 · smeri poti —",
+      "members": [
+        "ikona-0a60cac9c509"
+      ],
+      "recommendedId": "ikona-0a60cac9c509",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-184",
+      "number": 184,
+      "label": "Grafična skupina 184 · circle:1, line:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:0|circle:1|rect:0|line:3|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "circle:1, line:3",
+      "visualEvidence": "line:2 · circle:1, line:3 · smeri poti —",
+      "members": [
+        "ikona-51b28c1312b6"
+      ],
+      "recommendedId": "ikona-51b28c1312b6",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-185",
+      "number": 185,
+      "label": "Grafična skupina 185 · circle:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:0|circle:1|rect:1|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "circle:1, rect:1",
+      "visualEvidence": "line:2 · circle:1, rect:1 · smeri poti —",
+      "members": [
+        "ikona-13eea74637a0"
+      ],
+      "recommendedId": "ikona-13eea74637a0",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-186",
+      "number": 186,
+      "label": "Grafična skupina 186 · circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:0|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:",
+      "visualLabel": "circle:2",
+      "visualEvidence": "line:2 · circle:2 · smeri poti —",
+      "members": [
+        "ikona-ecca77f7ad90"
+      ],
+      "recommendedId": "ikona-ecca77f7ad90",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-187",
+      "number": 187,
+      "label": "Grafična skupina 187 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++-+++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti m:6:++-+++",
+      "members": [
+        "ikona-7ec52a200e3d"
+      ],
+      "recommendedId": "ikona-7ec52a200e3d",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-188",
+      "number": 188,
+      "label": "Grafična skupina 188 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++-++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti m:6:+++-++",
+      "members": [
+        "ikona-a4c2c7288005"
+      ],
+      "recommendedId": "ikona-a4c2c7288005",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-189",
+      "number": 189,
+      "label": "Grafična skupina 189 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:macacaz:53:++++000++0---------+-+++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti macacaz:53:++++000++0---------+-+++",
+      "members": [
+        "ikona-deaffd70c9cf"
+      ],
+      "recommendedId": "ikona-deaffd70c9cf",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-190",
+      "number": 190,
+      "label": "Grafična skupina 190 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malahavaaahavala:80:++++000+-+-++00++++++00+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti malahavaaahavala:80:++++000+-+-++00++++++00+",
+      "members": [
+        "ikona-5cf66b93aa69"
+      ],
+      "recommendedId": "ikona-5cf66b93aa69",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-191",
+      "number": 191,
+      "label": "Grafična skupina 191 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallahavz:50:++++00+-+++00+--+++-++00",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mallahavz:50:++++00+-+++00+--+++-++00",
+      "members": [
+        "ikona-8e0c3886e3cb"
+      ],
+      "recommendedId": "ikona-8e0c3886e3cb",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-192",
+      "number": 192,
+      "label": "Grafična skupina 192 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mamvhmamvh:26:++++000-+++++++++000+-++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mamvhmamvh:26:++++000-+++++++++000+-++",
+      "members": [
+        "ikona-bc807fc2797f"
+      ],
+      "recommendedId": "ikona-bc807fc2797f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-193",
+      "number": 193,
+      "label": "Grafična skupina 193 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcacvacacaz:55:++0+-+-+++00+--+++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mcacvacacaz:55:++0+-+-+++00+--+++++++++",
+      "members": [
+        "ikona-9503c2161ae6"
+      ],
+      "recommendedId": "ikona-9503c2161ae6",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-194",
+      "number": 194,
+      "label": "Grafična skupina 194 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mh:3:+++",
+      "members": [
+        "ikona-412725e3c52b"
+      ],
+      "recommendedId": "ikona-412725e3c52b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-195",
+      "number": 195,
+      "label": "Grafična skupina 195 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhahmhahmh:25:++-++0000+++++++00+0+-++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhahmhahmh:25:++-++0000+++++++00+0+-++",
+      "members": [
+        "ikona-a98b1178e0ea"
+      ],
+      "recommendedId": "ikona-a98b1178e0ea",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-196",
+      "number": 196,
+      "label": "Grafična skupina 196 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlmhlmlml:18:+++--+++++++-++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhlmhlmlml:18:+++--+++++++-++++-",
+      "members": [
+        "ikona-e774ee22a8f7"
+      ],
+      "recommendedId": "ikona-e774ee22a8f7",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-197",
+      "number": 197,
+      "label": "Grafična skupina 197 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhzmvhmhmh:17:+++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhlvhzmvhmhmh:17:+++++++++++++++++",
+      "members": [
+        "ikona-a7ea31ce64e8"
+      ],
+      "recommendedId": "ikona-a7ea31ce64e8",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-198",
+      "number": 198,
+      "label": "Grafična skupina 198 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhzmvhmvmh:17:+++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhlvhzmvhmvmh:17:+++++++++++++++++",
+      "members": [
+        "ikona-4a84b43e65cd"
+      ],
+      "recommendedId": "ikona-4a84b43e65cd",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-199",
+      "number": 199,
+      "label": "Grafična skupina 199 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhzmvhmvmvmv:20:+++++++++++++-++-++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhlvhzmvhmvmvmv:20:+++++++++++++-++-++-",
+      "members": [
+        "ikona-2ff237441986"
+      ],
+      "recommendedId": "ikona-2ff237441986",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-200",
+      "number": 200,
+      "label": "Grafična skupina 200 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhlzmhlzmh:20:++++++++--+0-++--+++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmhlzmhlzmh:20:++++++++--+0-++--+++",
+      "members": [
+        "ikona-714944b30500"
+      ],
+      "recommendedId": "ikona-714944b30500",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-201",
+      "number": 201,
+      "label": "Grafična skupina 201 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmcmc:34:++++++++0+++++-+-+-+++0+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmhmcmc:34:++++++++0+++++-+-+-+++0+",
+      "members": [
+        "ikona-a84a67091bf4"
+      ],
+      "recommendedId": "ikona-a84a67091bf4",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-202",
+      "number": 202,
+      "label": "Grafična skupina 202 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmh:9:+++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmhmh:9:+++++++++",
+      "members": [
+        "ikona-2223049c6d82"
+      ],
+      "recommendedId": "ikona-2223049c6d82",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-203",
+      "number": 203,
+      "label": "Grafična skupina 203 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvhvmhlzmvmvmv:24:++++++++++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmvhvmhlzmvmvmv:24:++++++++++++++++++++++++",
+      "members": [
+        "ikona-49ea7e7f5afd"
+      ],
+      "recommendedId": "ikona-49ea7e7f5afd",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-204",
+      "number": 204,
+      "label": "Grafična skupina 204 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvhvmlhlmvmv:21:++++++++++-++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmvhvmlhlmvmv:21:++++++++++-++++++++++",
+      "members": [
+        "ikona-de87cb409a45"
+      ],
+      "recommendedId": "ikona-de87cb409a45",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-205",
+      "number": 205,
+      "label": "Grafična skupina 205 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvmvmvmvmhmhlz:25:++++++++++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmvmvmvmvmhmhlz:25:++++++++++++++++++++++++",
+      "members": [
+        "ikona-1a0985f9d793"
+      ],
+      "recommendedId": "ikona-1a0985f9d793",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-206",
+      "number": 206,
+      "label": "Grafična skupina 206 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmvmvmvmvmhmhz:23:+++++++++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhmvmvmvmvmhmhz:23:+++++++++++++++++++++++",
+      "members": [
+        "ikona-d115c907c955"
+      ],
+      "recommendedId": "ikona-d115c907c955",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-207",
+      "number": 207,
+      "label": "Grafična skupina 207 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhvhzmhmhmh:14:++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mhvhzmhmhmh:14:++++++++++++++",
+      "members": [
+        "ikona-84056ec991b4"
+      ],
+      "recommendedId": "ikona-84056ec991b4",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-208",
+      "number": 208,
+      "label": "Grafična skupina 208 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mllllz:22:++++++-+++++-++---+-++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mllllz:22:++++++-+++++-++---+-++",
+      "members": [
+        "ikona-d8c9a7d972cf"
+      ],
+      "recommendedId": "ikona-d8c9a7d972cf",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-209",
+      "number": 209,
+      "label": "Grafična skupina 209 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mlmhv:12:+++++++-++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mlmhv:12:+++++++-++++",
+      "members": [
+        "ikona-8c18688cfb9f"
+      ],
+      "recommendedId": "ikona-8c18688cfb9f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-210",
+      "number": 210,
+      "label": "Grafična skupina 210 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mmhmvmvmvmh:21:+++-+++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mmhmvmvmvmh:21:+++-+++++++++++++++++",
+      "members": [
+        "ikona-09b211ea39c4"
+      ],
+      "recommendedId": "ikona-09b211ea39c4",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-211",
+      "number": 211,
+      "label": "Grafična skupina 211 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:msacz:19:++++++++000+0++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti msacz:19:++++++++000+0++++++",
+      "members": [
+        "ikona-8de8f9220299"
+      ],
+      "recommendedId": "ikona-8de8f9220299",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-212",
+      "number": 212,
+      "label": "Grafična skupina 212 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:msvlvcz:18:+++-+-+---++0+++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti msvlvcz:18:+++-+-+---++0+++++",
+      "members": [
+        "ikona-380962f1bfdb"
+      ],
+      "recommendedId": "ikona-380962f1bfdb",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-213",
+      "number": 213,
+      "label": "Grafična skupina 213 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvhvmhvhzmcmhvhz:23:+++++++++++++++++0++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvhvmhvhzmcmhvhz:23:+++++++++++++++++0++++-",
+      "members": [
+        "ikona-0b49a118d012"
+      ],
+      "recommendedId": "ikona-0b49a118d012",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-214",
+      "number": 214,
+      "label": "Grafična skupina 214 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvhvmvhvmvhvmh:18:++++++++++++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvhvmvhvmvhvmh:18:++++++++++++++++++",
+      "members": [
+        "ikona-791bfabab969"
+      ],
+      "recommendedId": "ikona-791bfabab969",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-215",
+      "number": 215,
+      "label": "Grafična skupina 215 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmhmhmlhlzmhlz:23:+++++++++++-+++++0-++--",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvmhmhmlhlzmhlz:23:+++++++++++-+++++0-++--",
+      "members": [
+        "ikona-a82cfc2fb522"
+      ],
+      "recommendedId": "ikona-a82cfc2fb522",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-216",
+      "number": 216,
+      "label": "Grafična skupina 216 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmhmhmlhlzmlhlzmh:26:+++++++++++-++++++-++--+",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvmhmhmlhlzmlhlzmh:26:+++++++++++-++++++-++--+",
+      "members": [
+        "ikona-278891aad00c"
+      ],
+      "recommendedId": "ikona-278891aad00c",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-217",
+      "number": 217,
+      "label": "Grafična skupina 217 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmhmlhlzmhlzmh:23:++++++++-+++++0-++--+++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvmhmlhlzmhlzmh:23:++++++++-+++++0-++--+++",
+      "members": [
+        "ikona-dbe1f70645ff"
+      ],
+      "recommendedId": "ikona-dbe1f70645ff",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-218",
+      "number": 218,
+      "label": "Grafična skupina 218 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvml:9:++++++-++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvml:9:++++++-++",
+      "members": [
+        "ikona-fe08250d411b"
+      ],
+      "recommendedId": "ikona-fe08250d411b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-219",
+      "number": 219,
+      "label": "Grafična skupina 219 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvml:9:++++++++-",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvml:9:++++++++-",
+      "members": [
+        "ikona-5e5c692c58e8"
+      ],
+      "recommendedId": "ikona-5e5c692c58e8",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-220",
+      "number": 220,
+      "label": "Grafična skupina 220 · path:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvml:9:+++++++++",
+      "visualLabel": "path:1",
+      "visualEvidence": "line:2 · path:1 · smeri poti mvml:9:+++++++++",
+      "members": [
+        "ikona-3f95bd4af4b5"
+      ],
+      "recommendedId": "ikona-3f95bd4af4b5",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-221",
+      "number": 221,
+      "label": "Grafična skupina 221 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mhmvmvmhmhmh:18:++++++++++++++++++",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mhmvmvmhmhmh:18:++++++++++++++++++",
+      "members": [
+        "ikona-d9efd94cfafc"
+      ],
+      "recommendedId": "ikona-d9efd94cfafc",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-222",
+      "number": 222,
+      "label": "Grafična skupina 222 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvahavah:27:+++++000--+++000-++++000",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mvahavah:27:+++++000--+++000-++++000",
+      "members": [
+        "ikona-76b53c3e0d83"
+      ],
+      "recommendedId": "ikona-76b53c3e0d83",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-223",
+      "number": 223,
+      "label": "Grafična skupina 223 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvhvmhmvhv:13:++++++++++++-",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mvhvmhmvhv:13:++++++++++++-",
+      "members": [
+        "ikona-e8589af3dca5"
+      ],
+      "recommendedId": "ikona-e8589af3dca5",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-224",
+      "number": 224,
+      "label": "Grafična skupina 224 · path:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvmvmhmhm:18:++++++++++++--++-+",
+      "visualLabel": "path:1, rect:1",
+      "visualEvidence": "line:2 · path:1, rect:1 · smeri poti mvmvmhmhm:18:++++++++++++--++-+",
+      "members": [
+        "ikona-b3731bae9d00"
+      ],
+      "recommendedId": "ikona-b3731bae9d00",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-225",
+      "number": 225,
+      "label": "Grafična skupina 225 · path:1, rect:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:0|rect:2|line:0|polyline:0|polygon:0|ellipse:0:mhmhmhmhmhmh:18:++++++++++++++++++",
+      "visualLabel": "path:1, rect:2",
+      "visualEvidence": "line:2 · path:1, rect:2 · smeri poti mhmhmhmhmhmh:18:++++++++++++++++++",
+      "members": [
+        "ikona-4ee89130e092"
+      ],
+      "recommendedId": "ikona-4ee89130e092",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-226",
+      "number": 226,
+      "label": "Grafična skupina 226 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++00++0",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti ma:9:++++00++0",
+      "members": [
+        "ikona-0f54b99aa796"
+      ],
+      "recommendedId": "ikona-0f54b99aa796",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-227",
+      "number": 227,
+      "label": "Grafična skupina 227 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mamhmh:15:++++0+00+++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mamhmh:15:++++0+00+++++++",
+      "members": [
+        "ikona-2b10115f8467"
+      ],
+      "recommendedId": "ikona-2b10115f8467",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-228",
+      "number": 228,
+      "label": "Grafična skupina 228 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcmlml:22:++0-+-+-+0++++++++++-+",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcmlml:22:++0-+-+-+0++++++++++-+",
+      "members": [
+        "ikona-6c16924cf371"
+      ],
+      "recommendedId": "ikona-6c16924cf371",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-229",
+      "number": 229,
+      "label": "Grafična skupina 229 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcmvmh:20:++0-+-+-+0++++++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcmvmh:20:++0-+-+-+0++++++++++",
+      "members": [
+        "ikona-5973785a1623"
+      ],
+      "recommendedId": "ikona-5973785a1623",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-230",
+      "number": 230,
+      "label": "Grafična skupina 230 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcs:12:++0-+-+-++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcs:12:++0-+-+-++++",
+      "members": [
+        "ikona-73ec7041b7c7"
+      ],
+      "recommendedId": "ikona-73ec7041b7c7",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-231",
+      "number": 231,
+      "label": "Grafična skupina 231 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcsaz:19:++0+-+-+++++++0+++0",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcsaz:19:++0+-+-+++++++0+++0",
+      "members": [
+        "ikona-e90c11a351ff"
+      ],
+      "recommendedId": "ikona-e90c11a351ff",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-232",
+      "number": 232,
+      "label": "Grafična skupina 232 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcsmvmh:18:++0-+-+-++++++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcsmvmh:18:++0-+-+-++++++++++",
+      "members": [
+        "ikona-3c9caf2734ca"
+      ],
+      "recommendedId": "ikona-3c9caf2734ca",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-233",
+      "number": 233,
+      "label": "Grafična skupina 233 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcsmvml:21:++0-+-+-++++++++++-++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mcsmvml:21:++0-+-+-++++++++++-++",
+      "members": [
+        "ikona-06cce8ab8176"
+      ],
+      "recommendedId": "ikona-06cce8ab8176",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-234",
+      "number": 234,
+      "label": "Grafična skupina 234 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ml:6:++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti ml:6:++++++",
+      "members": [
+        "ikona-ff3d5b5f9bcc"
+      ],
+      "recommendedId": "ikona-ff3d5b5f9bcc",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-235",
+      "number": 235,
+      "label": "Grafična skupina 235 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mlvahz:15:++++--+++00++-+",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mlvahz:15:++++--+++00++-+",
+      "members": [
+        "ikona-84d1d5cce2e4"
+      ],
+      "recommendedId": "ikona-84d1d5cce2e4",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-236",
+      "number": 236,
+      "label": "Grafična skupina 236 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:msacz:19:+++-+-++0+0-00+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti msacz:19:+++-+-++0+0-00+++++",
+      "members": [
+        "ikona-16e79eebc899"
+      ],
+      "recommendedId": "ikona-16e79eebc899",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-237",
+      "number": 237,
+      "label": "Grafična skupina 237 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:msacz:19:++++++++000++0+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti msacz:19:++++++++000++0+++++",
+      "members": [
+        "ikona-621f3eeb5525"
+      ],
+      "recommendedId": "ikona-621f3eeb5525",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-238",
+      "number": 238,
+      "label": "Grafična skupina 238 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvchcv:17:++-0-+-+-++0+++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mvchcv:17:++-0-+-+-++0+++++",
+      "members": [
+        "ikona-b2d58d06779f"
+      ],
+      "recommendedId": "ikona-b2d58d06779f",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-239",
+      "number": 239,
+      "label": "Grafična skupina 239 · path:1, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmh:6:++++++",
+      "visualLabel": "path:1, circle:1",
+      "visualEvidence": "line:2 · path:1, circle:1 · smeri poti mvmh:6:++++++",
+      "members": [
+        "ikona-43f9e2d177d1"
+      ],
+      "recommendedId": "ikona-43f9e2d177d1",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-240",
+      "number": 240,
+      "label": "Grafična skupina 240 · path:1, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-",
+      "visualLabel": "path:1, circle:2",
+      "visualEvidence": "line:2 · path:1, circle:2 · smeri poti m:6:+++++-",
+      "members": [
+        "ikona-af5c5966c4ca"
+      ],
+      "recommendedId": "ikona-af5c5966c4ca",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-241",
+      "number": 241,
+      "label": "Grafična skupina 241 · path:1, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mcsmc:20:++0-+-+-+++++++0++++",
+      "visualLabel": "path:1, circle:2",
+      "visualEvidence": "line:2 · path:1, circle:2 · smeri poti mcsmc:20:++0-+-+-+++++++0++++",
+      "members": [
+        "ikona-c46aac9cdff8"
+      ],
+      "recommendedId": "ikona-c46aac9cdff8",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-242",
+      "number": 242,
+      "label": "Grafična skupina 242 · path:1, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mvmh:6:+++++-",
+      "visualLabel": "path:1, circle:2",
+      "visualEvidence": "line:2 · path:1, circle:2 · smeri poti mvmh:6:+++++-",
+      "members": [
+        "ikona-808bb3bab250"
+      ],
+      "recommendedId": "ikona-808bb3bab250",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-243",
+      "number": 243,
+      "label": "Grafična skupina 243 · path:1, circle:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:1|circle:3|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mallaz:27:++++00+-+++00+--+++-++0+",
+      "visualLabel": "path:1, circle:3",
+      "visualEvidence": "line:2 · path:1, circle:3 · smeri poti mallaz:27:++++00+-+++00+--+++-++0+",
+      "members": [
+        "ikona-e2a492d09047"
+      ],
+      "recommendedId": "ikona-e2a492d09047",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-244",
+      "number": 244,
+      "label": "Grafična skupina 244 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++++-+|mh:3:+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:6:++++-+|mh:3:+++",
+      "members": [
+        "ikona-413b6079d9f2"
+      ],
+      "recommendedId": "ikona-413b6079d9f2",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-245",
+      "number": 245,
+      "label": "Grafična skupina 245 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvccvlz:20:+++++0+-+-+++++++++-",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:6:+++++-|mvccvlz:20:+++++0+-+-+++++++++-",
+      "members": [
+        "ikona-67f2b2ce1678"
+      ],
+      "recommendedId": "ikona-67f2b2ce1678",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-246",
+      "number": 246,
+      "label": "Grafična skupina 246 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+--",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+--",
+      "members": [
+        "ikona-0d61fdac7b64"
+      ],
+      "recommendedId": "ikona-0d61fdac7b64",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-247",
+      "number": 247,
+      "label": "Grafična skupina 247 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+++",
+      "members": [
+        "ikona-bef20422f3f1"
+      ],
+      "recommendedId": "ikona-bef20422f3f1",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-248",
+      "number": 248,
+      "label": "Grafična skupina 248 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:ma:9:++++00+-0|machc:22:++++000-00+-+-++0-----",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti ma:9:++++00+-0|machc:22:++++000-00+-+-++0-----",
+      "members": [
+        "ikona-3af7151e684e"
+      ],
+      "recommendedId": "ikona-3af7151e684e",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-249",
+      "number": 249,
+      "label": "Grafična skupina 249 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:macl:17:++++0++--+0++++++|mvh:4:+++-",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti macl:17:++++0++--+0++++++|mvh:4:+++-",
+      "members": [
+        "ikona-e0c62efa3eaa"
+      ],
+      "recommendedId": "ikona-e0c62efa3eaa",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-250",
+      "number": 250,
+      "label": "Grafična skupina 250 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mahlvahaz:28:++++00+-++-++++00++-+++0|mm:8:++++0--+",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mahlvahaz:28:++++00+-++-++++00++-+++0|mm:8:++++0--+",
+      "members": [
+        "ikona-2d8bbe8237f6"
+      ],
+      "recommendedId": "ikona-2d8bbe8237f6",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-251",
+      "number": 251,
+      "label": "Grafična skupina 251 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malalal:31:++++++000+0+-++0000-++++|malalal:31:++--++000-0++++0000+++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti malalal:31:++++++000+0+-++0000-++++|malalal:31:++--++000-0++++0000+++++",
+      "members": [
+        "ikona-f21c6924c08d"
+      ],
+      "recommendedId": "ikona-f21c6924c08d",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-252",
+      "number": 252,
+      "label": "Grafična skupina 252 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mavavaz:25:++++000-++++000+0+++000-|mvavmvmh:17:+++++000+0-++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mavavaz:25:++++000-++++000+0+++000-|mvavmvmh:17:+++++000+0-++++++",
+      "members": [
+        "ikona-c0e26f4b7c2b"
+      ],
+      "recommendedId": "ikona-c0e26f4b7c2b",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-253",
+      "number": 253,
+      "label": "Grafična skupina 253 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavahavz:27:+++++000-++++000+++++000|mvh:4:++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhavahavz:27:+++++000-++++000+++++000|mvh:4:++++",
+      "members": [
+        "ikona-edd2b7792550"
+      ],
+      "recommendedId": "ikona-edd2b7792550",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-254",
+      "number": 254,
+      "label": "Grafična skupina 254 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhavahavzmvh:31:+++++000-++++000+++++000|mm:8:++++0--+",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhavahavzmvh:31:+++++000-++++000+++++000|mm:8:++++0--+",
+      "members": [
+        "ikona-9fb121d0b6cc"
+      ],
+      "recommendedId": "ikona-9fb121d0b6cc",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-255",
+      "number": 255,
+      "label": "Grafična skupina 255 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhz:7:+++++++|mvhmhmh:10:++++++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhlvhz:7:+++++++|mvhmhmh:10:++++++++++",
+      "members": [
+        "ikona-5ffdb68fce1c"
+      ],
+      "recommendedId": "ikona-5ffdb68fce1c",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-256",
+      "number": 256,
+      "label": "Grafična skupina 256 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlz:7:+++++++|mvmh:6:++++++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhlz:7:+++++++|mvmh:6:++++++",
+      "members": [
+        "ikona-c3a9c0ee7eaf"
+      ],
+      "recommendedId": "ikona-c3a9c0ee7eaf",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-257",
+      "number": 257,
+      "label": "Grafična skupina 257 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhmhmhmhmhmvhv:20:+++++++++++++++++-++|mvlvmvlmh:14:++++-++++--+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mhmhmhmhmhmvhv:20:+++++++++++++++++-++|mvlvmvlmh:14:++++-++++--+++",
+      "members": [
+        "ikona-e48a05f8e4a9"
+      ],
+      "recommendedId": "ikona-e48a05f8e4a9",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-258",
+      "number": 258,
+      "label": "Grafična skupina 258 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mlllllllz:18:++++++-+++--+++-++|mlllllllz:18:++++++-+++--+++-++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:2 · path:2 · smeri poti mlllllllz:18:++++++-+++--+++-++|mlllllllz:18:++++++-+++--+++-++",
+      "members": [
+        "ikona-70fc6a2505c7"
+      ],
+      "recommendedId": "ikona-70fc6a2505c7",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-259",
+      "number": 259,
+      "label": "Grafična skupina 259 · path:2, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mac:15:++++0++++0+-+-+|mh:3:+++",
+      "visualLabel": "path:2, circle:1",
+      "visualEvidence": "line:2 · path:2, circle:1 · smeri poti mac:15:++++0++++0+-+-+|mh:3:+++",
+      "members": [
+        "ikona-5fb6e81e7da2"
+      ],
+      "recommendedId": "ikona-5fb6e81e7da2",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-260",
+      "number": 260,
+      "label": "Grafična skupina 260 · path:2, circle:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mhmh:6:++++++|mvm:9:+++--+++-",
+      "visualLabel": "path:2, circle:1, rect:1",
+      "visualEvidence": "line:2 · path:2, circle:1, rect:1 · smeri poti mhmh:6:++++++|mvm:9:+++--+++-",
+      "members": [
+        "ikona-7dd6e124b1cc"
+      ],
+      "recommendedId": "ikona-7dd6e124b1cc",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-261",
+      "number": 261,
+      "label": "Grafična skupina 261 · path:2, circle:1, rect:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:1|rect:1|line:0|polyline:0|polygon:0|ellipse:0:mvl:5:+++++|mvmvmh:9:+++++++++",
+      "visualLabel": "path:2, circle:1, rect:1",
+      "visualEvidence": "line:2 · path:2, circle:1, rect:1 · smeri poti mvl:5:+++++|mvmvmh:9:+++++++++",
+      "members": [
+        "ikona-bfa409b4e76d"
+      ],
+      "recommendedId": "ikona-bfa409b4e76d",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-262",
+      "number": 262,
+      "label": "Grafična skupina 262 · path:2, circle:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:2|circle:2|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mamhmh:15:++++0+00+++++++",
+      "visualLabel": "path:2, circle:2",
+      "visualEvidence": "line:2 · path:2, circle:2 · smeri poti m:6:+++++-|mamhmh:15:++++0+00+++++++",
+      "members": [
+        "ikona-7ae277b30828"
+      ],
+      "recommendedId": "ikona-7ae277b30828",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-263",
+      "number": 263,
+      "label": "Grafična skupina 263 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|mhavahavz:27:+++++000-++++000+++++000|mvh:4:++++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti m:4:++++|mhavahavz:27:+++++000-++++000+++++000|mvh:4:++++",
+      "members": [
+        "ikona-16d2f3821249"
+      ],
+      "recommendedId": "ikona-16d2f3821249",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-264",
+      "number": 264,
+      "label": "Grafična skupina 264 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++-++|mvhv:5:+++++|mvhv:5:++-++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti m:6:+++-++|mvhv:5:+++++|mvhv:5:++-++",
+      "members": [
+        "ikona-7bcf5251b9f0"
+      ],
+      "recommendedId": "ikona-7bcf5251b9f0",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-265",
+      "number": 265,
+      "label": "Grafična skupina 265 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mahlvahaz:28:++++00+-++-++++00++-+++0|mh:3:+++|mh:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti mahlvahaz:28:++++00+-++-++++00++-+++0|mh:3:+++|mh:3:+++",
+      "members": [
+        "ikona-f628b87e2e98"
+      ],
+      "recommendedId": "ikona-f628b87e2e98",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-266",
+      "number": 266,
+      "label": "Grafična skupina 266 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mal:11:++++0+0+-++|mvh:4:++++|mvl:5:+++++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti mal:11:++++0+0+-++|mvh:4:++++|mvl:5:+++++",
+      "members": [
+        "ikona-a788d7d60f3e"
+      ],
+      "recommendedId": "ikona-a788d7d60f3e",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-267",
+      "number": 267,
+      "label": "Grafična skupina 267 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malaha:28:++--++000-0-+++000+++++0|mh:3:+++|mv:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti malaha:28:++--++000-0-+++000+++++0|mh:3:+++|mv:3:+++",
+      "members": [
+        "ikona-d8a5ffb1d920"
+      ],
+      "recommendedId": "ikona-d8a5ffb1d920",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-268",
+      "number": 268,
+      "label": "Grafična skupina 268 · path:3",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:malahaz:28:++--++000-0-+++000+++++0|mh:3:+++|mv:3:+++",
+      "visualLabel": "path:3",
+      "visualEvidence": "line:2 · path:3 · smeri poti malahaz:28:++--++000-0-+++000+++++0|mh:3:+++|mv:3:+++",
+      "members": [
+        "ikona-d424c7d3a583"
+      ],
+      "recommendedId": "ikona-d424c7d3a583",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-269",
+      "number": 269,
+      "label": "Grafična skupina 269 · path:3, ellipse:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:1:mhlvhz:7:+++++++|mvcsv:14:+++0++++++-+--|mvhmhmh:10:++++++++++",
+      "visualLabel": "path:3, ellipse:1",
+      "visualEvidence": "line:2 · path:3, ellipse:1 · smeri poti mhlvhz:7:+++++++|mvcsv:14:+++0++++++-+--|mvhmhmh:10:++++++++++",
+      "members": [
+        "ikona-6a8886b682d1"
+      ],
+      "recommendedId": "ikona-6a8886b682d1",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-270",
+      "number": 270,
+      "label": "Grafična skupina 270 · path:3, line:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:0|rect:0|line:2|polyline:0|polygon:0|ellipse:0:mh:3:+++|mvchcv:17:+++0+-+-++-0----+|mvchcv:17:+++0-+-+-++0+++++",
+      "visualLabel": "path:3, line:2",
+      "visualEvidence": "line:2 · path:3, line:2 · smeri poti mh:3:+++|mvchcv:17:+++0+-+-++-0----+|mvchcv:17:+++0-+-+-++0+++++",
+      "members": [
+        "ikona-bdaa0f7e16a3"
+      ],
+      "recommendedId": "ikona-bdaa0f7e16a3",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-271",
+      "number": 271,
+      "label": "Grafična skupina 271 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mhavahmvhv:24:+++++000-++++000++++++++|mhmh:6:++++++",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "line:2 · path:3, circle:1 · smeri poti mh:3:+++|mhavahmvhv:24:+++++000-++++000++++++++|mhmh:6:++++++",
+      "members": [
+        "ikona-2baeb31b3269"
+      ],
+      "recommendedId": "ikona-2baeb31b3269",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-272",
+      "number": 272,
+      "label": "Grafična skupina 272 · path:3, circle:1",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:1|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mhlvhz:7:++++++-|mhlz:9:+++++-+--|mvh:4:++++",
+      "visualLabel": "path:3, circle:1",
+      "visualEvidence": "line:2 · path:3, circle:1 · smeri poti mhlvhz:7:++++++-|mhlz:9:+++++-+--|mvh:4:++++",
+      "members": [
+        "ikona-015e0e34b008"
+      ],
+      "recommendedId": "ikona-015e0e34b008",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-273",
+      "number": 273,
+      "label": "Grafična skupina 273 · path:3, circle:1, line:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:3|circle:1|rect:0|line:2|polyline:0|polygon:0|ellipse:0:mh:3:+++|ms:10:+++++++-+-|mv:3:+++",
+      "visualLabel": "path:3, circle:1, line:2",
+      "visualEvidence": "line:2 · path:3, circle:1, line:2 · smeri poti mh:3:+++|ms:10:+++++++-+-|mv:3:+++",
+      "members": [
+        "ikona-090c7f2c1d04"
+      ],
+      "recommendedId": "ikona-090c7f2c1d04",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-274",
+      "number": 274,
+      "label": "Grafična skupina 274 · path:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:++++-+|m:6:++--+-|mh:3:+++|mh:3:+++",
+      "visualLabel": "path:4",
+      "visualEvidence": "line:2 · path:4 · smeri poti m:6:++++-+|m:6:++--+-|mh:3:+++|mh:3:+++",
+      "members": [
+        "ikona-bd12011dbc8a"
+      ],
+      "recommendedId": "ikona-bd12011dbc8a",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-275",
+      "number": 275,
+      "label": "Grafična skupina 275 · path:4",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:4|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:mh:3:+++|mhavahavz:27:+++++000-++++000+++++000|mv:3:++-|mvah:11:+++++000+++",
+      "visualLabel": "path:4",
+      "visualEvidence": "line:2 · path:4 · smeri poti mh:3:+++|mhavahavz:27:+++++000-++++000+++++000|mv:3:++-|mvah:11:+++++000+++",
+      "members": [
+        "ikona-a273788391ce"
+      ],
+      "recommendedId": "ikona-a273788391ce",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-276",
+      "number": 276,
+      "label": "Grafična skupina 276 · path:8",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:2:path:8|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:4:++++|m:4:++-+|ma:9:++++000--|mh:3:+++|mh:3:+++|mhahaz:18:+++++00+0-+++00+0+|mv:3:+++|mv:3:++-",
+      "visualLabel": "path:8",
+      "visualEvidence": "line:2 · path:8 · smeri poti m:4:++++|m:4:++-+|ma:9:++++000--|mh:3:+++|mh:3:+++|mhahaz:18:+++++00+0-+++00+0+|mv:3:+++|mv:3:++-",
+      "members": [
+        "ikona-ec632f681e29"
+      ],
+      "recommendedId": "ikona-ec632f681e29",
+      "occurrences": 1
+    },
+    {
+      "id": "grafika-277",
+      "number": 277,
+      "label": "Grafična skupina 277 · path:2",
+      "recommendation": "Skupina je določena samo iz izrisane geometrije, elementov poti ter načina fill/stroke; imena in besede niso uporabljeni.",
+      "visualKey": "svg:line:ni navedeno:path:2|circle:0|rect:0|line:0|polyline:0|polygon:0|ellipse:0:m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+++",
+      "visualLabel": "path:2",
+      "visualEvidence": "line:ni navedeno · path:2 · smeri poti m:6:+++++-|mvcvlz:20:+++++0++++++-+-+-+++",
+      "members": [
+        "ikona-3faa71432d99"
+      ],
+      "recommendedId": "ikona-3faa71432d99",
+      "occurrences": 1
+    }
+  ]
+}

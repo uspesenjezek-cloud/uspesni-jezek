@@ -31,6 +31,31 @@ function skrijObvestila() {
   sporocilo.hidden = true;
 }
 
+function prevediAuthNapako(napakaAuth) {
+  const izvirno = String((napakaAuth && napakaAuth.message) || napakaAuth || "").trim();
+  if (/invalid login credentials/i.test(izvirno)) {
+    return "E-pošta ali geslo nista pravilna.";
+  }
+  if (/failed to fetch|networkerror|load failed|fetch failed/i.test(izvirno)) {
+    return "Povezava s prijavnim strežnikom ni uspela. Preverite povezavo in poskusite znova.";
+  }
+  if (/email not confirmed/i.test(izvirno)) {
+    return "E-poštni naslov še ni potrjen. Preverite potrditveno sporočilo.";
+  }
+  return izvirno || "Prijava trenutno ni mogoča. Poskusite znova.";
+}
+
+async function izvediAuth(klic) {
+  try {
+    if (!supabaseKlient || !supabaseKlient.auth) {
+      throw new Error("Povezava s prijavnim strežnikom ni nastavljena.");
+    }
+    return await klic();
+  } catch (napakaAuth) {
+    return { data: null, error: napakaAuth };
+  }
+}
+
 preklopPovezava.addEventListener("click", (dogodek) => {
   dogodek.preventDefault();
   jeRegistracija = !jeRegistracija;
@@ -68,19 +93,21 @@ obrazec.addEventListener("submit", async (dogodek) => {
     // na pravi domeni, ker uporabimo trenutni naslov strani).
     const naslovPoPotrditvi = window.location.origin + "/app/index.html";
 
-    const { data, error } = await supabaseKlient.auth.signUp({
-      email,
-      password: geslo,
-      options: {
-        data: { ime_podjetja: imePodjetja },
-        emailRedirectTo: naslovPoPotrditvi,
-      },
-    });
+    const { data, error } = await izvediAuth(() =>
+      supabaseKlient.auth.signUp({
+        email,
+        password: geslo,
+        options: {
+          data: { ime_podjetja: imePodjetja },
+          emailRedirectTo: naslovPoPotrditvi,
+        },
+      })
+    );
 
     gumbPoslji.disabled = false;
 
     if (error) {
-      pokaziNapako(error.message);
+      pokaziNapako(prevediAuthNapako(error));
       return;
     }
 
@@ -94,15 +121,17 @@ obrazec.addEventListener("submit", async (dogodek) => {
     return;
   }
 
-  const { error } = await supabaseKlient.auth.signInWithPassword({
-    email,
-    password: geslo,
-  });
+  const { error } = await izvediAuth(() =>
+    supabaseKlient.auth.signInWithPassword({
+      email,
+      password: geslo,
+    })
+  );
 
   gumbPoslji.disabled = false;
 
   if (error) {
-    pokaziNapako(error.message);
+    pokaziNapako(prevediAuthNapako(error));
     return;
   }
 

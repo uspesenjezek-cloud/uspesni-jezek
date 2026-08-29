@@ -808,12 +808,15 @@
     var znesekBesedilo = Number.isFinite(znesek) && znesek > 0
       ? " v višini " + formatirajZnesekDe(Math.round(znesek * 100))
       : "";
-    if (tip === "partial" || tip === "delno") return "Račun je bil delno poravnan" + znesekBesedilo + ".";
-    if (tip === "installment" || tip === "obrok") return "Plačan je bil obrok" + znesekBesedilo + ".";
+    var naciniPlacila = { bank_transfer: "z bančnim nakazilom", cash: "z gotovino", card: "s kartico", direct_debit: "z direktno obremenitvijo", other: "na drug način" };
+    var nacinBesedilo = naciniPlacila[nastavitve.paymentMethod] ? " " + naciniPlacila[nastavitve.paymentMethod] : "";
+    if (tip === "partial" || tip === "delno") return "Račun je bil delno poravnan" + znesekBesedilo + nacinBesedilo + ".";
+    if (tip === "installment" || tip === "obrok") return "Plačan je bil obrok" + znesekBesedilo + nacinBesedilo + ".";
     if (tip === "payment_promised" || tip === "obljuba") return "Dolžnik je obljubil plačilo.";
     if (tip === "credit_note" || tip === "dobropis") return "Izdan je bil dobropis" + znesekBesedilo + ".";
     if (tip === "compensation" || tip === "kompenzacija") return "Izvedena je bila kompenzacija" + znesekBesedilo + ".";
     if (tip === "cancelled_invoice" || tip === "storno") return "Račun je bil odpisan oziroma storniran.";
+    if (tip === "debtor_statement" || tip === "izjava") return "Dolžnik je izjavil: " + String(nastavitve.description || d.naslov || "").replace(/^Izjava dolžnika:\s*/i, "").replace(/[.!?]+$/, "") + ".";
     var opis = String(nastavitve.description || d.naslov || "").trim();
     if (!opis) return "Zabeležen je bil dodaten dogodek pri računu.";
     return /[.!?]$/.test(opis) ? opis : opis + ".";
@@ -2357,6 +2360,7 @@
     var k1 = podatkiKorak1 || {};
 
     if (!String(k1.imeDolznika || "").trim()) manjkajoce.push("Ime dolžnika");
+    if (!String(k1.opisDolga || "").trim()) manjkajoce.push("Kaj je bilo opravljeno");
 
     var znesekNum =
       plan.amountCents != null

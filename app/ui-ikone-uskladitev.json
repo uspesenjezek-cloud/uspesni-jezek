@@ -1,0 +1,3530 @@
+{
+  "schemaVersion": 1,
+  "source": "Uporabnikov izvoženi pregled ikon",
+  "reviewedAt": "2026-08-26T12:34:45.211Z",
+  "appliedAt": "2026-08-26T12:58:34.583Z",
+  "summary": {
+    "off": 150,
+    "svg": 124,
+    "symbols": 14,
+    "pseudo": 12
+  },
+  "resolved": [
+    {
+      "id": "ikona-ea61a61ae746",
+      "name": "receiptCheck",
+      "fingerprint": "svg:339ef076510c518b3e4c",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 52,
+          "name": "receiptCheck",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-7fddec32dea0",
+      "name": "scales",
+      "fingerprint": "svg:447daf61d4ab4d5919eb",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 38,
+          "name": "scales",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-b715bca05a90",
+      "name": "bellOff",
+      "fingerprint": "svg:70b8c43542d8b9d88fb2",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 51,
+          "name": "bellOff",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-6de387762cca",
+      "name": "handshake",
+      "fingerprint": "svg:f8d008922e13a7ba4baf",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 41,
+          "name": "handshake",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-380962f1bfdb",
+      "name": "shield",
+      "fingerprint": "svg:2ae7939f6382b156a109",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 39,
+          "name": "shield",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-b3731bae9d00",
+      "name": "calendarArrow",
+      "fingerprint": "svg:b245beab519487e818ae",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 31,
+          "name": "calendarArrow",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-ffd7e377f882",
+      "name": "cardDown",
+      "fingerprint": "svg:38092183a9a9898f3e06",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 33,
+          "name": "cardDown",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-2b10115f8467",
+      "name": "coin",
+      "fingerprint": "svg:c1c96166f61d9abcbb0e",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 42,
+          "name": "coin",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-f4be8e6b0688",
+      "name": "coinCheck",
+      "fingerprint": "svg:02a68d08325e9b703a42",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 32,
+          "name": "coinCheck",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-491b7078da59",
+      "name": "documentMinus",
+      "fingerprint": "svg:83b35d879b63a2482054",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 46,
+          "name": "documentMinus",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-b647df60c290",
+      "name": "minus",
+      "fingerprint": "svg:95977202f0c889acbf92",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 47,
+          "name": "minus",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-0a60cac9c509",
+      "name": "pause",
+      "fingerprint": "svg:f042369602926f75a104",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 37,
+          "name": "pause",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-9e2b1cb52957",
+      "name": "plus",
+      "fingerprint": "svg:4b9d67898532450917a3",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 48,
+          "name": "plus",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-e774ee22a8f7",
+      "name": "swap",
+      "fingerprint": "svg:a8427e055a2456e99a62",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 43,
+          "name": "swap",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-84d1d5cce2e4",
+      "name": "tag",
+      "fingerprint": "svg:7d7ba303904655e18852",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 44,
+          "name": "tag",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-d673a99631aa",
+      "name": "warning",
+      "fingerprint": "svg:2b235181160c78d45458",
+      "definitions": [
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 36,
+          "name": "warning",
+          "canonical": true
+        }
+      ]
+    },
+    {
+      "id": "ikona-d977e990f2f0",
+      "name": "simbol-2192",
+      "fingerprint": "symbol:→",
+      "definitions": [
+        {
+          "source": "app/aktivni-primeri.js",
+          "line": 116,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 773,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 774,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 775,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 6212,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 6322,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 6443,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 7381,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 7437,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 7840,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 8339,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 8471,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 8692,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 8692,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 251,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 261,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 269,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2565,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2566,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2649,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2709,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2870,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2872,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2881,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2882,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2887,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2895,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2896,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2897,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2899,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2903,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-signali.js",
+          "line": 265,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/gsm7-stevec.js",
+          "line": 4,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2257,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2259,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2502,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2504,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2567,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2567,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2567,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2567,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2570,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 331,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 452,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-sheet.js",
+          "line": 501,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-sheet.js",
+          "line": 1752,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-utils.js",
+          "line": 22,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-utils.js",
+          "line": 254,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-utils.js",
+          "line": 286,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-utils.js",
+          "line": 294,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-utils.js",
+          "line": 380,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/obrocno-utils.js",
+          "line": 630,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 1044,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 4640,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 5788,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 6441,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 6906,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 6906,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7465,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7467,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7549,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7555,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 8753,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 9027,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 9028,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 9169,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11293,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11295,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 12714,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 12716,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 13739,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 13942,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 13944,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 14024,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 14024,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt.js",
+          "line": 791,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt.js",
+          "line": 792,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt.js",
+          "line": 792,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt.js",
+          "line": 792,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt.js",
+          "line": 792,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt.js",
+          "line": 2950,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/predloga-payment-settings.js",
+          "line": 76,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/predlogi-urejevalnik.js",
+          "line": 904,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/predlogi-urejevalnik.js",
+          "line": 970,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/rok-placila-sheet.js",
+          "line": 82,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/rok-placila-sheet.js",
+          "line": 627,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 530,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 10858,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/ton-priporocilo.js",
+          "line": 62,
+          "name": "simbol-2192",
+          "canonical": false
+        },
+        {
+          "source": "app/zacasno-obvestila.js",
+          "line": 263,
+          "name": "simbol-2192",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2f375ab08e98",
+      "name": "simbol-2713",
+      "fingerprint": "symbol:✓",
+      "definitions": [
+        {
+          "source": "app/aktivni-primeri.html",
+          "line": 60,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/app.js",
+          "line": 7314,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 53,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 70,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 155,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 159,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 159,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 159,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 179,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 1343,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 1429,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 3210,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 129,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 172,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 178,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 245,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 255,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 449,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 480,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 587,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 603,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 637,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 361,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 362,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3100,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3303,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3561,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3744,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3746,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3751,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3756,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3758,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3761,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3804,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 4360,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba-komponente.js",
+          "line": 128,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 1284,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 1673,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2231,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2488,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/koncani-primeri.html",
+          "line": 57,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 447,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 448,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 449,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 450,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 738,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 739,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 740,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 741,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 477,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 530,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 1022,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 5210,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 5510,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7204,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7233,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7235,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7359,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7511,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7595,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7897,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11407,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11409,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11423,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11583,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 13234,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal-i18n.js",
+          "line": 623,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal-i18n.js",
+          "line": 623,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.js",
+          "line": 3380,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.js",
+          "line": 3395,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.js",
+          "line": 5418,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/predlogi-urejevalnik.js",
+          "line": 505,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/recommendation-card.js",
+          "line": 138,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 10250,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 10545,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 11432,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 14684,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 15994,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 16078,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 17628,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 22570,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 31067,
+          "name": "simbol-2713",
+          "canonical": false
+        },
+        {
+          "source": "app/zascita-posla.html",
+          "line": 45,
+          "name": "simbol-2713",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d0382cd4d606",
+      "name": "simbol-2190",
+      "fingerprint": "symbol:←",
+      "definitions": [
+        {
+          "source": "app/aktivni-primeri.html",
+          "line": 35,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.html",
+          "line": 40,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2569,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 447,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 1999,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 13519,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 14015,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 14671,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/predlogi-urejevalnik.js",
+          "line": 276,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/rast-priloznosti.html",
+          "line": 29,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/skrb-stranke-delavci.html",
+          "line": 29,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/skupnost-obrtnikov.html",
+          "line": 29,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/ugled-optimizacija.html",
+          "line": 29,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/ui-katalog.html",
+          "line": 16,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/zacasno-obvestila.html",
+          "line": 23,
+          "name": "simbol-2190",
+          "canonical": false
+        },
+        {
+          "source": "app/zascita-posla.html",
+          "line": 29,
+          "name": "simbol-2190",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-397b86871554",
+      "name": "simbol-2715",
+      "fingerprint": "symbol:✕",
+      "definitions": [
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 191,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 541,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 660,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 780,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 539,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 831,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-zgodovina.html",
+          "line": 128,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-zgodovina.html",
+          "line": 205,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-zgodovina.html",
+          "line": 282,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 550,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 560,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 597,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 674,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 751,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 796,
+          "name": "simbol-2715",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 8859,
+          "name": "simbol-2715",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-123675d8b056",
+      "name": ".boniteta-financni-alarm__ponovitev output.is-success::before",
+      "fingerprint": "pseudo:1dabba21cdad44541f6b",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 1342,
+          "name": ".boniteta-financni-alarm__ponovitev output.is-success::before",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 1426,
+          "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status::before",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 3209,
+          "name": ".stran--bonitetna .boniteta-lep-izbirnik__izbira.is-selected::after",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 10246,
+          "name": ".obrocno-sheet__enakomerno--izbrano::after, .obrocno-sheet__enakomerno[aria-pressed=\"true\"]::after",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 11429,
+          "name": ".rok-sheet__hitro-gumb[aria-selected=\"true\"]::after",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 14680,
+          "name": ".opomin-nacrt__stage-ovoj--urejanje:not(.opomin-nacrt__stage-ovoj--izkljucen) .opomin-nacrt__stage-odstrani::after",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 15991,
+          "name": ".random-sheet__nacin:has(input:checked)::after",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 16075,
+          "name": ".random-sheet__rezultat:not(:empty)::before",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 17625,
+          "name": ".opomin-cas-sheet__bliznjica::before",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 22569,
+          "name": ".lp-odvetnik-profil__storitve li::before",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 31064,
+          "name": ".opomin-predaja-pregled__checkbox-label input[type=\"checkbox\"]::after",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-4e867e441c55",
+      "name": "inline-pos-terminal-49",
+      "fingerprint": "svg:656cf6a5feac9a54d9ce",
+      "definitions": [
+        {
+          "source": "app/pos-terminal.html",
+          "line": 49,
+          "name": "inline-pos-terminal-49",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 88,
+          "name": "inline-pos-terminal-88",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 289,
+          "name": "inline-pos-terminal-289",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 399,
+          "name": "inline-pos-terminal-399",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 422,
+          "name": "inline-pos-terminal-422",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 559,
+          "name": "inline-pos-terminal-559",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 734,
+          "name": "inline-pos-terminal-734",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.js",
+          "line": 3311,
+          "name": "inline-pos-terminal-3311",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.js",
+          "line": 3419,
+          "name": "inline-pos-terminal-3419",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.js",
+          "line": 3427,
+          "name": "inline-pos-terminal-3427",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-9d49133346b9",
+      "name": "simbol-2197",
+      "fingerprint": "symbol:↗",
+      "definitions": [
+        {
+          "source": "app/boniteta-profil.js",
+          "line": 18,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 156,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 156,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 156,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 509,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 528,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 550,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 648,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 649,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3847,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3999,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 4002,
+          "name": "simbol-2197",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 4002,
+          "name": "simbol-2197",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2cdf0c1fb777",
+      "name": "simbol-2304",
+      "fingerprint": "symbol:⌄",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 2789,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 59,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 217,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 643,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3302,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2253,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2453,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2474,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 5657,
+          "name": "simbol-2304",
+          "canonical": false
+        },
+        {
+          "source": "app/styles.css",
+          "line": 6858,
+          "name": "simbol-2304",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-c3626e30285e",
+      "name": "IKONA_KLJUKICA",
+      "fingerprint": "svg:9e900eb5380daca92cbc",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 9,
+          "name": "IKONA_KLJUKICA",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-38a7b515cf70",
+      "name": "IKONA_TEHTNICA",
+      "fingerprint": "svg:e038e3ca2702b3b20258",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 87,
+          "name": "IKONA_TEHTNICA",
+          "canonical": false
+        },
+        {
+          "source": "app/zacasno-obvestila.js",
+          "line": 38,
+          "name": "scales",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-499ec5e15db5",
+      "name": "ikonaKljukice",
+      "fingerprint": "svg:164505de909d5d22fd48",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 5675,
+          "name": "ikonaKljukice",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila.html",
+          "line": 119,
+          "name": "inline-neplacila-119",
+          "canonical": false
+        },
+        {
+          "source": "app/predlogi-urejevalnik.js",
+          "line": 24,
+          "name": "IKONA_KLJUKICE",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-69901f7a6cbf",
+      "name": "IKONA_PREDAJA_DOKUMENT_OKO",
+      "fingerprint": "svg:21e370eb4acc87251328",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 130,
+          "name": "IKONA_PREDAJA_DOKUMENT_OKO",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5be5e857fa29",
+      "name": "IKONA_CHEVRON_DOL",
+      "fingerprint": "svg:8807b9e0c3c9ec6cba74",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 123,
+          "name": "IKONA_CHEVRON_DOL",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a2bd4bc3bd7d",
+      "name": "IKONA_NAMEN_EURO",
+      "fingerprint": "svg:20968b165f7b42a6f868",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 105,
+          "name": "IKONA_NAMEN_EURO",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-fff3248fb319",
+      "name": "IKONA_PREDAJA_SPOROCILO",
+      "fingerprint": "svg:884024c2ccef447856b9",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 133,
+          "name": "IKONA_PREDAJA_SPOROCILO",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-e5c724efbb3e",
+      "name": "IKONA_SCIT_KLJUKICA",
+      "fingerprint": "svg:115703aa3c6d7db39da2",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 111,
+          "name": "IKONA_SCIT_KLJUKICA",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-12e756e62bc2",
+      "name": "inline-pos-terminal-108",
+      "fingerprint": "svg:91ab979872347a7f6b85",
+      "definitions": [
+        {
+          "source": "app/pos-terminal.html",
+          "line": 108,
+          "name": "inline-pos-terminal-108",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 276,
+          "name": "inline-pos-terminal-276",
+          "canonical": false
+        },
+        {
+          "source": "app/pos-terminal.html",
+          "line": 513,
+          "name": "inline-pos-terminal-513",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-83249ed610ba",
+      "name": "simbol-2193",
+      "fingerprint": "symbol:↓",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 736,
+          "name": "simbol-2193",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 455,
+          "name": "simbol-2193",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 13782,
+          "name": "simbol-2193",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-1425afb84972",
+      "name": ".boniteta-dodatno__osebe li.is-former .boniteta-dodatno__avatar::before",
+      "fingerprint": "pseudo:afba2418d6aec23dc4b2",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 268,
+          "name": ".boniteta-dodatno__osebe li.is-former .boniteta-dodatno__avatar::before",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 1455,
+          "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-b8f50d3a3fe7",
+      "name": "chevronHtml",
+      "fingerprint": "svg:29611b030c4620056e1a",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 6874,
+          "name": "chevronHtml",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 11670,
+          "name": "chevronHtml",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-386b66b3e29c",
+      "name": "IKONA_NALAGANJE_ORANZNA",
+      "fingerprint": "svg:15b7a20dd37b83ce2201",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 96,
+          "name": "IKONA_NALAGANJE_ORANZNA",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-c8845b1dd933",
+      "name": "inline-izvedba-2047",
+      "fingerprint": "svg:3ab383a5e315e531fa27",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2047,
+          "name": "inline-izvedba-2047",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7428,
+          "name": "inline-opomin-nacrt-ui-7428",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5d44981906b7",
+      "name": "inline-izvedba-2048",
+      "fingerprint": "svg:705e3fb9f08b3f614453",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2048,
+          "name": "inline-izvedba-2048",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7414,
+          "name": "inline-opomin-nacrt-ui-7414",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-bc88d2f16e1d",
+      "name": "inline-izvedba-2049",
+      "fingerprint": "svg:6042563fad115a3b1fe9",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2049,
+          "name": "inline-izvedba-2049",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7411,
+          "name": "inline-opomin-nacrt-ui-7411",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-fc002489a28b",
+      "name": "inline-izvedba-2050",
+      "fingerprint": "svg:01fe31163704610126b9",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2050,
+          "name": "inline-izvedba-2050",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7402,
+          "name": "inline-opomin-nacrt-ui-7402",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-98992f2d75f3",
+      "name": "inline-izvedba-2051",
+      "fingerprint": "svg:ef2bf6b3168f63e6ea32",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2051,
+          "name": "inline-izvedba-2051",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7417,
+          "name": "inline-opomin-nacrt-ui-7417",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-7fc29ca0c22e",
+      "name": "inline-izvedba-2241",
+      "fingerprint": "svg:d415315baabe592df7ef",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2241,
+          "name": "inline-izvedba-2241",
+          "canonical": false
+        },
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7378,
+          "name": "inline-opomin-nacrt-ui-7378",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2a3b42baa147",
+      "name": "inline-izvedba-2480",
+      "fingerprint": "svg:9b5cd2bae5ef2304f869",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2480,
+          "name": "inline-izvedba-2480",
+          "canonical": false
+        },
+        {
+          "source": "app/izvedba.js",
+          "line": 2503,
+          "name": "inline-izvedba-2503",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-ec632f681e29",
+      "name": "inline-neplacila-posiljanje-75",
+      "fingerprint": "svg:05a1b26140828a3ae660",
+      "definitions": [
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 75,
+          "name": "inline-neplacila-posiljanje-75",
+          "canonical": false
+        },
+        {
+          "source": "app/neplacila-sporocilo.html",
+          "line": 70,
+          "name": "inline-neplacila-sporocilo-70",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-e6d0b0cad1ff",
+      "name": "negative_equity",
+      "fingerprint": "svg:0381a1fd21fafeee1b07",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2751,
+          "name": "negative_equity",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2752,
+          "name": "equity_decline_material",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-e33b6075388e",
+      "name": "profit_drop",
+      "fingerprint": "svg:647c9379eb6948ddb97c",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2746,
+          "name": "profit_drop",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2748,
+          "name": "profit_decline_multi",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-94bac90ee709",
+      "name": "register",
+      "fingerprint": "svg:42764abd033d90da6055",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3535,
+          "name": "register",
+          "canonical": false
+        },
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3536,
+          "name": "sodisce",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-6c65c02b380e",
+      "name": ".boniteta-izstopa__dogodek-napis time::after",
+      "fingerprint": "pseudo:a137f17a19a09cbe511b",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 222,
+          "name": ".boniteta-izstopa__dogodek-napis time::after",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d40c5274ba14",
+      "name": ".boniteta-signal__likvidnost .is-down b::before",
+      "fingerprint": "pseudo:07a2abcd3189716d1244",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 735,
+          "name": ".boniteta-signal__likvidnost .is-down b::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a22af0049382",
+      "name": ".boniteta-signal__likvidnost .is-up b::before",
+      "fingerprint": "pseudo:d2e966bf8db856200749",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 736,
+          "name": ".boniteta-signal__likvidnost .is-up b::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-0be138352c94",
+      "name": ".izvedba-swipe::before",
+      "fingerprint": "pseudo:0685a836e46144a549d3",
+      "definitions": [
+        {
+          "source": "app/izvedba.css",
+          "line": 539,
+          "name": ".izvedba-swipe::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-400885239873",
+      "name": ".obrazec__polje:has(input.obrazec__polje--ai-izpolnjeno)::after, .obrazec__polje:has(textarea.obrazec__polje--ai-izpolnjeno)::after",
+      "fingerprint": "pseudo:3191b52693ec28b46f82",
+      "definitions": [
+        {
+          "source": "app/styles.css",
+          "line": 3613,
+          "name": ".obrazec__polje:has(input.obrazec__polje--ai-izpolnjeno)::after, .obrazec__polje:has(textarea.obrazec__polje--ai-izpolnjeno)::after",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-332196f18fc1",
+      "name": ".obrocno-sheet__skupaj--ok::after",
+      "fingerprint": "pseudo:456509849d2dcb6e7ea5",
+      "definitions": [
+        {
+          "source": "app/styles.css",
+          "line": 10542,
+          "name": ".obrocno-sheet__skupaj--ok::after",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-f603027cd36f",
+      "name": ".stran--sporocilo #predlogi-okvir.predlogi-okvir::before",
+      "fingerprint": "pseudo:641b9bedb453516b3b1d",
+      "definitions": [
+        {
+          "source": "app/styles.css",
+          "line": 6855,
+          "name": ".stran--sporocilo #predlogi-okvir.predlogi-okvir::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-578ef2823861",
+      "name": "#boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica small::before",
+      "fingerprint": "pseudo:6e01f78b9eb4142b2250",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 1560,
+          "name": "#boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica small::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2ed70e104255",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--red::before",
+      "fingerprint": "pseudo:bb7208bc9b5d7c04f123",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 6009,
+          "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--red::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d2cbac10edb1",
+      "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before",
+      "fingerprint": "pseudo:de7d1b721a1e0632b7cf",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.css",
+          "line": 5997,
+          "name": "#boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow::before",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5522c6acf230",
+      "name": "assets_change",
+      "fingerprint": "svg:a1c2812f057fce2ab209",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2749,
+          "name": "assets_change",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-bbc87b2ccf9b",
+      "name": "capital_stronger",
+      "fingerprint": "svg:9c44ce3f20b31165564e",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2753,
+          "name": "capital_stronger",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a220c667dd11",
+      "name": "checkCircle",
+      "fingerprint": "svg:430768887928c0b669d4",
+      "definitions": [
+        {
+          "source": "app/zacasno-obvestila.js",
+          "line": 50,
+          "name": "checkCircle",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-4ae0a66c7a22",
+      "name": "contact_mismatch",
+      "fingerprint": "svg:ea95075896df2c992e5e",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2761,
+          "name": "contact_mismatch",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-444b819fc143",
+      "name": "court_change",
+      "fingerprint": "svg:956fbb2b36a3190d4b0e",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2759,
+          "name": "court_change",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-af47f847888f",
+      "name": "dejavnost",
+      "fingerprint": "svg:f48d927d5d9aa66858c5",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3531,
+          "name": "dejavnost",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-dff72bf03e28",
+      "name": "director_network",
+      "fingerprint": "svg:7f77fc27226fe26e5ff9",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2762,
+          "name": "director_network",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-737c16b4b31a",
+      "name": "filing_gap",
+      "fingerprint": "svg:dcde9f387caa6416d929",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2763,
+          "name": "filing_gap",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-b6e958391e2b",
+      "name": "finance",
+      "fingerprint": "svg:a2d40a79ca267a42fe27",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2507,
+          "name": "finance",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-f4d970ae088b",
+      "name": "flame",
+      "fingerprint": "svg:647df312dacfa6804235",
+      "definitions": [
+        {
+          "source": "app/ton-widget.js",
+          "line": 38,
+          "name": "flame",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-dee591e1cd4d",
+      "name": "foundation",
+      "fingerprint": "svg:7d2c41f0c47a34c90764",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2504,
+          "name": "foundation",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2223049c6d82",
+      "name": "ikonaFilter",
+      "fingerprint": "svg:c4d8435113ee6722ca5b",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7122,
+          "name": "ikonaFilter",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a4fa05ca4acf",
+      "name": "ikonaZvezdePrioriteta",
+      "fingerprint": "svg:1689c6f6cd4f8415e5ef",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 5678,
+          "name": "ikonaZvezdePrioriteta",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-f628b87e2e98",
+      "name": "inline-app-440",
+      "fingerprint": "svg:e33a5a166d1200175337",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 440,
+          "name": "inline-app-440",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-cb0af851246a",
+      "name": "inline-boniteta-sredisce-238",
+      "fingerprint": "svg:661195359c981db07764",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 238,
+          "name": "inline-boniteta-sredisce-238",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-3fb779f2a5ad",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:2611974a06480cabb581",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-ab24a1e22267",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:96b22063c81d2f37454f",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-1665a9cf3a31",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:49e5227a3673bed6a072",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-73d1f1da5a5f",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:faa33897928a763f624f",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-ea263516a829",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:ab06b5d8ff03e59c95fb",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5069b01c5e4e",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:62d3aaa7a7890707829d",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-68861110bb28",
+      "name": "inline-boniteta-sredisce-239",
+      "fingerprint": "svg:1eced24013799b3aba41",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 239,
+          "name": "inline-boniteta-sredisce-239",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-ccf12fa0dd27",
+      "name": "inline-boniteta-sredisce-243",
+      "fingerprint": "svg:de15e7c56d55bdd3d558",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 243,
+          "name": "inline-boniteta-sredisce-243",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-864ced196728",
+      "name": "inline-boniteta-sredisce-243",
+      "fingerprint": "svg:2bd18fe5c695b50ed446",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 243,
+          "name": "inline-boniteta-sredisce-243",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-0fae07af0976",
+      "name": "inline-boniteta-sredisce-243",
+      "fingerprint": "svg:0ab4dace96b08d568ad2",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 243,
+          "name": "inline-boniteta-sredisce-243",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a26994952fdb",
+      "name": "inline-boniteta-sredisce-243",
+      "fingerprint": "svg:6ce4d4c23317594705be",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 243,
+          "name": "inline-boniteta-sredisce-243",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-dca0aecf5339",
+      "name": "inline-boniteta-sredisce-243",
+      "fingerprint": "svg:d1684409dc1131fa8f11",
+      "definitions": [
+        {
+          "source": "app/boniteta-sredisce.js",
+          "line": 243,
+          "name": "inline-boniteta-sredisce-243",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-449cc3516887",
+      "name": "inline-bonitetna-preverba-201",
+      "fingerprint": "svg:ebf919d076b701af890a",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 201,
+          "name": "inline-bonitetna-preverba-201",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-097c4b7dd3fe",
+      "name": "inline-bonitetna-preverba-2709",
+      "fingerprint": "svg:6317919452a7b03e7ee4",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2709,
+          "name": "inline-bonitetna-preverba-2709",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-e51c39eaf2ab",
+      "name": "inline-bonitetna-preverba-2712",
+      "fingerprint": "svg:f9ca804e9e06930c56bf",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2712,
+          "name": "inline-bonitetna-preverba-2712",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-baffa04e2bb5",
+      "name": "inline-bonitetna-preverba-2713",
+      "fingerprint": "svg:2355642bbb3dcd60c4a3",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2713,
+          "name": "inline-bonitetna-preverba-2713",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-9b7c08e28f64",
+      "name": "inline-bonitetna-preverba-2765",
+      "fingerprint": "svg:edacb9a5a84d85b012d4",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2765,
+          "name": "inline-bonitetna-preverba-2765",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-9db4ed3e3bae",
+      "name": "inline-bonitetna-preverba-296",
+      "fingerprint": "svg:4e5923fdd2b9409ffafe",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 296,
+          "name": "inline-bonitetna-preverba-296",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-8eed8b4d1deb",
+      "name": "inline-bonitetna-preverba-3297",
+      "fingerprint": "svg:e8b39d48237cfbfd6269",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3297,
+          "name": "inline-bonitetna-preverba-3297",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-1b15c2db3450",
+      "name": "inline-bonitetna-preverba-335",
+      "fingerprint": "svg:ef0ab52039fbdfaa4955",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 335,
+          "name": "inline-bonitetna-preverba-335",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-09bae9f433f4",
+      "name": "inline-bonitetna-preverba-353",
+      "fingerprint": "svg:2f0ac5667c8d3661f025",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 353,
+          "name": "inline-bonitetna-preverba-353",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d8138bd22e82",
+      "name": "inline-bonitetna-preverba-448",
+      "fingerprint": "svg:18e609ad1ad2a63e9943",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 448,
+          "name": "inline-bonitetna-preverba-448",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5095155733c8",
+      "name": "inline-bonitetna-preverba-465",
+      "fingerprint": "svg:6bd3b51684e817e5de62",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 465,
+          "name": "inline-bonitetna-preverba-465",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-74f51e196d06",
+      "name": "inline-bonitetna-preverba-85",
+      "fingerprint": "svg:05eb51abb66eeb196502",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 85,
+          "name": "inline-bonitetna-preverba-85",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-c2f6ed7655bc",
+      "name": "inline-bonitetna-preverba-857",
+      "fingerprint": "svg:ddd049b3bd01608d2b23",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.html",
+          "line": 857,
+          "name": "inline-bonitetna-preverba-857",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-dbe1f70645ff",
+      "name": "inline-izvedba-2042",
+      "fingerprint": "svg:6e2d2aa2fec39b23f177",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2042,
+          "name": "inline-izvedba-2042",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2ac038504193",
+      "name": "inline-izvedba-2092",
+      "fingerprint": "svg:3ed7f3b38902a3d7de5f",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2092,
+          "name": "inline-izvedba-2092",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-44b01bcad741",
+      "name": "inline-izvedba-2096",
+      "fingerprint": "svg:6c256833d868a62dbc63",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2096,
+          "name": "inline-izvedba-2096",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-61c1101c6c67",
+      "name": "inline-izvedba-2446",
+      "fingerprint": "svg:ccb543a3ced4e921f71b",
+      "definitions": [
+        {
+          "source": "app/izvedba.js",
+          "line": 2446,
+          "name": "inline-izvedba-2446",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-16d2f3821249",
+      "name": "inline-neplacila-376",
+      "fingerprint": "svg:96c5b3f5cbf3ad56d59a",
+      "definitions": [
+        {
+          "source": "app/neplacila.html",
+          "line": 376,
+          "name": "inline-neplacila-376",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-ec4905831a56",
+      "name": "inline-neplacila-811",
+      "fingerprint": "svg:a1e6d85aadfe5932e0bf",
+      "definitions": [
+        {
+          "source": "app/neplacila.html",
+          "line": 811,
+          "name": "inline-neplacila-811",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-bc246d3852f2",
+      "name": "inline-neplacila-posiljanje-411",
+      "fingerprint": "svg:1c50187e3595ba0ab8e0",
+      "definitions": [
+        {
+          "source": "app/neplacila-posiljanje.html",
+          "line": 411,
+          "name": "inline-neplacila-posiljanje-411",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-69c982440697",
+      "name": "inline-obrocno-sheet-247",
+      "fingerprint": "svg:2e2c1b11789e614d0fbb",
+      "definitions": [
+        {
+          "source": "app/obrocno-sheet.js",
+          "line": 247,
+          "name": "inline-obrocno-sheet-247",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2c6765005191",
+      "name": "inline-obrocno-sheet-260",
+      "fingerprint": "svg:3fb957e206cc2b7b413c",
+      "definitions": [
+        {
+          "source": "app/obrocno-sheet.js",
+          "line": 260,
+          "name": "inline-obrocno-sheet-260",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-51bebf0336f5",
+      "name": "inline-opomin-nacrt-ui-7406",
+      "fingerprint": "svg:b7b7482d90c807b24352",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 7406,
+          "name": "inline-opomin-nacrt-ui-7406",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-1625461ea06c",
+      "name": "inline-opomin-nacrt-ui-8427",
+      "fingerprint": "svg:9936926c660bae607f27",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 8427,
+          "name": "inline-opomin-nacrt-ui-8427",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-b19303c1763b",
+      "name": "inline-opomin-nacrt-ui-8504",
+      "fingerprint": "svg:94bbac6b83016b380a97",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 8504,
+          "name": "inline-opomin-nacrt-ui-8504",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-4cac163536bc",
+      "name": "inline-pos-terminal-56",
+      "fingerprint": "svg:cd12a80e829699d53e7d",
+      "definitions": [
+        {
+          "source": "app/pos-terminal.html",
+          "line": 56,
+          "name": "inline-pos-terminal-56",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-541c13cb25e5",
+      "name": "inline-slovenski-prepis-16",
+      "fingerprint": "svg:f6b2351d21b509b4dbb3",
+      "definitions": [
+        {
+          "source": "app/slovenski-prepis.html",
+          "line": 16,
+          "name": "inline-slovenski-prepis-16",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-83a4f635e78a",
+      "name": "inline-slovenski-prepis-39",
+      "fingerprint": "svg:e13d4ef2003b07456e00",
+      "definitions": [
+        {
+          "source": "app/slovenski-prepis.html",
+          "line": 39,
+          "name": "inline-slovenski-prepis-39",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-2194591c1e4d",
+      "name": "inline-slovenski-prepis-46",
+      "fingerprint": "svg:b966b7d126dfd59b8445",
+      "definitions": [
+        {
+          "source": "app/slovenski-prepis.html",
+          "line": 46,
+          "name": "inline-slovenski-prepis-46",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-7bcf5251b9f0",
+      "name": "inline-testna-vrstica-76",
+      "fingerprint": "svg:a90b608880e8fe44161a",
+      "definitions": [
+        {
+          "source": "app/testna-vrstica.js",
+          "line": 76,
+          "name": "inline-testna-vrstica-76",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a913b4de1837",
+      "name": "leadership",
+      "fingerprint": "svg:51ffc589997c9694a05e",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2506,
+          "name": "leadership",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-6d0b6ab3b1bd",
+      "name": "leadership_turnover",
+      "fingerprint": "svg:7d0d46234e2757c335da",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2754,
+          "name": "leadership_turnover",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a1cf3f01a0b4",
+      "name": "liquidity_weaker",
+      "fingerprint": "svg:02f6c14a154c8493b735",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2750,
+          "name": "liquidity_weaker",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5da80bec5a46",
+      "name": "lokacijskaIkona",
+      "fingerprint": "svg:ece93091cb494b52706f",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2902,
+          "name": "lokacijskaIkona",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-ae33799cf45b",
+      "name": "loss_to_profit",
+      "fingerprint": "svg:c178443b64a321fa6846",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2745,
+          "name": "loss_to_profit",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-cd77b495fed6",
+      "name": "majority_owner",
+      "fingerprint": "svg:68405531b32ca9d59255",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2757,
+          "name": "majority_owner",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-6d3fc2fe328b",
+      "name": "meh",
+      "fingerprint": "svg:24c4393bc4b1ededf840",
+      "definitions": [
+        {
+          "source": "app/ton-widget.js",
+          "line": 28,
+          "name": "meh",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-8e0c3886e3cb",
+      "name": "message",
+      "fingerprint": "svg:593d3fb9924a7f8edd57",
+      "definitions": [
+        {
+          "source": "app/zacasno-obvestila.js",
+          "line": 30,
+          "name": "message",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5c545969341b",
+      "name": "nevtralnaOsebaIkona",
+      "fingerprint": "svg:d64e5af11ada6c420ded",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3279,
+          "name": "nevtralnaOsebaIkona",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-73b7990a84bd",
+      "name": "new_company",
+      "fingerprint": "svg:c68bd99453b6f6c4fbcd",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2760,
+          "name": "new_company",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d7e543c55fbe",
+      "name": "oblika",
+      "fingerprint": "svg:c7175f77d6febb4270d6",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3534,
+          "name": "oblika",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-9b03a093caca",
+      "name": "oseba",
+      "fingerprint": "svg:c56e848c29baee24148f",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3532,
+          "name": "oseba",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a652b3aaf554",
+      "name": "profit_growth",
+      "fingerprint": "svg:3ba7f11a3386555839a0",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2747,
+          "name": "profit_growth",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-7e011b57c92e",
+      "name": "profit_to_loss",
+      "fingerprint": "svg:97863cb8c8da7e0041fb",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2744,
+          "name": "profit_to_loss",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-42baad85a4fc",
+      "name": "record",
+      "fingerprint": "svg:bd828e72d39b3ee1347d",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2508,
+          "name": "record",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d12a6f194ffb",
+      "name": "reorganization",
+      "fingerprint": "svg:c7e0ea00d31ccbf210a7",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2755,
+          "name": "reorganization",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-f22eab346931",
+      "name": "sedez",
+      "fingerprint": "svg:9fae0de9be450379d22e",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3533,
+          "name": "sedez",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-38d33b716095",
+      "name": "send",
+      "fingerprint": "svg:f10f231e74bf39988ccf",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 444,
+          "name": "send",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-8b6641e9e99c",
+      "name": "shield",
+      "fingerprint": "svg:34471ecaa3f26dd421c2",
+      "definitions": [
+        {
+          "source": "app/ton-widget.js",
+          "line": 30,
+          "name": "shield",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-3e1d62b9fbcd",
+      "name": "simbol-1F5BC",
+      "fingerprint": "symbol:🖼",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 4400,
+          "name": "simbol-1F5BC",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-1751123119e8",
+      "name": "simbol-1F5D2",
+      "fingerprint": "symbol:🗒",
+      "definitions": [
+        {
+          "source": "app/neplacila.html",
+          "line": 483,
+          "name": "simbol-1F5D2",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-b0f7e2a31db5",
+      "name": "simbol-2191",
+      "fingerprint": "symbol:↑",
+      "definitions": [
+        {
+          "source": "app/bonitetna-podjetje-grafike.css",
+          "line": 737,
+          "name": "simbol-2191",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-5c2aa5476cf0",
+      "name": "simbol-23F3",
+      "fingerprint": "symbol:⏳",
+      "definitions": [
+        {
+          "source": "app/neplacila.html",
+          "line": 496,
+          "name": "simbol-23F3",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-df9e62a5b3aa",
+      "name": "simbol-25CB",
+      "fingerprint": "symbol:○",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 3100,
+          "name": "simbol-25CB",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-97fd15eaf28a",
+      "name": "simbol-2696",
+      "fingerprint": "symbol:⚖",
+      "definitions": [
+        {
+          "source": "app/neplacila.html",
+          "line": 513,
+          "name": "simbol-2696",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-7df148a37812",
+      "name": "simbol-26A0",
+      "fingerprint": "symbol:⚠",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 8933,
+          "name": "simbol-26A0",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-078f2a28ae4f",
+      "name": "smile",
+      "fingerprint": "svg:d554c251484b25e2d38f",
+      "definitions": [
+        {
+          "source": "app/ton-widget.js",
+          "line": 26,
+          "name": "smile",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-b908baf1c6ce",
+      "name": "stable_management",
+      "fingerprint": "svg:400879257eede94100dc",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2758,
+          "name": "stable_management",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-e0c62efa3eaa",
+      "name": "SVG_OPCIJA_ISTI",
+      "fingerprint": "svg:77a6e31146a59f9a2c21",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 537,
+          "name": "SVG_OPCIJA_ISTI",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-a273788391ce",
+      "name": "SVG_OPCIJA_NOV",
+      "fingerprint": "svg:6b371dcc3b356a43ad05",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 539,
+          "name": "SVG_OPCIJA_NOV",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-bdaa0f7e16a3",
+      "name": "SVG_POTRDI_IKONA_NEVARNO",
+      "fingerprint": "svg:1236948025b9a89d3be9",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 535,
+          "name": "SVG_POTRDI_IKONA_NEVARNO",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-bd12011dbc8a",
+      "name": "SVG_POTRDI_IKONA_TURKIZ",
+      "fingerprint": "svg:843aab3953c00bb8a397",
+      "definitions": [
+        {
+          "source": "app/app.js",
+          "line": 533,
+          "name": "SVG_POTRDI_IKONA_TURKIZ",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-fc4f4ed97b71",
+      "name": "ug_to_gmbh",
+      "fingerprint": "svg:e4a50e60896247c5b17e",
+      "definitions": [
+        {
+          "source": "app/bonitetna-preverba.js",
+          "line": 2756,
+          "name": "ug_to_gmbh",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-d424c7d3a583",
+      "name": "warning",
+      "fingerprint": "svg:d778dba378044356fb2d",
+      "definitions": [
+        {
+          "source": "app/zacasno-obvestila.js",
+          "line": 34,
+          "name": "warning",
+          "canonical": false
+        }
+      ]
+    },
+    {
+      "id": "ikona-3af7151e684e",
+      "name": "zvonec",
+      "fingerprint": "svg:f18e7459bd96b1f629f3",
+      "definitions": [
+        {
+          "source": "app/opomin-nacrt-ui.js",
+          "line": 14495,
+          "name": "zvonec",
+          "canonical": false
+        }
+      ]
+    }
+  ]
+}

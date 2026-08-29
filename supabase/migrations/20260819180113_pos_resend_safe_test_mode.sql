@@ -4,7 +4,6 @@
 create unique index pos_invoice_deliveries_resend_test_reference_uidx
   on public.pos_invoice_deliveries(provider_reference)
   where provider = 'resend' and is_test = true and provider_reference <> '';
-
 create or replace function private._pos_queue_resend_test_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -95,7 +94,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function public.pos_queue_resend_test_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -108,7 +106,6 @@ set search_path = ''
 as $$
   select private._pos_queue_resend_test_invoice_delivery(p_delivery_id, p_user_id, p_confirmed);
 $$;
-
 create or replace function private._pos_claim_resend_test_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -154,7 +151,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function public.pos_claim_resend_test_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -167,7 +163,6 @@ set search_path = ''
 as $$
   select private._pos_claim_resend_test_invoice_delivery(p_delivery_id, p_user_id, p_worker_id);
 $$;
-
 create or replace function private._pos_finish_resend_test_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -236,7 +231,6 @@ begin
   return v_delivery;
 end;
 $$;
-
 create or replace function public.pos_finish_resend_test_invoice_delivery(
   p_delivery_id uuid,
   p_user_id uuid,
@@ -255,7 +249,6 @@ as $$
     p_delivery_id, p_user_id, p_worker_id, p_success, p_provider_reference, p_error, p_retryable
   );
 $$;
-
 create or replace function private._pos_apply_resend_test_webhook_event(
   p_svix_id text,
   p_event_type text,
@@ -406,7 +399,6 @@ begin
   );
 end;
 $$;
-
 create or replace function public.pos_apply_resend_test_webhook_event(
   p_svix_id text,
   p_event_type text,
@@ -423,25 +415,20 @@ as $$
     p_svix_id, p_event_type, p_email_id, p_event_created_at, p_failure_code
   );
 $$;
-
 revoke all on function private._pos_queue_resend_test_invoice_delivery(uuid,uuid,boolean) from public, anon, authenticated;
 revoke all on function public.pos_queue_resend_test_invoice_delivery(uuid,uuid,boolean) from public, anon, authenticated;
 grant execute on function private._pos_queue_resend_test_invoice_delivery(uuid,uuid,boolean) to service_role;
 grant execute on function public.pos_queue_resend_test_invoice_delivery(uuid,uuid,boolean) to service_role;
-
 revoke all on function private._pos_claim_resend_test_invoice_delivery(uuid,uuid,uuid) from public, anon, authenticated;
 revoke all on function public.pos_claim_resend_test_invoice_delivery(uuid,uuid,uuid) from public, anon, authenticated;
 grant execute on function private._pos_claim_resend_test_invoice_delivery(uuid,uuid,uuid) to service_role;
 grant execute on function public.pos_claim_resend_test_invoice_delivery(uuid,uuid,uuid) to service_role;
-
 revoke all on function private._pos_finish_resend_test_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) from public, anon, authenticated;
 revoke all on function public.pos_finish_resend_test_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) from public, anon, authenticated;
 grant execute on function private._pos_finish_resend_test_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) to service_role;
 grant execute on function public.pos_finish_resend_test_invoice_delivery(uuid,uuid,uuid,boolean,text,text,boolean) to service_role;
-
 revoke all on function private._pos_apply_resend_test_webhook_event(text,text,text,timestamptz,text) from public, anon, authenticated;
 revoke all on function public.pos_apply_resend_test_webhook_event(text,text,text,timestamptz,text) from public, anon, authenticated;
 grant execute on function private._pos_apply_resend_test_webhook_event(text,text,text,timestamptz,text) to service_role;
 grant execute on function public.pos_apply_resend_test_webhook_event(text,text,text,timestamptz,text) to service_role;
-
 notify pgrst, 'reload schema';
