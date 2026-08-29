@@ -80,8 +80,8 @@ async function main() {
   assert.equal(Object.prototype.hasOwnProperty.call(bodyInput, "clauses"), false, "pred Luno ne sme biti parserjevih klavzul");
   assert.equal(Object.prototype.hasOwnProperty.call(bodyInput, "facts"), false, "pred Luno ne sme biti extractorjevih dejstev");
   assert.equal(bodyInput.sourceText, "Včeraj je nakazal 100 EUR.");
-  assert.equal(bodyInput.contractVersion, "history-fact-v74");
-  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v6");
+  assert.equal(bodyInput.contractVersion, "history-fact-v75");
+  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v7");
   assert.equal(bodyInput.catalog.cards.length, 17);
   assert.equal(bodyInput.catalog.fields.length, 8);
   assert.equal(bodyInput.catalog.wire.length, 16, "vsaka wire spremenljivka mora imeti stabilen ID");
@@ -1499,6 +1499,20 @@ async function main() {
   assert.equal(referenceChain.candidates[0].occurredDate, "2026-07-27", "reference-relative datum se sme deterministično izračunati");
   relativeDates.razresiDatume(referenceChain.candidates);
   assert.deepEqual(referenceChain.candidates.map(function (candidate) { return candidate.occurredDate; }), ["2026-07-27", "2026-08-17", "2026-08-24"]);
+  var userDayChain = parser._test.deterministicResult("plačal je prvi obrok 100 nato 20 čez 10dni in nato čez 12 dni 100", {
+    referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
+  });
+  assert.deepEqual(userDayChain.candidates.slice(1).map(function (candidate) {
+    return [candidate.dateRelation.amount, candidate.dateRelation.unit, candidate.dateRelation.anchorCandidateId];
+  }), [[10, "day", userDayChain.candidates[0].candidateId], [12, "day", userDayChain.candidates[1].candidateId]]);
+  assert.equal(relativeDates.najpoznejsiDatumZaKandidata(userDayChain.candidates, userDayChain.candidates[0], "2026-08-29"), "2026-08-07", "prvi datum mora pustiti prostor za vseh 22 naslednjih dni");
+  userDayChain.candidates[0].occurredDate = "2026-08-07";
+  relativeDates.razresiDatume(userDayChain.candidates);
+  assert.deepEqual(userDayChain.candidates.map(function (candidate) { return candidate.occurredDate; }), ["2026-08-07", "2026-08-17", "2026-08-29"], "vnos prvega datuma mora izračunati celotno verigo");
+  var beforePrevious = parser._test.deterministicResult("plačal je obrok 100, pred tem obrokom pa je plačal še 50", {
+    referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
+  });
+  assert.deepEqual(beforePrevious.candidates.map(function (candidate) { return candidate.amount; }), [50, 100], "naknadno opisano starejše plačilo mora biti vstavljeno pred obrok, na katerega se nanaša");
   assert.equal(referenceChain.questionPlan.length, 3);
   assert.ok(referenceChain.requiredFields.every(function (entry) { return entry.fields.includes("amount") && entry.fields.includes("occurredDate") && entry.fields.includes("paymentMethod"); }));
   assert.equal(parser._test.shouldRequestSemanticPlan(referenceChainText, referenceChainContract, referenceChain), true);
@@ -1741,8 +1755,8 @@ async function main() {
   var semanticPlanContext = { referenceDate: "2026-08-27", originalDebt: 9446, remainingDebt: 9446 };
   var semanticPlanContract = parser._test.buildFactContract(semanticPlanText);
   var semanticPlanLocal = parser._test.deterministicResult(semanticPlanText, semanticPlanContext);
-  assert.equal(parser.CONTRACT_VERSION, "history-fact-v74");
-  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v6");
+  assert.equal(parser.CONTRACT_VERSION, "history-fact-v75");
+  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v7");
   assert.deepEqual(semanticPlanContract.facts.filter(function (fact) { return fact.kind === "money"; }).map(function (fact) { return fact.value; }), [5000, 100, 1000]);
   assert.deepEqual(semanticPlanLocal.candidates.map(function (candidate) { return [candidate.type, candidate.amount]; }), [
     ["partial_payment", 5000], ["partial_payment", 100], ["installment_payment", 1000],
@@ -2032,6 +2046,51 @@ async function main() {
     ["partial_payment", 300, "2026-08-27"],
   ]);
 
+  var deferredDateAnchorText = "plačal je prvi obrok 100 nato 20 čez 10dni in nato čez 12 dni 100";
+  var deferredDateAnchor = await parser.analyze(deferredDateAnchorText, {
+    referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
+  }, {
+    apiKey: "mock-luna-missing-date",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return {
+      output_text: JSON.stringify({ p: [], q: "Manjka datum prvega plačila, zato datumov naslednjih plačil ni mogoče zanesljivo pretvoriti v ISO obliko.", x: deferredDateAnchorText }),
+    }; } }; },
+  });
+  assert.equal(deferredDateAnchor.semanticPlan.status, "CORRECTED");
+  assert.equal(deferredDateAnchor.semanticPlan.reason, "luna_missing_anchor_deferred_to_review");
+  assert.deepEqual(deferredDateAnchor.candidates.map(function (candidate) { return candidate.amount; }), [100, 20, 100], "manjkajoči prvi datum mora ostati v prvi kartici, ne v ločenem pojasnilu");
+  var alternateDeferredDateAnchor = await parser.analyze(deferredDateAnchorText, {
+    referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
+  }, {
+    apiKey: "mock-luna-alternate-missing-date",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return {
+      output_text: JSON.stringify({ p: [], q: "Datumi plačil so materialno nejasni: prvi obrok nima navedenega datuma, zato datumov za poznejša plačila ni mogoče pretvoriti v ISO obliko.", x: deferredDateAnchorText }),
+    }; } }; },
+  });
+  assert.deepEqual(alternateDeferredDateAnchor.candidates.map(function (candidate) { return candidate.amount; }), [100, 20, 100]);
+  var compactDeferredDateAnchor = await parser.analyze(deferredDateAnchorText, {
+    referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
+  }, {
+    apiKey: "mock-luna-compact-missing-date",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return {
+      output_text: JSON.stringify({ p: [], q: "Datumi plačil so materialno nejasni: prvi obrok nima navedenega datuma, zato ni mogoče izračunati datumov za plačili čez 10 in 12 dni.", x: deferredDateAnchorText }),
+    }; } }; },
+  });
+  assert.deepEqual(compactDeferredDateAnchor.candidates.map(function (candidate) { return candidate.amount; }), [100, 20, 100]);
+  var retrospectiveText = "plačal je obrok 100, pred tem obrokom pa je plačal še 50";
+  var retrospectiveCompact = await parser.analyze(retrospectiveText, {
+    referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
+  }, {
+    apiKey: "mock-luna-retrospective-order",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return {
+      output_text: JSON.stringify({ p: [
+        { n: 1, c: 3, e: "plačal je obrok 100", f: [{ i: 1, v: 100, e: "100", r: [] }] },
+        { n: 2, c: 3, e: "pred tem obrokom pa je plačal še 50", f: [{ i: 1, v: 50, e: "50", r: [] }] },
+      ], q: null, x: null }),
+    }; } }; },
+  });
+  assert.equal(retrospectiveCompact.semanticPlan.reason, "luna_retrospective_order_applied");
+  assert.deepEqual(retrospectiveCompact.candidates.map(function (candidate) { return candidate.amount; }), [50, 100]);
+
   var monthOnlyCanonical = await canonicalAnalyze("prejšni mesec je plačal 500 evrov", [
     canonicalItem({
       evidenceText: "prejšni mesec je plačal 500 evrov", amountEur: 500, amountEvidenceText: "500 evrov",
@@ -2251,6 +2310,7 @@ async function main() {
   var page = source("app/neplacila-zgodovina.js");
   var html = source("app/neplacila-zgodovina.html");
   var relativeDatesUi = source("app/neplacila-zgodovina-relativni-datumi.js");
+  var debtPreflight = require("../app/neplacila-zgodovina-preverjanje-zneskov.js");
   var historyCss = source("app/neplacila-zgodovina.css");
   var adapter = source("app/handy-canary-client.js");
   var izvedba = source("app/izvedba.js");
@@ -2258,6 +2318,13 @@ async function main() {
   var localServer = source("scripts/local-server.js");
   var vercel = source("vercel.json");
   assert.ok(html.indexOf("handy-canary-client.js") < html.indexOf("neplacila-zgodovina.js"));
+  assert.ok(html.indexOf("neplacila-zgodovina-preverjanje-zneskov.js") < html.indexOf("neplacila-zgodovina.js"));
+  assert.deepEqual(debtPreflight.oceni("plačal je 3 obroke, prvi obrok je bil 1000 nato 3000 nato 5400", 434), { presega: true, vsota: 9400, dolg: 434 });
+  assert.deepEqual(debtPreflight.oceni("plačal je 3 obroke po 200", 434), { presega: true, vsota: 600, dolg: 434 });
+  assert.deepEqual(debtPreflight.oceni("plačal je 3 obroke po 100", 434), { presega: false, vsota: 300, dolg: 434 });
+  assert.deepEqual(debtPreflight.oceni("račun je iz leta 2022", 434), { presega: false, vsota: 0, dolg: 434 });
+  assert.match(page, /if \(opozoriloPrevisokihPlacil\(text\)\) \{[\s\S]*?return;/, "prevelik opis mora ustaviti analizo pred omrežno zahtevo");
+  assert.match(page, /data-ai-debt-warning/, "opozorilo o preseženem dolgu mora biti prikazano ob vnosu");
   assert.match(page, /Povej ali napiši/);
   assert.match(page, /Ročno izberi/);
   assert.match(page, /<section class="zgodovina-ai" aria-label="Povejte ali napišite">/);
@@ -2270,8 +2337,9 @@ async function main() {
   assert.match(page, /window\.addEventListener\("resize"[\s\S]{0,220}prilagodiVisinoAtenaVnosa/);
   assert.match(page, /function ponastaviAtenoGumbHtml\(\)[\s\S]{0,300}K\.ikona\("refresh"\)[\s\S]{0,200}<span>Ponastavi<\/span>/);
   assert.match(page, /var onemogocen = !naravni\.text\.trim\(\) && !naravni\.candidates\.length/);
-  assert.match(page, /if \(glava\) \{[\s\S]{0,500}ponastaviAtenoGumbHtml\(\)/, "gumb Ponastavi mora biti vedno v zgornjem naslovu");
-  assert.match(page, /glava\.classList\.add\("zgodovina-ai-glava--z-izbrisom"\)[\s\S]{0,200}insertAdjacentHTML\("beforebegin", ponastaviAtenoGumbHtml\(\)\)/);
+  assert.match(page, /var glava = atenaPovrsina && atenaPovrsina\.querySelector\("\.izvedba-odvetnik-zgodovina__uvod, \.izvedba-action-sheet__header"\)[\s\S]{0,160}root\.querySelector\("\.izvedba-action-sheet__header"\)/, "gumb Ponastavi mora biti znotraj Atenine glave, tudi v odvetniškem gostitelju");
+  assert.match(page, /glava\.classList\.add\("zgodovina-ai-glava--z-izbrisom"\)[\s\S]{0,260}insertAdjacentHTML\("beforeend", ponastaviAtenoGumbHtml\(\)\)/);
+  assert.match(historyCss, /izvedba-odvetnik-zgodovina__uvod\.zgodovina-ai-glava--z-izbrisom\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto/, "Atenina notranja glava mora brez leve ikone rezervirati samo stolpec za Ponastavi");
   var povzetekRenderer = page.match(/function pogovorPovzetekHtml\(\)[\s\S]*?function ponastaviAtenoGumbHtml\(\)/)[0];
   assert.doesNotMatch(povzetekRenderer, /data-ai-remove-all/, "gumb Ponastavi ne sme ostati v vrstici Če prav razumem");
   assert.match(page, /data-ai-remove-all[\s\S]{0,500}naravni\.candidates = \[\][\s\S]{0,200}naravni\.text = ""[\s\S]{0,200}naravni\.requestId = ""[\s\S]{0,500}naravni\.phase = "input"/, "skupinski izbris mora odstraniti osnutke, opis in staro analizo ter vrniti prazen vnos");
@@ -2284,21 +2352,24 @@ async function main() {
   assert.match(page, /polja\.map/);
   assert.match(page, /Preverite dogodke in jih potrdite\./);
   assert.match(page, /function predvideniPreostaliDolg\(\)/);
+  assert.match(page, /function predvideniPreostaliDolgAktivnegaKoraka\(\)[\s\S]*?naravni\.phase !== "questions"[\s\S]*?razcleniKljucVprasanja\(naravni\.questionKeys\[naravni\.questionIndex\]\)[\s\S]*?naravni\.candidates\.slice\(0, podatki\.indeks \+ 1\)/, "saldo mora slediti trenutno izbranemu koraku in vključiti vse dotedanje dogodke");
   assert.match(page, /<strong>Preostali dolg<\/strong><p><b>Vsota:/);
   assert.match(page, /preostanekPovzetekHtml\(\)/);
   var questionRenderer = page.match(/function pogovorVprasanjeHtml\(\)[\s\S]*?function pogovorPovzetekHtml\(\)/)[0];
   assert.doesNotMatch(questionRenderer, /preostanekPovzetekHtml\(\)/, "preostali dolg se ne sme pokazati pred zaključkom vprašanj");
   assert.match(historyCss, /zgodovina-ai-povzetek--preostali-dolg/);
   assert.doesNotMatch(page, /Govor obdela Handyjev Canary na tej napravi/, "odvečno tehnično pojasnilo ne sme biti prikazano uporabniku");
-  assert.match(page, /HISTORY_CONTRACT_VERSION = "history-fact-v74"/);
-  assert.match(page, /ATENA_ENGINE_VERSION = "atena-v6"/);
+  assert.match(page, /HISTORY_CONTRACT_VERSION = "history-fact-v75"/);
+  assert.match(page, /ATENA_ENGINE_VERSION = "atena-v7"/);
   assert.match(page, /data-engine-version", ATENA_ENGINE_VERSION/);
+  assert.match(page, /var naravni = \{\s*mode: "manual"/, "Atena se mora odpreti v potrjenem ročnem prikazu s karticami");
+  assert.match(page, /atenaPovrsina\.classList\.add\("atena__povrsina", "stran--neplacila-zgodovina"\)/, "vsak gostujoči Atena engine mora uporabiti potrjeno skupno površino");
   assert.match(page, /function lokalniDanesIso\(vrednost\)/);
   assert.match(page, /referenceDate: lokalniDanesIso\(\)/, "brskalnik mora API-ju poslati uporabnikov lokalni koledarski dan");
   assert.match(page, /function jeIzrecnoDokazanZnesek\(kandidat, znesek\)/);
   assert.match(page, /znesek > saldo \+ 0\.009 && !jeIzrecnoDokazanZnesek\(kandidat, znesek\)/);
   assert.match(html, /neplacila-zgodovina-relativni-datumi\.js\?v=20260828-history-contract-v31-local-date-v1-group-date-v1-collection-outcome-v1/);
-  assert.match(html, /neplacila-zgodovina\.js\?v=20260829-question-nav-v4-history-contract-v74[^"]*amount-relation-v2[^"]*compact-wire-v1[^"]*total-vs-each-v1[^"]*split-evidence-v1[^"]*explicit-remaining-v1[^"]*lean-luna-core-v1[^"]*luna-only-fields-v1/);
+  assert.match(html, /neplacila-zgodovina\.js\?v=20260829-question-nav-v4-history-contract-v75[^"]*amount-relation-v2[^"]*compact-wire-v1[^"]*total-vs-each-v1[^"]*split-evidence-v1[^"]*explicit-remaining-v1[^"]*lean-luna-core-v1[^"]*luna-only-fields-v1/);
   assert.match(page, /Pripravljeni so " \+ stevilo \+ " dogodki\. Preverite podatke in dopolnite manjkajoče\./);
   assert.match(page, /Za varen vnos manjka en podatek\. Odgovorite na kratko vprašanje\./);
   assert.doesNotMatch(page, /Luna: OK|Luna je vrnila pravilno rešitev|Luna potrebuje kratek odgovor|Luna ni bila vključena/);
@@ -2338,8 +2409,12 @@ async function main() {
   assert.match(page, /data-ai-clarification-manual>Ročno izberi/);
   assert.match(page, /data-ai-clarification-manual[\s\S]{0,300}naravni\.mode = "manual"/, "izčrpani tok mora uporabiti obstoječi ročni način brez novega modelskega klica");
   assert.match(relativeDatesUi, /function premakniDatum\(iso, relation\)/);
+  assert.match(relativeDatesUi, /function najpoznejsiDatumZaKandidata\(candidates, candidate, referenceDate\)/);
   assert.match(relativeDatesUi, /ManualOverride/);
   assert.match(page, /dopolniRelativneDatume\(naravni\.candidates\)/);
+  assert.match(page, /function najpoznejsiDatumKandidata\(kandidat\)[\s\S]*?najpoznejsiDatumZaKandidata\(naravni\.candidates, kandidat, lokalniDanesIso\(\)\)/, "omejitev prvega datuma mora upoštevati vse naslednje relativne dogodke");
+  assert.match(page, /!jePovzetek && indeks < trenutni && vprasanjeIzpolnjeno\(indeks\)/, "samodejno izpolnjen prihodnji datum ne sme označiti koraka kot dokončanega");
+  assert.match(page, /polje !== "occurredDate" \|\| datum <= najpoznejsiDatumKandidata\(kandidat\)/, "prepozen prvi datum ne sme odkleniti naslednjega koraka");
   assert.match(page, /zastarelContract = shranjeniKandidati\.length > 0[\s\S]{0,180}contractVersion !== HISTORY_CONTRACT_VERSION/);
   assert.match(page, /naravni\.candidates = zastarelContract \? \[\] : shranjeniKandidati/, "zastareli kandidati se ne smejo več prikazati brez nove analize");
   assert.match(page, /contractVersion: HISTORY_CONTRACT_VERSION/);
@@ -2384,7 +2459,25 @@ async function main() {
   assert.match(historyCss, /zgodovina-ai-vprasanje__datum--obljuba[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto auto/);
   assert.match(page, /Kako je to sporočil\?/);
   assert.match(page, /communicationChannel/);
-  assert.match(page, /Kolikšen znesek še ni bil plačan\?/);
+  assert.doesNotMatch(page, /Kolikšen znesek še ni bil plačan\?/, "samodejno izračunani preostanek ne sme več zahtevati ročnega vnosa zneska");
+  assert.match(page, /kandidat\.type === "unpaid_installment" \|\| kandidat\.type === "remaining_unpaid"/);
+  assert.match(page, /if \(kandidat\.type === "remaining_unpaid"\) \{[\s\S]*?polje !== "amount"/);
+  assert.match(page, /function stanjeDolgaNapredekHtml\(\)[\s\S]*?Originalni znesek[\s\S]*?Preostali znesek[\s\S]*?predvideniPreostaliDolgAktivnegaKoraka\(\)/);
+  assert.match(page, /toFixed\(2\)\.split\("\."\)[\s\S]*?replace\(\/\\B\(\?=\(\\d\{3\}\)\+\(\?!\\d\)\)\/g, "\."\)/);
+  assert.match(historyCss, /\.zgodovina-ai-stanje-dolga\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) 1px minmax\(0, 1fr\)/);
+  assert.match(historyCss, /\.zgodovina-ai-stanje-dolga__stolpec\s*\{[\s\S]*?gap:\s*3px/, "oznaka in znesek morata imeti dovolj navpičnega razmika");
+  assert.match(page, /function kratkoPorociloPripravljenihDogodkov\(stevilo\)[\s\S]*?Pripravljenih je " \+ stevilo \+ " dogodkov\./, "kratek povzetek pripravljenih dogodkov mora biti slovnično pravilen");
+  assert.match(page, /if \(naravni\.candidates\.length\) return '';[\s\S]*?zgodovina-ai__status is-ready/, "zeleni povzetek se po pripravi kandidatov ne sme več prikazati");
+  assert.match(page, /function posodobiPodnaslovGlave\(root\)[\s\S]*?vsiKandidatiDopolnjeni\(\)[\s\S]*?Vse je pripravljeno\.[\s\S]*?Nekaj podatkov še manjka\./, "glavni podnaslov mora prikazati dejanski status popolnosti dogodkov");
+  assert.match(page, /classList\.toggle\("zgodovina-ai-glava__status--ok", jePripravljeno\)[\s\S]*?classList\.toggle\("zgodovina-ai-glava__status--opozorilo", imaKandidate && !jePripravljeno\)/, "glavni podnaslov mora preklopiti med zelenim in rdečim stanjem");
+  assert.match(historyCss, /p\.zgodovina-ai-glava__status--ok\s*\{[^}]*color:\s*#187a67/);
+  assert.match(historyCss, /p\.zgodovina-ai-glava__status--opozorilo\s*\{[^}]*color:\s*#a3403a/);
+  assert.match(izvedba, /<header class="izvedba-action-sheet__header">' \+ \(jeAtena\(\) \? '' : '<span class="izvedba-action-sheet__header-ikona"/, "Atenina glavna glava ne sme več izrisati leve ikone");
+  var odvetnikZgodovinaRenderer = izvedba.match(/function izrisiOdvetnikZgodovino\(\)[\s\S]*?function razredDogodkaZaOdvetnika/)[0];
+  assert.doesNotMatch(odvetnikZgodovinaRenderer, /checkCircle|izvedba-action-sheet__header-ikona/, "Atenina notranja glava ne sme več izrisati leve ikone");
+  assert.match(historyCss, /\.stran--neplacila-zgodovina \.izvedba-action-sheet__header\.zgodovina-ai-glava--z-izbrisom\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto/, "naslov mora začeti povsem levo, Ponastavi pa ostati desno");
+  assert.match(historyCss, /\.stran--neplacila-zgodovina \.izvedba-action-sheet__header\s*\{[^}]*margin:\s*0 0 7px;[^}]*padding-inline:\s*0;/, "glava brez ikone ne sme ohraniti starega levega odmika");
+  assert.match(historyCss, /\.stran--neplacila-zgodovina \.izvedba-action-sheet__header h2\s*\{[^}]*margin-bottom:\s*5px/, "statusno besedilo mora biti jasno odmaknjeno od naslova");
   assert.match(izvedba, /remainingAmount/);
   assert.match(page, /korak1\.datumIzdajeRacuna/);
   assert.match(page, /korak1\.datumZapadlosti/);
@@ -2394,7 +2487,7 @@ async function main() {
   assert.match(page, /function dopolniIzracunaniNeplacaniObrok\(kandidati\)/);
   assert.match(page, /kandidat\.type === "unpaid_installment"[\s\S]*?kandidat\.amount = preostanek/);
   assert.match(page, /if \(poljeKandidata === "amount"\) \{[\s\S]*?dopolniIzracunaniNeplacaniObrok\(naravni\.candidates\);[\s\S]*?posodobiPrikazPreostalegaDolga\(root\)/);
-  assert.match(page, /function posodobiPrikazPreostalegaDolga\(root\)[\s\S]*?predvideniPreostaliDolg\(\)/, "spodnji preostali znesek mora med osnutkom uporabljati isti lokalni izračun kot povzetek");
+  assert.match(page, /function posodobiPrikazPreostalegaDolga\(root\)[\s\S]*?data-ai-remaining-debt[\s\S]*?predvideniPreostaliDolgAktivnegaKoraka\(\)[\s\S]*?predvideniPreostaliDolg\(\)/, "saldo koraka mora biti časoven, skupni prikaz pa mora ohraniti končni lokalni izračun");
   assert.match(izvedba, /tip === "remaining_unpaid" \|\| tip === "unpaid_installment" \? znesek : null/);
   assert.match(izvedba, /var prikazniZnesek = korak\.settings && Number\(korak\.settings\.remainingAmount\)/, "izračunani neplačani znesek mora biti samo prikazan in se ne sme drugič odšteti");
   assert.match(page, /polje !== "occurredDate"/);
@@ -2405,6 +2498,9 @@ async function main() {
   assert.match(historyCss, /safe-area-inset-top/);
   assert.match(historyCss, /scroll-snap-type:\s*x mandatory/);
   assert.match(historyCss, /grid-auto-flow:\s*column/);
+  assert.match(historyCss, /\.atena \.atena__povrsina\s*\{[^}]*border:\s*1px solid #dce9e6[^}]*border-radius:\s*17px[^}]*background:\s*#fff/, "Atenina skupna površina mora ohraniti potrjeni kartični dizajn");
+  assert.match(page, /root\.querySelector\("\.atena__jedro"\) \|\| root\.querySelector\("\.izvedba-odvetnik-zgodovina__dogodki"\) \|\| panel/, "gostiteljski pas mora ostati zunaj Atenine površine");
+  assert.match(historyCss, /stran--izvedba-primer \.izvedba-action-sheet\.atena \.izvedba-poravnava-svicer\s*\{[^}]*grid-template-rows:\s*repeat\(2, 66px\)/, "vsi vgrajeni Atenini prikazi morajo kartice prikazati v dveh vrsticah");
   assert.match(izvedba, /zgodovina-svicer__pikica is-active[\s\S]{0,160}zgodovina-svicer__pikica/, "besedilni namig mora nadomestiti dvotočkovni indikator drsenja");
   assert.match(izvedba, /scrollLeft \/ najvecjiPomik >= 0\.5 \? 1 : 0/, "aktivna pika se mora preklopiti glede na vodoravni pomik");
   assert.doesNotMatch(izvedba, /zgodovina-svicer__namig/, "stari besedilni namig ne sme ostati v prikazu");

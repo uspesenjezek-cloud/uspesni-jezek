@@ -159,8 +159,8 @@ async function main() {
   assert.match(request.instructions, /final per-card EUR amounts/);
   assert.ok(JSON.parse(request.input).catalog.values.some(function (row) { return row[0] === 651 && row[2] === "total"; }));
   assert.match(request.instructions, /Add remaining_unpaid only when the source states/);
-  assert.equal(parser.CONTRACT_VERSION, "history-fact-v74");
-  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v6");
+  assert.equal(parser.CONTRACT_VERSION, "history-fact-v75");
+  assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v7");
 
   var ui = fs.readFileSync(path.join(__dirname, "..", "app", "neplacila-zgodovina.js"), "utf8");
   assert.match(ui, /naravni\.candidates\.forEach[\s\S]{0,180}kljuci\.push\(kljucVprasanja/);

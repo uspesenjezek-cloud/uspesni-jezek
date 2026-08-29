@@ -21,6 +21,8 @@ var crypto = require("crypto");
 var DEFAULT_ACTION_SETTINGS = {
   skip_current_step: {
     nextDelayDays: 0,
+    skipReason: "",
+    skipReasonDetail: "",
   },
   stop_plan: {
     resumeMode: "manual",
@@ -171,7 +173,12 @@ function validirajNastavitve(actionType, settings, context) {
     if (!znotrajMeje(nextDelayDays, MEJE.nextDelayDays)) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Število dni do naslednjega koraka mora biti med 1 in 30." };
     }
-    return { ok: true, settings: { nextDelayDays: nextDelayDays } };
+    var skipReason = obreziBesedilo(vhod.skipReason, 40);
+    if (["", "debtor_agreement", "wrong_data", "not_needed", "other"].indexOf(skipReason) === -1) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Izbrani razlog preklica ni veljaven." };
+    }
+    var skipReasonDetail = skipReason === "other" ? obreziBesedilo(vhod.skipReasonDetail, 300) : "";
+    return { ok: true, settings: { nextDelayDays: nextDelayDays, skipReason: skipReason, skipReasonDetail: skipReasonDetail } };
   }
 
   if (actionType === "stop_plan") {
@@ -386,6 +393,7 @@ function povecajVerzijo(plan) {
 /* 12.1 Prekliči samo ta korak */
 function izracunajPreklicKoraka(ctx) {
   var plan = ctx.plan, koraki = ctx.koraki, stepId = ctx.stepId, nextDelayDays = ctx.settings.nextDelayDays;
+  var skipReason = ctx.settings.skipReason || "", skipReasonDetail = ctx.settings.skipReasonDetail || "";
   var najden = najdiKorakVPlanu(plan, stepId);
   if (!najden) return { ok: false, code: "STEP_NOT_FOUND" };
 
@@ -415,7 +423,13 @@ function izracunajPreklicKoraka(ctx) {
 
   var novPlan = JSON.parse(JSON.stringify(plan));
   var noviTrenutni = najdiKorakVPlanu(novPlan, stepId);
-  if (noviTrenutni) noviTrenutni.step.status = "skipped";
+  if (noviTrenutni) {
+    noviTrenutni.step.status = "skipped";
+    if (skipReason) {
+      noviTrenutni.step.skipReason = skipReason;
+      noviTrenutni.step.skipReasonDetail = skipReasonDetail || null;
+    }
+  }
 
   if (naslednjiStepId) {
     var zamikMs = nextDelayDays * 86400000;

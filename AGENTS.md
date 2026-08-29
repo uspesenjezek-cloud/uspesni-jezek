@@ -93,9 +93,12 @@ To je trajna oblikovna odločitev za vse prihodnje redne UI-ikone.
 
 Namen tega pravila je, da se nove funkcije že prvič izdelajo v obstoječem oblikovnem jeziku in ne zahtevajo naknadnega redizajna.
 
-## Atena v6 — univerzalni vnosni engine
+## Atena v7 — univerzalni vnosni engine
 
-- `Atena` je kanonično ime skupnega enginea, njegova trenutna sistemska različica pa je `atena-v6`. Z njim obrtnik dogodke opiše z besedilom ali glasom, jih po potrebi izbere ročno, pregleda pripravljene strukturirane dogodke in jih šele nato varno potrdi.
+- `Atena` je kanonično ime skupnega enginea, njegova trenutna sistemska različica pa je `atena-v7`. Z njim obrtnik dogodke opiše z besedilom ali glasom, jih po potrebi izbere ročno, pregleda pripravljene strukturirane dogodke in jih šele nato varno potrdi.
+- **TRDI OBLIKOVNI FATHER:** kjerkoli se v aplikaciji, predlogu, mockupu ali sliki pojavi Atena engine, mora biti oblikovno izpeljan neposredno iz kanoničnega Atena v7 UI-ja. Brez uporabnikove izrecne zahteve ni dovoljeno spreminjati njegovega vizualnega jezika, hierarhije, barv, tipografije, radijev, obrob, senc, ikon, gostote, razmikov, razmerij kontrol ali načina prikaza kartic.
+- Nova vgradnja sme prilagoditi samo gostiteljski naslov, dovoljene vsebinske kartice, pojasnila in končno kontekstno dejanje. Osrednji Atenin vnos, glasovni način, primarni gumb, pripravljene kartice, pregled in varnostna potrditev morajo ostati prepoznavno isti FATHER ter uporabljati skupne komponente, ne približne kopije.
+- Če nove potrebe ni mogoče izraziti z obstoječim Atena FATHER-jem, agent ne sme sam izumiti novega videza. Najprej mora pokazati konkretno nujno odstopanje in pridobiti uporabnikovo izrecno oblikovno odobritev.
 - Atena je ena skupna implementacija, ki se vgrajuje v različne tokove (med drugim zgodovina računa, predaja odvetniku in »Bo plačal«); ne izdeluj ločenih kopij ali vzporednih različic.
 - Privzeti način je »Povej ali napiši«, »Ročno izberi« je enakovreden rezervni način. »Povej na glas« je jasen samostojen sekundarni gumb, »Pripravi dogodke« pa primarni turkizni gumb.
 - Zgornja akcija se imenuje »Ponastavi« in uporablja ikono krožne ponovitve, ne koša. Razdelek pod vnosom se imenuje »Pripravljeni dogodki« in je brez praznega telesa kompakten; razširi se šele, ko dogodki obstajajo.

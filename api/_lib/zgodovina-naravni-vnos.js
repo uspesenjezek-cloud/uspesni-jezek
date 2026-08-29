@@ -11,8 +11,8 @@ var temporalEngine = require("./zgodovina-temporal-engine");
 var MODEL = "gpt-5.6-luna";
 var MODEL_TIMEOUT_MS = 18000;
 var MODEL_TIMEOUT_MAX_MS = 25000;
-var ATENA_ENGINE_VERSION = "atena-v6";
-var CONTRACT_VERSION = "history-fact-v74";
+var ATENA_ENGINE_VERSION = "atena-v7";
+var CONTRACT_VERSION = "history-fact-v75";
 var MAX_TEXT_LENGTH = 2000;
 var MAX_CLARIFICATION_ANSWER_LENGTH = 400;
 var MAX_CLARIFICATION_ROUNDS = 2;
@@ -1132,6 +1132,24 @@ function sortEventsForDisplay(events, factContract) {
   }).map(function (item) { return item.event; });
 }
 
+function reorderNarrativeBeforePrevious(events, factContract) {
+  var clauses = factContract && Array.isArray(factContract.clauses) ? factContract.clauses : [];
+  var ordered = [];
+  (events || []).forEach(function (event) {
+    var evidence = event && event.evidence && typeof event.evidence === "object" ? event.evidence : {};
+    var clauseId = evidence.clauseId || event && event.evidenceClauseId || null;
+    var clause = clauses.find(function (item) { return item && item.id === clauseId; });
+    var text = normalizeNaturalText(clause && clause.text || "");
+    var beforePrevious = /^pred\s+tem\s+(?:obrok\w*|plačil\w*)\s+(?:pa\s+)?(?:je\s+)?(?:plačal\w*|poravnal\w*|nakazal\w*)/iu.test(text);
+    if (beforePrevious && ordered.length && ["partial_payment", "installment_payment", "paid_in_full"].includes(event && event.type)) {
+      ordered.splice(ordered.length - 1, 0, event);
+      return;
+    }
+    ordered.push(event);
+  });
+  return ordered;
+}
+
 function bindRemainingPromiseAmounts(events, inferenceContext) {
   var debt = positiveAmount(inferenceContext && inferenceContext.remainingDebt);
   if (!debt) return events;
@@ -1477,6 +1495,7 @@ function normalizeResult(raw, debtAmount, inferenceContext) {
   expanded = reconcileBalanceEvents(expanded, inferenceContext);
   expanded = bindRemainingPromiseAmounts(expanded, inferenceContext);
   expanded = sortEventsForDisplay(expanded, facts.factContract || normalizedContract);
+  expanded = reorderNarrativeBeforePrevious(expanded, facts.factContract || normalizedContract);
   var candidates = expanded.map(function (event, index) {
     var enriched = event;
     if (expanded.length === 1 && inferenceContext) {
@@ -2816,6 +2835,18 @@ function leanBlockedResult(context, requestJson, payload, attempted, reason, sta
   }, requestJson, payload, attempted, reason, status);
 }
 
+function isReviewableMissingFieldClarification(question) {
+  var text = normalizeNaturalText(question || "");
+  var missingAnchor = /\bmanjka\s+datum\s+prv(?:ega|e)\s+(?:plačila|obroka)\b/iu.test(text)
+    || /\bprv(?:i|ega)\s+(?:obrok|plačilo)\w*[^.!?]{0,55}\b(?:nima|brez)\b[^.!?]{0,30}\bdatuma?\b/iu.test(text);
+  var dependentDates = /\bdatumov?\b[^.!?]{0,120}\b(?:naslednj|poznejš|plačil|obrok|čez)\w*\b/iu.test(text);
+  return missingAnchor && dependentDates;
+}
+
+function hasRetrospectivePaymentInsertion(text) {
+  return /\bpred\s+tem\s+(?:obrok\w*|plačil\w*)\s+(?:pa\s+)?(?:je\s+)?(?:plačal\w*|poravnal\w*|nakazal\w*)/iu.test(normalizeNaturalText(text || ""));
+}
+
 async function analyze(text, context, options) {
   options = options || {};
   context = context || {};
@@ -2878,7 +2909,7 @@ async function analyze(text, context, options) {
   }
   function tagged(result, source, attempted, reason) {
     var status = reason === "luna_review_ok" || reason === "luna_canonical_plan_applied" ? "OK"
-      : reason === "luna_review_solution_applied" || reason === "luna_review_fix_applied" || reason === "clarification_answer_applied" || reason === "luna_clarification_not_needed" ? "CORRECTED"
+      : reason === "luna_review_solution_applied" || reason === "luna_review_fix_applied" || reason === "clarification_answer_applied" || reason === "luna_clarification_not_needed" || reason === "luna_missing_anchor_deferred_to_review" || reason === "luna_retrospective_order_applied" ? "CORRECTED"
         : result && result.clarificationExhausted ? "CLARIFICATION_EXHAUSTED"
         : result && result.clarification ? "CLARIFICATION_REQUIRED"
         : attempted === true ? "FAILED" : "NOT_ATTEMPTED";
@@ -2987,6 +3018,13 @@ async function analyze(text, context, options) {
   var compactPlan = parseLeanCompactPlan(textOutput, sourceInput);
   if (!compactPlan.ok && options._legacyTestMode !== true) return leanBlockedResult(context, lunaRequestJson, payload, true, compactPlan.reason, "FAILED", null);
   if (compactPlan.ok && compactPlan.verdict === "clarification") {
+    if (isReviewableMissingFieldClarification(compactPlan.question)) {
+      var reviewableDatePlan = ensureLocalResult();
+      if (reviewableDatePlan && reviewableDatePlan.coverage && reviewableDatePlan.coverage.complete === true && reviewableDatePlan.candidates.length) {
+        reviewableDatePlan.diagnostics = (reviewableDatePlan.diagnostics || []).concat(["missing_anchor_deferred_to_human_review"]);
+        return tagged(reviewableDatePlan, "validated_semantic_plan", true, "luna_missing_anchor_deferred_to_review");
+      }
+    }
     var currentRound = clarificationContext ? clarificationRound : 0;
     var nextRound = currentRound + 1;
     if (nextRound > MAX_CLARIFICATION_ROUNDS) return leanBlockedResult(context, lunaRequestJson, payload, true, "clarification_exhausted", "CLARIFICATION_EXHAUSTED", null);
@@ -2995,6 +3033,13 @@ async function analyze(text, context, options) {
     });
   }
   if (compactPlan.ok) {
+    if (hasRetrospectivePaymentInsertion(sourceInput)) {
+      var retrospectivePlan = ensureLocalResult();
+      if (retrospectivePlan && retrospectivePlan.coverage && retrospectivePlan.coverage.complete === true && retrospectivePlan.candidates.length) {
+        retrospectivePlan.diagnostics = (retrospectivePlan.diagnostics || []).concat(["retrospective_payment_order_applied"]);
+        return tagged(retrospectivePlan, "validated_semantic_plan", true, "luna_retrospective_order_applied");
+      }
+    }
     var leanMaterialized = materializeLunaFieldPlan(compactPlan, context, sourceInput);
     if (!leanMaterialized.ok) return leanBlockedResult(context, lunaRequestJson, payload, true, leanMaterialized.reason, "FAILED", null);
     leanMaterialized.result.diagnostics = (leanMaterialized.result.diagnostics || []).concat(["lean_luna_contract_applied"]);

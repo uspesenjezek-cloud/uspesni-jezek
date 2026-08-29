@@ -402,6 +402,19 @@ function splitCoarse(text) {
     start = match.index + match[0].length;
   }
   if (start < text.length) spans.push({ start: start, end: text.length });
+  var beforePrevious = /,?\s+(?=pred\s+tem\s+(?:obrok\w*|plačil\w*)\s+(?:pa\s+)?(?:je\s+)?(?:plačal\w*|poravnal\w*|nakazal\w*))/giu;
+  spans = spans.reduce(function (result, span) {
+    var local = text.slice(span.start, span.end);
+    var cuts = [span.start];
+    var localMatch;
+    beforePrevious.lastIndex = 0;
+    while ((localMatch = beforePrevious.exec(local))) cuts.push(span.start + localMatch.index + localMatch[0].length);
+    cuts.push(span.end);
+    Array.from(new Set(cuts)).sort(function (left, right) { return left - right; }).forEach(function (cut, index, ordered) {
+      if (index < ordered.length - 1 && ordered[index + 1] > cut) result.push({ start: cut, end: ordered[index + 1] });
+    });
+    return result;
+  }, []);
   var merged = [];
   for (var spanIndex = 0; spanIndex < spans.length; spanIndex += 1) {
     var current = spans[spanIndex];

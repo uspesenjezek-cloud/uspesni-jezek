@@ -124,7 +124,7 @@ async function main() {
       { id: "s1", index: 1, kind: "sms", isExcluded: false, status: "scheduled" },
       { id: "s2", index: 2, kind: "sms", isExcluded: false, status: "scheduled", sendAt: "2026-08-22T08:00:00.000Z", scheduledAt: "2026-08-22T08:00:00.000Z" },
     ]);
-    const rezultat = core._test.izracunajPreklicKoraka({ plan, koraki, stepId: "s1", settings: { nextDelayDays: 3 } });
+    const rezultat = core._test.izracunajPreklicKoraka({ plan, koraki, stepId: "s1", settings: { nextDelayDays: 3, skipReason: "other", skipReasonDetail: "Poseben dogovor" } });
     assert.equal(rezultat.ok, true);
     assert.equal(rezultat.nextStepId, "s2");
     const posodobitevK2 = rezultat.korakiUpdates.find((u) => u.id === "k2");
@@ -132,6 +132,11 @@ async function main() {
     assert.ok(Date.parse(posodobitevK2.scheduled_at) > Date.now(), "nov termin naslednjega koraka mora biti v prihodnosti");
     const posodobitevK1 = rezultat.korakiUpdates.find((u) => u.id === "k1");
     assert.equal(posodobitevK1.execution_state, "skipped");
+    assert.equal(rezultat.newPlan.steps[0].skipReason, "other");
+    assert.equal(rezultat.newPlan.steps[0].skipReasonDetail, "Poseben dogovor");
+    const validacijaRazloga = core.validirajNastavitve("skip_current_step", { nextDelayDays: 0, skipReason: "wrong_data", skipReasonDetail: "se ne shrani" });
+    assert.deepEqual(validacijaRazloga.settings, { nextDelayDays: 0, skipReason: "wrong_data", skipReasonDetail: "" });
+    assert.equal(core.validirajNastavitve("skip_current_step", { nextDelayDays: 0, skipReason: "neveljavno" }).ok, false);
   });
 
   await test("preklic že poslanega koraka je zavrnjen", function () {
@@ -440,10 +445,11 @@ async function main() {
     assert.equal(rezultat.settings.lawyerHandoff.riskAssessment.latePayments, "2");
   });
 
-  await test("8b) vsi izvedbeni paneli ponujajo varen lastni opis", function () {
+  await test("8b) izvedbeni paneli ponujajo varen lastni opis, razen zaprte izbire Prekliči opomin", function () {
     const js = citaj("app/izvedba.js");
     const css = citaj("app/izvedba.css");
     assert.ok((js.match(/gumbi \+= izrisiDrugoGumb/g) || []).length >= 2, "gumb Drugo mora biti v akcijskih in poravnalnih panelih");
+    assert.match(js, /if \(!jePreklicOpominaFilter\(\)\) gumbi \+= izrisiDrugoGumb\(\)/, "Prekliči opomin mora prikazati samo tri določene odločitve");
     assert.match(js, /data-action-custom-description/);
     assert.match(js, /customActionActive[\s\S]*?izrisiDrugoPodrobnosti/);
     assert.doesNotMatch(js, /Api\.executeAction\([\s\S]{0,300}actionType:\s*["']history_custom["']/, "lastni zgodovinski dogodek ne sme biti poslan kot izvršitvena akcija");
@@ -529,19 +535,71 @@ async function main() {
     assert.match(css, /panel--odvetnik-pregled \.izvedba-odvetnik-zgodovina__povzetek[\s\S]*border:\s*1px solid var\(--stage-border[\s\S]*background:\s*linear-gradient/);
     assert.match(css, /\.izvedba-odvetnik-korak__naslov\s*\{[\s\S]*?font-size:\s*8px;[\s\S]*?white-space:\s*nowrap;/);
     assert.match(src, /\(zgodovinaVnos \|\| jePlacilniEngine\(\)\) && typeof window\.UJZgodovinaPoIzrisu === "function"/);
-    assert.match(html, /neplacila-zgodovina\.css\?v=20260829-atena-near-full-sheet-v1/);
-    assert.match(html, /neplacila-zgodovina\.js\?v=20260828-payment-history-natural-v1-atena-v16-stable-recording-v1/);
-    assert.match(html, /izvedba\.js\?v=20260828-payment-history-natural-v2-atena-v3/);
+    assert.match(html, /neplacila-zgodovina\.css\?v=[^"']*bo-placal-host-v1/);
+    assert.match(html, /neplacila-zgodovina\.js\?v=[^"']*bo-placal-host-v2/);
+    assert.match(html, /izvedba\.js\?v=[^"']*bo-placal-host-v1/);
     assert.match(src, /function jeAtena\(\)/);
     assert.match(src, /Pripravljeni dogodki/);
     assert.match(src, /jeAtenaVnos \? '' : '<span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">3<\/span>'/);
     assert.match(src, /atena__nadaljuj-brez/);
     assert.match(src, /jeAtena\(\) \? 'Kaj se je do zdaj zgodilo\?'/);
     assert.match(src, /jeRazsirjeniPlacilniEngine[\s\S]*?\["full", "partial", "compensation", "installment", "credit_note", "payment_promised", "unpaid_installment", "payment_failed", "invoice_dispute", "cancelled_invoice", "insolvency"\]/);
+    assert.match(src, /function izrisiBoPlacalHitraDejanja\(\)[\s\S]*?Plačano v celoti[\s\S]*?Delno plačilo[\s\S]*?Dolžnik je obljubil plačilo/);
+    assert.match(src, /boPlacalHitraIzbira:\s*false[\s\S]*?jeBoPlacalNeposrednaHitra[\s\S]*?\["full", "partial", "payment_promised"\]/, "samo tri gostiteljske kartice Bo plačal smejo odpreti neposredne podrobnosti");
+    assert.match(src, /jeBoPlacalNeposrednaHitra \? '' : izrisiPoravnavaSvicer\(\)/, "neposredna hitra izbira ne sme podvajati mreže Ateninih kartic");
+    assert.match(src, /jeGostiteljskaHitra[\s\S]*?state\.boPlacalHitraIzbira = jeGostiteljskaHitra && boOstalaIzbrana/, "izvor klika mora ločiti zgornjo hitro kartico od običajne Atenine izbire");
+    assert.match(src, /function izrisiBoPlacalGostiteljPovzetek\(\)[\s\S]*?Kaj želite narediti\?[\s\S]*?izrisiStanjeDolgaBlok\(\)/, "Bo plačal mora nad Ateno prikazati enak naslov in stanje dolga kot druga izvedbena okna");
+    assert.match(src, /atena-gostitelj__hitra[\s\S]*?data-settlement-select=/, "gostiteljske bližnjice morajo uporabiti isto izbiro dogodka kot Atenine kartice");
+    assert.match(src, /jeBoPlacalGostitelj = jePlacilniEngine\(\) && !zgodovinaVnos[\s\S]*?atena-gostitelj__zapri[\s\S]*?data-action-sheet-close/, "Bo plačal mora imeti ločen gostiteljski × zunaj Atene");
+    assert.match(src, /atena-gostitelj__pas[\s\S]*?atena-gostitelj__naslov">Hitra dejanja[\s\S]*?izrisiBoPlacalHitraDejanja\(\)/, "tri bližnjice morajo biti v jasno označeni gostiteljski pasici");
+    assert.match(src, /jeBoPlacalGostitelj[\s\S]*?<div class="atena__jedro atena__jedro--bo-placal[\s\S]*?izrisiBoPlacalGostiteljPovzetek\(\)/, "gostiteljski povzetek mora ostati nad Ateninim jedrom tudi pri neposredni hitri izbiri");
+    assert.match(src, /jeBoPlacalGostitelj \? '' : '<h2 id="izvedba-action-sheet-title"[\s\S]*?Kaj se je do zdaj zgodilo\?/, "Bo plačal ne sme podvajati spodnjega naslova, drugi Atenini prikazi pa ga morajo ohraniti");
+    assert.match(src, /function actionGostiteljKartice\(\)[\s\S]*?handoff_to_lawyer\|partial_payment\|cancelled_invoice/, "Ne bo plačal mora ohraniti svojo obstoječo trojico dejanj");
+    assert.match(src, /function jePreklicOpominaFilter\(\)[\s\S]*?skip_current_step\|stop_plan\|postpone_reminder/, "Prekliči opomin mora ohraniti svojo obstoječo trojico dejanj");
+    assert.match(src, /var actionSvicer = jeHitraDejanjaGostitelj \? "" : izrisiActionSvicer\(\)/, "noben panel z zgornjimi hitrimi dejanji ne sme podvajati iste izbire še v jedru");
+    assert.match(src, /function izrisiStanjeDolga\(\)[\s\S]*?izvedba-dolg-tok__crta[\s\S]*?Preostali znesek/, "vsa izvedbena okna morajo prikazati čisti vodoravni tok dolga");
+    assert.match(src, /function izrisiStanjeDolgaBlok\(\)[\s\S]*?zgodovina-stanje-dolga--tok[\s\S]*?izrisiStanjeDolga\(\)/, "skupni blok dolga mora vedno uporabiti enoten novi prikaz");
+    assert.doesNotMatch(src, /function izrisiStanjeDolgaBlok\(\)[\s\S]{0,300}?jePreklicOpominaFilter/, "prikaz dolga ne sme biti več omejen samo na Prekliči opomin");
+    assert.match(css, /\.izvedba-dolg-tok__vrednost\s*\{[^}]*display:\s*block[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*font-size:\s*20px/, "zneska morata biti velika, omejena na svoj stolpec in pravilno izmerjena");
+    assert.match(css, /\.zgodovina-stanje-dolga--tok\s*\{[^}]*padding:\s*3px clamp\(9px, 2\.8vw, 14px\) 12px/, "skupni povzetek dolga mora imeti varen odmik od obeh robov");
+    assert.match(css, /\.izvedba-dolg-tok\s*\{[^}]*grid-template-columns:\s*minmax\(94px, 1fr\) minmax\(56px, \.82fr\) minmax\(94px, 1fr\)/, "zneska morata imeti varen prostor, sredinski indikator pa se mora skrčiti pred njima");
+    assert.match(css, /\.izvedba-dolg-tok__smer\s*\{[^}]*grid-template-columns:\s*minmax\(12px, 1fr\) 18px[^}]*height:\s*24px[^}]*overflow:\s*visible/, "indikator mora biti na eni stabilni vodoravni osi in ostati v celoti viden");
+    assert.match(css, /\.izvedba-dolg-tok__crta\s*\{[^}]*width:\s*100%[^}]*overflow:\s*visible/, "črta mora zapolniti razpoložljivi prostor brez rezanja markerja");
+    assert.match(css, /\.izvedba-dolg-tok__puscica::after\s*\{[^}]*border-top:\s*1\.5px solid #b8cdcc[^}]*border-right:\s*1\.5px solid #b8cdcc/, "puščica mora biti narisana poravnano s premico in ne kot zamaknjen besedilni znak");
+    assert.match(src, /function izrisiPreklicRazlog\(nastavitve\)[\s\S]*?Dogovor z dolžnikom[\s\S]*?Napačni podatki[\s\S]*?Opomin ni potreben[\s\S]*?data-skip-reason-detail/, "preklic posameznega opomina mora ponuditi neobvezen strukturiran razlog");
+    assert.match(src, /data-skip-reason[\s\S]*?state\.settingsByAction\.skip_current_step\.skipReason/);
+    assert.match(css, /\.izvedba-preklic-razlog__moznosti\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
+    assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.izvedba-preklic-razlog__moznosti\s*\{\s*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+    assert.match(src, /function izrisiActionGostiteljHitraDejanja\(actionTypes\)[\s\S]*?data-action-sheet-select=/, "zgornje kartice morajo uporabiti obstoječi handler izbire akcije");
+    assert.match(src, /panel--hitra-gostitelj[\s\S]*?hitra-dejanja-gostitelj__naslov">Hitra dejanja[\s\S]*?hitra-dejanja-gostitelj__zapri[\s\S]*?data-action-sheet-close/, "oba akcijska lista morata imeti enak zgornji pas in ločen ×");
+    assert.match(css, /\.izvedba-action-sheet__panel--hitra-gostitelj\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)[^}]*width:\s*100%[^}]*max-width:\s*none[^}]*padding:\s*0/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.izvedba-action-sheet__panel\.izvedba-action-sheet__panel--hitra-gostitelj\s*\{\s*padding:\s*0;/, "mobilno pravilo ne sme znova dodati stranskih odmikov");
+    assert.match(css, /\.hitra-dejanja-gostitelj__pas\s*\{[^}]*background:\s*linear-gradient\(145deg, #4d9998, #347f80\)/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__naslov\s*\{[^}]*margin:\s*0 44px 34px 2px/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__hitra--odvetnik\s*\{[^}]*--hitra-ozadje:/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__hitra--storno\s*\{[^}]*--hitra-ozadje:/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__hitra--prestavi\s*\{[^}]*--hitra-ozadje:/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__hitra \.izvedba-hitra-akcija__besedilo\s*\{\s*color:\s*#172522/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__jedro\s*\{[^}]*margin-top:\s*-18px[^}]*border-radius:\s*28px 28px 0 0/);
     assert.match(src, /function jePlacilniDogodkovniTip\(tip\)[\s\S]*?"unpaid_installment"[\s\S]*?"payment_failed"[\s\S]*?"invoice_dispute"[\s\S]*?"cancelled_invoice"[\s\S]*?"insolvency"/);
     assert.match(src, /state\.assistedHistoryInputActive = true;[\s\S]*?finally[\s\S]*?state\.assistedHistoryInputActive = prejsnjiAssistedHistoryInput/);
     assert.match(css, /panel--poravnano \.izvedba-poravnava-svicer__gumb--drugo[\s\S]*?grid-column:\s*auto/);
     assert.match(historyCss, /\.atena \.atena__ponastavi\s*\{[\s\S]*?align-self:\s*start;[\s\S]*?margin-top:\s*4px;/);
+    assert.match(historyCss, /izvedba-action-sheet__panel--atena-gostitelj\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)[^}]*gap:\s*0[^}]*width:\s*min\(100%, 520px\)[^}]*height:\s*100lvh/);
+    assert.match(historyCss, /\.atena \.atena-gostitelj__pas\s*\{[^}]*padding:\s*max\(28px, calc\(8px \+ env\(safe-area-inset-top, 0px\)\)\) 10px 30px[^}]*background:\s*linear-gradient\(145deg, #4d9998, #347f80\)[^}]*box-shadow:/);
+    assert.match(historyCss, /\.atena \.atena-gostitelj__naslov\s*\{[^}]*margin:\s*0 44px 34px 2px/, "zgornja pasica mora biti dovolj visoka, da so hitri gumbi opazno pomaknjeni nižje");
+    assert.match(historyCss, /atena-gostitelj__hitra--placano\s*\{[^}]*--hitra-ozadje:\s*linear-gradient\(145deg, #dff5e9, #f5fbf7\)/, "zelena bližnjica mora ohraniti jasno notranjo barvo");
+    assert.match(historyCss, /atena-gostitelj__hitra--delno\s*\{[^}]*--hitra-ozadje:\s*linear-gradient\(145deg, #d9f1ef, #f2faf9\)/, "turkizna bližnjica mora ohraniti jasno notranjo barvo");
+    assert.match(historyCss, /atena-gostitelj__hitra--obljuba\s*\{[^}]*--hitra-ozadje:\s*linear-gradient\(145deg, #ffe8cc, #fff7ed\)/, "oranžna bližnjica mora ohraniti jasno notranjo barvo");
+    assert.match(historyCss, /\.atena \.atena-gostitelj__hitra\s*\{[^}]*background:\s*var\(--hitra-ozadje\)/);
+    assert.match(historyCss, /atena-gostitelj__hitra \.izvedba-hitra-akcija__besedilo\s*\{[^}]*color:\s*#172522/, "besedilo vseh treh hitrih dejanj mora biti črno");
+    assert.match(css, /hitra-dejanja-gostitelj__hitra\.is-selected\s*\{[^}]*border-width:\s*1px[^}]*box-shadow:\s*inset 0 0 0 2px/, "aktivna obroba splošnih hitrih dejanj ne sme zmanjšati prostora za tekst");
+    assert.match(historyCss, /atena-gostitelj__hitra\.is-selected\s*\{[^}]*border-width:\s*1px[^}]*box-shadow:\s*inset 0 0 0 2px/, "aktivna obroba Atene mora ostati močna brez preloma teksta");
+    assert.match(historyCss, /izvedba-action-sheet__panel--atena-gostitelj\s*\{[^}]*padding:\s*0;/, "gostiteljski panel mora zapolniti ves zaslon brez zunanjega roba");
+    assert.match(historyCss, /izvedba-action-sheet__panel--atena-gostitelj \.atena__jedro\s*\{[^}]*margin-top:\s*-18px[^}]*border-radius:\s*28px 28px 0 0/, "Atenina bela površina mora prekrivati pasico in segati do spodnjega roba");
+    assert.match(historyCss, /\.atena \.atena__jedro\s*\{[^}]*display:\s*grid[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)/);
+    assert.match(historyCss, /\.atena \.atena__jedro--bo-placal\s*\{[^}]*grid-template-rows:\s*auto auto minmax\(0, 1fr\)/);
+    assert.match(historyCss, /bo-placal-gostitelj__povzetek \.zgodovina-stanje-dolga\s*\{[^}]*display:\s*block !important/, "stanje dolga mora biti vidno samo v novem gostiteljskem povzetku nad Ateno");
     assert.match(historyCss, /\.zgodovina-ai__vnos textarea\s*\{[\s\S]*?max-height:\s*none;[\s\S]*?resize:\s*none;[\s\S]*?overflow-y:\s*hidden;/);
   });
 
@@ -562,8 +620,8 @@ async function main() {
     assert.match(css, /\.izvedba-hitra-akcija--opomin\s*\{[\s\S]*?--hitra-rgb:\s*83, 119, 158;/);
     assert.match(css, /\.izvedba-hitra-akcija--opomin \.izvedba-hitra-akcija__besedilo\s*\{[\s\S]*?width:\s*min\(100%, 66px\);[\s\S]*?white-space:\s*normal;/);
     assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.izvedba-hitra-akcija\s*\{[\s\S]*?grid-template-rows:\s*24px auto;[\s\S]*?height:\s*66px;[\s\S]*?border-radius:\s*11px;/);
-    assert.match(html, /izvedba\.css\?v=2026082[5678]-[\w-]+/);
-    assert.match(html, /izvedba\.js\?v=2026082[5678]-[\w-]+/);
+    assert.match(html, /izvedba\.css\?v=202608\d{2}-[\w-]+/);
+    assert.match(html, /izvedba\.js\?v=202608\d{2}-[\w-]+/);
   });
 
   await test("16c) vseh 6 ukrepov deluje tudi na starejšem načrtu brez materializiranih opomin_koraki", function () {

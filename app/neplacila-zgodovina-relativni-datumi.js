@@ -84,10 +84,37 @@
     return changed;
   }
 
+  function najpoznejsiDatumZaKandidata(candidates, candidate, referenceDate) {
+    var list = Array.isArray(candidates) ? candidates : [];
+    if (!candidate || !veljavenIsoDatum(referenceDate)) return null;
+    function anchorFor(item, index) {
+      var relation = item && item.dateRelation;
+      if (!relation || relation.anchor !== "previous_event" || relation.field !== "occurredDate") return null;
+      if (relation.anchorCandidateId) {
+        var bound = list.find(function (entry) { return entry && entry.candidateId === relation.anchorCandidateId; });
+        if (bound) return bound;
+      }
+      return index > 0 ? list[index - 1] : null;
+    }
+    function latestFor(item, visited) {
+      if (!item || visited.indexOf(item) >= 0) return referenceDate;
+      var nextVisited = visited.concat(item);
+      return list.reduce(function (latest, child, index) {
+        var relation = child && child.dateRelation;
+        if (!relation || Number(relation.direction) !== 1 || anchorFor(child, index) !== item) return latest;
+        var childLatest = latestFor(child, nextVisited);
+        var anchorLatest = premakniDatum(childLatest, Object.assign({}, relation, { direction: -1 }));
+        return anchorLatest && anchorLatest < latest ? anchorLatest : latest;
+      }, referenceDate);
+    }
+    return latestFor(candidate, []);
+  }
+
   return {
     veljavenIsoDatum: veljavenIsoDatum,
     premakniDatum: premakniDatum,
     oznaciRocniPopravek: oznaciRocniPopravek,
     razresiDatume: razresiDatume,
+    najpoznejsiDatumZaKandidata: najpoznejsiDatumZaKandidata,
   };
 });

@@ -3,12 +3,13 @@
 
   var KLJUC_KORAK1 = "neplacilo-korak1-podatki";
   var KLJUC_ZGODOVINA = "neplacilo-zgodovina-podatki";
-  var ATENA_ENGINE_VERSION = "atena-v6";
-  var HISTORY_CONTRACT_VERSION = "history-fact-v74";
+  var ATENA_ENGINE_VERSION = "atena-v7";
+  var HISTORY_CONTRACT_VERSION = "history-fact-v75";
   var debug = window.UJPoravnavaWidget;
   var jeVgrajenaZgodovina = document.body && document.body.classList.contains("stran--izvedba-primer");
   var relativniDatumi = window.UJZgodovinaRelativniDatumi;
   var replacementState = window.UJZgodovinaZamenjavaState;
+  var preverjanjeZneskov = window.UJZgodovinaPreverjanjeZneskov;
   var customActive = false;
   var ocenaActive = false;
   function lokalniDanesIso(vrednost) {
@@ -37,7 +38,7 @@
   var prekinitevPoZagonu = false;
   var ravenGlasu = 0;
   var naravni = {
-    mode: "natural",
+    mode: "manual",
     text: "",
     status: "idle",
     statusText: "Napišite ali povejte, kaj se je zgodilo.",
@@ -134,7 +135,9 @@
         naravni.questionKeys = naravni.editCandidate != null ? vsaVprasanjaKandidata(naravni.editCandidate) : manjkajocaVprasanja();
         naravni.questionIndex = 0;
       }
+      naravni.questionKeys = normalizirajKljuciVprasanj(naravni.questionKeys);
       if (!naravni.questionKeys.length) naravni.questionKeys = manjkajocaVprasanja();
+      naravni.questionIndex = Math.max(0, Math.min(naravni.questionIndex, Math.max(0, naravni.questionKeys.length - 1)));
       if (!naravni.questionKeys.length) naravni.phase = "review";
       naravni.status = "ready";
       naravni.statusText = "Preglejte pripravljene osnutke. Nič še ni shranjeno.";
@@ -426,6 +429,32 @@
     }, 0));
   }
 
+  function opozoriloPrevisokihPlacil(opis) {
+    if (!preverjanjeZneskov || typeof preverjanjeZneskov.oceni !== "function") return null;
+    var rezultat = preverjanjeZneskov.oceni(opis, preostaliDolg());
+    if (!rezultat.presega) return null;
+    function formatiraj(vrednost) {
+      var deli = Number(vrednost || 0).toFixed(2).split(".");
+      return deli[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + deli[1] + " €";
+    }
+    return {
+      vsota: rezultat.vsota,
+      sporocilo: "Opisani plačani zneski (" + formatiraj(rezultat.vsota) + ") presegajo preostali dolg (" + formatiraj(rezultat.dolg) + "). Uredite opis.",
+    };
+  }
+
+  function posodobiOpozoriloPrevisokihPlacil(root) {
+    var opozorilo = opozoriloPrevisokihPlacil(naravni.text);
+    var prikaz = root && root.querySelector("[data-ai-debt-warning]");
+    if (prikaz) {
+      prikaz.hidden = !opozorilo;
+      prikaz.textContent = opozorilo ? opozorilo.sporocilo : "";
+    }
+    var analyze = root && root.querySelector("[data-ai-analyze]");
+    if (analyze) analyze.disabled = !naravni.text.trim() || Boolean(opozorilo) || naravni.status === "analyzing";
+    return opozorilo;
+  }
+
   function dopolniIzracunaniNeplacaniObrok(kandidati) {
     var preostanek = preostaliDolg();
     (kandidati || []).forEach(function (kandidat) {
@@ -434,7 +463,7 @@
         if (Number.isFinite(placano) && placano > 0) preostanek = Math.max(0, Math.round((preostanek - placano) * 100) / 100);
         return;
       }
-      if (kandidat.type === "unpaid_installment") {
+      if (kandidat.type === "unpaid_installment" || kandidat.type === "remaining_unpaid") {
         kandidat.amount = preostanek > 0 ? preostanek : null;
         kandidat.amountCalculated = true;
       }
@@ -502,10 +531,16 @@
     return changed;
   }
 
+  function najpoznejsiDatumKandidata(kandidat) {
+    if (!relativniDatumi || typeof relativniDatumi.najpoznejsiDatumZaKandidata !== "function") return lokalniDanesIso();
+    return relativniDatumi.najpoznejsiDatumZaKandidata(naravni.candidates, kandidat, lokalniDanesIso()) || lokalniDanesIso();
+  }
+
   function poljaKiManjkajo(kandidat) {
     var zahtevana = Array.isArray(kandidat.requiredFields) && kandidat.requiredFields.length
       ? kandidat.requiredFields
       : poljaKandidata(kandidat).filter(function (polje) { return !(kandidat.type === "payment_promise" && polje === "amount"); });
+    if (kandidat.type === "remaining_unpaid") zahtevana = zahtevana.filter(function (polje) { return polje !== "amount"; });
     return zahtevana.filter(function (polje) { return !poljeKandidataPrisotno(kandidat, polje); });
   }
 
@@ -554,7 +589,9 @@
     }
     if (polje === "occurredDate" || polje === "promisedDate") {
       var jePriblizenDatum = kandidat[polje + "Approximate"] === true && Boolean(String(kandidat[polje + "Approximation"] || "").trim());
-      return kandidat[polje + "Unknown"] === true || veljavenIsoDatum(kandidat[polje]) || jePriblizenDatum;
+      var datum = kandidat[polje];
+      var jeVeljavenDatum = veljavenIsoDatum(datum) && (polje !== "occurredDate" || datum <= najpoznejsiDatumKandidata(kandidat));
+      return kandidat[polje + "Unknown"] === true || jeVeljavenDatum || jePriblizenDatum;
     }
     return Boolean(String(kandidat[polje] || "").trim());
   }
@@ -567,13 +604,17 @@
 
   function poljaKandidata(kandidat) {
     var dovoljena = ["amount", "occurredDate", "promisedDate", "paymentMethod", "communicationChannel", "reason", "description"];
+    if (kandidat.type === "remaining_unpaid") {
+      return Array.isArray(kandidat.fieldOrder)
+        ? kandidat.fieldOrder.filter(function (polje, indeks, vsa) { return polje !== "amount" && dovoljena.indexOf(polje) >= 0 && vsa.indexOf(polje) === indeks; })
+        : [];
+    }
     if (Array.isArray(kandidat.fieldOrder) && kandidat.fieldOrder.length) {
       var pogodba = kandidat.fieldOrder.filter(function (polje, indeks, vsa) { return dovoljena.indexOf(polje) >= 0 && vsa.indexOf(polje) === indeks; });
       if (pogodba.length) return predmetObljube(kandidat) ? pogodba.filter(function (polje) { return polje !== "amount"; }) : pogodba;
     }
     if (["partial_payment", "paid_in_full", "installment_payment"].indexOf(kandidat.type) >= 0) return ["amount", "occurredDate", "paymentMethod"];
     if (kandidat.type === "unpaid_installment") return ["occurredDate"];
-    if (kandidat.type === "remaining_unpaid") return ["amount"];
     if (kandidat.type === "installment_agreement" || kandidat.type === "insolvency") return ["occurredDate", "description"];
     if (kandidat.type === "payment_promise") return ["amount", "occurredDate", "promisedDate", "communicationChannel"];
     if (kandidat.type === "deadline_extension") return ["occurredDate", "promisedDate", "communicationChannel", "description"];
@@ -594,17 +635,31 @@
     return { indeks: Number(deli[0]), polje: polja[0] || "", polja: polja };
   }
 
+  function normalizirajKljuciVprasanj(kljuci) {
+    return (kljuci || []).reduce(function (rezultat, kljuc) {
+      var podatki = razcleniKljucVprasanja(kljuc);
+      var kandidat = naravni.candidates[podatki.indeks];
+      if (!kandidat) return rezultat;
+      var dovoljenaPolja = poljaKandidata(kandidat);
+      var polja = podatki.polja.filter(function (polje) { return dovoljenaPolja.indexOf(polje) >= 0; });
+      if (polja.length) rezultat.push(kljucVprasanja(podatki.indeks, polja));
+      return rezultat;
+    }, []);
+  }
+
   function manjkajocaVprasanja() {
     var kljuci = [];
     naravni.candidates.forEach(function (kandidat, indeks) {
-      kljuci.push(kljucVprasanja(indeks, poljaKandidata(kandidat)));
+      var polja = poljaKandidata(kandidat);
+      if (polja.length) kljuci.push(kljucVprasanja(indeks, polja));
     });
     return kljuci;
   }
 
   function vsaVprasanjaKandidata(indeks) {
     var kandidat = naravni.candidates[indeks];
-    return kandidat ? [kljucVprasanja(indeks, poljaKandidata(kandidat))] : [];
+    var polja = kandidat ? poljaKandidata(kandidat) : [];
+    return polja.length ? [kljucVprasanja(indeks, polja)] : [];
   }
 
   function kandidatZaporedje(indeks) {
@@ -654,7 +709,7 @@
 
   function vprasanjeBesedilo(kandidat, indeks, polje) {
     var dogodek = imeDogodka(kandidat, indeks);
-    if (polje === "amount") return kandidat.type === "remaining_unpaid" ? "Kolikšen znesek še ni bil plačan?" : kandidat.type === "installment_payment" ? "Kolikšen je bil " + dogodek + "?" : kandidat.type === "paid_in_full" ? "Kolikšen je bil celotni plačani znesek?" : kandidat.type === "payment_promise" ? "Kolikšen znesek je obljubil plačati?" : "Kolikšen znesek je bil plačan?";
+    if (polje === "amount") return kandidat.type === "installment_payment" ? "Kolikšen je bil " + dogodek + "?" : kandidat.type === "paid_in_full" ? "Kolikšen je bil celotni plačani znesek?" : kandidat.type === "payment_promise" ? "Kolikšen znesek je obljubil plačati?" : "Kolikšen znesek je bil plačan?";
     if (polje === "occurredDate") {
       if (["partial_payment", "installment_payment"].indexOf(kandidat.type) >= 0) return "Kdaj je plačal" + (kandidat.type === "installment_payment" ? " " + dogodek : "") + "?";
       if (kandidat.type === "unpaid_installment") return "Kdaj bi moral biti ta obrok plačan?";
@@ -717,7 +772,7 @@
         ? '<input type="text" data-ai-unknown-date-display' + skupno + ' value="Ne vem" disabled>'
         : jePriblizno
           ? '<input type="text" maxlength="120" data-ai-candidate-field="' + polje + 'Approximation" data-ai-candidate-index="' + indeks + '" data-izvedba-fit data-fit-min="10" value="' + esc(kandidat[polje + "Approximation"] || "") + '" placeholder="Npr. v začetku avgusta">'
-          : '<input type="date"' + (polje === "occurredDate" ? ' max="' + lokalniDanesIso() + '"' : '') + skupno + ' value="' + esc(kandidat[polje] || "") + '">';
+          : '<input type="date"' + (polje === "occurredDate" ? ' max="' + esc(najpoznejsiDatumKandidata(kandidat)) + '"' : '') + skupno + ' value="' + esc(kandidat[polje] || "") + '">';
       return '<div class="zgodovina-ai-vprasanje__datum zgodovina-ai-vprasanje__datum--obljuba">' + datumInput + '<button type="button" data-ai-unknown-field="' + polje + '" data-ai-candidate-index="' + indeks + '" aria-pressed="' + String(jeNeznano) + '" class="' + (jeNeznano ? "is-selected" : "") + '">Ne vem</button><button type="button" data-ai-approximate-field="' + polje + '" data-ai-candidate-index="' + indeks + '" aria-pressed="' + String(jePriblizno) + '" class="' + (jePriblizno ? "is-selected" : "") + '">Približno</button></div>';
     }
     if (polje === "paymentMethod") return izbiraVprasanjaHtml(kandidat, indeks, polje, "Izberite način plačila", [{ value: "bank_transfer", label: "Bančno nakazilo" }, { value: "cash", label: "Gotovina" }, { value: "card", label: "Kartica" }, { value: "direct_debit", label: "Direktna obremenitev" }, { value: "other", label: "Drugo" }, { value: "unknown", label: "Ne vem" }]);
@@ -740,7 +795,7 @@
       var kandidatKoraka = podatkiKoraka && naravni.candidates[podatkiKoraka.indeks];
       var tonKoraka = kandidatKoraka ? metaKandidata(kandidatKoraka).razred : "povzetek";
       var jePovzetek = indeks === naravni.questionKeys.length;
-      var stanje = indeks === trenutni ? "current" : (!jePovzetek && vprasanjeIzpolnjeno(indeks) ? "completed" : "upcoming");
+      var stanje = indeks === trenutni ? "current" : (!jePovzetek && indeks < trenutni && vprasanjeIzpolnjeno(indeks) ? "completed" : "upcoming");
       var oznaka = jePovzetek ? "Povzetek" : "Korak " + (indeks + 1);
       var opisStanja = stanje === "current" ? "trenutni" : stanje === "completed" ? "dokončan" : "prihodnji";
       var vsebinaKroga = jePovzetek ? K.ikona("thumbsUp") : String(indeks + 1);
@@ -754,18 +809,43 @@
     return match ? Number(match[3]) + ". " + Number(match[2]) + ". " + match[1] : "datum ni določen";
   }
 
-  function predvideniPreostaliDolg() {
+  function predvideniPreostaliDolgZaKandidate(kandidati) {
     if (replacementState && typeof replacementState.saldoPoKandidatih === "function") {
-      return replacementState.saldoPoKandidatih(preostaliDolg(), naravni.candidates);
+      return replacementState.saldoPoKandidatih(preostaliDolg(), kandidati);
     }
-    return Math.max(0, Math.round(naravni.candidates.reduce(function (preostanek, kandidat) {
+    return Math.max(0, Math.round((kandidati || []).reduce(function (preostanek, kandidat) {
       if (["partial_payment", "paid_in_full", "installment_payment", "credit_note", "compensation"].indexOf(kandidat.type) < 0) return preostanek;
       var placano = Number(kandidat.amount);
       return Number.isFinite(placano) && placano > 0 ? preostanek - placano : preostanek;
     }, preostaliDolg()) * 100) / 100);
   }
 
+  function predvideniPreostaliDolg() {
+    return predvideniPreostaliDolgZaKandidate(naravni.candidates);
+  }
+
+  function predvideniPreostaliDolgAktivnegaKoraka() {
+    if (naravni.phase !== "questions") return predvideniPreostaliDolg();
+    var podatki = razcleniKljucVprasanja(naravni.questionKeys[naravni.questionIndex]);
+    if (!Number.isInteger(podatki.indeks) || podatki.indeks < 0) return preostaliDolg();
+    return predvideniPreostaliDolgZaKandidate(naravni.candidates.slice(0, podatki.indeks + 1));
+  }
+
+  function stanjeDolgaNapredekHtml() {
+    function formatiraj(vrednost) {
+      var deli = Number(vrednost || 0).toFixed(2).split(".");
+      return deli[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + deli[1] + " €";
+    }
+    return '<div class="zgodovina-ai-stanje-dolga" aria-label="Originalni in preostali znesek">' +
+      '<div class="zgodovina-ai-stanje-dolga__stolpec"><span>Originalni znesek</span><strong data-izvedba-fit data-fit-min="9">' + esc(formatiraj(korak1.znesek)) + '</strong></div>' +
+      '<i aria-hidden="true"></i>' +
+      '<div class="zgodovina-ai-stanje-dolga__stolpec zgodovina-ai-stanje-dolga__stolpec--preostanek"><span>Preostali znesek</span><strong data-ai-remaining-debt data-izvedba-fit data-fit-min="9">' + esc(formatiraj(predvideniPreostaliDolgAktivnegaKoraka())) + '</strong></div>' +
+    '</div>';
+  }
+
   function posodobiPrikazPreostalegaDolga(root) {
+    var saldoKoraka = root && root.querySelector("[data-ai-remaining-debt]");
+    if (saldoKoraka) saldoKoraka.textContent = K.formatirajEur(predvideniPreostaliDolgAktivnegaKoraka());
     var vrednost = root && root.querySelector(".zgodovina-stanje-dolga .izvedba-potek-zneski__stolpec--preostanek .izvedba-potek-zneski__vrednost");
     if (!vrednost) return;
     var znesek = naravni.mode === "natural" && naravni.candidates.length
@@ -815,7 +895,7 @@
     var naslednjiGumb = virUrejanje
       ? '<button type="button" data-ai-source-update' + (!virOsnutek.trim() || virOsnutek.trim() === naravni.text.trim() ? ' disabled' : '') + '>Posodobi</button>'
       : '<button type="button" data-ai-question-next' + (aktivnoVprasanjeIzpolnjeno() ? '' : ' disabled') + '>' + (naravni.questionIndex + 1 === naravni.questionKeys.length ? 'Pokaži povzetek' : 'Naprej') + '</button>';
-    return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--' + esc(meta.razred) + '">' + virOpisHtml() + lunaPorociloHtml() + napredekHtml(naravni.questionIndex, skupaj) +
+    return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--' + esc(meta.razred) + '">' + virOpisHtml() + lunaPorociloHtml() + napredekHtml(naravni.questionIndex, skupaj) + stanjeDolgaNapredekHtml() +
       '<div class="zgodovina-ai-vprasanje zgodovina-ai-vprasanje--' + esc(meta.razred) + '"><button type="button" class="zgodovina-ai-vprasanje__odstrani" data-ai-candidate-remove="' + podatki.indeks + '" aria-label="Izbriši ' + esc(imeDogodka(kandidat, podatki.indeks)) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span class="zgodovina-ai-vprasanje__ikona" aria-hidden="true">' + K.ikona(meta.ikona) + '</span><div><h4>Dopolnite ' + esc(imeDogodka(kandidat, podatki.indeks)) + '</h4><p>Vsi manjkajoči podatki tega dogodka so združeni tukaj.</p></div><button type="button" class="zgodovina-ai-vprasanje__spremeni" data-ai-change-candidate aria-label="Spremeni vrsto dogodka">Spremeni</button><div class="zgodovina-ai-vprasanje__polja' + (kompaktnoPlacilo ? ' zgodovina-ai-vprasanje__polja--placilo-kompaktno' : '') + '">' + poljaHtml + '</div></div>' +
       '<div class="zgodovina-ai-pogovor__akcije"><button type="button" data-ai-edit-description>Spremeni opis</button>' + naslednjiGumb + '</div></div>';
   }
@@ -834,7 +914,7 @@
     var akcije = virUrejanje
       ? '<button type="button" data-ai-source-cancel>Nazaj</button><button type="button" data-ai-source-update' + (!virOsnutek.trim() || virOsnutek.trim() === naravni.text.trim() ? ' disabled' : '') + '>Posodobi</button>'
       : '<button type="button" data-ai-edit-description>Popravi opis</button><button type="button" data-ai-confirm-candidates' + (vsiKandidatiDopolnjeni() ? '' : ' disabled') + '>Da, potrdi dogodke</button>';
-    return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--povzetek">' + virOpisHtml() + lunaPorociloHtml() + napredekHtml(skupaj - 1, skupaj) +
+    return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--povzetek">' + virOpisHtml() + lunaPorociloHtml() + napredekHtml(skupaj - 1, skupaj) + stanjeDolgaNapredekHtml() +
       '<div class="zgodovina-ai-pogovor__potrditev"><span aria-hidden="true">' + K.ikona("checkCircle") + '</span><div><h4>Če prav razumem …</h4><p>Preverite dogodke in jih potrdite.</p></div></div>' +
       '<div class="zgodovina-ai-povzetki">' + naravni.candidates.map(povzetekKandidata).join("") + preostanekPovzetekHtml() + '</div>' +
       '<div class="zgodovina-ai-pogovor__akcije">' + akcije + '</div></div>';
@@ -898,6 +978,26 @@
     return "Pripravljenih je " + stevilo + " dogodkov. Preverite podatke in dopolnite manjkajoče.";
   }
 
+  function kratkoPorociloPripravljenihDogodkov(stevilo) {
+    if (stevilo === 1) return "Pripravljen je 1 dogodek.";
+    if (stevilo === 2) return "Pripravljena sta 2 dogodka.";
+    if (stevilo === 3 || stevilo === 4) return "Pripravljeni so " + stevilo + " dogodki.";
+    return "Pripravljenih je " + stevilo + " dogodkov.";
+  }
+
+  function posodobiPodnaslovGlave(root) {
+    var podnaslov = root && root.querySelector(".izvedba-action-sheet__header > div > p");
+    if (!podnaslov) return;
+    var imaKandidate = naravni.mode === "natural" && naravni.candidates.length > 0;
+    var jePripravljeno = imaKandidate && vsiKandidatiDopolnjeni();
+    podnaslov.hidden = false;
+    podnaslov.classList.toggle("zgodovina-ai-glava__status--ok", jePripravljeno);
+    podnaslov.classList.toggle("zgodovina-ai-glava__status--opozorilo", imaKandidate && !jePripravljeno);
+    podnaslov.textContent = imaKandidate
+      ? kratkoPorociloPripravljenihDogodkov(naravni.candidates.length) + (jePripravljeno ? " Vse je pripravljeno." : " Nekaj podatkov še manjka.")
+      : "Dodajte samo dogodke, ki so se že zgodili.";
+  }
+
   function lunaPorocilo(semanticPlan, kandidati) {
     var plan = semanticPlan && typeof semanticPlan === "object" ? semanticPlan : {};
     var stevilo = Array.isArray(kandidati) ? kandidati.length : 0;
@@ -908,6 +1008,7 @@
   }
 
   function lunaPorociloHtml() {
+    if (naravni.candidates.length) return '';
     return naravni.lunaReport ? '<p class="zgodovina-ai__status is-ready" aria-live="polite">' + esc(naravni.lunaReport) + '</p>' : '';
   }
 
@@ -979,11 +1080,13 @@
   function naravniVnosHtml() {
     var busy = ["starting", "recording", "transcribing", "stopping", "analyzing"].indexOf(naravni.status) >= 0;
     var recording = snemanjeAktivno || Boolean(canary && canary.isRecording());
+    var opozoriloDolga = opozoriloPrevisokihPlacil(naravni.text);
     var merilnik = recording ? '<span class="zgodovina-ai__glasnost" data-ai-voice-meter aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>' : '';
     var vnos = '<label class="zgodovina-ai__vnos"><span class="sr-only">Opis dogodkov</span><textarea maxlength="2000" data-ai-text placeholder="Npr. plačal je tri obroke po 300 € …">' + esc(naravni.text) + '</textarea></label>' +
       '<div class="zgodovina-ai__akcije"><button type="button" class="zgodovina-ai__snemaj' + (recording ? ' is-recording' : '') + '" data-ai-record aria-label="' + (recording ? 'Prekini snemanje' : 'Povej na glas') + '" aria-pressed="' + String(Boolean(recording)) + '"' + (naravni.status === "analyzing" ? ' disabled' : '') + '>' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span class="zgodovina-ai__snemaj-napis">' + (recording ? 'Prekini snemanje' : 'Povej na glas') + '</span>' + merilnik + '</button>' +
-        '<button type="button" class="zgodovina-ai__razumi" data-ai-analyze' + (naravni.status === "analyzing" ? ' aria-busy="true"' : '') + (!naravni.text.trim() || busy ? ' disabled' : '') + '>' + (naravni.status === "analyzing" ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span><span data-ai-analyze-status>' + esc(ANALIZA_STATUS_BESEDILA[0]) + '</span>' : 'Pripravi dogodke') + '</button></div>' + naravniStatusHtml();
+        '<button type="button" class="zgodovina-ai__razumi" data-ai-analyze' + (naravni.status === "analyzing" ? ' aria-busy="true"' : '') + (!naravni.text.trim() || busy || opozoriloDolga ? ' disabled' : '') + '>' + (naravni.status === "analyzing" ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span><span data-ai-analyze-status>' + esc(ANALIZA_STATUS_BESEDILA[0]) + '</span>' : 'Pripravi dogodke') + '</button></div>' +
+      '<p class="zgodovina-ai__status is-error" data-ai-debt-warning aria-live="polite"' + (opozoriloDolga ? '' : ' hidden') + '>' + esc(opozoriloDolga ? opozoriloDolga.sporocilo : '') + '</p>' + naravniStatusHtml();
     var vsebina = naravni.phase === "clarification_exhausted" && naravni.clarificationExhausted
       ? pojasniloIzcrpanoHtml()
       : naravni.phase === "clarification" && naravni.clarificationQuestion
@@ -1023,7 +1126,7 @@
       '<button type="button" class="zgodovina-ai__potrdi" data-ai-clarification-manual>Ročno izberi</button></div></div></div>';
   }
 
-  function izrisiNacina(root) {
+  function izrisiNacina(root, brezIzbireNacina) {
     var cona = root.querySelector(".izvedba-poravnava-cona");
     if (!cona) return;
     root.classList.add("atena");
@@ -1031,13 +1134,17 @@
     root.setAttribute("data-engine-version", ATENA_ENGINE_VERSION);
     var panel = root.querySelector(".izvedba-action-sheet__panel");
     if (panel) panel.classList.add("atena__panel");
-    var glava = root.querySelector(".izvedba-action-sheet__header");
+    var atenaPovrsina = root.querySelector(".atena__jedro") || root.querySelector(".izvedba-odvetnik-zgodovina__dogodki") || panel;
+    if (atenaPovrsina) atenaPovrsina.classList.add("atena__povrsina", "stran--neplacila-zgodovina");
+    var glava = atenaPovrsina && atenaPovrsina.querySelector(".izvedba-odvetnik-zgodovina__uvod, .izvedba-action-sheet__header");
+    if (!glava) glava = root.querySelector(".izvedba-action-sheet__header");
     if (glava) {
       var zapri = glava.querySelector(".izvedba-action-sheet__zapri");
       glava.classList.add("zgodovina-ai-glava--z-izbrisom");
       if (zapri) zapri.insertAdjacentHTML("beforebegin", ponastaviAtenoGumbHtml());
       else glava.insertAdjacentHTML("beforeend", ponastaviAtenoGumbHtml());
     }
+    if (brezIzbireNacina) return;
     var preklop = document.createElement("section");
     preklop.className = "zgodovina-nacina";
     preklop.innerHTML = naravni.replacement
@@ -1089,6 +1196,10 @@
   async function razcleniBesedilo(pojasnilo) {
     var text = String(naravni.text || "").trim();
     if (!text || naravni.status === "analyzing") return;
+    if (opozoriloPrevisokihPlacil(text)) {
+      posodobiOpozoriloPrevisokihPlacil(root);
+      return;
+    }
     var analizaZacetek = Date.now();
     analizaGeneracija += 1;
     var mojaGeneracija = analizaGeneracija;
@@ -1306,6 +1417,8 @@
   }
 
   window.UJZgodovinaPoIzrisu = function (_state, root) {
+    var neposrednaHitraIzbira = Boolean(_state && _state.actionSheetMode === "payment" && _state.boPlacalHitraIzbira);
+    if (!neposrednaHitraIzbira) posodobiPodnaslovGlave(root);
     var svicer = root.querySelector(".izvedba-poravnava-svicer");
     if (jeVgrajenaZgodovina && svicer) {
       var obstojeciDrugo = svicer.querySelector("[data-action-custom]");
@@ -1337,7 +1450,7 @@
     }
     if (ocenaActive && naravni.mode === "manual") izrisiOcenaPodrobnosti(root);
     else if (customActive && naravni.mode === "manual") izrisiDrugoPodrobnosti(root);
-    izrisiNacina(root);
+    izrisiNacina(root, neposrednaHitraIzbira);
     prilagodiVisinoAtenaVnosa(root.querySelector("[data-ai-text]"));
     if (jeVgrajenaZgodovina) {
       var stanjeDolga = root.querySelector(".izvedba-odvetnik-zgodovina__dogodki .zgodovina-stanje-dolga");
@@ -1826,7 +1939,7 @@
         var manjka = poljaKiManjkajo(kandidat);
         return { candidateIndex: indeks, fields: poljaKandidata(kandidat), missing: manjka.slice() };
       });
-      naravni.phase = naravni.candidates.length ? "questions" : "input";
+      naravni.phase = naravni.candidates.length ? (naravni.questionKeys.length ? "questions" : "review") : "input";
       naravni.questionIndex = naravni.candidates.length
         ? Math.max(0, Math.min(odstranjenKorak > 0 ? odstranjenKorak - 1 : 0, naravni.questionKeys.length - 1))
         : 0;
@@ -1994,8 +2107,7 @@
       naravni.clarificationExhausted = false;
       naravni.status = "idle";
       naravni.error = "";
-      var analyze = root.querySelector("[data-ai-analyze]");
-      if (analyze) analyze.disabled = !naravni.text.trim();
+      posodobiOpozoriloPrevisokihPlacil(root);
       posodobiPrikazPreostalegaDolga(root);
     }
     if (dogodek.target.matches("[data-ai-clarification-answer]")) {
@@ -2041,6 +2153,7 @@
         if (confirmCandidates) confirmCandidates.disabled = !vsiKandidatiDopolnjeni();
         var naslednjeVprasanje = root.querySelector("[data-ai-question-next]");
         if (naslednjeVprasanje) naslednjeVprasanje.disabled = !aktivnoVprasanjeIzpolnjeno();
+        posodobiPodnaslovGlave(root);
       }
     }
     setTimeout(function () { shrani(false); }, 0);

@@ -11,7 +11,7 @@
   var Api = window.UJIzvedbaApi;
 
   var DEFAULT_ACTION_SETTINGS = {
-    skip_current_step: { nextDelayDays: 0 },
+    skip_current_step: { nextDelayDays: 0, skipReason: "", skipReasonDetail: "" },
     stop_plan: { resumeMode: "manual", resumeAt: null },
     handoff_to_lawyer: { timingMode: "asap", scheduledHandoffAt: null },
     postpone_reminder: { delayDays: 3 },
@@ -156,6 +156,7 @@
     actionSheetOpen: false,
     actionSheetMode: "actions",
     selectedSettlementType: null,
+    boPlacalHitraIzbira: false,
     customActionActive: false,
     customActionDescription: "",
     settlementReasonMenuOpen: false,
@@ -1114,6 +1115,7 @@
 
   function ponastaviOsnutekPoravnave() {
     state.selectedSettlementType = null;
+    state.boPlacalHitraIzbira = false;
     state.customActionActive = false;
     state.customActionDescription = "";
     state.settlementReasonMenuOpen = false;
@@ -1499,11 +1501,28 @@
     return "Ker se dolžnik na prejšnji opomin ni odzval, mu bo poslan odločneje oblikovan opomin.";
   }
 
+  function izrisiPreklicRazlog(nastavitve) {
+    var razlogi = [
+      { vrednost: "debtor_agreement", oznaka: "Dogovor z dolžnikom" },
+      { vrednost: "wrong_data", oznaka: "Napačni podatki" },
+      { vrednost: "not_needed", oznaka: "Opomin ni potreben" },
+      { vrednost: "other", oznaka: "Drugo" },
+    ];
+    var izbrani = String(nastavitve.skipReason || "");
+    return '<div class="izvedba-preklic-razlog"><p class="izvedba-preklic-razlog__naslov">Razlog preklica <small>neobvezno</small></p>' +
+      '<div class="izvedba-preklic-razlog__moznosti" role="group" aria-label="Razlog preklica">' + razlogi.map(function (razlog) {
+        var jeIzbran = izbrani === razlog.vrednost;
+        return '<button type="button" class="izvedba-preklic-razlog__moznost' + (jeIzbran ? ' is-selected' : '') + '" data-skip-reason="' + K.esc(razlog.vrednost) + '" aria-pressed="' + String(jeIzbran) + '">' + K.esc(razlog.oznaka) + '</button>';
+      }).join('') + '</div>' +
+      (izbrani === "other" ? '<textarea class="izvedba-preklic-razlog__opis" data-skip-reason-detail maxlength="300" rows="2" placeholder="Na kratko napišite razlog …" aria-label="Drug razlog preklica">' + K.esc(nastavitve.skipReasonDetail || "") + '</textarea>' : '') +
+      '</div>';
+  }
+
   function podatkiZaKartico(actionType, izbrano) {
     var nastavitve = state.settingsByAction[actionType];
     if (actionType === "skip_current_step") {
       var prikazZamika = nastavitve.nextDelayDays === 0 ? "Danes" : null;
-      return K.izrisiStevec(actionType, "nextDelayDays", nastavitve.nextDelayDays, nastavitve.nextDelayDays === 1 ? "dan" : "dni", prikazZamika);
+      return K.izrisiStevec(actionType, "nextDelayDays", nastavitve.nextDelayDays, nastavitve.nextDelayDays === 1 ? "dan" : "dni", prikazZamika) + izrisiPreklicRazlog(nastavitve);
     }
     if (actionType === "stop_plan") {
       var ustavitev = K.izrisiSegmentiranKontrolnik(actionType, "resumeMode", [
@@ -1596,7 +1615,7 @@
         '<span class="izvedba-poravnava-svicer__ikona" aria-hidden="true">' + K.ikona(sheetMeta.ikona) + '</span>' +
         '<span data-izvedba-fit data-fit-min="7">' + K.esc(meta.naslov) + '</span></button>';
     }).join('');
-    gumbi += izrisiDrugoGumb();
+    if (!jePreklicOpominaFilter()) gumbi += izrisiDrugoGumb();
     return '<div class="izvedba-poravnava-cona"><p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">1</span>Izberite naslednji korak</p>' +
       '<div class="izvedba-poravnava-svicer" role="group">' + gumbi + '</div></div>';
   }
@@ -2159,7 +2178,7 @@
       gumbi += izrisiDrugoGumb(zaprt);
     }
     return '<div class="izvedba-poravnava-cona">' + (jeZgodovina ? '' : '<p class="izvedba-poravnava-cona__naslov"><span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">1</span>Izberite naslednji korak</p>') +
-      '<div class="izvedba-poravnava-svicer" role="group">' + gumbi + '</div>' + (jeZgodovina ? '<div class="zgodovina-svicer__pikice" aria-label="Podrsajte levo ali desno za več možnosti"><span class="zgodovina-svicer__pikica is-active" aria-hidden="true"></span><span class="zgodovina-svicer__pikica" aria-hidden="true"></span></div>' : '') + '</div>';
+      '<div class="izvedba-poravnava-svicer" role="group">' + gumbi + '</div>' + (jeZgodovina || jeRazsirjeniPlacilniEngine ? '<div class="zgodovina-svicer__pikice" aria-label="Podrsajte levo ali desno za več možnosti"><span class="zgodovina-svicer__pikica is-active" aria-hidden="true"></span><span class="zgodovina-svicer__pikica" aria-hidden="true"></span></div>' : '') + '</div>';
   }
 
   var OBLJUBA_SETTLEMENT_META = { naslov: "Dolžnik je obljubil plačilo", opis: "Načrt začasno počaka.", razred: "akcija-obljuba", ikona: "handshake" };
@@ -2299,24 +2318,21 @@
 
   function izrisiStanjeDolga() {
     var prvotniZnesek = Number(state.zadeva && state.zadeva.prvotniZnesek) || 0;
-    return '<div class="izvedba-potek-zneski">' +
-        '<div class="izvedba-potek-zneski__stolpec">' +
-          '<span class="izvedba-potek-zneski__oznaka" data-izvedba-fit data-fit-min="7.5">Originalni znesek</span>' +
-          '<span class="izvedba-potek-zneski__vrednost" data-izvedba-fit data-fit-min="10">' + K.esc(K.formatirajEur(prvotniZnesek)) + '</span>' +
-        '</div>' +
-        '<div class="izvedba-potek-zneski__locilo" aria-hidden="true"></div>' +
-        '<div class="izvedba-potek-zneski__stolpec izvedba-potek-zneski__stolpec--preostanek">' +
-          '<span class="izvedba-potek-zneski__oznaka" data-izvedba-fit data-fit-min="7.5">Preostali znesek</span>' +
-          '<span class="izvedba-potek-zneski__vrednost" data-izvedba-fit data-fit-min="10">' + K.esc(K.formatirajEur(preostaliDolgPoNacrtu())) + '</span>' +
-        '</div>' +
-      '</div>';
+    return '<div class="izvedba-dolg-tok">' +
+      '<div class="izvedba-dolg-tok__znesek">' +
+        '<span class="izvedba-dolg-tok__oznaka" data-izvedba-fit data-fit-min="7.5">Originalni znesek</span>' +
+        '<span class="izvedba-dolg-tok__vrednost" data-izvedba-fit data-fit-min="11">' + K.esc(K.formatirajEur(prvotniZnesek)) + '</span>' +
+      '</div>' +
+      '<div class="izvedba-dolg-tok__smer" aria-hidden="true"><span class="izvedba-dolg-tok__crta"><span></span></span><span class="izvedba-dolg-tok__puscica">→</span></div>' +
+      '<div class="izvedba-dolg-tok__znesek izvedba-dolg-tok__znesek--preostanek">' +
+        '<span class="izvedba-dolg-tok__oznaka" data-izvedba-fit data-fit-min="7.5">Preostali znesek</span>' +
+        '<span class="izvedba-dolg-tok__vrednost" data-izvedba-fit data-fit-min="11">' + K.esc(K.formatirajEur(preostaliDolgPoNacrtu())) + '</span>' +
+      '</div>' +
+    '</div>';
   }
 
   function izrisiStanjeDolgaBlok() {
-    return '<section class="zgodovina-stanje-dolga" aria-labelledby="zgodovina-stanje-dolga-naslov">' +
-      '<h3 class="zgodovina-stanje-dolga__naslov" id="zgodovina-stanje-dolga-naslov">Stanje dolga</h3>' +
-      izrisiStanjeDolga() +
-    '</section>';
+    return '<section class="zgodovina-stanje-dolga zgodovina-stanje-dolga--tok" aria-label="Stanje dolga">' + izrisiStanjeDolga() + '</section>';
   }
 
   function pozicijaTrenutnegaOpomina() {
@@ -2750,7 +2766,7 @@
   }
 
   function izrisiOdvetnikZgodovino() {
-    return '<div class="izvedba-odvetnik-zgodovina"><section class="izvedba-odvetnik-zgodovina__dogodki"><div class="izvedba-odvetnik-zgodovina__uvod"><span aria-hidden="true">' + K.ikona("checkCircle") + '</span><div><h3>Kaj se je do zdaj zgodilo?</h3><p>Dodajte samo dogodke, ki so se že zgodili.</p></div></div>' +
+    return '<div class="izvedba-odvetnik-zgodovina"><section class="izvedba-odvetnik-zgodovina__dogodki"><div class="izvedba-odvetnik-zgodovina__uvod"><div><h3>Kaj se je do zdaj zgodilo?</h3><p>Dodajte samo dogodke, ki so se že zgodili.</p></div></div>' +
       izrisiStanjeDolgaBlok() + izrisiPoravnavaSvicer() + izrisiPoravnavaPodrobnosti() + izrisiPotekPrimera() + '</section></div>';
   }
 
@@ -3182,6 +3198,19 @@
       window.UJZgodovinaPoIzrisu(state, elActionSheet);
     }
     requestAnimationFrame(function () {
+      if (w.screen === "zgodovina") {
+        var zgodovinaSvicer = elActionSheet.querySelector(".izvedba-odvetnik-zgodovina__dogodki .izvedba-poravnava-svicer");
+        if (zgodovinaSvicer) {
+          var osveziZgodovinaPikice = function () {
+            var pikice = elActionSheet.querySelectorAll(".izvedba-odvetnik-zgodovina__dogodki .zgodovina-svicer__pikica");
+            var najvecjiPomik = Math.max(0, zgodovinaSvicer.scrollWidth - zgodovinaSvicer.clientWidth);
+            var aktivna = najvecjiPomik > 0 && zgodovinaSvicer.scrollLeft / najvecjiPomik >= 0.5 ? 1 : 0;
+            pikice.forEach(function (pikica, indeks) { pikica.classList.toggle("is-active", indeks === aktivna); });
+          };
+          osveziZgodovinaPikice();
+          zgodovinaSvicer.addEventListener("scroll", osveziZgodovinaPikice, { passive: true });
+        }
+      }
       prilagodiBesediloOmejenemuPolju(elActionSheet);
       var sporociloPolje = elActionSheet.querySelector("[data-lawyer-message]");
       if (sporociloPolje) {
@@ -3283,6 +3312,53 @@
     }
   }
 
+  function izrisiBoPlacalHitraDejanja() {
+    var onemogoceno = state.isSubmitting ? " disabled" : "";
+    function hitra(tip, razred, ikona, oznaka) {
+      var izbrana = state.selectedSettlementType === tip;
+      return '<button type="button" class="izvedba-hitra-akcija atena-gostitelj__hitra atena-gostitelj__hitra--' + razred + (izbrana ? ' is-selected' : '') + '" data-settlement-select="' + tip + '" aria-pressed="' + String(izbrana) + '"' + onemogoceno + '>' +
+        '<span class="izvedba-hitra-akcija__ikona" aria-hidden="true">' + K.ikona(ikona) + '</span>' +
+        '<span class="izvedba-hitra-akcija__besedilo" data-izvedba-fit data-fit-min="8">' + oznaka + '</span></button>';
+    }
+    return '<div class="izvedba-hitre-akcije atena-gostitelj__hitre" aria-label="Najpogostejša dejanja">' +
+      hitra("full", "placano", "receiptCheck", "Plačano v celoti") +
+      hitra("partial", "delno", "coinCheck", "Delno plačilo") +
+      hitra("payment_promised", "obljuba", "handshake", "Dolžnik je obljubil plačilo") +
+      '</div>';
+  }
+
+  function izrisiBoPlacalGostiteljPovzetek() {
+    return '<section class="bo-placal-gostitelj__povzetek" aria-labelledby="bo-placal-gostitelj-povzetek-naslov">' +
+      '<div class="bo-placal-gostitelj__glava"><span class="bo-placal-gostitelj__ikona" aria-hidden="true">' + K.ikona("xCircle") + '</span><div>' +
+        '<h2 id="bo-placal-gostitelj-povzetek-naslov" data-izvedba-fit data-fit-min="14">Kaj želite narediti?</h2>' +
+        '<p>Izberite možnost in po potrebi prilagodite priporočeno nastavitev.</p>' +
+      '</div></div>' + izrisiStanjeDolgaBlok() +
+    '</section>';
+  }
+
+  function jePreklicOpominaFilter() {
+    return (state.aktivniFilterKartic || []).join("|") === "skip_current_step|stop_plan|postpone_reminder";
+  }
+
+  function actionGostiteljKartice() {
+    var kljuc = (state.aktivniFilterKartic || []).join("|");
+    if (kljuc === "handoff_to_lawyer|partial_payment|cancelled_invoice") return state.aktivniFilterKartic;
+    if (jePreklicOpominaFilter()) return state.aktivniFilterKartic;
+    return null;
+  }
+
+  function izrisiActionGostiteljHitraDejanja(actionTypes) {
+    var onemogoceno = state.isSubmitting ? " disabled" : "";
+    return '<div class="izvedba-hitre-akcije hitra-dejanja-gostitelj__hitre" aria-label="Najpogostejša dejanja">' + actionTypes.map(function (actionType) {
+      var meta = K.AKCIJE_META[actionType];
+      var sheetMeta = ACTION_SHEET_META[actionType];
+      var izbrana = state.selectedActionType === actionType;
+      return '<button type="button" class="izvedba-hitra-akcija hitra-dejanja-gostitelj__hitra hitra-dejanja-gostitelj__hitra--' + K.esc(sheetMeta.razred) + (izbrana ? ' is-selected' : '') + '" data-action-sheet-select="' + K.esc(actionType) + '" aria-pressed="' + String(izbrana) + '"' + onemogoceno + '>' +
+        '<span class="izvedba-hitra-akcija__ikona" aria-hidden="true">' + K.ikona(sheetMeta.ikona) + '</span>' +
+        '<span class="izvedba-hitra-akcija__besedilo" data-izvedba-fit data-fit-min="8">' + K.esc(meta.naslov) + '</span></button>';
+    }).join('') + '</div>';
+  }
+
   function izrisiPoravnavaSheet() {
     var prejsnjiSvicer = elActionSheet.querySelector(".izvedba-poravnava-svicer");
     var prejsnjiSvicerScrollLeft = prejsnjiSvicer ? prejsnjiSvicer.scrollLeft : null;
@@ -3297,18 +3373,20 @@
     var meta = SETTLEMENT_META[state.selectedSettlementType] || (jePlacilniDogodkovniTip(state.selectedSettlementType) ? ZGODOVINA_META[state.selectedSettlementType] : null);
     var steviloNacrtovanih = (state.nacrtKoraki || []).length;
     var zgodovinaVnos = jeVnosZgodovine();
+    var jeBoPlacalGostitelj = jePlacilniEngine() && !zgodovinaVnos;
+    var jeBoPlacalNeposrednaHitra = jeBoPlacalGostitelj && state.boPlacalHitraIzbira && ["full", "partial", "payment_promised"].indexOf(state.selectedSettlementType) >= 0;
     var dejanje = (meta || zgodovinaVnos || (jePlacilniEngine() && steviloNacrtovanih > 0)) ? '<button type="button" class="izvedba-action-sheet__dejanje' + (zgodovinaVnos && steviloNacrtovanih === 0 ? ' atena__nadaljuj-brez' : '') + '" ' + (zgodovinaVnos ? 'data-zgodovina-nadaljuj' : 'data-action-sheet-confirm') + ' data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting || (!zgodovinaVnos && steviloNacrtovanih === 0) ? 'disabled' : '') + '>' +
       (state.isSubmitting ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span>' : '') + (zgodovinaVnos ? (steviloNacrtovanih ? 'Shrani zgodovino in nadaljuj' : 'Nadaljuj brez zgodovine →') : 'Potrdi') + '</button>' : '';
     elActionSheet.hidden = false;
     elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
-      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano' + (meta ? ' izvedba-action-sheet__panel--poravnava-' + K.esc(meta.razred) : '') + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
-        '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>' +
-        '<header class="izvedba-action-sheet__header"><span class="izvedba-action-sheet__header-ikona" aria-hidden="true">' + K.ikona("checkCircle") + '</span><div>' +
-          '<h2 id="izvedba-action-sheet-title" data-izvedba-fit data-fit-min="14">' + (jeAtena() ? 'Kaj se je do zdaj zgodilo?' : 'Kako je bil račun poravnan?') + '</h2><p>' + (jeAtena() ? 'Dodajte samo dogodke, ki so se že zgodili.' : 'Izberite način in po potrebi dopolnite podatke.') + '</p></div>' +
-          '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button></header>' +
-        '<div class="izvedba-action-sheet__scroll">' + (zgodovinaVnos ? '' : izrisiStanjeDolgaBlok()) + izrisiPoravnavaSvicer() + izrisiPoravnavaPodrobnosti() + izrisiPotekPrimera() +
+      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--poravnano' + (jeBoPlacalGostitelj ? ' izvedba-action-sheet__panel--atena-gostitelj' : '') + (meta ? ' izvedba-action-sheet__panel--poravnava-' + K.esc(meta.razred) : '') + '" role="dialog" aria-modal="true" aria-labelledby="' + (jeBoPlacalGostitelj ? 'bo-placal-gostitelj-povzetek-naslov' : 'izvedba-action-sheet-title') + '">' +
+        (jeBoPlacalGostitelj ? '<div class="atena-gostitelj__pas"><div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div><p class="atena-gostitelj__naslov">Hitra dejanja</p><button type="button" class="izvedba-action-sheet__zapri atena-gostitelj__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button>' + izrisiBoPlacalHitraDejanja() + '</div><div class="atena__jedro atena__jedro--bo-placal' + (jeBoPlacalNeposrednaHitra ? ' atena__jedro--neposredna' : '') + '">' + izrisiBoPlacalGostiteljPovzetek() : '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>') +
+        (jeBoPlacalNeposrednaHitra ? '' : '<header class="izvedba-action-sheet__header">' + (jeAtena() ? '' : '<span class="izvedba-action-sheet__header-ikona" aria-hidden="true">' + K.ikona("checkCircle") + '</span>') + '<div>' +
+          (jeBoPlacalGostitelj ? '' : '<h2 id="izvedba-action-sheet-title" data-izvedba-fit data-fit-min="14">' + (jeAtena() ? 'Kaj se je do zdaj zgodilo?' : 'Kako je bil račun poravnan?') + '</h2>') + '<p>' + (jeAtena() ? 'Dodajte samo dogodke, ki so se že zgodili.' : 'Izberite način in po potrebi dopolnite podatke.') + '</p></div>' +
+          (jeBoPlacalGostitelj ? '' : '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button>') + '</header>') +
+        '<div class="izvedba-action-sheet__scroll">' + (zgodovinaVnos ? '' : izrisiStanjeDolgaBlok()) + (jeBoPlacalNeposrednaHitra ? '' : izrisiPoravnavaSvicer()) + izrisiPoravnavaPodrobnosti() + izrisiPotekPrimera() +
           '<div class="izvedba-action-sheet__footer">' + (state.error ? '<p class="izvedba-action-sheet__napaka" role="alert">' + K.esc(state.error) + '</p>' : '') +
-            dejanje + '</div></div></section>';
+            dejanje + '</div></div>' + (jeBoPlacalGostitelj ? '</div>' : '') + '</section>';
     zakleniOzadjeSheeta();
     if ((zgodovinaVnos || jePlacilniEngine()) && typeof window.UJZgodovinaPoIzrisu === "function") {
       window.UJZgodovinaPoIzrisu(state, elActionSheet);
@@ -3319,7 +3397,7 @@
         noviSvicer = elActionSheet.querySelector(".izvedba-poravnava-svicer");
         if (noviSvicer) noviSvicer.scrollLeft = Math.min(prejsnjiSvicerScrollLeft, Math.max(0, noviSvicer.scrollWidth - noviSvicer.clientWidth));
       }
-      if (zgodovinaVnos) {
+      if (zgodovinaVnos || jePlacilniEngine()) {
         noviSvicer = noviSvicer || elActionSheet.querySelector(".izvedba-poravnava-svicer");
         if (noviSvicer) {
           var osveziPikice = function () {
@@ -3357,6 +3435,9 @@
       izrisiOdvetnikSheet();
       return;
     }
+    var gostiteljKartice = actionGostiteljKartice();
+    var jeHitraDejanjaGostitelj = Boolean(gostiteljKartice);
+    var actionSvicer = jeHitraDejanjaGostitelj ? "" : izrisiActionSvicer();
     var panelRazred = state.selectedActionType ? " izvedba-action-sheet__panel--" + ACTION_SHEET_META[state.selectedActionType].razred : "";
     var dejanje = state.selectedActionType
       ? '<button type="button" class="izvedba-action-sheet__dejanje" data-action-sheet-confirm data-izvedba-fit data-fit-min="10" ' + (state.isSubmitting ? 'disabled' : '') + '>' +
@@ -3364,17 +3445,17 @@
       : "";
     elActionSheet.hidden = false;
     elActionSheet.innerHTML = '<div class="izvedba-action-sheet__backdrop" data-action-sheet-close></div>' +
-      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--akcije' + panelRazred + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
-        '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>' +
+      '<section class="izvedba-action-sheet__panel izvedba-action-sheet__panel--akcije' + (jeHitraDejanjaGostitelj ? ' izvedba-action-sheet__panel--hitra-gostitelj' : '') + panelRazred + '" role="dialog" aria-modal="true" aria-labelledby="izvedba-action-sheet-title">' +
+        (jeHitraDejanjaGostitelj ? '<div class="hitra-dejanja-gostitelj__pas"><div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div><p class="hitra-dejanja-gostitelj__naslov">Hitra dejanja</p><button type="button" class="izvedba-action-sheet__zapri hitra-dejanja-gostitelj__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button>' + izrisiActionGostiteljHitraDejanja(gostiteljKartice) + '</div><div class="hitra-dejanja-gostitelj__jedro">' : '<div class="izvedba-action-sheet__rocaj" aria-hidden="true"></div>') +
         '<header class="izvedba-action-sheet__header"><span class="izvedba-action-sheet__header-ikona" aria-hidden="true">' + K.ikona("xCircle") + '</span><div>' +
           '<h2 id="izvedba-action-sheet-title">Kaj želite narediti?</h2><p>Izberite možnost in po potrebi prilagodite priporočeno nastavitev.</p></div>' +
-          '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button></header>' +
-        '<div class="izvedba-action-sheet__scroll">' + izrisiStanjeDolgaBlok() + izrisiActionSvicer() + izrisiActionPodrobnosti() + izrisiPotekPrimera() +
+          (jeHitraDejanjaGostitelj ? '' : '<button type="button" class="izvedba-action-sheet__zapri" data-action-sheet-close aria-label="Zapri"><span aria-hidden="true">×</span></button>') + '</header>' +
+        '<div class="izvedba-action-sheet__scroll">' + izrisiStanjeDolgaBlok() + actionSvicer + izrisiActionPodrobnosti() + izrisiPotekPrimera() +
           '<div class="izvedba-action-sheet__footer">' +
             (state.error ? '<p class="izvedba-action-sheet__napaka" role="alert">' + K.esc(state.error) + '</p>' : '') +
             dejanje + '<button type="button" class="izvedba-action-sheet__nazaj" data-action-sheet-close>Nazaj</button>' +
           '</div>' +
-        '</div>' +
+        '</div>' + (jeHitraDejanjaGostitelj ? '</div>' : '') +
       '</section>';
     zakleniOzadjeSheeta();
     requestAnimationFrame(function () { prilagodiBesediloOmejenemuPolju(elActionSheet); });
@@ -3764,6 +3845,15 @@
         izrisiActionSheet();
         return;
       }
+      var preklicRazlog = event.target.closest("[data-skip-reason]");
+      if (preklicRazlog) {
+        var novPreklicRazlog = preklicRazlog.getAttribute("data-skip-reason");
+        state.settingsByAction.skip_current_step.skipReason = state.settingsByAction.skip_current_step.skipReason === novPreklicRazlog ? "" : novPreklicRazlog;
+        if (state.settingsByAction.skip_current_step.skipReason !== "other") state.settingsByAction.skip_current_step.skipReasonDetail = "";
+        state.error = null;
+        izrisiActionSheet();
+        return;
+      }
       var razlogMoznost = event.target.closest("[data-settlement-reason-option]");
       if (razlogMoznost) {
         var razlogTip = razlogMoznost.getAttribute("data-settlement-type");
@@ -3878,8 +3968,11 @@
       }
       if (poravnavaIzbira) {
         var izbranTip = poravnavaIzbira.getAttribute("data-settlement-select");
+        var jeGostiteljskaHitra = poravnavaIzbira.classList.contains("atena-gostitelj__hitra");
+        var boOstalaIzbrana = state.selectedSettlementType !== izbranTip;
         state.customActionActive = false;
-        state.selectedSettlementType = state.selectedSettlementType === izbranTip ? null : izbranTip;
+        state.selectedSettlementType = boOstalaIzbrana ? izbranTip : null;
+        state.boPlacalHitraIzbira = jeGostiteljskaHitra && boOstalaIzbrana;
         state.settlementReasonMenuOpen = false;
         state.error = null;
         izrisiActionSheet();
@@ -4152,6 +4245,13 @@
     });
 
     elActionSheet.addEventListener("input", function (event) {
+      var preklicRazlogOpis = event.target.closest("[data-skip-reason-detail]");
+      if (preklicRazlogOpis) {
+        state.settingsByAction.skip_current_step.skipReason = "other";
+        state.settingsByAction.skip_current_step.skipReasonDetail = preklicRazlogOpis.value;
+        state.error = null;
+        return;
+      }
       var lawyerHistoryOpis = event.target.closest("[data-lawyer-history-custom-description]");
       if (lawyerHistoryOpis) {
         state.lawyerWizard.customHistoryDescription = lawyerHistoryOpis.value;
