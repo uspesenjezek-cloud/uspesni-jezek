@@ -53,8 +53,12 @@ async function remove(cfg, userId, profileId, inputReason) {
 }
 
 async function schedule(cfg) { return db.pokliciRpc(cfg, "razporedi_zapadlo_financno_ponovno_preverbo", {}); }
+function pripraviZakljucek(success, result) {
+  return { success: Boolean(success) && store.imaPopolnUradniInsolvencniRezultat(result), result: result || null };
+}
 async function finish(cfg, job, success, result) {
-  if (job && job.financial_recheck_id) await db.pokliciRpc(cfg, "zakljuci_financno_ponovno_preverbo", { p_job_id: job.id, p_success: Boolean(success), p_result: result || null });
+  var prepared = pripraviZakljucek(success, result);
+  if (job && job.financial_recheck_id) await db.pokliciRpc(cfg, "zakljuci_financno_ponovno_preverbo", { p_job_id: job.id, p_success: prepared.success, p_result: prepared.result });
 }
 
-module.exports = { get: get, save: save, remove: remove, schedule: schedule, finish: finish, _test: { intervalDays: intervalDays, reason: reason } };
+module.exports = { get: get, save: save, remove: remove, schedule: schedule, pripraviZakljucek: pripraviZakljucek, finish: finish, _test: { intervalDays: intervalDays, reason: reason } };

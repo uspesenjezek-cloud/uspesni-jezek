@@ -185,7 +185,7 @@ async function najdiPredpomnjeno(cfg, userId, kljuc, faza) {
 async function najdiAktivno(cfg, userId, kljuc) {
   var pot = "mehka_boniteta_opravila?user_id=eq." + encodeURIComponent(userId) +
     "&cache_key=eq." + encodeURIComponent(kljuc) +
-    "&status=in.(queued,processing)&select=id,user_id,faza,status,attempts,max_attempts,result_payload,last_error,created_at,updated_at&order=created_at.asc&limit=1";
+    "&status=in.(queued,processing)&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at&order=created_at.asc&limit=1";
   var odgovor = await rest(cfg, pot);
   return Array.isArray(odgovor.data) && odgovor.data.length ? odgovor.data[0] : null;
 }
@@ -234,11 +234,23 @@ async function ustvari(cfg, userId, telo) {
     result_payload: cached ? cached.result_payload : null,
     finished_at: cached ? zdaj : null,
   };
-  var odgovor = await rest(cfg, "mehka_boniteta_opravila", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify(zapis),
-  });
+  var odgovor;
+  try {
+    odgovor = await rest(cfg, "mehka_boniteta_opravila", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(zapis),
+    });
+  } catch (error) {
+    if (error && error.details && String(error.details.code || "") === "23505") {
+      var socasno = await najdiAktivno(cfg, userId, kljuc);
+      if (socasno) {
+        socasno.reused = true;
+        return javniPosnetek(socasno, await pozicija(cfg, socasno));
+      }
+    }
+    throw error;
+  }
   var job = odgovor.data && odgovor.data[0];
   if (job) job.cached = Boolean(cached);
   return javniPosnetek(job, cached ? 0 : await pozicija(cfg, job));
@@ -270,7 +282,7 @@ async function pridobi(cfg, userId, id) {
   } else {
     var pot = "mehka_boniteta_opravila?id=eq." + encodeURIComponent(id) +
       "&user_id=eq." + encodeURIComponent(userId) +
-      "&select=id,user_id,faza,status,attempts,max_attempts,result_payload,last_error,created_at,updated_at";
+      "&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at";
     var odgovor = await rest(cfg, pot);
     job = Array.isArray(odgovor.data) && odgovor.data.length === 1 ? odgovor.data[0] : null;
   }

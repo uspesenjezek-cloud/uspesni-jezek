@@ -1096,7 +1096,7 @@
 
   async function openRegisterApi(telo) {
     var token = await pridobiToken(false, true);
-    var odgovor = await fetchSPonovnimPoskusom("/api/openregister-pro", {
+    var odgovor = await fetchSPonovnimPoskusom("/api/boniteta-pro?route=openregister", {
       method: "POST",
       headers: glaveCakalneVrste(token, true),
       body: JSON.stringify(telo),
@@ -1113,7 +1113,7 @@
       var token = await pridobiToken(authPoskus > 0, true);
       // Plačljivega klica ne ponavljamo po omrežni napaki. Ponovitev je dovoljena
       // samo po HTTP 401, ko je strežnik zahtevo zavrnil še pred zagonom actorja.
-      var odgovor = await fetch("/api/openregister-pro", {
+      var odgovor = await fetch("/api/boniteta-pro?route=openregister", {
         method: "POST",
         headers: glaveCakalneVrste(token, true),
         body: JSON.stringify({ action: "northdata_autocomplete", query: query }),
@@ -2034,27 +2034,7 @@
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           action: "save_check",
-          profile: {
-            companyId: uradniCompanyId,
-            legalName: identiteta.naziv || identiteta.ime,
-            registerNumber: uradniCompanyId ? identiteta.registerNumber || podatki.identityEvidence && podatki.identityEvidence.registerNumber || "" : "",
-            registerCourt: uradniCompanyId ? identiteta.registerCourt || podatki.identityEvidence && podatki.identityEvidence.registerCourt || "" : "",
-            companyStatus: identiteta.active === false ? "inactive" : identiteta.active === true ? "active" : "unknown",
-            address: { street: identiteta.naslov || "", postal_code: identiteta.postnaStevilka || "", city: identiteta.kraj || "" },
-            contact: { website: vnosObRezultatu && vnosObRezultatu.spletnaStran || "" },
-            checkedAt: podatki.checkedAt,
-            latestCheck: {
-              result: podatki.result || {}, insolvency: podatki.insolvency || {},
-              identityStatus: identiteta.status,
-              entityType: identiteta.entityType || "",
-              identityName: identiteta.ime || "",
-              businessName: identiteta.naziv || "",
-              queueJobId: zadnjiJobId,
-              sources: podatki.sources || [],
-              northData: podatki.northData || null,
-              northDataDetails: podatki.northDataDetails || null,
-            },
-          },
+          jobId: zadnjiJobId,
         }),
       });
       var shranjeno = await odgovor.json().catch(function () { return {}; });

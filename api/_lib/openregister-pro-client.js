@@ -204,9 +204,14 @@ async function credits() {
   return kreditnoStanje(await request("credits"));
 }
 
-async function document(documentId, realtime) {
+function veljavenDocumentId(documentId) {
   var id = String(documentId || "").trim();
-  if (!/^[0-9a-z-]{8,80}$/i.test(id)) throw napaka("Manjka veljaven dokument.", 400, "INVALID_DOCUMENT");
+  return /^[0-9a-z-]{8,80}$/i.test(id) ? id : "";
+}
+
+async function document(documentId, realtime) {
+  var id = veljavenDocumentId(documentId);
+  if (!id) throw napaka("Manjka veljaven dokument.", 400, "INVALID_DOCUMENT");
   return sanitizeDocumentResult(await request("document/" + encodeURIComponent(id) + (realtime ? "?realtime=true" : "")));
 }
 
@@ -215,10 +220,15 @@ var DOCUMENT_CATEGORIES = new Set([
   "structured_information", "shareholder_list", "articles_of_association"
 ]);
 
+function veljavnaKategorijaDokumenta(category) {
+  var kind = String(category || "");
+  return DOCUMENT_CATEGORIES.has(kind) ? kind : "";
+}
+
 async function realtimeDocument(companyId, category) {
   var id = veljavenCompanyId(companyId);
-  var kind = String(category || "");
-  if (!id || !DOCUMENT_CATEGORIES.has(kind)) throw napaka("Manjka veljavno podjetje ali vrsta dokumenta.", 400, "INVALID_DOCUMENT");
+  var kind = veljavnaKategorijaDokumenta(category);
+  if (!id || !kind) throw napaka("Manjka veljavno podjetje ali vrsta dokumenta.", 400, "INVALID_DOCUMENT");
   return sanitizeDocumentResult(await request("document?company_id=" + encodeURIComponent(id) + "&document_category=" + encodeURIComponent(kind)));
 }
 
@@ -275,6 +285,8 @@ module.exports = {
   createMonitor: createMonitor,
   deleteMonitor: deleteMonitor,
   veljavenCompanyId: veljavenCompanyId,
+  veljavenDocumentId: veljavenDocumentId,
+  veljavnaKategorijaDokumenta: veljavnaKategorijaDokumenta,
   dovoljeniFiltri: dovoljeniFiltri,
   safeHttpUrl: safeHttpUrl,
 };

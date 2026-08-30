@@ -109,7 +109,7 @@ function imaPopolnUradniInsolvencniRezultat(result) {
   var insolvenca = result && result.insolvency || {};
   var uradna = insolvenca.officialVerification || {};
   return ["clear", "possible_match"].includes(String(insolvenca.status || "")) &&
-    uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
+    uradna.evidenceStatus === "captured" && (Boolean(uradna.evidenceImage) || uradna.serverEvidenceVerified === true);
 }
 
 function izberiVarnoNajnovejsoPreverbo(obstojeci, incoming, incomingCheckedAt) {
@@ -119,8 +119,11 @@ function izberiVarnoNajnovejsoPreverbo(obstojeci, incoming, incomingCheckedAt) {
   var novaImaInsolvencnoPreverbo = Boolean(nova.insolvency && nova.insolvency.status && nova.insolvency.status !== "not_checked");
   var novaJeNedokoncana = jeNedokoncanaUradnaPreverba(nova) ||
     (novaImaInsolvencnoPreverbo && !imaPopolnUradniInsolvencniRezultat(nova));
-  var staraJeVeljavna = ["clear", "not_found", "found", "possible_match", "match", "warning"].includes(String(staraInsolvenca.status || ""));
-  if (novaJeNedokoncana && staraJeVeljavna) {
+  var staraJeVeljavna = imaPopolnUradniInsolvencniRezultat(stara);
+  // Plitek registrski zapis (npr. shranjevanje zadetka iz iskalnika) ne sme
+  // izbrisati že zajetega uradnega insolvenčnega dokazila. Enako velja za
+  // neuspel ali nedokončan ponovni poskus.
+  if ((!novaImaInsolvencnoPreverbo || novaJeNedokoncana) && staraJeVeljavna) {
     return { latestCheck: compactJson(stara, 0) || {}, checkedAt: obstojeci.checked_at || incomingCheckedAt || null, preserved: true };
   }
   return { latestCheck: compactJson(nova, 0) || {}, checkedAt: incomingCheckedAt || null, preserved: false, rejected: novaJeNedokoncana };
@@ -310,7 +313,9 @@ async function markAlertRead(cfg, userId, alertId) {
   var rows = await rest(cfg, "boniteta_opozorila?id=eq." + encodeURIComponent(alertId) + "&user_id=eq." + encodeURIComponent(userId), {
     method: "PATCH", headers: { Prefer: "return=representation" }, body: { read_at: new Date().toISOString() },
   });
-  return Array.isArray(rows) ? rows[0] : rows;
+  var saved = Array.isArray(rows) ? rows[0] : rows;
+  if (!saved) throw Object.assign(new Error("Opozorilo ni bilo najdeno ali ne pripada prijavljenemu uporabniku."), { status: 404, code: "ALERT_NOT_FOUND" });
+  return saved;
 }
 
 async function saveCrifRequest(cfg, userId, input) {
@@ -398,5 +403,6 @@ module.exports = {
   saveCrifProviderResult: saveCrifProviderResult,
   compactJson: compactJson,
   jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba,
+  imaPopolnUradniInsolvencniRezultat: imaPopolnUradniInsolvencniRezultat,
   _test: { validUuid: validUuid, uradnaRegistrskaPolja: uradnaRegistrskaPolja, veljavenNorthDataZaProfil: veljavenNorthDataZaProfil, izberiVarnoNajnovejsoPreverbo: izberiVarnoNajnovejsoPreverbo, jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba, imaPopolnUradniInsolvencniRezultat: imaPopolnUradniInsolvencniRezultat },
 };

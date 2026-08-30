@@ -14,6 +14,7 @@ var financialRecheck = require("../_lib/financno-ponovno-preverjanje");
 var crif = require("../_lib/crif-priprava");
 var crifResult = require("../_lib/crif-rezultat");
 var bau650f = require("../_lib/bauhandwerkersicherung-service");
+var resourceProof = require("../_lib/boniteta-resource-proof");
 var MONITOR_PREFERENCES = new Set(["basic", "representation", "financials", "documents", "ownership", "holdings", "insolvencies"]);
 
 function json(res, status, body) { res.setHeader("Cache-Control", "no-store"); return res.status(status).json(body); }
@@ -22,6 +23,91 @@ function preferences(input) { var values = (Array.isArray(input) ? input : []).m
 function monitoringFrequency(input) { var value = String(input || ""); if (!["daily", "weekly", "monthly"].includes(value)) throw Object.assign(new Error("Izberite veljavno pogostost spremljanja."), { status: 400, code: "INVALID_MONITORING_FREQUENCY" }); return value; }
 function monitoringToday(date) { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Ljubljana", year: "numeric", month: "2-digit", day: "2-digit" }).format(date || new Date()); }
 function route(req) { var named = query(req, "route"); if (named) return named; return String(req.url || "").includes("boniteta-profili") ? "profiles" : "openregister"; }
+
+function authoritativeConfig() {
+  try { return db.konfiguracija(); }
+  catch (_) { throw Object.assign(new Error("Strežniška shramba za preverjene podatke ni povezana."), { status: 503, code: "SERVER_WRITE_NOT_CONFIGURED" }); }
+}
+
+function firstValue(source, keys) {
+  var input = source && typeof source === "object" ? source : {};
+  for (var i = 0; i < keys.length; i += 1) if (input[keys[i]] != null && String(input[keys[i]]).trim()) return String(input[keys[i]]).trim();
+  return "";
+}
+
+function profileFromCompletedJob(job) {
+  if (!job || job.status !== "completed" || !job.result) throw Object.assign(new Error("Zaključena preverba ni bila najdena ali ne pripada prijavljenemu uporabniku."), { status: 409, code: "COMPLETED_CHECK_REQUIRED" });
+  if (!store.imaPopolnUradniInsolvencniRezultat(job.result)) throw Object.assign(new Error("Brez zajetega uradnega insolvenčnega dokazila preverbe ni mogoče shraniti."), { status: 409, code: "INSOLVENCY_EVIDENCE_INCOMPLETE" });
+  var result = job.result, identity = result.identity || {}, evidence = result.identityEvidence || {}, request = job.request || {};
+  var identityStatus = firstValue(identity, ["status"]), legalName = firstValue(identity, ["naziv", "ime", "legalName", "name"]) || firstValue(evidence, ["naziv", "ime", "legalName", "name"]);
+  if (!legalName || !["verified_register", "confirmed_impressum"].includes(identityStatus)) throw Object.assign(new Error("Zaključena preverba nima potrjene identitete podjetja."), { status: 409, code: "VERIFIED_IDENTITY_REQUIRED" });
+  var companyId = firstValue(identity, ["companyId", "company_id"]) || firstValue(evidence, ["companyId", "company_id"]) || request.openRegisterCompanyId || "";
+  var insolvency = Object.assign({}, result.insolvency || {}), officialVerification = Object.assign({}, insolvency.officialVerification || {}, { serverEvidenceVerified: true });
+  insolvency.officialVerification = officialVerification;
+  var latestCheck = Object.assign({}, result, {
+    insolvency: insolvency,
+    identityStatus: identityStatus,
+    entityType: firstValue(identity, ["entityType", "entity_type"]),
+    identityName: firstValue(identity, ["ime", "name"]),
+    businessName: firstValue(identity, ["naziv", "businessName", "legalName"]),
+    queueJobId: job.id,
+  });
+  return {
+    companyId: companyId,
+    legalName: legalName,
+    registerNumber: companyId ? firstValue(identity, ["registerNumber", "register_number"]) || firstValue(evidence, ["registerNumber", "register_number"]) || request.registerNumber || "" : "",
+    registerCourt: companyId ? firstValue(identity, ["registerCourt", "register_court"]) || firstValue(evidence, ["registerCourt", "register_court"]) || request.registerCourt || "" : "",
+    companyStatus: identity.active === false ? "inactive" : identity.active === true ? "active" : "unknown",
+    address: { street: firstValue(identity, ["naslov", "street", "address"]), postal_code: firstValue(identity, ["postnaStevilka", "postalCode", "postal_code"]), city: firstValue(identity, ["kraj", "city"]) },
+    contact: { website: request.spletnaStran || "" },
+    checkedAt: result.checkedAt || job.updatedAt || new Date().toISOString(),
+    latestCheck: latestCheck,
+  };
+}
+
+function registryProfile(company) {
+  var address = company.address || {};
+  return {
+    companyId: company.company_id,
+    legalName: company.name,
+    registerNumber: [company.register_type, company.register_number].filter(Boolean).join(" "),
+    registerCourt: company.register_court,
+    companyStatus: company.active === false ? "inactive" : "active",
+    address: { street: address.street || "", postal_code: address.postal_code || "", city: address.city || "" },
+    checkedAt: new Date().toISOString(),
+    latestCheck: { source: "openregister_verified_search", identityStatus: "verified_register", identity: { status: "verified_register", companyId: company.company_id, naziv: company.name, registerNumber: company.register_number, registerCourt: company.register_court, active: company.active !== false, naslov: address.street || "", postnaStevilka: address.postal_code || "", kraj: address.city || "" }, result: { level: "yellow", title: "Profil ustvarjen iz preverjenega registrskega zadetka" } },
+  };
+}
+
+function filteredIdentityResults(results, filters) {
+  return (Array.isArray(results) ? results : []).filter(function (company) {
+    return (Array.isArray(filters) ? filters : []).every(function (filter) {
+      var field = String(filter && filter.field || ""), wanted = String(filter && filter.value || "").trim().toLocaleLowerCase("de-DE");
+      if (!wanted) return true;
+      if (field === "city") return String(company.address && company.address.city || "").toLocaleLowerCase("de-DE").includes(wanted);
+      if (field === "legal_form") return String(company.legal_form || "").toLocaleLowerCase("de-DE") === wanted;
+      return true;
+    });
+  });
+}
+
+function containsResourceId(value, expected, depth, seen) {
+  if (!value || typeof value !== "object" || Number(depth || 0) > 8) return false;
+  var visited = seen || new Set(); if (visited.has(value)) return false; visited.add(value);
+  if (Array.isArray(value)) return value.slice(0, 200).some(function (item) { return containsResourceId(item, expected, Number(depth || 0) + 1, visited); });
+  return Object.keys(value).slice(0, 200).some(function (key) {
+    if (["id", "documentId", "document_id"].includes(key) && String(value[key] || "") === expected) return true;
+    return containsResourceId(value[key], expected, Number(depth || 0) + 1, visited);
+  });
+}
+
+async function requireBoundDocument(cfg, userId, profile, documentId) {
+  var id = String(documentId || "").trim();
+  if (!id) throw Object.assign(new Error("Manjka dokument."), { status: 400, code: "DOCUMENT_ID_REQUIRED" });
+  var cached = await store.getCache(cfg, userId, profile.id, "documents", true);
+  if (!containsResourceId([cached && cached.payload, profile.latest_check], id, 0)) throw Object.assign(new Error("Dokument ni vezan na izbrani profil."), { status: 404, code: "DOCUMENT_NOT_BOUND_TO_PROFILE" });
+  return id;
+}
 
 function validateMonitoringSchedule(input, todayOverride) {
   var projectStartDate = String(input && input.projectStartDate || "").trim();
@@ -139,7 +225,7 @@ async function profiles(req, res, cfg, auth) {
     var foundationProfile = await store.getProfile(cfg, auth.user.id, String(body.profileId || ""));
     if (!foundationProfile) return json(res, 404, { ok: false, napaka: "Profil podjetja ni bil najden." });
     var evidence = foundationDateEvidence(body, foundationProfile);
-    return json(res, 200, { ok: true, profile: await store.saveFoundationDateEvidence(cfg, auth.user.id, foundationProfile, evidence), evidence: evidence });
+    return json(res, 200, { ok: true, profile: await store.saveFoundationDateEvidence(authoritativeConfig(), auth.user.id, foundationProfile, evidence), evidence: evidence });
   }
   if (body.action === "import_northdata_run") {
     var northDataProfile = await store.getProfile(cfg, auth.user.id, String(body.profileId || ""));
@@ -151,11 +237,17 @@ async function profiles(req, res, cfg, auth) {
       address: northDataProfile.address || {},
     });
     if (northData.status !== "found") return json(res, 409, { ok: false, code: "NORTHDATA_COMPANY_MISMATCH", napaka: "Rezultat runa se ne ujema z izbranim podjetjem." });
-    return json(res, 200, { ok: true, profile: await store.saveNorthDataPayload(cfg, auth.user.id, northDataProfile, northData), northData: northData });
+    return json(res, 200, { ok: true, profile: await store.saveNorthDataPayload(authoritativeConfig(), auth.user.id, northDataProfile, northData), northData: northData });
   }
-  if (body.action === "mark_alert_read") return json(res, 200, { ok: true, alert: await store.markAlertRead(cfg, auth.user.id, String(body.alertId || "")) });
+  if (body.action === "mark_alert_read") return json(res, 200, { ok: true, alert: await store.markAlertRead(authoritativeConfig(), auth.user.id, String(body.alertId || "")) });
+  if (body.action === "save_registry_profile") {
+    var company = identitySearch.verifyCompanyProof(body.identityProof, auth.user.id);
+    if (!company) throw Object.assign(new Error("Registrski zadetek ni več veljaven. Podjetje poiščite znova."), { status: 409, code: "IDENTITY_PROOF_INVALID" });
+    return json(res, 200, { ok: true, profile: await store.upsertProfile(authoritativeConfig(), auth.user.id, registryProfile(company)) });
+  }
   if (body.action !== "save_check") return json(res, 400, { ok: false, napaka: "Neznana operacija." });
-  return json(res, 200, { ok: true, profile: await store.upsertProfile(cfg, auth.user.id, body.profile || {}) });
+  var completedJob = await queue.pridobi(cfg, auth.user.id, String(body.jobId || ""));
+  return json(res, 200, { ok: true, profile: await store.upsertProfile(authoritativeConfig(), auth.user.id, profileFromCompletedJob(completedJob)) });
 }
 
 async function crifRequests(req, res, cfg, auth) {
@@ -207,30 +299,52 @@ async function pro(req, res, cfg, auth) {
     return json(res, 200, { ok: true, results: debtorSearch.results, cached: debtorSearch.cached, creditsUsed: debtorSearch.creditsUsed, maxCredits: 1 });
   }
   if (action === "debtor_company_select") {
-    var debtorSelection = await debtorCompanyIdentity.saveSelection(cfg, auth.user.id, body.identityProof);
+    var debtorSelection = await debtorCompanyIdentity.saveSelection(authoritativeConfig(), auth.user.id, body.identityProof);
     return json(res, 200, { ok: true, company: debtorSelection.company, profileId: debtorSelection.profile && debtorSelection.profile.id || null, creditsUsed: 0, maxCredits: 1 });
   }
   if (action === "debtor_company_list") {
     return json(res, 200, { ok: true, companies: await debtorCompanyIdentity.list(cfg, auth.user.id), creditsUsed: 0, maxCredits: 1 });
   }
   if (action === "company_lookup") {
-    return json(res, 200, { ok: true, company: await openregister.companyDetails(body.companyId), creditsUsed: 10 });
+    var companyId = openregister.veljavenCompanyId(body.companyId);
+    if (!companyId) throw Object.assign(new Error("Izberite veljavno podjetje iz registra."), { status: 400, code: "COMPANY_ID_REQUIRED" });
+    return json(res, 200, { ok: true, company: await openregister.companyDetails(companyId), creditsUsed: 10 });
   }
-  if (action === "search") return json(res, 200, { ok: true, results: await openregister.advancedSearch(body) });
+  if (action === "search") {
+    var searched = await identitySearch.search(body.query, auth.user.id);
+    return json(res, 200, { ok: true, results: filteredIdentityResults(searched.results, body.filters), cached: searched.cached, creditsUsed: searched.cached ? 0 : 1 });
+  }
   var profileId = req.method === "GET" ? query(req, "profileId") : String(body.profileId || "");
   var profile = await store.getProfile(cfg, auth.user.id, profileId);
   if (!profile) return json(res, 404, { ok: false, napaka: "Profil ni bil najden." });
   // Plačljiv dokument mora biti vedno vezan na profil trenutnega uporabnika.
   // Sicer bi poljuben prijavljen uporabnik lahko po ID-ju naročil tuj dokument.
-  if (action === "document") return json(res, 200, { ok: true, document: await openregister.document(body.documentId, false), creditsUsed: 10 });
-  if (action === "document_realtime") return json(res, 200, { ok: true, document: await openregister.realtimeDocument(profile.company_id, body.category), creditsUsed: 10 });
-  if (action === "transparency_order") return json(res, 200, { ok: true, extract: await openregister.transparencyOrder(profile.company_id), creditsUsed: 25 });
-  if (action === "transparency_get") return json(res, 200, { ok: true, extract: await openregister.transparencyGet(body.extractId), creditsUsed: 0 });
+  if (action === "document") {
+    var boundDocumentId = openregister.veljavenDocumentId(await requireBoundDocument(cfg, auth.user.id, profile, body.documentId));
+    if (!boundDocumentId) throw Object.assign(new Error("Manjka veljaven dokument."), { status: 400, code: "INVALID_DOCUMENT" });
+    return json(res, 200, { ok: true, document: await openregister.document(boundDocumentId, false), creditsUsed: 10 });
+  }
+  if (action === "document_realtime") {
+    var documentCategory = openregister.veljavnaKategorijaDokumenta(body.category);
+    if (!profile.company_id || !documentCategory) throw Object.assign(new Error("Manjka veljavno podjetje ali vrsta dokumenta."), { status: 400, code: "INVALID_DOCUMENT" });
+    return json(res, 200, { ok: true, document: await openregister.realtimeDocument(profile.company_id, documentCategory), creditsUsed: 10 });
+  }
+  if (action === "transparency_order") {
+    var transparencyCompanyId = openregister.veljavenCompanyId(profile.company_id);
+    if (!transparencyCompanyId) throw Object.assign(new Error("Manjka registrirano podjetje."), { status: 400, code: "COMPANY_ID_REQUIRED" });
+    var orderedExtract = await openregister.transparencyOrder(transparencyCompanyId), orderedId = firstValue(orderedExtract, ["id", "extractId", "extract_id"]);
+    return json(res, 200, { ok: true, extract: orderedExtract, extractProof: resourceProof.sign(auth.user.id, profile.id, "transparency_extract", orderedId), creditsUsed: 25 });
+  }
+  if (action === "transparency_get") {
+    var extractId = String(body.extractId || "").trim();
+    if (!resourceProof.verify(body.extractProof, auth.user.id, profile.id, "transparency_extract", extractId)) throw Object.assign(new Error("Izpis ni vezan na izbrani profil ali je dokazilo poteklo."), { status: 403, code: "EXTRACT_NOT_BOUND_TO_PROFILE" });
+    return json(res, 200, { ok: true, extract: await openregister.transparencyGet(extractId), extractProof: body.extractProof, creditsUsed: 0 });
+  }
   if (action === "project_monitor_get") return json(res, 200, { ok: true, monitor: await projectMonitor.get(cfg, auth.user.id, profile.id), policy: projectMonitor.policy(Number(body.projectValue || 0)) });
-  if (action === "project_monitor_save") return json(res, 200, { ok: true, monitor: await projectMonitor.save(cfg, auth.user.id, profile, body) });
+  if (action === "project_monitor_save") return json(res, 200, { ok: true, monitor: await projectMonitor.save(authoritativeConfig(), auth.user.id, profile, body) });
   if (action === "project_monitor_delete") { await projectMonitor.remove(cfg, auth.user.id, profile.id); return json(res, 200, { ok: true }); }
   if (action === "financial_recheck_get") return json(res, 200, { ok: true, recheck: await financialRecheck.get(cfg, auth.user.id, profile.id, req.method === "GET" ? query(req, "reason") : body.reason) });
-  if (action === "financial_recheck_save") return json(res, 200, { ok: true, recheck: await financialRecheck.save(cfg, auth.user.id, profile, body) });
+  if (action === "financial_recheck_save") return json(res, 200, { ok: true, recheck: await financialRecheck.save(authoritativeConfig(), auth.user.id, profile, body) });
   if (action === "financial_recheck_delete") { await financialRecheck.remove(cfg, auth.user.id, profile.id, body.reason); return json(res, 200, { ok: true }); }
   if (action === "section") {
     var section = req.method === "GET" ? query(req, "section") : String(body.section || "");
@@ -239,16 +353,19 @@ async function pro(req, res, cfg, auth) {
     var cached = !force ? await store.getCache(cfg, auth.user.id, profile.id, section, false) : null;
     if (cached) return json(res, 200, { ok: true, section: section, data: cached.payload, cache: { hit: true, fetchedAt: cached.fetched_at, expiresAt: cached.expires_at, creditsUsed: 0, sourceMode: cached.source_mode } });
     if (!profile.company_id) return json(res, 409, { ok: false, code: "REGISTERED_COMPANY_REQUIRED", napaka: "Ta sklop je na voljo za uradno registrirana podjetja z OpenRegister ID." });
-    var result = await openregister.section(profile.company_id, section, realtime), saved = await store.putCache(cfg, auth.user.id, profile.id, section, result);
+    var sectionConfig = openregister.SECTION_CONFIG[section];
+    if (!sectionConfig) throw Object.assign(new Error("Manjka veljaven profil podjetja ali sklop."), { status: 400, code: "INVALID_REQUEST" });
+    var normalizedRealtime = realtime && section === "company";
+    var result = await openregister.section(profile.company_id, section, normalizedRealtime), saved = await store.putCache(authoritativeConfig(), auth.user.id, profile.id, section, result);
     return json(res, 200, { ok: true, section: section, data: saved.payload, cache: { hit: false, fetchedAt: saved.fetched_at, expiresAt: saved.expires_at, creditsUsed: saved.credits_used, sourceMode: saved.source_mode } });
   }
   if (action === "monitor_create") {
     var prefs = preferences(body.preferences); if (!prefs.length) return json(res, 400, { ok: false, napaka: "Izberite vsaj eno vrsto sprememb." });
     var schedule = validateMonitoringSchedule(body);
     var frequency = monitoringFrequency(body.frequency), previousSchedule = await projectMonitor.get(cfg, auth.user.id, profile.id), monitor;
-    await projectMonitor.saveMonitoring(cfg, auth.user.id, profile, Object.assign({}, schedule, { frequency: frequency }));
+    await projectMonitor.saveMonitoring(authoritativeConfig(), auth.user.id, profile, Object.assign({}, schedule, { frequency: frequency }));
     try {
-      monitor = await store.upsertMonitor(cfg, auth.user.id, profile, frequency, prefs, {
+      monitor = await store.upsertMonitor(authoritativeConfig(), auth.user.id, profile, frequency, prefs, {
         source: "internal_recheck",
         provider: "internal_recheck",
         billing: "per_completed_recheck",
@@ -258,7 +375,7 @@ async function pro(req, res, cfg, auth) {
         monitoringSchedule: schedule,
       });
     } catch (saveError) {
-      if (previousSchedule) await projectMonitor.restore(cfg, previousSchedule);
+      if (previousSchedule) await projectMonitor.restore(authoritativeConfig(), previousSchedule);
       else await projectMonitor.remove(cfg, auth.user.id, profile.id);
       throw saveError;
     }
@@ -275,9 +392,9 @@ async function pro(req, res, cfg, auth) {
 async function handler(req, res) {
   var cfg; try { cfg = db.uporabniskaKonfiguracija(); } catch (_) { return json(res, 503, { ok: false, napaka: "Strežniška shramba ni povezana." }); }
   var auth = await db.preveriUporabnika(req, cfg); if (!auth.ok) return json(res, auth.status, { ok: false, napaka: auth.napaka }); cfg.userToken = auth.token;
-  try { var selected = route(req); if (selected === "650f") { if (req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." }); return json(res, 200, Object.assign({ ok: true }, await bau650f.handle(cfg, auth.user.id, req.body || {}, store))); } return selected === "profiles" ? await profiles(req, res, cfg, auth) : selected === "crif" ? await crifRequests(req, res, cfg, auth) : await pro(req, res, cfg, auth); }
+  try { var selected = route(req); if (selected === "650f") { if (req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." }); return json(res, 200, Object.assign({ ok: true }, await bau650f.handle(authoritativeConfig(), auth.user.id, req.body || {}, store))); } return selected === "profiles" ? await profiles(req, res, cfg, auth) : selected === "crif" ? await crifRequests(req, res, cfg, auth) : await pro(req, res, cfg, auth); }
   catch (err) { console.error("[boniteta-pro]", err.code || err.message, err.details || ""); return json(res, err.status || 502, { ok: false, code: err.code || "BONITETA_PRO_FAILED", napaka: err.message || "Operacija ni uspela." }); }
 }
 
 module.exports = sentry.wrapHandler(handler, "/api/boniteta-pro");
-module.exports._test = { preferences: preferences, monitoringFrequency: monitoringFrequency, monitoringToday: monitoringToday, query: query, route: route, validateMonitoringSchedule: validateMonitoringSchedule, foundationDateEvidence: foundationDateEvidence, watchedProfilesWithSchedule: watchedProfilesWithSchedule, crifRequests: crifRequests, normalizeCrifResult: crifResult.normalize };
+module.exports._test = { preferences: preferences, monitoringFrequency: monitoringFrequency, monitoringToday: monitoringToday, query: query, route: route, validateMonitoringSchedule: validateMonitoringSchedule, foundationDateEvidence: foundationDateEvidence, watchedProfilesWithSchedule: watchedProfilesWithSchedule, crifRequests: crifRequests, normalizeCrifResult: crifResult.normalize, profileFromCompletedJob: profileFromCompletedJob, registryProfile: registryProfile, filteredIdentityResults: filteredIdentityResults, containsResourceId: containsResourceId };

@@ -281,3 +281,6 @@ async function handler(req, res) {
 
 module.exports = sentry.wrapHandler(handler, "/api/boniteta-pro");
 module.exports._test = { preferences: preferences, monitoringFrequency: monitoringFrequency, monitoringToday: monitoringToday, query: query, route: route, validateMonitoringSchedule: validateMonitoringSchedule, foundationDateEvidence: foundationDateEvidence, watchedProfilesWithSchedule: watchedProfilesWithSchedule, crifRequests: crifRequests, normalizeCrifResult: crifResult.normalize };
+
+// Lokalni strežnik in produkcijski združevalnik vedno uporabljata isti handler.
+module.exports = require("./_handlers/boniteta-pro");
