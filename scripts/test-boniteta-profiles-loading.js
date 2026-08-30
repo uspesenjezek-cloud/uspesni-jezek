@@ -56,7 +56,7 @@ assert.ok(
     center.includes('function watchedCard(m){return profileCard(watchedProfile(m),m)}') &&
     html.includes('id="bp-profiles-grid" class="bp-grid bp-profiles-list"') &&
     html.includes('id="bp-watched-grid" class="bp-grid bp-profiles-list"') &&
-    center.includes('if(!companyCardsPreview)loadWatched()'),
+    center.includes('if(!companyCardsPreview&&!monitoringStatesPreview)loadWatched()'),
   "Podjetja uporabljajo svoj obstoječi widget z dodatno akcijo, Spremljano pa ohrani spremljevalno kartico"
 );
 assert.ok(
@@ -81,8 +81,8 @@ assert.ok(
     center.includes('<strong>Poglej zadnjo preverbo</strong>') &&
     center.includes('newCheckHref="bonitetna-preverba.html?profile="+encodeURIComponent(p.id)+"&recheck=1#new"') &&
     center.includes('function openProfileMonitoring(link,event)') &&
-    center.includes('openMonitoringSetup([{name:profile.legal_name||"Podjetje",profileId:profile.id||""}])') &&
-    center.includes('label.textContent="Spremljano"') &&
+    center.includes('openMonitoringSetup([{name:profile.legal_name||"Podjetje",profileId:profile.id||"",monitoring:monitoring}]') &&
+    center.includes('label.textContent="Spremeni spremljanje"') &&
     center.includes('return"Naslednja preverba: "+datum') &&
     center.includes('api("/api/boniteta-profili?view=watched")') &&
     center.includes('window.UJBonitetaPonovnoPreveriProfil(profile)') &&
@@ -112,7 +112,7 @@ assert.ok(
     center.includes('card&&card.querySelector(".bp-monitoring-next span")||card&&card.querySelector(".bp-company-card__insight small")') &&
     !center.includes('function appendMonitoringNextLine') &&
     !shellCss.includes('.bp-company-card__next-check') &&
-    shellCss.includes('#bp-watched .bp-monitoring-next'),
+    shellCss.includes(':is(#bp-profiles, #bp-watched) .bp-monitoring-next'),
   "običajna kartica ohrani termin v informacijskem bloku, primerjalno stanje pa ga prikaže v kompaktni namenski vrstici"
 );
 assert.ok(
