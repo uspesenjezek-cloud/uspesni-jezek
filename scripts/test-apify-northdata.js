@@ -250,7 +250,12 @@ async function main() {
   assert.strictEqual(client.companyCache.CACHE_VERSION, "northdata-jaka-v6-financial-invariants");
   assert.match(source("scripts/local-server.js"), /APIFY_API_TOKEN/,
     "lokalni strežnik mora naložiti strežniški Apify žeton iz .env.local");
-  assert.match(source("app/bonitetna-preverba.js"), /northData: podatki\.northData \|\| null/);
+  assert.match(source("api/_handlers/boniteta-pro.js"), /var latestCheck = Object\.assign\(\{\}, result,/,
+    "strežnik mora v profil prenesti North Data iz lastniško vezanega zaključenega opravila");
+  assert.match(source("app/bonitetna-preverba.js"), /action: "save_check",\s*jobId: zadnjiJobId/,
+    "odjemalec mora poslati samo ID zaključene preverbe, ne sestavljenega rezultata");
+  assert.doesNotMatch(source("app/bonitetna-preverba.js"), /action: "save_check",[\s\S]{0,240}?northData:/,
+    "odjemalec pri save_check ne sme poslati lastnega North Data rezultata");
   assert.match(source("app/boniteta-profil.js"), /function northDataPayload\(\)/);
   assert.match(source("app/boniteta-profil.js"), /Vključeno v osnovno preverbo · North Data/);
   assert.match(profileView.northDataNetworkHtml({ company: {
