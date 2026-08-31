@@ -47,6 +47,10 @@ async function ensureTestUser() {
       [userId, "pos-snapshot-" + userId + "@example.invalid"]
     );
   }
+  await pool.query(
+    "insert into public.pos_business_profiles(user_id,invoice_prefix) values ($1,'SNAP') on conflict (user_id) do nothing",
+    [userId]
+  );
 }
 
 async function createInvoice(grossCents, fixedId) {
