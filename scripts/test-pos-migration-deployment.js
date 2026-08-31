@@ -407,4 +407,19 @@ assert.doesNotMatch(
   "Dolžnikova migracija mora uporabljati kanonični zadeve.obrtnik_id, ne neobstoječega user_id."
 );
 
+const paymentSafetyMigration = fs.readFileSync(
+  path.join(__dirname, "..", "supabase", "migrations", "20260829165203_pos_payment_safety_v2.sql"),
+  "utf8"
+);
+assert.match(
+  paymentSafetyMigration,
+  /\bbegin;\s+lock table public\.pos_invoices\b/i,
+  "POS payment safety migracija mora zaklepe tabel izvajati znotraj eksplicitne transakcije."
+);
+assert.match(
+  paymentSafetyMigration,
+  /notify pgrst, 'reload schema';\s+commit;\s*$/i,
+  "POS payment safety migracija mora celoten zapisovalni mejnik zaključiti s commit."
+);
+
 console.log("POS migration deployment guard tests passed.");

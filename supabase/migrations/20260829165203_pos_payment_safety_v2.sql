@@ -7,6 +7,8 @@
 -- Keep the preflight, backfill and trigger installation in one stable write
 -- boundary. Existing transactions may finish; new invoice/payment/checkout
 -- writes wait until the migration commits or rolls back.
+begin;
+
 lock table public.pos_invoices in share row exclusive mode;
 lock table public.pos_payments in share row exclusive mode;
 lock table public.pos_cash_checkouts in share row exclusive mode;
@@ -862,3 +864,5 @@ revoke execute on function private._pos_cancel_stripe_checkout(uuid,text,timesta
 revoke execute on function public.pos_cancel_stripe_checkout(uuid,text,timestamptz) from service_role;
 
 notify pgrst, 'reload schema';
+
+commit;
