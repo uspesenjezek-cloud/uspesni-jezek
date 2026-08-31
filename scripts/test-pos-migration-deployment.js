@@ -422,4 +422,19 @@ assert.match(
   "POS payment safety migracija mora celoten zapisovalni mejnik zaključiti s commit."
 );
 
+const stripeEventInvoiceLockMigration = fs.readFileSync(
+  path.join(__dirname, "..", "supabase", "migrations", "20260830172315_pos_stripe_event_invoice_lock.sql"),
+  "utf8"
+);
+assert.match(
+  stripeEventInvoiceLockMigration,
+  /\bbegin;\s+lock table public\.pos_invoices\b/i,
+  "POS Stripe event invoice-lock migracija mora zaklepe tabel izvajati znotraj eksplicitne transakcije."
+);
+assert.match(
+  stripeEventInvoiceLockMigration,
+  /notify pgrst, 'reload schema';\s+commit;\s*$/i,
+  "POS Stripe event invoice-lock migracija mora celoten zapisovalni mejnik zaključiti s commit."
+);
+
 console.log("POS migration deployment guard tests passed.");

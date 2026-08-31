@@ -1193,6 +1193,16 @@
     return "";
   }
 
+  async function processFinapiSyncResult(body, importTransactions) {
+    var pending = Boolean(body && body.finapi && body.finapi.pending);
+    var transactions = pending || !body || !Array.isArray(body.transactions) ? [] : body.transactions;
+    var summary = { inserted_count: 0, duplicate_count: 0 };
+    if (!transactions.length) return { pending: pending, transactions: transactions, summary: summary, imported: false };
+    if (typeof importTransactions !== "function") throw new Error("finAPI uvozna funkcija ni na voljo.");
+    summary = await importTransactions(transactions) || summary;
+    return { pending: false, transactions: transactions, summary: summary, imported: true };
+  }
+
   function latestManualPaymentCandidate(invoices) {
     return (invoices || []).filter(function (invoice) {
       return invoice && invoice.status !== "paid" && invoice.status !== "cancelled" && invoiceOutstandingCents(invoice) > 0;
@@ -1882,6 +1892,7 @@
     parseCamt053: parseCamt053,
     parseBankStatement: parseBankStatement,
     bankImportFileError: bankImportFileError,
+    processFinapiSyncResult: processFinapiSyncResult,
     MAX_BANK_IMPORT_BYTES: MAX_BANK_IMPORT_BYTES,
     matchBankTransaction: matchBankTransaction,
     resolveBankMatches: resolveBankMatches,
@@ -5757,18 +5768,18 @@
       }
       if (!response.ok || !body || !body.finapi) throw new Error(body && body.napaka || "Testnih prilivov ni bilo mogoče sinhronizirati.");
       updateFinapiBankCapability(body.finapi);
-      var transactions = Array.isArray(body.transactions) ? body.transactions : [];
-      var summary = { inserted_count: 0, duplicate_count: 0 };
-      if (transactions.length) {
-        var fingerprint = await sha256Hex(JSON.stringify(transactions));
+      var processed = await Core.processFinapiSyncResult(body, async function (transactionsToImport) {
+        var fingerprint = await sha256Hex(JSON.stringify(transactionsToImport));
         var result = await withOperationTimeout(backend.client.rpc("pos_import_finapi_transactions", {
           p_batch_sha256: fingerprint,
-          p_transactions: transactions
+          p_transactions: transactionsToImport
         }));
         if (result.error) throw result.error;
-        summary = result.data || summary;
         await loadServerState("bank");
-      }
+        return result.data;
+      });
+      var transactions = processed.transactions;
+      var summary = processed.summary;
       renderBankSheet();
       if (!transactions.length && finapiBankCapability.pending) showToast("Testna banka še pripravlja prilive. Čez nekaj trenutkov pritisnite Osveži prilive.");
       else if (!transactions.length) showToast("finAPI testna banka trenutno nima novih EUR prilivov.");

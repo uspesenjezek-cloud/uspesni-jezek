@@ -52,6 +52,8 @@
 -- Closing the competing Checkout Session and re-reconciling the original
 -- one is handler work, delivered separately.
 
+begin;
+
 lock table public.pos_invoices in share row exclusive mode;
 lock table public.pos_payments in share row exclusive mode;
 lock table public.pos_payment_events in share row exclusive mode;
@@ -607,3 +609,5 @@ revoke all on function public.pos_apply_stripe_event(text,text,timestamptz,text,
 grant execute on function public.pos_apply_stripe_event(text,text,timestamptz,text,boolean,uuid,uuid,uuid,text,text,bigint,text,text,text,bigint) to service_role;
 
 notify pgrst, 'reload schema';
+
+commit;
