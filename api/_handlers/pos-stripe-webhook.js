@@ -79,6 +79,110 @@ function normalizeEvent(event) {
 
 function rpcResult(value) { return Array.isArray(value) ? value[0] || null : value || null; }
 
+function sessionPaymentIntentId(session) {
+  const intent = session && session.payment_intent;
+  return typeof intent === "string" ? intent : intent && String(intent.id || "") || "";
+}
+
+function fail(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function isTerminalSession(session) {
+  return session.status !== "open" || session.payment_status === "paid";
+}
+
+// Reconciles ONE Checkout Session's Stripe-side truth into the database.
+// Always retrieves and validates first; expires ONLY a session that is
+// still open and unpaid; after expiring, re-retrieves and REQUIRES the
+// session to have actually become terminal; then always reconciles —
+// already-paid and already-expired competitors are synced too, never
+// silently left behind.
+async function reconcileSessionState(stripe, rpc, ctx, sessionId) {
+  const expected = { userId: ctx.userId, invoiceId: ctx.invoiceId };
+  if (ctx.attemptId) expected.attemptId = ctx.attemptId;
+
+  let session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.retrieve(sessionId), expected);
+  if (String(session.id) !== sessionId) {
+    throw fail("STRIPE_SESSION_MISMATCH", "Stripe je vrnil drugo sejo, kot je bila zahtevana.");
+  }
+
+  if (!isTerminalSession(session)) {
+    await stripe.checkout.sessions.expire(sessionId);
+    session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.retrieve(sessionId), expected);
+    if (!isTerminalSession(session)) {
+      // Expire reported no error but the session is still payable. Stop
+      // here: reconciling the original session now could complete a
+      // payment while the customer can still pay the competitor.
+      throw fail(
+        "STRIPE_SESSION_STILL_OPEN",
+        "Stripe seje ni bilo mogoče zapreti — ostaja odprta in neplačana."
+      );
+    }
+  }
+
+  const amountCents = Number(session.amount_total);
+  const currency = String(session.currency || "").toUpperCase();
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || currency !== "EUR") {
+    throw fail("STRIPE_SESSION_AMOUNT_INVALID", "Stripe seja nima veljavnega zneska ali valute.");
+  }
+
+  await rpc("pos_reconcile_stripe_checkout", {
+    p_user_id: ctx.userId,
+    p_checkout_session_id: session.id,
+    p_session_status: String(session.status || ""),
+    p_payment_status: String(session.payment_status || ""),
+    p_payment_intent_id: sessionPaymentIntentId(session),
+    p_amount_cents: amountCents,
+    p_currency: currency,
+    p_observed_at: new Date().toISOString(),
+  });
+  return session;
+}
+
+// Competitor first, then the original. The original webhook event is
+// deduplicated and will never fire again on its own, so this is the only
+// remaining path that can complete the original payment once the conflict
+// is resolved.
+async function reconcileCompetingAndOriginal(stripe, rpc, userId, result) {
+  const competingSessionId = String(result.competing_checkout_session_id || "");
+  const originalSessionId = String(result.original_checkout_session_id || "");
+  const invoiceId = String(result.invoice_id || "");
+  const competingAttemptId = uuid(result.competing_provider_attempt_id);
+  const originalAttemptId = uuid(result.original_provider_attempt_id);
+
+  if (!/^cs_test_[A-Za-z0-9_]+$/.test(competingSessionId)
+      || !/^cs_test_[A-Za-z0-9_]+$/.test(originalSessionId)
+      || !uuid(invoiceId) || !competingAttemptId || !originalAttemptId) {
+    throw fail(
+      "STRIPE_RECONCILIATION_CONTRACT_BROKEN",
+      "RPC ni vrnil popolne Stripe TEST identitete za uskladitev."
+    );
+  }
+
+  await reconcileSessionState(stripe, rpc, {
+    userId,
+    invoiceId,
+    attemptId: competingAttemptId,
+  }, competingSessionId);
+
+  await reconcileSessionState(stripe, rpc, {
+    userId,
+    invoiceId,
+    attemptId: originalAttemptId,
+  }, originalSessionId);
+}
+
+function needsReconciliationFollowUp(result) {
+  if (!result || result.failure_code !== "paid_requires_reconciliation") return false;
+  // The valid no-competitor state is exactly the empty string. Any other
+  // type/shape enters the follow-up path and fails closed in its contract
+  // validator instead of being mistaken for "nothing to do".
+  return result.competing_checkout_session_id !== "";
+}
+
 async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljen je samo POST." });
   let stripeCfg;
@@ -124,8 +228,12 @@ async function handler(req, res) {
       || normalized.currency !== "EUR") {
     return json(res, 400, { ok: false, code: "INVALID_WEBHOOK_EVENT", napaka: "Stripe dogodek nima veljavnih podatkov." });
   }
+
+  const rpc = (name, args) => supabase.pokliciRpc(serviceCfg, name, args);
+
+  let result;
   try {
-    const result = rpcResult(await supabase.pokliciRpc(serviceCfg, "pos_apply_stripe_event", {
+    result = rpcResult(await rpc("pos_apply_stripe_event", {
       p_event_id: normalized.eventId,
       p_event_type: normalized.eventType,
       p_event_created_at: normalized.eventCreatedAt,
@@ -142,18 +250,53 @@ async function handler(req, res) {
       p_failure_code: normalized.failureCode,
       p_refunded_cents: normalized.refundedCents,
     }));
-    if (!result || result.matched !== true) {
-      return json(res, 503, { ok: false, code: "STRIPE_PAYMENT_NOT_READY", napaka: "Stripe TEST plačilo še ni pripravljeno za dogodek." });
-    }
-    return json(res, 200, {
-      ok: true, ignored: false,
-      duplicate: Boolean(result.duplicate), status: result.status || "",
-    });
   } catch (error) {
     console.error("[pos-stripe-webhook]", String(error && (error.code || error.name) || "DATABASE_ERROR"), normalized.eventId.slice(0, 80));
     return json(res, 503, { ok: false, code: "STRIPE_EVENT_DATABASE_ERROR", napaka: "Stripe dogodka trenutno ni bilo mogoče varno shraniti." });
   }
+  if (!result || result.matched !== true) {
+    return json(res, 503, { ok: false, code: "STRIPE_PAYMENT_NOT_READY", napaka: "Stripe TEST plačilo še ni pripravljeno za dogodek." });
+  }
+
+  if (needsReconciliationFollowUp(result)) {
+    try {
+      await reconcileCompetingAndOriginal(stripe, rpc, normalized.userId, result);
+    } catch (error) {
+      console.error(
+        "[pos-stripe-webhook] reconciliation follow-up failed",
+        String(error && (error.code || error.message) || error),
+        normalized.eventId.slice(0, 80)
+      );
+      // Never write a cancellation or any other local state here. The 503
+      // makes Stripe redeliver this exact event_id; the retry-stable
+      // snapshot hands back the identical competing_/original_ identities,
+      // so the retry
+      // idempotently completes whatever is left.
+      return json(res, 503, {
+        ok: false,
+        code: error && error.code === "STRIPE_RECONCILIATION_CONTRACT_BROKEN"
+          ? "STRIPE_RECONCILIATION_CONTRACT_BROKEN"
+          : "STRIPE_RECONCILIATION_FOLLOWUP_FAILED",
+        napaka: "Uskladitev konkurenčne Stripe seje trenutno ni uspela. Stripe bo dogodek ponovil.",
+      });
+    }
+  }
+
+  return json(res, 200, {
+    ok: true, ignored: false,
+    duplicate: Boolean(result.duplicate), status: result.status || "",
+  });
 }
 
 module.exports = handler;
-module.exports._test = { eventCreatedAt, normalizeEvent, rawRequestBody, uuid, MAX_BODY_BYTES };
+module.exports._test = {
+  eventCreatedAt,
+  normalizeEvent,
+  rawRequestBody,
+  uuid,
+  MAX_BODY_BYTES,
+  isTerminalSession,
+  needsReconciliationFollowUp,
+  reconcileSessionState,
+  reconcileCompetingAndOriginal,
+};

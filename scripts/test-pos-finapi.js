@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const Finapi = require(path.join(__dirname, "..", "api", "_lib", "finapi-access"));
 const PosRouter = require(path.join(__dirname, "..", "api", "pos"))._test;
+const PosCore = require(path.join(__dirname, "..", "app", "pos-terminal"));
 const localServer = fs.readFileSync(path.join(__dirname, "..", "scripts", "local-server.js"), "utf8");
 const handlerSource = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "pos-finapi.js"), "utf8");
 
@@ -13,6 +14,16 @@ const env = {
   FINAPI_CLIENT_ID: "client-id-test",
   FINAPI_CLIENT_SECRET: "client-secret-test",
   FINAPI_USER_KEY: "0123456789abcdef0123456789abcdef",
+};
+const liveEnv = {
+  FINAPI_MODE: "production",
+  FINAPI_LIVE_ENABLED: "true",
+  FINAPI_LIVE_LICENSE_CONFIRMED: "true",
+  FINAPI_LIVE_DATA_PROCESSING_CONFIRMED: "true",
+  FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED: "true",
+  FINAPI_CLIENT_ID_LIVE: "client-id-live",
+  FINAPI_CLIENT_SECRET_LIVE: "client-secret-live",
+  FINAPI_USER_KEY_LIVE: "abcdef0123456789abcdef0123456789",
 };
 
 const rewrittenRequest = { url: "/api/pos?handler=finapi-bank" };
@@ -33,6 +44,17 @@ assert.throws(
 const cfg = Finapi.configuration(env);
 assert.strictEqual(cfg.baseUrl, "https://sandbox.finapi.io/api/v2");
 assert.strictEqual(Finapi.WEBFORM_SANDBOX_BASE_URL, "https://webform-sandbox.finapi.io");
+const liveCfg = Finapi.configuration(liveEnv);
+assert.strictEqual(liveCfg.mode, "production");
+assert.strictEqual(liveCfg.baseUrl, "https://live.finapi.io/api/v2");
+assert.strictEqual(liveCfg.webFormBaseUrl, "https://webform-live.finapi.io");
+assert.strictEqual(Finapi._test.verifiedWebFormUrl("https://webform-live.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002", liveCfg), "https://webform-live.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002");
+assert.strictEqual(Finapi._test.verifiedWebFormUrl("https://webform.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002", liveCfg), "https://webform.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002");
+assert.throws(
+  function () { Finapi._test.verifiedWebFormUrl("https://webform-sandbox.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002", liveCfg); },
+  function (error) { return error && error.code === "FINAPI_WEBFORM_INVALID"; },
+  "Produkcijska seja ne sme sprejeti sandbox Web Form hosta."
+);
 const userA = Finapi._test.userCredentials("11111111-2222-4333-8444-555555555555", cfg);
 const userB = Finapi._test.userCredentials("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", cfg);
 assert.match(userA.id, /^uj[a-z0-9]{32}$/);
@@ -44,6 +66,16 @@ assert.throws(
   function () { Finapi._test.userCredentials("user-1", cfg); },
   function (error) { return error && error.code === "FINAPI_USER_INVALID"; },
   "Poljuben niz ne sme ustvariti finAPI uporabniške preslikave."
+);
+assert.throws(
+  function () { Finapi._test.verifiedWebFormUrl("https://webform-sandbox.finapi.io/not-a-web-form"); },
+  function (error) { return error && error.code === "FINAPI_WEBFORM_INVALID"; },
+  "Allowlistani host brez kanonične /wf/<id> poti ne sme biti sprejet."
+);
+assert.throws(
+  function () { Finapi._test.verifiedWebFormUrl("https://user:pass@webform-sandbox.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002"); },
+  function (error) { return error && error.code === "FINAPI_WEBFORM_INVALID"; },
+  "Web Form URL z uporabniškimi podatki mora biti zavrnjen."
 );
 
 const testAccounts = new Map([["41", { id: "41", name: "Geschäftskonto", iban: "DE89370400440532013000" }]]);
@@ -106,6 +138,51 @@ assert.throws(
 
 async function run() {
   const originalFetch = global.fetch;
+  Finapi._test.resetTokenCache();
+  const tokenRequests = [];
+  global.fetch = async function (url) {
+    tokenRequests.push(String(url));
+    return {
+      ok: true,
+      status: 200,
+      json: async function () { return { access_token: "token-" + tokenRequests.length, expires_in: 3600 }; },
+    };
+  };
+  const firstClientToken = await Finapi._test.oauthToken({ baseUrl: "https://sandbox.finapi.io/api/v2", clientId: "client-a", clientSecret: "secret" }, "client_credentials");
+  const repeatedClientToken = await Finapi._test.oauthToken({ baseUrl: "https://sandbox.finapi.io/api/v2", clientId: "client-a", clientSecret: "secret" }, "client_credentials");
+  const secondClientToken = await Finapi._test.oauthToken({ baseUrl: "https://sandbox.finapi.io/api/v2", clientId: "client-b", clientSecret: "secret" }, "client_credentials");
+  const otherEnvironmentToken = await Finapi._test.oauthToken({ baseUrl: "https://live.finapi.io/api/v2", clientId: "client-a", clientSecret: "secret" }, "client_credentials");
+  assert.strictEqual(firstClientToken, repeatedClientToken, "Isti klient in okolje smeta ponovno uporabiti veljaven token.");
+  assert.notStrictEqual(firstClientToken, secondClientToken, "Različna klienta ne smeta deliti OAuth tokena.");
+  assert.notStrictEqual(firstClientToken, otherEnvironmentToken, "Sandbox in live ne smeta deliti OAuth tokena.");
+  assert.strictEqual(tokenRequests.length, 3);
+  Finapi._test.resetTokenCache();
+
+  let rpcImports = 0;
+  const pendingUiResult = await PosCore.processFinapiSyncResult({
+    finapi: { configured: true, connected: true, pending: true },
+    transactions: [{ external_reference: "finapi:must-not-import" }],
+  }, async function () {
+    rpcImports += 1;
+    return { inserted_count: 1, duplicate_count: 0 };
+  });
+  assert.strictEqual(rpcImports, 0, "UI must not call the finAPI import RPC while the provider is pending.");
+  assert.deepStrictEqual(pendingUiResult.transactions, []);
+  assert.strictEqual(pendingUiResult.imported, false);
+
+  const readyTransactions = [{ external_reference: "finapi:ready" }];
+  const readyUiResult = await PosCore.processFinapiSyncResult({
+    finapi: { configured: true, connected: true, pending: false },
+    transactions: readyTransactions,
+  }, async function (transactions) {
+    rpcImports += 1;
+    assert.deepStrictEqual(transactions, readyTransactions);
+    return { inserted_count: 1, duplicate_count: 0 };
+  });
+  assert.strictEqual(rpcImports, 1, "ready finAPI transactions must still reach the import RPC callback exactly once");
+  assert.strictEqual(readyUiResult.imported, true);
+  assert.deepStrictEqual(readyUiResult.summary, { inserted_count: 1, duplicate_count: 0 });
+
   const requests = [];
   const responses = [
     { status: 200, body: { access_token: "client-token", expires_in: 3600 } },
@@ -164,11 +241,75 @@ async function run() {
     assert.deepStrictEqual(importBody.allowedInterfaces, ["XS2A"]);
     assert.doesNotMatch(requests.map(function (entry) { return entry.url; }).join("\n"), /\/bankConnections\/import/);
     assert.doesNotMatch(JSON.stringify(result), /client-secret-test|0123456789abcdef/);
+
+    Finapi._test.resetTokenCache();
+    const pendingRequests = [];
+    const originalSetTimeout = global.setTimeout;
+    global.setTimeout = function (callback) { callback(); return 0; };
+    global.fetch = async function (url, options) {
+      const requestUrl = String(url);
+      pendingRequests.push({ url: requestUrl, options: options || {} });
+      if (/\/oauth\/token$/.test(requestUrl)) {
+        return { ok: true, status: 200, json: async function () { return { access_token: "pending-user-token", expires_in: 3600 }; } };
+      }
+      if (/\/bankConnections$/.test(requestUrl)) {
+        return {
+          ok: true,
+          status: 200,
+          json: async function () {
+            return { connections: [{ id: 7, bankId: 280001, name: "finAPI Test Bank", updateStatus: "IN_PROGRESS" }] };
+          },
+        };
+      }
+      throw new Error("Unexpected request while finAPI is pending: " + requestUrl);
+    };
+    let pendingResult;
+    try {
+      pendingResult = await Finapi.syncDemoTransactions("11111111-2222-4333-8444-555555555555", env);
+    } finally {
+      global.setTimeout = originalSetTimeout;
+    }
+    assert.strictEqual(pendingResult.status.pending, true);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(pendingResult, "transactions"), false, "pending result must omit transactions");
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(pendingResult, "syncedAt"), false, "pending result must omit syncedAt");
+    assert.strictEqual(pendingRequests.filter(function (entry) { return /\/bankConnections$/.test(entry.url); }).length, 7);
+    assert.doesNotMatch(pendingRequests.map(function (entry) { return entry.url; }).join("\n"), /\/accounts(?:\?|$)|\/transactions(?:\?|$)/, "pending finAPI sync must not read accounts or transactions");
+
+    Finapi._test.resetTokenCache();
+    const liveRequests = [];
+    const liveResponses = [
+      { status: 200, body: { access_token: "live-client-token", expires_in: 3600 } },
+      { status: 201, body: { id: userA.id } },
+      { status: 200, body: { access_token: "live-user-token", expires_in: 3600 } },
+      { status: 201, body: { id: "946db09e-5bfc-11eb-ae93-0242ac130002", url: "https://webform.finapi.io/wf/946db09e-5bfc-11eb-ae93-0242ac130002", status: "NOT_YET_OPENED" } },
+      { status: 200, body: { connections: [{ id: 77, name: "Produktionsbank", updateStatus: "READY" }] } },
+      { status: 200, body: { accounts: [{ id: 441, name: "Geschäftskonto", iban: "DE89370400440532013000" }], paging: { page: 1, pageCount: 1 } } },
+      { status: 200, body: { transactions: [{ id: 991, accountId: 441, amount: 25, currency: "EUR", bankBookingDate: "2026-08-30", counterpartName: "Live Kunde", purpose: "RE-2026-0099", isAdjustingEntry: false, isPotentialDuplicate: false }], paging: { page: 1, pageCount: 1 } } },
+    ];
+    global.fetch = async function (url, options) {
+      liveRequests.push({ url: String(url), options: options || {} });
+      const next = liveResponses.shift();
+      if (!next) throw new Error("Unexpected finAPI live request");
+      return { ok: next.status >= 200 && next.status < 300, status: next.status, json: async function () { return next.body; } };
+    };
+    const liveWebForm = await Finapi.createBankWebForm("11111111-2222-4333-8444-555555555555", liveEnv);
+    const liveResult = await Finapi.syncTransactions("11111111-2222-4333-8444-555555555555", liveEnv);
+    assert.match(liveWebForm.url, /^https:\/\/webform\.finapi\.io\/wf\//);
+    assert.strictEqual(liveResult.status.environment, "production");
+    assert.strictEqual(liveResult.status.bankName, "Produktionsbank");
+    assert.strictEqual(liveResult.transactions[0].external_reference, "finapi:991");
+    assert.strictEqual(liveRequests.length, 7);
+    assert.ok(liveRequests.every(function (entry) { return /^(https:\/\/live\.finapi\.io\/api\/v2|https:\/\/webform-live\.finapi\.io\/api\/)/.test(entry.url); }));
+    const liveImportBody = JSON.parse(liveRequests[3].options.body);
+    assert.deepStrictEqual(liveImportBody.accountTypes, ["CHECKING"]);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(liveImportBody, "bank"), false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(liveImportBody, "allowTestBank"), false);
+    assert.doesNotMatch(JSON.stringify(liveResult), /client-secret-live|abcdef0123456789/);
   } finally {
     global.fetch = originalFetch;
     Finapi._test.resetTokenCache();
   }
-  console.log("POS finAPI sandbox tests passed.");
+  console.log("POS finAPI sandbox and fail-closed production tests passed.");
 }
 
 run().catch(function (error) {

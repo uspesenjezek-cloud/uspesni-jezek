@@ -4,30 +4,63 @@ const crypto = require("crypto");
 const providerJson = require("./provider-json");
 
 const SANDBOX_BASE_URL = "https://sandbox.finapi.io/api/v2";
+const LIVE_BASE_URL = "https://live.finapi.io/api/v2";
 const WEBFORM_SANDBOX_BASE_URL = "https://webform-sandbox.finapi.io";
+const WEBFORM_LIVE_BASE_URL = "https://webform-live.finapi.io";
+const WEBFORM_LIVE_HOSTS = new Set(["webform-live.finapi.io", "webform.finapi.io"]);
 const DEMO_BANK_ID = 280001;
 const DEMO_BANK_NAME = "finAPI Test Bank";
 const DEMO_BANK_INTERFACE = "XS2A";
 const tokenCache = new Map();
+const MAX_TOKEN_CACHE_ENTRIES = 256;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+
+function pruneTokenCache(now) {
+  const current = Number(now) || Date.now();
+  tokenCache.forEach(function (entry, key) {
+    if (!entry || entry.expiresAt <= current + 30000) tokenCache.delete(key);
+  });
+  while (tokenCache.size >= MAX_TOKEN_CACHE_ENTRIES) {
+    const oldestKey = tokenCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    tokenCache.delete(oldestKey);
+  }
+}
 
 function clean(value) {
   return String(value || "").trim();
 }
 
+function enabled(value) {
+  return /^(1|true)$/i.test(clean(value));
+}
+
+function clientIdFingerprint(value) {
+  return crypto.createHash("sha256").update(clean(value)).digest("hex");
+}
+
 function configuration(source) {
   const env = source || process.env;
   const mode = clean(env.FINAPI_MODE || "sandbox").toLowerCase();
-  if (mode !== "sandbox") {
+  if (mode !== "sandbox" && mode !== "production") {
     const error = new Error("Produkcijski finAPI še ni omogočen.");
     error.code = "FINAPI_LIVE_LOCKED";
     throw error;
   }
-  const clientId = clean(env.FINAPI_CLIENT_ID);
-  const clientSecret = clean(env.FINAPI_CLIENT_SECRET);
-  const userKey = clean(env.FINAPI_USER_KEY);
+  const production = mode === "production";
+  if (production && (!enabled(env.FINAPI_LIVE_ENABLED)
+      || !enabled(env.FINAPI_LIVE_LICENSE_CONFIRMED)
+      || !enabled(env.FINAPI_LIVE_DATA_PROCESSING_CONFIRMED)
+      || !enabled(env.FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED))) {
+    const error = new Error("Produkcijski finAPI zahteva izrecno omogočanje, licenco, potrditev obdelave podatkov in potrjen postopek izbrisa uporabnikov.");
+    error.code = "FINAPI_LIVE_LOCKED";
+    throw error;
+  }
+  const clientId = clean(production ? env.FINAPI_CLIENT_ID_LIVE : env.FINAPI_CLIENT_ID);
+  const clientSecret = clean(production ? env.FINAPI_CLIENT_SECRET_LIVE : env.FINAPI_CLIENT_SECRET);
+  const userKey = clean(production ? env.FINAPI_USER_KEY_LIVE : env.FINAPI_USER_KEY);
   if (!clientId || !clientSecret || !userKey) {
-    const error = new Error("Testna finAPI povezava še ni nastavljena.");
+    const error = new Error(production ? "Produkcijska finAPI povezava še ni nastavljena." : "Testna finAPI povezava še ni nastavljena.");
     error.code = "FINAPI_NOT_CONFIGURED";
     throw error;
   }
@@ -36,7 +69,14 @@ function configuration(source) {
     error.code = "FINAPI_USER_KEY_INVALID";
     throw error;
   }
-  return { mode: "sandbox", baseUrl: SANDBOX_BASE_URL, clientId, clientSecret, userKey };
+  return {
+    mode,
+    baseUrl: production ? LIVE_BASE_URL : SANDBOX_BASE_URL,
+    webFormBaseUrl: production ? WEBFORM_LIVE_BASE_URL : WEBFORM_SANDBOX_BASE_URL,
+    clientId,
+    clientSecret,
+    userKey,
+  };
 }
 
 function userCredentials(appUserId, cfg) {
@@ -97,9 +137,15 @@ async function requestJson(cfg, path, options, timeoutMs) {
 }
 
 async function oauthToken(cfg, grant, user) {
-  const cacheKey = grant === "client_credentials" ? "client" : "user:" + user.id;
+  const cacheNamespace = clean(cfg && cfg.baseUrl) + ":" + clientIdFingerprint(cfg && cfg.clientId);
+  const cacheKey = cacheNamespace + (grant === "client_credentials" ? ":client" : ":user:" + user.id);
   const cached = tokenCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now() + 30000) return cached.value;
+  if (cached && cached.expiresAt > Date.now() + 30000) {
+    tokenCache.delete(cacheKey);
+    tokenCache.set(cacheKey, cached);
+    return cached.value;
+  }
+  if (cached) tokenCache.delete(cacheKey);
   const form = new URLSearchParams({
     grant_type: grant,
     client_id: cfg.clientId,
@@ -120,6 +166,7 @@ async function oauthToken(cfg, grant, user) {
     error.code = "FINAPI_AUTH_INVALID";
     throw error;
   }
+  pruneTokenCache(Date.now());
   tokenCache.set(cacheKey, { value, expiresAt: Date.now() + Math.max(60, Number(body.expires_in) || 3600) * 1000 });
   return value;
 }
@@ -179,6 +226,19 @@ function demoConnection(connections) {
   }) || null;
 }
 
+function relevantConnections(connections, cfg) {
+  const rows = Array.isArray(connections) ? connections : [];
+  if (cfg && cfg.mode === "production") {
+    return rows.filter(function (connection) { return Boolean(clean(connection && connection.id)); });
+  }
+  const demo = demoConnection(rows);
+  return demo ? [demo] : [];
+}
+
+function connectionPending(connection) {
+  return clean(connection && connection.updateStatus).toUpperCase() === "IN_PROGRESS";
+}
+
 function connectionBankName(connection) {
   return clean(connection && (connection.bankName || connection.name || connection.bank && connection.bank.name));
 }
@@ -198,39 +258,51 @@ async function accountsForUser(token, cfg) {
   return rows.map(normalizeAccount).filter(Boolean);
 }
 
-function verifiedWebFormUrl(value) {
+function verifiedWebFormUrl(value, cfg) {
   let parsed;
   try { parsed = new URL(clean(value)); }
   catch (_) { parsed = null; }
-  if (!parsed || parsed.protocol !== "https:" || parsed.hostname !== "webform-sandbox.finapi.io") {
-    const error = new Error("finAPI ni vrnil varnega testnega obrazca.");
+  const production = cfg && cfg.mode === "production";
+  const allowedHost = production
+    ? parsed && WEBFORM_LIVE_HOSTS.has(parsed.hostname)
+    : parsed && parsed.hostname === "webform-sandbox.finapi.io";
+  if (!parsed || parsed.protocol !== "https:" || !allowedHost
+    || !/^\/wf\/[0-9a-f-]+\/?$/i.test(parsed.pathname) || parsed.username || parsed.password) {
+    const error = new Error("finAPI ni vrnil varnega bančnega obrazca.");
     error.code = "FINAPI_WEBFORM_INVALID";
     throw error;
   }
   return parsed.toString();
 }
 
-async function createDemoBankWebForm(appUserId, source) {
+async function createBankWebForm(appUserId, source) {
   const cfg = configuration(source);
   const token = await userToken(appUserId, cfg, true);
-  const webFormCfg = Object.assign({}, cfg, { baseUrl: WEBFORM_SANDBOX_BASE_URL });
-  const body = await requestJson(webFormCfg, "/api/webForms/bankConnectionImport", {
-    method: "POST",
-    headers: Object.assign({ "Content-Type": "application/json" }, bearer(token)),
-    body: JSON.stringify({
+  const webFormCfg = Object.assign({}, cfg, { baseUrl: cfg.webFormBaseUrl });
+  const requestBody = cfg.mode === "production"
+    ? { accountTypes: ["CHECKING"], maxDaysForDownload: 120 }
+    : {
       bank: { id: DEMO_BANK_ID },
       bankConnectionName: DEMO_BANK_NAME,
       allowedInterfaces: [DEMO_BANK_INTERFACE],
       allowTestBank: true,
       maxDaysForDownload: 120,
-    }),
+    };
+  const body = await requestJson(webFormCfg, "/api/webForms/bankConnectionImport", {
+    method: "POST",
+    headers: Object.assign({ "Content-Type": "application/json" }, bearer(token)),
+    body: JSON.stringify(requestBody),
   }, 20000);
   return {
     id: clean(body.id),
-    url: verifiedWebFormUrl(body.url),
+    url: verifiedWebFormUrl(body.url, cfg),
     status: clean(body.status || "NOT_YET_OPENED"),
     expiresAt: clean(body.expiresAt),
   };
+}
+
+async function createDemoBankWebForm(appUserId, source) {
+  return createBankWebForm(appUserId, source);
 }
 
 function isoDateDaysAgo(days) {
@@ -314,38 +386,52 @@ async function statusForUser(appUserId, source) {
   const cfg = configuration(source);
   try {
     const token = await userToken(appUserId, cfg, false);
-    const connection = demoConnection(await bankConnections(token, cfg));
+    const connections = relevantConnections(await bankConnections(token, cfg), cfg);
+    const connection = connections[0] || null;
     return {
       configured: true,
       connected: Boolean(connection),
-      pending: Boolean(connection && connection.updateStatus === "IN_PROGRESS"),
-      environment: "sandbox",
+      pending: connections.some(connectionPending),
+      environment: cfg.mode,
       bankName: connectionBankName(connection),
     };
   } catch (error) {
     if (error && (error.status === 400 || error.status === 401 || error.code === "FINAPI_AUTH_INVALID")) {
-      return { configured: true, connected: false, pending: false, environment: "sandbox", bankName: "" };
+      return { configured: true, connected: false, pending: false, environment: cfg.mode, bankName: "" };
     }
     throw error;
   }
 }
 
-async function syncDemoTransactions(appUserId, source) {
+async function syncTransactions(appUserId, source) {
   const cfg = configuration(source);
   const token = await userToken(appUserId, cfg, false);
-  let connection = demoConnection(await bankConnections(token, cfg));
+  let connections = relevantConnections(await bankConnections(token, cfg), cfg);
+  let connection = connections[0] || null;
   if (!connection) {
-    const error = new Error("Najprej zaključite varen finAPI testni obrazec.");
+    const error = new Error("Najprej zaključite varen finAPI bančni obrazec.");
     error.code = "FINAPI_WEBFORM_REQUIRED";
     error.status = 409;
     throw error;
   }
-  if (connection && connection.updateStatus === "IN_PROGRESS") {
+  if (connections.some(connectionPending)) {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       await new Promise(function (resolve) { setTimeout(resolve, 650); });
-      connection = demoConnection(await bankConnections(token, cfg)) || connection;
-      if (connection.updateStatus !== "IN_PROGRESS") break;
+      connections = relevantConnections(await bankConnections(token, cfg), cfg);
+      connection = connections[0] || connection;
+      if (!connections.some(connectionPending)) break;
     }
+  }
+  if (connections.some(connectionPending)) {
+    return {
+      status: {
+        configured: true,
+        connected: true,
+        pending: true,
+        environment: cfg.mode,
+        bankName: connectionBankName(connection) || (cfg.mode === "sandbox" ? DEMO_BANK_NAME : ""),
+      },
+    };
   }
   const accounts = await accountsForUser(token, cfg);
   const transactions = await incomingTransactions(token, cfg, 120, accounts);
@@ -353,23 +439,32 @@ async function syncDemoTransactions(appUserId, source) {
     status: {
       configured: true,
       connected: true,
-      pending: Boolean(connection && connection.updateStatus === "IN_PROGRESS"),
-      environment: "sandbox",
-      bankName: connectionBankName(connection) || DEMO_BANK_NAME,
+      pending: connections.some(connectionPending),
+      environment: cfg.mode,
+      bankName: connectionBankName(connection) || (cfg.mode === "sandbox" ? DEMO_BANK_NAME : ""),
     },
     transactions,
     syncedAt: new Date().toISOString(),
   };
 }
 
+async function syncDemoTransactions(appUserId, source) {
+  return syncTransactions(appUserId, source);
+}
+
 module.exports = {
   SANDBOX_BASE_URL,
+  LIVE_BASE_URL,
   WEBFORM_SANDBOX_BASE_URL,
+  WEBFORM_LIVE_BASE_URL,
   DEMO_BANK_ID,
+  MAX_TOKEN_CACHE_ENTRIES,
   MAX_RESPONSE_BYTES,
   configuration,
+  createBankWebForm,
   createDemoBankWebForm,
   statusForUser,
+  syncTransactions,
   syncDemoTransactions,
   _test: {
     userCredentials,
@@ -380,13 +475,18 @@ module.exports = {
     oauthToken,
     ensureUser,
     demoConnection,
+    relevantConnections,
+    connectionPending,
     connectionBankName,
     normalizeAccount,
     reconcileTransactions,
     pagedCollection,
     accountsForUser,
     verifiedWebFormUrl,
+    clientIdFingerprint,
     incomingTransactions,
+    pruneTokenCache,
+    tokenCacheSize: function () { return tokenCache.size; },
     resetTokenCache: function () { tokenCache.clear(); },
   },
 };

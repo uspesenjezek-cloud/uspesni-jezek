@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
 const archive = require("../_lib/pos-archive");
 const worm = require("../_lib/pos-worm-archive");
+const providerJson = require("../_lib/provider-json");
 const invoiceDocuments = require("./pos-racun-pdf")._test;
 const adjustmentDocuments = require("./pos-racun-korekcija")._test;
 const adjustmentEinvoiceDocuments = require("./pos-racun-korekcija-xrechnung")._test;
@@ -18,6 +19,127 @@ function safeEqual(left, right) {
   const a = Buffer.from(String(left || ""));
   const b = Buffer.from(String(right || ""));
   return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);
+}
+
+function encodedPath(value) {
+  return String(value || "").split("/").map(encodeURIComponent).join("/");
+}
+
+async function writePrimaryObject(cfg, record, buffer) {
+  const bucket = String(record && record.storage_bucket || "").trim();
+  const storagePath = String(record && record.storage_path || "");
+  const mediaType = String(record && record.original_media_type || "");
+  if (!bucket || !storagePath || storagePath.length > 500 || /[\u0000-\u001f\\]/.test(storagePath)
+    || !["application/pdf", "application/xml"].includes(mediaType)) {
+    throw Object.assign(new Error("Pot primarnega arhivskega objekta ni veljavna."), { code: "PRIMARY_PATH_INVALID" });
+  }
+  if (!Buffer.isBuffer(buffer) || buffer.length !== Number(record.byte_size)
+    || archive.hash(buffer) !== String(record.sha256 || "")) {
+    throw Object.assign(new Error("Obnovitvena vsebina ni skladna z arhivskim manifestom."), { code: "PRIMARY_RESTORE_HASH_MISMATCH" });
+  }
+  const response = await supabase.fetchZOmejitvijo(
+    cfg.url + "/storage/v1/object/" + encodeURIComponent(bucket) + "/" + encodedPath(storagePath),
+    {
+      method: "POST",
+      headers: supabase.serviceHeaders(cfg, { "Content-Type": mediaType, "x-upsert": "false" }),
+      body: buffer
+    },
+    20000
+  );
+  if (response.ok) return { created: true };
+  // A concurrent recovery may have won the immutable create. Never overwrite;
+  // the caller must re-read and hash-check that object before accepting it.
+  let providerError = null;
+  try {
+    providerError = await providerJson.readJson(response, {
+      maxBytes: 16 * 1024,
+      code: "PRIMARY_RESTORE_PROVIDER_ERROR_TOO_LARGE",
+      message: "Odgovor arhivskega ponudnika je prevelik."
+    });
+  } catch (cause) {
+    throw Object.assign(new Error("Primarnega arhivskega objekta ni bilo mogoče obnoviti."), {
+      code: "PRIMARY_RESTORE_WRITE_FAILED",
+      status: response.status,
+      cause
+    });
+  }
+  const currentDuplicate = response.status === 409
+    && providerError && providerError.code === "ResourceAlreadyExists";
+  const legacyDuplicate = (response.status === 400 || response.status === 409)
+    && providerError && String(providerError.statusCode || "") === "409"
+    && providerError.error === "Duplicate";
+  if (currentDuplicate || legacyDuplicate) return { created: false };
+  throw Object.assign(new Error("Primarnega arhivskega objekta ni bilo mogoče obnoviti."), {
+    code: "PRIMARY_RESTORE_WRITE_FAILED",
+    status: response.status
+  });
+}
+
+async function restoreMissingPrimary(cfg, s3Client, s3Cfg, record) {
+  const missingIntegrityEventId = String(record && record.missing_integrity_event_id || "").trim();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(missingIntegrityEventId)) {
+    throw Object.assign(new Error("Dokaz manjkajočega primarnega objekta ni veljaven."), {
+      code: "PRIMARY_RESTORE_MISSING_EVENT_INVALID"
+    });
+  }
+  const current = await archive.verifyRecord(cfg, record);
+  if (current.result !== "missing" && current.result !== "verified") {
+    throw Object.assign(new Error("Primarni objekt ni varno obnovljiv brez manjkajočega stanja."), {
+      code: "PRIMARY_RESTORE_STATE_INVALID"
+    });
+  }
+
+  const recovered = await worm.recoverAndVerify(s3Client, s3Cfg, record);
+  const upload = current.result === "missing"
+    ? await writePrimaryObject(cfg, record, recovered.buffer)
+    : { created: false };
+  const verified = await archive.verifyAndRecord(cfg, record);
+  if (!verified.event || !verified.event.id || verified.verification.result !== "verified"
+    || verified.verification.observed_sha256 !== record.sha256
+    || Number(verified.verification.observed_byte_size) !== Number(record.byte_size)) {
+    throw Object.assign(new Error("Obnovljeni primarni objekt ni prestal ponovnega preverjanja."), {
+      code: "PRIMARY_RESTORE_VERIFY_FAILED"
+    });
+  }
+  await supabase.pokliciRpc(cfg, "pos_archive_primary_recovery_complete", {
+    p_replica_id: record.replica_id,
+    p_missing_integrity_event_id: missingIntegrityEventId,
+    p_verified_integrity_event_id: verified.event.id,
+    p_object_version_id: recovered.versionId
+  });
+  return {
+    restored: upload.created,
+    reconciled: !upload.created,
+    recordId: record.id,
+    verification: verified.verification,
+    versionId: recovered.versionId
+  };
+}
+
+async function recoverMissingPrimaries(cfg, s3Client, s3Cfg, limit) {
+  const rows = await supabase.pokliciRpc(cfg, "pos_archive_primary_recovery_batch", {
+    p_limit: Math.min(Math.max(Number(limit) || 10, 1), 25)
+  });
+  const counts = { restored: 0, reconciled: 0, failed: 0 };
+  const resolvedRecordIds = [];
+  for (const record of (Array.isArray(rows) ? rows : [])) {
+    try {
+      const result = await restoreMissingPrimary(cfg, s3Client, s3Cfg, record);
+      if (result.restored) counts.restored += 1;
+      else counts.reconciled += 1;
+      resolvedRecordIds.push(result.recordId);
+    } catch (error) {
+      console.error("[pos-archive-primary-recovery]", worm.safeErrorCode(error));
+      try {
+        await supabase.pokliciRpc(cfg, "pos_archive_primary_recovery_fail", {
+          p_replica_id: record && record.replica_id,
+          p_error_code: worm.safeErrorCode(error)
+        });
+      } catch (_ignored) {}
+      counts.failed += 1;
+    }
+  }
+  return { counts, resolvedRecordIds };
 }
 
 async function repairMissingDocuments(cfg, limit) {
@@ -79,6 +201,7 @@ module.exports = async function handler(req, res) {
 
     let replicaRows = [];
     const replicaCounts = { verified: 0, failed: 0 };
+    let recoveryResult = { counts: { restored: 0, reconciled: 0, failed: 0 }, resolvedRecordIds: [] };
     let s3Cfg = null;
     let s3Client = null;
     let bucketError = null;
@@ -108,6 +231,14 @@ module.exports = async function handler(req, res) {
 
     if (!replicaSkipped && !bucketError) {
       try {
+        recoveryResult = await recoverMissingPrimaries(cfg, s3Client, s3Cfg, 10);
+        const resolved = new Set(recoveryResult.resolvedRecordIds);
+        for (const integrityResult of integrityResults) {
+          if (integrityResult.verification.result !== "verified" && resolved.has(integrityResult.record.id)) {
+            counts.failed -= 1;
+            counts.verified += 1;
+          }
+        }
         replicaRows = await supabase.pokliciRpc(cfg, "pos_archive_replica_batch", { p_limit: 10 });
       } catch (error) {
         if (s3Client) s3Client.destroy();
@@ -136,8 +267,10 @@ module.exports = async function handler(req, res) {
           await worm.recoverAndVerify(s3Client, s3Cfg, Object.assign({}, record, {
             replica_bucket: result.bucket,
             replica_object_key: result.objectKey,
-            replica_object_version_id: result.objectVersionId
-          }));
+            replica_object_version_id: result.objectVersionId,
+            replica_object_lock_mode: result.objectLockMode,
+            replica_retain_until: result.retainUntil
+          }), undefined, { allowUnanchoredTest: true });
           await supabase.pokliciRpc(cfg, "pos_archive_provider_heartbeat", {
             p_environment: s3Cfg.liveEnabled ? "production" : "test",
             p_object_lock_mode: s3Cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE",
@@ -160,11 +293,17 @@ module.exports = async function handler(req, res) {
     if (s3Client) s3Client.destroy();
 
     const providerFailed = Boolean(bucketError);
-    const failed = documentCounts.failed + counts.failed + replicaCounts.failed + (providerFailed ? 1 : 0);
+    const failed = documentCounts.failed + counts.failed + recoveryResult.counts.failed
+      + replicaCounts.failed + (providerFailed ? 1 : 0);
     return json(res, failed ? 409 : 200, {
       ok: failed === 0,
       documents: { checked: documentCounts.repaired + documentCounts.failed, counts: documentCounts },
       integrity: { checked: counts.verified + counts.failed, counts: counts },
+      recoveries: {
+        checked: recoveryResult.counts.restored + recoveryResult.counts.reconciled + recoveryResult.counts.failed,
+        counts: recoveryResult.counts,
+        skipped: replicaSkipped || providerFailed
+      },
       replicas: {
         checked: replicaCounts.verified + replicaCounts.failed,
         counts: replicaCounts,
@@ -177,4 +316,10 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { repairMissingDocuments, safeEqual };
+module.exports._test = {
+  repairMissingDocuments,
+  recoverMissingPrimaries,
+  restoreMissingPrimary,
+  writePrimaryObject,
+  safeEqual
+};

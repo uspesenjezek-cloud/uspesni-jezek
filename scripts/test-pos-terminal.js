@@ -205,9 +205,9 @@ compatibilityWrappers.forEach(function (source) {
 });
 
 assert.match(html, /data-view="home"/);
-assert.match(html, /pos-terminal\.css\?v=20260827-stripe-slate-v1/);
+assert.match(html, /pos-terminal\.css\?v=202608(?:2[2-9]|3[01])-[^"']+/);
 assert.match(css, /\.pos-app \[hidden\]\s*\{[^}]*display:\s*none !important/);
-assert.match(html, /pos-terminal\.js\?v=20260828-datev-status-v1/);
+assert.match(html, /pos-terminal\.js\?v=202608(?:2[2-9]|3[01])-[^"']+/);
 assert.match(html, /pos-dsfinvk\.js\?v=20260826-cash-recovery-export-v1/);
 assert.match(html, /data-cash-payment-panel/);
 assert.match(html, /data-cash-deposit/);
@@ -1280,8 +1280,8 @@ assert.match(finapiAccountMigration, /add column source_account_iban text/i);
 assert.match(finapiAccountMigration, /on conflict \(user_id,source_key\) do nothing/i);
 assert.match(finapiAccountMigration, /update public\.pos_bank_transactions[\s\S]*source_account_id/i);
 assert.match(finapiApi, /preveriUporabnika\(req, cfg\)/);
-assert.match(finapiApi, /syncDemoTransactions\(auth\.user\.id\)/);
-assert.match(finapiApi, /createDemoBankWebForm\(auth\.user\.id\)/);
+assert.match(finapiApi, /syncTransactions\(auth\.user\.id\)/);
+assert.match(finapiApi, /createBankWebForm\(auth\.user\.id\)/);
 assert.doesNotMatch(finapiApi, /FINAPI_CLIENT_SECRET/);
 assert.match(finapiLib, /https:\/\/sandbox\.finapi\.io\/api\/v2/);
 assert.match(finapiLib, /https:\/\/webform-sandbox\.finapi\.io/);

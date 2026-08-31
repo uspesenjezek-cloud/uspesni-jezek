@@ -23,7 +23,7 @@
     <script src="auth-zascita.js?v=20260821-iphone-ratio-v14"></script>
     <script src="qrcode.bundle.js?v=20260820-local-qr-v1" defer></script>
     <script src="pos-dsfinvk.js?v=20260826-cash-recovery-export-v1" defer></script>
-    <script src="pos-terminal.js?v=20260828-datev-status-v1" defer></script>
+    <script src="pos-terminal.js?v=20260830-cash-provider-recovery-v1" defer></script>
     <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
   </head>
   <body class="pos-app">
@@ -503,6 +503,9 @@
           <div class="pos-stripe-test__actions">
             <button class="pos-primary pos-stripe-test__button" type="button" data-stripe-payment>
               <svg><use href="#i-card"/></svg><span>Plačaj s kartico – TEST</span>
+            </button>
+            <button class="pos-secondary pos-stripe-test__abandon" type="button" data-stripe-abandon hidden>
+              <svg><use href="#i-card"/></svg><span>Končaj Stripe poskus</span>
             </button>
             <button class="pos-secondary pos-stripe-test__refund" type="button" data-stripe-refund hidden>
               <svg><use href="#i-card"/></svg><span>Vrni plačilo – TEST</span>

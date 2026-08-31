@@ -13,11 +13,14 @@ function json(res, status, body) {
 }
 
 function unavailable(error) {
+  const environment = String(process.env.FINAPI_MODE || "sandbox").toLowerCase() === "production"
+    ? "production"
+    : "sandbox";
   return {
     configured: Boolean(error && error.code !== "FINAPI_NOT_CONFIGURED"),
     connected: false,
     pending: false,
-    environment: "sandbox",
+    environment,
     bankName: "",
   };
 }
@@ -39,11 +42,11 @@ async function handler(req, res) {
     catch (error) { return json(res, error.status || 400, { ok: false, code: error.code, napaka: error.message }); }
     const action = String(body.action || "sync");
     if (action === "connect") {
-      const webForm = await finapi.createDemoBankWebForm(auth.user.id);
+      const webForm = await finapi.createBankWebForm(auth.user.id);
       return json(res, 201, { ok: true, webForm });
     }
     if (action !== "sync") return json(res, 400, { ok: false, napaka: "Neznano finAPI opravilo." });
-    const result = await finapi.syncDemoTransactions(auth.user.id);
+    const result = await finapi.syncTransactions(auth.user.id);
     return json(res, 200, { ok: true, finapi: result.status, transactions: result.transactions, syncedAt: result.syncedAt });
   } catch (error) {
     if (error && error.code === "FINAPI_NOT_CONFIGURED") {
@@ -53,17 +56,20 @@ async function handler(req, res) {
       return json(res, 409, {
         ok: false,
         code: error.code,
-        napaka: "Najprej zaključite varen finAPI testni obrazec.",
+        napaka: "Najprej zaključite varen finAPI bančni obrazec.",
         finapi: unavailable(error),
       });
+    }
+    if (error && error.code === "FINAPI_LIVE_LOCKED") {
+      return json(res, 409, { ok: false, code: error.code, napaka: error.message, finapi: unavailable(error) });
     }
     console.error("[pos-finapi]", String(error && (error.code || error.name) || "UNKNOWN"));
     return json(res, error && error.retryable ? 503 : 502, {
       ok: false,
       code: error && error.code || "FINAPI_UNAVAILABLE",
       napaka: error && error.retryable
-        ? "finAPI testna banka je začasno nedosegljiva. Poskusite znova čez nekaj trenutkov."
-        : "Testne banke trenutno ni bilo mogoče sinhronizirati.",
+        ? "finAPI je začasno nedosegljiv. Poskusite znova čez nekaj trenutkov."
+        : "Banke trenutno ni bilo mogoče sinhronizirati.",
       finapi: unavailable(error),
     });
   }
