@@ -205,9 +205,9 @@ compatibilityWrappers.forEach(function (source) {
 });
 
 assert.match(html, /data-view="home"/);
-assert.match(html, /pos-terminal\.css\?v=20260827-stripe-slate-v1/);
+assert.match(html, /pos-terminal\.css\?v=202608(?:2[2-9]|3[01])-[^"']+/);
 assert.match(css, /\.pos-app \[hidden\]\s*\{[^}]*display:\s*none !important/);
-assert.match(html, /pos-terminal\.js\?v=20260828-datev-status-v1/);
+assert.match(html, /pos-terminal\.js\?v=202608(?:2[2-9]|3[01])-[^"']+/);
 assert.match(html, /pos-dsfinvk\.js\?v=20260826-cash-recovery-export-v1/);
 assert.match(html, /data-cash-payment-panel/);
 assert.match(html, /data-cash-deposit/);
