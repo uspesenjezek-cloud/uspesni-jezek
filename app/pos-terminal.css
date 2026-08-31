@@ -1119,7 +1119,7 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 .pos-payment-row__status.is-failed, .pos-payment-row__status.is-cancelled { color: #8e3f3a; background: #fce9e7; }
 .pos-payment-row__status.is-refunded, .pos-payment-row__status.is-partially_refunded { color: #5e4d87; background: #eee9f8; }
 .pos-stripe-test { display: grid; margin-top: 10px; padding: 14px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px; border: 1px solid #bfd2df; border-radius: 17px; background: linear-gradient(145deg, #f1f6fa, #fff); box-shadow: 0 8px 22px rgba(86, 115, 146, .07); }
-.pos-stripe-test[hidden], .pos-stripe-test__refund[hidden] { display: none; }
+.pos-stripe-test[hidden], .pos-stripe-test__abandon[hidden], .pos-stripe-test__refund[hidden] { display: none; }
 .pos-stripe-test__brand { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 10px; }
 .pos-stripe-test__brand span { color: #567392; font-size: .86rem; font-weight: 900; letter-spacing: -.04em; }
 .pos-stripe-test__brand b { padding: 4px 7px; color: #405f7e; border-radius: 99px; background: #e9f1f6; font-size: .5rem; letter-spacing: .08em; }
@@ -1132,8 +1132,8 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 .pos-stripe-test__button { display: inline-flex; min-width: 150px; min-height: 42px; padding: 9px 12px; align-items: center; justify-content: center; gap: 7px; background: #567392; white-space: nowrap; font-size: .62rem; }
 .pos-stripe-test__button:hover { background: #405f7e; }
 .pos-stripe-test__button svg { width: 15px; height: 15px; }
-.pos-stripe-test__refund { display: inline-flex; min-width: 150px; min-height: 38px; padding: 8px 10px; align-items: center; justify-content: center; gap: 7px; color: #405f7e; border-color: #bfd2df; white-space: nowrap; font-size: .58rem; }
-.pos-stripe-test__refund svg { width: 14px; height: 14px; }
+.pos-stripe-test__abandon, .pos-stripe-test__refund { display: inline-flex; min-width: 150px; min-height: 38px; padding: 8px 10px; align-items: center; justify-content: center; gap: 7px; color: #405f7e; border-color: #bfd2df; white-space: nowrap; font-size: .58rem; }
+.pos-stripe-test__abandon svg, .pos-stripe-test__refund svg { width: 14px; height: 14px; }
 .pos-stripe-test.is-paid { border-color: #cbe5df; background: linear-gradient(145deg, #f0faf7, #fff); }
 .pos-stripe-test.is-failed, .pos-stripe-test.is-cancelled { border-color: #efd1cd; background: linear-gradient(145deg, #fff7f6, #fff); }
 .pos-stripe-test.is-refunded, .pos-stripe-test.is-partially_refunded { border-color: #bfd2df; }
@@ -1358,7 +1358,7 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 
 @media (max-width: 479px) {
   .pos-stripe-test { grid-template-columns: minmax(0, 1fr); }
-  .pos-stripe-test__actions, .pos-stripe-test__button, .pos-stripe-test__refund { width: 100%; min-width: 0; }
+  .pos-stripe-test__actions, .pos-stripe-test__button, .pos-stripe-test__abandon, .pos-stripe-test__refund { width: 100%; min-width: 0; }
   .pos-kassenbon-qr { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; }
   .pos-kassenbon-qr p { width: 100%; }
   .pos-datev-cloud > [data-datev-connect], .pos-datev-cloud > [data-datev-transfer] { grid-column: 1 / 4; width: 100%; }
@@ -1399,6 +1399,7 @@ html.app-iphone-preview .pos-work-order-list { grid-template-columns: minmax(0,1
 .pos-replacement-action .pos-primary,
 .pos-delivery-row__retry,
 .pos-stripe-test__button,
+.pos-stripe-test__abandon,
 .pos-stripe-test__refund,
 .pos-adjustment-sheet__actions button,
 .pos-delivery-sheet__actions button,

@@ -103,7 +103,9 @@ async function cleanup(ids) {
   try {
     await client.query("begin");
     await client.query("delete from public.pos_payment_events where payment_id in (select id from public.pos_payments where invoice_id = any($1::uuid[]))", [values]);
+    await client.query("alter table public.pos_audit_events disable trigger pos_audit_events_immutable");
     await client.query("delete from public.pos_audit_events where details->>'invoice_id' = any($1::text[])", [values]);
+    await client.query("alter table public.pos_audit_events enable trigger pos_audit_events_immutable");
     await client.query("delete from public.pos_payments where invoice_id = any($1::uuid[])", [values]);
     await client.query("delete from private.pos_invoice_payment_totals where invoice_id = any($1::uuid[])", [values]);
     await client.query("alter table public.pos_invoices disable trigger pos_invoices_immutable");
