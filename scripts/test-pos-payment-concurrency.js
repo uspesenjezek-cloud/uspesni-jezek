@@ -846,6 +846,7 @@ async function cleanup() {
   try {
     await pool.query("select 1");
     await ensureTestUser();
+    await testForwardPreflightsBlockAndPass();
     await testStripeVsStripe();
     await testAggregateGrossGuard();
     await testCashVsStripe();
@@ -862,7 +863,6 @@ async function cleanup() {
     await testReusedEventIdDifferentPayloadRejected();
     await testRetryAfterPaymentMutationReturnsOriginalSnapshot();
     await testLegacyEventWithoutSnapshotFailsClosed();
-    await testForwardPreflightsBlockAndPass();
     await testRollbackPreflightBlocksActivePlusReconciliation();
     await testRollbackPreflightBlocksTwoReconciliationRows();
     console.log("POS payment concurrency (local Supabase): OK");
