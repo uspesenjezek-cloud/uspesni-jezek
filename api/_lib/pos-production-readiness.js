@@ -6,7 +6,7 @@ const wormArchive = require("./pos-worm-archive");
 const sandboxEvidenceVerifier = require("./pos-openapi-sandbox-evidence");
 const sandbox381Evidence = require("../../scripts/fixtures/openapi-de-381-sandbox-evidence.json");
 
-const VERSION = "pos-de-production-readiness-v16";
+const VERSION = "pos-de-production-readiness-v17";
 const MAX_ARCHIVE_READINESS_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_DATABASE_CI_GATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CONFIRMATION_FUTURE_SKEW_MS = 5 * 60 * 1000;
@@ -36,6 +36,13 @@ function validAuditReference(value) {
 function validPastConfirmationAt(value) {
   const timestamp = Date.parse(text(value));
   return Number.isFinite(timestamp) && timestamp <= Date.now() + MAX_CONFIRMATION_FUTURE_SKEW_MS;
+}
+
+function freshConfirmationAt(value, maxAgeMs) {
+  const timestamp = Date.parse(text(value));
+  return Number.isFinite(timestamp)
+    && timestamp >= Date.now() - maxAgeMs
+    && timestamp <= Date.now() + MAX_CONFIRMATION_FUTURE_SKEW_MS;
 }
 
 function item(id, area, blocking, ready, status, missing, note) {
@@ -239,14 +246,28 @@ function assess(env, options) {
     [],
     "Kartično plačevanje je namenoma omejeno na Stripe TEST; SEPA in ročna potrditev ostajata na voljo."
   ));
+  const finapiMissing = [];
+  if (text(source.FINAPI_MODE).toLowerCase() !== "production") finapiMissing.push("FINAPI_MODE=production");
+  if (!enabled(source.FINAPI_LIVE_ENABLED)) finapiMissing.push("FINAPI_LIVE_ENABLED=true");
+  if (!enabled(source.FINAPI_LIVE_LICENSE_CONFIRMED)) finapiMissing.push("FINAPI_LIVE_LICENSE_CONFIRMED=true");
+  if (!enabled(source.FINAPI_LIVE_DATA_PROCESSING_CONFIRMED)) finapiMissing.push("FINAPI_LIVE_DATA_PROCESSING_CONFIRMED=true");
+  if (!enabled(source.FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED)) finapiMissing.push("FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED=true");
+  if (!text(source.FINAPI_CLIENT_ID_LIVE)) finapiMissing.push("FINAPI_CLIENT_ID_LIVE");
+  if (!text(source.FINAPI_CLIENT_SECRET_LIVE)) finapiMissing.push("FINAPI_CLIENT_SECRET_LIVE");
+  if (text(source.FINAPI_USER_KEY_LIVE).length < 32) finapiMissing.push("FINAPI_USER_KEY_LIVE");
+  if (!validAuditReference(source.FINAPI_LIVE_PREFLIGHT_REFERENCE)) finapiMissing.push("FINAPI_LIVE_PREFLIGHT_REFERENCE");
+  if (!freshConfirmationAt(source.FINAPI_LIVE_PREFLIGHT_CONFIRMED_AT, MAX_DATABASE_CI_GATE_AGE_MS)) {
+    finapiMissing.push("FINAPI_LIVE_PREFLIGHT_CONFIRMED_AT");
+  }
+  const finapiReady = finapiMissing.length === 0;
   checks.push(item(
     "finapi_bank_sync",
     "core",
     true,
-    false,
-    "production_not_implemented",
-    ["finapi_production_integration_not_implemented"],
-    "finAPI je obvezen del produkcijskega bančnega toka, vendar je trenutno varno omejen na sandbox."
+    finapiReady,
+    finapiReady ? "ready" : "blocked",
+    finapiMissing,
+    "Produkcijski finAPI uporablja ločene poverilnice in ostane fail-closed brez licence, potrditve obdelave podatkov, potrjenega operativnega postopka izbrisa uporabnikov ter svežega preflight dokaza."
   ));
   checks.push(item(
     "datev_cloud_transfer",
@@ -257,21 +278,28 @@ function assess(env, options) {
     [],
     "DATEV prenos je mock/sandbox; preverljivi EXTF izvoz ostaja na voljo."
   ));
+  const fiskalyMissing = [
+    "cash_checkout_migration_not_deployed",
+    "cash_refund_migration_not_deployed",
+    "fiskaly_production_cash_db_path_locked",
+  ];
+  if (text(source.FISKALY_SIGN_DE_MODE).toLowerCase() !== "production") fiskalyMissing.push("FISKALY_SIGN_DE_MODE=production");
+  if (!enabled(source.FISKALY_LIVE_ENABLED)) fiskalyMissing.push("FISKALY_LIVE_ENABLED=true");
+  if (!text(source.FISKALY_API_KEY_LIVE)) fiskalyMissing.push("FISKALY_API_KEY_LIVE");
+  if (!text(source.FISKALY_API_SECRET_LIVE)) fiskalyMissing.push("FISKALY_API_SECRET_LIVE");
+  if (!text(source.FISKALY_TSS_ID_LIVE)) fiskalyMissing.push("FISKALY_TSS_ID_LIVE");
+  if (!text(source.FISKALY_CLIENT_ID_LIVE)) fiskalyMissing.push("FISKALY_CLIENT_ID_LIVE");
+  if (!enabled(source.FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED)) fiskalyMissing.push("FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED=true");
+  if (!enabled(source.FISKALY_LIVE_CASH_SYSTEM_REGISTERED)) fiskalyMissing.push("FISKALY_LIVE_CASH_SYSTEM_REGISTERED=true");
+  if (!enabled(source.FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED)) fiskalyMissing.push("FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED=true");
   checks.push(item(
     "fiskaly_tse",
     "core",
     true,
     false,
-    "local_training_complete",
-    [
-      "cash_checkout_migration_not_deployed",
-      "cash_refund_migration_not_deployed",
-      "fiskaly_production_credentials_and_tss_not_configured",
-      "dsfinvk_external_conformance_not_confirmed",
-      "cash_system_registration_not_confirmed",
-      "cash_legal_review_not_confirmed",
-    ],
-    "Lokalni TRAINING tok vključuje fail-closed checkout, idempotentni mock TSE, Kassenbon, ločeno TSE-podpisano povračilo s pripravljeno atomarno migracijo, pologe/dvige in DSFinV-K model. Produkcija ostaja blokirana do deploya migracij, produkcijskega SIGN DE/TSS, zunanje DSFinV-K potrditve, prijave sistema in pravnega pregleda."
+    "training_provider_post_complete",
+    fiskalyMissing,
+    "TEST/TRAINING in notranji produkcijski SALE/RECEIPT POST sta implementirana z ločenimi poverilnicami. Produkcija ostaja blokirana, dokler produkcijski podpis ni povezan z atomarnim DB checkout tokom, migraciji nista deployani ter niso potrjeni pravni, registracijski in DSFinV-K pogoji."
   ));
 
   const blocking = checks.filter((check) => check.blocking);
@@ -289,4 +317,4 @@ function assess(env, options) {
   };
 }
 
-module.exports = { VERSION, assess, enabled, validAuditReference, validHttpsUrl, validPastConfirmationAt };
+module.exports = { VERSION, assess, enabled, freshConfirmationAt, validAuditReference, validHttpsUrl, validPastConfirmationAt };

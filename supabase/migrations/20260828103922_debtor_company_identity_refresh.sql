@@ -14,7 +14,7 @@ alter table public.zadeve
   add column if not exists podjetje_preverjeno_at timestamptz;
 
 create index if not exists zadeve_user_company_status_idx
-  on public.zadeve (user_id, openregister_company_id, status)
+  on public.zadeve (obrtnik_id, openregister_company_id, status)
   where openregister_company_id is not null;
 
 create table if not exists public.dolznik_podjetja (
@@ -130,7 +130,7 @@ begin
    where d.disabled = false
      and not exists (
        select 1 from public.zadeve z
-        where z.user_id = d.user_id
+        where z.obrtnik_id = d.user_id
           and z.openregister_company_id = d.company_id
           and z.status <> 'Rešeno'
      );
@@ -142,7 +142,7 @@ begin
      and (d.lease_until is null or d.lease_until <= now())
      and exists (
        select 1 from public.zadeve z
-        where z.user_id = d.user_id
+        where z.obrtnik_id = d.user_id
           and z.openregister_company_id = d.company_id
           and z.status <> 'Rešeno'
      )
@@ -209,7 +209,7 @@ begin
       user_id, company_id, legal_name, register_type, register_number, register_court,
       legal_form, checked_at, next_check_at, disabled, updated_at
     ) values (
-      new.user_id, new.openregister_company_id, new.ime_dolznika,
+      new.obrtnik_id, new.openregister_company_id, new.ime_dolznika,
       new.register_type, new.register_number, new.register_court, new.legal_form,
       new.podjetje_preverjeno_at, coalesce(new.podjetje_preverjeno_at, now()) + interval '30 days',
       new.status = 'Rešeno', now()
@@ -223,7 +223,7 @@ begin
           checked_at = coalesce(excluded.checked_at, public.dolznik_podjetja.checked_at),
           disabled = not exists (
             select 1 from public.zadeve z
-             where z.user_id = excluded.user_id
+             where z.obrtnik_id = excluded.user_id
                and z.openregister_company_id = excluded.company_id
                and z.status <> 'Rešeno'
           ),
@@ -234,13 +234,13 @@ begin
     update public.dolznik_podjetja d
        set disabled = not exists (
          select 1 from public.zadeve z
-          where z.user_id = d.user_id
+          where z.obrtnik_id = d.user_id
             and z.openregister_company_id = d.company_id
             and z.status <> 'Rešeno'
             and z.id <> new.id
        ) and (new.status = 'Rešeno' or new.openregister_company_id is distinct from old.openregister_company_id),
            updated_at = now()
-     where d.user_id = old.user_id and d.company_id = old.openregister_company_id;
+     where d.user_id = old.obrtnik_id and d.company_id = old.openregister_company_id;
   end if;
   return new;
 end;
@@ -297,7 +297,7 @@ select cron.schedule(
            and (d.lease_until is null or d.lease_until <= now())
            and exists (
              select 1 from public.zadeve z
-              where z.user_id = d.user_id
+              where z.obrtnik_id = d.user_id
                 and z.openregister_company_id = d.company_id
                 and z.status <> 'Rešeno'
            )

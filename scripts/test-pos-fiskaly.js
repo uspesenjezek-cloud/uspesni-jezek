@@ -26,6 +26,26 @@ const cfg = client.configuration({ FISKALY_API_KEY_TEST: "test_key", FISKALY_API
 assert.deepStrictEqual({ mode: cfg.mode, baseUrl: cfg.baseUrl }, { mode: "test", baseUrl: client.TEST_BASE_URL });
 const configured = client.configuration({ FISKALY_API_KEY_TEST: "test_key", FISKALY_API_SECRET_TEST: "test_secret", FISKALY_TSS_ID_TEST: "tss", FISKALY_CLIENT_ID_TEST: "client" });
 assert.deepStrictEqual({ tssId: configured.tssId, clientId: configured.clientId }, { tssId: "tss", clientId: "client" });
+const liveEnv = {
+  FISKALY_SIGN_DE_MODE: "production",
+  FISKALY_LIVE_ENABLED: "true",
+  FISKALY_API_KEY_LIVE: "live-key",
+  FISKALY_API_SECRET_LIVE: "live-secret-never-print",
+  FISKALY_TSS_ID_LIVE: "5c9242f4-12d0-4409-91a9-92265116f7f0",
+  FISKALY_CLIENT_ID_LIVE: "eeb95524-a891-465c-b71f-7bfa05ae69c3",
+  FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED: "true",
+  FISKALY_LIVE_CASH_SYSTEM_REGISTERED: "true",
+  FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED: "true",
+};
+const liveCfg = client.configuration(liveEnv);
+assert.deepStrictEqual(
+  { mode: liveCfg.mode, baseUrl: liveCfg.baseUrl, tssId: liveCfg.tssId, clientId: liveCfg.clientId },
+  { mode: "production", baseUrl: client.TEST_BASE_URL, tssId: liveEnv.FISKALY_TSS_ID_LIVE, clientId: liveEnv.FISKALY_CLIENT_ID_LIVE }
+);
+assert.throws(
+  () => client.configuration(Object.assign({}, liveEnv, { FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED: "false" })),
+  (error) => error && error.code === "FISKALY_LIVE_LOCKED"
+);
 assert.strictEqual(client.listCount([{ id: 1 }]), 1);
 assert.strictEqual(client.listCount({ data: [{ id: 1 }, { id: 2 }] }), 2);
 assert.strictEqual(client._test.uuidV4("5c9242f4-12d0-4409-91a9-92265116f7f0"), "5c9242f4-12d0-4409-91a9-92265116f7f0");
@@ -45,6 +65,7 @@ assert.deepStrictEqual(client._test.trainingReceipt(normalizedReceipt).standard_
   { vat_rate: "NORMAL", amount: "119.00" }, { vat_rate: "REDUCED_1", amount: "10.70" }
 ]);
 assert.deepStrictEqual(client._test.trainingReceipt(normalizedReceipt).standard_v1.receipt.amounts_per_payment_type, [{ payment_type: "CASH", amount: "129.70", currency_code: "EUR" }]);
+assert.strictEqual(client._test.productionReceipt(normalizedReceipt).standard_v1.receipt.receipt_type, "RECEIPT");
 assert.throws(() => client._test.normalizeTrainingReceipt({ items: [] }), /od 1 do 12/);
 assert.throws(() => client._test.normalizeTrainingReceipt({ paymentType: "WIRE", items: [{ description: "Test", quantityMilli: 1000, unitGrossCents: 100, vatRate: "19" }] }), /ni podprt/);
 assert.throws(() => client._test.normalizeTrainingReceipt({ items: [{ description: "Test", quantityMilli: 100000000, unitGrossCents: 100000000, vatRate: "19" }] }), /varen obračunski obseg/);
@@ -70,6 +91,10 @@ assert.match(handler, /local-training-cash-checkout/);
 assert.match(handler, /local-training-cash-refund/);
 assert.match(handler, /local-training-cash-reconcile/);
 assert.match(handler, /local-training-cash-refund-reconcile/);
+assert.match(handler, /training-cash-checkout/);
+assert.match(handler, /training-cash-refund/);
+assert.match(handler, /async sign\(input\)/);
+assert.match(handler, /runTrainingReceipt\([\s\S]*input\.fiscalType/);
 assert.match(handler, /const reconcileOnly = action\.includes\("reconcile"\)/);
 assert.match(handler, /recovery && \[cash\.STATES\.PREPARED, cash\.STATES\.RECOVERY_REQUIRED, cash\.STATES\.CANCELLED\]\.includes\(recovery\.state\)/);
 assert.match(handler, /pos_reconcile_training_cash_checkout_service/);
@@ -329,6 +354,99 @@ async function verifyTrainingLookupEvidence() {
   }
 }
 
+async function verifyProductionFlow() {
+  const originalFetch = global.fetch;
+  const calls = [];
+  const transactionId = "63f3fa9e-6c8b-4fe9-949b-534ad16132cf";
+  const receiptInput = {
+    paymentType: "CASH",
+    items: [
+      { description: "Arbeitszeit", quantityMilli: 1000, unitGrossCents: 11900, vatRate: "19" },
+      { description: "Material", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" },
+    ],
+  };
+
+  await assert.rejects(
+    () => client.runTrainingReceipt(liveEnv, transactionId, receiptInput, "SALE"),
+    (error) => error && error.code === "FISKALY_TRAINING_ONLY"
+  );
+  await assert.rejects(
+    () => client.runProductionReceipt(liveEnv, transactionId, receiptInput, "REFUND"),
+    (error) => error && error.code === "FISKALY_LIVE_REFUND_LOCKED"
+  );
+
+  const finishedBody = {
+    _id: transactionId, state: "FINISHED", revision: 2, number: 31,
+    client_id: liveEnv.FISKALY_CLIENT_ID_LIVE,
+    metadata: { source: "werktech_pos", purpose: "fiscal_kassenbon", receipt_type: "receipt", fiscal_type: "sale" },
+    schema: { standard_v1: { receipt: {
+      receipt_type: "RECEIPT",
+      amounts_per_vat_rate: [
+        { vat_rate: "NORMAL", amount: "119.00" },
+        { vat_rate: "REDUCED_1", amount: "10.70" },
+      ],
+      amounts_per_payment_type: [{ payment_type: "CASH", amount: "129.70", currency_code: "EUR" }],
+    } } },
+    signature: { counter: "61", algorithm: "ecdsa-plain-SHA256" },
+    time_start: "2026-08-31T10:00:00.000Z", time_end: "2026-08-31T10:00:01.000Z",
+    tss_serial_number: "live-tss-serial", client_serial_number: "live-client-serial", qr_code_data: "V0;live-receipt",
+  };
+  global.fetch = async function (url, options) {
+    calls.push({ url: String(url), options: options || {} });
+    let body = {};
+    if (String(url).endsWith("/auth")) body = { access_token: "live-token" };
+    else if (String(url).includes("/client/")) body = { state: "REGISTERED" };
+    else if (String(url).includes("?tx_revision=1")) body = { _id: transactionId, state: "ACTIVE", revision: 1, number: 31 };
+    else if (String(url).includes("?tx_revision=2")) body = finishedBody;
+    else body = { state: "INITIALIZED" };
+    return { ok: true, status: 200, json: async function () { return body; } };
+  };
+
+  try {
+    const result = await client.runProductionReceipt(liveEnv, transactionId, receiptInput, "SALE");
+    assert.strictEqual(result.state, "FINISHED");
+    assert.strictEqual(result.training, false);
+    assert.strictEqual(result.fiscalType, "SALE");
+    assert.strictEqual(result.amount, "129.70");
+    assert.strictEqual(calls.length, 5);
+    assert.ok(calls.every((call) => call.url.startsWith(client.TEST_BASE_URL + "/")));
+    const active = JSON.parse(calls[3].options.body);
+    const finished = JSON.parse(calls[4].options.body);
+    assert.strictEqual(active.metadata.receipt_type, "receipt");
+    assert.strictEqual(finished.schema.standard_v1.receipt.receipt_type, "RECEIPT");
+    assert.doesNotMatch(JSON.stringify(result), /live-secret-never-print|live-key/);
+  } finally {
+    global.fetch = originalFetch;
+  }
+}
+
+async function verifyFiskalyAdapterSign() {
+  const originalRunTrainingReceipt = client.runTrainingReceipt;
+  const transactionId = "63f3fa9e-6c8b-4fe9-949b-534ad16132cf";
+  let observed = null;
+  client.runTrainingReceipt = async function (source, requestedId, receipt, fiscalType) {
+    observed = { source, requestedId, receipt, fiscalType };
+    return { transactionId: requestedId, state: "FINISHED" };
+  };
+  try {
+    const result = await handlerModule._test.fiskalyRecoveryAdapter().sign({
+      transactionId,
+      fiscalType: "SALE",
+      receipt: { items: [{ description: "Arbeitszeit", grossCents: 11900, vatRate: "19" }] },
+    });
+    assert.strictEqual(result.transactionId, transactionId);
+    assert.strictEqual(observed.source, process.env);
+    assert.strictEqual(observed.requestedId, transactionId);
+    assert.strictEqual(observed.fiscalType, "SALE");
+    assert.deepStrictEqual(observed.receipt, {
+      paymentType: "CASH",
+      items: [{ description: "Arbeitszeit", quantityMilli: 1000, unitGrossCents: 11900, vatRate: "19" }],
+    });
+  } finally {
+    client.runTrainingReceipt = originalRunTrainingReceipt;
+  }
+}
+
 async function verifyLocalCashHandler() {
   const originals = {
     userRpc: supabaseServer.pokliciRpcKotUporabnik,
@@ -436,8 +554,8 @@ async function verifyLocalCashHandler() {
   }
 }
 
-Promise.resolve().then(verifyTrainingFlow).then(verifyTrainingLookupEvidence).then(verifyLocalCashHandler).then(function () {
-  console.log("POS fiskaly SIGN DE testna povezava, TRAINING košarica in Kassenbon: OK");
+Promise.resolve().then(verifyTrainingFlow).then(verifyTrainingLookupEvidence).then(verifyProductionFlow).then(verifyFiskalyAdapterSign).then(verifyLocalCashHandler).then(function () {
+  console.log("POS fiskaly SIGN DE TEST/TRAINING in fail-closed produkcijski POST: OK");
 }).catch(function (error) {
   console.error(error);
   process.exitCode = 1;
