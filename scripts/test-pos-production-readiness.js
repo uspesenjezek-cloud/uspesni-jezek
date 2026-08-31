@@ -6,8 +6,38 @@ const path = require("node:path");
 const readiness = require("../api/_lib/pos-production-readiness");
 
 const envExample = fs.readFileSync(path.join(__dirname, "..", ".env.example"), "utf8");
+const verifyWorkflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "verify.yml"), "utf8");
+assert.match(verifyWorkflow, /supabase\/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1\s+# v1\.7\.1/);
+assert.match(verifyWorkflow, /version:\s*2\.115\.0/);
+[
+  "20260829165203_pos_payment_safety_v2.sql",
+  "20260830172315_pos_stripe_event_invoice_lock.sql",
+  "20260830212243_pos_stripe_refund_recovery.sql",
+  "20260830212449_pos_bank_confirm_retry_idempotency.sql",
+  "20260830212909_pos_cash_provider_recovery_lock_order.sql",
+  "20260830213055_pos_archive_primary_object_recovery.sql",
+].forEach((name) => assert.match(
+  verifyWorkflow,
+  new RegExp("git ls-files --error-unmatch --[\\s\\S]*supabase/migrations/" + name.replace(/\./g, "\\.")),
+  name + " mora biti obvezni del CI checkouta."
+));
+const workflowLines = verifyWorkflow.split(/\r?\n/).map((line) => line.trim());
+const resetIndex = workflowLines.indexOf("run: supabase db reset --local --no-seed --version=20260829165203");
+const seedIndex = workflowLines.indexOf("run: npm run test:pos-snapshot:seed");
+const migrateIndex = workflowLines.indexOf("run: supabase migration up --local");
+const snapshotIndex = workflowLines.indexOf("run: npm run test:pos-snapshot");
+const catalogIndex = workflowLines.indexOf("run: node scripts/test-pos-rpc-security.js");
+const concurrencyIndex = workflowLines.indexOf("run: npm run test:pos-concurrency");
+assert.ok(resetIndex >= 0 && resetIndex < seedIndex && seedIndex < migrateIndex && migrateIndex < snapshotIndex,
+  "Disposable Supabase job mora dokazati pravi pre-J.2 snapshot in nato dejansko migracijo.");
+assert.ok(snapshotIndex < catalogIndex && catalogIndex < concurrencyIndex,
+  "Po migraciji morata pred concurrency gateom teči snapshot in pg_proc catalog dokaz.");
+assert.match(verifyWorkflow, /POS_REQUIRE_RPC_CATALOG:\s*"1"[\s\S]*node scripts\/test-pos-rpc-security\.js/);
+assert.match(verifyWorkflow, /POS_REQUIRE_PAYMENT_CONCURRENCY:\s*"1"[\s\S]*npm run test:pos-concurrency/);
 [
   "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
+  "POS_DATABASE_CI_GATE_CONFIRMED", "POS_DATABASE_CI_GATE_REFERENCE",
+  "POS_DATABASE_CI_GATE_CONFIRMED_AT", "POS_DATABASE_CI_GATE_MIGRATION_HEAD",
   "OPENAPI_INVOICE_TOKEN", "OPENAPI_INVOICE_TOKEN_EXPIRES_AT", "OPENAPI_INVOICE_MODE",
   "POS_OPENAPI_INVOICE_ENABLED", "OPENAPI_INVOICE_SEND_ENABLED",
   "OPENAPI_INVOICE_WEBHOOK_SECRET", "OPENAPI_INVOICE_WEBHOOK_URL",
@@ -18,7 +48,12 @@ const envExample = fs.readFileSync(path.join(__dirname, "..", ".env.example"), "
   "POS_ARCHIVE_S3_READINESS_CONFIRMED_BUCKET", "POS_ARCHIVE_S3_READINESS_CONFIRMED_AT",
   "POS_DE_LEGAL_REVIEW_CONFIRMED", "POS_DE_LEGAL_REVIEW_REFERENCE", "POS_DE_LEGAL_REVIEW_CONFIRMED_AT",
   "POS_DE_PILOT_ACCEPTED", "POS_DE_PILOT_REFERENCE", "POS_DE_PILOT_ACCEPTED_AT",
+  "FINAPI_MODE", "FINAPI_CLIENT_ID", "FINAPI_CLIENT_SECRET", "FINAPI_USER_KEY",
+  "FISKALY_SIGN_DE_MODE", "FISKALY_API_KEY_TEST", "FISKALY_API_SECRET_TEST",
+  "FISKALY_TSS_ID_TEST", "FISKALY_CLIENT_ID_TEST",
 ].forEach((name) => assert.match(envExample, new RegExp("^" + name + "=", "m"), name + " manjka v .env.example"));
+assert.match(envExample, /^FINAPI_MODE=sandbox$/m, "finAPI predloga mora ostati fail-closed v sandboxu.");
+assert.match(envExample, /^FISKALY_SIGN_DE_MODE=test$/m, "fiskaly predloga mora ostati fail-closed v TEST okolju.");
 [
   "POS_OPENAPI_INVOICE_ENABLED", "OPENAPI_INVOICE_SEND_ENABLED",
   "OPENAPI_INVOICE_WEBHOOK_PUBLIC_PREFLIGHT_CONFIRMED",
@@ -26,10 +61,11 @@ const envExample = fs.readFileSync(path.join(__dirname, "..", ".env.example"), "
   "OPENAPI_INVOICE_RECONCILIATION_ENABLED", "POS_ARCHIVE_S3_LIVE_ENABLED",
   "POS_ARCHIVE_S3_READINESS_CONFIRMED",
   "POS_DE_LEGAL_REVIEW_CONFIRMED", "POS_DE_PILOT_ACCEPTED",
+  "POS_DATABASE_CI_GATE_CONFIRMED",
 ].forEach((name) => assert.match(envExample, new RegExp("^" + name + "=false$", "m"), name + " mora biti v predlogi fail-closed"));
 
 const empty = readiness.assess({});
-assert.strictEqual(empty.version, "pos-de-production-readiness-v15");
+assert.strictEqual(empty.version, "pos-de-production-readiness-v16");
 assert.strictEqual(empty.ready, false);
 assert.strictEqual(empty.summary.blockingTotal, 8);
 assert.strictEqual(empty.summary.blockingReady, 0);
@@ -66,6 +102,10 @@ const completeEnv = {
   SUPABASE_URL: "https://project.supabase.co",
   SUPABASE_ANON_KEY: secretValues.anon,
   SUPABASE_SERVICE_ROLE_KEY: secretValues.service,
+  POS_DATABASE_CI_GATE_CONFIRMED: "true",
+  POS_DATABASE_CI_GATE_REFERENCE: "GITHUB-ACTIONS-POS-DB-2026-08-31",
+  POS_DATABASE_CI_GATE_CONFIRMED_AT: new Date().toISOString(),
+  POS_DATABASE_CI_GATE_MIGRATION_HEAD: "20260830213055",
   OPENAPI_INVOICE_TOKEN: secretValues.openapi,
   OPENAPI_INVOICE_TOKEN_EXPIRES_AT: "2099-12-31T23:59:59Z",
   OPENAPI_INVOICE_MODE: "production",
@@ -105,6 +145,17 @@ assert.deepStrictEqual(complete.summary, {
   optionalNotReady: 4,
 });
 assert.strictEqual(complete.checks.find((check) => check.id === "openapi_einvoicing").status, "ready");
+assert.strictEqual(complete.checks.find((check) => check.id === "supabase_core").status, "ready");
+const staleDatabaseCiGate = readiness.assess(Object.assign({}, completeEnv, {
+  POS_DATABASE_CI_GATE_CONFIRMED_AT: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+}));
+assert.strictEqual(staleDatabaseCiGate.checks.find((check) => check.id === "supabase_core").ready, false);
+assert.ok(staleDatabaseCiGate.checks.find((check) => check.id === "supabase_core").missing.includes("POS_DATABASE_CI_GATE_CONFIRMED_AT"));
+const wrongDatabaseMigrationHead = readiness.assess(Object.assign({}, completeEnv, {
+  POS_DATABASE_CI_GATE_MIGRATION_HEAD: "20260830172315",
+}));
+assert.strictEqual(wrongDatabaseMigrationHead.checks.find((check) => check.id === "supabase_core").ready, false);
+assert.ok(wrongDatabaseMigrationHead.checks.find((check) => check.id === "supabase_core").missing.includes("POS_DATABASE_CI_GATE_MIGRATION_HEAD=20260830213055"));
 const sendLocked = readiness.assess(Object.assign({}, {
   SUPABASE_URL: "https://project.supabase.co",
   SUPABASE_ANON_KEY: "anon",

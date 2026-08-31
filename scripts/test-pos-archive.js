@@ -27,6 +27,12 @@ const durableDocumentRecoveryMigrationName = fs.readdirSync(path.join(root, "sup
   .filter((name) => /pos_archive_durable_document_recovery\.sql$/.test(name)).sort().pop();
 assert.ok(durableDocumentRecoveryMigrationName, "Manjka trajna obnova vseh zaklenjenih POS originalov.");
 const durableDocumentRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", durableDocumentRecoveryMigrationName), "utf8");
+const primaryObjectRecoveryMigrationName = fs.readdirSync(path.join(root, "supabase", "migrations"))
+  .filter((name) => /pos_archive_primary_object_recovery\.sql$/.test(name)).sort().pop();
+assert.ok(primaryObjectRecoveryMigrationName, "Manjka varna WORM obnova primarnega arhivskega objekta.");
+const primaryObjectRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", primaryObjectRecoveryMigrationName), "utf8");
+const primaryRecoveryBatchSql = primaryObjectRecoveryMigration.match(/create or replace function public\.pos_archive_primary_recovery_batch\([\s\S]*?\n\$\$;/i);
+assert.ok(primaryRecoveryBatchSql, "Migracija nima zaključene batch funkcije primarne obnove.");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
 assert.match(html, /Arhivska veriga zajema 7 vrst izvirnikov/);
 assert.match(html, /ponudbe, pogodbena potrdila ter Verfahrensdokumentation/);
@@ -141,6 +147,23 @@ assert.match(durableDocumentRecoveryMigration, /where not work_order\.is_test[\s
 assert.match(durableDocumentRecoveryMigration, /order by candidates\.priority, candidates\.created_at/i);
 assert.match(durableDocumentRecoveryMigration, /case when invoice\.is_test then 1 else 0 end priority/i);
 assert.match(durableDocumentRecoveryMigration, /where not invoice\.is_test[\s\S]*public\.pos_adjustment_einvoice_documents/i);
+assert.match(primaryObjectRecoveryMigration, /create or replace function public\.pos_archive_primary_recovery_batch\([\s\S]*latest\.result = 'missing'/i);
+assert.match(primaryObjectRecoveryMigration, /replica\.status = 'verified'[\s\S]*replica\.remote_checksum_sha256 = record\.sha256[\s\S]*replica\.remote_byte_size = record\.byte_size/i);
+assert.match(primaryObjectRecoveryMigration, /nullif\(trim\(replica\.object_version_id\), ''\) is not null/i);
+assert.match(primaryRecoveryBatchSql[0], /replica_last_attempt_at timestamptz,[\s\S]*replica_copied_at timestamptz/i);
+assert.match(primaryRecoveryBatchSql[0], /replica\.retain_until,[\s\S]*replica\.last_attempt_at,[\s\S]*replica\.copied_at,[\s\S]*record\.id/i);
+assert.match(primaryRecoveryBatchSql[0], /replica\.last_attempt_at is not null[\s\S]*replica\.copied_at is not null/i);
+assert.match(primaryRecoveryBatchSql[0], /record\.is_test[\s\S]*replica\.object_lock_mode = 'COMPLIANCE'[\s\S]*record\.retention_not_before::timestamptz \+ interval '1 day' - interval '1 millisecond'/i);
+assert.match(primaryObjectRecoveryMigration, /create or replace function public\.pos_archive_primary_recovery_complete\([\s\S]*p_missing_integrity_event_id uuid,[\s\S]*p_verified_integrity_event_id uuid/i);
+assert.match(primaryObjectRecoveryMigration, /v_missing_event\.result <> 'missing'[\s\S]*v_verified_event\.checked_at <= v_missing_event\.checked_at[\s\S]*v_latest_event_id is distinct from v_verified_event\.id/i);
+assert.match(primaryObjectRecoveryMigration, /'missingIntegrityEventId', v_missing_event\.id[\s\S]*'verifiedIntegrityEventId', v_verified_event\.id/i);
+assert.match(primaryObjectRecoveryMigration, /event\.details ->> 'missingIntegrityEventId' = v_missing_event\.id::text[\s\S]*event\.details ->> 'verifiedIntegrityEventId' = v_verified_event\.id::text/i);
+assert.match(primaryObjectRecoveryMigration, /create or replace function private\.pos_archive_production_ready\(\)[\s\S]*left join lateral[\s\S]*latest\.result is distinct from 'verified'[\s\S]*latest\.observed_sha256 is distinct from record\.sha256[\s\S]*latest\.observed_byte_size is distinct from record\.byte_size[\s\S]*latest\.checked_at < now\(\) - interval '90 days'[\s\S]*latest\.checked_at > now\(\) \+ interval '5 minutes'/i);
+assert.match(primaryObjectRecoveryMigration, /revoke all on function public\.pos_archive_primary_recovery_complete\(uuid, uuid, uuid, text\)/i);
+assert.match(primaryObjectRecoveryMigration, /security definer[\s\S]*set search_path = ''/i);
+assert.match(primaryObjectRecoveryMigration, /revoke all on function public\.pos_archive_primary_recovery_batch\(integer\)[\s\S]*to service_role/i);
+assert.match(fs.readFileSync(path.join(root, "api", "_handlers", "pos-arhiv-delavec.js"), "utf8"), /"x-upsert": "false"/);
+assert.doesNotMatch(fs.readFileSync(path.join(root, "api", "_handlers", "pos-arhiv-delavec.js"), "utf8"), /"x-upsert": "true"/);
 
 const summary = handler._test.publicSummary(
   { retentionYears: 8, productionReady: false, independentBackupReady: false },
@@ -186,7 +209,7 @@ assert.match(unavailableView.copyText, /varno zaklenjena/i);
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260828-datev-status-v1/);
+assert.match(html, /pos-terminal\.js\?v=20260830-cash-provider-recovery-v1/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);
@@ -247,6 +270,130 @@ const liveRetention = worm._test.retentionFor(Object.assign({}, sampleRecord, { 
 assert.strictEqual(liveRetention.mode, "COMPLIANCE");
 assert.strictEqual(liveRetention.retainUntil.toISOString(), "2034-12-31T23:59:59.999Z");
 
+function testRecoveryRetentionPolicy() {
+  const now = new Date("2026-08-21T00:02:00.000Z");
+  const base = Object.assign({}, sampleRecord, {
+    replica_bucket: testConfig.bucket,
+    replica_object_key: worm._test.objectKey(sampleRecord),
+    replica_object_version_id: "version-policy-1",
+    replica_object_lock_mode: "GOVERNANCE",
+    replica_last_attempt_at: "2026-08-21T00:00:00.000Z",
+    replica_copied_at: "2026-08-21T00:01:00.000Z",
+    replica_retain_until: "2026-09-20T00:00:00.000Z"
+  });
+  assert.strictEqual(worm._test.recoveryIdentity(testConfig, base, now).mode, "GOVERNANCE");
+  const unanchored = Object.assign({}, base, { replica_last_attempt_at: null, replica_copied_at: null });
+  assert.throws(
+    () => worm._test.recoveryIdentity(testConfig, unanchored, now),
+    (error) => error && error.code === "AWS_RETENTION_INVALID"
+  );
+  assert.strictEqual(
+    worm._test.recoveryIdentity(testConfig, unanchored, now, { allowUnanchoredTest: true }).mode,
+    "GOVERNANCE"
+  );
+  assert.throws(
+    () => worm._test.recoveryIdentity(testConfig, Object.assign({}, unanchored, {
+      missing_integrity_event_id: "66666666-6666-4666-8666-666666666666"
+    }), now, { allowUnanchoredTest: true }),
+    (error) => error && error.code === "AWS_RETENTION_INVALID"
+  );
+  assert.throws(
+    () => worm._test.recoveryIdentity(testConfig, Object.assign({}, base, { replica_object_lock_mode: "COMPLIANCE" }), now),
+    (error) => error && error.code === "AWS_RETENTION_MISMATCH"
+  );
+  assert.throws(
+    () => worm._test.recoveryIdentity(testConfig, Object.assign({}, base, { replica_retain_until: "2026-08-20T23:59:59.999Z" }), now),
+    (error) => error && error.code === "AWS_RETENTION_MISMATCH"
+  );
+  assert.throws(
+    () => worm._test.recoveryIdentity(testConfig, Object.assign({}, base, { replica_retain_until: "2026-10-01T00:00:00.000Z" }), now),
+    (error) => error && error.code === "AWS_RETENTION_MISMATCH"
+  );
+
+  const live = Object.assign({}, base, {
+    is_test: false,
+    replica_object_lock_mode: "COMPLIANCE",
+    replica_retain_until: "2034-12-31T23:59:59.999Z"
+  });
+  assert.strictEqual(worm._test.recoveryIdentity(liveConfig, live, now).mode, "COMPLIANCE");
+  assert.throws(
+    () => worm._test.recoveryIdentity(testConfig, live, now),
+    (error) => error && error.code === "LIVE_WORM_NOT_ENABLED"
+  );
+  assert.throws(
+    () => worm._test.recoveryIdentity(liveConfig, Object.assign({}, live, { replica_object_lock_mode: "GOVERNANCE" }), now),
+    (error) => error && error.code === "AWS_RETENTION_MISMATCH"
+  );
+  assert.throws(
+    () => worm._test.recoveryIdentity(liveConfig, Object.assign({}, live, { replica_retain_until: "2034-12-31T23:59:59.998Z" }), now),
+    (error) => error && error.code === "AWS_RETENTION_MISMATCH"
+  );
+}
+
+async function testArchiveReadStatusSemantics() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
+  const originalFetch = supabase.fetchZOmejitvijo;
+  const record = Object.assign({}, sampleRecord, { storage_bucket: "archive", storage_path: "user/original.pdf" });
+  let status = 404;
+  supabase.fetchZOmejitvijo = async function () { return new Response("", { status }); };
+  try {
+    assert.strictEqual(await archive.readObject({ url: "http://supabase.local", serviceKey: "test" }, record), null);
+    assert.strictEqual((await archive.verifyRecord({ url: "http://supabase.local", serviceKey: "test" }, record)).result, "missing");
+    status = 400;
+    await assert.rejects(
+      () => archive.readObject({ url: "http://supabase.local", serviceKey: "test" }, record),
+      (error) => error && error.status === 400
+    );
+    const badRequest = await archive.verifyRecord({ url: "http://supabase.local", serviceKey: "test" }, record);
+    assert.deepStrictEqual(badRequest, {
+      result: "error", observed_sha256: null, observed_byte_size: null,
+      checker_version: "pos-archive-integrity-v1",
+      details: { code: "STORAGE_READ_FAILED", status: 400 }
+    });
+    status = 500;
+    assert.strictEqual((await archive.verifyRecord({ url: "http://supabase.local", serviceKey: "test" }, record)).result, "error");
+  } finally {
+    supabase.fetchZOmejitvijo = originalFetch;
+  }
+}
+
+async function testPrimaryWriteConflictClassification() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
+  const originalFetch = supabase.fetchZOmejitvijo;
+  const original = Buffer.from("original");
+  const record = Object.assign({}, sampleRecord, {
+    storage_bucket: "pos-invoice-originals",
+    storage_path: "user/invoice.pdf"
+  });
+  let responseBody;
+  let responseStatus;
+  supabase.fetchZOmejitvijo = async function () {
+    return new Response(JSON.stringify(responseBody), {
+      status: responseStatus,
+      headers: { "Content-Type": "application/json" }
+    });
+  };
+  async function write() {
+    return archiveWorker._test.writePrimaryObject({ url: "http://supabase.local", serviceKey: "test" }, record, original);
+  }
+  try {
+    responseStatus = 409;
+    responseBody = { code: "ResourceAlreadyExists", message: "The resource already exists" };
+    assert.deepStrictEqual(await write(), { created: false });
+    responseStatus = 400;
+    responseBody = { statusCode: "409", error: "Duplicate", message: "The resource already exists" };
+    assert.deepStrictEqual(await write(), { created: false });
+    responseStatus = 409;
+    responseBody = { code: "Conflict", message: "Asset Already Exists" };
+    await assert.rejects(write, (error) => error && error.code === "PRIMARY_RESTORE_WRITE_FAILED" && error.status === 409);
+    responseStatus = 400;
+    responseBody = { code: "InvalidRequest", message: "Malformed storage path" };
+    await assert.rejects(write, (error) => error && error.code === "PRIMARY_RESTORE_WRITE_FAILED" && error.status === 400);
+  } finally {
+    supabase.fetchZOmejitvijo = originalFetch;
+  }
+}
+
 async function testAwsRoundTrip() {
   const original = Buffer.from("original");
   const expectedKey = worm._test.objectKey(sampleRecord);
@@ -282,7 +429,9 @@ async function testAwsRoundTrip() {
       }
       if (name === "GetObjectCommand") {
         return {
+          VersionId: stored.versionId,
           ContentLength: original.length,
+          ChecksumSHA256: worm._test.hexToBase64(sampleRecord.sha256),
           Body: { async transformToByteArray() { return new Uint8Array(original); } }
         };
       }
@@ -296,20 +445,69 @@ async function testAwsRoundTrip() {
   const recoveryRecord = Object.assign({}, sampleRecord, {
     replica_bucket: copied.bucket,
     replica_object_key: copied.objectKey,
-    replica_object_version_id: copied.objectVersionId
+    replica_object_version_id: copied.objectVersionId,
+    replica_object_lock_mode: copied.objectLockMode,
+    replica_retain_until: copied.retainUntil,
+    replica_last_attempt_at: "2026-08-21T00:00:00.000Z",
+    replica_copied_at: "2026-08-21T00:01:00.000Z"
   });
-  const recovered = await worm.recoverAndVerify(client, testConfig, recoveryRecord);
+  const recoveryNow = new Date("2026-08-21T00:02:00Z");
+  const recovered = await worm.recoverAndVerify(client, testConfig, recoveryRecord, recoveryNow);
   assert.strictEqual(recovered.sha256, sampleRecord.sha256);
+  assert.deepStrictEqual(recovered.buffer, original);
   async function* oversizedBody() { yield Buffer.from("abc"); yield Buffer.from("def"); }
   await assert.rejects(
     () => worm._test.readBodyBounded(oversizedBody(), 5),
     function (error) { return error && error.code === "AWS_RECOVERY_TOO_LARGE"; }
   );
   await assert.rejects(
-    () => worm.recoverAndVerify({ send: async function () {
-      return { Body: { async transformToByteArray() { return new Uint8Array(original); } } };
-    } }, testConfig, recoveryRecord),
+    () => worm.recoverAndVerify({ send: async function (command) {
+      if (command.constructor.name === "HeadObjectCommand") {
+        return {
+          VersionId: stored.versionId,
+          ContentLength: original.length,
+          ChecksumSHA256: worm._test.hexToBase64(sampleRecord.sha256),
+          Metadata: { sha256: sampleRecord.sha256 },
+          ObjectLockMode: "GOVERNANCE",
+          ObjectLockRetainUntilDate: stored.retainUntil
+        };
+      }
+      return { ContentLength: original.length, Body: { async transformToByteArray() { return new Uint8Array(original); } } };
+    } }, testConfig, recoveryRecord, recoveryNow),
     function (error) { return error && error.code === "AWS_RECOVERY_INVALID"; }
+  );
+  await assert.rejects(
+    () => worm.recoverAndVerify(client, testConfig, Object.assign({}, recoveryRecord, {
+      objectVersionId: "different-version"
+    }), recoveryNow),
+    function (error) { return error && error.code === "AWS_VERSION_AMBIGUOUS"; }
+  );
+  await assert.rejects(
+    () => worm.recoverAndVerify(client, testConfig, Object.assign({}, recoveryRecord, {
+      replica_object_version_id: ""
+    }), recoveryNow),
+    function (error) { return error && error.code === "AWS_VERSION_MISSING"; }
+  );
+  const tampered = Buffer.from("tampered");
+  await assert.rejects(
+    () => worm.recoverAndVerify({ send: async function (command) {
+      if (command.constructor.name === "HeadObjectCommand") {
+        return {
+          VersionId: stored.versionId,
+          ContentLength: original.length,
+          ChecksumSHA256: worm._test.hexToBase64(sampleRecord.sha256),
+          Metadata: { sha256: sampleRecord.sha256 },
+          ObjectLockMode: "GOVERNANCE",
+          ObjectLockRetainUntilDate: stored.retainUntil
+        };
+      }
+      return {
+        VersionId: stored.versionId,
+        ContentLength: tampered.length,
+        Body: { async transformToByteArray() { return new Uint8Array(tampered); } }
+      };
+    } }, testConfig, recoveryRecord, recoveryNow),
+    function (error) { return error && error.code === "AWS_RECOVERY_HASH_MISMATCH"; }
   );
   assert.ok(calls.some(function (call) { return call.name === "PutObjectCommand"; }));
   assert.ok(calls.some(function (call) { return call.name === "GetObjectCommand" && call.input.VersionId === stored.versionId; }));
@@ -407,6 +605,142 @@ async function testParallelUserIntegrityVerification() {
   }
 }
 
+async function testPrimaryObjectRestore() {
+  const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
+  const originalFetch = supabase.fetchZOmejitvijo;
+  const originalRpc = supabase.pokliciRpc;
+  const original = Buffer.from("original");
+  const versionId = "verified-version-1";
+  const missingEventId = "66666666-6666-4666-8666-666666666666";
+  const verifiedEventId = "77777777-7777-4777-8777-777777777777";
+  const fixtureNow = new Date();
+  const lastAttemptAt = new Date(fixtureNow.getTime() - 60 * 1000);
+  const copiedAt = new Date(fixtureNow.getTime() - 30 * 1000);
+  const retainUntil = new Date(lastAttemptAt.getTime() + testConfig.testRetentionDays * 86400000);
+  const record = Object.assign({}, sampleRecord, {
+    replica_id: "44444444-4444-4444-8444-444444444444",
+    missing_integrity_event_id: missingEventId,
+    replica_bucket: testConfig.bucket,
+    replica_object_key: worm._test.objectKey(sampleRecord),
+    replica_object_version_id: versionId,
+    replica_object_lock_mode: "GOVERNANCE",
+    replica_retain_until: retainUntil.toISOString(),
+    replica_last_attempt_at: lastAttemptAt.toISOString(),
+    replica_copied_at: copiedAt.toISOString(),
+    storage_bucket: "pos-invoice-originals",
+    storage_path: "22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333/invoice.pdf"
+  });
+  const events = [];
+  const rpcCalls = [];
+  const awsCalls = [];
+  let primary = null;
+  let primaryWrites = 0;
+
+  function response(body, status, contentType) {
+    return new Response(body, {
+      status: status,
+      headers: { "Content-Type": contentType || "application/octet-stream" }
+    });
+  }
+  function readiness() {
+    const latest = events[events.length - 1];
+    return Boolean(latest && latest.result === "verified"
+      && latest.observed_sha256 === record.sha256
+      && Number(latest.observed_byte_size) === Number(record.byte_size));
+  }
+
+  supabase.fetchZOmejitvijo = async function (url, options) {
+    const method = String(options && options.method || "GET").toUpperCase();
+    if (url.includes("/storage/v1/object/")) {
+      if (method === "GET") {
+        if (!primary) return response("", 404);
+        return response(primary, 200, record.original_media_type);
+      }
+      assert.strictEqual(method, "POST");
+      assert.strictEqual(options.headers["x-upsert"], "false");
+      assert.strictEqual(options.headers["Content-Type"], record.original_media_type);
+      assert.ok(url.endsWith("/pos-invoice-originals/" + record.storage_path));
+      primaryWrites += 1;
+      if (primary) return response(JSON.stringify({ message: "Asset Already Exists" }), 409, "application/json");
+      primary = Buffer.from(options.body);
+      return response("{}", 200, "application/json");
+    }
+    if (url.endsWith("/rest/v1/pos_archive_integrity_events") && method === "POST") {
+      const event = Object.assign({ id: events.length === 0 ? missingEventId : verifiedEventId }, JSON.parse(options.body));
+      events.push(event);
+      return response(JSON.stringify([event]), 201, "application/json");
+    }
+    throw new Error("Unexpected mocked Supabase request: " + method + " " + url);
+  };
+  supabase.pokliciRpc = async function (_, name, payload) {
+    rpcCalls.push({ name, payload });
+    assert.strictEqual(name, "pos_archive_primary_recovery_complete");
+    assert.strictEqual(payload.p_replica_id, record.replica_id);
+    assert.strictEqual(payload.p_object_version_id, versionId);
+    assert.strictEqual(payload.p_missing_integrity_event_id, missingEventId);
+    assert.strictEqual(payload.p_verified_integrity_event_id, verifiedEventId);
+    return null;
+  };
+  const s3Client = {
+    async send(command) {
+      const name = command.constructor.name;
+      awsCalls.push({ name, input: command.input });
+      assert.strictEqual(command.input.VersionId, versionId);
+      if (name === "HeadObjectCommand") {
+        return {
+          VersionId: versionId,
+          ContentLength: original.length,
+          ChecksumSHA256: worm._test.hexToBase64(record.sha256),
+          Metadata: { sha256: record.sha256 },
+          ObjectLockMode: "GOVERNANCE",
+          ObjectLockRetainUntilDate: retainUntil
+        };
+      }
+      if (name === "GetObjectCommand") {
+        return {
+          VersionId: versionId,
+          ContentLength: original.length,
+          ChecksumSHA256: worm._test.hexToBase64(record.sha256),
+          Body: { async transformToByteArray() { return new Uint8Array(original); } }
+        };
+      }
+      throw new Error("Unexpected AWS recovery command: " + name);
+    }
+  };
+
+  try {
+    const missing = await archive.verifyAndRecord({ url: "http://supabase.local", serviceKey: "test" }, record);
+    assert.strictEqual(missing.verification.result, "missing");
+    assert.strictEqual(readiness(), false, "Manjkajoči primarni objekt mora zakleniti pripravljenost.");
+
+    const restored = await archiveWorker._test.restoreMissingPrimary(
+      { url: "http://supabase.local", serviceKey: "test" }, s3Client, testConfig, record
+    );
+    assert.strictEqual(restored.restored, true);
+    assert.deepStrictEqual(primary, original);
+    assert.strictEqual(primaryWrites, 1);
+    assert.strictEqual(events[events.length - 1].result, "verified");
+    assert.strictEqual(readiness(), true, "Pripravljenost se sme obnoviti šele po ponovnem SHA/size preverjanju.");
+    assert.strictEqual(rpcCalls.length, 1);
+    assert.ok(awsCalls.some(function (call) {
+      return call.name === "GetObjectCommand" && call.input.VersionId === versionId;
+    }));
+
+    primary = Buffer.from("tampered");
+    const writesBeforeMismatch = primaryWrites;
+    await assert.rejects(
+      () => archiveWorker._test.restoreMissingPrimary(
+        { url: "http://supabase.local", serviceKey: "test" }, s3Client, testConfig, record
+      ),
+      function (error) { return error && error.code === "PRIMARY_RESTORE_STATE_INVALID"; }
+    );
+    assert.strictEqual(primaryWrites, writesBeforeMismatch, "Poškodovanega obstoječega objekta obnovitev ne sme prepisati.");
+  } finally {
+    supabase.fetchZOmejitvijo = originalFetch;
+    supabase.pokliciRpc = originalRpc;
+  }
+}
+
 async function testUnconfiguredWormDoesNotClaimReplicas() {
   const supabase = require(path.join(root, "api", "_lib", "supabase-server"));
   const originalConfiguration = worm.configuration;
@@ -455,10 +789,14 @@ async function testUnconfiguredWormDoesNotClaimReplicas() {
 }
 
 async function runArchiveTests() {
+  testRecoveryRetentionPolicy();
+  await testArchiveReadStatusSemantics();
+  await testPrimaryWriteConflictClassification();
   await testAwsRoundTrip();
   await testMissingDocumentRepair();
   await testUserIntegrityBatch();
   await testParallelUserIntegrityVerification();
+  await testPrimaryObjectRestore();
   await testUnconfiguredWormDoesNotClaimReplicas();
 }
 

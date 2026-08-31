@@ -13,6 +13,7 @@ const REQUIRED_REGION = "eu-central-1";
 const PROVIDER = "aws_s3_object_lock";
 const MAX_TEST_RETENTION_DAYS = 30;
 const MAX_ARCHIVE_BYTES = 5 * 1024 * 1024;
+const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 function bool(value) {
   return String(value || "").toLowerCase() === "true";
@@ -63,7 +64,7 @@ function codedError(code, message, cause) {
 function safeErrorCode(error) {
   const ownCode = String(error && (error.code || error.name) || "UNKNOWN_ERROR").toUpperCase();
   const normalized = ownCode.replace(/[^A-Z0-9_]/g, "_").slice(0, 80);
-  if (normalized === "NOTFOUND" || normalized === "NOSUCHKEY") return "AWS_OBJECT_NOT_FOUND";
+  if (normalized === "NOTFOUND" || normalized === "NOSUCHKEY" || normalized === "NOSUCHVERSION") return "AWS_OBJECT_NOT_FOUND";
   if (normalized.includes("CREDENTIAL")) return "AWS_CREDENTIALS_REJECTED";
   if (normalized.includes("ACCESSDENIED") || normalized.includes("FORBIDDEN")) return "AWS_ACCESS_DENIED";
   if (normalized.includes("TIMEOUT")) return "AWS_TIMEOUT";
@@ -166,7 +167,7 @@ async function verifyBucketObjectLock(client, cfg) {
 
 function isNotFound(error) {
   return Boolean(error && (
-    error.name === "NotFound" || error.name === "NoSuchKey" ||
+    error.name === "NotFound" || error.name === "NoSuchKey" || error.name === "NoSuchVersion" ||
     Number(error.$metadata && error.$metadata.httpStatusCode) === 404
   ));
 }
@@ -281,22 +282,99 @@ async function copyAndVerify(client, cfg, record, buffer, nowValue) {
   return result;
 }
 
-async function recoverAndVerify(client, cfg, record) {
+function recoveryIdentity(cfg, record, nowValue, options) {
   const key = objectKey(record);
-  const versionId = String(record.replica_object_version_id || record.objectVersionId || "");
-  const expectedBucket = String(record.replica_bucket || record.bucket || "");
-  if (!versionId || expectedBucket !== cfg.bucket || String(record.replica_object_key || record.objectKey || "") !== key) {
+  const versionId = String(record.replica_object_version_id || "").trim();
+  const alternateVersionId = String(record.objectVersionId || "").trim();
+  const expectedBucket = String(record.replica_bucket || "").trim();
+  const expectedKey = String(record.replica_object_key || "");
+  if (!versionId) {
+    throw codedError("AWS_VERSION_MISSING", "AWS kopija nima natančno določene shranjene različice.");
+  }
+  if (alternateVersionId && alternateVersionId !== versionId) {
+    throw codedError("AWS_VERSION_AMBIGUOUS", "Identiteta AWS različice je dvoumna.");
+  }
+  if (expectedBucket !== cfg.bucket || expectedKey !== key) {
     throw codedError("AWS_REPLICA_IDENTITY_MISMATCH", "AWS kopija nima popolne shranjene identitete.");
+  }
+  const mode = String(record.replica_object_lock_mode || "").trim();
+  const retainUntil = new Date(record.replica_retain_until);
+  if (!/^(GOVERNANCE|COMPLIANCE)$/.test(mode) || Number.isNaN(retainUntil.getTime())) {
+    throw codedError("AWS_RETENTION_INVALID", "Shranjeni zaklep AWS različice ni veljaven.");
+  }
+  const now = nowValue instanceof Date ? nowValue : new Date(nowValue || Date.now());
+  if (Number.isNaN(now.getTime())) throw codedError("CLOCK_INVALID", "Sistemski čas ni veljaven.");
+
+  if (!record.is_test) {
+    if (!cfg.liveEnabled) {
+      throw codedError("LIVE_WORM_NOT_ENABLED", "Produkcijski WORM arhiv še ni izrecno omogočen.");
+    }
+    const legalMinimum = new Date(String(record.retention_not_before || "") + "T23:59:59.999Z");
+    if (Number.isNaN(legalMinimum.getTime()) || legalMinimum <= now) {
+      throw codedError("LIVE_RETENTION_INVALID", "Produkcijski datum hrambe ni veljaven.");
+    }
+    if (mode !== "COMPLIANCE" || retainUntil.getTime() < legalMinimum.getTime()) {
+      throw codedError("AWS_RETENTION_MISMATCH", "Produkcijska AWS kopija nima zahtevanega COMPLIANCE roka.");
+    }
+    return { key, versionId, mode: "COMPLIANCE", retainUntil };
+  }
+
+  const expectedMode = cfg.liveEnabled ? "COMPLIANCE" : "GOVERNANCE";
+  if (mode !== expectedMode || retainUntil.getTime() <= now.getTime()) {
+    throw codedError("AWS_RETENTION_MISMATCH", "Testna AWS kopija nima pričakovanega aktivnega zaklepa.");
+  }
+  const lastAttemptRaw = String(record.replica_last_attempt_at || "").trim();
+  const copiedAtRaw = String(record.replica_copied_at || "").trim();
+  const lastAttemptAt = new Date(lastAttemptRaw);
+  const copiedAt = new Date(copiedAtRaw);
+  const configuredIntervalMs = cfg.testRetentionDays * 86400000;
+  if (lastAttemptRaw && copiedAtRaw
+      && !Number.isNaN(lastAttemptAt.getTime()) && !Number.isNaN(copiedAt.getTime())) {
+    const earliest = lastAttemptAt.getTime() + configuredIntervalMs - MAX_CLOCK_SKEW_MS;
+    const latest = copiedAt.getTime() + configuredIntervalMs + MAX_CLOCK_SKEW_MS;
+    if (copiedAt < lastAttemptAt || retainUntil.getTime() < earliest || retainUntil.getTime() > latest) {
+      throw codedError("AWS_RETENTION_MISMATCH", "Testni AWS rok se ne ujema s konfiguriranim intervalom.");
+    }
+  } else {
+    const immediateRecovery = options && options.allowUnanchoredTest === true
+      && !record.missing_integrity_event_id && !lastAttemptRaw && !copiedAtRaw;
+    if (!immediateRecovery) {
+      throw codedError("AWS_RETENTION_INVALID", "Testna AWS kopija nima popolnih časovnih dokazov zaklepa.");
+    }
+    if (retainUntil.getTime() > now.getTime() + configuredIntervalMs + MAX_CLOCK_SKEW_MS) {
+      throw codedError("AWS_RETENTION_MISMATCH", "Testni AWS rok presega konfigurirani interval.");
+    }
+  }
+  return { key, versionId, mode: expectedMode, retainUntil };
+}
+
+async function recoverAndVerify(client, cfg, record, nowValue, options) {
+  const identity = recoveryIdentity(cfg, record, nowValue, options);
+  const head = await headObject(client, cfg, identity.key, identity.versionId);
+  if (!head) throw codedError("AWS_OBJECT_NOT_FOUND", "Zaklenjena različica AWS kopije ni bila najdena.");
+  const verifiedHead = validateHead(head, record, {
+    mode: identity.mode,
+    retainUntil: identity.retainUntil
+  });
+  if (verifiedHead.objectVersionId !== identity.versionId) {
+    throw codedError("AWS_VERSION_MISMATCH", "AWS je vrnil drugo različico od zahtevane.");
   }
   let response;
   try {
-    response = await client.send(new GetObjectCommand({ Bucket: cfg.bucket, Key: key, VersionId: versionId, ChecksumMode: "ENABLED" }));
+    response = await client.send(new GetObjectCommand({
+      Bucket: cfg.bucket,
+      Key: identity.key,
+      VersionId: identity.versionId,
+      ChecksumMode: "ENABLED"
+    }));
   } catch (error) {
     throw codedError(safeErrorCode(error), "AWS kopije ni bilo mogoče obnoviti.", error);
   }
   const expectedSize = Number(record.byte_size);
   const declaredSize = Number(response && response.ContentLength);
-  if (!response || !response.Body || !Number.isSafeInteger(expectedSize) || expectedSize < 1 || expectedSize > MAX_ARCHIVE_BYTES || declaredSize !== expectedSize) {
+  if (!response || !response.Body || String(response.VersionId || "") !== identity.versionId
+    || !Number.isSafeInteger(expectedSize) || expectedSize < 1
+    || expectedSize > MAX_ARCHIVE_BYTES || declaredSize !== expectedSize) {
     throw codedError("AWS_RECOVERY_INVALID", "Obnovljena AWS kopija ni veljavna.");
   }
   const buffer = await readBodyBounded(response.Body, expectedSize);
@@ -304,7 +382,11 @@ async function recoverAndVerify(client, cfg, record) {
   if (buffer.length !== Number(record.byte_size) || checksum !== record.sha256) {
     throw codedError("AWS_RECOVERY_HASH_MISMATCH", "Obnovljena AWS kopija se ne ujema z izvirnikom.");
   }
-  return { sha256: checksum, byteSize: buffer.length, versionId };
+  const responseChecksum = base64ToHex(response.ChecksumSHA256);
+  if (responseChecksum && responseChecksum !== checksum) {
+    throw codedError("AWS_RECOVERY_HASH_MISMATCH", "AWS kontrolna vsota obnovljene različice se ne ujema.");
+  }
+  return { sha256: checksum, byteSize: buffer.length, versionId: identity.versionId, buffer };
 }
 
 module.exports = {
@@ -319,9 +401,11 @@ module.exports = {
   _test: {
     MAX_ARCHIVE_BYTES,
     MAX_TEST_RETENTION_DAYS,
+    MAX_CLOCK_SKEW_MS,
     hexToBase64,
     base64ToHex,
     objectKey,
+    recoveryIdentity,
     retentionFor,
     readBodyBounded,
     validateHead

@@ -258,6 +258,36 @@ async function pokliciRpc(cfg, ime, telo) {
   return data;
 }
 
+async function pokliciRpcKotUporabnik(cfg, token, ime, telo) {
+  var publicKey = String(cfg.publicKey || cfg.serviceKey || "");
+  var accessToken = String(token || "");
+  if (!publicKey || !accessToken) {
+    var configError = new Error("Uporabniška podatkovna seja manjka.");
+    configError.code = "AUTH_TOKEN_MISSING";
+    throw configError;
+  }
+  var response = await fetchZOmejitvijo(cfg.url + "/rest/v1/rpc/" + encodeURIComponent(ime), {
+    method: "POST",
+    headers: {
+      apikey: publicKey,
+      Authorization: "Bearer " + accessToken,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(telo || {}),
+  }, 12000);
+  var data = null;
+  try { data = await response.json(); } catch (_) {}
+  if (!response.ok) {
+    var err = new Error("Podatkovna operacija ni uspela.");
+    err.code = "DATABASE_RPC_FAILED";
+    err.status = response.status;
+    err.details = data;
+    throw err;
+  }
+  return data;
+}
+
 module.exports = {
   konfiguracija: konfiguracija,
   uporabniskaKonfiguracija: uporabniskaKonfiguracija,
@@ -267,6 +297,7 @@ module.exports = {
   preberiZadevo: preberiZadevo,
   pridobiVrstice: pridobiVrstice,
   pokliciRpc: pokliciRpc,
+  pokliciRpcKotUporabnik: pokliciRpcKotUporabnik,
   fetchZOmejitvijo: fetchZOmejitvijo,
   _test: {
     omejenCas: omejenCas,

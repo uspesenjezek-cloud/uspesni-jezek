@@ -21,7 +21,7 @@ async function readObject(cfg, record) {
     { headers: supabase.serviceHeaders(cfg, { Accept: record.original_media_type || "application/octet-stream" }) },
     20000
   );
-  if (response.status === 400 || response.status === 404) return null;
+  if (response.status === 404) return null;
   if (!response.ok) throw Object.assign(new Error("Arhiviranega originala ni bilo mogoče prebrati."), { status: response.status });
   return providerJson.readBuffer(response, {
     maxBytes: MAX_BYTES,

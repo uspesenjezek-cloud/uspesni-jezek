@@ -9,10 +9,27 @@ const DEMO_BANK_ID = 280001;
 const DEMO_BANK_NAME = "finAPI Test Bank";
 const DEMO_BANK_INTERFACE = "XS2A";
 const tokenCache = new Map();
+const MAX_TOKEN_CACHE_ENTRIES = 256;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+
+function pruneTokenCache(now) {
+  const current = Number(now) || Date.now();
+  tokenCache.forEach(function (entry, key) {
+    if (!entry || entry.expiresAt <= current + 30000) tokenCache.delete(key);
+  });
+  while (tokenCache.size >= MAX_TOKEN_CACHE_ENTRIES) {
+    const oldestKey = tokenCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    tokenCache.delete(oldestKey);
+  }
+}
 
 function clean(value) {
   return String(value || "").trim();
+}
+
+function clientIdFingerprint(value) {
+  return crypto.createHash("sha256").update(clean(value)).digest("hex");
 }
 
 function configuration(source) {
@@ -97,9 +114,15 @@ async function requestJson(cfg, path, options, timeoutMs) {
 }
 
 async function oauthToken(cfg, grant, user) {
-  const cacheKey = grant === "client_credentials" ? "client" : "user:" + user.id;
+  const cacheNamespace = clean(cfg && cfg.baseUrl) + ":" + clientIdFingerprint(cfg && cfg.clientId);
+  const cacheKey = cacheNamespace + (grant === "client_credentials" ? ":client" : ":user:" + user.id);
   const cached = tokenCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now() + 30000) return cached.value;
+  if (cached && cached.expiresAt > Date.now() + 30000) {
+    tokenCache.delete(cacheKey);
+    tokenCache.set(cacheKey, cached);
+    return cached.value;
+  }
+  if (cached) tokenCache.delete(cacheKey);
   const form = new URLSearchParams({
     grant_type: grant,
     client_id: cfg.clientId,
@@ -120,6 +143,7 @@ async function oauthToken(cfg, grant, user) {
     error.code = "FINAPI_AUTH_INVALID";
     throw error;
   }
+  pruneTokenCache(Date.now());
   tokenCache.set(cacheKey, { value, expiresAt: Date.now() + Math.max(60, Number(body.expires_in) || 3600) * 1000 });
   return value;
 }
@@ -202,7 +226,8 @@ function verifiedWebFormUrl(value) {
   let parsed;
   try { parsed = new URL(clean(value)); }
   catch (_) { parsed = null; }
-  if (!parsed || parsed.protocol !== "https:" || parsed.hostname !== "webform-sandbox.finapi.io") {
+  if (!parsed || parsed.protocol !== "https:" || parsed.hostname !== "webform-sandbox.finapi.io"
+    || !/^\/wf\/[0-9a-f-]+\/?$/i.test(parsed.pathname) || parsed.username || parsed.password) {
     const error = new Error("finAPI ni vrnil varnega testnega obrazca.");
     error.code = "FINAPI_WEBFORM_INVALID";
     throw error;
@@ -347,6 +372,17 @@ async function syncDemoTransactions(appUserId, source) {
       if (connection.updateStatus !== "IN_PROGRESS") break;
     }
   }
+  if (connection && connection.updateStatus === "IN_PROGRESS") {
+    return {
+      status: {
+        configured: true,
+        connected: true,
+        pending: true,
+        environment: "sandbox",
+        bankName: connectionBankName(connection) || DEMO_BANK_NAME,
+      },
+    };
+  }
   const accounts = await accountsForUser(token, cfg);
   const transactions = await incomingTransactions(token, cfg, 120, accounts);
   return {
@@ -366,6 +402,7 @@ module.exports = {
   SANDBOX_BASE_URL,
   WEBFORM_SANDBOX_BASE_URL,
   DEMO_BANK_ID,
+  MAX_TOKEN_CACHE_ENTRIES,
   MAX_RESPONSE_BYTES,
   configuration,
   createDemoBankWebForm,
@@ -386,7 +423,10 @@ module.exports = {
     pagedCollection,
     accountsForUser,
     verifiedWebFormUrl,
+    clientIdFingerprint,
     incomingTransactions,
+    pruneTokenCache,
+    tokenCacheSize: function () { return tokenCache.size; },
     resetTokenCache: function () { tokenCache.clear(); },
   },
 };
