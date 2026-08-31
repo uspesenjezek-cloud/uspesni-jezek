@@ -12,11 +12,13 @@ var sredisce = fs.readFileSync(path.join(root, "app", "boniteta-sredisce.js"), "
 var html = fs.readFileSync(path.join(root, "app", "bonitetna-preverba.html"), "utf8");
 var opraviloHandler = fs.readFileSync(path.join(root, "api", "_handlers", "mehka-boniteta-opravilo.js"), "utf8");
 var lokalnoOpravilo = fs.readFileSync(path.join(root, "api", "mehka-boniteta-opravilo.js"), "utf8");
+var proHandler = fs.readFileSync(path.join(root, "api", "_handlers", "boniteta-pro.js"), "utf8");
 var hramba = require(path.join(root, "app", "boniteta-dokazna-hramba.js"));
 var mehkaBonitetaTest = require(path.join(root, "api", "_handlers", "mehka-boniteta.js"))._test;
 
-assert.match(preverba, /queueJobId:\s*zadnjiJobId/, "Zaključena preverba mora shraniti varno referenco na dokazno opravilo.");
-assert.match(preverba, /entityType:\s*identiteta\.entityType/, "Vrsta identitete mora ostati shranjena tudi za osebe.");
+assert.match(preverba, /action: "save_check",\s*jobId: zadnjiJobId/, "Odjemalec mora shranjevanje vezati na zaključeno dokazno opravilo.");
+assert.match(proHandler, /queueJobId: job\.id/, "Strežnik mora shraniti varno referenco na lastniško preverjeno opravilo.");
+assert.match(proHandler, /entityType: firstValue\(identity, \["entityType", "entity_type"\]\)/, "Vrsta identitete mora ostati shranjena tudi za osebe.");
 assert.match(preverba, /mehka-boniteta-opravilo\?profileId=/, "Stari profili morajo imeti varen fallback za iskanje lastnega dokazila.");
 assert.match(preverba, /kandidat\.status === "completed"/, "Ponovno odpiranje sme uporabiti samo zaključeno opravilo.");
 assert.match(preverba, /imaUradniInsolvencniPosnetek\(kandidat\.result\)/, "Obnovljeni rezultat mora vsebovati dejanski uradni posnetek.");

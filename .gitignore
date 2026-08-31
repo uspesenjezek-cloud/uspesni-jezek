@@ -38,5 +38,7 @@ tools/slovenski-live-prepis/*
 
 .superpowers/
 
+.env*
+
 # Varna predloga brez skrivnosti mora ostati sledljiva.
 !.env.example

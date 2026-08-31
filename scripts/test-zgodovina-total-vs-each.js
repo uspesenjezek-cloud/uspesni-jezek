@@ -50,22 +50,9 @@ async function main() {
   }].concat(installmentCards(2, 50, "100 evrov", 651, exactGroup, {
     value: "2026-08-29", evidence: "danes", relation: [601, 611, 621, 632, 0, 641, null],
   }).map(function (card, index) { return Object.assign({}, card, { n: index + 2 }); }));
-  var originalFactBuild = factEngine.buildFactContract;
-  var originalThinkingFinalize = thinkingEngine.finalizeCandidates;
-  var originalCoverageAssess = coverageEngine.assessCoverage;
-  factEngine.buildFactContract = function () { throw new Error("fact engine ne sme teči na lean Luna poti"); };
-  thinkingEngine.finalizeCandidates = function () { throw new Error("thinking engine ne sme teči na lean Luna poti"); };
-  coverageEngine.assessCoverage = function () { throw new Error("coverage engine ne sme teči na lean Luna poti"); };
-  var exact;
-  try {
-    exact = await analyzeCompact(exactText, exactCards);
-  } finally {
-    factEngine.buildFactContract = originalFactBuild;
-    thinkingEngine.finalizeCandidates = originalThinkingFinalize;
-    coverageEngine.assessCoverage = originalCoverageAssess;
-  }
-  assert.equal(exact.semanticPlan.status, "OK");
-  assert.deepEqual(exact.enginePath, ["luna", "compact_schema", "id_to_field_adapter", "ledger", "human_review"]);
+  var exact = await analyzeCompact(exactText, exactCards);
+  assert.equal(exact.semanticPlan.status, "OK", exact.semanticPlan.reason);
+  assert.deepEqual(exact.enginePath, ["luna", "compact_schema", "id_to_field_adapter", "human_review"]);
   assert.deepEqual(exact.candidates.map(function (candidate) { return candidate.amount; }), [2000, 50, 50]);
   assert.deepEqual(exact.candidates.map(function (candidate) { return candidate.occurredDate; }), ["2026-08-15", "2026-08-29", "2026-08-29"]);
   assert.deepEqual(exact.candidates.slice(1).map(function (candidate) { return candidate.description; }), ["1/2 obrok", "2/2 obrok"]);
@@ -131,23 +118,25 @@ async function main() {
 
   var missingRelation = await analyzeCompact("v 2 obrokih plačal 100 €", installmentCards(2, 50, "100 €", null, "v 2 obrokih plačal 100 €"), 1000);
   assert.equal(missingRelation.semanticPlan.status, "OK");
-  assert.deepEqual(missingRelation.candidates.map(function (item) { return item.amount; }), [50, 50]);
+  assert.deepEqual(missingRelation.candidates.map(function (item) { return item.amount; }), [50, 50], "Lunin plan gre nespremenjen v pregled tudi brez amount-relacije");
 
   var conflictCards = installmentCards(2, 50, "100 €", 651, "2 obroka skupaj 100 €");
   conflictCards[1].f[0].r = [652];
   var conflict = await analyzeCompact("2 obroka skupaj 100 €", conflictCards, 1000);
-  assert.deepEqual(conflict.candidates.map(function (item) { return item.amount; }), [50, 50]);
+  assert.equal(conflict.semanticPlan.status, "OK");
+  assert.deepEqual(conflict.candidates.map(function (item) { return item.amount; }), [50, 50], "lokalni adapter ne presoja konflikta total/each");
 
   var duplicate = await analyzeCompact("v 2 obrokih plačal 100 €", installmentCards(3, 100, "100 €", 651, "v 2 obrokih plačal 100 €"), 1000);
-  assert.equal(duplicate.candidates.length, 3);
+  assert.equal(duplicate.semanticPlan.status, "OK");
+  assert.deepEqual(duplicate.candidates.map(function (item) { return item.amount; }), [100, 100, 100], "Lunino število kartic ostane za človeški pregled");
 
   var indivisible = await analyzeCompact("v 3 obrokih plačal 100 €", installmentCards(3, [33.33, 33.33, 33.34], "100 €", 651, "v 3 obrokih plačal 100 €"), 1000);
   assert.deepEqual(indivisible.candidates.map(function (item) { return item.amount; }), [33.33, 33.33, 33.34]);
 
   var hallucinatedEvent = await analyzeCompact("plačal je 100 evrov", [{ n: 1, c: 1, e: "tega v viru ni", f: [amountField(100, "100 evrov")] }], 1000);
-  assert.equal(hallucinatedEvent.semanticPlan.status, "OK");
+  assert.equal(hallucinatedEvent.semanticPlan.status, "OK", "history v98 lokalno ne presoja card evidence");
   var hallucinatedField = await analyzeCompact("plačal je 100 evrov", [{ n: 1, c: 1, e: "plačal je 100 evrov", f: [amountField(100, "999 evrov")] }], 1000);
-  assert.equal(hallucinatedField.semanticPlan.status, "OK");
+  assert.equal(hallucinatedField.semanticPlan.status, "OK", "history v98 lokalno ne presoja field evidence");
   var duplicatePayment = await analyzeCompact("plačal je 100 evrov", [
     { n: 1, c: 1, e: "plačal je 100 evrov", f: [amountField(100, "100 evrov")] },
     { n: 2, c: 1, e: "plačal je 100 evrov", f: [amountField(100, "100 evrov")] },
@@ -155,11 +144,12 @@ async function main() {
   assert.equal(duplicatePayment.candidates.length, 2);
 
   var request = parser.requestBody("v 2 obrokih plačal 100 €", { referenceDate: "2026-08-29", originalDebt: 1000, remainingDebt: 1000 }, "test");
-  assert.match(request.instructions, /only semantic parser/);
-  assert.match(request.instructions, /final per-card EUR amounts/);
+  assert.match(request.instructions, /only semantic authority/);
+  assert.match(request.instructions, /only validates JSON and closed IDs/);
+  assert.match(request.instructions, /final per-card EUR and ISO dates/);
   assert.ok(JSON.parse(request.input).catalog.values.some(function (row) { return row[0] === 651 && row[2] === "total"; }));
-  assert.match(request.instructions, /Add remaining_unpaid only when the source states/);
-  assert.equal(parser.CONTRACT_VERSION, "history-fact-v75");
+  assert.match(request.instructions, /Add remaining_unpaid only for an explicit/);
+  assert.equal(parser.CONTRACT_VERSION, "history-fact-v99");
   assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v7");
 
   var ui = fs.readFileSync(path.join(__dirname, "..", "app", "neplacila-zgodovina.js"), "utf8");

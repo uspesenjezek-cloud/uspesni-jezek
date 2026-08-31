@@ -99,9 +99,12 @@
     function latestFor(item, visited) {
       if (!item || visited.indexOf(item) >= 0) return referenceDate;
       var nextVisited = visited.concat(item);
-      return list.reduce(function (latest, child, index) {
+      var children = list.map(function (child, index) {
         var relation = child && child.dateRelation;
-        if (!relation || Number(relation.direction) !== 1 || anchorFor(child, index) !== item) return latest;
+        return relation && Number(relation.direction) === 1 && anchorFor(child, index) === item ? child : null;
+      }).filter(Boolean);
+      return children.reduce(function (latest, child) {
+        var relation = child.dateRelation;
         var childLatest = latestFor(child, nextVisited);
         var anchorLatest = premakniDatum(childLatest, Object.assign({}, relation, { direction: -1 }));
         return anchorLatest && anchorLatest < latest ? anchorLatest : latest;

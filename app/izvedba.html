@@ -17,10 +17,10 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260825-potrditveni-gumb-ikona-v2" />
-    <link rel="stylesheet" href="zacasno-obvestila.css?v=20260814-zacasno-modal-v9" />
-    <link rel="stylesheet" href="izvedba.css?v=20260829-action-host-bands-v5-text-stable-active" />
-    <link rel="stylesheet" href="neplacila-zgodovina.css?v=20260829-history-two-row-carousel-v2-atena-unified-design-v2-reset-inside-v2-bo-placal-host-v1-full-top-v1-quick-band-v9-text-stable-active" />
+    <link rel="stylesheet" href="styles.css?v=20260830-obrok-stevilke-krogi-v1" />
+    <link rel="stylesheet" href="zacasno-obvestila.css?v=20260830-global-full-width-v1" />
+    <link rel="stylesheet" href="izvedba.css?v=20260831-readonly-v1" />
+    <link rel="stylesheet" href="neplacila-zgodovina.css?v=20260831-debt-warning-v2-enotna-sirina-v2-summary-scroll-v2-compact-progress-v1-atena-pill-v2" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
@@ -48,6 +48,7 @@
         <p id="izvedba-stevilo-korakov" class="izvedba-koraki-pregled__stevilo"></p>
       </section>
 
+      <p class="izvedba-readonly-banner" id="izvedba-readonly-banner" role="status" hidden>Ta primer je zaključen. Podatki so na voljo samo za ogled; dejanj ni več mogoče izvajati.</p>
       <p class="izvedba-napaka" id="izvedba-napaka" role="alert" hidden></p>
       <article class="zo-sledi" id="izvedba-vsebina" hidden>
         <header id="izvedba-povzetek" class="zo-sledi__glava"></header>
@@ -65,11 +66,11 @@
     <script src="izvedba-komponente.js?v=20260825-storno-akcija-meta-v2"></script>
     <script src="izvedba-api.js?v=20260818-egress-v1"></script>
     <script src="nastavitve-izidov.js?v=20260825-revert-v6"></script>
-    <script src="izvedba.js?v=20260829-history-two-row-carousel-v2-bo-placal-host-v1-action-host-bands-v3-skip-reason-no-duplicate-cards-v2-all-hosts-header-no-icon-v1-debt-flow-v4-safe-line-direct-details-v1"></script>
+    <script src="izvedba.js?v=20260831-readonly-v1-derived-remaining-step-v1"></script>
     <script src="handy-canary-client.js?v=20260829-atena-nemotron-resilient-v9"></script>
-    <script src="neplacila-zgodovina-relativni-datumi.js?v=20260828-history-contract-v31-local-date-v1-group-date-v1-collection-outcome-v1-future-chain-v1"></script>
+    <script src="atena-request.js?v=20260830-timeout-v1"></script>
+    <script src="neplacila-zgodovina-relativni-datumi.js?v=20260830-installment-picker-boundary-v5"></script>
     <script src="neplacila-zgodovina-zamenjava.js?v=20260828-replacement-state-v1"></script>
-  <script src="neplacila-zgodovina-preverjanje-zneskov.js?v=20260829-preflight-v1"></script>
-  <script src="neplacila-zgodovina.js?v=20260828-payment-history-natural-v1-atena-v16-stable-recording-v1-atena-unified-design-v1-manual-default-v1-reset-inside-v1-bo-placal-host-v2-direct-details-v1-auto-remaining-v1-inline-debt-v4-safe-line-v1-confirmed-step-v1-atena-engine-v7-history-contract-v75"></script>
+  <script src="neplacila-zgodovina.js?v=20260831-history-v99-debt-warning-v2-agreement-v5-luna-authority-v3-installment-picker-boundary-v5-request-lifecycle-v1-choice-toggle-v1-luna-only-ledger-v1-atena-natural-default-v1-ui-luna-authority-v1-payment-method-required-v1"></script>
   </body>
 </html>

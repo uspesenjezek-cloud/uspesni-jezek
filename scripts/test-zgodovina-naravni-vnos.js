@@ -38,6 +38,12 @@ async function runHandler(body) {
 async function main() {
   var clientSource = source("app/neplacila-zgodovina.js");
   assert.match(clientSource, /supabaseKlient\.auth\.refreshSession\(\)/, "Atena mora znati osvežiti prijavno sejo");
+  assert.match(clientSource, /data-ai-choice-empty-label=/, "Atenin izbirnik mora poznati prvotni prazni napis");
+  assert.match(clientSource, /skritoPolje\.value = izbiraOstaneIzbrana \? izbiraVrednost : "";/, "ponovni klik iste dropdown možnosti mora počistiti vrednost");
+  assert.match(clientSource, /vrednost == null \? null : vrednost === "true"/, "Da\/Ne odgovor mora podpirati ponovno prazno stanje");
+  assert.match(clientSource, /zgodovinaZamud === ocenaVrednost \? null : ocenaVrednost/, "ponovni klik iste ocene zamud mora počistiti izbor");
+  assert.match(clientSource, /trenutniOcenaOdgovor === \(ocenaOdgovorVrednost === "true"\) \? null : ocenaOdgovorVrednost/, "ponovni klik istega odgovora Da\/Ne mora počistiti izbor");
+
   assert.match(clientSource, /AUTH_SERVER_UNAVAILABLE/, "začasno nedosegljiva prijava mora sprožiti ponovni poskus");
   assert.match(clientSource, /AUTH_SESSION_REFRESH_REQUIRED/, "zastarela seja mora sprožiti osvežitev žetona");
   assert.match(clientSource, /for \(var authPoskus = 0; authPoskus < 3;/, "Atena mora prijavo poskusiti največ trikrat");
@@ -54,24 +60,42 @@ async function main() {
   }, "user-123");
   assert.equal(body.model, "gpt-5.6-luna");
   assert.equal(body.store, false);
+  assert.equal(body.prompt_cache_key, "atena-history:" + parser.CONTRACT_VERSION + ":" + body.model);
+  assert.ok(body.prompt_cache_key.length <= 64, "prompt cache ključ mora ostati znotraj Responses API meje");
+  assert.doesNotMatch(body.prompt_cache_key, /user-123|Včeraj|100|EUR/, "prompt cache ključ ne sme vsebovati uporabnika ali vsebine opisa");
   assert.deepEqual(body.reasoning, { effort: "low" });
-  assert.equal(body.max_output_tokens, 2600, "kanonični plan do 20 korakov ne sme biti odrezan");
-  assert.equal(parser.MODEL_TIMEOUT_MS, 18000, "direktni Luna review mora imeti dovolj časa za običajen odziv");
-  assert.equal(parser.MODEL_TIMEOUT_MAX_MS, 25000, "trda Luna meja mora preprečiti neskončno čakanje");
+  assert.equal(body.max_output_tokens, 1600, "stolpčni v96 mora pustiti varno rezervo nad dokazanim 5-card odgovorom");
+  assert.equal(body.text.verbosity, undefined, "globalni low verbosity ne sme izpuščati materialnih datumskih relacij");
+  assert.equal(parser.MODEL_TIMEOUT_MS, 18000, "zgodovinski tok ne sme več čakati 30 sekund na prvi poskus");
+  assert.equal(parser.MODEL_TIMEOUT_MAX_MS, 25000, "zgodovinski hard limit ne sme več dovoliti 45-sekundnega čakanja");
   assert.equal(body.text.format.schema.required[0], "p", "Luna-first protokol mora zahtevati kompaktni strukturirani celotni plan");
   assert.ok(body.text.format.schema.required.includes("q"), "Luna mora ob resnični dvoumnosti vrniti eno strukturirano vprašanje");
   assert.ok(body.text.format.schema.required.includes("x"), "pojasnilo mora prinesti lasten izvorni dokaz");
-  assert.match(body.instructions, /numbered FATHER cards/);
-  assert.match(body.instructions, /typos, colloquial speech/);
-  assert.match(body.instructions, /One real event per card/);
+  assert.ok(body.text.format.schema.required.includes("k"), "Luna mora ločiti podvprašanje od blokirnega opozorila");
+  assert.match(body.instructions, /only semantic authority/);
+  assert.match(body.instructions, /only validates JSON and closed IDs/);
+  assert.match(body.instructions, /never checks or repairs semantics, evidence, amounts, dates, order, installments, coverage or debt/);
+  assert.match(body.instructions, /Only map past events/);
+  assert.match(body.instructions, /future agreements are not payments/);
+  assert.match(body.instructions, /one atomic event per card/);
+  assert.match(body.instructions, /fused number\+noun forms and dropped-letter typos/);
+  assert.match(body.instructions, /VAGUE TALK HARD BOUNDARY/);
+  assert.match(body.instructions, /even with clear clauses, return p=\[\] and q/);
+  assert.match(body.instructions, /all card e spans together cover the full material source/);
+  assert.match(body.instructions, /shortest exact contiguous source quote/);
+  assert.match(body.instructions, /every card 2\.\.N MUST include field 2 with previous_event \+K relation/);
+  assert.match(body.instructions, /Adjacent groups with distinct count or per-installment amount remain separate 1\/N series/);
+  assert.match(body.instructions, /Merge an explicit first plus N additional only when they are the same series/);
+  assert.match(body.instructions, /two weeks=2\/week/);
+  assert.match(body.instructions, /dropped-letter typo never makes an otherwise clear relation approximate/);
   assert.match(body.instructions, /catalog\.cards/);
-  assert.match(body.instructions, /final per-card EUR amounts/);
-  assert.ok(body.text.format.schema.properties.p.items.required.includes("n"));
-  assert.ok(body.text.format.schema.properties.p.items.required.includes("f"));
+  assert.match(body.instructions, /final per-card EUR and ISO dates/);
   assert.ok(body.text.format.schema.properties.p.items.required.includes("c"));
-  assert.equal(body.text.format.schema.properties.p.items.properties.f.items.properties.i.minimum, 1);
-  assert.ok(body.text.format.schema.properties.p.items.properties.f.items.required.includes("v"));
-  assert.ok(body.text.format.schema.properties.p.items.properties.f.items.required.includes("r"));
+  assert.ok(!body.text.format.schema.properties.p.items.required.includes("n"));
+  assert.ok(!body.text.format.schema.properties.p.items.required.includes("f"));
+  assert.deepEqual(body.text.format.schema.properties.p.items.required, ["c", "e", "i", "v", "x", "r"]);
+  assert.equal(body.text.format.schema.properties.p.items.properties.i.items.minimum, 1);
+  assert.equal(body.text.format.schema.properties.p.items.properties.i.maxItems, 8);
   assert.equal(body.tools, undefined, "zaprta ekstrakcija ne sme omogočiti orodij ali spleta");
   assert.ok(!JSON.stringify(body).includes("OPENAI_API_KEY"));
   assert.equal(body.previous_response_id, undefined, "vsaka prošnja mora začeti nov stateless Luna klic");
@@ -80,10 +104,15 @@ async function main() {
   assert.equal(Object.prototype.hasOwnProperty.call(bodyInput, "clauses"), false, "pred Luno ne sme biti parserjevih klavzul");
   assert.equal(Object.prototype.hasOwnProperty.call(bodyInput, "facts"), false, "pred Luno ne sme biti extractorjevih dejstev");
   assert.equal(bodyInput.sourceText, "Včeraj je nakazal 100 EUR.");
-  assert.equal(bodyInput.contractVersion, "history-fact-v75");
+  assert.equal(bodyInput.contractVersion, "history-fact-v99");
   assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v7");
   assert.equal(bodyInput.catalog.cards.length, 17);
   assert.equal(bodyInput.catalog.fields.length, 8);
+  assert.equal(bodyInput.catalog.guide.length, 17, "Luna mora pred izbiro dobiti opis vseh zgodovinskih kartic");
+  assert.deepEqual(bodyInput.catalog.guideColumns, ["cardId", "key", "title", "useWhen", "doNotUseWhen", "aliases", "examples"]);
+  assert.ok(bodyInput.catalog.guide.every(function (card) { return Array.isArray(card) && Number.isInteger(card[0]) && card[3] && card[4] && Array.isArray(card[5]) && card[5].length >= 4 && Array.isArray(card[6]); }), "vsaka kartica mora Luni razložiti ID, pomenske meje in bogate sopomenke");
+  assert.ok(bodyInput.catalog.cards.every(function (card) { return card[2].every(Number.isInteger) && card[3].every(function (fieldId) { return card[2].includes(fieldId); }); }), "cards tabela mora ohraniti sklice na skupna polja");
+  assert.match(body.instructions, /Read catalog\.guide rows by catalog\.guideColumns/);
   assert.equal(bodyInput.catalog.wire.length, 16, "vsaka wire spremenljivka mora imeti stabilen ID");
   assert.ok(bodyInput.catalog.values.some(function (row) { return row[0] === 406 && row[2] === "unknown"; }), "Ne vem za način plačila mora imeti ID");
   assert.ok(bodyInput.catalog.values.some(function (row) { return row[0] === 612 && row[2] === "approximate"; }), "Približno mora imeti ID");
@@ -203,7 +232,7 @@ async function main() {
   assert.equal(clarifiedRetrySuppressed.semanticPlan.status, "CORRECTED", "dokazno popoln odgovor ne sme sprožiti neskončnega vprašanja");
   assert.equal(clarifiedRetrySuppressed.semanticPlan.reason, "clarification_answer_applied");
   assert.deepEqual(clarifiedRetrySuppressed.candidates.map(function (candidate) { return candidate.type; }), ["reminder_sent", "partial_payment"]);
-  assert.equal(parser.MAX_LUNA_CALLS_PER_DESCRIPTION, 3, "za isti opis so dovoljeni začetni klic in največ dva odgovora");
+  assert.equal(parser.MAX_LUNA_CALLS_PER_DESCRIPTION, 3, "zgodovinski tok dovoljuje začetni klic in največ dva pojasnjevalna kroga");
   var clarificationCalls = 0;
   async function unresolvedClarificationFetch() {
     clarificationCalls += 1;
@@ -220,10 +249,10 @@ async function main() {
     referenceDate: "2026-08-28", originalDebt: 9446, remainingDebt: 9446,
     clarification: { question: cappedSecond.clarification.question, clauseId: cappedSecond.clarification.clauseId, answer: "Še vedno nisem prepričan.", round: 2 },
   }, { apiKey: "test-only", fetchImpl: unresolvedClarificationFetch });
-  assert.equal(clarificationCalls, 3, "celoten nejasen tok sme porabiti največ tri Lunine klice");
+  assert.equal(clarificationCalls, 3, "celoten nejasen tok se ustavi po treh Luninih klicih");
   assert.equal(cappedSecond.clarification.round, 2);
   assert.equal(cappedThird.semanticPlan.status, "CLARIFICATION_EXHAUSTED");
-  assert.equal(cappedThird.clarification, null, "po drugem odgovoru ne sme obstajati gumb za četrti klic");
+  assert.equal(cappedThird.clarification, null, "po drugem pojasnjevalnem krogu ne sme obstajati novo vprašanje");
   assert.equal(cappedThird.clarificationExhausted, true);
   assert.deepEqual(cappedThird.candidates, []);
   assert.match(cappedThird.summary, /raje dodajte ročno/);
@@ -255,17 +284,17 @@ async function main() {
       clarificationClauseId: null,
     }) }; } }; },
   });
-  assert.equal(uncertaintyMisreadAsDebtor.semanticPlan.status, "CLARIFICATION_EXHAUSTED", "uporabnikova negotovost ne sme postati dolžnikova izjava");
-  assert.equal(uncertaintyMisreadAsDebtor.clarificationExhausted, true);
+  assert.equal(uncertaintyMisreadAsDebtor.semanticPlan.status, "CLARIFICATION_EXHAUSTED", "uporabnikova negotovost ne sme postati dolžnikova izjava ali tretje vprašanje");
+  assert.equal(uncertaintyMisreadAsDebtor.clarification, null);
   assert.deepEqual(uncertaintyMisreadAsDebtor.candidates, []);
-  var forbiddenFourthCalls = 0;
+  var forbiddenThirdRoundCalls = 0;
   await assert.rejects(function () {
     return parser.analyze("Mesec dni nazaj sva govorila o računu, danes je plačal 100 EUR.", {
       referenceDate: "2026-08-28", originalDebt: 9446, remainingDebt: 9446,
       clarification: { question: "Kaj se je zgodilo?", clauseId: "clause-1", answer: "Ne vem.", round: 3 },
-    }, { apiKey: "test-only", fetchImpl: async function () { forbiddenFourthCalls += 1; } });
-  }, /Vpišite kratek odgovor/, "četrti Lunini klic mora biti zavrnjen pred ponudnikom");
-  assert.equal(forbiddenFourthCalls, 0);
+    }, { apiKey: "test-only", fetchImpl: async function () { forbiddenThirdRoundCalls += 1; } });
+  }, /Vpišite kratek odgovor/, "klic prek skupne pojasnilne varovalke mora biti zavrnjen pred ponudnikom");
+  assert.equal(forbiddenThirdRoundCalls, 0);
   await assert.rejects(function () {
     return parser.analyze("Govorila sva o računu.", {
       referenceDate: "2026-08-28", originalDebt: 9446, remainingDebt: 9446,
@@ -891,6 +920,8 @@ async function main() {
       };
     };
     handler._test.runtime.cache.clear();
+    handler._test.runtime.contentCache.clear();
+    handler._test.runtime.contentInflight.clear();
     handler._test.runtime.users.clear();
     var request = { requestId: "history-request-0001", text: "Plačal je 50 EUR.", referenceDate: "2026-08-28", originalDebt: 500, remainingDebt: 450 };
     var first = await runHandler(request);
@@ -909,10 +940,8 @@ async function main() {
     assert.equal(first.payload.projectedRemainingDebtEur, 400, "handler mora izpostaviti predvideni dolg");
     assert.deepEqual(first.payload.questionPlan[0].missing, ["paymentMethod"], "handler mora izpostaviti vprašalni plan");
     assert.equal(first.payload.ledger[0].afterEur, 400, "handler mora izpostaviti avtoritativni ledger");
-    assert.equal(retry.payload.projectedRemainingDebtEur, first.payload.projectedRemainingDebtEur, "cache revalidacija mora ohraniti finančni rezultat");
-    assert.deepEqual(retry.payload.candidates[0].requiredFields, ["amount", "occurredDate", "paymentMethod"], "cache kandidat se mora ponovno validirati skozi aktualni contract");
-    assert.deepEqual(retry.payload.missing[0].fields, ["occurredDate", "paymentMethod"]);
-    assert.equal(retry.payload.needsClarification, true, "ponovno validiran cache mora izpostaviti res manjkajoča polja");
+    assert.deepEqual(retry.payload, first.payload, "isti requestId mora vrniti exact idempotentni payload brez lokalne ponovne semantične razlage");
+    assert.equal(retry.payload.needsClarification, false);
     assert.equal(endpointCalls, 1, "ponovitev iste zahteve mora uporabiti idempotentni odgovor");
     process.env.POS_LOCAL_MOCKS_ENABLED = "false";
     var outsidePos = await runHandler({ requestId: "history-request-always-luna", text: "Plačal je 50 EUR.", referenceDate: "2026-08-28", originalDebt: 500, remainingDebt: 450 });
@@ -922,6 +951,7 @@ async function main() {
     var alwaysLive = await runHandler({ requestId: "history-request-always-live", text: "Plačal je 50 EUR.", referenceDate: "2026-08-28", originalDebt: 500, remainingDebt: 450 });
     assert.equal(alwaysLive.statusCode, 200);
     assert.equal(Object.prototype.hasOwnProperty.call(endpointOptions, "apiKey"), false, "vsak prijavljen zahtevek mora uporabiti svež Luna-first tok tudi ob POS mock načinu");
+    assert.equal(endpointCalls, 3, "NOT_ATTEMPTED izid se ne sme shraniti v exact-content cache");
     var reused = await runHandler(Object.assign({}, request, { text: "Drug opis." }));
     assert.equal(reused.statusCode, 409);
     assert.equal(reused.payload.code, "REQUEST_ID_REUSED");
@@ -929,11 +959,11 @@ async function main() {
     assert.equal(changedReferenceDate.statusCode, 409, "idempotentni cache ne sme ponovno uporabiti rezultata za drug referenčni dan");
     var invalidReferenceDate = await runHandler(Object.assign({}, request, { requestId: "history-request-invalid-date", referenceDate: "2026-02-30" }));
     assert.equal(invalidReferenceDate.statusCode, 400, "neveljaven lokalni datum mora biti zavrnjen");
-    var forbiddenFourthRound = await runHandler(Object.assign({}, request, {
-      requestId: "history-request-fourth-round",
-      clarification: { question: "Kaj se je zgodilo?", clauseId: "clause-1", answer: "Ne vem.", round: 3 },
+    var forbiddenExtraRound = await runHandler(Object.assign({}, request, {
+      requestId: "history-request-extra-round",
+      clarification: { question: "Kaj se je zgodilo?", clauseId: "clause-1", answer: "Ne vem.", round: 5 },
     }));
-    assert.equal(forbiddenFourthRound.statusCode, 400, "API mora četrti Lunini klic zavrniti pred parserjem");
+    assert.equal(forbiddenExtraRound.statusCode, 400, "API mora klic prek skupne pojasnilne varovalke zavrniti pred parserjem");
     assert.equal(handler._test.todayInLjubljana(new Date("2026-08-27T22:30:00.000Z")), "2026-08-28", "strežniški fallback mora ob polnoči uporabiti slovenski in ne UTC-dan");
     assert.notEqual(
       handler._test.requestFingerprint("Opis", 500, 450, "2026-08-28", { clauseId: "clause-1", question: "Kaj?", answer: "Prvi odgovor", round: 1 }),
@@ -962,6 +992,39 @@ async function main() {
     assert.equal(canonicalRetry.payload.semanticPlan.source, "validated_canonical_plan");
     assert.equal(canonicalRetry.payload.candidates[0].occurredDate, "2026-07-21", "cache ne sme canonical vrednosti poslati nazaj skozi lokalni leksikalni parser");
     assert.deepEqual(canonicalRetry.payload, canonicalFirst.payload, "canonical cache mora ohraniti že validiran rezultat");
+    var canonicalContentRetry = await runHandler(Object.assign({}, canonicalRequest, { requestId: "history-request-canonical-content-reuse" }));
+    assert.equal(canonicalEndpointCalls, 1, "enaka vsebina z novim requestId mora uporabiti exact-content cache brez novega Luna klica");
+    assert.equal(canonicalContentRetry.payload.requestId, "history-request-canonical-content-reuse", "ponovno uporabljen rezultat mora dobiti trenutni requestId");
+    assert.equal(canonicalContentRetry.payload.candidates[0].occurredDate, "2026-07-21");
+
+    await runHandler(Object.assign({}, canonicalRequest, { requestId: "history-request-content-other-text", text: canonicalRequest.text + "." }));
+    await runHandler(Object.assign({}, canonicalRequest, { requestId: "history-request-content-other-date", referenceDate: "2026-08-27" }));
+    await runHandler(Object.assign({}, canonicalRequest, { requestId: "history-request-content-other-debt", remainingDebt: 9000 }));
+    await runHandler(Object.assign({}, canonicalRequest, {
+      requestId: "history-request-content-other-clarification",
+      clarification: { question: "Kdaj je plačal?", clauseId: "clause-1", answer: "Dne 21.", round: 1 },
+    }));
+    assert.equal(canonicalEndpointCalls, 5, "text, datum, dolg in pojasnilo morajo imeti vsak svoj semantični fingerprint");
+
+    var concurrentCalls = 0;
+    parser.analyze = async function () {
+      concurrentCalls += 1;
+      await new Promise(function (resolve) { setTimeout(resolve, 10); });
+      return {
+        summary: "Sočasni plan.", needsClarification: false,
+        semanticPlan: { requested: true, attempted: true, source: "validated_canonical_plan", reason: "luna_canonical_plan_applied", status: "OK" },
+        candidates: [], projectedRemainingDebtEur: 9446, questionPlan: [], ledger: [], fieldOrder: [], requiredFields: [], missing: [],
+      };
+    };
+    var concurrentBase = { text: "Ni bilo novega plačila.", referenceDate: "2026-08-28", originalDebt: 9446, remainingDebt: 9446 };
+    var concurrentResults = await Promise.all([
+      runHandler(Object.assign({ requestId: "history-request-content-concurrent-a" }, concurrentBase)),
+      runHandler(Object.assign({ requestId: "history-request-content-concurrent-b" }, concurrentBase)),
+    ]);
+    assert.equal(concurrentCalls, 1, "sočasna povsem enaka vsebina mora deliti en in-flight Luna klic");
+    assert.deepEqual(concurrentResults.map(function (entry) { return entry.payload.requestId; }), [
+      "history-request-content-concurrent-a", "history-request-content-concurrent-b",
+    ]);
     handler._test.runtime.users.clear();
     for (var rateIndex = 0; rateIndex < 12; rateIndex += 1) assert.equal(handler._test.reserve("rate-user", 1000), true);
     assert.equal(handler._test.reserve("rate-user", 1000), false, "trinajsta zahteva v minuti mora biti zavrnjena");
@@ -972,6 +1035,8 @@ async function main() {
     if (oldPosMocks == null) delete process.env.POS_LOCAL_MOCKS_ENABLED;
     else process.env.POS_LOCAL_MOCKS_ENABLED = oldPosMocks;
     handler._test.runtime.cache.clear();
+    handler._test.runtime.contentCache.clear();
+    handler._test.runtime.contentInflight.clear();
     handler._test.runtime.users.clear();
   }
 
@@ -989,7 +1054,7 @@ async function main() {
   var skupinskiDatumContext = { referenceDate: "2026-08-28", originalDebt: 9446, remainingDebt: 9446 };
   var skupinskiDatumContract = parser._test.buildFactContract(skupinskiDatumText);
   var skupinskiDatumLocal = parser._test.deterministicResult(skupinskiDatumText, skupinskiDatumContext);
-  assert.equal(skupinskiDatumContract.version, 26);
+  assert.equal(skupinskiDatumContract.version, 28);
   assert.deepEqual(skupinskiDatumContract.clauses.map(function (clause) { return clause.eventTypes; }), [
     ["installment_payment"], ["partial_payment"],
   ], "časovni prehod 'in danes' mora ustvariti ločeno plačilno klavzulo");
@@ -1161,7 +1226,7 @@ async function main() {
   var relativeResult = parser._test.deterministicResult(relativeText, {
     referenceDate: "2026-08-27", originalDebt: 9446, remainingDebt: 9446,
   });
-  assert.equal(relativeContract.version, 26, "always-review full-text contract mora uporabljati interni fact contract 26");
+  assert.equal(relativeContract.version, 28, "always-review full-text contract mora uporabljati interni fact contract 28");
   assert.deepEqual(relativeContract.facts.filter(function (fact) { return fact.kind === "money"; }).map(function (fact) { return fact.value; }), [1999, 2999], "časovni števec ne sme postati denar");
   assert.deepEqual(relativeContract.facts.filter(function (fact) { return fact.kind === "date_relation"; }).map(function (fact) {
     return [fact.relation.anchor, fact.relation.direction, fact.relation.amount, fact.relation.unit];
@@ -1581,6 +1646,9 @@ async function main() {
     var relation = candidate.dateRelation;
     return relation ? [relation.anchor, relation.amount, relation.unit, relation.anchorCandidateId] : null;
   }), [null, ["previous_event", 1, "month", unfulfilledInstallments.candidates[0].candidateId], ["previous_event", 1, "month", unfulfilledInstallments.candidates[1].candidateId]]);
+  assert.deepEqual(unfulfilledInstallments.candidates.slice(0, 3).map(function (candidate) { return candidate.occurredDate; }), [
+    null, null, null,
+  ], "izvedena serija brez uporabnikovega začetnega datuma mora ostati brez izmišljenih datumov");
   var unfulfilledCadenceCoverage = unfulfilledInstallments.coverage.consumed.filter(function (entry) { return entry.kind === "installment_cadence"; });
   assert.equal(unfulfilledCadenceCoverage.length, 1, "cadence source span mora biti porabljen natanko enkrat");
   assert.deepEqual(unfulfilledCadenceCoverage[0].candidateIndexes, [1, 2]);
@@ -1597,7 +1665,7 @@ async function main() {
   assert.deepEqual(staleCadenceModel.candidates.slice(0, 3).map(function (candidate) {
     return candidate.dateRelation ? [candidate.dateRelation.amount, candidate.dateRelation.unit] : null;
   }), [null, [1, "month"], [1, "month"]], "deterministični cadence mora preglasiti napačen ali manjkajoč modelski plan");
-  assert.equal(staleCadenceModel.candidates[1].occurredDate, null, "napačen modelski absolutni datum mora izgubiti proti cadence relaciji");
+  assert.deepEqual(staleCadenceModel.candidates.slice(0, 3).map(function (candidate) { return candidate.occurredDate; }), [null, null, null], "napačni modelski datumi morajo biti odstranjeni, dokler uporabnik ne izbere prvega datuma");
   assert.equal(staleCadenceModel.coverage.complete, true);
 
   var exactStopText = "plačal je 2 obroka v 2h mesecih po 1000 potem pa nič več";
@@ -1631,7 +1699,8 @@ async function main() {
     ["plačal je 2 obroka po 1000 v 2 letih potem nič več", "year"],
   ].forEach(function (entry) {
     var cadencePlan = parser._test.deterministicResult(entry[0], unfulfilledInstallmentsContext);
-    assert.equal(cadencePlan.candidates[0].dateRelation, null, "prvi obrok mora ostati sidro: " + entry[0]);
+    assert.equal(cadencePlan.candidates[0].occurredDate, null, "prvi datum brez uporabnikovega sidra mora ostati prazen: " + entry[0]);
+    assert.equal(cadencePlan.candidates[0].dateRelation, null, "kadenca ne sme ustvariti lažne relacije prvega datuma: " + entry[0]);
     assert.deepEqual([cadencePlan.candidates[1].dateRelation.amount, cadencePlan.candidates[1].dateRelation.unit], [1, entry[1]], "enak count/duration mora dati ritem ene enote: " + entry[0]);
     assert.equal(cadencePlan.coverage.complete, true);
   });
@@ -1645,6 +1714,40 @@ async function main() {
     assert.deepEqual(recurringPlan.candidates.slice(1, 3).map(function (candidate) { return [candidate.dateRelation.amount, candidate.dateRelation.unit]; }), [[1, entry[1]], [1, entry[1]]]);
     assert.equal(recurringPlan.coverage.complete, true);
   });
+
+  var spokenWeeklyInstallmentsText = "plačal je 8 obrokov vsak obrok je bil v tednu dni razmaka.. in je bil v znesku 10evrov";
+  var spokenWeeklyContext = { referenceDate: "2026-08-30", originalDebt: 434, remainingDebt: 434 };
+  var spokenWeeklyContract = parser._test.buildFactContract(spokenWeeklyInstallmentsText);
+  var spokenWeeklyPlan = parser._test.deterministicResult(spokenWeeklyInstallmentsText, spokenWeeklyContext);
+  assert.deepEqual(spokenWeeklyContract.installmentGroups.map(function (group) { return [group.count, group.amount, group.completed]; }), [[8, 10, true]]);
+  assert.deepEqual(spokenWeeklyContract.installmentCadences.map(function (cadence) { return [cadence.intervalAmount, cadence.unit]; }), [[1, "week"]]);
+  assert.deepEqual(spokenWeeklyPlan.candidates.map(function (candidate) { return candidate.occurredDate; }), [
+    null, null, null, null, null, null, null, null,
+  ], "osem tedenskih obrokov brez sidra ne sme dobiti izmišljenih datumov");
+  assert.equal(spokenWeeklyPlan.coverage.complete, true);
+
+  var biweeklyInstallmentsText = "plačal je 4 obroke, vsak obrok je bil v dveh tednih razmaka in je znašal 25 EUR";
+  var biweeklyInstallmentsPlan = parser._test.deterministicResult(biweeklyInstallmentsText, spokenWeeklyContext);
+  assert.deepEqual(biweeklyInstallmentsPlan.candidates.map(function (candidate) { return candidate.occurredDate; }), [
+    null, null, null, null,
+  ], "sorodna dvotedenska kadenca mora uporabiti isto pravilo brez izmišljenega sidra");
+  assert.equal(biweeklyInstallmentsPlan.coverage.complete, true);
+
+  var compactSpokenWeekly = await parser.analyze(spokenWeeklyInstallmentsText, spokenWeeklyContext, {
+    apiKey: "mock-luna-weekly-history",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return {
+      output_text: JSON.stringify({ p: Array.from({ length: 8 }, function (_item, index) { return {
+        n: index + 1, c: 3, e: spokenWeeklyInstallmentsText,
+        f: [
+          { i: 1, v: 10, e: "10evrov", r: [652] },
+          { i: 2, v: spokenWeeklyPlan.candidates[index].occurredDate, e: "tednu dni razmaka", r: index === 0 ? [] : [601, 611, 622, 633, 1, 642, null] },
+          { i: 8, v: (index + 1) + "/8 obrok", e: spokenWeeklyInstallmentsText, r: [] },
+        ],
+      }; }), q: null, x: null }),
+    }; } }; },
+  });
+  assert.equal(compactSpokenWeekly.semanticPlan.reason, "luna_compact_plan_applied");
+  assert.deepEqual(compactSpokenWeekly.candidates.map(function (candidate) { return candidate.occurredDate; }), spokenWeeklyPlan.candidates.map(function (candidate) { return candidate.occurredDate; }), "produkcijska kompaktna pot ne sme vseh kartic nastaviti na danes");
 
   var cadenceConflictText = "plačal je 3 obroke po 1000 v 6 mesecih potem nič več";
   var cadenceConflictContract = parser._test.buildFactContract(cadenceConflictText);
@@ -1755,7 +1858,7 @@ async function main() {
   var semanticPlanContext = { referenceDate: "2026-08-27", originalDebt: 9446, remainingDebt: 9446 };
   var semanticPlanContract = parser._test.buildFactContract(semanticPlanText);
   var semanticPlanLocal = parser._test.deterministicResult(semanticPlanText, semanticPlanContext);
-  assert.equal(parser.CONTRACT_VERSION, "history-fact-v75");
+  assert.equal(parser.CONTRACT_VERSION, "history-fact-v99");
   assert.equal(parser.ATENA_ENGINE_VERSION, "atena-v7");
   assert.deepEqual(semanticPlanContract.facts.filter(function (fact) { return fact.kind === "money"; }).map(function (fact) { return fact.value; }), [5000, 100, 1000]);
   assert.deepEqual(semanticPlanLocal.candidates.map(function (candidate) { return [candidate.type, candidate.amount]; }), [
@@ -1823,7 +1926,7 @@ async function main() {
   for (var neutralIndex = 0; neutralIndex < neutralSemanticCases.length; neutralIndex += 1) {
     var neutralCase = neutralSemanticCases[neutralIndex];
     var neutralContract = parser._test.buildFactContract(neutralCase.text);
-    assert.equal(neutralContract.version, 26);
+    assert.equal(neutralContract.version, 28);
     assert.ok(neutralContract.clauses.length >= 1, "vsak neprazen vir mora dobiti nevtralni clause: " + neutralCase.text);
     assert.ok(neutralContract.clauses.some(function (clause) { return clause.semanticStatus === "neutral"; }), "neznana zveza ne sme izginiti: " + neutralCase.text);
     var neutralResult = await parser.analyze(neutralCase.text, {
@@ -1998,7 +2101,7 @@ async function main() {
         assert.equal(Object.prototype.hasOwnProperty.call(input, "facts"), false);
         assert.equal(Object.prototype.hasOwnProperty.call(input, "clauses"), false);
         assert.equal(Object.prototype.hasOwnProperty.call(input, "proposedPlan"), false);
-        assert.ok(Buffer.byteLength(options.body, "utf8") < 7500, "polni ID katalog mora ostati pod 7,5 KB");
+        assert.ok(Buffer.byteLength(options.body, "utf8") < 30000, "popoln razloženi ID katalog mora ostati pod 30 KB");
         return { ok: true, status: 200, json: async function () { return {
           output_text: JSON.stringify({ plan: expandedPlan.map(canonicalWireItem), clarificationQuestion: null, clarificationEvidenceText: null }),
           usage: { input_tokens: 1200, output_tokens: 900, total_tokens: 2100 },
@@ -2021,10 +2124,216 @@ async function main() {
     ["partial_payment", 1000, "2026-07-21"], ["partial_payment", 2999, "2026-08-14"],
     ["partial_payment", 1000, "2026-08-28"], ["debtor_statement", null, "2026-08-28"],
   ]);
-  assert.deepEqual(typoCanonical.questionPlan[0].missing, ["paymentMethod"], "prvi kartici z dokazanim datumom sme manjkati samo način plačila");
+  assert.deepEqual(typoCanonical.questionPlan[0].missing, [], "Lunine popolne kartice Atena ne sme znova odpreti zaradi neizrečenega neobveznega načina plačila");
   assert.equal(typoCanonical.projectedRemainingDebtEur, 4447, "9446 - 1000 - 2999 - 1000 mora ostati aritmetično 4447");
   assert.deepEqual(typoCanonical.semanticPlan.usage, { inputTokens: 1200, outputTokens: 900, totalTokens: 2100 });
-  assert.ok(typoCanonical.semanticPlan.requestBytes > 5200 && typoCanonical.semanticPlan.requestBytes < 5900);
+  assert.ok(typoCanonical.semanticPlan.requestBytes > 10000 && typoCanonical.semanticPlan.requestBytes < 17000);
+
+  var coverageSource = "Mesec dni nazaj sva govorila o računu, danes je plačal 100 EUR.";
+  var omittedCoveragePlan = parser._test.parseLeanCompactPlan(JSON.stringify({
+    p: [{ c: 1, e: "danes je plačal 100 EUR", i: [1], v: [100], x: ["100 EUR"], r: [[]] }], q: null, x: null,
+  }), coverageSource);
+  var omittedCoverage = parser._test.materializeLunaFieldPlan(omittedCoveragePlan, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+  }, coverageSource);
+  assert.equal(omittedCoverage.ok, true, "lokalni adapter ne sme presojati Lunine pokritosti vira");
+  assert.equal(omittedCoverage.result.candidates.length, 1);
+
+  var compactRoundRetry = await runtimeAnalyze(coverageSource, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+    clarification: { question: "Kaj se je zgodilo?", clauseId: "clause-1", answer: "Ne vem.", round: 1 },
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return { output_text: JSON.stringify({
+      p: [{ c: 1, e: "danes je plačal 100 EUR", i: [1], v: [100], x: ["100 EUR"], r: [[]] }],
+      q: "Ali lahko še enkrat pojasnite?", x: "Mesec dni nazaj sva govorila o računu",
+    }) }; } }; },
+  });
+  assert.equal(compactRoundRetry.semanticPlan.status, "FAILED", "mešana rešitev in vprašanje je samo tehnično neveljavna shema, ne lokalna pomenska presoja");
+  assert.equal(compactRoundRetry.clarification, null);
+  assert.deepEqual(compactRoundRetry.candidates, []);
+
+  var compactRoundCap = await runtimeAnalyze(coverageSource, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+    clarification: { question: "Kaj se je zgodilo?", clauseId: "clause-1", answer: "Še vedno ne vem.", round: 2 },
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return { output_text: JSON.stringify({
+      p: [{ c: 1, e: "danes je plačal 100 EUR", i: [1], v: [100], x: ["100 EUR"], r: [[]] }],
+      q: "Ali lahko še enkrat pojasnite?", x: "Mesec dni nazaj sva govorila o računu",
+    }) }; } }; },
+  });
+  assert.equal(compactRoundCap.semanticPlan.status, "FAILED", "tehnična napaka contracta ne sme postati lokalno pojasnjevanje pomena");
+  assert.equal(compactRoundCap.clarificationExhausted, false);
+  assert.equal(compactRoundCap.clarification, null);
+  assert.deepEqual(compactRoundCap.candidates, []);
+
+  function twoCompletedInstallmentGroupPlan(firstClause, secondClause, firstAmountEvidence, secondAmountEvidence) {
+    function groupCards(count, amount, clause, amountEvidence) {
+      return Array.from({ length: count }, function (_, index) {
+        return {
+          c: 3,
+          e: clause,
+          i: [1, 8],
+          v: [amount, (index + 1) + "/" + count + " obrok"],
+          x: [amountEvidence, clause],
+          r: [[652], []],
+        };
+      });
+    }
+    return { p: groupCards(5, 100, firstClause, firstAmountEvidence).concat(groupCards(2, 200, secondClause, secondAmountEvidence)), q: null, x: null };
+  }
+
+  var plainTwoGroupText = "placal je 5 obrokov po 100 in nato 2 po 200";
+  var plainTwoGroupPlan = twoCompletedInstallmentGroupPlan("placal je 5 obrokov po 100", "nato 2 po 200", "100", "200");
+  var unlinkedPlainTwoGroupPlan = JSON.parse(JSON.stringify(plainTwoGroupPlan));
+  unlinkedPlainTwoGroupPlan.p.slice(0, 5).forEach(function (card) {
+    card.e = "plačal je 5 obrokov po 100";
+    card.x[0] = "100 €";
+    card.x[1] = "plačal je 5 obrokov po 100";
+  });
+  unlinkedPlainTwoGroupPlan.p.slice(5).forEach(function (card) { card.x[0] = "200 €"; });
+  var alignedPlainTwoGroupPlan = parser._test.parseLeanCompactPlan(JSON.stringify(unlinkedPlainTwoGroupPlan), plainTwoGroupText);
+  assert.equal(alignedPlainTwoGroupPlan.ok, true, "lokalni adapter Luninega evidence ne sme blokirati ali popravljati");
+  assert.equal(alignedPlainTwoGroupPlan.items[0].evidenceText, "plačal je 5 obrokov po 100");
+  assert.equal(alignedPlainTwoGroupPlan.items[0].amountEvidenceText, "100 €");
+  var mergedOrdinalTwoGroupPlan = JSON.parse(JSON.stringify(plainTwoGroupPlan));
+  mergedOrdinalTwoGroupPlan.p.forEach(function (card, index) { card.v[1] = (index + 1) + "/7 obrok"; });
+  var canonicalizedMergedOrdinals = parser._test.parseLeanCompactPlan(JSON.stringify(mergedOrdinalTwoGroupPlan), plainTwoGroupText);
+  assert.equal(canonicalizedMergedOrdinals.ok, true);
+  assert.deepEqual(canonicalizedMergedOrdinals.items.map(function (item) { return item.description; }), [
+    "1/7 obrok", "2/7 obrok", "3/7 obrok", "4/7 obrok", "5/7 obrok", "6/7 obrok", "7/7 obrok",
+  ], "lokalni adapter ne sme prepisati Luninih ordinalov");
+  var continuedOrdinalTwoGroupPlan = JSON.parse(JSON.stringify(plainTwoGroupPlan));
+  continuedOrdinalTwoGroupPlan.p[5].v[1] = "6/7 obrok";
+  continuedOrdinalTwoGroupPlan.p[6].v[1] = "7/7 obrok";
+  var canonicalizedContinuedOrdinals = parser._test.parseLeanCompactPlan(JSON.stringify(continuedOrdinalTwoGroupPlan), plainTwoGroupText);
+  assert.deepEqual(canonicalizedContinuedOrdinals.items.map(function (item) { return item.description; }), [
+    "1/5 obrok", "2/5 obrok", "3/5 obrok", "4/5 obrok", "5/5 obrok", "6/7 obrok", "7/7 obrok",
+  ], "Lunina vrnjena vrednost mora ostati nespremenjena za človeški pregled");
+  var ordinalCanonicalizationCalls = 0;
+  var canonicalizedOrdinalResult = await runtimeAnalyze(plainTwoGroupText, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function () {
+      ordinalCanonicalizationCalls += 1;
+      return { ok: true, status: 200, json: async function () { return { output_text: JSON.stringify(mergedOrdinalTwoGroupPlan) }; } };
+    },
+  });
+  assert.equal(ordinalCanonicalizationCalls, 1, "Lunin plan se sme samo enkrat preslikati v polja");
+  assert.equal(canonicalizedOrdinalResult.semanticPlan.status, "OK");
+  assert.equal(canonicalizedOrdinalResult.semanticPlan.transport.repairReason, undefined);
+  assert.deepEqual(canonicalizedOrdinalResult.candidates.map(function (candidate) { return candidate.description; }), [
+    "1/7 obrok", "2/7 obrok", "3/7 obrok", "4/7 obrok", "5/7 obrok", "6/7 obrok", "7/7 obrok",
+  ]);
+  var plainTwoGroupCalls = 0;
+  var plainTwoGroup = await runtimeAnalyze(plainTwoGroupText, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function () {
+      plainTwoGroupCalls += 1;
+      return { ok: true, status: 200, json: async function () { return {
+        output_text: JSON.stringify(unlinkedPlainTwoGroupPlan),
+      }; } };
+    },
+  });
+  assert.equal(plainTwoGroupCalls, 1, "evidence se ne sme lokalno popravljati ali sprožiti drugega klica");
+  assert.equal(plainTwoGroup.semanticPlan.status, "OK", plainTwoGroup.semanticPlan.reason);
+  assert.equal(plainTwoGroup.semanticPlan.transport.repairReason, undefined);
+  assert.deepEqual(plainTwoGroup.candidates.map(function (candidate) { return candidate.amount; }), [100, 100, 100, 100, 100, 200, 200]);
+  assert.deepEqual(plainTwoGroup.candidates.map(function (candidate) { return candidate.description; }), [
+    "1/5 obrok", "2/5 obrok", "3/5 obrok", "4/5 obrok", "5/5 obrok", "1/2 obrok", "2/2 obrok",
+  ]);
+  assert.equal(plainTwoGroup.candidates.reduce(function (sum, candidate) { return sum + candidate.amount; }, 0), 900);
+  assert.equal(plainTwoGroup.projectedRemainingDebtEur, 1500);
+  assert.ok(plainTwoGroup.candidates.every(function (candidate) {
+    return candidate.evidence && candidate.evidence.reason === "luna_id_to_field_adapter";
+  }), "vseh sedem kartic mora iti neposredno v človeški pregled");
+
+  var materiallyUnlinkedTwoGroupPlan = JSON.parse(JSON.stringify(plainTwoGroupPlan));
+  materiallyUnlinkedTwoGroupPlan.p[0].x[0] = "999 €";
+  var materiallyUnlinkedCalls = 0;
+  var repairedMateriallyUnlinked = await runtimeAnalyze(plainTwoGroupText, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function () {
+      materiallyUnlinkedCalls += 1;
+      return { ok: true, status: 200, json: async function () { return {
+        output_text: JSON.stringify(materiallyUnlinkedTwoGroupPlan),
+      }; } };
+    },
+  });
+  assert.equal(materiallyUnlinkedCalls, 1, "Luninega citata lokalni adapter ne sme presojati ali popravljati");
+  assert.equal(repairedMateriallyUnlinked.semanticPlan.status, "OK");
+  assert.equal(repairedMateriallyUnlinked.semanticPlan.transport.repairReason, undefined);
+  assert.equal(repairedMateriallyUnlinked.candidates[0].amount, 100);
+
+  var bareMinimumCalls = 0;
+  var bareMinimumResult = await runtimeAnalyze("jutri je plačal 2500 EUR", {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function () {
+      bareMinimumCalls += 1;
+      return { ok: true, status: 200, json: async function () { return { output_text: JSON.stringify({
+        p: [{
+          c: 1, e: "Lunin prosti dokaz", i: [1, 2], v: [2500, "2026-09-01"],
+          x: ["Lunin znesek", "Lunin datum"], r: [[], [601, 611, 621, 633, 1, 641, null]],
+        }], q: null, x: null,
+      }) }; } };
+    },
+  });
+  assert.equal(bareMinimumCalls, 1, "lokalna pomenska presoja ne sme sprožiti drugega Luna klica");
+  assert.equal(bareMinimumResult.semanticPlan.status, "OK");
+  assert.equal(bareMinimumResult.semanticPlan.transport.semanticRetries, undefined);
+  assert.equal(bareMinimumResult.candidates[0].amount, 2500, "adapter mora prepisati Lunin znesek tudi nad trenutnim dolgom");
+  assert.equal(bareMinimumResult.candidates[0].occurredDate, "2026-09-01", "adapter ne sme presojati Luninega datuma");
+  assert.deepEqual(bareMinimumResult.candidates[0].fieldIds, [1, 2], "polja se preslikajo samo po vrnjenih ID-jih");
+  assert.equal(bareMinimumResult.candidates[0].requiresHumanReview, true);
+  assert.equal(bareMinimumResult.coverage.reason, "luna_authoritative_human_review");
+  assert.deepEqual(bareMinimumResult.enginePath, ["luna", "compact_schema", "id_to_field_adapter", "human_review"]);
+
+  var rawClarificationAnswer = null;
+  var lunaQuestion = await runtimeAnalyze("nekaj se je zgodilo", {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+    clarification: { question: "Kdaj se je zgodilo?", clauseId: "clause-1", answer: "Ne vem.", round: 1 },
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function (_url, request) {
+      rawClarificationAnswer = JSON.parse(JSON.parse(request.body).input).clarification.answer;
+      return { ok: true, status: 200, json: async function () { return { output_text: JSON.stringify({
+        p: [], q: "Kaj želite vnesti?", x: "Lunin prosti dokaz",
+      }) }; } };
+    },
+  });
+  assert.equal(rawClarificationAnswer, "Ne vem.", "lokalna koda ne sme semantično prepisati uporabnikovega odgovora");
+  assert.equal(lunaQuestion.semanticPlan.status, "CLARIFICATION_REQUIRED");
+  assert.equal(lunaQuestion.clarification.question, "Kaj želite vnesti?");
+  assert.equal(lunaQuestion.clarification.round, 2);
+
+  var accentedTwoGroupText = "plačal je 5 obrokov po 100 € in nato 2 po 200 €";
+  var accentedTwoGroupPlan = twoCompletedInstallmentGroupPlan("plačal je 5 obrokov po 100 €", "nato 2 po 200 €", "100 €", "200 €");
+  var accentedTwoGroupCalls = 0;
+  var accentedTwoGroup = await runtimeAnalyze(accentedTwoGroupText, {
+    referenceDate: "2026-08-31", originalDebt: 2400, remainingDebt: 2400,
+  }, {
+    apiKey: "test-only",
+    fetchImpl: async function (_url, request) {
+      accentedTwoGroupCalls += 1;
+      return { ok: true, status: 200, json: async function () { return { output_text: JSON.stringify(accentedTwoGroupPlan) }; } };
+    },
+  });
+  assert.equal(accentedTwoGroupCalls, 1, "jasne skupine brez časovne kadence ne smejo sprožiti nepotrebnega Luna repaira");
+  assert.equal(accentedTwoGroup.semanticPlan.status, "OK", accentedTwoGroup.semanticPlan.reason);
+  assert.deepEqual(accentedTwoGroup.candidates.map(function (candidate) { return candidate.amount; }), [100, 100, 100, 100, 100, 200, 200]);
+  assert.deepEqual(accentedTwoGroup.candidates.map(function (candidate) { return candidate.description; }), [
+    "1/5 obrok", "2/5 obrok", "3/5 obrok", "4/5 obrok", "5/5 obrok", "1/2 obrok", "2/2 obrok",
+  ]);
+  assert.equal(accentedTwoGroup.candidates.reduce(function (sum, candidate) { return sum + candidate.amount; }, 0), 900);
+  assert.equal(accentedTwoGroup.projectedRemainingDebtEur, 1500);
 
   var compactWireText = "včeraj je plačal 300 evrov";
   var compactWire = await parser.analyze(compactWireText, {
@@ -2055,9 +2364,9 @@ async function main() {
       output_text: JSON.stringify({ p: [], q: "Manjka datum prvega plačila, zato datumov naslednjih plačil ni mogoče zanesljivo pretvoriti v ISO obliko.", x: deferredDateAnchorText }),
     }; } }; },
   });
-  assert.equal(deferredDateAnchor.semanticPlan.status, "CORRECTED");
-  assert.equal(deferredDateAnchor.semanticPlan.reason, "luna_missing_anchor_deferred_to_review");
-  assert.deepEqual(deferredDateAnchor.candidates.map(function (candidate) { return candidate.amount; }), [100, 20, 100], "manjkajoči prvi datum mora ostati v prvi kartici, ne v ločenem pojasnilu");
+  assert.equal(deferredDateAnchor.semanticPlan.status, "CLARIFICATION_REQUIRED");
+  assert.equal(deferredDateAnchor.semanticPlan.reason, "luna_clarification_requested");
+  assert.deepEqual(deferredDateAnchor.candidates, [], "Luninega pojasnila lokalni parser ne sme nadomestiti s karticami");
   var alternateDeferredDateAnchor = await parser.analyze(deferredDateAnchorText, {
     referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
   }, {
@@ -2066,7 +2375,8 @@ async function main() {
       output_text: JSON.stringify({ p: [], q: "Datumi plačil so materialno nejasni: prvi obrok nima navedenega datuma, zato datumov za poznejša plačila ni mogoče pretvoriti v ISO obliko.", x: deferredDateAnchorText }),
     }; } }; },
   });
-  assert.deepEqual(alternateDeferredDateAnchor.candidates.map(function (candidate) { return candidate.amount; }), [100, 20, 100]);
+  assert.equal(alternateDeferredDateAnchor.semanticPlan.status, "CLARIFICATION_REQUIRED");
+  assert.deepEqual(alternateDeferredDateAnchor.candidates, []);
   var compactDeferredDateAnchor = await parser.analyze(deferredDateAnchorText, {
     referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
   }, {
@@ -2075,7 +2385,8 @@ async function main() {
       output_text: JSON.stringify({ p: [], q: "Datumi plačil so materialno nejasni: prvi obrok nima navedenega datuma, zato ni mogoče izračunati datumov za plačili čez 10 in 12 dni.", x: deferredDateAnchorText }),
     }; } }; },
   });
-  assert.deepEqual(compactDeferredDateAnchor.candidates.map(function (candidate) { return candidate.amount; }), [100, 20, 100]);
+  assert.equal(compactDeferredDateAnchor.semanticPlan.status, "CLARIFICATION_REQUIRED");
+  assert.deepEqual(compactDeferredDateAnchor.candidates, []);
   var retrospectiveText = "plačal je obrok 100, pred tem obrokom pa je plačal še 50";
   var retrospectiveCompact = await parser.analyze(retrospectiveText, {
     referenceDate: "2026-08-29", originalDebt: 434, remainingDebt: 434,
@@ -2083,13 +2394,13 @@ async function main() {
     apiKey: "mock-luna-retrospective-order",
     fetchImpl: async function () { return { ok: true, status: 200, json: async function () { return {
       output_text: JSON.stringify({ p: [
-        { n: 1, c: 3, e: "plačal je obrok 100", f: [{ i: 1, v: 100, e: "100", r: [] }] },
-        { n: 2, c: 3, e: "pred tem obrokom pa je plačal še 50", f: [{ i: 1, v: 50, e: "50", r: [] }] },
+        { c: 3, e: "plačal je obrok 100", i: [1, 8], v: [100, "1/2 obrok"], x: ["100", "plačal je obrok 100"], r: [[], []] },
+        { c: 3, e: "pred tem obrokom pa je plačal še 50", i: [1, 8], v: [50, "2/2 obrok"], x: ["50", "pred tem obrokom pa je plačal še 50"], r: [[], []] },
       ], q: null, x: null }),
     }; } }; },
   });
-  assert.equal(retrospectiveCompact.semanticPlan.reason, "luna_retrospective_order_applied");
-  assert.deepEqual(retrospectiveCompact.candidates.map(function (candidate) { return candidate.amount; }), [50, 100]);
+  assert.equal(retrospectiveCompact.semanticPlan.reason, "luna_compact_plan_applied");
+  assert.deepEqual(retrospectiveCompact.candidates.map(function (candidate) { return candidate.amount; }), [100, 50], "lokalni parser ne sme preurediti Luninih kartic");
 
   var monthOnlyCanonical = await canonicalAnalyze("prejšni mesec je plačal 500 evrov", [
     canonicalItem({
@@ -2103,7 +2414,7 @@ async function main() {
     monthOnlyCanonical.candidates[0].occurredDateApproximate,
     monthOnlyCanonical.candidates[0].occurredDateApproximation,
   ], [null, true, "prejšnji mesec"], "splošen mesec mora ostati mesečna oznaka brez izmišljenega dneva");
-  assert.deepEqual(monthOnlyCanonical.questionPlan[0].missing, ["paymentMethod"], "mesečna oznaka mora šteti kot izpolnjen datum");
+  assert.deepEqual(monthOnlyCanonical.questionPlan[0].missing, [], "mesečna oznaka mora šteti kot izpolnjen datum, neizrečen način plačila pa je neobvezen");
 
   var incompleteMiddleCanonical = await canonicalAnalyze("plačal je 3 mesece nazaj 3000 prejšnji mesec in 2000 pa danes", [
     canonicalItem({
@@ -2123,7 +2434,7 @@ async function main() {
   ]);
   assert.equal(incompleteMiddleCanonical.candidates.length, 3, "nepopolna srednja časovna točka mora ostati kartica");
   assert.deepEqual(incompleteMiddleCanonical.candidates.map(function (candidate) { return candidate.occurredDateApproximation || candidate.occurredDate; }), ["pred 3 meseci", "prejšnji mesec", "2026-08-28"]);
-  assert.deepEqual(incompleteMiddleCanonical.questionPlan.map(function (question) { return question.missing; }), [["paymentMethod"], ["amount", "paymentMethod"], ["paymentMethod"]]);
+  assert.deepEqual(incompleteMiddleCanonical.questionPlan.map(function (question) { return question.missing; }), [[], ["amount"], []]);
 
   var risingInstallmentsText = "plačal je 4 obroke prvi obrok 100 potem vsak obrok 10 višje";
   var risingInstallments = await canonicalAnalyze(risingInstallmentsText, [100, 110, 120, 130].map(function (amount) { return canonicalItem({
@@ -2147,7 +2458,7 @@ async function main() {
   assert.deepEqual(weeklyGrowth.candidates.map(function (candidate) { return [candidate.amount, candidate.occurredDate, candidate.occurredDateApproximate]; }), [
     [300, "2026-07-28", false], [310, "2026-08-04", false], [320, "2026-08-11", false], [330, "2026-08-18", false], [340, "2026-08-25", false],
   ], "začetek + tedenski interval + zneskovni korak + konec mora postati pet konkretnih kartic");
-  assert.deepEqual(weeklyGrowth.questionPlan.map(function (question) { return question.missing; }), [["paymentMethod"], ["paymentMethod"], ["paymentMethod"], ["paymentMethod"], ["paymentMethod"]]);
+  assert.deepEqual(weeklyGrowth.questionPlan.map(function (question) { return question.missing; }), [[], [], [], [], []]);
   assert.equal(weeklyGrowth.projectedRemainingDebtEur, 7846, "ledger mora odšteti 300+310+320+330+340");
 
   var fallingInstallmentsText = "plačal je 3 obroke prvi je bil 400 nato vsak naslednji 50 manj";
@@ -2181,8 +2492,8 @@ async function main() {
   assert.deepEqual(simpleGroupCanonical.candidates.map(function (candidate) { return [candidate.cardNumber, candidate.cardTypeId, candidate.fieldIds]; }), [
     [1, 3, [1, 2, 4]], [2, 3, [1, 2, 4]], [3, 1, [1, 2, 4]],
   ]);
-  assert.deepEqual(simpleGroupCanonical.questionPlan.map(function (question) { return question.missing; }), [["paymentMethod"], ["paymentMethod"], ["paymentMethod"]]);
-  assert.deepEqual(simpleGroupCanonical.questionPlan.map(function (question) { return [question.cardNumber, question.missingFieldIds]; }), [[1, [4]], [2, [4]], [3, [4]]]);
+  assert.deepEqual(simpleGroupCanonical.questionPlan.map(function (question) { return question.missing; }), [[], [], []]);
+  assert.deepEqual(simpleGroupCanonical.questionPlan.map(function (question) { return [question.cardNumber, question.missingFieldIds]; }), [[1, []], [2, []], [3, []]]);
 
   var nullAmountField = await parser.analyze("ostalo ni plačal", {
     referenceDate: "2026-08-28", originalDebt: 9446, remainingDebt: 9446,
@@ -2309,8 +2620,8 @@ async function main() {
 
   var page = source("app/neplacila-zgodovina.js");
   var html = source("app/neplacila-zgodovina.html");
+  var embeddedHtml = source("app/izvedba.html");
   var relativeDatesUi = source("app/neplacila-zgodovina-relativni-datumi.js");
-  var debtPreflight = require("../app/neplacila-zgodovina-preverjanje-zneskov.js");
   var historyCss = source("app/neplacila-zgodovina.css");
   var adapter = source("app/handy-canary-client.js");
   var izvedba = source("app/izvedba.js");
@@ -2318,13 +2629,10 @@ async function main() {
   var localServer = source("scripts/local-server.js");
   var vercel = source("vercel.json");
   assert.ok(html.indexOf("handy-canary-client.js") < html.indexOf("neplacila-zgodovina.js"));
-  assert.ok(html.indexOf("neplacila-zgodovina-preverjanje-zneskov.js") < html.indexOf("neplacila-zgodovina.js"));
-  assert.deepEqual(debtPreflight.oceni("plačal je 3 obroke, prvi obrok je bil 1000 nato 3000 nato 5400", 434), { presega: true, vsota: 9400, dolg: 434 });
-  assert.deepEqual(debtPreflight.oceni("plačal je 3 obroke po 200", 434), { presega: true, vsota: 600, dolg: 434 });
-  assert.deepEqual(debtPreflight.oceni("plačal je 3 obroke po 100", 434), { presega: false, vsota: 300, dolg: 434 });
-  assert.deepEqual(debtPreflight.oceni("račun je iz leta 2022", 434), { presega: false, vsota: 0, dolg: 434 });
-  assert.match(page, /if \(opozoriloPrevisokihPlacil\(text\)\) \{[\s\S]*?return;/, "prevelik opis mora ustaviti analizo pred omrežno zahtevo");
-  assert.match(page, /data-ai-debt-warning/, "opozorilo o preseženem dolgu mora biti prikazano ob vnosu");
+  assert.doesNotMatch(html, /neplacila-zgodovina-preverjanje-zneskov\.js/, "standalone UI ne sme naložiti lokalnega semantičnega preflight parserja");
+  assert.doesNotMatch(embeddedHtml, /neplacila-zgodovina-preverjanje-zneskov\.js/, "vgrajeni UI ne sme naložiti lokalnega semantičnega preflight parserja");
+  assert.doesNotMatch(page, /opozoriloPrevisokihPlacil|data-ai-debt-warning|UJZgodovinaPreverjanjeZneskov/, "vnos mora vedno do Lune; centski invariant se izvede nad njenim strukturiranim planom");
+  assert.match(page, /function posodobiGumbAnalize\(root\)[\s\S]{0,180}analyze\.disabled = !naravni\.text\.trim\(\) \|\| naravni\.status === "analyzing"/, "tipkanje mora brez lokalne semantike omogočiti analizo nepraznega vnosa");
   assert.match(page, /Povej ali napiši/);
   assert.match(page, /Ročno izberi/);
   assert.match(page, /<section class="zgodovina-ai" aria-label="Povejte ali napišite">/);
@@ -2341,7 +2649,7 @@ async function main() {
   assert.match(page, /glava\.classList\.add\("zgodovina-ai-glava--z-izbrisom"\)[\s\S]{0,260}insertAdjacentHTML\("beforeend", ponastaviAtenoGumbHtml\(\)\)/);
   assert.match(historyCss, /izvedba-odvetnik-zgodovina__uvod\.zgodovina-ai-glava--z-izbrisom\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto/, "Atenina notranja glava mora brez leve ikone rezervirati samo stolpec za Ponastavi");
   var povzetekRenderer = page.match(/function pogovorPovzetekHtml\(\)[\s\S]*?function ponastaviAtenoGumbHtml\(\)/)[0];
-  assert.doesNotMatch(povzetekRenderer, /data-ai-remove-all/, "gumb Ponastavi ne sme ostati v vrstici Če prav razumem");
+  assert.doesNotMatch(povzetekRenderer, /data-ai-remove-all/, "gumb Ponastavi ne sme biti podvojen v povzetku");
   assert.match(page, /data-ai-remove-all[\s\S]{0,500}naravni\.candidates = \[\][\s\S]{0,200}naravni\.text = ""[\s\S]{0,200}naravni\.requestId = ""[\s\S]{0,500}naravni\.phase = "input"/, "skupinski izbris mora odstraniti osnutke, opis in staro analizo ter vrniti prazen vnos");
   assert.match(page, /Da, potrdi dogodke/);
   assert.match(page, /data-ai-question-next/);
@@ -2359,17 +2667,27 @@ async function main() {
   assert.doesNotMatch(questionRenderer, /preostanekPovzetekHtml\(\)/, "preostali dolg se ne sme pokazati pred zaključkom vprašanj");
   assert.match(historyCss, /zgodovina-ai-povzetek--preostali-dolg/);
   assert.doesNotMatch(page, /Govor obdela Handyjev Canary na tej napravi/, "odvečno tehnično pojasnilo ne sme biti prikazano uporabniku");
-  assert.match(page, /HISTORY_CONTRACT_VERSION = "history-fact-v75"/);
+  assert.match(page, /HISTORY_CONTRACT_VERSION = "history-fact-v99"/);
   assert.match(page, /ATENA_ENGINE_VERSION = "atena-v7"/);
   assert.match(page, /data-engine-version", ATENA_ENGINE_VERSION/);
-  assert.match(page, /var naravni = \{\s*mode: "manual"/, "Atena se mora odpreti v potrjenem ročnem prikazu s karticami");
+  assert.match(page, /var naravni = \{\s*mode: "natural"/, "Atena se mora privzeto odpreti v načinu Povej ali napiši");
+  assert.match(page, /if \(shranjeno\.naravniVnos && typeof shranjeno\.naravniVnos === "object"\) \{\s*naravni\.mode = "natural";/, "ponovni vstop v Zgodovino ne sme obnoviti starega ročnega načina");
   assert.match(page, /atenaPovrsina\.classList\.add\("atena__povrsina", "stran--neplacila-zgodovina"\)/, "vsak gostujoči Atena engine mora uporabiti potrjeno skupno površino");
   assert.match(page, /function lokalniDanesIso\(vrednost\)/);
   assert.match(page, /referenceDate: lokalniDanesIso\(\)/, "brskalnik mora API-ju poslati uporabnikov lokalni koledarski dan");
-  assert.match(page, /function jeIzrecnoDokazanZnesek\(kandidat, znesek\)/);
-  assert.match(page, /znesek > saldo \+ 0\.009 && !jeIzrecnoDokazanZnesek\(kandidat, znesek\)/);
-  assert.match(html, /neplacila-zgodovina-relativni-datumi\.js\?v=20260828-history-contract-v31-local-date-v1-group-date-v1-collection-outcome-v1/);
-  assert.match(html, /neplacila-zgodovina\.js\?v=20260829-question-nav-v4-history-contract-v75[^"]*amount-relation-v2[^"]*compact-wire-v1[^"]*total-vs-each-v1[^"]*split-evidence-v1[^"]*explicit-remaining-v1[^"]*lean-luna-core-v1[^"]*luna-only-fields-v1/);
+  assert.doesNotMatch(page, /function jeIzrecnoDokazanZnesek\(kandidat, znesek\)/, "UI ne sme lokalno odločati, ali se Lunin znesek ujema z dolgom ali evidenco");
+  assert.match(page, /if \(kandidat\.amount == null \|\| String\(kandidat\.amount\)\.trim\(\) === ""\) return false;[\s\S]{0,120}return Number\.isFinite\(znesek\);/, "Lunin znesek mora biti prisoten že, ko ima tehnično veljavno številsko obliko");
+  assert.doesNotMatch(page, /znesek > saldo \+ 0\.009|Math\.abs\(znesek - saldo\)/, "UI ne sme blokirati Luninega zneska glede na preostali dolg");
+  assert.doesNotMatch(page, /step="0\.01" min="0\.01"|step="0\.01" max=/, "pregledno polje ne sme dodati lokalne semantične meje Luninemu znesku");
+  assert.match(html, /neplacila-zgodovina-relativni-datumi\.js\?v=20260830-installment-picker-boundary-v5/);
+  assert.match(html, /neplacila-zgodovina\.js\?v=20260831-history-v99-debt-warning-v2-agreement-v5[^"']*luna-authority-v3[^"']*installment-picker-boundary-v5/);
+  assert.match(page, /function opozoriloHtml\(\)[\s\S]{0,900}Opis ni pravilen[\s\S]{0,900}data-ai-clarification-edit>Uredi opis<\/button>/, "opozorilo mora ponuditi samo popravek opisa");
+  var opozoriloRenderer = page.match(/function opozoriloHtml\(\)[\s\S]*?function pojasniloIzcrpanoHtml\(\)/)[0];
+  assert.doesNotMatch(opozoriloRenderer, /data-ai-clarification-answer|data-ai-clarification-submit|Odgovori/, "opozorilo ne sme prikazati polja ali gumba za odgovor");
+  assert.match(page, /nadaljujBrezZgodovine\.hidden = naravni\.phase === "warning"/, "blokirno opozorilo mora skriti nadaljevanje brez zgodovine");
+  assert.match(page, /if \(naravni\.phase === "warning"\)[\s\S]{0,260}Najprej uredite nepravilni opis/, "tudi neposredni klik ne sme obiti opozorila");
+  assert.match(historyCss, /zgodovina-ai-pojasnilo__akcije--ena\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/, "gumb Uredi opis mora biti čez celo širino opozorila");
+  assert.match(historyCss, /\[data-zgodovina-nadaljuj\]\[hidden\]\s*\{[^}]*display:\s*none !important/, "močnejši slog zunanjega gumba ne sme preglasiti opozorilnega hidden stanja");
   assert.match(page, /Pripravljeni so " \+ stevilo \+ " dogodki\. Preverite podatke in dopolnite manjkajoče\./);
   assert.match(page, /Za varen vnos manjka en podatek\. Odgovorite na kratko vprašanje\./);
   assert.doesNotMatch(page, /Luna: OK|Luna je vrnila pravilno rešitev|Luna potrebuje kratek odgovor|Luna ni bila vključena/);
@@ -2412,12 +2730,15 @@ async function main() {
   assert.match(relativeDatesUi, /function najpoznejsiDatumZaKandidata\(candidates, candidate, referenceDate\)/);
   assert.match(relativeDatesUi, /ManualOverride/);
   assert.match(page, /dopolniRelativneDatume\(naravni\.candidates\)/);
-  assert.match(page, /function najpoznejsiDatumKandidata\(kandidat\)[\s\S]*?najpoznejsiDatumZaKandidata\(naravni\.candidates, kandidat, lokalniDanesIso\(\)\)/, "omejitev prvega datuma mora upoštevati vse naslednje relativne dogodke");
-  assert.match(page, /!jePovzetek && indeks < trenutni && vprasanjeIzpolnjeno\(indeks\)/, "samodejno izpolnjen prihodnji datum ne sme označiti koraka kot dokončanega");
-  assert.match(page, /polje !== "occurredDate" \|\| datum <= najpoznejsiDatumKandidata\(kandidat\)/, "prepozen prvi datum ne sme odkleniti naslednjega koraka");
-  assert.match(page, /zastarelContract = shranjeniKandidati\.length > 0[\s\S]{0,180}contractVersion !== HISTORY_CONTRACT_VERSION/);
+  assert.doesNotMatch(page, /function najpoznejsiDatumKandidata\(kandidat\)/, "UI ne sme izračunati semantične zgornje meje za Lunin datum");
+  assert.match(page, /!jePovzetek && vprasanjeIzpolnjeno\(indeks\)/, "vsak vsebinsko izpolnjen korak mora ostati označen kot dokončan tudi po neposrednem skoku nazaj");
+  assert.doesNotMatch(page, /indeks < trenutni && vprasanjeIzpolnjeno\(indeks\)/, "stara navigacijska omejitev ne sme razveljaviti že izpolnjenega koraka");
+  assert.match(page, /var jeVeljavenDatum = veljavenIsoDatum\(datum\);/, "UI sme pri datumu preveriti samo tehnično veljavno ISO-obliko");
+  assert.doesNotMatch(page, /datum <= najpoznejsiDatumKandidata\(kandidat\)|max="' \+ esc\(najpoznejsiDatumKandidata\(kandidat\)\)/, "prihodnji Lunin datum mora ostati viden in pripravljen za človeški pregled");
+  assert.match(page, /zastarelContract = shranjeniKandidati\.length > 0[\s\S]{0,180}contractVersion !== aktivniContractVersion\(\)/);
   assert.match(page, /naravni\.candidates = zastarelContract \? \[\] : shranjeniKandidati/, "zastareli kandidati se ne smejo več prikazati brez nove analize");
-  assert.match(page, /contractVersion: HISTORY_CONTRACT_VERSION/);
+  assert.match(page, /contractVersion: aktivniContractVersion\(\)/);
+  assert.match(page, /AGREEMENT_CONTRACT_VERSION = "agreement-fact-v7"/);
   assert.match(page, /data\.needsClarification === true[\s\S]{0,220}data\.summary/, "coverage clarification mora ostati vidna brez delnih kartic");
   assert.match(page, /data-ai-candidate-field=/);
   assert.match(page, /data-izvedba-fit/);
@@ -2432,6 +2753,7 @@ async function main() {
   assert.match(page, /kandidat\.requiredFields/);
   assert.match(page, /kandidat\.fieldOrder/);
   assert.match(page, /function jePlacilniDogodek\(kandidat\)[\s\S]{0,180}partial_payment[\s\S]{0,120}installment_payment[\s\S]{0,120}paid_in_full/);
+  assert.match(page, /jePlacilniDogodek\(kandidat\) && zahtevana\.indexOf\("paymentMethod"\) < 0[\s\S]{0,120}zahtevana = zahtevana\.concat\("paymentMethod"\)/, "plačilni korak ne sme naprej brez izbranega načina plačila");
   assert.match(page, /function podedujNacinPlacilaNaslednjimPlacilom\(kandidat, indeks, vrednost\)/);
   assert.match(page, /paymentMethodInheritedFrom != null/);
   assert.match(page, /if \(!jePodedovan && String\(naslednji\.paymentMethod \|\| ""\)\.trim\(\)\) break/, "izrecna naslednja izbira mora ustaviti prepisovanje starega spomina");
@@ -2452,6 +2774,12 @@ async function main() {
   assert.match(page, /data-ai-approximate-field="' \+ polje \+ '"[\s\S]{0,260}>Približno</, "vsak datum dogodka mora ponuditi približni čas");
   assert.match(page, /priblizniDatum[\s\S]{0,360}Za točen datum izklopite Približno\./, "približni datum mora desno pojasniti preklop na točen datum");
   assert.match(historyCss, /\.zgodovina-ai-vprasanje__oznaka-vrstica\s*\{[^}]*justify-content:\s*space-between;/, "namig mora biti poravnan desno od vprašanja");
+  assert.match(page, /obveznoVprasanjeManjka[\s\S]{0,300}is-obvezno-manjka/, "nezaključen vprašalni korak mora označiti celoten okvir");
+  assert.match(page, /zgodovinaPanel\.insertAdjacentElement\("afterend", nadaljujBrezZgodovine\)/, "gumb Nadaljuj brez zgodovine mora biti zunaj glavnega belega panela");
+  assert.match(historyCss, /\.izvedba-action-sheet\.zgodovina-nadaljuj-je-zunaj\s*\{[\s\S]{0,180}gap:\s*9px/, "ločeni gumb mora imeti jasen razmik pod panelom");
+  assert.match(page, /aktivniObvezniOkvir[\s\S]{0,240}classList\.toggle\("is-obvezno-manjka", !aktivnoVprasanjeIzpolnjeno\(\)\)/, "okvir mora sproti nehati pulzirati, ko je odgovor popoln");
+  assert.match(historyCss, /\.zgodovina-ai-vprasanje\.is-obvezno-manjka\s*\{[^}]*animation:\s*zgodovina-vprasanje-obvezno-pulz 2\.8s ease-in-out infinite;/, "obvezni okvir mora nežno pulzirati");
+  assert.match(historyCss, /\.zgodovina-ai-vprasanje__odstrani\s*\{[^}]*top:\s*-9px;[^}]*right:\s*2px;/, "gumb X mora ostati viden znotraj desnega roba kartice");
   assert.match(historyCss, /\.zgodovina-ai-vprasanje__datum-namig\s*\{[^}]*text-align:\s*right;[^}]*white-space:\s*nowrap;/, "namig mora ostati čitljiv v eni vrstici");
   assert.match(page, /occurredDateApproximation/);
   assert.match(page, /Npr\. v začetku avgusta/);
@@ -2479,18 +2807,19 @@ async function main() {
   assert.match(historyCss, /\.stran--neplacila-zgodovina \.izvedba-action-sheet__header\s*\{[^}]*margin:\s*0 0 7px;[^}]*padding-inline:\s*0;/, "glava brez ikone ne sme ohraniti starega levega odmika");
   assert.match(historyCss, /\.stran--neplacila-zgodovina \.izvedba-action-sheet__header h2\s*\{[^}]*margin-bottom:\s*5px/, "statusno besedilo mora biti jasno odmaknjeno od naslova");
   assert.match(izvedba, /remainingAmount/);
-  assert.match(page, /korak1\.datumIzdajeRacuna/);
-  assert.match(page, /korak1\.datumZapadlosti/);
-  assert.match(page, /function lokalniDatumPlacila\(text\)/);
-  assert.match(page, /po\\s\+\(prvem\|enem\|drugem\|tretjem\|četrtem\|\\d\+\)/);
-  assert.match(page, /dopolniLokalniDatumPlacila\(text, naravni\.candidates\)/);
+  assert.doesNotMatch(page, /korak1\.datumIzdajeRacuna|korak1\.datumZapadlosti/, "UI ne sme lokalno sklepati datumov iz podatkov računa");
+  assert.doesNotMatch(page, /function lokalniDatumPlacila\(text\)|dopolniLokalniDatumPlacila\(text, naravni\.candidates\)/, "UI ne sme ponovno razčlenjevati naravnega besedila za datume");
+  assert.match(page, /dopolniRelativneDatume\(naravni\.candidates\)/, "UI sme izračunati samo že strukturirane dateRelation povezave");
   assert.match(page, /function dopolniIzracunaniNeplacaniObrok\(kandidati\)/);
   assert.match(page, /kandidat\.type === "unpaid_installment"[\s\S]*?kandidat\.amount = preostanek/);
   assert.match(page, /if \(poljeKandidata === "amount"\) \{[\s\S]*?dopolniIzracunaniNeplacaniObrok\(naravni\.candidates\);[\s\S]*?posodobiPrikazPreostalegaDolga\(root\)/);
   assert.match(page, /function posodobiPrikazPreostalegaDolga\(root\)[\s\S]*?data-ai-remaining-debt[\s\S]*?predvideniPreostaliDolgAktivnegaKoraka\(\)[\s\S]*?predvideniPreostaliDolg\(\)/, "saldo koraka mora biti časoven, skupni prikaz pa mora ohraniti končni lokalni izračun");
   assert.match(izvedba, /tip === "remaining_unpaid" \|\| tip === "unpaid_installment" \? znesek : null/);
   assert.match(izvedba, /var prikazniZnesek = korak\.settings && Number\(korak\.settings\.remainingAmount\)/, "izračunani neplačani znesek mora biti samo prikazan in se ne sme drugič odšteti");
-  assert.match(page, /polje !== "occurredDate"/);
+  assert.match(izvedba, /if \(jeZgodovina && nacrtovani\.length\)[\s\S]{0,420}naslov: "Preostali dolg"[\s\S]{0,220}znesek: preostaliDolgPoNacrtu\(\)[\s\S]{0,260}jeIzracunaniPreostanek: true/, "pod pripravljenimi dogodki mora biti vedno izračunani korak preostalega dolga");
+  assert.match(izvedba, /korak\.jeIzracunaniPreostanek[\s\S]{0,120}\? '<span aria-hidden="true"><\/span>'/, "izračunani preostanek ne sme imeti gumba za izbris");
+  assert.match(izvedba, /var steviloDogodkov = seznam\.filter[\s\S]{0,160}!korak\.jeIzracunaniPreostanek/, "izračunani preostanek ni nov zgodovinski dogodek in ne sme povečati števca dogodkov");
+  assert.doesNotMatch(page, /polje !== "occurredDate"/, "UI datumov ne sme ločevati po semantični vlogi; preveri samo ISO-obliko");
   assert.doesNotMatch(page.match(/var telo = JSON\.stringify\(\{[^}]+\}\)/)[0], /invoiceIssueDate|dueDate/, "odjemalec datumov računa ne sme poslati API-ju");
   assert.match(historyCss, /zgodovina-ai-osnutek__polja[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/, "znesek in datum morata ostati bok ob boku");
   assert.match(historyCss, /input\[type="date"\][\s\S]*?max-inline-size: 100%[\s\S]*?-webkit-appearance: none/);
@@ -2534,6 +2863,7 @@ async function main() {
   assert.match(localServer, /okolje\.match\(\/\^\\s\*OPENAI_API_KEY/, "lokalni strežnik mora ključ naložiti iz .env.local");
   assert.doesNotMatch(localServer, /HISTORY_AI_LIVE_ENABLED/, "zastareli opt-in ne sme več ustaviti svežega Luna-first klica");
   assert.match(izvedba, /function dodajKandidatneDogodke/);
+  assert.match(izvedba, /var seznam = pripravljeni\.filter[\s\S]{0,160}kandidat\.type !== "remaining_unpaid"/, "izračunani preostanek mora ostati prikaz salda in se ne sme potrjevati kot nov dogodek");
   assert.match(izvedba, /function izrisiZgodovinaKontrolnik\(tip\) \{[\s\S]{0,160}var zdaj = new Date\(\)\.toISOString\(\)/, "ročni dogodki morajo imeti veljaven privzeti datum");
   assert.match(izvedba, /var added = dodajKorakVNacrt\(\)/, "AI kandidati morajo skozi obstoječo poslovno validacijo");
   assert.match(izvedba, /state\.nacrtKoraki = snapshot\.nacrtKoraki/, "neveljaven paket mora biti atomsko povrnjen");
@@ -2561,7 +2891,7 @@ async function main() {
   assert.match(izvedbaCore, /eventKind:\s*obreziBesedilo\(nastavitve\.eventKind/);
   assert.match(
     izvedba,
-    /\(zgodovinaVnos \? '' : izrisiStanjeDolgaBlok\(\)\) \+ izrisiPoravnavaSvicer\(\) \+ izrisiPoravnavaPodrobnosti\(\) \+ izrisiPotekPrimera\(\)/,
+    /\(zgodovinaVnos \? '' : izrisiStanjeDolgaBlok\(\)\)/,
     "naravni vnos mora uporabljati svoj sproti izračunani preostanek brez podvojenega generičnega bloka dolga"
   );
   assert.match(vercel, /\/api\/razcleni-zgodovino[\s\S]*?history-ai/);

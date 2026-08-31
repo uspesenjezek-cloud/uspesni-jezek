@@ -73,6 +73,48 @@ async function main() {
       "stari HS256 žeton mora sprožiti osvežitev seje, ne nedosegljivega Auth API-ja");
     assert.equal(zahtevanaOsvezitev.retryable, true);
 
+    var noviKljuci = await jose.generateKeyPair("ES256");
+    var jwtZNepoznanimKid = await new jose.SignJWT({ role: "authenticated", email: "rotated@example.test" })
+      .setProtectedHeader({ alg: "ES256", kid: "rotated-es256-key" })
+      .setIssuer("https://auth.example.test/auth/v1")
+      .setAudience("authenticated")
+      .setSubject(uporabnikId)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(noviKljuci.privateKey);
+    assert.equal(supabaseServer._test.jeNeveljavnaJwtNapaka({ code: "ERR_JWKS_NO_MATCHING_KEY" }), false,
+      "neznan kid ni dokončen dokaz neveljavne seje, ker se je ključ lahko pravkar zamenjal");
+    assert.equal(supabaseServer._test.jeNeveljavnaJwtNapaka({ code: "ERR_JWKS_MULTIPLE_MATCHING_KEYS" }), false,
+      "nekonkluzivna izbira JWKS ključa mora pasti na avtoritativni Auth strežnik");
+
+    var rotacijskiAuthKlici = 0;
+    global.fetch = async function () {
+      rotacijskiAuthKlici += 1;
+      return { ok: true, status: 200, json: async function () { return { id: uporabnikId, email: "rotated@example.test" }; } };
+    };
+    var prijavaPoRotacijiKljuca = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + jwtZNepoznanimKid } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks, authRetryDelays: [0, 0] }
+    );
+    assert.equal(prijavaPoRotacijiKljuca.ok, true,
+      "veljavno sejo z novim kid mora varno potrditi oddaljeni Auth strežnik");
+    assert.equal(prijavaPoRotacijiKljuca.user.id, uporabnikId);
+    assert.equal(rotacijskiAuthKlici, 1, "po neznanem kid zadošča en uspešen avtoritativni Auth klic");
+
+    rotacijskiAuthKlici = 0;
+    global.fetch = async function () {
+      rotacijskiAuthKlici += 1;
+      throw new TypeError("network down during signing-key rotation");
+    };
+    var rotacijaBrezOmrezja = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + jwtZNepoznanimKid } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks, authRetryDelays: [0, 0] }
+    );
+    assert.equal(rotacijaBrezOmrezja.code, "AUTH_SERVER_UNAVAILABLE");
+    assert.equal(rotacijaBrezOmrezja.retryable, true,
+      "neznan kid ob omrežnem izpadu mora ostati začasna napaka, ne lažni 401");
+    assert.equal(rotacijskiAuthKlici, 3, "rezervna Auth pot mora ohraniti omejene ponovitve");
+
     var vercelConfig = require("../vercel.json");
     assert.equal(vercelConfig.functions["api/boniteta.js"].maxDuration, 60,
       "združena bonitetna funkcija mora imeti dovolj časa za auth in čakalno vrsto");
@@ -394,6 +436,10 @@ async function main() {
   assert.equal(worker.prehodnaNapaka(200, { ok: true, identityEvidence: { status: "unavailable" } }), false);
   assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }), true,
     "tudi ročna insolvenčna preverba brez uradnega dokaza mora ostati nedokončana in se ponoviti");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, identity: { status: "verified_register" }, insolvency: { status: "not_checked", reason: "official_identity_evidence_unavailable" } }, { faza: "identiteta", request_payload: {} }), false,
+    "prva faza z uporabnim rezultatom identitete ne sme pasti v tri ponovitve samo zato, ker insolvenčni dokaz še ni pripravljen");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }, { faza: "insolvenca", request_payload: { confirmedIdentity: { confirmed: true } } }), true,
+    "faza insolvence mora nedokončan uradni rezultat še vedno ponoviti");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }, { project_monitor_id: "monitor-1" }), true,
     "samodejno spremljanje mora začasno nedosegljiv uradni vir ponoviti in ne sme prepisati zadnjega uspešnega rezultata");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", officialVerification: { status: "unavailable" } } }, { project_monitor_id: "monitor-1" }), true,
@@ -460,7 +506,10 @@ async function main() {
     "začetno preverjanje statusa mora biti odzivnejše od starega 1–1,8 s intervala");
   assert.doesNotMatch(ui, /job\.status === \"processing\" \? 1000 : 1800/,
     "stari počasni fiksni interval ne sme ostati v čakalni zanki");
-  assert.match(ui, /55 \* 1000/, "widget uporabnika ne sme več minut držati na vrtečem kolescu");
+  assert.match(ui, /async function pocakajNaOpravilo\(job, token\)[\s\S]*?while \(true\)[\s\S]*?job\.status === "completed"[\s\S]*?job\.status === "failed"/,
+    "UI mora isto opravilo samodejno spremljati do terminalnega stanja brez mrtvega timeout zaslona");
+  assert.doesNotMatch(ui, /55 \* 1000|Preverjanje se nadaljuje v ozadju\. Poskusite ponovno/,
+    "stara časovna meja ne sme prekiniti samodejnega spremljanja aktivnega opravila");
   assert.match(ui, /krajiTrenutnePoste\.length > 1/, "pri poštni številki z več kraji mora biti izbira izrecna");
   assert.match(ui, /Podjetja nismo našli\. Izberite naslednji korak spodaj\./,
     "prebrana stran brez potrjene identitete ne sme biti napačno označena kot neberljiva");

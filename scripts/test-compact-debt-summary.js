@@ -38,13 +38,22 @@ assert.doesNotMatch(posiljanje, /<script src="priporocilo-widget\.js/);
 assert.match(app, /function osveziKompaktniPovzetekDolga\(podatkiVhod\)/);
 assert.match(app, /sessionStorage\.getItem\(KLJUC_SEJE_KORAK1_PODATKI\)/);
 assert.match(app, /data-povzetek-dolznik/);
-assert.match(app, /data-fit-text-lines="2"/);
+/* Zasnova "asimetrična utež": ime dolžnika je v glavi z inicialko, zamuda je
+   vizualni hero (edini podatek, ki zahteva ukrep), dolg in zapadlost pa
+   podredni sklad. Vse vrednosti se še vedno samodejno pomanjšajo (data-fit-text),
+   da daljše ime ali večji znesek ne razširita okvirja. */
+assert.match(app, /data-povzetek-inicialke/);
+assert.match(app, /class="wds__ime" data-povzetek-dolznik data-fit-text/);
 assert.doesNotMatch(app, /data-povzetek-pretekle/);
 assert.match(app, /dniZamude === 1 \? " dan" : " dni"/);
-assert.match(app, /wizard-debt-summary__status--zamuda' \+ zamudaRazred/);
-assert.match(app, /wizard-debt-summary__status[^>]*><span class="debt-summary__label">Dolg<\/span><span[^>]*data-povzetek-dolg data-fit-text/);
-const zgornjaVrsticaPovzetka = app.slice(app.indexOf('debt-summary--vrstica-1'), app.indexOf('debt-summary--vrstica-2'));
-assert.doesNotMatch(zgornjaVrsticaPovzetka, /data-povzetek-dolg/);
+assert.match(app, /class="wds__hero' \+ zamudaRazred/);
+assert.match(app, /class="wds__hero-vrednost" data-povzetek-zamuda data-fit-text/);
+assert.match(app, /<span class="wds__oznaka">Dolg<\/span><span[^>]*data-povzetek-dolg data-fit-text/);
+assert.match(app, /<span class="wds__oznaka">Zapadlost<\/span><span[^>]*data-povzetek-zapadlost data-fit-text/);
+/* Glava nosi izključno identiteto dolžnika - noben znesek ne sme uiti vanjo. */
+const glavaPovzetka = app.slice(app.indexOf('wds__glava'), app.indexOf('wds__telo'));
+assert.ok(glavaPovzetka.length > 0, "Glave povzetka (wds__glava -> wds__telo) ni bilo mogoče najti.");
+assert.doesNotMatch(glavaPovzetka, /data-povzetek-dolg|data-povzetek-zamuda/);
 assert.doesNotMatch(app, /Xjkx Jdjd/);
 assert.doesNotMatch(app, /9446,00/);
 assert.match(app, /3:\s*"neplacila-cilj\.html"/);
@@ -62,9 +71,13 @@ assert.match(css, /\.wizard-debt-summary \.wizard-debt-summary__status \{[^}]*bo
 assert.match(css, /\.wizard-debt-summary \.wizard-debt-summary__status--zamuda\.is-alert \{[^}]*background:\s*rgba\(214, 92, 78, \.055\)/s);
 assert.match(css, /\.debt-stepper \{[^}]*grid-template-columns:\s*repeat\(4,/s);
 assert.match(css, /\[data-wizard-progress-header\]\[data-korak="4"\] \.debt-stepper__selection \{[\s\S]*?translate3d\(calc\(300% \+ 9px\), 0, 0\)/);
-assert.match(zgodovina, /styles\.css\?v=20260827-wizard-four-step-v1-debt-summary-v4/);
-assert.match(cilj, /styles\.css\?v=20260827-wizard-four-step-v1-debt-summary-v4/);
-assert.match(posiljanje, /styles\.css\?v=20260827-plan-risk-button-v1-debt-summary-v4/);
+assert.match(css, /\/\* Povezani koraki:[\s\S]*?\.debt-stepper::before \{[\s\S]*?right: 12\.5%;[\s\S]*?left: 12\.5%;/);
+assert.match(css, /\[data-wizard-progress-header\]\[data-korak="4"\] \.debt-stepper__selection \{[\s\S]*?width: 75%;[\s\S]*?transform: none;/);
+assert.match(css, /\.debt-step--active \.debt-step__number,[\s\S]*?background: linear-gradient\(145deg, #4aa7a3, #258f8e\);/);
+assert.match(css, /#neplacila-obrazec \.ai-zajem \{[\s\S]*?margin-inline: -10px;[\s\S]*?border: 0;[\s\S]*?box-shadow: none;/);
+assert.match(zgodovina, /styles\.css\?v=20260829-connected-stepper-v5/);
+assert.match(cilj, /styles\.css\?v=20260829-connected-stepper-v5/);
+assert.match(posiljanje, /styles\.css\?v=20260829-connected-stepper-v5/);
 assert.match(zgodovina, /app\.js\?v=20260827-wizard-four-step-v1-debt-summary-v4/);
 assert.match(cilj, /app\.js\?v=20260827-wizard-four-step-v1-debt-summary-v4/);
 assert.match(posiljanje, /app\.js\?v=20260827-wizard-four-step-v1-debt-summary-v4/);

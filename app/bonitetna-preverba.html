@@ -22,13 +22,14 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
-    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260827-saved-result-actions-v286" />
-    <link rel="stylesheet" href="bonitetna-podjetje-grafike.css?v=20260827-compact-review-v157" />
-    <link rel="stylesheet" href="boniteta-pro.css?v=20260826-watched-card-v9" />
+    <link rel="stylesheet" href="styles.css?v=20260830-global-full-width-v1" />
+    <link rel="stylesheet" href="bonitetna-preverba.css?v=20260831-plus-loading-v3" />
+    <link rel="stylesheet" href="bonitetna-podjetje-grafike.css?v=20260831-plus-loading-v162" />
+    <link rel="stylesheet" href="boniteta-pro.css?v=20260830-boniteta-full-width-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="bonitetna-manifest.json" />
     <meta name="theme-color" content="#3d7676" />
+    <link rel="icon" type="image/png" href="icon-192.png" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
@@ -129,7 +130,7 @@
               <span>Primerjaj podjetji</span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i>
             </button>
           </div>
-          <p class="boniteta-hero__status" id="boniteta-hero-status" role="alert" hidden></p>
+          <p class="boniteta-hero__status" id="boniteta-hero-status" role="alert" aria-live="polite" hidden></p>
         </section>
 
         <section class="boniteta-primerjava-rezultat" id="boniteta-primerjava-rezultat" aria-labelledby="boniteta-primerjava-rezultat-naslov" hidden>
@@ -234,9 +235,9 @@
                 </div>
                 <div class="boniteta-priporocilo__zavihek" id="boniteta-priporocilo-posel" role="tabpanel" aria-labelledby="boniteta-priporocilo-zavihek-posel">
                   <div class="boniteta-priporocilo__polja">
-                    <label><span>Vrednost projekta</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-vrednost" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 18.000" data-fit-input><b>€</b></span></label>
-                    <label><span>Največ še neplačano</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-izpostavljenost" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 8.000" data-fit-input><b>€</b></span></label>
-                    <div class="boniteta-priporocilo__polje"><label for="boniteta-priporocilo-trajanje">Trajanje projekta</label><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-trajanje" type="text" inputmode="numeric" maxlength="3" placeholder="npr. 4" data-fit-input><span class="boniteta-trajanje-enota"><button id="boniteta-trajanje-enota-gumb" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="boniteta-trajanje-enota-meni"><span data-trajanje-enota-oznaka>mesecev</span><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></button><span id="boniteta-trajanje-enota-meni" class="boniteta-trajanje-enota__meni" role="listbox" aria-label="Enota trajanja" hidden><button type="button" role="option" data-trajanje-enota="days" aria-selected="false">dni</button><button type="button" role="option" data-trajanje-enota="weeks" aria-selected="false">tedni</button><button type="button" role="option" data-trajanje-enota="months" aria-selected="true">meseci</button></span></span></span></div>
+                    <label><span>Vrednost projekta</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-vrednost" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 18.000" data-fit-input data-fit-input-min="16"><b>€</b></span></label>
+                    <label><span>Največ še neplačano</span><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-izpostavljenost" type="text" inputmode="decimal" maxlength="14" placeholder="npr. 8.000" data-fit-input data-fit-input-min="16"><b>€</b></span></label>
+                    <div class="boniteta-priporocilo__polje"><label for="boniteta-priporocilo-trajanje">Trajanje projekta</label><span class="boniteta-priporocilo__vnos"><input id="boniteta-priporocilo-trajanje" type="text" inputmode="numeric" maxlength="3" placeholder="npr. 4" data-fit-input data-fit-input-min="16"><span class="boniteta-trajanje-enota"><button id="boniteta-trajanje-enota-gumb" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="boniteta-trajanje-enota-meni"><span data-trajanje-enota-oznaka>mesecev</span><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></button><span id="boniteta-trajanje-enota-meni" class="boniteta-trajanje-enota__meni" role="listbox" aria-label="Enota trajanja" hidden><button type="button" role="option" data-trajanje-enota="days" aria-selected="false">dni</button><button type="button" role="option" data-trajanje-enota="weeks" aria-selected="false">tedni</button><button type="button" role="option" data-trajanje-enota="months" aria-selected="true">meseci</button></span></span></span></div>
                     <label><span>Poznate stranko?</span><select id="boniteta-priporocilo-izkusnja"><option value="">Izberite</option><option value="new">Ne, nova je</option><option value="good">Da, plačuje pravočasno</option><option value="late">Da, včasih zamuja</option><option value="unpaid">Dolguje nam</option></select></label>
                     <label class="boniteta-priporocilo__placilo"><span>Kdaj pričakujete plačilo?</span><select id="boniteta-priporocilo-placilo"><option value="">Izberite</option><option value="prepayment">Pred začetkom del</option><option value="milestone">Po mejnikih</option><option value="after_completion">Po zaključku del</option><option value="invoice">Po računu z rokom plačila</option></select></label>
                   </div>
@@ -270,7 +271,7 @@
                   <strong data-fit-text>Mehka preverba</strong>
                   <span class="crif-flow-picker__description">Preveri identiteto in insolventnost.</span>
                 </span>
-                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>IZBRANO</span><small>Klikni za podrobnosti ›</small></span><b aria-hidden="true" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b></span>
+                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>IZBRANO</span><small>Klikni za podrobnosti</small></span><b aria-hidden="true" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b></span>
               </button>
               <button class="crif-flow-picker__option" type="button" data-boniteta-flow-card="crif" data-boniteta-flow-start="crif" aria-pressed="false">
                 <span class="crif-flow-picker__main">
@@ -280,7 +281,7 @@
                   <strong data-fit-text>Podrobna preverba</strong>
                   <span class="crif-flow-picker__description">Pridobi razširjene podatke in analizo.</span>
                 </span>
-                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>Preglej in izberi</span><small hidden>Klikni za podrobnosti ›</small></span><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b></span>
+                <span class="crif-flow-picker__cta"><span class="crif-flow-picker__cta-copy"><span data-flow-label>Preglej in izberi</span><small hidden>Klikni za podrobnosti</small></span><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></b></span>
               </button>
             </div>
             <div class="boniteta-flow-actions" id="boniteta-flow-actions">
@@ -478,7 +479,7 @@
       <section class="boniteta-rezultat" id="boniteta-rezultat" aria-live="polite" hidden data-boniteta-flow-panel="soft">
         <section class="boniteta-monitoring-primerjava" id="boniteta-monitoring-primerjava" aria-labelledby="boniteta-monitoring-primerjava-naslov" hidden>
           <header class="boniteta-monitoring-primerjava__glava">
-            <button type="button" id="boniteta-monitoring-primerjava-nazaj" aria-label="Nazaj na spremljanje">‹</button>
+            <button type="button" id="boniteta-monitoring-primerjava-nazaj" aria-label="Nazaj na spremljanje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
             <div>
               <p>SPREMLJANJE · PRIMERJAVA PREVERJANJ</p>
               <h2 id="boniteta-monitoring-primerjava-naslov">Kaj se je spremenilo</h2>
@@ -580,9 +581,9 @@
               <small>2. KORAK</small>
               <strong data-fit-text data-fit-text-min="9">Preveri insolventnost</strong>
               <span data-fit-text data-fit-text-min="8">Preverjanje uradnih objav</span>
-              <b><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></i><em><small>NASLEDNJI KORAK</small>Preveri insolventnost</em><i aria-hidden="true">›</i></b>
+              <b><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></i><em><small>NASLEDNJI KORAK</small>Preveri insolventnost</em><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></i></b>
             </span>
-            <span class="boniteta-identiteta-nadaljuj__puscica" aria-hidden="true">›</span>
+            <span class="boniteta-identiteta-nadaljuj__puscica" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
           </button>
           </div>
           <section class="boniteta-podjetje-pregled" id="boniteta-podjetje-pregled" hidden aria-label="Podatki podjetja">
@@ -639,7 +640,7 @@
 
         <section class="boniteta-insolvenca-okno" id="boniteta-insolvenca-okno" aria-labelledby="boniteta-insolvenca-okno-naslov" hidden>
           <header class="boniteta-insolvenca-okno__glava">
-            <button class="boniteta-insolvenca-okno__nazaj" id="boniteta-insolvenca-nazaj" type="button" aria-label="Nazaj na podatke podjetja">‹</button>
+            <button class="boniteta-insolvenca-okno__nazaj" id="boniteta-insolvenca-nazaj" type="button" aria-label="Nazaj na podatke podjetja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
             <div>
               <p id="boniteta-insolvenca-korak">1. KORAK · POTRDITEV PODATKOV</p>
               <h2 id="boniteta-insolvenca-okno-naslov">Preveri insolventnost</h2>
@@ -720,6 +721,7 @@
                 </label>
                 <button class="boniteta-potrditev-identitete__gumb" id="boniteta-potrditev-gumb" type="button" disabled>
                   <span data-potrditev-gumb-label data-fit-text data-fit-text-min="9">Preveri insolventnost</span>
+                  <span class="boniteta-potrditev-identitete__gumb-puscica" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
                 </button>
               </div>
               <p class="boniteta-potrditev-identitete__napaka" id="boniteta-potrditev-napaka" role="alert" hidden></p>
@@ -849,32 +851,32 @@
           <span class="crif-contract-badge crif-temp-mark" id="crif-contract-badge">CRIF še ni aktiviran</span>
         </header>
 
-        <form id="crif-form" class="crif-form" novalidate>
+        <form id="crif-form" class="crif-form">
           <section class="crif-step">
             <div class="crif-step__heading"><span>1</span><div><h3>Stranka</h3><p>Izberi pravno vrsto, ker se obveznosti glede osebnih podatkov razlikujejo.</p></div></div>
             <div class="crif-fields crif-fields--three">
               <label>Vrsta stranke<select id="crif-subject-type" required><option value="company">Podjetje (npr. GmbH)</option><option value="sole_trader">Samostojni podjetnik / e.K.</option><option value="private_person">Zasebna oseba</option></select></label>
-              <label data-crif-company>Pravno ime<input id="crif-legal-name" type="text" maxlength="240" autocomplete="organization" data-fit-input></label>
-              <label data-crif-company>Registrska številka <small>(če obstaja)</small><input id="crif-register-number" type="text" maxlength="120" data-fit-input></label>
-              <label data-crif-person hidden>Ime<input id="crif-first-name" type="text" maxlength="120" autocomplete="given-name" data-fit-input></label>
-              <label data-crif-person hidden>Priimek<input id="crif-last-name" type="text" maxlength="120" autocomplete="family-name" data-fit-input></label>
-              <label data-crif-person hidden>Datum rojstva<input id="crif-date-of-birth" type="date" autocomplete="bday"></label>
-              <label class="crif-field-wide">Ulica in hišna številka<input id="crif-street" type="text" maxlength="160" autocomplete="street-address" required data-fit-input></label>
-              <label>Poštna številka<input id="crif-postal-code" type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" autocomplete="postal-code" required data-fit-input></label>
-              <label>Kraj<input id="crif-city" type="text" maxlength="100" autocomplete="address-level2" required data-fit-input></label>
+              <label data-crif-company>Pravno ime<input id="crif-legal-name" type="text" maxlength="240" autocomplete="organization" required data-fit-input data-fit-input-min="16"></label>
+              <label data-crif-company>Registrska številka <small>(če obstaja)</small><input id="crif-register-number" type="text" maxlength="120" data-fit-input data-fit-input-min="16"></label>
+              <label data-crif-person hidden>Ime<input id="crif-first-name" type="text" maxlength="120" autocomplete="given-name" required disabled data-fit-input data-fit-input-min="16"></label>
+              <label data-crif-person hidden>Priimek<input id="crif-last-name" type="text" maxlength="120" autocomplete="family-name" required disabled data-fit-input data-fit-input-min="16"></label>
+              <label data-crif-person hidden>Datum rojstva<input id="crif-date-of-birth" type="date" autocomplete="bday" required disabled></label>
+              <label class="crif-field-wide">Ulica in hišna številka<input id="crif-street" type="text" minlength="3" maxlength="160" autocomplete="street-address" required data-fit-input data-fit-input-min="16"></label>
+              <label>Poštna številka<input id="crif-postal-code" type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" autocomplete="postal-code" required data-fit-input data-fit-input-min="16"></label>
+              <label>Kraj<input id="crif-city" type="text" minlength="2" maxlength="100" autocomplete="address-level2" required data-fit-input data-fit-input-min="16"></label>
             </div>
           </section>
 
           <section class="crif-step">
             <div class="crif-step__heading"><span>2</span><div><h3>Posel in plačilni riziko</h3><p>To je dokaz, zakaj je preverba potrebna in katera globina je smiselna.</p></div></div>
             <div class="crif-fields crif-fields--three">
-              <label class="crif-field-wide">Referenca ponudbe ali projekta<input id="crif-project-reference" type="text" maxlength="160" placeholder="npr. Ponudba 2026-041" data-fit-input></label>
+              <label class="crif-field-wide">Referenca ponudbe ali projekta<input id="crif-project-reference" type="text" maxlength="160" placeholder="npr. Ponudba 2026-041" data-fit-input data-fit-input-min="16"></label>
               <label>Vrednost posla (€)<input id="crif-project-value" type="number" min="1" step="0.01" required inputmode="decimal"></label>
               <label>Odprta izpostavljenost (€)<input id="crif-open-exposure" type="number" min="0" step="0.01" required inputmode="decimal"></label>
               <label>Način plačila<select id="crif-payment-timing" required><option value="">Izberi</option><option value="prepayment">Predplačilo</option><option value="milestone">Po mejnikih</option><option value="after_completion">Po zaključku del</option><option value="invoice">Po računu</option><option value="installments">Obroki</option><option value="other">Drugo</option></select></label>
               <label>Začetek posla<input id="crif-project-start" type="date" required></label>
               <label>Konec posla<input id="crif-project-end" type="date" required></label>
-              <label class="crif-field-wide">Zakaj obstaja finančni riziko?<textarea id="crif-legitimate-interest" maxlength="1000" rows="3" placeholder="npr. Material naročimo vnaprej, plačilo sledi 30 dni po zaključku."></textarea></label>
+              <label class="crif-field-wide">Zakaj obstaja finančni riziko?<textarea id="crif-legitimate-interest" minlength="10" maxlength="1000" rows="3" required placeholder="npr. Material naročimo vnaprej, plačilo sledi 30 dni po zaključku."></textarea></label>
             </div>
             <aside class="crif-recommendation" aria-live="polite"><span class="crif-temp-mark">Predvidena analiza</span><strong id="crif-recommendation-product">FinanzCheck</strong><p id="crif-recommendation-reason">Vnesi vrednost posla in odprto izpostavljenost.</p></aside>
           </section>
@@ -882,22 +884,22 @@
           <section class="crif-step">
             <div class="crif-step__heading"><span>3</span><div><h3>Pravna sled</h3><p>Ta potrdila se shranijo skupaj z zahtevo. Ne predstavljajo avtomatskega pravnega mnenja.</p></div></div>
             <div class="crif-confirmations">
-              <label><input id="crif-financial-risk" type="checkbox"><span>Preverba je povezana s konkretnim poslom in resničnim tveganjem neplačila.</span></label>
-              <label><input id="crif-business-purpose" type="checkbox"><span>Podatkov ne preverjam iz radovednosti in jih bom uporabil samo za odločitev o tem poslu.</span></label>
+              <label><input id="crif-financial-risk" type="checkbox" required><span>Preverba je povezana s konkretnim poslom in resničnim tveganjem neplačila.</span></label>
+              <label><input id="crif-business-purpose" type="checkbox" required><span>Podatkov ne preverjam iz radovednosti in jih bom uporabil samo za odločitev o tem poslu.</span></label>
             </div>
             <div class="crif-notice" id="crif-notice" hidden>
               <h4>Obvestilo fizični osebi je obvezno</h4>
               <p>Pred preverbo ji posreduj obvestilo po 13. členu GDPR. To ni soglasje, temveč dokaz, da je bila oseba pravilno obveščena.</p>
               <details><summary>Predloga nemškega obvestila</summary><div class="crif-notice__template">Hinweis zur Bonitätsprüfung: Im Zusammenhang mit Ihrem konkreten Auftrag und dem damit verbundenen finanziellen Ausfallrisiko verarbeiten wir Ihre Identifikations- und Adressdaten zur Prüfung Ihrer Bonität. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist die Vermeidung von Zahlungsausfällen. Empfänger ist die CRIF GmbH, Victor-Gollancz-Straße 5, 76137 Karlsruhe. Weitere Informationen zu Ihren Datenschutzrechten erhalten Sie in unseren Datenschutzhinweisen und unter crif.de/datenschutz.</div></details>
-              <div class="crif-fields crif-fields--two"><label>Način obvestila<select id="crif-notice-method"><option value="">Izberi</option><option value="email">E-pošta</option><option value="pdf">PDF / pisno</option><option value="in_person">Osebno</option><option value="portal">Portal</option></select></label><label>Čas obvestila<input id="crif-notice-at" type="datetime-local"></label></div>
-              <label class="crif-notice__confirm"><input id="crif-notice-delivered" type="checkbox"><span>Potrjujem, da je oseba obvestilo prejela pred preverbo.</span></label>
+              <div class="crif-fields crif-fields--two"><label>Način obvestila<select id="crif-notice-method" required disabled><option value="">Izberi</option><option value="email">E-pošta</option><option value="pdf">PDF / pisno</option><option value="in_person">Osebno</option><option value="portal">Portal</option></select></label><label>Čas obvestila<input id="crif-notice-at" type="datetime-local" required disabled></label></div>
+              <label class="crif-notice__confirm"><input id="crif-notice-delivered" type="checkbox" required disabled><span>Potrjujem, da je oseba obvestilo prejela pred preverbo.</span></label>
             </div>
           </section>
 
           <section class="crif-step">
             <div class="crif-step__heading"><span>4</span><div><h3>Ponovna preverba pri daljšem poslu</h3><p>Sistem jo predlaga pri najmanj treh mesecih in odprti izpostavljenosti od 10.000 €.</p></div></div>
             <label class="crif-switch"><input id="crif-monitoring" type="checkbox" role="switch"><span><strong class="crif-temp-mark">Vključi spremljanje</strong><small id="crif-monitoring-hint">Po vnosu datuma in vrednosti dobiš priporočilo.</small></span></label>
-            <div class="crif-fields crif-fields--two" id="crif-monitoring-fields" hidden><label>Konec spremljanja<input id="crif-monitoring-end" type="date"></label><label>Razlog spremljanja<input id="crif-monitoring-reason" type="text" maxlength="500" placeholder="Aktiven projekt in odprta terjatev" data-fit-input></label></div>
+            <div class="crif-fields crif-fields--two" id="crif-monitoring-fields" hidden><label>Konec spremljanja<input id="crif-monitoring-end" type="date" required disabled></label><label>Razlog spremljanja<input id="crif-monitoring-reason" type="text" minlength="10" maxlength="500" required disabled placeholder="Aktiven projekt in odprta terjatev" data-fit-input data-fit-input-min="16"></label></div>
           </section>
 
           <p class="crif-error" id="crif-error" role="alert" hidden></p>
@@ -941,7 +943,7 @@
           <section class="crif-output__decision" aria-labelledby="crif-decision-title">
             <div><p class="boniteta-rezultat__oznaka">OBVEZNA ČLOVEŠKA PRESOJA</p><h3 id="crif-decision-title">Končna odločitev obrtnika</h3><p>CRIF je samo eden od dejavnikov. Sistem ne sme samodejno zavrniti stranke.</p></div>
             <div class="crif-output__decision-actions" role="group" aria-label="Možne odločitve po pregledu rezultata">
-              <button type="button" data-crif-decision="approve" disabled data-fit-text>Sodeluj</button><button type="button" data-crif-decision="review" disabled data-fit-text>Zahtevaj varovalo</button><button type="button" data-crif-decision="decline" disabled data-fit-text>Zavrni posel</button>
+              <button type="button" data-crif-decision="approve" aria-pressed="false" disabled data-fit-text>Sodeluj</button><button type="button" data-crif-decision="review" aria-pressed="false" disabled data-fit-text>Zahtevaj varovalo</button><button type="button" data-crif-decision="decline" aria-pressed="false" disabled data-fit-text>Zavrni posel</button>
             </div>
             <label>Razlog odločitve<textarea id="crif-decision-reason" rows="3" maxlength="1200" disabled placeholder="Obvezno po prejemu rezultata"></textarea></label>
             <p class="crif-output__feedback" id="crif-decision-feedback" role="status" hidden></p>
@@ -1027,9 +1029,9 @@
     <script src="bonitetna-signali.js?v=20260826-financial-severity-v20"></script>
     <script src="bauhandwerkersicherung.js?v=20260826-eligibility-v2"></script>
     <script src="boniteta-dokazna-hramba.js?v=20260825-insolvency-evidence-idb-v2"></script>
-    <script src="bonitetna-preverba.js?v=20260827-saved-result-guard-v215"></script>
-    <script src="boniteta-profil.js?v=20260827-monitoring-comparison-v16"></script>
-  <script src="boniteta-sredisce.js?v=20260827-monitoring-settings-v189"></script>
+  <script src="bonitetna-preverba.js?v=20260831-plus-loading-v15"></script>
+    <script src="boniteta-profil.js?v=20260831-paid-idempotency-v1"></script>
+  <script src="boniteta-sredisce.js?v=20260831-frontend-async-safety-v1"></script>
     <script src="bauhandwerkersicherung-ui.js?v=20260826-offer-security-visible-v14"></script>
     <script src="pwa-viewport.js?v=20260817-v1"></script>
     <script src="pwa-dev-refresh.js?v=20260822-stable-preview-v3"></script>

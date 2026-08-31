@@ -42,26 +42,67 @@ async function applyImmediateOpenapiResult(cfg, delivery, completed, providerRes
   }
 }
 
-async function processClaimed(cfg, claimed, workerId) {
+function acceptedPendingDelivery(claimed, providerResult) {
+  return Object.assign({}, claimed, {
+    status: "processing",
+    provider_reference: String(
+      providerResult && providerResult.providerReference || claimed && claimed.provider_reference || ""
+    ).slice(0, 240),
+  });
+}
+
+async function processClaimed(cfg, claimed, workerId, dependencies) {
+  const deps = dependencies || {};
+  const buildPackage = deps.buildDeliveryPackage || buildDeliveryPackage;
+  const selectProvider = deps.providerFor || providerFor;
+  const finishDelivery = deps.finish || finish;
+  const logError = deps.logError || console.error;
+  let providerResult;
   try {
-    const deliveryPackage = await buildDeliveryPackage(cfg, claimed);
-    const provider = providerFor(claimed.provider);
-    const providerResult = await provider.deliver(deliveryPackage);
-    let completed = await finish(cfg, claimed, workerId, {
-      success: true,
-      providerReference: providerResult.providerReference,
-      retryable: false,
-    });
-    completed = await applyImmediateOpenapiResult(cfg, claimed, completed, providerResult);
-    return { ok: true, delivery: completed, providerResult };
+    const deliveryPackage = await buildPackage(cfg, claimed);
+    const provider = selectProvider(claimed.provider);
+    providerResult = await provider.deliver(deliveryPackage);
   } catch (error) {
-    const failed = await finish(cfg, claimed, workerId, {
+    const failed = await finishDelivery(cfg, claimed, workerId, {
       success: false,
       retryable: Boolean(error && error.retryable),
       error: String(error && error.message || "Dostava ni uspela.").slice(0, 1000),
     });
     return { ok: false, delivery: failed, error };
   }
+
+  let completed;
+  try {
+    completed = await finishDelivery(cfg, claimed, workerId, {
+      success: true,
+      providerReference: providerResult.providerReference,
+      retryable: false,
+    });
+    if (!completed) {
+      const error = new Error("Zaključka sprejete dostave ni bilo mogoče potrditi.");
+      error.code = "DELIVERY_FINALIZATION_RESPONSE_MISSING";
+      error.retryable = true;
+      throw error;
+    }
+  } catch (error) {
+    logError(
+      "[pos-delivery-finalization-pending]",
+      claimed && claimed.id || "unknown",
+      providerResult && providerResult.providerReference || "",
+      error && error.message || error
+    );
+    return {
+      ok: false,
+      accepted: true,
+      finalizationPending: true,
+      delivery: acceptedPendingDelivery(claimed, providerResult),
+      providerResult,
+      error,
+    };
+  }
+
+  completed = await applyImmediateOpenapiResult(cfg, claimed, completed, providerResult);
+  return { ok: true, delivery: completed, providerResult };
 }
 
-module.exports = { applyImmediateOpenapiResult, finish, processClaimed, rpcRow };
+module.exports = { acceptedPendingDelivery, applyImmediateOpenapiResult, finish, processClaimed, rpcRow };

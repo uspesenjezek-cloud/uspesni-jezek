@@ -2879,10 +2879,10 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 
 /* Referenčna začetna stran Bonitetne preverbe — 2026-08-17. */
 .stran--bonitetna .boniteta-vsebina {
-  width: min(860px, 100%);
-  max-width: 860px;
-  padding-right: 0;
-  padding-left: 0;
+  width: min(var(--sirina-vsebine), 100%);
+  max-width: var(--sirina-vsebine);
+  padding-right: var(--odmik-roba);
+  padding-left: var(--odmik-roba);
 }
 
 .stran--bonitetna .boniteta-obrazec {
@@ -5542,23 +5542,27 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   text-align: center;
   line-height: 1.12;
 }
-.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb::after { content: "›"; position: static; grid-column: 3; display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font: 400 1.7rem/1 -apple-system, sans-serif; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb::after { content: none; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb-puscica { grid-column: 3; display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb-puscica svg { width: 19px; height: 19px; }
+.boniteta-insolvenca-okno__nazaj svg,
+#boniteta-monitoring-primerjava-nazaj svg { display: block; width: 18px; height: 18px; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:disabled { background: #dce6e3; color: #84938f; box-shadow: none; cursor: not-allowed; opacity: 1; }
-.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:disabled::after { background: rgba(255,255,255,.42); }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:disabled .boniteta-potrditev-identitete__gumb-puscica { background: rgba(255,255,255,.42); }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading:disabled {
   background: linear-gradient(135deg,#35aaa5,#0b8587 72%,#08717a);
   color: #fff;
   box-shadow: 0 9px 21px rgba(6,118,124,.19);
   cursor: wait;
 }
-.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading::after {
-  content: "";
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading .boniteta-potrditev-identitete__gumb-puscica {
   box-sizing: border-box;
   border: 2px solid rgba(255,255,255,.42);
   border-top-color: #fff;
   background: rgba(255,255,255,.12);
   animation: boniteta-vrtenje .72s linear infinite;
 }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading .boniteta-potrditev-identitete__gumb-puscica svg { visibility: hidden; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:not(:disabled):active { transform: scale(.992); }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__akcije {
   display: grid;
@@ -7550,6 +7554,46 @@ body.boniteta-monitoring-open .boniteta-center-nav { display: none !important; }
 :is(#bp-profiles, #bp-watched) .bp-monitoring-compare.is-danger:hover { background: linear-gradient(135deg,#cd5752,#aa3c39); }
 :is(#bp-profiles, #bp-watched) .bp-monitoring-compare:focus-visible { outline: 2px solid rgba(13,141,138,.3); outline-offset: 2px; }
 
+/* Vsi pogledi Bonitetnega centra uporabljajo isti dejanski rob kot ostale strani. */
+.stran--bonitetna .boniteta-vsebina,
+.stran--bonitetna .boniteta-center-workspace,
+.stran--bonitetna .boniteta-center-active {
+  width: 100%;
+  max-width: var(--sirina-vsebine);
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: var(--odmik-roba);
+  padding-left: var(--odmik-roba);
+  box-sizing: border-box;
+}
+
+.stran--bonitetna .boniteta-zajem,
+.stran--bonitetna .crif-flow-picker {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-vsebina {
+  width: min(var(--sirina-vsebine), 100%);
+  padding-right: var(--odmik-roba);
+  padding-left: var(--odmik-roba);
+}
+
+.stran--bonitetna.boniteta-register-result #boniteta-hwk-sklop.is-register-card {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.boniteta-center-nav {
+  width: min(var(--sirina-vsebine), calc(100% - (2 * var(--odmik-roba))));
+}
+
+@media (max-width: 760px) {
+  .boniteta-center-nav {
+    width: calc(100% - (2 * var(--odmik-roba)));
+  }
+}
+
 .boniteta-monitoring-primerjava[hidden] { display: none !important; }
 .stran--bonitetna.boniteta-monitoring-primerjava-je-okno #boniteta-rezultat { overflow: visible; border: 0; border-radius: 0; background: #f5f7f6; box-shadow: none; }
 .stran--bonitetna.boniteta-monitoring-primerjava-je-okno #boniteta-rezultat > :not(#boniteta-monitoring-primerjava) { display: none !important; }
@@ -7647,6 +7691,9 @@ body.boniteta-monitoring-open .boniteta-center-nav { display: none !important; }
   #bp-profiles #bp-profiles-grid,
   #bp-watched #bp-watched-grid { grid-template-columns: minmax(0,1fr); }
   #boniteta-center-active .boniteta-watched-panel { height: calc(100dvh - 149px - env(safe-area-inset-top,0px) - var(--boniteta-safe-bottom)); }
+  .stran--bonitetna .boniteta-priporocilo__vnos input,
+  .stran--bonitetna .boniteta-priporocilo__polja select,
+  .boniteta-spremljanje-pogostost select { font-size: 16px; }
 }
 
 @media (max-width:620px) {

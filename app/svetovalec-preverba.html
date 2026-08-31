@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Svetovalec in preverba – Uspešni Ježek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=Inter:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20260831-atena-motion-v2" />
+    <link rel="stylesheet" href="atena-card-templates.css?v=20260830-approved-v2" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#fbfaf7" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js?v=20260822-preview-touch-v16"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
+    <script src="app.js?v=20260829-skupna-storitev-v1" defer></script>
+    <script src="dejavnosti-engine.js?v=20260829-dejavnosti-v1" defer></script>
+    <script src="ponudba-moduli-engine.js?v=20260830-ponudba-nujna-vprasanja-v1" defer></script>
+    <script src="svetovalec-storitve-engine.js?v=20260830-stiri-kategorije-v1" defer></script>
+    <script src="atena-card-templates.js?v=20260830-approved-v2" defer></script>
+    <script src="atena-card-schema.js?v=20260830-atena-card-schema-v4" defer></script>
+    <script src="atena-card-renderer.js?v=20260830-atena-vprasanja-v5" defer></script>
+    <script src="handy-canary-client.js?v=20260829-atena-nemotron-resilient-v9" defer></script>
+    <script src="svetovalec-preverba.js?v=20260831-atena-motion-v1" defer></script>
+  </head>
+  <body class="stran--storitev stran--svetovalec">
+    <main class="storitev-vsebina">
+      <section class="svetovalec-podjetja has-podjetje-izbrano" aria-label="Izbrano podjetje">
+        <div class="svetovalec-podjetja__vsebina">
+          <div class="svetovalec-podjetja__seznam" aria-label="Izbrana podjetja">
+            <div class="svetovalec-podjetja__kartica svetovalec-podjetja__kartica--izbrana" aria-current="true" data-podjetje-aktivno>
+              <button type="button" class="svetovalec-podjetja__aktivno-izberi" aria-label="Izberi podjetje MedienOrbis GmbH" aria-pressed="true" data-podjetje-aktivno-izberi>
+                <span class="svetovalec-podjetja__izbrano-znak" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m6.5 12.5 3.5 3.5 7.5-8" /></svg>
+                </span>
+                <span data-fit-text data-fit-text-min="7" data-podjetje-aktivno-ime>MedienOrbis GmbH</span>
+              </button>
+              <button type="button" class="svetovalec-podjetja__uredi" aria-label="Uredi podjetje MedienOrbis GmbH" data-podjetje-uredi>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.9-10.9a2.2 2.2 0 0 0-3.1-3.1L5.1 15.9 4 20Z" /><path d="m14.8 6.2 3 3" /></svg>
+                <span>Uredi</span>
+              </button>
+              <button type="button" class="svetovalec-podjetja__odstrani" aria-label="Odstrani podjetje MedienOrbis GmbH iz tega okenca" data-podjetje-odstrani>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <button type="button" class="svetovalec-podjetja__kartica" aria-expanded="false" aria-controls="svetovalec-podjetja-izbirnik" data-podjetja-odpri>
+              <span data-fit-text data-fit-text-min="7">Preostala podjetja</span>
+              <svg class="svetovalec-podjetja__chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+          <button type="button" class="svetovalec-podjetja__dodaj" aria-label="Dodaj podjetje" aria-pressed="false" data-podjetje-dodaj>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span>Dodaj podjetje</span>
+          </button>
+        </div>
+        <div class="svetovalec-podjetja__izbirnik" id="svetovalec-podjetja-izbirnik" hidden>
+          <div class="svetovalec-podjetja__izbirnik-glava">
+            <strong>Vsa podjetja</strong>
+            <button type="button" aria-label="Zapri seznam podjetij" data-podjetja-zapri>×</button>
+          </div>
+          <div class="svetovalec-podjetja__moznosti" role="list" aria-label="Podjetja za ta primer" data-podjetja-moznosti></div>
+          <p class="svetovalec-podjetja__stanje" role="status" aria-live="polite" data-podjetja-stanje>Nalagam podjetja …</p>
+        </div>
+      </section>
+
+      <section class="podjetje-obrazec" aria-labelledby="podjetje-obrazec-naslov" data-podjetje-obrazec hidden>
+        <div class="podjetje-obrazec__uvod">
+          <span class="podjetje-obrazec__znak" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" /><path d="M8 7h4M8 11h4M8 15h2M2 21h20M19 9v6M16 12h6" /></svg>
+          </span>
+          <div>
+            <h2 id="podjetje-obrazec-naslov">Podjetje za preverbo</h2>
+            <p>Izberite dejstva, ki pomagajo pri analizi ponudbe.</p>
+          </div>
+          <button type="button" class="podjetje-obrazec__zapri" aria-label="Zapri obrazec podjetja" data-podjetje-obrazec-zapri>×</button>
+        </div>
+
+        <label class="podjetje-obrazec__polje">
+          <span>Ime podjetja</span>
+          <input type="text" autocomplete="organization" maxlength="120" data-podjetje-ime data-fit-input data-fit-input-min="8" />
+        </label>
+
+        <div class="podjetje-obrazec__dejavnost">
+          <label class="podjetje-obrazec__polje">
+            <span>Kaj podjetje ponuja?</span>
+            <span class="podjetje-obrazec__iskanje">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+              <input type="text" placeholder="Opišite po domače, npr. polaga ploščice …" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="podjetje-dejavnost-predlogi" data-dejavnost-vnos data-fit-input data-fit-input-min="8" />
+            </span>
+          </label>
+          <div class="podjetje-obrazec__predlogi" id="podjetje-dejavnost-predlogi" role="listbox" data-dejavnost-predlogi aria-label="Predlogi dejavnosti" hidden></div>
+          <div class="podjetje-obrazec__cipsi" data-dejavnost-cipsi aria-live="polite"></div>
+          <p class="podjetje-obrazec__namig">Iščemo po obsežnem katalogu in pogovornih izrazih. Prva izbira je glavna.</p>
+        </div>
+
+        <div class="podjetje-povzetek" aria-label="Osnovna dejstva o podjetju">
+          <section class="podjetje-harmonika" id="podjetje-dejstva-panel" role="region" aria-labelledby="podjetje-modal-naslov" data-podjetje-modal hidden>
+            <div class="podjetje-modal__glava">
+              <span class="podjetje-modal__ikona" aria-hidden="true" data-modal-ikona></span>
+              <div>
+                <h3 id="podjetje-modal-naslov" data-modal-naslov>Izberite</h3>
+                <p data-modal-pomoc>Izberite možnost, ki najbolje opiše podjetje.</p>
+              </div>
+              <button type="button" class="podjetje-modal__zapri" aria-label="Zapri izbiro" data-podjetje-modal-zapri>×</button>
+            </div>
+            <div class="podjetje-modal__moznosti" role="radiogroup" data-modal-moznosti></div>
+          </section>
+
+          <div class="podjetje-povzetek__mreza">
+            <button type="button" class="podjetje-povzetek__vrstica" aria-expanded="false" aria-controls="podjetje-dejstva-panel" data-izbira-odpri="vloga">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3" /><path d="M5 21v-4a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v4M8 17v4M16 17v4" /></svg>
+              <span><strong>Vloga ponudnika</strong><em data-povzetek="vloga">Izberite</em></span>
+              <b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg></b>
+            </button>
+            <button type="button" class="podjetje-povzetek__vrstica" aria-expanded="false" aria-controls="podjetje-dejstva-panel" data-izbira-odpri="odnos">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.1l2-2A5 5 0 0 0 12 4l-1.1 1.1" /><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" /></svg>
+              <span><strong>Odnos s podjetjem</strong><em data-povzetek="odnos">Izberite</em></span>
+              <b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg></b>
+            </button>
+            <button type="button" class="podjetje-povzetek__vrstica" aria-expanded="false" aria-controls="podjetje-dejstva-panel" data-izbira-odpri="sodelovanje">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 10h18m-12 5 2 2 4-4" /></svg>
+              <span><strong>Vrsta sodelovanja</strong><em data-povzetek="sodelovanje">Izberite</em></span>
+              <b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg></b>
+            </button>
+            <button type="button" class="podjetje-povzetek__vrstica" aria-expanded="false" aria-controls="podjetje-dejstva-panel" data-izbira-odpri="stik">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" /><path d="M8 10h.01M12 10h.01M16 10h.01" /></svg>
+              <span><strong>Način stika</strong><em data-povzetek="stik">Izberite</em></span>
+              <b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg></b>
+            </button>
+          </div>
+        </div>
+
+        <p class="podjetje-obrazec__popolnost" data-podjetje-popolnost>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></svg>
+          <span>Izberite vsa osnovna dejstva.</span>
+        </p>
+        <p class="podjetje-obrazec__opomba">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
+          Podatke ponudbe boste dodali v naslednjem koraku.
+        </p>
+        <p class="podjetje-obrazec__napaka" role="alert" data-podjetje-napaka></p>
+        <button type="button" class="podjetje-obrazec__shrani" data-podjetje-shrani>Dodaj podjetje</button>
+      </section>
+
+      <section class="atena-v6-embed" aria-labelledby="atena-svetovalec-naslov">
+        <h2 id="atena-svetovalec-naslov" class="sr-only" data-atena-naslov>Kaj naj preverimo ali uredimo?</h2>
+        <div class="svetovalec-nacina__izbira" role="tablist" aria-label="Način izbire preverbe">
+          <button type="button" class="is-selected" role="tab" aria-selected="true" aria-controls="svetovalec-atena-opis" data-atena-nacin="opis">
+            <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.9-10.9a2.2 2.2 0 0 0-3.1-3.1L5.1 15.9 4 20Z" /><path d="m14.8 6.2 3 3" /></svg></span>
+            <strong>Povej ali napiši</strong><small>Hitrejši vnos</small>
+          </button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="svetovalec-atena-rocno" tabindex="-1" data-atena-nacin="rocno">
+            <span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" /></svg></span>
+            <strong>Ročno izberi</strong><small>Vrste preverbe</small>
+          </button>
+        </div>
+
+        <div class="svetovalec-atena__panel" id="svetovalec-atena-opis" role="tabpanel" data-atena-opis-panel>
+          <div class="svetovalec-atena__orodja">
+            <p data-atena-podnaslov>Povejte Ateni, kaj naj preveri ali uredi.</p>
+          </div>
+          <div class="atena-v6-embed__opis-polje">
+            <textarea id="svetovalec-opis" rows="4" placeholder="Npr. Želim preveriti ponudbo, pogodbo ali pogoje naročnine …" aria-label="Opišite, kaj naj preverimo ali uredimo"></textarea>
+            <button type="button" class="atena-v6-embed__dodaj" aria-label="Slikaj ponudbo ali priloži dokument" data-dodaj-ponudbo>
+              <svg class="atena-v6-embed__dodaj-oblika" viewBox="0 0 150 48" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M42 .5H138.5Q149.5 .5 149.5 11V37Q149.5 47.5 139 47.5H.5C17.5 47.5 30.5 34 30.5 18C30.5 8 35.5 .5 42 .5Z" />
+              </svg>
+              <svg class="atena-v6-embed__dodaj-ikona" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4 16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-3h5Z" /><circle cx="12" cy="13" r="3" /></svg>
+              <span><strong>Slikaj ponudbo</strong><small>ali priloži</small></span>
+            </button>
+          </div>
+          <div class="atena-v6-embed__akcije" data-atena-akcije>
+            <button type="button" class="atena-v6-embed__sekundarni" data-glas aria-label="Povej na glas" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8" /></svg>
+              <span class="atena-v6-embed__sekundarni-napis" data-atena-glas-besedilo data-fit-text data-fit-text-min="8">Povej na glas</span>
+              <span class="atena-v6-embed__glasnost" data-atena-voice-meter aria-hidden="true" hidden>
+                <i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </button>
+            <button type="button" class="atena-v6-embed__primarni" data-zacni-preverbo>
+              <span class="atena-v6-embed__loader" data-atena-analiza-loader aria-hidden="true" hidden></span>
+              <span data-atena-primarni-besedilo>Začni preverbo</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="svetovalec-atena__panel svetovalec-rocno" id="svetovalec-atena-rocno" role="tabpanel" data-atena-rocno-panel hidden>
+          <p>Izberite vrsto preverbe in ročno dopolnite potrebne podatke.</p>
+          <div class="svetovalec-rocno__mreza">
+            <button type="button" class="svetovalec-rocno__kartica" data-predloga="Preverite to ponudbo ali predračun: ">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5" /><path d="M14 2v6h6v3M8 12h4M8 16h2" /><circle cx="16.5" cy="16.5" r="3.2" /><path d="m18.8 18.8 2.2 2.2M16.5 14.8v3.4" /></svg></span>
+              <strong>Ponudba / predračun</strong>
+            </button>
+            <button type="button" class="svetovalec-rocno__kartica" data-predloga="Preverite to pogodbo: ">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg></span>
+              <strong>Pogodba</strong>
+            </button>
+            <button type="button" class="svetovalec-rocno__kartica" data-predloga="Preverite te splošne pogoje: ">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3" /></svg></span>
+              <strong>Splošni pogoji</strong>
+            </button>
+            <button type="button" class="svetovalec-rocno__kartica" data-predloga="Preverite to naročnino ali vezavo: ">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 2v4M17 2v4M3 9h18M8 14h8" /></svg></span>
+              <strong>Naročnina / vezava</strong>
+            </button>
+            <button type="button" class="svetovalec-rocno__kartica" data-predloga="Preverite cenik, stroške ali način plačila: ">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8l8 8Z" /><path d="M8 8h.01" /></svg></span>
+              <strong>Cena / plačilo</strong>
+            </button>
+            <button type="button" class="svetovalec-rocno__kartica" data-predloga="Preverite naslednji dokument ali dogovor: ">
+              <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M9 14h6M12 11v6" /></svg></span>
+              <strong>Drugi dokument</strong>
+            </button>
+          </div>
+        </div>
+
+        <input id="svetovalec-datoteka" type="file" accept="image/*,.pdf" hidden />
+        <p class="atena-v6-embed__status" data-atena-status role="status" aria-live="polite"></p>
+        <section class="atena-predlogi" aria-label="Atenini predlogi področij" data-atena-predlogi hidden></section>
+      </section>
+
+      <section class="ponudba-moduli" aria-labelledby="ponudba-moduli-naslov" data-ponudba-moduli hidden>
+        <div class="ponudba-moduli__glava">
+          <h2 id="ponudba-moduli-naslov" data-storitev-podrocja-naslov>Kaj lahko preverimo?</h2>
+          <div class="ponudba-moduli__glava-dejanja">
+            <button type="button" class="ponudba-moduli__kartice" aria-expanded="false" aria-controls="ponudba-kartice-vpogled" data-ponudba-kartice>Kartice</button>
+            <span class="ponudba-moduli__shranjeno" data-ponudba-shranjeno hidden>1 zahtevek shranjen</span>
+          </div>
+        </div>
+        <div class="ponudba-moduli__mreza" data-ponudba-podrocja>
+          <button type="button" class="ponudba-modul ponudba-modul--cena" aria-pressed="false" aria-haspopup="dialog" data-ponudba-podrocje="cena">
+            <span class="ponudba-modul__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12V4h8l8 8Z" /><path d="M8 8h.01" /></svg></span>
+            <span><strong>Cena in stroški</strong><small>DDV in dodatki</small></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg></i>
+            <span class="ponudba-modul__status" data-ponudba-modul-status>4 predlogi</span>
+          </button>
+          <button type="button" class="ponudba-modul ponudba-modul--obseg" aria-pressed="false" aria-haspopup="dialog" data-ponudba-podrocje="obseg">
+            <span class="ponudba-modul__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></svg></span>
+            <span><strong>Obseg ponudbe</strong><small>Kaj je vključeno</small></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg></i>
+            <span class="ponudba-modul__status" data-ponudba-modul-status>6 predlogov</span>
+          </button>
+          <button type="button" class="ponudba-modul ponudba-modul--placilo" aria-pressed="false" aria-haspopup="dialog" data-ponudba-podrocje="placilo">
+            <span class="ponudba-modul__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 10h18" /></svg></span>
+            <span><strong>Plačilo in roki</strong><small>Obroki in izvedba</small></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg></i>
+            <span class="ponudba-modul__status" data-ponudba-modul-status>3 predlogi</span>
+          </button>
+          <button type="button" class="ponudba-modul ponudba-modul--pogodba" aria-pressed="false" aria-haspopup="dialog" data-ponudba-podrocje="pogodba">
+            <span class="ponudba-modul__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg></span>
+            <span><strong>Pogodbeni pogoji</strong><small>Trajanje in odpoved</small></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg></i>
+            <span class="ponudba-modul__status" data-ponudba-modul-status>4 predlogi</span>
+          </button>
+          <button type="button" class="ponudba-modul ponudba-modul--garancija" aria-pressed="false" aria-haspopup="dialog" data-ponudba-podrocje="garancija">
+            <span class="ponudba-modul__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14 5l3-.2.8 2.9L20 10l-2.2 2.3.2 3-3 .7-2 2.2-2-2.2-3-.7.2-3L6 10l2.2-2.3.8-2.9 3 .2 2-2Z" /><path d="m9 10 2 2 4-4" /></svg></span>
+            <span><strong>Garancija</strong><small>Jamstva in reklamacije</small></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg></i>
+            <span class="ponudba-modul__status" data-ponudba-modul-status>2 predloga</span>
+          </button>
+          <button type="button" class="ponudba-modul ponudba-modul--tveganja" aria-pressed="false" aria-haspopup="dialog" data-ponudba-podrocje="tveganja">
+            <span class="ponudba-modul__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.3 3.8 2.5 17.3A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.7L13.7 3.8a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></svg></span>
+            <span><strong>Tveganja</strong><small>Skrite obveznosti</small></span>
+            <i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg></i>
+            <span class="ponudba-modul__status" data-ponudba-modul-status>6 predlogov</span>
+          </button>
+          <button type="button" class="ponudba-modul ponudba-modul--vse" aria-pressed="false" data-ponudba-vse>
+            <span><strong>Potrdi izbrane</strong></span>
+          </button>
+        </div>
+        <div class="ponudba-kartice-vpogled" id="ponudba-kartice-vpogled" data-ponudba-kartice-vpogled hidden></div>
+        <p class="ponudba-moduli__status" role="status" aria-live="polite" data-ponudba-moduli-status>Izberite področja ali Ateni opišite, kaj vas skrbi.</p>
+      </section>
+
+      <div class="ponudba-obrazec" data-ponudba-obrazec hidden>
+        <section class="ponudba-obrazec__panel" role="dialog" aria-modal="true" aria-labelledby="ponudba-obrazec-naslov">
+          <div class="ponudba-obrazec__okvir">
+            <strong class="ponudba-obrazec__okvir-naslov">Vprašanja kategorije</strong>
+            <h2 class="ponudba-obrazec__okvir-podrocje" data-ponudba-obrazec-podrocje-naslov>Podatki ponudbe</h2>
+            <p class="ponudba-obrazec__okvir-opis" data-ponudba-obrazec-podrocje-opis>Uredite podatke po korakih.</p>
+            <nav class="ponudba-obrazec__koraki" aria-label="Napredek področja" data-ponudba-koraki hidden></nav>
+            <div data-ponudba-atena-povzetek></div>
+            <nav class="ponudba-obrazec__podrocja" aria-label="Vprašanja izbrane kategorije" data-ponudba-obrazec-podrocja></nav>
+          </div>
+          <header class="ponudba-obrazec__glava">
+            <span class="ponudba-obrazec__glava-ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 2v4M16 2v4M7 11h10M7 15h6" /></svg></span>
+            <div class="ponudba-obrazec__glava-besedilo">
+              <h2 id="ponudba-obrazec-naslov" data-ponudba-obrazec-naslov>Podatki ponudbe</h2>
+              <small data-ponudba-obrazec-opis>Dopolnite manjkajoče podatke.</small>
+            </div>
+            <button type="button" class="ponudba-obrazec__spremeni" aria-expanded="false" data-ponudba-kontekst-preklop>Spremeni</button>
+            <button type="button" class="ponudba-obrazec__zapri" aria-label="Zapri obrazec ponudbe" data-ponudba-obrazec-zapri>×</button>
+          </header>
+          <div class="ponudba-obrazec__kontekst" data-ponudba-kontekst hidden>
+            <label><span>Vrsta ponudnika</span><select data-ponudba-profil><option value="">Izberite panogo ponudnika</option></select></label>
+            <label><span>Oblika ponudbe</span><select data-ponudba-model><option value="">Izberite obliko ponudbe</option></select></label>
+            <label><span>Kako je ponudba prišla do vas</span><select data-ponudba-kanal><option value="">Izberite način stika</option></select></label>
+          </div>
+          <form class="ponudba-obrazec__polja" data-ponudba-obrazec-polja></form>
+          <footer class="ponudba-obrazec__noga">
+            <button type="button" class="ponudba-obrazec__preklici" data-ponudba-obrazec-preklici>Nazaj</button>
+            <button type="button" class="ponudba-obrazec__shrani" data-ponudba-obrazec-shrani>Naprej</button>
+          </footer>
+        </section>
+      </div>
+
+      <section class="storitev-izbira" aria-labelledby="svetovalec-storitve-naslov">
+        <h2 id="svetovalec-storitve-naslov">Kaj potrebujete?</h2>
+        <div class="storitev-izbira__mreza">
+          <button type="button" class="storitev-kartica storitev-kartica--opisna" data-predloga="Preverite ponudbo pred podpisom: " data-ponudba-vstop data-storitev="ponudba">
+            <span class="storitev-kartica__ikona" data-ikona="ponudba" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5" /><path d="M14 2v6h6v3M8 12h4M8 16h2" /><circle cx="16.5" cy="16.5" r="3.2" /><path d="m18.8 18.8 2.2 2.2M16.5 14.8v3.4" /></svg>
+            </span>
+            <span class="storitev-kartica__predlogi">2 predloga</span>
+            <span class="storitev-kartica__naslov" data-fit-text data-fit-text-lines="2" data-fit-text-min="8">Preverite ponudbo</span>
+            <span class="storitev-kartica__opis">Pred podpisom preverimo ceno, pogoje in skrite stroške.</span>
+            <span class="storitev-kartica__akcija"><span>Preglej predloge</span><b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></b></span>
+          </button>
+          <button type="button" class="storitev-kartica storitev-kartica--opisna" data-predloga="Preverite mojo obstoječo naročnino: " data-storitev="narocnina">
+            <span class="storitev-kartica__ikona" data-ikona="narocnina" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="16" rx="2" /><path d="M7 2v4M13 2v4M3 9h14M19 11v3h-3" /><path d="M16 18a4 4 0 0 0 3-6.6M15 21v-3h3" /></svg>
+            </span>
+            <span class="storitev-kartica__predlogi">1 predlog</span>
+            <span class="storitev-kartica__naslov" data-fit-text data-fit-text-lines="2" data-fit-text-min="8">Preverite naročnino</span>
+            <span class="storitev-kartica__opis">Preverimo stroške in ali izvedba ustreza obljubam.</span>
+            <span class="storitev-kartica__akcija"><span>Preglej predlog</span><b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></b></span>
+          </button>
+          <button type="button" class="storitev-kartica storitev-kartica--opisna" data-predloga="Pogajajte se v mojem imenu ali uredite odpoved: " data-storitev="pogajanje">
+            <span class="storitev-kartica__ikona" data-ikona="pogajanje" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 4h9a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3H9l-4 3v-3H4a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" /><path d="M10 13v1a3 3 0 0 0 3 3h2l3 3v-3a3 3 0 0 0 3-3v-2a3 3 0 0 0-3-3h-2M6 8h5M15 12l3 3M18 12l-3 3" /></svg>
+            </span>
+            <span class="storitev-kartica__naslov" data-fit-text data-fit-text-lines="2" data-fit-text-min="8">Pogajajte se ali odpovejte</span>
+            <span class="storitev-kartica__opis">Uredimo boljšo ceno, pogoje ali varno odpoved.</span>
+            <span class="storitev-kartica__akcija"><span>Odpri</span><b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></b></span>
+          </button>
+          <button type="button" class="storitev-kartica storitev-kartica--opisna" data-predloga="Uredite mi ponudbe za naslednjo storitev ali izdelek: " data-storitev="ponudbe">
+            <span class="storitev-kartica__ikona" data-ikona="primerjava" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h3M16 6h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3" /><rect x="8" y="2" width="8" height="18" rx="2" /><path d="M11 7h2M11 11h3M11 15h2" /></svg>
+            </span>
+            <span class="storitev-kartica__predlogi">3 predlogi</span>
+            <span class="storitev-kartica__naslov" data-fit-text data-fit-text-lines="2" data-fit-text-min="8">Uredite mi ponudbe</span>
+            <span class="storitev-kartica__opis">Poiščemo izvajalce ter primerjamo njihove ponudbe.</span>
+            <span class="storitev-kartica__akcija"><span>Preglej predloge</span><b aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg></b></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="storitev-klic" aria-labelledby="svetovalec-klic-naslov">
+        <span class="storitev-klic__ikona" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" /></svg>
+        </span>
+        <div class="storitev-klic__besedilo">
+          <h2 id="svetovalec-klic-naslov">Vas kliče prodajalec?</h2>
+          <p>Preusmerite klic na nas.</p>
+        </div>
+        <span class="storitev-klic__predlogi">1 predlog</span>
+        <button type="button" class="storitev-klic__gumb" data-hiter-klic data-storitev="klic"><span>Preglej predlog</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></button>
+      </section>
+    </main>
+
+  </body>
+</html>

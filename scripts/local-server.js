@@ -14,6 +14,7 @@ const crypto = require("node:crypto");
 const childProcess = require("node:child_process");
 const citajRacunModul = require.resolve("../api/citaj-racun");
 const mehkaBonitetaModul = require.resolve("../api/mehka-boniteta");
+const mehkaBonitetaPodrobnostiModul = require.resolve("../api/mehka-boniteta-podrobnosti");
 const mehkaBonitetaOpraviloModul = require.resolve("../api/mehka-boniteta-opravilo");
 const mehkaBonitetaDelavecModul = require.resolve("../api/mehka-boniteta-delavec");
 const bonitetaProModul = require.resolve("../api/boniteta-pro");
@@ -34,13 +35,16 @@ const posVerfahrensdokumentationModul = require.resolve("../api/_handlers/pos-ve
 const posDatevModul = require.resolve("../api/_handlers/pos-datev");
 const pridobiIzvedboModul = require.resolve("../api/pridobi-izvedbo");
 const izvediOpominUkrepModul = require.resolve("../api/izvedi-opomin-ukrep");
-  const razcleniZgodovinoModul = require.resolve("../api/_handlers/razcleni-zgodovino");
+const razcleniZgodovinoModul = require.resolve("../api/_handlers/razcleni-zgodovino");
+const razcleniDogovorModul = require.resolve("../api/_handlers/razcleni-dogovor");
+const razcleniCiljModul = require.resolve("../api/_handlers/razcleni-cilj");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
 // hranimo v pomnilniku procesa, zato razvoj ne zahteva že izvedene migracije.
 process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE = "true";
 process.env.POS_LOCAL_MOCKS_ENABLED = "true";
+process.env.UJ_LOCAL_PREVIEW_SERVER = "true";
 
 const root = path.resolve(__dirname, "..");
 const apiRoot = path.join(root, "api") + path.sep;
@@ -64,6 +68,8 @@ const izvedbaApiPoti = new Set([
   "/api/poslji-opomin-zdaj",
 ]);
 const maxRequestBytes = 8 * 1024 * 1024;
+const authHealthTimeoutMs = 5000;
+const authHealthMaxBytes = 64 * 1024;
 const versionSyncOznaka = '<script src="/app/version-sync.js?v=20260825-localhost-live-v4"></script>';
 const serverStartedAt = new Date().toISOString();
 
@@ -218,6 +224,129 @@ function naloziLokalnoSupabaseKonfiguracijo() {
     }
   } catch (_) {
     // API bo vrnil jasno konfiguracijsko napako.
+  }
+}
+
+function supabaseAuthJwksUrl() {
+  naloziLokalnoSupabaseKonfiguracijo();
+  const nastavljenUrl = String(process.env.SUPABASE_URL || "").trim();
+  if (!nastavljenUrl) return null;
+
+  try {
+    const osnovniUrl = new URL(nastavljenUrl);
+    if (osnovniUrl.protocol !== "https:" || osnovniUrl.username || osnovniUrl.password) return null;
+    return new URL("/auth/v1/.well-known/jwks.json", osnovniUrl);
+  } catch (_) {
+    return null;
+  }
+}
+
+function jeVeljavenSupabaseJwks(jwks) {
+  return Boolean(jwks && Array.isArray(jwks.keys) && jwks.keys.length > 0 && jwks.keys.every((kljuc) =>
+    kljuc
+    && typeof kljuc.kid === "string"
+    && kljuc.kid.length > 0
+    && !Object.prototype.hasOwnProperty.call(kljuc, "d")
+    && (!kljuc.use || kljuc.use === "sig")
+    && (!kljuc.key_ops || (Array.isArray(kljuc.key_ops) && kljuc.key_ops.includes("verify")))
+    && (
+      (kljuc.alg === "ES256" && kljuc.kty === "EC" && kljuc.crv === "P-256"
+        && typeof kljuc.x === "string" && kljuc.x.length > 0
+        && typeof kljuc.y === "string" && kljuc.y.length > 0)
+      || (kljuc.alg === "RS256" && kljuc.kty === "RSA"
+        && typeof kljuc.n === "string" && kljuc.n.length > 0
+        && typeof kljuc.e === "string" && kljuc.e.length > 0)
+      || (kljuc.alg === "EdDSA" && kljuc.kty === "OKP" && kljuc.crv === "Ed25519"
+        && typeof kljuc.x === "string" && kljuc.x.length > 0)
+    )
+  ));
+}
+
+function jeLokalnaHealthZahteva(req) {
+  const naslov = req.socket && req.socket.remoteAddress;
+  return naslov === "127.0.0.1" || naslov === "::1" || naslov === "::ffff:127.0.0.1";
+}
+
+async function preberiOmejenJwks(odgovor) {
+  if (!odgovor.body || typeof odgovor.body.getReader !== "function") return null;
+  const bralnik = odgovor.body.getReader();
+  const deli = [];
+  let skupnaDolzina = 0;
+  try {
+    while (true) {
+      const del = await bralnik.read();
+      if (del.done) break;
+      skupnaDolzina += del.value.byteLength;
+      if (skupnaDolzina > authHealthMaxBytes) {
+        await bralnik.cancel();
+        return null;
+      }
+      deli.push(Buffer.from(del.value));
+    }
+  } finally {
+    bralnik.releaseLock();
+  }
+  return Buffer.concat(deli, skupnaDolzina).toString("utf8");
+}
+
+function posljiSupabaseAuthHealthRezultat(res, status, code) {
+  posljiJson(res, status, { ok: code === "SUPABASE_AUTH_OK", code });
+}
+
+async function posljiSupabaseAuthHealth(req, res) {
+  if (req.method !== "GET") {
+    posljiJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return;
+  }
+  if (!jeLokalnaHealthZahteva(req)) {
+    posljiJson(res, 403, { ok: false, code: "LOCAL_ONLY" });
+    return;
+  }
+
+  const jwksUrl = supabaseAuthJwksUrl();
+  if (!jwksUrl) {
+    posljiSupabaseAuthHealthRezultat(res, 503, "NOT_CONFIGURED");
+    return;
+  }
+
+  try {
+    const odgovor = await fetch(jwksUrl, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(authHealthTimeoutMs),
+    });
+    if (!odgovor.ok) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "EGRESS_UNAVAILABLE");
+      return;
+    }
+
+    const napovedanaDolzina = Number(odgovor.headers.get("content-length") || 0);
+    if (napovedanaDolzina > authHealthMaxBytes) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "JWKS_INVALID");
+      return;
+    }
+    const suroviJwks = await preberiOmejenJwks(odgovor);
+    if (!suroviJwks) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "JWKS_INVALID");
+      return;
+    }
+
+    let jwks;
+    try {
+      jwks = JSON.parse(suroviJwks);
+    } catch (_) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "JWKS_INVALID");
+      return;
+    }
+    const jeVeljaven = jeVeljavenSupabaseJwks(jwks);
+    posljiSupabaseAuthHealthRezultat(res, jeVeljaven ? 200 : 502,
+      jeVeljaven ? "SUPABASE_AUTH_OK" : "JWKS_INVALID");
+  } catch (napaka) {
+    const jeTimeout = napaka && (napaka.name === "TimeoutError" || napaka.name === "AbortError");
+    posljiSupabaseAuthHealthRezultat(res, jeTimeout ? 504 : 502,
+      jeTimeout ? "TIMEOUT" : "EGRESS_UNAVAILABLE");
   }
 }
 
@@ -715,6 +844,16 @@ const server = http.createServer((req, res) => {
     void izvediLokalniApi(req, res, razcleniZgodovinoModul);
     return;
   }
+  if (pathname === "/api/razcleni-dogovor") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    void izvediLokalniApi(req, res, razcleniDogovorModul);
+    return;
+  }
+  if (pathname === "/api/razcleni-cilj") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    void izvediLokalniApi(req, res, razcleniCiljModul);
+    return;
+  }
   if (pathname === "/api/citaj-racun") {
     naloziLokalnoSupabaseKonfiguracijo();
     if (process.env.ANTHROPIC_API_KEY) void izvediLokalniApi(req, res, citajRacunModul);
@@ -727,6 +866,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/mehka-boniteta") {
     void izvediLokalniApi(req, res, mehkaBonitetaModul);
+    return;
+  }
+  if (pathname === "/api/mehka-boniteta-podrobnosti") {
+    void izvediLokalniApi(req, res, mehkaBonitetaPodrobnostiModul);
     return;
   }
   if (pathname === "/api/mehka-boniteta-opravilo") {
@@ -823,10 +966,14 @@ const server = http.createServer((req, res) => {
     posljiIdentitetoLokalnegaVira(req, res);
     return;
   }
+  if (pathname === "/__dev-auth-health") {
+    void posljiSupabaseAuthHealth(req, res);
+    return;
+  }
   postreziDatoteko(req, res);
 });
 
-server.listen(port, "0.0.0.0", () => {
+server.listen(port, "::", () => {
   console.log(`Lokalna aplikacija: http://localhost:${port}`);
   const lokalniVir = identitetaLokalnegaVira();
   console.log(`Vir: ${lokalniVir.workspaceName} · ${lokalniVir.branch} · ${lokalniVir.commit} · ${lokalniVir.workspaceHash}`);

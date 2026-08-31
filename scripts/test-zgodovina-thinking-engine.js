@@ -211,6 +211,29 @@ cadenceMonthEnd[1].occurredDate = "2026-04-30";
 relativeDates.razresiDatume(cadenceMonthEnd);
 deepEqual(cadenceMonthEnd.map(function (candidate) { return candidate.occurredDate; }), ["2026-02-28", "2026-04-30", "2026-05-30"], "ročni drugi obrok mora ostati in postati sidro tretjega");
 
+var weeklyInstallmentsAfterManualAnchor = Array.from({ length: 8 }, function (_item, index) {
+  return index === 0
+    ? { candidateId: "weekly-installment-1", occurredDate: null }
+    : {
+      candidateId: "weekly-installment-" + (index + 1),
+      occurredDate: null,
+      dateRelation: {
+        anchor: "previous_event",
+        anchorCandidateId: "weekly-installment-" + index,
+        field: "occurredDate",
+        direction: 1,
+        amount: 1,
+        unit: "week",
+      },
+    };
+});
+weeklyInstallmentsAfterManualAnchor[0].occurredDate = "2026-07-05";
+relativeDates.razresiDatume(weeklyInstallmentsAfterManualAnchor);
+deepEqual(weeklyInstallmentsAfterManualAnchor.map(function (candidate) { return candidate.occurredDate; }), [
+  "2026-07-05", "2026-07-12", "2026-07-19", "2026-07-26",
+  "2026-08-02", "2026-08-09", "2026-08-16", "2026-08-23",
+], "ročni datum prvega od osmih obrokov mora izpolniti vso tedensko verigo");
+
 var cadenceAutoClear = [
   { candidateId: "installment-anchor", occurredDate: "2026-01-31" },
   { candidateId: "installment-derived-2", occurredDate: null, dateRelation: { anchor: "previous_event", anchorCandidateId: "installment-anchor", field: "occurredDate", direction: 1, amount: 1, unit: "month" } },

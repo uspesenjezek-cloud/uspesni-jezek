@@ -2,6 +2,7 @@
   --koncani-teal: #078da4;
   --koncani-ink: #131716;
   --koncani-muted: #63747f;
+  --koncani-contrast: #2d6262;
 }
 
 html,
@@ -19,7 +20,7 @@ body.stran--koncani-primeri {
 }
 
 .koncani-primeri-shell {
-  width: min(100%, 430px);
+  width: min(100%, var(--sirina-vsebine));
   min-height: 100vh;
   margin: 0 auto;
   background:
@@ -28,18 +29,18 @@ body.stran--koncani-primeri {
 }
 
 .koncani-primeri-stran {
-  padding: max(28px, env(safe-area-inset-top)) 20px 28px;
+  padding: 23px var(--odmik-roba) 28px;
 }
 
 .koncani-primeri-uvod {
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 }
 
 .koncani-primeri-uvod__eyebrow {
-  margin: 0 0 8px;
-  color: #26828c;
-  font-size: 10px;
-  font-weight: 750;
+  margin: 0 0 7px;
+  color: #51999a;
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: 0.105em;
 }
 
@@ -47,34 +48,34 @@ body.stran--koncani-primeri {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .koncani-primeri-uvod h1 {
   min-width: 0;
   margin: 0;
-  color: #111514;
+  color: #172927;
   font-family: "Bricolage Grotesque", "Inter", sans-serif;
-  font-size: clamp(31px, 9.6vw, 42px);
+  font-size: 27px;
   font-weight: 700;
-  line-height: 1.04;
-  letter-spacing: -0.035em;
+  line-height: 1.08;
+  letter-spacing: normal;
 }
 
 .koncani-primeri-uvod__stevec {
   display: grid;
-  min-width: 43px;
-  height: 43px;
+  min-width: 24px;
+  height: 24px;
   flex: 0 0 auto;
-  padding: 0 10px;
+  padding: 0 7px;
   place-items: center;
-  border: 1px solid rgba(38, 130, 140, 0.17);
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.84);
-  color: #26828c;
-  box-shadow: 0 6px 18px rgba(30, 76, 81, 0.045);
-  font-size: 23px;
-  font-weight: 650;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(81, 153, 154, 0.12);
+  color: #3d7676;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
@@ -83,33 +84,35 @@ body.stran--koncani-primeri {
 }
 
 .koncani-primeri-uvod > p:last-child {
-  margin: 10px 0 0;
-  color: #63718b;
-  font-size: 14px;
-  line-height: 1.45;
+  margin: 8px 0 0;
+  color: #687a78;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .koncani-primeri-filtri {
   display: grid;
   grid-template-columns: 1fr 1fr 1.45fr;
-  min-height: 51px;
-  margin: 0 0 18px;
+  min-height: 47px;
+  margin: 0 0 16px;
   padding: 2px;
-  border: 1px solid rgba(34, 67, 73, 0.08);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 7px 18px rgba(31, 54, 58, 0.08);
+  overflow: hidden;
+  border: 1.5px solid #cfd9d7;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: none;
 }
 
 .koncani-primeri-filter {
   position: relative;
   min-width: 0;
-  padding: 8px 7px;
+  min-height: 44px;
+  padding: 7px 6px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 999px;
   background: transparent;
   color: #242826;
-  font: 500 12px/1.15 "Inter", sans-serif;
+  font: 500 11.5px/1.15 "Inter", sans-serif;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -117,17 +120,17 @@ body.stran--koncani-primeri {
 .koncani-primeri-filter + .koncani-primeri-filter::before {
   content: "";
   position: absolute;
-  top: 14px;
-  bottom: 14px;
+  top: 12px;
+  bottom: 12px;
   left: 0;
   width: 1px;
-  background: rgba(24, 51, 54, 0.08);
+  background: #e2ecea;
 }
 
 .koncani-primeri-filter.is-active {
-  background: linear-gradient(135deg, #0ba2b6, #078ba3);
+  background: #3d7676;
   color: #fff;
-  box-shadow: 0 7px 15px rgba(5, 129, 151, 0.2);
+  box-shadow: none;
   font-weight: 700;
 }
 
@@ -137,8 +140,12 @@ body.stran--koncani-primeri {
 }
 
 .koncani-primeri-filter:focus-visible {
-  outline: 1.5px solid var(--koncani-teal);
-  outline-offset: 2px;
+  outline: 0;
+  box-shadow: inset 0 0 0 2px #214f4f;
+}
+
+.koncani-primeri-filter.is-active:focus-visible {
+  box-shadow: inset 0 0 0 2px #fff;
 }
 
 .koncani-primeri-vsebina {
@@ -183,6 +190,7 @@ body.stran--koncani-primeri {
 
 .koncani-kartica {
   --koncani-accent: #299b63;
+  --koncani-contrast: #217a4d;
   --koncani-rgb: 41, 155, 99;
   position: relative;
   display: grid;
@@ -263,7 +271,7 @@ body.stran--koncani-primeri {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.2;
@@ -307,7 +315,6 @@ body.stran--koncani-primeri {
 }
 
 .koncani-kartica__ikona svg,
-.koncani-kartica__rezultat-ikona svg,
 .koncani-kartica__puscica svg {
   display: block;
   width: 23px;
@@ -328,6 +335,15 @@ body.stran--koncani-primeri {
   margin: 0;
   overflow: hidden;
   white-space: nowrap;
+}
+
+[data-koncani-fit].is-preveliko {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 
 .koncani-kartica__naslov {
@@ -382,32 +398,16 @@ body.stran--koncani-primeri {
 }
 
 .koncani-kartica__rezultat {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   background: linear-gradient(100deg, rgba(var(--koncani-rgb), 0.075), rgba(var(--koncani-rgb), 0.022));
   color: #5c687a;
 }
 
-.koncani-kartica__rezultat-ikona {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1.4px solid var(--koncani-accent);
-  border-radius: 50%;
-  color: var(--koncani-accent);
-}
-
-.koncani-kartica__rezultat-ikona svg {
-  width: 16px;
-  height: 16px;
-}
-
 .koncani-kartica__rezultat p {
   display: -webkit-box;
+  width: 100%;
   max-height: 36px;
   margin: 0;
   overflow: hidden;
@@ -437,7 +437,7 @@ body.stran--koncani-primeri {
 .koncani-kartica__podrobnosti:hover,
 .koncani-kartica__podrobnosti:active {
   border-color: rgba(var(--koncani-rgb), 0.25);
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
 }
 
 .koncani-kartica__podrobnosti:focus-visible {
@@ -452,7 +452,7 @@ body.stran--koncani-primeri {
   place-items: center;
   border-radius: 50%;
   background: rgba(var(--koncani-rgb), 0.055);
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   box-shadow: 0 4px 10px rgba(var(--koncani-rgb), 0.06);
 }
 
@@ -501,6 +501,8 @@ body.stran--koncani-primeri {
 }
 
 .koncani-primeri-napaka {
+  display: grid;
+  gap: 12px;
   margin: 0;
   padding: 15px;
   border: 1px solid rgba(207, 76, 76, 0.22);
@@ -511,8 +513,24 @@ body.stran--koncani-primeri {
   line-height: 1.45;
 }
 
+.koncani-primeri-napaka > span {
+  overflow-wrap: anywhere;
+}
+
+.koncani-primeri-napaka [data-koncani-ponovi] {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #a53333;
+  border-radius: 12px;
+  background: #fff;
+  color: #8d2929;
+  font: 700 12px/1.2 "Inter", sans-serif;
+  cursor: pointer;
+}
+
 .koncani-podrobnosti {
   --koncani-accent: #3d7676;
+  --koncani-contrast: #2d6262;
   --koncani-rgb: 61, 118, 118;
   position: fixed;
   inset: auto 0 0;
@@ -562,7 +580,7 @@ body.stran--koncani-primeri {
 
 .koncani-podrobnosti__glava p {
   margin: 0 0 10px;
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.13em;
@@ -656,7 +674,7 @@ body.stran--koncani-primeri {
   border: 0;
   border-radius: 50%;
   color: #fff;
-  background: var(--koncani-accent);
+  background: var(--koncani-contrast);
   box-shadow: 0 4px 10px rgba(var(--koncani-rgb), 0.28);
 }
 
@@ -691,7 +709,7 @@ body.stran--koncani-primeri {
 }
 
 .koncani-izid__oznaka-datum {
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -700,7 +718,7 @@ body.stran--koncani-primeri {
 }
 
 .koncani-izid__datum {
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   font-family: "Bricolage Grotesque", "Inter", sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -750,7 +768,7 @@ body.stran--koncani-primeri {
 
 .koncani-potek__glava > span {
   flex: 0 0 auto;
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   font-size: 11px;
   font-weight: 800;
 }
@@ -763,6 +781,7 @@ body.stran--koncani-primeri {
 
 .koncani-potek__korak {
   --potek-accent: var(--koncani-accent);
+  --potek-contrast: var(--koncani-contrast);
   --potek-rgb: var(--koncani-rgb);
   display: grid;
   grid-template-columns: 24px 34px minmax(0, 1fr) minmax(58px, auto);
@@ -785,7 +804,7 @@ body.stran--koncani-primeri {
   height: 22px;
   border-radius: 999px;
   background: rgba(var(--potek-rgb), 0.11);
-  color: var(--potek-accent);
+  color: var(--potek-contrast);
   font-size: 11px;
   font-weight: 800;
 }
@@ -796,7 +815,7 @@ body.stran--koncani-primeri {
   width: 31px;
   height: 31px;
   border-radius: 999px;
-  background: var(--potek-accent);
+  background: var(--potek-contrast);
   color: #fff;
   box-shadow: 0 4px 10px rgba(var(--potek-rgb), 0.22);
 }
@@ -835,13 +854,13 @@ body.stran--koncani-primeri {
   line-height: 13px;
 }
 
-.koncani-potek__besedilo > small.koncani-potek__opis { color: var(--potek-accent); }
+.koncani-potek__besedilo > small.koncani-potek__opis { color: var(--potek-contrast); }
 
 .koncani-potek__znesek {
   width: 100%;
   max-width: 98px;
   height: 20px;
-  color: var(--potek-accent);
+  color: var(--potek-contrast);
   font-size: 13px;
   font-weight: 800;
   line-height: 20px;
@@ -856,7 +875,7 @@ body.stran--koncani-primeri {
   height: 25px;
   border-radius: 999px;
   background: rgba(var(--potek-rgb), 0.11);
-  color: var(--potek-accent);
+  color: var(--potek-contrast);
 }
 
 .koncani-potek__stanje svg { width: 16px; height: 16px; }
@@ -931,7 +950,7 @@ body.stran--koncani-primeri {
 .koncani-dokumenti__zavihek {
   width: calc(66.6667% - 5px);
   min-width: calc(66.6667% - 5px);
-  height: 31px;
+  height: 44px;
   flex: 0 0 calc(66.6667% - 5px);
   padding: 0 7px;
   overflow: hidden;
@@ -948,9 +967,9 @@ body.stran--koncani-primeri {
 }
 
 .koncani-dokumenti__zavihek.is-selected {
-  border-color: #71b4b3;
+  border-color: #0d6669;
   background: #dff3f1;
-  color: #159393;
+  color: #0d6669;
 }
 
 .koncani-dokumenti__pikice {
@@ -963,9 +982,9 @@ body.stran--koncani-primeri {
 
 .koncani-dokumenti__pikica {
   display: grid;
-  width: 22px;
-  height: 20px;
-  flex: 0 0 22px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -983,7 +1002,28 @@ body.stran--koncani-primeri {
 
 .koncani-dokumenti__pikica.is-selected > span {
   width: 13px;
-  background: #159393;
+  background: #0d6669;
+}
+
+.koncani-dokumenti--prazno > p {
+  margin: 0;
+  padding: 17px;
+  color: #657775;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.koncani-dokument__napaka {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(165, 51, 51, 0.28);
+  border-radius: 10px;
+  background: rgba(165, 51, 51, 0.07);
+  color: #8d2929;
+  font-size: 11.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .koncani-dokument { display: flex; min-width: 0; flex-direction: column; gap: 11px; }
@@ -1034,7 +1074,7 @@ body.stran--koncani-primeri {
 .koncani-dokument__skupaj span:last-child { color: #10797d; font-variant-numeric: tabular-nums; }
 
 .koncani-dokument__odpri {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid #9ecbca;
   border-radius: 12px;
@@ -1050,7 +1090,7 @@ body.stran--koncani-primeri {
   display: inline-flex;
   width: max-content;
   max-width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   gap: 7px;
   padding: 0 12px 0 9px;
@@ -1307,15 +1347,15 @@ body.stran--koncani-primeri {
 .koncani-vec-info__gumb {
   display: flex;
   width: 100%;
-  min-height: 40px;
+  min-height: 44px;
   align-items: center;
   justify-content: space-between;
   margin-top: 6px;
   padding: 0 14px;
-  border: 1.5px solid var(--koncani-accent);
+  border: 1.5px solid var(--koncani-contrast);
   border-radius: 14px;
   background: #fff;
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   font: 700 14.5px/1 "Inter", sans-serif;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -1326,7 +1366,7 @@ body.stran--koncani-primeri {
   width: 24px;
   height: 24px;
   place-items: center;
-  color: var(--koncani-accent);
+  color: var(--koncani-contrast);
   transform: rotate(90deg);
   transition: transform 0.2s ease;
 }
@@ -1408,11 +1448,23 @@ body.stran--koncani-primeri {
   padding: 0 18px;
   border: 0;
   border-radius: 17px;
-  background: linear-gradient(105deg, var(--koncani-accent), rgba(var(--koncani-rgb), 0.88));
+  background: var(--koncani-contrast);
   color: #fff;
   box-shadow: 0 12px 26px rgba(var(--koncani-rgb), 0.22);
   font: 700 19px/1 "Inter", sans-serif;
   text-decoration: none;
+}
+
+.koncani-primeri-napaka [data-koncani-ponovi]:focus-visible,
+.koncani-dokumenti__zavihek:focus-visible,
+.koncani-dokumenti__pikica:focus-visible,
+.koncani-dokument__odpri:focus-visible,
+.koncani-pdf-pogled__nazaj:focus-visible,
+.koncani-vec-info__gumb:focus-visible,
+.koncani-odpri-primer:focus-visible,
+.koncani-podrobnosti__glava button:focus-visible {
+  outline: 2px solid #0d6669;
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1422,7 +1474,103 @@ body.stran--koncani-primeri {
   }
 }
 
+@media (max-width: 430px) {
+  html.uj-modal-odprt,
+  body.stran--koncani-primeri.uj-modal-odprt {
+    scrollbar-gutter: auto;
+  }
+
+  .koncani-podrobnosti {
+    left: 0;
+    right: auto;
+    width: 100vw;
+    max-width: 100vw;
+    margin: 0;
+  }
+}
+
 @media (max-width: 400px) {
+  .koncani-kartica__glavno {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .koncani-kartica__znesek {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .koncani-kartica__spodaj {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .koncani-potek__korak {
+    grid-template-columns: 24px 34px minmax(0, 1fr);
+  }
+
+  .koncani-potek__znesek {
+    grid-row: 2;
+    grid-column: 3;
+    width: auto;
+    max-width: none;
+    height: auto;
+    overflow: visible;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .koncani-potek__stanje {
+    grid-row: 2;
+    grid-column: 3;
+  }
+
+  .koncani-mreza {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .koncani-mreza__polje:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .koncani-mreza__polje:nth-child(n + 3) {
+    border-bottom: 1px solid rgba(33, 67, 64, 0.11);
+  }
+
+  .koncani-mreza__polje:last-child {
+    border-bottom: 0;
+  }
+
+  .koncani-mreza__besedilo strong {
+    height: auto;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .koncani-dokument__vrstica {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .koncani-dokument__vrstica > span:last-child,
+  .koncani-dokument__desno {
+    text-align: left;
+  }
+
+  .koncani-vec-info__vrstica {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .koncani-vec-info__vrstica strong {
+    text-align: left;
+  }
+
   .koncani-podrobnosti {
     padding-inline: 14px;
   }
@@ -1527,11 +1675,11 @@ body.stran--koncani-primeri {
   .koncani-izid__oznaka-datum { font-size: 8.5px; }
   .koncani-izid__datum { font-size: 12px; }
   .koncani-potek { width: calc(100% - 10px); margin-inline: 5px; }
-  .koncani-potek__korak { grid-template-columns: 22px 31px minmax(0, 1fr) minmax(52px, auto); gap: 2px; padding-inline: 6px; }
+  .koncani-potek__korak { grid-template-columns: 22px 31px minmax(0, 1fr); gap: 2px; padding-inline: 6px; }
   .koncani-potek__stevilka { width: 20px; height: 20px; font-size: 10px; }
   .koncani-potek__ikona { width: 29px; height: 29px; }
   .koncani-potek__besedilo { padding-right: 3px; }
-  .koncani-potek__znesek { max-width: 82px; font-size: 12px; }
+  .koncani-potek__znesek { max-width: none; font-size: 12px; }
   .koncani-tok { padding-inline: 9px; }
   .koncani-tok__vrstica { grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr); gap: 4px; }
   .koncani-tok__vrstica--polna { grid-template-columns: minmax(0, 1fr); }
@@ -1563,12 +1711,11 @@ body.koncani-podrobnosti-odprto {
 @media (max-width: 350px) {
   .koncani-primeri-stran { padding-inline: 12px; }
   .koncani-primeri-filter { font-size: 10.5px; }
-  .koncani-kartica__glavno { grid-template-columns: 37px minmax(0, 1fr) minmax(76px, auto); gap: 7px; }
+  .koncani-kartica__glavno { grid-template-columns: 37px minmax(0, 1fr); gap: 7px; }
   .koncani-kartica__ikona { width: 35px; height: 35px; }
-  .koncani-kartica__znesek { max-width: 104px; font-size: 16px; }
-  .koncani-kartica__spodaj { grid-template-columns: minmax(0, 1.35fr) minmax(101px, 0.8fr); gap: 7px; }
-  .koncani-kartica__rezultat { grid-template-columns: 27px minmax(0, 1fr); gap: 6px; padding-inline: 7px; }
-  .koncani-kartica__rezultat-ikona { width: 25px; height: 25px; }
+  .koncani-kartica__znesek { grid-column: 1 / -1; max-width: none; font-size: 16px; }
+  .koncani-kartica__spodaj { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .koncani-kartica__rezultat { padding-inline: 9px; }
   .koncani-kartica__podrobnosti { grid-template-columns: minmax(0, 1fr) 27px; padding-left: 8px; }
   .koncani-kartica__puscica { width: 27px; height: 27px; }
 }

@@ -1,0 +1,56 @@
+[2026-08-31T14:07:03.823837300+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:07:03.826072300+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:07:03.827581700+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:07:04.421433800+00:00] http.list_tasks: env=<all> limit=20 cursor_in=<none> cursor_out=<none> items=0
+[2026-08-31T14:07:29.518148400+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:07:29.518738400+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:07:29.519177+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:07:29.525605300+00:00] startup: wham_force_internal=false ua=Codex Desktop/0.151.0-alpha.7.2 (Windows 10.0.26200; x86_64) dumb (codex_cloud_tasks_tui)
+[[2026-08-31T14:07:29.607984200+00:00] 2026-08-31T14:07:29.607988400+00:00env: git origins: [SanitizedGitUrl("https://github.com/uspesenjezek-cloud/uspesni-jezek.git")]] 
+env: parsed HTTP GitHub origin => uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:07:29.608756600+00:00] env: parsed HTTP GitHub origin => uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:07:29.609256100+00:00] env: GET https://chatgpt.com/backend-api/wham/environments/by-repo/github/uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:07:29.910925800+00:00] http.list_tasks: env=<all> limit=20 cursor_in=<none> cursor_out=<none> items=0
+[2026-08-31T14:07:29.911644400+00:00] refresh.apply: env=<all> count=0
+[2026-08-31T14:07:31.029764300+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:07:31.180084+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:07:31.180811800+00:00] env: by-repo returned 0 env(s) for uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:07:31.181490800+00:00] env: GET https://chatgpt.com/backend-api/wham/environments
+[2026-08-31T14:07:31.478223800+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:07:31.478925200+00:00] env: /environments JSON (pretty):
+[]
+[2026-08-31T14:07:31.560447700+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:08:02.899154900+00:00] env: parsed HTTP GitHub origin => uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:08:04.054904900+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:08:04.403144900+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:08:30.361725700+00:00] env.select: All
+[2026-08-31T14:08:30.715164600+00:00] http.list_tasks: env=<all> limit=20 cursor_in=<none> cursor_out=<none> items=0
+[2026-08-31T14:08:30.716264600+00:00] refresh.apply: env=<all> count=0
+[2026-08-31T14:08:44.400683900+00:00] env: parsed HTTP GitHub origin => uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:08:45.855670600+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:08:46.192490600+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:19:48.120243300+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:19:48.121845900+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:19:48.123403900+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:19:48.205330400+00:00] env: parsed HTTP GitHub origin => uspesenjezek-cloud/uspesni-jezek
+[2026-08-31T14:19:49.670388700+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:19:51.159651400+00:00] env: status=200 OK content-type=application/json
+[2026-08-31T14:19:54.498763800+00:00] new_task: created id=task_e_6a958d887b648325b177b9ceb9510087 env=6a958c89b8e88191930ffe4154c4d585 prompt_chars=10954
+[2026-08-31T14:20:08.142015600+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:20:08.143199400+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:20:08.145011+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:20:53.344148200+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:20:53.345490400+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:20:53.346552600+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:21:44.757480400+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:21:44.759093300+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:21:44.760319200+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:24:20.278350900+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:24:20.279439100+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:24:20.279896+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:37:58.284668600+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:37:58.286263200+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:37:58.287433100+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:38:15.245660+00:00] startup: base_url=https://chatgpt.com/backend-api path_style=wham
+[2026-08-31T14:38:15.246323600+00:00] auth: mode=ChatGPT account_id=16fd99e6-a9eb-4f06-9764-1541e4f3fcb5
+[2026-08-31T14:38:15.246724+00:00] auth: set ChatGPT-Account-Id header: 16fd99e6-a9eb-4f06-9764-1541e4f3fcb5

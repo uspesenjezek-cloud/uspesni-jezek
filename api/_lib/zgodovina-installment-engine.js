@@ -113,6 +113,36 @@ function addTrailingGroup(text, tokens, groups, countIndex, nounIndex) {
   return true;
 }
 
+function addSeparatedPerInstallmentGroup(text, tokens, groups, countIndex, nounIndex) {
+  var count = parseSlovenianNumber(tokens[countIndex] && tokens[countIndex].lower, { count: true });
+  if (!Number.isInteger(count) || count < 2 || count > MAX_EVENTS) return false;
+  for (var amountIndex = nounIndex + 1; amountIndex < tokens.length && amountIndex <= nounIndex + 24; amountIndex += 1) {
+    var amount = numberSequence(tokens, amountIndex, false);
+    if (!amount || !Number.isFinite(amount.value) || amount.value <= 0) continue;
+    var cue = text.slice(tokens[nounIndex].end, amount.start);
+    if (!/(?:\bvsak\w*\s+obrok\w*\b|\bznesk\w*\b|\bvišin\w*\b|\bznašal\w*\b)/u.test(cue)) continue;
+    var currencyToken = tokens[amount.tokenEnd + 1];
+    var hasCurrency = Boolean(currencyToken && (currencyToken.lower === "€" || /^(?:eur|evr|euro)/u.test(currencyToken.lower)));
+    if (!hasCurrency && !/(?:\bznesk\w*\b|\bvišin\w*\b|\bznašal\w*\b)/u.test(cue)) continue;
+    var end = hasCurrency ? currencyToken.end : amount.end;
+    if (groups.some(function (group) {
+      return group.countSpan.start === tokens[countIndex].start && group.amountSpan.start === amount.start;
+    })) return false;
+    var previous = previousGroupBefore(groups, tokens[countIndex].start);
+    groups.push({
+      id: null, count: count,
+      amount: Math.round(amount.value * 100) / 100, total: Math.round(count * amount.value * 100) / 100,
+      currency: hasCurrency ? "EUR" : null, explicitNoun: true, completed: completedCue(text, tokens[countIndex].start, previous),
+      span: { start: tokens[countIndex].start, end: end, text: text.slice(tokens[countIndex].start, end) },
+      countSpan: { start: tokens[countIndex].start, end: tokens[countIndex].end, text: tokens[countIndex].text },
+      amountSpan: { start: amount.start, end: amount.end, text: text.slice(amount.start, amount.end) },
+      reason: "separated_per_installment_amount",
+    });
+    return true;
+  }
+  return false;
+}
+
 function extractInstallmentGroups(value) {
   var text = normalizeText(value);
   var tokens = tokenize(text);
@@ -128,7 +158,9 @@ function extractInstallmentGroups(value) {
       addedWithPo = addGroup(text, tokens, groups, countIndex, true, searchIndex);
       break;
     }
-    if (!addedWithPo) addTrailingGroup(text, tokens, groups, countIndex, nounIndex);
+    if (!addedWithPo && !addTrailingGroup(text, tokens, groups, countIndex, nounIndex)) {
+      addSeparatedPerInstallmentGroup(text, tokens, groups, countIndex, nounIndex);
+    }
   }
   for (var i = 0; i < tokens.length; i += 1) {
     if (tokens[i].lower !== "po") continue;

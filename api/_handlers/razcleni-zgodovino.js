@@ -3,17 +3,65 @@
 var crypto = require("node:crypto");
 var db = require("../_lib/supabase-server");
 var parser = require("../_lib/zgodovina-naravni-vnos");
+var localPreviewAuth = require("../_lib/atena-local-preview-auth");
+var lunaPolicy = require("../_lib/atena-luna-policy");
 
 var WINDOW_MS = 60 * 1000;
-var MAX_REQUESTS_PER_WINDOW = 12;
+var MAX_REQUESTS_PER_WINDOW = lunaPolicy.REQUESTS_PER_MINUTE;
 var CACHE_TTL_MS = 5 * 60 * 1000;
+var CONTENT_CACHE_TTL_MS = 5 * 60 * 1000;
+var CONTENT_CACHE_MAX_ENTRIES = 100;
 var CACHE_CONTRACT_VERSION = parser.CONTRACT_VERSION;
-var runtime = globalThis.__ujZgodovinaAiRuntime || { users: new Map(), cache: new Map() };
+var runtime = lunaPolicy.ensureIdempotencyRuntime(globalThis.__ujZgodovinaAiRuntime || { users: new Map(), cache: new Map(), inflight: new Map() });
+if (!runtime.contentCache) runtime.contentCache = new Map();
+if (!runtime.contentInflight) runtime.contentInflight = new Map();
 globalThis.__ujZgodovinaAiRuntime = runtime;
+
+var CACHEABLE_SEMANTIC_STATUSES = new Set([
+  "OK", "CORRECTED", "CLARIFICATION_REQUIRED", "VALIDATION_WARNING", "CLARIFICATION_EXHAUSTED",
+]);
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function contentCacheKey(userId, fingerprint) {
+  return CACHE_CONTRACT_VERSION + ":" + userId + ":content:" + fingerprint;
+}
+
+function cacheableContentResult(result) {
+  return Boolean(result && result.semanticPlan && CACHEABLE_SEMANTIC_STATUSES.has(String(result.semanticPlan.status || "")));
+}
+
+function rememberContent(key, result) {
+  if (runtime.contentCache.has(key)) runtime.contentCache.delete(key);
+  while (runtime.contentCache.size >= CONTENT_CACHE_MAX_ENTRIES) {
+    runtime.contentCache.delete(runtime.contentCache.keys().next().value);
+  }
+  runtime.contentCache.set(key, { createdAt: Date.now(), result: cloneJson(result) });
+}
+
+async function analyzeContentOnce(key, operation) {
+  var cached = runtime.contentCache.get(key);
+  if (cached) return cloneJson(cached.result);
+  var active = runtime.contentInflight.get(key);
+  if (active) return cloneJson(await active);
+  var promise = Promise.resolve().then(operation).then(function (result) {
+    if (cacheableContentResult(result)) rememberContent(key, result);
+    return result;
+  }).finally(function () {
+    if (runtime.contentInflight.get(key) === promise) runtime.contentInflight.delete(key);
+  });
+  runtime.contentInflight.set(key, promise);
+  return cloneJson(await promise);
+}
 
 function cleanRuntime(now) {
   runtime.cache.forEach(function (entry, key) {
     if (now - entry.createdAt > CACHE_TTL_MS) runtime.cache.delete(key);
+  });
+  runtime.contentCache.forEach(function (entry, key) {
+    if (now - entry.createdAt > CONTENT_CACHE_TTL_MS) runtime.contentCache.delete(key);
   });
   runtime.users.forEach(function (entry, key) {
     if (now - entry.startedAt > WINDOW_MS * 2) runtime.users.delete(key);
@@ -21,11 +69,7 @@ function cleanRuntime(now) {
 }
 
 function reserve(userId, now) {
-  var entry = runtime.users.get(userId);
-  if (!entry || now - entry.startedAt >= WINDOW_MS) entry = { startedAt: now, count: 0 };
-  entry.count += 1;
-  runtime.users.set(userId, entry);
-  return entry.count <= MAX_REQUESTS_PER_WINDOW;
+  return lunaPolicy.reserveRateLimit(runtime.users, userId, now, WINDOW_MS, MAX_REQUESTS_PER_WINDOW);
 }
 
 function validRequestId(value) {
@@ -67,7 +111,7 @@ async function handler(req, res) {
   try { cfg = db.uporabniskaKonfiguracija(); }
   catch (_error) { return res.status(500).json({ ok: false, code: "SERVER_CONFIGURATION", napaka: "Strežniška konfiguracija manjka." }); }
 
-  var auth = await db.preveriUporabnika(req, cfg);
+  var auth = localPreviewAuth.preveri(req) || await db.preveriUporabnika(req, cfg);
   if (!auth.ok) return res.status(auth.status).json({
     ok: false,
     code: auth.code || "AUTH_REQUIRED",
@@ -97,49 +141,38 @@ async function handler(req, res) {
   cleanRuntime(now);
   var cacheKey = CACHE_CONTRACT_VERSION + ":" + auth.user.id + ":" + requestId;
   var fingerprint = requestFingerprint(text, originalDebt, remainingDebt, referenceDate, clarification);
+  var semanticContentKey = contentCacheKey(auth.user.id, fingerprint);
+  var coordinator = lunaPolicy.createDistributedCoordinator({
+    enabled: Boolean(auth.token) && auth.verification !== "local_preview_loopback",
+    rpc: function (name, payload) { return db.pokliciRpcKotUporabnik(cfg, auth.token, name, payload); },
+    key: cacheKey, requestId: requestId, kind: "history", contractVersion: CACHE_CONTRACT_VERSION, fingerprint: fingerprint,
+  });
   var cached = runtime.cache.get(cacheKey);
   if (cached) {
     if (cached.fingerprint !== fingerprint) {
       return res.status(409).json({ ok: false, code: "REQUEST_ID_REUSED", napaka: "Ta zahteva je bila že uporabljena za drug opis." });
     }
-    if (cached.payload.clarification || cached.payload.clarificationExhausted || cached.payload.semanticPlan && cached.payload.semanticPlan.source === "validated_canonical_plan") return res.json(cached.payload);
-    var revalidated = parser.normalizeResult({
-      summary: cached.payload.summary,
-      needsClarification: cached.payload.needsClarification,
-      events: cached.payload.candidates,
-    }, remainingDebt, {
-      text: text,
-      referenceDate: referenceDate,
-      originalDebt: originalDebt,
-      remainingDebt: remainingDebt,
-    });
-    cached.payload = Object.assign({}, cached.payload, {
-      engineVersion: parser.ATENA_ENGINE_VERSION,
-      contractVersion: CACHE_CONTRACT_VERSION,
-      summary: revalidated.summary,
-      needsClarification: revalidated.needsClarification,
-      candidates: revalidated.candidates,
-      projectedRemainingDebtEur: revalidated.projectedRemainingDebtEur,
-      questionPlan: revalidated.questionPlan,
-      ledger: revalidated.ledger,
-      fieldOrder: revalidated.fieldOrder,
-      requiredFields: revalidated.requiredFields,
-      missing: revalidated.missing,
-    });
+    if (cached.outcome && cached.outcome.statusCode !== 200) return res.status(cached.outcome.statusCode).json(cached.outcome.payload);
+    // Contract version je del cache ključa, zato je exact replay hkrati varen in
+    // nujen: lokalni legacy parser ne sme ponovno razlagati Luninega compact plana.
     return res.json(cached.payload);
   }
-  if (!reserve(auth.user.id, now)) {
-    return res.status(429).json({ ok: false, code: "RATE_LIMITED", napaka: "Preveč zaporednih zahtev. Poskusite znova čez minuto." });
-  }
-
-  try {
+  var outcome = await lunaPolicy.executeIdempotent(runtime, {
+    key: cacheKey, fingerprint: fingerprint, coordinator: coordinator, fallbackMessage: "Besedila trenutno ni bilo mogoče razumeti.",
+    beforeStart: function () {
+      if (runtime.contentCache.has(semanticContentKey) || runtime.contentInflight.has(semanticContentKey)) return null;
+      return reserve(auth.user.id, now) ? null : { statusCode: 429, payload: { ok: false, code: "RATE_LIMITED", retryable: true, napaka: "Preveč zaporednih zahtev. Poskusite znova čez minuto." } };
+    },
+  }, async function () {
     var analyzeOptions = { userId: auth.user.id };
-    var result = await parser.analyze(text, {
-      referenceDate: referenceDate,
-      originalDebt: originalDebt,
-      remainingDebt: remainingDebt,
-      clarification: clarification,
-    }, analyzeOptions);
+    var result = await analyzeContentOnce(semanticContentKey, function () {
+      return parser.analyze(text, {
+        referenceDate: referenceDate,
+        originalDebt: originalDebt,
+        remainingDebt: remainingDebt,
+        clarification: clarification,
+      }, analyzeOptions);
+    });
     if (process.env.NODE_ENV !== "production" && result.semanticPlan && result.semanticPlan.source !== "validated_canonical_plan") {
       console.warn("[history-ai-plan]", String(result.semanticPlan.source || "unknown"), String(result.semanticPlan.reason || "unknown"));
     }
@@ -163,15 +196,9 @@ async function handler(req, res) {
       requiredFields: result.requiredFields,
       missing: result.missing,
     };
-    runtime.cache.set(cacheKey, { createdAt: now, fingerprint: fingerprint, payload: payload });
-    return res.json(payload);
-  } catch (error) {
-    return res.status(error.status || 503).json({
-      ok: false,
-      code: error.code || "AI_UNAVAILABLE",
-      napaka: error.message || "Besedila trenutno ni bilo mogoče razumeti.",
-    });
-  }
+    return { statusCode: 200, payload: payload };
+  });
+  return res.status(outcome.statusCode).json(outcome.payload);
 }
 
 module.exports = handler;
@@ -181,6 +208,9 @@ module.exports._test = {
   validReferenceDate: validReferenceDate,
   todayInLjubljana: todayInLjubljana,
   requestFingerprint: requestFingerprint,
+  contentCacheKey: contentCacheKey,
+  cacheableContentResult: cacheableContentResult,
+  analyzeContentOnce: analyzeContentOnce,
   reserve: reserve,
   runtime: runtime,
 };

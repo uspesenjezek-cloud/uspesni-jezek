@@ -88,6 +88,29 @@
     },
   ];
 
+  /* Tri kratke poti na zadnjem koraku. `totalSteps` vključuje tudi stalni
+     zadnji korak ročne predaje odvetniku. */
+  var PRISTOPI_IZTERJAVE = [
+    {
+      id: "postopno",
+      label: "Postopno",
+      description: "Več časa za dogovor",
+      totalSteps: 6,
+    },
+    {
+      id: "uravnotezeno",
+      label: "Uravnoteženo",
+      description: "Jasen ritem in pritisk",
+      totalSteps: 5,
+    },
+    {
+      id: "odlocno",
+      label: "Odločno",
+      description: "Hitrejša eskalacija",
+      totalSteps: 4,
+    },
+  ];
+
   var TON_OZNAKE_SL = {
     super_evil: "Super zloben",
     super_strict: "Super strog",
@@ -1057,6 +1080,7 @@
       recommendedGapDays: odmiki[1] != null ? odmiki[1] : 11,
       totalDurationDays: totalDurationDays,
       selectedStageId: steps[0].id,
+      collectionApproachConfirmed: false,
       keepStageIntervals: true,
       allowedSendWindow: { start: "07:00", end: "21:00" },
       allowedSendWindowMode: "all",
@@ -1283,6 +1307,11 @@
       });
     }
     if (prejsnjiIdentitetniHash != null && prejsnjiIdentitetniHash !== novIdentitetniHash) {
+      plan.collectionApproachConfirmed = false;
+      plan = uporabiPristopIzterjave(
+        plan,
+        priporoceniPristopIzterjave({ overdueDays: overdue, amountCents: amountCents })
+      );
       (plan.steps || []).forEach(function (s) {
         if (s.kind === "manual_lawyer") {
           if (s.lawyerHandoff) oznaciPredajaNeedsReview(s.lawyerHandoff);
@@ -3737,6 +3766,68 @@
     return osveziPlanStatus(plan);
   }
 
+  function najdiPristopIzterjave(pristopId) {
+    return PRISTOPI_IZTERJAVE.find(function (pristop) {
+      return pristop.id === String(pristopId || "");
+    }) || null;
+  }
+
+  function priporoceniPristopIzterjave(plan) {
+    var zamuda = Math.max(0, Number(plan && plan.overdueDays) || 0);
+    var znesek = Math.max(0, Number(plan && plan.amountCents) || 0);
+    if (zamuda >= 90 || znesek >= 500000) return "odlocno";
+    if (zamuda <= 30 && znesek < 250000) return "postopno";
+    return "uravnotezeno";
+  }
+
+  function aktivniPristopIzterjave(plan) {
+    if (!plan || !Array.isArray(plan.steps)) return null;
+    var vkljucenih = plan.steps.filter(function (step) {
+      return step && !step.isExcluded;
+    }).length;
+    var shranjeni = najdiPristopIzterjave(plan.collectionApproach);
+    if (shranjeni && shranjeni.totalSteps === vkljucenih) return shranjeni.id;
+    var poStevilu = PRISTOPI_IZTERJAVE.find(function (pristop) {
+      return pristop.totalSteps === vkljucenih;
+    });
+    return poStevilu ? poStevilu.id : null;
+  }
+
+  function lahkoSpremeniPristopIzterjave(plan) {
+    if (!plan || !Array.isArray(plan.steps)) return false;
+    if (plan.status === "activated" || plan.status === "active") return false;
+    return !plan.steps.some(function (step) {
+      return step && (step.status === "sent" || step.status === "processing");
+    });
+  }
+
+  function uporabiPristopIzterjave(plan, pristopId) {
+    var pristop = najdiPristopIzterjave(pristopId);
+    if (!pristop || !lahkoSpremeniPristopIzterjave(plan)) return plan;
+    var samodejni = plan.steps.filter(function (step) {
+      return step && step.kind !== "manual_lawyer" && step.deliveryMode !== "manual";
+    });
+    var steviloSamodejnih = Math.max(1, pristop.totalSteps - 1);
+    samodejni.forEach(function (step, index) {
+      step.isExcluded = index >= steviloSamodejnih;
+    });
+    zagotoviVkljucenZadnjiRocniKorak(plan);
+    plan.collectionApproach = pristop.id;
+    plan = preracunajOdmikePoIzkljucitvi(plan);
+
+    var izbrani = (plan.steps || []).find(function (step) {
+      return step && step.id === plan.selectedStageId && !step.isExcluded;
+    });
+    if (!izbrani) {
+      izbrani = (plan.steps || []).find(function (step) {
+        return step && !step.isExcluded;
+      }) || null;
+      plan.selectedStageId = izbrani ? izbrani.id : null;
+    }
+    plan.updatedAt = zdajIso();
+    return osveziPlanStatus(plan);
+  }
+
   var api = {
     KLJUC_SEJE: KLJUC_SEJE,
     KORAKI_META: KORAKI_META,
@@ -3800,6 +3891,11 @@
     VELJAVNI_TONI_KORAKA: VELJAVNI_TONI_KORAKA,
     jeZadnjiKorakManualLawyer: jeZadnjiKorakManualLawyer,
     preracunajOdmikePoIzkljucitvi: preracunajOdmikePoIzkljucitvi,
+    PRISTOPI_IZTERJAVE: PRISTOPI_IZTERJAVE,
+    priporoceniPristopIzterjave: priporoceniPristopIzterjave,
+    aktivniPristopIzterjave: aktivniPristopIzterjave,
+    lahkoSpremeniPristopIzterjave: lahkoSpremeniPristopIzterjave,
+    uporabiPristopIzterjave: uporabiPristopIzterjave,
     praznaPredajaOdvetniku: praznaPredajaOdvetniku,
     jeNeureljivZadnjiKorak: jeNeureljivZadnjiKorak,
     zamenjajNeureljivZadnjiKorak: zamenjajNeureljivZadnjiKorak,

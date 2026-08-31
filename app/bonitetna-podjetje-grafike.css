@@ -826,7 +826,7 @@
 .boniteta-signal__stabilno b { color:var(--signal);font:800 1.35rem/1 "Bricolage Grotesque",sans-serif; }
 .boniteta-signal__stabilno span { color:#3f586a;font:600 .7rem/1 "Figtree",sans-serif; }
 .boniteta-signal__stabilno i { position:relative;grid-column:3;grid-row:1/3;height:2px;align-self:center;background:var(--signal); }
-.boniteta-signal__stabilno i::after { content:"›";position:absolute;right:-1px;top:-9px;color:var(--signal);font:500 1.2rem/1 sans-serif; }
+.boniteta-signal__stabilno i::after { content:"";position:absolute;right:-1px;top:-7px;width:14px;height:14px;background:var(--signal);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center/contain no-repeat; }
 .boniteta-signal__stabilno small:nth-of-type(1) { grid-column:3;justify-self:start; }
 .boniteta-signal__stabilno small:nth-of-type(2) { grid-column:3;justify-self:end; }
 .boniteta-signal__stabilno small { color:#52687a;font:600 .51rem/1 "Figtree",sans-serif; }
@@ -1078,6 +1078,12 @@
   color: #8ca7a1;
   font-size: 1.1rem;
 }
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj__vsebina b > i:last-child svg,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj__puscica svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
 
 /* Zaključen povzetek (insolvenčnost + objave): dve dejstvi eno ob drugem, kompaktno po višini. */
 #boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-complete,
@@ -1246,6 +1252,34 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-loading {
+  color: #168d88;
+  cursor: progress;
+}
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-loading::before {
+  background: linear-gradient(110deg, #eef8f6 12%, #dff3ef 48%, #eef8f6 84%);
+  background-size: 220% 100%;
+  box-shadow: inset 0 0 0 1px rgba(22, 141, 136, .12);
+  animation: boniteta-plus-nalaganje 1.35s ease-in-out infinite;
+}
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-loading > span svg {
+  transform-origin: center;
+  will-change: transform;
+  animation: boniteta-plus-vrtenje .9s linear infinite;
+}
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-loading > span small,
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-unavailable > span small { display: block; }
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-unavailable { color: #98a7a5; }
+@keyframes boniteta-plus-nalaganje { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+@keyframes boniteta-plus-vrtenje {
+  0% { transform: translateY(-50%) rotate(0deg) scale(1.12); }
+  50% { transform: translateY(-50%) rotate(180deg) scale(1.22); }
+  100% { transform: translateY(-50%) rotate(360deg) scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-loading::before,
+  #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija button.is-plus-loading > span svg { animation: none; }
 }
 
 #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-navigacija--glavna button {
@@ -1597,13 +1631,17 @@
   content: none;
 }
 #boniteta-hwk-sklop.is-register-card .boniteta-kljucni-skupina--seznam .boniteta-podjetje-kartica.is-interactive::after {
-  content: "›";
+  content: "";
   position: absolute;
   top: 50%;
   right: 7px;
   display: block;
+  width: 16px;
+  height: 16px;
+  background: #9bb0ad;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center/contain no-repeat;
   color: #9bb0ad;
-  font: 500 1rem/1 "Figtree", sans-serif;
   transform: translateY(-50%);
 }
 @media (min-width: 700px) {
@@ -1730,7 +1768,7 @@
   box-shadow: 0 0 0 3px rgba(32, 159, 93, .12);
 }
 #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-zgornji-povzetek > .boniteta-identiteta-nadaljuj.is-complete::after {
-  content: "›";
+  content: none;
   position: absolute;
   top: 50%;
   right: 15px;
@@ -1937,8 +1975,8 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, .16);
   color: #fff;
-  font: 500 1.45rem/1 -apple-system, BlinkMacSystemFont, sans-serif;
 }
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-zgornji-povzetek .boniteta-identiteta-nadaljuj__puscica svg { width: 20px; height: 20px; }
 
 #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-zgornji-povzetek > .boniteta-identiteta-nadaljuj.is-complete:not([hidden]) {
   min-height: 60px;

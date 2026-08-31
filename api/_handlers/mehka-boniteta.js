@@ -5,13 +5,17 @@ var db = require("../_lib/supabase-server");
 var identityEvidenceContract = require("../_lib/identity-evidence");
 var northDataClient = require("../_lib/apify-northdata-client");
 var northDataDetailsClient = require("../_lib/apify-northdata-details-client");
+var northDataDetailsProof = require("../_lib/northdata-details-proof");
 var northDataFinancialGuard = require("../../app/bonitetna-finance-guard");
 var northdataAutocomplete = require("../_lib/apify-northdata-autocomplete");
 var identitySearch = require("../_lib/openregister-identity-search");
 var scraplingImpressum = require("../_lib/scrapling-impressum-client");
 var scraplingInsolvency = require("../_lib/scrapling-insolvency-client");
 var dns = require("node:dns").promises;
+var http = require("node:http");
+var https = require("node:https");
 var net = require("node:net");
+var zlib = require("node:zlib");
 var fs = require("node:fs");
 var os = require("node:os");
 var path = require("node:path");
@@ -34,9 +38,18 @@ var BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 var IDENTITY_EVIDENCE_VERSION = identityEvidenceContract.CAPTURE_VERSION;
 var OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v11-proof-required-terminal";
 var MAX_IMPRESSUM_BYTES = 5 * 1024 * 1024;
+var IMPRESSUM_HTTP_TIMEOUT_MS = 6000;
+var IMPRESSUM_HTTP_MAX_ATTEMPTS = 2;
+var IMPRESSUM_BROWSER_TIMEOUT_MS = 8000;
+var BROWSER_PROTOCOL_TIMEOUT_MS = 15000;
+var OFFICIAL_INSOLVENCY_ATTEMPT_TIMEOUT_MS = 20000;
 var IMPRESSUM_HEADING_PATTERN = /\b(?:impressum|imprint|anbieterkennzeichnung|anbieterkennung)\b/i;
-var LEGAL_PROVIDER_IDENTITY_PATTERN = /(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Anbieter\s+dieser\s+(?:Website|Webseite)|Verantwortliche(?:r)?\s+Anbieter(?:\s+dieses\s+Internetauftritts)?(?:\s+im\s+datenschutzrechtlichen\s+Sinne)?\s+ist|Verantwortliche\s+Stelle(?:\s+im\s+Sinne\s+der\s+Datenschutzgesetze)?\s*(?:ist|:)|Diensteanbieter\s+(?:im\s+Sinne|gem(?:äß|ass)))/i;
-var LEGAL_POLICY_LINK_PATTERN = /^(?:datenschutzerkl(?:ä|a)rung|datenschutz|privacy(?:\s+policy)?|rechtliches|legal\s+notice)$/i;
+var LEGAL_PROVIDER_IDENTITY_PATTERN = /(?:Informationen\s+(?:ü|u)ber\s+uns\s+als\s+Verantwortliche|Anbieter\s+dieser\s+(?:Website|Webseite)|Verantwortliche(?:r)?\s+Anbieter(?:\s+dieses\s+Internetauftritts)?(?:\s+im\s+datenschutzrechtlichen\s+Sinne)?\s+ist|Verantwortliche(?:r)?\s+im\s+Sinne\s+der\s+Datenschutzgesetze(?:[^\n:]{0,180})?\s+ist|Verantwortliche\s+Stelle(?:\s+im\s+Sinne\s+der\s+Datenschutzgesetze)?\s*(?:ist|:)|Diensteanbieter\s+(?:im\s+Sinne|gem(?:äß|ass)))/i;
+// Nemški URL-ji pogosto transliterirajo »ä« kot »ae« (Datenschutzerklärung
+// -> /datenschutzerklaerung/). Sprejmemo vse tri običajne zapise, vendar je
+// stran še vedno dokaz identitete samo ob močni oznaki ponudnika, pravnih
+// podatkih in nemškem naslovu (glej jeOznacenaPravnaIdentitetnaStran).
+var LEGAL_POLICY_LINK_PATTERN = /^(?:datenschutzerkl(?:ä|ae|a)rung|datenschutz|privacy(?:\s+policy)?|rechtliches|legal\s+notice)$/i;
 var LEGAL_ROLE_LABEL_SOURCE = [
   "Vertreten\\s+durch",
   "Verantwortlich\\s+im\\s+Sinne\\s+des\\s+(?:TDG|TMG|DDG|Teledienstgesetz|Digitale-Dienste-Gesetz)(?:[^\\n:]{0,180}?\\s+ist)?",
@@ -532,6 +545,13 @@ function razberiPravnoOblikoIzNaziva(vrednost) {
   return zadetek[0].replace(/^gmbh$/i, "GmbH").replace(/^gbr$/i, "GbR").replace(/^ohg$/i, "OHG");
 }
 
+function kanonicniNazivZaRegistrskoDopolnitev(vrednost) {
+  return normaliziraj(vrednost)
+    .replace(/\bgesellschaft mit beschrankter haftung\b/g, "gmbh")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 var OSEBNI_NAZIVI_PRED_IMENOM = [
   /^(?:herr|frau|hr\.?|fr\.?)\s+/iu,
   /^(?:univ\.?\s*[-–—]?\s*)?prof(?:essor)?\.?\s*(?:h\.?\s*c\.?)?\s+/iu,
@@ -613,7 +633,7 @@ function jeVerjetnoImeOsebe(vrednost) {
   if (new Set(normaliziraniDeli).size !== normaliziraniDeli.length) return false;
   if (vsebujePoslovniOpis(ime)) return false;
   if (normaliziraniDeli.some(function (del) {
-    return /^(?:location|kontakt|contact|impressum|imprint|datenschutz|privacy|adresse|address|anschrift|telefon|email|mail|home|start|menu|menue|uber|uns|about|willkommen|anbieterkennung|gesetzliche|seiten|seite|navigation|footer|header|hauptinhalt|kostenfrei|registrieren|anmelden|login|haustechnik|sanitar|sanitaer|heizung|elektro|meisterbetrieb|installateur|rohrreinigung|kanalreinigung|kanalsanierung|klempner)$/.test(del);
+    return /^(?:location|kontakt|contact|impressum|imprint|datenschutz|privacy|adresse|address|anschrift|telefon|email|mail|home|start|menu|menue|uber|uns|about|willkommen|anbieterkennung|gesetzliche|seiten|seite|navigation|footer|header|hauptinhalt|kostenfrei|registrieren|anmelden|login|ihre|betroffenenrechte|rechte|nutzer|betroffenen|haustechnik|sanitar|sanitaer|heizung|elektro|meisterbetrieb|installateur|rohrreinigung|kanalreinigung|kanalsanierung|klempner)$/.test(del);
   })) return false;
   if (/\b(?:gmbh|ug|ag|kg|ohg|gbr|inhaber|geschäftsführer|telefon|e-?mail|umsatzsteuer|angaben|inhaltlich|verantwortlich)\b/i.test(ime)) return false;
   var jedro = deli;
@@ -811,38 +831,405 @@ function najdiNeoznacenoOseboPrimarnegaBloka(vrstice, lokacijaIndex, poslovnaIme
   return kandidati[0] || "";
 }
 
+function ipv4VStevilo(ip) {
+  var deli = String(ip || "").split(".").map(Number);
+  if (deli.length !== 4 || deli.some(function (del) { return !Number.isInteger(del) || del < 0 || del > 255; })) return null;
+  return ((deli[0] * 0x1000000) + (deli[1] << 16) + (deli[2] << 8) + deli[3]) >>> 0;
+}
+
+function jeIpv4VOmrezju(ip, omrezje, predpona) {
+  var naslov = ipv4VStevilo(ip);
+  var osnova = ipv4VStevilo(omrezje);
+  if (naslov == null || osnova == null) return false;
+  var maska = predpona === 0 ? 0 : (0xffffffff << (32 - predpona)) >>> 0;
+  return (naslov & maska) === (osnova & maska);
+}
+
+function razcleniIpv6(ip) {
+  var naslov = String(ip || "").toLowerCase().replace(/^\[|\]$/g, "").split("%", 1)[0];
+  if (!net.isIPv6(naslov)) return null;
+  var ipv4Ujemanje = naslov.match(/(\d+\.\d+\.\d+\.\d+)$/);
+  if (ipv4Ujemanje) {
+    var ipv4 = ipv4VStevilo(ipv4Ujemanje[1]);
+    if (ipv4 == null) return null;
+    naslov = naslov.slice(0, -ipv4Ujemanje[1].length) +
+      ((ipv4 >>> 16) & 0xffff).toString(16) + ":" + (ipv4 & 0xffff).toString(16);
+  }
+  var polovici = naslov.split("::");
+  if (polovici.length > 2) return null;
+  var leva = polovici[0] ? polovici[0].split(":") : [];
+  var desna = polovici.length === 2 && polovici[1] ? polovici[1].split(":") : [];
+  var manjkajocih = 8 - leva.length - desna.length;
+  if ((polovici.length === 1 && manjkajocih !== 0) || (polovici.length === 2 && manjkajocih < 1)) return null;
+  var skupine = leva.concat(new Array(Math.max(0, manjkajocih)).fill("0"), desna);
+  if (skupine.length !== 8 || skupine.some(function (skupina) { return !/^[0-9a-f]{1,4}$/.test(skupina); })) return null;
+  var bajti = [];
+  skupine.forEach(function (skupina) {
+    var vrednost = parseInt(skupina, 16);
+    bajti.push(vrednost >>> 8, vrednost & 0xff);
+  });
+  return bajti;
+}
+
+function jeIpv6VOmrezju(ip, omrezje, predpona) {
+  var naslov = Array.isArray(ip) ? ip : razcleniIpv6(ip);
+  var osnova = razcleniIpv6(omrezje);
+  if (!naslov || !osnova) return false;
+  var polniBajti = Math.floor(predpona / 8);
+  for (var i = 0; i < polniBajti; i += 1) {
+    if (naslov[i] !== osnova[i]) return false;
+  }
+  var preostanek = predpona % 8;
+  if (!preostanek) return true;
+  var maska = (0xff << (8 - preostanek)) & 0xff;
+  return (naslov[polniBajti] & maska) === (osnova[polniBajti] & maska);
+}
+
 function jeZasebenIp(ip) {
-  var naslov = String(ip || "").toLowerCase();
+  var naslov = String(ip || "").toLowerCase().replace(/^\[|\]$/g, "").split("%", 1)[0];
   if (net.isIPv4(naslov)) {
-    var deli = naslov.split(".").map(Number);
-    return deli[0] === 10 || deli[0] === 127 || deli[0] === 0 ||
-      (deli[0] === 169 && deli[1] === 254) ||
-      (deli[0] === 172 && deli[1] >= 16 && deli[1] <= 31) ||
-      (deli[0] === 192 && deli[1] === 168) ||
-      (deli[0] >= 224);
+    return [
+      ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8],
+      ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.0.0.0", 24], ["192.0.2.0", 24],
+      ["192.31.196.0", 24], ["192.52.193.0", 24], ["192.88.99.0", 24], ["192.168.0.0", 16],
+      ["192.175.48.0", 24], ["198.18.0.0", 15], ["198.51.100.0", 24], ["203.0.113.0", 24],
+      ["224.0.0.0", 4], ["240.0.0.0", 4],
+    ].some(function (omrezje) { return jeIpv4VOmrezju(naslov, omrezje[0], omrezje[1]); });
   }
   if (net.isIPv6(naslov)) {
-    return naslov === "::1" || naslov === "::" || naslov.startsWith("fc") ||
-      naslov.startsWith("fd") || /^fe[89ab]/.test(naslov) || naslov.startsWith("::ffff:127.");
+    var bajti = razcleniIpv6(naslov);
+    if (!bajti) return true;
+    // Brskalniku dovolimo le javni unicast 2000::/3. Iz njega dodatno
+    // izločimo posebne tranzicijske in dokumentacijske bloke.
+    if (!jeIpv6VOmrezju(bajti, "2000::", 3)) return true;
+    return jeIpv6VOmrezju(bajti, "2001::", 23) ||
+      jeIpv6VOmrezju(bajti, "2001:db8::", 32) ||
+      jeIpv6VOmrezju(bajti, "2002::", 16) ||
+      jeIpv6VOmrezju(bajti, "3fff::", 20);
   }
   return true;
 }
 
-async function preveriJavniSpletniNaslov(vrednost) {
+async function razresiJavniSpletniCilj(vrednost, moznosti) {
+  var nastavitve = moznosti || {};
   var vnos = String(vrednost || "").trim();
   if (!vnos) return null;
-  if (!/^https?:\/\//i.test(vnos)) vnos = "https://" + vnos;
+  if (!/^[a-z][a-z\d+.-]*:\/\//i.test(vnos) && nastavitve.dodajHttps !== false) vnos = "https://" + vnos;
   var url;
   try { url = new URL(vnos); } catch (_) { throw new Error("WEBSITE_INVALID"); }
-  if (!/^https?:$/.test(url.protocol) || url.username || url.password || net.isIP(url.hostname) ||
-      /(?:^|\.)(?:localhost|local|internal)$/i.test(url.hostname)) {
-    throw new Error("WEBSITE_INVALID");
-  }
-  var naslovi = await dns.lookup(url.hostname, { all: true });
-  if (!naslovi.length || naslovi.some(function (zapis) { return jeZasebenIp(zapis.address); })) {
+  if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error("WEBSITE_INVALID");
+  var gostitelj = String(url.hostname || "").toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (!gostitelj || /(?:^|\.)(?:localhost|local|internal|home|lan)$/i.test(gostitelj)) {
     throw new Error("WEBSITE_NOT_PUBLIC");
   }
-  return url;
+  var vrstaDobesednegaIp = net.isIP(gostitelj);
+  if (vrstaDobesednegaIp) {
+    if (jeZasebenIp(gostitelj)) throw new Error("WEBSITE_NOT_PUBLIC");
+    return { url: url, hostname: gostitelj, address: gostitelj, family: vrstaDobesednegaIp };
+  }
+  var lookup = typeof nastavitve.lookup === "function" ? nastavitve.lookup : dns.lookup.bind(dns);
+  var naslovi = await lookup(gostitelj, { all: true, verbatim: true });
+  if (!Array.isArray(naslovi) || !naslovi.length || naslovi.some(function (zapis) {
+    return !zapis || !net.isIP(String(zapis.address || "")) || jeZasebenIp(zapis.address);
+  })) {
+    throw new Error("WEBSITE_NOT_PUBLIC");
+  }
+  var izbrani = naslovi.find(function (zapis) { return net.isIP(String(zapis.address || "")) === 4; }) || naslovi[0];
+  return {
+    url: url,
+    hostname: gostitelj,
+    address: String(izbrani.address),
+    family: net.isIP(String(izbrani.address)),
+  };
+}
+
+async function preveriJavniSpletniNaslov(vrednost, moznosti) {
+  var cilj = await razresiJavniSpletniCilj(vrednost, moznosti);
+  return cilj && cilj.url;
+}
+
+var PRESTREZENE_HOP_BY_HOP_GLAVE = new Set([
+  "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+  "te", "trailer", "transfer-encoding", "upgrade",
+]);
+
+function ocistiGlavePrestrezeneZahteve(zahteva, telo) {
+  var vhod = typeof zahteva.headers === "function" ? zahteva.headers() : {};
+  var izhod = {};
+  Object.keys(vhod || {}).forEach(function (ime) {
+    var maloIme = String(ime || "").toLowerCase();
+    var vrednost = vhod[ime];
+    if (!/^[!#$%&'*+.^_`|~0-9a-z-]+$/.test(maloIme) || maloIme === "host" ||
+        maloIme === "content-length" || PRESTREZENE_HOP_BY_HOP_GLAVE.has(maloIme) || vrednost == null) return;
+    izhod[maloIme] = Array.isArray(vrednost) ? vrednost.map(String).join(", ") : String(vrednost);
+  });
+  // Node prejme stisnjene bajte brez samodejne dekompresije. Z identity se
+  // omejitev telesa nanaša na dejansko vsebino in ne na morebitno zip bombo.
+  izhod["accept-encoding"] = "identity";
+  if (telo) izhod["content-length"] = String(telo.length);
+  return izhod;
+}
+
+function ocistiGlavePrestrezanegaOdgovora(glave) {
+  var izhod = {};
+  Object.keys(glave || {}).forEach(function (ime) {
+    var maloIme = String(ime || "").toLowerCase();
+    var vrednost = glave[ime];
+    if (!/^[!#$%&'*+.^_`|~0-9a-z-]+$/.test(maloIme) || maloIme === "content-length" ||
+        PRESTREZENE_HOP_BY_HOP_GLAVE.has(maloIme) || vrednost == null) return;
+    izhod[maloIme] = Array.isArray(vrednost)
+      ? vrednost.map(String).join(maloIme === "set-cookie" ? "\n" : ", ")
+      : String(vrednost);
+  });
+  return izhod;
+}
+
+async function teloPrestrezeneZahteve(zahteva) {
+  var vrednost = typeof zahteva.postData === "function" ? zahteva.postData() : undefined;
+  if (vrednost == null && typeof zahteva.fetchPostData === "function") vrednost = await zahteva.fetchPostData();
+  if (vrednost == null) return null;
+  return Buffer.isBuffer(vrednost) ? vrednost : Buffer.from(String(vrednost), "utf8");
+}
+
+function pripetiLookupNaJavniCilj(cilj) {
+  return function (_hostname, moznosti, callback) {
+    var nastavitve = moznosti;
+    var zakljuci = callback;
+    if (typeof nastavitve === "function") { zakljuci = nastavitve; nastavitve = {}; }
+    if (nastavitve && nastavitve.all) {
+      zakljuci(null, [{ address: cilj.address, family: cilj.family }]);
+      return;
+    }
+    zakljuci(null, cilj.address, cilj.family);
+  };
+}
+
+function dekodirajOmejenoTeloOdgovora(telo, kodiranje, najvecBajtov) {
+  var vhod = Buffer.isBuffer(telo) ? telo : Buffer.from(telo || "");
+  var vrsta = String(kodiranje || "").trim().toLowerCase();
+  var meja = Math.min(Math.max(Number(najvecBajtov) || (5 * 1024 * 1024), 1024), 10 * 1024 * 1024);
+  if (!vrsta || vrsta === "identity") return vhod;
+  if (!["gzip", "x-gzip", "deflate", "br"].includes(vrsta)) {
+    throw new Error("PUPPETEER_RESPONSE_ENCODING_BLOCKED");
+  }
+  try {
+    var moznosti = { maxOutputLength: meja };
+    var rezultat = vrsta === "gzip" || vrsta === "x-gzip"
+      ? zlib.gunzipSync(vhod, moznosti)
+      : vrsta === "deflate"
+        ? zlib.inflateSync(vhod, moznosti)
+        : zlib.brotliDecompressSync(vhod, moznosti);
+    if (rezultat.length > meja) throw new Error("PUPPETEER_RESPONSE_BODY_TOO_LARGE");
+    return rezultat;
+  } catch (napaka) {
+    if (napaka && (napaka.message === "PUPPETEER_RESPONSE_BODY_TOO_LARGE" ||
+        napaka.code === "ERR_BUFFER_TOO_LARGE" || /maxOutputLength|larger than/i.test(String(napaka.message || "")))) {
+      throw new Error("PUPPETEER_RESPONSE_BODY_TOO_LARGE");
+    }
+    throw new Error("PUPPETEER_RESPONSE_DECODING_FAILED");
+  }
+}
+
+async function pridobiPripetiHttpOdgovor(zahteva, cilj, moznosti) {
+  var nastavitve = moznosti || {};
+  var rokMs = Math.min(Math.max(Number(nastavitve.timeoutMs) || 15000, 1000), 30000);
+  var najvecBajtov = Math.min(Math.max(Number(nastavitve.maxBodyBytes) || (5 * 1024 * 1024), 1024), 10 * 1024 * 1024);
+  var telo = await teloPrestrezeneZahteve(zahteva);
+  if (telo && telo.length > najvecBajtov) throw new Error("PUPPETEER_REQUEST_BODY_TOO_LARGE");
+  var metoda = String(typeof zahteva.method === "function" ? zahteva.method() : "GET").toUpperCase();
+  if (!/^[A-Z]+$/.test(metoda) || metoda === "CONNECT" || metoda === "TRACE") throw new Error("PUPPETEER_REQUEST_METHOD_BLOCKED");
+  var tvornica = typeof nastavitve.requestFactory === "function"
+    ? nastavitve.requestFactory
+    : (cilj.url.protocol === "https:" ? https.request.bind(https) : http.request.bind(http));
+  var glave = ocistiGlavePrestrezeneZahteve(zahteva, telo);
+  var zahteveneMoznosti = {
+    method: metoda,
+    headers: glave,
+    lookup: pripetiLookupNaJavniCilj(cilj),
+    agent: false,
+  };
+  if (cilj.url.protocol === "https:") {
+    zahteveneMoznosti.servername = net.isIP(cilj.hostname) ? undefined : cilj.hostname;
+    zahteveneMoznosti.rejectUnauthorized = true;
+  }
+
+  return new Promise(function (resolve, reject) {
+    var koncano = false;
+    var casovnik = null;
+    var odhodnaZahteva = null;
+    function zakljuci(callback, vrednost) {
+      if (koncano) return;
+      koncano = true;
+      if (casovnik) clearTimeout(casovnik);
+      callback(vrednost);
+    }
+    function zavrni(napaka) {
+      zakljuci(reject, napaka instanceof Error ? napaka : new Error("PUPPETEER_PROXY_FAILED"));
+    }
+    try {
+      odhodnaZahteva = tvornica(cilj.url, zahteveneMoznosti, function (odgovor) {
+        if (!odgovor || typeof odgovor.on !== "function") {
+          zavrni(new Error("PUPPETEER_PROXY_INVALID_RESPONSE"));
+          return;
+        }
+        var kodiranje = String(odgovor.headers && odgovor.headers["content-encoding"] || "").trim().toLowerCase();
+        if (kodiranje && !["identity", "gzip", "x-gzip", "deflate", "br"].includes(kodiranje)) {
+          if (typeof odgovor.destroy === "function") odgovor.destroy();
+          zavrni(new Error("PUPPETEER_RESPONSE_ENCODING_BLOCKED"));
+          return;
+        }
+        var napovedanaVelikost = Number(odgovor.headers && odgovor.headers["content-length"] || 0);
+        if (Number.isFinite(napovedanaVelikost) && napovedanaVelikost > najvecBajtov) {
+          if (typeof odgovor.destroy === "function") odgovor.destroy();
+          zavrni(new Error("PUPPETEER_RESPONSE_BODY_TOO_LARGE"));
+          return;
+        }
+        var deli = [];
+        var velikost = 0;
+        odgovor.on("data", function (del) {
+          if (koncano) return;
+          var bajti = Buffer.isBuffer(del) ? del : Buffer.from(del);
+          velikost += bajti.length;
+          if (velikost > najvecBajtov) {
+            if (typeof odgovor.destroy === "function") odgovor.destroy();
+            zavrni(new Error("PUPPETEER_RESPONSE_BODY_TOO_LARGE"));
+            return;
+          }
+          deli.push(bajti);
+        });
+        odgovor.once("aborted", function () { zavrni(new Error("PUPPETEER_PROXY_RESPONSE_ABORTED")); });
+        odgovor.once("error", zavrni);
+        odgovor.once("end", function () {
+          var status = Number(odgovor.statusCode || 0);
+          if (!Number.isInteger(status) || status < 100 || status > 599) {
+            zavrni(new Error("PUPPETEER_PROXY_INVALID_STATUS"));
+            return;
+          }
+          var teloOdgovora;
+          try {
+            teloOdgovora = dekodirajOmejenoTeloOdgovora(Buffer.concat(deli, velikost), kodiranje, najvecBajtov);
+          } catch (napakaDekodiranja) {
+            zavrni(napakaDekodiranja);
+            return;
+          }
+          var izhodneGlave = ocistiGlavePrestrezanegaOdgovora(odgovor.headers);
+          delete izhodneGlave["content-encoding"];
+          delete izhodneGlave["content-length"];
+          zakljuci(resolve, {
+            status: status,
+            headers: izhodneGlave,
+            body: teloOdgovora,
+          });
+        });
+      });
+      if (!odhodnaZahteva || typeof odhodnaZahteva.end !== "function" || typeof odhodnaZahteva.once !== "function") {
+        throw new Error("PUPPETEER_PROXY_REQUEST_UNAVAILABLE");
+      }
+      odhodnaZahteva.once("error", zavrni);
+      casovnik = setTimeout(function () {
+        var napaka = new Error("PUPPETEER_PROXY_TIMEOUT");
+        if (odhodnaZahteva && typeof odhodnaZahteva.destroy === "function") odhodnaZahteva.destroy(napaka);
+        zavrni(napaka);
+      }, rokMs);
+      odhodnaZahteva.end(telo || undefined);
+    } catch (napaka) {
+      zavrni(napaka);
+    }
+  });
+}
+
+function varnoZakljuciPrestrezanjeZahteve(zahteva, dejanje, podatek) {
+  if (typeof zahteva.isInterceptResolutionHandled === "function" && zahteva.isInterceptResolutionHandled()) return Promise.resolve();
+  if (dejanje === "continue") return zahteva.continue();
+  if (dejanje === "respond") return zahteva.respond(podatek);
+  return zahteva.abort(podatek || "blockedbyclient");
+}
+
+function jeDovoljenVgrajeniVir(zahteva, protokol) {
+  if (protokol !== "data:" && protokol !== "blob:") return false;
+  if (typeof zahteva.isNavigationRequest === "function" && zahteva.isNavigationRequest()) return false;
+  var vrsta = typeof zahteva.resourceType === "function" ? zahteva.resourceType() : "";
+  return ["image", "media", "font"].includes(vrsta);
+}
+
+async function namestiVarovaloJavnihPuppeteerZahtev(stran, moznosti) {
+  if (!stran || typeof stran.setRequestInterception !== "function" ||
+      typeof stran.setBypassServiceWorker !== "function" || typeof stran.on !== "function") {
+    throw new Error("PUPPETEER_REQUEST_GUARD_UNAVAILABLE");
+  }
+  var nastavitve = moznosti || {};
+  var aktivne = new Set();
+  var seZapira = false;
+  var zakljucevanje = null;
+
+  async function preveriZahtevo(zahteva) {
+    if (seZapira) {
+      await varnoZakljuciPrestrezanjeZahteve(zahteva, "abort");
+      return;
+    }
+    var url;
+    try { url = new URL(String(zahteva.url() || "")); } catch (_) {
+      await varnoZakljuciPrestrezanjeZahteve(zahteva, "abort");
+      return;
+    }
+    if (jeDovoljenVgrajeniVir(zahteva, url.protocol)) {
+      await varnoZakljuciPrestrezanjeZahteve(zahteva, "continue");
+      return;
+    }
+    if (!/^https?:$/.test(url.protocol)) {
+      await varnoZakljuciPrestrezanjeZahteve(zahteva, "abort");
+      return;
+    }
+    try {
+      // Vsaka preusmeritev in vsak podvir se razrešita posebej. Preverjeni IP
+      // se nato pripne na isti Node HTTP/TLS priklop; Chromium zato po
+      // validaciji ne more opraviti drugega, napadalčevega DNS razreševanja.
+      var cilj = await razresiJavniSpletniCilj(url.toString(), { dodajHttps: false, lookup: nastavitve.lookup });
+      var odgovor = await pridobiPripetiHttpOdgovor(zahteva, cilj, {
+        requestFactory: nastavitve.requestFactory,
+        timeoutMs: nastavitve.timeoutMs,
+        maxBodyBytes: nastavitve.maxBodyBytes,
+      });
+      await varnoZakljuciPrestrezanjeZahteve(zahteva, "respond", odgovor);
+    } catch (_) {
+      await varnoZakljuciPrestrezanjeZahteve(zahteva, "abort");
+    }
+  }
+
+  function obZahtevi(zahteva) {
+    var opravilo = preveriZahtevo(zahteva).catch(async function () {
+      try { await varnoZakljuciPrestrezanjeZahteve(zahteva, "abort"); } catch (_) {}
+    });
+    aktivne.add(opravilo);
+    void opravilo.finally(function () { aktivne.delete(opravilo); });
+  }
+
+  // Service worker lahko zahtevo postreže ali sproži zunaj običajnega page
+  // prestrezanja. Bypass zagotovi, da gre omrežni promet vedno skozi guard.
+  await stran.setBypassServiceWorker(true);
+  stran.on("request", obZahtevi);
+  try {
+    await stran.setRequestInterception(true);
+  } catch (napaka) {
+    if (typeof stran.off === "function") stran.off("request", obZahtevi);
+    else if (typeof stran.removeListener === "function") stran.removeListener("request", obZahtevi);
+    throw napaka;
+  }
+
+  return async function odstraniVarovalo() {
+    if (zakljucevanje) return zakljucevanje;
+    seZapira = true;
+    zakljucevanje = (async function () {
+      while (aktivne.size) await Promise.allSettled(Array.from(aktivne));
+      var zaprta = typeof stran.isClosed === "function" && stran.isClosed();
+      if (!zaprta) {
+        try { await stran.setRequestInterception(false); } catch (_) {}
+      }
+      if (typeof stran.off === "function") stran.off("request", obZahtevi);
+      else if (typeof stran.removeListener === "function") stran.removeListener("request", obZahtevi);
+    })();
+    return zakljucevanje;
+  };
 }
 
 function jeNedosegljivaNadomestnaStran(html) {
@@ -861,50 +1248,64 @@ function jeNedosegljivaNadomestnaStran(html) {
     (oznakaNedosegljivosti.test(String(naslov || "") + " " + zacetek) && potrditevGostovanja.test(zacetek));
 }
 
-async function fetchJavniHtml(zacetniUrl) {
+async function fetchJavniHtml(zacetniUrl, moznosti) {
+  var nastavitve = moznosti || {};
+  var skupniRok = Number(nastavitve.deadlineAt) || 0;
+  var najvecHttpPoskusov = Math.min(Math.max(Number(nastavitve.maxAttempts) || IMPRESSUM_HTTP_MAX_ATTEMPTS, 1), 3);
   var url = zacetniUrl;
   for (var preusmeritev = 0; preusmeritev < 6; preusmeritev += 1) {
-    await preveriJavniSpletniNaslov(url.toString());
+    if (skupniRok && Date.now() >= skupniRok) throw new Error("WEBSITE_TOTAL_TIMEOUT");
     var odgovor;
-    for (var httpPoskus = 0; httpPoskus < 3; httpPoskus += 1) {
+    for (var httpPoskus = 0; httpPoskus < najvecHttpPoskusov; httpPoskus += 1) {
       try {
-        odgovor = await fetchZRokom(url, {
-          redirect: "manual",
-          // Najprej se pošteno predstavimo kot aplikacija. Če WAF nebrowserski
-          // profil zavrne s 403/5xx, naslednji poskus uporabi običajen brskalniški
-          // profil. Omejitve 429 ne ponavljamo in je ne obidemo z drugim profilom.
-          headers: { "User-Agent": httpPoskus === 0 ? USER_AGENT : BROWSER_USER_AGENT, Accept: "text/html,application/xhtml+xml" },
-        }, 10000);
+        if (skupniRok && Date.now() >= skupniRok) throw new Error("WEBSITE_TOTAL_TIMEOUT");
+        var cilj = await razresiJavniSpletniCilj(url.toString(), { dodajHttps: false, lookup: nastavitve.lookup });
+        var rokPoskusa = nastavitve.timeoutMs || IMPRESSUM_HTTP_TIMEOUT_MS;
+        if (skupniRok) rokPoskusa = Math.max(1, Math.min(rokPoskusa, skupniRok - Date.now()));
+        odgovor = await pridobiPripetiHttpOdgovor({
+          method: function () { return "GET"; },
+          headers: function () {
+            // Najprej se pošteno predstavimo kot aplikacija. Če WAF nebrowserski
+            // profil zavrne s 403/5xx, naslednji poskus uporabi običajen brskalniški
+            // profil. Omejitve 429 ne ponavljamo in je ne obidemo z drugim profilom.
+            return { "User-Agent": httpPoskus === 0 ? USER_AGENT : BROWSER_USER_AGENT, Accept: "text/html,application/xhtml+xml" };
+          },
+          postData: function () { return undefined; },
+        }, cilj, {
+          requestFactory: nastavitve.requestFactory,
+          timeoutMs: rokPoskusa,
+          maxBodyBytes: MAX_IMPRESSUM_BYTES,
+        });
       } catch (omreznaNapaka) {
         // Prekinjen TLS/DNS klic nima HTTP statusa. Prej je tak prehoden padec
         // takoj označil celotno spletno stran kot nedosegljivo, čeprav je
         // naslednji klic uspel. Ponovimo ga enako omejeno kot 5xx odgovore.
-        if (httpPoskus === 2) throw omreznaNapaka;
+        if (skupniRok && Date.now() >= skupniRok) throw new Error("WEBSITE_TOTAL_TIMEOUT");
+        if (httpPoskus === najvecHttpPoskusov - 1) throw omreznaNapaka;
         await new Promise(function (resolve) { setTimeout(resolve, 350 * (httpPoskus + 1)); });
         continue;
       }
       var zacasnaHttpNapaka = odgovor.status >= 500;
-      if (!zacasnaHttpNapaka || httpPoskus === 2) break;
-      var retryAfter = Number(odgovor.headers.get("retry-after") || 0);
+      if (!zacasnaHttpNapaka || httpPoskus === najvecHttpPoskusov - 1) break;
+      var retryAfter = Number(odgovor.headers["retry-after"] || 0);
       var zakasnitev = retryAfter > 0 ? Math.min(retryAfter * 1000, 3000) : 500 * (httpPoskus + 1);
+      if (skupniRok && Date.now() + zakasnitev >= skupniRok) throw new Error("WEBSITE_TOTAL_TIMEOUT");
       await new Promise(function (resolve) { setTimeout(resolve, zakasnitev); });
     }
     if (odgovor.status >= 300 && odgovor.status < 400) {
-      var lokacija = odgovor.headers.get("location");
+      var lokacija = odgovor.headers.location;
       if (!lokacija) throw new Error("WEBSITE_REDIRECT_FAILED");
       url = new URL(lokacija, url);
       continue;
     }
-    if (!odgovor.ok) {
+    if (odgovor.status < 200 || odgovor.status >= 300) {
       if (odgovor.status === 429) throw new Error("WEBSITE_RATE_LIMITED_429");
       if (odgovor.status >= 500) throw new Error("WEBSITE_SERVER_ERROR_" + odgovor.status);
       throw new Error("WEBSITE_FETCH_FAILED_" + odgovor.status);
     }
-    var tip = String(odgovor.headers.get("content-type") || "");
+    var tip = String(odgovor.headers["content-type"] || "");
     if (tip && !/text\/html|application\/xhtml\+xml/i.test(tip)) throw new Error("WEBSITE_NOT_HTML");
-    var dolzina = Number(odgovor.headers.get("content-length") || 0);
-    if (dolzina > MAX_IMPRESSUM_BYTES) throw new Error("WEBSITE_TOO_LARGE");
-    var html = await odgovor.text();
+    var html = odgovor.body.toString("utf8");
     if (html.length > MAX_IMPRESSUM_BYTES) throw new Error("WEBSITE_TOO_LARGE");
     // Ponudniki gostovanja lahko ob deaktivirani domeni vrnejo HTTP 200 in
     // svojo nadomestno stran. To ni veljavno prebrana stran podjetja.
@@ -912,6 +1313,10 @@ async function fetchJavniHtml(zacetniUrl) {
     return { html: html, url: url.toString() };
   }
   throw new Error("WEBSITE_TOO_MANY_REDIRECTS");
+}
+
+function jeTransportnoNedosegljivGostitelj(koda) {
+  return /(?:PUPPETEER_(?:PROXY_)?TIMEOUT|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ERR_TLS|socket hang up|fetch failed|network error)/i.test(String(koda || ""));
 }
 
 function najdiRegistrskiVnos(tekst) {
@@ -1011,11 +1416,13 @@ async function poisciImpressumZBrskalnikom(urlji, vnos, pravniKontekst) {
       var varenUrl;
       try { varenUrl = await preveriJavniSpletniNaslov(urlji[i]); } catch (_) { continue; }
       var stran = await browser.newPage();
+      var odstraniVarovalo = null;
       try {
+        odstraniVarovalo = await namestiVarovaloJavnihPuppeteerZahtev(stran);
         await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
         await stran.setUserAgent(BROWSER_USER_AGENT);
-        await stran.goto(varenUrl.toString(), { waitUntil: "domcontentloaded", timeout: 15000 });
-        await new Promise(function (resolve) { setTimeout(resolve, 900); });
+        await stran.goto(varenUrl.toString(), { waitUntil: "domcontentloaded", timeout: IMPRESSUM_BROWSER_TIMEOUT_MS });
+        await new Promise(function (resolve) { setTimeout(resolve, 600); });
         if (pravniKontekst && !jeUrlVPravnemKontekstu(stran.url(), pravniKontekst)) continue;
         var vsebina = await stran.evaluate(function () {
           return { html: document.documentElement.outerHTML, tekst: document.body && document.body.innerText || "" };
@@ -1030,6 +1437,7 @@ async function poisciImpressumZBrskalnikom(urlji, vnos, pravniKontekst) {
       } catch (_) {
         // Poskusimo naslednjo že preverjeno javno pot.
       } finally {
+        if (odstraniVarovalo) await odstraniVarovalo();
         await stran.close();
       }
     }
@@ -1637,7 +2045,13 @@ async function poisciImpressumSScrapling(urlji, vnos, pravniKontekst) {
     var varenUrl;
     try { varenUrl = await preveriJavniSpletniNaslov(ciljniUrl); } catch (_) { continue; }
     var rezultat = await scraplingImpressum.fetchImpressum(varenUrl.toString());
-    if (rezultat.status === "not_configured" || rezultat.status === "invalid_configuration" || rezultat.status === "unavailable") continue;
+    if (rezultat.status === "not_configured" || rezultat.status === "invalid_configuration") continue;
+    if (rezultat.status === "unavailable") {
+      // Druga pot na istem spletnem mestu ne bo popravila izpada samega
+      // zajemnega ponudnika. Ne seštevamo dveh enakih timeoutov.
+      if (["timeout", "service_unavailable"].includes(String(rezultat.reason || ""))) break;
+      continue;
+    }
     if (rezultat.status === "robots_disallowed" || rezultat.status === "rate_limited") {
       return {
         status: "blocked",
@@ -1660,40 +2074,89 @@ async function poisciImpressumSScrapling(urlji, vnos, pravniKontekst) {
   return null;
 }
 
-async function poisciVImpressumu(vnos) {
+function potrebujeDinamcniImpressumFallback(prebraneStrani, stanje) {
+  var strani = Array.isArray(prebraneStrani) ? prebraneStrani : [];
+  var podatki = stanje || {};
+  if (podatki.najdenImpressumBrezNosilca) return true;
+  if (!strani.length) return true;
+  var html = strani.map(function (stran) { return String(stran && stran.html || ""); }).join("\n");
+  var vidnoBesedilo = besediloIzHtml(html).replace(/\s+/g, " ").trim();
+  var jeJavaScriptLupina = /__NEXT_DATA__|__NUXT__|data-reactroot|ng-version/i.test(html) ||
+    /id=["'](?:root|app|__next)["'][^>]*>\s*</i.test(html);
+  // Berljiva statična stran brez pravne povezave se v Chromu ne spremeni v
+  // Impressum. Browser ohranimo samo za prazne/dinamične lupine ali že odkrito
+  // pravno stran, ki jo mora dokončno izrisati JavaScript.
+  return jeJavaScriptLupina || vidnoBesedilo.length < 500;
+}
+
+async function poisciVImpressumuJedro(vnos) {
   if (!vnos.spletnaStran) return { status: "not_provided" };
   try {
     var osnova = await preveriJavniSpletniNaslov(vnos.spletnaStran);
     var pravniKontekst = dolociPravniKontekst(osnova);
     var poti = sestaviZacetneImpressumPoti(osnova, pravniKontekst);
     var obiskane = new Set();
+    var odkritePravnePovezave = [];
     var najdenImpressumBrezNosilca = "";
     var razlogNepopolnegaImpressuma = "";
     var uspesnoPrebrane = 0;
+    var prebraneStrani = [];
     var napakeBranja = [];
     var razlogNapakeKonteksta = "";
-    for (var i = 0; i < poti.length && obiskane.size < 12; i += 1) {
-      var cilj = poti[i].toString();
-      if (obiskane.has(cilj)) continue;
-      obiskane.add(cilj);
-      try {
-        var stran = await fetchJavniHtml(cilj);
+
+    async function preberiKandidateVzporedno(urlji) {
+      var kandidati = (Array.isArray(urlji) ? urlji : []).map(String).filter(function (cilj) {
+        if (!cilj || obiskane.has(cilj) || obiskane.size >= 12) return false;
+        obiskane.add(cilj);
+        return true;
+      });
+      return Promise.all(kandidati.map(async function (cilj) {
+        try {
+          var jeOsnovnaStran = cilj === osnova.toString();
+          return {
+            cilj: cilj,
+            stran: await fetchJavniHtml(cilj, {
+              maxAttempts: jeOsnovnaStran ? IMPRESSUM_HTTP_MAX_ATTEMPTS : 1,
+            }),
+          };
+        } catch (napaka) {
+          return {
+            cilj: cilj,
+            napaka: String(napaka && (napaka.message || napaka.name) || "WEBSITE_FETCH_FAILED"),
+          };
+        }
+      }));
+    }
+
+    function obdelajPrebraneKandidate(rezultati) {
+      var seznam = Array.isArray(rezultati) ? rezultati : [];
+      for (var i = 0; i < seznam.length; i += 1) {
+        var rezultat = seznam[i];
+        if (rezultat.napaka) {
+          napakeBranja.push(rezultat.napaka);
+          continue;
+        }
+        var stran = rezultat.stran;
         uspesnoPrebrane += 1;
+        prebraneStrani.push(stran);
         if (!jeUrlVPravnemKontekstu(stran.url, pravniKontekst)) {
           razlogNapakeKonteksta = "legal_source_context_mismatch";
           continue;
         }
-        var noveImpressumPovezave = najdiImpressumPovezave(stran.html, stran.url).filter(function (povezava) {
-          return !obiskane.has(povezava) && jeUrlVPravnemKontekstu(povezava, pravniKontekst);
-        });
-        noveImpressumPovezave.forEach(function (povezava) {
-          poti.splice(i + 1, 0, povezava);
-        });
+        var noveImpressumPovezave = najdiImpressumPovezave(stran.html, stran.url);
         if (!noveImpressumPovezave.length) {
-          najdiOznacenePravnePovezave(stran.html, stran.url).filter(function (povezava) {
-            return !obiskane.has(povezava) && jeUrlVPravnemKontekstu(povezava, pravniKontekst);
-          }).forEach(function (povezava) { poti.splice(i + 1, 0, povezava); });
+          // Privacy povezave lahko vodijo na Google, Instagram ali drugega
+          // ponudnika. Kot rezervni identitetni vir so dovoljene samo znotraj
+          // istega poslovnega gostitelja.
+          noveImpressumPovezave = najdiOznacenePravnePovezave(stran.html, stran.url).filter(function (povezava) {
+            return normalizirajGostitelja(povezava) === pravniKontekst.gostitelj;
+          });
         }
+        noveImpressumPovezave.filter(function (povezava) {
+          return !obiskane.has(povezava) && jeUrlVPravnemKontekstu(povezava, pravniKontekst);
+        }).forEach(function (povezava) {
+          if (!odkritePravnePovezave.includes(povezava)) odkritePravnePovezave.push(povezava);
+        });
         var jeImpressum = jePravniIdentitetniDokument(stran.html, stran.url);
         var subjekt = jeImpressum ? razcleniImpressum(stran.html, stran.url, vnos) : null;
         if (subjekt) {
@@ -1716,16 +2179,24 @@ async function poisciVImpressumu(vnos) {
             ? "legal_identity_incomplete"
             : "holder_not_reliably_identified";
         }
-      } catch (napakaBranja) {
-        var kodaNapakeBranja = String(napakaBranja && (napakaBranja.message || napakaBranja.name) || "WEBSITE_FETCH_FAILED");
-        napakeBranja.push(kodaNapakeBranja);
-        // 429 pomeni izrecno omejitev, ponavljanje po drugih poteh bi jo kršilo.
-        // Pri 5xx preverimo še eno običajno pot do Impressuma, nato odnehamo,
-        // da večja čakalna vrsta ne pomnoži izpada tujega strežnika.
-        if (/WEBSITE_RATE_LIMITED_429/.test(kodaNapakeBranja)) break;
-        if (napakeBranja.filter(function (koda) { return /WEBSITE_SERVER_ERROR_\d{3}/.test(koda); }).length >= 2) break;
       }
+      return null;
     }
+
+    // Prvi val preveri domačo in standardne pravne poti hkrati. Uspešna
+    // stran zato ni več blokirana za šestimi zaporednimi 404 ali timeouti.
+    var prviVal = await preberiKandidateVzporedno(poti);
+    var najdeno = obdelajPrebraneKandidate(prviVal);
+    if (najdeno) return najdeno;
+
+    // Drugi val vsebuje samo dejanske pravne povezave, odkrite v HTML prvega
+    // vala. Nenavadnih slugov ne ugibamo in jih ne preverjamo zaporedno.
+    if (odkritePravnePovezave.length && obiskane.size < 12) {
+      var drugiVal = await preberiKandidateVzporedno(odkritePravnePovezave);
+      najdeno = obdelajPrebraneKandidate(drugiVal);
+      if (najdeno) return najdeno;
+    }
+
     var omejitevDostopa = napakeBranja.find(function (koda) { return /WEBSITE_RATE_LIMITED_429/.test(koda); });
     if (omejitevDostopa) {
       return {
@@ -1736,21 +2207,45 @@ async function poisciVImpressumu(vnos) {
         sourceUrl: osnova.toString(),
       };
     }
+    var transportnaNedosegljivost = napakeBranja.find(jeTransportnoNedosegljivGostitelj);
+    var neposredniZajemNedosegljiv = Boolean(!uspesnoPrebrane && transportnaNedosegljivost);
+    var potrebujeFallback = potrebujeDinamcniImpressumFallback(prebraneStrani, {
+      najdenImpressumBrezNosilca: najdenImpressumBrezNosilca,
+    });
+    if (!potrebujeFallback) {
+      return {
+        status: "not_found",
+        reason: razlogNapakeKonteksta || "impressum_not_found",
+        sourceUrl: osnova.toString(),
+      };
+    }
+    // Dinamični strani ali WAF preverita Scrapling in lokalni browser hkrati.
+    // Prej se je celoten osemdesetsekundni fallback sešteval dvakrat.
+    var fallbackUrlji = [najdenImpressumBrezNosilca]
+      .concat(
+        odkritePravnePovezave,
+        neposredniZajemNedosegljiv ? poti.slice(0, 2).map(String) : [osnova.toString()]
+      )
+      .filter(Boolean);
+    var enkratniFallbackUrlji = Array.from(new Set(fallbackUrlji)).slice(0, 2);
+    var fallbacki = await Promise.all([
+      poisciImpressumSScrapling(enkratniFallbackUrlji, vnos, pravniKontekst),
+      poisciImpressumZBrskalnikom(enkratniFallbackUrlji.slice(0, 1), vnos, pravniKontekst),
+    ]);
+    var scraplingFallback = fallbacki[0];
+    var brskalniskiFallback = fallbacki[1];
+    if (scraplingFallback && scraplingFallback.status === "found") return scraplingFallback;
+    if (brskalniskiFallback && imaPopolnoImpressumIdentiteto(brskalniskiFallback.subjekt) &&
+        !razlogNeujemanjaIdentiteteZVnosom(brskalniskiFallback.subjekt, vnos)) return brskalniskiFallback;
+    if (scraplingFallback && scraplingFallback.status === "blocked") {
+      return {
+        status: "unavailable",
+        reason: scraplingFallback.reason,
+        httpStatus: scraplingFallback.httpStatus,
+        sourceUrl: scraplingFallback.sourceUrl || osnova.toString(),
+      };
+    }
     if (!uspesnoPrebrane) {
-      var scraplingRezultat = await poisciImpressumSScrapling(poti.slice(0, 2).map(String), vnos, pravniKontekst);
-      if (scraplingRezultat && scraplingRezultat.status === "found") return scraplingRezultat;
-      if (scraplingRezultat && scraplingRezultat.status === "blocked") {
-        return {
-          status: "unavailable",
-          reason: scraplingRezultat.reason,
-          httpStatus: scraplingRezultat.httpStatus,
-          attempts: napakeBranja.length,
-          sourceUrl: scraplingRezultat.sourceUrl || osnova.toString(),
-        };
-      }
-      var brskalniskiRezultat = await poisciImpressumZBrskalnikom(poti.slice(0, 2).map(String), vnos, pravniKontekst);
-      if (brskalniskiRezultat && imaPopolnoImpressumIdentiteto(brskalniskiRezultat.subjekt) &&
-          !razlogNeujemanjaIdentiteteZVnosom(brskalniskiRezultat.subjekt, vnos)) return brskalniskiRezultat;
       var prvaNapaka = napakeBranja[0] || "WEBSITE_FETCH_FAILED";
       return {
         status: "unavailable",
@@ -1760,22 +2255,6 @@ async function poisciVImpressumu(vnos) {
         sourceUrl: osnova.toString(),
       };
     }
-    // Tudi začetna stran je lahko dejanski pravni dokument: pri dinamičnih
-    // straneh je Impressum vgrajen v domačo stran in ga razkrije šele brskalnik.
-    var fallbackUrlji = [najdenImpressumBrezNosilca, osnova.toString()].concat(poti.filter(function (pot) { return jeOcitenPravniUrl(pot); }).map(String)).filter(Boolean);
-    var scraplingFallback = await poisciImpressumSScrapling(Array.from(new Set(fallbackUrlji)).slice(0, 2), vnos, pravniKontekst);
-    if (scraplingFallback && scraplingFallback.status === "found") return scraplingFallback;
-    if (scraplingFallback && scraplingFallback.status === "blocked") {
-      return {
-        status: "unavailable",
-        reason: scraplingFallback.reason,
-        httpStatus: scraplingFallback.httpStatus,
-        sourceUrl: scraplingFallback.sourceUrl || osnova.toString(),
-      };
-    }
-    var fallbackRezultat = await poisciImpressumZBrskalnikom(Array.from(new Set(fallbackUrlji)).slice(0, 2), vnos, pravniKontekst);
-    if (fallbackRezultat && imaPopolnoImpressumIdentiteto(fallbackRezultat.subjekt) &&
-        !razlogNeujemanjaIdentiteteZVnosom(fallbackRezultat.subjekt, vnos)) return fallbackRezultat;
     return {
       status: "not_found",
       reason: razlogNapakeKonteksta || (najdenImpressumBrezNosilca ? razlogNepopolnegaImpressuma : "impressum_not_found"),
@@ -1985,6 +2464,26 @@ async function fetchPlacljiviVirEnkrat(url, moznosti, rokMs) {
     return await fetch(url, Object.assign({}, moznosti || {}, { signal: kontrolnik.signal }));
   } finally {
     clearTimeout(casovnik);
+  }
+}
+
+async function poisciVImpressumu(vnos) {
+  if (!vnos.spletnaStran) return { status: "not_provided" };
+  var zacetek = Date.now();
+  try {
+    var rezultat = await poisciVImpressumuJedro(vnos);
+    console.info("[mehka-boniteta:impressum-timing]", {
+      elapsedMs: Date.now() - zacetek,
+      status: rezultat && rezultat.status,
+      reason: rezultat && rezultat.reason,
+    });
+    return rezultat;
+  } catch (napaka) {
+    console.warn("[mehka-boniteta:impressum-timing]", {
+      elapsedMs: Date.now() - zacetek,
+      error: String(napaka && (napaka.code || napaka.message) || "unexpected_error"),
+    });
+    throw napaka;
   }
 }
 
@@ -2413,10 +2912,14 @@ function jeRegistriraniTrgovecOpenRegister(podjetje) {
 }
 
 function potrebujeImpressumDopolnitev(openregister, vnos) {
+  var podjetje = openregister && openregister.company || {};
+  var naslov = podjetje.address || {};
+  var manjkaRegistrskaLokacija = !String(naslov.street || "").trim() ||
+    !/^\d{5}$/.test(String(naslov.postal_code || "").trim());
   return Boolean(
     vnos && vnos.spletnaStran &&
     openregister && openregister.status === "found" &&
-    jeRegistriraniTrgovecOpenRegister(openregister.company)
+    (jeRegistriraniTrgovecOpenRegister(podjetje) || manjkaRegistrskaLokacija)
   );
 }
 
@@ -2535,6 +3038,29 @@ function sestaviIdentiteto(openregister, _odstranjeniHwk, javniProfil, vnos) {
         })) registrskaIdentiteta.businessIdentityNames.push(impressumSubjekt.naziv);
       }
       registrskaIdentiteta.impressumSourceUrl = javniProfil.sourceUrl || impressumSubjekt.sourceUrl || "";
+    }
+    // OpenRegister pri nekaterih veljavnih zapisih vrne company_id, register in
+    // kraj, vendar izpusti ulico ter poštno številko. Če je isto podjetje že
+    // zanesljivo prebrano iz njegovega Impressuma, manjkajočo lokacijo dopolnimo
+    // iz tega vira. Registrskih vrednosti nikoli ne prepisujemo.
+    var naslovniSubjekt = javniProfil && javniProfil.status === "found" && javniProfil.subjekt;
+    var naslovniNazivi = naslovniSubjekt ? [naslovniSubjekt.naziv].concat(naslovniSubjekt.businessIdentityNames || []) : [];
+    var registrskiNaziv = kanonicniNazivZaRegistrskoDopolnitev(podjetje.name);
+    var nazivSeUjema = Boolean(registrskiNaziv) && naslovniNazivi.some(function (naziv) {
+      return kanonicniNazivZaRegistrskoDopolnitev(naziv) === registrskiNaziv;
+    });
+    var krajSeUjema = Boolean(naslovniSubjekt) && (!naslov.city ||
+      normaliziraj(naslov.city) === normaliziraj(naslovniSubjekt.kraj));
+    var imaPopolnoImpressumLokacijo = Boolean(naslovniSubjekt && naslovniSubjekt.naslov &&
+      /^\d{5}$/.test(String(naslovniSubjekt.postnaStevilka || "")) && naslovniSubjekt.kraj);
+    if (nazivSeUjema && krajSeUjema && imaPopolnoImpressumLokacijo &&
+        (!registrskaIdentiteta.naslov || !registrskaIdentiteta.postnaStevilka)) {
+      registrskaIdentiteta.naslov = registrskaIdentiteta.naslov || naslovniSubjekt.naslov;
+      registrskaIdentiteta.postnaStevilka = registrskaIdentiteta.postnaStevilka || naslovniSubjekt.postnaStevilka;
+      registrskaIdentiteta.kraj = registrskaIdentiteta.kraj || naslovniSubjekt.kraj;
+      registrskaIdentiteta.addressSource = "verified_impressum_supplement";
+      registrskaIdentiteta.impressumSourceUrl = registrskaIdentiteta.impressumSourceUrl ||
+        javniProfil.sourceUrl || naslovniSubjekt.sourceUrl || "";
     }
     return registrskaIdentiteta;
   }
@@ -2741,7 +3267,183 @@ function cookiesIzOdgovora(odgovor) {
   return vrednosti.filter(Boolean).map(function (vrednost) { return vrednost.split(";", 1)[0]; }).join("; ");
 }
 
-async function zazeniBrskalnikZaDokazilo() {
+function varniPuppeteerOmrezniArgumenti(argumenti, proxyUrl) {
+  var osnovni = (Array.isArray(argumenti) ? argumenti : []).filter(function (argument) {
+    return !/^--(?:proxy-server|proxy-bypass-list|host-resolver-rules|webrtc-ip-handling-policy|force-webrtc-ip-handling-policy|disable-quic)(?:=|$)/.test(String(argument || ""));
+  });
+  return osnovni.concat([
+    "--proxy-server=" + String(proxyUrl),
+    "--proxy-bypass-list=<-loopback>",
+    // Sam proxy posluša na 127.0.0.1. Ta izjema omogoči povezavo samo do
+    // proxyja; implicitni loopback bypass spodnja nastavitev še vedno odstrani,
+    // zato morajo vsi cilji skozi CONNECT allowlist.
+    "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+    "--webrtc-ip-handling-policy=disable_non_proxied_udp",
+    "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+    "--disable-quic",
+  ]);
+}
+
+function razcleniPuppeteerConnectNaslov(vrednost) {
+  var naslov = String(vrednost || "").trim();
+  var ujemanje = naslov.match(/^([^:\s]+):(\d{1,5})$/);
+  if (!ujemanje) return null;
+  var port = Number(ujemanje[2]);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
+  return { hostname: ujemanje[1].toLowerCase().replace(/\.$/, ""), port: port };
+}
+
+function normalizirajPuppeteerConnectCilj(cilj) {
+  var hostname = String(cilj && cilj.hostname || "").toLowerCase().replace(/\.$/, "");
+  var address = String(cilj && cilj.address || "");
+  var family = net.isIP(address);
+  var port = Number(cilj && cilj.port || 443);
+  if (!hostname || !/^[a-z0-9.-]+$/.test(hostname) || !family || jeZasebenIp(address) || port !== 443) {
+    throw new Error("PUPPETEER_CONNECT_TARGET_INVALID");
+  }
+  return { hostname: hostname, address: address, family: family, port: port };
+}
+
+function najdiDovoljeniPuppeteerConnectCilj(vrednost, cilji) {
+  var naslov = razcleniPuppeteerConnectNaslov(vrednost);
+  if (!naslov) return null;
+  return (Array.isArray(cilji) ? cilji : []).find(function (cilj) {
+    return cilj.hostname === naslov.hostname && cilj.port === naslov.port;
+  }) || null;
+}
+
+async function pripraviDovoljenePuppeteerConnectCilje(urlji, lookup) {
+  var cilji = [];
+  for (var i = 0; i < (Array.isArray(urlji) ? urlji.length : 0); i += 1) {
+    var cilj = await razresiJavniSpletniCilj(urlji[i], { dodajHttps: false, lookup: lookup });
+    if (!cilj || cilj.url.protocol !== "https:" || (cilj.url.port && cilj.url.port !== "443")) {
+      throw new Error("PUPPETEER_CONNECT_TARGET_INVALID");
+    }
+    var normaliziran = normalizirajPuppeteerConnectCilj({
+      hostname: cilj.hostname,
+      address: cilj.address,
+      family: cilj.family,
+      port: 443,
+    });
+    if (!cilji.some(function (obstojeci) { return obstojeci.hostname === normaliziran.hostname; })) {
+      cilji.push(normaliziran);
+    }
+  }
+  return cilji;
+}
+
+function zazeniBlokirniPuppeteerProxy(moznosti) {
+  return new Promise(function (resolve, reject) {
+    var nastavitve = moznosti || {};
+    var dovoljeniConnectCilji;
+    try {
+      dovoljeniConnectCilji = (Array.isArray(nastavitve.dovoljeniConnectCilji)
+        ? nastavitve.dovoljeniConnectCilji : []).map(normalizirajPuppeteerConnectCilj);
+    } catch (napaka) {
+      reject(napaka);
+      return;
+    }
+    var odprteVticnice = new Set();
+    function spremljajVticnico(vticnica) {
+      if (!vticnica || typeof vticnica.once !== "function") return;
+      odprteVticnice.add(vticnica);
+      vticnica.once("close", function () { odprteVticnice.delete(vticnica); });
+    }
+    var server = http.createServer(function (_zahteva, odgovor) {
+      odgovor.writeHead(403, { "Content-Type": "text/plain", "Content-Length": "0", Connection: "close" });
+      odgovor.end();
+    });
+    server.on("connection", function (socket) {
+      spremljajVticnico(socket);
+    });
+    server.on("connect", function (zahteva, socket, prviBajti) {
+      spremljajVticnico(socket);
+      var ciljnaVticnica = null;
+      // Chromium lahko zavrnjen CONNECT takoj resetira. Tudi fail-closed veja
+      // mora zato požreti omrežni reset in ne sme podreti celotnega workerja.
+      socket.on("error", function () {
+        if (ciljnaVticnica && !ciljnaVticnica.destroyed) ciljnaVticnica.destroy();
+      });
+      var cilj = najdiDovoljeniPuppeteerConnectCilj(zahteva && zahteva.url, dovoljeniConnectCilji);
+      if (!cilj) {
+        socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+        return;
+      }
+      ciljnaVticnica = net.connect({ host: cilj.address, port: cilj.port, family: cilj.family });
+      spremljajVticnico(ciljnaVticnica);
+      var povezano = false;
+      ciljnaVticnica.setTimeout(15000);
+      ciljnaVticnica.once("connect", function () {
+        povezano = true;
+        ciljnaVticnica.setTimeout(0);
+        if (socket.destroyed) {
+          ciljnaVticnica.destroy();
+          return;
+        }
+        socket.write("HTTP/1.1 200 Connection Established\r\nProxy-Agent: UJ-Boniteta\r\n\r\n");
+        if (prviBajti && prviBajti.length) ciljnaVticnica.write(prviBajti);
+        socket.pipe(ciljnaVticnica);
+        ciljnaVticnica.pipe(socket);
+      });
+      ciljnaVticnica.once("timeout", function () { ciljnaVticnica.destroy(new Error("PUPPETEER_CONNECT_TIMEOUT")); });
+      ciljnaVticnica.on("error", function () {
+        if (!povezano && !socket.destroyed) socket.end("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");
+        if (!socket.destroyed) socket.destroy();
+      });
+      socket.once("close", function () { if (!ciljnaVticnica.destroyed) ciljnaVticnica.destroy(); });
+    });
+    server.on("upgrade", function (_zahteva, socket) {
+      socket.on("error", function () {});
+      socket.destroy();
+    });
+    server.on("clientError", function (_napaka, socket) {
+      if (!socket) return;
+      socket.on("error", function () {});
+      socket.destroy();
+    });
+    function obNapaki(napaka) { reject(napaka); }
+    server.once("error", obNapaki);
+    server.listen(0, "127.0.0.1", function () {
+      server.removeListener("error", obNapaki);
+      var naslov = server.address();
+      if (!naslov || typeof naslov !== "object" || !naslov.port) {
+        server.close();
+        reject(new Error("PUPPETEER_BLOCKING_PROXY_UNAVAILABLE"));
+        return;
+      }
+      server.unref();
+      resolve({
+        server: server,
+        url: "http://127.0.0.1:" + naslov.port,
+        closing: null,
+        sockets: odprteVticnice,
+        dovoljeniConnectCilji: dovoljeniConnectCilji,
+      });
+    });
+  });
+}
+
+function zapriBlokirniPuppeteerProxy(blokada) {
+  if (!blokada || !blokada.server) return Promise.resolve();
+  if (blokada.closing) return blokada.closing;
+  blokada.closing = new Promise(function (resolve) {
+    try {
+      if (blokada.sockets) blokada.sockets.forEach(function (socket) {
+        try { socket.destroy(); } catch (_) {}
+      });
+      if (typeof blokada.server.closeAllConnections === "function") blokada.server.closeAllConnections();
+      blokada.server.close(function () { resolve(); });
+    } catch (_) { resolve(); }
+  });
+  return blokada.closing;
+}
+
+async function zazeniBrskalnikZaDokazilo(moznosti) {
+  var nastavitve = moznosti || {};
+  var dovoljeniConnectCilji = await pripraviDovoljenePuppeteerConnectCilje(
+    nastavitve.dovoljeniConnectUrlji,
+    nastavitve.lookup
+  );
   // puppeteer-core 25 je ESM. Dinamični import deluje tudi iz tega CommonJS
   // handlerja in prepreči produkcijski ERR_REQUIRE_ESM pred zagonom brskalnika.
   var puppeteerModul = await import("puppeteer-core");
@@ -2757,32 +3459,55 @@ async function zazeniBrskalnikZaDokazilo() {
     // Vsak zajem dobi svoj profil. Ob časovni prekinitvi zato zaklenjen profil
     // prejšnjega brskalnika ne more ustaviti vseh naslednjih preverjanj.
     var zacasniProfil = fs.mkdtempSync(path.join(os.tmpdir(), "mehka-boniteta-browser-"));
-    var lokalniBrowser = await puppeteer.launch({
-      executablePath: lokalniBrskalnik,
-      headless: true,
-      userDataDir: zacasniProfil,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    var lokalnaOmreznaBlokada = await zazeniBlokirniPuppeteerProxy({ dovoljeniConnectCilji: dovoljeniConnectCilji });
+    var lokalniBrowser;
+    try {
+      lokalniBrowser = await puppeteer.launch({
+        executablePath: lokalniBrskalnik,
+        headless: true,
+        protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
+        userDataDir: zacasniProfil,
+        args: varniPuppeteerOmrezniArgumenti(["--no-sandbox", "--disable-setuid-sandbox"], lokalnaOmreznaBlokada.url),
+      });
+    } catch (napaka) {
+      await zapriBlokirniPuppeteerProxy(lokalnaOmreznaBlokada);
+      throw napaka;
+    }
     lokalniBrowser.__mehkaBonitetaTempProfile = zacasniProfil;
+    lokalniBrowser.__mehkaBonitetaBlockingProxy = lokalnaOmreznaBlokada;
     return lokalniBrowser;
   }
   var chromiumModul = await import("@sparticuz/chromium");
   var chromium = chromiumModul.default || chromiumModul;
   chromium.setGraphicsMode = false;
-  return puppeteer.launch({
-    args: puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
-    defaultViewport: { width: 1280, height: 1000, deviceScaleFactor: 1 },
-    executablePath: await chromium.executablePath(),
-    headless: "shell",
-  });
+  var produkcijskaOmreznaBlokada = await zazeniBlokirniPuppeteerProxy({ dovoljeniConnectCilji: dovoljeniConnectCilji });
+  try {
+    var produkcijskiBrowser = await puppeteer.launch({
+      args: varniPuppeteerOmrezniArgumenti(
+        puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
+        produkcijskaOmreznaBlokada.url
+      ),
+      defaultViewport: { width: 1280, height: 1000, deviceScaleFactor: 1 },
+      executablePath: await chromium.executablePath(),
+      headless: "shell",
+      protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS,
+    });
+    produkcijskiBrowser.__mehkaBonitetaBlockingProxy = produkcijskaOmreznaBlokada;
+    return produkcijskiBrowser;
+  } catch (napaka) {
+    await zapriBlokirniPuppeteerProxy(produkcijskaOmreznaBlokada);
+    throw napaka;
+  }
 }
 
 async function zapriBrskalnikZaDokazilo(browser) {
   if (!browser) return;
   var zacasniProfil = browser.__mehkaBonitetaTempProfile;
+  var omreznaBlokada = browser.__mehkaBonitetaBlockingProxy;
   try {
     await browser.close();
   } finally {
+    await zapriBlokirniPuppeteerProxy(omreznaBlokada);
     if (!zacasniProfil) return;
     var razresenProfil = path.resolve(zacasniProfil);
     var razresenaTempMapa = path.resolve(os.tmpdir());
@@ -3566,7 +4291,9 @@ function sestaviApiDokaziloIdentitete(identiteta, openregister) {
     status: "verified_api",
     verifiedAt: new Date().toISOString(),
     sourceUrl: openregister && openregister.sourceUrl || OPENREGISTER_WEB,
-    sourceLabel: "OpenRegister API",
+    sourceLabel: identiteta.addressSource === "verified_impressum_supplement"
+      ? "OpenRegister API + preverjeni Impressum"
+      : "OpenRegister API",
     companyId: identiteta.companyId || "",
     officialName: identiteta.ime || identiteta.naziv || "",
     officialStreet: identiteta.naslov || "",
@@ -3586,8 +4313,10 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, _odstranjeniHw
   if (!vir || !vir.sourceUrl) return null;
   var varenUrl = await preveriJavniSpletniNaslov(vir.sourceUrl);
   var browser = await zazeniBrskalnikZaDokazilo();
+  var odstraniVarovalo = null;
   try {
     var stran = await browser.newPage();
+    odstraniVarovalo = await namestiVarovaloJavnihPuppeteerZahtev(stran);
     await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1.5 });
     // Pravi brskalniški profil je nujen za strani, ki pri nebrowserskem
     // User-Agentu skrijejo pravno vsebino in pustijo viden samo cookie dialog.
@@ -3666,6 +4395,7 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, _odstranjeniHw
       sourceLabel: vir.sourceLabel,
     };
   } finally {
+    if (odstraniVarovalo) await odstraniVarovalo();
     await zapriBrskalnikZaDokazilo(browser);
   }
 }
@@ -3944,15 +4674,26 @@ function pripraviStrogUradniInsolvencniVhod(subjekt, opravilo, datumOd, datumDo)
   if (jeOpenRegister) {
     var uradna = subjekt.openRegisterIdentity;
     if (!uradna || uradna.status !== "verified_api") return { ok: false, reason: "openregister_identity_snapshot_missing" };
-    if (!uradna.companyId || !uradna.name || !uradna.street || !/^\d{5}$/.test(String(uradna.postalCode || "")) || !uradna.city) {
+    var naslovIzPreverjenegaImpressuma = Boolean(
+      subjekt.addressSource === "verified_impressum_supplement" &&
+      subjekt.impressumSourceUrl &&
+      String(subjekt.naslov || "").trim().length >= 3 &&
+      /^\d{5}$/.test(String(subjekt.postnaStevilka || "")) &&
+      uradna.name && uradna.companyId && uradna.city &&
+      normaliziraj(subjekt.ime || subjekt.naziv) === normaliziraj(uradna.name) &&
+      normaliziraj(subjekt.kraj) === normaliziraj(uradna.city)
+    );
+    var zaklenjenaUlica = uradna.street || (naslovIzPreverjenegaImpressuma ? subjekt.naslov : "");
+    var zaklenjenaPosta = uradna.postalCode || (naslovIzPreverjenegaImpressuma ? subjekt.postnaStevilka : "");
+    if (!uradna.companyId || !uradna.name || !zaklenjenaUlica || !/^\d{5}$/.test(String(zaklenjenaPosta || "")) || !uradna.city) {
       return { ok: false, reason: "openregister_official_data_incomplete" };
     }
     var jeRegistriraniNosilec = subjekt.insolvencyIdentityRole === "registered_merchant_owner";
     var imeZaPrimerjavo = jeRegistriraniNosilec ? subjekt.registeredBusinessName : (subjekt.ime || subjekt.naziv);
     var companyIdZaPrimerjavo = jeRegistriraniNosilec ? subjekt.registeredCompanyId : subjekt.companyId;
     var uradnaPoljaSeUjemajo = normaliziraj(imeZaPrimerjavo) === normaliziraj(uradna.name) &&
-      normalizirajNaslov(subjekt.naslov) === normalizirajNaslov(uradna.street) &&
-      String(subjekt.postnaStevilka) === String(uradna.postalCode) &&
+      normalizirajNaslov(subjekt.naslov) === normalizirajNaslov(zaklenjenaUlica) &&
+      String(subjekt.postnaStevilka) === String(zaklenjenaPosta) &&
       normaliziraj(subjekt.kraj) === normaliziraj(uradna.city) &&
       String(companyIdZaPrimerjavo || "") === String(uradna.companyId || "") &&
       normaliziraj(subjekt.registerNumber) === normaliziraj(uradna.registerNumber) &&
@@ -3960,14 +4701,18 @@ function pripraviStrogUradniInsolvencniVhod(subjekt, opravilo, datumOd, datumDo)
     if (!uradnaPoljaSeUjemajo) return { ok: false, reason: "openregister_identity_mismatch" };
     if (!imaPopolnRegistrskiVnos(register)) return { ok: false, reason: "openregister_register_incomplete" };
     zaklenjenaIdentiteta = {
-      source: "openregister",
+      source: naslovIzPreverjenegaImpressuma ? "openregister+verified_impressum_supplement" : "openregister",
       companyId: uradna.companyId,
       officialName: uradna.name,
-      officialStreet: uradna.street,
-      officialPostalCode: uradna.postalCode,
+      officialStreet: zaklenjenaUlica,
+      officialPostalCode: zaklenjenaPosta,
       officialCity: uradna.city,
       officialRegister: [register.court, register.type + " " + register.number].join(", "),
     };
+    if (naslovIzPreverjenegaImpressuma) {
+      zaklenjenaIdentiteta.addressSource = "verified_impressum_supplement";
+      zaklenjenaIdentiteta.addressSourceUrl = subjekt.impressumSourceUrl;
+    }
   }
 
   return {
@@ -4210,6 +4955,7 @@ function presodiUradniInsolvencniRezultat(besedilo, subjekt, opravilo, objave, o
 }
 
 async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezultat) {
+  var zacetekPoskusa = Date.now();
   var prviZadetek = openregisterRezultat && Array.isArray(openregisterRezultat.matches)
     ? openregisterRezultat.matches.find(function (zadetek) { return razcleniOpravilnoStevilko(zadetek && zadetek.case_number); })
     : null;
@@ -4241,7 +4987,51 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
   });
   var register = strogVhod.register;
   var imenskiPogoji = strogVhod.imenskiPogoji;
-  var browser = await zazeniBrskalnikZaDokazilo();
+  // URL uradnega portala je sistemska konstanta, ne uporabniški vnos. Brskalnik
+  // ga odpre prek DNS-pripetega CONNECT allowlista; vsi drugi cilji ostanejo
+  // blokirani že pred navigacijo, brez počasnega prestrezanja vsakega resursa.
+  var browser = null;
+  var zapiranjeBrskalnika = null;
+  var poskusJePotekel = false;
+  var casovnaOmejitev;
+  function zapriBrskalnikPoskusa() {
+    if (!browser) return Promise.resolve();
+    if (!zapiranjeBrskalnika) zapiranjeBrskalnika = zapriBrskalnikZaDokazilo(browser);
+    return zapiranjeBrskalnika;
+  }
+  function zabeleziFazo(faza, dodatno) {
+    console.info("[mehka-boniteta:official-insolvency-timing]", Object.assign({
+      phase: faza,
+      elapsedMs: Date.now() - zacetekPoskusa,
+    }, dodatno || {}));
+  }
+  var potekPoskusa = new Promise(function (_, zavrni) {
+    casovnaOmejitev = setTimeout(function () {
+      poskusJePotekel = true;
+      var napaka = new Error("OFFICIAL_INSOLVENCY_ATTEMPT_TIMEOUT");
+      napaka.code = "OFFICIAL_INSOLVENCY_ATTEMPT_TIMEOUT";
+      zabeleziFazo("attempt_timeout");
+      void zapriBrskalnikPoskusa().catch(function () {});
+      zavrni(napaka);
+    }, OFFICIAL_INSOLVENCY_ATTEMPT_TIMEOUT_MS);
+  });
+  var zagonBrskalnika = zazeniBrskalnikZaDokazilo({ dovoljeniConnectUrlji: [INSOLVENCY_PORTAL] }).then(async function (zagnaniBrowser) {
+    browser = zagnaniBrowser;
+    if (poskusJePotekel) {
+      await zapriBrskalnikPoskusa();
+      var napaka = new Error("OFFICIAL_INSOLVENCY_ATTEMPT_TIMEOUT");
+      napaka.code = "OFFICIAL_INSOLVENCY_ATTEMPT_TIMEOUT";
+      throw napaka;
+    }
+    zabeleziFazo("browser_ready");
+    return zagnaniBrowser;
+  });
+  try {
+    browser = await Promise.race([zagonBrskalnika, potekPoskusa]);
+  } catch (napakaZagona) {
+    clearTimeout(casovnaOmejitev);
+    throw napakaZagona;
+  }
   try {
     var stran = await browser.newPage();
     await stran.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
@@ -4335,6 +5125,7 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
     }
 
     var oddaja = await izvediIskanje(stran, glavniDatumOd, glavniDatumDo);
+    zabeleziFazo("exact_search_done", { ok: oddaja.ok === true });
     if (!oddaja.ok) {
       return {
         status: "unavailable",
@@ -4360,6 +5151,7 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
       // dejansko vrnjeno vrstico po imenu, kraju, registru in opravilni številki.
       await stran.goto(INSOLVENCY_PORTAL, { waitUntil: "domcontentloaded", timeout: 25000 });
       oddaja = await izvediIskanje(stran, glavniDatumOd, glavniDatumDo, { firmaPriimek: wildcardIme });
+      zabeleziFazo("wildcard_search_done", { ok: oddaja.ok === true });
       if (!oddaja.ok) {
         return {
           status: "unavailable",
@@ -4430,6 +5222,7 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
       }
     }
     var dokaziloJeVeljavno = presoja.status !== "unavailable";
+    zabeleziFazo("evidence_ready", { status: presoja.status, publicationCount: objaveMeta.length });
     return Object.assign({}, presoja, {
       source: "official_insolvency_portal",
       sourceLabel: "Insolvenzbekanntmachungen",
@@ -4458,15 +5251,23 @@ async function preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezulta
       evidenceImage: dokaziloJeVeljavno ? "data:image/jpeg;base64," + posnetek : "",
     });
   } finally {
-    await zapriBrskalnikZaDokazilo(browser);
+    clearTimeout(casovnaOmejitev);
+    await zapriBrskalnikPoskusa();
   }
 }
 
 async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
   var zadnjaNapaka;
   for (var poskus = 0; poskus < 2; poskus += 1) {
+    var zacetekPoskusa = Date.now();
     try {
       var rezultat = await preveriUradniInsolvencniPortalEnkrat(subjekt, openregisterRezultat);
+      console.info("[mehka-boniteta:official-insolvency-attempt]", {
+        attempt: poskus + 1,
+        elapsedMs: Date.now() - zacetekPoskusa,
+        status: rezultat && rezultat.status,
+        reason: rezultat && rezultat.reason,
+      });
       var jeZacasnaNapaka = rezultat && rezultat.status === "unavailable" && [
         "result_page_not_recognized",
         "capture_or_search_failed",
@@ -4474,6 +5275,11 @@ async function preveriUradniInsolvencniPortal(subjekt, openregisterRezultat) {
       if (!jeZacasnaNapaka || poskus === 1) return rezultat;
     } catch (napaka) {
       zadnjaNapaka = napaka;
+      console.warn("[mehka-boniteta:official-insolvency-attempt]", {
+        attempt: poskus + 1,
+        elapsedMs: Date.now() - zacetekPoskusa,
+        error: String(napaka && (napaka.code || napaka.message) || "unexpected_error"),
+      });
       if (poskus === 1) throw napaka;
     }
     await new Promise(function (resolve) { setTimeout(resolve, 700); });
@@ -4831,7 +5637,7 @@ async function handler(req, res) {
     var javniProfil = openregister.status === "found" && !dopolniRegistriranegaTrgovca
       ? { status: "skipped", reason: "openregister_identity_verified", sourceUrl: vnos.spletnaStran || "" }
       : await poisciVImpressumu(vnos);
-    if (dopolniRegistriranegaTrgovca && javniProfil.status === "found") {
+    if (dopolniRegistriranegaTrgovca && jeRegistriraniTrgovecOpenRegister(openregister.company) && javniProfil.status === "found") {
       var ujemanjeDopolnitve = preveriImpressumDopolnitevRegistriranegaTrgovca(openregister, javniProfil);
       if (!ujemanjeDopolnitve.matched) {
         javniProfil = Object.assign({}, javniProfil, {
@@ -5018,17 +5824,19 @@ async function handler(req, res) {
       mismatchedFields: [],
     };
     var svezaNorthDataPreverba = telo.recheckMode === "saved_profile" || telo.monitoringMode === "internal_recheck";
+    var northDataZacetek = Date.now();
     var northDataPromise = northDataClient.enrichVerifiedIdentity(openregister, identiteta, {
       allowConfirmedImpressum: identiteta.status === "confirmed_impressum" &&
         identiteta.source === "impressum" && dokaziloIdentiteteOdgovor &&
         dokaziloIdentiteteOdgovor.screenshotReady === true,
       disableCache: svezaNorthDataPreverba,
-    }).then(async function (osnovnaDopolnitev) {
-      var dodatnaDopolnitev = await northDataDetailsClient.enrichAfterPrimary(
-        openregister, osnovnaDopolnitev.identity, osnovnaDopolnitev.northData,
-        { disableCache: svezaNorthDataPreverba }
-      );
-      return { primary: osnovnaDopolnitev, details: dodatnaDopolnitev };
+    }).then(function (osnovnaDopolnitev) {
+      console.info("[mehka-boniteta:northdata-timing]", {
+        phase: "primary",
+        elapsedMs: Date.now() - northDataZacetek,
+        status: osnovnaDopolnitev && osnovnaDopolnitev.northData && osnovnaDopolnitev.northData.status,
+      });
+      return osnovnaDopolnitev;
     });
     var insolvencaPromise = preveriInsolvenco(
       pripraviIdentitetoZaInsolvencnoPoizvedbo(identiteta),
@@ -5040,15 +5848,39 @@ async function handler(req, res) {
       return { status: "unavailable", reason: "unexpected_error", sourceUrl: INSOLVENCY_PORTAL };
     });
     var vzporedniRezultati = await Promise.all([northDataPromise, insolvencaPromise]);
-    var northDataPaket = vzporedniRezultati[0];
-    var northDataObogatitev = northDataPaket.primary;
+    var northDataObogatitev = vzporedniRezultati[0];
     identiteta = northDataObogatitev.identity;
     northData = northDataObogatitev.northData;
-    northDataDetails = northDataPaket.details.northDataDetails;
+    var northDataDetailsRequest = null;
+    if (identiteta.status === "verified_register" && openregister.status === "found" &&
+        northData && northData.status === "found" && northData.company) {
+      try {
+        var detailsProof = northDataDetailsProof.sign(auth.user.id, openregister, northData);
+        northDataDetails = {
+          status: "pending_background",
+          reason: "loading",
+          source: "northdata_details_apify",
+          sourceLabel: "North Data – dopolnilni podatki",
+          sourceUrl: northDataClient.NORTH_DATA_ROOT,
+        };
+        northDataDetailsRequest = {
+          status: "pending",
+          endpoint: "/api/mehka-boniteta-podrobnosti",
+          proof: detailsProof,
+          forceFresh: svezaNorthDataPreverba,
+          expiresAt: new Date(Date.now() + northDataDetailsProof.TTL_MS).toISOString(),
+        };
+      } catch (detailsProofError) {
+        console.warn("[mehka-boniteta:northdata-details-proof]", detailsProofError.code || detailsProofError.message);
+        northDataDetails = {
+          status: "unavailable", reason: "proof_unavailable", source: "northdata_details_apify",
+          sourceLabel: "North Data – dopolnilni podatki", sourceUrl: northDataClient.NORTH_DATA_ROOT,
+        };
+      }
+    }
     if (northData && northData.status === "found" && northData.company) {
       var zasciteniFinancniPodatki = northDataFinancialGuard.uskladi(
-        northData.company,
-        northDataDetails && northDataDetails.status === "found" ? northDataDetails.company : null
+        northData.company, null
       );
       northData = Object.assign({}, northData, {
         company: zasciteniFinancniPodatki.company,
@@ -5061,7 +5893,7 @@ async function handler(req, res) {
     }
     viri = viri.filter(function (vir) { return vir.id !== "northdata"; });
     viri.push(northDataObogatitev.source);
-    viri.push(northDataPaket.details.source);
+    viri.push(northDataDetailsClient.sourceEntry(northDataDetails));
     var insolvenca = vzporedniRezultati[1];
     return odgovorJson(res, 200, {
       ok: true,
@@ -5076,6 +5908,7 @@ async function handler(req, res) {
       openregister: openregister,
       northData: northData,
       northDataDetails: northDataDetails,
+      northDataDetailsRequest: northDataDetailsRequest,
       publicProfile: javniProfil,
       insolvency: insolvenca,
       result: sestaviSklep(identiteta, insolvenca, javniProfil),
@@ -5144,6 +5977,7 @@ handler._test = {
   razcleniVidniImpressumTekst: razcleniVidniImpressumTekst,
   poisciImpressumSScrapling: poisciImpressumSScrapling,
   poisciImpressumZBrskalnikom: poisciImpressumZBrskalnikom,
+  potrebujeDinamcniImpressumFallback: potrebujeDinamcniImpressumFallback,
   izlociPravniImpressumBlok: izlociPravniImpressumBlok,
   besediloIzHtml: besediloIzHtml,
   najdiPrimarniPoslovniNaziv: najdiPrimarniPoslovniNaziv,
@@ -5173,6 +6007,13 @@ handler._test = {
   pripraviSamodejnoRegistrskoPotrditev: pripraviSamodejnoRegistrskoPotrditev,
   pripraviPotrditevIdentiteteZaZahtevo: pripraviPotrditevIdentiteteZaZahtevo,
   jeZasebenIp: jeZasebenIp,
+  preveriJavniSpletniNaslov: preveriJavniSpletniNaslov,
+  fetchJavniHtml: fetchJavniHtml,
+  dekodirajOmejenoTeloOdgovora: dekodirajOmejenoTeloOdgovora,
+  namestiVarovaloJavnihPuppeteerZahtev: namestiVarovaloJavnihPuppeteerZahtev,
+  varniPuppeteerOmrezniArgumenti: varniPuppeteerOmrezniArgumenti,
+  pripraviDovoljenePuppeteerConnectCilje: pripraviDovoljenePuppeteerConnectCilje,
+  najdiDovoljeniPuppeteerConnectCilj: najdiDovoljeniPuppeteerConnectCilj,
   poisciVImpressumu: poisciVImpressumu,
   izberiOpenRegisterZadetek: izberiOpenRegisterZadetek,
   poisciOpenRegister: poisciOpenRegister,
@@ -5201,6 +6042,7 @@ handler._test = {
   razlogNapakeBranjaSpletneStrani: razlogNapakeBranjaSpletneStrani,
   jeNedosegljivaNadomestnaStran: jeNedosegljivaNadomestnaStran,
   httpStatusNapakeSpletneStrani: httpStatusNapakeSpletneStrani,
+  jeTransportnoNedosegljivGostitelj: jeTransportnoNedosegljivGostitelj,
 };
 
 module.exports = sentry.wrapHandler(handler, "/api/mehka-boniteta");

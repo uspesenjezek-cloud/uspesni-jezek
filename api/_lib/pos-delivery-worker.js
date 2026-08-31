@@ -7,6 +7,7 @@ const { deliveryReadiness, openapiInvoiceReadiness } = require("./pos-delivery-p
 const { fetchInvoice, reconciliationEvent } = require("./pos-openapi-invoice");
 
 const MAX_PER_RUN = 3;
+const RECONCILIATION_MAX_PER_RUN = 1;
 const RECONCILIATION_MIN_AGE_MS = 15 * 60 * 1000;
 
 function json(res, status, body) {
@@ -135,6 +136,86 @@ async function recordReconciliationFailure(cfg, candidate, error, now) {
   }));
 }
 
+async function runWorker(cfg, dependencies) {
+  const deps = dependencies || {};
+  const listCandidates = deps.candidates || candidates;
+  const claimDelivery = deps.claim || claim;
+  const processDelivery = deps.processClaimed || processClaimed;
+  const deliveryState = deps.deliveryReadiness || deliveryReadiness;
+  const openapiState = deps.openapiInvoiceReadiness || openapiInvoiceReadiness;
+  const listReconciliation = deps.reconciliationCandidates || reconciliationCandidates;
+  const claimReconciliation = deps.claimReconciliationCandidate || claimReconciliationCandidate;
+  const reconcile = deps.reconcileCandidate || reconcileCandidate;
+  const trackReconciliationFailure = deps.recordReconciliationFailure || recordReconciliationFailure;
+  const randomUUID = deps.randomUUID || crypto.randomUUID;
+  const now = deps.now || function () { return new Date(); };
+
+  const rows = await listCandidates(cfg, MAX_PER_RUN);
+  const results = [];
+  for (const candidate of rows) {
+    const workerId = randomUUID();
+    const claimed = await claimDelivery(cfg, candidate, workerId);
+    if (!claimed) continue;
+    const result = await processDelivery(cfg, claimed, workerId);
+    results.push({
+      id: claimed.id,
+      ok: result.ok,
+      provider: claimed.provider,
+      status: result.delivery && result.delivery.status || "processing",
+      retryable: Boolean(result.error && result.error.retryable),
+      accepted: Boolean(result.accepted),
+      finalizationPending: Boolean(result.finalizationPending),
+    });
+  }
+
+  const readiness = deliveryState();
+  const openapi = openapiState();
+  const reconciliationResults = [];
+  let reconciliationRows = [];
+  let reconciliationUnavailable = false;
+  try {
+    reconciliationRows = await listReconciliation(cfg, RECONCILIATION_MAX_PER_RUN, openapi, now());
+  } catch (error) {
+    reconciliationUnavailable = true;
+    console.error("[pos-openapi-reconciliation-candidates]", error && error.message || error);
+  }
+  for (const candidate of reconciliationRows) {
+    const checkedAt = now();
+    let claimed;
+    try {
+      claimed = await claimReconciliation(cfg, candidate, checkedAt);
+      if (!claimed) continue;
+      const reconciled = await reconcile(cfg, claimed, checkedAt);
+      reconciliationResults.push({ id: candidate.id, ok: Boolean(reconciled), status: reconciled && reconciled.status || candidate.status });
+    } catch (error) {
+      console.error("[pos-openapi-reconciliation]", candidate.id, error && error.message || error);
+      if (claimed) {
+        try {
+          await trackReconciliationFailure(cfg, claimed, error, checkedAt);
+        } catch (trackingError) {
+          console.error("[pos-openapi-reconciliation-failure-tracking]", candidate.id, trackingError && trackingError.message || trackingError);
+        }
+      }
+      reconciliationResults.push({ id: candidate.id, ok: false, status: candidate.status });
+    }
+  }
+
+  return {
+    ok: true,
+    mode: readiness.mode,
+    openapiMode: openapi.mode,
+    sandbox: !readiness.sendEnabled,
+    processed: results.length,
+    completed: results.filter((entry) => entry.ok).length,
+    retrying: results.filter((entry) => entry.status === "queued").length,
+    failed: results.filter((entry) => entry.status === "failed").length,
+    acceptedPending: results.filter((entry) => entry.finalizationPending).length,
+    reconciled: reconciliationResults.filter((entry) => entry.ok).length,
+    reconciliationFailed: reconciliationResults.filter((entry) => !entry.ok).length,
+    reconciliationUnavailable,
+  };
+}
+
 async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store, max-age=0");
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljena sta GET in POST." });
@@ -143,59 +224,7 @@ async function handler(req, res) {
   try { cfg = supabase.konfiguracija(); }
   catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
   try {
-    const rows = await candidates(cfg, MAX_PER_RUN);
-    const results = [];
-    for (const candidate of rows) {
-      const workerId = crypto.randomUUID();
-      const claimed = await claim(cfg, candidate, workerId);
-      if (!claimed) continue;
-      const result = await processClaimed(cfg, claimed, workerId);
-      results.push({ id: claimed.id, ok: result.ok, provider: claimed.provider, status: result.delivery && result.delivery.status || "processing", retryable: Boolean(result.error && result.error.retryable) });
-    }
-    const readiness = deliveryReadiness();
-    const openapi = openapiInvoiceReadiness();
-    const reconciliationResults = [];
-    let reconciliationRows = [];
-    let reconciliationUnavailable = false;
-    try {
-      reconciliationRows = await reconciliationCandidates(cfg, MAX_PER_RUN - results.length, openapi, new Date());
-    } catch (error) {
-      reconciliationUnavailable = true;
-      console.error("[pos-openapi-reconciliation-candidates]", error && error.message || error);
-    }
-    for (const candidate of reconciliationRows) {
-      const checkedAt = new Date();
-      let claimed;
-      try {
-        claimed = await claimReconciliationCandidate(cfg, candidate, checkedAt);
-        if (!claimed) continue;
-        const reconciled = await reconcileCandidate(cfg, claimed, checkedAt);
-        reconciliationResults.push({ id: candidate.id, ok: Boolean(reconciled), status: reconciled && reconciled.status || candidate.status });
-      } catch (error) {
-        console.error("[pos-openapi-reconciliation]", candidate.id, error && error.message || error);
-        if (claimed) {
-          try {
-            await recordReconciliationFailure(cfg, claimed, error, checkedAt);
-          } catch (trackingError) {
-            console.error("[pos-openapi-reconciliation-failure-tracking]", candidate.id, trackingError && trackingError.message || trackingError);
-          }
-        }
-        reconciliationResults.push({ id: candidate.id, ok: false, status: candidate.status });
-      }
-    }
-    return json(res, 200, {
-      ok: true,
-      mode: readiness.mode,
-      openapiMode: openapi.mode,
-      sandbox: !readiness.sendEnabled,
-      processed: results.length,
-      completed: results.filter((entry) => entry.ok).length,
-      retrying: results.filter((entry) => entry.status === "queued").length,
-      failed: results.filter((entry) => entry.status === "failed").length,
-      reconciled: reconciliationResults.filter((entry) => entry.ok).length,
-      reconciliationFailed: reconciliationResults.filter((entry) => !entry.ok).length,
-      reconciliationUnavailable,
-    });
+    return json(res, 200, await runWorker(cfg));
   } catch (error) {
     console.error("[pos-dostava-delavec]", error && error.stack || error);
     return json(res, 503, { ok: false, napaka: "Dostavni delavec trenutno ni dosegljiv." });
@@ -203,4 +232,18 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { bearer, candidateQuery, candidates, claimReconciliationCandidate, cronAuthorized, reconcileCandidate, reconciliationCandidates, reconciliationQuery, recordReconciliationFailure, safeEqual };
+module.exports._test = {
+  MAX_PER_RUN,
+  RECONCILIATION_MAX_PER_RUN,
+  bearer,
+  candidateQuery,
+  candidates,
+  claimReconciliationCandidate,
+  cronAuthorized,
+  reconcileCandidate,
+  reconciliationCandidates,
+  reconciliationQuery,
+  recordReconciliationFailure,
+  runWorker,
+  safeEqual,
+};

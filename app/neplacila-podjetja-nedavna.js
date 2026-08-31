@@ -82,22 +82,95 @@
     return Array.from(poKljucu.values());
   }
 
+  function zdruziPodjetjaSStiki(podjetja, shranjeni) {
+    var popravki = shranjeni && typeof shranjeni === "object" ? shranjeni : {};
+    var rezultat = (Array.isArray(podjetja) ? podjetja : []).map(function (podjetje) {
+      var kljuc = besedilo(podjetje && podjetje.companyId) || normalizirajIme(podjetje && podjetje.name);
+      var popravek = popravki[kljuc];
+      podjetje.storageKey = kljuc;
+      if (!popravek || typeof popravek !== "object") return podjetje;
+      ["name", "vatId", "contactPerson", "phone", "email", "usedAt"].forEach(function (polje) {
+        if (Object.prototype.hasOwnProperty.call(popravek, polje)) podjetje[polje] = besedilo(popravek[polje]);
+      });
+      return podjetje;
+    });
+    var obstojeci = new Set(rezultat.map(function (podjetje) {
+      return besedilo(podjetje && podjetje.storageKey)
+        || besedilo(podjetje && podjetje.companyId)
+        || normalizirajIme(podjetje && podjetje.name);
+    }));
+    Object.keys(popravki).forEach(function (kljuc) {
+      var stik = popravki[kljuc];
+      if (obstojeci.has(kljuc) || !stik || !besedilo(stik.name)) return;
+      rezultat.push({
+        storageKey: kljuc,
+        companyId: besedilo(stik.companyId),
+        name: besedilo(stik.name),
+        registerType: besedilo(stik.registerType),
+        registerNumber: besedilo(stik.registerNumber),
+        registerCourt: besedilo(stik.registerCourt),
+        legalForm: besedilo(stik.legalForm),
+        checkedAt: besedilo(stik.checkedAt),
+        vatId: besedilo(stik.vatId),
+        contactPerson: besedilo(stik.contactPerson),
+        phone: besedilo(stik.phone),
+        email: besedilo(stik.email),
+        usedAt: besedilo(stik.usedAt),
+        cases: [],
+      });
+      obstojeci.add(kljuc);
+    });
+    return rezultat;
+  }
+
   function razvrstiPodjetja(podjetja, nacin) {
     var kopija = (Array.isArray(podjetja) ? podjetja : []).slice();
+    function aktivniDolg(podjetje) {
+      return (Array.isArray(podjetje && podjetje.cases) ? podjetje.cases : []).reduce(function (vsota, primer) {
+        return vsota + (jeResenaZadeva(primer) ? 0 : (Number(primer && primer.amount) || 0));
+      }, 0);
+    }
+    function najstarejsaZapadlost(podjetje) {
+      var datumi = (Array.isArray(podjetje && podjetje.cases) ? podjetje.cases : []).filter(function (primer) {
+        return !jeResenaZadeva(primer) && cas(primer && primer.dueAt);
+      }).map(function (primer) { return cas(primer.dueAt); });
+      return datumi.length ? Math.min.apply(Math, datumi) : Number.POSITIVE_INFINITY;
+    }
     if (nacin === "az") {
       return kopija.sort(function (a, b) {
         return a.name.localeCompare(b.name, "sl", { sensitivity: "base" });
       });
+    }
+    if (nacin === "critical") {
+      return kopija.sort(function (a, b) {
+        return sistemskaOcena(a).score - sistemskaOcena(b).score || aktivniDolg(b) - aktivniDolg(a);
+      });
+    }
+    if (nacin === "highest_debt") {
+      return kopija.sort(function (a, b) { return aktivniDolg(b) - aktivniDolg(a); });
+    }
+    if (nacin === "oldest") {
+      return kopija.sort(function (a, b) { return najstarejsaZapadlost(a) - najstarejsaZapadlost(b); });
     }
     return kopija.sort(function (a, b) {
       return cas(b.usedAt) - cas(a.usedAt);
     });
   }
 
+  function uporabiHitriPogled(podjetja, pogled) {
+    var seznam = (Array.isArray(podjetja) ? podjetja : []).slice();
+    if (pogled === "missing_contact") {
+      seznam = seznam.filter(function (podjetje) { return !besedilo(podjetje && podjetje.phone) || !besedilo(podjetje && podjetje.email); });
+      return razvrstiPodjetja(seznam, "critical");
+    }
+    return razvrstiPodjetja(seznam, pogled);
+  }
+
   var KATEGORIJE_SHRAMBA = "uj_neplacila_podjetja_kategorije_v1";
   var OPOMBE_SHRAMBA = "uj_neplacila_podjetja_opombe_v1";
   var PODATKI_SHRAMBA = "uj_neplacila_podjetja_podatki_v1";
   var IZBRISANA_PODJETJA_SHRAMBA = "uj_neplacila_podjetja_izbrisana_v1";
+  var PODJETJA_VRSTNI_RED_SHRAMBA = "uj_neplacila_podjetja_vrstni_red_v1";
 
   function jeResenaZadeva(zadeva) {
     return normalizirajIme(zadeva && zadeva.status) === "reseno";
@@ -188,6 +261,8 @@
   }
 
   function normalizirajKategorije(vrednost) {
+    var dovoljeneBarve = ["#469c98", "#d99a32", "#d96f5f", "#5f8fc7", "#8468b8", "#7c8a88"];
+    var dovoljeniPogledi = ["critical", "highest_debt", "oldest", "recent", "az"];
     var uporabljeniIdji = new Set();
     return (Array.isArray(vrednost) ? vrednost : []).map(function (kategorija, indeks) {
       var ime = besedilo(kategorija && kategorija.name);
@@ -201,7 +276,15 @@
       }
       uporabljeniIdji.add(id);
       var kljuci = Array.from(new Set((Array.isArray(kategorija && kategorija.companyKeys) ? kategorija.companyKeys : []).map(besedilo).filter(Boolean)));
-      return { id: id, name: ime.slice(0, 40), companyKeys: kljuci };
+      var color = besedilo(kategorija && kategorija.color).toLowerCase();
+      var defaultView = besedilo(kategorija && kategorija.defaultView);
+      return {
+        id: id,
+        name: ime.slice(0, 40),
+        companyKeys: kljuci,
+        color: dovoljeneBarve.includes(color) ? color : "#469c98",
+        defaultView: dovoljeniPogledi.includes(defaultView) ? defaultView : "critical",
+      };
     }).filter(Boolean);
   }
 
@@ -250,6 +333,17 @@
     return kopija;
   }
 
+  function zamenjajKljuca(vrstniRed, prviKljuc, drugiKljuc) {
+    var kopija = (Array.isArray(vrstniRed) ? vrstniRed : []).slice();
+    var prviIndeks = kopija.indexOf(prviKljuc);
+    var drugiIndeks = kopija.indexOf(drugiKljuc);
+    if (prviIndeks < 0 || drugiIndeks < 0 || prviIndeks === drugiIndeks) return kopija;
+    var zacasni = kopija[prviIndeks];
+    kopija[prviIndeks] = kopija[drugiIndeks];
+    kopija[drugiIndeks] = zacasni;
+    return kopija;
+  }
+
   function razdeliKategorijeNaStrani(kategorije, velikost) {
     var rezultat = [];
     var seznam = Array.isArray(kategorije) ? kategorije : [];
@@ -292,6 +386,9 @@
     var kategorijePikice = doc.getElementById("podjetja-sheet-kategorije-pikice");
     var kategorijaVseGumb = doc.getElementById("podjetja-sheet-kategorija-vse");
     var kategorijaVseStevilo = doc.getElementById("podjetja-sheet-vse-stevilo");
+    var kategorijaIzbiraGumb = doc.getElementById("podjetja-sheet-kategorija-izbira");
+    var kategorijaIzbiraOznaka = doc.getElementById("podjetja-sheet-kategorija-izbira-oznaka");
+    var kategorijaIzbiraStevilo = doc.getElementById("podjetja-sheet-kategorija-izbira-stevilo");
     var kategorijePrazno = doc.getElementById("podjetja-sheet-kategorije-prazno");
     var kategorijeUrediGumb = doc.getElementById("podjetja-sheet-kategorije-uredi");
     var novaKategorijaGumb = doc.getElementById("podjetja-sheet-nova-kategorija");
@@ -302,12 +399,24 @@
     var kategorijaUrediIme = doc.getElementById("podjetja-sheet-kategorija-uredi-ime");
     var kategorijaPovzetek = doc.getElementById("podjetja-sheet-kategorija-povzetek");
     var kategorijaIzbrisi = doc.getElementById("podjetja-sheet-kategorija-izbrisi");
+    var kategorijaBarve = Array.from(doc.querySelectorAll('input[name="podjetja-kategorija-barva"]'));
+    var kategorijaPrivzetiPogled = doc.getElementById("podjetja-sheet-kategorija-privzeti-pogled");
+    var kategorijaPrivzeti = doc.getElementById("podjetja-sheet-kategorija-privzeti");
+    var kategorijaPrivzetiGumb = doc.getElementById("podjetja-sheet-kategorija-privzeti-gumb");
+    var kategorijaPrivzetiVrednost = doc.getElementById("podjetja-sheet-kategorija-privzeti-vrednost");
+    var kategorijaPrivzetiMeni = doc.getElementById("podjetja-sheet-kategorija-privzeti-meni");
+    var kategorijaPrivzetiMoznosti = Array.from(doc.querySelectorAll("[data-podjetja-privzeti-pogled]"));
+    var hitriPogledi = doc.getElementById("podjetja-sheet-hitri-pogledi");
+    var hitriPogledGumbi = Array.from(doc.querySelectorAll("[data-podjetja-hitri-pogled]"));
+    var hitriVecGumb = doc.getElementById("podjetja-sheet-hitri-vec");
+    var hitriVecMeni = doc.getElementById("podjetja-sheet-hitri-vec-meni");
     var kategorijaNastavitveZapri = doc.querySelector("[data-podjetja-kategorija-nastavitve-zapri]");
-    if (!sklop || !trak || !vec || !sheet || !sheetSeznam || !iskanje || !nedavnaGumb || !dodajVKategorijeGumb || !dodajPrekliciGumb || !dodajNavodilo || !dodajNavodiloVrstica || !dodajPotrdiGumb || !kategorijeSeznam || !kategorijeViewport || !kategorijePikice || !kategorijaVseGumb || !kategorijaVseStevilo || !novaKategorijaGumb || !kategorijaObrazec || !kategorijaIme || !kategorijaNastavitve || !kategorijaUrediIme || !kategorijaPovzetek || !kategorijaIzbrisi || sklop.dataset.ready === "true") return;
+    if (!sklop || !trak || !vec || !sheet || !sheetSeznam || !iskanje || !nedavnaGumb || !dodajVKategorijeGumb || !dodajPrekliciGumb || !dodajNavodilo || !dodajNavodiloVrstica || !dodajPotrdiGumb || !kategorijeSeznam || !kategorijeViewport || !kategorijePikice || !kategorijaVseGumb || !kategorijaVseStevilo || !kategorijaIzbiraGumb || !kategorijaIzbiraOznaka || !kategorijaIzbiraStevilo || !novaKategorijaGumb || !kategorijaObrazec || !kategorijaIme || !kategorijaNastavitve || !kategorijaUrediIme || !kategorijaPovzetek || !kategorijaIzbrisi || !kategorijaPrivzetiPogled || !kategorijaPrivzeti || !kategorijaPrivzetiGumb || !kategorijaPrivzetiVrednost || !kategorijaPrivzetiMeni || !hitriPogledi || !hitriVecGumb || !hitriVecMeni || sklop.dataset.ready === "true") return;
     sklop.dataset.ready = "true";
 
     var podjetja = [];
     var kategorije = preberiKategorije();
+    var vrstniRedPodjetij = preberiVrstniRedPodjetij();
     var izbrisaniKljuciPodjetij = preberiIzbrisaneKljuciPodjetij();
     var aktivnaKategorijaId = "";
     var urejanjeKategorij = false;
@@ -319,6 +428,7 @@
     var izbraniKljuciZaKategorijo = new Set();
     var ciljnaKategorijaId = "";
     var urejanaKategorijaId = "";
+    var aktivniHitriPogled = "recent";
     var VSE_KATEGORIJE_ID = "__vse__";
     var KATEGORIJ_NA_STRAN = 6;
 
@@ -428,6 +538,44 @@
         || normalizirajIme(podjetje && podjetje.name);
     }
 
+    function preberiVrstniRedPodjetij() {
+      try {
+        var shranjeni = JSON.parse(win.localStorage.getItem(PODJETJA_VRSTNI_RED_SHRAMBA) || "[]");
+        return (Array.isArray(shranjeni) ? shranjeni : []).map(besedilo).filter(Boolean);
+      } catch (napaka) {
+        return [];
+      }
+    }
+
+    function shraniVrstniRedPodjetij() {
+      try {
+        win.localStorage.setItem(PODJETJA_VRSTNI_RED_SHRAMBA, JSON.stringify(vrstniRedPodjetij));
+      } catch (napaka) {
+        /* Ročno zaporedje ostane veljavno v trenutni seji. */
+      }
+    }
+
+    function urediPodjetjaPoKljucih(seznam, vrstniRed) {
+      var mesta = new Map((Array.isArray(vrstniRed) ? vrstniRed : []).map(function (kljuc, indeks) { return [kljuc, indeks]; }));
+      return (Array.isArray(seznam) ? seznam : []).slice().sort(function (a, b) {
+        var mestoA = mesta.has(kljucPodjetja(a)) ? mesta.get(kljucPodjetja(a)) : Number.MAX_SAFE_INTEGER;
+        var mestoB = mesta.has(kljucPodjetja(b)) ? mesta.get(kljucPodjetja(b)) : Number.MAX_SAFE_INTEGER;
+        return mestoA - mestoB;
+      });
+    }
+
+    function zdruziPrikazaniVrstniRed(osnovni, prikazani) {
+      var novi = (Array.isArray(prikazani) ? prikazani : []).slice();
+      var dovoljeni = new Set(novi);
+      var indeks = 0;
+      return (Array.isArray(osnovni) ? osnovni : []).map(function (kljuc) {
+        if (!dovoljeni.has(kljuc)) return kljuc;
+        var zamenjava = novi[indeks];
+        indeks += 1;
+        return zamenjava;
+      });
+    }
+
     function oznaciIzbraniPill() {
       Array.from(trak.querySelectorAll(".nedavna-podjetja__pill")).forEach(function (gumb) {
         var izbran = Boolean(izbraniKljuc) && gumb.dataset.podjetjeKljuc === izbraniKljuc;
@@ -444,6 +592,8 @@
 
     function zapriSheet() {
       sheet.hidden = true;
+      kategorijeViewport.hidden = true;
+      kategorijaIzbiraGumb.setAttribute("aria-expanded", "false");
       kategorijaObrazec.hidden = true;
       kategorijaIme.value = "";
       zapriNastavitveKategorije();
@@ -524,17 +674,78 @@
       return kategorije.find(function (kategorija) { return kategorija.id === urejanaKategorijaId; }) || null;
     }
 
+    function predogledBarveKategorije(barva, kategorijaId, poudari) {
+      var iskaniId = kategorijaId || urejanaKategorijaId;
+      var element = Array.from(kategorijeSeznam.querySelectorAll("[data-kategorija-id]")).find(function (moznost) {
+        return moznost.dataset.kategorijaId === iskaniId;
+      });
+      if (!element) return;
+      element.style.setProperty("--kategorija-barva", barva);
+      element.style.setProperty("--kategorija-barva-mehka", barva + "1f");
+      element.classList.toggle("podjetja-sheet__kategorija-element--barva-predogled", poudari !== false);
+    }
+
     function zapriNastavitveKategorije() {
+      var kategorija = urejanaKategorija();
+      if (kategorija) predogledBarveKategorije(kategorija.color, kategorija.id, false);
       urejanaKategorijaId = "";
       kategorijaNastavitve.hidden = true;
       kategorijaUrediIme.value = "";
       kategorijaUrediIme.setCustomValidity("");
+      kategorijaPrivzetiMeni.hidden = true;
+      kategorijaPrivzetiGumb.setAttribute("aria-expanded", "false");
+    }
+
+    function nastaviPrivzetiPogled(vrednost) {
+      var moznost = kategorijaPrivzetiMoznosti.find(function (gumb) {
+        return gumb.dataset.podjetjaPrivzetiPogled === vrednost;
+      }) || kategorijaPrivzetiMoznosti[0];
+      kategorijaPrivzetiPogled.value = moznost.dataset.podjetjaPrivzetiPogled;
+      kategorijaPrivzetiVrednost.textContent = moznost.textContent;
+      kategorijaPrivzetiMoznosti.forEach(function (gumb) {
+        var izbrana = gumb === moznost;
+        gumb.classList.toggle("podjetja-sheet__kategorija-privzeti-moznost--izbrana", izbrana);
+        gumb.setAttribute("aria-selected", izbrana ? "true" : "false");
+      });
+    }
+
+    function odpriPrivzetiMeni() {
+      kategorijaPrivzetiMeni.hidden = false;
+      kategorijaPrivzetiMeni.classList.remove("podjetja-sheet__kategorija-privzeti-meni--gor");
+      var okvirGumba = kategorijaPrivzetiGumb.getBoundingClientRect();
+      var spodnjaMeja = win.innerHeight - 12;
+      var spodnjaNavigacija = doc.getElementById("app-testna-vrstica");
+      if (spodnjaNavigacija) {
+        var vrhNavigacije = spodnjaNavigacija.getBoundingClientRect().top;
+        if (vrhNavigacije > 0) spodnjaMeja = Math.min(spodnjaMeja, vrhNavigacije - 8);
+      }
+      var visinaMenija = kategorijaPrivzetiMeni.scrollHeight;
+      var premaloSpodaj = okvirGumba.bottom + 5 + visinaMenija > spodnjaMeja;
+      var dovoljZgoraj = okvirGumba.top - 5 - visinaMenija > 8;
+      kategorijaPrivzetiMeni.classList.toggle("podjetja-sheet__kategorija-privzeti-meni--gor", premaloSpodaj && dovoljZgoraj);
+      kategorijaPrivzetiGumb.setAttribute("aria-expanded", "true");
+    }
+
+    function posodobiHitrePoglede() {
+      hitriPogledi.hidden = dodajanjeVKategorijo;
+      if (dodajanjeVKategorijo) {
+        hitriVecMeni.hidden = true;
+        hitriVecGumb.setAttribute("aria-expanded", "false");
+      }
+      hitriPogledGumbi.forEach(function (gumb) {
+        var aktiven = gumb.dataset.podjetjaHitriPogled === aktivniHitriPogled;
+        gumb.classList.toggle("podjetja-sheet__hitri-pogled--aktiven", aktiven);
+        gumb.setAttribute("aria-pressed", aktiven ? "true" : "false");
+      });
+      hitriVecGumb.classList.toggle("podjetja-sheet__hitri-pogled--aktiven", ["oldest", "missing_contact", "recent", "az"].includes(aktivniHitriPogled));
     }
 
     function odpriNastavitveKategorije(kategorija) {
       if (!urejanjeKategorij || dodajanjeVKategorijo) return;
       urejanaKategorijaId = kategorija.id;
       kategorijaUrediIme.value = kategorija.name;
+      kategorijaBarve.forEach(function (izbira) { izbira.checked = izbira.value === kategorija.color; });
+      nastaviPrivzetiPogled(kategorija.defaultView);
       kategorijaUrediIme.setCustomValidity("");
       kategorijaPovzetek.textContent = kategorija.companyKeys.length + (kategorija.companyKeys.length === 1 ? " podjetje" : " podjetij");
       kategorijaNastavitve.hidden = false;
@@ -625,8 +836,12 @@
         var premikanje = false;
         var zadnjaMenjavaStrani = 0;
         var zadnjiCiljId = "";
+        var vrstniRedSpremenjen = false;
         var duh = null;
         var zacetniOkvir = null;
+        var zadnjiX = zacetniX;
+        var zadnjiY = zacetniY;
+        var rafId = null;
         var predogledKategorij = kategorije.slice();
 
         function pocistiCasovnik() {
@@ -639,9 +854,19 @@
           win.removeEventListener("pointermove", medPremikanjem);
           win.removeEventListener("pointerup", koncajPremikanje);
           win.removeEventListener("pointercancel", koncajPremikanje);
+          win.removeEventListener("touchmove", zadrziDotikMedPremikanjem);
+          try {
+            if (element.hasPointerCapture && element.hasPointerCapture(pointerId)) {
+              element.releasePointerCapture(pointerId);
+            }
+          } catch (e) {
+            // Kazalec je lahko medtem že prenehal obstajati.
+          }
         }
 
         function zacniPremikanje() {
+          if (premikanje) return;
+          premikanje = true;
           element.classList.remove("podjetja-sheet__kategorija-element--dolg-pritisk");
           zacetniOkvir = element.getBoundingClientRect();
           duh = element.cloneNode(true);
@@ -652,12 +877,56 @@
           duh.style.top = zacetniOkvir.top + "px";
           duh.style.width = zacetniOkvir.width + "px";
           duh.style.height = zacetniOkvir.height + "px";
+          duh.style.setProperty("--kategorija-duh-x", "0px");
+          duh.style.setProperty("--kategorija-duh-y", "0px");
           doc.body.appendChild(duh);
           element.classList.add("podjetja-sheet__kategorija-element--premikanje");
+          try {
+            if (element.setPointerCapture) element.setPointerCapture(pointerId);
+          } catch (e) {
+            // Nekateri brskalniki ne dovolijo poznega zajema dotika.
+          }
+        }
+
+        function zadrziDotikMedPremikanjem(dogodek) {
+          if (!premikanje || !dogodek.cancelable) return;
+          dogodek.preventDefault();
+        }
+
+        function izrisiPremikanje() {
+          rafId = null;
+          if (!premikanje || !duh || !zacetniOkvir) return;
+          duh.style.setProperty("--kategorija-duh-x", zadnjiX - zacetniX + "px");
+          duh.style.setProperty("--kategorija-duh-y", zadnjiY - zacetniY + "px");
+          var cilj = Array.from(doc.querySelectorAll(".podjetja-sheet__kategorije-dok .podjetja-sheet__kategorija-element")).find(function (moznost) {
+            if (moznost === element) return false;
+            var okvir = moznost.getBoundingClientRect();
+            return zadnjiX >= okvir.left && zadnjiX <= okvir.right
+              && zadnjiY >= okvir.top && zadnjiY <= okvir.bottom;
+          });
+          if (cilj && cilj.dataset.kategorijaId !== zadnjiCiljId) {
+            zadnjiCiljId = cilj.dataset.kategorijaId;
+            vrstniRedSpremenjen = true;
+            predogledKategorij = zamenjajKategoriji(predogledKategorij, kategorija.id, zadnjiCiljId);
+            zamenjajVidniMesti(element, cilj);
+          } else if (!cilj) {
+            zadnjiCiljId = "";
+          }
+          var meja = kategorijeViewport.getBoundingClientRect();
+          var zdaj = Date.now();
+          if (zdaj - zadnjaMenjavaStrani > 420 && zadnjiX > meja.right - 20) {
+            prikaziStranKategorij(aktivnaStranKategorij + 1, true);
+            zadnjaMenjavaStrani = zdaj;
+          } else if (zdaj - zadnjaMenjavaStrani > 420 && zadnjiX < meja.left + 20) {
+            prikaziStranKategorij(aktivnaStranKategorij - 1, true);
+            zadnjaMenjavaStrani = zdaj;
+          }
         }
 
         function medPremikanjem(dogodek) {
           if (dogodek.pointerId !== pointerId) return;
+          zadnjiX = dogodek.clientX;
+          zadnjiY = dogodek.clientY;
           var razdalja = Math.hypot(dogodek.clientX - zacetniX, dogodek.clientY - zacetniY);
           if (!pripravljen) {
             if (razdalja >= 8) {
@@ -667,40 +936,19 @@
             return;
           }
           if (!premikanje && razdalja < 8) return;
-          if (!premikanje) {
-            premikanje = true;
-            zacniPremikanje();
-          }
+          if (!premikanje) zacniPremikanje();
           dogodek.preventDefault();
-          duh.style.left = (zacetniOkvir.left + dogodek.clientX - zacetniX) + "px";
-          duh.style.top = (zacetniOkvir.top + dogodek.clientY - zacetniY) + "px";
-          var cilj = Array.from(doc.querySelectorAll(".podjetja-sheet__kategorije-dok .podjetja-sheet__kategorija-element")).find(function (moznost) {
-            if (moznost === element) return false;
-            var okvir = moznost.getBoundingClientRect();
-            return dogodek.clientX >= okvir.left && dogodek.clientX <= okvir.right
-              && dogodek.clientY >= okvir.top && dogodek.clientY <= okvir.bottom;
-          });
-          if (cilj && cilj.dataset.kategorijaId !== zadnjiCiljId) {
-            zadnjiCiljId = cilj.dataset.kategorijaId;
-            predogledKategorij = zamenjajKategoriji(predogledKategorij, kategorija.id, zadnjiCiljId);
-            zamenjajVidniMesti(element, cilj);
-          } else if (!cilj) {
-            zadnjiCiljId = "";
-          }
-          var meja = kategorijeViewport.getBoundingClientRect();
-          var zdaj = Date.now();
-          if (zdaj - zadnjaMenjavaStrani > 420 && dogodek.clientX > meja.right - 20) {
-            prikaziStranKategorij(aktivnaStranKategorij + 1, true);
-            zadnjaMenjavaStrani = zdaj;
-          } else if (zdaj - zadnjaMenjavaStrani > 420 && dogodek.clientX < meja.left + 20) {
-            prikaziStranKategorij(aktivnaStranKategorij - 1, true);
-            zadnjaMenjavaStrani = zdaj;
-          }
+          if (!rafId) rafId = win.requestAnimationFrame(izrisiPremikanje);
         }
 
         function koncajPremikanje(dogodek) {
           if (dogodek.pointerId !== pointerId) return;
           pocistiCasovnik();
+          if (rafId) {
+            win.cancelAnimationFrame(rafId);
+            rafId = null;
+            izrisiPremikanje();
+          }
           pocistiPoslusalce();
           element.classList.remove("podjetja-sheet__kategorija-element--dolg-pritisk");
           if (!premikanje) {
@@ -715,15 +963,15 @@
           }
           kategorije = predogledKategorij;
           aktivnaStranKategorij = stranKategorije(Math.max(0, kategorije.findIndex(function (vrednost) { return vrednost.id === kategorija.id; })));
-          if (zadnjiCiljId) {
+          if (vrstniRedSpremenjen) {
             shraniKategorije();
           }
           element.dataset.premaknjeno = "true";
           var koncniOkvir = element.getBoundingClientRect();
           if (duh) {
             duh.classList.add("podjetja-sheet__kategorija-element--spuscena");
-            duh.style.left = koncniOkvir.left + "px";
-            duh.style.top = koncniOkvir.top + "px";
+            duh.style.setProperty("--kategorija-duh-x", koncniOkvir.left - zacetniOkvir.left + "px");
+            duh.style.setProperty("--kategorija-duh-y", koncniOkvir.top - zacetniOkvir.top + "px");
           }
           win.setTimeout(function () {
             if (duh) duh.remove();
@@ -739,12 +987,16 @@
             pripravljen = true;
             element.dataset.premaknjeno = "true";
             element.classList.add("podjetja-sheet__kategorija-element--dolg-pritisk");
+            zacniPremikanje();
           }, DOLGI_PRITISK_MS);
         }
 
         win.addEventListener("pointermove", medPremikanjem, { passive: false });
         win.addEventListener("pointerup", koncajPremikanje);
         win.addEventListener("pointercancel", koncajPremikanje);
+        if (zahtevaDolgiPritisk) {
+          win.addEventListener("touchmove", zadrziDotikMedPremikanjem, { passive: false });
+        }
       });
     }
 
@@ -753,6 +1005,8 @@
       var aktiven = kategorija.id === (dodajanjeVKategorijo ? ciljnaKategorijaId : aktivnaKategorijaId);
       element.className = "podjetja-sheet__kategorija-element podjetja-sheet__kategorija-element--mesto-" + mesto;
       element.dataset.kategorijaId = kategorija.id;
+      element.style.setProperty("--kategorija-barva", kategorija.color);
+      element.style.setProperty("--kategorija-barva-mehka", kategorija.color + "1f");
       var gumb = doc.createElement("button");
       gumb.type = "button";
       gumb.className = "podjetja-sheet__kategorija-gumb" + (aktiven ? " podjetja-sheet__kategorija-gumb--aktiven" : "");
@@ -780,12 +1034,17 @@
           return;
         }
         if (urejanjeKategorij) {
+          kategorijeViewport.hidden = true;
+          kategorijaIzbiraGumb.setAttribute("aria-expanded", "false");
           odpriNastavitveKategorije(kategorija);
           return;
         }
         aktivnaKategorijaId = kategorija.id;
+        aktivniHitriPogled = kategorija.defaultView;
         nedavnaGumb.classList.remove("podjetja-sheet__nedavna-gumb--aktiven");
         nedavnaGumb.setAttribute("aria-pressed", "false");
+        kategorijeViewport.hidden = true;
+        kategorijaIzbiraGumb.setAttribute("aria-expanded", "false");
         izrisiKategorije();
         izrisiSheet();
       });
@@ -814,12 +1073,18 @@
       if (dodajanjeVKategorijo) vseAktivno = false;
       kategorijaVseGumb.classList.toggle("podjetja-sheet__kategorija-vse--aktivna", vseAktivno);
       kategorijaVseGumb.setAttribute("aria-selected", vseAktivno ? "true" : "false");
+      var izbranaKategorija = aktivnaKategorija() || kategorije[0] || null;
+      kategorijaIzbiraOznaka.textContent = izbranaKategorija ? "Kategorija: " + izbranaKategorija.name : "Kategorija";
+      kategorijaIzbiraStevilo.textContent = String(izbranaKategorija ? izbranaKategorija.companyKeys.length : 0);
+      kategorijaIzbiraGumb.disabled = kategorije.length < 1;
       if (kategorijePrazno) kategorijePrazno.hidden = kategorije.length > 0;
       if (kategorijeUrediGumb) {
         kategorijeUrediGumb.hidden = kategorije.length < 1;
         kategorijeUrediGumb.classList.toggle("podjetja-sheet__kategorije-uredi--aktivno", urejanjeKategorij);
         kategorijeUrediGumb.setAttribute("aria-pressed", urejanjeKategorij ? "true" : "false");
-        kategorijeUrediGumb.textContent = urejanjeKategorij ? "Končano" : "Uredi kategorije";
+        kategorijeUrediGumb.innerHTML = urejanjeKategorij
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span>Končano</span>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Uredi</span>';
       }
       strani.forEach(function (kategorijeStrani, indeksStrani) {
         var stran = doc.createElement("div");
@@ -841,6 +1106,145 @@
       posodobiDodajanjeVKategorijo();
     }
 
+    function omogociPremikanjePodjetja(vrstica, podjetje, prikazaniKljuci) {
+      vrstica.dataset.podjetjeKljuc = kljucPodjetja(podjetje);
+      vrstica.addEventListener("pointerdown", function (zacetniDogodek) {
+        if (zacetniDogodek.button !== 0 || dodajanjeVKategorijo || zacetniDogodek.target.closest("button, input, textarea, select, label, a")) return;
+        var DOLGI_PRITISK_MS = 300;
+        var pointerId = zacetniDogodek.pointerId;
+        var zacetniX = zacetniDogodek.clientX;
+        var zacetniY = zacetniDogodek.clientY;
+        var zahtevaDolgiPritisk = zacetniDogodek.pointerType === "touch" || zacetniDogodek.pointerType === "pen";
+        var pripravljen = !zahtevaDolgiPritisk;
+        var premikanje = false;
+        var dolgiPritiskCasovnik = null;
+        var duh = null;
+        var zacetniOkvir = null;
+        var zadnjiX = zacetniX;
+        var zadnjiY = zacetniY;
+        var rafId = null;
+        var zadnjiCiljKljuc = "";
+        var vrstniRedSpremenjen = false;
+        var predogledKljucov = prikazaniKljuci.slice();
+
+        function pocisti() {
+          if (dolgiPritiskCasovnik) win.clearTimeout(dolgiPritiskCasovnik);
+          if (rafId) win.cancelAnimationFrame(rafId);
+          win.removeEventListener("pointermove", medPremikanjem);
+          win.removeEventListener("pointerup", koncajPremikanje);
+          win.removeEventListener("pointercancel", koncajPremikanje);
+          win.removeEventListener("touchmove", zadrziDotik, { passive: false });
+          try {
+            if (vrstica.hasPointerCapture && vrstica.hasPointerCapture(pointerId)) vrstica.releasePointerCapture(pointerId);
+          } catch (_napaka) {}
+        }
+
+        function zacniPremikanje() {
+          if (premikanje) return;
+          premikanje = true;
+          zacetniOkvir = vrstica.getBoundingClientRect();
+          duh = vrstica.cloneNode(true);
+          duh.classList.add("podjetja-sheet__podjetje-vrstica--duh");
+          duh.removeAttribute("data-podjetje-kljuc");
+          duh.style.left = zacetniOkvir.left + "px";
+          duh.style.top = zacetniOkvir.top + "px";
+          duh.style.width = zacetniOkvir.width + "px";
+          duh.style.height = zacetniOkvir.height + "px";
+          doc.body.appendChild(duh);
+          vrstica.classList.add("podjetja-sheet__podjetje-vrstica--premikanje");
+          try { if (vrstica.setPointerCapture) vrstica.setPointerCapture(pointerId); } catch (_napaka) {}
+        }
+
+        function zadrziDotik(dogodek) {
+          if (premikanje && dogodek.cancelable) dogodek.preventDefault();
+        }
+
+        function izrisiPremikanje() {
+          rafId = null;
+          if (!premikanje || !duh) return;
+          duh.style.setProperty("--podjetje-duh-x", zadnjiX - zacetniX + "px");
+          duh.style.setProperty("--podjetje-duh-y", zadnjiY - zacetniY + "px");
+          var cilj = Array.from(sheetSeznam.querySelectorAll(".podjetja-sheet__podjetje-vrstica")).find(function (moznost) {
+            if (moznost === vrstica) return false;
+            var okvir = moznost.getBoundingClientRect();
+            return zadnjiX >= okvir.left && zadnjiX <= okvir.right && zadnjiY >= okvir.top && zadnjiY <= okvir.bottom;
+          });
+          if (cilj && cilj.dataset.podjetjeKljuc !== zadnjiCiljKljuc) {
+            zadnjiCiljKljuc = cilj.dataset.podjetjeKljuc;
+            predogledKljucov = zamenjajKljuca(predogledKljucov, vrstica.dataset.podjetjeKljuc, zadnjiCiljKljuc);
+            vrstniRedSpremenjen = true;
+            zamenjajVidniMesti(vrstica, cilj);
+          } else if (!cilj) {
+            zadnjiCiljKljuc = "";
+          }
+        }
+
+        function medPremikanjem(dogodek) {
+          if (dogodek.pointerId !== pointerId) return;
+          zadnjiX = dogodek.clientX;
+          zadnjiY = dogodek.clientY;
+          var razdalja = Math.hypot(zadnjiX - zacetniX, zadnjiY - zacetniY);
+          if (!pripravljen) {
+            if (razdalja >= 8) pocisti();
+            return;
+          }
+          if (!premikanje && razdalja < 8) return;
+          if (!premikanje) zacniPremikanje();
+          dogodek.preventDefault();
+          if (!rafId) rafId = win.requestAnimationFrame(izrisiPremikanje);
+        }
+
+        function koncajPremikanje(dogodek) {
+          if (dogodek.pointerId !== pointerId) return;
+          if (rafId) {
+            win.cancelAnimationFrame(rafId);
+            rafId = null;
+            izrisiPremikanje();
+          }
+          pocisti();
+          vrstica.classList.remove("podjetja-sheet__podjetje-vrstica--dolg-pritisk");
+          if (!premikanje) return;
+          if (dogodek.type !== "pointercancel" && vrstniRedSpremenjen) {
+            var kategorija = aktivnaKategorija();
+            if (kategorija && !iskalniNiz) {
+              kategorija.companyKeys = zdruziPrikazaniVrstniRed(kategorija.companyKeys, predogledKljucov);
+              shraniKategorije();
+            } else {
+              var osnovniKljuci = podjetja.map(kljucPodjetja);
+              vrstniRedPodjetij = zdruziPrikazaniVrstniRed(osnovniKljuci, predogledKljucov);
+              podjetja = urediPodjetjaPoKljucih(podjetja, vrstniRedPodjetij);
+              shraniVrstniRedPodjetij();
+              izrisiHitriSeznam();
+            }
+            aktivniHitriPogled = "recent";
+          }
+          if (duh) {
+            duh.classList.add("podjetja-sheet__podjetje-vrstica--spuscena");
+            var koncniOkvir = vrstica.getBoundingClientRect();
+            duh.style.setProperty("--podjetje-duh-x", koncniOkvir.left - zacetniOkvir.left + "px");
+            duh.style.setProperty("--podjetje-duh-y", koncniOkvir.top - zacetniOkvir.top + "px");
+          }
+          win.setTimeout(function () {
+            if (duh) duh.remove();
+            vrstica.classList.remove("podjetja-sheet__podjetje-vrstica--premikanje");
+            izrisiSheet();
+          }, 175);
+        }
+
+        if (zahtevaDolgiPritisk) {
+          dolgiPritiskCasovnik = win.setTimeout(function () {
+            pripravljen = true;
+            vrstica.classList.add("podjetja-sheet__podjetje-vrstica--dolg-pritisk");
+            zacniPremikanje();
+          }, DOLGI_PRITISK_MS);
+        }
+        win.addEventListener("pointermove", medPremikanjem, { passive: false });
+        win.addEventListener("pointerup", koncajPremikanje);
+        win.addEventListener("pointercancel", koncajPremikanje);
+        if (zahtevaDolgiPritisk) win.addEventListener("touchmove", zadrziDotik, { passive: false });
+      });
+    }
+
     function izrisiSheet() {
       sheetSeznam.innerHTML = "";
       var kategorija = dodajanjeVKategorijo ? null : aktivnaKategorija();
@@ -854,14 +1258,34 @@
         prikazanaPodjetja = filtrirajPodjetja(podjetja, iskalniNiz);
       }
       prikazanaPodjetja = razvrstiPodjetja(prikazanaPodjetja, kategorija || vseKategorije ? "az" : "nedavna");
+      prikazanaPodjetja = uporabiHitriPogled(prikazanaPodjetja, aktivniHitriPogled);
+      if (aktivniHitriPogled === "recent" && !iskalniNiz) {
+        prikazanaPodjetja = urediPodjetjaPoKljucih(prikazanaPodjetja, kategorija ? kategorija.companyKeys : vrstniRedPodjetij);
+      }
+      var prikazaniKljuci = prikazanaPodjetja.map(kljucPodjetja);
+      posodobiHitrePoglede();
       if (sheetSeznamNaslov) {
+        var nasloviPogledov = {
+          critical: "Kritični primeri",
+          highest_debt: "Podjetja z najvišjim dolgom",
+          oldest: "Najdlje neplačani primeri",
+          missing_contact: "Podjetja brez kontakta",
+          recent: "Nedavno uporabljena podjetja",
+          az: "Podjetja A–Ž",
+        };
         sheetSeznamNaslov.textContent = dodajanjeVKategorijo
           ? "Nedavno uporabljena podjetja"
           : kategorija
-          ? kategorija.name + (iskalniNiz ? " · rezultati iskanja" : "")
+          ? (nasloviPogledov[aktivniHitriPogled] + " v kategoriji " + kategorija.name + (iskalniNiz ? " · rezultati iskanja" : ""))
           : vseKategorije
             ? (iskalniNiz ? "Vsa podjetja · rezultati iskanja" : "Vsa podjetja")
             : (iskalniNiz ? "Rezultati iskanja" : "Nedavno uporabljena podjetja");
+      }
+      if (!dodajanjeVKategorijo && prikazanaPodjetja.length > 1) {
+        var namigRazporejanje = doc.createElement("p");
+        namigRazporejanje.className = "podjetja-sheet__kartice-namig";
+        namigRazporejanje.innerHTML = '<span aria-hidden="true">↕</span><span>Pridržite in povlecite kartico za razporejanje.</span>';
+        sheetSeznam.appendChild(namigRazporejanje);
       }
       if (!prikazanaPodjetja.length) {
         var prazno = doc.createElement("p");
@@ -918,6 +1342,7 @@
         } else {
           var kartica = doc.createElement("article");
           kartica.className = "podjetja-sheet__podjetje podjetja-sheet__podjetje--bogato";
+          kartica.setAttribute("aria-description", "Kartico lahko pridržite in povlečete na drugo mesto.");
           function ikonaKontaktnegaPolja(kljucPolja) {
             if (kljucPolja === "phone") {
               return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg>';
@@ -1185,6 +1610,7 @@
           });
           vrstica.appendChild(dodajGumb);
         }
+        if (!dodajanjeVKategorijo) omogociPremikanjePodjetja(vrstica, podjetje, prikazaniKljuci);
         sheetSeznam.appendChild(vrstica);
       });
     }
@@ -1193,6 +1619,7 @@
       if (!podjetja.length) return;
       prejsnjiFokus = doc.activeElement;
       aktivnaKategorijaId = "";
+      aktivniHitriPogled = "recent";
       urejanjeKategorij = false;
       dodajanjeVKategorijo = false;
       izbraniKljuciZaKategorijo.clear();
@@ -1274,12 +1701,19 @@
     kategorijaVseGumb.addEventListener("click", function () {
       if (dodajanjeVKategorijo) return;
       aktivnaKategorijaId = VSE_KATEGORIJE_ID;
+      aktivniHitriPogled = "az";
       iskalniNiz = "";
       iskanje.value = "";
       nedavnaGumb.classList.remove("podjetja-sheet__nedavna-gumb--aktiven");
       nedavnaGumb.setAttribute("aria-pressed", "false");
       izrisiKategorije();
       izrisiSheet();
+    });
+    kategorijaIzbiraGumb.addEventListener("click", function () {
+      if (kategorijaIzbiraGumb.disabled) return;
+      var odprto = kategorijaIzbiraGumb.getAttribute("aria-expanded") === "true";
+      kategorijeViewport.hidden = odprto;
+      kategorijaIzbiraGumb.setAttribute("aria-expanded", odprto ? "false" : "true");
     });
     var cakanjeNaPikice = false;
     kategorijeViewport.addEventListener("scroll", function () {
@@ -1297,8 +1731,12 @@
       urejanjeKategorij = !urejanjeKategorij;
       if (!urejanjeKategorij) zapriNastavitveKategorije();
       izrisiKategorije();
+      kategorijeViewport.hidden = !urejanjeKategorij;
+      kategorijaIzbiraGumb.setAttribute("aria-expanded", urejanjeKategorij ? "true" : "false");
     });
     novaKategorijaGumb.addEventListener("click", function () {
+      kategorijeViewport.hidden = true;
+      kategorijaIzbiraGumb.setAttribute("aria-expanded", "false");
       kategorijaObrazec.hidden = false;
       kategorijaIme.value = "";
       kategorijaIme.setCustomValidity("");
@@ -1323,8 +1761,9 @@
       var id = win.crypto && typeof win.crypto.randomUUID === "function"
         ? win.crypto.randomUUID()
         : "kategorija-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-      kategorije.push({ id: id, name: ime.slice(0, 40), companyKeys: [] });
+      kategorije.push({ id: id, name: ime.slice(0, 40), companyKeys: [], color: "#469c98", defaultView: "critical" });
       aktivnaKategorijaId = id;
+      aktivniHitriPogled = "critical";
       aktivnaStranKategorij = stranKategorije(kategorije.length - 1);
       kategorijaObrazec.hidden = true;
       kategorijaIme.value = "";
@@ -1341,6 +1780,11 @@
     });
     kategorijaUrediIme.addEventListener("input", function () {
       kategorijaUrediIme.setCustomValidity("");
+    });
+    kategorijaBarve.forEach(function (izbira) {
+      izbira.addEventListener("change", function () {
+        if (izbira.checked) predogledBarveKategorije(izbira.value);
+      });
     });
     kategorijaNastavitve.addEventListener("submit", function (dogodek) {
       dogodek.preventDefault();
@@ -1361,6 +1805,10 @@
         return;
       }
       kategorija.name = ime.slice(0, 40);
+      var izbranaBarva = kategorijaBarve.find(function (izbira) { return izbira.checked; });
+      kategorija.color = izbranaBarva ? izbranaBarva.value : "#469c98";
+      kategorija.defaultView = kategorijaPrivzetiPogled.value;
+      if (aktivnaKategorijaId === kategorija.id) aktivniHitriPogled = kategorija.defaultView;
       shraniKategorije();
       zapriNastavitveKategorije();
       izrisiKategorije();
@@ -1378,15 +1826,104 @@
       izrisiSheet();
     });
     if (kategorijaNastavitveZapri) kategorijaNastavitveZapri.addEventListener("click", zapriNastavitveKategorije);
+    kategorijaPrivzetiGumb.addEventListener("click", function () {
+      var odprto = kategorijaPrivzetiGumb.getAttribute("aria-expanded") === "true";
+      if (odprto) {
+        kategorijaPrivzetiMeni.hidden = true;
+        kategorijaPrivzetiGumb.setAttribute("aria-expanded", "false");
+      } else {
+        odpriPrivzetiMeni();
+      }
+    });
+    kategorijaPrivzetiMoznosti.forEach(function (gumb) {
+      gumb.addEventListener("click", function () {
+        nastaviPrivzetiPogled(gumb.dataset.podjetjaPrivzetiPogled);
+        kategorijaPrivzetiMeni.hidden = true;
+        kategorijaPrivzetiGumb.setAttribute("aria-expanded", "false");
+        kategorijaPrivzetiGumb.focus({ preventScroll: true });
+      });
+    });
+    doc.addEventListener("pointerdown", function (dogodek) {
+      if (!kategorijeViewport.hidden && !kategorijeViewport.contains(dogodek.target) && !kategorijaIzbiraGumb.contains(dogodek.target)) {
+        kategorijeViewport.hidden = true;
+        kategorijaIzbiraGumb.setAttribute("aria-expanded", "false");
+      }
+      if (!kategorijaPrivzetiMeni.hidden && !kategorijaPrivzeti.contains(dogodek.target)) {
+        kategorijaPrivzetiMeni.hidden = true;
+        kategorijaPrivzetiGumb.setAttribute("aria-expanded", "false");
+      }
+    });
+    win.addEventListener("resize", function () {
+      if (!kategorijaPrivzetiMeni.hidden) odpriPrivzetiMeni();
+    });
+    hitriVecGumb.addEventListener("click", function () {
+      var odprto = hitriVecGumb.getAttribute("aria-expanded") === "true";
+      hitriVecGumb.setAttribute("aria-expanded", odprto ? "false" : "true");
+      hitriVecMeni.hidden = odprto;
+    });
+    hitriPogledGumbi.forEach(function (gumb) {
+      if (!gumb.dataset.podjetjaHitriPogled) return;
+      gumb.addEventListener("click", function () {
+        if (dodajanjeVKategorijo) return;
+        aktivniHitriPogled = gumb.dataset.podjetjaHitriPogled;
+        hitriVecMeni.hidden = true;
+        hitriVecGumb.setAttribute("aria-expanded", "false");
+        izrisiSheet();
+      });
+    });
     doc.addEventListener("keydown", function (dogodek) {
+      if (dogodek.key === "Escape" && !kategorijeViewport.hidden) {
+        kategorijeViewport.hidden = true;
+        kategorijaIzbiraGumb.setAttribute("aria-expanded", "false");
+        kategorijaIzbiraGumb.focus({ preventScroll: true });
+        return;
+      }
+      if (dogodek.key === "Escape" && !kategorijaPrivzetiMeni.hidden) {
+        kategorijaPrivzetiMeni.hidden = true;
+        kategorijaPrivzetiGumb.setAttribute("aria-expanded", "false");
+        kategorijaPrivzetiGumb.focus({ preventScroll: true });
+        return;
+      }
       if (dogodek.key === "Escape" && !sheet.hidden) zapriSheet();
     });
     doc.addEventListener("uj:zadeve-nalozene", function (dogodek) {
       var shranjeniPodatki = preberiShranjenePodatke();
-      podjetja = podjetjaIzZadev(dogodek.detail).map(function (podjetje) {
-        return uporabiShranjenePodatke(podjetje, shranjeniPodatki);
-      }).filter(function (podjetje) {
+      podjetja = zdruziPodjetjaSStiki(podjetjaIzZadev(dogodek.detail), shranjeniPodatki).filter(function (podjetje) {
         return !izbrisaniKljuciPodjetij.has(kljucPodjetja(podjetje));
+      });
+      podjetja = urediPodjetjaPoKljucih(podjetja, vrstniRedPodjetij);
+      izrisiHitriSeznam();
+      if (!sheet.hidden) {
+        izrisiKategorije();
+        izrisiSheet();
+      }
+    });
+    doc.addEventListener("uj:podjetje-shranjeno", function (dogodek) {
+      var detail = dogodek.detail && typeof dogodek.detail === "object" ? dogodek.detail : {};
+      var kljuc = besedilo(detail.key);
+      if (!kljuc || !detail.company) return;
+      var prejsnjiKljuc = besedilo(detail.previousKey);
+      if (prejsnjiKljuc && prejsnjiKljuc !== kljuc) {
+        podjetja = podjetja.filter(function (podjetje) { return kljucPodjetja(podjetje) !== prejsnjiKljuc; });
+      }
+      var samoNoviStik = {};
+      samoNoviStik[kljuc] = detail.company;
+      podjetja = zdruziPodjetjaSStiki(podjetja, samoNoviStik);
+      izbrisaniKljuciPodjetij.delete(kljuc);
+      shraniIzbrisaneKljuciPodjetij();
+      podjetja = razvrstiPodjetja(podjetja, "recent");
+      izrisiHitriSeznam();
+      if (!sheet.hidden) {
+        izrisiKategorije();
+        izrisiSheet();
+      }
+    });
+    doc.addEventListener("uj:podjetje-odstranjeno-iz-stikov", function (dogodek) {
+      var kljuc = besedilo(dogodek.detail && dogodek.detail.key);
+      if (!kljuc) return;
+      podjetja = podjetja.filter(function (podjetje) {
+        return kljucPodjetja(podjetje) !== kljuc
+          || (Array.isArray(podjetje.cases) && podjetje.cases.length > 0);
       });
       izrisiHitriSeznam();
       if (!sheet.hidden) {
@@ -1400,15 +1937,18 @@
     init: init,
     normalizirajIme: normalizirajIme,
     podjetjaIzZadev: podjetjaIzZadev,
+    zdruziPodjetjaSStiki: zdruziPodjetjaSStiki,
     sistemskaOcena: sistemskaOcena,
     povzetekZgodovine: povzetekZgodovine,
     razlagaSpremljanja: razlagaSpremljanja,
     razvrstiPodjetja: razvrstiPodjetja,
+    uporabiHitriPogled: uporabiHitriPogled,
     filtrirajPodjetja: filtrirajPodjetja,
     normalizirajKategorije: normalizirajKategorije,
     premakniKategorijo: premakniKategorijo,
     premakniKategorijoNaMesto: premakniKategorijoNaMesto,
     zamenjajKategoriji: zamenjajKategoriji,
+    zamenjajKljuca: zamenjajKljuca,
     razdeliKategorijeNaStrani: razdeliKategorijeNaStrani,
     razvrstiKategorijePoId: razvrstiKategorijePoId,
   };

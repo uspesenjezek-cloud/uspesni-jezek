@@ -4,6 +4,10 @@ const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
 const providerJson = require("../_lib/provider-json");
 const requestQuery = require("../_lib/pos-request-query");
+const pdfCapacity = require("../_lib/runtime-capacity").sharedGate("pos-pdf-generation", {
+  maxActive: 2, maxQueue: 32, waitTimeoutMs: 8000, retryAfterMs: 1500,
+  busyMessage: "Ustvarjanje PDF-jev je trenutno zasedeno. Poskusite znova čez trenutek."
+});
 const { GENERATOR_VERSION, ustvariPonudboPdf } = require("../_lib/pos-offer-pdf");
 
 const BUCKET = "pos-offer-originals";
@@ -79,7 +83,7 @@ async function insertDocument(cfg, row) {
   throw Object.assign(new Error("Metapodatkov ponudbe ni bilo mogoče shraniti."), { status: response.status });
 }
 
-async function ensureDocument(cfg, workOrder, userId) {
+async function ensureDocumentCore(cfg, workOrder, userId) {
   let document = await readDocument(cfg, userId, workOrder.id);
   let pdf = null;
   if (document) {
@@ -106,6 +110,12 @@ async function ensureDocument(cfg, workOrder, userId) {
   if (!document) document = await readDocument(cfg, userId, workOrder.id);
   if (!document || document.sha256 !== hash) throw new Error("Ponudba je nastala, vendar njena arhivska evidenca ni pravilna.");
   return { document, pdf };
+}
+
+function ensureDocument(cfg, workOrder, userId) {
+  return pdfCapacity.run("offer:" + userId + ":" + workOrder.id, function () {
+    return ensureDocumentCore(cfg, workOrder, userId);
+  });
 }
 
 async function handler(req, res) {
@@ -139,7 +149,7 @@ async function handler(req, res) {
     res.end(result.pdf);
   } catch (error) {
     console.error("[pos-angebot-pdf]", error && error.stack || error);
-    json(res, 500, { ok: false, napaka: error && error.message || "PDF ponudbe ni bil ustvarjen." });
+    json(res, Number(error && error.status || 500), { ok: false, code: error && error.code, retryable: error && error.retryable === true, retryAfterMs: error && error.retryAfterMs, napaka: error && error.message || "PDF ponudbe ni bil ustvarjen." });
   }
 }
 

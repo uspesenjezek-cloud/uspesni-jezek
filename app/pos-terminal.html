@@ -7,13 +7,13 @@
     <meta name="apple-mobile-web-app-title" content="Uspešni Ježek" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>POS terminal – Uspešni Ježek</title>
-    <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
-    <link rel="stylesheet" href="pos-terminal.css?v=20260827-stripe-slate-v1" />
+    <link rel="stylesheet" href="styles.css?v=20260830-global-full-width-v1" />
+    <link rel="stylesheet" href="pos-terminal.css?v=20260830-global-full-width-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#137f82" />
     <link rel="apple-touch-icon" href="icon-192.png" />
-  <script src="pos-terminal-i18n.js?v=20260826-cash-recovery-v1"></script>
+    <script src="pos-terminal-i18n.js?v=20260830-pos-payment-i18n-v1"></script>
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
@@ -514,10 +514,10 @@
         </section>
 
         <section class="pos-cash-test" data-cash-payment-panel hidden>
-          <div class="pos-cash-test__brand"><span><svg><use href="#i-receipt"/></svg></span><b>LOKALER TSE-MOCK · TEST</b></div>
+          <div class="pos-cash-test__brand"><span><svg><use href="#i-receipt"/></svg></span><b>LOKALNI TSE-MOCK · TEST</b></div>
           <div class="pos-cash-test__copy">
             <small>Gotovinsko plačilo brez pravega poslovnega dogodka</small>
-            <strong data-cash-payment-title>Barzahlung · TRAINING</strong>
+            <strong data-cash-payment-title>Gotovinsko plačilo · TRAINING</strong>
             <p data-cash-payment-copy>Checkout se zaključi šele po popolnem mock TSE podpisu.</p>
           </div>
           <div class="pos-cash-test__actions">

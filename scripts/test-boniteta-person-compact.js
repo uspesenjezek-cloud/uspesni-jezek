@@ -7,6 +7,9 @@ var root = path.join(__dirname, "..");
 var js = fs.readFileSync(path.join(root, "app", "bonitetna-preverba.js"), "utf8");
 var css = fs.readFileSync(path.join(root, "app", "bonitetna-preverba.css"), "utf8");
 var center = fs.readFileSync(path.join(root, "app", "boniteta-sredisce.js"), "utf8");
+var insolvencyPreviewStart = center.indexOf("function fillInsolvencyResultTestPreview");
+var insolvencyPreviewEnd = center.indexOf("\n  function ", insolvencyPreviewStart);
+var insolvencyPreview = center.slice(insolvencyPreviewStart, insolvencyPreviewEnd > insolvencyPreviewStart ? insolvencyPreviewEnd : undefined);
 
 assert.match(js, /identitetaImaKompaktniPrikaz[\s\S]*?"manual_input", "confirmed_manual"[\s\S]*?UJBonitetaPrikaziRegistrskoPodjetje\(podatki\)/,
   "potrjena oseba ne sme več pasti v stari rezultat Identiteta");
@@ -26,7 +29,7 @@ assert.match(center, /location\.hostname==="localhost"[\s\S]*?person-preview[\s\
   "osebni vizualni predogled mora biti omejen na localhost");
 assert.match(center, /fillPersonCardTestPreview\(\)[\s\S]*?fillInsolvencyResultTestPreview\(false,true\)/,
   "osebni tok mora pripraviti isti uradni dokazni posnetek kot insolvenčni rezultat");
-assert.match(center, /function fillInsolvencyResultTestPreview\(stress,prepareOnly\)[\s\S]*?Identiteta osebe je potrjena[\s\S]*?boniteta-insolvenca-posnetek"\)\.hidden=false/,
+assert.match(insolvencyPreview, /Identiteta osebe je potrjena[\s\S]*?officialSvg[\s\S]*?boniteta-insolvenca-posnetek"\)\.hidden=false/,
   "osebni insolvenčni rezultat mora vsebovati posnetek in osebno besedilo");
 
 console.log("✓ Osebna preverba uporablja enotni kompaktni rezultat.");

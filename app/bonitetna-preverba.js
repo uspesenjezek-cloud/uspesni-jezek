@@ -59,6 +59,7 @@
   var zadnjaOpenRegisterReferenca = "";
   var neposrednaInsolvencnaPreverba = false;
   var generacijaNeposredneInsolvence = 0;
+  var samodejnaOpenRegisterOsvezitevKljuc = "";
   var generacijaOdpiranjaShranjengaProfila = 0;
   var izbranoOpenRegisterPodjetje = null;
   var autocompleteZaporedje = 0;
@@ -158,6 +159,8 @@
   var krajiTrenutnePoste = [];
   var izrecnoIzbraniKraj = "";
   var generacijaRezultata = 0;
+  var aktivniNorthDataDetailsProof = "";
+  var shranjevanjeRezultataPromise = Promise.resolve();
   var zadnjiJobId = "";
   var zadnjiInsolvencniRezultatPripravljen = false;
   var zadnjiProfilId = "";
@@ -387,6 +390,7 @@
     var podatki = zadnjiRegistrskiPodatki || {};
     var identiteta = zadnjaRegistrskaIdentiteta || podatki.identity || {};
     if (identiteta.status !== "verified_register") return false;
+    if (neposrednaInsolvencnaPreverba) return true;
     var companyId = identiteta.companyId || (podatki.identityEvidence && podatki.identityEvidence.companyId) || "";
     if (!companyId) return false;
     zadnjaOpenRegisterReferenca = companyId;
@@ -417,6 +421,65 @@
     if (opis) opis.textContent = "Preverjanje uradnih objav je v teku …";
     neposrednaInsolvencnaPreverba = true;
     potrditevGumb.click();
+    return true;
+  }
+
+  function nastaviSamodejnoRegistrskoInsolvencnoStanje(opis, stanje) {
+    if (identitetaNadaljuj) identitetaNadaljuj.hidden = true;
+    if (potrditevIdentitete) potrditevIdentitete.hidden = true;
+    nastaviInsolvencnoOkno(false, false);
+    if (!podjetjePreverjeno) return;
+    podjetjePreverjeno.textContent = opisCasaPreverbe(zadnjiRegistrskiPodatki && zadnjiRegistrskiPodatki.checkedAt).replace(/^p/, "P");
+    podjetjePreverjeno.classList.remove("is-auto-insolvency-status");
+    podjetjePreverjeno.removeAttribute("data-status");
+    podjetjePreverjeno.removeAttribute("role");
+    podjetjePreverjeno.removeAttribute("aria-live");
+  }
+
+  async function samodejnoNadaljujOpenRegisterPreverbo(podatki) {
+    var identiteta = podatki && podatki.identity || {};
+    if (identiteta.status !== "verified_register") return false;
+    var insolvenca = podatki && podatki.insolvency || {};
+    var status = String(insolvenca.status || "not_checked");
+    if (zadnjiInsolvencniRezultatPripravljen) {
+      nastaviSamodejnoRegistrskoInsolvencnoStanje("", "complete");
+      nastaviKarticoInsolvenceZakljuceno(podatki);
+      return true;
+    }
+    if (status !== "not_checked") {
+      nastaviSamodejnoRegistrskoInsolvencnoStanje("Uradni vir trenutno ni dosegljiv", "warning");
+      return true;
+    }
+
+    nastaviSamodejnoRegistrskoInsolvencnoStanje("Insolvenčna preverba poteka", "loading");
+    if (zacniInsolvencnoPreverboBrezPonovnegaPotrjevanja()) return true;
+
+    var companyId = identiteta.companyId || podatki.identityEvidence && podatki.identityEvidence.companyId || "";
+    var osvezitevKljuc = [companyId, identiteta.naziv || identiteta.ime || "", podatki.checkedAt || ""].join("|");
+    if (!companyId || samodejnaOpenRegisterOsvezitevKljuc === osvezitevKljuc) {
+      nastaviSamodejnoRegistrskoInsolvencnoStanje("Status registra trenutno ni na voljo", "warning");
+      return true;
+    }
+    samodejnaOpenRegisterOsvezitevKljuc = osvezitevKljuc;
+    try {
+      var token = await pridobiToken();
+      var osvezeniVnos = Object.assign({}, zadnjiVnos || {}, {
+        ime: identiteta.naziv || identiteta.ime || "",
+        naslov: identiteta.naslov || "",
+        postnaStevilka: identiteta.postnaStevilka || "",
+        kraj: identiteta.kraj || "",
+        registerNumber: identiteta.registerNumber || "",
+        registerCourt: identiteta.registerCourt || "",
+        openRegisterCompanyId: companyId,
+        uporabiOpenRegisterIdentiteto: true,
+      });
+      zadnjiVnos = osvezeniVnos;
+      zadnjaOpenRegisterReferenca = companyId;
+      var osvezeniPodatki = await izvediPrekoCakalneVrste(osvezeniVnos, token);
+      izrisi(osvezeniPodatki);
+    } catch (_) {
+      nastaviSamodejnoRegistrskoInsolvencnoStanje("Status registra trenutno ni na voljo", "warning");
+    }
     return true;
   }
 
@@ -1096,7 +1159,7 @@
 
   async function openRegisterApi(telo) {
     var token = await pridobiToken(false, true);
-    var odgovor = await fetchSPonovnimPoskusom("/api/openregister-pro", {
+    var odgovor = await fetchSPonovnimPoskusom("/api/boniteta-pro?route=openregister", {
       method: "POST",
       headers: glaveCakalneVrste(token, true),
       body: JSON.stringify(telo),
@@ -1113,7 +1176,7 @@
       var token = await pridobiToken(authPoskus > 0, true);
       // Plačljivega klica ne ponavljamo po omrežni napaki. Ponovitev je dovoljena
       // samo po HTTP 401, ko je strežnik zahtevo zavrnil še pred zagonom actorja.
-      var odgovor = await fetch("/api/openregister-pro", {
+      var odgovor = await fetch("/api/boniteta-pro?route=openregister", {
         method: "POST",
         headers: glaveCakalneVrste(token, true),
         body: JSON.stringify({ action: "northdata_autocomplete", query: query }),
@@ -1178,8 +1241,9 @@
     };
   }
 
-  function izrisiAutocompleteZadetke(results) {
+  function izrisiAutocompleteZadetke(results, odmakniZaVidniStatus) {
     if (!heroZadetki) return;
+    heroZadetki.style.removeProperty("top");
     heroZadetki.innerHTML = "";
     (Array.isArray(results) ? results : []).slice(0, 8).forEach(function (company) {
       var button = document.createElement("button");
@@ -1206,6 +1270,12 @@
       heroZadetki.appendChild(button);
     });
     odpriAutocomplete(heroZadetki.children.length > 0);
+    if (odmakniZaVidniStatus && heroSpletnaStatus && !heroSpletnaStatus.hidden) {
+      var iskanjeMeje = heroZadetki.parentElement.getBoundingClientRect();
+      var statusMeje = heroSpletnaStatus.getBoundingClientRect();
+      var odmikDoStatusa = Math.max(8, Math.ceil(statusMeje.bottom - iskanjeMeje.bottom + 8));
+      heroZadetki.style.top = "calc(100% + " + odmikDoStatusa + "px)";
+    }
   }
 
   function kljucAutocompletePodjetja(company) {
@@ -1379,6 +1449,38 @@
     };
   }
 
+  function normalizirajDomenskiRegisterNiz(value) {
+    return String(value || "")
+      .replace(/&(?:amp;)?/gi, " und ")
+      .replace(/ß/g, "ss")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("de-DE")
+      .replace(/[^a-z]+/g, "");
+  }
+
+  function domenskiRegisterKljuc(value) {
+    var vnos = String(value || "").trim();
+    if (!vnos) return "";
+    try {
+      var url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(vnos) ? vnos : "https://" + vnos);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+      var hostname = String(url.hostname || "").toLowerCase().replace(/\.$/, "").replace(/^www\./, "");
+      if (!hostname || /^[\d.:]+$/.test(hostname)) return "";
+      var deli = hostname.split(".").filter(Boolean);
+      if (deli.length < 2) return "";
+      var kljuc = normalizirajDomenskiRegisterNiz(deli[deli.length - 2]);
+      return kljuc.length >= 6 ? kljuc : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function seNazivUjemaZDomenskimKljucem(naziv, domenskiKljuc) {
+    var kljuc = normalizirajDomenskiRegisterNiz(domenskiKljuc);
+    return kljuc.length >= 6 && normalizirajDomenskiRegisterNiz(naziv).indexOf(kljuc) === 0;
+  }
+
   function normalizirajHitroPredpono(value) {
     return String(value || "")
       .toLowerCase()
@@ -1438,6 +1540,25 @@
     });
     odprtiRegisterNalaganja.set(key, loading);
     return loading;
+  }
+
+  async function naloziOdprtiRegisterZadetkeZaDomeno(spletniNaslov, pricakovanoZaporedje) {
+    if (pricakovanoZaporedje !== autocompleteZaporedje) return [];
+    var domenskiKljuc = domenskiRegisterKljuc(spletniNaslov);
+    if (!domenskiKljuc) return [];
+    try {
+      var rows = await naloziOdprtiRegisterDelec(odprtiRegisterKljuc(domenskiKljuc));
+      if (pricakovanoZaporedje !== autocompleteZaporedje) return [];
+      return rows.filter(function (row) {
+        return Array.isArray(row) && row[0] && seNazivUjemaZDomenskimKljucem(row[0], domenskiKljuc);
+      }).map(odprtiRegisterZapisVPodjetje).filter(Boolean).filter(function (company, index, all) {
+        return all.findIndex(function (candidate) {
+          return kljucAutocompletePodjetja(candidate) === kljucAutocompletePodjetja(company);
+        }) === index;
+      }).slice(0, 8);
+    } catch (_) {
+      return [];
+    }
   }
 
   function naloziOdprtiRegisterDodatke() {
@@ -1893,10 +2014,16 @@
       } else {
         throw new Error("Podprte so slike in PDF dokumenti.");
       }
+      var aiSession = await supabaseKlient.auth.getSession();
+      var aiToken = aiSession && aiSession.data && aiSession.data.session && aiSession.data.session.access_token;
+      if (!aiToken) throw new Error("Prijava je potekla. Prijavite se znova.");
+      var aiRequestId = "document:" + (window.crypto && typeof window.crypto.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2));
       var odgovor = await fetch("/api/citaj-racun", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ namen: "bonitetna_preverba", mediaType: mediaType, podatki: await blobVBase64ZaBoniteto(blob) }),
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + aiToken },
+        body: JSON.stringify({ requestId: aiRequestId, namen: "bonitetna_preverba", mediaType: mediaType, podatki: await blobVBase64ZaBoniteto(blob) }),
       });
       var telo = await odgovor.json().catch(function () { return null; });
       if (!odgovor.ok || !telo || !telo.ok || !Array.isArray(telo.stranke) || !telo.stranke.length) {
@@ -2034,27 +2161,7 @@
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           action: "save_check",
-          profile: {
-            companyId: uradniCompanyId,
-            legalName: identiteta.naziv || identiteta.ime,
-            registerNumber: uradniCompanyId ? identiteta.registerNumber || podatki.identityEvidence && podatki.identityEvidence.registerNumber || "" : "",
-            registerCourt: uradniCompanyId ? identiteta.registerCourt || podatki.identityEvidence && podatki.identityEvidence.registerCourt || "" : "",
-            companyStatus: identiteta.active === false ? "inactive" : identiteta.active === true ? "active" : "unknown",
-            address: { street: identiteta.naslov || "", postal_code: identiteta.postnaStevilka || "", city: identiteta.kraj || "" },
-            contact: { website: vnosObRezultatu && vnosObRezultatu.spletnaStran || "" },
-            checkedAt: podatki.checkedAt,
-            latestCheck: {
-              result: podatki.result || {}, insolvency: podatki.insolvency || {},
-              identityStatus: identiteta.status,
-              entityType: identiteta.entityType || "",
-              identityName: identiteta.ime || "",
-              businessName: identiteta.naziv || "",
-              queueJobId: zadnjiJobId,
-              sources: podatki.sources || [],
-              northData: podatki.northData || null,
-              northDataDetails: podatki.northDataDetails || null,
-            },
-          },
+          jobId: zadnjiJobId,
         }),
       });
       var shranjeno = await odgovor.json().catch(function () { return {}; });
@@ -2096,6 +2203,110 @@
       }
     } catch (_) {
       // Osnovni rezultat ostane uporaben tudi, če profil trenutno ni mogoče shraniti.
+    }
+  }
+
+  function stanjePlusPodatkov(podatki, prisilnoStanje) {
+    var details = podatki && podatki.northDataDetails || {};
+    var request = podatki && podatki.northDataDetailsRequest || {};
+    return prisilnoStanje || (details.status === "found"
+      ? "complete"
+      : request.status === "pending" || details.status === "pending_background"
+        ? "loading"
+        : request.status === "unavailable" || details.status === "unavailable"
+          ? "unavailable"
+          : "hidden");
+  }
+
+  function posodobiPlusStanje(podatki, prisilnoStanje) {
+    if (!podjetjePregled) return;
+    var gumb = podjetjePregled.querySelector('[data-podjetje-pogled="plus"]');
+    if (!gumb) return;
+    var stanje = stanjePlusPodatkov(podatki, prisilnoStanje);
+    var opis = gumb.querySelector("small");
+    var plusIkona = gumb.querySelector("svg");
+    var jeBiloNalaganje = gumb.classList.contains("is-plus-loading");
+    var zacetnaTransformacija = jeBiloNalaganje && stanje !== "loading" && plusIkona
+      ? window.getComputedStyle(plusIkona).transform
+      : "";
+    gumb.dataset.plusStanje = stanje;
+    gumb.classList.toggle("is-plus-loading", stanje === "loading");
+    gumb.classList.toggle("is-plus-unavailable", stanje === "unavailable");
+    if (zacetnaTransformacija && !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        typeof plusIkona.animate === "function") {
+      plusIkona.getAnimations().forEach(function (animacija) { animacija.cancel(); });
+      plusIkona.animate([
+        { transform: zacetnaTransformacija },
+        { transform: "translateY(-50%) rotate(360deg) scale(1)" },
+      ], {
+        duration: 460,
+        easing: "cubic-bezier(.22, 1, .36, 1)",
+      });
+    }
+    gumb.setAttribute("aria-busy", stanje === "loading" ? "true" : "false");
+    if (stanje === "loading") {
+      gumb.disabled = true;
+      gumb.setAttribute("aria-disabled", "true");
+      gumb.setAttribute("aria-label", "Plus – nalaganje dodatnih informacij");
+      if (opis) opis.textContent = "Nalagam …";
+    } else if (stanje === "unavailable") {
+      gumb.disabled = true;
+      gumb.setAttribute("aria-disabled", "true");
+      gumb.setAttribute("aria-label", "Plus – ni dodatnih informacij");
+      if (opis) opis.textContent = "Ni dodatnih info";
+    } else if (opis) {
+      opis.textContent = stanje === "complete" ? "Na voljo" : "Ni na voljo";
+    }
+  }
+
+  function posodobiVirDodatnihPodatkov(podatki, source) {
+    if (!podatki || !source) return;
+    podatki.sources = (Array.isArray(podatki.sources) ? podatki.sources : []).filter(function (entry) {
+      return entry && entry.id !== "northdata_details";
+    });
+    podatki.sources.push(source);
+  }
+
+  async function zacniNorthDataPodrobnostiVOzadju(podatki, mojaGeneracija) {
+    var request = podatki && podatki.northDataDetailsRequest || {};
+    var proof = String(request.proof || "");
+    if (request.status !== "pending" || !proof || !zadnjiJobId || aktivniNorthDataDetailsProof === proof) return;
+    aktivniNorthDataDetailsProof = proof;
+    posodobiPlusStanje(podatki, "loading");
+    try {
+      var token = await pridobiToken();
+      var odgovor = await fetch(request.endpoint || "/api/mehka-boniteta-podrobnosti", {
+        method: "POST",
+        headers: glaveCakalneVrste(token, true),
+        body: JSON.stringify({ jobId: zadnjiJobId, proof: proof }),
+        signal: omejitevKlica(35000),
+      });
+      var dopolnitev = await odgovor.json().catch(function () { return {}; });
+      if (mojaGeneracija !== generacijaRezultata) return;
+      // Prvo strežniško shranjevanje lahko teče vzporedno z actorjem. Pred
+      // združitvijo počakamo nanj, da starejši odgovor ne prepiše svežih podatkov.
+      await shranjevanjeRezultataPromise.catch(function () {});
+      if (mojaGeneracija !== generacijaRezultata) return;
+      if (!odgovor.ok || !dopolnitev.ok) throw new Error(dopolnitev.napaka || "Dopolnilni vir ni dosegljiv.");
+      podatki.northData = dopolnitev.northData || podatki.northData;
+      podatki.northDataDetails = dopolnitev.northDataDetails || { status: "unavailable", reason: "empty_response" };
+      podatki.northDataDetailsRequest = {
+        status: dopolnitev.allDone ? "completed" : "unavailable",
+        completedAt: new Date().toISOString(),
+      };
+      posodobiVirDodatnihPodatkov(podatki, dopolnitev.source);
+      var prejsnjiPogled = izbraniPodjetjePogled;
+      zadnjiRegistrskiPodatki = podatki;
+      izrisiRegistrskoPodjetje(podatki, podatki.identity || zadnjaRegistrskaIdentiteta || {});
+      nastaviPodjetjePogled(prejsnjiPogled);
+      await shraniZakljucenoPreverbo(podatki, zadnjiVnos, mojaGeneracija);
+    } catch (_) {
+      if (mojaGeneracija !== generacijaRezultata) return;
+      podatki.northDataDetails = { status: "unavailable", reason: "background_failed" };
+      podatki.northDataDetailsRequest = { status: "unavailable", completedAt: new Date().toISOString() };
+      posodobiPlusStanje(podatki, "unavailable");
+    } finally {
+      if (aktivniNorthDataDetailsProof === proof) aktivniNorthDataDetailsProof = "";
     }
   }
 
@@ -2177,11 +2388,10 @@
     opisiStanjeOpravila(job);
     if (job.status === "completed" && job.result) return job.result;
 
-    var konec = Date.now() + 55 * 1000;
     var zacetekCakanja = Date.now();
     var naslednjePrebujanje = 0;
     var zakljucekPrebujenegaDelavca = null;
-    while (Date.now() < konec) {
+    while (true) {
       // Vsak odprt uporabnik lahko varno prebudi enega delavca. Baza tudi pri
       // 100 sočasnih klicih globalno dovoli 30 opravil, od tega največ 10
       // insolvenčnih poizvedb na uradni portal.
@@ -2237,7 +2447,6 @@
         await pocakaj(zamik);
       }
     }
-    throw new Error("Preverjanje se nadaljuje v ozadju. Poskusite ponovno čez nekaj trenutkov; sistem bo uporabil isto opravilo in ne bo ponovil poizvedbe.");
   }
 
   async function izvediPrekoCakalneVrste(telo, token) {
@@ -3871,6 +4080,10 @@
     podjetjePodnaslov.hidden = false;
     podjetjeMonogram.textContent = zacetniciPodjetja(ime);
     podjetjeIme.textContent = ime;
+    podjetjePreverjeno.classList.remove("is-auto-insolvency-status");
+    podjetjePreverjeno.removeAttribute("data-status");
+    podjetjePreverjeno.removeAttribute("role");
+    podjetjePreverjeno.removeAttribute("aria-live");
     podjetjePreverjeno.textContent = opisCasaPreverbe(podatki && podatki.checkedAt).replace(/^p/, "P");
     zadnjiRegistrskiPodatki = podatki;
     zadnjaRegistrskaIdentiteta = identiteta;
@@ -3943,6 +4156,7 @@
     podjetjePregled.hidden = false;
     podjetjeNavigacija.hidden = false;
     posodobiRazpolozljivostPodjetjePogledov(company);
+    posodobiPlusStanje(podatki);
     nastaviPodjetjePogled("kljucni");
     window.setTimeout(function () {
       sproziUtripFinancnegaOpozorila(podjetjePregled.querySelector('[data-podjetje-pogled="izstopa"]'));
@@ -3989,6 +4203,13 @@
     zadnjiProfilId = "";
     zadnjiRegistrskiPodatki = null;
     zadnjaRegistrskaIdentiteta = null;
+    aktivniNorthDataDetailsProof = "";
+    var plusGumb = podjetjePregled && podjetjePregled.querySelector('[data-podjetje-pogled="plus"]');
+    if (plusGumb) {
+      plusGumb.classList.remove("is-plus-loading", "is-plus-unavailable");
+      plusGumb.removeAttribute("data-plus-stanje");
+      plusGumb.setAttribute("aria-busy", "false");
+    }
     hwkPodatki.classList.remove("is-state-green", "is-state-yellow", "is-state-red", "has-northdata", "has-responsible", "has-purpose", "is-grouped", "is-person");
     izbraniPodjetjePogled = "kljucni";
     if (identitetaNadaljuj) identitetaNadaljuj.hidden = true;
@@ -4225,6 +4446,8 @@
     var profil = podatki.publicProfile || {};
     var openregister = podatki.openregister || {};
     var identiteta = podatki.identity || {};
+    var jeSamodejnaOpenRegisterPot = identiteta.status === "verified_register";
+    var zahtevaRocnoPotrditev = Boolean(podatki.confirmationRequired && !jeSamodejnaOpenRegisterPot);
     var insolvencniStatus = podatki.insolvency && podatki.insolvency.status;
     var imaPrikazljivUradniPosnetek = Boolean(prikazljivUradniInsolvencniPosnetek(
       podatki.insolvency && podatki.insolvency.officialVerification
@@ -4307,7 +4530,7 @@
               : "Ročno vneseni podatki niso preverljiv pravni vir. Insolvenčna poizvedba ni bila izvedena in rezultat ni bonitetna garancija.";
     }
 
-    if (podatki.confirmationRequired) {
+    if (zahtevaRocnoPotrditev) {
       var jeRocniVnos = identiteta.status === "manual_input";
       zadnjaOpenRegisterReferenca = identiteta.companyId || dokaziloIdentitete.companyId || "";
       potrditevIdentitete.hidden = false;
@@ -4343,7 +4566,7 @@
       document.getElementById("boniteta-potrdi-checkbox").checked = false;
       posodobiPotrditevIdentitete();
     }
-    if (identitetaNadaljuj && (podatki.confirmationRequired || zadnjiInsolvencniRezultatPripravljen || imaNedokoncanoInsolvencnoPreverbo || identiteta.status === "verified_register")) {
+    if (identitetaNadaljuj && !jeSamodejnaOpenRegisterPot && (zahtevaRocnoPotrditev || zadnjiInsolvencniRezultatPripravljen || imaNedokoncanoInsolvencnoPreverbo)) {
       var nadaljujNaslov = identitetaNadaljuj.querySelector(".boniteta-identiteta-nadaljuj__vsebina > strong");
       var nadaljujOpis = identitetaNadaljuj.querySelector(".boniteta-identiteta-nadaljuj__vsebina > span");
       identitetaNadaljuj.hidden = false;
@@ -4355,9 +4578,9 @@
       }
     }
     if (zadnjiInsolvencniRezultatPripravljen) nastaviKarticoInsolvenceZakljuceno(podatki);
-    else if (imaNedokoncanoInsolvencnoPreverbo) nastaviKarticoInsolvenceNedokoncano(podatki);
+    else if (!jeSamodejnaOpenRegisterPot && imaNedokoncanoInsolvencnoPreverbo) nastaviKarticoInsolvenceNedokoncano(podatki);
     if (insolvencaSklop) insolvencaSklop.hidden = !zadnjiInsolvencniRezultatPripravljen;
-    if (nadaljujVInsolvencnemOknu && (podatki.confirmationRequired || zadnjiInsolvencniRezultatPripravljen)) {
+    if (nadaljujVInsolvencnemOknu && (zahtevaRocnoPotrditev || zadnjiInsolvencniRezultatPripravljen)) {
       nastaviInsolvencnoOkno(true, zadnjiInsolvencniRezultatPripravljen);
     }
 
@@ -4692,7 +4915,7 @@
     potek.querySelectorAll(".boniteta-potek__korak").forEach(function (korak) {
       korak.classList.remove("is-active");
       korak.classList.remove("is-done");
-      if (podatki.confirmationRequired && korak.dataset.bonitetaKorak === "insolvency") korak.classList.add("is-active");
+      if (zahtevaRocnoPotrditev && korak.dataset.bonitetaKorak === "insolvency") korak.classList.add("is-active");
       else korak.classList.add("is-done");
     });
     nastaviRezultatKotOkno(true);
@@ -4713,7 +4936,11 @@
         comparisonData: sestaviPrimerjalnePodatke(podatki),
       }}));
     }
-    if (!jeLokalniAudit) void shraniZakljucenoPreverbo(podatki, vnosObRezultatu, mojaGeneracija);
+    if (!jeLokalniAudit) {
+      shranjevanjeRezultataPromise = shraniZakljucenoPreverbo(podatki, vnosObRezultatu, mojaGeneracija);
+      void zacniNorthDataPodrobnostiVOzadju(podatki, mojaGeneracija);
+    }
+    if (jeSamodejnaOpenRegisterPot) void samodejnoNadaljujOpenRegisterPreverbo(podatki);
     if (window.UJPrilagodiVelikostBesedila) {
       rezultat.querySelectorAll("[data-fit-text]").forEach(window.UJPrilagodiVelikostBesedila);
     }
@@ -4920,7 +5147,7 @@
     var registrskiVnos = nacinVnosa === "register" && Boolean(izbranoOpenRegisterPodjetje && (
       izbranoOpenRegisterPodjetje.companyId || izbranoOpenRegisterPodjetje.registerNumber || registrskiVnosJeSamoIme
     ));
-    if (!registrskiVnos && !obrazec.reportValidity()) return;
+    if (!samoSpletniVnos && !registrskiVnos && !obrazec.reportValidity()) return;
 
     var posta = samoSpletniVnos || registrskiVnos ? "" : document.getElementById("boniteta-posta").value.replace(/\D/g, "");
     var spletnaStran = spletnaPolje.value.trim();
@@ -4941,6 +5168,7 @@
       return;
     }
 
+    var zaporedjeObZacetkuPreverbe = autocompleteZaporedje;
     preverjanjeVTehniku = true;
     nastaviNalaganje(true);
     try {
@@ -4963,6 +5191,20 @@
       };
       zadnjaOpenRegisterReferenca = "";
       var podatki = await izvediPrekoCakalneVrste(zadnjiVnos, token);
+      var razlogSpletneNapake = podatki && podatki.publicProfile && podatki.publicProfile.reason;
+      if (jeNeuspesnaSpletnaIdentifikacija(podatki) && [
+        "website_unreachable", "website_server_error", "website_rate_limited", "robots_disallowed",
+      ].includes(String(razlogSpletneNapake || ""))) {
+        var domenskiKandidati = await naloziOdprtiRegisterZadetkeZaDomeno(spletnaStran, zaporedjeObZacetkuPreverbe);
+        if (zaporedjeObZacetkuPreverbe !== autocompleteZaporedje) return;
+        if (domenskiKandidati.length) {
+          var domenskoFallbackSporocilo = "Spletne strani ni bilo mogoče prebrati. Izberite pravo podjetje iz registra.";
+          nastaviSpletnoRezervo(false);
+          nastaviHeroNapako(domenskoFallbackSporocilo);
+          izrisiAutocompleteZadetke(domenskiKandidati, true);
+          return;
+        }
+      }
       izrisi(podatki);
       if (nacinVnosa === "rocno") {
         nastaviRocniPopup(false);
@@ -5048,9 +5290,7 @@
       potrditevNapaka.hidden = jeNeposrednaZahteva;
       if (jeNeposrednaZahteva) {
         nastaviInsolvencnoOkno(false, false);
-        nastaviKarticoInsolvenceNedokoncano(zadnjiRegistrskiPodatki);
-        var neposredniOpis = identitetaNadaljuj.querySelector(".boniteta-identiteta-nadaljuj__vsebina > span");
-        if (neposredniOpis) neposredniOpis.textContent = sporociloPotrditve;
+        nastaviSamodejnoRegistrskoInsolvencnoStanje("Status registra trenutno ni na voljo", "warning");
       }
     } finally {
       if (jeNeposrednaZahteva && generacijaNeposredneZahteve !== generacijaNeposredneInsolvence) return;
@@ -5097,6 +5337,10 @@
         potrditevGumb.click();
         return;
       }
+      if (zadnjaRegistrskaIdentiteta && zadnjaRegistrskaIdentiteta.status === "verified_register") {
+        void samodejnoNadaljujOpenRegisterPreverbo(zadnjiRegistrskiPodatki || {});
+        return;
+      }
       if (zacniInsolvencnoPreverboBrezPonovnegaPotrjevanja()) return;
       dopolniPraznaPotrditvenaPoljaIzRegistra();
       nastaviInsolvencnoOkno(true, false);
@@ -5126,9 +5370,10 @@
     autocompleteZaporedje += 1;
     zadnjiJobId = "";
     zadnjiProfilId = "";
-    zadnjiRegistrskiPodatki = null;
-    zadnjaRegistrskaIdentiteta = null;
-    zadnjiInsolvencniRezultatPripravljen = false;
+    samodejnaOpenRegisterOsvezitevKljuc = "";
+      zadnjiRegistrskiPodatki = null;
+      zadnjaRegistrskaIdentiteta = null;
+      zadnjiInsolvencniRezultatPripravljen = false;
     if (izbrisiPreverboGumb) izbrisiPreverboGumb.hidden = true;
     zadnjaOpenRegisterReferenca = "";
     zadnjaSamodejnaPosta = "";
@@ -5529,5 +5774,25 @@
     nastaviInsolvencnoOkno(true, false);
     nastaviNalaganjePotrditve(true);
   }, 80);
+  var lokalnoStanjeDodatnihPodatkov = zacetniParametri.get("details-status-preview");
+  var lokalniPredogledDodatnihPodatkov = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) &&
+    ["loading", "unavailable", "complete"].includes(lokalnoStanjeDodatnihPodatkov);
+  if (lokalniPredogledDodatnihPodatkov) window.setTimeout(function () {
+    var casPredogleda = new Date().toISOString();
+    var podrobnostiPredogleda = lokalnoStanjeDodatnihPodatkov === "complete"
+      ? { status: "found", company: { financials: [{ fiscalYear: 2024, items: { Assets: { value: 540000, label: "Bilančna vsota" }, Equity: { value: 210000, label: "Kapital" } } }] } }
+      : { status: lokalnoStanjeDodatnihPodatkov === "loading" ? "pending_background" : "unavailable" };
+    izrisi({
+      checkedAt: casPredogleda,
+      identity: { status: "verified_register", entityType: "company", ime: "Elektrohaustechnik Onarlar GmbH", naziv: "Elektrohaustechnik Onarlar GmbH", companyId: "DE-HRB-PREVIEW-1", registerNumber: "HRB 12345", registerCourt: "Amtsgericht Köln", active: true },
+      identityEvidence: { status: "verified_api", evidenceReady: true, evidenceKind: "structured_api", verifiedAt: casPredogleda, officialName: "Elektrohaustechnik Onarlar GmbH", companyId: "DE-HRB-PREVIEW-1", registerNumber: "HRB 12345", registerCourt: "Amtsgericht Köln", active: true },
+      openregister: { status: "found" },
+      northData: { status: "found", company: { name: "Elektrohaustechnik Onarlar GmbH", registerNumber: "HRB 12345" } },
+      northDataDetails: podrobnostiPredogleda,
+      northDataDetailsRequest: { status: lokalnoStanjeDodatnihPodatkov === "loading" ? "pending" : lokalnoStanjeDodatnihPodatkov === "complete" ? "completed" : "unavailable" },
+      insolvency: { status: "clear", officialVerification: { status: "clear", checkedAt: casPredogleda, evidenceStatus: "captured", publications: [] } },
+      result: { level: "green", title: "Brez zaznanih objav" },
+    }, { lokalniAudit: true });
+  }, 0);
 
 })();

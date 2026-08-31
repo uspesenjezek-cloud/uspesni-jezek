@@ -5,6 +5,7 @@ var db = require("./supabase-server");
 var identityEvidenceContract = require("./identity-evidence");
 var MAX_CONCURRENCY = 30;
 var MAX_INSOLVENCY_CONCURRENCY = 20;
+var DEFAULT_LEASE_SECONDS = 75;
 // Del ključa predpomnilnika mora napredovati, kadar se spremeni parser,
 // odločanje ali zajem dokaznega posnetka. Tako star siv oziroma prekrit
 // posnetek po popravku ne more znova prekriti novega pravilnega zajema.
@@ -24,9 +25,10 @@ function razlicicaDostopaDoVirov() {
 
 var globalniPomnilnik = global.__UJ_MEHKA_BONITETA_QUEUE__;
 if (!globalniPomnilnik) {
-  globalniPomnilnik = { jobs: new Map() };
+  globalniPomnilnik = { jobs: new Map(), reconciliations: new Map() };
   global.__UJ_MEHKA_BONITETA_QUEUE__ = globalniPomnilnik;
 }
+if (!globalniPomnilnik.reconciliations) globalniPomnilnik.reconciliations = new Map();
 
 function uporabiPomnilnik() {
   return String(process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE || "").toLowerCase() === "true";
@@ -185,7 +187,7 @@ async function najdiPredpomnjeno(cfg, userId, kljuc, faza) {
 async function najdiAktivno(cfg, userId, kljuc) {
   var pot = "mehka_boniteta_opravila?user_id=eq." + encodeURIComponent(userId) +
     "&cache_key=eq." + encodeURIComponent(kljuc) +
-    "&status=in.(queued,processing)&select=id,user_id,faza,status,attempts,max_attempts,result_payload,last_error,created_at,updated_at&order=created_at.asc&limit=1";
+    "&status=in.(queued,processing)&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at&order=created_at.asc&limit=1";
   var odgovor = await rest(cfg, pot);
   return Array.isArray(odgovor.data) && odgovor.data.length ? odgovor.data[0] : null;
 }
@@ -234,11 +236,26 @@ async function ustvari(cfg, userId, telo) {
     result_payload: cached ? cached.result_payload : null,
     finished_at: cached ? zdaj : null,
   };
-  var odgovor = await rest(cfg, "mehka_boniteta_opravila", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify(zapis),
-  });
+  var odgovor;
+  try {
+    odgovor = await rest(cfg, "mehka_boniteta_opravila", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(zapis),
+    });
+  } catch (error) {
+    // Delni unikatni indeks je končna atomarna varovalka. Če dve zahtevi
+    // istočasno preideta predhodni SELECT, poraženec ponovno prebere vrstico
+    // zmagovalca in ne ustvari drugega plačljivega opravila.
+    if (error && error.details && String(error.details.code || "") === "23505") {
+      var socasno = await najdiAktivno(cfg, userId, kljuc);
+      if (socasno) {
+        socasno.reused = true;
+        return javniPosnetek(socasno, await pozicija(cfg, socasno));
+      }
+    }
+    throw error;
+  }
   var job = odgovor.data && odgovor.data[0];
   if (job) job.cached = Boolean(cached);
   return javniPosnetek(job, cached ? 0 : await pozicija(cfg, job));
@@ -270,11 +287,64 @@ async function pridobi(cfg, userId, id) {
   } else {
     var pot = "mehka_boniteta_opravila?id=eq." + encodeURIComponent(id) +
       "&user_id=eq." + encodeURIComponent(userId) +
-      "&select=id,user_id,faza,status,attempts,max_attempts,result_payload,last_error,created_at,updated_at";
+      "&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at";
     var odgovor = await rest(cfg, pot);
     job = Array.isArray(odgovor.data) && odgovor.data.length === 1 ? odgovor.data[0] : null;
   }
   return javniPosnetek(job, await pozicija(cfg, job));
+}
+
+async function dopolniNorthDataPodrobnosti(cfg, userId, id, requestProof, northData, details, source) {
+  var job;
+  if (uporabiPomnilnik()) {
+    job = globalniPomnilnik.jobs.get(id) || null;
+  } else {
+    var prebrano = await rest(cfg, "mehka_boniteta_opravila?id=eq." + encodeURIComponent(id) +
+      "&user_id=eq." + encodeURIComponent(userId) +
+      "&status=eq.completed&select=id,user_id,faza,status,attempts,max_attempts,request_payload,result_payload,last_error,created_at,updated_at,finished_at&limit=1");
+    job = Array.isArray(prebrano.data) && prebrano.data.length === 1 ? prebrano.data[0] : null;
+  }
+  var result = job && job.result_payload;
+  var request = result && result.northDataDetailsRequest;
+  if (!job || job.user_id !== userId || job.status !== "completed" || !result ||
+      !request || request.status !== "pending" || request.proof !== requestProof) {
+    throw Object.assign(new Error("Dopolnilni podatki niso vezani na veljavno zaključeno preverbo."), {
+      status: 409,
+      code: "NORTHDATA_DETAILS_JOB_MISMATCH",
+    });
+  }
+  var updatedAt = new Date().toISOString();
+  var merged = Object.assign({}, result, {
+    northData: northData,
+    northDataDetails: details,
+    northDataDetailsRequest: {
+      status: details && details.status === "found" ? "completed" : "unavailable",
+      completedAt: updatedAt,
+      expiresAt: request.expiresAt || null,
+    },
+    sources: (Array.isArray(result.sources) ? result.sources : []).filter(function (entry) {
+      return entry && entry.id !== "northdata" && entry.id !== "northdata_details";
+    }).concat([
+      Array.isArray(result.sources) && result.sources.find(function (entry) { return entry && entry.id === "northdata"; }) || null,
+      source || null,
+    ]).filter(Boolean),
+  });
+  if (uporabiPomnilnik()) {
+    job.result_payload = merged;
+    job.updated_at = updatedAt;
+  } else {
+    var zapis = await rest(cfg, "mehka_boniteta_opravila?id=eq." + encodeURIComponent(id) +
+      "&user_id=eq." + encodeURIComponent(userId) + "&status=eq.completed", {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ result_payload: merged, updated_at: updatedAt }),
+    });
+    job = Array.isArray(zapis.data) && zapis.data.length === 1 ? zapis.data[0] : Object.assign({}, job, {
+      result_payload: merged,
+      updated_at: updatedAt,
+    });
+  }
+  return javniPosnetek(job, 0);
 }
 
 function imaVeljavenUradniInsolvencniRezultat(rezultat) {
@@ -305,22 +375,32 @@ async function pridobiNajnovejseZaProfil(cfg, userId, profile) {
   return jobs.length ? javniPosnetek(jobs[0], 0) : null;
 }
 
-async function prevzemi(cfg, limit) {
+async function prevzemi(cfg, limit, userId) {
   if (!uporabiPomnilnik()) {
-    var rows = await db.pokliciRpc(cfg, "prevzemi_mehka_boniteta_opravila", {
+    var rpc = userId
+      ? "prevzemi_mehka_boniteta_opravila_za_uporabnika"
+      : "prevzemi_mehka_boniteta_opravila";
+    var parametri = {
       p_limit: Math.min(Math.max(Number(limit) || 1, 1), MAX_CONCURRENCY),
-      p_lease_seconds: 75,
-    });
+      p_lease_seconds: DEFAULT_LEASE_SECONDS,
+    };
+    if (userId) parametri.p_user_id = userId;
+    var rows = await db.pokliciRpc(cfg, rpc, parametri);
     return Array.isArray(rows) ? rows : rows ? [rows] : [];
   }
 
   var zdaj = Date.now();
   Array.from(globalniPomnilnik.jobs.values()).forEach(function (job) {
     if (job.status === "processing" && new Date(job.lease_until).getTime() < zdaj) {
-      job.status = job.attempts >= job.max_attempts ? "failed" : "queued";
+      var izcrpano = job.attempts >= job.max_attempts;
+      job.status = izcrpano ? "failed" : "queued";
+      job.available_at = izcrpano ? job.available_at : new Date(zdaj + Math.min(120000, 10000 * Math.pow(2, Math.max(0, job.attempts - 1)))).toISOString();
       job.claim_token = null;
       job.lease_until = null;
+      job.last_error = job.last_error || "Čas obdelave je potekel.";
+      job.finished_at = izcrpano ? new Date(zdaj).toISOString() : null;
       job.updated_at = new Date().toISOString();
+      if (izcrpano) ustvariUskladitvePomnilnik(job, false, job.result_payload);
     }
   });
   var aktivneVrstice = Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
@@ -330,7 +410,8 @@ async function prevzemi(cfg, limit) {
   var aktivnaInsolvenca = aktivneVrstice.filter(function (job) { return job.faza === "insolvenca"; }).length;
   var st = Math.min(Math.max(Number(limit) || 1, 1), MAX_CONCURRENCY, Math.max(0, MAX_CONCURRENCY - aktivna));
   var kandidati = Array.from(globalniPomnilnik.jobs.values()).filter(function (job) {
-    return job.status === "queued" && new Date(job.available_at).getTime() <= zdaj;
+    return job.status === "queued" && new Date(job.available_at).getTime() <= zdaj &&
+      (!userId || job.user_id === userId);
   }).sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); });
   var izbrana = [];
   var izbranaInsolvenca = 0;
@@ -345,11 +426,68 @@ async function prevzemi(cfg, limit) {
     job.status = "processing";
     job.attempts += 1;
     job.claim_token = uuid();
-    job.lease_until = new Date(zdaj + 75000).toISOString();
+    job.lease_until = new Date(zdaj + DEFAULT_LEASE_SECONDS * 1000).toISOString();
     job.started_at = job.started_at || new Date().toISOString();
     job.updated_at = new Date().toISOString();
   });
   return izbrana;
+}
+
+function napakaIzgubljenegaNajema() {
+  var err = new Error("Opravilo ni več v lasti tega delavca.");
+  err.code = "QUEUE_LEASE_LOST";
+  return err;
+}
+
+function prvaVrstica(value) {
+  return Array.isArray(value) ? value[0] || null : value || null;
+}
+
+async function podaljsajNajem(cfg, job, leaseSeconds) {
+  var sekunde = Math.min(Math.max(Number(leaseSeconds) || DEFAULT_LEASE_SECONDS, 30), 180);
+  if (!job || !job.id || !job.claim_token) throw napakaIzgubljenegaNajema();
+  if (!uporabiPomnilnik()) {
+    var remote = prvaVrstica(await db.pokliciRpc(cfg, "podaljsaj_mehka_boniteta_najem", {
+      p_id: job.id,
+      p_claim_token: job.claim_token,
+      p_lease_seconds: sekunde,
+    }));
+    if (!remote || !remote.id) throw napakaIzgubljenegaNajema();
+    job.lease_until = remote.lease_until;
+    return remote;
+  }
+  var shranjen = globalniPomnilnik.jobs.get(job.id);
+  var zdaj = Date.now();
+  if (!shranjen || shranjen.status !== "processing" || shranjen.claim_token !== job.claim_token ||
+      !shranjen.lease_until || new Date(shranjen.lease_until).getTime() < zdaj) {
+    throw napakaIzgubljenegaNajema();
+  }
+  shranjen.lease_until = new Date(zdaj + sekunde * 1000).toISOString();
+  shranjen.updated_at = new Date(zdaj).toISOString();
+  job.lease_until = shranjen.lease_until;
+  return shranjen;
+}
+
+function ustvariUskladitvePomnilnik(job, success, result) {
+  if (!job || !["completed", "failed"].includes(job.status)) return;
+  [
+    { kind: "project_monitor", target: job.project_monitor_id },
+    { kind: "financial_recheck", target: job.financial_recheck_id },
+  ].forEach(function (entry) {
+    if (!entry.target) return;
+    var key = job.id + ":" + entry.kind;
+    if (globalniPomnilnik.reconciliations.has(key)) return;
+    var zdaj = new Date().toISOString();
+    globalniPomnilnik.reconciliations.set(key, {
+      id: uuid(), job_id: job.id, user_id: job.user_id, kind: entry.kind, success: Boolean(success),
+      result_payload: result || null, request_payload: job.request_payload || {},
+      project_monitor_id: job.project_monitor_id || null,
+      financial_recheck_id: job.financial_recheck_id || null,
+      status: "pending", attempts: 0, available_at: zdaj, lease_until: null,
+      claim_token: null, last_error: null, created_at: zdaj, updated_at: zdaj,
+      finished_at: null,
+    });
+  });
 }
 
 async function zakljuci(cfg, job, moznosti) {
@@ -378,7 +516,88 @@ async function zakljuci(cfg, job, moznosti) {
   shranjen.claim_token = null;
   shranjen.finished_at = ponovi ? null : new Date().toISOString();
   shranjen.updated_at = new Date().toISOString();
+  if (!ponovi) ustvariUskladitvePomnilnik(shranjen, shranjen.status === "completed", shranjen.result_payload);
   return shranjen;
+}
+
+async function prevzemiZakljuckeZaUskladitev(cfg, limit, jobId) {
+  var omejitev = Math.min(Math.max(Number(limit) || 1, 1), 10);
+  if (!uporabiPomnilnik()) {
+    var rows = await db.pokliciRpc(cfg, "prevzemi_boniteta_zakljucke_za_uskladitev", {
+      p_limit: omejitev,
+      p_lease_seconds: 60,
+      p_job_id: jobId || null,
+    });
+    return Array.isArray(rows) ? rows : rows ? [rows] : [];
+  }
+  var zdaj = Date.now();
+  Array.from(globalniPomnilnik.reconciliations.values()).forEach(function (entry) {
+    if (entry.status === "processing" && new Date(entry.lease_until).getTime() < zdaj) {
+      entry.status = "pending";
+      entry.available_at = new Date(zdaj).toISOString();
+      entry.lease_until = null;
+      entry.claim_token = null;
+      entry.updated_at = new Date(zdaj).toISOString();
+    }
+  });
+  var kandidati = Array.from(globalniPomnilnik.reconciliations.values()).filter(function (entry) {
+    return entry.status === "pending" && new Date(entry.available_at).getTime() <= zdaj &&
+      (!jobId || entry.job_id === jobId);
+  }).sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); }).slice(0, omejitev);
+  kandidati.forEach(function (entry) {
+    entry.status = "processing";
+    entry.attempts += 1;
+    entry.claim_token = uuid();
+    entry.lease_until = new Date(zdaj + 60000).toISOString();
+    entry.updated_at = new Date(zdaj).toISOString();
+  });
+  return kandidati;
+}
+
+async function zakljuciUskladitev(cfg, entry, success, error) {
+  if (!entry || !entry.id || !entry.claim_token) throw napakaIzgubljenegaNajema();
+  if (!uporabiPomnilnik()) {
+    var remote = prvaVrstica(await db.pokliciRpc(cfg, "zakljuci_boniteta_uskladitev", {
+      p_id: entry.id,
+      p_claim_token: entry.claim_token,
+      p_success: Boolean(success),
+      p_error: error || null,
+    }));
+    if (!remote || !remote.id) throw napakaIzgubljenegaNajema();
+    return remote;
+  }
+  var shranjen = Array.from(globalniPomnilnik.reconciliations.values()).find(function (candidate) {
+    return candidate.id === entry.id;
+  });
+  if (!shranjen || shranjen.status !== "processing" || shranjen.claim_token !== entry.claim_token) {
+    throw napakaIzgubljenegaNajema();
+  }
+  var zdaj = Date.now();
+  shranjen.status = success ? "completed" : "pending";
+  shranjen.available_at = success ? shranjen.available_at : new Date(zdaj + Math.min(900000, 10000 * Math.pow(2, Math.min(6, Math.max(0, shranjen.attempts - 1))))).toISOString();
+  shranjen.lease_until = null;
+  shranjen.claim_token = null;
+  shranjen.last_error = success ? null : String(error || "Uskladitev ni uspela.").slice(0, 500);
+  if (success) {
+    shranjen.result_payload = null;
+    shranjen.request_payload = {};
+  }
+  shranjen.finished_at = success ? new Date(zdaj).toISOString() : null;
+  shranjen.updated_at = new Date(zdaj).toISOString();
+  return shranjen;
+}
+
+async function izvediUskladitev(cfg, entry, finishSuccess, finishResult) {
+  if (!entry || !entry.id || !entry.claim_token) throw napakaIzgubljenegaNajema();
+  if (uporabiPomnilnik()) return zakljuciUskladitev(cfg, entry, true, null);
+  var remote = prvaVrstica(await db.pokliciRpc(cfg, "izvedi_boniteta_uskladitev", {
+    p_id: entry.id,
+    p_claim_token: entry.claim_token,
+    p_success: Boolean(finishSuccess),
+    p_result: finishResult || null,
+  }));
+  if (!remote || !remote.id) throw napakaIzgubljenegaNajema();
+  return remote;
 }
 
 function spletniKljuc(vrednost) {
@@ -665,6 +884,7 @@ function opraviloImaEnakVnos(a, b) {
 
 function ponastaviPomnilnik() {
   globalniPomnilnik.jobs.clear();
+  globalniPomnilnik.reconciliations.clear();
 }
 
 module.exports = {
@@ -672,10 +892,15 @@ module.exports = {
   cacheKey: cacheKey,
   ustvari: ustvari,
   pridobi: pridobi,
+  dopolniNorthDataPodrobnosti: dopolniNorthDataPodrobnosti,
   pridobiNajnovejseZaProfil: pridobiNajnovejseZaProfil,
   seznamAktivnih: seznamAktivnih,
   prevzemi: prevzemi,
+  podaljsajNajem: podaljsajNajem,
   zakljuci: zakljuci,
+  prevzemiZakljuckeZaUskladitev: prevzemiZakljuckeZaUskladitev,
+  izvediUskladitev: izvediUskladitev,
+  zakljuciUskladitev: zakljuciUskladitev,
   izbrisiOpravilo: izbrisiOpravilo,
   izbrisiPodatkeProfila: izbrisiPodatkeProfila,
   izbrisiLokalnaOpravilaPoDomeni: izbrisiLokalnaOpravilaPoDomeni,
@@ -687,6 +912,7 @@ module.exports = {
     razlicicaDostopaDoVirov: razlicicaDostopaDoVirov,
     MAX_CONCURRENCY: MAX_CONCURRENCY,
     MAX_INSOLVENCY_CONCURRENCY: MAX_INSOLVENCY_CONCURRENCY,
+    DEFAULT_LEASE_SECONDS: DEFAULT_LEASE_SECONDS,
     ponastaviPomnilnik: ponastaviPomnilnik,
     pomnilnik: globalniPomnilnik,
     izracunajPozicijoPomnilnik: izracunajPozicijoPomnilnik,
@@ -696,5 +922,6 @@ module.exports = {
     opraviloImaEnakVnos: opraviloImaEnakVnos,
     jeRezultatPrimerenZaPredpomnilnik: jeRezultatPrimerenZaPredpomnilnik,
     spletniGostitelj: spletniGostitelj,
+    napakaIzgubljenegaNajema: napakaIzgubljenegaNajema,
   },
 };

@@ -1,4 +1,8 @@
 var sentry = require("./_lib/sentry");
+var crypto = require("node:crypto");
+var db = require("./_lib/supabase-server");
+var providerJson = require("./_lib/provider-json");
+var aiPolicy = require("./_lib/atena-luna-policy");
 /* ==========================================================
    api/citaj-racun.js - Vercel serverless funkcija (Node.js
    runtime). Na strežniku (kjer je ANTHROPIC_API_KEY skrit v
@@ -33,6 +37,16 @@ const DOVOLJENI_MEDIA_TIPI = [
   "image/gif",
   "application/pdf",
 ];
+
+const DOCUMENT_AI_CONTRACT_VERSION = "document-extraction-v2-auth-admission";
+const DOCUMENT_AI_TIMEOUT_MS = 45 * 1000;
+const DOCUMENT_AI_ATTEMPT_TIMEOUT_MS = 30 * 1000;
+const DOCUMENT_AI_MAX_ATTEMPTS = 2;
+const DOCUMENT_AI_MAX_RESPONSE_BYTES = 512 * 1024;
+const WINDOW_MS = 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const runtime = aiPolicy.ensureIdempotencyRuntime(globalThis.__ujDocumentAiRuntime || { users: new Map(), cache: new Map(), inflight: new Map() });
+globalThis.__ujDocumentAiRuntime = runtime;
 
 const NAVODILO_ZA_AI =
   'Iz priloženega računa/dokumenta izlušči SAMO naslednje podatke. ' +
@@ -116,161 +130,215 @@ function normalizirajBonitetneStranke(vrednost) {
   }).slice(0, 4);
 }
 
-async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ ok: false, napaka: "Metoda ni dovoljena, uporabi POST." });
-    return;
+function cleanRuntime(now) {
+  runtime.cache.forEach(function (entry, key) {
+    if (now - entry.createdAt > CACHE_TTL_MS) runtime.cache.delete(key);
+  });
+  runtime.users.forEach(function (entry, key) {
+    if (now - entry.startedAt > WINDOW_MS * 2) runtime.users.delete(key);
+  });
+}
+
+function validRequestId(value) {
+  return /^[a-zA-Z0-9][a-zA-Z0-9:_-]{15,99}$/.test(String(value || ""));
+}
+
+function requestFingerprint(mediaType, data, purpose) {
+  return crypto.createHash("sha256").update(DOCUMENT_AI_CONTRACT_VERSION).update("\0")
+    .update(String(purpose || "invoice")).update("\0").update(String(mediaType || "")).update("\0")
+    .update(String(data || "")).digest("hex");
+}
+
+function documentTransportError(code, message, retryable, status, attempts) {
+  var error = new Error(message);
+  error.code = code;
+  error.status = status || 503;
+  error.retryable = retryable === true;
+  error.attempts = attempts;
+  return error;
+}
+
+function retryAfterMs(response) {
+  var raw = response && response.headers && response.headers.get("retry-after");
+  if (!raw) return null;
+  var seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000);
+  var date = Date.parse(raw);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : null;
+}
+
+async function requestAnthropic(apiKey, body, options) {
+  options = options || {};
+  var fetchImpl = options.fetchImpl || fetch;
+  var sleepImpl = options.sleepImpl || function (ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); };
+  var startedAt = Date.now();
+  var deadline = startedAt + (Number(options.timeoutMs) || DOCUMENT_AI_TIMEOUT_MS);
+  var lastError = null;
+  for (var attempt = 1; attempt <= DOCUMENT_AI_MAX_ATTEMPTS; attempt += 1) {
+    var remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, Math.min(DOCUMENT_AI_ATTEMPT_TIMEOUT_MS, remaining));
+    var response = null;
+    try {
+      response = await fetchImpl("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      var payload = await providerJson.readJson(response, {
+        maxBytes: DOCUMENT_AI_MAX_RESPONSE_BYTES,
+        code: "DOCUMENT_AI_INVALID_RESPONSE",
+        message: "AI je vrnil prevelik odgovor.",
+      });
+      if (response.ok && payload) return { payload: payload, attempts: attempt, elapsedMs: Date.now() - startedAt };
+      if (response.ok) {
+        lastError = documentTransportError("DOCUMENT_AI_INVALID_RESPONSE", "AI je vrnil neveljaven odgovor.", false, 502, attempt);
+      } else if (response.status === 429) {
+        lastError = documentTransportError("DOCUMENT_AI_RATE_LIMITED", "Branje dokumentov je trenutno omejeno. Poskusite znova čez trenutek.", true, 503, attempt);
+      } else if (response.status >= 500) {
+        lastError = documentTransportError("DOCUMENT_AI_PROVIDER_ERROR", "Branje dokumentov trenutno ni dosegljivo.", true, 503, attempt);
+      } else {
+        lastError = documentTransportError("DOCUMENT_AI_PROVIDER_ERROR", "AI zahteve ni sprejel.", false, 502, attempt);
+      }
+    } catch (error) {
+      if (error && (error.name === "AbortError" || error.name === "TimeoutError")) {
+        lastError = documentTransportError("DOCUMENT_AI_TIMEOUT", "Branje dokumenta je trajalo predolgo.", true, 504, attempt);
+      } else if (error && error.code === "DOCUMENT_AI_INVALID_RESPONSE") {
+        lastError = documentTransportError(error.code, error.message, true, 502, attempt);
+      } else {
+        lastError = documentTransportError("DOCUMENT_AI_UNAVAILABLE", "Branje dokumentov trenutno ni dosegljivo.", true, 503, attempt);
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!lastError.retryable || attempt >= DOCUMENT_AI_MAX_ATTEMPTS) break;
+    var delay = retryAfterMs(response);
+    if (!Number.isFinite(delay)) delay = 250 * attempt;
+    delay = Math.max(0, Math.min(1500, delay));
+    if (Date.now() + delay >= deadline) break;
+    await sleepImpl(delay);
   }
+  throw lastError || documentTransportError("DOCUMENT_AI_TIMEOUT", "Branje dokumenta je trajalo predolgo.", true, 504, DOCUMENT_AI_MAX_ATTEMPTS);
+}
+
+function anthropicRequestBody(mediaType, data, isCreditCheck) {
+  var contentBlock = mediaType === "application/pdf"
+    ? { type: "document", source: { type: "base64", media_type: mediaType, data: data } }
+    : { type: "image", source: { type: "base64", media_type: mediaType, data: data } };
+  return {
+    model: "claude-sonnet-5",
+    max_tokens: 1024,
+    thinking: { type: "disabled" },
+    messages: [{
+      role: "user",
+      content: [contentBlock, { type: "text", text: isCreditCheck ? NAVODILO_ZA_BONITETNO_PREVERBO : NAVODILO_ZA_AI }],
+    }],
+  };
+}
+
+function parseAnthropicPayload(responseBody, isCreditCheck) {
+  var text = responseBody && Array.isArray(responseBody.content) && responseBody.content[0] &&
+    typeof responseBody.content[0].text === "string" ? responseBody.content[0].text.trim() : "";
+  var parsed;
+  try {
+    parsed = JSON.parse(text.trim().replace(/^```(json)?\s*/i, "").replace(/\s*```$/i, "").trim());
+  } catch (_) {
+    throw documentTransportError("DOCUMENT_AI_INVALID_RESPONSE", "AI odgovora ni bilo mogoče razumeti kot JSON.", false, 502, 1);
+  }
+  if (isCreditCheck) {
+    var parties = normalizirajBonitetneStranke(parsed);
+    if (!parties.length) return { statusCode: 422, payload: { ok: false, code: "NO_RELIABLE_PARTIES", retryable: false, napaka: "Na dokumentu ni bilo mogoče zanesljivo prepoznati nobene stranke." } };
+    return { statusCode: 200, payload: { ok: true, stranke: parties } };
+  }
+  return { statusCode: 200, payload: {
+    ok: true,
+    podatki: {
+      naziv: typeof parsed.naziv === "string" ? parsed.naziv.trim() : null,
+      znesek: parsed.znesek !== null && parsed.znesek !== undefined && Number.isFinite(Number(parsed.znesek)) ? Number(parsed.znesek) : null,
+      datum: typeof parsed.datum === "string" ? parsed.datum.trim() : null,
+      rokPlacila: typeof parsed.rokPlacila === "string" ? parsed.rokPlacila.trim() : null,
+      stevilkaRacuna: typeof parsed.stevilkaRacuna === "string" ? parsed.stevilkaRacuna.trim() : null,
+      opis: typeof parsed.opis === "string" ? parsed.opis.trim() : null,
+      telefon: typeof parsed.telefon === "string" ? parsed.telefon.trim() : null,
+      email: typeof parsed.email === "string" ? parsed.email.trim() : null,
+    },
+  } };
+}
+
+async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, code: "METHOD_NOT_ALLOWED", napaka: "Metoda ni dovoljena, uporabi POST." });
+  }
+
+  var cfg;
+  try { cfg = db.uporabniskaKonfiguracija(); }
+  catch (_) { return res.status(500).json({ ok: false, code: "SERVER_CONFIGURATION", napaka: "Strežniška konfiguracija manjka." }); }
+
+  var auth = await db.preveriUporabnika(req, cfg);
+  if (!auth.ok) return res.status(auth.status || 401).json({ ok: false, code: auth.code || "AUTH_REQUIRED", retryable: auth.retryable === true, napaka: auth.napaka });
 
   const apiKljuc = process.env.ANTHROPIC_API_KEY;
   if (!apiKljuc) {
-    res.status(500).json({
-      ok: false,
-      napaka: "Strežnik ni nastavljen - manjka ANTHROPIC_API_KEY v Vercel environment variables.",
-    });
-    return;
+    return res.status(503).json({ ok: false, code: "DOCUMENT_AI_NOT_CONFIGURED", retryable: false, napaka: "Branje dokumentov trenutno ni konfigurirano." });
   }
 
   const telo = req.body || {};
   const mediaType = telo.mediaType;
   const podatki = telo.podatki;
   const jeBonitetnaPreverba = telo.namen === "bonitetna_preverba";
+  const requestId = String(telo.requestId || "");
 
-  if (!podatki || typeof podatki !== "string") {
-    res.status(400).json({ ok: false, napaka: "Manjkajo podatki datoteke." });
-    return;
-  }
+  if (!validRequestId(requestId) || !podatki || typeof podatki !== "string") return res.status(400).json({ ok: false, code: "INVALID_INPUT", napaka: "Manjkajo ali niso veljavni podatki zahteve." });
 
-  if (podatki.length > NAJVECJA_VELIKOST_BASE64_ZNAKOV) {
-    res.status(413).json({ ok: false, napaka: "Datoteka je prevelika za samodejno branje." });
-    return;
-  }
+  if (podatki.length > NAJVECJA_VELIKOST_BASE64_ZNAKOV) return res.status(413).json({ ok: false, code: "DOCUMENT_TOO_LARGE", napaka: "Datoteka je prevelika za samodejno branje." });
 
-  if (!DOVOLJENI_MEDIA_TIPI.includes(mediaType)) {
-    res.status(400).json({ ok: false, napaka: "Nepodprt tip datoteke." });
-    return;
-  }
+  if (!DOVOLJENI_MEDIA_TIPI.includes(mediaType)) return res.status(400).json({ ok: false, code: "UNSUPPORTED_MEDIA_TYPE", napaka: "Nepodprt tip datoteke." });
 
-  const vsebinskiBlok =
-    mediaType === "application/pdf"
-      ? { type: "document", source: { type: "base64", media_type: mediaType, data: podatki } }
-      : { type: "image", source: { type: "base64", media_type: mediaType, data: podatki } };
-
-  try {
-    const odgovorAnthropic = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKljuc,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1024,
-        // Claude Sonnet 5 ima "thinking" privzeto vklopljen, thinking
-        // tokeni pa se štejejo v max_tokens - pri tako majhnem max_tokens
-        // bi lahko thinking porabil celotno rezervo, še preden model
-        // izpiše dejanski JSON odgovor. Ker za to enostavno nalogo
-        // razmišljanja ne potrebujemo, ga izklopimo.
-        thinking: { type: "disabled" },
-        messages: [
-          {
-            role: "user",
-            content: [vsebinskiBlok, { type: "text", text: jeBonitetnaPreverba ? NAVODILO_ZA_BONITETNO_PREVERBO : NAVODILO_ZA_AI }],
-          },
-        ],
-      }),
-    });
-
-    if (!odgovorAnthropic.ok) {
-      const napakaBesedilo = await odgovorAnthropic.text().catch(() => "");
-      console.error(
-        "[citaj-racun] Anthropic API napaka, koda " + odgovorAnthropic.status + ":",
-        napakaBesedilo
-      );
-      res.status(502).json({
-        ok: false,
-        napaka: "Klic na AI ni uspel (koda " + odgovorAnthropic.status + ").",
-        podrobnosti: napakaBesedilo.slice(0, 500),
-      });
-      return;
-    }
-
-    const odgovorTelo = await odgovorAnthropic.json();
-    const besediloOdgovora =
-      odgovorTelo &&
-      Array.isArray(odgovorTelo.content) &&
-      odgovorTelo.content[0] &&
-      typeof odgovorTelo.content[0].text === "string"
-        ? odgovorTelo.content[0].text.trim()
-        : "";
-
-    let razclenjenoJson;
-    try {
-      // Claude občasno vseeno obda JSON s ```json ... ``` kodnim blokom
-      // kljub izrecnemu navodilu - to tu odstranimo pred JSON.parse.
-      // Presledki/nove vrstice pred oznako (npr. "\n```json") in po njej
-      // se prav tako pojavljajo, zato najprej obrežemo, nato odstranimo
-      // oznake, nato spet obrežemo, preden poskusimo razčleniti JSON.
-      const ociscenoBesedilo = besediloOdgovora
-        .trim()
-        .replace(/^```(json)?\s*/i, "")
-        .replace(/\s*```$/i, "")
-        .trim();
-      razclenjenoJson = JSON.parse(ociscenoBesedilo);
-    } catch (napakaParsanja) {
-      console.error(
-        "[citaj-racun] JSON.parse ni uspel:",
-        napakaParsanja,
-        "- surovo besedilo odgovora:",
-        besediloOdgovora,
-        "- celotno telo odgovora Anthropic:",
-        JSON.stringify(odgovorTelo)
-      );
-      res.status(502).json({
-        ok: false,
-        napaka: "AI odgovora ni bilo mogoče razumeti kot JSON.",
-        surovoBesedilo: besediloOdgovora.slice(0, 2000),
-      });
-      return;
-    }
-
-    if (jeBonitetnaPreverba) {
-      const stranke = normalizirajBonitetneStranke(razclenjenoJson);
-      if (!stranke.length) {
-        res.status(422).json({ ok: false, napaka: "Na dokumentu ni bilo mogoče zanesljivo prepoznati nobene stranke." });
-        return;
-      }
-      res.status(200).json({ ok: true, stranke });
-      return;
-    }
-
-    res.status(200).json({
-      ok: true,
-      podatki: {
-        naziv: typeof razclenjenoJson.naziv === "string" ? razclenjenoJson.naziv.trim() : null,
-        znesek:
-          razclenjenoJson.znesek !== null &&
-          razclenjenoJson.znesek !== undefined &&
-          Number.isFinite(Number(razclenjenoJson.znesek))
-            ? Number(razclenjenoJson.znesek)
-            : null,
-        datum: typeof razclenjenoJson.datum === "string" ? razclenjenoJson.datum.trim() : null,
-        rokPlacila:
-          typeof razclenjenoJson.rokPlacila === "string" ? razclenjenoJson.rokPlacila.trim() : null,
-        stevilkaRacuna:
-          typeof razclenjenoJson.stevilkaRacuna === "string"
-            ? razclenjenoJson.stevilkaRacuna.trim()
-            : null,
-        opis: typeof razclenjenoJson.opis === "string" ? razclenjenoJson.opis.trim() : null,
-        telefon: typeof razclenjenoJson.telefon === "string" ? razclenjenoJson.telefon.trim() : null,
-        email: typeof razclenjenoJson.email === "string" ? razclenjenoJson.email.trim() : null,
-      },
-    });
-  } catch (napaka) {
-    console.error("[citaj-racun] Nepričakovana napaka:", napaka);
-    res.status(500).json({ ok: false, napaka: "Nepričakovana napaka pri branju računa." });
-  }
+  const now = Date.now();
+  cleanRuntime(now);
+  const purpose = jeBonitetnaPreverba ? "credit-check" : "invoice";
+  const fingerprint = requestFingerprint(mediaType, podatki, purpose);
+  const cacheKey = DOCUMENT_AI_CONTRACT_VERSION + ":" + auth.user.id + ":" + requestId;
+  const coordinator = aiPolicy.createDistributedCoordinator({
+    enabled: Boolean(auth.token),
+    rpc: function (name, payload) { return db.pokliciRpcKotUporabnik(cfg, auth.token, name, payload); },
+    key: cacheKey,
+    requestId: requestId,
+    kind: "document",
+    contractVersion: DOCUMENT_AI_CONTRACT_VERSION,
+    fingerprint: fingerprint,
+    unavailableMessage: "Sprejemnik za branje dokumentov trenutno ni dosegljiv.",
+    messages: {
+      unavailable: "Branje dokumentov trenutno ni dosegljivo.",
+      inProgress: "Ta dokument se že obdeluje. Poskusite znova čez trenutek.",
+      busy: "Branje dokumentov je trenutno zasedeno. Poskusite znova čez trenutek.",
+    },
+  });
+  const outcome = await aiPolicy.executeIdempotent(runtime, {
+    key: cacheKey,
+    fingerprint: fingerprint,
+    coordinator: coordinator,
+    fallbackMessage: "Dokumenta trenutno ni bilo mogoče prebrati.",
+    beforeStart: function () {
+      return aiPolicy.reserveRateLimit(runtime.users, auth.user.id, now, WINDOW_MS, aiPolicy.REQUESTS_PER_MINUTE)
+        ? null
+        : { statusCode: 429, payload: { ok: false, code: "RATE_LIMITED", retryable: true, retryAfterMs: 60000, napaka: "Preveč zaporednih zahtev. Poskusite znova čez minuto." } };
+    },
+  }, async function () {
+    const providerResult = await requestAnthropic(apiKljuc, anthropicRequestBody(mediaType, podatki, jeBonitetnaPreverba));
+    const parsed = parseAnthropicPayload(providerResult.payload, jeBonitetnaPreverba);
+    parsed.payload.requestId = requestId;
+    parsed.payload.attempts = providerResult.attempts;
+    return parsed;
+  });
+  return res.status(outcome.statusCode).json(outcome.payload);
 }
 
 module.exports = sentry.wrapHandler(handler, "/api/citaj-racun");
@@ -279,4 +347,11 @@ module.exports._test = {
   normalizirajBonitetnoStranko,
   normalizirajBonitetneStranke,
   NAVODILO_ZA_BONITETNO_PREVERBO,
+  validRequestId,
+  requestFingerprint,
+  requestAnthropic,
+  anthropicRequestBody,
+  parseAnthropicPayload,
+  runtime,
+  DOCUMENT_AI_CONTRACT_VERSION,
 };

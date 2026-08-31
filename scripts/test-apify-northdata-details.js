@@ -18,10 +18,10 @@ async function main() {
     ],
   };
   assert.strictEqual(client.ACTOR_ID, "vKs8nu688v4F1se82");
-  assert.strictEqual(client.TIMEOUT_SECONDS, 10, "drugi North Data actor sme celotno preverbo zadržati največ 10 sekund");
+  assert.strictEqual(client.TIMEOUT_SECONDS, 25, "ozadni North Data actor mora imeti dovolj časa za običajen run");
   assert.match(fs.readFileSync(path.join(__dirname, "..", "api", "_lib", "apify-northdata-details-client.js"), "utf8"),
-    /setTimeout\(function \(\) \{ controller\.abort\(\); \}, TIMEOUT_SECONDS \* 1000\)/,
-    "lokalna prekinitev mora nastopiti pri 10 sekundah brez dodatnega pribitka");
+    /setTimeout\(function \(\) \{ controller\.abort\(\); \}, timeoutSeconds \* 1000\)/,
+    "lokalna prekinitev mora uporabiti interno omejitev brez dodatnega pribitka");
   assert.deepStrictEqual(client.buildInput(official).queries, [official.name]);
   var clean = client.sanitizeCompany(row);
   assert.strictEqual(clean.financials.length, 2);
@@ -34,7 +34,7 @@ async function main() {
   var result = await client.enrichCompany(official, primary, { token: "test-token", fetch: async function (url, options) {
     calls += 1;
     assert.match(String(url), /vKs8nu688v4F1se82/);
-    assert.match(String(url), /[?&]timeout=10(?:&|$)/, "Apify mora dobiti isto 10-sekundno omejitev");
+    assert.match(String(url), /[?&]timeout=25(?:&|$)/, "Apify mora dobiti isto 25-sekundno ozadno omejitev");
     assert.match(String(url), /maxTotalChargeUsd=0\.01/);
     assert.strictEqual(options.method, "POST");
     return { ok: true, status: 200, json: async function () { return [row]; } };
@@ -50,6 +50,20 @@ async function main() {
   assert.strictEqual(timedOut.status, "unavailable");
   assert.strictEqual(timedOut.reason, "timeout");
   assert.strictEqual(timedOut.company, undefined, "po timeoutu podatki drugega actorja ne smejo v rezultat");
+  var timeoutZacetek = Date.now();
+  var dejanskiTimeout = await client.enrichCompany(official, primary, { token: "test-token", timeoutSeconds: 0.05, fetch: function (_url, options) {
+    return new Promise(function (_resolve, reject) {
+      options.signal.addEventListener("abort", function () {
+        var timeoutError = new Error("presežena časovna omejitev");
+        timeoutError.name = "AbortError";
+        reject(timeoutError);
+      }, { once: true });
+    });
+  } });
+  var timeoutTrajanje = Date.now() - timeoutZacetek;
+  assert.strictEqual(dejanskiTimeout.reason, "timeout");
+  assert.ok(timeoutTrajanje >= 35 && timeoutTrajanje < 500,
+    "notranji testni timeout se mora dejansko prekiniti brez 25-sekundnega čakanja, izmerjeno " + timeoutTrajanje + " ms");
 
   var recheckOfficial = {
     company_id: "DE-HRB-R0001-10001", name: "Generična ponovna preverba GmbH",
@@ -97,9 +111,11 @@ async function main() {
   var skipped = await client.enrichAfterPrimary({ status: "found", company: official }, {}, { status: "not_found" }, { token: "test-token", fetch: async function () { throw new Error("ne sme se zagnati"); } });
   assert.strictEqual(skipped.northDataDetails.status, "skipped", "drugi actor brez uspešnega prvega actorja ne sme teči");
   var handler = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "mehka-boniteta.js"), "utf8");
-  assert.ok(handler.indexOf("northDataClient.enrichVerifiedIdentity") < handler.indexOf("northDataDetailsClient.enrichAfterPrimary"), "novi actor mora nastopiti za obstoječim North Data agentom");
+  var backgroundHandler = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", "mehka-boniteta-podrobnosti.js"), "utf8");
+  assert.ok(!handler.includes("northDataDetailsClient.enrichAfterPrimary"), "glavni rezultat ne sme več čakati drugega actorja");
+  assert.ok(backgroundHandler.includes("detailsClient.enrichAfterPrimary"), "drugi actor mora teči samo v ločenem ozadnem handlerju");
   assert.match(handler, /northDataDetails: northDataDetails/);
-  console.log("✓ Dopolnilni North Data actor je zaporeden, omejen in ohrani izvor/estimate.");
+  console.log("✓ Dopolnilni North Data actor teče ločeno, ima 25 s in ohrani izvor/estimate.");
 }
 
 main().catch(function (error) { console.error(error); process.exitCode = 1; });

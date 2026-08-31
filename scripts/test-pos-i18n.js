@@ -23,7 +23,7 @@ function load(search) {
   return context.module.exports;
 }
 
-assert.match(html, /pos-terminal-i18n\.js\?v=20260826-cash-recovery-v1/);
+assert.match(html, /pos-terminal-i18n\.js\?v=20260830-pos-payment-i18n-v1/);
 assert.ok(html.indexOf("pos-terminal-i18n.js") < html.indexOf("pos-terminal.js"), "locale layer must load before POS behavior");
 assert.match(html, /<html lang="de" class="pos-page">/, "German is the default POS document language");
 
@@ -33,6 +33,39 @@ assert.equal(sl.translate("Računi in plačila"), "Računi in plačila");
 
 const de = load("");
 assert.equal(de.locale, "de");
+
+const paymentLocaleCases = [
+  ["Končaj Stripe poskus", "Stripe-Versuch beenden"],
+  ["Plačilo ni uspelo", "Zahlung fehlgeschlagen"],
+  ["Stripe Checkout je morda še odprt. Nadaljujte isto sejo ali preverite njeno stanje.", "Der Stripe Checkout kann noch geöffnet sein. Setzen Sie dieselbe Sitzung fort oder prüfen Sie ihren Status."],
+  ["Preklic preverjamo", "Stornierung wird geprüft"],
+  ["Stripe mora še potrditi, ali je seja res zaprta.", "Stripe muss noch bestätigen, ob die Sitzung wirklich geschlossen wurde."],
+  ["Preveri sejo – TEST", "Sitzung prüfen – TEST"],
+  ["Varen gotovinski TRAINING potek zahteva prijavo in v Supabase shranjen testni račun.", "Der sichere Barzahlungs-TRAINING-Ablauf erfordert eine Anmeldung und eine in Supabase gespeicherte Testrechnung."],
+  ["Gotovinski TRAINING zahteva prijavo in shranjen testni račun.", "Barzahlungs-TRAINING erfordert eine Anmeldung und eine gespeicherte Testrechnung."],
+  ["Gotovinsko TRAINING povračilo zahteva prijavo in shranjen testni račun.", "Die TRAINING-Barrückerstattung erfordert eine Anmeldung und eine gespeicherte Testrechnung."],
+  ["Ni aktivnega Stripe TEST poskusa.", "Es gibt keinen aktiven Stripe-Testversuch."],
+  ["Končujem Stripe poskus …", "Stripe-Versuch wird beendet …"],
+  ["Stripe je plačilo že potrdil.", "Stripe hat die Zahlung bereits bestätigt."],
+  ["Stripe poskus je varno končan.", "Stripe-Versuch wurde sicher beendet."],
+  ["Stripe poskusa ni bilo mogoče varno končati.", "Stripe-Versuch konnte nicht sicher beendet werden."],
+  ["Odprti znesek 1,19 € bo zaključen atomarno z lokalnim mock TSE podpisom.", "Der offene Betrag 1,19 € wird atomar mit einer lokalen Mock-TSE-Signatur abgeschlossen."],
+];
+paymentLocaleCases.forEach(([slovenian, german]) => {
+  assert.equal(sl.translate(slovenian), slovenian, `Slovenian locale changed source UI text: ${slovenian}`);
+  assert.equal(de.translate(slovenian), german, `German locale did not translate payment UI text: ${slovenian}`);
+});
+
+[
+  "Stripe-Versuch beenden",
+  "Zahlung fehlgeschlagen",
+  "Stornierung wird geprüft",
+  "Barzahlungs-TRAINING erfordert eine Anmeldung",
+  "Stripe-Versuch wird beendet",
+].forEach((germanUiText) => {
+  assert.equal((html + "\n" + posSource).includes(germanUiText), false, `German text must not be a POS source UI literal: ${germanUiText}`);
+});
+
 assert.equal(de.translate("Računi in plačila"), "Rechnungen und Zahlungen");
 assert.equal(de.translate("  Nov račun  "), "  Neue Rechnung  ");
 assert.equal(de.translate("14 dni"), "14 Tage");
@@ -177,7 +210,7 @@ assert.equal(de.translate("Zaženi mock sandbox"), "Mock-Sandbox starten");
   assert.doesNotMatch(de.translate(text), /[čšžČŠŽ]/, `Slovenian characters remain in German POS translation: ${text}`);
 });
 
-const highConfidenceSlovenianUi = /\b(?:izberite|kako|pri|velja|samo|brez|lahko|mora|morajo|podatki|račun|ponudba|plačilo|stranka|nastavitve|shrani|prekliči|zapri|potrdi|uvozi|znesek|datum|storitev|davek|pregled|postavka|podjetje|nazaj|naprej|poslano)\b/i;
+const highConfidenceSlovenianUi = /\b(?:izberite|kako|pri|velja|samo|brez|lahko|mora|morajo|podatki|račun|ponudba|plačilo|stranka|nastavitve|shrani|prekliči|preklic|zapri|potrdi|preveri|uvozi|znesek|datum|storitev|davek|pregled|postavka|podjetje|nazaj|naprej|poslano|gotovina|gotovinski|povračilo|seja|poskus|zahteva|prijavo|shranjen)\b/i;
 const ignoredInternalLiterals = new Set([
   "bančni-izpisek",
   "ZNESEK",
@@ -187,17 +220,30 @@ const ignoredInternalLiterals = new Set([
   "Dieses Angebot ist bis zum genannten Datum gültig. Leistungsumfang und Preise werden erst mit Annahme verbindlich."
 ]);
 const literalTexts = [];
-const visit = (node) => {
+const visit = (node, target = literalTexts) => {
   if (!node || typeof node !== "object") return;
-  if (node.type === "Literal" && typeof node.value === "string") literalTexts.push(node.value);
+  if (node.type === "Literal" && typeof node.value === "string") target.push(node.value);
+  if (node.type === "TemplateLiteral") {
+    const sample = node.quasis.map((quasi, index) => {
+      const value = quasi && quasi.value && (quasi.value.cooked == null ? quasi.value.raw : quasi.value.cooked) || "";
+      return value + (index < node.expressions.length ? "VZOREC" : "");
+    }).join("");
+    target.push(sample);
+  }
   Object.keys(node).forEach((key) => {
     if (key === "parent") return;
     const value = node[key];
-    if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === "object") visit(value);
+    if (Array.isArray(value)) value.forEach((entry) => visit(entry, target));
+    else if (value && typeof value === "object") visit(value, target);
   });
 };
 visit(parseScript(posSource, { next: true, webcompat: true }));
+
+const templateLiteralTexts = [];
+visit(parseScript("const copy = `Odprti znesek ${amount} bo zaključen atomarno z lokalnim mock TSE podpisom.`;", { next: true, webcompat: true }), templateLiteralTexts);
+assert.deepEqual(templateLiteralTexts, ["Odprti znesek VZOREC bo zaključen atomarno z lokalnim mock TSE podpisom."], "TemplateLiteral UI text must be reconstructed for i18n coverage");
+assert.notEqual(de.translate(templateLiteralTexts[0]), templateLiteralTexts[0], "dynamic TemplateLiteral sample must have a German translation");
+assert.equal(sl.translate(templateLiteralTexts[0]), templateLiteralTexts[0], "dynamic TemplateLiteral sample must remain Slovenian in sl locale");
 
 const missingGermanLiterals = [];
 for (const text of new Set(literalTexts)) {

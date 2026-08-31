@@ -4,6 +4,10 @@ const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
 const providerJson = require("../_lib/provider-json");
 const requestQuery = require("../_lib/pos-request-query");
+const pdfCapacity = require("../_lib/runtime-capacity").sharedGate("pos-pdf-generation", {
+  maxActive: 2, maxQueue: 32, waitTimeoutMs: 8000, retryAfterMs: 1500,
+  busyMessage: "Ustvarjanje PDF-jev je trenutno zasedeno. Poskusite znova čez trenutek."
+});
 const { GENERATOR_VERSION, ustvariRacunPdf } = require("../_lib/pos-pdf");
 
 const BUCKET = "pos-invoice-originals";
@@ -102,7 +106,7 @@ async function audit(cfg, userId, invoiceId, documentId, hash) {
   } catch (_) { /* račun in dokument sta že varno shranjena; audit ne blokira prenosa */ }
 }
 
-async function ensureDocument(cfg, invoice, userId) {
+async function ensureDocumentCore(cfg, invoice, userId) {
   let document = await readDocument(cfg, userId, invoice.id);
   let pdf = null;
   if (document) {
@@ -130,6 +134,12 @@ async function ensureDocument(cfg, invoice, userId) {
   if (!document || document.sha256 !== hash) throw new Error("Dokument je nastal, vendar njegova arhivska evidenca ni pravilna.");
   await audit(cfg, userId, invoice.id, document.id, hash);
   return { document, pdf };
+}
+
+function ensureDocument(cfg, invoice, userId) {
+  return pdfCapacity.run("invoice:" + userId + ":" + invoice.id, function () {
+    return ensureDocumentCore(cfg, invoice, userId);
+  });
 }
 
 async function handler(req, res) {
@@ -163,7 +173,7 @@ async function handler(req, res) {
     res.end(result.pdf);
   } catch (error) {
     console.error("[pos-racun-pdf]", error && error.stack || error);
-    json(res, 500, { ok: false, napaka: error && error.message || "PDF ni bil ustvarjen." });
+    json(res, Number(error && error.status || 500), { ok: false, code: error && error.code, retryable: error && error.retryable === true, retryAfterMs: error && error.retryAfterMs, napaka: error && error.message || "PDF ni bil ustvarjen." });
   }
 }
 

@@ -31,6 +31,13 @@
   }
   if (sessionStorage.getItem("app-iphone-preview") === "1") {
     document.documentElement.classList.add("app-iphone-preview");
+    globalThis.UJ_LOKALNI_APP_PREDOGLED =
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "::1");
+    if (globalThis.UJ_LOKALNI_APP_PREDOGLED && previewParam !== "1") {
+      const lokalniNaslov = new URL(window.location.href);
+      lokalniNaslov.searchParams.set("app-preview", "1");
+      window.history.replaceState(window.history.state, "", lokalniNaslov.href);
+    }
   }
 })();
 

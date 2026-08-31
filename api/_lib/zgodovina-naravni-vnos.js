@@ -1,6 +1,8 @@
 "use strict";
 
 var crypto = require("node:crypto");
+var catalogContract = require("./atena-luna-catalog-contract");
+var lunaPolicy = require("./atena-luna-policy");
 var thinkingEngine = require("./zgodovina-thinking-engine");
 var factEngine = require("./zgodovina-fact-engine");
 var installmentEngine = require("./zgodovina-installment-engine");
@@ -8,16 +10,17 @@ var numberEngine = require("./zgodovina-number-engine");
 var coverageEngine = require("./zgodovina-coverage-engine");
 var temporalEngine = require("./zgodovina-temporal-engine");
 
-var MODEL = "gpt-5.6-luna";
-var MODEL_TIMEOUT_MS = 18000;
-var MODEL_TIMEOUT_MAX_MS = 25000;
+var HISTORY_REQUEST_PROFILE = lunaPolicy.requestProfile("history");
+var MODEL = lunaPolicy.MODEL;
+var MODEL_TIMEOUT_MS = HISTORY_REQUEST_PROFILE.timeoutMs;
+var MODEL_TIMEOUT_MAX_MS = HISTORY_REQUEST_PROFILE.timeoutMaxMs;
 var ATENA_ENGINE_VERSION = "atena-v7";
-var CONTRACT_VERSION = "history-fact-v75";
-var MAX_TEXT_LENGTH = 2000;
-var MAX_CLARIFICATION_ANSWER_LENGTH = 400;
-var MAX_CLARIFICATION_ROUNDS = 2;
+var CONTRACT_VERSION = "history-fact-v99";
+var MAX_TEXT_LENGTH = lunaPolicy.MAX_SOURCE_TEXT_LENGTH;
+var MAX_CLARIFICATION_ANSWER_LENGTH = lunaPolicy.MAX_CLARIFICATION_ANSWER_LENGTH;
+var MAX_CLARIFICATION_ROUNDS = lunaPolicy.MAX_CLARIFICATION_ROUNDS;
 var MAX_LUNA_CALLS_PER_DESCRIPTION = 1 + MAX_CLARIFICATION_ROUNDS;
-var MAX_EVENTS = 20;
+var MAX_EVENTS = lunaPolicy.MAX_STRUCTURED_ITEMS;
 var ALLOWED_TYPES = [
   "partial_payment",
   "paid_in_full",
@@ -88,9 +91,9 @@ function authoritativeRule(fieldOrder, requiredFields, balanceEffect, dateRoles,
 }
 
 var AUTHORITATIVE_RULES = Object.freeze({
-  partial_payment: authoritativeRule(["amount", "occurredDate", "paymentMethod"], ["amount", "occurredDate", "paymentMethod"], "subtract", ["occurredDate"], "partial"),
-  paid_in_full: authoritativeRule(["amount", "occurredDate", "paymentMethod"], ["amount", "occurredDate", "paymentMethod"], "subtract", ["occurredDate"], "full"),
-  installment_payment: authoritativeRule(["amount", "occurredDate", "paymentMethod"], ["amount", "occurredDate", "paymentMethod"], "subtract", ["occurredDate"], "installment"),
+  partial_payment: authoritativeRule(["amount", "occurredDate", "paymentMethod"], ["amount", "occurredDate"], "subtract", ["occurredDate"], "partial"),
+  paid_in_full: authoritativeRule(["amount", "occurredDate", "paymentMethod"], ["amount", "occurredDate"], "subtract", ["occurredDate"], "full"),
+  installment_payment: authoritativeRule(["amount", "occurredDate", "paymentMethod"], ["amount", "occurredDate"], "subtract", ["occurredDate"], "installment"),
   unpaid_installment: authoritativeRule(["occurredDate"], ["occurredDate"], "none", ["dueDate"], "unpaid_installment"),
   remaining_unpaid: authoritativeRule(["amount"], ["amount"], "none", [], "collection_outcome"),
   installment_agreement: authoritativeRule(["occurredDate", "description"], ["occurredDate", "description"], "none", ["occurredDate", "dueDate"], "installment"),
@@ -106,18 +109,40 @@ var AUTHORITATIVE_RULES = Object.freeze({
   reminder_sent: authoritativeRule(["occurredDate", "communicationChannel"], ["occurredDate", "communicationChannel"], "none", ["occurredDate"], "collection_action"),
   custom: authoritativeRule(["occurredDate", "description"], ["occurredDate", "description"], "none", ["occurredDate"], "custom"),
 });
+var HISTORY_CARD_CONTEXT = Object.freeze({
+  partial_payment: ["Partial payment completed", "A past payment reduced only part of the debt.", "Not a future promise, installment-plan agreement, credit note, or set-off.", ["paid 100 yesterday"]],
+  paid_in_full: ["Full payment completed", "A past payment settled the full then-remaining debt.", "Not a future promise to pay everything.", ["paid the entire debt today"]],
+  installment_payment: ["Installment paid", "One or more installments were actually paid in the past; expand repeated payments into separate cards.", "Not an agreed future installment or an unpaid installment.", ["paid 8 installments every two weeks"]],
+  unpaid_installment: ["Installment missed", "A specific installment became due but was not paid.", "Not a generic remaining balance or future installment.", ["the second installment was not paid"]],
+  remaining_unpaid: ["Remaining amount unpaid", "The source explicitly states what remained unpaid or that no more was paid after completed reductions.", "Never infer it merely from arithmetic without an explicit remaining/no-more-payment outcome.", ["100 was paid and 334 remained"]],
+  installment_agreement: ["Installment agreement made", "A past event in which the parties formed an installment agreement.", "Not the future installment payments themselves.", ["we agreed yesterday on three installments"]],
+  payment_promise: ["Payment promised", "A past communication in which the debtor made a future payment promise.", "Not an actually completed payment or a refusal.", ["he promised yesterday to pay Friday"]],
+  deadline_extension: ["Deadline extended", "A past agreement or decision moved the future payment deadline.", "Not an ordinary future promise with an amount.", ["we extended the deadline last week"]],
+  payment_failed: ["Payment attempt failed", "A past attempted payment, transfer, debit, card charge, or similar operation failed.", "Not an unpaid due installment without an attempted transaction.", ["the direct debit failed yesterday"]],
+  invoice_dispute: ["Invoice disputed", "The debtor raised a past objection about the invoice, contract, work, amount, quality, or entitlement.", "Not a refusal based only on inability or unwillingness to pay.", ["he disputed the invoice by email"]],
+  insolvency: ["Insolvency event", "A past bankruptcy, compulsory-settlement, or other insolvency event became known or occurred.", "Not the creditor's future goal to file a claim.", ["bankruptcy was opened last month"]],
+  credit_note: ["Credit note issued", "A past credit note reduced the receivable.", "Not a cash payment, set-off, or cancelled invoice.", ["we issued a 50 euro credit note"]],
+  compensation: ["Set-off completed", "A past set-off or compensation reduced the receivable.", "Not a future desired set-off.", ["we offset 120 euros yesterday"]],
+  cancelled_invoice: ["Invoice cancelled", "The invoice was actually cancelled in the past.", "Not a write-off goal or disputed invoice.", ["we cancelled the invoice on Monday"]],
+  reminder_sent: ["Reminder sent", "A reminder, demand, or collection communication was actually sent in the past.", "Not a future goal to have a lawyer prepare or send one.", ["we emailed a reminder yesterday"]],
+  debtor_statement: ["Debtor statement", "A past debtor statement or refusal relevant to collection that is neither a promise nor substantive invoice dispute.", "Not a positive payment promise.", ["he said he would not pay"]],
+  custom: ["Other historical event", "Only a past event that fits none of the specialized history cards.", "Never for payments, installments, promises, deadlines, failed payments, disputes, insolvency, credit notes, set-off, cancellation, reminders, or debtor statements.", ["another genuinely unsupported past event"]],
+});
+var HISTORY_MODEL_FIELDS = Object.freeze([
+  [1, "amountEur", "final EUR amount for this one event"], [2, "occurredDate", "date this historical event occurred"], [3, "promisedDate", "future deadline stated inside a past promise/agreement"],
+  [4, "paymentMethod", "method of an actual or attempted payment"], [5, "communicationChannel", "channel used for the past communication"], [6, "documentReference", "invoice, case, or other document reference"],
+  [7, "reason", "explicit reason for the historical event"], [8, "description", "material detail of what happened or was said"],
+]);
 
 var MODEL_CATALOG = Object.freeze({
+  lexiconVersion: catalogContract.LEXICON_VERSION,
   wire: Object.freeze([
     [1, "cardNumber"], [2, "cardId"], [3, "evidenceText"], [4, "fields"], [101, "fieldId"], [102, "numberValue"],
     [103, "textValue"], [104, "valueId"], [105, "fieldEvidenceText"], [106, "datePrecisionId"], [107, "dateStatusId"],
     [108, "relationAnchorId"], [109, "relationDirectionId"], [110, "relationAmount"], [111, "relationUnitId"], [112, "relationDayOfMonth"],
   ]),
-  fields: Object.freeze([
-    [1, "amountEur", "znesek EUR"], [2, "occurredDate", "datum dogodka"], [3, "promisedDate", "obljubljeni rok"],
-    [4, "paymentMethod", "način plačila"], [5, "communicationChannel", "kanal komunikacije"], [6, "documentReference", "referenca dokumenta"],
-    [7, "reason", "razlog"], [8, "description", "kaj se je zgodilo ali kaj je povedal"],
-  ]),
+  guideColumns: Object.freeze(["cardId", "key", "title", "useWhen", "doNotUseWhen", "aliases", "examples"]),
+  fields: HISTORY_MODEL_FIELDS,
   cards: Object.freeze(ALLOWED_TYPES.map(function (type, index) {
     var rule = AUTHORITATIVE_RULES[type] || AUTHORITATIVE_RULES.custom;
     return Object.freeze([
@@ -127,11 +152,22 @@ var MODEL_CATALOG = Object.freeze({
     ]);
   })),
   values: CATALOG_VALUES,
+  guide: Object.freeze(catalogContract.buildCardGuide(ALLOWED_TYPES.map(function (type, index) {
+    var rule = AUTHORITATIVE_RULES[type] || AUTHORITATIVE_RULES.custom;
+    var context = HISTORY_CARD_CONTEXT[type];
+    return { cardId: index + 1, key: type, title: context[0], purpose: context[1], useWhen: context[1], doNotUseWhen: context[2], examples: context[3], fieldIds: rule.fieldOrder.map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }), requiredFieldIds: rule.requiredFields.map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }) };
+  }), HISTORY_MODEL_FIELDS, CATALOG_VALUES, { flow: "history" }).map(function (card) {
+    return Object.freeze([
+      card.cardId, card.key, card.title, card.useWhen, card.doNotUseWhen,
+      Object.freeze(card.languageProfile.synonyms.concat(card.languageProfile.colloquial)),
+      card.examples,
+    ]);
+  })),
 });
 var RESPONSE_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["p", "q", "x"],
+  required: ["p", "q", "x", "k"],
   properties: {
     p: {
       type: "array",
@@ -139,34 +175,26 @@ var RESPONSE_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["n", "c", "e", "f"],
+        required: ["c", "e", "i", "v", "x", "r"],
         properties: {
-          n: { type: "integer", minimum: 1, maximum: MAX_EVENTS },
           c: { type: "integer", minimum: 1, maximum: ALLOWED_TYPES.length },
           e: { type: "string", minLength: 1, maxLength: 500 },
-          f: {
+          i: { type: "array", maxItems: 8, items: { type: "integer", minimum: 1, maximum: CANONICAL_FIELD_NAMES.length } },
+          v: { type: "array", maxItems: 8, items: { type: ["number", "string", "null"], maxLength: 500 } },
+          x: { type: "array", maxItems: 8, items: { type: "string", minLength: 1, maxLength: 500 } },
+          r: {
             type: "array", maxItems: 8,
-            items: {
-              type: "object", additionalProperties: false,
-              required: ["i", "v", "e", "r"],
-              properties: {
-                i: { type: "integer", minimum: 1, maximum: CANONICAL_FIELD_NAMES.length },
-                v: { type: ["number", "string", "null"], maxLength: 500 },
-                e: { type: "string", minLength: 1, maxLength: 500 },
-                r: {
-                  type: "array", maxItems: 7,
-                  items: { type: ["integer", "null"] },
-                },
-              },
-            },
+            items: { type: "array", maxItems: 7, items: { type: ["integer", "null"] } },
           },
         },
       },
     },
     q: { type: ["string", "null"], maxLength: 180 },
     x: { type: ["string", "null"], maxLength: 500 },
+    k: { type: ["integer", "null"], enum: [1, 2, null] },
   },
 };
+lunaPolicy.assertPortableResponseSchema(RESPONSE_SCHEMA);
 
 function trimText(value, max) {
   return String(value == null ? "" : value).trim().slice(0, max);
@@ -636,19 +664,10 @@ function isPaidInFull(text) {
 }
 
 function hasCompletedPayment(text) {
-  var normalized = normalizeNaturalText(text);
-  var expression = new RegExp(PAYMENT_PART, "gi");
-  var match;
-  while ((match = expression.exec(normalized))) {
-    var previousCharacter = normalized.charAt(match.index - 1);
-    var nextCharacter = normalized.charAt(match.index + match[0].length);
-    if (/\p{L}/u.test(previousCharacter) || /\p{L}/u.test(nextCharacter)) continue;
-    var followingContext = normalized.slice(match.index + match[0].length, match.index + match[0].length + 45);
-    if (/^dal/i.test(match[0]) && /^\s+(?:sem\s+)?(?:(?:mu|ji)\s+)?(?:dodatn\w*|nov\w*)\s+rok\b/i.test(followingContext)) continue;
-    var prefix = normalized.slice(Math.max(0, match.index - 18), match.index);
-    if (!/(?:\bni|\bne|\bnič\s+ni|\bše\s+ni)\s*(?:vsega\s*)?$/i.test(prefix)) return true;
-  }
-  return false;
+  return factEngine.buildFactContract(text).facts.some(function (fact) {
+    return fact && fact.kind === "category" && fact.assertion === "positive"
+      && ["partial_payment", "installment_payment", "paid_in_full"].includes(fact.eventType);
+  });
 }
 
 function isPaymentFailed(text) {
@@ -804,6 +823,12 @@ function inferPromisedDate(text, referenceDate) {
     if (candidate && !dotted[3] && candidate < reference) candidate = validIsoDate(String(Number(year) + 1) + candidate.slice(4));
     return candidate;
   }
+  var promiseRelationFact = factEngine.buildFactContract(normalized).facts.find(function (fact) {
+    return fact && fact.kind === "date_relation" && fact.assertion === "positive"
+      && ["payment_promise", "deadline_extension"].includes(fact.eventType)
+      && fact.relation && fact.relation.field === "promisedDate";
+  });
+  if (promiseRelationFact) return canonicalDateFromRelation(promiseRelationFact.relation, reference, null);
   return null;
 }
 
@@ -831,6 +856,9 @@ function inferPromisedAmount(text) {
       return expression.role === "money" && expression.evidence && expression.evidence.start >= promiseEnd && expression.evidence.start - promiseEnd <= 35;
     });
     amount = semanticAmount ? semanticAmount.value : null;
+  }
+  if (!(Number.isFinite(amount) && amount > 0)) {
+    amount = nearestFactAmount(factEngine.buildFactContract(normalized), "payment_promised", normalized);
   }
   return Number.isFinite(amount) && amount > 0 ? roundMoney(amount) : null;
 }
@@ -1210,13 +1238,13 @@ function normalizeEvent(raw, index) {
 }
 
 function normalizeDateRelation(raw) {
-  if (!raw || !["previous_event", "reference_date"].includes(raw.anchor) || raw.field !== "occurredDate") return null;
+  if (!raw || !["previous_event", "reference_date"].includes(raw.anchor) || !["occurredDate", "promisedDate"].includes(raw.field)) return null;
   var direction = Number(raw.direction);
   var amount = Number(raw.amount);
   var unit = String(raw.unit || "");
   if (![1, -1].includes(direction) || !Number.isInteger(amount) || amount < 1 || amount > 10000 || !["day", "week", "month", "year"].includes(unit)) return null;
   var relation = {
-    anchor: raw.anchor, field: "occurredDate", direction: direction,
+    anchor: raw.anchor, field: raw.field, direction: direction,
     amount: amount, unit: unit,
     sourceSpan: raw.sourceSpan && Number.isInteger(raw.sourceSpan.start) && Number.isInteger(raw.sourceSpan.end)
       ? { start: raw.sourceSpan.start, end: raw.sourceSpan.end, text: trimText(raw.sourceSpan.text, 160) || undefined }
@@ -1428,6 +1456,9 @@ function resolverFacts(text, context, contract) {
   var inferred = inferAmountFromText(text, context || {});
   return {
     factContract: factContract,
+    referenceDate: validIsoDate(context && context.referenceDate),
+    occurredDate: inferOccurredDate(text, context && context.referenceDate),
+    historicalDateInferenceBlocked: /\b(?:ne\s+vem|datum\w*\s+(?:ni|niso)\s+znan\w*|približ\w*)\b/iu.test(normalizeNaturalText(text)),
     installmentGroups: factContract.installmentGroups || [],
     installmentCadences: factContract.installmentCadences || [],
     installmentBreakdown: inferInstallmentBreakdown(text),
@@ -1698,8 +1729,8 @@ function legacyRequestBody(text, context, userId) {
   return {
     model: MODEL,
     store: false,
-    reasoning: { effort: "low" },
-    max_output_tokens: 1200,
+    reasoning: { effort: lunaPolicy.REASONING_EFFORT },
+    max_output_tokens: lunaPolicy.MAX_OUTPUT_TOKENS,
     safety_identifier: safetyIdentifier(userId),
     instructions: [
       "Razčleni slovenski opis že preteklih dogodkov pri izterjavi računa.",
@@ -1729,7 +1760,7 @@ function legacyRequestBody(text, context, userId) {
       "Način plačila paymentMethod in kanal komunikacije communicationChannel vrni samo, če sta izrecno povedana, sicer null.",
       "Dolžnikova izjava, da ne bo plačal, ni odpis ali storno. cancelled_invoice uporabi samo, ko uporabnik izrecno pove, da je sam račun odpisal, storniral ali preklical.",
       "Zavrnjeno plačilo banke, kartice ali trajnika je payment_failed in ni debtor_statement. debtor_statement uporabi samo za izrecno izjavo ali zavrnitev dolžnika oziroma stranke.",
-      "Za payment_promise loči occurredDate (datum obljube) in promisedDate (obljubljeni rok). Za že plačane dogodke so potrebni amount, occurredDate in paymentMethod.",
+      "Za payment_promise loči occurredDate (datum obljube) in promisedDate (obljubljeni rok). Za že plačane dogodke sta potrebna amount in occurredDate; paymentMethod je neobvezen in ostane null, kadar ga uporabnik ni izrecno navedel.",
       "Če je dolžnik večkrat, vedno znova ali non stop obljubljal plačilo brez konkretnega roka, ohrani en payment_promise z manjkajočim promisedDate; resničnega dogodka ne zavrzi. Če opis nato pove 'nikoli ni', 'pa ni plačal' ali 'obljube ni držal', dodaj še remaining_unpaid, ki ne zmanjša salda. Predhodno izvedeno plačilo ostane ločen dogodek.",
       "Pika ali vejica znotraj denarnega zapisa, na primer 4.000 ali 4,50, ni meja stavka. Števila ne jemlji iz dela besede: 'non stop' ne pomeni zneska sto.",
       "Za unpaid_installment v description zapiši zaporedno številko, na primer '3. obrok ni plačan'; occurredDate pomeni datum zapadlosti in ostane null, če ni znan.",
@@ -1972,8 +2003,10 @@ function canonicalFieldEvidence(item, valueField, evidenceField, sourceText, eve
 }
 
 function canonicalAmountSupported(amount, evidenceText) {
-  var expressions = numberEngine.extractNumberExpressions(evidenceText || "");
-  if (!expressions.length) return true;
+  var expressions = numberEngine.extractNumberExpressions(evidenceText || "").filter(function (expression) {
+    return expression && ["money", "number"].includes(expression.role);
+  });
+  if (!expressions.length) return false;
   return expressions.some(function (expression) { return Math.abs(Number(expression.value) - Number(amount)) < 0.005; });
 }
 
@@ -2009,13 +2042,16 @@ function canonicalItemFromWire(planItem) {
     communicationChannel: null, communicationChannelEvidenceText: null,
     documentReference: null, documentReferenceEvidenceText: null,
     reason: null, reasonEvidenceText: null, description: null, descriptionEvidenceText: null,
+    providedFieldIds: [],
   });
   var seen = new Set();
   for (var index = 0; index < planItem.fields.length; index += 1) {
     var field = planItem.fields[index] || {};
     var name = FIELD_NAME_BY_ID[Number(field.fieldId)] || String(field.name || "");
-    if (!CANONICAL_FIELD_NAMES.includes(name) || seen.has(name)) continue;
+    if (!CANONICAL_FIELD_NAMES.includes(name)) return { ok: false, reason: "luna_canonical_field_domain" };
+    if (seen.has(name)) return { ok: false, reason: "luna_compact_field_duplicate" };
     seen.add(name);
+    item.providedFieldIds.push(Number(field.fieldId));
     var isAmount = name === "amountEur";
     var isDate = name === "occurredDate" || name === "promisedDate";
     var catalogRow = CATALOG_ROW_BY_ID[Number(field.valueId)];
@@ -2037,7 +2073,7 @@ function canonicalItemFromWire(planItem) {
       item[name + "Unknown"] = true;
     } else if (isAmount) {
       var numericValue = Number(field.numberValue);
-      if (!Number.isFinite(numericValue) || numericValue <= 0) continue;
+      if (!Number.isFinite(numericValue)) continue;
       item[name] = numericValue;
       if (amountRelation != null) {
         var amountRelationRow = CATALOG_ROW_BY_ID[Number(field.amountRelationId)];
@@ -2049,8 +2085,11 @@ function canonicalItemFromWire(planItem) {
     } else if ((name === "paymentMethod" || name === "communicationChannel") && catalogValue != null) {
       item[name] = catalogValue;
     } else {
-      if (field.textValue == null || field.textValue === "") continue;
-      item[name] = field.textValue;
+      if (field.textValue == null || field.textValue === "") {
+        if (!isDate || !completeRelation) continue;
+      } else {
+        item[name] = field.textValue;
+      }
     }
     item[name === "amountEur" ? "amountEvidenceText" : name + "EvidenceText"] = field.evidenceText;
     if (isDate) item[name + "Precision"] = ["exact", "month", "year"].includes(datePrecision) ? datePrecision : null;
@@ -2451,49 +2490,510 @@ function materializeAuthoritativeLunaPlan(review, context, sourceText) {
   };
 }
 
-// Produkcijski v74 adapter ne razlaga Luninega pomena. Kataloške ID-je samo
-// preslika v UI-polja; statična pravila kartic določajo obrazec in ledger.
-function materializeLunaFieldPlan(review, context, sourceText) {
-  var items = review && Array.isArray(review.items) ? review.items.slice(0, MAX_EVENTS) : [];
+function canonicalizeCompletedInstallmentOrdinals(items, contract) {
+  var list = Array.isArray(items) ? items : [];
+  var groups = contract && Array.isArray(contract.installmentGroups) ? contract.installmentGroups.filter(function (group) {
+    return group && group.completed === true && Number.isInteger(Number(group.count));
+  }) : [];
+  var installmentIndexes = list.map(function (item, index) {
+    return item && item.eventType === "installment_payment" ? index : -1;
+  }).filter(function (index) { return index >= 0; });
+  var offset = 0;
+  var changed = false;
+  groups.forEach(function (group) {
+    var count = Number(group.count);
+    var indexes = installmentIndexes.slice(offset, offset + count);
+    offset += count;
+    if (indexes.length !== count) return;
+    indexes.forEach(function (itemIndex, groupIndex) {
+      var canonicalDescription = (groupIndex + 1) + "/" + count + " obrok";
+      if (list[itemIndex].description !== canonicalDescription) changed = true;
+      list[itemIndex].description = canonicalDescription;
+    });
+  });
+  return changed;
+}
+
+function standaloneCompletedInstallmentGroup(sourceText, expectedCount, contract) {
+  var text = trimText(sourceText, MAX_TEXT_LENGTH).toLowerCase().normalize("NFC");
+  var count = Number(expectedCount);
+  if (!Number.isInteger(count) || count < 2 || count > MAX_EVENTS) return null;
+  var pattern = new RegExp("(?<![\\p{L}\\d])(?:" + numberEngine.NUMBER_EXPRESSION_SOURCE + ")\\s+obrok\\w*", "giu");
+  var matches = [];
+  var match;
+  while ((match = pattern.exec(text))) {
+    var countText = match[0].replace(/\s+obrok\w*$/iu, "").trim();
+    var parsedCount = numberEngine.parseSlovenianNumber(countText, { count: true });
+    if (parsedCount !== count) continue;
+    var prefix = text.slice(Math.max(0, match.index - 90), match.index);
+    if (!/(?:plačal\w*|poravnal\w*|nakazal\w*|plačan\w*|poravnan\w*)\s*(?:je\s*)?$/iu.test(prefix)) continue;
+    if (/(?:\bni|\bne|\bnikoli|\bbo|\bbodo|\bobljubil\w*|\bpredlagal\w*)[^.!?;]{0,45}$/iu.test(prefix)) continue;
+    matches.push({ start: match.index, end: match.index + countText.length, text: countText });
+  }
+  if (matches.length !== 1) return null;
+  var seriesEnd = text.length;
+  var clauses = contract && Array.isArray(contract.clauses) ? contract.clauses : [];
+  clauses.some(function (clause) {
+    var clauseStart = Number(clause && clause.span && clause.span.start);
+    if (!Number.isInteger(clauseStart) || clauseStart <= matches[0].end) return false;
+    var clauseText = trimText(clause && clause.text, MAX_TEXT_LENGTH);
+    var installmentReference = /\b(?:obrok\w*|prvi\w*|začetn\w*)\b/iu.test(clauseText);
+    var differentEvent = Array.isArray(clause && clause.eventTypes) && clause.eventTypes.some(function (eventType) {
+      return eventType && eventType !== "installment_payment";
+    });
+    var separateDatedEvent = !installmentReference && Boolean(inferOccurredDate(clauseText, "2000-01-15"));
+    if (!differentEvent && !separateDatedEvent) return false;
+    seriesEnd = clauseStart;
+    return true;
+  });
+  return {
+    id: "standalone-installment-series-1", count: count, completed: true,
+    span: { start: 0, end: seriesEnd, text: text.slice(0, seriesEnd) },
+    countSpan: matches[0],
+    reason: "explicit_completed_installment_count_without_uniform_amount",
+  };
+}
+
+function deferUnanchoredInstallmentDates(items, context, sourceText, contract) {
+  var list = Array.isArray(items) ? items : [];
+  var referenceDate = context && context.referenceDate;
+  var cadences = contract && Array.isArray(contract.installmentCadences) ? contract.installmentCadences : [];
+  var groups = contract && Array.isArray(contract.installmentGroups) ? contract.installmentGroups.filter(function (group) {
+    return group && group.completed === true && Number.isInteger(Number(group.count));
+  }) : [];
+  var installmentIndexes = list.map(function (item, index) {
+    return item && item.eventType === "installment_payment" ? index : -1;
+  }).filter(function (index) { return index >= 0; });
+  if (!groups.length && installmentIndexes.length >= 2) {
+    var standaloneGroup = standaloneCompletedInstallmentGroup(sourceText, installmentIndexes.length, contract);
+    if (standaloneGroup) {
+      groups = [standaloneGroup];
+      cadences = temporalEngine.extractInstallmentCadences(sourceText, groups);
+    }
+  }
+  var groupOffsets = new Map();
+  var offset = 0;
+  groups.forEach(function (group) {
+    groupOffsets.set(group.id, offset);
+    offset += Number(group.count);
+  });
+  var changed = false;
+  cadences.forEach(function (cadence) {
+    var count = Number(cadence && cadence.installmentCount);
+    var interval = Number(cadence && cadence.intervalAmount);
+    if (!cadence || cadence.conflict || !Number.isInteger(count) || count < 2 || !Number.isInteger(interval) || interval < 1 || !cadence.unit) return;
+    var groupOffset = groupOffsets.get(cadence.groupId);
+    if (!Number.isInteger(groupOffset)) return;
+    var groupClause = contract && Array.isArray(contract.clauses) ? contract.clauses.find(function (clause) {
+      return clause && Array.isArray(clause.installmentGroups) && clause.installmentGroups.some(function (group) { return group && group.id === cadence.groupId; });
+    }) : null;
+    var cadenceGroup = groups.find(function (group) { return group && group.id === cadence.groupId; });
+    var groupSource = groupClause && groupClause.text || cadenceGroup && cadenceGroup.span && cadenceGroup.span.text || sourceText;
+    if (inferOccurredDate(groupSource, referenceDate)) return;
+    var indexes = installmentIndexes.slice(groupOffset, groupOffset + count);
+    if (indexes.length !== count) return;
+    indexes.forEach(function (itemIndex, groupIndex) {
+      var item = list[itemIndex];
+      if (item.occurredDate != null || item.occurredDateRelation != null) changed = true;
+      item.occurredDate = null;
+      item.occurredDateUnknown = false;
+      item.occurredDateApproximate = false;
+      item.occurredDateStatus = null;
+      item.occurredDateRelation = groupIndex === 0 ? null : {
+        anchor: "previous_event", direction: 1, amount: interval, unit: cadence.unit, dayOfMonth: null,
+      };
+    });
+  });
+  return changed;
+}
+
+function completedInstallmentSeries(list, start, end, sourceText) {
+  if (end - start <= 1) return { ok: true, ranges: [{ start: start, end: end }] };
+  var ranges = [];
+  var cursor = start;
+  while (cursor < end) {
+    var first = installmentOrdinalParts(list[cursor] && list[cursor].description);
+    if (!first || first.ordinal !== 1 || cursor + first.count > end) return { ok: false, reason: "luna_installment_ordinal_invalid" };
+    for (var offset = 0; offset < first.count; offset += 1) {
+      var ordinal = installmentOrdinalParts(list[cursor + offset] && list[cursor + offset].description);
+      if (!ordinal || ordinal.ordinal !== offset + 1 || ordinal.count !== first.count) {
+        return { ok: false, reason: "luna_installment_ordinal_invalid" };
+      }
+    }
+    ranges.push({ start: cursor, end: cursor + first.count });
+    cursor += first.count;
+  }
+  if (ranges.length > 1) {
+    var explicitGroups = installmentEngine.extractInstallmentGroups(sourceText).filter(function (group) {
+      return group && group.completed === true && Number.isInteger(Number(group.count));
+    });
+    var matchingGroups = null;
+    for (var groupOffset = 0; groupOffset + ranges.length <= explicitGroups.length; groupOffset += 1) {
+      var candidateGroups = explicitGroups.slice(groupOffset, groupOffset + ranges.length);
+      var matches = candidateGroups.every(function (group, groupIndex) {
+        var range = ranges[groupIndex];
+        if (Number(group.count) !== range.end - range.start) return false;
+        var groupAmount = positiveAmount(group.amount);
+        return groupAmount == null || list.slice(range.start, range.end).every(function (item) {
+          return Math.abs(Number(item && item.amountEur) - groupAmount) < 0.005;
+        });
+      });
+      if (matches) { matchingGroups = candidateGroups; break; }
+    }
+    if (!matchingGroups) return { ok: false, reason: "luna_installment_ordinal_invalid" };
+  }
+  return { ok: true, ranges: ranges };
+}
+
+function evidenceContainsInstallmentGroup(sourceText, evidenceText, group) {
+  var source = String(sourceText || "");
+  var evidence = trimText(evidenceText, 500);
+  var span = group && group.span;
+  if (!evidence || !span || !Number.isInteger(span.start) || !Number.isInteger(span.end) || span.end <= span.start) return false;
+  var cursor = source.indexOf(evidence);
+  while (cursor >= 0) {
+    if (cursor <= span.start && cursor + evidence.length >= span.end) return true;
+    cursor = source.indexOf(evidence, cursor + 1);
+  }
+  return false;
+}
+
+function explicitInstallmentOrdinalGroups(list, start, end, sourceText) {
+  var source = String(sourceText || "");
+  var length = end - start;
+  if (!source || length < 2) return null;
+  var groups = installmentEngine.extractInstallmentGroups(source).filter(function (group) {
+    return group && group.completed === true && Number.isInteger(Number(group.count)) && Number(group.count) > 0
+      && positiveAmount(group.amount) != null;
+  });
+  var matches = [];
+  for (var groupStart = 0; groupStart < groups.length; groupStart += 1) {
+    var candidateGroups = [];
+    var totalCount = 0;
+    for (var groupIndex = groupStart; groupIndex < groups.length && totalCount < length; groupIndex += 1) {
+      candidateGroups.push(groups[groupIndex]);
+      totalCount += Number(groups[groupIndex].count);
+    }
+    if (totalCount !== length || candidateGroups.length < 2) continue;
+    var boundariesAreExplicit = candidateGroups.every(function (group, candidateIndex) {
+      if (candidateIndex === 0) return true;
+      var previous = candidateGroups[candidateIndex - 1];
+      return Number(group.count) !== Number(previous.count)
+        || Math.abs(positiveAmount(group.amount) - positiveAmount(previous.amount)) >= 0.005;
+    });
+    if (!boundariesAreExplicit) continue;
+    var itemOffset = 0;
+    var supported = candidateGroups.every(function (group) {
+      var count = Number(group.count);
+      var amount = positiveAmount(group.amount);
+      var groupItems = list.slice(start + itemOffset, start + itemOffset + count);
+      itemOffset += count;
+      return groupItems.length === count && groupItems.every(function (item) {
+        return item && item.eventType === "installment_payment"
+          && installmentOrdinalParts(item.description)
+          && Math.abs(Number(item.amountEur) - amount) < 0.005
+          && evidenceContainsInstallmentGroup(source, item.evidenceText, group);
+      });
+    });
+    if (supported) matches.push(candidateGroups);
+  }
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function canonicalizeExplicitInstallmentGroupOrdinals(items, sourceText) {
+  var list = Array.isArray(items) ? items : [];
+  var changed = false;
+  var start = 0;
+  while (start < list.length) {
+    if (!list[start] || list[start].eventType !== "installment_payment") { start += 1; continue; }
+    var end = start + 1;
+    while (end < list.length && list[end] && list[end].eventType === "installment_payment") end += 1;
+    var groups = explicitInstallmentOrdinalGroups(list, start, end, sourceText);
+    if (groups) {
+      var offset = 0;
+      groups.forEach(function (group) {
+        var count = Number(group.count);
+        for (var ordinal = 1; ordinal <= count; ordinal += 1) {
+          var description = ordinal + "/" + count + " obrok";
+          if (list[start + offset].description !== description) changed = true;
+          list[start + offset].description = description;
+          offset += 1;
+        }
+      });
+    }
+    start = end;
+  }
+  return changed;
+}
+
+function validateLunaInstallmentSeries(items, sourceText) {
+  var list = Array.isArray(items) ? items : [];
+  var start = 0;
+  while (start < list.length) {
+    if (!list[start] || list[start].eventType !== "installment_payment") { start += 1; continue; }
+    var end = start + 1;
+    while (end < list.length && list[end] && list[end].eventType === "installment_payment") end += 1;
+    var series = completedInstallmentSeries(list, start, end, sourceText);
+    if (!series.ok) return series.reason;
+    for (var seriesIndex = 0; seriesIndex < series.ranges.length; seriesIndex += 1) {
+      var range = series.ranges[seriesIndex];
+      var count = range.end - range.start;
+      if (count <= 1) continue;
+      var unanchored = list.slice(range.start, range.end).every(function (item) { return !item.occurredDate; });
+      var hasStructuredCadence = list.slice(range.start, range.end).some(function (item) { return Boolean(item.occurredDateRelation); });
+      var hasLaterStructuredCadence = list.slice(range.start + 1, range.end).some(function (item) {
+        return Boolean(item.occurredDateRelation && item.occurredDateRelation.anchor === "previous_event");
+      });
+      if (unanchored && hasStructuredCadence && list[range.start].occurredDateRelation) return "luna_unanchored_first_installment_relation_forbidden";
+      if ((unanchored && hasStructuredCadence) || hasLaterStructuredCadence) {
+        for (var relationOffset = 1; relationOffset < count; relationOffset += 1) {
+          var relation = list[range.start + relationOffset].occurredDateRelation;
+          if (!relation || relation.anchor !== "previous_event" || relation.direction !== 1 || !Number.isInteger(Number(relation.amount)) || Number(relation.amount) < 1 || !relation.unit) {
+            return "luna_installment_relation_missing";
+          }
+        }
+      }
+    }
+    start = end;
+  }
+  return null;
+}
+
+function sourceHasExplicitInstallmentCadence(sourceText, installmentCount) {
+  var source = String(sourceText || "");
+  var count = Number(installmentCount);
+  if (!source || !Number.isInteger(count) || count < 2) return false;
+  return temporalEngine.extractInstallmentCadences(source, [{
+    id: "luna-installment-review", count: count, completed: true,
+    span: { start: 0, end: source.length, text: source },
+    countSpan: { start: 0, end: 0, text: "" },
+  }]).length > 0;
+}
+
+function lunaInstallmentSeriesNeedsCadenceReview(items, sourceText) {
+  var list = Array.isArray(items) ? items : [];
+  var start = 0;
+  while (start < list.length) {
+    if (!list[start] || list[start].eventType !== "installment_payment") { start += 1; continue; }
+    var end = start + 1;
+    while (end < list.length && list[end] && list[end].eventType === "installment_payment") end += 1;
+    var series = completedInstallmentSeries(list, start, end, sourceText);
+    if (!series.ok) return false;
+    if (series.ranges.some(function (range) {
+      var group = list.slice(range.start, range.end);
+      return group.length > 1
+        && group.slice(1).every(function (item) { return !item.occurredDateRelation; })
+        && sourceHasExplicitInstallmentCadence(sourceText, group.length);
+    })) return true;
+    start = end;
+  }
+  return false;
+}
+
+function lunaRelativeDatePrecisionNeedsReview(items) {
+  return (Array.isArray(items) ? items : []).some(function (item) {
+    return Boolean(item && item.occurredDateApproximate === true && item.occurredDateRelation);
+  });
+}
+
+function formatEuroCents(cents) {
+  return (Math.max(0, Number(cents) || 0) / 100).toFixed(2).replace(".", ",");
+}
+
+function installmentOrdinalParts(description) {
+  var match = trimText(description, 80).match(/^(\d+)\/(\d+) obrok$/u);
+  if (!match) return null;
+  var ordinal = Number(match[1]);
+  var count = Number(match[2]);
+  return Number.isInteger(ordinal) && Number.isInteger(count) && ordinal >= 1 && ordinal <= count && count >= 1
+    ? { ordinal: ordinal, count: count }
+    : null;
+}
+
+function amountClarification(context, evidenceText, eventType) {
+  var nextRound = Number(context && context.clarification && context.clarification.round || 0) + 1;
+  if (nextRound > MAX_CLARIFICATION_ROUNDS) return null;
+  return {
+    question: eventType === "installment_payment"
+      ? "Kolikšen je bil znesek vsakega od naslednjih obrokov?"
+      : "Kolikšen je bil točen znesek tega dogodka?",
+    clauseId: "clause-1",
+    evidenceText: trimText(evidenceText, 500),
+    round: nextRound,
+    maxRounds: MAX_CLARIFICATION_ROUNDS,
+  };
+}
+
+function validateLeanAmountEvidence(items, context, sourceText) {
+  var list = Array.isArray(items) ? items : [];
+  var balance = positiveAmount(context && context.remainingDebt) || positiveAmount(context && context.originalDebt) || 0;
+  var reducingTypes = ["partial_payment", "paid_in_full", "installment_payment", "credit_note", "compensation"];
+  for (var index = 0; index < list.length; index += 1) {
+    var item = list[index] || {};
+    if (item.amountEur == null) continue;
+    var amount = positiveAmount(item.amountEur);
+    var eventEvidence = trimText(item.evidenceText, 500);
+    var amountEvidence = trimText(item.amountEvidenceText, 500);
+    var reason = null;
+    if (!amount) reason = "luna_amount_invalid";
+    else if (!lunaPolicy.evidenceIsLinked(sourceText, eventEvidence) || !lunaPolicy.evidenceIsLinked(sourceText, amountEvidence)) reason = "luna_amount_evidence_unlinked";
+    else if (!eventEvidence.includes(amountEvidence)) reason = "luna_amount_evidence_outside_event";
+    else if (item.eventType === "installment_payment" && item.amountRelation === "total") {
+      var ordinal = installmentOrdinalParts(item.description);
+      var groupCount = ordinal && ordinal.count || canonicalRepeatCount(eventEvidence);
+      var totals = numberEngine.extractNumberExpressions(amountEvidence).filter(function (expression) {
+        return expression && ["money", "number"].includes(expression.role) && Number(expression.value) > 0;
+      });
+      var split = groupCount >= 2 && totals.length === 1 ? splitMoneyEvenly(Number(totals[0].value), groupCount) : [];
+      var splitIndex = ordinal ? ordinal.ordinal - 1 : 0;
+      if (!split.length || splitIndex >= split.length || Math.abs(Number(split[splitIndex]) - amount) >= 0.005) reason = "luna_total_amount_evidence_unsupported";
+      else item.amountEur = split[splitIndex];
+    } else {
+      var directlySupported = canonicalAmountSupported(amount, amountEvidence);
+      var noAmountNumber = !numberEngine.extractNumberExpressions(amountEvidence).some(function (expression) {
+        return expression && ["money", "number"].includes(expression.role);
+      });
+      var contextDerived = noAmountNumber && (
+        item.eventType === "paid_in_full" && Math.abs(amount - balance) < 0.005
+        || item.eventType === "remaining_unpaid" && Math.abs(amount - balance) < 0.005
+      );
+      if (!directlySupported && !contextDerived) reason = "luna_amount_evidence_unsupported";
+    }
+    if (reason) {
+      var clarification = amountClarification(context, eventEvidence, item.eventType);
+      return { ok: false, reason: reason, clarification: clarification, clarificationExhausted: !clarification };
+    }
+    if (item.amountRelation != null && item.eventType !== "installment_payment") {
+      return { ok: false, reason: "luna_amount_relation_non_installment" };
+    }
+    if (reducingTypes.includes(item.eventType) && amount != null) balance = roundMoney(Math.max(0, balance - amount));
+  }
+  return { ok: true };
+}
+
+function validateLunaDebtInvariant(items, context) {
+  var debt = positiveAmount(context && context.remainingDebt) || positiveAmount(context && context.originalDebt) || 0;
+  var debtCents = Math.round(debt * 100);
+  var totalCents = (Array.isArray(items) ? items : []).reduce(function (sum, item) {
+    var rule = AUTHORITATIVE_RULES[item && item.eventType];
+    var amount = positiveAmount(item && item.amountEur);
+    return rule && rule.balanceEffect === "subtract" && amount != null
+      ? sum + Math.round(amount * 100)
+      : sum;
+  }, 0);
+  if (totalCents <= debtCents) return { ok: true, totalCents: totalCents, debtCents: debtCents };
+  var original = positiveAmount(context && context.originalDebt);
+  var debtLabel = original != null && Math.round(original * 100) === debtCents ? "prvotni dolg" : "preostali dolg";
+  return {
+    ok: false,
+    reason: "luna_payment_total_exceeds_debt",
+    clarification: {
+      question: "Skupaj si navedel " + formatEuroCents(totalCents) + " €, " + debtLabel + " pa je " + formatEuroCents(debtCents) + " €. Popravi znesek ali število obrokov.",
+      clauseId: "clause-1",
+      round: Math.max(1, Math.min(MAX_CLARIFICATION_ROUNDS, Number(context && context.clarification && context.clarification.round || 0) + 1)),
+      maxRounds: MAX_CLARIFICATION_ROUNDS,
+    },
+  };
+}
+
+function ignorableLeanEvidenceGap(value) {
+  var normalized = String(value || "").toLowerCase().normalize("NFC").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  if (!normalized) return true;
+  var connectors = new Set(["in", "pa", "ter", "nato", "potem", "zatem", "nakar", "ampak", "vendar", "toda", "še", "tudi", "obenem", "hkrati", "je", "and", "then", "but", "und", "dann", "aber"]);
+  return normalized.split(/\s+/u).every(function (token) { return connectors.has(token); });
+}
+
+function validateLeanEvidenceCoverage(items, sourceText) {
+  var source = String(sourceText || "");
+  var spans = [];
+  var cursor = 0;
+  var previousEvidence = "";
+  (Array.isArray(items) ? items : []).forEach(function (item) {
+    var evidence = trimText(item && item.evidenceText, 500);
+    var span = exactLeanEvidenceSpan(source, evidence, cursor, previousEvidence);
+    if (!span) return;
+    spans.push(span);
+    cursor = Math.max(cursor, span.end);
+    previousEvidence = evidence;
+  });
+  if (!spans.length) return { ok: false, reason: "luna_compact_source_coverage_gap" };
+  spans.sort(function (left, right) { return left.start - right.start || left.end - right.end; });
+  var coveredEnd = 0;
+  for (var index = 0; index < spans.length; index += 1) {
+    if (spans[index].start > coveredEnd && !ignorableLeanEvidenceGap(source.slice(coveredEnd, spans[index].start))) {
+      return { ok: false, reason: "luna_compact_source_coverage_gap" };
+    }
+    coveredEnd = Math.max(coveredEnd, spans[index].end);
+  }
+  if (!ignorableLeanEvidenceGap(source.slice(coveredEnd))) return { ok: false, reason: "luna_compact_source_coverage_gap" };
+  return { ok: true, spans: spans };
+}
+
+// Adapter ne razlaga ali preverja Luninega pomena. Kataloške ID-je samo
+// preslika v UI-polja; vse vsebinske vrednosti ostanejo za človeški pregled.
+function materializeLunaFieldPlan(review, context, sourceText, contract) {
+  var items = review && Array.isArray(review.items) ? review.items.slice(0, MAX_EVENTS).map(function (item) { return Object.assign({}, item); }) : [];
+  lunaPolicy.assertAdapterOperations(["schema_validation", "catalog_id_mapping", "human_review_projection"]);
   var fullSpan = { start: 0, end: String(sourceText || "").length, text: String(sourceText || "") };
+  var evidenceCursor = 0;
   var events = items.map(function (item, index) {
+    var evidenceText = trimText(item.evidenceText, 500);
+    var evidenceStart = evidenceText ? String(sourceText || "").indexOf(evidenceText, evidenceCursor) : -1;
+    if (evidenceStart < 0 && evidenceText) evidenceStart = String(sourceText || "").indexOf(evidenceText);
+    var eventSpan = evidenceStart >= 0
+      ? { start: evidenceStart, end: evidenceStart + evidenceText.length, text: evidenceText }
+      : fullSpan;
+    if (evidenceStart >= 0) evidenceCursor = Math.max(evidenceCursor, eventSpan.end);
     var occurredDateApproximate = item.occurredDateApproximate === true || item.occurredDateStatus === "approximate";
-    return normalizeEvent({
+    var occurredDateUnknown = item.occurredDateUnknown === true || item.occurredDateStatus === "unknown";
+    var occurredDate = item.occurredDate == null ? null : trimText(item.occurredDate, 120) || null;
+    var dateRelation = item.occurredDateRelation && !occurredDateUnknown && !occurredDateApproximate
+      ? Object.assign({ field: "occurredDate" }, item.occurredDateRelation)
+      : null;
+    return {
+      candidateId: "candidate-" + (index + 1),
       type: item.eventType,
-      amount: item.amountEur,
-      occurredDate: item.occurredDate,
-      occurredDateUnknown: item.occurredDateUnknown === true || item.occurredDateStatus === "unknown",
+      amount: typeof item.amountEur === "number" && Number.isFinite(item.amountEur) ? item.amountEur : null,
+      currency: "EUR",
+      occurredDate: occurredDate,
+      occurredDateUnknown: occurredDateUnknown,
       occurredDateApproximate: occurredDateApproximate,
       occurredDateApproximation: occurredDateApproximate ? trimText(item.occurredDate, 120) || trimText(item.occurredDateEvidenceText, 120) : null,
-      promisedDate: item.promisedDate,
+      dateRelation: dateRelation,
+      promisedDate: item.promisedDate == null ? null : trimText(item.promisedDate, 120) || null,
       promisedDateUnknown: item.promisedDateUnknown === true || item.promisedDateStatus === "unknown",
       promisedDateApproximate: item.promisedDateApproximate === true || item.promisedDateStatus === "approximate",
       promisedDateApproximation: item.promisedDateStatus === "approximate" ? trimText(item.promisedDate, 120) || trimText(item.promisedDateEvidenceText, 120) : null,
-      paymentMethod: item.paymentMethod,
-      communicationChannel: item.communicationChannel,
-      documentReference: item.documentReference,
-      reason: item.reason,
-      description: item.description,
+      paymentMethod: item.paymentMethod || null,
+      communicationChannel: item.communicationChannel || null,
+      documentReference: trimText(item.documentReference, 120) || null,
+      reason: trimText(item.reason, 300) || null,
+      description: trimText(item.description, 500) || null,
       confidence: "high",
+      temporalStatus: null,
       inheritedFrom: null,
+      dueDate: null,
+      missing: [],
+      providedFieldIds: Array.isArray(item.providedFieldIds) ? item.providedFieldIds.slice() : [],
       evidence: {
         clauseId: null,
-        sourceSpan: fullSpan,
-        explicit: false,
+        sourceSpan: eventSpan,
+        explicit: true,
         reason: "luna_id_to_field_adapter",
         amountRelation: item.amountRelation || null,
       },
-    }, index);
+    };
   });
   var finalized = finalizeSystemCandidates(events, {
     originalDebt: context && context.originalDebt,
     remainingDebt: context && context.remainingDebt,
-  }, ["luna_id_to_field_adapter"]);
+    referenceDate: context && context.referenceDate,
+  }, ["luna_id_to_field_adapter", "luna_values_accepted_for_human_review", lunaPolicy.SEMANTIC_AUTHORITY_VERSION]);
   finalized.candidates = finalized.candidates.map(function (candidate, index) {
     return Object.assign({}, candidate, {
       cardNumber: index + 1,
       cardTypeId: CARD_ID_BY_TYPE[candidate.type] || CARD_ID_BY_TYPE.custom,
-      fieldIds: (candidate.fieldOrder || []).map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }),
+      fieldIds: candidate.providedFieldIds.slice(),
       requiresHumanReview: true,
     });
   });
@@ -2513,23 +3013,59 @@ function materializeLunaFieldPlan(review, context, sourceText) {
     result: Object.assign({
       summary: "Luna je pripravila kartice za uporabnikov pregled.",
       needsClarification: finalized.candidates.some(function (candidate) { return candidate.missing.length > 0; }),
-      coverage: { complete: true, reason: "luna_id_to_field_adapter", unconsumed: [], duplicates: [], unsupportedCandidates: [] },
+      coverage: { complete: true, reason: "luna_authoritative_human_review", unconsumed: [], duplicates: [], unsupportedCandidates: [] },
     }, finalized),
   };
+}
+
+function compactFieldRows(compactItem) {
+  compactItem = compactItem || {};
+  var legacy = Array.isArray(compactItem.f);
+  var rows;
+  if (legacy) {
+    if (!lunaPolicy.hasExactKeys(compactItem, ["n", "c", "e", "f"]) || !Number.isInteger(compactItem.n) || compactItem.n < 1 || compactItem.f.length > 8 ||
+        compactItem.f.some(function (field) { return !lunaPolicy.hasExactKeys(field, ["i", "v", "e", "r"]); })) return { ok: false, reason: "luna_compact_card_shape" };
+    rows = compactItem.f;
+  } else {
+    if (!lunaPolicy.hasExactKeys(compactItem, ["c", "e", "i", "v", "x", "r"])) return { ok: false, reason: "luna_compact_card_shape" };
+    var columns = [compactItem.i, compactItem.v, compactItem.x, compactItem.r];
+    if (!columns.every(Array.isArray)) return { ok: false, reason: "luna_compact_field_columns" };
+    if (columns.some(function (column) { return column.length !== columns[0].length || column.length > 8; })) {
+      return { ok: false, reason: "luna_compact_column_lengths" };
+    }
+    rows = compactItem.i.map(function (fieldId, index) {
+      return { i: fieldId, v: compactItem.v[index], e: compactItem.x[index], r: compactItem.r[index] };
+    });
+  }
+  if (rows.length > 8) return { ok: false, reason: "luna_compact_field_count" };
+  var seen = new Set();
+  for (var index = 0; index < rows.length; index += 1) {
+    var row = rows[index] || {};
+    var fieldId = row.i;
+    var valueType = typeof row.v;
+    if (!Number.isInteger(fieldId) || !FIELD_NAME_BY_ID[fieldId] || !Array.isArray(row.r) || row.r.length > 7 ||
+        row.r.some(function (value) { return value !== null && !Number.isInteger(value); }) ||
+        !(row.v === null || valueType === "number" || (valueType === "string" && row.v.length <= 500)) ||
+        typeof row.e !== "string" || !row.e.trim() || row.e.length > 500) return { ok: false, reason: "luna_compact_field_domain" };
+    if (seen.has(fieldId)) return { ok: false, reason: "luna_compact_field_duplicate" };
+    seen.add(fieldId);
+  }
+  return { ok: true, rows: rows };
 }
 
 function expandCompactPlanResponse(parsed) {
   if (!parsed || !Array.isArray(parsed.p)) return parsed;
   return {
-    plan: parsed.p.map(function (compactItem) {
+    plan: parsed.p.map(function (compactItem, itemIndex) {
       compactItem = compactItem || {};
+      var compactFields = compactFieldRows(compactItem);
       return {
-        cardNumber: compactItem.n,
+        cardNumber: compactItem.n == null ? itemIndex + 1 : compactItem.n,
         cardId: compactItem.c,
         evidenceText: compactItem.e,
         count: 1,
         inheritedFromEvidenceText: null,
-        fields: (Array.isArray(compactItem.f) ? compactItem.f : []).map(function (compactField) {
+        fields: (compactFields.ok ? compactFields.rows : []).map(function (compactField) {
           compactField = compactField || {};
           var fieldId = Number(compactField.i);
           var relation = Array.isArray(compactField.r) ? compactField.r : [];
@@ -2693,31 +3229,64 @@ function reviewEventsFromLinks(links) {
   });
 }
 
+var HISTORY_LUNA_INSTRUCTIONS = [
+  "You are Luna, Atena history's only semantic authority. Read the whole source; choose all card IDs, field IDs and values. Local code only validates JSON and closed IDs, then copies values to ID-matched UI fields for mandatory human review. It never checks or repairs semantics, evidence, amounts, dates, order, installments, coverage or debt.",
+  "DEBT-FIRST HARD BOUNDARY: Active debt is debtEur.remaining, falling back to original only when absent. Sum every completed reduction in the whole source: N*each installment, stated group totals, credit notes and compensations. STRICT ONE-SIDED GREATER-THAN TEST: warn only when aggregate>active debt; never require equality. Every aggregate<=active debt is valid partial history unless an explicit remaining balance contradicts arithmetic. Exact regression: debt 232 plus 'plačal je 2 obroka po 10 mesec dni nazaj i v razmaku 2h dneh.. potem pa je danes plačal 100' is 2*10+100=120; because 120<232, return k=null and three payment cards, never a warning or inferred remaining_unpaid. Only for aggregate>debt or an explicit contradictory remainder return p=[],k=2 and short Slovenian q naming aggregate and debt and asking to verify possible overpayment or correct debt, amount or event count; x is the exact source span. k=2 blocks with Edit description, no answer, partial cards, capping, altering or dropping. If meaning is genuinely ambiguous use p=[],k=1 instead.",
+  "Read catalog.guide rows by catalog.guideColumns and catalog.cards [cardId,type,fieldIds,requiredFieldIds]. useWhen/doNotUseWhen/aliases/examples form a meaning map, not a keyword list. Infer unseen wording, inflection, slang, dialect and mixed Slovenian/German/English. Treat fused number+noun forms and dropped-letter typos as noise, never ambiguity. Prefer specialized cards; custom is last resort. Ask one short Slovenian q only when material meaning is ambiguous.",
+  "VAGUE TALK HARD BOUNDARY: invoice/debt talk without a concrete act or outcome is no card; even with clear clauses, return p=[] and q, never omit or force it.",
+  "Only map past events: one atomic event per card, source order, all completed repeats expanded; future agreements are not payments. Output p/q/x/k with card {c,e,i:[],v:[],x:[],r:[]}; k=null with a plan, k=1 only for a genuine clarification question, k=2 only for a blocking validation warning. Equal indexes form one field, all four arrays have equal length <=8, IDs are unique, and p order is card order. Each card e is the smallest complete atomic clause span, and all card e spans together cover the full material source; field x stays the shortest exact contiguous source quote. e/x are raw copies: never add currency, diacritics or spelling fixes. Return final per-card EUR and ISO dates; never alter an amount to fit the debt.",
+  "A plan/split count is not a paid count. If only the first of N is paid, output one installment_payment with total/N and field 8='1/N obrok'. For N completed installments use chronological k/N cards. Adjacent groups with distinct count or per-installment amount remain separate 1/N series. Merge an explicit first plus N additional only when they are the same series; number all cards 1/(N+1) through (N+1)/(N+1).",
+  "Amounts: 'N obrokov skupaj X'=>split X,r=[651]; 'N obrokov po X'/'vsak X'=>X each,r=[652]. Amount x is exact and inside the same card e; count/cadence is never amount. If later N amounts are missing return p=[], one grouped Slovenian q and exact x, at most clarification.maxRounds. Preserve cadence numeral+unit: two weeks=2/week, 14 days=14/day.",
+  "Installment dates: preserve explicit/unknown/approximate dates. A relative phrase such as 'mesec dni nazaj' is exact: output final ISO v plus its relation. Mark it approximate only when the source explicitly expresses approximation; a fused token or dropped-letter typo never makes an otherwise clear relation approximate. Explicit cadence is material: every card 2..N MUST include field 2 with previous_event +K relation, even when v is null; omitting that relation is invalid. With explicit first, later cards use previous_event +K. With explicit last, calculate earlier dates backward, but cards 2..N still carry previous_event +K. Only with no endpoint may card 1 omit field 2; then cards 2..N use v=null,r=[601,611,622,633,K,unitId,null]. Cadence alone never invents the first date; referenceDate is only a human-input boundary.",
+  "Add remaining_unpaid only for an explicit remaining/no-more-payment outcome, amount=debt.remaining minus completed reductions. Omit unstated values; field 4 is omitted when method is unstated and 406 means explicitly unknown. Never invent an event. If uncertain return p=[], q and exact source x."
+].join(" ");
+
+function leanContractRepairInstruction(reason) {
+  var instructions = {
+    luna_compact_invalid_json: "The previous answer was incomplete or invalid JSON. Return one complete schema-valid answer, keep every evidence quote minimal, and close the full JSON object.",
+    luna_compact_evidence_unlinked: "The previous plan copied or normalized evidence that is not an exact contiguous substring of sourceText. Copy every card e and field x character-for-character from sourceText: do not add a currency symbol, diacritic, corrected spelling or omitted word. Keep the same supported meaning and return one complete schema-valid answer; if exact evidence cannot support it, return p=[] and one Slovenian clarification q with exact source x.",
+    luna_installment_ordinal_invalid: "The previous plan used invalid installment ordinals. Keep distinct explicit completed-installment groups separate: within each group return exactly N cards numbered 1/N through N/N, even when another installment group follows immediately. Only an explicit first installment plus N additional completed installments of that same series becomes one N+1 series numbered 1/(N+1) through (N+1)/(N+1).",
+    luna_installment_relation_missing: "The previous plan omitted an explicit installment cadence. Every card after the first must include occurredDate field 2 with the previous_event +K relation stated by the source, even when the first date is unknown.",
+    luna_unanchored_first_installment_relation_forbidden: "The source states an installment cadence but no first or last date. Do not invent an endpoint: omit occurredDate field 2 entirely from the first installment, then put the exact previous_event +K relation on every later installment.",
+    luna_installment_cadence_review_required: "The previous plan had multiple completed installments but no structured cadence relation on cards 2..N. Re-read the source. If it states a cadence, every card 2..N must include field {i:2,v:final ISO or null,e:short exact cadence quote,r:[601,611,622,633,K,unitId,null]}; r:[] or an omitted field is invalid even when all final dates are already present. Preserve any stated relative endpoint as its own structured relation too. If the source truly states no cadence, return the same no-relation plan; never invent one.",
+    luna_canonical_occurred_relation_numbers: "The previous date relation amount did not match its exact field evidence. Preserve both the source numeral and its named unit: two weeks is amount=2/unit=week; 14 days is amount=14/unit=day. Return a corrected schema-valid plan.",
+    luna_relative_date_precision_review_required: "The previous plan marked a structured relative date approximate. Re-read the exact evidence. Keep approximate status only when the source explicitly expresses approximation; spelling noise alone does not change an otherwise clear relative date from exact to approximate.",
+    luna_amount_invalid: "The previous plan returned an invalid payment amount. Return p=[] and one grouped Slovenian clarification q with exact source x when the amount is missing; otherwise correct it using exact amount evidence inside the same card evidence.",
+    luna_amount_evidence_unlinked: "The previous payment amount was not supported by exact source evidence. Never infer an amount from count or cadence. Return p=[] and one grouped Slovenian clarification q with exact source x when the amount is missing.",
+    luna_amount_evidence_outside_event: "The previous plan copied an amount from another event. Amount evidence must be inside the same card evidence. Return p=[] and one grouped Slovenian clarification q with exact source x for the installments whose amount is missing.",
+    luna_amount_evidence_unsupported: "The previous amount did not match an exact money or bare-number expression in its same-card evidence. A count or cadence is not amount evidence. Return p=[] and one grouped Slovenian clarification q with exact source x when the amount is missing.",
+    luna_total_amount_evidence_unsupported: "The previous per-installment amount did not equal the deterministic split of the exact stated group total. Correct the per-card amounts from the exact total relation or ask one grouped clarification when the total is missing.",
+    luna_compact_source_coverage_gap: "The previous plan left material source text outside every card evidence span. Re-read the whole source. Make each card e the smallest complete atomic clause span so all material source is covered. If an uncovered span lacks a concrete historical action, statement, agreement or outcome, return p=[] and one Slovenian clarification q with exact source x; never omit it or force it into custom.",
+  };
+  return instructions[reason] || null;
+}
+
 function requestBody(text, context, userId) {
   context = context || {};
-  return {
-    model: MODEL,
-    store: false,
-    reasoning: { effort: "low" },
-    max_output_tokens: 2600,
+  var requestInput = {
+    contractVersion: CONTRACT_VERSION,
+    // Prompt cache primerja skupni predponi. Velik, nespremenljiv katalog mora
+    // zato ostati pred dolgom, opisom in datumom, ki se menjajo pri vsakem vnosu.
+    catalog: MODEL_CATALOG,
+    debtEur: {
+      original: positiveAmount(context.originalDebt),
+      remaining: positiveAmount(context.remainingDebt),
+    },
+    sourceText: trimText(text, MAX_TEXT_LENGTH),
+    referenceDate: validIsoDate(context.referenceDate),
+    clarification: context.clarification ? {
+      question: trimText(context.clarification.question, 180) || null,
+      answer: trimText(context.clarification.answer, MAX_CLARIFICATION_ANSWER_LENGTH) || null,
+      sourceReference: trimText(context.clarification.clauseId, 80) || null,
+      round: Math.max(1, Math.min(MAX_CLARIFICATION_ROUNDS, Number(context.clarification.round) || 1)),
+    } : null,
+  };
+  return Object.assign(lunaPolicy.requestDefaults("history"), {
+    prompt_cache_key: "atena-history:" + CONTRACT_VERSION + ":" + MODEL,
+    prompt_cache_options: { mode: "implicit", ttl: "30m" },
     safety_identifier: safetyIdentifier(userId),
-    instructions: "You are Luna, the only semantic parser. Convert the complete Slovenian source into compact numbered FATHER cards using catalog.cards [cardId,type,fieldIds,requiredFieldIds], catalog.fields and catalog.values. Understand typos, colloquial speech, ellipsis, inflection, negation, time and every listed card category; do not default everything to payment. Output p/q/x; each card is {n:consecutive,c:cardId,e:short source quote,f:known fields}; each field is {i:fieldId,v:final value,e:short source quote,r:relation IDs or []}. One real event per card, preserve source order and expand every repeat into separate cards. You alone decide category and values. Return final ISO dates and final per-card EUR amounts. For installments, 'v N obrokih X' or 'N obrokov skupaj X' means total X divided across N cards; 'N obrokov po X' or 'vsak X' means X on every card. Put r=[651] for stated total or r=[652] for stated each, and add field 8 as 'k/N obrok'. Add remaining_unpaid only when the source states a remaining or no-more-payment outcome; its amount is debt.remaining minus all completed reductions in these cards. If payment method is not stated, omit field 4; ID 406 is only for explicitly unknown. Omit unknown values unless explicitly unknown. Never invent an event. If meaning is materially ambiguous return p=[] with one short q and source quote x. Every card will be reviewed by a human.",
-    input: JSON.stringify({
-      contractVersion: CONTRACT_VERSION,
-      sourceText: trimText(text, MAX_TEXT_LENGTH),
-      referenceDate: validIsoDate(context.referenceDate),
-      debtEur: {
-        original: positiveAmount(context.originalDebt),
-        remaining: positiveAmount(context.remainingDebt),
-      },
-      catalog: MODEL_CATALOG,
-      clarification: context.clarification ? {
-        question: trimText(context.clarification.question, 180) || null,
-        answer: trimText(context.clarification.answer, MAX_CLARIFICATION_ANSWER_LENGTH) || null,
-        sourceReference: trimText(context.clarification.clauseId, 80) || null,
-        round: Math.max(1, Math.min(MAX_CLARIFICATION_ROUNDS, Number(context.clarification.round) || 1)),
-      } : null,
-    }),
+    instructions: HISTORY_LUNA_INSTRUCTIONS,
+    input: JSON.stringify(requestInput),
     text: {
       format: {
         type: "json_schema",
@@ -2726,19 +3295,11 @@ function requestBody(text, context, userId) {
         schema: RESPONSE_SCHEMA,
       },
     },
-  };
+  });
 }
 
 function responseText(payload) {
-  if (payload && typeof payload.output_text === "string") return payload.output_text;
-  var output = payload && Array.isArray(payload.output) ? payload.output : [];
-  for (var i = 0; i < output.length; i += 1) {
-    var content = Array.isArray(output[i].content) ? output[i].content : [];
-    for (var j = 0; j < content.length; j += 1) {
-      if (typeof content[j].text === "string") return content[j].text;
-    }
-  }
-  return "";
+  return lunaPolicy.responseText(payload);
 }
 
 function fallbackClarificationQuestion(contract, preferredClause) {
@@ -2771,26 +3332,90 @@ function exactLeanEvidenceSpan(sourceText, evidenceText, previousStart, previous
   return { start: start, end: start + evidence.length, text: evidence };
 }
 
+var LEAN_EURO_EVIDENCE_TOKENS = new Set(["eur", "euro", "euros", "evro", "evra", "evri", "evrov", "eurov", "€"]);
+
+function leanEvidenceTokens(value, baseOffset) {
+  var text = String(value || "");
+  var tokens = [];
+  var pattern = /[\p{L}\p{N}]+|€/gu;
+  var match;
+  while ((match = pattern.exec(text))) {
+    var key = match[0].normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
+    if (LEAN_EURO_EVIDENCE_TOKENS.has(key)) continue;
+    tokens.push({ key: key, start: (Number(baseOffset) || 0) + match.index, end: (Number(baseOffset) || 0) + match.index + match[0].length });
+  }
+  return tokens;
+}
+
+function expandLeanEvidenceCurrencyEdges(source, start, end, from, to) {
+  var prefix = source.slice(from, start).match(/(?:(?:eur|euro|euros|evro|evra|evri|evrov|eurov)\b|€)\s*$/iu);
+  var suffix = source.slice(end, to).match(/^\s*(?:(?:eur|euro|euros|evro|evra|evri|evrov|eurov)\b|€)/iu);
+  return {
+    start: prefix ? from + prefix.index : start,
+    end: suffix ? end + suffix[0].length : end,
+  };
+}
+
+function alignLeanEvidenceQuote(sourceText, evidenceText, withinSpan) {
+  var source = String(sourceText || "");
+  var evidence = trimText(evidenceText, 500);
+  if (!evidence) return null;
+  var from = withinSpan && Number.isInteger(withinSpan.start) ? withinSpan.start : 0;
+  var to = withinSpan && Number.isInteger(withinSpan.end) ? withinSpan.end : source.length;
+  var exactStart = source.indexOf(evidence, from);
+  if (exactStart >= 0 && exactStart + evidence.length <= to) {
+    return { start: exactStart, end: exactStart + evidence.length, text: evidence, aligned: false };
+  }
+  var quoteTokens = leanEvidenceTokens(evidence, 0);
+  var sourceTokens = leanEvidenceTokens(source.slice(from, to), from);
+  if (!quoteTokens.length || quoteTokens.length > sourceTokens.length) return null;
+  var matches = [];
+  for (var tokenIndex = 0; tokenIndex + quoteTokens.length <= sourceTokens.length; tokenIndex += 1) {
+    var equal = quoteTokens.every(function (token, quoteIndex) {
+      return token.key === sourceTokens[tokenIndex + quoteIndex].key;
+    });
+    if (!equal) continue;
+    var matchStart = sourceTokens[tokenIndex].start;
+    var matchEnd = sourceTokens[tokenIndex + quoteTokens.length - 1].end;
+    var expanded = expandLeanEvidenceCurrencyEdges(source, matchStart, matchEnd, from, to);
+    matchStart = expanded.start;
+    matchEnd = expanded.end;
+    if (!matches.some(function (item) { return item.start === matchStart && item.end === matchEnd; })) {
+      matches.push({ start: matchStart, end: matchEnd, text: source.slice(matchStart, matchEnd), aligned: true });
+    }
+  }
+  return matches.length === 1 ? matches[0] : null;
+}
+
 function parseLeanCompactPlan(output, sourceText) {
   var parsed;
   try { parsed = JSON.parse(trimText(output, 16000)); }
   catch (_error) { return { ok: false, reason: "luna_compact_invalid_json" }; }
-  if (!parsed || !Array.isArray(parsed.p) || parsed.p.length > MAX_EVENTS) return { ok: false, reason: "luna_compact_invalid_plan" };
+  var hasResponseKind = lunaPolicy.hasExactKeys(parsed, ["p", "q", "x", "k"]);
+  var legacyResponse = lunaPolicy.hasExactKeys(parsed, ["p", "q", "x"]);
+  if ((!hasResponseKind && !legacyResponse) || !Array.isArray(parsed.p) || parsed.p.length > MAX_EVENTS) return { ok: false, reason: "luna_compact_invalid_plan" };
   if (!parsed.p.length) {
-    var question = trimText(parsed.q, 180);
-    if (!question || !trimText(parsed.x, 500)) return { ok: false, reason: "luna_compact_empty_without_clarification" };
+    if (typeof parsed.q !== "string" || !parsed.q.trim() || parsed.q.length > 180 || typeof parsed.x !== "string" || !parsed.x.trim() || parsed.x.length > 500) return { ok: false, reason: "luna_compact_empty_without_clarification" };
+    if (hasResponseKind && parsed.k !== 1 && parsed.k !== 2) return { ok: false, reason: "luna_compact_empty_without_response_kind" };
     return {
-      ok: true, verdict: "clarification", question: question,
-      clauseId: "luna-clarification",
+      ok: true, verdict: parsed.k === 2 ? "warning" : "clarification", question: parsed.q.trim(),
+      responseKind: parsed.k === 2 ? "warning" : "question",
+      evidenceText: parsed.x.trim(),
       clarificationSpan: null,
     };
   }
-  if (parsed.q != null || parsed.x != null) return { ok: false, reason: "luna_compact_plan_with_clarification" };
+  if (parsed.q != null || parsed.x != null || (hasResponseKind && parsed.k != null)) return { ok: false, reason: "luna_compact_plan_with_clarification" };
+  for (var shapeIndex = 0; shapeIndex < parsed.p.length; shapeIndex += 1) {
+    var shape = compactFieldRows(parsed.p[shapeIndex]);
+    if (!shape.ok) return shape;
+    if (!Number.isInteger(parsed.p[shapeIndex].c) || typeof parsed.p[shapeIndex].e !== "string" || !parsed.p[shapeIndex].e.trim() || parsed.p[shapeIndex].e.length > 500) {
+      return { ok: false, reason: "luna_compact_card_shape" };
+    }
+  }
   var expanded = expandCompactPlanResponse(parsed);
   var items = [];
   for (var index = 0; index < expanded.plan.length; index += 1) {
     var planItem = expanded.plan[index] || {};
-    if (Number(planItem.cardNumber) !== index + 1 || Number(planItem.count) !== 1) return { ok: false, reason: "luna_compact_card_sequence" };
     if (!CARD_TYPE_BY_ID[Number(planItem.cardId)]) return { ok: false, reason: "luna_compact_card_domain" };
     var canonical = canonicalItemFromWire(planItem);
     if (!canonical.ok) return { ok: false, reason: canonical.reason || "luna_compact_field_domain" };
@@ -2807,10 +3432,11 @@ function leanSemanticResult(result, requestJson, payload, attempted, reason, sta
       requested: true,
       attempted: attempted === true,
       source: "luna_compact_contract",
-      reasons: ["luna_only_semantics", "local_id_mapping_only"],
+      reasons: ["luna_only_semantics", "local_id_mapping_only", "human_review_before_save"],
       reason: reason,
       status: status,
       requestBytes: attempted === true ? Buffer.byteLength(requestJson || "", "utf8") : null,
+      transport: attempted === true && payload && payload._atenaTransport ? payload._atenaTransport : null,
       usage: attempted === true && payload && payload.usage ? {
         inputTokens: Number(payload.usage.input_tokens) || 0,
         outputTokens: Number(payload.usage.output_tokens) || 0,
@@ -2823,7 +3449,11 @@ function leanSemanticResult(result, requestJson, payload, attempted, reason, sta
 function leanBlockedResult(context, requestJson, payload, attempted, reason, status, clarification) {
   var initialDebt = positiveAmount(context && context.remainingDebt) || positiveAmount(context && context.originalDebt) || 0;
   return leanSemanticResult({
-    summary: clarification ? "Luna potrebuje še eno kratko pojasnilo. Dogodki še niso pripravljeni." : "Lunin compact načrt ni prestal nujnih preveritev. Dogodki niso bili pripravljeni.",
+    summary: status === "VALIDATION_WARNING"
+      ? "Opis vsebuje nepravilne ali med seboj neskladne podatke. Uredite izvirni opis; dogodki niso bili pripravljeni."
+      : status === "CLARIFICATION_EXHAUSTED"
+      ? "Oprostite, Luna opisa po dovoljenih pojasnilih še vedno ne razume dovolj zanesljivo. Dogodke raje dodajte ročno."
+      : clarification ? "Luna potrebuje še eno kratko pojasnilo. Dogodki še niso pripravljeni." : "Luna ni vrnila tehnično preslikljivega odgovora. Dogodki niso bili pripravljeni.",
     needsClarification: true,
     clarification: clarification || null,
     clarificationExhausted: status === "CLARIFICATION_EXHAUSTED",
@@ -2847,6 +3477,90 @@ function hasRetrospectivePaymentInsertion(text) {
   return /\bpred\s+tem\s+(?:obrok\w*|plačil\w*)\s+(?:pa\s+)?(?:je\s+)?(?:plačal\w*|poravnal\w*|nakazal\w*)/iu.test(normalizeNaturalText(text || ""));
 }
 
+function normalizeShortClarificationAnswer(question, answer) {
+  var raw = trimText(answer, MAX_CLARIFICATION_ANSWER_LENGTH);
+  var normalizedQuestion = normalizeNaturalText(question || "");
+  var normalizedAnswer = normalizeNaturalText(raw);
+  var missingSchedulingContext = /\b(?:datum|kdaj|rok|kanal|komunikacij)\w*\b/iu.test(normalizedQuestion);
+  var explicitYesNoQuestion = /^\s*(?:ali|je|so)\b/iu.test(normalizedQuestion);
+  var noKnownDetail = /^(?:ne|ne vem|ni (?:znano|doloceno)|nimam (?:tega )?podatka|datum ni znan|rok ni dolocen)[.!]?$/iu.test(normalizedAnswer);
+  if (missingSchedulingContext && !explicitYesNoQuestion && noKnownDetail) {
+    return "Datum dogodka, rok plačila in komunikacijski kanal niso znani oziroma določeni.";
+  }
+  return raw;
+}
+
+function isUnknownSchedulingAnswer(answer) {
+  var text = normalizeNaturalText(answer || "");
+  return /\bdatum\s+dogodka\b/iu.test(text)
+    && /\brok\s+plačila\b/iu.test(text)
+    && /\bkomunikacijsk\w*\s+kanal\b/iu.test(text)
+    && /\b(?:ni|niso)\w*\s+(?:znan\w*|določen\w*)\b/iu.test(text);
+}
+
+function isSchedulingClarification(question) {
+  return /\b(?:datum|kdaj|rok|kanal|komunikacij)\w*\b/iu.test(normalizeNaturalText(question || ""));
+}
+
+function canonicalPaymentPromiseFromContract(contract, sourceText, context, diagnostic) {
+  if (!contract || !Array.isArray(contract.facts)) return null;
+  var positiveEvents = contract.facts.filter(function (fact) {
+    return fact && fact.kind === "category" && fact.assertion === "positive" && fact.eventType;
+  });
+  if (!positiveEvents.length || !positiveEvents.every(function (fact) { return fact.eventType === "payment_promise"; })) return null;
+  var promiseFact = positiveEvents[0];
+  var clause = (contract.clauses || []).find(function (item) { return item && item.id === promiseFact.clauseId; });
+  if (!clause || !clause.span) return null;
+  var amount = inferPromisedAmount(sourceText) || nearestFactAmount(contract, "payment_promised", sourceText);
+  var promisesWholeDebt = contract.facts.some(function (fact) {
+    return fact && fact.kind === "category" && fact.assertion === "proposed" && fact.eventType === "paid_in_full";
+  }) || /\b(?:vse|cel(?:oten|otni)?\s+dolg|ves\s+preostanek|cel(?:oten|otni)?\s+preostanek)\b/iu.test(sourceText);
+  if (promisesWholeDebt) amount = positiveAmount(context && context.remainingDebt) || positiveAmount(context && context.originalDebt) || amount;
+  var occurredDate = inferOccurredDate(sourceText, context && context.referenceDate);
+  var promisedDate = inferPromisedDate(sourceText, context && context.referenceDate);
+  var promisedDateFact = contract.facts.find(function (fact) {
+    return fact && fact.kind === "date_relation" && fact.assertion === "positive" && fact.eventType === "payment_promise"
+      && fact.relation && fact.relation.field === "promisedDate";
+  });
+  if (promisedDateFact && occurredDate === validIsoDate(context && context.referenceDate) && /\bod\s+danes\b/iu.test(sourceText)) occurredDate = null;
+  var communicationChannel = inferCommunicationChannel(sourceText) || "unknown";
+  var event = normalizeEvent({
+    type: "payment_promise", repeat: 1, amount: amount, currency: "EUR",
+    occurredDate: occurredDate, occurredDateUnknown: !occurredDate,
+    promisedDate: promisedDate, promisedDateUnknown: !promisedDate,
+    paymentMethod: null, communicationChannel: communicationChannel, documentReference: null,
+    reason: null, description: trimText(sourceText, 500), confidence: "high", temporalStatus: "planned",
+    dateRelation: promisedDateFact ? Object.assign({}, promisedDateFact.relation, { clauseId: promisedDateFact.clauseId }) : null,
+    evidence: { clauseId: clause.id, sourceSpan: clause.span, explicit: true, reason: "deterministic_payment_promise_contract" },
+  }, 0);
+  var finalized = finalizeSystemCandidates([event], {
+    originalDebt: context && context.originalDebt,
+    remainingDebt: context && context.remainingDebt,
+    referenceDate: context && context.referenceDate,
+  }, [diagnostic || "payment_promise_contract_resolved"]);
+  var coverage = coverageEngine.assessCoverage(contract, { candidates: finalized.candidates }, { requireClauseEvidence: true });
+  if (!coverage.complete) return null;
+  finalized.candidates = finalized.candidates.map(function (candidate, index) {
+    return Object.assign({}, candidate, {
+      cardNumber: index + 1,
+      cardTypeId: CARD_ID_BY_TYPE[candidate.type] || CARD_ID_BY_TYPE.custom,
+      fieldIds: candidate.fieldOrder.map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }),
+      requiresHumanReview: true,
+    });
+  });
+  finalized.questionPlan = finalized.candidates.map(function (candidate, candidateIndex) {
+    return {
+      candidateIndex: candidateIndex, fields: candidate.fieldOrder.slice(), missing: candidate.missing.slice(),
+      cardNumber: candidateIndex + 1, cardTypeId: candidate.cardTypeId,
+      fieldIds: candidate.fieldIds.slice(), missingFieldIds: candidate.missing.map(function (name) { return FIELD_ID_BY_NAME[modelFieldName(name)]; }),
+    };
+  });
+  return Object.assign({
+    summary: "Atena je pripravila dogovor za vaš pregled.", needsClarification: false,
+    coverage: coverage, enginePath: ["fact_contract", "deterministic_promise_resolver", "ledger", "human_review"],
+  }, finalized);
+}
+
 async function analyze(text, context, options) {
   options = options || {};
   context = context || {};
@@ -2855,7 +3569,7 @@ async function analyze(text, context, options) {
   var clarificationAnswer = clarificationContext ? trimText(clarificationContext.answer, MAX_CLARIFICATION_ANSWER_LENGTH + 1) : "";
   var clarificationClauseId = clarificationContext ? trimText(clarificationContext.clauseId, 80) : "";
   var clarificationRound = clarificationContext ? Number(clarificationContext.round) || 0 : 0;
-  if (clarificationContext && (!clarificationAnswer || clarificationAnswer.length > MAX_CLARIFICATION_ANSWER_LENGTH || !clarificationClauseId || clarificationRound < 1 || clarificationRound > MAX_CLARIFICATION_ROUNDS)) {
+  if (clarificationContext && !lunaPolicy.validClarification(clarificationContext)) {
     var clarificationError = new Error("Vpišite kratek odgovor na vprašanje.");
     clarificationError.code = "INVALID_CLARIFICATION";
     clarificationError.status = 400;
@@ -2874,7 +3588,7 @@ async function analyze(text, context, options) {
   var localResult = null;
   var payload = null;
   var lunaRequestJson = "";
-  var planDecision = { shouldRequest: true, reasons: ["luna_first_raw_source"], coverage: null, factContract: null };
+  var planDecision = { shouldRequest: true, reasons: ["luna_first_raw_source", "local_id_mapping_only", "human_review_before_save"], coverage: null, factContract: null };
   function ensureContracts() {
     if (factContract) return factContract;
     sourceContract = factEngine.buildFactContract(sourceInput);
@@ -2941,7 +3655,7 @@ async function analyze(text, context, options) {
     var exhausted = Boolean(clarificationContext && nextRound > MAX_CLARIFICATION_ROUNDS && clarificationPrompt);
     return tagged({
       summary: exhausted
-        ? "Oprostite, Luna opisa po dveh pojasnilih še vedno ne razume dovolj zanesljivo. Dogodke raje dodajte ročno."
+        ? "Oprostite, Luna opisa po dovoljenih pojasnilih še vedno ne razume dovolj zanesljivo. Dogodke raje dodajte ročno."
         : safeQuestion ? "Luna potrebuje še eno kratko pojasnilo. Dogodki še niso pripravljeni." : "Lunino preverjanje ni vrnilo dokazno veljavne rešitve. Dopolnite izvirni opis; dogodki niso bili pripravljeni.",
       needsClarification: true,
       clarification: safeQuestion && safeClauseId ? { question: safeQuestion, clauseId: safeClauseId, round: nextRound, maxRounds: MAX_CLARIFICATION_ROUNDS } : null,
@@ -2991,59 +3705,59 @@ async function analyze(text, context, options) {
   if (!apiKey) return options._legacyTestMode === true
     ? localFallback("luna_review_not_configured", false)
     : leanBlockedResult(context, lunaRequestJson, payload, false, "luna_not_configured", "NOT_ATTEMPTED", null);
-  var fetchImpl = options.fetchImpl || fetch;
-  var controller = new AbortController();
-  var modelTimeoutMs = Math.min(MODEL_TIMEOUT_MAX_MS, Math.max(100, Number(options.timeoutMs) || MODEL_TIMEOUT_MS));
-  var timer = setTimeout(function () { controller.abort(); }, modelTimeoutMs);
-  var response;
   lunaRequestJson = JSON.stringify(requestBody(input, context, options.userId));
+  var historyTimeoutMs = options.timeoutMs == null
+    ? MODEL_TIMEOUT_MS
+    : Math.min(MODEL_TIMEOUT_MAX_MS, Math.max(100, Number(options.timeoutMs) || MODEL_TIMEOUT_MS));
   try {
-    response = await fetchImpl("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-      body: lunaRequestJson,
-      signal: controller.signal,
+    var transport = await lunaPolicy.requestOpenAi({
+      apiKey: apiKey, body: lunaRequestJson, fetchImpl: options.fetchImpl,
+      timeoutMs: historyTimeoutMs, maxAttempts: options._legacyTestMode === true ? 1 : options.maxAttempts,
+      sleepImpl: options.sleepImpl, randomImpl: options.randomImpl,
     });
-    payload = await response.json().catch(function () { return {}; });
+    payload = transport.payload;
+    payload._atenaTransport = { attempts: transport.attempts, elapsedMs: transport.elapsedMs };
   } catch (error) {
-    if (options._legacyTestMode === true) return localFallback(error && error.name === "AbortError" ? "luna_review_timeout" : "luna_review_unavailable", true);
-    return leanBlockedResult(context, lunaRequestJson, payload, true, error && error.name === "AbortError" ? "luna_timeout" : "luna_unavailable", "FAILED", null);
-  } finally {
-    clearTimeout(timer);
+    var reasonByCode = { LUNA_TIMEOUT: "luna_timeout", LUNA_RATE_LIMITED: "luna_rate_limited", LUNA_PROVIDER_ERROR: "luna_provider_error", LUNA_PROVIDER_REJECTED: "luna_provider_rejected", LUNA_UNAVAILABLE: "luna_unavailable" };
+    var failureReason = reasonByCode[error && error.code] || "luna_unavailable";
+    payload = { _atenaTransport: { attempts: Number(error && error.attempts) || 1, elapsedMs: Number(error && error.elapsedMs) || 0, retryable: error && error.retryable === true } };
+    if (options._legacyTestMode === true) return localFallback("luna_review_" + failureReason.slice(5), true);
+    return leanBlockedResult(context, lunaRequestJson, payload, true, failureReason, "FAILED", null);
   }
-  if (!response.ok) return options._legacyTestMode === true
-    ? localFallback(response.status === 429 ? "luna_review_rate_limited" : "luna_review_provider_error", true)
-    : leanBlockedResult(context, lunaRequestJson, payload, true, response.status === 429 ? "luna_rate_limited" : "luna_provider_error", "FAILED", null);
   var textOutput = responseText(payload);
   var compactPlan = parseLeanCompactPlan(textOutput, sourceInput);
-  if (!compactPlan.ok && options._legacyTestMode !== true) return leanBlockedResult(context, lunaRequestJson, payload, true, compactPlan.reason, "FAILED", null);
-  if (compactPlan.ok && compactPlan.verdict === "clarification") {
-    if (isReviewableMissingFieldClarification(compactPlan.question)) {
-      var reviewableDatePlan = ensureLocalResult();
-      if (reviewableDatePlan && reviewableDatePlan.coverage && reviewableDatePlan.coverage.complete === true && reviewableDatePlan.candidates.length) {
-        reviewableDatePlan.diagnostics = (reviewableDatePlan.diagnostics || []).concat(["missing_anchor_deferred_to_human_review"]);
-        return tagged(reviewableDatePlan, "validated_semantic_plan", true, "luna_missing_anchor_deferred_to_review");
-      }
+  var leanMaterialized = compactPlan.ok && compactPlan.verdict === "solution"
+    ? materializeLunaFieldPlan(compactPlan, context, sourceInput, null)
+    : null;
+  if (!compactPlan.ok && options._legacyTestMode !== true) {
+    return leanBlockedResult(context, lunaRequestJson, payload, true, compactPlan.reason, "FAILED", null);
+  }
+  if (compactPlan.ok && (compactPlan.verdict === "clarification" || compactPlan.verdict === "warning")) {
+    if (compactPlan.verdict === "warning") {
+      return leanBlockedResult(context, lunaRequestJson, payload, true, "luna_validation_warning", "VALIDATION_WARNING", {
+        question: compactPlan.question, clauseId: "clause-1", round: 0, maxRounds: MAX_CLARIFICATION_ROUNDS, kind: "warning",
+      });
     }
     var currentRound = clarificationContext ? clarificationRound : 0;
     var nextRound = currentRound + 1;
     if (nextRound > MAX_CLARIFICATION_ROUNDS) return leanBlockedResult(context, lunaRequestJson, payload, true, "clarification_exhausted", "CLARIFICATION_EXHAUSTED", null);
     return leanBlockedResult(context, lunaRequestJson, payload, true, "luna_clarification_requested", "CLARIFICATION_REQUIRED", {
-      question: compactPlan.question, clauseId: compactPlan.clauseId, round: nextRound, maxRounds: MAX_CLARIFICATION_ROUNDS,
+      question: compactPlan.question, clauseId: "clause-1", round: nextRound, maxRounds: MAX_CLARIFICATION_ROUNDS, kind: "question",
     });
   }
   if (compactPlan.ok) {
-    if (hasRetrospectivePaymentInsertion(sourceInput)) {
-      var retrospectivePlan = ensureLocalResult();
-      if (retrospectivePlan && retrospectivePlan.coverage && retrospectivePlan.coverage.complete === true && retrospectivePlan.candidates.length) {
-        retrospectivePlan.diagnostics = (retrospectivePlan.diagnostics || []).concat(["retrospective_payment_order_applied"]);
-        return tagged(retrospectivePlan, "validated_semantic_plan", true, "luna_retrospective_order_applied");
-      }
-    }
-    var leanMaterialized = materializeLunaFieldPlan(compactPlan, context, sourceInput);
-    if (!leanMaterialized.ok) return leanBlockedResult(context, lunaRequestJson, payload, true, leanMaterialized.reason, "FAILED", null);
+    if (!leanMaterialized) leanMaterialized = materializeLunaFieldPlan(compactPlan, context, sourceInput, null);
+    if (!leanMaterialized.ok) return leanBlockedResult(
+      context,
+      lunaRequestJson,
+      payload,
+      true,
+      leanMaterialized.reason,
+      "FAILED",
+      null
+    );
     leanMaterialized.result.diagnostics = (leanMaterialized.result.diagnostics || []).concat(["lean_luna_contract_applied"]);
-    leanMaterialized.result.enginePath = ["luna", "compact_schema", "id_to_field_adapter", "ledger", "human_review"];
+    leanMaterialized.result.enginePath = ["luna", "compact_schema", "id_to_field_adapter", "human_review"];
     return leanSemanticResult(leanMaterialized.result, lunaRequestJson, payload, true, "luna_compact_plan_applied", "OK");
   }
 
@@ -3156,5 +3870,7 @@ module.exports = {
     assessCoverage: coverageEngine.assessCoverage, bindSemanticPlanEvidence: bindSemanticPlanEvidence,
     bareFactsInput: bareFactsInput, proposalLinks: proposalLinks, expectedBareLinks: expectedBareLinks, validateBareFactsPlan: validateBareFactsPlan,
     validateReviewLinks: validateReviewLinks, parsePlanReview: parsePlanReview,
+    parseLeanCompactPlan: parseLeanCompactPlan, materializeLunaFieldPlan: materializeLunaFieldPlan,
+    normalizeShortClarificationAnswer: normalizeShortClarificationAnswer,
   },
 };

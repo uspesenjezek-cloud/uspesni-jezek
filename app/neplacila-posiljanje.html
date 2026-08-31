@@ -19,7 +19,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260829-korak-gradient-v4" />
+    <link rel="stylesheet" href="styles.css?v=20260831-pristop-widget-mobile-v18" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260823-sheet-akcije-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
@@ -29,7 +29,7 @@
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js?v=20260823-obnovljena-konfiguracija-v1"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
-    <script src="supabase-client.js?v=20260823-local-preview-guard-v1"></script>
+    <script src="supabase-client.js?v=20260829-cross-tab-lock-v1"></script>
     <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
     <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
     <script src="auth-zascita.js?v=20260824-local-preview-guard-v2"></script>
@@ -40,7 +40,13 @@
     <div class="korak2">
       <div data-wizard-progress-header data-korak="4" data-wizard-zacetni-zaslon="zascita-posla.html"></div>
       <section class="wizard-debt-summary" data-kompaktni-povzetek-dolga aria-label="Povzetek dolga"></section>
-      <div class="wizard-plan-actions">
+      <section class="opomin-pristop" id="opomin-pristop" aria-labelledby="opomin-pristop-naslov">
+        <div class="opomin-pristop__glava">
+          <div>
+            <span class="opomin-pristop__oznaka">Predlog ukrepanja</span>
+            <h2 id="opomin-pristop-naslov">Kako želite postopati?</h2>
+            <p>Izbira takoj prilagodi spodnji načrt.</p>
+          </div>
         <button
           type="button"
           class="priporocilo-widget__ocena-gumb wizard-plan-risk-button"
@@ -50,9 +56,20 @@
           aria-expanded="false"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-          <span>Ocena tveganja</span>
+          <span>Ocena</span>
         </button>
-      </div>
+        </div>
+        <button type="button" class="opomin-pristop__razpri" id="opomin-pristop-razpri" aria-expanded="false" aria-controls="opomin-pristop-izbire">
+          <span data-opomin-pristop-razpri-oznaka>Več informacij</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+        </button>
+        <div class="opomin-pristop__krogi" id="opomin-pristop-krogi" aria-hidden="true"></div>
+        <div class="opomin-pristop__izbire" id="opomin-pristop-izbire" role="radiogroup" aria-label="Izberite način ukrepanja"></div>
+        <button type="button" class="opomin-pristop__potrdi" id="opomin-pristop-potrdi">
+          <span>Potrdi izbiro</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </section>
 
       <main class="korak2__vsebina korak2__vsebina--opomin">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
@@ -804,11 +821,11 @@
     <script src="ton-predloge.js?v=20260810-korak3-predloge"></script>
     <script src="ton-widget.js?v=20260812-brez-utripa-v2"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
-    <script src="opomin-kartice-sync.js?v=20260823-confirmation-refresh-v6"></script>
-    <script src="opomin-nacrt.js?v=20260826-zgodovina-odvetnik-v4"></script>
-    <script src="opomin-nacrt-ui.js?v=20260829-korak-gradient-v1"></script>
-    <script src="predlogi-urejevalnik.js?v=20260828-dolgi-pritisk-drag-v1"></script>
+    <script src="opomin-kartice-sync.js?v=20260830-active-wizard-v1"></script>
+    <script src="opomin-nacrt.js?v=20260830-pristop-collapse-v1"></script>
+    <script src="opomin-nacrt-ui.js?v=20260831-pristop-widget-mobile-v13"></script>
+    <script src="predlogi-urejevalnik.js?v=20260830-smooth-drag-v3"></script>
     <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
-    <script src="app.js?v=20260827-wizard-four-step-v1-debt-summary-v4"></script>
+    <script src="app.js?v=20260830-active-wizard-v2"></script>
   </body>
 </html>

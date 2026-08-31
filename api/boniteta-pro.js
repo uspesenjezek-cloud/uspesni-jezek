@@ -274,10 +274,15 @@ async function pro(req, res, cfg, auth) {
 
 async function handler(req, res) {
   var cfg; try { cfg = db.uporabniskaKonfiguracija(); } catch (_) { return json(res, 503, { ok: false, napaka: "Strežniška shramba ni povezana." }); }
-  var auth = await db.preveriUporabnika(req, cfg); if (!auth.ok) return json(res, auth.status, { ok: false, napaka: auth.napaka }); cfg.userToken = auth.token;
+  var auth = await db.preveriUporabnika(req, cfg); if (!auth.ok) return json(res, auth.status, { ok: false, code: auth.code || "AUTH_FAILED", retryable: auth.retryable === true, napaka: auth.napaka }); cfg.userToken = auth.token;
   try { var selected = route(req); if (selected === "650f") { if (req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." }); return json(res, 200, Object.assign({ ok: true }, await bau650f.handle(cfg, auth.user.id, req.body || {}, store))); } return selected === "profiles" ? await profiles(req, res, cfg, auth) : selected === "crif" ? await crifRequests(req, res, cfg, auth) : await pro(req, res, cfg, auth); }
   catch (err) { console.error("[boniteta-pro]", err.code || err.message, err.details || ""); return json(res, err.status || 502, { ok: false, code: err.code || "BONITETA_PRO_FAILED", napaka: err.message || "Operacija ni uspela." }); }
 }
 
 module.exports = sentry.wrapHandler(handler, "/api/boniteta-pro");
 module.exports._test = { preferences: preferences, monitoringFrequency: monitoringFrequency, monitoringToday: monitoringToday, query: query, route: route, validateMonitoringSchedule: validateMonitoringSchedule, foundationDateEvidence: foundationDateEvidence, watchedProfilesWithSchedule: watchedProfilesWithSchedule, crifRequests: crifRequests, normalizeCrifResult: crifResult.normalize };
+
+// Lokalni strežnik zgodovinsko nalaga to datoteko, produkcijski združevalnik pa
+// api/_handlers/boniteta-pro.js. Izvoz vedno preusmerimo na isti kanonični
+// handler, da lokalni predogled ne more skriti produkcijske regresije.
+module.exports = require("./_handlers/boniteta-pro");

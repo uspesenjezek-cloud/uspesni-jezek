@@ -95,11 +95,14 @@ html.wizard-goal-page {
   background-color: #fbfcfb;
 }
 
+/* Širina/vodoravni odmik namerno prepuščena skupnemu .wizard-shell (styles.css),
+   da so vsi štirje koraki postopka (1-4) enako široki. Prej je bilo tu podvojeno
+   width:min(100%,430px) + 7px vodoravni padding, kar je 2. korak ožalo glede na
+   ostale korake, ki uporabljajo isti .korak2-ovoj/.wizard-shell brez te obrobe. */
 .zgodovina-shell {
-  width: min(100%, 430px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: max(10px, env(safe-area-inset-top, 0px)) 7px 26px;
+  padding: max(10px, env(safe-area-inset-top, 0px)) 0 26px;
   box-sizing: border-box;
 }
 
@@ -393,6 +396,25 @@ html.wizard-goal-page {
   overflow: visible;
 }
 
+.stran--neplacila-zgodovina .izvedba-action-sheet.zgodovina-nadaljuj-je-zunaj {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__panel.ima-zunanje-nadaljevanje {
+  padding-bottom: 11px;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet > .zgodovina-nadaljuj-zunaj {
+  width: auto;
+  margin: 0 10px;
+}
+
+.stran--neplacila-zgodovina [data-zgodovina-nadaljuj][hidden] {
+  display: none !important;
+}
+
 .stran--neplacila-zgodovina .zgodovina-stanje-dolga {
   margin: 0 0 9px;
 }
@@ -468,16 +490,29 @@ html.wizard-goal-page {
 }
 
 .zgodovina-svicer__pikica {
+  display: block;
   width: 5px;
   height: 5px;
+  min-width: 5px;
+  min-height: 5px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: #c7d8d5;
+  cursor: pointer;
 }
 
 .zgodovina-svicer__pikica.is-active {
   width: 7px;
   height: 7px;
+  min-width: 7px;
+  min-height: 7px;
   background: #3f9998;
+}
+
+.zgodovina-svicer__pikica:focus-visible {
+  outline: 2px solid rgba(63, 153, 152, .35);
+  outline-offset: 3px;
 }
 
 .stran--neplacila-zgodovina .izvedba-poravnava-svicer__gumb:not(.izvedba-poravnava-svicer__gumb--drugo) {
@@ -728,6 +763,193 @@ html.wizard-goal-page {
   margin-bottom: 7px;
 }
 
+.wizard-goal-page .cilj-pravna-podizbira {
+  min-width: 0;
+  padding: 1px 2px 2px;
+}
+
+.wizard-goal-page .cilj-pravna-podizbira__glava {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  margin: 0 0 10px;
+}
+
+.wizard-goal-page .cilj-pravna-podizbira__glava > button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(105, 65, 180, .22);
+  border-radius: 10px;
+  color: #6941b4;
+  background: rgba(105, 65, 180, .045);
+}
+
+.wizard-goal-page .cilj-pravna-podizbira__glava > button span,
+.wizard-goal-page .cilj-pravna-podizbira__glava > button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.wizard-goal-page .cilj-pravna-podizbira__glava > button svg { transform: rotate(180deg); }
+.wizard-goal-page .cilj-pravna-podizbira__glava h3,
+.wizard-goal-page .cilj-pravna-podizbira__glava p { margin: 0; }
+.wizard-goal-page .cilj-pravna-podizbira__glava h3 { color: #2f3736; font-size: 13px; line-height: 1.2; }
+.wizard-goal-page .cilj-pravna-podizbira__glava p { margin-top: 3px; color: #718483; font-size: 9.5px; line-height: 1.35; }
+.wizard-goal-page .cilj-pravna-podizbira__kartice {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: row;
+  grid-auto-columns: initial;
+  overflow-x: hidden;
+}
+.wizard-goal-page .cilj-pravna-podizbira__kartice .izvedba-poravnava-svicer__gumb {
+  height: 74px;
+  min-height: 74px;
+  gap: 2px;
+  padding: 3px;
+  box-sizing: border-box;
+}
+.wizard-goal-page .cilj-pravna-podizbira__kartice .izvedba-poravnava-svicer__ikona {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+}
+.wizard-goal-page .cilj-pravna-podizbira__kartice .izvedba-poravnava-svicer__ikona svg {
+  width: 21px;
+  height: 21px;
+}
+.wizard-goal-page .cilj-pravna-podizbira__kartice .izvedba-poravnava-svicer__gumb span:last-child {
+  display: block;
+  flex: 0 0 auto;
+  max-width: 100%;
+  font-size: 9.5px;
+  line-height: 10px;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.wizard-goal-page .cilj-pravna-podizbira__opomba {
+  margin: 6px 2px 0;
+  color: #7a6c8f;
+  font-size: 9px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.wizard-goal-page .cilj-pravna-vnosnik {
+  --action-rgb: 105, 65, 180;
+  --action-accent: #6941b4;
+  position: relative;
+  margin-top: 10px;
+  border-color: rgba(105, 65, 180, .25);
+  background: linear-gradient(145deg, rgba(105, 65, 180, .075), rgba(105, 65, 180, .018));
+}
+
+.wizard-goal-page .cilj-pravna-vnosnik .izvedba-poravnava-podrobnosti__naslov,
+.wizard-goal-page .cilj-pravna-vnosnik .izvedba-poravnava-podrobnosti__opis,
+.wizard-goal-page .cilj-pravna-usmeritev {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.wizard-goal-page .cilj-pravna-vnosnik .izvedba-poravnava-podrobnosti__opis {
+  padding-bottom: 1px;
+}
+
+.wizard-goal-page .cilj-father-vnosnik {
+  --vprasanje-rgb: var(--action-rgb);
+  position: relative;
+  margin-top: 10px;
+}
+
+.wizard-goal-page .cilj-father-vnosnik__polja {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 7px;
+  margin-top: 8px;
+}
+
+.wizard-goal-page .cilj-father-vnosnik__polja > .zgodovina-dogodek__polje--polno,
+.wizard-goal-page .cilj-father-vnosnik__polja > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.wizard-goal-page .cilj-father-vnosnik__polja > :nth-child(odd):has(+ .zgodovina-dogodek__polje--polno) { grid-column: 1 / -1; }
+.wizard-goal-page .cilj-father-vnosnik__polja:has(> .zgodovina-dogodek__polje--polno) > :last-child:nth-child(odd):not(.zgodovina-dogodek__polje--polno) { grid-column: auto; }
+.wizard-goal-page .cilj-father-vnosnik__napaka {
+  margin: 8px 1px 0;
+  color: #c63f43;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wizard-goal-page .cilj-pravna-vnosnik__polja {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.wizard-goal-page .cilj-pravna-usmeritev {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(105, 65, 180, .16);
+  border-radius: 11px;
+  color: #6f6282;
+  background: rgba(255, 255, 255, .56);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.wizard-goal-page .cilj-pravna-vnosnik__polja > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.wizard-goal-page .cilj-pravna-izbira .zgodovina-ai-vprasanje__izbira-seznam {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.wizard-goal-page .cilj-pravna-izbira .zgodovina-ai-vprasanje__izbira-seznam button {
+  min-height: 44px;
+  border-color: rgba(105, 65, 180, .2);
+  color: #38514e;
+  background: rgba(255,255,255,.92);
+  font-size: 11px;
+}
+.wizard-goal-page .cilj-pravna-izbira .zgodovina-ai-vprasanje__izbira-seznam button:last-child:nth-child(odd) { grid-column: 1 / -1; min-height:48px; }
+.wizard-goal-page .cilj-pravna-izbira .zgodovina-ai-vprasanje__izbira-seznam button.is-selected {
+  border-color: #6941b4;
+  color: #fff;
+  background: #6941b4;
+}
+.wizard-goal-page .cilj-father-vnosnik__polja > .zgodovina-dogodek__polje:not(.zgodovina-dogodek__polje--polno),
+.wizard-goal-page .cilj-pravna-vnosnik__polja > .zgodovina-dogodek__polje:not(.zgodovina-dogodek__polje--polno),
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label:not(.zgodovina-dogodek__polje--polno):not(:has(textarea)) {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+.wizard-goal-page .cilj-father-vnosnik__polja > .zgodovina-dogodek__polje:not(.zgodovina-dogodek__polje--polno) > :last-child,
+.wizard-goal-page .cilj-pravna-vnosnik__polja > .zgodovina-dogodek__polje:not(.zgodovina-dogodek__polje--polno) > :last-child,
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label:not(.zgodovina-dogodek__polje--polno):not(:has(textarea)) > :last-child {
+  margin-top: auto;
+}
+.wizard-goal-page .cilj-pravna-vnosnik__napaka {
+  margin: 8px 1px 0;
+  color: #c63f43;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+@media (max-width: 330px) {
+  .wizard-goal-page .cilj-father-vnosnik__polja,
+  .wizard-goal-page .cilj-pravna-vnosnik__polja { grid-template-columns: minmax(0, 1fr); }
+  .wizard-goal-page .cilj-father-vnosnik__polja > *,
+  .wizard-goal-page .cilj-pravna-vnosnik__polja > * { grid-column: 1 / -1; }
+}
+
 .stran--neplacila-zgodovina .izvedba-poravnava-potek__prazno {
   margin-block: 10px;
 }
@@ -752,6 +974,10 @@ html.wizard-goal-page {
 .zgodovina-neplacan-obrok__polja { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
 .zgodovina-neplacan-obrok__polja > label { display: grid; gap: 5px; min-width: 0; color: #5d7471; font-size: 9px; font-weight: 700; }
 .zgodovina-neplacan-obrok__polja input { width: 100%; min-width: 0; min-height: 44px; padding: 9px 10px; border: 1px solid rgba(var(--zgodovina-neplacan-obrok-rgb), .45); border-radius: 11px; box-sizing: border-box; color: #2f3736; background: #fff; font: 700 16px/1.2 Inter, sans-serif; }
+.zgodovina-neplacan-obrok__stevilka { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; min-width: 0; }
+.zgodovina-neplacan-obrok__stevilka button { min-width: 62px; min-height: 44px; padding: 0 9px; border: 1px solid rgba(var(--zgodovina-neplacan-obrok-rgb), .45); border-radius: 11px; color: rgb(var(--zgodovina-neplacan-obrok-rgb)); background: #fff8f7; font: 750 10px/1 Inter, sans-serif; }
+.zgodovina-neplacan-obrok__stevilka button.is-selected { color: #fff; background: rgb(var(--zgodovina-neplacan-obrok-rgb)); }
+.zgodovina-neplacan-obrok__stevilka input:disabled { color: #8a9b98; background: #f2f6f5; opacity: 1; }
 .zgodovina-neplacan-obrok__datum { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; min-width: 0; }
 .zgodovina-neplacan-obrok__datum button { min-width: 62px; min-height: 44px; padding: 0 9px; border: 1px solid rgba(var(--zgodovina-neplacan-obrok-rgb), .45); border-radius: 11px; color: rgb(var(--zgodovina-neplacan-obrok-rgb)); background: #fff8f7; font: 750 10px/1 Inter, sans-serif; }
 .zgodovina-neplacan-obrok__datum button.is-selected { color: #fff; background: rgb(var(--zgodovina-neplacan-obrok-rgb)); }
@@ -760,9 +986,12 @@ html.wizard-goal-page {
 .zgodovina-dogodek__izbire { display: flex; gap: 6px; margin-bottom: 9px; }
 .zgodovina-dogodek__izbire button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 6px 7px; border: 1px solid rgba(var(--action-rgb), .3); border-radius: 10px; color: #526764; background: rgba(var(--action-rgb), .035); font: 750 9px/1.15 Inter, sans-serif; }
 .zgodovina-dogodek__izbire button.is-selected { border-width: 2px; border-color: rgb(var(--action-rgb)); color: rgb(var(--action-rgb)); background: rgba(var(--action-rgb), .1); }
-.zgodovina-dogodek__polja { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; min-width: 0; }
+.zgodovina-dogodek__polja { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; gap: 8px 7px; min-width: 0; }
 .zgodovina-dogodek__polje { display: grid; align-content: start; gap: 5px; min-width: 0; color: #5d7471; font-size: 9px; font-weight: 700; }
 .zgodovina-dogodek__polje--polno { grid-column: 1 / -1; }
+.zgodovina-dogodek__polja > .zgodovina-dogodek__polje--par { grid-column: 1 / -1; }
+.zgodovina-dogodek__polja:has(> .zgodovina-dogodek__polje--par ~ .zgodovina-dogodek__polje--par) > .zgodovina-dogodek__polje--par { grid-column: auto; }
+.zgodovina-dogodek__polja > .zgodovina-dogodek__polje:has(.zgodovina-kontrolnik__select) { grid-column: 1 / -1; }
 .zgodovina-dogodek__polje > span:first-child small { color: #8a9b98; font-size: 8px; font-weight: 600; }
 .zgodovina-dogodek__polje input,
 .zgodovina-dogodek__polje select,
@@ -771,6 +1000,40 @@ html.wizard-goal-page {
 .zgodovina-kontrolnik__select { position: relative; display: block; min-width: 0; }
 .zgodovina-kontrolnik__select-gumb,
 .zgodovina-kontrolnik__select-seznam { display: none; }
+
+@keyframes zgodovina-obvezno-pulz {
+  0%, 100% { border-color: rgba(var(--action-rgb, 63, 153, 152), .38); box-shadow: 0 0 0 0 rgba(var(--action-rgb, 63, 153, 152), 0); }
+  50% { border-color: rgba(var(--action-rgb, 63, 153, 152), .78); box-shadow: 0 0 0 4px rgba(var(--action-rgb, 63, 153, 152), .09); }
+}
+
+.atena .is-obvezno-manjka:is(input, textarea, select),
+.atena .is-obvezno-manjka .zgodovina-kontrolnik__select-gumb,
+.atena .is-obvezno-manjka .zgodovina-dogodek__datum,
+.atena .izvedba-obrok-planer__razmik.is-obvezno-manjka {
+  border-radius: 12px;
+  animation: zgodovina-obvezno-pulz 2.6s ease-in-out infinite;
+}
+
+.atena .izvedba-obrok-planer__razmik.is-obvezno-manjka {
+  padding: 3px;
+  margin: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atena .is-obvezno-manjka:is(input, textarea, select),
+  .atena .is-obvezno-manjka .zgodovina-kontrolnik__select-gumb,
+  .atena .is-obvezno-manjka .zgodovina-dogodek__datum,
+  .atena .izvedba-obrok-planer__razmik.is-obvezno-manjka {
+    animation: none;
+    border-color: rgba(var(--action-rgb, 63, 153, 152), .68);
+    box-shadow: 0 0 0 3px rgba(var(--action-rgb, 63, 153, 152), .07);
+  }
+}
+
+@media (max-width: 330px) {
+  .zgodovina-dogodek__polja { grid-template-columns: minmax(0, 1fr); }
+  .zgodovina-dogodek__polja > .zgodovina-dogodek__polje { grid-column: 1 / -1; }
+}
 
 @media all {
   .zgodovina-kontrolnik__native {
@@ -807,6 +1070,11 @@ html.wizard-goal-page {
     color: rgb(var(--action-rgb));
     transform: rotate(90deg);
     transition: transform 160ms ease;
+  }
+  .zgodovina-kontrolnik__select.has-value .zgodovina-kontrolnik__select-gumb {
+    border-color: rgba(var(--action-rgb), .48);
+    color: rgb(var(--action-rgb));
+    background: linear-gradient(145deg, rgba(var(--action-rgb), .11), rgba(var(--action-rgb), .045));
   }
   .zgodovina-kontrolnik__select.is-open { z-index: 40; }
   .zgodovina-kontrolnik__select.is-open .zgodovina-kontrolnik__select-gumb {
@@ -845,12 +1113,13 @@ html.wizard-goal-page {
     font: 650 11px/1.2 Inter, sans-serif;
     text-align: left;
   }
-  .zgodovina-kontrolnik__select-seznam button span { min-width: 0; overflow-wrap: anywhere; }
+  .zgodovina-kontrolnik__select-seznam button span { min-width: 0; overflow-wrap: normal; word-break: normal; }
   .zgodovina-kontrolnik__select-seznam button svg { flex: 0 0 15px; width: 15px; height: 15px; color: transparent; }
   .zgodovina-kontrolnik__select-seznam button.is-selected {
-    border-color: rgb(var(--action-rgb));
-    color: #fff;
-    background: rgb(var(--action-rgb));
+    border-color: rgba(var(--action-rgb), .58);
+    color: rgb(var(--action-rgb));
+    background: linear-gradient(145deg, rgba(var(--action-rgb), .16), rgba(var(--action-rgb), .07));
+    box-shadow: inset 0 0 0 1px rgba(var(--action-rgb), .08);
   }
   .zgodovina-kontrolnik__select-seznam button.is-selected svg { color: currentColor; }
 }
@@ -921,6 +1190,38 @@ html.wizard-goal-page {
 .stran--neplacila-zgodovina .izvedba-obrok-planer__dodaj { min-height: 44px; margin-top: 6px; }
 .stran--neplacila-zgodovina .izvedba-obrok-planer__vsota { margin: 6px 0 2px; }
 .stran--neplacila-zgodovina .izvedba-obrok-planer > .izvedba-poravnava-dodaj-korak { min-height: 44px; margin-top: 6px; padding: 7px; }
+.stran--neplacila-zgodovina .izvedba-obrok-planer__akcije {
+  position: relative;
+  align-items: stretch;
+  margin-top: 12px;
+  padding-top: 10px;
+}
+.stran--neplacila-zgodovina .izvedba-obrok-planer__akcije::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    rgba(var(--zgodovina-obrok-rgb), 0) 0%,
+    rgba(var(--zgodovina-obrok-rgb), .72) 16%,
+    rgba(var(--zgodovina-obrok-rgb), .72) 84%,
+    rgba(var(--zgodovina-obrok-rgb), 0) 100%);
+}
+.stran--neplacila-zgodovina .izvedba-obrok-planer__akcije .izvedba-obrok-planer__dodaj,
+.stran--neplacila-zgodovina .izvedba-obrok-planer__akcije .izvedba-poravnava-dodaj-korak {
+  height: 48px;
+  min-height: 48px;
+  margin-top: 0;
+  padding: 7px;
+}
+
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-obrok-planer__akcije > .izvedba-obrok-planer__dodaj,
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti .izvedba-obrok-planer__akcije > .izvedba-poravnava-dodaj-korak {
+  margin-top: 0;
+}
 @media (max-width: 320px) {
   .zgodovina-dogodek__datum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .zgodovina-dogodek__datum input { grid-column: 1 / -1; }
@@ -1159,14 +1460,24 @@ html.wizard-goal-page {
 }
 
 .zgodovina-nacina {
-  margin: 8px 0 10px;
+  position: relative;
+  margin: 12px 0 10px;
 }
 
 .zgodovina-nacina__izbira {
   display: grid;
+  position: relative;
+  z-index: 2;
+  width: 100%;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-  margin-bottom: 8px;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 3px;
+  border: 1px solid #d4e4e1;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 8px 18px -13px rgba(35, 95, 91, .42), 0 2px 5px rgba(35, 95, 91, .08);
+  transform: translateY(-4px);
 }
 
 .zgodovina-nacina__izbira button {
@@ -1175,12 +1486,12 @@ html.wizard-goal-page {
   grid-template-rows: auto auto;
   gap: 1px 7px;
   min-width: 0;
-  min-height: 57px;
-  padding: 7px 8px;
-  border: 2px solid transparent;
-  border-radius: 13px;
+  min-height: 51px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 999px;
   color: #47615e;
-  background: linear-gradient(145deg, #f4f9f8, #fbfdfc);
+  background: transparent;
   box-sizing: border-box;
   text-align: left;
   cursor: pointer;
@@ -1223,10 +1534,13 @@ html.wizard-goal-page {
 }
 
 .zgodovina-nacina__izbira button.is-selected {
-  border-color: #4ca4a2;
-  background: linear-gradient(145deg, #e9f7f5, #f8fcfb);
-  box-shadow: 0 3px 10px rgba(35, 119, 115, .08);
+  color: #176f6d;
+  background: #dff3f0;
+  box-shadow: 0 2px 6px rgba(35, 119, 115, .1);
 }
+
+.zgodovina-nacina__izbira button.is-selected > span,
+.zgodovina-nacina__izbira button.is-selected strong { color: #176f6d; }
 
 .zgodovina-nacina__izbira button:focus-visible,
 .zgodovina-ai button:focus-visible,
@@ -1515,7 +1829,10 @@ html.wizard-goal-page {
 .zgodovina-ai-pojasnilo__besedilo { margin: 0; color: #556d69; font-size: 11px; line-height: 1.45; }
 .zgodovina-ai-pojasnilo--izcrpano { border-color: rgba(190, 143, 45, .28); background: linear-gradient(155deg, #fffefa, #fff8ea); }
 .zgodovina-ai-pojasnilo--izcrpano .zgodovina-ai-pojasnilo__ikona { color: #8a6514; border-color: rgba(190, 143, 45, .2); background: rgba(234, 190, 91, .2); }
+.zgodovina-ai-pojasnilo--opozorilo { border-color: rgba(190, 143, 45, .3); background: linear-gradient(155deg, #fffefa, #fff8ea); }
+.zgodovina-ai-pojasnilo--opozorilo .zgodovina-ai-pojasnilo__ikona { color: #8a6514; border-color: rgba(190, 143, 45, .22); background: rgba(234, 190, 91, .2); }
 .zgodovina-ai-pojasnilo__akcije { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.zgodovina-ai-pojasnilo__akcije--ena { grid-template-columns: minmax(0, 1fr); }
 .zgodovina-ai-pojasnilo__akcije button {
   min-height: 36px;
   margin: 0;
@@ -1638,6 +1955,20 @@ html.wizard-goal-page {
   font: inherit;
   cursor: pointer;
 }
+.zgodovina-ai-napredek.is-compact {
+  gap: 0;
+  margin-inline: 0;
+}
+.zgodovina-ai-napredek.is-compact > i {
+  right: 20px;
+  left: 20px;
+}
+.zgodovina-ai-napredek.is-compact > button {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 0;
+}
+.zgodovina-ai-napredek.is-compact > button::before { width: 36px; }
 .zgodovina-ai-napredek > button::before {
   content: "";
   position: absolute;
@@ -1688,6 +2019,7 @@ html.wizard-goal-page {
 .zgodovina-ai-napredek > button.is-tone-ugovor { --korak-rgb: var(--zgodovina-ugovor-rgb); }
 .zgodovina-ai-napredek > button.is-tone-izjava { --korak-rgb: var(--zgodovina-izjava-rgb); }
 .zgodovina-ai-napredek > button.is-tone-insolventnost { --korak-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-napredek > button.is-tone-akcija-odvetnik { --korak-rgb: 105, 65, 180; }
 .zgodovina-ai-napredek > button.is-tone-drugo { --korak-rgb: var(--zgodovina-drugo-rgb); }
 .zgodovina-ai-napredek > button.is-tone-povzetek { --korak-rgb: 63, 153, 152; }
 .zgodovina-ai-napredek > button.is-completed > span { border-color: rgb(var(--korak-rgb, var(--vprasanje-rgb))); color: #fff; background: rgb(var(--korak-rgb, var(--vprasanje-rgb))); }
@@ -1705,6 +2037,7 @@ html.wizard-goal-page {
   box-shadow: none;
 }
 .zgodovina-ai-napredek > button.is-tone-povzetek > span svg { width: 24px; height: 24px; }
+.zgodovina-ai-napredek.is-compact > button.is-tone-povzetek > span svg { width: 22px; height: 22px; }
 .zgodovina-ai-napredek > button.is-tone-povzetek.is-current > span {
   color: rgb(var(--korak-rgb));
   background: transparent;
@@ -1764,6 +2097,26 @@ html.wizard-goal-page {
   border-radius: 13px;
   background: linear-gradient(145deg, rgba(var(--vprasanje-rgb), .075), #fff 68%);
 }
+@keyframes zgodovina-vprasanje-obvezno-pulz {
+  0%, 100% {
+    border-color: rgba(var(--vprasanje-rgb), .32);
+    box-shadow: 0 0 0 0 rgba(var(--vprasanje-rgb), 0);
+  }
+  50% {
+    border-color: rgba(var(--vprasanje-rgb), .66);
+    box-shadow: 0 0 0 4px rgba(var(--vprasanje-rgb), .1), 0 7px 18px rgba(var(--vprasanje-rgb), .07);
+  }
+}
+.zgodovina-ai-vprasanje.is-obvezno-manjka {
+  animation: zgodovina-vprasanje-obvezno-pulz 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zgodovina-ai-vprasanje.is-obvezno-manjka {
+    animation: none;
+    border-color: rgba(var(--vprasanje-rgb), .58);
+    box-shadow: 0 0 0 3px rgba(var(--vprasanje-rgb), .08);
+  }
+}
 .zgodovina-ai-vprasanje--delno { --vprasanje-rgb: var(--zgodovina-delno-rgb); }
 .zgodovina-ai-vprasanje--placano-v-celoti { --vprasanje-rgb: var(--zgodovina-placano-v-celoti-rgb); }
 .zgodovina-ai-vprasanje--obrok { --vprasanje-rgb: var(--zgodovina-obrok-rgb); }
@@ -1780,6 +2133,7 @@ html.wizard-goal-page {
 .zgodovina-ai-vprasanje--ugovor { --vprasanje-rgb: var(--zgodovina-ugovor-rgb); }
 .zgodovina-ai-vprasanje--izjava { --vprasanje-rgb: var(--zgodovina-izjava-rgb); }
 .zgodovina-ai-vprasanje--insolventnost { --vprasanje-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-vprasanje--akcija-odvetnik { --vprasanje-rgb: 105, 65, 180; }
 .zgodovina-ai-vprasanje--drugo { --vprasanje-rgb: var(--zgodovina-drugo-rgb); }
 .zgodovina-ai-vprasanje__ikona { display: grid; place-items: center; align-self: start; width: 30px; height: 30px; border: 1px solid rgba(var(--vprasanje-rgb), .2); border-radius: 10px; color: rgb(var(--vprasanje-rgb)); background: rgba(var(--vprasanje-rgb), .13); }
 .zgodovina-ai-vprasanje__ikona svg { width: 18px; height: 18px; }
@@ -1803,7 +2157,7 @@ html.wizard-goal-page {
   position: absolute;
   z-index: 4;
   top: -9px;
-  right: -7px;
+  right: 2px;
   display: grid;
   width: 24px;
   height: 24px;
@@ -1978,6 +2332,10 @@ html.wizard-goal-page {
   font: 650 11px/1.2 Inter, sans-serif;
   text-align: left;
 }
+.wizard-goal-page .zgodovina-ai-vprasanje__izbira:not(.cilj-pravna-izbira) .zgodovina-ai-vprasanje__izbira-seznam button:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  min-height: 48px;
+}
 .zgodovina-ai-vprasanje__izbira-seznam button svg { flex: 0 0 15px; width: 15px; height: 15px; fill: none; stroke: transparent; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .zgodovina-ai-vprasanje__izbira-seznam button.is-selected { border-color: rgb(var(--vprasanje-rgb)); color: #fff; background: rgb(var(--vprasanje-rgb)); box-shadow: 0 3px 9px rgba(var(--vprasanje-rgb), .18); }
 .zgodovina-ai-vprasanje__izbira-seznam button.is-selected svg { stroke: currentColor; }
@@ -1999,6 +2357,18 @@ html.wizard-goal-page {
 }
 .zgodovina-ai-pogovor__akcije button:first-child { border-color: #2aa2a3; color: #178f91; background: #fff; }
 .zgodovina-ai-pogovor__akcije button:last-child { border-color: #178f91; color: #fff; background: linear-gradient(145deg, #32aaa9, #178f91); }
+.wizard-goal-page .zgodovina-ai-pogovor__akcije--potrditev-cilja {
+  gap: 8px;
+  margin-top: 11px;
+}
+.wizard-goal-page .zgodovina-ai-pogovor__akcije--potrditev-cilja button {
+  min-height: 48px;
+  padding-inline: 12px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+.zgodovina-ai-pogovor--akcija-odvetnik .zgodovina-ai-pogovor__akcije button:first-child { border-color: rgba(105, 65, 180, .55); color: #6941b4; }
+.zgodovina-ai-pogovor--akcija-odvetnik .zgodovina-ai-pogovor__akcije button:last-child { border-color: #6941b4; background: linear-gradient(145deg, #835dcc, #6941b4); }
 .zgodovina-ai-pogovor__akcije button:disabled { cursor: not-allowed; opacity: .42; }
 .zgodovina-ai-pogovor__potrditev { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: center; margin: 9px 0 7px; }
 .zgodovina-ai-pogovor__potrditev > span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; color: #198b80; background: #e2f5ef; }
@@ -2018,6 +2388,37 @@ html.wizard-goal-page {
   height: calc(100lvh - max(18px, env(safe-area-inset-top, 0px)));
   max-height: calc(100lvh - max(18px, env(safe-area-inset-top, 0px)));
 }
+
+/* Samostojna Zgodovina uporablja en sam drsnik celotne strani. Notranji
+   drsnik panela je na telefonu lovil potezo pred stranjo in uporabnika
+   ustavil sredi daljšega seznama obrokov. */
+.stran--neplacila-zgodovina .atena__panel {
+  display: block;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+@supports (height: 100dvh) {
+  .stran--neplacila-zgodovina .atena__panel {
+    height: auto;
+    max-height: none;
+  }
+}
+
+.stran--neplacila-zgodovina .atena__panel > .izvedba-action-sheet__scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+}
+
+body.app-testna-vrstica-prisotna.stran--neplacila-zgodovina
+  .zgodovina-shell {
+  padding-bottom: calc(100px + var(--app-testna-safe-bottom, env(safe-area-inset-bottom, 0px)));
+}
 .atena .atena__povrsina {
   min-height: 0;
   box-sizing: border-box;
@@ -2029,14 +2430,14 @@ html.wizard-goal-page {
   box-shadow: 0 8px 24px rgba(33, 77, 72, .07);
 }
 .atena .atena__panel.atena__povrsina {
-  width: min(100%, 520px);
+  width: min(100%, var(--sirina-vsebine));
   margin-inline: auto;
   overflow: hidden;
 }
 .atena .izvedba-action-sheet__panel--atena-gostitelj {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
-  width: min(100%, 520px);
+  width: min(100%, var(--sirina-vsebine));
   height: 100lvh;
   max-height: 100lvh;
   padding: 0;
@@ -2144,7 +2545,7 @@ html.wizard-goal-page {
   place-items: center;
   width: 28px;
   height: 28px;
-  color: #ff3b30;
+  color: #3f9998;
 }
 .atena .bo-placal-gostitelj__ikona svg {
   width: 28px;
@@ -2166,12 +2567,27 @@ html.wizard-goal-page {
   position: relative;
   z-index: 2;
   margin-top: -18px;
+  border: 0;
   border-radius: 28px 28px 0 0;
+  box-shadow: none;
 }
 .atena .atena__jedro > .izvedba-action-sheet__scroll {
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+}
+.atena .atena__jedro > .izvedba-action-sheet__scroll::-webkit-scrollbar {
+  display: none;
+}
+.atena .izvedba-poravnava-cona--atena-dogodki .izvedba-poravnava-potek {
+  max-height: none;
+  padding-right: 0;
+  overflow: visible;
+  scrollbar-width: none;
+}
+.atena .izvedba-poravnava-cona--atena-dogodki .izvedba-poravnava-potek::-webkit-scrollbar {
+  display: none;
 }
 .atena .atena__povrsina .zgodovina-stanje-dolga {
   display: none !important;
@@ -2181,6 +2597,74 @@ html.wizard-goal-page {
   margin: 0;
   padding-bottom: 0;
   border-bottom: 0;
+}
+.wizard-goal-page .atena .atena__povrsina [data-cilj-dolg-tok] .zgodovina-stanje-dolga {
+  display: block !important;
+}
+.wizard-goal-page .atena [data-cilj-dolg-tok] {
+  margin-bottom: 8px;
+}
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: 8px 7px;
+}
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label {
+  grid-column: auto;
+  grid-row: auto;
+}
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label.zgodovina-dogodek__polje--polno,
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label:has(textarea),
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label:nth-child(odd):has(+ label.zgodovina-dogodek__polje--polno) { grid-column: 1 / -1; }
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja:has(> label.zgodovina-dogodek__polje--polno) > label:last-child:nth-child(odd):not(.zgodovina-dogodek__polje--polno) { grid-column: auto; }
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja--placilo-kompaktno label.is-payment-method .zgodovina-ai-vprasanje__izbira-seznam { position:absolute; }
+.wizard-goal-page .atena .zgodovina-ai-vprasanje__polja--placilo-kompaktno > .cilj-rok-hitri {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: end;
+  min-width: 0;
+}
+.wizard-goal-page .atena .cilj-rok-hitri__polje {
+  display: grid;
+  grid-column: auto;
+  min-width: 0;
+  gap: 4px;
+}
+.wizard-goal-page .atena .cilj-rok-hitri__polje .zgodovina-ai-vprasanje__oznaka { color: #168a62; }
+.wizard-goal-page .atena .cilj-rok-hitri__polje input {
+  border-color: rgba(22, 138, 98, .56);
+  color: #175f49;
+  background: #f1faf6;
+}
+.wizard-goal-page .atena .cilj-rok-hitri > button {
+  min-width: 62px;
+  height: 44px;
+  padding: 0 9px;
+  border: 1px solid rgba(22, 138, 98, .38);
+  border-radius: 11px;
+  color: #168a62;
+  background: #f1faf6;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.wizard-goal-page .atena .cilj-rok-hitri > button.is-selected {
+  border-color: #168a62;
+  color: #fff;
+  background: #168a62;
+}
+@media (max-width: 330px) {
+  .wizard-goal-page .atena .zgodovina-ai-vprasanje__polja { grid-template-columns: minmax(0, 1fr); }
+  .wizard-goal-page .atena .zgodovina-ai-vprasanje__polja > label { grid-column: 1 / -1; }
+  .wizard-goal-page .atena .zgodovina-ai-vprasanje__polja--placilo-kompaktno > .cilj-rok-hitri {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .wizard-goal-page .atena .cilj-rok-hitri__polje { grid-column: 1 / -1; }
 }
 .atena .atena__povrsina .izvedba-poravnava-cona:not(.izvedba-poravnava-cona--atena-dogodki) > .izvedba-poravnava-cona__naslov {
   display: none;
@@ -2249,7 +2733,24 @@ html.wizard-goal-page {
   color: #246d69;
   font-size: 13px;
 }
-.zgodovina-ai-povzetki { display: grid; gap: 6px; }
+.zgodovina-ai-povzetki {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  max-height: clamp(150px, 27dvh, 300px);
+  padding-right: 2px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 153, 152, .36) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.stran--neplacila-zgodovina .zgodovina-ai-povzetki {
+  max-height: clamp(110px, calc(100dvh - 694px), 300px);
+}
+.zgodovina-ai-povzetki::-webkit-scrollbar { width: 4px; }
+.zgodovina-ai-povzetki::-webkit-scrollbar-track { background: transparent; }
+.zgodovina-ai-povzetki::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(63, 153, 152, .36); }
 .zgodovina-ai-povzetek {
   --povzetek-rgb: 63, 153, 152;
   display: grid;
@@ -2257,7 +2758,8 @@ html.wizard-goal-page {
   gap: 7px;
   align-items: center;
   min-width: 0;
-  padding: 8px;
+  min-height: 54px;
+  padding: 9px 8px;
   border: 1px solid rgba(var(--povzetek-rgb), .25);
   border-radius: 11px;
   background: linear-gradient(145deg, rgba(var(--povzetek-rgb), .07), #fff 72%);
@@ -2280,6 +2782,7 @@ html.wizard-goal-page {
 .zgodovina-ai-povzetek--ugovor { --povzetek-rgb: var(--zgodovina-ugovor-rgb); }
 .zgodovina-ai-povzetek--izjava { --povzetek-rgb: var(--zgodovina-izjava-rgb); }
 .zgodovina-ai-povzetek--insolventnost { --povzetek-rgb: var(--zgodovina-insolventnost-rgb); }
+.zgodovina-ai-povzetek--akcija-odvetnik { --povzetek-rgb: 105, 65, 180; }
 .zgodovina-ai-povzetek--drugo { --povzetek-rgb: var(--zgodovina-drugo-rgb); }
 .zgodovina-ai-povzetek > span { display: grid; place-items: center; color: rgb(var(--povzetek-rgb)); }
 .zgodovina-ai-povzetek svg { width: 20px; height: 20px; }
@@ -2405,10 +2908,64 @@ html.wizard-goal-page {
 .zgodovina-ai-osnutek__pripravljen { color: #27806d; }
 .zgodovina-ai__potrdi { width: 100%; margin-top: 9px; }
 
+.cilj-ai-predlogi {
+  margin: 0 0 10px;
+  padding: 9px;
+  border: 1px solid rgba(32, 151, 151, .24);
+  border-radius: 13px;
+  background: rgba(232, 248, 247, .56);
+}
+.cilj-ai-predlogi p { margin: 0 0 7px; color: #557171; font-size: 10px; line-height: 1.35; }
+.cilj-ai-predlogi div { display: flex; flex-wrap: wrap; gap: 6px; }
+.cilj-ai-predlogi button { min-height: 32px; padding: 6px 10px; border: 1px solid #b9dada; border-radius: 10px; background: #fff; color: #247979; font: inherit; font-size: 10px; font-weight: 700; }
+.cilj-ai-predlogi button.is-selected { border-color: #229c9c; background: #e8f7f6; box-shadow: inset 0 0 0 1px #229c9c; }
+
 .stran--neplacila-zgodovina .izvedba-action-sheet__footer {
   position: static;
   padding: 8px 0 0;
   background: transparent;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__footer--zgodovina-akcije {
+  grid-template-columns: minmax(88px, .42fr) minmax(0, 1.58fr);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__footer--zgodovina-akcije .izvedba-action-sheet__napaka {
+  grid-column: 1 / -1;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__footer--zgodovina-akcije .izvedba-action-sheet__dejanje {
+  grid-column: 2;
+  min-height: 48px;
+  font-size: 14px;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__izbrisi-vse {
+  grid-column: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 1px solid #b8d3cf;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #fbfdfd 0%, #f0f7f6 100%);
+  box-shadow: 0 4px 12px rgba(57, 105, 101, .07);
+  color: #55716e;
+  font: 750 12px/1.1 Inter, sans-serif;
+  cursor: pointer;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__izbrisi-vse:hover {
+  border-color: #91bbb6;
+  background: #edf7f5;
+  color: #315f5a;
+}
+
+.stran--neplacila-zgodovina .izvedba-action-sheet__izbrisi-vse:focus-visible {
+  outline: 0;
+  border-color: #4d9494;
+  box-shadow: 0 0 0 2px rgba(77, 148, 148, .16);
 }
 
 @media (max-width: 340px) {
@@ -2418,5 +2975,5 @@ html.wizard-goal-page {
 }
 
 @media (min-width: 700px) {
-  .zgodovina-shell { width: min(100%, 520px); }
+  .zgodovina-shell { width: min(100%, var(--sirina-vsebine)); }
 }

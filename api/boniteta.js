@@ -2,6 +2,7 @@
 
 const handlers = Object.freeze({
   soft: require("./_handlers/mehka-boniteta"),
+  details: require("./_handlers/mehka-boniteta-podrobnosti"),
   job: require("./_handlers/mehka-boniteta-opravilo"),
   pro: require("./_handlers/boniteta-pro"),
 });

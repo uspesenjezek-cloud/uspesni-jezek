@@ -4,10 +4,13 @@ var sentry = require("./_lib/sentry");
 var db = require("./_lib/supabase-server");
 var core = require("./_lib/izvedba-core");
 var razcleniZgodovino = require("./_handlers/razcleni-zgodovino");
+var razcleniDogovor = require("./_handlers/razcleni-dogovor");
+var razcleniCilj = require("./_handlers/razcleni-cilj");
 
 var KODA_V_STATUS = {
   NOT_FOUND: 404,
   FORBIDDEN: 403,
+  CASE_RESOLVED: 409,
   VERSION_CONFLICT: 409,
   ACTION_ID_REUSED: 409,
   ACTION_IN_PROGRESS: 409,
@@ -22,6 +25,11 @@ var KODA_V_STATUS = {
   INVALID_PAYMENT_AMOUNT: 400,
   UNKNOWN_ACTION_TYPE: 400,
 };
+
+function jeNapakaZakljucenegaPrimera(err) {
+  return [err && err.code, err && err.message, err && err.details, err && err.hint]
+    .some(function (vrednost) { return String(vrednost || "").indexOf("CASE_RESOLVED") >= 0; });
+}
 
 function parameterPoti(req, ime) {
   try {
@@ -50,6 +58,12 @@ function korakVDto(vrstica) {
 async function handler(req, res) {
   if (parameterPoti(req, "handler") === "history-ai") {
     return razcleniZgodovino(req, res);
+  }
+  if (parameterPoti(req, "handler") === "agreement-ai") {
+    return razcleniDogovor(req, res);
+  }
+  if (parameterPoti(req, "handler") === "goal-ai") {
+    return razcleniCilj(req, res);
   }
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") {
@@ -87,6 +101,9 @@ async function handler(req, res) {
     }
     if (zadeva.obrtnik_id !== auth.user.id) {
       return res.status(403).json({ ok: false, code: "FORBIDDEN", napaka: "Zadeva ni vaša." });
+    }
+    if (zadeva.status === "Rešeno") {
+      return res.status(409).json({ ok: false, code: "CASE_RESOLVED", napaka: "Ta primer je že zaključen in ga ni več mogoče spreminjati." });
     }
 
     if (actionType === "undo_settlement") {
@@ -298,6 +315,9 @@ async function handler(req, res) {
     return res.json(rpcOdgovor);
   } catch (err) {
     console.error("[izvedi-opomin-ukrep]", err.code || err.message, err.details || "");
+    if (jeNapakaZakljucenegaPrimera(err)) {
+      return res.status(409).json({ ok: false, code: "CASE_RESOLVED", napaka: "Ta primer je že zaključen in ga ni več mogoče spreminjati." });
+    }
     return res.status(500).json({ ok: false, napaka: "Ukrepa trenutno ni bilo mogoče izvesti." });
   }
 }

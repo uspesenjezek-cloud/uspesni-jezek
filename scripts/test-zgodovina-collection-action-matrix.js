@@ -114,7 +114,7 @@ async function main() {
   var ambiguousContactText = "dolznik je poravnal 2 obroka v prejšnjem mesecu potem sem ga kontaktiral 2 tedna nazaj in danes je plačal 1000 evrov preostalo ni plačal še";
   var ambiguousContactContract = parser._test.buildFactContract(ambiguousContactText);
   var ambiguousContactLocal = parser._test.deterministicResult(ambiguousContactText, context);
-  assert.equal(ambiguousContactContract.version, 26);
+  assert.equal(ambiguousContactContract.version, 28);
   assert.deepEqual(ambiguousContactContract.clauses.map(function (clause) { return [clause.eventTypes, clause.semanticStatus]; }), [
     [["installment_payment"], "recognized"], [[], "neutral"], [["partial_payment"], "recognized"], [["remaining_unpaid"], "recognized"],
   ], "nejasen kontakt in današnje plačilo morata ostati ločena dokazna odseka");
@@ -353,7 +353,7 @@ async function main() {
         noResponses.forEach(function (noResponse) {
           var text = "plačal je 1000" + connector + time[0] + " " + reminder + noResponse;
           var contract = parser._test.buildFactContract(text);
-          assert.equal(contract.version, 26, "collection-action zahteva interni contract 26: " + text);
+          assert.equal(contract.version, 28, "collection-action zahteva interni contract 28: " + text);
           assert.deepEqual(contract.clauses.map(function (clause) { return clause.eventTypes; }), [
             ["partial_payment"], ["reminder_sent"], ["remaining_unpaid"],
           ], "plačilo, izvedeni opomin in neodziv morajo biti tri klavzule: " + text);
@@ -564,7 +564,7 @@ async function main() {
 
   var noisyUserText = "plačalje mesec dni nazaj 1000 pred dvem tednoma sem mu poslal opomin in ga ni plačal daneps pa se ni več javil na telefon..";
   var noisyContract = parser._test.buildFactContract(noisyUserText);
-  assert.equal(noisyContract.version, 26);
+  assert.equal(noisyContract.version, 28);
   assert.deepEqual(noisyContract.clauses.map(function (clause) { return clause.eventTypes; }), [
     ["partial_payment"], ["reminder_sent"], ["remaining_unpaid"],
   ], "časovni tipkarski šum mora še vedno ustvariti tri dokazne klavzule");

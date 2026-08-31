@@ -13,7 +13,7 @@ var SEED = 0x5eed17;
 var REFERENCE_DATE = "2026-08-28";
 var DEBT = 9446;
 var CONTEXT = { referenceDate: REFERENCE_DATE, originalDebt: DEBT, remainingDebt: DEBT };
-var CONTRACT_VERSION = "history-fact-v75";
+var CONTRACT_VERSION = "history-fact-v99";
 var cases = [];
 var randomState = SEED >>> 0;
 

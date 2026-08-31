@@ -11,6 +11,9 @@ var html = fs.readFileSync(path.join(root, "app", "bonitetna-preverba.html"), "u
 var center = fs.readFileSync(path.join(root, "app", "boniteta-sredisce.js"), "utf8");
 var result = fs.readFileSync(path.join(root, "app", "bonitetna-preverba.js"), "utf8");
 var profileCard = center.slice(center.indexOf("function profileCard"), center.indexOf("function openSavedProfile"));
+var openSavedStart = center.indexOf("async function openSavedProfile");
+var openSavedEnd = center.indexOf("\n  function ", openSavedStart);
+var openSavedProfile = center.slice(openSavedStart, openSavedEnd > openSavedStart ? openSavedEnd : undefined);
 
 assert.match(css, /\.bp-company-card__insight \{[^}]*margin: 10px -12px 0;[^}]*border-width: 1px 0;[^}]*border-radius: 0;[^}]*background: #f7fbfa;/);
 assert.match(css, /\.bp-company-card__insight-icon \{[^}]*border: 0;[^}]*border-radius: 0;[^}]*background: transparent;/);
@@ -21,8 +24,10 @@ assert.match(css, /#bp-profiles #bp-profiles-grid,[\s\S]*?#bp-watched #bp-watche
 assert.match(profileCard, /data-delete-profile=[\s\S]*?aria-label="Izbriši [\s\S]*?<span aria-hidden="true">×<\/span>/);
 assert.match(profileCard, /aria-label="Poglej zadnjo preverbo za [\s\S]*?<strong>Poglej zadnjo preverbo<\/strong>[\s\S]*?<span>Nova preverba<\/span>/);
 assert.match(center, /function companyCard\(p\)[\s\S]*?bp-company-card__latest-action[\s\S]*?Preveri zadnje stanje[\s\S]*?html\.replace/);
-assert.match(center, /async function openSavedProfile\(link,event\)[\s\S]*?await window\.UJBonitetaOdpriProfil\(id,section\);history\.replaceState[\s\S]*?showCenter\("new"\)/);
-assert.doesNotMatch(center, /function openSavedProfile\(link,event\)[^{]*\{[^}]*showCenter\("new"\);window\.UJBonitetaOdpriProfil/);
+assert.match(openSavedProfile, /event\.preventDefault\(\)/, "odpiranje profila mora prevzeti navigacijo brez polnega reloada");
+assert.match(openSavedProfile, /await window\.UJBonitetaOdpriProfil\(id,section(?:,context)?\)/, "profil mora biti naložen pred spremembo prikaza");
+assert.match(openSavedProfile, /if\(odprto===false\)return/, "neuspel oziroma izbrisan profil ne sme preklopiti v prazen rezultat");
+assert.ok(openSavedProfile.indexOf("await window.UJBonitetaOdpriProfil") < openSavedProfile.indexOf("history.replaceState") && openSavedProfile.indexOf("history.replaceState") < openSavedProfile.indexOf('showCenter("new")'), "URL in prikaz se smeta spremeniti šele po uspešnem nalaganju profila");
 assert.match(center, /rows\.map\(companyCard\)[\s\S]*?function watchedCard\(m\)\{return profileCard\(watchedProfile\(m\),m\)\}/);
 assert.match(profileCard, /bp-company-card__avatar [\s\S]*?is-inactive[\s\S]*?is-active/);
 assert.doesNotMatch(profileCard, /data-company-menu|bp-company-card__menu|•••/);
@@ -86,13 +91,20 @@ assert.match(css, /#boniteta-spremljanje-izklopi \{[^}]*border: 1px solid #e4b8b
 assert.match(center, /monitoredIds=new Set\(monitors\.map[\s\S]*?rows=\(d\.profiles\|\|\[\]\)\.filter\(function\(profile\)\{return!monitoredIds\.has\(String\(profile\.id\)\)\}\)/);
 assert.doesNotMatch(center, /grid\.innerHTML=rows\.map\(companyCard\)\.join\(""\);applyProfileMonitoringStates/);
 assert.match(center, /returnView:link\.closest\("#boniteta-center-active"\)\?"active":"profiles"/);
-assert.match(center, /function closeMonitoringSetup\(\)\{var returnView=monitoringReturnView[\s\S]*?if\(returnView==="active"\)showCenter\("active"\)/);
+assert.match(center, /function closeMonitoringSetup\(skipReturn\)\{var returnView=monitoringReturnView[\s\S]*?if\(!skipReturn&&returnView==="active"\)showCenter\("active"\)/,
+  "zapiranje nastavitev mora uporabnika vrniti v aktivni pogled, razen pri izrecno preskočenem povratku");
 assert.doesNotMatch(center, /monitoring-alerts-preview|alertMonitoringState|bp-alert-monitoring/);
 assert.match(center, /if\(name==="alerts"\)loadAlerts\(\)/);
 assert.match(html, /bonitetna-preverba\.css\?v=[^"']+-v\d+/);
-assert.match(html, /boniteta-pro\.css\?v=20260826-watched-card-v9/);
+assert.match(html, /boniteta-pro\.css\?v=[^"']+-v\d+/,
+  "kartice morajo naložiti oštevilčeno različico svojega dejanskega CSS paketa");
 assert.match(html, /boniteta-sredisce\.js\?v=[^"']+-v\d+/);
-assert.match(graphCss, /\.boniteta-podjetje-zgornji-povzetek > \.boniteta-identiteta-nadaljuj:not\(\[hidden\]\) \{[^}]*min-height: 60px;[^}]*padding: 7px 12px;[^}]*grid-template-columns: 34px minmax\(0, 1fr\) 34px;/, "Aktivna pregledna kartica mora ostati enako kompaktna kot zaključeno stanje.");
+var aktivnaPreglednaKartica = (graphCss.match(/\.boniteta-podjetje-zgornji-povzetek > \.boniteta-identiteta-nadaljuj:not\(\[hidden\]\) \{([^}]*)\}/) || ["", ""])[1];
+var aktivnaMinimalnaVisina = Number((aktivnaPreglednaKartica.match(/min-height:\s*(\d+)px/) || [])[1]);
+assert.match(aktivnaPreglednaKartica, /display:\s*grid[^;]*;[\s\S]*?width:\s*100%[\s\S]*?grid-template-columns:\s*\d+px minmax\(0, 1fr\) \d+px/,
+  "Aktivna pregledna kartica mora ohraniti polno širino in stabilno trivrstično geometrijo.");
+assert.ok(aktivnaMinimalnaVisina >= 52 && aktivnaMinimalnaVisina <= 72,
+  "Aktivna pregledna kartica mora ostati kompaktna tudi ob prilagoditvi ikon in odmikov.");
 assert.match(graphCss, /\.boniteta-podjetje-zgornji-povzetek \.boniteta-identiteta-nadaljuj__vsebina > small \{[^}]*display: none !important;/, "Oznaka koraka ne sme ponovno povečati kompaktne kartice.");
 assert.match(html, /bonitetna-podjetje-grafike\.css\?v=20260827-compact-review-v157/);
 assert.match(html, /boniteta-identiteta-nadaljuj__ikona-cta[^>]*stroke-width="1\.8"[\s\S]*?M12 3\.2 5\.8 5\.9v4\.7[\s\S]*?circle cx="12" cy="10\.5" r="2\.55"[\s\S]*?m13\.85 12\.35 4\.8 4\.8/, "Lupa mora ostati centrirana v ščitu, njen ročaj pa mora segati izven ščita.");

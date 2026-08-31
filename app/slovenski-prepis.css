@@ -39,6 +39,13 @@ button { font: inherit; }
   backdrop-filter: blur(24px) saturate(1.08);
   -webkit-backdrop-filter: blur(24px) saturate(1.08);
 }
+
+@media (max-width: 620px) {
+  .prepis-widget {
+    right: var(--odmik-roba, 3px);
+    width: calc(100vw - (2 * var(--odmik-roba, 3px)));
+  }
+}
 .prepis-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .prepis-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .prepis-brand__icon {
@@ -110,7 +117,7 @@ h1 { margin: 0; font-size: 20px; line-height: 1.1; letter-spacing: -.035em; }
 @keyframes statusPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 @keyframes cursorBlink { 50% { opacity: 0; } }
 @media (max-width: 520px) {
-  .prepis-widget { inset: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)); width: auto; max-height: none; border-radius: 25px; }
+  .prepis-widget { inset: max(10px, env(safe-area-inset-top)) var(--odmik-roba, 3px) max(10px, env(safe-area-inset-bottom)); width: auto; max-height: none; border-radius: 25px; }
   .prepis-output { min-height: 0; max-height: none; }
   .prepis-status { max-width: 120px; }
 }

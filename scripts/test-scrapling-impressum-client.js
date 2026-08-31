@@ -2,14 +2,17 @@
 
 var assert = require("node:assert");
 var dns = require("node:dns").promises;
+var EventEmitter = require("node:events");
+var https = require("node:https");
 var client = require("../api/_lib/scrapling-impressum-client");
 var handler = require("../api/_handlers/mehka-boniteta");
 var test = handler._test;
+assert.ok(client._test.timeoutMs <= 8000, "Scrapling fallback ne sme preseči osemtisočmilisekundnega roka");
 
 var previousUrl = process.env.SCRAPLING_IMPRESSUM_URL;
 var previousToken = process.env.SCRAPLING_IMPRESSUM_TOKEN;
 var originalLookup = dns.lookup;
-var originalFetch = global.fetch;
+var originalHttpsRequest = https.request;
 
 function jsonResponse(payload, status) {
   return new Response(JSON.stringify(payload), {
@@ -86,9 +89,24 @@ function jsonResponse(payload, status) {
     client._test.reset();
     client._test.setFetch(async function () { throw new Error("Scrapling se po 429 ne sme poklicati."); });
     var directCalls = 0;
-    global.fetch = async function () {
+    https.request = function (_url, _options, callback) {
       directCalls += 1;
-      return new Response("rate limited", { status: 429, headers: { "content-type": "text/html" } });
+      var request = new EventEmitter();
+      request.destroy = function (error) {
+        if (error) setImmediate(function () { request.emit("error", error); });
+      };
+      request.end = function () {
+        var response = new EventEmitter();
+        response.statusCode = 429;
+        response.headers = { "content-type": "text/html" };
+        response.destroy = function () {};
+        callback(response);
+        setImmediate(function () {
+          response.emit("data", Buffer.from("rate limited"));
+          response.emit("end");
+        });
+      };
+      return request;
     };
     var limited = await test.poisciVImpressumu({ spletnaStran: "https://example.com/impressum" });
     assert.strictEqual(limited.status, "unavailable");
@@ -97,7 +115,7 @@ function jsonResponse(payload, status) {
     console.log("Scrapling Impressum client tests passed.");
   } finally {
     dns.lookup = originalLookup;
-    global.fetch = originalFetch;
+    https.request = originalHttpsRequest;
     client._test.reset();
     if (previousUrl === undefined) delete process.env.SCRAPLING_IMPRESSUM_URL; else process.env.SCRAPLING_IMPRESSUM_URL = previousUrl;
     if (previousToken === undefined) delete process.env.SCRAPLING_IMPRESSUM_TOKEN; else process.env.SCRAPLING_IMPRESSUM_TOKEN = previousToken;

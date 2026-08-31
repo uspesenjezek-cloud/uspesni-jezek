@@ -563,8 +563,9 @@
       .subscribe();
   }
 
-  async function naloziPredZagonom() {
+  async function naloziPredZagonom(moznosti) {
     if (nalaganje) return nalaganje;
+    moznosti = moznosti && typeof moznosti === "object" ? moznosti : {};
     nalaganje = (async function () {
       var uid = await pridobiUporabnika();
       var plan = preberiPlan();
@@ -572,7 +573,14 @@
       await naloziMojeKorakePredZagonom(uid).catch(function (napaka) {
         console.warn("Mojih korakov ni bilo mogoce sinhronizirati:", napaka);
       });
-      await naloziCelotenOsnutek(uid, plan);
+      if (moznosti.ohraniLokalniPostopek === true) {
+        /* Uporabnik je pravkar dokoncal korake novega postopka. Oddaljeni
+           shranjeni osnutek druge zadeve zato ne sme prepisati trenutnega
+           dolznika tik pred izrisom nacrta. */
+        dovoljenoShranjevanjeOsnutka = true;
+      } else {
+        await naloziCelotenOsnutek(uid, plan);
+      }
       plan = preberiPlan();
       var rezultat = await supabaseKlient
         .from(TABELA)

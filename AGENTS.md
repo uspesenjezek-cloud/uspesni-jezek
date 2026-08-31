@@ -1,5 +1,20 @@
 # Trajna pravila projekta Uspešni Ježek
 
+## Trajni napor za POS
+
+- Pri vseh sedanjih in prihodnjih nalogah v POS delu projekta vedno uporabi reasoning effort `high`.
+- Za POS nikoli ne uporabi reasoning effort `ultra`, tudi pri daljših ali zahtevnejših nalogah.
+
+## Trda meja Atena/Luna: dolg vedno najprej
+
+- To pravilo velja za vse prihodnje Codex chate in vse spremembe zgodovinskega toka Atene. V Luninem vhodu mora biti aktivni dolg `debtEur.remaining` (ter `debtEur.original` kot kontekst) vedno podan pred uporabnikovim opisom `sourceText`.
+- Luna mora pred izdelavo katerekoli kartice sešteti vse dokončane dogodke, ki zmanjšujejo dolg: posamezna plačila, `N × znesek posameznega obroka`, navedene skupne zneske, dobropise in kompenzacije.
+- Če skupna izvedena vsota presega aktivni dolg ali je uporabnikov izrecno navedeni preostanek računsko protisloven, mora Luna takoj vrniti samo `p=[]`, kratko slovensko opozorilo/vprašanje `q` z obema zneskoma in exact izsek `x`. Uporabnika mora prositi, naj popravi dolg, znesek ali število dogodkov. Delnih kartic ob opozorilu ne sme vrniti.
+- Blokirno opozorilo o nepravilnih podatkih in pomensko podvprašanje sta različni stanji. Pri nepravilnosti Luna vrne vrsto `warning`; UI ne pokaže polja »Vaš odgovor« ali gumba »Odgovori«, skrije nadaljevanje in ponudi samo gumb »Uredi opis« čez celo širino. Vrsta `question` je dovoljena samo, kadar Luna pomena res ne razume dovolj natančno in potrebuje uporabnikov odgovor.
+- Če natančnega skupnega učinka ni mogoče izračunati, mora Luna vprašati namesto ugibati. Enaka vsota in veljavna delna plačila pod dolgom niso napaka brez drugega izrecnega protislovja.
+- Luna ne sme tiho omejiti, spremeniti, izpustiti ali popraviti zneska. Lokalni adapter po Luni ostaja tehničen: JSON/schema, zaprti ID-ji, neposredna preslikava in obvezni človeški pregled; ne sme postati drugi semantični razlagalec.
+- Obvezna regresija za vsako prihodnjo spremembo tega toka je aktivni dolg `232 EUR` proti opisu `3 obroke po 100 EUR`: pričakovani rezultat je takojšnje opozorilo `300 EUR > 232 EUR`, brez plana in brez možnosti nadaljevanja s karticami.
+
 ## Skupni razvojni in produkcijski naslov
 
 - Vsi Codex chati aktivno delo izvajajo samo v kanoničnem projektu `C:\Users\jkjob\Desktop\uspesen jezik git`; ne ustvarjaj ali uporabljaj ločene kopije oziroma worktreeja.
@@ -38,6 +53,8 @@ To je privzeto pravilo za vse prihodnje UI-spremembe in ga ni treba znova potrje
 
 ## Obvezno odpravljanje celotne družine napak
 
+- Pred vsakim popravkom ponavljajoče se napake ali regresije najprej razišči relevantno zgodovino zadnjih dni: povezane Codex pogovore, Git zgodovino in reflog, trenutno delovno drevo ter že opravljene teste. Rekonstruiraj zaporedje prvotnega simptoma, neuspešnih posegov, dejanskega temeljnega vzroka in nazadnje potrjenega pravilnega vedenja. Starega commita ne razglasi za pravilno stanje, če so bili poznejši potrjeni popravki še necommitani.
+- Pred prvo spremembo kode obvezno zapiši: (1) zasnovo najmanjšega odgovornega popravka, (2) preverljivo hipotezo vzroka in rešitve ter (3) testno matriko, ki lahko hipotezo potrdi ali ovrže. Šele po teh treh korakih je dovoljeno urejanje kode.
 - Prikazani simptom ni dovolj: pri vsaki napaki najprej določi temeljni vzrok in vse poti, po katerih lahko ista vrsta napačnega podatka ali stanja pride do rezultata.
 - Popravek mora biti postavljen na vseh potrebnih mejah: ob zajemu/razčlenitvi, ob uporabnikovi potrditvi ali obnovi, pred zunanjo poizvedbo oziroma zapisom ter ob prikazu rezultata.
 - Vedno preveri sorodne primere, ne samo prijavljene domene ali konkretne vrednosti. Prepovedani so popravki, vezani na eno podjetje, URL, ime ali posnetek.

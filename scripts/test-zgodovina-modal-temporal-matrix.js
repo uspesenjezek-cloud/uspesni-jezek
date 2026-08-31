@@ -48,7 +48,7 @@ async function main() {
             + "pred tremi dnevi " + modal.phrase + " " + contact.phrase;
           var contract = parser._test.buildFactContract(text);
           var result = parser._test.deterministicResult(text, CONTEXT);
-          assert.equal(contract.version, 26, "full-text plan nadgradnja mora ohraniti modalno-časovno semantiko v internem contractu 26");
+          assert.equal(contract.version, 28, "full-text plan nadgradnja mora ohraniti modalno-časovno semantiko v internem contractu 28");
           assert.equal(contract.clauses.length, 3, "vsak časovno voden FATHER prehod mora dobiti svojo klavzulo: " + text);
           assert.deepEqual(contract.clauses.map(function (clause) { return clause.id; }), ["clause-1", "clause-2", "clause-3"]);
           assert.deepEqual(contract.clauses[0].eventTypes, ["partial_payment"]);
@@ -132,10 +132,10 @@ async function main() {
       calls += 1;
       var input = JSON.parse(request.input);
       assert.equal(input.version, undefined);
-      assert.equal(input.contractVersion, "history-fact-v75");
+      assert.equal(input.contractVersion, "history-fact-v99");
       assert.equal(input.sourceText, exactText, "Luna mora prejeti celotni izvorni opis");
-      assert.match(request.instructions, /numbered FATHER cards/);
-      assert.match(request.instructions, /reviewed by a human/);
+      assert.match(request.instructions, /one atomic event per card/i);
+      assert.match(request.instructions, /mandatory human review/);
       assert.equal(input.catalog.cards.length, 17);
       assert.equal(Object.prototype.hasOwnProperty.call(input, "proposedPlan"), false);
       assert.equal(Object.prototype.hasOwnProperty.call(input, "clauses"), false);

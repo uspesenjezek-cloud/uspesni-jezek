@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260829-kategorije-stevci-v33" />
+    <link rel="stylesheet" href="styles.css?v=20260830-split-cta-white-circle-v4" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
@@ -23,7 +23,7 @@
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
-    <script src="supabase-client.js?v=20260823-local-preview-guard-v1"></script>
+    <script src="supabase-client.js?v=20260829-cross-tab-lock-v1"></script>
     <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
     <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
     <script src="auth-zascita.js?v=20260823-local-preview-guard-v1"></script>
@@ -398,12 +398,20 @@
 
               <div class="osnutek-akcije">
                 <button type="button" class="osnutek-akcije__izbrisi" id="gumb-izbrisi-osnutek" aria-label="Izbriši osnutek">Izbriši</button>
-                <button type="submit" class="btn btn--cta obrazec__gumb-naprej" id="gumb-naprej-korak1">
-                  Naprej: sestavi opomin
-                  <span class="btn__puscica" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                  </span>
-                </button>
+                <div class="obrazec__split-cta" role="group" aria-label="Shranjevanje stika in nadaljevanje">
+                  <button type="button" class="obrazec__shrani-stik" id="gumb-shrani-stik" aria-pressed="false" aria-label="Shrani podjetje med stike">
+                    <span class="obrazec__shrani-stik-ikona" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+                    </span>
+                    <span class="obrazec__shrani-stik-napis">Shrani stik</span>
+                  </button>
+                  <button type="submit" class="btn btn--cta obrazec__gumb-naprej" id="gumb-naprej-korak1">
+                    Sestavi opomin
+                    <span class="btn__puscica" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </span>
+                  </button>
+                </div>
               </div>
             </form>
         </main>
@@ -797,17 +805,26 @@
           <section class="podjetja-sheet__kategorije" aria-labelledby="podjetja-sheet-kategorije-naslov">
             <div class="podjetja-sheet__kategorije-glava">
               <h3 id="podjetja-sheet-kategorije-naslov">Moje kategorije</h3>
-              <button type="button" class="podjetja-sheet__kategorije-uredi" id="podjetja-sheet-kategorije-uredi" aria-pressed="false" hidden>Uredi kategorije</button>
+              <button type="button" class="podjetja-sheet__kategorije-uredi" id="podjetja-sheet-kategorije-uredi" aria-pressed="false" hidden>Uredi</button>
             </div>
+            <p class="podjetja-sheet__kategorije-namig">
+              <span aria-hidden="true">↔</span>
+              <span>Pridržite in povlecite kategorijo za razporejanje.</span>
+            </p>
             <div class="podjetja-sheet__kategorije-dok">
               <button type="button" class="podjetja-sheet__kategorija-vse" id="podjetja-sheet-kategorija-vse" role="tab" aria-selected="false">
                 <span>Vse</span><span class="podjetja-sheet__kategorija-stevilo" id="podjetja-sheet-vse-stevilo">0</span>
               </button>
               <button type="button" class="podjetja-sheet__nedavna-gumb podjetja-sheet__nedavna-gumb--aktiven" id="podjetja-sheet-nedavna" role="tab" aria-pressed="true">Nedavno</button>
-              <div class="podjetja-sheet__kategorije-viewport" id="podjetja-sheet-kategorije-viewport">
+              <button type="button" class="podjetja-sheet__nova-kategorija" id="podjetja-sheet-nova-kategorija" aria-label="Nova kategorija">+</button>
+              <button type="button" class="podjetja-sheet__kategorija-izbira" id="podjetja-sheet-kategorija-izbira" aria-expanded="false" aria-controls="podjetja-sheet-kategorije-viewport">
+                <span id="podjetja-sheet-kategorija-izbira-oznaka">Kategorija</span>
+                <span class="podjetja-sheet__kategorija-stevilo" id="podjetja-sheet-kategorija-izbira-stevilo">0</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div class="podjetja-sheet__kategorije-viewport" id="podjetja-sheet-kategorije-viewport" hidden>
                 <div class="podjetja-sheet__kategorije-seznam" id="podjetja-sheet-kategorije-seznam" role="tablist" aria-label="Kategorije podjetij"></div>
               </div>
-              <button type="button" class="podjetja-sheet__nova-kategorija" id="podjetja-sheet-nova-kategorija" aria-label="Nova kategorija">+</button>
             </div>
             <div class="podjetja-sheet__kategorije-pikice" id="podjetja-sheet-kategorije-pikice" aria-label="Strani kategorij" hidden></div>
             <form class="podjetja-sheet__kategorija-obrazec" id="podjetja-sheet-kategorija-obrazec" hidden>
@@ -826,6 +843,30 @@
               </div>
               <label for="podjetja-sheet-kategorija-uredi-ime">Ime kategorije</label>
               <input type="text" id="podjetja-sheet-kategorija-uredi-ime" maxlength="40" autocomplete="off" required />
+              <fieldset class="podjetja-sheet__kategorija-barve">
+                <legend>Barva</legend>
+                <label style="--barva: #469c98"><input type="radio" name="podjetja-kategorija-barva" value="#469c98" /><span>Turkizna</span></label>
+                <label style="--barva: #d99a32"><input type="radio" name="podjetja-kategorija-barva" value="#d99a32" /><span>Jantarna</span></label>
+                <label style="--barva: #d96f5f"><input type="radio" name="podjetja-kategorija-barva" value="#d96f5f" /><span>Koralna</span></label>
+                <label style="--barva: #5f8fc7"><input type="radio" name="podjetja-kategorija-barva" value="#5f8fc7" /><span>Modra</span></label>
+                <label style="--barva: #8468b8"><input type="radio" name="podjetja-kategorija-barva" value="#8468b8" /><span>Vijolična</span></label>
+                <label style="--barva: #7c8a88"><input type="radio" name="podjetja-kategorija-barva" value="#7c8a88" /><span>Siva</span></label>
+              </fieldset>
+              <span class="podjetja-sheet__kategorija-privzeti-oznaka">Najprej prikaži</span>
+              <div class="podjetja-sheet__kategorija-privzeti" id="podjetja-sheet-kategorija-privzeti">
+                <input type="hidden" id="podjetja-sheet-kategorija-privzeti-pogled" value="critical" />
+                <button type="button" class="podjetja-sheet__kategorija-privzeti-gumb" id="podjetja-sheet-kategorija-privzeti-gumb" aria-haspopup="listbox" aria-expanded="false" aria-controls="podjetja-sheet-kategorija-privzeti-meni">
+                  <span id="podjetja-sheet-kategorija-privzeti-vrednost">Najbolj kritične</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="podjetja-sheet__kategorija-privzeti-meni" id="podjetja-sheet-kategorija-privzeti-meni" role="listbox" aria-label="Najprej prikaži" hidden>
+                  <button type="button" role="option" data-podjetja-privzeti-pogled="critical">Najbolj kritične</button>
+                  <button type="button" role="option" data-podjetja-privzeti-pogled="highest_debt">Najvišji dolg</button>
+                  <button type="button" role="option" data-podjetja-privzeti-pogled="oldest">Najdlje neplačano</button>
+                  <button type="button" role="option" data-podjetja-privzeti-pogled="recent">Nedavno uporabljene</button>
+                  <button type="button" role="option" data-podjetja-privzeti-pogled="az">A–Ž</button>
+                </div>
+              </div>
               <p class="podjetja-sheet__kategorija-nastavitve-namig">Za spremembo vrstnega reda kategorijo pridržite in povlecite.</p>
               <div class="podjetja-sheet__kategorija-nastavitve-akcije">
                 <button type="button" class="podjetja-sheet__kategorija-izbrisi" id="podjetja-sheet-kategorija-izbrisi">Izbriši</button>
@@ -834,7 +875,7 @@
             </form>
             <p class="podjetja-sheet__kategorije-prazno" id="podjetja-sheet-kategorije-prazno">Dodajte svojo kategorijo in vanjo shranite podjetja.</p>
           </section>
-          <div class="podjetja-sheet__seznam-uvod">
+          <div class="podjetja-sheet__seznam-uvod" hidden>
             <div class="podjetja-sheet__seznam-glava">
               <p class="podjetja-sheet__seznam-naslov" id="podjetja-sheet-seznam-naslov">Nedavno uporabljena podjetja</p>
               <div class="podjetja-sheet__seznam-akcije">
@@ -848,6 +889,19 @@
             </div>
           </div>
           <div class="podjetja-sheet__seznam" id="podjetja-sheet-seznam"></div>
+          <div class="podjetja-sheet__hitri-pogledi" id="podjetja-sheet-hitri-pogledi">
+            <div class="podjetja-sheet__hitri-pogledi-vrstica" role="group" aria-label="Hitri pogledi podjetij">
+              <button type="button" class="podjetja-sheet__hitri-pogled" data-podjetja-hitri-pogled="critical">Kritični</button>
+              <button type="button" class="podjetja-sheet__hitri-pogled" data-podjetja-hitri-pogled="highest_debt">Najvišji dolg</button>
+              <button type="button" class="podjetja-sheet__hitri-pogled podjetja-sheet__hitri-pogled--vec" id="podjetja-sheet-hitri-vec" aria-expanded="false" aria-controls="podjetja-sheet-hitri-vec-meni">Več</button>
+            </div>
+            <div class="podjetja-sheet__hitri-pogledi-meni" id="podjetja-sheet-hitri-vec-meni" hidden>
+              <button type="button" data-podjetja-hitri-pogled="oldest">Najdlje neplačano</button>
+              <button type="button" data-podjetja-hitri-pogled="missing_contact">Brez kontakta</button>
+              <button type="button" data-podjetja-hitri-pogled="recent">Nedavno uporabljena</button>
+              <button type="button" data-podjetja-hitri-pogled="az">A–Ž</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -871,7 +925,7 @@
     <script src="ocena-tveganja.js?v=20260818-stalna-trije-gradniki-v3"></script>
     <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
     <script src="neplacila-podjetje-autocomplete.js?v=20260828-one-credit-v11"></script>
-    <script src="neplacila-podjetja-nedavna.js?v=20260829-kos-podjetja-v22"></script>
-    <script src="app.js?v=20260828-kompaktne-podjetje-kartice-v4"></script>
+    <script src="neplacila-podjetja-nedavna.js?v=20260830-split-cta-apple-v2"></script>
+    <script src="app.js?v=20260830-contact-save-choice-v1"></script>
   </body>
 </html>

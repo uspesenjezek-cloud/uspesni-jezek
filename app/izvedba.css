@@ -108,6 +108,37 @@
   font-size: 13.5px;
 }
 
+.izvedba-readonly-banner {
+  margin: 14px 14px 18px;
+  padding: 13px 15px;
+  border: 1px solid rgba(45, 98, 98, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(61, 118, 118, 0.1), rgba(255, 255, 255, 0.96));
+  color: #2d6262;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.izvedba-readonly-banner[hidden] {
+  display: none !important;
+}
+
+body.izvedba-readonly .zo-akcije,
+body.izvedba-readonly .izvedba-hitre-akcije,
+body.izvedba-readonly .izvedba-sticky,
+body.izvedba-readonly .izvedba-action-sheet {
+  display: none !important;
+}
+
+body.izvedba-readonly .zo-sporocilo__telo[readonly] {
+  border-color: #d8e1df;
+  background: #f7f9f8;
+  color: #34413f;
+  cursor: text;
+  user-select: text;
+}
+
 /* ---------- Povzetek ---------- */
 .izvedba-povzetek {
   padding: 6px 2px 18px;
@@ -851,7 +882,7 @@
   --zo-border-base: #e1eae8;
   --zo-surface: #ffffff;
   width: 100%;
-  max-width: 760px;
+  max-width: var(--sirina-vsebine);
   min-height: 100dvh;
   margin: 0 auto;
   background: #fff;
@@ -1334,7 +1365,7 @@ body.stran--izvedba-primer .zo-sporocilo__telo {
   -webkit-backdrop-filter: none;
 }
 .izvedba-integrirana {
-  max-width: min(760px, 100%);
+  max-width: var(--sirina-vsebine);
   overflow-x: clip;
 }
 .izvedba-mini-trak {
@@ -1347,6 +1378,14 @@ body.stran--izvedba-primer .zo-sporocilo__telo {
 .izvedba-integrirana .zo-sledi__vsebina,
 .izvedba-integrirana .zo-sporocilo,
 .izvedba-integrirana .izvedba-kontakti { min-width: 0; max-width: 100%; }
+
+/* Izvedba uporablja isti dejanski rob kot korak Cilj: ovoj strani že zagotovi
+   3px odmika, zato vsebinskih kartic ne ožimo še z dodatnimi 18px. Notranji
+   padding posamezne kartice ostane nespremenjen. */
+.izvedba-integrirana > .zo-sledi > .zo-sledi__vsebina {
+  padding-right: 0;
+  padding-left: 0;
+}
 
 @media (max-width: 350px) {
   .izvedba-integrirana > .zo-sledi > .zo-sledi__glava {
@@ -1530,7 +1569,7 @@ body.izvedba-sheet-open { overflow: hidden; }
   z-index: 1;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  width: min(100%, 980px);
+  width: min(100%, var(--sirina-vsebine));
   height: 100lvh;
   max-height: 100lvh;
   margin: 0 auto;
@@ -1604,7 +1643,7 @@ body.izvedba-sheet-open { overflow: hidden; }
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
   width: 100%;
-  max-width: none;
+  max-width: var(--sirina-vsebine);
   height: 100lvh;
   max-height: 100lvh;
   padding: 0;
@@ -1648,6 +1687,10 @@ body.izvedba-sheet-open { overflow: hidden; }
 }
 .hitra-dejanja-gostitelj__hitre { padding-top: 0; }
 .hitra-dejanja-gostitelj__hitra {
+  align-self: stretch;
+  height: auto;
+  min-height: 66px;
+  padding-block: 7px;
   border-color: rgba(var(--hitra-rgb), .68);
   background: var(--hitra-ozadje);
   box-shadow: 0 5px 13px rgba(21, 76, 73, .16);
@@ -1658,7 +1701,11 @@ body.izvedba-sheet-open { overflow: hidden; }
 .hitra-dejanja-gostitelj__hitra--preklic { --hitra-rgb: 232, 92, 49; --hitra-ozadje: linear-gradient(145deg, #ffe6dc, #fff7f3); }
 .hitra-dejanja-gostitelj__hitra--ustavi { --hitra-rgb: 213, 31, 50; --hitra-ozadje: linear-gradient(145deg, #fbdfe3, #fff6f7); }
 .hitra-dejanja-gostitelj__hitra--prestavi { --hitra-rgb: 35, 123, 212; --hitra-ozadje: linear-gradient(145deg, #dfeeff, #f5f9ff); }
-.hitra-dejanja-gostitelj__hitra .izvedba-hitra-akcija__besedilo { color: #172522; }
+.hitra-dejanja-gostitelj__hitra .izvedba-hitra-akcija__besedilo {
+  color: #172522;
+  overflow: visible;
+  line-height: 1.15;
+}
 .hitra-dejanja-gostitelj__hitra.is-selected {
   border-width: 1px;
   border-color: rgb(var(--hitra-rgb));
@@ -1685,6 +1732,8 @@ body.izvedba-sheet-open { overflow: hidden; }
 }
 .hitra-dejanja-gostitelj__jedro .izvedba-action-sheet__header-ikona,
 .hitra-dejanja-gostitelj__jedro .izvedba-action-sheet__header-ikona svg { width: 31px; height: 31px; }
+.hitra-dejanja-gostitelj__jedro .izvedba-action-sheet__header--opomin .izvedba-action-sheet__header-ikona { color: #53779e; }
+.hitra-dejanja-gostitelj__jedro .izvedba-action-sheet__header--ne-bo-placal .izvedba-action-sheet__header-ikona { color: #de4f45; }
 .hitra-dejanja-gostitelj__jedro .izvedba-action-sheet__header h2 { margin-bottom: 3px; font-size: 18px; }
 .hitra-dejanja-gostitelj__jedro .izvedba-action-sheet__header p { font-size: 11.5px; line-height: 1.28; }
 .hitra-dejanja-gostitelj__jedro > .izvedba-action-sheet__scroll {
@@ -1884,9 +1933,9 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-dolg-tok__smer {
   align-self: end;
   display: grid;
-  grid-template-columns: minmax(12px, 1fr) 18px;
+  grid-template-columns: minmax(12px, 1fr) 9px;
   align-items: center;
-  gap: 7px;
+  gap: 0;
   width: 100%;
   max-width: 100%;
   height: 24px;
@@ -1896,6 +1945,7 @@ body.izvedba-sheet-open { overflow: hidden; }
   padding: 0;
 }
 .izvedba-dolg-tok__crta {
+  --dolg-napredek: 0%;
   position: relative;
   display: block;
   width: 100%;
@@ -1903,44 +1953,35 @@ body.izvedba-sheet-open { overflow: hidden; }
   height: 2px;
   overflow: visible;
   border-radius: 999px;
-  background: #16969a;
+  background: linear-gradient(to right, #16969a 0 var(--dolg-napredek), #cfe0dd var(--dolg-napredek) 100%);
+  transition: background .2s ease;
 }
 .izvedba-dolg-tok__crta span {
   position: absolute;
   top: 50%;
-  right: 0;
+  left: var(--dolg-napredek);
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #16969a;
-  transform: translate(50%, -50%);
+  transform: translate(-50%, -50%);
+  transition: left .2s ease;
 }
 .izvedba-dolg-tok__puscica {
   position: relative;
   display: block;
-  width: 18px;
+  width: 9px;
   height: 12px;
   overflow: visible;
   color: transparent;
   font-size: 0;
   line-height: 0;
 }
-.izvedba-dolg-tok__puscica::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 13px;
-  height: 1.5px;
-  border-radius: 999px;
-  background: #b8cdcc;
-  transform: translateY(-50%);
-}
 .izvedba-dolg-tok__puscica::after {
   content: "";
   position: absolute;
   top: 50%;
-  right: 1px;
+  right: 2px;
   width: 6px;
   height: 6px;
   border-top: 1.5px solid #b8cdcc;
@@ -2285,10 +2326,15 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-obrok-planer__stevilke::-webkit-scrollbar { display: none; }
 .izvedba-obrok-planer__stevilo-pill {
   flex: 0 0 auto;
+  width: 34px;
   min-width: 34px;
+  height: 34px;
   min-height: 34px;
+  padding: 0;
   border: 1.5px solid rgba(var(--action-rgb, 57,127,208), .3);
-  border-radius: 999px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  aspect-ratio: 1;
   background: #fff;
   color: #183a3a;
   font-weight: 700;
@@ -2446,6 +2492,23 @@ body.izvedba-sheet-open { overflow: hidden; }
 }
 .izvedba-obrok-planer__dodaj:disabled { opacity: .45; cursor: not-allowed; }
 
+.izvedba-obrok-planer__akcije {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.izvedba-obrok-planer__akcije .izvedba-obrok-planer__dodaj,
+.izvedba-obrok-planer__akcije .izvedba-poravnava-dodaj-korak {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin-top: 0;
+  padding: 7px;
+  box-sizing: border-box;
+}
+
 .izvedba-action-card {
   --action-accent: #d94932;
   --action-rgb: 217, 73, 50;
@@ -2591,6 +2654,83 @@ body.izvedba-sheet-open { overflow: hidden; }
 .izvedba-action-card--poravnava-obrok { --action-accent:#397fd0; --action-rgb:57,127,208; }
 .izvedba-action-card--poravnava-dobropis { --action-accent:#e89524; --action-rgb:232,149,36; }
 .izvedba-action-card--poravnava-storno { --action-accent:#cf4c4c; --action-rgb:207,76,76; }
+
+/* Odpis / storno uporablja rdečo samo kot poudarek. Vsebina ostane bela,
+   brez rožnatega preliva ali barvnega sijaja. */
+.izvedba-action-card--poravnava-storno,
+.izvedba-action-card--poravnava-storno.is-selected,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava-podrobnosti,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava-svicer__gumb--storno,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .hitra-dejanja-gostitelj__hitra--storno,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-action-sheet__datum-gumb,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-znesek__vnos,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-sprozi,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-meni,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-moznost,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-action-sheet__dejanje {
+  background: #fff;
+}
+.izvedba-action-card--poravnava-storno,
+.izvedba-action-card--poravnava-storno.is-selected {
+  box-shadow: none;
+}
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-meni {
+  box-shadow: 0 12px 30px rgba(31, 42, 48, .14);
+}
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-moznost:hover,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-moznost:focus-visible,
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-poravnava__razlog-moznost.is-selected {
+  background: #fff;
+}
+.izvedba-action-sheet__panel:is(.izvedba-action-sheet__panel--storno, .izvedba-action-sheet__panel--poravnava-storno) .izvedba-action-sheet__dejanje {
+  border-color: rgba(var(--sheet-action-rgb), .72);
+  box-shadow: 0 6px 16px rgba(31, 42, 48, .10);
+  color: var(--sheet-action);
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno),
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-sprozi,
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-meni,
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-moznost {
+  background: #fff;
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-meni {
+  box-shadow: 0 12px 30px rgba(31, 42, 48, .14);
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-moznost:hover,
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-moznost:focus-visible,
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-moznost.is-selected {
+  background: #fff;
+}
+
+/* Storno uporablja isti tipografski contract kot sosednje datum/polje.
+   Zgornji preklop je nad pozneje izrisanim belim poljem, zato njegov krog
+   ostane cel tudi tam, kjer se dotikata njuni območji za dotik. */
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-sprozi,
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-lastno-vnos {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  font-synthesis: none;
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) > .izvedba-poravnava-podrobnosti__strni {
+  z-index: 2;
+}
+.stran--neplacila-zgodovina .izvedba-poravnava-podrobnosti--storno > .izvedba-poravnava-podrobnosti__strni {
+  top: 2px;
+  right: 4px;
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-puscica {
+  transform: translateY(-1px) rotate(45deg);
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog.is-open .izvedba-poravnava__razlog-puscica {
+  transform: translateY(1px) rotate(225deg);
+}
+.izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog.is-open .izvedba-poravnava__razlog-meni {
+  position: relative;
+  inset: auto;
+  margin-top: 6px;
+}
 
 /* Čarovnik "Posreduj takoj odvetniku": vsebina uporablja obstoječe razrede
    od "Predaja odvetniku" (lp-predaja-povzetek__*, lp-paket-kartica__*,
@@ -3833,7 +3973,8 @@ body.izvedba-sheet-open { overflow: hidden; }
   bottom: calc(100% + 8px);
   left: 0;
   display: grid;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
   padding: 7px;
   border: 1.5px solid rgba(var(--action-rgb), .62);
   border-radius: 14px;
@@ -3851,9 +3992,9 @@ body.izvedba-sheet-open { overflow: hidden; }
   min-width: 0;
   min-height: 42px;
   padding: 8px 10px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(var(--action-rgb), .2);
   border-radius: 10px;
-  background: transparent;
+  background: rgba(255,255,255,.9);
   color: #172329;
   font: inherit;
   font-size: 14px;
@@ -4051,10 +4192,15 @@ body.izvedba-sheet-open { overflow: hidden; }
     padding: 5px 6px 5px 8px;
     font-size: 10.5px;
   }
-  .izvedba-poravnava__razlog-meni { bottom: calc(100% + 5px); gap: 2px; padding: 5px; border-radius: 11px; }
+  .izvedba-poravnava__razlog-meni { bottom: calc(100% + 5px); gap: 6px; padding: 7px; border-radius: 11px; }
   .izvedba-poravnava__razlog-moznost { min-height: 30px; padding: 4px 7px; border-radius: 8px; font-size: 11px; }
   .izvedba-poravnava__razlog-kljukica { width: 18px; height: 18px; font-size: 10px; }
   .izvedba-poravnava__razlog-lastno-vnos { font-size: 12px; min-height: 20px; }
+  .izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-sprozi,
+  .izvedba-poravnava-podrobnosti:is(.izvedba-poravnava-podrobnosti--storno, .izvedba-poravnava-podrobnosti--akcija-storno) .izvedba-poravnava__razlog-lastno-vnos {
+    font-size: 12px;
+    line-height: 1;
+  }
   .izvedba-znesek__ikona { right: 8px; width: 18px; height: 18px; }
   .izvedba-znesek__ikona svg { width: 17px; height: 17px; }
   .izvedba-znesek__ikona--eur { font-size: 10px; }
@@ -4066,6 +4212,33 @@ body.izvedba-sheet-open { overflow: hidden; }
   .izvedba-action-sheet__datum-ikona { width: 19px; height: 19px; }
   .izvedba-action-sheet__datum-ikona svg { width: 12px; height: 12px; }
   .izvedba-action-sheet__datum-vrednost { font-size: 12px; }
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava-znesek-datum {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava-znesek-datum .izvedba-znesek,
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava-znesek-datum .izvedba-action-sheet__datum {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava-znesek-datum .izvedba-znesek__vnos,
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava-znesek-datum .izvedba-action-sheet__datum-gumb {
+    height: 44px;
+    min-height: 44px;
+  }
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava__razlog-sprozi {
+    min-height: 44px;
+    padding: 8px 10px 8px 12px;
+    font-size: 12.5px;
+  }
+  .izvedba-action-sheet__panel--hitra-gostitelj .izvedba-poravnava__razlog-moznost {
+    min-height: 42px;
+    padding: 7px 9px;
+    font-size: 12px;
+  }
   .izvedba-action-sheet__footer { gap: 7px; padding-top: 7px; }
   .izvedba-action-sheet__dejanje { min-height: 51px; font-size: 14px; }
   .izvedba-action-sheet__nazaj { min-height: 38px; font-size: 14px; }

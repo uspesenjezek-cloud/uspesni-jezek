@@ -7,6 +7,7 @@ var MAX_TEXT_CHARS = 1024 * 1024;
 var RESPONSE_LIMIT_BYTES = 8 * 1024 * 1024;
 var POSITIVE_TTL_MS = 15 * 60 * 1000;
 var NEGATIVE_TTL_MS = 2 * 60 * 1000;
+var REQUEST_TIMEOUT_MS = 8000;
 var cache = globalThis.__ujScraplingImpressumCache || (globalThis.__ujScraplingImpressumCache = new Map());
 var inFlight = globalThis.__ujScraplingImpressumInFlight || (globalThis.__ujScraplingImpressumInFlight = new Map());
 var fetchImplementation = null;
@@ -65,7 +66,7 @@ function normalizirajOdgovor(payload) {
 
 async function izvediZajem(url, config) {
   var controller = new AbortController();
-  var timeout = setTimeout(function () { controller.abort(); }, 25000);
+  var timeout = setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS);
   try {
     var endpoint = new URL("/v1/impressum/fetch", config.url);
     var fetchFn = fetchImplementation || fetch;
@@ -131,5 +132,6 @@ module.exports = {
     normalizirajOdgovor: normalizirajOdgovor,
     reset: resetForTests,
     setFetch: function (value) { fetchImplementation = value; },
+    timeoutMs: REQUEST_TIMEOUT_MS,
   },
 };

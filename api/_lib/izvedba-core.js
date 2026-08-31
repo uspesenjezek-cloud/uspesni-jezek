@@ -67,6 +67,14 @@ function obreziBesedilo(vrednost, maxDolzina) {
   return s.length > maxDolzina ? s.slice(0, maxDolzina) : s;
 }
 
+function normalizirajIzbirniDatum(vrednost) {
+  if (vrednost == null || vrednost === "") return { ok: true, value: null };
+  var datum = new Date(vrednost);
+  return Number.isNaN(datum.getTime())
+    ? { ok: false, value: null }
+    : { ok: true, value: datum.toISOString() };
+}
+
 /* Vhod iz čarovnika na strani "Izvedba" (izvedba.js) - dopolni obstoječi
    plan.steps[manual_lawyer].lawyerHandoff namesto polnega čarovnika iz
    opomin-nacrt-ui.js. Neznana/manjkajoča polja se preprosto izpustijo -
@@ -229,7 +237,75 @@ function validirajNastavitve(actionType, settings, context) {
     if (!znotrajMeje(waitDays, MEJE.waitDays)) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Čakanje mora biti med 1 in 60 dni." };
     }
-    return { ok: true, settings: { waitDays: waitDays } };
+    var dovoljeniDogovori = ["full", "partial", "installment", "deadline", "compensation", "credit_note", "custom"];
+    var agreementKind = dovoljeniDogovori.indexOf(vhod.agreementKind) >= 0 ? vhod.agreementKind : null;
+    var opisDogovora = obreziBesedilo(vhod.description, 500);
+    var dogovorjeniZnesekVhod = vhod.agreedAmount != null ? vhod.agreedAmount : vhod.promisedAmount;
+    var dogovorjeniZnesek = dogovorjeniZnesekVhod == null || dogovorjeniZnesekVhod === "" ? null : zaokrozi2(dogovorjeniZnesekVhod);
+    var preostaliDolgDogovora = Number(context.preostaliDolg);
+    if (dogovorjeniZnesek != null && (!Number.isFinite(dogovorjeniZnesek) || dogovorjeniZnesek <= 0)) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Dogovorjeni znesek mora biti večji od 0." };
+    }
+    if (dogovorjeniZnesek != null && preostaliDolgDogovora > 0 && dogovorjeniZnesek > preostaliDolgDogovora + 0.009) {
+      return { ok: false, code: "PAYMENT_EXCEEDS_DEBT", napaka: "Dogovorjeni znesek presega preostali dolg." };
+    }
+    var rokDogovora = normalizirajIzbirniDatum(vhod.dueAt != null ? vhod.dueAt : vhod.promisedDate);
+    var datumDogovora = normalizirajIzbirniDatum(vhod.agreedAt != null ? vhod.agreedAt : vhod.occurredAt);
+    if (!rokDogovora.ok || !datumDogovora.ok) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Datum dogovora ali rok plačila ni veljaven." };
+    }
+    var obrokiVhod = Array.isArray(vhod.installments) ? vhod.installments : [];
+    if (obrokiVhod.length > 20) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Dogovor ima lahko največ 20 obrokov." };
+    }
+    var vsotaObrokov = 0;
+    var obroki = [];
+    for (var oi = 0; oi < obrokiVhod.length; oi++) {
+      var obrokVhod = obrokiVhod[oi] || {};
+      var znesekObroka = zaokrozi2(obrokVhod.amount);
+      var rokObroka = normalizirajIzbirniDatum(obrokVhod.dueAt);
+      var rokObrokaPriblizno = obreziBesedilo(obrokVhod.dueAtApproximation, 120);
+      if (!Number.isFinite(znesekObroka) || znesekObroka <= 0 || !rokObroka.ok || (!rokObroka.value && obrokVhod.dueAtUnknown !== true && !rokObrokaPriblizno)) {
+        return { ok: false, code: "INVALID_SETTINGS", napaka: "Vsak obrok potrebuje veljaven znesek in rok." };
+      }
+      vsotaObrokov = zaokrozi2(vsotaObrokov + znesekObroka);
+      obroki.push({ amount: znesekObroka, dueAt: rokObroka.value, dueAtUnknown: obrokVhod.dueAtUnknown === true, dueAtApproximation: rokObrokaPriblizno || null });
+    }
+    if (obroki.length && dogovorjeniZnesek != null && Math.abs(vsotaObrokov - dogovorjeniZnesek) > 0.009) {
+      return { ok: false, code: "INVALID_SETTINGS", napaka: "Vsota obrokov se ne ujema z dogovorjenim zneskom." };
+    }
+    if (obroki.length && preostaliDolgDogovora > 0 && vsotaObrokov > preostaliDolgDogovora + 0.009) {
+      return { ok: false, code: "PAYMENT_EXCEEDS_DEBT", napaka: "Vsota obrokov presega preostali dolg." };
+    }
+    var settingsDogovora = { waitDays: waitDays };
+    if (agreementKind) settingsDogovora.agreementKind = agreementKind;
+    if (dogovorjeniZnesek != null) {
+      settingsDogovora.agreedAmount = dogovorjeniZnesek;
+      settingsDogovora.promisedAmount = dogovorjeniZnesek;
+    }
+    if (datumDogovora.value) settingsDogovora.agreedAt = datumDogovora.value;
+    if (rokDogovora.value) {
+      settingsDogovora.dueAt = rokDogovora.value;
+      settingsDogovora.promisedDate = rokDogovora.value;
+    }
+    if (vhod.occurredAtUnknown === true) settingsDogovora.occurredAtUnknown = true;
+    if (vhod.promisedDateUnknown === true) settingsDogovora.promisedDateUnknown = true;
+    var datumDogovoraPriblizno = obreziBesedilo(vhod.occurredAtApproximation, 120);
+    var rokDogovoraPriblizno = obreziBesedilo(vhod.promisedDateApproximation, 120);
+    if (datumDogovoraPriblizno) settingsDogovora.occurredAtApproximation = datumDogovoraPriblizno;
+    if (rokDogovoraPriblizno) settingsDogovora.promisedDateApproximation = rokDogovoraPriblizno;
+    if (obroki.length) {
+      settingsDogovora.installmentCount = obroki.length;
+      settingsDogovora.installments = obroki;
+    }
+    var nacinPlacila = obreziBesedilo(vhod.paymentMethod, 80);
+    var kanal = obreziBesedilo(vhod.communicationChannel, 80);
+    var vir = ["manual", "natural_language", "quick_action"].indexOf(vhod.source) >= 0 ? vhod.source : null;
+    if (nacinPlacila) settingsDogovora.paymentMethod = nacinPlacila;
+    if (kanal) settingsDogovora.communicationChannel = kanal;
+    if (vir) settingsDogovora.source = vir;
+    if (opisDogovora) settingsDogovora.description = opisDogovora;
+    return { ok: true, settings: settingsDogovora };
   }
 
   if (actionType === "partial_payment") {
@@ -266,7 +342,9 @@ function validirajNastavitve(actionType, settings, context) {
 
   if (actionType === "partial_settlement") {
     var preostaliDolgNed = Number(context.preostaliDolg);
-    var kind = vhod.kind === "writeoff" ? "writeoff" : "credit";
+    var kind = vhod.kind === "writeoff"
+      ? "writeoff"
+      : (vhod.kind === "compensation" ? "compensation" : "credit");
     var amountNed = Number(vhod.amount);
     if (!(preostaliDolgNed > 0)) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Trenutni dolg ni znan." };
@@ -284,7 +362,9 @@ function validirajNastavitve(actionType, settings, context) {
     if (kind === "writeoff" && !String(vhod.reason || "").trim()) {
       return { ok: false, code: "INVALID_SETTINGS", napaka: "Razlog za odpust je obvezen." };
     }
-    var placiloVrstaNed = kind === "writeoff" ? "cancelled_invoice" : "credit_note";
+    var placiloVrstaNed = kind === "writeoff"
+      ? "cancelled_invoice"
+      : (kind === "compensation" ? "compensation" : "credit_note");
     var novPreostanekNed = zaokrozi2(preostaliDolgNed - placiloZnesekNed);
     var settledAtNed = vhod.settledAt ? new Date(vhod.settledAt) : new Date();
     if (Number.isNaN(settledAtNed.getTime()) || settledAtNed.getTime() > Date.now() + 300000) {

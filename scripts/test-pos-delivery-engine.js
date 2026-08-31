@@ -218,13 +218,151 @@ assert.strictEqual(worker._test.safeEqual("1234567890123456", "1234567890123456"
 assert.strictEqual(worker._test.safeEqual("a", "b"), false);
 assert.match(worker._test.candidateQuery("queued", "2026-08-19T12:00:00.000Z", 3, "resend", true), /provider=eq\.resend[\s\S]*is_test=eq\.true/);
 assert.match(worker._test.reconciliationQuery(true, "2026-08-24T12:00:00.000Z", "2026-08-24T11:45:00.000Z", 2), /provider=eq\.openapi[\s\S]*is_test=eq\.true[\s\S]*reconciliation_attempt_count=lt\.7/);
-assert.match(workerSource, /claimed = await claimReconciliationCandidate\(cfg, candidate, checkedAt\);[\s\S]*if \(!claimed\) continue;[\s\S]*reconcileCandidate\(cfg, claimed, checkedAt\)/i);
+assert.match(workerSource, /claimed = await claimReconciliation\(cfg, candidate, checkedAt\);[\s\S]*if \(!claimed\) continue;[\s\S]*reconcile\(cfg, claimed, checkedAt\)/i);
+assert.strictEqual(worker._test.RECONCILIATION_MAX_PER_RUN, 1);
+assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
 
 (async function () {
   const supabase = require(path.join(root, "api", "_lib", "supabase-server.js"));
   const originalFetch = supabase.fetchZOmejitvijo;
   const originalRows = supabase.pridobiVrstice;
   const originalRpc = supabase.pokliciRpc;
+
+  async function assertAcceptedFinalizationPending(providerName, finishDelivery, expectedCode) {
+    const reference = providerName + "-remote-reference";
+    const claimed = {
+      id: providerName + "-delivery-id",
+      user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      invoice_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      provider: providerName,
+      is_test: false,
+      status: "processing",
+    };
+    const finishCalls = [];
+    const result = await runner.processClaimed({}, claimed, "worker-id", {
+      buildDeliveryPackage: async function () { return { delivery: claimed }; },
+      providerFor: function (name) {
+        assert.strictEqual(name, providerName);
+        return {
+          deliver: async function () {
+            return {
+              provider: providerName,
+              providerReference: reference,
+              status: "sent",
+              sent: true,
+              delivered: false,
+            };
+          },
+        };
+      },
+      finish: async function (cfg, delivery, workerId, outcome) {
+        finishCalls.push({ cfg, delivery, workerId, outcome });
+        return finishDelivery();
+      },
+      logError: function () {},
+    });
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.accepted, true);
+    assert.strictEqual(result.finalizationPending, true);
+    assert.strictEqual(result.delivery.status, "processing");
+    assert.strictEqual(result.delivery.provider_reference, reference);
+    assert.strictEqual(result.providerResult.providerReference, reference);
+    assert.strictEqual(result.error.code, expectedCode);
+    assert.strictEqual(finishCalls.length, 1, "po providerjevem sprejemu je dovoljen samo uspešni finalizer");
+    assert.strictEqual(finishCalls[0].outcome.success, true);
+    assert.strictEqual(finishCalls[0].outcome.providerReference, reference);
+  }
+
+  for (const providerName of ["resend", "openapi"]) {
+    await assertAcceptedFinalizationPending(providerName, function () {
+      const error = new Error("db-finalize-transient");
+      error.code = "DB_FINALIZE_TRANSIENT";
+      error.retryable = true;
+      throw error;
+    }, "DB_FINALIZE_TRANSIENT");
+
+    let committed = false;
+    await assertAcceptedFinalizationPending(providerName, function () {
+      committed = true;
+      return null;
+    }, "DELIVERY_FINALIZATION_RESPONSE_MISSING");
+    assert.strictEqual(committed, true, "negotov odgovor po commitu mora ostati obnovljiv brez failure finalizerja");
+  }
+
+  const providerFailureCalls = [];
+  const providerFailure = new Error("provider unavailable");
+  providerFailure.retryable = true;
+  const failedBeforeAcceptance = await runner.processClaimed({}, {
+    id: "provider-failure-id",
+    user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    provider: "resend",
+    status: "processing",
+  }, "worker-id", {
+    buildDeliveryPackage: async function () { return {}; },
+    providerFor: function () { return { deliver: async function () { throw providerFailure; } }; },
+    finish: async function (_cfg, _delivery, _workerId, outcome) {
+      providerFailureCalls.push(outcome);
+      return { id: "provider-failure-id", status: "queued" };
+    },
+  });
+  assert.strictEqual(failedBeforeAcceptance.ok, false);
+  assert.strictEqual(failedBeforeAcceptance.delivery.status, "queued");
+  assert.deepStrictEqual(providerFailureCalls.map((entry) => entry.success), [false]);
+
+  const queued = [1, 2, 3].map(function (index) {
+    return {
+      id: "queued-" + index,
+      user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      provider: "resend",
+      status: "queued",
+    };
+  });
+  const reconciliation = {
+    id: "reconciliation-1",
+    user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    provider: "openapi",
+    provider_reference: "openapi-reconciliation-reference",
+    is_test: true,
+    status: "sent",
+  };
+  let reconciliationLimit = 0;
+  const processedIds = [];
+  const reconciledIds = [];
+  let workerCounter = 0;
+  const workerResult = await worker._test.runWorker({}, {
+    candidates: async function (_cfg, limit) {
+      assert.strictEqual(limit, 3);
+      return queued;
+    },
+    claim: async function (_cfg, candidate) { return Object.assign({}, candidate, { status: "processing" }); },
+    processClaimed: async function (_cfg, claimed) {
+      processedIds.push(claimed.id);
+      return { ok: true, delivery: Object.assign({}, claimed, { status: "sent" }) };
+    },
+    deliveryReadiness: function () { return { mode: "production", sendEnabled: true }; },
+    openapiInvoiceReadiness: function () {
+      return { mode: "sandbox", sendEnabled: true, reconciliationEnabled: true, sandboxEnabled: true };
+    },
+    reconciliationCandidates: async function (_cfg, limit) {
+      reconciliationLimit = limit;
+      return [reconciliation];
+    },
+    claimReconciliationCandidate: async function (_cfg, candidate) { return candidate; },
+    reconcileCandidate: async function (_cfg, candidate) {
+      reconciledIds.push(candidate.id);
+      return Object.assign({}, candidate, { status: "delivered" });
+    },
+    randomUUID: function () { workerCounter += 1; return "worker-" + workerCounter; },
+    now: function () { return new Date("2026-08-25T12:00:00.000Z"); },
+  });
+  assert.deepStrictEqual(processedIds, ["queued-1", "queued-2", "queued-3"]);
+  assert.strictEqual(reconciliationLimit, 1, "reconciliation mora imeti svoj slot tudi ob treh dostavah");
+  assert.deepStrictEqual(reconciledIds, ["reconciliation-1"]);
+  assert.strictEqual(workerResult.processed, 3);
+  assert.strictEqual(workerResult.completed, 3);
+  assert.strictEqual(workerResult.reconciled, 1);
+  assert.strictEqual(workerResult.reconciliationFailed, 0);
+
   const reconciliationRpcs = [];
   supabase.pokliciRpc = async function (_cfg, name, args) {
     reconciliationRpcs.push({ name, args });

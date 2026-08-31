@@ -89,7 +89,7 @@ async function main() {
 
   await test("5) dvojni klik ne podvoji ukrepa (isSubmitting guard)", function () {
     const src = citaj("app/izvedba.js");
-    assert.match(src, /async function submitSelectedAction\(\)\s*{\s*if \(state\.isSubmitting\) return;/);
+  assert.match(src, /async function submitSelectedAction\(\)\s*{\s*if \(zavrniSprememboCeSamoZaBranje\(\)\) return;\s*if \(state\.isSubmitting\) return;/);
     assert.match(src, /if \(!pripravljeno\)/);
   });
 
@@ -113,7 +113,9 @@ async function main() {
 
   await test("8b) Atena ob kliku Bo plačal odpre skoraj celozaslonski panel", function () {
     const css = citaj("app/neplacila-zgodovina.css");
+    const src = citaj("app/izvedba.js");
     assert.match(css, /\.atena \.atena__panel\s*\{[^}]*grid-template-rows:\s*auto auto minmax\(0, 1fr\);[^}]*height:\s*calc\(100lvh - max\(18px, env\(safe-area-inset-top, 0px\)\)\);[^}]*max-height:\s*calc\(100lvh - max\(18px, env\(safe-area-inset-top, 0px\)\)\);/);
+    assert.match(src, /id="izvedba-gumb-poravnano"[\s\S]*?K\.ikona\("handshake"\)[\s\S]*?Pristal je na dogovor/, "zelena hitra kartica mora govoriti o dogovoru in uporabiti ikono rokovanja");
   });
 
   // ---------- 9-16: funkcionalna poslovna logika ----------
@@ -483,6 +485,7 @@ async function main() {
     const src = citaj("app/izvedba.js");
     const css = citaj("app/izvedba.css");
     const historyCss = citaj("app/neplacila-zgodovina.css");
+    const historySrc = citaj("app/neplacila-zgodovina.js");
     const html = citaj("app/izvedba.html");
     assert.match(src, /lawyerHandoff\.status === "prepared"[\s\S]*lawyerHandoff\.preparedSnapshot/);
     assert.match(src, /screen: "zgodovina"/);
@@ -509,6 +512,8 @@ async function main() {
     assert.match(src, /data-lawyer-delete-details[\s\S]*state\.lawyerWizard\.screen = "paket"/);
     assert.match(src, /opomin-predaja-sestavljalnik__locilo/);
     assert.match(src, /zapustiOdvetnikZgodovino\(true\)[\s\S]*state\.lawyerWizard\.screen = "paket"/);
+    assert.match(src, /function vstopiVOdvetnikZgodovino\(\)[\s\S]*UJZgodovinaNastaviPrivzetiNacin\("natural"\)/, "odvetnikova zgodovina mora ob vsakem vstopu privzeto odpreti Povej ali napiši");
+    assert.match(historySrc, /window\.UJZgodovinaNastaviPrivzetiNacin = function \(nacin\)[\s\S]*naravni\.mode = nacin === "manual" \? "manual" : "natural"/, "Atena mora izpostaviti omejen preklop privzetega načina za gostiteljski tok");
     assert.match(src, /if \(!w\.preservePlanHandoff\) \{[\s\S]*settings\.lawyerHandoff/);
     assert.match(src, /Potrdi oddajo/);
     assert.match(src, /Potrditev ne pošlje ničesar odvetniku/);
@@ -535,20 +540,40 @@ async function main() {
     assert.match(css, /panel--odvetnik-pregled \.izvedba-odvetnik-zgodovina__povzetek[\s\S]*border:\s*1px solid var\(--stage-border[\s\S]*background:\s*linear-gradient/);
     assert.match(css, /\.izvedba-odvetnik-korak__naslov\s*\{[\s\S]*?font-size:\s*8px;[\s\S]*?white-space:\s*nowrap;/);
     assert.match(src, /\(zgodovinaVnos \|\| jePlacilniEngine\(\)\) && typeof window\.UJZgodovinaPoIzrisu === "function"/);
-    assert.match(html, /neplacila-zgodovina\.css\?v=[^"']*bo-placal-host-v1/);
-    assert.match(html, /neplacila-zgodovina\.js\?v=[^"']*bo-placal-host-v2/);
-    assert.match(html, /izvedba\.js\?v=[^"']*bo-placal-host-v1/);
+    assert.match(html, /neplacila-zgodovina\.css\?v=202608\d{2}-[^"']+/);
+    assert.match(html, /neplacila-zgodovina\.js\?v=202608\d{2}-[^"']+/);
+    assert.match(html, /izvedba\.js\?v=202608\d{2}-[^"']+/);
     assert.match(src, /function jeAtena\(\)/);
     assert.match(src, /Pripravljeni dogodki/);
+    assert.match(src, /naslov: "Preostali dolg"[\s\S]*?znesek: preostaliDolgPoNacrtu\(\)[\s\S]*?jeIzracunaniPreostanek: true/);
     assert.match(src, /jeAtenaVnos \? '' : '<span class="izvedba-poravnava-cona__stevilka" aria-hidden="true">3<\/span>'/);
     assert.match(src, /atena__nadaljuj-brez/);
     assert.match(src, /jeAtena\(\) \? 'Kaj se je do zdaj zgodilo\?'/);
-    assert.match(src, /jeRazsirjeniPlacilniEngine[\s\S]*?\["full", "partial", "compensation", "installment", "credit_note", "payment_promised", "unpaid_installment", "payment_failed", "invoice_dispute", "cancelled_invoice", "insolvency"\]/);
-    assert.match(src, /function izrisiBoPlacalHitraDejanja\(\)[\s\S]*?Plačano v celoti[\s\S]*?Delno plačilo[\s\S]*?Dolžnik je obljubil plačilo/);
-    assert.match(src, /boPlacalHitraIzbira:\s*false[\s\S]*?jeBoPlacalNeposrednaHitra[\s\S]*?\["full", "partial", "payment_promised"\]/, "samo tri gostiteljske kartice Bo plačal smejo odpreti neposredne podrobnosti");
+    assert.match(src, /jeRazsirjeniPlacilniEngine[\s\S]*?\["full", "partial", "installment", "payment_promised", "compensation", "credit_note"\]/);
+    assert.doesNotMatch(src, /jeRazsirjeniPlacilniEngine\s*\n?\s*\? \[[^\]]*?(?:unpaid_installment|payment_failed|invoice_dispute|cancelled_invoice|insolvency)/, "dogovorni prikaz ne sme ponujati dogodkov, napak ali statusov");
+    assert.match(src, /var DOGOVOR_META = \{[\s\S]*?Plačal bo v celoti[\s\S]*?Plačal bo delno[\s\S]*?Plačal bo v obrokih[\s\S]*?Plačal bo do novega roka[\s\S]*?Poravnal bo s kompenzacijo[\s\S]*?Poravnava z dobropisom/);
+    assert.match(src, /function izrisiBoPlacalHitraDejanja\(\)[\s\S]*?Plačal bo v celoti[\s\S]*?Plačal bo delno[\s\S]*?Plačal bo do novega roka/);
+    assert.match(src, /jeRazsirjeniPlacilniEngine\) gumbi \+= izrisiDrugoGumb\(zaprt, "Drug dogovor"\)/, "sedma možnost mora biti Drug dogovor");
+    assert.match(src, /state\.customActionActive && jePlacilniEngine\(\)[\s\S]*?agreementKind: "custom"[\s\S]*?description: opisDrugegaDogovora/, "drug dogovor mora biti funkcionalen in ohraniti opis");
+    assert.match(src, /pripravljeno\.settings && pripravljeno\.settings\.agreementKind === "custom"[\s\S]*?state\.customActionActive = false[\s\S]*?state\.customActionDescription = ""/, "po dodajanju drugega dogovora se mora obrazec počistiti");
+    assert.match(src, /var izbran = !state\.customActionActive && state\.selectedSettlementType === tip/, "Drug dogovor ne sme hkrati označiti kartice novega roka");
+    assert.match(src, /jeDogovorniVnos \? 'Pripravljeni dogovori'[\s\S]*?besedaZaSteviloDogovorov/, "dogovorni tok mora tudi spodnji povzetek poimenovati kot dogovore");
+    assert.match(historySrc, /Opišite dogovor, na katerega je pristal dolžnik\.[\s\S]*?plačal bo v treh obrokih po 300 €[\s\S]*?Vrste dogovorov[\s\S]*?Izberite dogovor in dopolnite njegove podatke\./);
+    assert.match(historySrc, /jeDogovorniGostitelj[\s\S]*?jeVgrajenaZgodovina && !jeDogovorniGostitelj && svicer[\s\S]*?svicer && !jeDogovorniGostitelj && !svicer\.querySelector/, "Drug dogovor se ne sme preusmeriti v zgodovinski dogodek");
+    assert.deepEqual(core.validirajNastavitve("payment_promised", { waitDays: 5, agreementKind: "custom", description: "Poseben dogovor" }, {}).settings, { waitDays: 5, agreementKind: "custom", description: "Poseben dogovor" });
+    assert.match(src, /function racunPoravnan\(\)[\s\S]*?UJZgodovinaNastaviPrivzetiNacin\("natural"\)[\s\S]*?state\.actionSheetMode = "payment"/, "Bo plačal mora ob vsakem odprtju privzeto izbrati Povej ali napiši");
+    assert.match(src, /boPlacalHitraIzbira:\s*false/, "stanje mora ločiti zgornjo hitro izbiro od običajne Atenine kartice");
     assert.match(src, /jeBoPlacalNeposrednaHitra \? '' : izrisiPoravnavaSvicer\(\)/, "neposredna hitra izbira ne sme podvajati mreže Ateninih kartic");
+    assert.match(src, /function jeBoPlacalNeposrednaHitraIzbira\(\)[\s\S]*?\["full", "partial", "payment_promised"\]/, "neposredna potrditev mora ostati omejena na tri zgornja hitra dejanja");
+    assert.match(src, /tip === "installment" \|\| neposrednaHitraIzbira \? "" : '<button[^']*data-nacrt-dodaj/, "zgornje hitro dejanje ne sme prikazati vmesnega gumba za dodajanje");
+    assert.match(src, /var dejanje = \(meta \|\| jeBoPlacalNeposrednaHitra \|\| zgodovinaVnos/, "Potrdi mora biti prikazan tudi pri hitri obljubi plačila");
+    assert.match(src, /if \(jeBoPlacalNeposrednaHitraIzbira\(\)\) \{[\s\S]*?if \(dodajKorakVNacrt\(\)\) nastaviNovNacrt\(\)/, "Potrdi mora pri zgornjem hitrem dejanju validirati in neposredno izvesti izbrani korak");
+    assert.match(src, /datumIzbirnik[\s\S]*?izvedba-action-sheet__datum-prekrivni[\s\S]*?typeof datumIzbirnik\.showPicker === "function"[\s\S]*?datumIzbirnik\.showPicker\(\)/, "klik datumskega polja mora izrecno odpreti nativni koledar, kjer ga brskalnik podpira");
     assert.match(src, /jeGostiteljskaHitra[\s\S]*?state\.boPlacalHitraIzbira = jeGostiteljskaHitra && boOstalaIzbrana/, "izvor klika mora ločiti zgornjo hitro kartico od običajne Atenine izbire");
-    assert.match(src, /function izrisiBoPlacalGostiteljPovzetek\(\)[\s\S]*?Kaj želite narediti\?[\s\S]*?izrisiStanjeDolgaBlok\(\)/, "Bo plačal mora nad Ateno prikazati enak naslov in stanje dolga kot druga izvedbena okna");
+    assert.match(src, /function izrisiBoPlacalGostiteljPovzetek\(\)[\s\S]*?K\.ikona\("handshake"\)[\s\S]*?Na kakšen dogovor je pristal\?[\s\S]*?Izberite dogovor z dolžnikom\.[\s\S]*?izrisiStanjeDolgaBlok\(\)/, "Bo plačal mora jasno vprašati po dogovoru z dolžnikom in uporabiti ikono dogovora");
+    assert.match(historyCss, /\.atena \.bo-placal-gostitelj__ikona\s*\{[^}]*color:\s*#3f9998;/s, "ikona dogovora mora uporabiti Atenino turkizno barvo");
+    assert.match(historyCss, /panel--atena-gostitelj \.atena__jedro\s*\{[^}]*border:\s*0;[^}]*box-shadow:\s*none;/s, "gostiteljska Atena ne sme risati dodatnega pravokotnega okvirja");
+    assert.match(historyCss, /\.izvedba-poravnava-cona--atena-dogodki \.izvedba-poravnava-potek\s*\{[^}]*max-height:\s*none;[^}]*overflow:\s*visible;/s, "vsi pripravljeni dogodki morajo uporabiti razpoložljivo višino brez dodatnega notranjega drsenja");
     assert.match(src, /atena-gostitelj__hitra[\s\S]*?data-settlement-select=/, "gostiteljske bližnjice morajo uporabiti isto izbiro dogodka kot Atenine kartice");
     assert.match(src, /jeBoPlacalGostitelj = jePlacilniEngine\(\) && !zgodovinaVnos[\s\S]*?atena-gostitelj__zapri[\s\S]*?data-action-sheet-close/, "Bo plačal mora imeti ločen gostiteljski × zunaj Atene");
     assert.match(src, /atena-gostitelj__pas[\s\S]*?atena-gostitelj__naslov">Hitra dejanja[\s\S]*?izrisiBoPlacalHitraDejanja\(\)/, "tri bližnjice morajo biti v jasno označeni gostiteljski pasici");
@@ -558,21 +583,30 @@ async function main() {
     assert.match(src, /function jePreklicOpominaFilter\(\)[\s\S]*?skip_current_step\|stop_plan\|postpone_reminder/, "Prekliči opomin mora ohraniti svojo obstoječo trojico dejanj");
     assert.match(src, /var actionSvicer = jeHitraDejanjaGostitelj \? "" : izrisiActionSvicer\(\)/, "noben panel z zgornjimi hitrimi dejanji ne sme podvajati iste izbire še v jedru");
     assert.match(src, /function izrisiStanjeDolga\(\)[\s\S]*?izvedba-dolg-tok__crta[\s\S]*?Preostali znesek/, "vsa izvedbena okna morajo prikazati čisti vodoravni tok dolga");
+    assert.match(src, /function delezPoravnanegaDolga\([\s\S]*?\(\(prvotni - preostali\) \/ prvotni\) \* 100/, "položaj kazalnika mora izhajati iz dejansko poravnanega deleža dolga");
+    assert.match(src, /data-ai-live-debt-progress[\s\S]*?--dolg-napredek:[\s\S]*?data-ai-live-debt-remaining/, "tok dolga mora izrisati živ položaj in živi preostanek");
     assert.match(src, /function izrisiStanjeDolgaBlok\(\)[\s\S]*?zgodovina-stanje-dolga--tok[\s\S]*?izrisiStanjeDolga\(\)/, "skupni blok dolga mora vedno uporabiti enoten novi prikaz");
     assert.doesNotMatch(src, /function izrisiStanjeDolgaBlok\(\)[\s\S]{0,300}?jePreklicOpominaFilter/, "prikaz dolga ne sme biti več omejen samo na Prekliči opomin");
     assert.match(css, /\.izvedba-dolg-tok__vrednost\s*\{[^}]*display:\s*block[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*font-size:\s*20px/, "zneska morata biti velika, omejena na svoj stolpec in pravilno izmerjena");
     assert.match(css, /\.zgodovina-stanje-dolga--tok\s*\{[^}]*padding:\s*3px clamp\(9px, 2\.8vw, 14px\) 12px/, "skupni povzetek dolga mora imeti varen odmik od obeh robov");
     assert.match(css, /\.izvedba-dolg-tok\s*\{[^}]*grid-template-columns:\s*minmax\(94px, 1fr\) minmax\(56px, \.82fr\) minmax\(94px, 1fr\)/, "zneska morata imeti varen prostor, sredinski indikator pa se mora skrčiti pred njima");
-    assert.match(css, /\.izvedba-dolg-tok__smer\s*\{[^}]*grid-template-columns:\s*minmax\(12px, 1fr\) 18px[^}]*height:\s*24px[^}]*overflow:\s*visible/, "indikator mora biti na eni stabilni vodoravni osi in ostati v celoti viden");
+    assert.match(css, /\.izvedba-dolg-tok__smer\s*\{[^}]*grid-template-columns:\s*minmax\(12px, 1fr\) 9px[^}]*gap:\s*0[^}]*height:\s*24px[^}]*overflow:\s*visible/, "indikator mora biti neprekinjen, na eni stabilni vodoravni osi in v celoti viden");
     assert.match(css, /\.izvedba-dolg-tok__crta\s*\{[^}]*width:\s*100%[^}]*overflow:\s*visible/, "črta mora zapolniti razpoložljivi prostor brez rezanja markerja");
+    assert.match(css, /\.izvedba-dolg-tok__crta\s*\{[^}]*linear-gradient\(to right,[^}]*var\(--dolg-napredek\)/, "črta mora v živo prikazati poravnani in preostali del");
+    assert.match(css, /\.izvedba-dolg-tok__crta span\s*\{[^}]*left:\s*var\(--dolg-napredek\)/, "pika se mora premikati z živim deležem dolga");
     assert.match(css, /\.izvedba-dolg-tok__puscica::after\s*\{[^}]*border-top:\s*1\.5px solid #b8cdcc[^}]*border-right:\s*1\.5px solid #b8cdcc/, "puščica mora biti narisana poravnano s premico in ne kot zamaknjen besedilni znak");
+    assert.doesNotMatch(src, /izvedba-dolg-tok__puscica\">→/, "puščica ne sme vsebovati skritega besedilnega znaka");
     assert.match(src, /function izrisiPreklicRazlog\(nastavitve\)[\s\S]*?Dogovor z dolžnikom[\s\S]*?Napačni podatki[\s\S]*?Opomin ni potreben[\s\S]*?data-skip-reason-detail/, "preklic posameznega opomina mora ponuditi neobvezen strukturiran razlog");
     assert.match(src, /data-skip-reason[\s\S]*?state\.settingsByAction\.skip_current_step\.skipReason/);
     assert.match(css, /\.izvedba-preklic-razlog__moznosti\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
     assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.izvedba-preklic-razlog__moznosti\s*\{\s*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
     assert.match(src, /function izrisiActionGostiteljHitraDejanja\(actionTypes\)[\s\S]*?data-action-sheet-select=/, "zgornje kartice morajo uporabiti obstoječi handler izbire akcije");
+    assert.match(src, /function actionGostiteljGlava\(\)[\s\S]*?ikona:\s*"bellOff"[\s\S]*?naslov:\s*"Prekliči opomin"[\s\S]*?naslov:\s*"Ne bo plačal"/);
+    assert.match(src, /gostiteljGlava \? gostiteljGlava\.ikona : "xCircle"[\s\S]*?gostiteljGlava \? gostiteljGlava\.naslov : "Kaj želite narediti\?"/);
+    assert.match(src, /dejanje \+ \(jeHitraDejanjaGostitelj \? '' : '<button type="button" class="izvedba-action-sheet__nazaj"/, "gostiteljska hitra okna ne smejo prikazati spodnjega gumba Nazaj");
+    assert.match(css, /\.izvedba-action-sheet__header--opomin \.izvedba-action-sheet__header-ikona\s*\{\s*color:\s*#53779e/);
     assert.match(src, /panel--hitra-gostitelj[\s\S]*?hitra-dejanja-gostitelj__naslov">Hitra dejanja[\s\S]*?hitra-dejanja-gostitelj__zapri[\s\S]*?data-action-sheet-close/, "oba akcijska lista morata imeti enak zgornji pas in ločen ×");
-    assert.match(css, /\.izvedba-action-sheet__panel--hitra-gostitelj\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)[^}]*width:\s*100%[^}]*max-width:\s*none[^}]*padding:\s*0/);
+    assert.match(css, /\.izvedba-action-sheet__panel--hitra-gostitelj\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)[^}]*width:\s*100%[^}]*max-width:\s*var\(--sirina-vsebine\)[^}]*padding:\s*0/);
     assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.izvedba-action-sheet__panel\.izvedba-action-sheet__panel--hitra-gostitelj\s*\{\s*padding:\s*0;/, "mobilno pravilo ne sme znova dodati stranskih odmikov");
     assert.match(css, /\.hitra-dejanja-gostitelj__pas\s*\{[^}]*background:\s*linear-gradient\(145deg, #4d9998, #347f80\)/);
     assert.match(css, /\.hitra-dejanja-gostitelj__naslov\s*\{[^}]*margin:\s*0 44px 34px 2px/);
@@ -581,11 +615,27 @@ async function main() {
     assert.match(css, /\.hitra-dejanja-gostitelj__hitra--prestavi\s*\{[^}]*--hitra-ozadje:/);
     assert.match(css, /\.hitra-dejanja-gostitelj__hitra \.izvedba-hitra-akcija__besedilo\s*\{\s*color:\s*#172522/);
     assert.match(css, /\.hitra-dejanja-gostitelj__jedro\s*\{[^}]*margin-top:\s*-18px[^}]*border-radius:\s*28px 28px 0 0/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__hitra\s*\{[^}]*align-self:\s*stretch[^}]*height:\s*auto[^}]*min-height:\s*66px[^}]*padding-block:\s*7px/);
+    assert.match(css, /\.hitra-dejanja-gostitelj__hitra \.izvedba-hitra-akcija__besedilo\s*\{[^}]*color:\s*#172522[^}]*overflow:\s*visible[^}]*line-height:\s*1\.15/);
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.izvedba-action-sheet__panel--hitra-gostitelj \.izvedba-poravnava-znesek-datum\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)[^}]*gap:\s*8px/);
+    assert.match(css, /\.izvedba-action-sheet__panel--hitra-gostitelj \.izvedba-poravnava-znesek-datum \.izvedba-znesek__vnos,[\s\S]*?\.izvedba-action-sheet__datum-gumb\s*\{[^}]*height:\s*44px[^}]*min-height:\s*44px/);
+    assert.match(css, /\.izvedba-action-sheet__panel--hitra-gostitelj \.izvedba-poravnava__razlog-sprozi\s*\{[^}]*min-height:\s*44px[^}]*font-size:\s*12\.5px/);
+    assert.match(css, /\.izvedba-action-sheet__panel--hitra-gostitelj \.izvedba-poravnava__razlog-moznost\s*\{[^}]*min-height:\s*42px[^}]*font-size:\s*12px/);
+    assert.match(src, /razlogi\.filter\(function \(razlog\) \{ return razlog\.vrednost; \}\)\.map/, "Prazna oznaka Izberite razlog ne sme biti možnost v odprtem meniju");
+    assert.match(css, /\.izvedba-poravnava__razlog-meni\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);[^}]*gap:\s*6px;/s, "Razlogi morajo biti prikazani kot kompaktna mreža 2 × 2");
+    assert.match(css, /\.izvedba-action-sheet__panel:is\(\.izvedba-action-sheet__panel--storno, \.izvedba-action-sheet__panel--poravnava-storno\) \.izvedba-poravnava-podrobnosti,[\s\S]*?\.izvedba-action-sheet__dejanje\s*\{\s*background:\s*#fff;/, "Oba konteksta odpisa oziroma storna morata ohraniti nevtralno belo ozadje brez rožnatega preliva");
+    assert.match(css, /\.izvedba-action-sheet__panel:is\(\.izvedba-action-sheet__panel--storno, \.izvedba-action-sheet__panel--poravnava-storno\) \.izvedba-action-sheet__dejanje\s*\{[^}]*border-color:\s*rgba\(var\(--sheet-action-rgb\), \.72\);[^}]*color:\s*var\(--sheet-action\);/s, "Spodnji gumb storna mora ohraniti rdečo obrobo in poudarek na belem ozadju");
+    assert.match(css, /\.izvedba-poravnava-podrobnosti:is\(\.izvedba-poravnava-podrobnosti--storno, \.izvedba-poravnava-podrobnosti--akcija-storno\)[\s\S]*?\.izvedba-poravnava__razlog-meni,[\s\S]*?background:\s*#fff;/, "Beli storno izbirnik mora veljati tudi v vgrajenem zgodovinskem toku");
+    assert.match(css, /\.izvedba-poravnava-podrobnosti:is\(\.izvedba-poravnava-podrobnosti--storno, \.izvedba-poravnava-podrobnosti--akcija-storno\) \.izvedba-poravnava__razlog-sprozi,[\s\S]*?font-family:\s*Inter,[^;]+;[\s\S]*?font-size:\s*16px;[\s\S]*?font-weight:\s*400;[\s\S]*?line-height:\s*1;[\s\S]*?font-synthesis:\s*none;/, "Oba storno konteksta morata uporabljati isti Interjev kontrolniški contract kot datum in primerljiva polja");
+    assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.izvedba-poravnava-podrobnosti:is\(\.izvedba-poravnava-podrobnosti--storno, \.izvedba-poravnava-podrobnosti--akcija-storno\) \.izvedba-poravnava__razlog-sprozi,[\s\S]*?font-size:\s*12px;[\s\S]*?line-height:\s*1;/, "Mobilni storno razlog mora ostati kompakten, vendar tipografsko enak datumskemu kontrolniku");
+    assert.match(css, /\.izvedba-poravnava-podrobnosti:is\(\.izvedba-poravnava-podrobnosti--storno, \.izvedba-poravnava-podrobnosti--akcija-storno\) > \.izvedba-poravnava-podrobnosti__strni\s*\{\s*z-index:\s*2;/, "Pozneje izrisano polje razloga ne sme prekriti zgornjega caret gumba");
+    assert.match(css, /\.stran--neplacila-zgodovina \.izvedba-poravnava-podrobnosti--storno > \.izvedba-poravnava-podrobnosti__strni\s*\{[^}]*top:\s*2px;[^}]*right:\s*4px;/, "Zgodovinski caret mora imeti varen optični odmik od zgornjega in desnega roba");
+    assert.match(css, /\.izvedba-poravnava-podrobnosti:is\(\.izvedba-poravnava-podrobnosti--storno, \.izvedba-poravnava-podrobnosti--akcija-storno\) \.izvedba-poravnava__razlog\.is-open \.izvedba-poravnava__razlog-meni\s*\{[^}]*position:\s*relative;[^}]*inset:\s*auto;[^}]*margin-top:\s*6px;/, "Odprti meni 2 × 2 mora razširiti storno kartico in ne sme prekriti nobenega careta");
     assert.match(src, /function jePlacilniDogodkovniTip\(tip\)[\s\S]*?"unpaid_installment"[\s\S]*?"payment_failed"[\s\S]*?"invoice_dispute"[\s\S]*?"cancelled_invoice"[\s\S]*?"insolvency"/);
     assert.match(src, /state\.assistedHistoryInputActive = true;[\s\S]*?finally[\s\S]*?state\.assistedHistoryInputActive = prejsnjiAssistedHistoryInput/);
     assert.match(css, /panel--poravnano \.izvedba-poravnava-svicer__gumb--drugo[\s\S]*?grid-column:\s*auto/);
     assert.match(historyCss, /\.atena \.atena__ponastavi\s*\{[\s\S]*?align-self:\s*start;[\s\S]*?margin-top:\s*4px;/);
-    assert.match(historyCss, /izvedba-action-sheet__panel--atena-gostitelj\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)[^}]*gap:\s*0[^}]*width:\s*min\(100%, 520px\)[^}]*height:\s*100lvh/);
+    assert.match(historyCss, /izvedba-action-sheet__panel--atena-gostitelj\s*\{[^}]*grid-template-rows:\s*auto minmax\(0, 1fr\)[^}]*gap:\s*0[^}]*width:\s*min\(100%, var\(--sirina-vsebine\)\)[^}]*height:\s*100lvh/);
     assert.match(historyCss, /\.atena \.atena-gostitelj__pas\s*\{[^}]*padding:\s*max\(28px, calc\(8px \+ env\(safe-area-inset-top, 0px\)\)\) 10px 30px[^}]*background:\s*linear-gradient\(145deg, #4d9998, #347f80\)[^}]*box-shadow:/);
     assert.match(historyCss, /\.atena \.atena-gostitelj__naslov\s*\{[^}]*margin:\s*0 44px 34px 2px/, "zgornja pasica mora biti dovolj visoka, da so hitri gumbi opazno pomaknjeni nižje");
     assert.match(historyCss, /atena-gostitelj__hitra--placano\s*\{[^}]*--hitra-ozadje:\s*linear-gradient\(145deg, #dff5e9, #f5fbf7\)/, "zelena bližnjica mora ohraniti jasno notranjo barvo");
@@ -607,7 +657,7 @@ async function main() {
     const src = citaj("app/izvedba.js");
     const css = citaj("app/izvedba.css");
     const html = citaj("app/izvedba.html");
-    assert.match(src, /izvedba-hitre-akcije[\s\S]*?Ne bo pla\\u010Dal[\s\S]*?Bo pla\\u010Dal[\s\S]*?Prekli\\u010Di opomin/);
+    assert.match(src, /izvedba-hitre-akcije[\s\S]*?Ne bo pla\\u010Dal[\s\S]*?Pristal je na dogovor[\s\S]*?Prekli\\u010Di opomin/);
     assert.match(src, /izvedba-hitra-akcija--opomin[^>]*id="izvedba-gumb-preklici-hitro"/);
     assert.match(src, /<div class="izvedba-posljizdaj-vrstica"><button[^>]*id="izvedba-gumb-posljizdaj"[^>]*>Pošlji<\/button><\/div>/);
     assert.doesNotMatch(src, /id="izvedba-gumb-pozneje"/);
@@ -800,7 +850,12 @@ async function main() {
     assert.match(src, /data-settlement-reason-toggle/);
     assert.match(src, /data-settlement-reason-option/);
     assert.doesNotMatch(src, /<select data-settlement-reason/);
-    assert.match(src, /state\.settlementSettings\[razlogTip\]\.reason = razlogMoznost\.getAttribute/);
+    assert.match(src, /state\.settlementSettings\[razlogTip\]\.reason === razlogVrednost \? "" : razlogVrednost/,
+      "ponovni klik istega razloga mora počistiti izbiro");
+    assert.match(src, /zgodovinaSelectNative\.value === zgodovinaSelectVrednost \? "" : zgodovinaSelectVrednost|zgodovinaNativeSelect\.value === zgodovinaSelectVrednost \? "" : zgodovinaSelectVrednost/,
+      "ponovni klik iste možnosti zgodovinskega dropdowna mora počistiti vrednost");
+    assert.match(src, /zgodovinaIzbiraNastavitve\[zgodovinaIzbiraPolje\] === zgodovinaIzbiraVrednost \? "" : zgodovinaIzbiraVrednost/,
+      "ponovni klik iste zgodovinske hitre izbire mora počistiti vrednost");
     assert.match(css, /\.izvedba-poravnava__razlog-meni\s*\{[\s\S]*?border-radius:\s*14px;[\s\S]*?box-shadow:/);
   });
 
@@ -891,7 +946,7 @@ async function main() {
     assert.match(src, /async function odstraniIzvedenKorak\(actionId, actionType\)/);
     assert.match(src, /actionType:\s*tipRazveljavitveUkrepa\(actionType\)/);
     assert.match(src, /function ponastaviOsnutekPoravnave\(\)/);
-    assert.match(src, /function zapriActionSheet\(\) \{[\s\S]*?if \(state\.actionSheetMode === \"payment\"\) ponastaviOsnutekPoravnave\(\)/);
+    assert.match(src, /function zapriActionSheet\(\) \{[\s\S]*?if \(state\.actionSheetMode === \"payment\"\) \{[\s\S]*?UJZgodovinaPonastaviVgrajeniVnos[\s\S]*?ponastaviOsnutekPoravnave\(\);[\s\S]*?\}/);
     assert.match(src, /if \(!state\.nacrtKoraki\.length && state\.actionSheetStep === \"povzetek\"\) \{\s*state\.actionSheetStep = \"izbira\"/);
     assert.match(api, /razveljavi_opomin_poravnavo/);
     assert.match(migracija, /delete from public\.zadeva_placila/);
@@ -1013,7 +1068,7 @@ async function main() {
     assert.match(src, /if \(tip === "installment"\)[\s\S]*?Obrok je plačan[\s\S]*?Dogovor o obrokih/);
     assert.match(src, /zagotoviObrokPlaner\(\);\s*return obrokiIzbira \+ izrisiObrokPlaner\(\);/);
     assert.match(src, /jePlacanaZgodovina[\s\S]*?nastavitve\.paymentMethod/);
-    assert.match(src, /jePlacanaZgodovina \? 'Dodaj ' \+ K\.esc\(sklonjenoDodajObroke/);
+    assert.match(src, /data-obrok-planer-dodaj-vse[^>]*>Shrani obroke<\/button>/);
     assert.match(src, /var omejitevDatuma = jePlacanaZgodovina \? ' max=/);
     assert.match(src, /if \(jeVnosZgodovine\(\)\) state\.selectedSettlementType = null;/);
   });
@@ -1039,6 +1094,82 @@ async function main() {
     const src = citaj("app/izvedba.js");
     assert.match(src, /var prejsnjiSvicerScrollLeft = prejsnjiSvicer \? prejsnjiSvicer\.scrollLeft : null/);
     assert.match(src, /noviSvicer\.scrollLeft = Math\.min\(prejsnjiSvicerScrollLeft/);
+  });
+
+  await test("vseh sedem kartic dogovora uporablja varni payment_promised contract", () => {
+    const src = citaj("app/izvedba.js");
+    const zacetekVarnePoti = src.indexOf("function pripraviDogovorZaOddajo(tip)");
+    const priklopVarnePoti = src.indexOf("var pripravljeniDogovor = pripraviDogovorZaOddajo(tip)");
+    const staraPoravnalnaPot = src.indexOf('if (tip === "partial" || tip === "installment")', priklopVarnePoti);
+    assert.ok(zacetekVarnePoti > 0 && priklopVarnePoti > zacetekVarnePoti);
+    assert.ok(priklopVarnePoti < staraPoravnalnaPot, "dogovorna varnostna meja mora prestreči tok pred dejansko poravnavo");
+    assert.match(src, /if \(!jePlacilniEngine\(\) \|\| jeVnosZgodovine\(\)\) return undefined/);
+    assert.match(src, /var agreementKind = tip === "payment_promised" \? "deadline" : tip/);
+    assert.match(src, /if \(tip === "full"\)[\s\S]*?actionType: "payment_promised"/);
+    assert.match(src, /if \(tip === "partial"\)[\s\S]*?actionType: "payment_promised"/);
+    assert.match(src, /if \(tip === "installment"\)[\s\S]*?actionType: "payment_promised"/);
+    assert.match(src, /tip === "compensation" \|\| tip === "credit_note"[\s\S]*?actionType: "payment_promised"/);
+    assert.match(src, /agreementKind: "custom"/);
+    assert.match(src, /jePlacilniEngine\(\) && !jeVnosZgodovine\(\)[\s\S]*?dodajKorakVNacrt\(\)/, "obročni dogovor se mora dodati kot en dogovor, ne kot več dejanskih plačil");
+  });
+
+  await test("backend ohrani strukturirane podatke dogovora in zavrne nevarne vsote", () => {
+    const osnova = {
+      waitDays: 12,
+      agreementKind: "installment",
+      agreedAmount: 100,
+      agreedAt: "2026-08-29T10:00:00.000Z",
+      dueAt: "2026-10-01T10:00:00.000Z",
+      paymentMethod: "bank_transfer",
+      source: "manual",
+      installments: [
+        { amount: 40, dueAt: "2026-09-01T10:00:00.000Z" },
+        { amount: 60, dueAt: "2026-10-01T10:00:00.000Z" },
+      ],
+    };
+    const veljavno = core.validirajNastavitve("payment_promised", osnova, { preostaliDolg: 434 });
+    assert.equal(veljavno.ok, true);
+    assert.equal(veljavno.settings.agreementKind, "installment");
+    assert.equal(veljavno.settings.agreedAmount, 100);
+    assert.equal(veljavno.settings.installmentCount, 2);
+    assert.equal(veljavno.settings.installments[1].amount, 60);
+    assert.equal(veljavno.settings.paymentMethod, "bank_transfer");
+    assert.equal(veljavno.settings.source, "manual");
+
+    const previsokDolg = core.validirajNastavitve("payment_promised", { waitDays: 4, agreementKind: "partial", agreedAmount: 500 }, { preostaliDolg: 434 });
+    assert.equal(previsokDolg.ok, false);
+    assert.equal(previsokDolg.code, "PAYMENT_EXCEEDS_DEBT");
+
+    const napacnaVsota = core.validirajNastavitve("payment_promised", Object.assign({}, osnova, {
+      installments: [{ amount: 90, dueAt: "2026-09-01T10:00:00.000Z" }],
+    }), { preostaliDolg: 434 });
+    assert.equal(napacnaVsota.ok, false);
+    assert.equal(napacnaVsota.code, "INVALID_SETTINGS");
+  });
+
+  await test("payment_promised za nobeno vrsto dogovora ne spremeni ledgerja dolga", () => {
+    const vrste = ["full", "partial", "installment", "deadline", "compensation", "credit_note", "custom"];
+    vrste.forEach(function (agreementKind) {
+      const plan = osnovniPlan([korak({ id: "s1", stepId: "s1" })]);
+      const rezultat = core.izracunajUkrep("payment_promised", {
+        plan,
+        koraki: [],
+        settings: { waitDays: 4, agreementKind, agreedAmount: 100 },
+        preostaliDolg: 434,
+      });
+      assert.equal(rezultat.ok, true, agreementKind);
+      assert.equal(rezultat.newPlan.status, "waiting_for_promised_payment", agreementKind);
+      assert.equal("novPreostanek" in rezultat, false, agreementKind);
+      assert.equal("placiloZnesek" in rezultat, false, agreementKind);
+    });
+  });
+
+  await test("migracija dovoli partial_settlement brez spreminjanja dogovorne poti", () => {
+    const migracija = citaj("supabase/migrations/20260829180000_allow_partial_settlement_action_type.sql");
+    assert.match(migracija, /pg_get_constraintdef\(c\.oid\) ilike '%action_type%'/);
+    assert.match(migracija, /'payment_promised'/);
+    assert.match(migracija, /'partial_settlement'/);
+    assert.doesNotMatch(migracija, /preostali_dolg|placano_skupaj|status\s*=\s*'Rešeno'/);
   });
 
   console.log("\nUspešnih izvedba testov: " + passed);

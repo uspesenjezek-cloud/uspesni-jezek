@@ -4,9 +4,10 @@ var ACTOR_ID = "vKs8nu688v4F1se82";
 var API_ROOT = "https://api.apify.com/v2";
 var NORTH_DATA_ROOT = "https://www.northdata.com/";
 var MAX_TOTAL_CHARGE_USD = 0.01;
-// Ta dopolnilni (2 $ / 1k) actor ne sme zadržati celotne bonitetne preverbe.
-// Po 10 sekundah ga opustimo in nadaljujemo samo z osnovnim North Data rezultatom.
-var TIMEOUT_SECONDS = 10;
+// Ta dopolnilni (2 $ / 1k) actor teče izključno v ločenem ozadnem klicu. Glavni
+// rezultat ga ne čaka, zato mu pustimo dovolj časa za običajen 16-sekundni run.
+// Plačljivega POST klica nikoli ne ponavljamo samodejno.
+var TIMEOUT_SECONDS = 25;
 var companyCache = require("./northdata-company-cache");
 var primaryClient = require("./apify-northdata-client");
 
@@ -69,16 +70,21 @@ function selectCompany(items, official, primary) {
 function skipped(reason) { return { status: "skipped", reason: reason || "primary_northdata_required", source: "northdata_details_apify", sourceLabel: "North Data – dopolnilni podatki", sourceUrl: NORTH_DATA_ROOT, estimatedCostUsd: 0 }; }
 function sourceEntry(value) {
   var item = value || skipped("not_run");
-  return { id: "northdata_details", label: "North Data – dopolnilni podatki", status: item.status, reason: item.reason || "", sourceUrl: item.sourceUrl || NORTH_DATA_ROOT, message: item.status === "found" ? "Objavljene bilančne postavke in ocenjeni zaposleni so bili dopolnjeni po potrditvi istega podjetja." : item.status === "skipped" ? "Dopolnilni agent se izvede šele po uspešnem osnovnem North Data ujemanju." : "Dopolnilni podatki trenutno niso na voljo; osnovni rezultat ostaja nespremenjen." };
+  return { id: "northdata_details", label: "North Data – dopolnilni podatki", status: item.status, reason: item.reason || "", sourceUrl: item.sourceUrl || NORTH_DATA_ROOT, message: item.status === "found" ? "Objavljene bilančne postavke in ocenjeni zaposleni so bili dopolnjeni po potrditvi istega podjetja." : item.status === "pending_background" ? "Dodatni finančni podatki se nalagajo v ozadju; osnovni rezultat je že pripravljen." : item.status === "skipped" ? "Dopolnilni agent se izvede šele po uspešnem osnovnem North Data ujemanju." : "Dopolnilni podatki trenutno niso na voljo; osnovni rezultat ostaja nespremenjen." };
 }
 async function enrichCompany(official, primary, options) {
   var opts = options || {}, token = text(opts.token != null ? opts.token : process.env.APIFY_API_TOKEN, 5000);
   if (!token) return Object.assign(skipped("token_missing"), { status: "not_configured" });
   var fetchImpl = opts.fetch || global.fetch;
   if (typeof fetchImpl !== "function") return Object.assign(skipped("fetch_unavailable"), { status: "unavailable" });
-  var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, TIMEOUT_SECONDS * 1000);
+  // Testi lahko z notranjo opcijo uporabijo kratko mejo. HTTP handler te opcije
+  // nikoli ne bere iz uporabniškega telesa.
+  var timeoutSeconds = Number(opts.timeoutSeconds);
+  if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) timeoutSeconds = TIMEOUT_SECONDS;
+  timeoutSeconds = Math.min(Math.max(timeoutSeconds, 0.01), TIMEOUT_SECONDS);
+  var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, timeoutSeconds * 1000);
   try {
-    var response = await fetchImpl(API_ROOT + "/acts/" + ACTOR_ID + "/run-sync-get-dataset-items?timeout=" + TIMEOUT_SECONDS + "&memory=512&maxItems=1&maxTotalChargeUsd=" + MAX_TOTAL_CHARGE_USD + "&clean=1", {
+    var response = await fetchImpl(API_ROOT + "/acts/" + ACTOR_ID + "/run-sync-get-dataset-items?timeout=" + timeoutSeconds + "&memory=512&maxItems=1&maxTotalChargeUsd=" + MAX_TOTAL_CHARGE_USD + "&clean=1", {
       method: "POST", headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify(buildInput(official)), signal: controller.signal,
     });
     if (!response.ok) return Object.assign(skipped("api_error"), { status: "unavailable", httpStatus: response.status });

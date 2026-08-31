@@ -4,6 +4,10 @@ const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
 const providerJson = require("../_lib/provider-json");
 const requestQuery = require("../_lib/pos-request-query");
+const pdfCapacity = require("../_lib/runtime-capacity").sharedGate("pos-pdf-generation", {
+  maxActive: 2, maxQueue: 32, waitTimeoutMs: 8000, retryAfterMs: 1500,
+  busyMessage: "Ustvarjanje PDF-jev je trenutno zasedeno. Poskusite znova čez trenutek."
+});
 const { GENERATOR_VERSION, createProcedureDocumentationPdf } = require("../_lib/pos-procedure-documentation-pdf");
 
 const BUCKET = "pos-procedure-documents";
@@ -98,7 +102,7 @@ async function archiveVersion(cfg, userId, fingerprint, path, pdf, model) {
   });
 }
 
-async function ensureVersion(cfg, userId, model) {
+async function ensureVersionCore(cfg, userId, model) {
   const fingerprint = sourceFingerprint(model);
   let version = await readVersion(cfg, userId, fingerprint);
   let pdf;
@@ -128,6 +132,12 @@ async function ensureVersion(cfg, userId, model) {
     throw new Error("Verfahrensdokumentation je nastala, vendar njena arhivska evidenca ni pravilna.");
   }
   return { version, pdf: archivedPdf };
+}
+
+function ensureVersion(cfg, userId, model) {
+  return pdfCapacity.run("procedure:" + userId + ":" + sourceFingerprint(model), function () {
+    return ensureVersionCore(cfg, userId, model);
+  });
 }
 
 async function loadModel(cfg, userId) {

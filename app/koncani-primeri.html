@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <meta name="color-scheme" content="light only" />
     <title>Končani primeri – Uspešni Ježek</title>
@@ -14,8 +14,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260822-gumbi-bok-ob-boku-v1" />
-    <link rel="stylesheet" href="koncani-primeri.css?v=20260824-podatki-kompakt-v2" />
+    <link rel="stylesheet" href="styles.css?v=20260830-global-full-width-v1" />
+    <link rel="stylesheet" href="koncani-primeri.css?v=20260831-audit-fixes-v2" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#ffffff" />
@@ -42,12 +42,12 @@
         </header>
 
         <div class="koncani-primeri-filtri" role="tablist" aria-label="Vrsta zaključka">
-          <button type="button" role="tab" aria-selected="true" class="koncani-primeri-filter is-active" data-koncani-filter="all">Vsi</button>
-          <button type="button" role="tab" aria-selected="false" class="koncani-primeri-filter" data-koncani-filter="paid">Plačani</button>
-          <button type="button" role="tab" aria-selected="false" class="koncani-primeri-filter" data-koncani-filter="other">Drugače zaključeni</button>
+          <button id="koncani-filter-vsi" type="button" role="tab" aria-controls="koncani-primeri-panel" aria-selected="true" class="koncani-primeri-filter is-active" data-koncani-filter="all">Vsi</button>
+          <button id="koncani-filter-placani" type="button" role="tab" aria-controls="koncani-primeri-panel" aria-selected="false" tabindex="-1" class="koncani-primeri-filter" data-koncani-filter="paid">Plačani</button>
+          <button id="koncani-filter-drugace" type="button" role="tab" aria-controls="koncani-primeri-panel" aria-selected="false" tabindex="-1" class="koncani-primeri-filter" data-koncani-filter="other">Drugače zaključeni</button>
         </div>
 
-        <section class="koncani-primeri-vsebina" aria-live="polite">
+        <section id="koncani-primeri-panel" class="koncani-primeri-vsebina" role="tabpanel" aria-labelledby="koncani-filter-vsi" aria-live="polite">
           <div class="koncani-primeri-nalaganje" data-koncani-nalaganje>
             <span aria-hidden="true"></span>
             Nalagam končane primere …
@@ -59,9 +59,10 @@
             <p data-koncani-prazno-opis>Ko zaključite primer, se bo samodejno prikazal tukaj.</p>
             <a class="btn btn--obris" href="aktivni-primeri.html">Poglej odprte zadeve</a>
           </div>
-          <p class="koncani-primeri-napaka" data-koncani-napaka role="alert" hidden>
-            Končanih primerov trenutno ni bilo mogoče naložiti.
-          </p>
+          <div class="koncani-primeri-napaka" data-koncani-napaka role="alert" hidden>
+            <span data-koncani-napaka-besedilo>Končanih primerov trenutno ni bilo mogoče naložiti.</span>
+            <button type="button" data-koncani-ponovi>Poskusi znova</button>
+          </div>
         </section>
       </main>
     </div>
@@ -81,7 +82,7 @@
     <div class="app-testna-vrstica-prostor" aria-hidden="true"></div>
     <div class="app-testna-vrstica" id="app-testna-vrstica" data-locked="true" role="note" aria-label="Začasna splošna navigacijska vrstica"><span>Testna vrstica</span></div>
     <script src="izvedba-komponente.js?v=20260825-storno-akcija-meta-v2"></script>
-    <script src="nastavitve-izidov.js?v=20260825-revert-v6"></script>
-    <script src="koncani-primeri.js?v=20260824-podatki-kompakt-v2"></script>
+    <script src="nastavitve-izidov.js?v=20260831-audit-fixes-v1"></script>
+    <script src="koncani-primeri.js?v=20260831-audit-fixes-v2"></script>
   </body>
 </html>

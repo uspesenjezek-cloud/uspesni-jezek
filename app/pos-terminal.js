@@ -1909,6 +1909,9 @@
     archiveCapabilityView: archiveCapabilityView,
     stripeReturnMessage: stripeReturnMessage,
     paymentFromServer: paymentFromServer,
+    cashReceiptFromServer: cashReceiptFromServer,
+    cashRefundFromServer: cashRefundFromServer,
+    cashCheckoutFromServer: cashCheckoutFromServer,
     paymentSummary: paymentSummary,
     cashReceiptForInvoice: cashReceiptForInvoice,
     applyLocalCashCheckouts: applyLocalCashCheckouts,
@@ -2178,6 +2181,98 @@
     };
   }
 
+  function cashReceiptFromServer(value) {
+    var receipt = value && typeof value === "object" ? value : {};
+    var items = (Array.isArray(receipt.items) ? receipt.items : []).map(function (item) {
+      var grossCents = integer(item && item.gross_cents, 0);
+      return {
+        description: String(item && item.description || ""),
+        quantityMilli: 1000,
+        unitGrossCents: grossCents,
+        grossCents: grossCents,
+        vatRate: String(item && item.vat_rate || "0")
+      };
+    });
+    var totals = {};
+    items.forEach(function (item) {
+      var rate = integer(item.vatRate, 0);
+      var netCents = rate ? roundDivide(item.grossCents * 100, 100 + rate) : item.grossCents;
+      if (!totals[item.vatRate]) totals[item.vatRate] = { vatRate: item.vatRate, netCents: 0, taxCents: 0, grossCents: 0 };
+      totals[item.vatRate].netCents += netCents;
+      totals[item.vatRate].taxCents += item.grossCents - netCents;
+      totals[item.vatRate].grossCents += item.grossCents;
+    });
+    return {
+      schemaVersion: integer(receipt.schema_version, 1),
+      paymentType: String(receipt.payment_type || "CASH"),
+      currency: String(receipt.currency || "EUR"),
+      grossCents: integer(receipt.gross_cents, 0),
+      items: items,
+      totalsByVat: Object.keys(totals).sort().map(function (rate) { return totals[rate]; })
+    };
+  }
+
+  function cashSignatureFromServer(row, fiscalType) {
+    if (!row || !row.signature_counter) return null;
+    return {
+      transactionId: row.transaction_id,
+      fiscalType: fiscalType,
+      signatureCounter: row.signature_counter,
+      signatureAlgorithm: row.signature_algorithm,
+      tssSerialNumber: row.tss_serial_number,
+      clientSerialNumber: row.client_serial_number,
+      qrCodeData: row.qr_code_data,
+      startedAt: row.tse_started_at,
+      finishedAt: row.tse_finished_at
+    };
+  }
+
+  function cashRefundFromServer(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      state: row.status,
+      requestKey: row.request_key,
+      invoiceId: row.invoice_id,
+      originalCheckoutId: row.checkout_id,
+      paymentId: row.payment_id || null,
+      transactionId: row.transaction_id,
+      receipt: cashReceiptFromServer(row.receipt_snapshot),
+      signature: cashSignatureFromServer(row, "REFUND"),
+      failureCode: row.failure_code || "",
+      providerObservedState: row.provider_observed_state || "",
+      providerObservedAt: row.provider_observed_at || null,
+      cancelledAt: row.cancelled_at || null,
+      preparedAt: row.prepared_at || null,
+      completedAt: row.completed_at || null,
+      updatedAt: row.updated_at || null
+    };
+  }
+
+  function cashCheckoutFromServer(row, refund) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      state: row.status,
+      requestKey: row.request_key,
+      invoiceId: row.invoice_id,
+      fiscalInvoiceId: row.invoice_id,
+      paymentId: row.payment_id || null,
+      transactionId: row.transaction_id,
+      receipt: cashReceiptFromServer(row.receipt_snapshot),
+      signature: cashSignatureFromServer(row, "SALE"),
+      refund: refund || null,
+      refundedAt: refund && refund.state === "completed" ? refund.completedAt : null,
+      failureCode: row.failure_code || "",
+      providerObservedState: row.provider_observed_state || "",
+      providerObservedAt: row.provider_observed_at || null,
+      cancelledAt: row.cancelled_at || null,
+      preparedAt: row.prepared_at || null,
+      completedAt: row.completed_at || null,
+      updatedAt: row.updated_at || null
+    };
+  }
+
   function paymentSummary(payments, grossCents, currentStatus) {
     var paidCents = (payments || []).reduce(function (sum, payment) {
       if (["succeeded", "partially_refunded"].indexOf(payment.status || "succeeded") === -1) return sum;
@@ -2377,9 +2472,11 @@
         fetchAllRows(function () { return backend.client.from("pos_contract_confirmation_deliveries").select("work_order_id,confirmation_document_id,channel,recipient,evidence,electronic_consent_evidence,delivered_on,recorded_at").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_settlements").select("*").eq("user_id", userId).order("assessed_at", { ascending: true }); }),
         fetchAllRows(function () { return backend.client.from("pos_consumer_withdrawal_refund_records").select("*").eq("user_id", userId).order("recorded_at", { ascending: true }); }),
-        fetchAllRows(function () { return backend.client.from("pos_adjustment_einvoice_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("adjustment_id", { ascending: true }); })
+        fetchAllRows(function () { return backend.client.from("pos_adjustment_einvoice_documents").select("adjustment_id,sha256,byte_size,created_at,generator_version,xrechnung_version,validation_status,validator_version,validator_config_version,validated_at").eq("user_id", userId).order("adjustment_id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_cash_checkouts").select("*").eq("user_id", userId).order("prepared_at", { ascending: true }).order("id", { ascending: true }); }),
+        fetchAllRows(function () { return backend.client.from("pos_cash_refunds").select("*").eq("user_id", userId).order("prepared_at", { ascending: true }).order("id", { ascending: true }); })
       ]);
-      var firstError = responses.slice(0, 23).map(function (entry) { return entry.error; }).filter(Boolean)[0];
+      var firstError = responses.map(function (entry) { return entry.error; }).filter(Boolean)[0];
       if (firstError) throw firstError;
       backend.ready = true;
       backend.serverStateLoaded = true;
@@ -2498,6 +2595,11 @@
           cancellationAdjustmentId: cancellation.id,
           cancellationNumber: cancellation.number
         };
+      });
+      var cashRefundsByCheckout = {};
+      (responses[24].data || []).forEach(function (row) { cashRefundsByCheckout[row.checkout_id] = cashRefundFromServer(row); });
+      state.cashCheckouts = (responses[23].data || []).map(function (row) {
+        return cashCheckoutFromServer(row, cashRefundsByCheckout[row.id] || null);
       });
       var localTests = state.invoices.filter(function (invoice) { return !invoice.serverStored && invoice.isTest; });
       state.invoices = applyLocalCashCheckouts(mergeInvoiceSources(serverInvoices, localTests), state.cashCheckouts);
@@ -3737,7 +3839,7 @@
 
   function paymentSourceLabel(payment) {
     if (payment.provider === "stripe" || payment.method === "stripe_card") return "Stripe kartica · TEST";
-    if (payment.method === "cash") return "Barzahlung · TSE MOCK";
+    if (payment.method === "cash") return "Gotovina · TSE MOCK";
     if (payment.sourceBankTransactionId || payment.method === "bank_transfer") return "Bančno nakazilo";
     if (payment.method === "external_card") return "Zunanja kartica";
     return "Ročna potrditev";
@@ -3814,7 +3916,7 @@
   }
 
   function localCashCheckoutForInvoice(invoice) {
-    var checkouts = (state.cashCheckouts || []).filter(function (entry) { return entry && entry.invoiceId === invoice.id && entry.state === "completed"; });
+    var checkouts = (state.cashCheckouts || []).filter(function (entry) { return entry && entry.invoiceId === invoice.id; });
     return checkouts[checkouts.length - 1] || null;
   }
 
@@ -3851,48 +3953,71 @@
     var panel = query("[data-cash-payment-panel]");
     if (!panel) return;
     var checkout = localCashCheckoutForInvoice(invoice);
+    var checkoutCancelled = Boolean(checkout && checkout.state === "cancelled");
+    var activeCheckout = checkoutCancelled ? null : checkout;
     var receipt = cashReceiptForInvoice(invoice);
-    var refunded = Boolean(checkout && (checkout.refund && checkout.refund.state === "completed" || checkout.refundedAt));
-    var recoveryRequired = Boolean(checkout && checkout.refund && checkout.refund.state === "recovery_required");
+    var refunded = Boolean(activeCheckout && (activeCheckout.refund && activeCheckout.refund.state === "completed" || activeCheckout.refundedAt));
+    var checkoutPrepared = Boolean(activeCheckout && activeCheckout.state === "prepared");
+    var checkoutSigned = Boolean(activeCheckout && activeCheckout.state === "signed");
+    var checkoutRecovery = Boolean(activeCheckout && activeCheckout.state === "recovery_required");
+    var refundPrepared = Boolean(activeCheckout && activeCheckout.refund && activeCheckout.refund.state === "prepared");
+    var refundSigned = Boolean(activeCheckout && activeCheckout.refund && activeCheckout.refund.state === "signed");
+    var refundRecovery = Boolean(activeCheckout && activeCheckout.refund && activeCheckout.refund.state === "recovery_required");
+    var recoveryRequired = checkoutRecovery || refundRecovery;
+    var completionPending = checkoutPrepared || checkoutSigned || refundPrepared || refundSigned;
     panel.hidden = !invoice.isTest;
     if (!invoice.isTest) return;
-    panel.classList.toggle("is-paid", Boolean(checkout && !refunded));
+    panel.classList.toggle("is-paid", Boolean(activeCheckout && !refunded));
     panel.classList.toggle("is-refunded", refunded);
     panel.classList.toggle("is-recovery", recoveryRequired);
-    query("[data-cash-payment-title]").textContent = recoveryRequired ? "TSE uskladitev je obvezna" : refunded ? "Gotovina povrnjena" : checkout ? "Gotovina zaključena" : "Gotovinsko plačilo · TRAINING";
-    query("[data-cash-payment-copy]").textContent = recoveryRequired
-      ? "Povračilo ni zabeleženo. Pred ponovitvijo je treba ročno preveriti stanje TSE transakcije."
+    query("[data-cash-payment-title]").textContent = recoveryRequired ? "TSE uskladitev je obvezna" : completionPending ? "TSE zaključek je treba dokončati" : checkoutCancelled ? "TSE poskus je varno preklican" : refunded ? "Gotovina povrnjena" : activeCheckout ? "Gotovina zaključena" : "Gotovinsko plačilo · TRAINING";
+    query("[data-cash-payment-copy]").textContent = !invoice.serverStored || !backend.ready
+      ? "Varen gotovinski TRAINING potek zahteva prijavo in v Supabase shranjen testni račun."
+      : recoveryRequired
+      ? "Stanje TSE transakcije je nejasno. Uporabite uskladitev; plačilo ali povračilo ostaja zaklenjeno do avtoritativnega odgovora ponudnika."
+      : completionPending
+      ? "Isti TSE transaction ID in shranjeni Kassenbon bosta varno uporabljena za nadaljevanje brez novega poslovnega dogodka."
+      : checkoutCancelled
+      ? "Ponudnik je za točno transakcijo potrdil CANCELLED ali NOT_FOUND. Nov poskus je varen."
       : refunded
       ? "Mock TSE prodaja in podpisano gotovinsko povračilo sta sledljiva v DSFinV-K TEST izvozu."
-      : checkout ? "Plačilo je bilo zapisano šele po zaključenem lokalnem mock TSE podpisu."
+      : activeCheckout ? "Plačilo je bilo zapisano šele po zaključenem lokalnem mock TSE podpisu."
       : receipt ? "Odprti znesek " + formatMoney(receipt.grossCents) + " bo zaključen atomarno z lokalnim mock TSE podpisom."
       : "Ta račun ni primeren za varen lokalni gotovinski zaključek.";
     var pay = query("[data-cash-payment]");
     var refund = query("[data-cash-refund]");
     var showReceipt = query("[data-cash-receipt]");
-    pay.hidden = Boolean(checkout && !refunded);
-    pay.disabled = !receipt || Boolean(checkout && !refunded);
-    refund.hidden = !checkout || refunded;
-    refund.disabled = !checkout || refunded || recoveryRequired;
-    showReceipt.hidden = !checkout;
+    query("[data-cash-payment] span").textContent = checkoutRecovery ? "Uskladi TSE poskus" : checkoutPrepared ? "Nadaljuj TSE poskus" : checkoutSigned ? "Dokončaj TSE plačilo" : "Plačaj z gotovino – TEST";
+    pay.hidden = Boolean(activeCheckout && activeCheckout.state === "completed" && !refunded);
+    pay.disabled = !receipt || !invoice.serverStored || !backend.ready
+      || Boolean(activeCheckout && !["prepared", "signed", "recovery_required"].includes(activeCheckout.state));
+    query("[data-cash-refund] span").textContent = refundRecovery ? "Uskladi TSE povračilo" : refundPrepared ? "Nadaljuj TSE povračilo" : refundSigned ? "Dokončaj TSE povračilo" : "Vrni gotovino – TEST";
+    refund.hidden = !activeCheckout || activeCheckout.state !== "completed" || refunded;
+    refund.disabled = !activeCheckout || !invoice.serverStored || !backend.ready || refunded;
+    showReceipt.hidden = !activeCheckout || activeCheckout.state !== "completed" || !activeCheckout.signature;
   }
 
   async function requestLocalCashPayment(invoice) {
-    var receipt = cashReceiptForInvoice(invoice);
+    if (!invoice.serverStored || !backend.ready) { showToast("Gotovinski TRAINING zahteva prijavo in shranjen testni račun."); return; }
+    var existingCheckout = localCashCheckoutForInvoice(invoice);
+    var resumeCheckout = Boolean(existingCheckout && ["prepared", "signed", "recovery_required"].includes(existingCheckout.state));
+    var reconcileCheckout = Boolean(existingCheckout && existingCheckout.state === "recovery_required");
+    var receipt = resumeCheckout ? existingCheckout.receipt : cashReceiptForInvoice(invoice);
     if (!receipt) { showToast("Račun ni primeren za varen gotovinski TRAINING zaključek."); return; }
     var scope = invoice.id + ":" + receipt.grossCents;
-    openDialog("Gotovino zaključiti s TSE mockom?", invoice.number + " · " + formatMoney(receipt.grossCents) + ". Plačilo bo lokalno zapisano šele po popolnem mock TSE podpisu.", {
-      confirmText: "Potrdi gotovino · TEST",
+    openDialog(reconcileCheckout ? "TSE poskus uskladiti?" : "Gotovino zaključiti s TSE mockom?", invoice.number + " · " + formatMoney(receipt.grossCents) + (reconcileCheckout ? ". Preverjeno bo točno stanje obstoječe TSE transakcije brez novega podpisa." : ". Plačilo bo lokalno zapisano šele po popolnem mock TSE podpisu."), {
+      confirmText: reconcileCheckout ? "Uskladi TSE poskus" : "Potrdi gotovino · TEST",
       onConfirm: async function () {
         var button = query("[data-cash-payment]");
         button.disabled = true;
         try {
-          var requestKey = operationRequestId("cash-payment", scope);
-          var invoiceUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invoice.id) ? invoice.id : operationRequestId("cash-invoice", invoice.id);
+          var requestKey = resumeCheckout ? existingCheckout.requestKey : operationRequestId("cash-payment", scope);
+          var transactionId = resumeCheckout ? existingCheckout.transactionId : requestKey;
+          var token = await apiSessionToken();
           var response = await posFetch("/api/pos-fiskaly", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "local-training-cash-checkout", invoiceId: invoiceUuid, requestKey: requestKey, transactionId: requestKey, confirmed: true, receipt: receipt })
+            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+            body: JSON.stringify({ action: reconcileCheckout ? "local-training-cash-reconcile" : "local-training-cash-checkout", invoiceId: invoice.id, requestKey: requestKey, transactionId: transactionId, confirmed: true, receipt: receipt })
           });
           var body = null;
           try { body = await response.json(); } catch (_error) {}
@@ -3901,11 +4026,29 @@
           state.cashCheckouts = (state.cashCheckouts || []).filter(function (entry) { return entry.id !== checkout.id; }).concat([checkout]);
           applyLocalCashCheckouts([invoice], [checkout]);
           persist();
+          if (checkout.state === "cancelled" || checkout.state === "recovery_required") {
+            if (checkout.state === "cancelled") clearOperationRequestId("cash-payment", scope);
+            renderInvoiceDetail(invoice.id);
+            showToast(checkout.state === "cancelled" ? "TSE poskus je avtoritativno preklican; varen je nov poskus." : "TSE stanje je še nejasno in ostaja zaklenjeno za uskladitev.");
+            return;
+          }
           clearOperationRequestId("cash-payment", scope);
           renderInvoiceDetail(invoice.id);
           renderSignedKassenbon(cashCheckoutTransaction(checkout));
           activateModal(query("[data-fiskaly-receipt-backdrop]"), closeFiskalyReceiptSheet, query("[data-fiskaly-receipt-close]"));
           showToast("Gotovina je lokalno zaključena z mock TSE podpisom.");
+        } catch (error) {
+          if (body && body.checkout && ["prepared", "recovery_required", "cancelled"].includes(body.checkout.state)) {
+            var recoveryCheckout = Object.assign({}, body.checkout, { fiscalInvoiceId: body.checkout.invoiceId, invoiceId: invoice.id, invoiceNumber: invoice.number, receipt: receipt });
+            state.cashCheckouts = (state.cashCheckouts || []).filter(function (entry) { return entry.id !== recoveryCheckout.id; }).concat([recoveryCheckout]);
+            applyLocalCashCheckouts([invoice], [recoveryCheckout]);
+            persist();
+            if (recoveryCheckout.state === "cancelled") clearOperationRequestId("cash-payment", scope);
+            renderInvoiceDetail(invoice.id);
+            showToast(recoveryCheckout.state === "cancelled" ? "TSE poskus je avtoritativno preklican; varen je nov poskus." : "Plačilo ostaja zaklenjeno do avtoritativne TSE uskladitve.");
+            return;
+          }
+          throw error;
         } finally { button.disabled = false; }
       }
     });
@@ -3919,22 +4062,27 @@
   }
 
   function refundLocalCashPayment(invoice) {
+    if (!invoice.serverStored || !backend.ready) { showToast("Gotovinsko TRAINING povračilo zahteva prijavo in shranjen testni račun."); return; }
     var checkout = localCashCheckoutForInvoice(invoice);
     if (!checkout || (checkout.refund && checkout.refund.state === "completed") || checkout.refundedAt) return;
-    var amount = integer(checkout.receipt && checkout.receipt.grossCents, 0);
-    openDialog("Gotovino vrniti?", invoice.number + " · " + formatMoney(amount) + ". Povračilo bo zapisano šele po lastnem mock TSE podpisu.", {
-      confirmText: "Potrdi vračilo · TEST",
+    var resumeRefund = Boolean(checkout.refund && ["prepared", "signed", "recovery_required"].includes(checkout.refund.state));
+    var reconcileRefund = Boolean(checkout.refund && checkout.refund.state === "recovery_required");
+    var refundReceipt = resumeRefund ? checkout.refund.receipt : checkout.receipt;
+    var amount = integer(refundReceipt && refundReceipt.grossCents, 0);
+    openDialog(reconcileRefund ? "TSE povračilo uskladiti?" : "Gotovino vrniti?", invoice.number + " · " + formatMoney(amount) + (reconcileRefund ? ". Preverjeno bo točno stanje obstoječe TSE transakcije brez novega podpisa." : ". Povračilo bo zapisano šele po lastnem mock TSE podpisu."), {
+      confirmText: reconcileRefund ? "Uskladi TSE povračilo" : "Potrdi vračilo · TEST",
       onConfirm: async function () {
         var button = query("[data-cash-refund]");
         button.disabled = true;
         var scope = invoice.id + ":" + checkout.id + ":" + amount;
         try {
-          var requestKey = operationRequestId("cash-refund", scope);
-          var invoiceUuid = checkout.fiscalInvoiceId || (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(invoice.id) ? invoice.id : operationRequestId("cash-invoice", invoice.id));
+          var requestKey = resumeRefund ? checkout.refund.requestKey : operationRequestId("cash-refund", scope);
+          var transactionId = resumeRefund ? checkout.refund.transactionId : requestKey;
+          var token = await apiSessionToken();
           var response = await posFetch("/api/pos-fiskaly", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "local-training-cash-refund", invoiceId: invoiceUuid, originalCheckoutId: checkout.id, requestKey: requestKey, transactionId: requestKey, confirmed: true, receipt: checkout.receipt })
+            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+            body: JSON.stringify({ action: reconcileRefund ? "local-training-cash-refund-reconcile" : "local-training-cash-refund", invoiceId: invoice.id, originalCheckoutId: checkout.id, requestKey: requestKey, transactionId: transactionId, confirmed: true, receipt: refundReceipt })
           });
           var body = null;
           try { body = await response.json(); } catch (_error) {}
@@ -3943,17 +4091,24 @@
           checkout.refundedAt = checkout.refund.completedAt;
           applyLocalCashCheckouts([invoice], [checkout]);
           persist();
+          if (checkout.refund.state === "cancelled" || checkout.refund.state === "recovery_required") {
+            if (checkout.refund.state === "cancelled") clearOperationRequestId("cash-refund", scope);
+            renderInvoiceDetail(invoice.id);
+            showToast(checkout.refund.state === "cancelled" ? "TSE povračilo je avtoritativno preklicano; varen je nov poskus." : "TSE povračilo ostaja zaklenjeno za uskladitev.");
+            return;
+          }
           clearOperationRequestId("cash-refund", scope);
           renderInvoiceDetail(invoice.id);
           renderSignedKassenbon(cashCheckoutTransaction(checkout, true));
           activateModal(query("[data-fiskaly-receipt-backdrop]"), closeFiskalyReceiptSheet, query("[data-fiskaly-receipt-close]"));
           showToast("Gotovinsko povračilo je zaključeno z lastnim mock TSE podpisom.");
         } catch (error) {
-          if (body && body.refund && body.refund.state === "recovery_required") {
+          if (body && body.refund && ["prepared", "recovery_required", "cancelled"].includes(body.refund.state)) {
             checkout.refund = Object.assign({}, body.refund, { invoiceId: invoice.id, invoiceNumber: invoice.number, receipt: checkout.receipt, originalCheckoutId: checkout.id });
             persist();
+            if (checkout.refund.state === "cancelled") clearOperationRequestId("cash-refund", scope);
             renderInvoiceDetail(invoice.id);
-            showToast("Povračilo ni zabeleženo – potrebna je ročna TSE uskladitev.");
+            showToast(checkout.refund.state === "cancelled" ? "TSE povračilo je avtoritativno preklicano; varen je nov poskus." : "Povračilo ostaja zaklenjeno do avtoritativne TSE uskladitve.");
             return;
           }
           throw error;

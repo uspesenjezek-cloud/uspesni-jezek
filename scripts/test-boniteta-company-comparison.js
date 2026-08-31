@@ -98,7 +98,11 @@ assert.match(center, /comparisonState\.enabled&&comparisonState\.items\[0\]&&com
 assert.match(center, /function singleMonitoringItem\(\)[\s\S]*?latestSingleResult/);
 assert.match(center, /function captureSingleMonitoringResult\(event\)[\s\S]*?boniteta-eno-spremljaj"\)\.hidden=!latestSingleResult\.complete[\s\S]*?boniteta-eno-spremljanje-vstop"\)\.hidden=!latestSingleResult\.complete&&\(!transfer\|\|transfer\.hidden\)/);
 assert.match(center, /action:"monitor_create"[\s\S]*?profileId:company\.profileId[\s\S]*?preferences:Object\.keys\(company\.signals\)/);
-assert.match(center, /button\.textContent=editing\?"Spremembe shranjene":"Spremljanje vključeno";closeMonitoringSetup\(\);showCenter\("active"\);loadWatched\(\)/);
+var enableMonitoring = center.slice(center.indexOf("async function enableMonitoring()"), center.indexOf("async function disableMonitoring()"));
+assert.match(enableMonitoring, /profilesLoaded=false;activeChecksLoaded=false;[\s\S]*?button\.textContent=editing\?"Spremembe shranjene":"Spremljanje vključeno";closeMonitoringSetup\(true\);showCenter\("active"\)/,
+  "uspešen vklop mora invalidirati predpomnjene podatke ter aktivni pogled odpreti brez dvojnega povratnega toka");
+assert.doesNotMatch(enableMonitoring, /loadWatched\(\)/,
+  "podatki spremljanja se morajo naložiti samo skozi aktivni pogled, ne še z dodatnim neposrednim klicem");
 assert.match(center, /function defaultMonitoringCompany[\s\S]*?frequency=existing&&existing\.frequency\|\|"weekly"[\s\S]*?cadences:\{insolvencies:frequency,basic:frequency,documents:frequency,representation:frequency,financials:frequency\}/);
 assert.match(center, /monitoringCadences=\[\{value:"daily",label:"Dnevno"\},\{value:"weekly",label:"Tedensko"\},\{value:"monthly",label:"Mesečno"\}\]/);
 assert.match(center, /data-monitor-cadence-toggle[\s\S]*?role="option"[\s\S]*?data-monitor-cadence-option/);

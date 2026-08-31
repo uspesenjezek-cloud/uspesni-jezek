@@ -58,7 +58,7 @@ async function main() {
     "label mora biti geometrijsko centriran med enako širokima stranskima območjema");
   assert.match(css, /boniteta-potrditev-identitete__gumb\.is-loading:disabled[\s\S]*?linear-gradient\(135deg,#35aaa5,#0b8587 72%,#08717a\)[\s\S]*?cursor: wait/,
     "disabled stanje med nalaganjem mora ohraniti turkizni videz");
-  assert.match(css, /boniteta-potrditev-identitete__gumb\.is-loading::after[\s\S]*?border-top-color: #fff[\s\S]*?animation: boniteta-vrtenje/,
+  assert.match(css, /boniteta-potrditev-identitete__gumb\.is-loading \.boniteta-potrditev-identitete__gumb-puscica[\s\S]*?border-top-color: #fff[\s\S]*?animation: boniteta-vrtenje/,
     "desni krogec mora med nalaganjem postati čist bel spinner");
   assert.match(css, /\.crif-flow-picker__start-status\.is-changing[\s\S]*?boniteta-status-prihod/,
     "sprememba statusa v glavnem gumbu mora imeti nežno animacijo");
@@ -195,8 +195,8 @@ async function main() {
   assert.match(js, /companyIndexProof:/);
   assert.match(js, /delete shranljivo\.identity_proof/,
     "kratkotrajni plačljivi dokaz se ne sme zapisati v lokalni predpomnilnik");
-  assert.match(js, /if \(!registrskiVnos && !obrazec\.reportValidity\(\)\) return;/,
-    "izbrano registrsko podjetje ne sme obstati na skritih obveznih ročnih poljih");
+  assert.match(js, /if \(!samoSpletniVnos && !registrskiVnos && !obrazec\.reportValidity\(\)\) return;/,
+    "URL in izbrano registrsko podjetje ne smeta obstati na skritih obveznih ročnih poljih");
   assert.match(js, /function izvediUniverzalnoIskanje[\s\S]*?zanesljivEnolicniZadetek/,
     "glavni gumb mora samodejno usmeriti univerzalni vnos");
   assert.doesNotMatch(js, /prviPrikazaniZadetek[\s\S]*?prviPrikazaniZadetek\.click\(\)/,
@@ -251,6 +251,43 @@ async function main() {
     "stari imenik sme prispevati samo naziv podjetja");
   assert.doesNotMatch(directoryMapper, /row\[[1-6]\]/,
     "kraj, register, status in identifikator iz starega imenika ne smejo v preverbo");
+  var domainMatcherSource = js.slice(
+    js.indexOf("function normalizirajDomenskiRegisterNiz"),
+    js.indexOf("function normalizirajHitroPredpono")
+  );
+  var domainMatcher = new Function(domainMatcherSource + "; return { key: domenskiRegisterKljuc, matches: seNazivUjemaZDomenskimKljucem };")();
+  var beispielDomainKey = domainMatcher.key("https://beispielundpartner.de/impressum");
+  assert.equal(beispielDomainKey, "beispielundpartner",
+    "domenski ključ mora odstraniti pot in TLD");
+  assert.equal(domainMatcher.matches("Beispiel & Partner GmbH", beispielDomainKey), true,
+    "znak & v registrskem nazivu mora ustrezati besedi und v domeni");
+  assert.equal(domainMatcher.matches("Beispiel Logistik GmbH", beispielDomainKey), false,
+    "domena ne sme sprejeti nepovezanega registrskega naziva");
+  var domainLoaderSource = js.slice(
+    js.indexOf("async function naloziOdprtiRegisterZadetkeZaDomeno"),
+    js.indexOf("function naloziOdprtiRegisterDodatke")
+  );
+  assert.match(domainLoaderSource, /naloziOdprtiRegisterDelec\(odprtiRegisterKljuc\(domenskiKljuc\)\)/,
+    "domenski fallback mora naložiti samo pravi shard");
+  assert.match(domainLoaderSource, /\.map\(odprtiRegisterZapisVPodjetje\)/,
+    "domenski fallback mora uporabiti varni mapper starega imenika");
+  assert.match(domainLoaderSource, /pricakovanoZaporedje !== autocompleteZaporedje[\s\S]*?await[\s\S]*?pricakovanoZaporedje !== autocompleteZaporedje/,
+    "zastarel domenski rezultat ne sme prepisati novejšega vnosa");
+  var submitSource = js.slice(
+    js.indexOf("async function izvediBonitetnoPreverbo"),
+    js.indexOf('obrazec.addEventListener("submit"')
+  );
+  var domainFallbackIndex = submitSource.indexOf("await naloziOdprtiRegisterZadetkeZaDomeno");
+  var normalRenderIndex = submitSource.indexOf("izrisi(podatki);");
+  assert.ok(domainFallbackIndex >= 0 && domainFallbackIndex < normalRenderIndex,
+    "domenski fallback se mora izvesti pred generičnim izrisom neuspeha");
+  var domainFallbackBranch = submitSource.slice(domainFallbackIndex, normalRenderIndex);
+  assert.match(domainFallbackBranch, /nastaviSpletnoRezervo\(false\)[\s\S]*?nastaviHeroNapako\(domenskoFallbackSporocilo\)[\s\S]*?izrisiAutocompleteZadetke\(domenskiKandidati, true\)[\s\S]*?return;/,
+    "najdeni kandidati morajo odpreti izbiro in ustaviti generični fallback");
+  assert.match(js, /function izrisiAutocompleteZadetke\(results, odmakniZaVidniStatus\)[\s\S]*?style\.removeProperty\("top"\)[\s\S]*?statusMeje\.bottom - iskanjeMeje\.bottom/,
+    "domenski seznam ne sme prekriti vidnega navodila, običajni seznami pa morajo odmik odstraniti");
+  assert.doesNotMatch(domainFallbackBranch, /\.click\(\)|izberiAutocompletePodjetje\(/,
+    "domenski fallback ne sme samodejno izbrati kandidata");
   assert.match(js, /route=profiles/,
     "brezplačni predlogi morajo vključiti že shranjene profile uporabnika");
   var inputHandler = js.slice(js.indexOf('heroSpletnaPolje.addEventListener("input"'), js.indexOf('heroSpletnaPolje.addEventListener("keydown"'));
@@ -262,7 +299,7 @@ async function main() {
     "pravi brezplačni del indeksa se mora začeti nalagati že pri dveh znakih");
   assert.match(inputHandler, /\}, 35\);/,
     "iskanje ne sme imeti starega 180-milisekundnega umetnega čakanja");
-  assert.match(html, /bonitetna-preverba\.js\?v=202608\d{2}-[^"']+-v\d+/,
+  assert.match(html, /bonitetna-preverba\.js\?v=20260831-plus-loading-v3/,
     "brskalnik mora dobiti novo hitro različico iskalne kode");
   var selection = js.slice(js.indexOf("function izberiAutocompletePodjetje"), js.indexOf("function ponastaviAutocompletePodjetje"));
   assert.doesNotMatch(selection, /openRegisterApi|company_lookup/,
