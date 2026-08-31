@@ -14,6 +14,14 @@ const posCore = require(path.join(root, "app", "pos-terminal.js"));
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260820204343_stripe_sandbox_invoice_payments.sql"), "utf8");
 const monotonicRefundMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260821230949_pos_stripe_refunds_monotonic.sql"), "utf8");
 const paymentEventInvariantsMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260822013234_pos_payment_event_invariants.sql"), "utf8");
+const paymentSafetyMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260829165203_pos_payment_safety_v2.sql"), "utf8");
+const paymentSnapshotMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260830172315_pos_stripe_event_invoice_lock.sql"), "utf8");
+const refundRecoveryMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "20260830212243_pos_stripe_refund_recovery.sql"), "utf8");
+const paymentConcurrencyHarness = fs.readFileSync(path.join(root, "scripts", "test-pos-payment-concurrency.js"), "utf8");
+const paymentSnapshotHarness = fs.readFileSync(path.join(root, "scripts", "test-pos-stripe-event-snapshot.js"), "utf8");
+const webhookHandlerHarness = fs.readFileSync(path.join(root, "scripts", "test-pos-stripe-webhook-handler.js"), "utf8");
+const paymentSnapshotRollback = fs.readFileSync(path.join(root, "supabase", "rollbacks", "pos_stripe_event_invoice_lock.sql"), "utf8");
+const verifyWorkflow = fs.readFileSync(path.join(root, ".github", "workflows", "verify.yml"), "utf8");
 const router = fs.readFileSync(path.join(root, "api", "pos.js"), "utf8");
 const vercel = fs.readFileSync(path.join(root, "vercel.json"), "utf8");
 const html = fs.readFileSync(path.join(root, "app", "pos-terminal.html"), "utf8");
@@ -89,6 +97,7 @@ assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_c
 assert.strictEqual(checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 2500), 2500);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 11900, status: "refunded" }), /uspešno Stripe TEST plačilo/);
 assert.throws(() => checkout.refundRequestCents({ amount_cents: 11900, refunded_cents: 1900, status: "partially_refunded" }, 10001), /ni veljaven/);
+assert.strictEqual(checkout.refundAttemptCents({ amount_cents: 11900, refunded_cents: 11900, status: "refunded" }, 10000), 10000);
 assert.deepStrictEqual(checkout.requestJson({ headers: {}, body: { action: "status" } }, checkout.MAX_BODY_BYTES), { action: "status" });
 assert.throws(
   () => checkout.requestJson({ headers: { "content-length": String(checkout.MAX_BODY_BYTES + 1) }, body: {} }, checkout.MAX_BODY_BYTES),
@@ -178,6 +187,43 @@ assert.match(paymentEventInvariantsMigration, /v_payment\.method is distinct fro
 assert.match(paymentEventInvariantsMigration, /new\.event_created_at < v_payment\.created_at - interval '5 minutes'/i);
 assert.match(paymentEventInvariantsMigration, /create trigger pos_payment_events_validate_source[\s\S]*before insert on public\.pos_payment_events/i);
 assert.match(paymentEventInvariantsMigration, /validate constraint pos_payment_events_source_shape_check/i);
+assert.match(paymentSafetyMigration, /pos_payments_one_active_stripe_per_invoice_uidx[\s\S]*status in \('pending','failed'\)[\s\S]*checkout_expired/i);
+assert.match(paymentSafetyMigration, /create or replace function private\._pos_confirm_bank_transaction[\s\S]*POS_ACTIVE_PAYMENT_ATTEMPT_EXISTS/i);
+assert.match(paymentSafetyMigration, /pos_invoice_payment_totals_not_overpaid_check[\s\S]*effective_paid_cents between 0 and gross_cents/i);
+assert.match(paymentSafetyMigration, /POS_INVOICE_GROSS_LIMIT_EXCEEDED/i);
+assert.match(paymentSafetyMigration, /create function public\.pos_reconcile_stripe_checkout/i);
+assert.match(paymentSafetyMigration, /revoke execute on function public\.pos_cancel_stripe_checkout/i);
+assert.match(paymentSnapshotMigration, /lock table public\.pos_invoices[\s\S]*lock table public\.pos_payments/i);
+assert.match(paymentSnapshotMigration, /jsonb_typeof\(p_summary -> 'failure_code'\) = 'string'/i);
+assert.match(paymentSnapshotMigration, /jsonb_typeof\(p_summary -> 'competing_checkout_session_id'\) = 'string'/i);
+assert.match(paymentSnapshotMigration, /POS_STRIPE_EVENT_SNAPSHOT_MISSING/i);
+assert.match(paymentSnapshotMigration, /on conflict \(provider, external_event_id\) do nothing/i);
+assert.match(refundRecoveryMigration, /create table private\.pos_stripe_refund_requests/i);
+assert.match(refundRecoveryMigration, /unique \(user_id, request_id\)/i);
+assert.match(refundRecoveryMigration, /global financial lock order: invoice, payment, refund request/i);
+assert.match(refundRecoveryMigration, /from public\.pos_invoices[\s\S]*for update[\s\S]*from public\.pos_payments[\s\S]*for update[\s\S]*from private\.pos_stripe_refund_requests[\s\S]*for update/i);
+assert.match(refundRecoveryMigration, /p_cumulative_refunded_cents < v_payment\.refunded_cents[\s\S]*POS_STRIPE_REFUND_PROGRESS_REGRESSION/i);
+assert.match(refundRecoveryMigration, /v_state := case[\s\S]*v_request\.state in \('reconciled','failed','cancelled'\)[\s\S]*p_provider_status = 'failed'[\s\S]*p_provider_status = 'canceled'[\s\S]*p_provider_status = 'succeeded'[\s\S]*p_cumulative_refunded_cents >= v_target then 'reconciled'/i, "Kumulativa plačila ne sme dokazati uspeha drugega konkretnega Stripe refunda.");
+assert.doesNotMatch(refundRecoveryMigration, /v_state := case\s+when p_cumulative_refunded_cents >= v_target then 'reconciled'/i);
+assert.match(refundRecoveryMigration, /refund_reconcile_source','stripe_current_charge'/i);
+assert.match(refundRecoveryMigration, /security definer[\s\S]*set search_path = ''/i);
+assert.match(refundRecoveryMigration, /grant execute on function public\.pos_reconcile_stripe_refund[\s\S]*to service_role/i);
+assert.match(paymentSnapshotHarness, /phase === "seed"[\s\S]*seedLegacyFixture/i);
+assert.match(paymentSnapshotHarness, /failure_code JSON null/i);
+assert.doesNotMatch(paymentSnapshotHarness, /const BACKFILL_SQL/i);
+assert.match(webhookHandlerHarness, /STRIPE_SESSION_STILL_OPEN/i);
+assert.match(paymentSnapshotRollback, /POS_STRIPE_EVENT_ROLLBACK_INDEX_RESTORE_CONFLICT/i);
+assert.match(paymentConcurrencyHarness, /expectedCodes[\s\S]*expectedMessages[\s\S]*rejected\.reason/i);
+assert.match(paymentConcurrencyHarness, /testRetryableStripeAttemptStaysActive/i);
+assert.match(paymentConcurrencyHarness, /testBankCannotSettleActiveStripe/i);
+assert.match(paymentConcurrencyHarness, /testWebhookVsReconcile/i);
+assert.match(paymentConcurrencyHarness, /testRefundVsNewAttempt/i);
+assert.match(paymentConcurrencyHarness, /testWebhookOverCapPersistsReconciliation/i);
+assert.match(paymentConcurrencyHarness, /POS_REQUIRE_PAYMENT_CONCURRENCY[\s\S]*throw new Error/);
+assert.match(paymentConcurrencyHarness, /ensureTestUser[\s\S]*insert into auth\.users/);
+assert.match(verifyWorkflow, /pos-payment-concurrency:[\s\S]*supabase\/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1\s+# v1\.7\.1[\s\S]*version: 2\.115\.0/);
+assert.match(verifyWorkflow, /db reset --local --no-seed --version=20260829165203[\s\S]*test:pos-snapshot:seed[\s\S]*supabase migration up --local[\s\S]*test:pos-snapshot/);
+assert.match(verifyWorkflow, /POS_REQUIRE_PAYMENT_CONCURRENCY: "1"[\s\S]*npm run test:pos-concurrency/);
 assert.match(router, /"stripe-checkout": require\("\.\/_handlers\/pos-stripe-checkout"\)/);
 assert.match(router, /"stripe-webhook": require\("\.\/_handlers\/pos-stripe-webhook"\)/);
 const checkoutHandlerSource = fs.readFileSync(path.join(root, "api", "_handlers", "pos-stripe-checkout.js"), "utf8");
@@ -187,11 +233,13 @@ assert.match(checkoutHandlerSource, /assertTestSession[\s\S]*\{ userId: auth\.us
 assert.match(vercel, /\/api\/pos-stripe-checkout/);
 assert.match(vercel, /\/api\/pos-stripe-webhook/);
 assert.match(html, /Plačaj s kartico – TEST/);
+assert.match(html, /data-stripe-abandon[\s\S]*Končaj Stripe poskus/);
 assert.match(html, /SANDBOX · TEST/);
 assert.match(js, /handleStripeReturn/);
 assert.match(js, /status === "succeeded"/);
 assert.match(js, /data-stripe-refund/);
 assert.match(js, /stripeCheckoutRequest\("refund"/);
+assert.match(js, /function abandonStripeCheckout\(invoice\)[\s\S]*stripeCheckoutRequest\("cancel"[\s\S]*loadServerState\("payments"\)/);
 assert.match(html, /Vrni plačilo – TEST/);
 assert.match(html, /data-dialog-input/);
 assert.match(js, /Znesek povračila/);
@@ -199,12 +247,12 @@ assert.match(js, /validateRefundAmountInput\(value, refundableCents\)/);
 assert.match(js, /onConfirm: async function \(value\)/);
 assert.match(css, /\.pos-dialog__field\[hidden\] \{ display: none; \}/);
 assert.match(css, /font: 700 1rem\/1\.2/);
-assert.match(css, /\.pos-stripe-test\[hidden\], \.pos-stripe-test__refund\[hidden\] \{ display: none; \}/);
+assert.match(css, /\.pos-stripe-test\[hidden\], \.pos-stripe-test__abandon\[hidden\], \.pos-stripe-test__refund\[hidden\] \{ display: none; \}/);
 const stripeTheme = css.slice(css.indexOf(".pos-stripe-test {"), css.indexOf(".pos-replacement-banner"));
 assert.match(stripeTheme, /border: 1px solid #bfd2df/);
 assert.match(stripeTheme, /background: linear-gradient\(145deg, #f1f6fa, #fff\)/);
 assert.match(stripeTheme, /\.pos-stripe-test__button \{[^}]*background: #567392/);
-assert.match(stripeTheme, /\.pos-stripe-test__refund \{[^}]*color: #405f7e; border-color: #bfd2df/);
+assert.match(stripeTheme, /\.pos-stripe-test__abandon, \.pos-stripe-test__refund \{[^}]*color: #405f7e; border-color: #bfd2df/);
 assert.doesNotMatch(stripeTheme, /#635bff|#564ee8|#5e4d87|#d8d1f3|#eee9f8|#faf8ff|#786f91/);
 assert.doesNotMatch(js, /STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|sk_test_|whsec_/);
 
@@ -285,13 +333,14 @@ async function testStatusHandler() {
     serviceConfiguration: supabaseServer.konfiguracija,
     authenticate: supabaseServer.preveriUporabnika,
     rows: supabaseServer.pridobiVrstice,
+    rpc: supabaseServer.pokliciRpc,
     stripeConfiguration: stripeSandbox.configuration,
     createClient: stripeSandbox.createClient,
   };
   const userId = "22222222-2222-4222-8222-222222222222";
   const invoiceId = "11111111-1111-4111-8111-111111111111";
   const sessionId = "cs_test_full_return";
-  const calls = { queries: [], retrieves: 0 };
+  const calls = { queries: [], retrieves: 0, reconciles: 0 };
   try {
     supabaseServer.uporabniskaKonfiguracija = () => ({ test: true });
     supabaseServer.konfiguracija = () => ({ service: true });
@@ -306,6 +355,17 @@ async function testStatusHandler() {
         checkout_session_id: sessionId, external_payment_id: "pi_test_full_return",
       }];
     };
+    supabaseServer.pokliciRpc = async (_cfg, name, payload) => {
+      assert.strictEqual(name, "pos_reconcile_stripe_checkout");
+      assert.strictEqual(payload.p_checkout_session_id, sessionId);
+      assert.strictEqual(payload.p_payment_status, "paid");
+      calls.reconciles += 1;
+      return [{
+        id: "33333333-3333-4333-8333-333333333333", invoice_id: invoiceId,
+        amount_cents: 119, currency: "EUR", status: "succeeded", refunded_cents: 0,
+        failure_code: "", paid_at: "2026-08-21T12:00:00.000Z", expires_at: null,
+      }];
+    };
     stripeSandbox.configuration = () => ({ mode: "test", secretKey: "sk_test_mock", webhookSecret: "whsec_mock_mock" });
     stripeSandbox.createClient = () => ({
       checkout: { sessions: { retrieve: async (value) => {
@@ -313,6 +373,7 @@ async function testStatusHandler() {
         assert.strictEqual(value, sessionId);
         return {
           id: sessionId, livemode: false, status: "complete", payment_status: "paid",
+          amount_total: 119, currency: "eur", payment_intent: "pi_test_full_return",
           metadata: { test_mode: "true", user_id: userId, invoice_id: invoiceId },
         };
       } } },
@@ -331,13 +392,24 @@ async function testStatusHandler() {
     assert.strictEqual(result.payment.status, "succeeded");
     assert.strictEqual(result.checkout.paymentStatus, "paid");
     assert.strictEqual(calls.retrieves, 1);
+    assert.strictEqual(calls.reconciles, 1);
     assert.strictEqual(calls.queries.filter((entry) => entry.table === "pos_payments").length, 1);
     assert(calls.queries[0].query.includes("user_id=eq." + userId));
+
+    request.body.action = "cancel";
+    response.statusCode = 0;
+    response.body = "";
+    await checkoutHandler(request, response);
+    const cancelledPaid = JSON.parse(response.body);
+    assert.strictEqual(response.statusCode, 200);
+    assert.strictEqual(cancelledPaid.payment.status, "succeeded", "Plačana seja se ob preklicu uskladi in se ne označi cancelled.");
+    assert.strictEqual(calls.reconciles, 2);
   } finally {
     supabaseServer.uporabniskaKonfiguracija = originals.userConfiguration;
     supabaseServer.konfiguracija = originals.serviceConfiguration;
     supabaseServer.preveriUporabnika = originals.authenticate;
     supabaseServer.pridobiVrstice = originals.rows;
+    supabaseServer.pokliciRpc = originals.rpc;
     stripeSandbox.configuration = originals.stripeConfiguration;
     stripeSandbox.createClient = originals.createClient;
   }
@@ -355,47 +427,156 @@ async function testWebhookBodyLimit() {
   );
 }
 
+async function testExpiredCancellationHandler() {
+  const originals = {
+    userConfiguration: supabaseServer.uporabniskaKonfiguracija,
+    serviceConfiguration: supabaseServer.konfiguracija,
+    authenticate: supabaseServer.preveriUporabnika,
+    rows: supabaseServer.pridobiVrstice,
+    rpc: supabaseServer.pokliciRpc,
+    stripeConfiguration: stripeSandbox.configuration,
+    createClient: stripeSandbox.createClient,
+  };
+  const userId = "22222222-2222-4222-8222-222222222222";
+  const invoiceId = "11111111-1111-4111-8111-111111111111";
+  const sessionId = "cs_test_cancel_reconcile";
+  const payment = {
+    id: "33333333-3333-4333-8333-333333333333", invoice_id: invoiceId,
+    amount_cents: 11900, currency: "EUR", status: "pending", refunded_cents: 0,
+    failure_code: "", paid_at: null, expires_at: null, checkout_session_id: sessionId,
+  };
+  let expired = false;
+  let retrieves = 0;
+  let expires = 0;
+  try {
+    supabaseServer.uporabniskaKonfiguracija = () => ({ test: true });
+    supabaseServer.konfiguracija = () => ({ service: true });
+    supabaseServer.preveriUporabnika = async () => ({ ok: true, user: { id: userId } });
+    supabaseServer.pridobiVrstice = async () => [payment];
+    supabaseServer.pokliciRpc = async (_cfg, name, payload) => {
+      assert.strictEqual(name, "pos_reconcile_stripe_checkout");
+      assert.strictEqual(payload.p_session_status, "expired");
+      assert.strictEqual(payload.p_payment_status, "unpaid");
+      return [Object.assign({}, payment, { status: "cancelled", failure_code: "checkout_expired" })];
+    };
+    stripeSandbox.configuration = () => ({ mode: "test" });
+    stripeSandbox.createClient = () => ({
+      checkout: { sessions: {
+        retrieve: async () => {
+          retrieves += 1;
+          return {
+            id: sessionId, livemode: false, status: expired ? "expired" : "open", payment_status: "unpaid",
+            amount_total: 11900, currency: "eur", payment_intent: null,
+            metadata: { test_mode: "true", user_id: userId, invoice_id: invoiceId },
+          };
+        },
+        expire: async () => { expires += 1; expired = true; },
+      } },
+    });
+    const response = {
+      statusCode: 0, body: "", status(code) { this.statusCode = code; return this; },
+      setHeader() { return this; }, end(value) { this.body = String(value || ""); return this; },
+    };
+    await checkoutHandler({ method: "POST", headers: {}, body: { action: "cancel", sessionId } }, response);
+    const result = JSON.parse(response.body);
+    assert.strictEqual(response.statusCode, 200);
+    assert.strictEqual(result.payment.status, "cancelled");
+    assert.strictEqual(result.payment.failureCode, "checkout_expired");
+    assert.strictEqual(expires, 1);
+    assert.strictEqual(retrieves, 2, "Po expire je treba pridobiti svež provider snapshot.");
+  } finally {
+    supabaseServer.uporabniskaKonfiguracija = originals.userConfiguration;
+    supabaseServer.konfiguracija = originals.serviceConfiguration;
+    supabaseServer.preveriUporabnika = originals.authenticate;
+    supabaseServer.pridobiVrstice = originals.rows;
+    supabaseServer.pokliciRpc = originals.rpc;
+    stripeSandbox.configuration = originals.stripeConfiguration;
+    stripeSandbox.createClient = originals.createClient;
+  }
+}
+
 async function testRefundHandler() {
   const originals = {
     userConfiguration: supabaseServer.uporabniskaKonfiguracija,
     serviceConfiguration: supabaseServer.konfiguracija,
     authenticate: supabaseServer.preveriUporabnika,
     rows: supabaseServer.pridobiVrstice,
+    rpc: supabaseServer.pokliciRpc,
     stripeConfiguration: stripeSandbox.configuration,
     createClient: stripeSandbox.createClient,
   };
-  const calls = { queries: [], refunds: [] };
+  const userId = "22222222-2222-4222-8222-222222222222";
+  const invoiceId = "11111111-1111-4111-8111-111111111111";
+  const paymentId = "33333333-3333-4333-8333-333333333333";
+  const requestId = "44444444-4444-4444-8444-444444444444";
+  const calls = { queries: [], refunds: [], rpcs: [], intentRetrieves: 0 };
+  let paymentState = {
+    id: paymentId, invoice_id: invoiceId, provider: "stripe", method: "stripe_card",
+    amount_cents: 11900, refunded_cents: 1900, currency: "EUR",
+    status: "partially_refunded", external_payment_id: "pi_test_refund",
+    failure_code: "", paid_at: "2026-08-30T10:00:00.000Z",
+  };
   try {
     supabaseServer.uporabniskaKonfiguracija = () => ({ test: true });
     supabaseServer.konfiguracija = () => ({ service: true });
-    supabaseServer.preveriUporabnika = async () => ({ ok: true, user: { id: "22222222-2222-4222-8222-222222222222" } });
+    supabaseServer.preveriUporabnika = async () => ({ ok: true, user: { id: userId } });
     supabaseServer.pridobiVrstice = async (_cfg, table, query) => {
       calls.queries.push({ table, query });
-      if (table === "pos_payments") return [{
-        id: "33333333-3333-4333-8333-333333333333",
-        invoice_id: "11111111-1111-4111-8111-111111111111",
-        provider: "stripe", amount_cents: 11900, refunded_cents: 1900,
-        currency: "EUR", status: "partially_refunded", external_payment_id: "pi_test_refund",
-      }];
-      if (table === "pos_invoices") return [{ id: "11111111-1111-4111-8111-111111111111", is_test: true }];
+      if (table === "pos_payments") return [Object.assign({}, paymentState)];
+      if (table === "pos_invoices") return [{ id: invoiceId, is_test: true }];
       return [];
+    };
+    supabaseServer.pokliciRpc = async (_cfg, name, payload) => {
+      calls.rpcs.push({ name, payload });
+      if (name === "pos_prepare_stripe_refund") {
+        assert.strictEqual(payload.p_user_id, userId);
+        assert.strictEqual(payload.p_invoice_id, invoiceId);
+        assert.strictEqual(payload.p_payment_id, paymentId);
+        assert.strictEqual(payload.p_request_id, requestId);
+        assert.strictEqual(payload.p_requested_cents, 10000);
+        return {
+          request_id: requestId, requested_cents: 10000,
+          baseline_refunded_cents: 1900, provider_refund_id: "re_test_refund",
+          provider_status: "succeeded", state: paymentState.status === "refunded" ? "reconciled" : "prepared",
+        };
+      }
+      assert.strictEqual(name, "pos_reconcile_stripe_refund");
+      assert.strictEqual(payload.p_provider_refund_id, "re_test_refund");
+      assert.strictEqual(payload.p_payment_intent_id, "pi_test_refund");
+      assert.strictEqual(payload.p_amount_cents, 11900);
+      assert.strictEqual(payload.p_cumulative_refunded_cents, 11900);
+      paymentState = Object.assign({}, paymentState, { status: "refunded", refunded_cents: 11900 });
+      return {
+        request_id: requestId, provider_refund_id: "re_test_refund",
+        provider_status: "succeeded", state: "reconciled", payment: Object.assign({}, paymentState),
+      };
     };
     stripeSandbox.configuration = () => ({ mode: "test", secretKey: "sk_test_mock", webhookSecret: "whsec_mock_mock" });
     stripeSandbox.createClient = () => ({
-      paymentIntents: { retrieve: async () => ({
-        id: "pi_test_refund", livemode: false, amount: 11900, currency: "eur",
-        metadata: { test_mode: "true", user_id: "22222222-2222-4222-8222-222222222222", invoice_id: "11111111-1111-4111-8111-111111111111" },
-      }) },
+      paymentIntents: { retrieve: async () => {
+        calls.intentRetrieves += 1;
+        return {
+          id: "pi_test_refund", livemode: false, amount: 11900, currency: "eur", status: "succeeded",
+          latest_charge: {
+            id: "ch_test_refund", livemode: false, payment_intent: "pi_test_refund",
+            amount: 11900, amount_refunded: 11900, currency: "eur",
+          },
+          metadata: { test_mode: "true", user_id: userId, invoice_id: invoiceId },
+        };
+      } },
       refunds: { create: async (params, options) => {
         calls.refunds.push({ params, options });
-        return { id: "re_test_refund", status: "succeeded", amount: params.amount, currency: "eur" };
+        return {
+          id: "re_test_refund", livemode: false, status: "succeeded",
+          amount: params.amount, currency: "eur", payment_intent: "pi_test_refund",
+          metadata: Object.assign({}, params.metadata),
+        };
       } },
     });
     const request = {
       method: "POST", headers: {}, body: {
-        action: "refund", invoiceId: "11111111-1111-4111-8111-111111111111",
-        paymentId: "33333333-3333-4333-8333-333333333333", amountCents: 2500,
-        confirmed: true, requestId: "44444444-4444-4444-8444-444444444444",
+        action: "refund", invoiceId, paymentId, amountCents: 10000,
+        confirmed: true, requestId,
       },
     };
     const response = {
@@ -406,11 +587,31 @@ async function testRefundHandler() {
     };
     await checkoutHandler(request, response);
     const result = JSON.parse(response.body);
-    assert.strictEqual(response.statusCode, 202);
+    assert.strictEqual(response.statusCode, 200);
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.testMode, true);
-    assert.strictEqual(result.refund.amountCents, 2500);
-    assert.strictEqual(calls.refunds.length, 1);
+    assert.strictEqual(result.refund.amountCents, 10000);
+    assert.strictEqual(result.reconciliation.state, "reconciled");
+    assert.strictEqual(result.reconciliation.cumulativeRefundedCents, 11900);
+    assert.strictEqual(result.payment.status, "refunded");
+    assert.strictEqual(result.payment.refundedCents, 11900);
+
+    // Simulate a lost HTTP response and a lost charge.refunded webhook: the
+    // browser retries the exact requestId. Stripe returns the same idempotent
+    // refund and the current Charge snapshot repairs/retains final DB state.
+    response.statusCode = 0;
+    response.body = "";
+    await checkoutHandler(request, response);
+    const retry = JSON.parse(response.body);
+    assert.strictEqual(response.statusCode, 200);
+    assert.strictEqual(retry.payment.status, "refunded");
+    assert.strictEqual(retry.payment.refundedCents, 11900);
+    assert.strictEqual(calls.rpcs.filter((entry) => entry.name === "pos_prepare_stripe_refund").length, 2);
+    assert.strictEqual(calls.rpcs.filter((entry) => entry.name === "pos_reconcile_stripe_refund").length, 2);
+    assert.strictEqual(calls.rpcs.filter((entry) => entry.name === "pos_apply_stripe_event").length, 0, "Recovery ne sme ponarediti webhook event_id.");
+    assert.strictEqual(calls.refunds.length, 2);
+    assert.strictEqual(calls.intentRetrieves, 4, "Vsak poskus mora pred refundom in po njem prebrati sveže Stripe stanje.");
+    assert.strictEqual(calls.refunds[0].options.idempotencyKey, calls.refunds[1].options.idempotencyKey);
     assert.strictEqual(calls.refunds[0].params.payment_intent, "pi_test_refund");
     assert.strictEqual(calls.refunds[0].params.metadata.request_id, request.body.requestId);
     assert.strictEqual(
@@ -424,12 +625,13 @@ async function testRefundHandler() {
     supabaseServer.konfiguracija = originals.serviceConfiguration;
     supabaseServer.preveriUporabnika = originals.authenticate;
     supabaseServer.pridobiVrstice = originals.rows;
+    supabaseServer.pokliciRpc = originals.rpc;
     stripeSandbox.configuration = originals.stripeConfiguration;
     stripeSandbox.createClient = originals.createClient;
   }
 }
 
-testWebhookBodyLimit().then(testWebhookRetryRace).then(testStatusHandler).then(testRefundHandler).then(() => {
+testWebhookBodyLimit().then(testWebhookRetryRace).then(testStatusHandler).then(testExpiredCancellationHandler).then(testRefundHandler).then(() => {
   console.log("POS Stripe sandbox Checkout, refund API, webhook varovalke in plačilna sled: OK");
 }).catch((error) => {
   console.error(error);

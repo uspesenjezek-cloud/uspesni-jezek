@@ -7,6 +7,7 @@ const STATES = Object.freeze({
   SIGNED: "signed",
   COMPLETED: "completed",
   RECOVERY_REQUIRED: "recovery_required",
+  CANCELLED: "cancelled",
 });
 
 function fail(code, message) {
@@ -95,6 +96,63 @@ function validateSignature(signature, checkout, expectedFiscalType) {
   });
 }
 
+async function reconcileProviderRecord(record, store, tse, fiscalType, lookupInput) {
+  if (!tse || typeof tse.lookup !== "function" || !store || typeof store.reconcile !== "function") {
+    fail("CASH_RECOVERY_UNAVAILABLE", "Gotovinski zapis čaka na avtoritativno TSE uskladitev.");
+  }
+  let provider;
+  try {
+    provider = await tse.lookup(Object.assign({
+      transactionId: record.transactionId,
+      receipt: record.receipt,
+      fiscalType,
+    }, lookupInput || {}));
+  } catch (cause) {
+    const error = new Error("TSE stanja trenutno ni mogoče avtoritativno preveriti.");
+    error.code = "CASH_RECOVERY_REQUIRED";
+    error.record = record;
+    error.cause = cause;
+    throw error;
+  }
+  const providerState = text(provider && provider.state).toUpperCase();
+  if (uuid(provider && provider.transactionId) !== record.transactionId
+      || !["ACTIVE", "FINISHED", "CANCELLED", "NOT_FOUND"].includes(providerState)) {
+    fail("CASH_PROVIDER_STATE_INVALID", "TSE je vrnil drugo ali nepodprto stanje transakcije.");
+  }
+  const observation = {
+    providerState,
+    observedAt: text(provider.observedAt) || new Date().toISOString(),
+    signature: null,
+  };
+  if (providerState === "FINISHED") observation.signature = validateSignature(provider, record, fiscalType);
+  const reconciled = await store.reconcile(record.id, observation);
+  if (!reconciled || reconciled.id !== record.id || reconciled.transactionId !== record.transactionId) {
+    fail("CASH_STATE_INVALID", "Shranjena TSE uskladitev se ne ujema z gotovinskim zapisom.");
+  }
+  if (providerState === "FINISHED" && reconciled.state !== STATES.SIGNED && reconciled.state !== STATES.COMPLETED) {
+    fail("CASH_STATE_INVALID", "FINISHED TSE uskladitev ni varno shranila podpisa.");
+  }
+  if (providerState === "NOT_FOUND" && reconciled.state === STATES.PREPARED) {
+    const error = new Error("TSE transakcija še ni varno ograjena; nadaljujte isti pripravljeni poskus z istim transaction ID.");
+    error.code = "CASH_RETRY_REQUIRED";
+    error.record = reconciled;
+    throw error;
+  }
+  if (providerState === "CANCELLED" && reconciled.state !== STATES.CANCELLED) {
+    fail("CASH_STATE_INVALID", "Avtoritativni preklic TSE transakcije ni bil varno shranjen.");
+  }
+  if (providerState === "NOT_FOUND" && reconciled.state !== STATES.CANCELLED) {
+    fail("CASH_STATE_INVALID", "Avtoritativni manjkajoči TSE zapis ni bil varno usklajen.");
+  }
+  if (providerState === "ACTIVE") {
+    const error = new Error("TSE transakcija je še aktivna in zahteva nadaljnjo uskladitev.");
+    error.code = "CASH_RECOVERY_REQUIRED";
+    error.record = reconciled;
+    throw error;
+  }
+  return reconciled;
+}
+
 function createService(dependencies) {
   const store = dependencies && dependencies.store;
   const tse = dependencies && dependencies.tse;
@@ -117,17 +175,22 @@ function createService(dependencies) {
       fail("CASH_STATE_INVALID", "Shranjeno stanje checkouta se ne ujema z zahtevo.");
     }
     if (record.state === STATES.COMPLETED) return record;
-    if (record.state === STATES.RECOVERY_REQUIRED) fail("CASH_RECOVERY_REQUIRED", "Gotovinski checkout zahteva ročno TSE uskladitev.");
+    if (record.state === STATES.CANCELLED) return record;
+    if (record.state === STATES.RECOVERY_REQUIRED || request.reconcileOnly === true) {
+      record = await reconcileProviderRecord(record, store, tse, "SALE");
+      if (record.state === STATES.COMPLETED || record.state === STATES.CANCELLED) return record;
+    }
 
     if (record.state === STATES.PREPARED) {
       try {
         const signature = validateSignature(await tse.sign({ transactionId, receipt, fiscalType: "SALE" }), record, "SALE");
         record = await store.markSigned(record.id, signature);
       } catch (error) {
-        try { await store.markRecoveryRequired(record.id, text(error && error.code) || "TSE_RESULT_UNCERTAIN"); }
+        try { record = await store.markRecoveryRequired(record.id, text(error && error.code) || "TSE_RESULT_UNCERTAIN"); }
         catch (_) {}
         const wrapped = new Error("Gotovinsko plačilo ni zabeleženo, dokler TSE stanje ni varno usklajeno.");
         wrapped.code = "CASH_RECOVERY_REQUIRED";
+        wrapped.record = record;
         wrapped.cause = error;
         throw wrapped;
       }
@@ -163,15 +226,20 @@ function createRefundService(dependencies) {
       fail("CASH_STATE_INVALID", "Shranjeno stanje povračila se ne ujema z zahtevo.");
     }
     if (record.state === STATES.COMPLETED) return record;
-    if (record.state === STATES.RECOVERY_REQUIRED) fail("CASH_RECOVERY_REQUIRED", "Gotovinsko povračilo zahteva ročno TSE uskladitev.");
+    if (record.state === STATES.CANCELLED) return record;
+    if (record.state === STATES.RECOVERY_REQUIRED || request.reconcileOnly === true) {
+      record = await reconcileProviderRecord(record, store, tse, "REFUND", { originalCheckoutId });
+      if (record.state === STATES.COMPLETED || record.state === STATES.CANCELLED) return record;
+    }
     if (record.state === STATES.PREPARED) {
       try {
         const signature = validateSignature(await tse.sign({ transactionId, receipt, fiscalType: "REFUND", originalCheckoutId }), record, "REFUND");
         record = await store.markSigned(record.id, signature);
       } catch (error) {
-        try { await store.markRecoveryRequired(record.id, text(error && error.code) || "TSE_RESULT_UNCERTAIN"); } catch (_) {}
+        try { record = await store.markRecoveryRequired(record.id, text(error && error.code) || "TSE_RESULT_UNCERTAIN"); } catch (_) {}
         const wrapped = new Error("Gotovinsko povračilo ni zabeleženo, dokler TSE stanje ni varno usklajeno.");
         wrapped.code = "CASH_RECOVERY_REQUIRED";
+        wrapped.record = record;
         wrapped.cause = error;
         throw wrapped;
       }
@@ -183,12 +251,13 @@ function createRefundService(dependencies) {
 
 function mockTseAdapter(options) {
   const settings = options || {};
+  const transactions = new Map();
   return {
     environment: "mock",
     async sign(input) {
       if (settings.fail) fail("MOCK_TSE_FAILED", "Mock TSE podpis ni uspel.");
       const digest = crypto.createHash("sha256").update(JSON.stringify({ transactionId: input.transactionId, fiscalType: input.fiscalType || "SALE", receipt: input.receipt })).digest("hex");
-      return {
+      const result = {
         state: "FINISHED",
         transactionId: input.transactionId,
         fiscalType: text(input.fiscalType || "SALE").toUpperCase(),
@@ -203,8 +272,27 @@ function mockTseAdapter(options) {
         startedAt: "2026-08-26T00:00:00.000Z",
         finishedAt: "2026-08-26T00:00:01.000Z",
       };
+      transactions.set(input.transactionId, result);
+      if (settings.failAfterCommit) fail("MOCK_TSE_RESULT_LOST", "Mock TSE odgovor je bil izgubljen po podpisu.");
+      return result;
+    },
+    async lookup(input) {
+      if (settings.lookupError) fail("MOCK_TSE_LOOKUP_FAILED", "Mock TSE lookup ni dosegljiv.");
+      if (transactions.has(input.transactionId)) {
+        return Object.assign({ observedAt: "2026-08-26T00:00:02.000Z" }, transactions.get(input.transactionId));
+      }
+      const state = text(settings.lookupState || "NOT_FOUND").toUpperCase();
+      return {
+        state,
+        transactionId: input.transactionId,
+        observedAt: "2026-08-26T00:00:02.000Z",
+        paymentType: "CASH",
+        currency: "EUR",
+        amount: (input.receipt.grossCents / 100).toFixed(2),
+        fiscalType: text(input.fiscalType || "SALE").toUpperCase(),
+      };
     },
   };
 }
 
-module.exports = { STATES, createService, createRefundService, mockTseAdapter, normalizeCashReceipt, validateSignature };
+module.exports = { STATES, createService, createRefundService, mockTseAdapter, normalizeCashReceipt, reconcileProviderRecord, validateSignature };

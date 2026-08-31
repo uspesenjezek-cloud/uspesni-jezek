@@ -22,3 +22,57 @@ jobs:
       - run: npm run test:pos
       - run: npm run check:openapi-contract
       - run: npm run build:assets
+
+  pos-payment-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1
+        with:
+          version: 2.115.0
+      - run: npm ci
+      - name: Require the complete Phase 0b migration chain in this checkout
+        run: >-
+          git ls-files --error-unmatch --
+          supabase/migrations/20260829165203_pos_payment_safety_v2.sql
+          supabase/migrations/20260830172315_pos_stripe_event_invoice_lock.sql
+          supabase/migrations/20260830212243_pos_stripe_refund_recovery.sql
+          supabase/migrations/20260830212449_pos_bank_confirm_retry_idempotency.sql
+          supabase/migrations/20260830212909_pos_cash_provider_recovery_lock_order.sql
+          supabase/migrations/20260830213055_pos_archive_primary_object_recovery.sql
+      - name: Start disposable local Supabase
+        run: supabase start
+      - name: Reset to the migration immediately before J.2
+        run: supabase db reset --local --no-seed --version=20260829165203
+      - name: Seed a real pre-J.2 Stripe event
+        env:
+          POS_REQUIRE_PAYMENT_CONCURRENCY: "1"
+          POS_TEST_USER_ID: 00000000-0000-4000-8000-000000000001
+          POS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: npm run test:pos-snapshot:seed
+      - name: Apply the actual pending migration
+        run: supabase migration up --local
+      - name: Prove snapshot validation and the actual backfill
+        env:
+          POS_REQUIRE_PAYMENT_CONCURRENCY: "1"
+          POS_TEST_USER_ID: 00000000-0000-4000-8000-000000000001
+          POS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: npm run test:pos-snapshot
+      - name: Lint payment schemas
+        run: supabase db lint --local --schema public,private --level error --fail-on error
+      - name: Prove final RPC ownership, search_path and execute grants
+        env:
+          POS_REQUIRE_RPC_CATALOG: "1"
+          POS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: node scripts/test-pos-rpc-security.js
+      - name: Prove POS payment concurrency
+        env:
+          POS_REQUIRE_PAYMENT_CONCURRENCY: "1"
+          POS_TEST_USER_ID: 00000000-0000-4000-8000-000000000001
+          POS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: npm run test:pos-concurrency

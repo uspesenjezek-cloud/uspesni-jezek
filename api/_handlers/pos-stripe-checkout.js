@@ -88,6 +88,23 @@ function refundRequestCents(payment, requestedAmount) {
   return amount;
 }
 
+// A retry can arrive after the first request already advanced refunded_cents
+// (or even fully refunded the payment). Keep the original strict helper for
+// fresh UI validation, but let an explicit amount reach the idempotent DB
+// request lookup; a new over-refund is still rejected under the invoice lock.
+function refundAttemptCents(payment, requestedAmount) {
+  try { return refundRequestCents(payment, requestedAmount); }
+  catch (error) {
+    const amount = Number(requestedAmount);
+    const total = Number(payment && payment.amount_cents);
+    if (requestedAmount !== null && requestedAmount !== ""
+        && payment && ["succeeded", "partially_refunded", "refunded"].includes(payment.status)
+        && Number.isSafeInteger(amount) && amount > 0
+        && Number.isSafeInteger(total) && amount <= total) return amount;
+    throw error;
+  }
+}
+
 function publicPayment(row) {
   if (!row) return null;
   return {
@@ -95,6 +112,95 @@ function publicPayment(row) {
     status: row.status, refundedCents: Number(row.refunded_cents || 0), failureCode: row.failure_code || "",
     paidAt: row.paid_at || null, expiresAt: row.expires_at || null,
   };
+}
+
+function sessionPaymentIntentId(session) {
+  const intent = session && session.payment_intent;
+  return typeof intent === "string" ? intent : intent && String(intent.id || "") || "";
+}
+
+function objectId(value) {
+  return typeof value === "string" ? value : value && String(value.id || "") || "";
+}
+
+function assertTestRefund(refund, expected) {
+  const metadata = refund && refund.metadata || {};
+  const status = String(refund && refund.status || "");
+  if (!refund || !/^re_[A-Za-z0-9_]+$/.test(String(refund.id || ""))
+      || refund.livemode !== false
+      || !["pending", "requires_action", "succeeded", "failed", "canceled"].includes(status)) {
+    const error = new Error("Stripe ni vrnil veljavnega TEST povračila.");
+    error.code = "STRIPE_REFUND_INVALID";
+    throw error;
+  }
+  if (objectId(refund.payment_intent) !== expected.paymentIntentId
+      || Number(refund.amount) !== Number(expected.amountCents)
+      || String(refund.currency || "").toUpperCase() !== "EUR"
+      || metadata.test_mode !== "true" || metadata.user_id !== expected.userId
+      || metadata.invoice_id !== expected.invoiceId || metadata.payment_id !== expected.paymentId
+      || metadata.request_id !== expected.requestId) {
+    const error = new Error("Stripe TEST povračilo ni povezano s to zahtevo.");
+    error.code = "STRIPE_REFUND_MISMATCH";
+    throw error;
+  }
+  return refund;
+}
+
+async function authoritativeRefundSnapshot(stripe, paymentIntentId, expected) {
+  const intent = stripeSandbox.assertTestPaymentIntent(
+    await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] }),
+    expected
+  );
+  if (String(intent.status || "") !== "succeeded") {
+    const error = new Error("Stripe TEST plačilo ni v uspešnem stanju.");
+    error.code = "STRIPE_PAYMENT_NOT_SUCCEEDED";
+    throw error;
+  }
+  let charge = intent.latest_charge;
+  if (typeof charge === "string") {
+    if (!stripe.charges || typeof stripe.charges.retrieve !== "function") {
+      const error = new Error("Stripe TEST plačilo nima razpoložljivega Charge stanja.");
+      error.code = "STRIPE_CHARGE_LOOKUP_UNAVAILABLE";
+      throw error;
+    }
+    charge = await stripe.charges.retrieve(charge);
+  }
+  const chargePaymentIntentId = objectId(charge && charge.payment_intent);
+  const amountCents = Number(charge && charge.amount);
+  const cumulativeRefundedCents = Number(charge && charge.amount_refunded);
+  const currency = String(charge && charge.currency || "").toUpperCase();
+  if (!charge || !/^ch_[A-Za-z0-9_]+$/.test(String(charge.id || ""))
+      || charge.livemode !== false || chargePaymentIntentId !== paymentIntentId
+      || !Number.isSafeInteger(amountCents) || amountCents !== Number(expected.amountCents)
+      || currency !== "EUR" || !Number.isSafeInteger(cumulativeRefundedCents)
+      || cumulativeRefundedCents < 0 || cumulativeRefundedCents > amountCents) {
+    const error = new Error("Stripe TEST Charge nima veljavnega kumulativnega stanja povračil.");
+    error.code = "STRIPE_REFUND_CHARGE_MISMATCH";
+    throw error;
+  }
+  return { amountCents, cumulativeRefundedCents, currency };
+}
+
+async function reconcileSession(cfg, userId, payment, session) {
+  const amountCents = Number(session && session.amount_total);
+  const currency = String(session && session.currency || "").toUpperCase();
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || amountCents !== Number(payment.amount_cents)
+      || currency !== String(payment.currency || "").toUpperCase()) {
+    const error = new Error("Stripe TEST seja nima pričakovanega zneska ali valute.");
+    error.code = "STRIPE_SESSION_AMOUNT_MISMATCH";
+    error.status = 409;
+    throw error;
+  }
+  return rpcRow(await supabase.pokliciRpc(cfg, "pos_reconcile_stripe_checkout", {
+    p_user_id: userId,
+    p_checkout_session_id: session.id,
+    p_session_status: String(session.status || ""),
+    p_payment_status: String(session.payment_status || ""),
+    p_payment_intent_id: sessionPaymentIntentId(session),
+    p_amount_cents: amountCents,
+    p_currency: currency,
+    p_observed_at: new Date().toISOString(),
+  }));
 }
 
 async function handler(req, res) {
@@ -132,7 +238,7 @@ async function handler(req, res) {
         testInvoiceForRefund(serviceCfg, auth.user.id, invoiceId),
       ]);
       if (!payment || !invoice) return json(res, 404, { ok: false, napaka: "Stripe TEST plačilo ne obstaja." });
-      const amountCents = refundRequestCents(payment, body.amountCents);
+      const amountCents = refundAttemptCents(payment, body.amountCents);
       if (String(payment.currency || "").toUpperCase() !== "EUR") {
         return json(res, 409, { ok: false, napaka: "Stripe TEST povračilo podpira samo EUR plačila." });
       }
@@ -140,10 +246,26 @@ async function handler(req, res) {
       if (!/^pi_[A-Za-z0-9_]+$/.test(paymentIntentId) || paymentIntentId.length > 240) {
         return json(res, 409, { ok: false, napaka: "Stripe TEST plačilo nima veljavne povezave za povračilo." });
       }
-      stripeSandbox.assertTestPaymentIntent(await stripe.paymentIntents.retrieve(paymentIntentId), {
+      const expectedPayment = {
         userId: auth.user.id, invoiceId, amountCents: Number(payment.amount_cents),
-      });
-      const refund = await stripe.refunds.create({
+      };
+      stripeSandbox.assertTestPaymentIntent(await stripe.paymentIntents.retrieve(paymentIntentId), expectedPayment);
+
+      const prepared = rpcRow(await supabase.pokliciRpc(serviceCfg, "pos_prepare_stripe_refund", {
+        p_user_id: auth.user.id,
+        p_invoice_id: invoiceId,
+        p_payment_id: paymentId,
+        p_request_id: requestId,
+        p_requested_cents: amountCents,
+      }));
+      if (!prepared || String(prepared.request_id || "") !== requestId
+          || Number(prepared.requested_cents) !== amountCents) {
+        const error = new Error("Baza ni potrdila varne Stripe refund zahteve.");
+        error.code = "STRIPE_REFUND_PREPARE_CONTRACT_BROKEN";
+        throw error;
+      }
+
+      const refund = assertTestRefund(await stripe.refunds.create({
         payment_intent: paymentIntentId,
         amount: amountCents,
         reason: "requested_by_customer",
@@ -156,15 +278,40 @@ async function handler(req, res) {
         },
       }, {
         idempotencyKey: "uj-pos-test-refund:" + auth.user.id + ":" + paymentId + ":" + requestId,
+      }), {
+        userId: auth.user.id, invoiceId, paymentId, requestId, paymentIntentId, amountCents,
       });
-      if (!refund || !String(refund.id || "").startsWith("re_")) {
-        throw new Error("Stripe ni vrnil veljavnega TEST povračila.");
+
+      // Do not manufacture a webhook event. Read Stripe's current Charge,
+      // whose amount_refunded is cumulative, then commit that provider truth
+      // through a service-only, invoice-first locked RPC.
+      const snapshot = await authoritativeRefundSnapshot(stripe, paymentIntentId, expectedPayment);
+      const reconciled = rpcRow(await supabase.pokliciRpc(serviceCfg, "pos_reconcile_stripe_refund", {
+        p_user_id: auth.user.id,
+        p_invoice_id: invoiceId,
+        p_payment_id: paymentId,
+        p_request_id: requestId,
+        p_provider_refund_id: refund.id,
+        p_provider_status: refund.status,
+        p_payment_intent_id: paymentIntentId,
+        p_amount_cents: snapshot.amountCents,
+        p_currency: snapshot.currency,
+        p_cumulative_refunded_cents: snapshot.cumulativeRefundedCents,
+        p_observed_at: new Date().toISOString(),
+      }));
+      if (!reconciled || String(reconciled.request_id || "") !== requestId
+          || String(reconciled.provider_refund_id || "") !== refund.id || !reconciled.payment) {
+        const error = new Error("Baza ni potrdila uskladitve Stripe povračila.");
+        error.code = "STRIPE_REFUND_RECONCILE_CONTRACT_BROKEN";
+        throw error;
       }
-      return json(res, 202, {
+
+      return json(res, reconciled.state === "reconciled" ? 200 : 202, {
         ok: true,
         testMode: true,
         refund: { id: refund.id, status: refund.status, amountCents: Number(refund.amount), currency: String(refund.currency || "eur").toUpperCase() },
-        payment: publicPayment(payment),
+        reconciliation: { state: reconciled.state, cumulativeRefundedCents: snapshot.cumulativeRefundedCents },
+        payment: publicPayment(reconciled.payment),
       });
     }
 
@@ -172,26 +319,32 @@ async function handler(req, res) {
       if (!sessionId.startsWith("cs_test_") || sessionId.length > 240) return json(res, 400, { ok: false, napaka: "Neveljavna Stripe TEST seja." });
       const payment = await paymentForSession(serviceCfg, auth.user.id, sessionId);
       if (!payment) return json(res, 404, { ok: false, napaka: "Stripe TEST plačilo ne obstaja." });
-      const session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.retrieve(sessionId), {
+      let session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.retrieve(sessionId), {
         userId: auth.user.id, invoiceId: payment.invoice_id,
       });
-      if (action === "cancel" && !["succeeded", "partially_refunded", "refunded"].includes(payment.status)) {
-        if (session.status === "open" && session.payment_status !== "paid") await stripe.checkout.sessions.expire(sessionId);
-        const cancelled = rpcRow(await supabase.pokliciRpc(serviceCfg, "pos_cancel_stripe_checkout", {
-          p_user_id: auth.user.id, p_checkout_session_id: sessionId, p_cancelled_at: new Date().toISOString(),
-        }));
-        return json(res, 200, { ok: true, testMode: true, payment: publicPayment(cancelled) });
+      if (action === "cancel") {
+        if (session.status === "open" && session.payment_status !== "paid") {
+          await stripe.checkout.sessions.expire(sessionId);
+          session = stripeSandbox.assertTestSession(await stripe.checkout.sessions.retrieve(sessionId), {
+            userId: auth.user.id, invoiceId: payment.invoice_id,
+          });
+        }
+        const reconciled = await reconcileSession(serviceCfg, auth.user.id, payment, session);
+        return json(res, 200, { ok: true, testMode: true, payment: publicPayment(reconciled) });
       }
       if (action === "resume") {
         if (session.status !== "open" || session.payment_status === "paid" || !session.url) {
+          await reconcileSession(serviceCfg, auth.user.id, payment, session);
           return json(res, 409, { ok: false, napaka: "Stripe TEST seje ni več mogoče nadaljevati." });
         }
+        const reconciled = await reconcileSession(serviceCfg, auth.user.id, payment, session);
         const checkoutUrl = new URL(session.url);
         if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.stripe.com") throw new Error("Stripe ni vrnil varnega Checkout naslova.");
-        return json(res, 200, { ok: true, testMode: true, url: checkoutUrl.toString(), payment: publicPayment(payment) });
+        return json(res, 200, { ok: true, testMode: true, url: checkoutUrl.toString(), payment: publicPayment(reconciled) });
       }
+      const reconciled = await reconcileSession(serviceCfg, auth.user.id, payment, session);
       return json(res, 200, {
-        ok: true, testMode: true, payment: publicPayment(payment),
+        ok: true, testMode: true, payment: publicPayment(reconciled),
         checkout: { status: session.status, paymentStatus: session.payment_status },
       });
     }
@@ -241,4 +394,15 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { effectivePaidCents, publicPayment, refundRequestCents, requestJson, uuid, MAX_BODY_BYTES };
+module.exports._test = {
+  authoritativeRefundSnapshot,
+  assertTestRefund,
+  effectivePaidCents,
+  publicPayment,
+  refundAttemptCents,
+  refundRequestCents,
+  requestJson,
+  sessionPaymentIntentId,
+  uuid,
+  MAX_BODY_BYTES,
+};

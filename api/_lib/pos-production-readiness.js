@@ -6,9 +6,11 @@ const wormArchive = require("./pos-worm-archive");
 const sandboxEvidenceVerifier = require("./pos-openapi-sandbox-evidence");
 const sandbox381Evidence = require("../../scripts/fixtures/openapi-de-381-sandbox-evidence.json");
 
-const VERSION = "pos-de-production-readiness-v15";
+const VERSION = "pos-de-production-readiness-v16";
 const MAX_ARCHIVE_READINESS_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_DATABASE_CI_GATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CONFIRMATION_FUTURE_SKEW_MS = 5 * 60 * 1000;
+const REQUIRED_DATABASE_MIGRATION_HEAD = "20260830213055";
 
 function text(value) {
   return String(value == null ? "" : value).trim();
@@ -57,6 +59,16 @@ function assess(env, options) {
   if (!validHttpsUrl(source.SUPABASE_URL)) supabaseMissing.push("SUPABASE_URL");
   if (!text(source.SUPABASE_ANON_KEY)) supabaseMissing.push("SUPABASE_ANON_KEY");
   if (!text(source.SUPABASE_SERVICE_ROLE_KEY)) supabaseMissing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!enabled(source.POS_DATABASE_CI_GATE_CONFIRMED)) supabaseMissing.push("POS_DATABASE_CI_GATE_CONFIRMED=true");
+  if (!validAuditReference(source.POS_DATABASE_CI_GATE_REFERENCE)) supabaseMissing.push("POS_DATABASE_CI_GATE_REFERENCE");
+  if (text(source.POS_DATABASE_CI_GATE_MIGRATION_HEAD) !== REQUIRED_DATABASE_MIGRATION_HEAD) {
+    supabaseMissing.push("POS_DATABASE_CI_GATE_MIGRATION_HEAD=" + REQUIRED_DATABASE_MIGRATION_HEAD);
+  }
+  const databaseCiGateAt = Date.parse(text(source.POS_DATABASE_CI_GATE_CONFIRMED_AT));
+  const databaseCiGateFresh = Number.isFinite(databaseCiGateAt)
+    && databaseCiGateAt >= Date.now() - MAX_DATABASE_CI_GATE_AGE_MS
+    && databaseCiGateAt <= Date.now() + MAX_CONFIRMATION_FUTURE_SKEW_MS;
+  if (!databaseCiGateFresh) supabaseMissing.push("POS_DATABASE_CI_GATE_CONFIRMED_AT");
   checks.push(item(
     "supabase_core",
     "core",
@@ -64,7 +76,7 @@ function assess(env, options) {
     supabaseMissing.length === 0,
     supabaseMissing.length ? "blocked" : "ready",
     supabaseMissing,
-    "Avtentikacija, podatkovna baza in strežniški RPC-ji."
+    "Avtentikacija, podatkovna baza in strežniški RPC-ji; readiness zahteva svež CI dokaz točne Phase 0b migracijske verige, snapshot backfilla, pg_proc pravic in concurrency scenarijev."
   ));
 
   const openapi = openapiInvoice.readiness(source);
