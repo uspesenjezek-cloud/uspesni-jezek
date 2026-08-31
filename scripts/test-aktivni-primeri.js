@@ -287,7 +287,7 @@ assert.match(izvedbaJs, /izbrano && nastavitve\.timingMode === "custom"/);
 assert.match(izvedbaJs, /podatkiZaKartico\(actionType, izbrano\)/);
 assert.match(izvedbaKomponenteJs, /coinCheck:[\s\S]*?M12\.8 7\.8a4\.3 4\.3/);
 assert.match(izvedbaKomponenteJs, /coin:[\s\S]*?M16 7\.5a5\.2 5\.2/);
-assert.match(izvedbaJs, /skip_current_step:\s*\{\s*nextDelayDays:\s*0\s*\}/);
+assert.match(izvedbaJs, /skip_current_step:\s*\{\s*nextDelayDays:\s*0(?:\s*,[^}]*)?\s*\}/);
 assert.match(izvedbaJs, /nextDelayDays:\s*\{\s*min:\s*0,\s*max:\s*30\s*\}/);
 assert.match(izvedbaJs, /nastavitve\.nextDelayDays === 1 \? "dan" : "dni"/);
 assert.match(izvedbaJs, /nastavitve\.nextDelayDays === 0 \? "Danes" : null/);

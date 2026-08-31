@@ -125,6 +125,14 @@ const localCashTse = cash.mockTseAdapter();
 function fiskalyRecoveryAdapter() {
   return {
     environment: "training",
+    async sign(input) {
+      return fiskaly.runTrainingReceipt(
+        process.env,
+        input.transactionId,
+        cashReceiptForFiskaly(input.receipt),
+        input.fiscalType
+      );
+    },
     async lookup(input) {
       const result = await fiskaly.retrieveTrainingReceipt(
         process.env,
@@ -254,6 +262,8 @@ async function handler(req, res) {
     "local-training-cash-refund",
     "local-training-cash-reconcile",
     "local-training-cash-refund-reconcile",
+    "training-cash-checkout",
+    "training-cash-refund",
     "training-cash-reconcile",
     "training-cash-refund-reconcile",
   ];
@@ -271,6 +281,7 @@ async function handler(req, res) {
     const checkoutAction = [
       "local-training-cash-checkout",
       "local-training-cash-reconcile",
+      "training-cash-checkout",
       "training-cash-reconcile",
     ].includes(action);
     if (checkoutAction) {
@@ -350,5 +361,5 @@ async function handler(req, res) {
 module.exports = handler;
 module.exports._test = {
   unavailable, MAX_BODY_BYTES, checkoutFromRow, createCashRefundStore, createCashStore,
-  cashReceiptForFiskaly, receiptFromDatabase, receiptToDatabase, reconcilePayload, refundFromRow,
+  cashReceiptForFiskaly, fiskalyRecoveryAdapter, receiptFromDatabase, receiptToDatabase, reconcilePayload, refundFromRow,
 };

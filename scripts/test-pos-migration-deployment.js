@@ -396,4 +396,15 @@ assert.throws(
   "neznan CLI izhod mora odpovedati varno"
 );
 
+const debtorIdentityMigration = fs.readFileSync(
+  path.join(__dirname, "..", "supabase", "migrations", "20260828103922_debtor_company_identity_refresh.sql"),
+  "utf8"
+);
+assert.match(debtorIdentityMigration, /public\.zadeve \(obrtnik_id, openregister_company_id, status\)/);
+assert.doesNotMatch(
+  debtorIdentityMigration,
+  /(?:\bz|\bnew|\bold)\.user_id\b|public\.zadeve \(user_id/,
+  "Dolžnikova migracija mora uporabljati kanonični zadeve.obrtnik_id, ne neobstoječega user_id."
+);
+
 console.log("POS migration deployment guard tests passed.");

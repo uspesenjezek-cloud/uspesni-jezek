@@ -11,29 +11,49 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+function enabled(value) {
+  return /^(1|true)$/i.test(clean(value));
+}
+
 function configuration(source) {
   const env = source || process.env;
   const mode = clean(env.FISKALY_SIGN_DE_MODE || "test").toLowerCase();
-  if (mode !== "test") {
+  if (mode !== "test" && mode !== "production") {
     const error = new Error("Produkcijski fiskaly SIGN DE še ni omogočen.");
     error.code = "FISKALY_LIVE_LOCKED";
     throw error;
   }
-  const apiKey = clean(env.FISKALY_API_KEY_TEST);
-  const apiSecret = clean(env.FISKALY_API_SECRET_TEST);
+  const production = mode === "production";
+  if (production && (!enabled(env.FISKALY_LIVE_ENABLED)
+      || !enabled(env.FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED)
+      || !enabled(env.FISKALY_LIVE_CASH_SYSTEM_REGISTERED)
+      || !enabled(env.FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED))) {
+    const error = new Error("Produkcijski fiskaly zahteva izrecno omogočanje ter potrjen pravni, registracijski in DSFinV-K postopek.");
+    error.code = "FISKALY_LIVE_LOCKED";
+    throw error;
+  }
+  const apiKey = clean(production ? env.FISKALY_API_KEY_LIVE : env.FISKALY_API_KEY_TEST);
+  const apiSecret = clean(production ? env.FISKALY_API_SECRET_LIVE : env.FISKALY_API_SECRET_TEST);
   if (!apiKey || !apiSecret) {
-    const error = new Error("Testna fiskaly povezava še ni nastavljena.");
+    const error = new Error(production ? "Produkcijska fiskaly povezava še ni nastavljena." : "Testna fiskaly povezava še ni nastavljena.");
     error.code = "FISKALY_NOT_CONFIGURED";
     throw error;
   }
   return {
-    mode: "test",
+    mode,
     baseUrl: TEST_BASE_URL,
     apiKey,
     apiSecret,
-    tssId: clean(env.FISKALY_TSS_ID_TEST),
-    clientId: clean(env.FISKALY_CLIENT_ID_TEST),
+    tssId: clean(production ? env.FISKALY_TSS_ID_LIVE : env.FISKALY_TSS_ID_TEST),
+    clientId: clean(production ? env.FISKALY_CLIENT_ID_LIVE : env.FISKALY_CLIENT_ID_TEST),
   };
+}
+
+function requireTraining(cfg) {
+  if (cfg && cfg.mode === "test") return;
+  const error = new Error("TRAINING podpis ni dovoljen s produkcijskimi fiskaly poverilnicami.");
+  error.code = "FISKALY_TRAINING_ONLY";
+  throw error;
 }
 
 async function requestJson(url, options, timeoutMs) {
@@ -124,6 +144,15 @@ function trainingMetadata(fiscalTypeValue) {
   };
 }
 
+function productionMetadata() {
+  return {
+    source: "werktech_pos",
+    purpose: "fiscal_kassenbon",
+    receipt_type: "receipt",
+    fiscal_type: "sale",
+  };
+}
+
 function providerMoneyCents(value) {
   const amount = typeof value === "string" ? value : "";
   if (!/^(?:0|[1-9][0-9]{0,9})\.[0-9]{2}$/.test(amount)) {
@@ -135,7 +164,7 @@ function providerMoneyCents(value) {
   return result;
 }
 
-function providerTrainingEvidence(body, expectedReceipt, expectedFiscalType) {
+function providerReceiptEvidence(body, expectedReceipt, expectedFiscalType, receiptTypeInput, purposeInput) {
   const transaction = body && typeof body === "object" ? body : {};
   const metadata = transaction.metadata && typeof transaction.metadata === "object" ? transaction.metadata : {};
   const schema = transaction.schema && transaction.schema.standard_v1;
@@ -145,13 +174,15 @@ function providerTrainingEvidence(body, expectedReceipt, expectedFiscalType) {
     : normalizeTrainingReceipt(expectedReceipt);
   const expectedType = fiscalType(expectedFiscalType);
   const observedType = fiscalType(metadata.fiscal_type);
+  const expectedReceiptType = clean(receiptTypeInput || "TRAINING").toUpperCase();
+  const expectedPurpose = clean(purposeInput || "sandbox_kassenbon");
 
-  if (!providerReceipt || typeof providerReceipt !== "object" || providerReceipt.receipt_type !== "TRAINING") {
-    failLookup("fiskaly FINISHED transakcija nima pričakovanega TRAINING Kassenbona.");
+  if (!providerReceipt || typeof providerReceipt !== "object" || providerReceipt.receipt_type !== expectedReceiptType) {
+    failLookup("fiskaly FINISHED transakcija nima pričakovanega Kassenbona.");
   }
   if (metadata.source !== "werktech_pos"
-      || metadata.purpose !== "sandbox_kassenbon"
-      || metadata.receipt_type !== "training"
+      || metadata.purpose !== expectedPurpose
+      || metadata.receipt_type !== expectedReceiptType.toLowerCase()
       || observedType !== expectedType) {
     failLookup("fiskaly FINISHED transakcija nima pričakovane fiskalne oznake.");
   }
@@ -189,13 +220,17 @@ function providerTrainingEvidence(body, expectedReceipt, expectedFiscalType) {
   }
 
   return Object.freeze({
-    receiptType: "TRAINING",
+    receiptType: expectedReceiptType,
     fiscalType: observedType,
     paymentType,
     currency,
     grossCents,
     totalsByVat: Object.freeze(Array.from(observedVat, ([vatRate, amountCents]) => Object.freeze({ vatRate, amountCents }))),
   });
+}
+
+function providerTrainingEvidence(body, expectedReceipt, expectedFiscalType) {
+  return providerReceiptEvidence(body, expectedReceipt, expectedFiscalType, "TRAINING", "sandbox_kassenbon");
 }
 
 function assertFinishedSignature(result) {
@@ -271,7 +306,7 @@ function normalizeTrainingReceipt(input) {
   };
 }
 
-function trainingReceipt(receiptInput) {
+function receiptSchema(receiptInput, receiptTypeInput) {
   const receipt = receiptInput && Array.isArray(receiptInput.items)
     ? receiptInput
     : normalizeTrainingReceipt({
@@ -281,7 +316,7 @@ function trainingReceipt(receiptInput) {
   return {
     standard_v1: {
       receipt: {
-        receipt_type: "TRAINING",
+        receipt_type: clean(receiptTypeInput || "TRAINING").toUpperCase(),
         amounts_per_vat_rate: receipt.totalsByVat.map((row) => ({
           vat_rate: row.fiskalyVatRate,
           amount: money(row.grossCents),
@@ -294,6 +329,14 @@ function trainingReceipt(receiptInput) {
       },
     },
   };
+}
+
+function trainingReceipt(receiptInput) {
+  return receiptSchema(receiptInput, "TRAINING");
+}
+
+function productionReceipt(receiptInput) {
+  return receiptSchema(receiptInput, "RECEIPT");
 }
 
 function publicTransaction(body, receiptInput, providerEvidence) {
@@ -317,7 +360,7 @@ function publicTransaction(body, receiptInput, providerEvidence) {
     tssSerialNumber: clean(transaction.tss_serial_number),
     clientSerialNumber: clean(transaction.client_serial_number),
     qrCodeData: clean(transaction.qr_code_data),
-    training: true,
+    training: providerEvidence ? providerEvidence.receiptType === "TRAINING" : true,
     fiscalType: providerEvidence ? providerEvidence.fiscalType : undefined,
     paymentType: providerEvidence ? providerEvidence.paymentType : receipt.paymentType,
     amount: money(providerEvidence ? providerEvidence.grossCents : receipt.grossCents),
@@ -360,6 +403,7 @@ async function upsertTransaction(cfg, token, transactionId, revision, payload) {
 
 async function runTrainingReceipt(source, requestedId, receiptInput, fiscalTypeInput) {
   const cfg = configuration(source);
+  requireTraining(cfg);
   const transactionId = uuidV4(requestedId);
   if (!transactionId) {
     const error = new Error("Neveljaven identifikator testne transakcije.");
@@ -391,6 +435,49 @@ async function runTrainingReceipt(source, requestedId, receiptInput, fiscalTypeI
   return result;
 }
 
+async function runProductionReceipt(source, requestedId, receiptInput, fiscalTypeInput) {
+  const cfg = configuration(source);
+  if (cfg.mode !== "production") {
+    const error = new Error("Produkcijski fiskaly podpis zahteva produkcijski način.");
+    error.code = "FISKALY_LIVE_LOCKED";
+    throw error;
+  }
+  const transactionId = uuidV4(requestedId);
+  if (!transactionId) {
+    const error = new Error("Neveljaven identifikator produkcijske transakcije.");
+    error.code = "FISKALY_TX_ID_INVALID";
+    throw error;
+  }
+  const expectedType = fiscalType(fiscalTypeInput, "SALE");
+  if (expectedType !== "SALE") {
+    const error = new Error("Produkcijski fiskaly refund ostaja zaklenjen do potrditve davčne sheme.");
+    error.code = "FISKALY_LIVE_REFUND_LOCKED";
+    throw error;
+  }
+  const receipt = normalizeTrainingReceipt(receiptInput);
+  const metadata = productionMetadata();
+  const token = await authenticate(cfg);
+  await retrieveResources(cfg, token);
+  await upsertTransaction(cfg, token, transactionId, 1, {
+    state: "ACTIVE",
+    client_id: cfg.clientId,
+    metadata,
+  });
+  const finished = await upsertTransaction(cfg, token, transactionId, 2, {
+    state: "FINISHED",
+    client_id: cfg.clientId,
+    metadata,
+    schema: productionReceipt(receipt),
+  });
+  const returnedClientId = finished && typeof finished.client_id === "string" ? finished.client_id : "";
+  if (!returnedClientId || returnedClientId !== cfg.clientId) failLookup();
+  const evidence = providerReceiptEvidence(finished, receipt, "SALE", "RECEIPT", "fiscal_kassenbon");
+  const result = publicTransaction(finished, receipt, evidence);
+  assertFinishedSignature(result);
+  if (result.transactionId !== transactionId || result.training) failLookup();
+  return result;
+}
+
 async function runTrainingTransaction(source, requestedId) {
   return runTrainingReceipt(source, requestedId, {
     paymentType: "NON_CASH",
@@ -400,6 +487,7 @@ async function runTrainingTransaction(source, requestedId) {
 
 async function retrieveTrainingReceipt(source, requestedId, receiptInput, expectedFiscalType) {
   const cfg = configuration(source);
+  requireTraining(cfg);
   const transactionId = uuidV4(requestedId);
   if (!transactionId) {
     const error = new Error("Neveljaven identifikator testne transakcije.");
@@ -513,6 +601,7 @@ module.exports = {
   connectionStatus,
   runTrainingTransaction,
   runTrainingReceipt,
+  runProductionReceipt,
   retrieveTrainingReceipt,
   listCount,
   _test: {
@@ -520,7 +609,10 @@ module.exports = {
     uuidV4,
     normalizeTrainingReceipt,
     trainingReceipt,
+    productionReceipt,
     trainingMetadata,
+    productionMetadata,
+    providerReceiptEvidence,
     providerTrainingEvidence,
     publicTransaction,
     transactionHeaders,

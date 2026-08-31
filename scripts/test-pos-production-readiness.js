@@ -49,8 +49,14 @@ assert.match(verifyWorkflow, /POS_REQUIRE_PAYMENT_CONCURRENCY:\s*"1"[\s\S]*npm r
   "POS_DE_LEGAL_REVIEW_CONFIRMED", "POS_DE_LEGAL_REVIEW_REFERENCE", "POS_DE_LEGAL_REVIEW_CONFIRMED_AT",
   "POS_DE_PILOT_ACCEPTED", "POS_DE_PILOT_REFERENCE", "POS_DE_PILOT_ACCEPTED_AT",
   "FINAPI_MODE", "FINAPI_CLIENT_ID", "FINAPI_CLIENT_SECRET", "FINAPI_USER_KEY",
+  "FINAPI_LIVE_ENABLED", "FINAPI_LIVE_LICENSE_CONFIRMED", "FINAPI_LIVE_DATA_PROCESSING_CONFIRMED",
+  "FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED", "FINAPI_CLIENT_ID_LIVE", "FINAPI_CLIENT_SECRET_LIVE",
+  "FINAPI_USER_KEY_LIVE", "FINAPI_LIVE_PREFLIGHT_REFERENCE", "FINAPI_LIVE_PREFLIGHT_CONFIRMED_AT",
   "FISKALY_SIGN_DE_MODE", "FISKALY_API_KEY_TEST", "FISKALY_API_SECRET_TEST",
-  "FISKALY_TSS_ID_TEST", "FISKALY_CLIENT_ID_TEST",
+  "FISKALY_TSS_ID_TEST", "FISKALY_CLIENT_ID_TEST", "FISKALY_LIVE_ENABLED",
+  "FISKALY_API_KEY_LIVE", "FISKALY_API_SECRET_LIVE", "FISKALY_TSS_ID_LIVE", "FISKALY_CLIENT_ID_LIVE",
+  "FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED", "FISKALY_LIVE_CASH_SYSTEM_REGISTERED",
+  "FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED",
 ].forEach((name) => assert.match(envExample, new RegExp("^" + name + "=", "m"), name + " manjka v .env.example"));
 assert.match(envExample, /^FINAPI_MODE=sandbox$/m, "finAPI predloga mora ostati fail-closed v sandboxu.");
 assert.match(envExample, /^FISKALY_SIGN_DE_MODE=test$/m, "fiskaly predloga mora ostati fail-closed v TEST okolju.");
@@ -61,11 +67,14 @@ assert.match(envExample, /^FISKALY_SIGN_DE_MODE=test$/m, "fiskaly predloga mora 
   "OPENAPI_INVOICE_RECONCILIATION_ENABLED", "POS_ARCHIVE_S3_LIVE_ENABLED",
   "POS_ARCHIVE_S3_READINESS_CONFIRMED",
   "POS_DE_LEGAL_REVIEW_CONFIRMED", "POS_DE_PILOT_ACCEPTED",
-  "POS_DATABASE_CI_GATE_CONFIRMED",
+  "POS_DATABASE_CI_GATE_CONFIRMED", "FINAPI_LIVE_ENABLED", "FINAPI_LIVE_LICENSE_CONFIRMED",
+  "FINAPI_LIVE_DATA_PROCESSING_CONFIRMED", "FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED",
+  "FISKALY_LIVE_ENABLED", "FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED",
+  "FISKALY_LIVE_CASH_SYSTEM_REGISTERED", "FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED",
 ].forEach((name) => assert.match(envExample, new RegExp("^" + name + "=false$", "m"), name + " mora biti v predlogi fail-closed"));
 
 const empty = readiness.assess({});
-assert.strictEqual(empty.version, "pos-de-production-readiness-v16");
+assert.strictEqual(empty.version, "pos-de-production-readiness-v17");
 assert.strictEqual(empty.ready, false);
 assert.strictEqual(empty.summary.blockingTotal, 8);
 assert.strictEqual(empty.summary.blockingReady, 0);
@@ -75,12 +84,18 @@ assert.strictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").bloc
 assert.deepStrictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").missing, [
   "cash_checkout_migration_not_deployed",
   "cash_refund_migration_not_deployed",
-  "fiskaly_production_credentials_and_tss_not_configured",
-  "dsfinvk_external_conformance_not_confirmed",
-  "cash_system_registration_not_confirmed",
-  "cash_legal_review_not_confirmed",
+  "fiskaly_production_cash_db_path_locked",
+  "FISKALY_SIGN_DE_MODE=production",
+  "FISKALY_LIVE_ENABLED=true",
+  "FISKALY_API_KEY_LIVE",
+  "FISKALY_API_SECRET_LIVE",
+  "FISKALY_TSS_ID_LIVE",
+  "FISKALY_CLIENT_ID_LIVE",
+  "FISKALY_LIVE_LEGAL_REVIEW_CONFIRMED=true",
+  "FISKALY_LIVE_CASH_SYSTEM_REGISTERED=true",
+  "FISKALY_LIVE_DSFINVK_CONFORMANCE_CONFIRMED=true",
 ]);
-assert.strictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").status, "local_training_complete");
+assert.strictEqual(empty.checks.find((check) => check.id === "fiskaly_tse").status, "training_provider_post_complete");
 assert.strictEqual(empty.checks.find((check) => check.id === "openapi_multi_company_onboarding").status, "cost_locked");
 assert.deepStrictEqual(
   empty.checks.find((check) => check.id === "openapi_financial_adjustments").missing,
@@ -97,6 +112,8 @@ const secretValues = {
   resendWebhook: "resend-webhook-secret-never-print",
   awsAccess: "aws-access-never-print",
   awsSecret: "aws-secret-never-print",
+  finapiSecret: "finapi-secret-never-print",
+  finapiUserKey: "0123456789abcdef0123456789abcdef",
 };
 const completeEnv = {
   SUPABASE_URL: "https://project.supabase.co",
@@ -146,6 +163,33 @@ assert.deepStrictEqual(complete.summary, {
 });
 assert.strictEqual(complete.checks.find((check) => check.id === "openapi_einvoicing").status, "ready");
 assert.strictEqual(complete.checks.find((check) => check.id === "supabase_core").status, "ready");
+const finapiReadyEnv = Object.assign({}, completeEnv, {
+  FINAPI_MODE: "production",
+  FINAPI_LIVE_ENABLED: "true",
+  FINAPI_LIVE_LICENSE_CONFIRMED: "true",
+  FINAPI_LIVE_DATA_PROCESSING_CONFIRMED: "true",
+  FINAPI_LIVE_USER_DELETION_PROCESS_CONFIRMED: "true",
+  FINAPI_CLIENT_ID_LIVE: "finapi-live-client",
+  FINAPI_CLIENT_SECRET_LIVE: secretValues.finapiSecret,
+  FINAPI_USER_KEY_LIVE: secretValues.finapiUserKey,
+  FINAPI_LIVE_PREFLIGHT_REFERENCE: "FINAPI-LIVE-PREFLIGHT-2026-08-31",
+  FINAPI_LIVE_PREFLIGHT_CONFIRMED_AT: new Date().toISOString(),
+});
+const finapiReady = readiness.assess(finapiReadyEnv);
+assert.strictEqual(finapiReady.checks.find((check) => check.id === "finapi_bank_sync").status, "ready");
+assert.deepStrictEqual(finapiReady.summary, {
+  blockingTotal: 8,
+  blockingReady: 7,
+  blockingRemaining: 1,
+  optionalNotReady: 4,
+});
+const staleFinapiPreflight = readiness.assess(Object.assign({}, finapiReadyEnv, {
+  FINAPI_LIVE_PREFLIGHT_CONFIRMED_AT: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+}));
+assert.strictEqual(staleFinapiPreflight.checks.find((check) => check.id === "finapi_bank_sync").ready, false);
+assert.ok(staleFinapiPreflight.checks.find((check) => check.id === "finapi_bank_sync").missing.includes("FINAPI_LIVE_PREFLIGHT_CONFIRMED_AT"));
+const shortFinapiUserKey = readiness.assess(Object.assign({}, finapiReadyEnv, { FINAPI_USER_KEY_LIVE: "too-short" }));
+assert.ok(shortFinapiUserKey.checks.find((check) => check.id === "finapi_bank_sync").missing.includes("FINAPI_USER_KEY_LIVE"));
 const staleDatabaseCiGate = readiness.assess(Object.assign({}, completeEnv, {
   POS_DATABASE_CI_GATE_CONFIRMED_AT: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
 }));
@@ -252,7 +296,7 @@ assert.strictEqual(unauditedExternalConfirmations.ready, false);
 assert.ok(unauditedExternalConfirmations.checks.find((check) => check.id === "german_legal_review").missing.includes("POS_DE_LEGAL_REVIEW_REFERENCE"));
 assert.ok(unauditedExternalConfirmations.checks.find((check) => check.id === "merchant_pilot").missing.includes("POS_DE_PILOT_ACCEPTED_AT"));
 
-const serialized = JSON.stringify(complete);
+const serialized = JSON.stringify([complete, finapiReady]);
 Object.values(secretValues).forEach((secret) => {
   assert.ok(!serialized.includes(secret), "Poročilo ne sme vsebovati vrednosti skrivnosti.");
 });
