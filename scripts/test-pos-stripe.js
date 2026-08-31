@@ -210,9 +210,12 @@ assert.match(refundRecoveryMigration, /security definer[\s\S]*set search_path = 
 assert.match(refundRecoveryMigration, /grant execute on function public\.pos_reconcile_stripe_refund[\s\S]*to service_role/i);
 assert.match(paymentSnapshotHarness, /phase === "seed"[\s\S]*seedLegacyFixture/i);
 assert.match(paymentSnapshotHarness, /failure_code JSON null/i);
+assert.match(paymentSnapshotHarness, /insert into public\.pos_business_profiles\(user_id,invoice_prefix\)[\s\S]*on conflict \(user_id\) do nothing/i);
 assert.doesNotMatch(paymentSnapshotHarness, /const BACKFILL_SQL/i);
 assert.match(webhookHandlerHarness, /STRIPE_SESSION_STILL_OPEN/i);
 assert.match(paymentSnapshotRollback, /POS_STRIPE_EVENT_ROLLBACK_INDEX_RESTORE_CONFLICT/i);
+assert.match(paymentSnapshotRollback, /\bbegin;\s+lock table public\.pos_payments\b/i);
+assert.match(paymentSnapshotRollback, /notify pgrst, 'reload schema';\s+commit;\s*$/i);
 assert.match(paymentConcurrencyHarness, /expectedCodes[\s\S]*expectedMessages[\s\S]*rejected\.reason/i);
 assert.match(paymentConcurrencyHarness, /testRetryableStripeAttemptStaysActive/i);
 assert.match(paymentConcurrencyHarness, /testBankCannotSettleActiveStripe/i);
