@@ -211,6 +211,7 @@ assert.match(refundRecoveryMigration, /grant execute on function public\.pos_rec
 assert.match(paymentSnapshotHarness, /phase === "seed"[\s\S]*seedLegacyFixture/i);
 assert.match(paymentSnapshotHarness, /failure_code JSON null/i);
 assert.match(paymentSnapshotHarness, /insert into public\.pos_business_profiles\(user_id,invoice_prefix\)[\s\S]*on conflict \(user_id\) do nothing/i);
+assert.match(paymentSnapshotHarness, /disable trigger pos_audit_events_immutable[\s\S]*delete from public\.pos_audit_events[\s\S]*enable trigger pos_audit_events_immutable/i);
 assert.doesNotMatch(paymentSnapshotHarness, /const BACKFILL_SQL/i);
 assert.match(webhookHandlerHarness, /STRIPE_SESSION_STILL_OPEN/i);
 assert.match(paymentSnapshotRollback, /POS_STRIPE_EVENT_ROLLBACK_INDEX_RESTORE_CONFLICT/i);
