@@ -705,7 +705,7 @@ async function verifyLiveCatalog() {
         join pg_namespace n on n.oid = p.pronamespace
         left join lateral (
           select coalesce(
-                   array_agg(distinct coalesce(role.rolname, 'public'))
+                   array_agg(distinct coalesce(role.rolname::text, 'public'))
                      filter (where expanded.privilege_type = 'EXECUTE'),
                    array[]::text[]
                  ) as execute_roles
