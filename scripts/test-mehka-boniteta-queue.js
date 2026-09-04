@@ -73,6 +73,48 @@ async function main() {
       "stari HS256 žeton mora sprožiti osvežitev seje, ne nedosegljivega Auth API-ja");
     assert.equal(zahtevanaOsvezitev.retryable, true);
 
+    var noviKljuci = await jose.generateKeyPair("ES256");
+    var jwtZNepoznanimKid = await new jose.SignJWT({ role: "authenticated", email: "rotated@example.test" })
+      .setProtectedHeader({ alg: "ES256", kid: "rotated-es256-key" })
+      .setIssuer("https://auth.example.test/auth/v1")
+      .setAudience("authenticated")
+      .setSubject(uporabnikId)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(noviKljuci.privateKey);
+    assert.equal(supabaseServer._test.jeNeveljavnaJwtNapaka({ code: "ERR_JWKS_NO_MATCHING_KEY" }), false,
+      "neznan kid ni dokončen dokaz neveljavne seje, ker se je ključ lahko pravkar zamenjal");
+    assert.equal(supabaseServer._test.jeNeveljavnaJwtNapaka({ code: "ERR_JWKS_MULTIPLE_MATCHING_KEYS" }), false,
+      "nekonkluzivna izbira JWKS ključa mora pasti na avtoritativni Auth strežnik");
+
+    var rotacijskiAuthKlici = 0;
+    global.fetch = async function () {
+      rotacijskiAuthKlici += 1;
+      return { ok: true, status: 200, json: async function () { return { id: uporabnikId, email: "rotated@example.test" }; } };
+    };
+    var prijavaPoRotacijiKljuca = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + jwtZNepoznanimKid } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks, authRetryDelays: [0, 0] }
+    );
+    assert.equal(prijavaPoRotacijiKljuca.ok, true,
+      "veljavno sejo z novim kid mora varno potrditi oddaljeni Auth strežnik");
+    assert.equal(prijavaPoRotacijiKljuca.user.id, uporabnikId);
+    assert.equal(rotacijskiAuthKlici, 1, "po neznanem kid zadošča en uspešen avtoritativni Auth klic");
+
+    rotacijskiAuthKlici = 0;
+    global.fetch = async function () {
+      rotacijskiAuthKlici += 1;
+      throw new TypeError("network down during signing-key rotation");
+    };
+    var rotacijaBrezOmrezja = await supabaseServer.preveriUporabnika(
+      { headers: { authorization: "Bearer " + jwtZNepoznanimKid } },
+      { url: "https://auth.example.test", serviceKey: "service-test", authJwks: lokalniJwks, authRetryDelays: [0, 0] }
+    );
+    assert.equal(rotacijaBrezOmrezja.code, "AUTH_SERVER_UNAVAILABLE");
+    assert.equal(rotacijaBrezOmrezja.retryable, true,
+      "neznan kid ob omrežnem izpadu mora ostati začasna napaka, ne lažni 401");
+    assert.equal(rotacijskiAuthKlici, 3, "rezervna Auth pot mora ohraniti omejene ponovitve");
+
     var vercelConfig = require("../vercel.json");
     assert.equal(vercelConfig.functions["api/boniteta.js"].maxDuration, 60,
       "združena bonitetna funkcija mora imeti dovolj časa za auth in čakalno vrsto");
@@ -135,7 +177,7 @@ async function main() {
     global.fetch = prvotniAuthFetch;
   }
 
-  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v49-scrapling-acquisition-fallback");
+  assert.equal(queue._test.CACHE_VERSION, identityEvidence.CACHE_VERSION);
   assert.match(queue.cacheKey({ ime: "Cache GmbH" }), /^[a-f0-9]{64}$/,
     "ključ predpomnilnika mora biti stabilen SHA-256");
   assert.equal(queue.cacheKey({ ime: " Cache   GmbH " }), queue.cacheKey({ ime: "cache gmbh" }),
@@ -147,11 +189,137 @@ async function main() {
     queue.cacheKey({ confirmedIdentity: { confirmed: true, name: "Primer GmbH", representativeName: "Max Muster" } }),
     "potrditev drugega nosilca ne sme ponovno uporabiti rezultata prve osebe"
   );
+  assert.equal(queue._test.cacheTtlMs("identiteta"), 24 * 60 * 60 * 1000,
+    "preverjen rezultat identitete mora biti svež en dan");
+  assert.equal(queue._test.cacheTtlMs("insolvenca"), 24 * 60 * 60 * 1000,
+    "preverjen uradni insolvenčni rezultat mora biti svež en dan");
+
+  queue._test.ponastaviPomnilnik();
+  var zastareloOpraviloId = "018ff001-0000-7000-8000-000000000001";
+  queue._test.pomnilnik.jobs.set(zastareloOpraviloId, {
+    id: zastareloOpraviloId, user_id: "spletni-uporabnik", faza: "identiteta", status: "completed",
+    attempts: 1, max_attempts: 3, cache_key: "stari-v50-kljuc",
+    created_at: "2026-08-31T21:51:34.000Z", updated_at: "2026-08-31T21:51:36.000Z",
+    request_payload: { spletnaStran: "https://www.rohrblitz-berlin.de/" },
+    result_payload: { ok: true, identity: { status: "verified_register", companyId: "DE-HRA-F1103-56196" }, identityEvidence: { status: "verified_api", companyId: "DE-HRA-F1103-56196" } },
+  });
+  var zastareliPosnetek = await queue.pridobi({}, "spletni-uporabnik", zastareloOpraviloId);
+  assert.equal(zastareliPosnetek.id, zastareloOpraviloId);
+  assert.equal(zastareliPosnetek.stale, true, "opravilo stare različice se ne sme prikazati kot svež rezultat");
+  assert.equal(await queue.pridobi({}, "drug-uporabnik", zastareloOpraviloId), null, "razveljavitev ne sme obiti uporabniške izolacije");
+
   queue._test.ponastaviPomnilnik();
   var prviEnak = await queue.ustvari({}, "isti-uporabnik", { ime: "Isto podjetje GmbH", spletnaStran: "https://example.test" });
   var drugiEnak = await queue.ustvari({}, "isti-uporabnik", { ime: "Isto podjetje GmbH", spletnaStran: "https://example.test" });
   assert.equal(drugiEnak.id, prviEnak.id, "ponoven klik mora uporabiti isto aktivno opravilo");
   assert.equal(drugiEnak.reused, true, "UI mora vedeti, da ni nastala nova zunanja poizvedba");
+
+  queue._test.ponastaviPomnilnik();
+  var insolventnoOpravilo = await queue.ustvari({}, "insolvencni-uporabnik", {
+    confirmedIdentity: {
+      confirmed: true,
+      name: "Hitri preizkus GmbH",
+      address: "Teststraße 1",
+      postalCode: "20095",
+      city: "Hamburg",
+    },
+  });
+  assert.equal(insolventnoOpravilo.maxAttempts, 2,
+    "insolvenčna faza sme imeti samo prvi poskus in eno kontrolirano ponovitev");
+  var prviInsolvencniPoskus = (await queue.prevzemi({}, 1))[0];
+  var predZakljuckom = Date.now();
+  await queue.zakljuci({}, prviInsolvencniPoskus, { success: false, retryable: true, error: "začasno" });
+  var cakaNaDrugiPoskus = await queue.pridobi({}, "insolvencni-uporabnik", insolventnoOpravilo.id);
+  assert.equal(cakaNaDrugiPoskus.status, "queued");
+  var odmik = new Date(queue._test.pomnilnik.jobs.get(insolventnoOpravilo.id).available_at).getTime() - predZakljuckom;
+  assert.ok(odmik >= 2900 && odmik <= 4000, "insolvenčni retry mora čakati približno tri sekunde");
+  queue._test.pomnilnik.jobs.get(insolventnoOpravilo.id).available_at = new Date(Date.now() - 1).toISOString();
+  var drugiInsolvencniPoskus = (await queue.prevzemi({}, 1))[0];
+  await queue.zakljuci({}, drugiInsolvencniPoskus, { success: false, retryable: true, error: "še vedno začasno" });
+  var izcrpanoInsolventnoOpravilo = await queue.pridobi({}, "insolvencni-uporabnik", insolventnoOpravilo.id);
+  assert.equal(izcrpanoInsolventnoOpravilo.status, "failed",
+    "po eni kontrolirani ponovitvi se celotno opravilo ne sme zagnati tretjič");
+
+  queue._test.ponastaviPomnilnik();
+  var luetgeZahteva = {
+    ime: "LÜTGE HAUSTECHNIK GmbH",
+    spletnaStran: "https://www.sanitaer-heizung-notdienst.de/",
+    openRegisterCompanyId: "DE-HRB-K1101-176347",
+    confirmedIdentity: {
+      confirmed: true,
+      name: "LÜTGE HAUSTECHNIK GmbH",
+      street: "Orchideenring 11b",
+      postalCode: "22607",
+      city: "Hamburg",
+      companyId: "DE-HRB-K1101-176347",
+    },
+  };
+  var luetgeOpravilo = await queue.ustvari({}, "luetge-uporabnik", luetgeZahteva);
+  var luetgePrviPoskus = (await queue.prevzemi({}, 1))[0];
+  var luetgePortalniKlici = 0;
+  async function luetgePrviTimeoutNatoUspeh(_req, res) {
+    luetgePortalniKlici += 1;
+    if (luetgePortalniKlici === 1) return res.status(200).json({
+      ok: true,
+      identity: { status: "verified_register", companyId: "DE-HRB-K1101-176347" },
+      insolvency: {
+        status: "unavailable",
+        source: "official_insolvency_portal",
+        verificationMode: "official_portal_only",
+        officialVerification: { reason: "official_portal_timeout", source: "official_insolvency_portal" },
+      },
+    });
+    return res.status(200).json({
+      ok: true,
+      identity: { status: "verified_register", companyId: "DE-HRB-K1101-176347" },
+      insolvency: {
+        status: "clear",
+        source: "official_insolvency_portal",
+        verificationMode: "official_portal_only",
+        officialVerification: { status: "clear", evidenceStatus: "captured", evidenceImage: "data:image/jpeg;base64,QUJD" },
+      },
+    });
+  }
+  await worker.izvediJob({}, luetgePrviPoskus, { handler: luetgePrviTimeoutNatoUspeh });
+  assert.equal((await queue.pridobi({}, "luetge-uporabnik", luetgeOpravilo.id)).status, "queued",
+    "prvi prehodni izpad uradnega insolvenčnega portala mora samodejno ostati v istem opravilu");
+  queue._test.pomnilnik.jobs.get(luetgeOpravilo.id).available_at = new Date(Date.now() - 1).toISOString();
+  var luetgeDrugiPoskus = (await queue.prevzemi({}, 1))[0];
+  await worker.izvediJob({}, luetgeDrugiPoskus, { handler: luetgePrviTimeoutNatoUspeh });
+  var luetgeZakljuceno = await queue.pridobi({}, "luetge-uporabnik", luetgeOpravilo.id);
+  assert.equal(luetgeZakljuceno.id, luetgeOpravilo.id, "kontrolirana ponovitev ne sme ustvariti novega ali podvojenega opravila");
+  assert.equal(luetgeZakljuceno.status, "completed", "drugi uspešni poskus mora samodejno zaključiti Lütge preverbo");
+  assert.equal(luetgeZakljuceno.attempts, 2, "Lütge tok mora uporabiti natanko prvi poskus in eno kontrolirano ponovitev");
+  assert.equal(luetgePortalniKlici, 2, "worker mora izvesti natanko dva uradna portalna poskusa brez novega uporabnikovega opravila");
+
+  queue._test.ponastaviPomnilnik();
+  var luetgeTerminalnoOpravilo = await queue.ustvari({}, "luetge-terminalni-uporabnik", luetgeZahteva);
+  async function luetgeVednoTimeout(_req, res) {
+    return res.status(200).json({
+      ok: true,
+      napaka: "Vir je bil začasno nedosegljiv.",
+      identity: { status: "verified_register", companyId: "DE-HRB-K1101-176347" },
+      insolvency: {
+        status: "unavailable",
+        source: "official_insolvency_portal",
+        sourceLabel: "Insolvenzbekanntmachungen",
+        verificationMode: "official_portal_only",
+        officialVerification: { reason: "official_portal_timeout", source: "official_insolvency_portal", sourceLabel: "Insolvenzbekanntmachungen" },
+      },
+    });
+  }
+  var luetgeTerminalniPrvi = (await queue.prevzemi({}, 1))[0];
+  await worker.izvediJob({}, luetgeTerminalniPrvi, { handler: luetgeVednoTimeout });
+  queue._test.pomnilnik.jobs.get(luetgeTerminalnoOpravilo.id).available_at = new Date(Date.now() - 1).toISOString();
+  var luetgeTerminalniDrugi = (await queue.prevzemi({}, 1))[0];
+  await worker.izvediJob({}, luetgeTerminalniDrugi, { handler: luetgeVednoTimeout });
+  var luetgeTerminalno = await queue.pridobi({}, "luetge-terminalni-uporabnik", luetgeTerminalnoOpravilo.id);
+  assert.equal(luetgeTerminalno.status, "failed", "retry CTA se sme pojaviti šele po izčrpanih dveh worker poskusih");
+  assert.equal(luetgeTerminalno.error, "Uradni insolvenčni portal ni odgovoril pravočasno. To ni napaka spletne strani podjetja.",
+    "terminalni Lütge rezultat mora ohraniti natančen uradni vir in ne sme obtožiti podjetjeve spletne strani");
+  assert.equal(luetgeTerminalno.result.insolvency.sourceLabel, "Insolvenzbekanntmachungen",
+    "terminalni payload mora ohraniti oznako konkretnega uradnega insolvenčnega vira");
+
   queue._test.ponastaviPomnilnik();
   var ustvarjena = [];
   for (var i = 0; i < 100; i += 1) {
@@ -218,8 +386,14 @@ async function main() {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), result_payload: {
       identityEvidence: {
         status: "captured", imageDataUrl: "data:image/jpeg;base64,QUJDRA==",
-        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v17-preserve-legal-modal",
+        sourceUrl: "https://example.test/impressum", captureVersion: identityEvidence.CAPTURE_VERSION,
         viewportOverlaysRemoved: true,
+        contentValidationStatus: "matched",
+        provenanceStatus: "same_legal_block",
+        validatedFields: ["personName", "street", "postalCode", "city"],
+        validatedIdentity: {
+          identityName: "Erika Beispiel", street: "Musterstraße 1", postalCode: "10115", city: "Berlin",
+        },
       },
     },
   });
@@ -262,6 +436,11 @@ async function main() {
   assert.equal(istiUporabnik.status, "completed");
   assert.equal(istiUporabnik.cached, true);
   assert.equal(istiUporabnik.result.cachedResult, true);
+  assert.equal(
+    queue._test.pomnilnik.jobs.get(istiUporabnik.id).finished_at,
+    queue._test.pomnilnik.jobs.get(prvi.id).finished_at,
+    "cache zadetek mora ohraniti čas izvorne preverbe in ne sme podaljšati 24-urnega roka"
+  );
   assert.equal(queue._test.jeRezultatPrimerenZaPredpomnilnik({
     ok: true,
     identity: { status: "probable_impressum" },
@@ -270,12 +449,35 @@ async function main() {
   }, "identiteta"), false, "neuspešen zajem dokazila se mora ob naslednjem kliku vedno ponoviti");
   assert.equal(queue._test.jeRezultatPrimerenZaPredpomnilnik(veljavenPredpomnjeniRezultat, "identiteta"), true,
     "uradno OpenRegister dokazilo se lahko varno ponovno uporabi");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({ spletnaStran: "https://example.test/" }), false,
+    "ponoven spletni vnos sme v 24 urah uporabiti varen preverjeni rezultat");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({ ime: "Cache GmbH" }), false,
+    "nespletna preverba lahko še vedno uporabi varen predpomnilnik");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({
+    ime: "Cache GmbH", companyIndexSource: "offeneregister", companyIndexId: "D1101V_HRB123",
+  }), true, "vsak nov klik na lokalno kartico mora sveže poklicati OpenRegister");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({
+    ime: "Cache GmbH", companyIndexSource: "offeneregister", companyIndexId: "D1101V_HRB123",
+    confirmedIdentity: { confirmed: true },
+  }), false, "nadaljevanje iste že potrjene identitete ne sme ustvariti drugega OpenRegister kredita");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({ ime: "Cache GmbH", rawNameIdentitySearch: true }), true,
+    "nova preverba surovega imena brez lokalne kartice mora vedno sveže poklicati OpenRegister");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({
+    ime: "Cache GmbH", rawNameIdentitySearch: true, confirmedIdentity: { confirmed: true },
+  }), false, "nadaljevanje že potrjene identitete iz surovega imena ne sme ustvariti drugega OpenRegister kredita");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({ ime: "Cache GmbH" }), false,
+    "brez izrecne oznake rawNameIdentitySearch ostane obstoječe varno 24-urno predpomnjenje nespremenjeno");
+  assert.equal(queue._test.zahtevaPrisilnoSvezePreverjanje({ spletnaStran: "https://example.test/", recheckMode: "manual_refresh" }), true,
+    "izrecni klik Preveri znova mora vedno obiti predpomnilnik");
+  var prisilnoSveze = await queue.ustvari({}, "user-a", Object.assign({}, telo, { recheckMode: "stale_version" }));
+  assert.equal(prisilnoSveze.status, "queued", "razveljavljeno staro opravilo mora vedno sprožiti novo preverjanje");
+  assert.equal(prisilnoSveze.cached, false);
   var izbrisanih = await queue.izbrisiPodatkeProfila({}, "user-a", {
     legal_name: "Cache GmbH",
     address: { street: "Musterstraße 1", postal_code: "10115", city: "Berlin" },
     contact: {}, latest_check: {},
   });
-  assert.equal(izbrisanih, 2, "izbris profila mora odstraniti prvotno in predpomnjeno opravilo istega uporabnika");
+  assert.equal(izbrisanih, 3, "izbris profila mora odstraniti prvotno, predpomnjeno in prisilno sveže opravilo istega uporabnika");
   assert.equal(queue._test.pomnilnik.jobs.size, 1, "opravilo drugega uporabnika mora ostati nedotaknjeno");
   var poIzbrisu = await queue.ustvari({}, "user-a", telo);
   assert.equal(poIzbrisu.status, "queued", "po izbrisu mora nastati povsem novo preverjanje");
@@ -304,6 +506,40 @@ async function main() {
   assert.equal(queue.izbrisiLokalnaOpravilaPoDomeni("https://www.klimaberatung.de/"), 2,
     "lokalno čistilo mora odstraniti vse stare poskuse iste domene, tudi brez shranjenega profila");
   assert.ok(queue._test.pomnilnik.jobs.has(drugVnosId), "lokalno čistilo ne sme odstraniti druge domene");
+  var agentJobId = "a177dc5f-8fba-4ced-8db5-e61c0403b459";
+  queue._test.pomnilnik.jobs.set(agentJobId, {
+    id: agentJobId,
+    user_id: "user-a",
+    faza: "identiteta",
+    status: "completed",
+    attempts: 1,
+    max_attempts: 3,
+    request_payload: { spletnaStran: "https://example.test/impressum" },
+    result_payload: {
+      ok: true,
+      publicProfile: {
+        status: "found",
+        sourceUrl: "https://example.test/impressum",
+        subjekt: { ime: "Primer GmbH" },
+        agentValidation: { status: "pending_background", reason: "queued_after_primary_result" },
+      },
+      sources: [{ id: "impressum", status: "found" }, { id: "impressum_agent", status: "pending_background" }],
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    finished_at: new Date().toISOString(),
+  });
+  var agentDopolnitev = await queue.dopolniImpressumPotrditev({}, "user-a", agentJobId, {
+    status: "matched",
+    sourceUrl: "https://example.test/impressum",
+    fields: { name: true, street: true, postalCode: true, city: true },
+  });
+  assert.equal(agentDopolnitev.result.publicProfile.agentValidation.status, "matched",
+    "naknadna actor potrditev mora dopolniti že zaključeni lokalni rezultat");
+  assert.equal(agentDopolnitev.result.sources.filter(function (entry) { return entry.id === "impressum_agent"; }).length, 1,
+    "naknadna potrditev mora zamenjati pending vir in ga ne sme podvojiti");
+  assert.equal((await queue.dopolniImpressumPotrditev({}, "user-b", agentJobId, { status: "matched" })), null,
+    "drug uporabnik ne sme dopolniti tujega rezultata");
   assert.equal(queue._test.opraviloPripadaProfilu({
     id: "job-company", request_payload: { confirmedIdentity: { companyId: "DE-HRB-123" } }, result_payload: {},
   }, { company_id: "DE-HRB-123", legal_name: "Drugo ime GmbH", address: {}, contact: {}, latest_check: {} }), true);
@@ -391,9 +627,34 @@ async function main() {
   }
 
   assert.equal(worker.prehodnaNapaka(502, null), true);
+  assert.equal(worker.opisNapakeUradnegaInsolvencnegaVira({
+    insolvency: {
+      status: "unavailable",
+      verificationMode: "official_portal_only",
+      officialVerification: { reason: "official_portal_timeout", source: "official_insolvency_portal" },
+    },
+  }), "Uradni insolvenčni portal ni odgovoril pravočasno. To ni napaka spletne strani podjetja.",
+  "Lütge primer mora jasno ločiti dosegljivo spletno stran podjetja od časovne omejitve uradnega insolvenčnega portala");
+  assert.match(fs.readFileSync(path.join(koren, "api", "mehka-boniteta-delavec.js"), "utf8"),
+    /error: success \? null : opisNapakeUradnegaInsolvencnegaVira\(payload\) \|\| payload\.napaka/,
+    "strukturirani razlog uradnega portala mora imeti prednost pred generičnim payload.napaka");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, identityEvidence: { status: "unavailable" } }), false);
+  assert.equal(worker.prehodnaNapaka(200, {
+    ok: true,
+    identityEvidence: { status: "unavailable", reason: "capture_failed" },
+  }, { faza: "identiteta", request_payload: {} }), true,
+  "prehodni neuspeh prvega zajema Impressuma mora vrsta samodejno ponoviti");
+  assert.equal(worker.prehodnaNapaka(200, {
+    ok: true,
+    identityEvidence: { status: "unavailable", reason: "identity_evidence_content_mismatch" },
+  }, { faza: "identiteta", request_payload: {} }), false,
+  "vsebinskega neujemanja dokazila ne smemo slepo ponavljati");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }), true,
     "tudi ročna insolvenčna preverba brez uradnega dokaza mora ostati nedokončana in se ponoviti");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, identity: { status: "verified_register" }, insolvency: { status: "not_checked", reason: "official_identity_evidence_unavailable" } }, { faza: "identiteta", request_payload: {} }), false,
+    "prva faza z uporabnim rezultatom identitete ne sme pasti v tri ponovitve samo zato, ker insolvenčni dokaz še ni pripravljen");
+  assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }, { faza: "insolvenca", request_payload: { confirmedIdentity: { confirmed: true } } }), true,
+    "faza insolvence mora nedokončan uradni rezultat še vedno ponoviti");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "unavailable" } }, { project_monitor_id: "monitor-1" }), true,
     "samodejno spremljanje mora začasno nedosegljiv uradni vir ponoviti in ne sme prepisati zadnjega uspešnega rezultata");
   assert.equal(worker.prehodnaNapaka(200, { ok: true, insolvency: { status: "clear", officialVerification: { status: "unavailable" } } }, { project_monitor_id: "monitor-1" }), true,
@@ -460,12 +721,15 @@ async function main() {
     "začetno preverjanje statusa mora biti odzivnejše od starega 1–1,8 s intervala");
   assert.doesNotMatch(ui, /job\.status === \"processing\" \? 1000 : 1800/,
     "stari počasni fiksni interval ne sme ostati v čakalni zanki");
-  assert.match(ui, /55 \* 1000/, "widget uporabnika ne sme več minut držati na vrtečem kolescu");
+  assert.match(ui, /async function pocakajNaOpravilo\(job, token, kontekst\)[\s\S]*?while \(true\)[\s\S]*?job\.status === "completed"[\s\S]*?job\.status === "failed"/,
+    "UI mora isto opravilo samodejno spremljati do terminalnega stanja brez mrtvega timeout zaslona");
+  assert.doesNotMatch(ui, /55 \* 1000|Preverjanje se nadaljuje v ozadju\. Poskusite ponovno/,
+    "stara časovna meja ne sme prekiniti samodejnega spremljanja aktivnega opravila");
   assert.match(ui, /krajiTrenutnePoste\.length > 1/, "pri poštni številki z več kraji mora biti izbira izrecna");
-  assert.match(ui, /Podjetja nismo našli\. Izberite naslednji korak spodaj\./,
-    "prebrana stran brez potrjene identitete ne sme biti napačno označena kot neberljiva");
-  assert.match(ui, /stranJeDejanskoNedosegljiva/,
-    "sporočilo o neberljivi strani mora biti omejeno na dejanske napake dostopa");
+  assert.match(ui, /Na spletni strani nismo našli berljivega Impressuma\./,
+    "prebrana stran brez potrjene identitete mora dobiti kratek in resničen rezultat");
+  assert.match(ui, /website_unreachable: "Spletna stran se ni odzvala ali je blokirala samodejni dostop\."/,
+    "dejanska napaka dostopa mora ostati ločena od najdenega HTML brez Impressuma");
   var api = fs.readFileSync(path.join(koren, "api", "_handlers", "mehka-boniteta.js"), "utf8");
   assert.match(api, /pravniKontrolnik\.click\(\)/,
     "vgrajeni Impressum mora biti pred zajemom dokazila varno odprt");
