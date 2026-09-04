@@ -3,6 +3,7 @@
 var assert = require("assert");
 var fs = require("fs");
 var path = require("path");
+var zlib = require("node:zlib");
 var api = require("../api/mehka-boniteta");
 var test = api._test;
 var identityEvidenceContract = require("../api/_lib/identity-evidence");
@@ -27,6 +28,15 @@ var prihodnjiPosnetek = {
   captureVersion: "identity-evidence-v999-future-capture",
   screenshotReady: true,
   viewportOverlaysRemoved: true,
+  contentValidationStatus: "matched",
+  provenanceStatus: "same_legal_block",
+  validatedFields: ["personName", "street", "postalCode", "city"],
+  validatedIdentity: {
+    identityName: "Erika Beispiel",
+    street: "Musterstraße 1",
+    postalCode: "10115",
+    city: "Berlin",
+  },
 };
 assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv(prihodnjiPosnetek), true,
   "prihodnja različica se mora prikazati po semantični strežniški oznaki brez spremembe UI-ja");
@@ -48,11 +58,38 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv(Object.assign({
 assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/uradni-rezultat",
   evidenceMode: "user_uploaded_official_screenshot",
+  contentValidationStatus: "matched",
+  provenanceStatus: "same_legal_block",
+  validatedFields: ["personName", "street", "postalCode", "city"],
+  validatedIdentity: prihodnjiPosnetek.validatedIdentity,
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
-assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v17-preserve-legal-modal");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v49-scrapling-acquisition-fallback");
+assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v24-full-page-focused");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v63-full-page-focused");
+assert.deepStrictEqual(test.BROWSER_BUDGET, {
+  IMPRESSUM_HTTP: 6000,
+  BROWSER_LAUNCH: 8000,
+  SELECTOR: 8000,
+  SCREENSHOT: 8000,
+  NAVIGATION: 12000,
+  PROTOCOL: 20000,
+  IDENTITY_EVIDENCE_TOTAL: 32000,
+  IDENTITY_CROP_TOTAL: 6000,
+  BROWSER_CLOSE: 4000,
+  BROWSER_PROCESS_EXIT: 1000,
+  PROXY_CLOSE: 1000,
+  PROFILE_REMOVE: 1500,
+  CLEANUP_RESERVE: 8000,
+  OFFICIAL_INSOLVENCY_ATTEMPT: 20000,
+  MAX_DURATION: 60000,
+});
+assert.strictEqual(test.BROWSER_BUDGET.NAVIGATION < test.BROWSER_BUDGET.PROTOCOL, true);
+assert.strictEqual(test.BROWSER_BUDGET.IDENTITY_EVIDENCE_TOTAL + test.BROWSER_BUDGET.CLEANUP_RESERVE < test.BROWSER_BUDGET.MAX_DURATION, true);
+assert.strictEqual(test.razvrstiBrskalniskoNapako({ name: "TimeoutError", message: "Navigation timeout" }).kind, "timeout");
+assert.strictEqual(test.razvrstiBrskalniskoNapako({ name: "ProtocolError", message: "Page.navigate timed out. Increase the 'protocolTimeout' setting in launch/connect calls" }).kind, "protocol_timeout");
+assert.strictEqual(test.razvrstiBrskalniskoNapako({ name: "ProtocolError", message: "Target closed" }).kind, "browser_crash");
+assert.strictEqual(test.razvrstiBrskalniskoNapako({ name: "Error", message: "IDENTITY_BLOCK_NOT_FOUND" }).kind, "evidence_integrity");
 var zgodnjiApiVir = fs.readFileSync(path.join(__dirname, "../api/_handlers/mehka-boniteta.js"), "utf8");
-assert.match(zgodnjiApiVir, /async function zazeniBrskalnikZaDokazilo\(\)[\s\S]*?await import\("puppeteer-core"\)/,
+assert.match(zgodnjiApiVir, /async function zazeniBrskalnikZaDokazilo\([^)]*\)[\s\S]*?await import\("puppeteer-core"\)/,
   "CommonJS handler mora ESM paket puppeteer-core naložiti z dinamičnim importom");
 assert.doesNotMatch(zgodnjiApiVir, /require\("puppeteer-core"\)/,
   "produkcijski handler ne sme uporabljati require() za ESM paket puppeteer-core");
@@ -177,7 +214,7 @@ var ocrVnos = test.pripraviVnosZaPreverbo({
 });
 assert.strictEqual(ocrVnos.registerNumber, "HRB 12345");
 assert.strictEqual(ocrVnos.vatId, "DE123456789");
-assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({}, ocrVnos).ime, "HRB 12345");
+assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({}, ocrVnos).ime, ocrVnos.ime);
 assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(402), "insufficient_credits");
 assert.strictEqual(test.razlogOpenRegisterInsolvencneNapake(429), "rate_limited");
 assert.strictEqual(test.razlogOpenRegisterIdentitetneNapake(402), "insufficient_credits");
@@ -274,6 +311,31 @@ assert.strictEqual(vhodBrezNepreverjenegaSodisca.fields.kraj, "Berlin");
 assert.strictEqual(test.pripraviStrogUradniInsolvencniVhod(Object.assign({}, strogaOpenRegisterIdentiteta, {
   openRegisterIdentity: Object.assign({}, strogaOpenRegisterIdentiteta.openRegisterIdentity, { street: "" }),
 }), null, "2005-01-01", "2026-08-19").reason, "openregister_official_data_incomplete");
+var preverjenaImpressumDopolnitev = Object.assign({}, strogaOpenRegisterIdentiteta, {
+  naslov: "Stegstraße 65", postnaStevilka: "60594", kraj: "Frankfurt am Main",
+  addressSource: "verified_impressum_supplement",
+  impressumSourceUrl: "https://www.haerning.de/impressum",
+  openRegisterIdentity: Object.assign({}, strogaOpenRegisterIdentiteta.openRegisterIdentity, {
+    name: strogaOpenRegisterIdentiteta.ime,
+    street: "", postalCode: "", city: "Frankfurt am Main",
+  }),
+});
+var vhodSPreverjenoImpressumDopolnitvijo = test.pripraviStrogUradniInsolvencniVhod(
+  preverjenaImpressumDopolnitev, null, "2005-01-01", "2026-08-19"
+);
+assert.strictEqual(vhodSPreverjenoImpressumDopolnitvijo.ok, true,
+  "strogi uradni vhod mora sprejeti že preverjeno Impressum dopolnitev manjkajočega OpenRegister naslova");
+assert.strictEqual(vhodSPreverjenoImpressumDopolnitvijo.lockedIdentity.source, "openregister+verified_impressum_supplement");
+assert.strictEqual(vhodSPreverjenoImpressumDopolnitvijo.lockedIdentity.officialStreet, "Stegstraße 65");
+assert.strictEqual(vhodSPreverjenoImpressumDopolnitvijo.lockedIdentity.officialPostalCode, "60594");
+assert.strictEqual(test.pripraviStrogUradniInsolvencniVhod(Object.assign({}, preverjenaImpressumDopolnitev, {
+  addressSource: "",
+}), null, "2005-01-01", "2026-08-19").reason, "openregister_official_data_incomplete",
+"neoznačena dopolnitev ne sme obiti nespremenljivega OpenRegister posnetka");
+assert.strictEqual(test.pripraviStrogUradniInsolvencniVhod(Object.assign({}, preverjenaImpressumDopolnitev, {
+  kraj: "Offenbach am Main",
+}), null, "2005-01-01", "2026-08-19").reason, "openregister_official_data_incomplete",
+"Impressum dopolnitev z drugim krajem mora ostati blokirana");
 assert.strictEqual(test.pripraviStrogUradniInsolvencniVhod(Object.assign({}, strogaOpenRegisterIdentiteta, {
   kraj: "Köln",
 }), null, "2005-01-01", "2026-08-19").reason, "openregister_identity_mismatch");
@@ -330,6 +392,13 @@ var vbiWildcardSubjekt = {
 };
 assert.strictEqual(test.sestaviVarnoUradnoWildcardIme(vbiWildcardSubjekt), "VBI Plastic*",
   "ozek wildcard mora ohraniti skoraj celoten razlikovalni naziv");
+assert.strictEqual(test.potrebujeUradnoWildcardPonovitev({
+  lockedIdentity: { source: "openregister", officialName: "Fritz Schellhorn GmbH" },
+}, "Suchergebnis\nKeine Treffer", "Fritz Schellhor*", "Fritz Schellhorn GmbH"), false,
+"uradno zaklenjena OpenRegister GmbH po negativnem exact rezultatu ne sme še enkrat odpirati portala");
+assert.strictEqual(test.potrebujeUradnoWildcardPonovitev({ lockedIdentity: null },
+  "Suchergebnis\nKeine Treffer", "VBI Plastic*", "VBI Plastics GmbH"), true,
+"ozek wildcard mora ostati na voljo za identiteto brez zaklenjenega registrskega dokaza");
 assert.strictEqual(test.presodiUradniInsolvencniRezultat(
   "Suchergebnis - Veröffentlichungsliste", vbiWildcardSubjekt, null, [{
     debtorName: "VBI Plastic GmbH & Co.KG", city: "Morsbach", caseNumber: "97 IN 104/26", register: "Siegburg, HRA 6331",
@@ -476,6 +545,18 @@ assert.strictEqual(azHeizungsprofisImpressum.ime, "David Jazvac");
 assert.strictEqual(azHeizungsprofisImpressum.naziv, "A-Z Heizungsprofis GmbH");
 assert.deepStrictEqual(azHeizungsprofisImpressum.zastopniki, ["David Jazvac"]);
 assert.strictEqual(azHeizungsprofisImpressum.registerNumber, "HRB 105826");
+var ikkImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>IKK, Installateur &amp; Klempnerhandwerk Köpenick GmbH<br>Mahlsdorfer Straße 85<br>12555 Berlin</p>" +
+  "<p>Handelsregister: HRB-Nr.: 38 422<br>Registergericht: Amtsgericht Charlottenburg</p><p>Vertreten durch: Henryk Flies</p></main>",
+  "https://ikk-gmbh.de/impressum/",
+  { ime: "IKK GmbH", naslov: "", postnaStevilka: "", kraj: "" }
+);
+assert.strictEqual(ikkImpressum.registerNumber, "HRB 38422",
+  "Presledek za tisočice v registrski številki ne sme povzročiti lažne skrajšane številke.");
+assert.strictEqual(test.razcleniOpenRegisterVnos("HRB-Nr.: 38 422").registerNumber, "38422");
+assert.deepStrictEqual(test.razcleniRegistrskiVnosZaInsolvenco({ registerNumber: "HRB 38 422", registerCourt: "Amtsgericht Charlottenburg" }), {
+  court: "Charlottenburg", type: "HRB", number: "38422",
+});
 var trautImpressum = test.razcleniImpressum(
   "<main><h1>Impressum</h1><p>Traut Sanitär und Heizung GmbH<br>Alt Praunheim 21<br>60488 Frankfurt am Main</p>" +
   "<h3>Vertretungsberechtigte Geschäftsführer</h3><p>Herr Marius Mertzdorff und Herr Janik Mertzdorff</p>" +
@@ -487,6 +568,15 @@ assert.strictEqual(trautImpressum.naziv, "Traut Sanitär und Heizung GmbH");
 assert.deepStrictEqual(trautImpressum.zastopniki, ["Marius Mertzdorff", "Janik Mertzdorff"]);
 assert.strictEqual(trautImpressum.registerNumber, "HRB 39465");
 assert.strictEqual(test.razberiPravnoOblikoIzNaziva(trautImpressum.naziv), "GmbH");
+var koroImpressum = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Die Geschäftsbezeichnung KORO KFZ wird von Deniz Köroglu für seinen Werkstattbetrieb, den er als hauptverantwortlicher Einzelunternehmer führt, verwendet.</p>" +
+  "<p>Merowingerstraße 55<br>40225 Düsseldorf</p></main>",
+  "https://koro-kfz.de/",
+  { ime: "", naslov: "", postnaStevilka: "", kraj: "" }
+);
+assert.strictEqual(koroImpressum.naziv, "KORO KFZ", "Izrecna poslovna oznaka iz Impressuma mora preglasiti splošni naslov strani.");
+assert.strictEqual(koroImpressum.nosilec, "Deniz Köroglu", "Nosilec iz izrecnega bloka samostojnega podjetnika mora ostati pravilen.");
+assert.strictEqual(koroImpressum.postnaStevilka, "40225");
 var trautIdentitetaIzImpressuma = test.sestaviIdentiteto({ status: "unavailable", reason: "insufficient_credits" }, { status: "not_found" }, {
   status: "found", subjekt: trautImpressum,
 }, { ime: "", spletnaStran: "https://www.traut-gmbh.de/" });
@@ -552,6 +642,23 @@ assert.strictEqual(haerningImpressum.naziv, "Richard Härning GmbH");
 assert.strictEqual(haerningImpressum.naslov, "Stegstraße 65");
 assert.strictEqual(haerningImpressum.postnaStevilka, "60594");
 assert.strictEqual(haerningImpressum.kraj, "Frankfurt am Main");
+var haerningRegistrskaIdentiteta = test.sestaviIdentiteto({ status: "found", company: {
+  company_id: "DE-HRB-M1201-18721", name: "Richard Härning Gesellschaft mit beschränkter Haftung",
+  register_type: "HRB", register_number: "18721", register_court: "Frankfurt am Main",
+  legal_form: "gmbh", active: true, address: { city: "Frankfurt am Main" },
+} }, null, { status: "found", sourceUrl: "https://www.haerning.de/impressum", subjekt: haerningImpressum }, { spletnaStran: "https://www.haerning.de/" });
+assert.strictEqual(haerningRegistrskaIdentiteta.status, "verified_register");
+assert.strictEqual(haerningRegistrskaIdentiteta.naslov, "Stegstraße 65",
+  "manjkajoča OpenRegister ulica se mora dopolniti iz ujemajočega preverjenega Impressuma");
+assert.strictEqual(haerningRegistrskaIdentiteta.postnaStevilka, "60594");
+assert.strictEqual(haerningRegistrskaIdentiteta.addressSource, "verified_impressum_supplement");
+var haerningApiDokazilo = test.pripraviDokaziloZaOdgovor(test.sestaviApiDokaziloIdentitete(haerningRegistrskaIdentiteta, {
+  sourceUrl: "https://openregister.de/company/DE-HRB-M1201-18721",
+}));
+assert.strictEqual(haerningApiDokazilo.evidenceReady, true);
+assert.strictEqual(haerningApiDokazilo.sourceLabel, "OpenRegister API + preverjeni Impressum");
+assert.strictEqual(test.pripraviSamodejnoRegistrskoPotrditev(haerningRegistrskaIdentiteta, haerningApiDokazilo, null).status, "valid",
+  "popolna registrska identiteta z varno dopolnjenim naslovom mora nadaljevati samodejno brez ročnega obrazca");
 var pravnaDruzbaBrezZastopnika = test.razcleniImpressum(
   "<main><h1>Impressum</h1><p>Beispiel Elektro GmbH<br>Musterstraße 8<br>10115 Berlin</p><p>Registergericht: Berlin<br>HRB 12345</p></main>",
   "https://beispiel.test/impressum",
@@ -633,6 +740,44 @@ var dumanZAgencijo = test.razcleniImpressum(
 );
 assert.strictEqual(dumanZAgencijo.ime, "Köksal Duman");
 assert.strictEqual(dumanZAgencijo.naziv, "Heizungsmeisterei Duman", "Spletna agencija ne sme postati pravno ime obrtnika.");
+var obrnjeniKreditIzdelovalca = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><p>Webdesign: Vangerow GmbH<br>Web: www.vangerow.de<br>im Auftrag von:</p>" +
+  "<p>Meisterbetrieb AK Fernseh- und Hausgeräte Reparaturdienst<br>Sievekingdamm 31<br>20535 Hamburg</p>" +
+  "<p>Inhaber: Abdullah Khalliqie<br>Geschäftsform: Einzelunternehmen</p></main>" +
+  "<script type='application/ld+json'>{\"@type\":\"Organization\",\"name\":\"Vangerow GmbH\"}</script>",
+  "https://elektro-fachhandel-hamburg.de/impressum/",
+  { ime: "AK Fernseh- und Hausgeräte Reparaturdienst", naslov: "Sievekingdamm 31", postnaStevilka: "20535", kraj: "Hamburg" }
+);
+assert.strictEqual(obrnjeniKreditIzdelovalca.ime, "Abdullah Khalliqie");
+assert.strictEqual(obrnjeniKreditIzdelovalca.naziv, "Meisterbetrieb AK Fernseh- und Hausgeräte Reparaturdienst");
+assert.strictEqual(obrnjeniKreditIzdelovalca.entityType, "person", "Izrecno Einzelunternehmen mora ostati fizična oseba.");
+assert.ok(!obrnjeniKreditIzdelovalca.businessIdentityNames.includes("Vangerow GmbH"));
+assert.deepStrictEqual(obrnjeniKreditIzdelovalca.identityProvenance.excludedServiceProviders, ["Vangerow GmbH"]);
+assert.strictEqual(obrnjeniKreditIzdelovalca.identityProvenance.status, "coherent");
+assert.ok(obrnjeniKreditIzdelovalca.identityProvenance.personNamePositiveSignal > 0,
+  "Imenski slovar je samo pozitiven signal in ne nadomesti pravne oznake Inhaber.");
+assert.strictEqual(test.personNamePositiveSignal.score("Xyzabc Qhalliqie"), 0,
+  "Neznano ime ne sme postati negativna zavrnitev.");
+assert.strictEqual(test.jeVerjetnoImeOsebe("Xyzabc Qhalliqie"), true,
+  "Strukturno veljavno redko ime mora ostati dovoljeno brez slovarskega zadetka.");
+var obrnjenaIdentiteta = test.sestaviIdentiteto({ status: "not_found" }, { status: "disabled" }, {
+  status: "found", subjekt: obrnjeniKreditIzdelovalca,
+}, { ime: "AK Fernseh- und Hausgeräte Reparaturdienst" });
+var mesanaPotrditev = test.pripraviPotrditevIdentitete({ confirmedIdentity: {
+  name: "Vangerow GmbH", businessName: "Vangerow GmbH", representativeName: "Abdullah Khalliqie",
+  street: "Sievekingdamm 31", postalCode: "20535", city: "Hamburg", confirmed: true,
+} }, obrnjenaIdentiteta);
+assert.strictEqual(mesanaPotrditev.status, "invalid");
+assert.strictEqual(mesanaPotrditev.reason, "confirmed_identity_block_mismatch");
+assert.deepStrictEqual(test.preveriSkladnostIdentiteteZaInsolvenco({
+  status: "confirmed_impressum", ime: "Vangerow GmbH", naziv: "Vangerow GmbH", entityType: "company",
+  naslov: "Sievekingdamm 31", postnaStevilka: "20535", kraj: "Hamburg",
+  identityProvenance: {
+    status: "coherent", businessNames: ["Meisterbetrieb AK Fernseh- und Hausgeräte Reparaturdienst"],
+    persons: ["Abdullah Khalliqie"], street: "Sievekingdamm 31", postalCode: "20535", city: "Hamburg",
+    excludedServiceProviders: ["Vangerow GmbH"],
+  },
+}), { status: "blocked", reason: "identity_block_mismatch" });
 var badInHeizungZAgencijo = test.razcleniImpressum(
   "<main><h1>Impressum</h1><p>bad&amp; heizung AG<br>Oberböhringer Straße 27<br>73312 Geislingen/Steige</p><p>Vorstand: Olivier Martinez, Thomas Wagner</p><p>Projektmanagement für Konzept, Design und Technik</p><p>breeze media gmbh<br>Ansprechpartner: Hans-Peter Kuhnert</p></main>",
   "https://www.badundheizung.de/impressum",
@@ -716,10 +861,22 @@ assert.deepStrictEqual(vecZastopnikov.zastopniki, ["Max Mustermann", "Erika Must
 assert.strictEqual(test.jeVerjetnoImeOsebe("Location Location"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Max Max Mustermann"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Über Uns"), false);
+assert.strictEqual(test.jeVerjetnoImeOsebe("Unser Team"), false,
+  "navigacijska oznaka ekipe ne sme postati osebno ime");
 assert.strictEqual(test.jeVerjetnoImeOsebe("Menu Start"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Kostenfrei Registrieren"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Zum Hauptinhalt"), false);
 assert.strictEqual(test.jeVerjetnoImeOsebe("Holger Jansen Haustechnik"), false);
+assert.strictEqual(test.jeSplosnaOznakaPoslovnegaNaziva("zum Förderservice Heizung"), true,
+  "navigacijski CTA ne sme postati poslovni naziv");
+var ohnebergImpressum = test.razcleniImpressum([
+  "<main><h1>Impressum</h1><p>Name und Anschrift:</p>",
+  "<p>Maik Ohneberg Gas-Wasser-Heizung<br>Dranweg 33<br>13125 Berlin<br>Deutschland</p>",
+  "<p>Geschäftsführer:<br>Herr Maik Ohneberg</p></main>",
+].join(""), "https://ohneberg-installation.de/impressum", {});
+assert.strictEqual(ohnebergImpressum.ime, "Maik Ohneberg");
+assert.strictEqual(ohnebergImpressum.naziv, "Maik Ohneberg Gas-Wasser-Heizung",
+  "oznaka Name und Anschrift ne sme postati poslovni naziv");
 [
   "Innenausbau Patrik",
   "Trockenbau Markus",
@@ -862,6 +1019,36 @@ var buscherFahrzeugpflegeImpressum = test.razcleniImpressum(
 assert.strictEqual(buscherFahrzeugpflegeImpressum.ime, "Michael Buscher", "dejavnost po pomišljaju ni del osebnega imena");
 assert.strictEqual(buscherFahrzeugpflegeImpressum.naziv, "Michael Buscher", "generični opis Fahrzeugpflege ni samostojen poslovni naziv");
 assert.strictEqual(buscherFahrzeugpflegeImpressum.naslov, "Gewerbestraße 16 a");
+var pravniBlokZaNavigacijo = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><nav>Start<br>Über uns<br>Kfz Gutachten<br>E-Bike &amp; E-Roller<br>Kontakt</nav>" +
+    "<section><h2>SVBO Sachverständige</h2><p>Rechtsform: Einzelunternehmen<br>Inhaber: Giuseppe Zuriago<br>" +
+    "Anschrift:<br>Sprendlinger Landstraße 178 |<br>63069 Offenbach am Main<br>USt-IdNr.: DE298419860</p></section></main>",
+  "https://example.test/impressum/", { ime: "" }
+);
+assert.strictEqual(pravniBlokZaNavigacijo.naziv, "SVBO Sachverständige",
+  "storitev iz navigacije pred pravnim sidrom ne sme preglasiti poslovnega naziva iz pravnega bloka");
+assert.strictEqual(pravniBlokZaNavigacijo.ime, "Giuseppe Zuriago");
+assert.strictEqual(pravniBlokZaNavigacijo.nosilec, "Giuseppe Zuriago");
+assert.strictEqual(pravniBlokZaNavigacijo.naslov, "Sprendlinger Landstraße 178",
+  "zaključna navpična črta ni del ulice");
+assert.strictEqual(pravniBlokZaNavigacijo.postnaStevilka, "63069");
+assert.strictEqual(pravniBlokZaNavigacijo.kraj, "Offenbach am Main");
+var pravniBlokZaNavigacijoValidacija = test.validirajVsebinoPravnegaBloka(
+  "Impressum",
+  "SVBO Sachverständige Rechtsform: Einzelunternehmen Inhaber: Giuseppe Zuriago Anschrift: Sprendlinger Landstraße 178 | 63069 Offenbach am Main USt-IdNr.: DE298419860",
+  pravniBlokZaNavigacijo
+);
+assert.strictEqual(pravniBlokZaNavigacijoValidacija.contentValidationStatus, "matched");
+assert.strictEqual(pravniBlokZaNavigacijoValidacija.provenanceStatus, "same_legal_block");
+var sorodniPravniBlokZaNavigacijo = test.razcleniImpressum(
+  "<main><h1>Impressum</h1><nav>Wärmepumpen<br>Heizungswartung<br>Badplanung</nav>" +
+    "<section><h2>Nordlicht Gebäudetechnik</h2><p>Geschäftsform: Einzelunternehmen<br>Inhaberin: Lena Hartwig<br>" +
+    "Adresse:<br>Hafenstraße 12 ｜<br>24103 Kiel</p></section></main>",
+  "https://example.test/impressum/", { ime: "" }
+);
+assert.strictEqual(sorodniPravniBlokZaNavigacijo.naziv, "Nordlicht Gebäudetechnik");
+assert.strictEqual(sorodniPravniBlokZaNavigacijo.ime, "Lena Hartwig");
+assert.strictEqual(sorodniPravniBlokZaNavigacijo.naslov, "Hafenstraße 12");
 var meisterRadImpressum = test.razcleniImpressum(
   "<h1>Anbieter dieser Website:</h1><h2>meister-ra d.de</h2><p>Anett Meister - Bismarckstraße 41 - 67655 Kaiserslautern</p><p>USt-IdNr: DE234092524</p><h3>Vertretungsberechtigter:</h3><p>Ingo - Bismarckstraße 41 - 67655 Kaiserslautern</p><nav>Hase Bikes</nav>",
   "https://www.meister-rad.de/Impressum/", { ime: "Meister Rad" }
@@ -1024,6 +1211,23 @@ var srsNordOpenRegister = {
 };
 var srsNordJavniProfil = { status: "found", sourceUrl: "https://www.srsnord.de/impressum/", subjekt: srsNordImpressum };
 assert.strictEqual(test.potrebujeImpressumDopolnitev(srsNordOpenRegister, { spletnaStran: "https://www.srsnord.de/impressum/" }), true);
+assert.strictEqual(test.potrebujeImpressumDopolnitev({
+  status: "found",
+  company: {
+    name: "Richard Härning Gesellschaft mit beschränkter Haftung",
+    company_id: "DE-HRB-M1201-18721",
+    address: { city: "Frankfurt am Main" },
+  },
+}, { spletnaStran: "https://www.haerning.de/" }), true,
+"OpenRegister zapis brez ulice ali pošte mora samodejno odpreti preverjeni Impressum za varno dopolnitev");
+assert.strictEqual(test.potrebujeImpressumDopolnitev({
+  status: "found",
+  company: {
+    name: "Popolni Primer GmbH",
+    address: { street: "Musterstraße 1", postal_code: "10115", city: "Berlin" },
+  },
+}, { spletnaStran: "https://example.com/" }), false,
+"popoln registrski naslov navadne družbe ne sme sprožiti nepotrebnega branja Impressuma");
 assert.deepStrictEqual(test.preveriImpressumDopolnitevRegistriranegaTrgovca(srsNordOpenRegister, srsNordJavniProfil), {
   matched: true, representative: "Matthias Dührsen", representatives: ["Matthias Dührsen"],
 });
@@ -1052,6 +1256,16 @@ var srsNordPripravljenoDokazilo = test.pripraviDokaziloZaOdgovor({
   sourceUrl: "https://www.srsnord.de/impressum/",
   sourceLabel: "Impressum podjetja – dopolnitev registrskih podatkov",
   evidenceRole: "registered_merchant_impressum_supplement",
+  contentValidationStatus: "matched",
+  provenanceStatus: "same_legal_block",
+  identityCompleteness: "complete",
+  validatedFields: ["legalName", "personName", "street", "postalCode", "city"],
+  validatedIdentity: {
+    identityName: "Matthias Dührsen e. K. SRS Nord Solarreinigung + Service Nord",
+    street: "Eichkamp 16",
+    postalCode: "24217",
+    city: "Schönberg",
+  },
 });
 assert.strictEqual(srsNordPripravljenoDokazilo.screenshotReady, true);
 assert.strictEqual(srsNordPripravljenoDokazilo.evidenceRole, "registered_merchant_impressum_supplement");
@@ -1209,10 +1423,37 @@ assert.deepStrictEqual(test.najdiOznacenePravnePovezave(
   "https://sawade-shk.de/"
 ), ["https://sawade-shk.de/datenschutz"]);
 assert.strictEqual(test.jeOznacenaPravnaIdentitetnaStran(sawadePravnaStranHtml, "https://sawade-shk.de/datenschutz"), true);
+var asciiDatenschutzPravnaStranHtml = [
+  '<html><body><h1>Datenschutzerklärung</h1>',
+  '<p>Verantwortlicher im Sinne der Datenschutzgesetze, insbesondere der DSGVO, ist:</p>',
+  '<p>Beispiel Haustechnische Anlagen GmbH<br>Höhenstraße 45<br>60385 Frankfurt am Main<br>Telefon: 069 / 43 14 17</p>',
+  '<p>Geschäftsführer: Christian Beispiel, Maximilian Beispiel & Thomas Beispiel</p>',
+  '<h2>Ihre Betroffenenrechte</h2><p>Weitere Datenschutzhinweise.</p></body></html>',
+].join("");
+assert.strictEqual(test.jeOznacenaPravnaIdentitetnaStran(
+  asciiDatenschutzPravnaStranHtml,
+  "https://example.de/datenschutzerklaerung/"
+), true, "ASCII-transliteracija ae v pravnem URL-ju mora ostati veljaven splošni kandidat");
+var asciiDatenschutzIdentiteta = test.razcleniImpressum(
+  asciiDatenschutzPravnaStranHtml,
+  "https://example.de/datenschutzerklaerung/",
+  { ime: "Beispiel Haustechnische Anlagen" }
+);
+assert.strictEqual(asciiDatenschutzIdentiteta.naziv, "Beispiel Haustechnische Anlagen GmbH");
+assert.strictEqual(asciiDatenschutzIdentiteta.naslov, "Höhenstraße 45");
+assert.strictEqual(asciiDatenschutzIdentiteta.postnaStevilka, "60385");
+assert.strictEqual(asciiDatenschutzIdentiteta.kraj, "Frankfurt am Main");
+assert.deepStrictEqual(asciiDatenschutzIdentiteta.zastopniki.sort(), [
+  "Christian Beispiel", "Maximilian Beispiel", "Thomas Beispiel",
+].sort(), "naslov naslednjega privacy razdelka ne sme postati zastopnik");
 assert.strictEqual(test.jeOznacenaPravnaIdentitetnaStran(
   '<h1>Datenschutzerklärung</h1><p>Wir schützen Ihre Daten.</p><p>Google Ireland Limited, Gordon House, Dublin 4.</p>',
   "https://example.test/datenschutz"
 ), false, "splošna stran zasebnosti brez označenega ponudnika ni dokaz identitete");
+assert.strictEqual(test.jeOznacenaPravnaIdentitetnaStran(
+  '<h1>Privacy Policy</h1><p>Verantwortlicher Anbieter ist Example Inc.</p><p>Gordon House, Dublin 4.</p>',
+  "https://privacy.example.net/privacy-policy"
+), false, "zunanji splošni privacy dokument brez nemškega pravnega naslova ni dokaz identitete");
 var sawadePravnaIdentiteta = test.razcleniImpressum(sawadePravnaStranHtml, "https://sawade-shk.de/datenschutz", { ime: "Sawade" });
 assert.strictEqual(sawadePravnaIdentiteta.nosilec, "Marcel Sawade");
 assert.strictEqual(sawadePravnaIdentiteta.naziv, "Sawade");
@@ -1225,14 +1466,46 @@ assert.strictEqual(karbenPravniKontekst.najemniskaPot, "/karben/");
 assert.strictEqual(test.jeUrlVPravnemKontekstu("https://badundheizung.de/karben/impressum", karbenPravniKontekst), true);
 assert.strictEqual(test.jeUrlVPravnemKontekstu("https://www.badundheizung.de/impressum", karbenPravniKontekst), false,
   "neposredni Impressum poslovalnice nikoli ne sme zdrsniti na osrednji Impressum drugega subjekta");
-assert.deepStrictEqual(test.sestaviZacetneImpressumPoti(new URL("https://www.badundheizung.de/karben/impressum/"), karbenPravniKontekst).map(String), [
-  "https://www.badundheizung.de/karben/impressum/",
-]);
 var poslovalnicaKontekst = test.dolociPravniKontekst("https://example.test/munchen/");
-var poslovalnicaPoti = test.sestaviZacetneImpressumPoti(new URL("https://example.test/munchen/"), poslovalnicaKontekst).map(String);
-assert.ok(poslovalnicaPoti.includes("https://example.test/munchen/impressum"));
-assert.ok(!poslovalnicaPoti.includes("https://example.test/impressum"), "poslovalnica ne sme uporabiti korenskega Impressuma");
+assert.strictEqual(poslovalnicaKontekst.najemniskaPot, "/munchen/");
 assert.strictEqual(test.jeUrlVPravnemKontekstu("https://example.test/impressum", poslovalnicaKontekst), false);
+var zbirnaPotPoslovalniceKontekst = test.dolociPravniKontekst("https://example.test/filiale/hessen/frankfurt/poslovalnica");
+assert.strictEqual(zbirnaPotPoslovalniceKontekst.najemniskaPot, "",
+  "zbirna pot lastnih poslovalnic ni najemniski profil");
+assert.strictEqual(test.jeUrlVPravnemKontekstu("https://example.test/impressum", zbirnaPotPoslovalniceKontekst), true,
+  "poslovalnica na uradni isti domeni mora dovoliti korenski Impressum pravne osebe");
+var atuPoslovalnicaKontekst = test.dolociPravniKontekst("https://autowerkstatt.atu.de/hessen/frankfurt-main/homburger-landstr-240");
+assert.strictEqual(test.staGostiteljaIsteStrani(
+  "https://autowerkstatt.atu.de/hessen/frankfurt-main/homburger-landstr-240",
+  "https://www.atu.de/pages/common/impressum.html"
+), true, "poddomena poslovalnic in nadrejena uradna domena morata biti prepoznani kot ista stran");
+assert.strictEqual(test.jeUrlVPravnemKontekstu(
+  "https://www.atu.de/pages/common/impressum.html", atuPoslovalnicaKontekst
+), true, "očiten Impressum na nadrejeni uradni domeni mora biti dovoljen za poslovalnico");
+assert.strictEqual(test.jeUrlVPravnemKontekstu(
+  "https://www.atu.de/pages/service/angebote.html", atuPoslovalnicaKontekst
+), false, "druga podstran nadrejene domene ne sme obiti pravnega konteksta poslovalnice");
+assert.strictEqual(test.jeUrlVPravnemKontekstu(
+  "https://atu-example.de/impressum", atuPoslovalnicaKontekst
+), false, "podobna zunanja domena ne sme postati pravni vir poslovalnice");
+var atuImpressumHtml = [
+  '<main><h1>Impressum</h1><p>A.T.U Auto-Teile-Unger GmbH &amp; Co. KG<br>',
+  'Dr.-Kilian-Straße 11<br>92637 Weiden i.d.OPf.</p>',
+  '<p>Sitz der Gesellschaft: Weiden i.d.OPf.<br>HRA 1312 Amtsgericht Weiden i.d.OPf.</p>',
+  '<p>Persönlich haftende Gesellschafterin: A.T.U Auto-Teile-Unger GmbH, Weiden i.d.OPf.<br>',
+  'Registergericht: Weiden i.d.OPf.<br>Handelsregister: HRB Nr. 745</p>',
+  '<p>Geschäftsführer: Sebastian Jarantowski, Mario Pfabe</p></main>',
+].join("");
+var atuImpressum = test.razcleniImpressum(
+  atuImpressumHtml,
+  "https://www.atu.de/pages/common/impressum.html",
+  { ime: "", naslov: "", postnaStevilka: "", kraj: "", spletnaStran: "https://autowerkstatt.atu.de/hessen/frankfurt-main/homburger-landstr-240" }
+);
+assert.strictEqual(atuImpressum.naziv, "A.T.U Auto-Teile-Unger GmbH & Co. KG");
+assert.strictEqual(atuImpressum.registerNumber, "HRA 1312", "register komplementarja ne sme prepisati primarnega registra ATU družbe");
+assert.strictEqual(test.razlogNeujemanjaIdentiteteZVnosom(atuImpressum, {
+  spletnaStran: "https://autowerkstatt.atu.de/hessen/frankfurt-main/homburger-landstr-240",
+}), "", "uradni Impressum nadrejene ATU domene mora ostati vezan na lokacijsko poddomeno");
 var navadnaStranKontekst = test.dolociPravniKontekst("https://jshaustechnik.de/ueber-uns/");
 assert.strictEqual(navadnaStranKontekst.najemniskaPot, "", "običajna vsebinska pot ni poslovalnica");
 assert.strictEqual(test.jeUrlVPravnemKontekstu("https://jshaustechnik.live-website.com/impressum/", navadnaStranKontekst), true,
@@ -1258,9 +1531,6 @@ assert.strictEqual(amTrockenbauImpressum.naziv, "A+M Akustik & Trockenbau");
 assert.strictEqual(amTrockenbauImpressum.entityType, "person");
 var imenikProfilKontekst = test.dolociPravniKontekst("https://directory.example/firmenprofil/bodenleger-mario-sauer");
 assert.strictEqual(imenikProfilKontekst.imeninskiProfil, true);
-assert.deepStrictEqual(test.sestaviZacetneImpressumPoti(
-  new URL("https://directory.example/firmenprofil/bodenleger-mario-sauer"), imenikProfilKontekst
-).map(String), ["https://directory.example/firmenprofil/bodenleger-mario-sauer"]);
 assert.strictEqual(test.jeUrlVPravnemKontekstu("https://directory.example/firmenprofil/impressum", imenikProfilKontekst), false,
   "sosednji profil z imenom Impressum ne sme postati pravni vir preverjanega podjetja");
 assert.strictEqual(test.jeUrlVPravnemKontekstu("https://directory.example/firmenprofil/bodenleger-mario-sauer/impressum", imenikProfilKontekst), true,
@@ -1282,6 +1552,69 @@ var registerIzbor = test.izberiOpenRegisterZadetek([
 ], { ime: "Elektro Beispiel GmbH" });
 assert.strictEqual(registerIzbor.status, "found");
 assert.strictEqual(registerIzbor.company.company_id, "DE-HRB-1");
+var napacniJahnIzDrugegaKraja = test.izberiOpenRegisterZadetek([{
+  company_id: "DE-HRB-Y1206-202367",
+  name: "Rainer Jahn GmbH Sanitär - Heizung - Klempnerei",
+  register_type: "HRB",
+  register_number: "202367",
+  register_court: "Jena",
+  address: { city: "Jena" },
+}], {
+  ime: "Jahn Heizung & Sanitär",
+  naslov: "Ostender Straße 25A",
+  postnaStevilka: "13353",
+  kraj: "Berlin",
+});
+assert.strictEqual(napacniJahnIzDrugegaKraja.status, "not_found",
+  "ujemanje dejavnosti in priimka ne sme berlinske obrti povezati z registrsko družbo iz Jene");
+var napacniDennyIzDrugeUlice = test.izberiOpenRegisterZadetek([{
+  company_id: "DE-HRA-FIXTURE-33753",
+  name: "Toni Wilden, Installateur- und Heizungsbaumeister, e. Kfm.",
+  register_type: "HRA",
+  register_number: "33753",
+  register_court: "Charlottenburg (Berlin)",
+  address: { street: "Obentrautstraße 41", postal_code: "10963", city: "Berlin" },
+}], {
+  ime: "Denny Grassow Installateur- und Heizungsbaumeister",
+  naslov: "Guntherstraße 47",
+  postnaStevilka: "10365",
+  kraj: "Berlin",
+});
+assert.strictEqual(napacniDennyIzDrugeUlice.status, "not_found",
+  "Denny Grassow se ne sme povezati z registrskim subjektom Toni Wilden na drugi ulici");
+var napacniDennyBrezUradnegaNaslova = test.izberiOpenRegisterZadetek([{
+  company_id: "DE-HRA-F1103-33753",
+  name: "Toni Wilden, Installateur- und Heizungsbaumeister, e. Kfm.",
+  register_type: "HRA",
+  register_number: "33753",
+  register_court: "Berlin (Charlottenburg)",
+  address: { city: "Berlin" },
+}], {
+  ime: "Installateur- und Heizungsbaumeister",
+  naslov: "Guntherstraße 47",
+  postnaStevilka: "10365",
+  kraj: "Berlin",
+});
+assert.strictEqual(napacniDennyBrezUradnegaNaslova.status, "not_found",
+  "splošen poklicni opis brez razlikovalnega imena ne sme potrditi registrskega subjekta z manjkajočim naslovom");
+var napacniOhnebergVerein = test.izberiOpenRegisterZadetek([{
+  company_id: "DE-VR-FIXTURE-19398",
+  name: "MKH-Malatya Kultur und Hilfsverein e.V.",
+  register_type: "VR",
+  register_number: "19398",
+  register_court: "Charlottenburg (Berlin)",
+  address: { street: "Musterstraße 9", postal_code: "13125", city: "Berlin" },
+}], {
+  ime: "Maik Ohneberg Gas-Wasser-Heizung",
+  naslov: "Dranweg 33",
+  postnaStevilka: "13125",
+  kraj: "Berlin",
+});
+assert.strictEqual(napacniOhnebergVerein.status, "not_found",
+  "osebna obrt se ne sme povezati z nepovezanim društvom samo zaradi istega PLZ in mesta");
+assert.deepStrictEqual(test.razcleniOpenRegisterVnos("HRB 000000"), {
+  companyId: "", registerType: "", registerNumber: "",
+}, "ničelna registrska številka ni registrski dokaz");
 var splosniRazsirjeniNaziv = test.izberiOpenRegisterZadetek([
   { company_id: "DE-HRA-M1201-22266", name: "Paul Hartmann Spenglerei und Installations GmbH & Co. KG", register_type: "HRA", register_number: "22266" },
   { company_id: "DE-HRB-R1101-7683", name: "Paul Hartmann GmbH Internationale Transporte", register_type: "HRB", register_number: "7683" },
@@ -1433,6 +1766,7 @@ assert.match(virBrezKreditov.message, /nadaljuje z Impressumom/);
   ["website_redirect_failed", "verigo preusmeritev"],
   ["website_not_html", "HTML spletne strani"],
   ["website_too_large", "prevelika"],
+  ["impressum_collector_unavailable", "zajemni vir"],
   ["website_unreachable", "ni odzvala"],
   ["website_server_error", "Spletni strežnik podjetja"],
   ["website_rate_limited", "začasno omejuje dostop"],
@@ -1568,8 +1902,42 @@ assert.match(dokaziloVir, /jeAnimacijskiOvoj[\s\S]*jeVizualnoSkrit/, "razkriti s
 assert.strictEqual(test.jePosnetekDokazilaUporaben("A".repeat(9000), { width: 800, height: 700 }), false, "velik skoraj prazen zajem ne sme postati dokazilo");
 assert.strictEqual(test.jePosnetekDokazilaUporaben("A".repeat(100000), { width: 800, height: 700 }), true, "vsebinski dokazni zajem mora prestati varovalko");
 assert.match(dokaziloVir, /var BROWSER_USER_AGENT = "Mozilla\/5\.0/);
-assert.match(dokaziloVir, /async function poisciImpressumZBrskalnikom/);
-assert.match(dokaziloVir, /httpPoskus === 0 \? USER_AGENT : BROWSER_USER_AGENT/);
+assert.doesNotMatch(dokaziloVir, /async function poisciImpressumZBrskalnikom/,
+  "ločeno brskalniško iskanje ne sme več obstajati ob neposrednem javnem toku");
+assert.match(dokaziloVir, /IMPRESSUM_HTTP:\s*6000/,
+  "neposredni zajem Impressuma mora imeti omejen rok");
+assert.match(dokaziloVir, /var IMPRESSUM_HTTP_MAX_ATTEMPTS = 2/,
+  "osnovna stran mora ohraniti en omejen retry za prehodne omrežne napake");
+var stisnjeniHtml = zlib.gzipSync(Buffer.from("<html><body>Impressum GmbH</body></html>", "utf8"));
+assert.strictEqual(test.dekodirajOmejenoTeloOdgovora(stisnjeniHtml, "gzip", 4096).toString("utf8"),
+  "<html><body>Impressum GmbH</body></html>",
+  "standardni gzip odgovor javne strani mora biti varno dekodiran");
+assert.throws(function () {
+  test.dekodirajOmejenoTeloOdgovora(Buffer.from("x"), "compress", 4096);
+}, /PUPPETEER_RESPONSE_ENCODING_BLOCKED/,
+"neznano kodiranje mora ostati blokirano");
+assert.throws(function () {
+  test.dekodirajOmejenoTeloOdgovora(zlib.gzipSync(Buffer.alloc(8192, 65)), "gzip", 1024);
+}, /PUPPETEER_RESPONSE_BODY_TOO_LARGE/,
+"stisnjen odgovor ne sme obiti omejitve razširjene velikosti");
+assert.doesNotMatch(dokaziloVir, /IMPRESSUM_TOTAL_TIMEOUT_MS/,
+  "Impressum toka ne sme prekiniti umetna skupna časovna meja");
+var linearniImpressumTok = dokaziloVir.slice(
+  dokaziloVir.indexOf("async function poisciVImpressumuJedro"),
+  dokaziloVir.indexOf("function frankfurtskaPosta")
+);
+assert.match(linearniImpressumTok, /poisciLokalniJavniImpressum\(osnova, vnos, pravniKontekst, prednostniUrl\)/,
+  "po OR missu mora dokaz priti iz ene omejene neposredne poti");
+assert.doesNotMatch(linearniImpressumTok, /crawler|scrapling|apifyImpressum|poisciImpressumZBrskalnikom|prviVeljavniVzporedniRezultat/,
+  "kritična pot dejanskega dokazila ne sme več odpirati starega crawler\/Scrapling\/browser drevesa");
+assert.match(dokaziloVir, /fetchJavniHtml\(cilj, \{ maxAttempts: 2 \}\)/,
+  "vsak neposredni pravni URL sme po prehodni omrežni napaki izvesti natanko en varen ponovni poskus");
+assert.match(dokaziloVir, /obiskani\.size < 4/,
+  "dejanski Impressum zajem mora imeti trdo omejeno število javnih strani");
+assert.match(dokaziloVir, /povezave = najdiImpressumPovezave[\s\S]*jeUrlVPravnemKontekstu\(povezava, pravniKontekst\)/,
+  "zunanja Google ali družbena privacy politika ne sme postati identitetni fallback");
+assert.match(dokaziloVir, /\[mehka-boniteta:impressum-timing\]/,
+  "Impressum pot mora zapisati skupni čas in izid za naslednjo diagnostiko");
 assert.match(dokaziloVir, /\^accept\$\/i/, "angleška pasica z gumbom Accept ne sme prekriti dokazila");
 assert.match(dokaziloVir, /alle akzeptieren/i, "nemška pasica z gumbom Alle akzeptieren ne sme prekriti dokazila");
 assert.match(dokaziloVir, /ablehnen/i, "nemška pasica z gumbom Ablehnen ne sme prekriti dokazila");
@@ -1630,11 +1998,19 @@ assert.match(dokaziloVir, /koren === document/, "neopisano CMP-ozadje se sme ods
 assert.match(dokaziloVir, /IDENTITY_SCREENSHOT_BLANK_CONTENT/, "skoraj prazen rezervni izris mora biti izrecno zavrnjen");
 var zajemOdsek = dokaziloVir.slice(dokaziloVir.indexOf("async function zajemiDokaziloIdentitete"), dokaziloVir.indexOf("function sestaviOpenRegisterInsolvencnoIskanje"));
 assert.match(zajemOdsek, /skrijPiskotkovnoPasicoZaPosnetek/);
+assert.match(dokaziloVir, /async function zajemiIzvirniImpressumHtmlBrezSkript/,
+  "javni Impressum mora imeti hiter izvirni HTML-zajem pred počasno browser navigacijo");
+assert.match(zajemOdsek, /zajemiIzvirniImpressumHtmlBrezSkript[\s\S]*?stran\.goto/,
+  "dinamični browser goto sme ostati samo rezervna pot za odjemalsko izrisane pravne strani");
 assert.match(zajemOdsek, /EMPTY_IDENTITY_SCREENSHOT/, "prazen posnetek mora po ponovnem poskusu vrniti jasno napako");
 assert.match(zajemOdsek, /captureVersion:\s*IDENTITY_EVIDENCE_VERSION/, "nov dokazni posnetek mora nositi različico, da ga ni mogoče zamenjati s starim sivim zajemom");
 assert.match(zajemOdsek, /viewportOverlaysRemoved:\s*true/, "nov dokazni posnetek mora potrditi odstranitev celozaslonskih prekrivnih plasti");
 assert.match(dokaziloVir, /celotenKompletIzvenNoge/, "dokazilo mora dati prednost pravnemu bloku pred podvojenim footerjem");
 assert.match(dokaziloVir, /razdaljaDoImpressuma/, "dokazilo mora dati prednost podatkom ob naslovu Impressum");
+assert.match(dokaziloVir, /najblizjaOznakaImpressuma[\s\S]*?zgornjiRobDokaza[\s\S]*?spodnjiRobDokaza/,
+  "isti dokazni izrez mora poleg pravnega bloka prikazati tudi vidni naslov ali povezavo Impressum");
+assert.match(dokaziloVir, /querySelectorAll\("h1, h2, h3, \[role='heading'\], a\[href\], button"\)/,
+  "stran brez naslova sme dokazati pravni kontekst z vidno natančno označeno povezavo Impressum");
 assert.match(dokaziloVir, /IMPRINT_PAGE_NOT_CONFIRMED/, "dokazilo se ne sme zajeti brez potrjene pravne Impressum strani");
 assert.doesNotMatch(zajemOdsek, /await sprejmiPiskotke/, "dokazni zajem ne sme spreminjati soglasja na tuji strani");
 assert.match(zajemOdsek, /setUserAgent\(BROWSER_USER_AGENT\)/, "dokazni brskalnik mora uporabljati brskalniški profil");
@@ -1672,7 +2048,7 @@ var juanPotrditevZNoscem = test.pripraviPotrditevIdentitete({ confirmedIdentity:
 assert.strictEqual(juanPotrditevZNoscem.status, "valid");
 assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({ confirmedIdentity: {
   companyId: "DE-HRA-F1103-44336",
-} }, { ime: "Juan Muñoz", spletnaStran: "https://juan-munoz.de/" }).ime, "DE-HRA-F1103-44336");
+} }, { ime: "Juan Muñoz", spletnaStran: "https://juan-munoz.de/" }).ime, "Juan Muñoz");
 assert.strictEqual(test.pripraviOpenRegisterVnosZaPotrditev({ confirmedIdentity: {
   companyId: "ni-veljaven-id",
 } }, { ime: "Juan Muñoz" }).ime, "Juan Muñoz");
@@ -1685,7 +2061,7 @@ var html = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.html"), "
 var js = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.js"), "utf8");
 assert.match(js, /reason === "insufficient_credits"[^\n]+Kvota ni na voljo/,
   "UI mora pomanjkanje ponudnikove kvote razlikovati od nedosegljivega vira");
-assert.match(html, /bonitetna-preverba\.js\?v=2026082[3-9]-[^"']+/,
+assert.match(html, /bonitetna-preverba\.js\?v=2026(?:08(?:2[3-9]|3[01])|09(?:01|02))-[^"']+/,
   "nova razlaga OpenRegister stanja mora dobiti novo različico odjemalskega asseta");
 var centerJs = fs.readFileSync(path.join(koren, "app", "boniteta-sredisce.js"), "utf8");
 var bonitetaCss = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.css"), "utf8");
@@ -1713,8 +2089,8 @@ assert.match(apiSrc, /if \(!odgovor\.ok\) \{\s*return preveriSamoUradniInsolvenc
   "OpenRegister napaka ali pomanjkanje kreditov mora preklopiti na uradni insolvenčni portal");
 var packageJson = fs.readFileSync(path.join(koren, "package.json"), "utf8");
 assert.match(html, /id="boniteta-obrazec"/);
-assert.match(html, /id="boniteta-viri"/);
-assert.match(html, /id="boniteta-rezerva-brez-spletne"/);
+assert.doesNotMatch(html, /id="boniteta-viri"|DOKAZILA OSNOVNE PREVERBE|Uporabljeni viri/);
+assert.doesNotMatch(html, /boniteta-spletna-rezerva|boniteta-rezerva-brez-spletne|OK, zmenjeno|Nima spletne strani/);
 assert.doesNotMatch(html, /id="boniteta-openregister-identiteta"/);
 assert.doesNotMatch(html, /OpenRegister za identiteto/);
 assert.doesNotMatch(js, /Prilepite spletno povezavo/);
@@ -1725,7 +2101,7 @@ assert.doesNotMatch(html, /id="boniteta-kraj"[^>]*required/);
 assert.doesNotMatch(html, /id="boniteta-naslov-podjetja"[^>]*required/);
 assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
-assert.match(html, /id="boniteta-barvna-primerjava-namig"[^>]*hidden/);
+assert.doesNotMatch(html, /boniteta-barvna-primerjava__namig|Barva povezuje podatek z uradnim posnetkom/);
 assert.match(html, /data-primerjava-ton="blue"[^>]*>Ime podjetja</);
 assert.match(html, /data-primerjava-ton="green"[^>]*>Kraj</);
 assert.match(html, /data-primerjava-ton="violet"[^>]*>Register</);
@@ -1743,7 +2119,7 @@ assert.match(bonitetaCss, /\.boniteta-podatek--violet[\s\S]*?--podatek-pika: #76
 assert.match(bonitetaCss, /\.boniteta-podatek--amber[\s\S]*?--podatek-pika: #b8751d/);
 assert.match(html, /id="boniteta-objave-gumb"/);
 assert.match(html, /id="boniteta-objave-seznam"/);
-assert.match(html, /bonitetna-preverba\.css\?v=2026082[2-9]-[^"']+/);
+assert.match(html, /bonitetna-preverba\.css\?v=2026(?:08(?:2[2-9]|3[01])|09(?:01|02))-[^"']+/);
 assert.match(html, /class="crif-flow-picker__visual"/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__option\.is-active \{/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-hero \{ min-height: 160px;/);
@@ -1760,7 +2136,7 @@ assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__option:focus-v
 assert.doesNotMatch(html, /class="crif-flow-picker__select"/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__cta > span \{[\s\S]*?font-size: inherit;[\s\S]*?white-space: nowrap;/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__cta \{[\s\S]*?border: 0;[\s\S]*?border-radius: 0 0 23px 23px;[\s\S]*?linear-gradient\(to right,/);
-assert.match(html, /bonitetna-preverba\.js\?v=2026082[3-9]-[^"']+/);
+assert.match(html, /bonitetna-preverba\.js\?v=2026(?:08(?:2[3-9]|3[01])|09(?:01|02))-[^"']+/);
 assert.match(html, /id="boniteta-podjetje-ustanovitev"[^>]*hidden/,
   "datum ustanovitve mora biti privzeto skrit");
 assert.match(js, /var datum = !jeOseba && company && company\.foundingDate \|\| "";/,
@@ -1774,7 +2150,7 @@ assert.match(js, /if \(dejavnost\) dodajKarticoPodjetja\(podatkiSeznam, "dejavno
 assert.match(apiSrc, /purpose: typeof podjetje\.purpose === "string" \? podjetje\.purpose\.trim\(\) : ""/,
   "dejavnost se sme prenesti samo iz strukturiranega OpenRegister odziva");
 assert.match(js, /Iščemo podjetje in posodabljamo podatke obrtnika …/);
-assert.match(html, /boniteta-sredisce\.js\?v=2026082[3-9]-[^"']+/);
+assert.match(html, /boniteta-sredisce\.js\?v=2026(?:08(?:2[3-9]|3[01])|09\d{2})-[^"']+/);
 assert.doesNotMatch(html, /id="boniteta-test-toggle"/);
 assert.doesNotMatch(html, /id="boniteta-open-preview"/);
 assert.match(centerJs, /function setTestMode\(enabled\)/);
@@ -1786,31 +2162,18 @@ assert.match(html, /id="boniteta-flow-start"[^>]*>[\s\S]*?Preveri podjetje/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start \{[\s\S]*?min-height: 48px;[\s\S]*?background: linear-gradient/);
 assert.match(centerJs, /el\("boniteta-flow-start"\)\.addEventListener\("click"/);
 assert.match(centerJs, /if\(!hasCompany&&\(!details\|\|details\.hidden\)\)/);
-assert.match(html, /id="boniteta-rezultat-okno"[^>]*hidden/,
-  "rezultat mora imeti samostojno glavo zaslona");
-assert.match(html, /id="boniteta-ponovi"[^>]*>Preveri drugo stranko</,
-  "samostojni rezultat mora omogočiti vrnitev na novo preverbo");
+assert.doesNotMatch(html, /id="boniteta-rezultat-okno"|id="boniteta-ponovi"|id="boniteta-izbrisi-preverbo"/,
+  "odstranjeni vmesni zaslon in njegova CTA-ja ne smeta ostati v DOM-u");
 assert.doesNotMatch(html, /id="boniteta-rezultat-nazaj"/,
   "rezultat ne sme imeti podvojene navigacije nazaj");
-assert.match(bonitetaCss, /\.stran--bonitetna\.boniteta-rezultat-je-okno \.boniteta-obrazec \{\s*display: none;/,
-  "na zaslonu rezultata se začetni obrazec ne sme prikazati nad rezultatom");
-assert.match(js, /function nastaviRezultatKotOkno\(vklopljeno\)/);
-assert.match(js, /if \(vklopljeno\) \{[\s\S]*?nastaviRezultatKotOkno\(false\);[\s\S]*?gumb\.classList\.add\("is-loading"\)/,
-  "med nalaganjem mora uporabnik ostati v trenutnem koraku in videti stanje gumba");
-assert.match(js, /catch \(err\) \{\s*potek\.hidden = true;\s*nastaviRezultatKotOkno\(false\);/,
-  "napaka mora uporabnika vrniti k vidnemu obrazcu");
-assert.match(js, /nastaviRezultatKotOkno\(false\);\s*rezultat\.hidden = true;/,
-  "ponovna preverba mora zapreti samostojni rezultat");
-assert.match(centerJs, /fillSoftTestPreview\(\)[\s\S]*?UJBonitetaNastaviRezultatKotOkno\)window\.UJBonitetaNastaviRezultatKotOkno\(true\)/,
-  "testni rezultat mora uporabljati isti samostojni zaslon kot pravi rezultat");
-assert.match(centerJs, /selectedStartFlow==="crif"[\s\S]*?UJBonitetaNastaviRezultatKotOkno\(true\)/,
-  "tudi podrobna preverba se mora odpreti kot naslednji zaslon");
+assert.doesNotMatch(bonitetaCss + js + centerJs, /boniteta-rezultat-je-okno|boniteta-rezultat-okno|nastaviRezultatKotOkno|UJBonitetaNastaviRezultatKotOkno/,
+  "renderer in state prehod odstranjenega vmesnega zaslona morata biti izbrisana");
 assert.match(html, /Brezplačno/);
 assert.match(html, /20 €/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__cta \{ min-height: 32px;[\s\S]*?border-radius: 0 0 20px 20px;/);
 assert.match(bonitetaCss, /@media \(max-width: 350px\)[\s\S]*?\.stran--bonitetna \.crif-flow-picker__cta \{ min-height: 35px;/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__cta b \{/);
-assert.match(html, /boniteta-pro\.css\?v=2026082[5-9]-[^"']+/);
+assert.match(html, /boniteta-pro\.css\?v=202608(?:2[5-9]|3[01])-[^"']+/);
 assert.match(html, /data-boniteta-center-view="new"/);
 assert.match(html, /data-boniteta-center-view="profiles"/);
 assert.doesNotMatch(html, /id="boniteta-crif-toggle"/);
@@ -1852,10 +2215,11 @@ assert.match(js, /AUTH_SESSION_INVALID/, "neveljavna seja mora sprožiti en nadz
 assert.match(js, /AUTH_SESSION_REFRESH_REQUIRED/, "stari HS256 žeton mora sprožiti nadzorovano nadgradnjo seje");
 assert.match(js, /failed to fetch\|networkerror\|network request failed\|load failed/i);
 assert.match(js, /Povezava z aplikacijskim strežnikom je prekinjena/);
-assert.match(html, /id="boniteta-izbrisi-preverbo"[^>]*hidden/);
-assert.match(js, /method:\s*"DELETE"/);
+assert.doesNotMatch(html, /id="boniteta-izbrisi-preverbo"/);
+assert.doesNotMatch(js, /method:\s*"DELETE"/,
+  "brisanje opravila ne sme biti CTA v vmesnem rezultatu");
 assert.match(js, /zadnjiJobId/);
-assert.match(js, /Izbriši vse podatke tega preverjanja/);
+assert.doesNotMatch(js, /Izbriši vse podatke tega preverjanja/);
 assert.match(js, /fetch\("\/api\/mehka-boniteta-delavec"/);
 assert.match(js, /spletna stran je priporočljiva, ni pa obvezna/);
 assert.match(js, /potrjenoBrezSpletne/);
@@ -1865,7 +2229,7 @@ assert.match(js, /fetch\("\/api\/nemcija-posta\?postalCode="/);
 assert.match(js, /Ta poštna številka ima več krajev\. Izberite pravilnega/);
 assert.match(js, /boniteta-kraj-izbira__gumb/);
 assert.match(js, /naslov: rocniNaslov/);
-assert.match(js, /izrisiVire\(podatki\.sources\)/);
+assert.doesNotMatch(js, /izrisiVire\(podatki\.sources\)|getElementById\("boniteta-viri"\)/);
 assert.match(js, /evidenceStatus === "verified_api"/);
 assert.match(js, /insolvenca\.apiSourceUrl/);
 assert.match(js, /OpenRegister Insolvency API/);
@@ -1898,6 +2262,10 @@ assert.match(js, /!\["verified_register", "confirmed_impressum"\]\.includes\(ide
 assert.match(js, /Ročno vneseni podatki niso preverljiv pravni vir/, "omejitev rezultata mora opisati dejanski uporabljeni vir");
 assert.match(js, /identiteta ni uradno potrjena/);
 assert.match(js, /companyId: zadnjaOpenRegisterReferenca/);
+assert.match(js, /zadnjiVnos && zadnjiVnos\.spletnaStran/,
+  "samodejno nadaljevanje mora biti omejeno na en poskus za isto podjetje in spletno stran");
+assert.doesNotMatch(js, /var osvezitevKljuc = \[companyId,[^\n]*podatki\.checkedAt/,
+  "spreminjajoči se čas rezultata ne sme obiti zaščite pred zanko opravil");
 assert.match(js, /Podatki so pravilni – preveri insolventnost/);
 assert.match(html, /Ali dodajate stranko drugače/);
 assert.match(html, />Slikaj</);
@@ -1937,11 +2305,29 @@ assert.match(apiSrc, /var zgornjiOdmik = 140/);
 assert.match(apiSrc, /var spodnjiOdmik = 320/);
 assert.match(apiSrc, /var sidrniIndex = obvezniIndeksi\[0\]/);
 assert.match(apiSrc, /pojem === normaliziraniOsebniPojem && \/@\|https\?:\|www\\\.\//);
-assert.match(apiSrc, /var zelenaVisina = Math\.max\(700,/);
+assert.match(apiSrc, /var zelenaVisina = Math\.min\(1800, Math\.max\(700,/);
 assert.doesNotMatch(apiSrc, /Math\.min\(spodaj - zgoraj[\s\S]*?, 1500\)/);
 assert.match(apiSrc, /var sodisceIzbrano = await izberiPoBesedilu/);
 assert.match(apiSrc, /if \(sodisceIzbrano && vrstaIzbrana\)/);
 assert.match(apiSrc, /async function preveriUradniInsolvencniPortalEnkrat/);
+assert.match(apiSrc, /OFFICIAL_INSOLVENCY_ATTEMPT:\s*20000/,
+  "posamezen uradni browser-poskus mora imeti trdo mejo, da retry ne čaka več minut");
+assert.match(apiSrc, /PROTOCOL:\s*20000/,
+  "Puppeteer ne sme ohraniti 180-sekundnega privzetega CDP timeouta");
+assert.strictEqual((apiSrc.match(/protocolTimeout: BROWSER_PROTOCOL_TIMEOUT_MS/g) || []).length, 2,
+  "lokalni in produkcijski browser morata uporabljati isto kratko protokolarno mejo");
+assert.match(apiSrc, /Promise\.race\(\[zagonBrskalnika, potekPoskusa\]\)/,
+  "časovna meja mora veljati tudi med zagonom uradnega brskalnika");
+assert.match(apiSrc, /void zapriBrskalnikPoskusa\(\)\.catch/,
+  "ob poteku mora browser dobiti aktivno prekinitev, ne sme ostati v ozadju");
+assert.match(apiSrc, /\[mehka-boniteta:official-insolvency-attempt\]/,
+  "vsak retry uradnega portala mora zapisati čas in izid");
+assert.doesNotMatch(apiSrc, /timeout:\s*25000/,
+  "nobena browser navigacija ne sme preglasiti centralnega 12-sekundnega roka");
+assert.strictEqual((apiSrc.match(/await pripraviBrskalniskoStran\(browser/g) || []).length, 3,
+  "vse tri dovoljene dokazne in uradne browser strani morajo dobiti centralne fazne časovne meje");
+assert.match(apiSrc, /IDENTITY_EVIDENCE_TOTAL:\s*32000/);
+assert.match(apiSrc, /BROWSER_CLOSE_TIMEOUT/);
 assert.match(apiSrc, /function dolociUradnoIzbirnoMoznost\(moznosti, iskano, kontekst\)/);
 assert.match(apiSrc, /matchMode: najboljsi\.contextMatched \? "location_disambiguated" : "unique_qualified_name"/);
 assert.match(apiSrc, /safeNormalizations: normalizacije/);
@@ -1967,14 +2353,30 @@ assert.match(apiSrc, /Barvne oznake za hitro primerjavo \(dodal Uspešni Ježek\
 assert.match(apiSrc, /screenshotAnnotation: oznakePosnetka/);
 assert.doesNotMatch(apiSrc, /ir_registereintrag:som_registergericht:mysom"\]', ""/,
   "neizbranih registrskih podatkov ni dovoljeno tiho odstraniti in nadaljevati");
-assert.match(apiSrc, /for \(var poskus = 0; poskus < 2; poskus \+= 1\)/);
+var uradniRetryOdsek = apiSrc.slice(
+  apiSrc.indexOf("async function preveriUradniInsolvencniPortal(subjekt"),
+  apiSrc.indexOf("function razlogNapakeUradnegaInsolvencnegaPortala")
+);
+assert.doesNotMatch(uradniRetryOdsek, /for \(var poskus/,
+  "uradni portal se znotraj istega joba ne sme ponoviti; retry vodi trajna čakalna vrsta");
+assert.match(uradniRetryOdsek, /attempt:\s*1/);
 assert.match(apiSrc, /clip: izrez/);
 assert.doesNotMatch(apiSrc.slice(apiSrc.indexOf("async function zajemiDokaziloIdentitete"), apiSrc.indexOf("function sestaviOpenRegisterInsolvencnoIskanje")), /fullPage:\s*true/);
 assert.match(apiSrc, /status: "verified_api"/);
 assert.match(apiSrc, /confirmationRequired: true/);
+var linearniHandler = apiSrc.slice(apiSrc.indexOf("async function handler(req, res)"), apiSrc.indexOf("var wrappedHandler"));
+assert.match(linearniHandler, /openregisterOsnovniVnos\.ime[\s\S]*?poisciOpenRegisterNajvecEnkrat\(openregisterOsnovniVnos,\s*\{\s*forceFresh:\s*surovoImeIskanje\s*\}\)[\s\S]*?else if \(vnos\.spletnaStran\)[\s\S]*?reason: "local_identity_not_available"/,
+  "zanesljiv URL-kandidat mora neposredno v OR, sicer lokalni parser zaključi brez blokirajočega actorja");
+assert.doesNotMatch(linearniHandler, /pridobiApifyImpressumProfil\(vnos\.spletnaStran\)/,
+  "Impressum actor ne sme biti del sinhronega uporabniškega toka");
+var normalniLinearniTok = linearniHandler.slice(
+  linearniHandler.indexOf("var openregisterOsnovniVnos"),
+  linearniHandler.indexOf("var northData = {")
+);
 assert.ok(
-  apiSrc.indexOf("await poisciOpenRegister(openregisterOsnovniVnos)") < apiSrc.indexOf("await poisciVImpressumu(vnos)"),
-  "OpenRegister mora biti preverjen pred spletnim Impressumom."
+  normalniLinearniTok.indexOf("var northDataZacetek = zacniNorthDataPoOpenRegisterju") >= 0 &&
+    normalniLinearniTok.indexOf("var northDataZacetek = zacniNorthDataPoOpenRegisterju") < normalniLinearniTok.indexOf("var javniProfil ="),
+  "odločitev OpenRegister in edina ND zagonska točka morata biti pred dejanskim dokaznim Impressum korakom"
 );
 assert.match(apiSrc, /status: "confirmed_manual"/);
 assert.match(apiSrc, /reason: "identity_source_required"/, "ročno vneseni podatki brez vira ne smejo sprožiti insolvenčne poizvedbe");
@@ -1982,23 +2384,20 @@ assert.match(apiSrc, /preveriInsolvenco\([\s\S]*?\{ uporabiOpenRegister: false \
   "insolvenčna faza ne sme sprožiti druge plačljive OpenRegister poizvedbe");
 assert.match(apiSrc, /pripraviPotrditevIdentitete\(telo, identiteta\)/);
 assert.match(apiSrc, /pripraviOpenRegisterVnosZaPotrditev\(telo, vnos\)/);
-assert.strictEqual(test.uporabiOpenRegisterZaIdentiteto({}), true);
-assert.strictEqual(test.uporabiOpenRegisterZaIdentiteto({ uporabiOpenRegisterIdentiteto: true }), true);
-assert.strictEqual(test.uporabiOpenRegisterZaIdentiteto({ uporabiOpenRegisterIdentiteto: false }), false);
-var openregisterIzklopljen = { status: "disabled", reason: "user_disabled_identity_lookup" };
-var identitetaSamoImpressum = test.sestaviIdentiteto(openregisterIzklopljen, { status: "disabled" }, {
+assert.doesNotMatch(apiSrc, /function uporabiOpenRegisterZaIdentiteto|user_disabled_identity_lookup/,
+  "odjemalec ne sme več izklopiti obveznega enkratnega OpenRegister koraka");
+var openregisterBrezZadetka = { status: "not_found", reason: "not_found" };
+var identitetaSamoImpressum = test.sestaviIdentiteto(openregisterBrezZadetka, null, {
   status: "found",
   subjekt: Object.assign({}, dumanImpressum, { sourceUrl: "https://example.test/impressum" }),
 }, { ime: "", postnaStevilka: "", kraj: "" });
 assert.strictEqual(identitetaSamoImpressum.status, "probable_impressum");
 assert.strictEqual(identitetaSamoImpressum.source, "impressum");
 assert.strictEqual(identitetaSamoImpressum.companyId, undefined);
-assert.strictEqual(test.sestaviApiDokaziloIdentitete(identitetaSamoImpressum, openregisterIzklopljen), null);
-assert.deepStrictEqual(test.dolociVirDokazilaIdentitete(identitetaSamoImpressum, openregisterIzklopljen, { status: "disabled" }, {
+assert.strictEqual(test.sestaviApiDokaziloIdentitete(identitetaSamoImpressum, openregisterBrezZadetka), null);
+assert.deepStrictEqual(test.dolociVirDokazilaIdentitete(identitetaSamoImpressum, openregisterBrezZadetka, null, {
   sourceUrl: "https://example.test/impressum",
 }), { sourceUrl: "https://example.test/impressum", sourceLabel: "Impressum podjetja" });
-assert.match(apiSrc, /openregisterIdentitetaVklopljena && openregister\.status !== "found"/);
-assert.match(apiSrc, /user_disabled_identity_lookup/);
 assert.match(apiSrc, /\{ uporabiOpenRegister: false \}/,
   "uporabniški tok za insolventnost ne sme klicati plačljivega OpenRegister endpointa");
 assert.doesNotMatch(

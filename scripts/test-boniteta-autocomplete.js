@@ -38,14 +38,14 @@ async function main() {
   assert.match(js, /localhost\|127\\\.0\\\.0\\\.1[\s\S]*?register-miss-preview[\s\S]*?lokalniAudit: true/,
     "vizualni predogled neuspešnega registrskega toka mora ostati omejen na localhost");
   var css = source("app/bonitetna-preverba.css");
-  assert.match(html, /id="boniteta-rezerva-spletna">OK, zmenjeno<\/button>/,
-    "opozorilo mora uporabniku potrditi navodilo brez dodatnega gumba za odpiranje vnosa");
+  assert.doesNotMatch(html, /boniteta-rezerva-spletna|OK, zmenjeno|Nima spletne strani/,
+    "neuspešno iskanje ne sme odpreti starega generičnega obvoda");
   assert.match(js, /function nastaviHeroZaSpletnoRezervo\(vklopljeno\)[\s\S]*?nastaviHeroPodjetje\(""\)[\s\S]*?heroPodnaslov\.textContent = "Vnesite spletno stran"[\s\S]*?heroSpletnaLabel\.textContent = "Vnesite spletno stran"[\s\S]*?placeholder = "www\.podjetje\.de"/,
     "neuspešno registrsko iskanje mora takoj pokazati zgornji vnos spletne strani");
-  assert.match(js, /vodeniSpletniVnos = spletnaRezervaRazlog === "openregister_not_found"[\s\S]*?if \(!vodeniSpletniVnos\) nastaviSpletnoRezervo\(false\)/,
-    "opozorilo se med vnosom spletne strani ne sme prezgodaj skriti");
-  assert.doesNotMatch(html, /id="boniteta-rezerva-spletna">Vnesi spletno stran<\/button>/,
-    "stari podvojeni poziv za odpiranje spletnega vnosa ne sme ostati");
+  assert.match(js, /heroSpletnaPolje\.addEventListener\("input"[\s\S]*?nastaviSpletnoRezervo\(false\)[\s\S]*?filtrirajAutocompleteZadetke\(query\)/,
+    "prvi nov vnos po neuspešnem iskanju mora brez osvežitve znova vključiti predloge podjetij");
+  assert.doesNotMatch(js, /if \(vodeniSpletniVnos\)[\s\S]*?odpriAutocomplete\(false\)[\s\S]*?return;/,
+    "neuspešno iskanje ne sme blokirati naslednjega autocomplete vnosa");
   assert.match(html, /id="boniteta-potrditev-gumb"[\s\S]*?data-potrditev-gumb-label[\s\S]*?>Preveri insolventnost<\/span>/,
     "label gumba za insolventnost mora imeti lastno centrirano območje");
   assert.match(js, /function nastaviNalaganjePotrditve\(vklopljeno\)[\s\S]*?classList\.toggle\("is-loading"[\s\S]*?"Preverjam insolventnost"[\s\S]*?potrditevGumb\.disabled = true/,
@@ -58,7 +58,7 @@ async function main() {
     "label mora biti geometrijsko centriran med enako širokima stranskima območjema");
   assert.match(css, /boniteta-potrditev-identitete__gumb\.is-loading:disabled[\s\S]*?linear-gradient\(135deg,#35aaa5,#0b8587 72%,#08717a\)[\s\S]*?cursor: wait/,
     "disabled stanje med nalaganjem mora ohraniti turkizni videz");
-  assert.match(css, /boniteta-potrditev-identitete__gumb\.is-loading::after[\s\S]*?border-top-color: #fff[\s\S]*?animation: boniteta-vrtenje/,
+  assert.match(css, /boniteta-potrditev-identitete__gumb\.is-loading \.boniteta-potrditev-identitete__gumb-puscica[\s\S]*?border-top-color: #fff[\s\S]*?animation: boniteta-vrtenje/,
     "desni krogec mora med nalaganjem postati čist bel spinner");
   assert.match(css, /\.crif-flow-picker__start-status\.is-changing[\s\S]*?boniteta-status-prihod/,
     "sprememba statusa v glavnem gumbu mora imeti nežno animacijo");
@@ -195,8 +195,8 @@ async function main() {
   assert.match(js, /companyIndexProof:/);
   assert.match(js, /delete shranljivo\.identity_proof/,
     "kratkotrajni plačljivi dokaz se ne sme zapisati v lokalni predpomnilnik");
-  assert.match(js, /if \(!registrskiVnos && !obrazec\.reportValidity\(\)\) return;/,
-    "izbrano registrsko podjetje ne sme obstati na skritih obveznih ročnih poljih");
+  assert.match(js, /if \(!samoSpletniVnos && !registrskiVnos && !obrazec\.reportValidity\(\)\) return;/,
+    "URL in izbrano registrsko podjetje ne smeta obstati na skritih obveznih ročnih poljih");
   assert.match(js, /function izvediUniverzalnoIskanje[\s\S]*?zanesljivEnolicniZadetek/,
     "glavni gumb mora samodejno usmeriti univerzalni vnos");
   assert.doesNotMatch(js, /prviPrikazaniZadetek[\s\S]*?prviPrikazaniZadetek\.click\(\)/,
@@ -216,8 +216,11 @@ async function main() {
   assert.equal(classify("Angaben gemäß § 5 TMG").vrsta, "naslov_impressuma");
   assert.match(js, /razvrstitev\.vrsta === "spletna_stran"[\s\S]*?nacinVnosa = "spletna"[\s\S]*?izvediBonitetnoPreverbo/,
     "spletni naslov mora neposredno v Impressum preverjanje");
-  assert.match(js, /razvrstitev\.vrsta !== "register"[\s\S]*?poisciNorthDataPodjetja[\s\S]*?poisciAutocompletePodjetja/,
-    "ime mora samodejno preiti iz brezplačnih virov v novejše in uradno iskanje");
+  assert.doesNotMatch(js.slice(js.indexOf("async function izvediUniverzalnoIskanje"), js.indexOf("function odpriAutocomplete")),
+    /poisciNorthDataPodjetja\(\)|poisciAutocompletePodjetja\(\)/,
+    "brez enolične lokalne kartice ime ne sme sprožiti ločenega plačljivega North Data/OpenRegister predloga, temveč iti naravnost v eno pravo preverbo");
+  assert.match(js, /nacinVnosa = "surovo_ime"[\s\S]*?await izvediBonitetnoPreverbo\(\)/,
+    "surovo ime brez lokalne kartice mora iti neposredno v isto čakalno vrsto preverbe");
   assert.match(source("app/boniteta-sredisce.js"), /!hasCompany&&heroInput&&heroInput\.value\.trim\(\)&&window\.UJBonitetaZacniIzbranoPodjetje/,
     "tok mora pred spletnim iskanjem najprej uporabiti že prikazani predlog podjetja");
   assert.doesNotMatch(js, /AUTOCOMPLETE_ZAKASNITEV_MS|razporediAutocompleteIskanje/,
@@ -248,9 +251,48 @@ async function main() {
     "isto pravilo mora delovati tudi za nepovezan primer z vmesnimi besedami");
   var directoryMapper = js.slice(js.indexOf("function odprtiRegisterZapisVPodjetje"), js.indexOf("function naloziOdprtiRegisterDodatke"));
   assert.match(directoryMapper, /name: String\(row\[0\]/,
-    "stari imenik sme prispevati samo naziv podjetja");
-  assert.doesNotMatch(directoryMapper, /row\[[1-6]\]/,
-    "kraj, register, status in identifikator iz starega imenika ne smejo v preverbo");
+    "lokalni imenik mora ohraniti naziv podjetja");
+  assert.match(directoryMapper, /city: String\(row\[1\][\s\S]*?register_type: String\(row\[2\][\s\S]*?register_number: String\(row\[3\][\s\S]*?register_court: String\(row\[4\]/,
+    "lokalni imenik mora prenesti registrsko številko, vrsto in sodišče za natančno lokalno validacijo");
+  assert.match(directoryMapper, /company_id: ""[\s\S]*?source_id: String\(row\[6\] \|\| ""\)/,
+    "lokalni ID vrstice mora ostati ločen od OpenRegister company ID-ja");
+  var domainMatcherSource = js.slice(
+    js.indexOf("function normalizirajDomenskiRegisterNiz"),
+    js.indexOf("function normalizirajHitroPredpono")
+  );
+  var domainMatcher = new Function(domainMatcherSource + "; return { key: domenskiRegisterKljuc, matches: seNazivUjemaZDomenskimKljucem };")();
+  var beispielDomainKey = domainMatcher.key("https://beispielundpartner.de/impressum");
+  assert.equal(beispielDomainKey, "beispielundpartner",
+    "domenski ključ mora odstraniti pot in TLD");
+  assert.equal(domainMatcher.matches("Beispiel & Partner GmbH", beispielDomainKey), true,
+    "znak & v registrskem nazivu mora ustrezati besedi und v domeni");
+  assert.equal(domainMatcher.matches("Beispiel Logistik GmbH", beispielDomainKey), false,
+    "domena ne sme sprejeti nepovezanega registrskega naziva");
+  var domainLoaderSource = js.slice(
+    js.indexOf("async function naloziOdprtiRegisterZadetkeZaDomeno"),
+    js.indexOf("function naloziOdprtiRegisterDodatke")
+  );
+  assert.match(domainLoaderSource, /naloziOdprtiRegisterDelec\(odprtiRegisterKljuc\(domenskiKljuc\)\)/,
+    "domenski fallback mora naložiti samo pravi shard");
+  assert.match(domainLoaderSource, /\.map\(odprtiRegisterZapisVPodjetje\)/,
+    "domenski fallback mora uporabiti varni mapper starega imenika");
+  assert.match(domainLoaderSource, /pricakovanoZaporedje !== autocompleteZaporedje[\s\S]*?await[\s\S]*?pricakovanoZaporedje !== autocompleteZaporedje/,
+    "zastarel domenski rezultat ne sme prepisati novejšega vnosa");
+  var submitSource = js.slice(
+    js.indexOf("async function izvediBonitetnoPreverbo"),
+    js.indexOf('obrazec.addEventListener("submit"')
+  );
+  var domainFallbackIndex = submitSource.indexOf("await naloziOdprtiRegisterZadetkeZaDomeno");
+  var normalRenderIndex = submitSource.indexOf("izrisi(podatki);");
+  assert.ok(domainFallbackIndex >= 0 && domainFallbackIndex < normalRenderIndex,
+    "domenski fallback se mora izvesti pred generičnim izrisom neuspeha");
+  var domainFallbackBranch = submitSource.slice(domainFallbackIndex, normalRenderIndex);
+  assert.match(domainFallbackBranch, /nastaviSpletnoRezervo\(false\)[\s\S]*?nastaviHeroNapako\(domenskoFallbackSporocilo\)[\s\S]*?izrisiAutocompleteZadetke\(domenskiKandidati, true\)[\s\S]*?return;/,
+    "najdeni kandidati morajo odpreti izbiro in ustaviti generični fallback");
+  assert.match(js, /function izrisiAutocompleteZadetke\(results, odmakniZaVidniStatus\)[\s\S]*?style\.removeProperty\("top"\)[\s\S]*?statusMeje\.bottom - iskanjeMeje\.bottom/,
+    "domenski seznam ne sme prekriti vidnega navodila, običajni seznami pa morajo odmik odstraniti");
+  assert.doesNotMatch(domainFallbackBranch, /\.click\(\)|izberiAutocompletePodjetje\(/,
+    "domenski fallback ne sme samodejno izbrati kandidata");
   assert.match(js, /route=profiles/,
     "brezplačni predlogi morajo vključiti že shranjene profile uporabnika");
   var inputHandler = js.slice(js.indexOf('heroSpletnaPolje.addEventListener("input"'), js.indexOf('heroSpletnaPolje.addEventListener("keydown"'));
@@ -262,8 +304,12 @@ async function main() {
     "pravi brezplačni del indeksa se mora začeti nalagati že pri dveh znakih");
   assert.match(inputHandler, /\}, 35\);/,
     "iskanje ne sme imeti starega 180-milisekundnega umetnega čakanja");
-  assert.match(html, /bonitetna-preverba\.js\?v=202608\d{2}-[^"']+-v\d+/,
+  assert.match(html, /bonitetna-preverba\.js\?v=20260903-openregister-legal-name-v2/,
     "brskalnik mora dobiti novo hitro različico iskalne kode");
+  assert.match(js, /function opisNedosegljiveRegistrskePoizvedbe\(podatki\)[\s\S]*?insufficient_credits:[\s\S]*?Izbrano podjetje ni bilo zavrnjeno/,
+    "nedosegljiv OpenRegister se ne sme prikazati kot neobstoječe podjetje");
+  assert.match(js, /jeNeuspesnaRegistrskaIdentifikacija\(podatki\)[\s\S]*?openregister\.status !== "not_found"[\s\S]*?opisNedosegljiveRegistrskePoizvedbe\(podatki\)[\s\S]*?prikaziPotPoNeuspesnemRegistrskemIskanju/,
+    "spletna rezerva sme biti samodejno odprta samo pri dejanskem registrskem not_found rezultatu");
   var selection = js.slice(js.indexOf("function izberiAutocompletePodjetje"), js.indexOf("function ponastaviAutocompletePodjetje"));
   assert.doesNotMatch(selection, /openRegisterApi|company_lookup/,
     "izbira že najdenega podjetja ne sme sprožiti dodatnega plačljivega klica");
@@ -319,8 +365,18 @@ async function main() {
   assert.match(mehka, /verifyCompanyProof\(telo\.openRegisterIdentityProof, auth\.user\.id\)/);
   assert.match(mehka, /reusedSignedSelection: true/,
     "isti enokreditni rezultat mora biti ponovno uporabljen pri končni preverbi");
-  assert.match(mehka, /telo\.companyIndexSource === "offeneregister" && vnos\.ime/,
-    "predlog starega imenika mora v aktualno preverbo vstopiti samo z nazivom");
+  assert.match(mehka, /lokalniCompanyIndexIzbor = telo\.companyIndexSource === "offeneregister"/,
+    "predlog lokalne baze mora imeti ločen strežniški tok brez OpenRegisterja");
+  assert.match(js, /source_id: String\(row\[6\] \|\| ""\)/,
+    "brskalnik mora ohraniti ID izbrane vrstice lokalne baze");
+  assert.match(js, /registrskiVnosJeSamoIme = Boolean\(izbranoOpenRegisterPodjetje &&\s*izbranoOpenRegisterPodjetje\.source === "northdata_names"\)/,
+    "samo North Data predlog je vnos brez registrskih polj");
+  assert.match(js, /registerNumber: samoSpletniVnos \|\| registrskiVnosJeSamoIme \? ""/,
+    "lokalni zapis mora poslati svojo registrsko številko za strežniško validacijo");
+  assert.match(mehka, /localCompanyIndex\.resolveSelection\(/,
+    "strežnik mora izbrano vrstico preveriti v lokalni bazi");
+  assert.match(mehka, /externalOpenRegisterCalls: 0/,
+    "lokalni tok mora izrecno zagotavljati nič OpenRegister klicev");
   assert.match(mehka, /poisciOpenRegisterNajvecEnkrat/,
     "končna preverba mora imeti trdo omejitev največ enega identitetnega klica");
   assert.match(mehka, /one_credit_budget_preserved/,
