@@ -1024,7 +1024,7 @@
     return (opisi[razlog] || "Impressuma trenutno ni bilo mogoče varno zajeti.") + naslednjiKorak;
   }
 
-  function nastaviSpletnoRezervo(prikazi, opis, razlog) {
+  function nastaviSpletnoRezervo(prikazi, opis, razlog, iskanoIme) {
     var prejsnjiRazlog = spletnaRezervaRazlog;
     spletnaRezervaRazlog = prikazi ? String(razlog || "") : "";
     var niRegistrskegaZadetka = razlog === "openregister_not_found";
@@ -1042,8 +1042,10 @@
     if (niRegistrskegaZadetka) nastaviHeroZaSpletnoRezervo(true);
     if (heroSpletnaStatus) {
       heroSpletnaStatus.classList.add("is-error");
+      var ocisceneIme = String(iskanoIme || "").trim();
       heroSpletnaStatus.textContent = niRegistrskegaZadetka
-        ? "Podjetja v registru nismo našli. Vnesite spletno stran ali neposredni URL Impressuma."
+        ? (ocisceneIme ? "Podjetja »" + ocisceneIme + "« v registru nismo našli. Vnesite spletno stran ali neposredni URL Impressuma."
+          : "Podjetja v registru nismo našli. Vnesite spletno stran ali neposredni URL Impressuma.")
         : String(opis || "Impressuma ni bilo mogoče zajeti. Vnesite neposredni URL Impressuma ali poskusite znova.");
       heroSpletnaStatus.dataset.spletnaRezerva = "true";
       heroSpletnaStatus.hidden = false;
@@ -1057,7 +1059,7 @@
     var iskanoIme = String(query || "").trim().replace(/\s+/g, " ");
     rezervnoRegistrskoIme = iskanoIme;
     if (iskanoIme) izpolniRazbranoPolje("boniteta-ime", iskanoIme);
-    nastaviSpletnoRezervo(true, "", "openregister_not_found");
+    nastaviSpletnoRezervo(true, "", "openregister_not_found", iskanoIme);
   }
 
   function poudariVnosSpletneStrani() {
@@ -5866,6 +5868,15 @@
       zadnjaOpenRegisterReferenca = "";
       var podatki = await izvediPrekoCakalneVrste(zadnjiVnos, token);
       if (!podatki) return;
+      if (surovoImeVnos && podatki.openregister && podatki.openregister.status === "ambiguous" &&
+        Array.isArray(podatki.openregister.candidates) && podatki.openregister.candidates.length) {
+        var dvoumniKandidati = podatki.openregister.candidates.map(function (kandidat) {
+          return normalizirajOpenRegisterPodjetje({}, Object.assign({ source: "openregister_ambiguous" }, kandidat));
+        });
+        izrisiAutocompleteZadetke(dvoumniKandidati);
+        nastaviHeroNapako("Našli smo več možnih podjetij z enakim imenom. Izberite pravi registrski zapis ali vnesite spletno stran.");
+        return;
+      }
       var razlogSpletneNapake = podatki && podatki.publicProfile && podatki.publicProfile.reason;
       if (jeNeuspesnaSpletnaIdentifikacija(podatki) && [
         "impressum_collector_unavailable", "website_unreachable", "website_server_error", "website_rate_limited", "robots_disallowed",

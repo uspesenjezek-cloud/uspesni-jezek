@@ -31,4 +31,9 @@ assert.match(preverba, /rawNameIdentitySearch:\s*surovoImeVnos/,
 assert.match(preverba, /!samoSpletniVnos && !registrskiVnos && !surovoImeVnos && !obrazec\.reportValidity\(\)/,
   "surovo ime ne sme zahtevati izpolnjenega ročnega naslovnega obrazca");
 
+assert.match(source, /"Podjetja »" \+ .*?\+ "« v registru nismo našli\./,
+  "sporočilo ob registrskem missu mora poimensko pokazati iskano ime, ne le generičnega besedila");
+assert.match(preverba, /podatki\.openregister && podatki\.openregister\.status === "ambiguous"/,
+  "surovo ime mora znati prikazati OpenRegistrove lastne kandidate ob dvoumnem zadetku, brez novega plačljivega klica");
+
 console.log("✓ Quicksearch nima več plačljivih discovery klicev; surovo ime gre v eno pravo preverbo.");
