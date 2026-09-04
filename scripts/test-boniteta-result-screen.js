@@ -19,9 +19,17 @@ assert.match(preverbaJs, /function jeLokalniPredogled\(\)[\s\S]*?app-preview[\s\
   "lokalni predogled ne sme biti odvisen od oddaljenega prijavnega strežnika");
 assert.match(preverbaJs, /function glaveCakalneVrste\(token, json\)[\s\S]*?X-UJ-Local-Preview/);
 assert.match(queueHandlerJs, /function jeLokalniPredogled\(req\)[\s\S]*?MEHKA_BONITETA_IN_MEMORY_QUEUE[\s\S]*?local-preview/);
-assert.match(workerHandlerJs, /!ujemanjeCron\(req\) && !jeLokalniPredogled\(req\)/);
+assert.match(workerHandlerJs, /var cronRequest = ujemanjeCron\(req\);[\s\S]*?var lokalniPredogled = jeLokalniPredogled\(req\);[\s\S]*?if \(!cronRequest && !lokalniPredogled\)/,
+  "worker mora preveriti uporabnika za vsako zahtevo, ki ni niti veljaven cron niti lokalni predogled");
 
-assert.match(html, /id="boniteta-rezultat-okno"[^>]*hidden/);
+assert.doesNotMatch(html, /boniteta-rezultat-okno|DOKAZILA OSNOVNE PREVERBE|Uporabljeni viri|id="boniteta-viri"|id="boniteta-ponovi"|id="boniteta-izbrisi-preverbo"/,
+  "odstranjeni vmesni povzetek virov in njegova CTA-ja ne smejo ostati v DOM-u");
+assert.match(html, /id="boniteta-podjetje-osvezi"[^>]*hidden>Preveri znova<\/button>/,
+  "stari kontrolnik lahko ostane le kot privzeto skrit notranji element");
+assert.match(preverbaJs, /recheckMode:\s*"manual_refresh"/,
+  "obstoječa notranja logika ponovne preverbe mora ostati varna");
+assert.match(css, /#boniteta-podjetje-osvezi\s*\{/,
+  "stari kontrolnik mora ostati slogovno omejen, dokler je v DOM-u");
 assert.doesNotMatch(html, /id="boniteta-rezultat-nazaj"/);
 assert.doesNotMatch(html, /id="boniteta-status-ikona"|id="boniteta-rezultat-naslov"|id="boniteta-rezultat-opis"/,
   "stari rumeni povzetek mehke preverbe ne sme biti prikazan nad rezultatom");
@@ -29,29 +37,29 @@ assert.doesNotMatch(preverbaJs, /getElementById\("boniteta-(?:status-ikona|rezul
   "izris ne sme vec naslavljati odstranjenega povzetka");
 assert.doesNotMatch(centerJs, /el\("boniteta-(?:status-ikona|rezultat-naslov|rezultat-opis)"\)/,
   "testni predogledi ne smejo vec naslavljati odstranjenega povzetka");
-assert.match(css, /\.stran--bonitetna\.boniteta-rezultat-je-okno \.boniteta-obrazec \{\s*display: none;/);
-assert.match(preverbaJs, /function nastaviRezultatKotOkno\(vklopljeno\)/);
+assert.doesNotMatch(css + preverbaJs + centerJs, /boniteta-rezultat-je-okno|boniteta-rezultat-okno|nastaviRezultatKotOkno|UJBonitetaNastaviRezultatKotOkno/,
+  "renderer in prehod odstranjenega vmesnega zaslona morata biti izbrisana");
 var nalaganjeFunkcija = preverbaJs.slice(
   preverbaJs.indexOf("function nastaviNalaganje(vklopljeno)"),
   preverbaJs.indexOf("function dodajPodatek", preverbaJs.indexOf("function nastaviNalaganje(vklopljeno)"))
 );
-assert.match(nalaganjeFunkcija, /if \(vklopljeno\) \{[\s\S]*?nastaviRezultatKotOkno\(false\);[\s\S]*?potek\.hidden = true;/,
-  "nalaganje mora ostati v trenutnem koraku brez zaslona Rezultat preverbe");
-assert.doesNotMatch(nalaganjeFunkcija, /nastaviRezultatKotOkno\(true\)/,
-  "celozaslonsko okno se sme odpreti šele za pripravljen rezultat");
-assert.match(preverbaJs, /nastaviRezultatKotOkno\(true\);\s*rezultat\.hidden = false;/);
-assert.match(preverbaJs, /catch \(err\) \{\s*potek\.hidden = true;\s*nastaviRezultatKotOkno\(false\);/);
-assert.match(preverbaJs, /nastaviRezultatKotOkno\(false\);\s*rezultat\.hidden = true;/);
+assert.match(nalaganjeFunkcija, /if \(vklopljeno\) \{[\s\S]*?potek\.hidden = true;[\s\S]*?rezultat\.hidden = true;/,
+  "nalaganje mora ostati v trenutnem vnosnem koraku");
+assert.doesNotMatch(nalaganjeFunkcija, /nastaviRezultatKotOkno/);
 assert.match(preverbaJs, /UJBonitetaIzberiTok\("soft"\)/);
-assert.match(preverbaJs, /function pojdiEnBonitetniKorakNazaj\(\)[\s\S]*?boniteta-rezultat-je-okno[\s\S]*?boniteta-ponovi[\s\S]*?return true;/);
+assert.match(preverbaJs, /function pojdiEnBonitetniKorakNazaj\(\)[\s\S]*?if \(!rezultat\.hidden\)[\s\S]*?ponastaviNovoPreverbo\(\);[\s\S]*?return true;/);
 assert.match(preverbaJs, /window\.UJPoskusiNotranjiKorakNazaj = pojdiEnBonitetniKorakNazaj;/);
 assert.match(navigacijaJs, /typeof window\.UJPoskusiNotranjiKorakNazaj === "function"[\s\S]*?window\.UJPoskusiNotranjiKorakNazaj\(\)[\s\S]*?return;/);
-assert.match(centerJs, /fillSoftTestPreview\(\)[\s\S]*?UJBonitetaNastaviRezultatKotOkno\)window\.UJBonitetaNastaviRezultatKotOkno\(true\)/);
-assert.match(centerJs, /selectedStartFlow==="crif"[\s\S]*?UJBonitetaNastaviRezultatKotOkno\(true\)/);
+assert.doesNotMatch(centerJs, /el\("boniteta-viri"\)|el\("boniteta-izbrisi-preverbo"\)|el\("boniteta-rezultat-okno"\)/,
+  "lokalni predogledi ne smejo obnoviti odstranjenega vmesnega zaslona");
 assert.match(html, /BONITETNA PREVERBA[\s\S]*?id="boniteta-identiteta-naslov"[\s\S]*?id="boniteta-podjetje-glava"[^>]*hidden/);
 assert.match(html, /id="boniteta-podjetje-monogram"[\s\S]*?id="boniteta-podjetje-ime"[\s\S]*?id="boniteta-podjetje-preverjeno"/);
-assert.match(html, /id="boniteta-podjetje-ime"[^>]*data-fit-text[^>]*data-fit-text-min="8"/,
-  "daljse ime podjetja se mora prilagoditi znotraj kompaktne zdruzene glave");
+var imePodjetjaElement = (html.match(/<strong id="boniteta-podjetje-ime"[^>]*>/) || [""])[0];
+var najmanjsaPisavaImena = Number((imePodjetjaElement.match(/data-fit-text-min="(\d+)"/) || [])[1]);
+assert.match(imePodjetjaElement, /data-fit-text(?:\s|=)/,
+  "daljse ime podjetja mora uporabljati samodejno prilagajanje");
+assert.ok(najmanjsaPisavaImena >= 8 && najmanjsaPisavaImena <= 10 && /data-fit-text-lines="[23]"/.test(imePodjetjaElement),
+  "daljse ime podjetja se mora prilagoditi znotraj kompaktne vecvrsticne glave");
 assert.match(html, /class="boniteta-register-hero__ikona"[\s\S]*?<svg/);
 assert.match(html, /id="boniteta-podjetje-pregled"[^>]*hidden[\s\S]*?id="boniteta-podjetje-podnaslov"[^>]*data-podjetje-pogled="kljucni"[\s\S]*?Pregled/);
 assert.match(html, /id="boniteta-podjetje-ustanovitev"[^>]*hidden[\s\S]*?id="boniteta-podjetje-ustanovitev-datum"[\s\S]*?id="boniteta-podjetje-ustanovitev-starost"/,
@@ -64,13 +72,20 @@ assert.doesNotMatch(html, /boniteta-podjetje-povzetek|Brez zaznanih opozoril/,
   "odvečni povzetek se ne sme ponavljati nad potrditvenim gumbom");
 assert.doesNotMatch(preverbaJs, /podjetjePovzetek|boniteta-podjetje-povzetek/,
   "odstranjeni povzetek ne sme pustiti neuporabljene prikazne logike");
-assert.match(html, /id="boniteta-podjetje-navigacija"[\s\S]*?data-podjetje-pogled="kljucni"[\s\S]*?data-podjetje-pogled="izstopa"[\s\S]*?data-podjetje-pogled="plus"[\s\S]*?<\/nav>[\s\S]*?id="boniteta-podjetje-pogledi"[\s\S]*?id="boniteta-podjetje-sekundarna-navigacija"[\s\S]*?data-podjetje-pogled="finance"[\s\S]*?data-podjetje-pogled="pot"[\s\S]*?data-podjetje-pogled="dodatno"/,
-  "Pregled, Kaj izstopa in Plus morajo ostati nad podatki, spodnji trije sklopi pa v ločeni vrstici pod njimi");
+var glavnaNavigacija = html.slice(html.indexOf('id="boniteta-podjetje-navigacija"'), html.indexOf("</nav>", html.indexOf('id="boniteta-podjetje-navigacija"')));
+var sekundarnaNavigacija = html.slice(html.indexOf('id="boniteta-podjetje-sekundarna-navigacija"'), html.indexOf("</nav>", html.indexOf('id="boniteta-podjetje-sekundarna-navigacija"')));
+assert.ok(["kljucni", "finance", "izstopa"].every(function (pogled) { return glavnaNavigacija.includes('data-podjetje-pogled="' + pogled + '"'); }) &&
+  ["pot", "dodatno", "plus"].every(function (pogled) { return sekundarnaNavigacija.includes('data-podjetje-pogled="' + pogled + '"'); }),
+  "vseh šest pogledov mora biti enkrat razdeljenih med glavno in dodatno navigacijo");
+assert.ok(html.indexOf('id="boniteta-podjetje-sekundarna-navigacija"') < html.indexOf('id="boniteta-podjetje-pogledi"'),
+  "obe navigacijski vrstici morata biti pred vsebino izbranega pogleda");
 assert.match(html, /data-podjetje-pogled="finance"[\s\S]*?<small[^>]*>Ni na voljo<\/small>/,
   "vsak podatkovni gumb mora imeti jasno stanje, ko informacije niso na voljo");
 assert.doesNotMatch(html, /Več podatkov|Celoten pregled podjetja|boniteta-podjetje-podrobnosti-gumb/,
   "staro razkritje ne sme ostati poleg nove navigacije");
-assert.match(html, /id="boniteta-identiteta-nadaljuj"[^>]*hidden[\s\S]*?Podatki so potrjeni\. Preverite še insolventnost\.[\s\S]*?Preveri insolventnost/);
+var identitetaNadaljujMarkup = html.slice(html.indexOf('id="boniteta-identiteta-nadaljuj"'), html.indexOf("</button>", html.indexOf('id="boniteta-identiteta-nadaljuj"')));
+assert.match(identitetaNadaljujMarkup, /type="button"[^>]*hidden[\s\S]*?Preveri insolventnost[\s\S]*?Preverjanje uradnih objav/,
+  "potrjena identiteta mora razkriti namenski gumb za naslednji korak z jasnim opisom uradnega preverjanja");
 assert.ok(
   html.indexOf('id="boniteta-identiteta-nadaljuj"') < html.indexOf('id="boniteta-podjetje-podnaslov"'),
   "potrditev in gumb za insolventnost morata biti v zgornji kartici pred ključnimi podatki"
@@ -157,8 +172,8 @@ assert.match(preverbaJs, /green: \{ znak: "✓"[\s\S]*?yellow: \{ znak: "i"[\s\S
   "delne statusne kartice morajo uporabljati miren informacijski znak in opozorilo");
 assert.match(css, /\.is-state-yellow \.boniteta-podjetje-kartica__kljukica,[\s\S]*?\.is-state-red \.boniteta-podjetje-kartica__kljukica \{[\s\S]*?background: transparent;[\s\S]*?box-shadow: none;/,
   "rumeni in rdeči status ne smeta biti prikazana kot barvna kvadratka");
-assert.match(css, /\.boniteta-podatki--identiteta\.is-state-yellow \{[\s\S]*?rgba\(43, 151, 145, \.035\)/,
-  "nepotrjen rezultat mora ostati nevtralno turkizen, ne prelit z rumeno");
+assert.match(css, /\.boniteta-podatki--identiteta\.is-state-yellow \{\s*background: #fff;/,
+  "nepotrjen rezultat mora ostati bel in brez zelenega statusnega preliva");
 assert.match(css, /\.is-state-yellow \.boniteta-podjetje-kartica__ikona,[\s\S]*?\.is-state-red \.boniteta-podjetje-kartica__ikona \{[\s\S]*?color: #087f7b;/,
   "ikone ključnih podatkov morajo ostati čiste turkizne črte");
 assert.match(preverbaJs, /function pravnaOblikaIzNaziva\(vrednost\)[\s\S]*?GmbH &[\s\S]*?var pravnaOblika = identiteta\.legalForm \|\| pravnaOblikaIzNaziva\(ime\)/,
@@ -172,8 +187,8 @@ assert.match(preverbaJs, /<dt data-fit-text data-fit-text-min=\"6\">[\s\S]*?<sma
   "kratke oznake in podnapisi morajo zmanjšati pisavo namesto preloma");
 assert.match(css, /boniteta-podjetje-kartica--oblika dt,[\s\S]*?boniteta-podjetje-kartica--register dd,[\s\S]*?white-space: nowrap;/,
   "pravna oblika in register morata ostati v eni vrstici");
-assert.match(html, /id="boniteta-podjetje-ime" data-fit-text data-fit-text-min="8"/,
-  "daljše ime podjetja mora imeti dovoljeno samodejno zmanjšanje brez preloma");
+assert.ok(/data-fit-text/.test(imePodjetjaElement) && najmanjsaPisavaImena >= 8 && najmanjsaPisavaImena <= 10,
+  "daljše ime podjetja mora imeti varno omejeno samodejno zmanjšanje");
 assert.match(css, /boniteta-podjetje-glava__opis strong \{[\s\S]*?white-space: nowrap;/,
   "ime podjetja v glavi se ne sme lomiti med besedami");
 assert.match(appJs, /data-fit-text-lines[\s\S]*?el\.scrollHeight <= visinaVrstice \* omejitevVrstic/,
@@ -185,14 +200,35 @@ assert.match(preverbaJs, /function zacetniciPodjetja\(ime\)[\s\S]*?function izri
   "izris registrskega podjetja mora imeti vedno naložen izračun začetnic");
 assert.match(preverbaJs, /async function nadaljujOpravilo\(jobId\) \{\s*var samoSpletniVnos = nacinVnosa === "spletna";/,
   "nadaljevanje shranjene preverbe mora samo določiti način vnosa");
+assert.match(preverbaJs, /async function pocakajNaOpravilo\(job, token, kontekst\)[\s\S]*?while \(true\)[\s\S]*?job\.status === "completed"[\s\S]*?job\.status === "failed"/,
+  "odjemalec mora isto opravilo spremljati do dejanskega zaključka ali napake");
+assert.doesNotMatch(preverbaJs, /NAJVEČ_CAKANJA_OPRAVILA_MS|Opravilo ostaja varno shranjeno; poskusite znova/,
+  "aktivnega queued ali processing opravila frontend ne sme lažno terminalizirati pred backend completed/failed stanjem");
+assert.match(preverbaJs, /async function pocakajNaOpravilo\(job, token, kontekst\)[\s\S]*?while \(true\)[\s\S]*?job\.status === "completed"[\s\S]*?job\.status === "failed"/,
+  "frontend mora tudi po dolgem prvem poskusu isto opravilo spremljati do dejanskega backend terminalnega stanja");
+assert.match(preverbaJs, /if \(!job \|\| !job\.status\)[\s\S]*?job\.status === "completed"[\s\S]*?if \(job\.result\) return opremiRezultatZOpravilom\(job\.result, job, kontekst\);[\s\S]*?zaključilo brez rezultata/,
+  "manjkajoče ali prazno terminalno stanje opravila mora postati jasna napaka");
+assert.match(preverbaJs, /function nastaviSamodejnoRegistrskoInsolvencnoStanje\(opis, stanje\)[\s\S]*?identitetaNadaljuj\.hidden = false;[\s\S]*?identitetaNadaljuj\.disabled = !jePonovniPoskus;[\s\S]*?Preverjanje insolventnosti je v teku[\s\S]*?podnaslov\.textContent = stanje === "loading"/,
+  "OpenRegister tok mora takoj pokazati očitno samodejno nalaganje brez ročnega CTA-ja");
+assert.match(preverbaJs.slice(preverbaJs.indexOf("function nastaviSamodejnoRegistrskoInsolvencnoStanje"), preverbaJs.indexOf("async function samodejnoNadaljujOpenRegisterPreverbo")), /URADNI VIR NI DOSEGLJIV[\s\S]*?Preveri insolventnost znova[\s\S]*?Dotaknite se za nov poskus[\s\S]*?PONOVI PREVERBO/,
+  "napaka uradnega vira mora dati jasen ponovni samodejni poskus, brez ročne poti");
+assert.match(preverbaJs, /function opisNapakeInsolvencnegaOpravila\(job\)[\s\S]*?official_portal_timeout:[\s\S]*?To ni napaka spletne strani podjetja\.[\s\S]*?staraGeneričnaNapaka !== "Vir je bil začasno nedosegljiv\."/,
+  "Lütge primer mora tudi za staro opravilo iz strukturiranega razloga pokazati uradni insolvenčni portal, ne podjetjeve spletne strani");
+assert.match(preverbaJs, /if \(job\.status === "failed"\) \{\s*throw new Error\(opisNapakeInsolvencnegaOpravila\(job\)\)/,
+  "terminalna napaka mora uporabiti natančni opis konkretnega uradnega vira");
+assert.match(preverbaJs, /function nastaviSamodejnoRegistrskoInsolvencnoStanje\(opis, stanje\)[\s\S]*?nastaviInsolvencnoOkno\(false, false\)[\s\S]*?if \(stanje !== "loading" && podjetjeSklop\)/,
+  "loading in napaka morata ostati na profilu; avtomatika ne sme odpreti generičnega result okna");
+assert.doesNotMatch(preverbaJs, /insolvencaStatus\.textContent = "Preverjanje ni uspelo"/,
+  "odstranjeni zeleni failure result card se ne sme več izrisati");
+assert.match(preverbaJs, /catch \(napakaPotrditve\)[\s\S]*?var sporociloPotrditve[\s\S]*?nastaviSamodejnoRegistrskoInsolvencnoStanje\(sporociloPotrditve, "warning"\)/,
+  "timeout ali terminalna napaka mora do retry kartice prenesti konkretno sporočilo");
 assert.match(preverbaJs, /document\.body\.classList\.add\("boniteta-register-result"\)/);
 assert.match(preverbaJs, /document\.body\.classList\.remove\("boniteta-register-result"\)/);
-assert.match(preverbaJs, /else if \(\["probable_impressum", "confirmed_impressum"\]\.includes\(identiteta\.status\) && profil\.subjekt\) \{\s*window\.UJBonitetaPrikaziRegistrskoPodjetje\(podatki\);/,
-  "rezultat iz Impressuma mora neposredno odpreti kompaktni pregled podjetja brez stare strani Rezultat preverbe");
+assert.match(preverbaJs, /var identitetaImaKompaktniPrikaz = Boolean\(identiteta\.ime \|\| identiteta\.naziv\)[\s\S]*?"verified_register", "probable_impressum", "confirmed_impressum"[\s\S]*?if \(identitetaImaKompaktniPrikaz\) \{[\s\S]*?window\.UJBonitetaPrikaziRegistrskoPodjetje\(podatki\);/,
+  "razbrana identiteta mora najprej odpreti kompaktni pregled, potrditev pa šele uporabnikov klik");
 assert.doesNotMatch(preverbaJs, /identitetaNaslov\.textContent = "Podatki iz Impressuma"/,
   "stara vmesna stran Podatki iz Impressuma ne sme ostati kot samostojen rezultat");
-assert.match(css, /\.stran--bonitetna\.boniteta-register-result \.boniteta-rezultat-okno,[\s\S]*?\.boniteta-rezultat > \.boniteta-rezultat__glava \{\s*display: none !important;/);
-assert.match(css, /\.stran--bonitetna\.boniteta-register-result \.boniteta-preverjeni-viri \{\s*display: none !important;/);
+assert.doesNotMatch(css, /boniteta-rezultat-okno|boniteta-preverjeni-viri|boniteta-izbrisi-preverbo/);
 assert.match(css, /\.stran--bonitetna\.boniteta-register-result #boniteta-identiteta-posnetek \{\s*display: none !important;/,
   "posnetek Impressuma se na kompaktnem pregledu ne sme podvajati; ostane v koraku potrditve");
 assert.match(css, /Potrjen rezultat: vizualno nadaljevanje prvega zaslona/);
@@ -200,7 +236,7 @@ assert.match(css, /\.stran--bonitetna\.boniteta-register-result #boniteta-rezult
 assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-podatki--identiteta::before \{[\s\S]*?linear-gradient\(90deg, transparent 0%,[\s\S]*?42%[\s\S]*?58%[\s\S]*?transparent 100%/);
 assert.match(css, /\.boniteta-podjetje-kartica--datum::after,[\s\S]*?linear-gradient\(180deg, transparent 0%,[\s\S]*?42%[\s\S]*?58%[\s\S]*?transparent 100%/);
 assert.match(css, /\.boniteta-podatki--identiteta\.is-state-green \{[\s\S]*?radial-gradient\(ellipse 118% 105% at 50% 50%, rgba\(76, 183, 122, \.085\)/);
-assert.match(css, /\.boniteta-podatki--identiteta\.is-state-yellow \{[\s\S]*?radial-gradient\(ellipse 118% 105% at 50% 50%, rgba\(226, 176, 62, \.08\)/);
+assert.match(css, /\.boniteta-podatki--identiteta\.is-state-yellow \{\s*background: #fff;/);
 assert.match(css, /\.boniteta-podatki--identiteta\.is-state-red \{[\s\S]*?radial-gradient\(ellipse 118% 105% at 50% 50%, rgba\(207, 91, 82, \.075\)/);
 assert.match(css, /\.boniteta-podjetje-kartica\.is-state-green \{\s*background: transparent;/);
 assert.match(css, /\.boniteta-podjetje-kartica dt \{[\s\S]*?font-size: \.58rem;/);
@@ -223,23 +259,143 @@ assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-identiteta-n
 assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-identiteta-nadaljuj__vsebina b \{[\s\S]*?min-height: 42px;[\s\S]*?margin-top: 8px;/);
 assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-podjetje-glava__opis span \{[\s\S]*?white-space: normal;/);
 assert.match(html, /id="boniteta-insolvenca-okno"[^>]*hidden[\s\S]*?id="boniteta-insolvenca-nazaj"[\s\S]*?id="boniteta-potrditev-identitete"[\s\S]*?id="boniteta-insolvenca-sklop"/);
-assert.match(preverbaJs, /function nastaviInsolvencnoOkno\(odprto, rezultatPripravljen\)[\s\S]*?boniteta-insolvenca-je-okno[\s\S]*?insolvencaSklop\.hidden = !rezultatPripravljen/);
+assert.match(preverbaJs, /function nastaviInsolvencnoOkno\(odprto, rezultatPripravljen\)[\s\S]*?var varnoZakljucenRezultat = Boolean\(rezultatPripravljen && zadnjiInsolvencniRezultatPripravljen\);[\s\S]*?boniteta-insolvenca-je-okno[\s\S]*?insolvencaSklop\.hidden = !varnoZakljucenRezultat/);
 assert.match(preverbaJs, /function pripraviOpenRegisterTestnoPotrditev\(\)[\s\S]*?testPreviewSource !== "openregister"[\s\S]*?boniteta-potrdi-ime[\s\S]*?OPEN Testbau GmbH[\s\S]*?potrditevIdentitete\.hidden = false/);
-assert.match(preverbaJs, /identitetaNadaljuj\.addEventListener\("click"[\s\S]*?if \(zadnjiInsolvencniRezultatPripravljen\) return;[\s\S]*?pripraviOpenRegisterTestnoPotrditev\(\)[\s\S]*?nastaviInsolvencnoOkno\(true, false\)/);
-assert.match(preverbaJs, /jeOpenRegisterTestniPredogled[\s\S]*?nastaviKarticoInsolvenceZakljuceno[\s\S]*?nastaviInsolvencnoOkno\(true, true\)/);
-assert.match(preverbaJs, /if \(nadaljujVInsolvencnemOknu\) \{[\s\S]*?nastaviInsolvencnoOkno\(true, zadnjiInsolvencniRezultatPripravljen\)/,
-  "zaključena insolvenčna preverba mora ostati v istem dvokoračnem toku");
-assert.match(preverbaJs, /Rezultat preverbe[\s\S]*?Preverili smo potrjeno identiteto podjetja\./);
-assert.match(html, /id="boniteta-insolvenca-nazaj-spodaj"[^>]*>Nazaj na podatke podjetja<\/button>/);
+assert.match(preverbaJs, /var jeSamodejnaOpenRegisterPot = identiteta\.status === "verified_register";[\s\S]*?var zahtevaRocnoPotrditev = Boolean\(podatki\.confirmationRequired && !jeSamodejnaOpenRegisterPot\)/,
+  "verified_register ne sme nikoli zahtevati ročnega potrjevanja");
+assert.match(preverbaJs, /if \(identitetaNadaljuj && \(zahtevaRocnoPotrditev \|\| zadnjiInsolvencniRezultatPripravljen \|\| imaNedokoncanoInsolvencnoPreverbo \|\| jeSamodejnaOpenRegisterPot\)\)[\s\S]*?identitetaNadaljuj\.hidden = false/,
+  "verified_register mora ohraniti dogovorjeni vidni korak Preveri insolventnost");
+var samodejniZacetekBrezDokaza = preverbaJs.slice(
+  preverbaJs.indexOf("async function samodejnoNadaljujOpenRegisterPreverbo"),
+  preverbaJs.indexOf("var companyId", preverbaJs.indexOf("async function samodejnoNadaljujOpenRegisterPreverbo"))
+);
+assert.match(samodejniZacetekBrezDokaza, /zadnjiInsolvencniRezultatPripravljen[\s\S]*?return true;[\s\S]*?Status brez prikazljivega uradnega posnetka ni nikoli končni rezultat/,
+  "varna registrska pot mora brez klika ponovno zajeti tudi star clear rezultat, če mu manjka uradni posnetek");
+assert.doesNotMatch(samodejniZacetekBrezDokaza, /nastaviSamodejnoRegistrskoInsolvencnoStanje\([^\n]*"warning"\)/,
+  "manjkajoči posnetek ne sme uporabniku pokazati napake, preden steče prvi samodejni zajem");
+assert.match(preverbaJs, /if \(zadnjiInsolvencniRezultatPripravljen\) \{[\s\S]*?nastaviKarticoInsolvenceZakljuceno\(podatki\)/,
+  "zaključen samodejni registrski tok mora prikazati obstoječo kompaktno zeleno vrstico z rezultatom");
+var samodejnaRegistrskaOsvezitev = preverbaJs.slice(
+  preverbaJs.indexOf("async function samodejnoNadaljujOpenRegisterPreverbo"),
+  preverbaJs.indexOf("function jeUporabenNeposredniInsolvencniRezultat")
+);
+assert.match(samodejnaRegistrskaOsvezitev, /recheckMode:\s*"saved_profile"/,
+  "samodejno nadaljevanje mora v ozadju pridobiti svež uradni rezultat in nov čas preverbe");
+assert.match(samodejnaRegistrskaOsvezitev, /samodejnaOpenRegisterOsvezitevKljuc === osvezitevKljuc[\s\S]*?samodejnaOpenRegisterOsvezitevKljuc = osvezitevKljuc[\s\S]*?izvediPrekoCakalneVrste\(osvezeniVnos, token\)/,
+  "enkratni ključ mora biti nastavljen pred edinim queue POST-om, zato rerender ne sme ustvariti dvojnika");
+assert.doesNotMatch(samodejnaRegistrskaOsvezitev, /potrditevGumb\.click\(\)|potrditevCheckbox/,
+  "varna samodejna pot ne sme simulirati klika ali potrditvenega obrazca");
+assert.match(samodejnaRegistrskaOsvezitev, /confirmedIdentity:[\s\S]*?name: identiteta\.naziv \|\| identiteta\.ime[\s\S]*?street: identiteta\.naslov[\s\S]*?companyId: companyId[\s\S]*?confirmed: true/,
+  "direct queue payload mora vsebovati samo že potrjeno registrsko identiteto");
+assert.doesNotMatch(samodejnaRegistrskaOsvezitev, /nastaviInsolvencnoOkno\(true, true\)/,
+  "samodejni uspeh mora ostati na profilu; podrobni dokaz se odpre samo po uporabnikovem kliku");
+assert.match(preverbaJs, /function ponastaviNovoPreverbo\(\)[\s\S]*?samodejnaOpenRegisterOsvezitevKljuc = ""/,
+  "nova preverba istega podjetja mora ponastaviti enkratni varnostni ključ samodejnega nadaljevanja");
+assert.match(preverbaJs, /identitetaNadaljuj\.addEventListener\("click"[\s\S]*?is-auto-warning[\s\S]*?samodejnoNadaljujOpenRegisterPreverbo\(zadnjiRegistrskiPodatki, true\)[\s\S]*?return;[\s\S]*?jeVarnaSamodejnaRegistrskaInsolvencnaPot\(zadnjiRegistrskiPodatki\)/,
+  "varna registrska pot sme ob izpadu vira sprožiti samo nov samodejni poskus");
+var klikInsolvencnegaKoraka = preverbaJs.slice(
+  preverbaJs.indexOf('identitetaNadaljuj.addEventListener("click"'),
+  preverbaJs.indexOf("function nazajNaPodatkePodjetja")
+);
+assert.doesNotMatch(klikInsolvencnegaKoraka, /potrditevGumb\.click\(\)/,
+  "retry ne sme simulirati potrditvenega klika");
+assert.match(klikInsolvencnegaKoraka, /is-auto-warning[\s\S]*?samodejnoNadaljujOpenRegisterPreverbo\(zadnjiRegistrskiPodatki, true\)/,
+  "OpenRegister napaka sme ponoviti samo samodejni uradni zajem, nikoli ročnega koraka");
+assert.doesNotMatch(grafikeCss, /is-auto-insolvency-status/,
+  "registrska avtomatika ne sme v glavo podjetja dodati nove opozorilne grafike");
+assert.match(preverbaJs, /function nastaviSamodejnoRegistrskoInsolvencnoStanje[\s\S]*?opisCasaPreverbe\(zadnjiRegistrskiPodatki && zadnjiRegistrskiPodatki\.checkedAt\)[\s\S]*?classList\.remove\("is-auto-insolvency-status"\)/,
+  "glava podjetja mora med avtomatsko preverbo ohraniti obstoječi čas preverjanja");
+assert.match(preverbaJs, /function nastaviInsolvencnePodrobnostiNaProfilu\(odprto\)[\s\S]*?var prikazi = Boolean\(odprto\);[\s\S]*?nastaviInsolvencnoOkno\(prikazi, prikazi\)/,
+  "zaključen dokaz se mora odpreti kot ločen uradni insolvenčni izid");
+assert.doesNotMatch(preverbaJs + grafikeCss, /is-inline-result/,
+  "uradni dokaz se nikoli več ne sme pripeti pod celoten profil");
+assert.doesNotMatch(preverbaJs, /nastaviInsolvencnoOkno\(true, true\)/,
+  "zaključni dokaz se sme odpreti samo ob ohranjenem uporabnikovem kontekstu, ne brezpogojno");
+assert.match(preverbaJs, /jeOpenRegisterTestniPredogled[\s\S]*?nastaviKarticoInsolvenceZakljuceno[\s\S]*?nastaviInsolvencnePodrobnostiNaProfilu\(true\)/);
+assert.match(preverbaJs, /var lahkoOdpreRocnoPotrditev = zahtevaRocnoPotrditev && posnetekIdentitetePrikazljiv/,
+  "ročni potrditveni tok se sme odpreti samo z dejansko prikazljivim posnetkom vira");
+var klikSamoPotrditveneKljukice = preverbaJs.slice(
+  preverbaJs.indexOf('if (potrditevCheckbox) potrditevCheckbox.addEventListener("change"'),
+  preverbaJs.indexOf("potrditvenaPolja().forEach", preverbaJs.indexOf('if (potrditevCheckbox) potrditevCheckbox.addEventListener("change"'))
+);
+assert.doesNotMatch(klikSamoPotrditveneKljukice, /izvediPrekoCakalneVrste|fetch\(|potrditevGumb\.click/,
+  "sama potrditev podatkov ne sme sprožiti insolvenčne poizvedbe ali simulirati ločenega klika");
+assert.match(preverbaJs, /if \(nadaljujVInsolvencnemOknu && lahkoOdpreRocnoPotrditev && !zadnjiInsolvencniRezultatPripravljen\) \{[\s\S]*?nastaviInsolvencnoOkno\(true, false\);[\s\S]*?else if \(zadnjiInsolvencniRezultatPripravljen\) \{[\s\S]*?nastaviInsolvencnoOkno\(nadaljujVInsolvencnemOknu, nadaljujVInsolvencnemOknu\)/,
+  "evidence review in njegov zaključni uradni dokaz morata ostati v istem ločenem toku");
+assert.match(css, /boniteta-profil-je-okno \.boniteta-obrazec,[\s\S]*?boniteta-insolvenca-je-okno \.boniteta-obrazec \{[\s\S]*?display: none !important/,
+  "profil in ločeno insolvenčno okno morata skriti začetni wizard");
+assert.match(preverbaJs, /function nastaviProfilKotOkno\(odprto\)[\s\S]*?boniteta-profil-je-okno[\s\S]*?rezultat\.hidden = false;[\s\S]*?nastaviProfilKotOkno\(true\)/,
+  "veljaven rezultat mora odpreti obstoječi profil kot samostojen pogled");
+assert.match(centerJs, /data-boniteta-center-view="new"[\s\S]*?boniteta-profil-je-okno[\s\S]*?boniteta-insolvenca-je-okno[\s\S]*?UJBonitetaPonastaviNovoPreverbo/,
+  "klik Preveri mora vedno zapreti odprti profil ali insolvenčno okno in vrniti začetni obrazec");
+assert.match(preverbaJs, /if \(jeNeposrednaZahteva\) nastaviInsolvencnoOkno\(false, false\)/,
+  "samodejni ali potrjeni uspeh ne sme sam odpreti podrobnega insolvenčnega okna");
+assert.match(css, /boniteta-insolvenca-je-okno \.boniteta-insolvenca-okno__spodnja-vrstica \{[\s\S]*?bottom: max\(8px, env\(safe-area-inset-bottom, 0px\)\)/,
+  "spodnji gumb mora biti pod navigacijo in ne sme lebdeti čez dokaz");
+assert.match(preverbaJs, /identityEvidenceRetry === "true"[\s\S]*?await ponovnoPreveriTrenutnoPodjetje\(\)/,
+  "manjkajoč posnetek mora na klik ponoviti varen zajem namesto odpreti zaklenjen obrazec");
+assert.match(preverbaJs, /potrditevIdentitete\.hidden = true;[\s\S]*?dataset\.identityEvidenceRetry = "true"/,
+  "brez dokaznega posnetka potrditveni obrazec ne sme biti prikazan kot pripravljen");
+assert.match(preverbaJs, /insolvencaOknoNaslov\.textContent = rezultatPripravljen[\s\S]*?\? "Uradni insolvenčni izid"[\s\S]*?: nepopolniImpressumPregledAktiven \? "Pregled Impressuma" : "Preverite podatke";[\s\S]*?var jeOseba = zadnjaRegistrskaIdentiteta && zadnjaRegistrskaIdentiteta\.entityType === "person";[\s\S]*?"Preverili smo potrjeno identiteto " \+ \(jeOseba \? "osebe\." : "podjetja\."\)/,
+  "rezultat mora po zaključku opisati preverjeno identiteto glede na vrsto subjekta");
+assert.match(preverbaJs, /identiteta\.status === "impressum_review_required"[\s\S]*?"Preglej in dopolni podatke"[\s\S]*?"Dejanski Impressum je najden, vendar pravna identiteta in naslov nista popolna\."/,
+  "nepopolni dejanski Impressum mora voditi v pregled in dopolnitev, ne v generični dokumentni fallback");
+assert.match(preverbaJs, /potrditevGumb\.addEventListener\("click"[\s\S]*?if \(nepopolniImpressumPregledAktiven\) \{[\s\S]*?"Dodajte veljaven dokaz"[\s\S]*?"Neposredni URL popolnega javnega pravnega vira"[\s\S]*?return;[\s\S]*?var jeNeposrednaZahteva/,
+  "gumb za nepopolni Impressum mora pred sestavo confirmedIdentity zahtevati nov javni dokaz");
+var nepopolniImpressumKlik = preverbaJs.slice(
+  preverbaJs.indexOf('potrditevGumb.addEventListener("click"'),
+  preverbaJs.indexOf("var jeNeposrednaZahteva", preverbaJs.indexOf('potrditevGumb.addEventListener("click"'))
+);
+assert.doesNotMatch(nepopolniImpressumKlik, /confirmedIdentity|izvediPrekoCakalneVrste/,
+  "nepopolnega Impressuma ni dovoljeno potrditi ali poslati v insolvenčno preverbo");
+assert.match(html, /id="boniteta-impressum-pregled-manjka"[^>]*hidden/,
+  "pregled mora imeti namenski prikaz manjkajočih polj");
+assert.match(html, /class="boniteta-insolvenca-okno__spodnja-vrstica"[\s\S]*?id="boniteta-insolvenca-nazaj-spodaj"[^>]*>Nazaj na podatke podjetja<\/button>/);
 assert.match(preverbaJs, /function nazajNaPodatkePodjetja\(\)[\s\S]*?insolvencaNazajSpodaj[\s\S]*?nazajNaPodatkePodjetja/);
 assert.match(css, /\.boniteta-insolvenca-okno__nazaj-spodaj \{[\s\S]*?min-height: 52px;[\s\S]*?border: 1px solid #168b8c;/);
-assert.match(preverbaJs, /function nastaviKarticoInsolvenceZakljuceno\(podatki\)[\s\S]*?identitetaNadaljuj\.disabled = true[\s\S]*?INSOLVENČNOST PREVERJENA[\s\S]*?REZULTAT/);
+assert.match(css, /boniteta-insolvenca-je-okno \.boniteta-insolvenca-okno__spodnja-vrstica \{[\s\S]*?bottom: max\(8px, env\(safe-area-inset-bottom, 0px\)\)/,
+  "spodnje dejanje mora ostati v varni fiksni vrstici ločenega insolvenčnega pogleda");
+assert.match(css, /\.boniteta-insolvenca-okno__spodnja-vrstica \{[\s\S]*?padding: 0;[\s\S]*?border: 0;[\s\S]*?background: transparent;/,
+  "fiksna spodnja vrstica ne sme dodati ločenega sivega ozadja");
+assert.match(css, /boniteta-insolvenca-je-okno \.boniteta-vsebina \{[\s\S]*?padding: 0 12px calc\(220px \+ var\(--boniteta-safe-bottom\)\);/,
+  "dno rezultata mora ostati dosegljivo nad fiksno vrstico");
+assert.match(preverbaJs, /function nastaviKarticoInsolvenceZakljuceno\(podatki\)[\s\S]*?officialVerification[\s\S]*?hour: "2-digit"[\s\S]*?identitetaNadaljuj\.disabled = false;[\s\S]*?classList\.remove\("is-loading", "is-auto-warning", "is-inactive-warning"\)[\s\S]*?INSOLVENTNOST PREVERJENA[\s\S]*?DATUM IN URA PREVERBE/,
+  "zaključena kartica mora odstraniti loading in vidno pokazati datum ter uro uradne preverbe");
+assert.match(grafikeCss, /\.boniteta-identiteta-nadaljuj\.is-loading:not\(\[hidden\]\)[\s\S]*?animation: boniteta-openregister-insolvenca-sijaj[\s\S]*?@keyframes boniteta-openregister-insolvenca-vrtenje/,
+  "samodejna insolvenčna preverba mora imeti očitno animacijo po vzoru Plus nalaganja");
 assert.match(preverbaJs, /!rezultatPripravljen && potrditevIdentitete && potrditevIdentitete\.hidden[\s\S]*?Podatki za potrditev niso bili pripravljeni/);
-assert.match(preverbaJs, /identitetaNadaljuj && \(podatki\.confirmationRequired \|\| zadnjiInsolvencniRezultatPripravljen\)[\s\S]*?identitetaNadaljuj\.hidden = false/);
+var konecIzrisa = preverbaJs.slice(
+  preverbaJs.indexOf("function izrisi(podatki"),
+  preverbaJs.indexOf("function rezultatIzShranjengaProfila")
+);
+assert.match(konecIzrisa, /if \(jeVarnaSamodejnaRegistrskaInsolvencnaPot\(podatki\) && !zadnjiInsolvencniRezultatPripravljen\)[\s\S]*?samodejnoNadaljujOpenRegisterPreverbo\(podatki\)/,
+  "izris varno potrjene GmbH mora brez klika sprožiti exact-once samodejno pot");
+var safeGateStart = preverbaJs.indexOf("function jeVarnaSamodejnaRegistrskaInsolvencnaPot");
+var safeGateEnd = preverbaJs.indexOf("function nastaviSamodejnoRegistrskoInsolvencnoStanje", safeGateStart);
+var safeGate = new Function("return (" + preverbaJs.slice(safeGateStart, safeGateEnd).trim() + ")")();
+var safeFixture = {
+  identity: { status: "verified_register", entityType: "company", active: true, naziv: "Testbau GmbH", naslov: "Musterstraße 1", postnaStevilka: "10115", kraj: "Berlin", companyId: "DE-HRB-1" },
+  identityEvidence: { status: "verified_api", evidenceReady: true, evidenceKind: "structured_api", companyId: "DE-HRB-1" },
+  locationMatch: { status: "matched" },
+};
+assert.strictEqual(safeGate(safeFixture), true, "popolna verified_register GmbH mora prestati auto gate");
+[
+  ["probable_impressum", function (x) { x.identity.status = "probable_impressum"; }],
+  ["manual_input", function (x) { x.identity.status = "manual_input"; }],
+  ["mismatch", function (x) { x.locationMatch.status = "mismatch"; }],
+  ["unverifiable", function (x) { x.locationMatch.status = "unverifiable"; }],
+  ["missing evidence", function (x) { x.identityEvidence.evidenceReady = false; }],
+  ["wrong companyId", function (x) { x.identityEvidence.companyId = "DE-HRB-2"; }],
+].forEach(function (primer) {
+  var fixture = JSON.parse(JSON.stringify(safeFixture));
+  primer[1](fixture);
+  assert.strictEqual(safeGate(fixture), false, primer[0] + " ne sme sprožiti samodejnega POST-a");
+});
 assert.match(preverbaJs, /potrditevGumb\.addEventListener\("click"[\s\S]*?confirmedIdentity[\s\S]*?izvediPrekoCakalneVrste/);
 assert.match(html, /id="boniteta-potrditev-dokaz"[^>]*hidden[\s\S]*?id="boniteta-potrditev-dokaz-slika"[\s\S]*?id="boniteta-potrditev-identitete"/);
 assert.match(html, /id="boniteta-potrditev-api-dokaz"[^>]*hidden[\s\S]*?OpenRegister API[\s\S]*?id="boniteta-potrditev-api-dokaz-register"/);
-assert.match(html, /1\. KORAK · POTRDITEV PODATKOV[\s\S]*?Podatki so pravilni[\s\S]*?id="boniteta-potrditev-gumb"[^>]*disabled>Preveri insolventnost/);
+assert.match(html, /1\. KORAK · POTRDITEV PODATKOV[\s\S]*?Podatki so pravilni[\s\S]*?id="boniteta-potrditev-gumb"[^>]*type="button"[^>]*disabled>[\s\S]*?data-potrditev-gumb-label[^>]*>Preveri insolventnost/,
+  "prvi korak mora imeti potrditveno izbiro in sprva onemogočen gumb z ločeno prilagodljivo oznako");
 assert.match(html, /id="boniteta-insolvenca-izid-ikona"[\s\S]*?id="boniteta-insolvenca-status"[\s\S]*?id="boniteta-insolvenca-posnetek"[\s\S]*?<h3>Uporabljeni iskalni podatki<\/h3>/,
   "drugi korak mora prikazati izid, uradni posnetek in nato uporabljene iskalne podatke");
 assert.match(html, /<figcaption>[\s\S]*?<strong>Uradni insolvenčni register<\/strong>[\s\S]*?data-posnetek-pomanjsaj[\s\S]*?<output data-posnetek-stopnja[\s\S]*?data-posnetek-povecaj[\s\S]*?<\/figcaption>/,
@@ -250,8 +406,8 @@ assert.match(html, /id="boniteta-identiteta-posnetek"[\s\S]*?<figcaption>[\s\S]*
   "tudi posnetek Impressuma mora uporabljati spodnjo kompaktno zoom vrstico");
 assert.doesNotMatch(html, /boniteta-identiteta-prenos|Prenesi posnetek/,
   "ločeni prenos posnetka Impressuma ne sme podvajati povečave");
-assert.match(html, /Barva povezuje podatek z uradnim posnetkom\./,
-  "barvna povezava med karticami in označbami mora ostati razložena");
+assert.doesNotMatch(html, /Barva povezuje podatek z uradnim posnetkom\./,
+  "nepotreben tekstovni namig ne sme več porabljati prostora med podatki in viri");
 assert.match(preverbaJs, /var oznaceniToni = [\s\S]*?screenshotAnnotation\.highlightedTones[\s\S]*?var prikazaniToni = \{[\s\S]*?blue: Boolean\(imaBarvniDokaz && oznaceniToni\.includes\("blue"\) && imeIzObrazca\)[\s\S]*?green: Boolean\(imaBarvniDokaz && oznaceniToni\.includes\("green"\)[\s\S]*?violet: Boolean\(imaBarvniDokaz && oznaceniToni\.includes\("violet"\) && registerIzObrazca\)[\s\S]*?amber: Boolean\(imaBarvniDokaz && oznaceniToni\.includes\("amber"\) && zadevaIzObrazca\)/,
   "barva kartice mora obstajati samo za polje, ki je dejansko označeno na uradnem posnetku");
 assert.match(preverbaJs, /Register", registerIzObrazca \|\| uradnaPotrditev\.searchedRegister, prikazaniToni\.violet \? "violet" : "neutral"/,
@@ -272,12 +428,47 @@ assert.match(html, /id="boniteta-potrditev-dokaz"[^>]*hidden[\s\S]*?data-posnete
   "posnetek Impressuma mora imeti enako spodnjo povečavo kot insolvenčni posnetek");
 assert.match(css, /\.boniteta-potrditev-dokaz figcaption \.boniteta-posnetek-povecava__orodja \{[\s\S]*?justify-self: end;[\s\S]*?background: transparent;/,
   "povečava Impressuma mora biti poravnana desno v spodnji vrstici");
-assert.match(css, /@media \(max-width: 699px\) \{[\s\S]*?\.boniteta-potrditev-dokaz__okno \{ height: clamp\(104px, 29vw, 126px\); min-height: 104px/,
+assert.match(css, /@media \(max-width: 699px\) \{[\s\S]*?\.boniteta-potrditev-dokaz__okno \{ height: clamp\(168px, 46vw, 190px\); min-height: 168px/,
   "mobilni dokazni posnetek mora biti dovolj nizek, da ostane obrazec v istem vidnem kontekstu");
-assert.match(css, /@media \(max-width: 699px\) \{[\s\S]*?\.boniteta-potrditev-identitete input\[type="text"\] \{[\s\S]*?min-height: 36px/,
+assert.match(css, /@media \(max-width: 699px\) \{[\s\S]*?\.boniteta-potrditev-identitete input\[type="text"\] \{[\s\S]*?min-height: 34px/,
   "mobilna potrditvena polja morajo uporabljati kompaktno višino");
-assert.match(html, /bonitetna-preverba\.css\?v=20260825-confirmation-actions-v77/,
-  "nova kompaktna postavitev mora obiti stari predpomnjeni CSS");
+assert.match(html, /bonitetna-preverba\.css\?v=20260903-larger-evidence-preview-v1/,
+  "namenski pregled dejanskega Impressuma mora obiti stari predpomnjeni CSS");
+assert.match(css, /\.boniteta-insolvenca-izid \{[\s\S]*?grid-template-columns: 32px minmax\(0, 1fr\);[\s\S]*?min-height: 72px;[\s\S]*?background: linear-gradient\(135deg, #eef9f2 0%, #e6f5eb 100%\);[\s\S]*?\.boniteta-insolvenca-izid__ikona \{[\s\S]*?width: 32px;[\s\S]*?background: rgba\(255, 255, 255, \.9\);[\s\S]*?\.boniteta-insolvenca-izid__znacka \{\s*display: none;/,
+  "samostojni insolvenčni rezultat mora uporabljati isti kompakten statusni vzorec kot zgornji widget");
+assert.match(html, /bonitetna-podjetje-grafike\.css\?v=20260903-northdata-progress-v10/,
+  "poenoten zgornji widget mora obiti stari predpomnjeni CSS");
+var enotniZgornjiWidgetCss = grafikeCss.slice(grafikeCss.lastIndexOf("Končna poenotitev zgornjega widgeta"));
+assert.match(enotniZgornjiWidgetCss, /--boniteta-zgornji-widget-red: 72px;[\s\S]*?--boniteta-zgornji-widget-glava: 60px;[\s\S]*?grid-template-rows: var\(--boniteta-zgornji-widget-glava\) var\(--boniteta-zgornji-widget-red\);/,
+  "identiteta mora biti kompaktnejša, status pa mora ohraniti fiksno višino");
+assert.match(enotniZgornjiWidgetCss, /> \.boniteta-identiteta-nadaljuj:not\(\[hidden\]\),[\s\S]*?height: var\(--boniteta-zgornji-widget-red\) !important;[\s\S]*?grid-template-columns: 32px minmax\(0, 1fr\) 86px;/,
+  "vsa stanja morajo uporabljati isto geometrijo in desno akcijsko os");
+assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj__puscica,[\s\S]*?grid-column: 3;[\s\S]*?justify-self: end;[\s\S]*?width: 86px;[\s\S]*?height: 34px;/,
+  "vsi akcijski gumbi morajo biti enako veliki in poravnani desno");
+assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj\.is-auto-warning:not\(\[hidden\]\) \{[\s\S]*?background: linear-gradient\(135deg, #fffaf0, #fff5df\);/,
+  "opozorilo mora ostati vizualno ločeno brez spremembe višine");
+assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj\.is-complete \.boniteta-identiteta-nadaljuj__puscica::before \{\s*content: "Vir";/,
+  "zaključen rezultat mora ohraniti gumb Vir");
+assert.match(enotniZgornjiWidgetCss, /Optično poravnaj kratek napis[\s\S]*?\.boniteta-identiteta-nadaljuj\.is-complete \.boniteta-identiteta-nadaljuj__puscica \{[\s\S]*?font-size: \.78rem;[\s\S]*?\.boniteta-identiteta-nadaljuj__puscica::before \{[\s\S]*?transform: translateY\(1px\);/,
+  "napis Vir mora biti nekoliko večji in optično navpično centriran");
+assert.match(enotniZgornjiWidgetCss, /Zadnja zaščita pred starejšimi[\s\S]*?> \.boniteta-identiteta-nadaljuj:not\(\[hidden\]\):not\(\.is-loading\):not\(\.is-auto-warning\):not\(\.is-complete\) \{\s*grid-template-columns: 32px minmax\(0, 1fr\) 86px;[\s\S]*?not\(\.is-loading\):not\(\.is-auto-warning\):not\(\.is-complete\) \.boniteta-identiteta-nadaljuj__vsebina \{[\s\S]*?grid-column: 2;[\s\S]*?\.boniteta-identiteta-nadaljuj:is\(\.is-loading, \.is-auto-warning\) \.boniteta-identiteta-nadaljuj__vsebina > small \{\s*display: none !important;/,
+  "stare postavitve ne smejo več prekrivati začetnega CTA ali opozorilnega naslova");
+assert.match(enotniZgornjiWidgetCss, /Optična sredina dvovrstičnega besedila[\s\S]*?\.boniteta-identiteta-nadaljuj:not\(\[hidden\]\) \.boniteta-identiteta-nadaljuj__vsebina \{\s*transform: translateY\(-1px\);/,
+  "besedilo spodnje vrstice mora biti tudi optično centrirano");
+assert.match(enotniZgornjiWidgetCss, /celotna zelena vrstica[\s\S]*?\.boniteta-identiteta-nadaljuj\.is-loading:not\(\[hidden\]\) \{[\s\S]*?background-size: 240% 100%;[\s\S]*?animation: boniteta-openregister-insolvenca-sijaj 3\.2s ease-in-out infinite;/,
+  "nalaganje mora vrniti počasen zeleni sijaj čez celotno spodnjo vrstico");
+assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj\.is-loading \.boniteta-identiteta-nadaljuj__ikona::after \{\s*animation: boniteta-openregister-insolvenca-vrtenje 1\.6s linear infinite;/,
+  "krožni indikator se mora vrteti počasneje");
+assert.match(enotniZgornjiWidgetCss, /Besedilo vseh spodnjih stanj je za 20 % večje[\s\S]*?> strong \{\s*font-size: \.984rem;[\s\S]*?> span \{\s*font-size: \.744rem;/,
+  "naslov in podnapis vseh spodnjih stanj morata biti povečana za 20 odstotkov");
+assert.match(enotniZgornjiWidgetCss, /Daljše opozorilo se varno prilagodi[\s\S]*?is-auto-warning:not\(\[hidden\]\).*?> strong \{[\s\S]*?font-size: \.9rem;[\s\S]*?is-auto-warning:not\(\[hidden\]\).*?> span \{[\s\S]*?font-size: \.68rem;/,
+  "daljše opozorilo mora ostati v fiksni vrstici brez rezanja besedila");
+assert.match(grafikeCss, /\.boniteta-identiteta-nadaljuj\.is-loading \.boniteta-identiteta-nadaljuj__vsebina > small \{\s*display: none !important;/,
+  "nalaganje ne sme več prikazovati stare oznake SAMODEJNA PREVERBA");
+assert.match(grafikeCss, /\.boniteta-identiteta-nadaljuj\.is-complete \.boniteta-identiteta-nadaljuj__vsebina \{[\s\S]*?justify-items: start;[\s\S]*?text-align: left;/,
+  "zaključeni naslov in čas morata biti levo poravnana");
+assert.match(enotniZgornjiWidgetCss, /Zgornja vrstica prikazuje samo identiteto[\s\S]*?\.boniteta-podjetje-glava__svezina,[\s\S]*?#boniteta-podjetje-preverjeno,[\s\S]*?#boniteta-podjetje-osvezi \{\s*display: none !important;/,
+  "zgornja vrstica ne sme podvajati časa preverbe ali gumba Preveri znova");
 assert.match(html, /boniteta-potrditev-identitete__akcije[\s\S]*?id="boniteta-potrdi-checkbox"[\s\S]*?id="boniteta-potrditev-gumb"/,
   "potrditev podatkov in zagon insolvenčne preverbe morata biti v skupni akcijski vrstici");
 assert.match(css, /\.boniteta-potrditev-identitete__akcije \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) minmax\(118px, \.72fr\)/,
@@ -286,6 +477,10 @@ assert.match(css, /\.boniteta-potrditev-identitete__akcije > \.boniteta-potrdite
   "napis Preveri insolventnost se mora v desnem delu prelomiti v dve vrstici");
 assert.match(preverbaJs, /var obsegOrodij = pregledovalnik\.closest\("figure"\) \|\| pregledovalnik;[\s\S]*?if \(prilagodi\) prilagodi\.addEventListener/,
   "povečava mora podpirati spodnje kontrolnike brez obveznega gumba Prilagodi");
+assert.match(preverbaJs, /slika\.id === "boniteta-potrditev-dokaz-slika"[\s\S]*?0\.58[\s\S]*?nastaviPovecavo\(stopnje\.indexOf\(100\), zacetniFokusY\)/,
+  "posnetek Impressuma se mora sam postaviti na območje uporabljenih identitetnih podatkov");
+assert.match(preverbaJs, /prikazanoDokaziloIdentitete\.focusY[\s\S]*?dataset\.dokazniFokusY[\s\S]*?potrditevDokazSlika\.src/,
+  "strežniško določeno središče dokazila mora imeti prednost pred varnim privzetim fokusom");
 assert.match(css, /#boniteta-insolvenca-posnetek \.boniteta-posnetek-povecava__okno \{[\s\S]*?height: clamp\(210px, 30dvh, 258px\);[\s\S]*?overflow: auto;[\s\S]*?touch-action: pan-x pan-y;/,
   "povečan uradni posnetek mora omogočiti vodoravno in navpično pomikanje");
 assert.doesNotMatch(css, /#boniteta-insolvenca-posnetek \.boniteta-posnetek-povecava__okno img \{[\s\S]*?width: 100% !important;/,
@@ -338,8 +533,17 @@ assert.match(grafikeCss, /\.boniteta-pot__obdobje \{[\s\S]*?top:108px[\s\S]*?\.b
   "časovne oznake in črtice morajo biti vezane neposredno na nosilno črto");
 assert.match(grafikeCss, /data-pogled="pot"\] \.boniteta-podjetje-podrobnosti,[\s\S]*?data-pogled="finance"\] \.boniteta-podjetje-podrobnosti,[\s\S]*?data-pogled="plus"\] \.boniteta-podjetje-podrobnosti \{[\s\S]*?radial-gradient\(ellipse 112% 76% at -12% 92%[\s\S]*?linear-gradient\(145deg,#faf9f5 0%,#f7fbf8 48%,#eef9f6 100%\)/,
   "celotno ozadje poti, financ in pogleda Plus mora uporabljati enak nežen kremno-mint mesh preliv");
-assert.match(grafikeCss, /data-pogled="finance"\] \.boniteta-podjetje-podrobnosti \{ min-height:0; padding-bottom:14px; --boniteta-finance-odmik:18px; \}[\s\S]*?\.boniteta-finance__graf \{[\s\S]*?display:block;[\s\S]*?width:calc\(100% \+ var\(--boniteta-finance-odmik\) \+ var\(--boniteta-finance-odmik\)\)[\s\S]*?height: 248px;[\s\S]*?\.boniteta-finance__merilo \{[\s\S]*?position:absolute[\s\S]*?height:248px[\s\S]*?\.boniteta-finance__drsnik \{ width:100%; \}[\s\S]*?\.boniteta-finance__stolpec \{ bottom: 119px;[\s\S]*?\.boniteta-finance__leto > small \{ bottom: 50px;[\s\S]*?\.boniteta-finance__leto > strong \{ bottom: 32px;/,
+var financeGrafCss = grafikeCss.slice(
+  grafikeCss.indexOf('#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-pregled[data-pogled="finance"] .boniteta-podjetje-podrobnosti { min-height:0;'),
+  grafikeCss.indexOf(".boniteta-finance-details {", grafikeCss.indexOf(".boniteta-finance__graf {"))
+);
+var financeGrafVisina = Number((financeGrafCss.match(/\.boniteta-finance__graf \{[\s\S]*?height:(\d+)px;/) || [])[1]);
+var financeMeriloVisina = Number((financeGrafCss.match(/\.boniteta-finance__merilo \{[^}]*height:(\d+)px;/) || [])[1]);
+var financeLetaVisina = Number((financeGrafCss.match(/\.boniteta-finance__leta \{[^}]*height:(\d+)px;/) || [])[1]);
+assert.match(financeGrafCss, /--boniteta-finance-odmik:18px;[\s\S]*?\.boniteta-finance__graf \{[\s\S]*?position:relative;[\s\S]*?display:block;[\s\S]*?width:calc\(100% \+ var\(--boniteta-finance-odmik\) \+ var\(--boniteta-finance-odmik\)\)[\s\S]*?\.boniteta-finance__merilo \{ position:absolute;[^}]*pointer-events:none; \}[\s\S]*?\.boniteta-finance__drsnik \{ width:100%; \}[\s\S]*?padding:0 8px 0 calc\(var\(--boniteta-finance-odmik\) \+ 56px\)/,
   "finančni graf se mora swajpati do dejanskih robov widgeta, merilo pa mora ostati fiksno");
+assert.ok(financeGrafVisina > 0 && financeGrafVisina === financeMeriloVisina && financeGrafVisina === financeLetaVisina,
+  "graf, fiksno merilo in drsna leta morajo uporabljati isto višino");
 assert.match(preverbaJs, /var skupinePoDatumu = \[\][\s\S]*?zadnjaSkupina\.date === tocka\.date[\s\S]*?zadnjaSkupina\.items\.push\(tocka\)[\s\S]*?is-grouped/,
   "dogodki z istim datumom morajo uporabljati eno skupno časovno točko");
 assert.match(preverbaJs, /is-grouped has-top has-bottom[\s\S]*?posameznaKartica\(zapisi\[0\], "top"[\s\S]*?posameznaKartica\(zapisi\[1\], "bottom"/,
@@ -360,7 +564,9 @@ assert.match(grafikeCss, /\.boniteta-pot__drsnik \{[^}]*touch-action:pan-x pan-y
   "časovnica mora dovoliti vodoravni swipe in navpično drsenje strani");
 assert.doesNotMatch(preverbaJs, /Vir dopolnitve|North Data prek Apify/,
   "dopolnilnega ponudnika ne smemo razkriti v uporabniškem pogledu");
-assert.match(centerJs, /companyId:"DE-HRB-F1103-123456"[\s\S]*?purpose:"Načrtovanje in izvedba gradbenih ter tehničnih projektov\."[\s\S]*?source:"openregister"/);
+var companyCardPreview = centerJs.slice(centerJs.indexOf("function fillCompanyCardTestPreview()"), centerJs.indexOf("function fillPersonCardTestPreview()"));
+assert.match(companyCardPreview, /identity:\{status:"verified_register"[\s\S]*?companyId:"DE-HRB-[^"]+"[\s\S]*?purpose:"[^"]+"[\s\S]*?source:"openregister"/,
+  "registrski predogled mora vsebovati OpenRegister ID, dejavnost in označen vir ne glede na izbrano testno družbo");
 assert.match(grafikeCss, /boniteta-podjetje-navigacija--glavna[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)[\s\S]*?boniteta-podjetje-navigacija--sekundarna[\s\S]*?grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/,
   "meni mora imeti tri enake gumbe zgoraj in tri enake gumbe spodaj");
 assert.match(css, /\.boniteta-podjetje-navigacija button\.is-active::before \{[\s\S]*?linear-gradient/);
@@ -377,7 +583,7 @@ assert.match(css, /is-negative[\s\S]*?data-segment-tone="0"\] \{ background-colo
 assert.doesNotMatch(css, /boniteta-finance__stolpec i:nth-child\([^)]*\) \{ opacity:/,
   "stari opacity fade ne sme več določati finančnih segmentov");
 assert.match(css, /\.boniteta-finance__odstotek \{[\s\S]*?border-radius: 999px/);
-assert.match(grafikeCss, /\.boniteta-finance__odstotek \{[^}]*bottom:calc\(160px \+ var\(--bar-size\) \+ 7px\)[^}]*\}[\s\S]*?\.boniteta-finance__leto\.is-negative \.boniteta-finance__odstotek \{ bottom:165px; \}/,
+assert.match(grafikeCss, /\.boniteta-finance__odstotek \{[^}]*bottom:calc\(\d+px \+ min\(var\(--bar-size\), var\(--boniteta-finance-visina-stolpca\)\) \+ \d+px\)[^}]*\}[\s\S]*?\.boniteta-finance__leto\.is-negative \.boniteta-finance__odstotek \{ bottom:\d+px; \}/,
   "odstotek mora biti nad pripadajočim pozitivnim ali negativnim stolpcem");
 assert.match(grafikeCss, /\.boniteta-pot__drsnik \{[\s\S]*?overflow-x:auto[\s\S]*?\.boniteta-pot-podjetja \{[\s\S]*?width:max-content/,
   "drsni okvir mora biti ločen od vsebine vodoravne časovnice");
@@ -392,17 +598,20 @@ assert.doesNotMatch(html, /NAŠ SISTEM \+ OPENREGISTER · 1 KREDIT/);
 assert.doesNotMatch(html, /boniteta-vkljuceno|boniteta-osnovni-kazalniki|Podatki, vključeni v osnovno iskanje/);
 assert.doesNotMatch(preverbaJs, /osnovniKazalniki/);
 assert.match(preverbaJs, /dejavnost: '<svg[\s\S]*?function stanjeKarticePodjetja/);
-assert.match(preverbaJs, /function stanjeKarticePodjetja\(podatki, identiteta, vrsta, vrednost\)[\s\S]*?lokacija\.status === "mismatch"[\s\S]*?return "red"[\s\S]*?\["verified_register", "confirmed_impressum"\]\.includes\(identiteta\.status\)[\s\S]*?return "green"[\s\S]*?return "yellow"/);
+assert.match(preverbaJs, /function stanjeKarticePodjetja\(podatki, identiteta, vrsta, vrednost\)[\s\S]*?lokacija\.status === "mismatch"[\s\S]*?identiteta\.active === false[\s\S]*?return "red"[\s\S]*?identiteta\.active !== true[\s\S]*?return "yellow"[\s\S]*?\["verified_register", "confirmed_impressum"\]\.includes\(identiteta\.status\)[\s\S]*?return "green"/,
+  "neaktivno, nepotrjeno in potrjeno aktivno stanje morajo ostati vizualno ločeni");
 assert.match(preverbaJs, /var stanjeMreze = vsaStanja\.includes\("red"\) \? "red" : vsaStanja\.includes\("yellow"\) \? "yellow" : "green";[\s\S]*?hwkPodatki\.classList\.add\("is-state-" \+ stanjeMreze\)/);
-assert.match(preverbaJs, /dodajSkupinoKljucnihPodatkov\("seznam", "Podatki"\)[\s\S]*?dodajKarticoPodjetja\(podatkiSeznam, "sedez", "Sedež"[\s\S]*?dodajKarticoPodjetja\(podatkiSeznam, "dejavnost", "Dejavnost"[\s\S]*?dodajKarticoPodjetja\(podatkiSeznam, "register", "Register"/,
+assert.match(preverbaJs, /var podatkiSeznam = dodajSkupinoKljucnihPodatkov\("seznam", "Podatki"\);[\s\S]*?podatkiSeznam\.insertAdjacentHTML\("afterbegin", kratkiUvidHtml[\s\S]*?dodajKarticoPodjetja\(podatkiSeznam, "sedez", jeOseba \? "Naslov" : "Sedež"[\s\S]*?if \(dejavnost\) dodajKarticoPodjetja\(podatkiSeznam, "dejavnost", "Dejavnost"[\s\S]*?dodajKarticoPodjetja\(podatkiSeznam, "register", "Register"/,
   "ključni podatki morajo biti združeni v en kompakten seznam brez kartic znotraj kartic");
 assert.match(html, /id="boniteta-insolvenca-sklop"[^>]*hidden/);
-assert.ok(html.indexOf('id="boniteta-insolvenca-sklop"') < html.indexOf('class="boniteta-rezultat__sklop boniteta-preverjeni-viri"'), "dokazni viri morajo slediti osnovnemu rezultatu");
+assert.doesNotMatch(html, /boniteta-preverjeni-viri|id="boniteta-viri"/,
+  "ločeni vmesni povzetek virov mora biti odstranjen; dokaz ostane v evidence-review kartici");
 assert.match(html, /id="boniteta-razsiritve" hidden/);
 assert.doesNotMatch(html, /id="boniteta-razsiritve-moznosti"/);
 assert.match(preverbaJs, /function nastaviRazsiritveOdprte\(odprto\)/);
 assert.match(css, /\.boniteta-razsiritve__moznosti\[hidden\] \{ display: none !important; \}/);
-assert.match(html, /id="boniteta-barvna-primerjava-namig"[^>]*hidden/);
+assert.doesNotMatch(html, /boniteta-barvna-primerjava__namig|Barva povezuje podatek z uradnim posnetkom/,
+  "nepotreben namig o barvah ne sme več porabljati prostora v rezultatu");
 assert.match(html, /id="boniteta-metodologija"[^>]*hidden[\s\S]*?4 koraki do rezultata/);
 assert.match(html, /data-metodologija-korak="identity"[\s\S]*?data-metodologija-korak="location"[\s\S]*?data-metodologija-korak="query"[\s\S]*?data-metodologija-korak="evidence"/);
 assert.match(preverbaJs, /function izrisiMetodologijo\(podatki\)/);
@@ -410,7 +619,10 @@ assert.match(preverbaJs, /var shranjeniNorthData = shranjeno\.profile\.latest_ch
   "glavni rezultat mora po shranjevanju prevzeti obstoječe North Data podatke profila");
 assert.match(preverbaJs, /podatki\.northData = shranjeniNorthData;[\s\S]*?izrisiRegistrskoPodjetje\(podatki, identiteta\)/,
   "finančni widget se mora po obnovi North Data podatkov ponovno izrisati");
-assert.match(preverbaJs, /uradno\.evidenceStatus === "captured"[\s\S]*?uradno\.status === "clear"/);
+assert.match(preverbaJs, /function prikazljivUradniInsolvencniPosnetek\(official\)[\s\S]*?official\.evidenceStatus !== "captured"[\s\S]*?official\.evidenceImage[\s\S]*?return "data:" \+ ujemanje\[1\]\.toLowerCase\(\) \+ ";base64," \+ base64/,
+  "uradni posnetek mora biti prikazan samo po validaciji zajetega slikovnega dokazila");
+assert.match(preverbaJs, /function izrisiMetodologijo\(podatki\)[\s\S]*?var imaPosnetek = Boolean\(prikazljivUradniInsolvencniPosnetek\(uradno\)\)[\s\S]*?imaPosnetek && uradno\.status === "clear"/,
+  "metodologija sme jasen uradni rezultat zaključiti samo z veljavnim prikazljivim posnetkom");
 assert.match(centerJs, /function fillTestMethodology\(\)/);
 assert.match(centerJs, /function fillCompanyCardTestPreview\(\)[\s\S]*?UJBonitetaPrikaziRegistrskoPodjetje/);
 assert.match(centerJs, /finalizeOpenRegisterTestPreview\(\);fillCompanyCardTestPreview\(\);[\s\S]*?prepareProTestPreview\(\)/);
@@ -425,22 +637,27 @@ assert.match(apiHandlerJs, /\["firmaPriimek", "blue"\], \["ime", "blue"\]/,
   "priimek in Vorname morata uporabljati isti moder ton");
 assert.match(apiHandlerJs, /function najdiUradnoPolje\(kljuc\)[\s\S]*?document\.getElementById\(selektor\)/,
   "Vorname mora dobiti moder okvir tudi, ko je uradno polje dosegljivo samo prek ID-ja");
-assert.match(apiHandlerJs, /official-insolvency-v9-highlighted-tones/,
-  "nova oznaka mora ustvariti novo različico uradnega dokazila");
+assert.match(apiHandlerJs, /OFFICIAL_INSOLVENCY_EVIDENCE_VERSION = "official-insolvency-v\d+-proof-required-terminal"/,
+  "različica uradnega dokazila mora zahtevati dokazni posnetek tudi za končni rezultat");
 assert.match(css, /\.boniteta-podatek--blue[\s\S]*?--podatek-pika: #2f70d6/);
 assert.match(css, /\.boniteta-podatek--green[\s\S]*?--podatek-pika: #2d8a68/);
 assert.match(css, /\.boniteta-podatek--violet[\s\S]*?--podatek-pika: #7657bd/);
 assert.match(css, /\.boniteta-podatek--amber[\s\S]*?--podatek-pika: #b8751d/);
-assert.match(html, /id="boniteta-spletna-rezerva"[^>]*hidden/);
+assert.doesNotMatch(html, /id="boniteta-spletna-rezerva"|OK, zmenjeno|Nima spletne strani/);
 assert.match(html, /Slikaj[\s\S]*?Račun ali ponudbo[\s\S]*?Uvozi PDF[\s\S]*?Vnesi ročno/);
-assert.match(preverbaJs, /function nastaviSpletnoRezervo\(prikazi, opis, razlog\)/);
+assert.match(preverbaJs, /function nastaviSpletnoRezervo\(prikazi, opis, razlog, iskanoIme\)/);
 assert.match(preverbaJs, /function jeNeuspesnaSpletnaIdentifikacija\(podatki\)[\s\S]*?identity\.status === "unresolved"/);
-assert.match(preverbaJs, /var uradniCompanyId = identiteta\.companyId \|\| podatki\.identityEvidence && podatki\.identityEvidence\.companyId \|\| ""/);
-assert.match(preverbaJs, /registerCourt: uradniCompanyId \? identiteta\.registerCourt/,
-  "profil ne sme prikazati sodišča iz Impressuma kot uradnega brez OpenRegister ID");
-assert.match(preverbaJs, /if \(jeNeuspesnaSpletnaIdentifikacija\(podatki\)\) \{\s*nastaviSpletnoRezervo\(true, opisNeuspeleSpletnePoizvedbe\(podatki\), podatki && podatki\.publicProfile && podatki\.publicProfile\.reason\);\s*return;/);
-assert.match(css, /\.boniteta-zajem__rezerva\[hidden\] \{ display: none !important; \}/);
-assert.match(html, /bonitetna-preverba\.css\?v=2026082[234]-[^"']+/);
+var shranjevanjeZakljucenePreverbe = preverbaJs.slice(
+  preverbaJs.indexOf("async function shraniZakljucenoPreverbo"),
+  preverbaJs.indexOf("function pocakaj(ms)")
+);
+assert.match(shranjevanjeZakljucenePreverbe, /body: JSON\.stringify\(\{\s*action: "save_check",\s*jobId: zadnjiJobId,\s*\}\)/,
+  "zaključena preverba se mora shraniti prek strežniško preverjenega opravila");
+assert.doesNotMatch(shranjevanjeZakljucenePreverbe, /register(?:Court|Number):/,
+  "odjemalec v zahtevku za shranjevanje ne sme pošiljati registrskih polj iz Impressuma");
+assert.match(preverbaJs, /if \(jeNeuspesnaSpletnaIdentifikacija\(podatki\)\) \{[\s\S]*?nastaviSpletnoRezervo\(true, opisNeuspeleSpletnePoizvedbe\(podatki\), podatki && podatki\.publicProfile && podatki\.publicProfile\.reason\);\s*return;/);
+assert.doesNotMatch(css, /boniteta-zajem__rezerva|is-spletna-rezerva/);
+assert.match(html, /bonitetna-preverba\.css\?v=\d{8}-[^"']+/);
 assert.ok(css.lastIndexOf(".boniteta-podatki--identiteta.is-grouped") > css.lastIndexOf("grid-template-rows: 82px 106px 112px"),
   "končna Q1 postavitev mora preglasiti staro skupno mrežo");
 assert.match(css, /boniteta-kljucni-skupina--osnovni[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/,
@@ -449,8 +666,8 @@ assert.match(css, /boniteta-kljucni-skupina--podjetje[\s\S]*?grid-template-colum
   "kartica podjetja mora imeti tri enakomerno široke stolpce");
 assert.match(css, /boniteta-kljucni-skupina--osnovni[\s\S]*?boniteta-podjetje-kartica__kljukica \{\s*display: none;/,
   "sedež in dejavnost po referenci ne smeta prikazovati kljukic");
-assert.match(html, /bonitetna-preverba\.js\?v=2026082[34]-[^"']+/);
-assert.match(html, /boniteta-sredisce\.js\?v=2026082[34]-[^"']+/);
+assert.match(html, /bonitetna-preverba\.js\?v=\d{8}-[^"']+/);
+assert.match(html, /boniteta-sredisce\.js\?v=\d{8}-[^"']+/);
 assert.match(css, /boniteta-podjetje-kartica--sedez,[\s\S]*?boniteta-podjetje-kartica--dejavnost \{[\s\S]*?flex-direction: row;[\s\S]*?align-items: center;/,
   "sedež in dejavnost morata imeti ikono levo ter vsebino v svoji polni vrstici");
 assert.match(css, /boniteta-podjetje-kartica--sedez \.boniteta-podjetje-kartica__vsebina,[\s\S]*?boniteta-podjetje-kartica--dejavnost \.boniteta-podjetje-kartica__vsebina \{[\s\S]*?grid-template-rows: auto auto;/,
@@ -469,10 +686,10 @@ assert.match(css, /boniteta-kljucni-skupina--podjetje \.boniteta-podjetje-kartic
   "dolgo ime osebe mora ostati berljivo v največ dveh vrsticah");
 assert.match(preverbaJs, /vrsta === "sedez" \|\| vrsta === "oseba" \? "2"/,
   "ime odgovorne osebe mora uporabljati dvovrstično samodejno prilagoditev pisave");
-assert.match(html, /boniteta-podjetje-ustanovitev-meseci[\s\S]*?<span>poslovanja<\/span>/,
-  "meseci in oznaka poslovanja morajo biti v ločenih vrsticah");
-assert.match(preverbaJs, /podjetjeUstanovitevMeseci\.textContent = starost\.meseci \+ " " \+ starost\.meseciEnota;/,
-  "skripta v dinamično vrstico ne sme več dodati besede poslovanja");
+assert.match(html, /id="boniteta-podjetje-ustanovitev-meseci"[^>]*><\/span><span id="boniteta-podjetje-ustanovitev-meseci-enota"/,
+  "število mesecev in njegova enota morata ostati ločena za prilagodljivo postavitev");
+assert.match(preverbaJs, /podjetjeUstanovitevMeseci\.textContent = "in " \+ starost\.meseci;[\s\S]*?podjetjeUstanovitevMeseciEnota\.textContent = starost\.meseciEnota;[\s\S]*?setAttribute\("aria-label",[\s\S]*?" poslovanja"\)/,
+  "starost mora ločeno izpisati mesece in enoto ter ohraniti celoten dostopni opis");
 assert.match(css, /boniteta-podjetje-podnaslov \{[\s\S]*?min-height: 50px;[\s\S]*?font-size: 1rem;/,
   "glava ključnih podatkov mora slediti odobreni bolj umirjeni hierarhiji");
 assert.match(css, /boniteta-podjetje-ustanovitev \{[\s\S]*?height: 90px;[\s\S]*?min-height: 90px;/,
@@ -492,8 +709,8 @@ assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-podjetje-gla
 assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-rezultat__sklop-glava \{[\s\S]*?border-radius: 0;/);
 assert.match(css, /#boniteta-hwk-sklop\.is-register-card \.boniteta-identiteta-nadaljuj__vsebina b > i:last-child \{[\s\S]*?border-radius: 50%;[\s\S]*?background: rgba\(255, 255, 255, \.16\);/);
 assert.match(html, /testna-vrstica\.js\?v=20260819-inner-back-v4/);
-assert.match(html, /bonitetna-preverba\.js\?v=2026082[34]-[^"']+/);
-assert.match(html, /boniteta-sredisce\.js\?v=2026082[34]-[^"']+/);
+assert.match(html, /bonitetna-preverba\.js\?v=\d{8}-[^"']+/);
+assert.match(html, /boniteta-sredisce\.js\?v=\d{8}-[^"']+/);
 
 var spletniKlik = preverbaJs.slice(
   preverbaJs.indexOf('document.getElementById("boniteta-nacin-spletna").addEventListener("click"'),
@@ -509,8 +726,10 @@ assert.match(izbiraPodjetja, /nacinVnosa = "register"[\s\S]*?izpolniRazbranoPolj
   "izbrani uradni zadetek mora brez dodatnega klica napolniti preverjeni podatkovni tok");
 assert.doesNotMatch(izbiraPodjetja, /company_lookup|openRegisterApi|fetch\(/,
   "klik uradnega zadetka ne sme porabiti dodatnih kreditov");
-assert.match(preverbaJs, /window\.UJBonitetaZacniIzbranoPodjetje = function \(\) \{[\s\S]*?izvediBonitetnoPreverbo\(\)/,
-  "podrobnosti se smejo pridobiti šele ob dejanskem začetku prek kanonične funkcije preverbe");
+assert.match(preverbaJs, /window\.UJBonitetaZacniIzbranoPodjetje = function \(\) \{[\s\S]*?void izvediUniverzalnoIskanje\(\)/,
+  "začetni gumb mora uporabiti kanonični univerzalni tok");
+assert.match(preverbaJs, /async function izvediUniverzalnoIskanje\(\)[\s\S]*?if \(izbranoOpenRegisterPodjetje\) \{\s*await izvediBonitetnoPreverbo\(\);/,
+  "podrobnosti izbranega podjetja se smejo pridobiti šele ob dejanskem začetku kanonične preverbe");
 assert.doesNotMatch(preverbaJs, /\.requestSubmit\(/,
   "zagon ne sme biti odvisen od requestSubmit, ki manjka v nekaterih mobilnih WebView okoljih");
 assert.match(preverbaJs, /async function izvediBonitetnoPreverbo\(dogodek\)[\s\S]*?obrazec\.addEventListener\("submit", izvediBonitetnoPreverbo\)/,
@@ -532,15 +751,15 @@ assert.match(preverbaJs, /function opisiStanjeOpravila\(job\)[\s\S]*?nacinVnosa 
   "stanje spletnega iskanja mora biti vidno pri začetnem iskalniku namesto na ločenem zaslonu");
 assert.match(preverbaJs, /profilUrl\.searchParams\.set\("profile", shranjeno\.profile\.id\)[\s\S]*?history\.replaceState/,
   "po shranjevanju mora URL kazati na dejanski novi profil in ne na stari izbrisani ID");
-assert.match(preverbaJs, /function posodobiRazpolozljivostPodjetjePogledov[\s\S]*?gumb\.disabled = !jeNaVoljo[\s\S]*?informacije niso na voljo/,
+assert.match(preverbaJs, /function posodobiPlusStanje[\s\S]*?stanje === "unavailable"[\s\S]*?gumb\.disabled = true[\s\S]*?Ni dodatnih info/,
   "manjkajoči celotni sklop mora ostati viden, vendar jasno označen in neklikljiv");
 assert.match(preverbaJs, /function razpolozljiviPodjetjePogledi[\s\S]*?:not\(:disabled\)/,
   "tipkovnica in swipe morata preskočiti nedostopne poglede");
 assert.doesNotMatch(preverbaJs, /pogled !== "kljucni" && !northDataPodjetje/,
   "manjkajoči dodatni podatki uporabnika ne smejo vrniti v odstranjeni enozavihekni prikaz");
-assert.match(preverbaJs, /if \(dejavnost\) dodajKarticoPodjetja\(osnovniPodatki, "dejavnost"/,
+assert.match(preverbaJs, /if \(dejavnost\) dodajKarticoPodjetja\(podatkiSeznam, "dejavnost"/,
   "prazna dejavnost ne sme ustvariti prekrivajoče se kartice Ni podatka");
-assert.match(preverbaJs, /if \(imaOdgovornoOsebo\) dodajKarticoPodjetja\(podatkiPodjetja, "oseba"/,
+assert.match(preverbaJs, /if \(!jeOseba && imaOdgovornoOsebo\) dodajKarticoPodjetja\(podatkiSeznam, "oseba"/,
   "prazna odgovorna oseba ne sme ustvariti prekrivajoče se kartice Ni podatka");
 assert.match(preverbaJs, /UJBonitetaPonastaviNeveljavenProfil[\s\S]*?heroSpletnaStatus\.textContent = sporocilo/,
   "izbrisani profil mora počistiti zataknjeno stanje nalaganja in ostati v novem vmesniku");
