@@ -3983,7 +3983,85 @@
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:0 2px;margin-bottom:8px;"><span class="vrstica-id">potrditev-uvodna-znacka</span></div>
   <div class="vrstica-primer"><div class="mk-vr"><div class="mk-vr-uvod"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>PRIMER: Če prav razumem …</b><small>PRIMER: spodaj preverite 3 dogodke pred potrditvijo.</small></div></div><p class="mk-live">PRIMER: uvod brez gumbov · <b>PRIMER: napoved seznama</b></p></div></div>
   <details><summary>Vir in opis</summary><ul class="vrstica-viri"><li>zgodovina · neplacila-zgodovina.js:963-964 — .zgodovina-ai-pogovor__potrditev</li></ul><p class="vrstica-opis">NOV vzorec: drugačen od statusne-značke (vrstica 1, segment engine), ker ikona ni v okroglem krogu temveč v ZAOKROŽENEM KVADRATU (11px radius na 32×32), in ni namenjena opozorilu/statusu, temveč zgolj UVODU v naslednji blok vsebine (seznam povzetkov).</p></details>
-  </article></div></template>
+  </article>
+  <article class="vrstica-kartica je-app">
+  <header><span class="vrstica-stevilka">P86</span><h2>SESTAVLJEN VPRAŠALNIK: kateri 3 mobilni ponudniki in kakšni plačilni pogoji</h2></header>
+  <div class="vrstica-primer">
+
+    <div class="mk-vr">
+      <div class="mk-vr-uvod"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18h.01"/><rect x="5" y="2" width="14" height="20" rx="2"/></svg></span><div><b>Povejte nam samo dvoje</b><small>Katere tri ponudnike za mobitel ste imeli prej in kakšni so bili plačilni pogoji.</small></div></div>
+    </div>
+
+    <div class="mk-vr">
+      <span class="mk-label">1 · Katere ponudnike ste imeli?</span>
+      <div class="mk-vr-znacke">
+        <button type="button" class="is-selected">A1</button>
+        <button type="button" class="is-selected">Telemach</button>
+        <button type="button" class="is-selected">Telekom Slovenije</button>
+        <button type="button">T-2</button>
+        <button type="button">HOT</button>
+        <button type="button">Bob</button>
+      </div>
+      <div class="mk-vr-izbrane">
+        <span>A1 <button type="button">×</button></span>
+        <span>Telemach <button type="button">×</button></span>
+        <span>Telekom Slovenije <button type="button">×</button></span>
+      </div>
+      <div class="mk-vr-vnos"><input placeholder="dodajte svojega ponudnika …"></div>
+    </div>
+
+    <div class="mk-vr">
+      <span class="mk-label">2 · Za katerega urejate pogoje?</span>
+      <div class="mk-bento" data-izbor>
+        <div class="mk-izb__gumbi">
+          <button type="button" data-izbor-gumb="0" class="is-selected" aria-pressed="true" style="--barva:#3f9998">A1</button>
+          <button type="button" data-izbor-gumb="1" aria-pressed="false" style="--barva:#d97b2e">Telemach</button>
+          <button type="button" data-izbor-gumb="2" aria-pressed="false" style="--barva:#5b8def">Telekom</button>
+        </div>
+        <div class="mk-izb__vrste">
+          <div class="mk-izb__vrsta" data-izbor-vrsta="0" style="--barva:#3f9998;--svetla:#8fc7c6;--f:62%"><b>A1</b><div class="mk-izb__trak"><i></i></div><strong>24,90 €</strong></div>
+          <div class="mk-izb__vrsta" data-izbor-vrsta="1" style="--barva:#d97b2e;--svetla:#f0b27e;--f:45%"><b>Telemach</b><div class="mk-izb__trak"><i></i></div><strong>17,90 €</strong></div>
+          <div class="mk-izb__vrsta" data-izbor-vrsta="2" style="--barva:#5b8def;--svetla:#a8c4f5;--f:78%"><b>Telekom</b><div class="mk-izb__trak"><i></i></div><strong>31,00 €</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-vr">
+      <span class="mk-label">3 · Mesečni znesek</span>
+      <div class="mk-vr-denar">
+        <span class="mk-vr-denar__krog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <input value="24,90">
+        <b>€</b>
+      </div>
+    </div>
+
+    <div class="mk-vr">
+      <span class="mk-label">4 · Vezava</span>
+      <div class="mk-vr-select">
+        <button type="button"><span>24 mesecev</span><span>▾</span></button>
+        <div class="mk-vr-select__meni">
+          <button type="button">brez vezave</button>
+          <button type="button">12 mesecev</button>
+          <button type="button" class="is-selected">24 mesecev</button>
+          <button type="button">36 mesecev</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mk-vr">
+      <span class="mk-label">5 · Kako ste plačevali?</span>
+      <div class="mk-vr-mreza2">
+        <button type="button" class="mk-vr-izbira is-selected"><i>✓</i><span>Trajnik<small>samodejno z računa</small></span></button>
+        <button type="button" class="mk-vr-izbira"><i>✓</i><span>Položnica<small>plačilo do roka</small></span></button>
+        <button type="button" class="mk-vr-izbira"><i>✓</i><span>Kartica<small>samodejna bremenitev</small></span></button>
+        <button type="button" class="mk-vr-izbira"><i>✓</i><span>Predplačniško<small>polnitev vnaprej</small></span></button>
+      </div>
+      <p class="mk-live">Zadnja sprememba · <b>trajnik</b></p>
+    </div>
+
+  </div>
+  <details><summary>Vir in opis</summary><ul class="vrstica-viri"><li>sestavljeno iz obstoječih gradnikov: .mk-vr-znacke + .mk-vr-izbrane (V18), [data-izbor] (P68g), .mk-vr-denar, .mk-vr-select, .mk-vr-izbira v .mk-vr-mreza2</li></ul><p class="vrstica-opis">Vprašalnik za vprašanje »katere 3 ponudnike za mobitel ste imeli prej in kakšni so bili plačilni pogoji«. Ni novega CSS in ne novega JS: vsak korak je obstoječi gradnik iz te galerije, zato vse obstoječe rokovalnike podeduje neposredno. Korak 1 izbere ponudnike, korak 2 z gumbi preklaplja med njimi (isti vzorec gumb→vrstica kot P68g), koraki 3–5 pa zajamejo plačilne pogoje za trenutno izbranega ponudnika.</p></details>
+</article></div></template>
 <script>
 (function () {
  const predlogRoot=document.getElementById("gallery-predlogi").attachShadow({mode:"open"});
