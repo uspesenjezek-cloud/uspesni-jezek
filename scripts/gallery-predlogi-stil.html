@@ -1,0 +1,170 @@
+<style>
+/* Gallery typography and responsive space: isolated from production styles. */
+body { padding:16px; font-family:Inter,"Segoe UI",sans-serif; font-size: 13px; line-height:1.4; }
+.glava, .mreza, .vrstica-locnica { max-width:1480px; }
+.glava h1 { font-size:18px; font-weight:600; }
+.mreza { grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:12px; align-items:start; }
+.vrstica-locnica { grid-column:1 / -1; width:100%; }
+.vrstica-kartica { min-width:0; padding:12px; }
+.vrstica-kartica > header { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:6px 8px; margin-bottom:8px; }
+.vrstica-kartica > header h2 { font-size: 13px; font-weight:500; line-height:1.4; overflow-wrap:break-word; }
+.vrstica-ton { grid-column:2; font-size: 13px; font-weight:400; }
+.vrstica-stevilka { font:600 13px/1.5 Inter,"Segoe UI",sans-serif; }
+.vrstica-primer { min-width:0; padding:8px; font-size: 13px; }
+.vrstica-primer :where(button,input,textarea,select) { font-family:inherit; }
+.vrstica-primer :where(button,label,p,span,b,strong,small,h2,h3,h4,output) { font-weight:500; }
+.vrstica-primer :where(button,label,p,h2,h3,h4) { font-size: 13px; }
+.vrstica-primer :where(b,strong) { font-weight:600; }
+.vrstica-primer :where(small) { font-size: 13px; }
+.vrstica-primer button { min-width:0; }
+.vrstica-primer .uj-card-expected__actions button { padding:6px 4px; min-height:44px; }
+.vrstica-primer .uj-card-expected__actions button b { font-size: 13px; font-weight:600; }
+.vrstica-primer .uj-card-expected__actions button small { font-size: 13px; font-weight:500; }
+.vrstica-primer .uj-card-field__heading { flex-wrap:wrap; }
+.vrstica-primer .uj-card-number-choices { grid-template-columns:repeat(5,minmax(0,1fr)); overflow:visible; }
+.vrstica-primer .uj-card-number-custom { grid-column:1 / -1; min-width:0; }
+summary { font-weight:500; font-size: 13px; }
+@media(max-width:480px) { body { padding:8px; } .vrstica-kartica { padding:10px; } .vrstica-primer { padding:6px; } }
+</style>
+<style>
+.vrstica-primer :is(button,label,p,h2,h3,h4) { font-size: 13px; font-weight:500; }
+.vrstica-primer :is(b,strong) { font-weight:600; }
+.vrstica-primer small { font-size: 13px; font-weight:500; }
+.vrstica-primer .uj-card-calendar__week, .vrstica-primer .uj-card-calendar__days { grid-template-columns:repeat(7,minmax(0,1fr)); }
+.vrstica-primer .uj-card-calendar__days button { min-width:0; }
+.vrstica-primer .uj-card-bullet__input > div { grid-template-columns:44px minmax(0,1fr) 44px; }
+.vrstica-primer [data-heatmap] > div > span { font-size: 13px; }
+.vrstica-primer .uj-card-price-bridge__label :is(b,small,em) { min-width:0; width:100%; font-size: 13px; font-weight:500; line-height:1.25; overflow-wrap:normal; }
+</style>
+<style>
+/* One continuous percentage field; the suffix has no separate compartment. */
+.vrstica-primer .gallery-percent-field {
+  position:relative; display:block !important; min-width:0;
+  border:1px solid rgba(var(--card-rgb),.3); border-radius:10px; background:#fff;
+}
+.vrstica-primer .gallery-percent-field > input {
+  display:block; width:100%; min-width:0; height:44px; min-height:44px;
+  padding:0 30px 0 8px !important; border:0 !important; border-radius:inherit !important;
+  background:transparent !important; box-shadow:none; text-align:center;
+}
+.vrstica-primer .gallery-percent-field > .gallery-percent-symbol {
+  position:absolute; right:9px; top:50%; transform:translateY(-50%);
+  display:block; width:auto; height:auto; margin:0; padding:0;
+  border:0; border-radius:0; background:transparent; box-shadow:none;
+  color:#238d8c; font-size:16px !important; font-weight:650; line-height:1; pointer-events:none;
+}
+.vrstica-primer .gallery-percent-field > span[aria-hidden="true"] {
+  position:absolute; left:5px; top:50%; transform:translateY(-50%); margin:0;
+}
+.vrstica-primer .gallery-percent-field:has(> span[aria-hidden="true"]) > input { padding-left:34px !important; }
+</style>
+<style>
+.vrstica-primer .uj-card-change__row { position:relative; padding-bottom:8px; }
+.vrstica-primer .uj-card-change__head { display:block; }
+.vrstica-primer .uj-card-change__slider { margin-top:36px; margin-bottom:36px; }
+.vrstica-primer .uj-card-change__values { display:contents; }
+.vrstica-primer .uj-card-change__values small { position:absolute; width:88px; text-align:center; pointer-events:none; gap:2px; }
+.vrstica-primer .uj-card-change__values small em { font-size: 13px; color:#238d8c; }
+.vrstica-primer .uj-card-change__values small b,
+.vrstica-primer .uj-card-change__values small strong { font-size:17px; font-weight:700; color:#238d8c; line-height:1.15; }
+.vrstica-primer .uj-card-change__values .is-now :is(em,strong) { color:#596f6c; }
+.vrstica-primer .uj-card-change__slider input[data-change-role="from"]::-webkit-slider-thumb { background:rgb(var(--card-rgb)); }
+.vrstica-primer .uj-card-change__slider input[data-change-role="now"]::-webkit-slider-thumb { background:#8ca09d; }
+.vrstica-primer .uj-card-change__slider input[data-change-role="from"]::-moz-range-thumb { background:rgb(var(--card-rgb)); }
+.vrstica-primer .uj-card-change__slider input[data-change-role="now"]::-moz-range-thumb { background:#8ca09d; }
+</style>
+<style>
+.vrstica-primer .uj-card-value-switch { grid-template-columns:minmax(0,1fr) 164px; }
+.vrstica-primer .uj-card-segment--unit { width:164px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.vrstica-primer .uj-card-segment--unit button { padding-inline:8px; white-space:nowrap; }
+.vrstica-primer .uj-card-value-switch .uj-card-money { position:relative; display:block; }
+.vrstica-primer .uj-card-value-switch .uj-card-money > input { width:100%; min-width:0; height:44px; padding:0 30px 0 8px !important; border:0 !important; border-radius:inherit !important; background:transparent !important; box-shadow:none !important; text-align:center; }
+.vrstica-primer .uj-card-value-switch .uj-card-money > input:focus { outline:none !important; box-shadow:none !important; }
+.vrstica-primer .uj-card-value-switch .uj-card-money:focus-within { box-shadow:inset 0 0 0 2px rgb(var(--card-rgb)); }
+.vrstica-primer .uj-card-value-switch .uj-card-money > b { position:absolute; right:9px; top:50%; transform:translateY(-50%); width:auto; height:auto; border:0; background:transparent; font-size:16px; }
+.vrstica-primer .uj-card-value-switch .uj-card-money:has(> span[aria-hidden]) > input { padding-left:34px !important; }
+</style>
+<style>
+.vrstica-primer .uj-card-change-confirm__status button { font-size: 13px !important; font-weight:500; line-height:1.2; gap:2px; padding:4px 2px; }
+.vrstica-primer .uj-card-change-confirm__status button i { width:13px; height:13px; flex-basis:13px; font-size: 13px; }
+</style>
+<style>
+.vrstica-primer .uj-card-price-bridge__chart > button { grid-template-rows:126px 76px; gap:6px; }
+.vrstica-primer .uj-card-price-bridge__label { grid-template-rows:28px 18px 26px; gap:2px; align-content:start; }
+.vrstica-primer .uj-card-price-bridge__label > :is(b,small,em) { display:block; min-width:0; max-width:100%; margin:0; text-align:center; white-space:normal; overflow-wrap:normal; word-break:normal; line-height:1.25; }
+.vrstica-primer .uj-card-price-bridge__label > b { font-size: 13px !important; font-weight:500; }
+.vrstica-primer .uj-card-price-bridge__label > small { font-size: 13px !important; font-weight:650; white-space:nowrap; }
+.vrstica-primer .uj-card-price-bridge__label > em { font-size: 13px !important; font-weight:400; }
+</style>
+<style>
+.vrstica-primer .uj-card-estimate__fields input[type="number"],
+.vrstica-primer .uj-card-estimate__fields input[type="number"]:focus { border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; outline:none !important; }
+.vrstica-primer .uj-card-estimate__fields b { font-size:16px; font-weight:600; }
+.vrstica-primer .uj-card-estimate__chart > i.is-likely { cursor:ew-resize; touch-action:none; }
+.vrstica-primer .uj-card-estimate__chart > i.is-likely:focus-visible { outline:2px solid #238d8c; outline-offset:3px; }
+</style>
+<style>
+.vrstica-primer .uj-card-bullet__input input[type="number"], .vrstica-primer .uj-card-bullet__input input[type="number"]:focus { border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; outline:none !important; }
+.vrstica-primer .uj-card-bullet__input > div { min-width:0; grid-template-columns:44px minmax(0,1fr) 44px; }
+.vrstica-primer .uj-card-bullet__input > div:focus-within { border-radius:10px; box-shadow:0 0 0 1px rgb(var(--card-rgb)); }
+.vrstica-primer .uj-card-bullet__scale { cursor:ew-resize; touch-action:none; }
+.vrstica-primer .uj-card-bullet__scale:focus-visible { outline:2px solid #238d8c; outline-offset:3px; border-radius:9px; }
+</style>
+<style>
+.vrstica-primer .atena-dokument__dodaj { position:relative; display:flex; min-height:64px; align-items:center; justify-content:center; padding:10px; cursor:pointer; }
+.vrstica-primer .atena-dokument__dodaj > input[type="file"] { position:absolute; inset:0; width:100%; height:100%; min-height:0; padding:0; border:0; opacity:0; cursor:pointer; }
+.vrstica-primer .atena-dokument__dodaj > span { display:grid; gap:4px; text-align:center; pointer-events:none; }
+.vrstica-primer .atena-dokument__dodaj b { font-size: 13px; font-weight:600; }
+.vrstica-primer .atena-dokument__dodaj small { font-size: 13px; font-weight:400; }
+.vrstica-primer .atena-dokument__dodaj:focus-within { outline:2px solid var(--obrazec-barva,#27968b); outline-offset:2px; }
+</style>
+<style>
+.vrstica-primer .atena-seznam [data-atena-list-items] { display:flex; flex-wrap:wrap; gap:6px; }
+.vrstica-primer .atena-seznam [data-atena-list-items] > span { display:inline-flex; align-items:center; gap:8px; max-width:100%; padding:5px 6px 5px 10px; font-size: 13px; line-height:1.35; overflow-wrap:anywhere; }
+.vrstica-primer .atena-seznam button[data-atena-list-remove] { display:grid; place-items:center; flex:0 0 24px; width:24px; height:24px; min-height:24px; margin:0; padding:0; border:0; border-radius:50%; background:var(--obrazec-ozadje,#eef9f7); color:var(--obrazec-barva,#27968b); font:500 18px/1 inherit; font-size:18px !important; cursor:pointer; box-shadow:none; appearance:none; }
+.vrstica-primer .atena-seznam button[data-atena-list-remove]:focus-visible { outline:2px solid var(--obrazec-barva,#27968b); outline-offset:1px; }
+</style>
+<style>
+.ponudba-obrazec .atena-lep-izbirnik__meni {
+  position: fixed;
+  z-index: 3300;
+  display: grid;
+  gap: 3px;
+  padding: 5px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  border: 1px solid color-mix(in srgb, var(--obrazec-barva) 34%, white);
+  border-radius: 13px;
+  background: linear-gradient(145deg, #fff, color-mix(in srgb, rgb(var(--card-rgb)) 7%, #fff));
+  box-shadow: 0 16px 32px -18px rgba(var(--card-rgb), .48), 0 4px 12px rgba(var(--card-rgb), .09);
+}
+.ponudba-obrazec .atena-lep-izbirnik__meni::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.ponudba-obrazec .atena-lep-izbirnik__meni[hidden] { display: none; }
+.ponudba-obrazec .atena-lep-izbirnik__izbira {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 31px 8px 10px;
+  align-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #294744;
+  font:650 13px/1.2 Inter, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+.ponudba-obrazec .atena-lep-izbirnik__izbira:hover,
+.ponudba-obrazec .atena-lep-izbirnik__izbira:focus-visible { outline: 0; background: color-mix(in srgb, var(--obrazec-ozadje) 78%, white); color: color-mix(in srgb, var(--obrazec-barva) 80%, #173b38); }
+.ponudba-obrazec .atena-lep-izbirnik__izbira.is-selected { background: color-mix(in srgb, var(--obrazec-ozadje) 92%, white); color: color-mix(in srgb, var(--obrazec-barva) 84%, #173b38); font-weight: 800; }
+.ponudba-obrazec .atena-lep-izbirnik__izbira.is-selected::after { content: "✓"; position: absolute; right: 10px; color: var(--obrazec-barva); font-weight: 900; }
+</style>
+<style>
+.vrstica-primer .uj-card-change-confirm__status button { position:relative; display:flex; align-items:center; justify-content:center; padding:4px 3px; text-align:center; }
+.vrstica-primer .uj-card-change-confirm__status button:has(i) { padding-left:16px; padding-right:3px; font-size: 13px !important; }
+.vrstica-primer .uj-card-change-confirm__status button i { position:absolute; left:3px; top:50%; transform:translateY(-50%); width:11px; height:11px; font-size: 13px; }
+</style>

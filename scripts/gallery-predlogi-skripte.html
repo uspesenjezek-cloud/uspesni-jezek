@@ -1,0 +1,94 @@
+<script>
+/* Fit bounded labels again after resizing, font loading and control updates. */
+(function () {
+  var pending = false;
+  function fit() {
+    pending = false;
+    document.querySelectorAll('.vrstica-primer button, .uj-card-price-bridge__label > *, .uj-card-expected__actions button > *').forEach(function(el) {
+      if (!el.getClientRects().length || !el.textContent.trim() || el.closest('svg')) return;
+      el.style.removeProperty('font-size');
+      var size = parseFloat(getComputedStyle(el).fontSize);
+      while (size > 8 && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)) {
+        size -= .5;
+        el.style.fontSize = size + 'px';
+      }
+    });
+  }
+  function schedule() { if (!pending) { pending = true; requestAnimationFrame(fit); } }
+  window.addEventListener('resize', schedule);
+  document.addEventListener('input', schedule);
+  document.addEventListener('change', schedule);
+  document.addEventListener('click', schedule);
+  if (document.fonts) document.fonts.ready.then(schedule);
+  schedule();
+})();
+</script>
+<script>
+(function () {
+  function unifyPercentFields() {
+    document.querySelectorAll('.vrstica-primer input + b, .vrstica-primer input + span').forEach(function(unit) {
+      var percent = unit.textContent.trim() === '%';
+      unit.classList.toggle('gallery-percent-symbol', percent);
+      unit.parentElement.classList.toggle('gallery-percent-field', percent);
+    });
+  }
+  unifyPercentFields();
+  document.addEventListener('click', function () { requestAnimationFrame(unifyPercentFields); });
+  document.addEventListener('change', unifyPercentFields);
+})();
+</script>
+<script>
+(function () {
+  function positionChangeLabels() {
+    document.querySelectorAll('.vrstica-primer [data-change-row]').forEach(function(row) {
+      var slider = row.querySelector('.uj-card-change__slider');
+      var labels = row.querySelectorAll('.uj-card-change__values small');
+      if (!slider || labels.length !== 2) return;
+      ['from','now'].forEach(function(role,i) {
+        var input = slider.querySelector('[data-change-role="'+role+'"]');
+        var fraction = (Number(input.value)-Number(input.min))/(Number(input.max)-Number(input.min));
+        var x = slider.offsetLeft + 14 + fraction * (slider.clientWidth-28);
+        labels[i].style.left = Math.max(0,Math.min(row.clientWidth-88,x-44))+'px';
+        labels[i].style.top = (i===0 ? slider.offsetTop-34 : slider.offsetTop+42)+'px';
+      });
+    });
+  }
+  document.addEventListener('input', positionChangeLabels);
+  window.addEventListener('resize',positionChangeLabels);
+  if(document.fonts) document.fonts.ready.then(positionChangeLabels);
+  requestAnimationFrame(positionChangeLabels);
+})();
+</script>
+<script>
+(function () {
+ document.querySelectorAll('[data-estimate-card]').forEach(function(root) {
+  var chart=root.querySelector('.uj-card-estimate__chart'), dot=chart.querySelector('.is-likely');
+  var input=root.querySelector('[data-estimate-likely]'), low=root.querySelector('input[data-estimate-min]'), high=root.querySelector('input[data-estimate-max]');
+  dot.tabIndex=0; dot.setAttribute('role','slider'); dot.setAttribute('aria-label','Najverjetnejša ocena');
+  function sync() { dot.setAttribute('aria-valuemin',low.value); dot.setAttribute('aria-valuemax',high.value); dot.setAttribute('aria-valuenow',input.value); dot.setAttribute('aria-valuetext',input.value+' €'); }
+  function set(value) { input.value=String(Math.max(Number(low.value),Math.min(Number(high.value),value))); input.dispatchEvent(new Event('input',{bubbles:true})); sync(); }
+  function move(e) { var r=chart.getBoundingClientRect(), step=Number(input.step)||500; set(Math.round((e.clientX-r.left)/r.width*Number(root.dataset.estimateMax)/step)*step); }
+  dot.addEventListener('pointerdown',function(e){ e.preventDefault(); dot.focus(); dot.setPointerCapture(e.pointerId); move(e); });
+  dot.addEventListener('pointermove',function(e){if(dot.hasPointerCapture(e.pointerId)) move(e);});
+  dot.addEventListener('pointerup',function(e){if(dot.hasPointerCapture(e.pointerId)) dot.releasePointerCapture(e.pointerId);});
+  dot.addEventListener('keydown',function(e){ var step=Number(input.step)||500, value=Number(input.value); if(e.key==='ArrowRight'||e.key==='ArrowUp') value+=step; else if(e.key==='ArrowLeft'||e.key==='ArrowDown') value-=step; else if(e.key==='Home') value=Number(low.value); else if(e.key==='End') value=Number(high.value); else return; e.preventDefault();set(value); });
+  root.addEventListener('input',sync); sync();
+ });
+})();
+</script>
+<script>
+(function () {
+ document.querySelectorAll('[data-bullet-card]').forEach(function(root) {
+  var scale=root.querySelector('.uj-card-bullet__scale'), input=root.querySelector('[data-bullet-input]');
+  scale.tabIndex=0;scale.setAttribute('role','slider');scale.setAttribute('aria-label','Nastavite odzivni čas');scale.setAttribute('aria-valuemin','0');scale.setAttribute('aria-valuemax','10');
+  function sync(){scale.setAttribute('aria-valuenow',input.value);scale.setAttribute('aria-valuetext',root.querySelector('[data-bullet-output]').textContent);}
+  function set(value){input.value=String(Math.round(Math.max(0,Math.min(10,value))*10)/10);input.dispatchEvent(new Event('input',{bubbles:true}));sync();}
+  function move(e){var r=scale.getBoundingClientRect();set((e.clientX-r.left)/r.width*10);}
+  scale.addEventListener('pointerdown',function(e){e.preventDefault();scale.focus();scale.setPointerCapture(e.pointerId);move(e);});
+  scale.addEventListener('pointermove',function(e){if(scale.hasPointerCapture(e.pointerId))move(e);});
+  scale.addEventListener('pointerup',function(e){if(scale.hasPointerCapture(e.pointerId))scale.releasePointerCapture(e.pointerId);});
+  scale.addEventListener('keydown',function(e){var v=Number(input.value);if(e.key==='ArrowRight'||e.key==='ArrowUp')v+=.1;else if(e.key==='ArrowLeft'||e.key==='ArrowDown')v-=.1;else if(e.key==='Home')v=0;else if(e.key==='End')v=10;else return;e.preventDefault();set(v);});
+  root.addEventListener('input',sync);root.addEventListener('click',function(){requestAnimationFrame(sync);});sync();
+ });
+})();
+</script>
