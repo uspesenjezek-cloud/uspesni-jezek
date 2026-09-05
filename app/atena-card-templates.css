@@ -737,7 +737,7 @@ body.atena-template-page {
 .uj-card-bullet__scale > i b { position: absolute; top: -18px; left: 50%; min-width: 35px; padding: 3px 6px; border-radius: 999px; color: #fff; background: rgb(var(--card-rgb)); font-size: 13px; font-style: normal; text-align: center; transform: translateX(-50%); }
 .uj-card-bullet__scale > em { position: absolute; z-index: 1; top: 21px; bottom: 0; left: 50%; width: 2px; border-left: 2px dashed #294441; }
 .uj-card-bullet__labels { display: flex; justify-content: space-between; color: #6e817f; font-size: 13px; font-weight: 700; }
-.uj-card-bullet__input { display: grid; grid-template-columns: minmax(0, 1fr) 176px; gap: 6px; align-items: center; color: #596f6c; font-size: 13px; font-weight: 750; }
+.uj-card-bullet__input { display: grid; grid-template-columns: minmax(0, 1fr) 208px; gap: 6px; align-items: center; color: #596f6c; font-size: 13px; font-weight: 750; }
 .uj-card-bullet__input > div { display: grid; grid-template-columns: 44px 120px 44px; }
 .uj-card-bullet__input button { width: 44px; height: 44px; border: 1px solid rgba(var(--card-rgb), .32); color: rgb(var(--card-rgb)); background: #fff; font-size: 16px; }
 .uj-card-bullet__input button:first-child { border-radius: 10px 0 0 10px; }
