@@ -264,6 +264,31 @@
   },
   "redirects": [
     {
+      "source": "/CLAUDE.md",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/AGENTS.md",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/NAZORJEVA-VRSTICE.js",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/NAZORJEVA.js",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/ZAPISNIK.md",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
       "source": "/api/_lib/:pot*",
       "destination": "/uj-ni-najdeno",
       "permanent": false
