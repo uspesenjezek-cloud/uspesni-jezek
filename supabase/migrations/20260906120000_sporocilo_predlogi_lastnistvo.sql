@@ -86,3 +86,42 @@ grant select, insert, update, delete on table public.sporocilo_predlogi to authe
 grant all on table public.sporocilo_predlogi to service_role;
 
 notify pgrst, 'reload schema';
+
+-- ==========================================================
+-- LOCENA UVELJAVITEV SAMO TE MIGRACIJE
+-- ------------------------------------
+-- Ta migracija je NEODVISNA od 18 drugih, ki cakajo v vrsti: dotika se samo
+-- politik tabele public.sporocilo_predlogi in ne uvaja ne novih stolpcev ne
+-- novih funkcij. Zato je ni treba uveljaviti skupaj z njimi.
+--
+-- Uveljavi jo lahko brez varovalke migracij, z neposrednim zagonom vsebine
+-- te datoteke v Supabase SQL urejevalniku (Dashboard > SQL Editor).
+-- Varovalka scripts/check-pos-migration-deployment.js je namenjena paketni
+-- objavi cez CLI; ta migracija tja NI vpisana in tudi ne sme biti, dokler
+-- lastnik ne odobri celotnega paketa.
+--
+-- PREVERJANJE PO IZVEDBI (zazeni v SQL urejevalniku):
+--
+--   select polname, polcmd, pg_get_expr(polqual, polrelid) as using_izraz
+--   from pg_policy
+--   where polrelid = 'public.sporocilo_predlogi'::regclass
+--   order by polcmd, polname;
+--
+-- PRICAKOVANO PO USPESNI IZVEDBI:
+--   - politiki "Obrtnik posodobi katerikoli predlog" in
+--     "Obrtnik izbrise katerikoli predlog" NE obstajata vec,
+--   - obstajata "Obrtnik posodobi svoj predlog" (polcmd = 'w') in
+--     "Obrtnik izbrise svoj predlog" (polcmd = 'd'),
+--   - njun using_izraz vsebuje "dodal_obrtnik_id", NE "true",
+--   - politiki za SELECT in INSERT sta nespremenjeni.
+--
+-- FUNKCIONALNO PREVERJANJE z dvema racunoma (po uveljavitvi):
+--   Kot uporabnik B poskusi update in delete nad predlogo, ki jo je dodal A.
+--   Pricakovano: 0 prizadetih vrstic pri obeh. Predloga A ostane nespremenjena.
+--   Kot A poskusi update in delete nad SVOJO predlogo. Pricakovano: uspe -
+--   brez te kontrole rezultat zgoraj ne dokazuje nicesar.
+--
+-- POVRNITEV, ce bi kaj slo narobe: znova ustvari prvotni politiki iz
+--   20260807140500_priporoceni_predlogi_in_brisanje.sql:33-37 in
+--   20260807142500_vrstni_red_predlogov.sql:23-28.
+-- ==========================================================

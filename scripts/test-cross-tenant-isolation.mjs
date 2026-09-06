@@ -52,7 +52,30 @@ const OKOLJE = [
   "UJ_TEST_A_PASSWORD",
   "UJ_TEST_B_EMAIL",
   "UJ_TEST_B_PASSWORD",
+  "UJ_TEST_ENV_LABEL",
 ];
+
+/*
+ * Ciljno okolje mora biti izrecno poimenovano. Pisoce sonde lahko ob dejanski
+ * ranljivosti spremenijo podatke, zato jih na okolju, oznacenem kot
+ * produkcijsko, ne dovolimo - test se ne sme sam preusmeriti na produkcijo.
+ */
+function ciljnoOkolje() {
+  const oznaka = String(process.env.UJ_TEST_ENV_LABEL || "").trim();
+  let gostitelj = "(neznan)";
+  try { gostitelj = new URL(String(process.env.SUPABASE_URL || "")).host; } catch (_) {}
+  return { oznaka, gostitelj, jeProdukcija: /^(produkcija|production|prod)$/i.test(oznaka) };
+}
+
+function pisoceSondeDovoljene(okolje) {
+  if (String(process.env.UJ_TEST_ALLOW_WRITE_PROBES || "").toLowerCase() !== "true") {
+    return { ok: false, razlog: "UJ_TEST_ALLOW_WRITE_PROBES ni true" };
+  }
+  if (okolje.jeProdukcija) {
+    return { ok: false, razlog: "UJ_TEST_ENV_LABEL je produkcija - pisoce sonde so zavrnjene" };
+  }
+  return { ok: true, razlog: "" };
+}
 
 function preveriOkolje() {
   const manjka = OKOLJE.filter((k) => !String(process.env[k] || "").trim());
@@ -146,9 +169,9 @@ async function sondaBranje(b, tabela, idVrstice) {
  * A) in po poskusu primerja - tako je razlika dokazana, ne domnevana.
  */
 async function sondaPisanjeNadObstojeco(a, b, tabela, idVrstice, vrsta, spremembe) {
-  if (String(process.env.UJ_TEST_ALLOW_WRITE_PROBES || "").toLowerCase() !== "true") {
-    zabelezi(tabela, "B " + vrsta, null,
-      "PRESKOCENO: nastavi UJ_TEST_ALLOW_WRITE_PROBES=true (uspesen zapis bi spremenil resnicne vrstice testnega racuna A)");
+  const dovoljenje = pisoceSondeDovoljene(ciljnoOkolje());
+  if (!dovoljenje.ok) {
+    zabelezi(tabela, "B " + vrsta, null, "PRESKOCENO: " + dovoljenje.razlog);
     return;
   }
   const prej = await posnetekVrstice(a, tabela, idVrstice);
@@ -268,6 +291,12 @@ const POS_TABELE = [
 async function main() {
   preveriOkolje();
 
+  const okolje = ciljnoOkolje();
+  console.log("CILJNO OKOLJE: " + okolje.oznaka + "  (" + okolje.gostitelj + ")");
+  const pisanje = pisoceSondeDovoljene(okolje);
+  console.log("Pisoce sonde: " + (pisanje.ok ? "DOVOLJENE" : "NE - " + pisanje.razlog));
+  console.log("");
+
   console.log("Prijava obeh testnih racunov ...");
   const a = await prijava("A", process.env.UJ_TEST_A_EMAIL, process.env.UJ_TEST_A_PASSWORD);
   const b = await prijava("B", process.env.UJ_TEST_B_EMAIL, process.env.UJ_TEST_B_PASSWORD);
@@ -322,12 +351,24 @@ async function main() {
     await b.klient.auth.signOut().catch(() => {});
   }
 
-  const napak = izpisiTabelo();
-  if (napak > 0) {
-    console.error("NEUSPEH: " + napak + " sond kaze na dostop cez mejo najemnika.");
+  const izid = izpisiTabelo();
+  if (izid.fail > 0) {
+    console.error("NEUSPEH: " + izid.fail + " sond kaze na dostop cez mejo najemnika.");
     process.exit(1);
   }
-  console.log("Vse izvedene sonde so zavrnjene po pricakovanju (SKIP pomeni: ni bilo tarce).");
+  if (izid.skip > 0) {
+    // SKIP pomeni, da sonda NI bila izvedena (ni bilo tarce, pozitivna kontrola
+    // ni uspela, ali pisoce sonde niso bile dovoljene). Tak tek ne dokazuje
+    // nicesar in se NE sme koncati kot uspeh.
+    console.error("NEPOPOLNO: " + izid.skip + " obveznih sond ni bilo izvedenih. Locenost NI dokazana.");
+    console.error("Dopolni manjkajoce podatke ali dovoljenja in ponovi.");
+    process.exit(4);
+  }
+  if (izid.pass === 0) {
+    console.error("NEPOPOLNO: nobena sonda ni bila izvedena.");
+    process.exit(4);
+  }
+  console.log("VSE sonde izvedene in zavrnjene po pricakovanju; pozitivne kontrole uspele.");
 }
 
 main().catch((napaka) => {
