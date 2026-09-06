@@ -173,6 +173,24 @@ async function sondaPisanjeNadObstojeco(a, b, tabela, idVrstice, vrsta, sprememb
     enako ? "vrstica nespremenjena" : "SPREMENJENO ALI IZBRISANO - vrstica uporabnika A se je spremenila");
 }
 
+/**
+ * POZITIVNA KONTROLA. Brez nje lahko test navidezno uspe: ce bi bilo blokirano
+ * VSE (npr. napacen kljuc, potekla seja, odvzeta pravica select), bi vse
+ * negativne sonde pokazale "0 vrstic" in test bi zeleno lagal. Zato najprej
+ * dokazemo, da A do SVOJE vrstice pride.
+ */
+async function kontrolaLastnegaDostopa(a, tabela, idVrstice) {
+  const { data, error } = await a.klient.from(tabela).select("id").eq("id", idVrstice);
+  if (error) {
+    zabelezi(tabela, "A BERE SVOJE", false, "A ne more brati svoje vrstice: " + error.code + " " + error.message);
+    return false;
+  }
+  const najdeno = Array.isArray(data) && data.length === 1;
+  zabelezi(tabela, "A BERE SVOJE", najdeno,
+    najdeno ? "A vidi svojo vrstico (kontrola veljavna)" : "A NE vidi svoje vrstice - negativne sonde niso dokaz");
+  return najdeno;
+}
+
 /** Prebere celotno vrstico kot uporabnik A; null pomeni, da je ni (vec). */
 async function posnetekVrstice(a, tabela, idVrstice) {
   const { data, error } = await a.klient.from(tabela).select("*").eq("id", idVrstice).maybeSingle();
@@ -265,6 +283,10 @@ async function main() {
     /* 1. zadeve - skript vrstico ustvari, zato so pisoce sonde v celoti varne. */
     idZadeve = await ustvariTestnoZadevo(a);
     console.log("A ustvaril testno zadevo " + idZadeve);
+    const kontrolaZadeve = await kontrolaLastnegaDostopa(a, "zadeve", idZadeve);
+    if (!kontrolaZadeve) {
+      console.error("USTAVLJENO: A ne vidi lastne vrstice - okolje ni v stanju, ki bi dopuscalo veljaven sklep.");
+    }
     await sondaBranje(b, "zadeve", idZadeve);
     await sondaPisanjeNadTestnoVrstico(b, "zadeve", idZadeve, "UPDATE", { ime_dolznika: OZNAKA + " SPREMENIL B" });
     await sondaPisanjeNadTestnoVrstico(b, "zadeve", idZadeve, "DELETE", null);
@@ -275,7 +297,8 @@ async function main() {
       !String(poSondah[0].ime_dolznika || "").includes("SPREMENIL B");
     zabelezi("zadeve", "A KONTROLA", ohranjena, ohranjena ? "vrstica A nedotaknjena" : "vrstica A je bila spremenjena ali izbrisana");
 
-    /* 2. POS tabele - vrstic ne ustvarjamo, zato so pisoce sonde z nemogocim filtrom. */
+    /* 2. POS tabele - vrstic ni mogoce ustvariti prek PostgREST (ni pravice INSERT),
+       zato se uporabijo obstojece vrstice A, z obvezno pozitivno kontrolo. */
     for (const { tabela, sprememba } of POS_TABELE) {
       const { id, razlog } = await najdiIdUporabnikaA(a, tabela);
       if (!id) {
@@ -284,9 +307,14 @@ async function main() {
         zabelezi(tabela, "B DELETE", null, razlog);
         continue;
       }
+      const veljavna = await kontrolaLastnegaDostopa(a, tabela, id);
+      if (!veljavna) {
+        zabelezi(tabela, "B SELECT", null, "preskoceno: pozitivna kontrola ni uspela");
+        continue;
+      }
       await sondaBranje(b, tabela, id);
-      await sondaPisanjeVarno(b, tabela, id, "UPDATE", sprememba);
-      await sondaPisanjeVarno(b, tabela, id, "DELETE", null);
+      await sondaPisanjeNadObstojeco(a, b, tabela, id, "UPDATE", sprememba);
+      await sondaPisanjeNadObstojeco(a, b, tabela, id, "DELETE", null);
     }
   } finally {
     await pobrisiTestnoZadevo(a, idZadeve);

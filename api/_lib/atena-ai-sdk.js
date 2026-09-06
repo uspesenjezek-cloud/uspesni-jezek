@@ -6,9 +6,38 @@
  * Zod-validacijo, omejen transportni retry, timeout in merjenje porabe.
  */
 
-var ai = require("ai");
-var createOpenAI = require("@ai-sdk/openai").createOpenAI;
 var lunaPolicy = require("./atena-luna-policy");
+
+/*
+ * "ai" in "@ai-sdk/openai" sta cista ESM paketa ("type":"module", brez
+ * exports.require). require() ju na Vercelovem Node izvajalniku zavrne z
+ * ERR_REQUIRE_ESM ze ob nalaganju modula, kar je 6. 9. 2026 pobilo celotno
+ * funkcijo /api/izvedi-opomin-ukrep (potrjeno v produkcijskem dnevniku).
+ * Zato ju nalozimo leno, z dinamicnim import(), in rezultat predpomnimo.
+ * Oba klicatelja generateStructured() ze uporabljata await, zato ta
+ * sprememba ne zahteva prilagoditve pri njiju.
+ */
+var aiModul = null;
+var openaiModul = null;
+var nalaganjeVTeku = null;
+
+function naloziSdk() {
+  if (aiModul && openaiModul) return Promise.resolve({ ai: aiModul, openai: openaiModul });
+  if (!nalaganjeVTeku) {
+    nalaganjeVTeku = Promise.all([import("ai"), import("@ai-sdk/openai")])
+      .then(function (moduli) {
+        aiModul = moduli[0];
+        openaiModul = moduli[1];
+        return { ai: aiModul, openai: openaiModul };
+      })
+      .catch(function (napaka) {
+        // Ne predpomni neuspeha: naslednji klic naj poskusi znova.
+        nalaganjeVTeku = null;
+        throw napaka;
+      });
+  }
+  return nalaganjeVTeku;
+}
 
 var SDK_ADAPTER_VERSION = "atena-ai-sdk-v1";
 
@@ -35,8 +64,18 @@ function nestedValue(error, key) {
   return null;
 }
 
+/*
+ * Ostane SINHRONA, ker je taka tudi v javnem vmesniku modula. Kadar je SDK ze
+ * nalozen (vedno, kadar to funkcijo doseze generateStructured), uporabi
+ * uradni isInstance. Kadar se ni, se opre na stabilni "name" razredov
+ * (preverjeno: AI_NoObjectGeneratedError / AI_NoOutputGeneratedError).
+ */
 function isStructuredOutputError(error) {
-  return ai.NoObjectGeneratedError.isInstance(error) || ai.NoOutputGeneratedError.isInstance(error);
+  if (aiModul) {
+    return aiModul.NoObjectGeneratedError.isInstance(error) || aiModul.NoOutputGeneratedError.isInstance(error);
+  }
+  var ime = error && error.name;
+  return ime === "AI_NoObjectGeneratedError" || ime === "AI_NoOutputGeneratedError";
 }
 
 function retryAfterMs(error) {
@@ -126,7 +165,8 @@ async function generateStructured(options) {
   var startedAt = Date.now();
   var deadline = startedAt + totalTimeoutMs;
   var telemetry = { calls: 0 };
-  var provider = createOpenAI({ apiKey: options.apiKey, fetch: sdkFetch(options.fetchImpl, options.model, telemetry, options.legacyRequestBody) });
+  var sdk = await naloziSdk();
+  var provider = sdk.openai.createOpenAI({ apiKey: options.apiKey, fetch: sdkFetch(options.fetchImpl, options.model, telemetry, options.legacyRequestBody) });
   var lastError = null;
 
   for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -136,11 +176,11 @@ async function generateStructured(options) {
       break;
     }
     try {
-      var result = await ai.generateText({
+      var result = await sdk.ai.generateText({
         model: provider.responses(options.model),
         system: String(options.instructions || ""),
         prompt: String(options.input || ""),
-        output: ai.Output.object({ name: options.schemaName, schema: options.schema }),
+        output: sdk.ai.Output.object({ name: options.schemaName, schema: options.schema }),
         maxOutputTokens: Number(options.maxOutputTokens) || lunaPolicy.MAX_OUTPUT_TOKENS,
         maxRetries: 0,
         timeout: Math.min(lunaPolicy.MODEL_TIMEOUT_MS, remainingMs),
