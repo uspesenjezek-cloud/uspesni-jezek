@@ -168,6 +168,9 @@ function createService(dependencies) {
     const invoiceId = uuid(request.invoiceId);
     if (!requestKey || !invoiceId) fail("CASH_REQUEST_INVALID", "Gotovinski checkout nima veljavnega računa ali ključa ponovitve.");
     const receipt = normalizeCashReceipt(request.receipt);
+    // Pokvarjen transactionId se ne sme tiho nadomestiti z requestKey: v recovery toku
+    // bi to ciljalo drugo TSE transakcijo, kot jo je klicatelj mislil nadaljevati.
+    if (request.transactionId != null && !uuid(request.transactionId)) fail("CASH_REQUEST_INVALID", "Transaction ID gotovinskega checkouta ni veljaven UUID.");
     const transactionId = uuid(request.transactionId) || requestKey;
     let record = await store.prepare({ requestKey, invoiceId, transactionId, receipt });
     if (!record || record.requestKey !== requestKey || record.invoiceId !== invoiceId
@@ -219,6 +222,7 @@ function createRefundService(dependencies) {
     if (!original || original.state !== STATES.COMPLETED || original.invoiceId !== invoiceId || JSON.stringify(original.receipt) !== JSON.stringify(receipt)) {
       fail("CASH_ORIGINAL_CHECKOUT_INVALID", "Gotovinsko povračilo ne pripada zaključenemu izvirnemu checkoutu.");
     }
+    if (request.transactionId != null && !uuid(request.transactionId)) fail("CASH_REQUEST_INVALID", "Transaction ID gotovinskega povracila ni veljaven UUID.");
     const transactionId = uuid(request.transactionId) || requestKey;
     let record = await store.prepare({ requestKey, invoiceId, originalCheckoutId, transactionId, receipt });
     if (!record || record.requestKey !== requestKey || record.invoiceId !== invoiceId || record.originalCheckoutId !== originalCheckoutId

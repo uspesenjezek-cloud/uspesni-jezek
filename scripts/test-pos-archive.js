@@ -209,7 +209,9 @@ assert.match(unavailableView.copyText, /varno zaklenjena/i);
 
 assert.match(html, /GoBD arhiv/);
 assert.match(html, /data-archive-verify/);
-assert.match(html, /pos-terminal\.js\?v=20260830-cash-provider-recovery-v1/);
+// CLAUDE.md zahteva novo cache oznako ob VSAKI spremembi vira, zato tu preverimo,
+// da oznaka obstaja in je pravilne oblike, ne pa njene tocne vrednosti.
+assert.match(html, /pos-terminal\.js\?v=\d{8}-[^"']+/);
 assert.match(js, /function productionReady\(\)[\s\S]*archiveCapability\.productionReady/);
 assert.match(js, /function loadArchiveCapability\([\s\S]*await apiSessionToken\(\)/);
 assert.match(js, /async function loadFullServerState\([\s\S]*renderHome\(\);\s*await loadArchiveCapability\(false, false\);/);

@@ -205,9 +205,11 @@ compatibilityWrappers.forEach(function (source) {
 });
 
 assert.match(html, /data-view="home"/);
-assert.match(html, /pos-terminal\.css\?v=202608(?:2[2-9]|3[01])-[^"']+/);
+// CLAUDE.md zahteva novo cache oznako ob VSAKI spremembi vira, zato tu preverimo,
+// da oznaka obstaja in je pravilne oblike, ne pa njene tocne vrednosti.
+assert.match(html, /pos-terminal\.css\?v=\d{8}-[^"']+/);
 assert.match(css, /\.pos-app \[hidden\]\s*\{[^}]*display:\s*none !important/);
-assert.match(html, /pos-terminal\.js\?v=202608(?:2[2-9]|3[01])-[^"']+/);
+assert.match(html, /pos-terminal\.js\?v=\d{8}-[^"']+/);
 assert.match(html, /pos-dsfinvk\.js\?v=20260826-cash-recovery-export-v1/);
 assert.match(html, /data-cash-payment-panel/);
 assert.match(html, /data-cash-deposit/);
@@ -271,6 +273,9 @@ assert.match(js, /typeof supabaseKlient !== "undefined" && supabaseKlient && sup
 assert.doesNotMatch(js, /global\.supabaseKlient/);
 assert.match(js, /displayProfile = profileForPreview\(profile, invoice\.isTest\)/);
 assert.match(js, /state\.invoices = applyLocalCashCheckouts\(mergeInvoiceSources\(serverInvoices, localTests\), state\.cashCheckouts\)/);
+assert.match(js, /from\("pos_cash_checkouts"\)\.select\("\*"\)\.eq\("user_id", userId\)/);
+assert.match(js, /from\("pos_cash_refunds"\)\.select\("\*"\)\.eq\("user_id", userId\)/);
+assert.match(js, /state\.cashCheckouts = \(responses\[23\]\.data \|\| \[\]\)\.map[\s\S]*cashCheckoutFromServer/);
 assert.match(js, /function activateModal\(backdrop, close, preferredFocus\)/);
 assert.match(js, /function deactivateModal\(backdrop\)/);
 assert.match(js, /function handleModalKeydown\(event\)/);
@@ -342,6 +347,36 @@ const cashInvoice = {
 };
 const cashReceipt = Core.cashReceiptForInvoice(cashInvoice);
 assert.deepEqual({ grossCents: cashReceipt.grossCents, paymentType: cashReceipt.paymentType, vatRate: cashReceipt.items[0].vatRate }, { grossCents: 11900, paymentType: "CASH", vatRate: "19" });
+const hydratedRefund = Core.cashRefundFromServer({
+  id: "cash-refund-hydrated", checkout_id: "cash-checkout-hydrated", invoice_id: cashInvoice.id,
+  payment_id: "cash-payment-hydrated", request_key: "7bf2b660-8a4f-44da-8a01-2cadc1d0e93c",
+  transaction_id: "7bf2b660-8a4f-44da-8a01-2cadc1d0e93c", status: "recovery_required",
+  receipt_snapshot: { schema_version: 1, payment_type: "CASH", currency: "EUR", gross_cents: 11900, items: [{ description: "Arbeitszeit", gross_cents: 11900, vat_rate: "19" }] },
+  failure_code: "provider_result_unknown", prepared_at: "2026-08-30T10:02:00.000Z"
+});
+const hydratedCash = Core.cashCheckoutFromServer({
+  id: "cash-checkout-hydrated", invoice_id: cashInvoice.id, payment_id: "cash-payment-hydrated",
+  request_key: "5c9242f4-12d0-4409-91a9-92265116f7f0", transaction_id: "5c9242f4-12d0-4409-91a9-92265116f7f0",
+  status: "completed", receipt_snapshot: { schema_version: 1, payment_type: "CASH", currency: "EUR", gross_cents: 11900, items: [{ description: "Arbeitszeit", gross_cents: 11900, vat_rate: "19" }] },
+  signature_counter: "44", signature_algorithm: "ecdsa-plain-SHA256", tss_serial_number: "mock-tss",
+  client_serial_number: "mock-client", qr_code_data: "V0;MOCK", tse_started_at: "2026-08-30T10:00:00.000Z",
+  tse_finished_at: "2026-08-30T10:00:01.000Z", completed_at: "2026-08-30T10:01:00.000Z"
+}, hydratedRefund);
+assert.deepEqual({
+  requestKey: hydratedCash.requestKey,
+  transactionId: hydratedCash.transactionId,
+  refundRequestKey: hydratedCash.refund.requestKey,
+  refundState: hydratedCash.refund.state,
+  quantityMilli: hydratedCash.receipt.items[0].quantityMilli,
+  totalGross: hydratedCash.receipt.totalsByVat[0].grossCents
+}, {
+  requestKey: "5c9242f4-12d0-4409-91a9-92265116f7f0",
+  transactionId: "5c9242f4-12d0-4409-91a9-92265116f7f0",
+  refundRequestKey: "7bf2b660-8a4f-44da-8a01-2cadc1d0e93c",
+  refundState: "recovery_required",
+  quantityMilli: 1000,
+  totalGross: 11900
+});
 const completedCash = {
   id: "checkout-1", invoiceId: cashInvoice.id, paymentId: "cash-payment-1", state: "completed", completedAt: "2026-08-26T12:00:00.000Z",
   receipt: cashReceipt, signature: { signatureCounter: "1", finishedAt: "2026-08-26T12:00:00.000Z" }
@@ -401,10 +436,38 @@ assert.match(js, /local-training-cash-checkout/);
 assert.match(js, /local-training-cash-refund/);
 assert.match(js, /checkout\.refund = Object\.assign/);
 assert.match(js, /fiscalInvoiceId: body\.checkout\.invoiceId/);
-assert.match(js, /checkout\.fiscalInvoiceId \|\|/);
-assert.match(js, /recoveryRequired = Boolean/);
-assert.match(js, /body\.refund\.state === "recovery_required"/);
-assert.match(js, /Povračilo ni zabeleženo – potrebna je ročna TSE uskladitev/);
+assert.match(js, /!invoice\.serverStored \|\| !backend\.ready/);
+assert.doesNotMatch(js, /operationRequestId\("cash-invoice"/);
+assert.match(js, /function localCashCheckoutForInvoice\(invoice\)[\s\S]*entry && entry\.invoiceId === invoice\.id/);
+assert.doesNotMatch(js, /function localCashCheckoutForInvoice\(invoice\)[\s\S]{0,300}entry\.state === "completed"/);
+assert.match(js, /var checkoutPrepared = Boolean\(activeCheckout && activeCheckout\.state === "prepared"\)/);
+assert.match(js, /var checkoutSigned = Boolean\(activeCheckout && activeCheckout\.state === "signed"\)/);
+assert.match(js, /var checkoutRecovery = Boolean\(activeCheckout && activeCheckout\.state === "recovery_required"\)/);
+assert.match(js, /var refundPrepared = Boolean\(activeCheckout && activeCheckout\.refund && activeCheckout\.refund\.state === "prepared"\)/);
+assert.match(js, /var refundSigned = Boolean\(activeCheckout && activeCheckout\.refund && activeCheckout\.refund\.state === "signed"\)/);
+assert.match(js, /var refundRecovery = Boolean\(activeCheckout && activeCheckout\.refund && activeCheckout\.refund\.state === "recovery_required"\)/);
+assert.match(js, /var recoveryRequired = checkoutRecovery \|\| refundRecovery/);
+assert.match(js, /var completionPending = checkoutPrepared \|\| checkoutSigned \|\| refundPrepared \|\| refundSigned/);
+assert.match(js, /checkoutRecovery \? "Uskladi TSE poskus"/);
+assert.match(js, /checkoutPrepared \? "Nadaljuj TSE poskus"/);
+assert.match(js, /checkoutSigned \? "Dokončaj TSE plačilo"/);
+assert.match(js, /refundRecovery \? "Uskladi TSE povračilo"/);
+assert.match(js, /refundPrepared \? "Nadaljuj TSE povračilo"/);
+assert.match(js, /refundSigned \? "Dokončaj TSE povračilo"/);
+assert.match(js, /action: reconcileCheckout \? "local-training-cash-reconcile" : "local-training-cash-checkout"/);
+assert.match(js, /action: reconcileRefund \? "local-training-cash-refund-reconcile" : "local-training-cash-refund"/);
+assert.match(js, /var resumeCheckout = Boolean\(existingCheckout && \["prepared", "signed", "recovery_required"\]\.includes\(existingCheckout\.state\)\)/);
+assert.match(js, /var reconcileCheckout = Boolean\(existingCheckout && existingCheckout\.state === "recovery_required"\)/);
+assert.match(js, /var receipt = resumeCheckout \? existingCheckout\.receipt : cashReceiptForInvoice\(invoice\)/);
+assert.match(js, /var requestKey = resumeCheckout \? existingCheckout\.requestKey : operationRequestId\("cash-payment", scope\)/);
+assert.match(js, /var transactionId = resumeCheckout \? existingCheckout\.transactionId : requestKey/);
+assert.match(js, /var resumeRefund = Boolean\(checkout\.refund && \["prepared", "signed", "recovery_required"\]\.includes\(checkout\.refund\.state\)\)/);
+assert.match(js, /var reconcileRefund = Boolean\(checkout\.refund && checkout\.refund\.state === "recovery_required"\)/);
+assert.match(js, /var refundReceipt = resumeRefund \? checkout\.refund\.receipt : checkout\.receipt/);
+assert.match(js, /var requestKey = resumeRefund \? checkout\.refund\.requestKey : operationRequestId\("cash-refund", scope\)/);
+assert.match(js, /var transactionId = resumeRefund \? checkout\.refund\.transactionId : requestKey/);
+assert.match(js, /\["prepared", "recovery_required", "cancelled"\]\.includes\(body\.refund\.state\)/);
+assert.match(fs.readFileSync(path.join(assetRoot, "pos-dsfinvk.js"), "utf8"), /Povračilo ni zabeleženo – potrebna je ročna TSE uskladitev/);
 assert.match(js, /STORNOBELEG · TRAINING/);
 assert.doesNotMatch(js, /type: "REFUND"[\s\S]{0,300}state\.cashMovements/);
 assert.match(js, /renderCashPayment\(invoice\)/);
@@ -497,6 +560,16 @@ assert.match(css, /\.pos-datev-sheet[\s\S]*overflow-x:\s*hidden/);
 
 assert.strictEqual(Core.parseMoneyToCents("1.234,56 €"), 123456);
 assert.strictEqual(Core.parseQuantityMilli("1,25"), 1250);
+// Editable quantities must survive a cart rerender without thousands separators.
+for (const milli of [1000, 1250, 1000000, 1234567, 1000000000]) {
+  const input = Core.formatDecimalMilli(milli, false);
+  assert.strictEqual(Core.parseQuantityMilli(input), milli, 'Quantity roundtrip: ' + input);
+}
+assert.strictEqual(Core.formatDecimalMilli(1000000, false), "1000");
+assert.strictEqual(Core.formatDecimalMilli(1234567, false), "1234,567");
+assert.strictEqual(Core.formatDecimalMilli(1000000), "1.000");
+assert.ok(js.includes('escapeHtml(formatDecimalMilli(item.quantityMilli, false))'));
+
 assert.strictEqual(Core.isoToday("2026-12-31T22:30:00.000Z"), "2026-12-31");
 assert.strictEqual(Core.isoToday("2026-12-31T23:30:00.000Z"), "2027-01-01");
 assert.strictEqual(Core.isoToday("2026-03-29T00:30:00.000Z"), "2026-03-29");
@@ -1295,6 +1368,11 @@ assert.strictEqual((js.match(/withOperationTimeout\(backend\.client\.rpc\(/g) ||
 assert.match(js, /var result = await withOperationTimeout\(request\.single\(\)\)/, "Tudi dinamični RPC prehod naročila potrebuje timeout.");
 assert.match(js, /if \(invoiceIssuing\) return;[\s\S]*issueButton\.setAttribute\("aria-busy", "true"\)/, "Izdaja računa mora blokirati dvojni klik.");
 assert.match(js, /if \(webhookConfirmed\)[\s\S]*clearOperationRequestId\("stripe-refund"/, "Stripe idempotency ključ se sme počistiti šele po potrditvi webhooka.");
+assert.match(js, /function isActiveStripeAttempt\(payment\)[\s\S]*status === "failed"[\s\S]*failureCode !== "checkout_expired"/, "Neuspel ali nepotrjeno preklican Stripe Checkout mora ostati aktiven do provider reconcile.");
+assert.match(js, /if \(isActiveStripeAttempt\(pending\)\)[\s\S]*stripeCheckoutRequest\("resume"/, "Aktivna retryable Stripe seja se mora nadaljevati namesto ustvariti nove.");
+assert.match(html, /data-stripe-abandon[\s\S]*Končaj Stripe poskus/, "Aktivni Stripe poskus mora imeti vidno varno pot za zaključek v kanoničnem slovenskem viru.");
+assert.match(js, /abandonButton\.hidden = !isActiveStripeAttempt\(payment\)/, "Zaključek Stripe poskusa je na voljo samo za aktivno provider sejo.");
+assert.match(js, /abandonStripeCheckout[\s\S]*stripeCheckoutRequest\("cancel"[\s\S]*loadServerState\("payments"\)/, "Zaključek mora uporabiti provider expire/reconcile in osvežiti DB stanje.");
 assert.match(js, /var needsKositPreflight = profileReadiness\(state\.profile\)\.live[\s\S]*posEinvoicePreflightRequest\(draftId\)/, "Obvezna KoSIT izdaja mora najprej preveriti shranjeni osnutek.");
 assert.strictEqual((kositPreflightMigration.match(/private\.pos_has_einvoice_preflight\(p_draft_id,p_payload\)/g) || []).length, 2, "Oba strežniška wrapperja morata zahtevati veljaven dokaz istega payload-a.");
 assert.doesNotMatch(kositPreflightMigration, /p_final_confirmed,\s*true/i, "Klicateljev parameter ne sme obiti KoSIT dokaza.");

@@ -306,7 +306,9 @@ assert.match(api, /providerJson\.readBuffer\(response,[\s\S]*MAX_XML_BYTES/);
 assert.match(api, /POS_XRECHNUNG_ORIGINAL_TOO_LARGE/);
 assert.match(startup, /-H 127\.0\.0\.1 -P 8081/);
 assert.match(startup, /\/opt\/java\/openjdk\/bin\/java -jar/);
-assert.match(terminalHtml, /pos-terminal\.js\?v=20260830-cash-provider-recovery-v1/);
+// CLAUDE.md zahteva novo cache oznako ob VSAKI spremembi vira, zato tu preverimo,
+// da oznaka obstaja in je pravilne oblike, ne pa njene tocne vrednosti.
+assert.match(terminalHtml, /pos-terminal\.js\?v=\d{8}-[^"']+/);
 assert.match(terminalJs, /validationMessage/);
 assert.match(terminalJs, /posEinvoicePreflightRequest\(draftId\)/);
 assert.match(terminalJs, /Podatki prejemnika, postavke in zneski bodo pred izdajo poslani/);

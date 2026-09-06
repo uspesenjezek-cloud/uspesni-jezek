@@ -46,7 +46,9 @@ assert.match(html, /data-customer-step-title/);
 assert.match(html, /data-issue-date-label/);
 assert.match(html, /data-service-date-label/);
 assert.match(html, /data-final-confirm-title/);
-assert.match(html, /pos-terminal\.js\?v=20260830-cash-provider-recovery-v1/);
+// CLAUDE.md zahteva novo cache oznako ob VSAKI spremembi vira, zato tu preverimo,
+// da oznaka obstaja in je pravilne oblike, ne pa njene tocne vrednosti.
+assert.match(html, /pos-terminal\.js\?v=\d{8}-[^"']+/);
 assert.match(js, /cancel: "Storniraj projekt"/);
 assert.match(html, /data-consumer-contract/);
 assert.match(html, /name="consumerContractContext"[\s\S]*value="distance"[\s\S]*value="off_premises"[\s\S]*value="urgent_repair"/);
@@ -157,6 +159,9 @@ assert.deepEqual(Core.workOrderActions("invoiced"), ["pdf"]);
 assert.deepEqual(Core.workOrderActions({ status: "cancelled", offeredAt: "2026-08-22T10:00:00Z" }), ["pdf"]);
 assert.deepEqual(Core.workOrderActions("withdrawn"), ["pdf"]);
 
+// Odstopni rok je 14 dni od acceptedOn; brez fiksne ure bi ta test nehal veljati
+// 15. dan po datumu v fixtureu. Uro zato podamo izrecno.
+const znotrajRoka = new Date("2026-08-25T10:00:00.000Z");
 const earlyOrder = Object.assign({}, order, {
   status: "accepted",
   acceptedAt: "2026-08-22T10:00:00.000Z",
@@ -164,9 +169,9 @@ const earlyOrder = Object.assign({}, order, {
   lockedPayload: Object.assign({}, payload, { customer_type: "private", consumer_contract_context: "distance" })
 });
 assert.equal(Core.requiresContractConfirmation(earlyOrder), true);
-assert.deepEqual(Core.workOrderActions(earlyOrder), ["pdf", "contract_pdf", "contract_delivery", "start", "progress", "withdraw"]);
-assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { status: "in_progress" })), ["pdf", "contract_pdf", "contract_delivery", "complete", "progress", "withdraw"]);
-assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { contractConfirmationDeliveryEvidence: "E-pošta s PDF" })), ["pdf", "contract_pdf", "start", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(earlyOrder, znotrajRoka), ["pdf", "contract_pdf", "contract_delivery", "start", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { status: "in_progress" }), znotrajRoka), ["pdf", "contract_pdf", "contract_delivery", "complete", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(Object.assign({}, earlyOrder, { contractConfirmationDeliveryEvidence: "E-pošta s PDF" }), znotrajRoka), ["pdf", "contract_pdf", "start", "progress", "withdraw"]);
 const completedConsumerWithoutExpiryProof = Object.assign({}, earlyOrder, {
   status: "completed",
   completedAt: "2026-08-22T12:00:00.000Z",
@@ -174,14 +179,14 @@ const completedConsumerWithoutExpiryProof = Object.assign({}, earlyOrder, {
 });
 assert.equal(Core.consumerServiceRightExpired(completedConsumerWithoutExpiryProof), false);
 assert.equal(Core.consumerWithdrawalAvailable(completedConsumerWithoutExpiryProof, "2026-08-25T12:00:00.000Z"), true);
-assert.deepEqual(Core.workOrderActions(completedConsumerWithoutExpiryProof), ["pdf", "contract_pdf", "final", "progress", "withdraw"]);
+assert.deepEqual(Core.workOrderActions(completedConsumerWithoutExpiryProof, znotrajRoka), ["pdf", "contract_pdf", "final", "progress", "withdraw"]);
 const completedConsumerWithExpiryProof = Object.assign({}, completedConsumerWithoutExpiryProof, {
   valueCompensationInformed: true,
   rightExpiryAcknowledged: true
 });
 assert.equal(Core.consumerServiceRightExpired(completedConsumerWithExpiryProof), true);
 assert.equal(Core.consumerWithdrawalAvailable(completedConsumerWithExpiryProof, "2026-08-25T12:00:00.000Z"), false);
-assert.deepEqual(Core.workOrderActions(completedConsumerWithExpiryProof), ["pdf", "contract_pdf", "final", "progress"]);
+assert.deepEqual(Core.workOrderActions(completedConsumerWithExpiryProof, znotrajRoka), ["pdf", "contract_pdf", "final", "progress"]);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-08-30T10:00:00.000Z"), true);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T21:59:59.000Z"), true);
 assert.equal(Core.requiresEarlyStartEvidence(earlyOrder, "2026-09-05T22:00:00.000Z"), false);

@@ -181,6 +181,8 @@ async function repairMissingDocuments(cfg, limit) {
 module.exports = async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false });
   const expected = String(process.env.CRON_SECRET || "");
+  // Enaka spodnja meja kot v pos-delivery-worker.js; oba sta cron endpointa brez prijave.
+  if (expected.length < 16) return json(res, 401, { ok: false });
   const provided = String(req.headers && req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!safeEqual(provided, expected)) return json(res, 401, { ok: false });
   let cfg;

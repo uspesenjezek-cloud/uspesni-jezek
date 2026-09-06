@@ -99,6 +99,9 @@ function preflightInvoice(profile, payload, draftId) {
     const quantityMilli = integer(item && item.quantity_milli);
     const unitPriceCents = integer(item && item.unit_price_cents);
     const rateBps = taxMode === "regular" ? integer(item && item.tax_rate_bps) : 0;
+    // Ista bela lista kot v bazi (pos_terminal_core.sql): 0, 7 in 19 odstotkov.
+    // Brez tega predogled izrise XRechnung s stopnjo, ki je pravi racun nikoli ne dobi.
+    if (![0, 700, 1900].includes(rateBps)) throw new Error("Dovoljene stopnje DDV so 0, 7 in 19 odstotkov.");
     const enteredCents = Math.round(unitPriceCents * quantityMilli / 1000);
     const grossPrice = priceMode === "gross" && rateBps > 0;
     const netCents = grossPrice ? Math.round(enteredCents * 10000 / (10000 + rateBps)) : enteredCents;
