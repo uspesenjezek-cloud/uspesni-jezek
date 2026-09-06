@@ -599,7 +599,7 @@ async function handler(req, res) {
   let datevCfg;
   let db;
   try { datevCfg = datev.configuration(); db = supabase.konfiguracija(); }
-  catch (error) { return json(res, error.status || 503, { ok: false, code: error.code || "DATEV_NOT_CONFIGURED", napaka: error.message }); }
+  catch (error) { console.error("[pos-datev:config]", error && error.stack || error); return json(res, error.status || 503, { ok: false, code: error.code || "DATEV_NOT_CONFIGURED", napaka: "Povezava DATEV trenutno ni pravilno nastavljena." }); }
   const query = requestQuery(req);
   if (req.method === "GET" && String(query.action || "") === "callback") return callback(req, res, datevCfg, db, query);
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljena sta samo GET in POST." });

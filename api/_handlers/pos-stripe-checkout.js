@@ -213,7 +213,8 @@ async function handler(req, res) {
     serviceCfg = supabase.konfiguracija();
     stripeCfg = stripeSandbox.configuration();
   } catch (error) {
-    return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: error.message });
+    console.error("[pos-stripe-checkout:config]", error && error.stack || error);
+    return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: "Plačilna povezava trenutno ni pravilno nastavljena." });
   }
   const auth = await supabase.preveriUporabnika(req, authCfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });

@@ -42,7 +42,7 @@ async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljena sta GET in POST." });
   let publicCfg;
   try { publicCfg = supabase.uporabniskaKonfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-dostava-email:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, publicCfg);
   if (!auth.ok) return json(res, auth.status, { ok: false, code: auth.code, napaka: auth.napaka });
   const readiness = deliveryReadiness();
@@ -59,7 +59,7 @@ async function handler(req, res) {
 
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-dostava-email:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   try {
     const queueRpc = readiness.testEnabled
       ? "pos_queue_resend_test_invoice_delivery"

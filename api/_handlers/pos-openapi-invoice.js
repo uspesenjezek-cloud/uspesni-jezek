@@ -105,7 +105,7 @@ async function handleWebhook(req, res, readiness) {
   if (rawEventAt && !eventAt) return json(res, 400, { ok: false, napaka: "Openapi webhook nima veljavnega časa dogodka." });
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-openapi-invoice:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   try {
     const delivery = rpcRow(await supabase.pokliciRpc(cfg, "pos_apply_openapi_invoice_event", {
       p_provider_reference: providerReference,
@@ -146,7 +146,7 @@ async function handler(req, res) {
   if (req.method === "POST" && webhookRequest(req)) return handleWebhook(req, res, readiness);
   let publicCfg;
   try { publicCfg = supabase.uporabniskaKonfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-openapi-invoice:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, publicCfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
   if (req.method === "GET" && !usageRequest(req)) return json(res, 200, { ok: true, invoice: readiness });
@@ -173,7 +173,7 @@ async function handler(req, res) {
 
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-openapi-invoice:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   try {
     const queued = rpcRow(await supabase.pokliciRpc(cfg, "pos_queue_openapi_invoice_delivery", {
       p_delivery_id: deliveryId,

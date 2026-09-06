@@ -188,10 +188,10 @@ async function handler(req, res) {
   let stripeCfg;
   let serviceCfg;
   try { stripeCfg = stripeSandbox.configuration(); serviceCfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: error.message }); }
+  catch (error) { console.error("[pos-stripe-webhook:config]", error && error.stack || error); return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: "Plačilna povezava trenutno ni pravilno nastavljena." }); }
   let rawBody;
   try { rawBody = await rawRequestBody(req); }
-  catch (error) { return json(res, error.status || 400, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-stripe-webhook:body]", error && error.stack || error); return json(res, error.status || 400, { ok: false, code: "POS_WEBHOOK_BODY_INVALID", napaka: error && error.status ? error.message : "Webhooka ni bilo mogoče prebrati." }); }
   const signature = String(req.headers && req.headers["stripe-signature"] || "");
   const stripe = stripeSandbox.createClient(stripeCfg);
   let event;

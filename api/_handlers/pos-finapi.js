@@ -29,7 +29,7 @@ async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Dovoljena sta samo GET in POST." });
   let cfg;
   try { cfg = supabase.uporabniskaKonfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-finapi:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
 

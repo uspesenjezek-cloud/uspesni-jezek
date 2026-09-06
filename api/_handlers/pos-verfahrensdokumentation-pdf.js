@@ -161,7 +161,7 @@ async function handler(req, res) {
   if (req.method !== "GET") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-verfahrensdokumentation-pdf:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
   const query = requestQuery(req);
@@ -205,7 +205,7 @@ async function handler(req, res) {
     res.end(pdf);
   } catch (error) {
     console.error("[pos-verfahrensdokumentation-pdf]", error && error.stack || error);
-    return json(res, Number(error && error.status || 500), { ok: false, napaka: error && error.message || "Verfahrensdokumentation ni bilo mogoče ustvariti." });
+    return json(res, Number(error && error.status || 500), { ok: false, code: error && error.code || "POS_PROCEDURE_DOC_FAILED", napaka: "Verfahrensdokumentation ni bilo mogoče ustvariti." });
   }
 }
 

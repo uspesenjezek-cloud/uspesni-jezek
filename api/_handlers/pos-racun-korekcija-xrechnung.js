@@ -131,7 +131,7 @@ async function runValidation(cfg, userId, adjustment, document, xml) {
 async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
-  try { cfg = supabase.konfiguracija(); } catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  try { cfg = supabase.konfiguracija(); } catch (error) { console.error("[pos-racun-korekcija-xrechnung:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
   const query = requestQuery(req);
@@ -154,7 +154,7 @@ async function handler(req, res) {
       .setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"").end(result.xml);
   } catch (error) {
     console.error("[pos-racun-korekcija-xrechnung]", error && error.stack || error);
-    json(res, Number(error && error.status) || 500, { ok: false, napaka: error && error.message || "Strukturirani popravek ni bil ustvarjen." });
+    json(res, Number(error && error.status) || 500, { ok: false, code: error && error.code || "POS_ADJUSTMENT_XRECHNUNG_FAILED", napaka: "Strukturirani popravek ni bil ustvarjen." });
   }
 }
 

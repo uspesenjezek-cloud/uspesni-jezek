@@ -252,7 +252,7 @@ async function handler(req, res) {
 
   let authCfg;
   try { authCfg = supabase.uporabniskaKonfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-fiskaly:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, authCfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
   const action = String(body.action || "");
@@ -275,7 +275,7 @@ async function handler(req, res) {
     }
     let serviceCfg;
     try { serviceCfg = supabase.konfiguracija(); }
-    catch (error) { return json(res, 503, { ok: false, code: error.code, napaka: error.message }); }
+    catch (error) { console.error("[pos-fiskaly:config]", error && error.stack || error); return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
 
     const tse = localMock ? localCashTse : fiskalyRecoveryAdapter();
     const checkoutAction = [
@@ -298,9 +298,10 @@ async function handler(req, res) {
         const clientError = error && ["CASH_CONFIRMATION_REQUIRED", "CASH_REQUEST_INVALID", "CASH_PAYMENT_REQUIRED", "CASH_AMOUNT_INVALID", "CASH_ITEMS_INVALID", "CASH_ITEM_INVALID", "CASH_TOTAL_MISMATCH"].includes(error.code);
         let recovery = error && error.record;
         try { recovery = recovery || await checkoutByRequest(serviceCfg, auth.user.id, String(body.requestKey || "")); } catch (_) {}
+        if (!clientError) console.error("[pos-fiskaly:cash-checkout]", error && error.stack || error);
         return json(res, clientError ? 400 : 409, {
           ok: false, code: error && error.code || "CASH_CHECKOUT_FAILED",
-          napaka: error && error.message || "Gotovinskega checkouta ni bilo mogoče zaključiti.",
+          napaka: clientError ? error.message : "Gotovinskega checkouta ni bilo mogoče zaključiti.",
           checkout: recovery && [cash.STATES.PREPARED, cash.STATES.RECOVERY_REQUIRED, cash.STATES.CANCELLED].includes(recovery.state) ? recovery : undefined,
         });
       }
@@ -321,9 +322,10 @@ async function handler(req, res) {
       const clientError = error && ["CASH_CONFIRMATION_REQUIRED", "CASH_REQUEST_INVALID", "CASH_ORIGINAL_CHECKOUT_INVALID", "CASH_PAYMENT_REQUIRED", "CASH_AMOUNT_INVALID", "CASH_ITEMS_INVALID", "CASH_ITEM_INVALID", "CASH_TOTAL_MISMATCH"].includes(error.code);
       let recovery = error && error.record;
       try { recovery = recovery || await refundByRequest(serviceCfg, auth.user.id, String(body.requestKey || "")); } catch (_) {}
+      if (!clientError) console.error("[pos-fiskaly:cash-refund]", error && error.stack || error);
       return json(res, clientError ? 400 : 409, {
         ok: false, code: error && error.code || "CASH_REFUND_FAILED",
-        napaka: error && error.message || "Gotovinskega povračila ni bilo mogoče zaključiti.",
+        napaka: clientError ? error.message : "Gotovinskega povračila ni bilo mogoče zaključiti.",
         refund: recovery && [cash.STATES.PREPARED, cash.STATES.RECOVERY_REQUIRED, cash.STATES.CANCELLED].includes(recovery.state) ? recovery : undefined,
       });
     }

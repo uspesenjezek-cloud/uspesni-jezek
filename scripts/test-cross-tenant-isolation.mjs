@@ -21,11 +21,17 @@
  * 2. Uporablja SAMO anon ključ in prijavo z geslom - nikoli service_role.
  *    Zato ne more zaobiti RLS in ne more narediti česa, česar ne bi mogel
  *    narediti navaden uporabnik v brskalniku.
- * 3. Pišoče sonde (UPDATE/DELETE) se izvedejo v celoti SAMO nad vrsticami,
- *    ki jih je ustvaril ta skript (tabela "zadeve"). Nad obstoječimi
- *    vrsticami (računi, plačila, ...) se pišoče sonde izvedejo z dodatnim
- *    nemogočim filtrom (id = 0000...0), tako da ne morejo spremeniti nobene
- *    vrstice; preverjajo samo, ali je pravica do pisanja sploh podeljena.
+ * 3. Pišoče sonde se izvedejo nad RESNIČNO obstoječimi vrsticami uporabnika
+ *    A. Nemogoč filter je bil odstranjen: dokazoval je samo, da vrstica ne
+ *    obstaja, ne pa da je RLS zavrne.
+ *      - "zadeve": skript vrstico sam ustvari kot A, jo napade kot B, nato
+ *        kot A preveri, da je NESPREMENJENA, in jo pobriše.
+ *      - POS tabele: uporabnik "authenticated" tam nima pravice INSERT, zato
+ *        vrstice ni mogoče ustvariti prek PostgREST. Uporabijo se obstoječe
+ *        vrstice uporabnika A. Ker bi uspešen zapis pomenil DEJANSKO
+ *        spremembo podatkov testnega računa, se pišoče sonde nad njimi
+ *        izvedejo samo ob izrecni privolitvi UJ_TEST_ALLOW_WRITE_PROBES=true.
+ *        Skript pred napadom posname celotno vrstico in po njem primerja.
  * 4. Vse, kar skript ustvari, na koncu tudi pobriše.
  * 5. Skript nikoli ne ustvari, spremeni ali izbriše vrstice, ki je ni sam
  *    ustvaril.
@@ -35,7 +41,6 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const NICELNI_UUID = "00000000-0000-0000-0000-000000000000";
 const OZNAKA = "UJ-CROSS-TENANT-TEST";
 
 /* ---------------------------------------------------------------- okolje */
@@ -133,27 +138,46 @@ async function sondaBranje(b, tabela, idVrstice) {
  * tako da tudi ob manjkajoci zascititi ne more nicesar spremeniti.
  * Pricakovano: napaka 42501 (ni pravice) ali 0 vrstic.
  */
-async function sondaPisanjeVarno(b, tabela, idVrstice, vrsta, spremembe) {
-  const osnova = b.klient.from(tabela);
-  const poizvedba = vrsta === "UPDATE"
-    ? osnova.update(spremembe).eq("id", idVrstice).eq("id", NICELNI_UUID).select("id")
-    : osnova.delete().eq("id", idVrstice).eq("id", NICELNI_UUID).select("id");
-  const { data, error } = await poizvedba;
-  if (error) {
-    zabelezi(tabela, "B " + vrsta, true, "zavrnjeno: " + error.code + " " + error.message);
+/**
+ * B poskusi PISATI po RESNIČNI vrstici uporabnika A.
+ *
+ * Ta sonda lahko ob dejanski ranljivosti podatke tudi spremeni, zato teče
+ * samo ob izrecni privolitvi. Pred poskusom posname celotno vrstico (prek
+ * A) in po poskusu primerja - tako je razlika dokazana, ne domnevana.
+ */
+async function sondaPisanjeNadObstojeco(a, b, tabela, idVrstice, vrsta, spremembe) {
+  if (String(process.env.UJ_TEST_ALLOW_WRITE_PROBES || "").toLowerCase() !== "true") {
+    zabelezi(tabela, "B " + vrsta, null,
+      "PRESKOCENO: nastavi UJ_TEST_ALLOW_WRITE_PROBES=true (uspesen zapis bi spremenil resnicne vrstice testnega racuna A)");
     return;
   }
-  const n = Array.isArray(data) ? data.length : 0;
-  // Ni napake pomeni, da je pravica do pisanja PODELJENA; nicelni filter je
-  // preprecil dejansko spremembo. To je opozorilo, ne dokaz ranljivosti.
-  zabelezi(
-    tabela,
-    "B " + vrsta,
-    n === 0,
-    n === 0
-      ? "0 vrstic; POZOR: pravica " + vrsta + " je podeljena vlogi authenticated - preveri RLS"
-      : "PUSCANJE: prizadetih " + n + " vrstic"
-  );
+  const prej = await posnetekVrstice(a, tabela, idVrstice);
+  const osnova = b.klient.from(tabela);
+  const poizvedba = vrsta === "UPDATE"
+    ? osnova.update(spremembe).eq("id", idVrstice).select("id")
+    : osnova.delete().eq("id", idVrstice).select("id");
+  const { data, error } = await poizvedba;
+
+  if (error) {
+    zabelezi(tabela, "B " + vrsta, true, "zavrnjeno: " + error.code + " " + error.message);
+  } else {
+    const n = Array.isArray(data) ? data.length : 0;
+    zabelezi(tabela, "B " + vrsta, n === 0,
+      n === 0 ? "0 vrstic (pricakovano)" : "PUSCANJE: prizadetih " + n + " vrstic uporabnika A");
+  }
+
+  // Neodvisna potrditev: A znova prebere vrstico in primerja.
+  const potem = await posnetekVrstice(a, tabela, idVrstice);
+  const enako = JSON.stringify(prej) === JSON.stringify(potem);
+  zabelezi(tabela, "A po " + vrsta, enako,
+    enako ? "vrstica nespremenjena" : "SPREMENJENO ALI IZBRISANO - vrstica uporabnika A se je spremenila");
+}
+
+/** Prebere celotno vrstico kot uporabnik A; null pomeni, da je ni (vec). */
+async function posnetekVrstice(a, tabela, idVrstice) {
+  const { data, error } = await a.klient.from(tabela).select("*").eq("id", idVrstice).maybeSingle();
+  if (error) return { napaka: error.code || error.message };
+  return data || null;
 }
 
 /** B poskusi PISATI po vrstici, ki jo je ustvaril ta skript (varno v celoti). */

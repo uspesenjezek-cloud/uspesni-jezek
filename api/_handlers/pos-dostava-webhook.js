@@ -132,7 +132,7 @@ async function handler(req, res) {
   const svixSignature = header(req, "svix-signature");
   let rawBody;
   try { rawBody = await rawRequestBody(req); }
-  catch (error) { return json(res, error.status || 400, { ok: false, napaka: error.message || "Webhooka ni bilo mogoče prebrati." }); }
+  catch (error) { console.error("[pos-dostava-webhook:body]", error && error.stack || error); return json(res, error.status || 400, { ok: false, code: "POS_WEBHOOK_BODY_INVALID", napaka: error && error.status ? error.message : "Webhooka ni bilo mogoče prebrati." }); }
 
   if (!verifySvixSignature({
     id: svixId,
@@ -157,7 +157,7 @@ async function handler(req, res) {
 
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: error.message }); }
+  catch (error) { console.error("[pos-dostava-webhook:config]", error && error.stack || error); return json(res, 503, { ok: false, code: error.code || "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   try {
     const rpcPayload = {
       p_svix_id: svixId,

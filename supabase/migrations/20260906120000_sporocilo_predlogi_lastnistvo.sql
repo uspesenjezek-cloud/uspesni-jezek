@@ -36,8 +36,22 @@
 -- 20260807131500_sporocilo_dolzniku_in_predlogi.sql:20-23 in zacetne
 -- INSERT-e brez dodal_obrtnik_id). Ker "auth.uid() = NULL" ni nikoli true,
 -- so ti predlogi skozi vlogo authenticated berljivi vsem in zapisljivi
--- nikomur; spreminja jih lahko samo administrator preko service_role
--- (Supabase nadzorna plosca / streznik).
+-- nikomur. Spremeni jih lahko le koda, ki drzi service_role kljuc
+-- (streznik ali Supabase nadzorna plosca).
+--
+-- POJASNILO: service_role NI administratorska pravica prijavljenega
+-- uporabnika. V tej bazi vloge "administrator" ni - iskanje po migracijah
+-- ne najde ne is_admin ne app_metadata ne vloge 'admin'. service_role je
+-- privilegirana STREZNISKA vloga, ki obide RLS. Trditev "ureja jih samo
+-- administrator" zato pomeni "ureja jih samo streznik"; pravega
+-- administratorskega uporabnika v aplikaciji ni. Ce naj sistemske predloge
+-- ureja dolocen prijavljen uporabnik, je treba uvesti vlogo in politiko
+-- zanjo - to s to migracijo NI narejeno.
+--
+-- SKUPNO BRANJE je preverjeno in namerno (20260807131500:7-9, :19-21, :34-35):
+-- vsi prijavljeni vidijo VSE predloge, tudi tiste, ki jih je dodal nekdo
+-- drug. Ta migracija tega ne spreminja. Posledica, ki jo je vredno vedeti:
+-- besedilo predloge, ki ga uporabnik vpise, vidijo vsi ostali uporabniki.
 --
 -- POZOR: migracija ceka na odobritev lastnika. NI vpisana v
 -- POS_MIGRATION_MANIFEST (scripts/check-pos-migration-deployment.js) in ni

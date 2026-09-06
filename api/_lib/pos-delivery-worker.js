@@ -222,7 +222,7 @@ async function handler(req, res) {
   if (!cronAuthorized(req)) return json(res, 401, { ok: false, napaka: "Dostop do delavca ni dovoljen." });
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-dostava-delavec:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   try {
     return json(res, 200, await runWorker(cfg));
   } catch (error) {

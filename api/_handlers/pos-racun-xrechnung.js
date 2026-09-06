@@ -211,7 +211,7 @@ function publicDocument(document) {
 async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
-  try { cfg = supabase.konfiguracija(); } catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  try { cfg = supabase.konfiguracija(); } catch (error) { console.error("[pos-racun-xrechnung:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
   const query = requestQuery(req);
@@ -234,7 +234,7 @@ async function handler(req, res) {
       return json(res, 200, { ok: true, preflight: { draftId: draft.id, xmlSha256: evidence.xml_sha256, expiresAt: evidence.expires_at } });
     } catch (error) {
       console.error("[pos-racun-xrechnung:preflight]", error && error.stack || error);
-      return json(res, Number(error && error.status) || 500, { ok: false, napaka: error && error.message || "KoSIT predizdajna validacija ni uspela." });
+      return json(res, Number(error && error.status) || 500, { ok: false, code: error && error.code || "POS_XRECHNUNG_PREFLIGHT_FAILED", napaka: "KoSIT predizdajna validacija ni uspela." });
     }
   }
   const invoiceId = uuid(query.invoiceId);
@@ -257,7 +257,7 @@ async function handler(req, res) {
     res.end(result.xml);
   } catch (error) {
     console.error("[pos-racun-xrechnung]", error && error.stack || error);
-    json(res, Number(error && error.status) || 500, { ok: false, napaka: error && error.message || "XRechnung ni bil ustvarjen." });
+    json(res, Number(error && error.status) || 500, { ok: false, code: error && error.code || "POS_XRECHNUNG_FAILED", napaka: "XRechnung ni bil ustvarjen." });
   }
 }
 

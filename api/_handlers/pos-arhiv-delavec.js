@@ -187,7 +187,7 @@ module.exports = async function handler(req, res) {
   if (!safeEqual(provided, expected)) return json(res, 401, { ok: false });
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-arhiv-delavec:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
 
   try {
     const documentCounts = await repairMissingDocuments(cfg, 2);

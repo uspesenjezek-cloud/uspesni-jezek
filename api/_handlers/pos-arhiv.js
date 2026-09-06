@@ -134,7 +134,7 @@ async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-arhiv:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
 
@@ -162,7 +162,8 @@ async function handler(req, res) {
     ]);
     return json(res, 200, { ok: true, archive: Object.assign(publicDatabaseSummary(values[0] || {}, values[1] || {}), { checkedNow }) });
   } catch (error) {
-    return json(res, Number(error && error.status || 500), { ok: false, napaka: error.message || "Arhiva ni bilo mogoče preveriti." });
+    console.error("[pos-arhiv]", error && error.stack || error);
+    return json(res, Number(error && error.status || 500), { ok: false, code: error && error.code || "POS_ARCHIVE_CHECK_FAILED", napaka: "Arhiva ni bilo mogoče preveriti." });
   }
 }
 

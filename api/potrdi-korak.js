@@ -140,7 +140,7 @@ async function handler(req, res) {
       plan.version = versionIncrement(serverVersion);
 
       var patchRes1 = await atomicPatch(
-        cfg, zadevaId, serverVersion, plan
+        cfg, zadevaId, serverVersion, plan, userId
       );
       if (!patchRes1.ok) {
         return res.status(409).json({ ok: false, napaka: "Sočasna sprememba.", code: "VERSION_CONFLICT" });
@@ -218,7 +218,7 @@ async function handler(req, res) {
     plan.version = versionIncrement(serverVersion);
 
     var patchRes = await atomicPatch(
-      cfg, zadevaId, serverVersion, plan
+      cfg, zadevaId, serverVersion, plan, userId
     );
 
     if (!patchRes.ok) {
@@ -249,10 +249,18 @@ async function handler(req, res) {
  * Atomski PATCH z optimističnim zaklepom.
  * Vrne { ok: true } samo če je bila posodobljena natanko 1 vrstica.
  */
-async function atomicPatch(cfg, zadevaId, oldVersion, plan) {
+async function atomicPatch(cfg, zadevaId, oldVersion, plan, obrtnikId) {
   try {
+    // Lastnistvo je sicer preverjeno ze zgoraj (glej "3. Preveri lastnistvo"),
+    // vendar ta PATCH tece s service_role kljucem, ki obide RLS. Zato je filter
+    // po obrtnik_id druga plast: tudi ce bi prejsnja preverba kdaj odpadla ali
+    // se zaobsla, PATCH ne more zadeti tuje vrstice. zadeve.obrtnik_id je
+    // "not null" (20260806235245_tabela_zadeve.sql:18), zato filter nikoli
+    // ne izkljuci veljavne lastne vrstice.
+    if (!obrtnikId) return { ok: false };
     var patchUrl =
       cfg.url + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
+      "&obrtnik_id=eq." + encodeURIComponent(obrtnikId) +
       "&opomin_nacrt->>version=eq." + encodeURIComponent(oldVersion);
 
     var patchRes = await db.fetchZOmejitvijo(patchUrl, {

@@ -136,7 +136,7 @@ async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
   try { cfg = supabase.konfiguracija(); }
-  catch (error) { return json(res, 500, { ok: false, napaka: error.message }); }
+  catch (error) { console.error("[pos-racun-korekcija:config]", error && error.stack || error); return json(res, 500, { ok: false, code: "SERVER_NOT_CONFIGURED", napaka: "Strežnik trenutno ni pravilno nastavljen." }); }
 
   const auth = await supabase.preveriUporabnika(req, cfg);
   if (!auth.ok) return json(res, auth.status || 401, { ok: false, code: auth.code, napaka: auth.napaka });
@@ -166,7 +166,7 @@ async function handler(req, res) {
     res.end(result.pdf);
   } catch (error) {
     console.error("[pos-racun-korekcija]", error && error.stack || error);
-    json(res, 500, { ok: false, napaka: error && error.message || "Popravek ni bil ustvarjen." });
+    json(res, 500, { ok: false, code: error && error.code || "POS_ADJUSTMENT_PDF_FAILED", napaka: "Popravek ni bil ustvarjen." });
   }
 }
 
