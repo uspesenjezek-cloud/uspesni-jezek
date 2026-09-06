@@ -180,21 +180,50 @@
     }
   }
 
+  // Trajne shrambe za kljuce varne ponovitve. sessionStorage sam ne zadostuje:
+  // v zasebnem oknu in ponekod v iOS PWA vrze izjemo, umre pa tudi ob zaprtju
+  // zavihka. Ker streznik idempotenco gradi IZKLJUCNO na tem kljucu
+  // (pos_payments ima primary key (user_id, request_key)), bi nov kljuc po
+  // osvezitvi strani pomenil drugo placilo, drug dobropis ali drugo posiljko.
+  var operationRequestWarningShown = false;
+
+  function persistentStores() {
+    var stores = [];
+    try { if (global.sessionStorage) stores.push(global.sessionStorage); } catch (_error) {}
+    try { if (global.localStorage) stores.push(global.localStorage); } catch (_error) {}
+    return stores;
+  }
+
   function operationRequestId(kind, scope) {
     var key = String(kind || "operation") + ":" + String(scope || "default");
     var storageKey = "uj_pos_request:" + key;
     var value = operationRequestIds[key] || "";
-    try { value = global.sessionStorage.getItem(storageKey) || value; } catch (_error) {}
+    var stores = persistentStores();
+    for (var readIndex = 0; readIndex < stores.length && !value; readIndex += 1) {
+      try { value = stores[readIndex].getItem(storageKey) || value; } catch (_error) {}
+    }
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) value = randomUuid();
     operationRequestIds[key] = value;
-    try { global.sessionStorage.setItem(storageKey, value); } catch (_error) {}
+    var durable = false;
+    for (var writeIndex = 0; writeIndex < stores.length; writeIndex += 1) {
+      try { stores[writeIndex].setItem(storageKey, value); durable = true; } catch (_error) {}
+    }
+    // Brez trajne shrambe kljuc prezivi le do osvezitve strani. Tega ne moremo
+    // resiti s shrambo, lahko pa uporabnika opozorimo, preden podvoji placilo.
+    if (!durable && !operationRequestWarningShown) {
+      operationRequestWarningShown = true;
+      try { showToast("Opozorilo: brskalnik ne shrani ključa varne ponovitve. Med potrjevanjem ne osvežujte strani."); } catch (_error) {}
+    }
     return value;
   }
 
   function clearOperationRequestId(kind, scope) {
     var key = String(kind || "operation") + ":" + String(scope || "default");
     delete operationRequestIds[key];
-    try { global.sessionStorage.removeItem("uj_pos_request:" + key); } catch (_error) {}
+    var stores = persistentStores();
+    for (var index = 0; index < stores.length; index += 1) {
+      try { stores[index].removeItem("uj_pos_request:" + key); } catch (_error) {}
+    }
   }
 
   function operationScopeHash(value) {
@@ -1711,7 +1740,20 @@
     (invoices || []).forEach(function (invoice) {
       if (!invoice || invoice.isTest) return;
       var draft = invoice.draft || {};
-      if (inPeriod(draft.issueDate)) appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number), null, invoice.documentGuid);
+      if (inPeriod(draft.issueDate)) {
+        // DATEV knjizi zneske, PRERACUNANE iz snapshota, racun pa nosi zaklenjene
+        // totale iz baze (totals.byRate je pri streznisko shranjenem racunu prazen).
+        // Ce se razideta, bi izvoz tiho poknjizil drug znesek, kot ga vidi prejemnik
+        // racuna in davcni svetovalec. Zato ju primerjamo in izvoz raje ustavimo.
+        var preLockCheck = bookings.length;
+        appendParts(invoice, draft.issueDate, invoice.number, "S", "Ausgangsrechnung " + (draft.customerName || invoice.number), null, invoice.documentGuid);
+        var lockedGrossCents = integer(invoice.totals && invoice.totals.grossCents, 0);
+        var bookedGrossCents = bookings.slice(preLockCheck).reduce(function (sum, entry) { return sum + integer(entry.amountCents, 0); }, 0);
+        if (bookings.length > preLockCheck && lockedGrossCents > 0 && bookedGrossCents !== lockedGrossCents) {
+          errors.push("Račun " + invoice.number + ": DATEV bi poknjižil " + formatMoney(bookedGrossCents)
+            + ", zaklenjeni znesek računa pa je " + formatMoney(lockedGrossCents) + ". Izvoz je ustavljen.");
+        }
+      }
       (invoice.adjustments || []).forEach(function (adjustment) {
         var date = berlinDateKey(adjustment.createdAt);
         if (!inPeriod(date)) return;

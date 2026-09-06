@@ -679,6 +679,7 @@
     "Produkcijska izdaja čaka potrjeno ločeno arhivsko kopijo in preizkus obnove.": "Die produktive Ausstellung wartet auf eine bestätigte separate Archivsicherung und einen Wiederherstellungstest.",
     "Točen XRechnung nastane iz zaklenjenih podatkov po izdaji in se nato preveri s KoSIT.": "Die endgültige XRechnung wird nach der Ausstellung aus den gesperrten Daten erzeugt und anschließend mit KoSIT geprüft.",
     "Plačilni podatki so kopirani.": "Die Zahlungsdaten wurden kopiert.",
+    "Opozorilo: brskalnik ne shrani ključa varne ponovitve. Med potrjevanjem ne osvežujte strani.": "Warnung: Der Browser speichert den Schlüssel für die sichere Wiederholung nicht. Laden Sie die Seite während der Bestätigung nicht neu.",
     "Opozorilo: brskalnik ne shrani podatkov za nadaljevanje. Med podpisovanjem ne osvežujte strani.": "Warnung: Der Browser speichert die Daten zur Fortsetzung nicht. Laden Sie die Seite während der Signatur nicht neu.",
     "Storniranega računa ni mogoče označiti kot plačanega.": "Eine stornierte Rechnung kann nicht als bezahlt markiert werden.",
     "Ta račun je že označen kot plačan.": "Diese Rechnung ist bereits als bezahlt markiert.",
