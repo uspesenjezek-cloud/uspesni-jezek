@@ -11,7 +11,7 @@
   --pos-line: #d4e2de;
   --pos-warn: #9a6a12;
   --pos-warn-soft: #fff7e4;
-  max-width: 430px;
+  max-width: var(--sirina-vsebine);
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0 auto;
@@ -171,6 +171,7 @@
 
 .pos-main {
   min-height: calc(100dvh - 130px);
+  padding-inline: var(--odmik-roba);
 }
 
 .pos-view {

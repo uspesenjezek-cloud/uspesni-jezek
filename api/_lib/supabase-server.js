@@ -90,8 +90,6 @@ function jeNeveljavnaJwtNapaka(err) {
     "ERR_JWT_CLAIM_VALIDATION_FAILED",
     "ERR_JWT_EXPIRED",
     "ERR_JWT_INVALID",
-    "ERR_JWKS_NO_MATCHING_KEY",
-    "ERR_JWKS_MULTIPLE_MATCHING_KEYS",
   ].includes(err.code));
 }
 
@@ -134,6 +132,7 @@ async function preveriUporabnika(req, cfg) {
   // in čas veljavnosti zato preverimo lokalno z uradnim javnim JWKS ključem.
   // Tako vsak klik ni odvisen od odzivnosti oddaljenega /auth/v1/user.
   if (cfg.authVerificationMode !== "remote") {
+    var lokalniZacetek = Date.now();
     try {
       var lokalniUser = await preveriJwtLokalno(token, cfg);
       return { ok: true, user: lokalniUser, token: token, verification: "local_jwks" };
@@ -150,7 +149,12 @@ async function preveriUporabnika(req, cfg) {
       if (jeNeveljavnaJwtNapaka(lokalnaNapaka)) {
         return { ok: false, status: 401, code: "AUTH_SESSION_INVALID", retryable: false, napaka: "Prijava ni več veljavna." };
       }
-      console.warn("[auth-local-fallback]", String(lokalnaNapaka && (lokalnaNapaka.code || lokalnaNapaka.name) || "UNKNOWN"));
+      console.warn("[auth-local-fallback]", JSON.stringify({
+        code: String(lokalnaNapaka && (lokalnaNapaka.code || lokalnaNapaka.name) || "UNKNOWN").slice(0, 80),
+        causeName: String(lokalnaNapaka && lokalnaNapaka.cause && lokalnaNapaka.cause.name || lokalnaNapaka && lokalnaNapaka.name || "UNKNOWN").slice(0, 80),
+        elapsedMs: Date.now() - lokalniZacetek,
+        fallback: "remote_auth_user",
+      }));
       // Če javnega ključa ob hladnem zagonu začasno ni mogoče pridobiti,
       // ohranimo varno rezervno preverjanje neposredno pri Auth strežniku.
     }

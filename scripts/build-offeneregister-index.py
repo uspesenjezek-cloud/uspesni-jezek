@@ -4,8 +4,9 @@
 The source JSONL contains officers and historical metadata that the UI does not
 need.  This builder keeps only the company name and the minimum register fields,
 groups records by the first two normalized characters, and writes deterministic
-gzip-compressed JSON.  The generated data is discovery-only; OpenRegister still
-performs the one official verification request when a check starts.
+gzip-compressed JSON. The generated data is also the zero-credit source for an
+explicitly selected historical register row. The server revalidates that exact
+row locally; a separate current-status check must be requested explicitly.
 """
 
 from __future__ import annotations

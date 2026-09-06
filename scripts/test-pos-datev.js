@@ -226,7 +226,7 @@ assert.match(datevSettingsValidationMigration, /immutable[\s\S]*set search_path 
 assert.match(datevSettingsValidationMigration, /grant execute on function private\.pos_datev_settings_valid\(jsonb\) to authenticated, service_role/i);
 assert.match(datevProviderBoundsMigration, /octet_length\(access_token_encrypted\) <= 16384/i);
 assert.match(datevProviderBoundsMigration, /octet_length\(refresh_token_encrypted\) <= 16384/i);
-assert.match(localServer, /else void posredujZascitenApi\(req, res, requestUrl\.pathname \+ requestUrl\.search\)/);
+assert.match(localServer, /else void posredujOddaljeniZascitenApi\(req, res, requestUrl\.pathname \+ requestUrl\.search, "DATEV API-ja"\)/);
 assert.match(localServer, /pathname === "\/__dev-source"/);
 
 assert.deepStrictEqual(handler._test.chunks([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);

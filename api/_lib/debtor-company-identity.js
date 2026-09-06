@@ -1,5 +1,7 @@
 "use strict";
 
+var companyStatusSafety = require("./company-status-safety");
+
 var db = require("./supabase-server");
 var profileStore = require("./boniteta-pro-store");
 var identitySearch = require("./openregister-identity-search");
@@ -117,7 +119,7 @@ function profilePayload(company) {
     legalName: company.name,
     registerNumber: [company.register_type, company.register_number].filter(Boolean).join(" "),
     registerCourt: company.register_court,
-    companyStatus: company.active === false ? "inactive" : "active",
+    companyStatus: companyStatusSafety.safeCompanyStatus(company.active === true ? "active" : company.active === false ? "inactive" : "unknown", company, company.company_id),
     address: { street: address.street || "", postal_code: address.postal_code || "", city: address.city || "" },
     latestCheck: {
       source: "debtor_company_identity_search",
@@ -126,7 +128,7 @@ function profilePayload(company) {
         status: "verified_register", companyId: company.company_id, naziv: company.name,
         registerType: company.register_type, registerNumber: company.register_number,
         registerCourt: company.register_court, legalForm: company.legal_form,
-        active: company.active !== false, naslov: address.street || "",
+        active: companyStatusSafety.safeActive(company.active, company, company.company_id), naslov: address.street || "",
         postnaStevilka: address.postal_code || "", kraj: address.city || "",
       },
     },
@@ -151,7 +153,7 @@ async function saveSelection(cfg, userId, proof) {
       register_number: company.register_number || null,
       register_court: company.register_court || null,
       legal_form: company.legal_form || null,
-      company_status: company.active === false ? "inactive" : "active",
+      company_status: companyStatusSafety.safeCompanyStatus(company.active === true ? "active" : company.active === false ? "inactive" : "unknown", company, company.company_id),
       checked_at: new Date().toISOString(),
       next_check_at: new Date(Date.now() + CACHE_TTL_MS).toISOString(),
       last_credits_used: 0,

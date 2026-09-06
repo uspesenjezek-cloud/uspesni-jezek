@@ -29,6 +29,16 @@ function shiftDate(days) {
   return date.toISOString().slice(0, 10);
 }
 
+function shiftMonth(months) {
+  var date = new Date(REFERENCE_DATE + "T12:00:00.000Z");
+  var day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  var lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
+  return date.toISOString().slice(0, 10);
+}
+
 function payment(amount, date, method) {
   return { type: "partial_payment", amount: amount, occurredDate: date, paymentMethod: method || null };
 }
@@ -45,35 +55,35 @@ function createCase(index) {
   var methods = [null, null, null];
   if (variant === 0) {
     text = "mesec dni nazaj je placal " + first + " nato 2 tedna " + typo + " " + second + " in danes pa " + third + ".. ostalo ni placal";
-    dates = ["2026-07-28", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftMonth(-1), shiftDate(-14), REFERENCE_DATE];
   } else if (variant === 1) {
     text = "dolznik je placal mesec dni nazaj " + first + " dva tedna " + typo + " " + second + " danes pa je placal se " + third + " ostalo ni poravnal";
-    dates = ["2026-07-28", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftMonth(-1), shiftDate(-14), REFERENCE_DATE];
   } else if (variant === 2) {
     text = "placal je " + first + " mesec dni nazaj... " + second + " dva tedna " + typo + " in " + third + " danes preostanka ni placal";
-    dates = ["2026-07-28", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftMonth(-1), shiftDate(-14), REFERENCE_DATE];
   } else if (variant === 3) {
     text = "tri tedne nazaj je placal " + first + " nato 2tedna " + typo + " " + second + " vceraj pa " + third + " potem nic vec";
-    dates = ["2026-08-07", "2026-08-14", "2026-08-27"];
+    dates = [shiftDate(-21), shiftDate(-14), shiftDate(-1)];
   } else if (variant === 4) {
     text = "placal je " + first + " tri tedne nazaj, dva tedna " + typo + " " + second + ", danes pa se " + third + "; vse ostalo ni placal";
-    dates = ["2026-08-07", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftDate(-21), shiftDate(-14), REFERENCE_DATE];
   } else if (variant === 5) {
     text = "pred 21 dnevi je placal " + first + " potem pred 14 dnevi " + second + " in danes " + third + " ostalo pa ni poravnal";
-    dates = ["2026-08-07", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftDate(-21), shiftDate(-14), REFERENCE_DATE];
   } else if (variant === 6) {
     text = "dolznik je placal " + first + " pred tremi tedni... pred dvema tednoma " + second + " vceraj pa se " + third + " in potem ni vec placal";
-    dates = ["2026-08-07", "2026-08-14", "2026-08-27"];
+    dates = [shiftDate(-21), shiftDate(-14), shiftDate(-1)];
   } else if (variant === 7) {
     text = "3 tedne nazaj " + first + " nato 2tedna nazaj " + second + " danes pa je placal " + third + "... ostalo je ostalo neplacano";
-    dates = ["2026-08-07", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftDate(-21), shiftDate(-14), REFERENCE_DATE];
   } else if (variant === 8) {
     methods = ["bank_transfer", "card", "cash"];
     text = "mesec dni nazaj je placal " + first + " z nakazilom potem 2 tedna " + typo + " " + second + " s kartico danes pa " + third + " v gotovini ostalo ni placal";
-    dates = ["2026-07-28", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftMonth(-1), shiftDate(-14), REFERENCE_DATE];
   } else {
     text = "mesec dni nazaj " + first + "... nato dva tedna " + typo + " pa " + second + " in danes pa je placal se " + third + " eur drugo pa ni placal";
-    dates = ["2026-07-28", "2026-08-14", REFERENCE_DATE];
+    dates = [shiftMonth(-1), shiftDate(-14), REFERENCE_DATE];
   }
   var remaining = roundMoney(DEBT - first - second - third);
   return {
@@ -84,6 +94,65 @@ function createCase(index) {
     }],
     ledger: [roundMoney(DEBT - first), roundMoney(DEBT - first - second), remaining, remaining],
   };
+}
+
+function createHoldoutCase(index) {
+  var variant = index % 10;
+  var round = Math.floor(index / 10);
+  var first = 260 + round * 29 + variant * 13;
+  var second = 140 + round * 19 + variant * 9;
+  var third = 60 + round * 11 + variant * 7;
+  var typo = ["nazaaj", "nazzaj", "nazj", "nazaaaj", "nazai"][index % 5];
+  var text;
+  var dates;
+  var orderedAmounts = [first, second, third];
+  var methods = [null, null, null];
+  if (variant === 0) {
+    text = "evo pred 5 dnevi je nakazal " + first + " vceraj se " + second + " danes pa " + third + " ostanek ni prisel";
+    dates = [shiftDate(-5), shiftDate(-1), REFERENCE_DATE];
+  } else if (variant === 1) {
+    text = "najprej " + first + " pred 12 dnevi pol " + second + " pred 4 dnevi pa dons " + third + " preostali dolg ni placan";
+    dates = [shiftDate(-12), shiftDate(-4), REFERENCE_DATE];
+  } else if (variant === 2) {
+    text = "pred enim tednom placano " + first + " eur; pred 2 dnevoma " + second + "; danes se " + third + ", preostali dolg ni placan";
+    dates = [shiftDate(-7), shiftDate(-2), REFERENCE_DATE];
+  } else if (variant === 3) {
+    text = "dal je " + first + " pred 9 dnevi nato " + second + " tri dni " + typo + " in vcerej " + third + " naprej ni placal";
+    dates = [shiftDate(-9), shiftDate(-3), shiftDate(-1)];
+  } else if (variant === 4) {
+    text = "dons je poravnal " + third + " prej pa " + first + " pred 10 dnevi in " + second + " pred 6 dnevi, ostanek odprt";
+    dates = [REFERENCE_DATE, shiftDate(-10), shiftDate(-6)];
+    orderedAmounts = [third, first, second];
+  } else if (variant === 5) {
+    methods = ["cash", "bank_transfer", "card"];
+    text = "pred 8 dnevi " + first + " gotovine, pred tremi dnevi nakazilo " + second + ", danes kartica " + third + "; ostalo ni poravnano";
+    dates = [shiftDate(-8), shiftDate(-3), REFERENCE_DATE];
+  } else if (variant === 6) {
+    text = "placilo " + first + " je bilo 11 dni " + typo + ", " + second + " pet dni nazaj, " + third + " pa danes; preostali dolg ni placan";
+    dates = [shiftDate(-11), shiftDate(-5), REFERENCE_DATE];
+  } else if (variant === 7) {
+    text = "vceraj " + second + " danes " + third + " pred dvema tednoma pa " + first + " evrov; razlika ostaja neplacana";
+    dates = [shiftDate(-1), REFERENCE_DATE, shiftDate(-14)];
+    orderedAmounts = [second, third, first];
+  } else if (variant === 8) {
+    text = "pred 6 dnevi je prislo " + first + " eur, dva dni pozneje se " + second + ", danes " + third + "; preostali dolg ni placan";
+    dates = [shiftDate(-6), shiftDate(-4), REFERENCE_DATE];
+  } else {
+    text = "lej " + first + " je placal pred 13 dnevi / " + second + " pred 7 dnevi / " + third + " vcerej, ostalo pa nic";
+    dates = [shiftDate(-13), shiftDate(-7), shiftDate(-1)];
+  }
+  var amounts = orderedAmounts;
+  var remaining = DEBT;
+  var events = amounts.map(function (amount, amountIndex) {
+    remaining = roundMoney(remaining - amount);
+    return payment(amount, dates[amountIndex], methods[amountIndex]);
+  });
+  events.push({ type: "remaining_unpaid", amount: remaining, occurredDate: null, paymentMethod: null });
+  var ledger = [];
+  var running = DEBT;
+  amounts.forEach(function (amount) { running = roundMoney(running - amount); ledger.push(running); });
+  ledger.push(running);
+  return { id: "holdout-" + String(index + 1).padStart(3, "0"), family: "holdout-" + variant, text: text, events: events, ledger: ledger };
 }
 
 function createMonthOnlyCase(index) {
@@ -244,6 +313,7 @@ async function runCase(testCase, apiKey) {
     apiKey: apiKey,
     userId: "approved-live-luna-100-" + testCase.id,
     timeoutMs: parser.MODEL_TIMEOUT_MAX_MS,
+    maxAttempts: 1,
     fetchImpl: async function (url, options) {
       captured.providerCalls += 1;
       captured.request = JSON.parse(options.body);
@@ -290,7 +360,7 @@ async function main() {
   if (!liveApproved) throw new Error("Zunanji test zahteva izrecni argument --live.");
   var apiKey = loadApiKey();
   if (!apiKey) throw new Error("OPENAI_API_KEY ni nastavljen.");
-  var createSelectedCase = suite === "month-only" ? createMonthOnlyCase : suite === "lean" ? createLeanCase : createCase;
+  var createSelectedCase = suite === "month-only" ? createMonthOnlyCase : suite === "lean" ? createLeanCase : suite === "holdout" ? createHoldoutCase : createCase;
   var cases = Array.from({ length: caseCount }, function (_item, index) { return createSelectedCase(index + caseOffset); });
   var results = new Array(cases.length);
   var nextIndex = 0;
@@ -372,6 +442,7 @@ module.exports = {
   createCase: createCase,
   createMonthOnlyCase: createMonthOnlyCase,
   createLeanCase: createLeanCase,
+  createHoldoutCase: createHoldoutCase,
   compareFinal: compareFinal,
   compareRaw: compareRaw,
   rawPlan: rawPlan,

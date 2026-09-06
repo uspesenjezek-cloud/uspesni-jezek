@@ -38,8 +38,13 @@ async function main() {
     "ročna in monitoring ponovna preverba morata obiti North Data predpomnilnik");
   assert.match(handler, /enrichVerifiedIdentity\(openregister, identiteta, \{[\s\S]*?disableCache: svezaNorthDataPreverba/,
     "izrecna nova preverba mora sveže zagnati osnovnega North Data agenta");
-  assert.match(handler, /enrichAfterPrimary\([\s\S]*?\{ disableCache: svezaNorthDataPreverba \}/,
-    "po uspešnem osnovnem ujemanju mora izrecna nova preverba sveže zagnati tudi dopolnilnega North Data agenta");
+  var backgroundHandler = source("api/_handlers/mehka-boniteta-podrobnosti.js");
+  assert.doesNotMatch(handler, /northDataDetailsClient\.enrichAfterPrimary/,
+    "glavni rezultat ne sme uporabljati starega zaporednega dopolnilnega toka");
+  assert.match(handler, /northDataDetailsClient\.enrichVerifiedIdentity\(openregister, identiteta, \{[\s\S]*?disableCache: svezaNorthDataPreverba/,
+    "izrecna nova preverba mora sveže in vzporedno zagnati dopolnilnega North Data agenta");
+  assert.match(backgroundHandler, /disableCache: request\.forceFresh === true/,
+    "ozadni handler mora svežo ponovno preverbo izvesti brez starega predpomnilnika");
 
   var functionStart = check.indexOf("  function vnosZaPonovnoPreverboProfila(profile) {");
   var functionEnd = check.indexOf("\n  window.UJBonitetaPonovnoPreveriProfil", functionStart);

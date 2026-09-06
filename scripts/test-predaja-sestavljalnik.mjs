@@ -1118,9 +1118,18 @@ test("6a. opis opravljenega dela je obvezen šele pri predaji odvetniku", functi
 test("66a. orodna vrstica odpre seznam vseh odvetnikov", function () {
   assert.ok(uiSrc.includes('id="lp-preglej-vse-odvetnike"'));
   assert.ok(uiSrc.includes('class="lp-filter-ponudb__preglej-odvetnike"'));
+  assert.ok(uiSrc.includes('>Vsi odvetniki</span>'));
   assert.ok(!uiSrc.includes('id="lp-filter-priporoceno"'));
   assert.ok(uiSrc.includes('lpPreglejVseOdvetnike.addEventListener("click", lpOdpriOdvetnike)'));
   assert.ok(stylesSrc.includes(".lp-filter-ponudb__preglej-odvetnike"));
+});
+
+test("66aa. priporočilo je ohranjeno v kompaktnem vijoličnem pasu", function () {
+  assert.ok(uiSrc.includes('class="lp-filter-ponudb__priporocilo" role="note"'));
+  assert.ok(uiSrc.includes("Priporočamo: Mešane ponudbe"));
+  assert.ok(uiSrc.includes("razlogPriporocenegaPaketa(plan)"));
+  assert.ok(stylesSrc.includes(".lp-filter-ponudb__priporocilo"));
+  assert.ok(stylesSrc.includes("grid-template-columns: 32px minmax(0, 1fr)"));
 });
 
 test("66b. kratki vprašanji sta prestavljeni pod odvetnika", function () {

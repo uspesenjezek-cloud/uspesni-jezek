@@ -7,12 +7,18 @@ var core = require("./_lib/izvedba-core");
 var KODA_V_STATUS = {
   NOT_FOUND: 404,
   FORBIDDEN: 403,
+  CASE_RESOLVED: 409,
   VERSION_CONFLICT: 409,
   ACTION_ID_REUSED: 409,
   ACTION_IN_PROGRESS: 409,
   INVALID_SPOROCILA: 400,
   INCOMPLETE_RECIPIENTS: 409,
 };
+
+function jeNapakaZakljucenegaPrimera(err) {
+  return [err && err.code, err && err.message, err && err.details, err && err.hint]
+    .some(function (vrednost) { return String(vrednost || "").indexOf("CASE_RESOLVED") >= 0; });
+}
 
 var MAX_DOLZINA_SPOROCILA = 1600;
 
@@ -76,6 +82,9 @@ async function handler(req, res) {
     if (zadeva.obrtnik_id !== auth.user.id) {
       return res.status(403).json({ ok: false, code: "FORBIDDEN", napaka: "Zadeva ni vaša." });
     }
+    if (zadeva.status === "Rešeno") {
+      return res.status(409).json({ ok: false, code: "CASE_RESOLVED", napaka: "Ta primer je že zaključen in ga ni več mogoče spreminjati." });
+    }
 
     var kanonicnaSporocila = sporocila
       .map(function (s) { return { opominKorakId: String(s.opominKorakId), koncnoBesedilo: String(s.koncnoBesedilo).trim() }; })
@@ -112,6 +121,9 @@ async function handler(req, res) {
     return res.json(rpcOdgovor);
   } catch (err) {
     console.error("[poslji-opomin-zdaj]", err.code || err.message, err.details || "");
+    if (jeNapakaZakljucenegaPrimera(err)) {
+      return res.status(409).json({ ok: false, code: "CASE_RESOLVED", napaka: "Ta primer je že zaključen in ga ni več mogoče spreminjati." });
+    }
     return res.status(500).json({ ok: false, napaka: "Sporočila trenutno ni bilo mogoče poslati v vrsto." });
   }
 }

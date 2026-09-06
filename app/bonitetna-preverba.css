@@ -103,46 +103,6 @@ html.app-iphone-preview body.stran--bonitetna {
   box-shadow: none;
 }
 
-.stran--bonitetna.boniteta-rezultat-je-okno .boniteta-obrazec {
-  display: none;
-}
-
-.boniteta-rezultat-okno {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  min-width: 0;
-  padding: calc(17px + env(safe-area-inset-top, 0px)) 18px 11px;
-}
-
-.boniteta-rezultat-okno > div {
-  min-width: 0;
-}
-
-.boniteta-rezultat-okno p {
-  margin: 0 0 2px;
-  color: #5f7c78;
-  font: 700 .59rem/1.1 "Figtree", sans-serif;
-  letter-spacing: .1em;
-}
-
-.boniteta-rezultat-okno h1 {
-  overflow: hidden;
-  margin: 0;
-  color: #084f54;
-  font: 700 1.35rem/1.1 "Bricolage Grotesque", sans-serif;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stran--bonitetna.boniteta-rezultat-je-okno #boniteta-center-new {
-  align-content: start;
-}
-
-.stran--bonitetna.boniteta-rezultat-je-okno .boniteta-potek,
-.stran--bonitetna.boniteta-rezultat-je-okno .boniteta-rezultat {
-  scroll-margin-top: calc(82px + env(safe-area-inset-top, 0px));
-}
 .stran--bonitetna.crif-elements-hidden [data-crif-element],
 .stran--bonitetna.crif-elements-hidden .crif-temp-action { display: none !important; }
 .boniteta-center-workspace[hidden],.boniteta-center-active[hidden],#boniteta-center-new[hidden] { display:none !important; }
@@ -393,6 +353,7 @@ html.app-iphone-preview body.stran--bonitetna {
   line-height: 1.3;
 }
 .boniteta-hero__status:not(.is-error) { display: none !important; }
+
 
 .boniteta-primerjava { display: flex; min-height: 34px; margin-top: 9px; align-items: center; justify-content: flex-end; gap: 9px; }
 .boniteta-primerjava__tabi { display: grid; min-width: 0; flex: 1 1 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid #79c9bd; border-radius: 999px; background: rgba(255, 255, 255, .94); }
@@ -1186,35 +1147,6 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   overflow-wrap: anywhere;
 }
 
-/* Barvna povezava med preverjenimi polji in uradnim dokaznim posnetkom. */
-.boniteta-barvna-primerjava__namig {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0 8px;
-  padding: 9px 11px;
-  border: 1px solid #cfe2dc;
-  border-radius: 11px;
-  background: linear-gradient(145deg, #f3faf7, #fbfdfc);
-  color: #35655f;
-  font: 650 .7rem/1.35 "Figtree", sans-serif;
-}
-
-.boniteta-barvna-primerjava__namig[hidden] { display: none !important; }
-
-.boniteta-barvna-primerjava__namig > span {
-  display: grid;
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  border-radius: 50%;
-  background: #3b8c72;
-  color: #fff;
-  font-size: .72rem;
-  font-weight: 800;
-}
-
 /* Rezultat najprej razloži pot preverbe, šele nato pokaže podrobna polja. */
 .boniteta-metodologija {
   padding: 17px 18px 18px;
@@ -1402,22 +1334,15 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 }
 
 /* Pri potrjenem registrskem podjetju sta splosni glavi le podvojitev podatkov spodaj. */
-.stran--bonitetna.boniteta-register-result .boniteta-rezultat-okno,
 .stran--bonitetna.boniteta-register-result .boniteta-rezultat > .boniteta-rezultat__glava {
   display: none !important;
 }
 
-.stran--bonitetna.boniteta-register-result .boniteta-preverjeni-viri {
-  display: none !important;
-}
-
-/* Enotni kompaktni rezultat nadomesti staro stran z dokazili, omejitvijo in
-   gumbom za ponovitev. Enako velja za podjetje in fizično osebo. */
+/* Enotni kompaktni rezultat odstrani podvojene registrske podatke. */
 .stran--bonitetna.boniteta-register-result #boniteta-identiteta-posnetek,
 .stran--bonitetna.boniteta-register-result #boniteta-identiteta-dokazilo-status,
 .stran--bonitetna.boniteta-register-result #boniteta-hwk-vir,
-.stran--bonitetna.boniteta-register-result > main #boniteta-rezultat > .boniteta-omejitev,
-.stran--bonitetna.boniteta-register-result > main #boniteta-rezultat > .boniteta-ponovi {
+.stran--bonitetna.boniteta-register-result > main #boniteta-rezultat > .boniteta-omejitev {
   display: none !important;
 }
 
@@ -1936,6 +1861,11 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   min-width: 0;
 }
 
+.stran--bonitetna.boniteta-profil-je-okno .boniteta-obrazec,
+.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-obrazec {
+  display: none !important;
+}
+
 .stran--bonitetna.boniteta-insolvenca-je-okno #boniteta-rezultat > *:not(.boniteta-insolvenca-okno) {
   display: none !important;
 }
@@ -2025,6 +1955,8 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+
+.boniteta-insolvenca-okno__spodnja-vrstica { margin-top: 10px; }
 
 .boniteta-insolvenca-okno__nazaj-spodaj:hover { background: #f5fbfa; }
 .boniteta-insolvenca-okno__nazaj-spodaj:active { transform: scale(.992); }
@@ -2559,6 +2491,119 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   font-size: .88rem;
 }
 
+/* OpenRegister vedno nadaljuje samodejno: uporabnik vidi status, nikoli ročnega CTA-ja. */
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-auto-warning,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-complete {
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 4px 11px;
+  padding: 13px 13px 12px;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading {
+  overflow: hidden;
+  background: linear-gradient(110deg, #f8fdfc 12%, #e7f6f3 48%, #f8fdfc 84%);
+  background-size: 220% 100%;
+  cursor: progress;
+  animation: boniteta-insolvenca-nalaganje 1.35s ease-in-out infinite;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__ikona {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 34px;
+  height: 34px;
+  align-self: center;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading .boniteta-identiteta-nadaljuj__ikona {
+  border: 3px solid rgba(22, 141, 136, .18);
+  border-top-color: #168d88;
+  background: #fff;
+  color: #168d88;
+  animation: boniteta-insolvenca-vrtenje .9s linear infinite;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina > small,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina > strong,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina > span {
+  display: block;
+  grid-column: 2;
+  min-width: 0;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina > small { grid-row: 1; }
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina > strong {
+  grid-row: 2;
+  color: #123c3a;
+  font-size: .98rem;
+  line-height: 1.15;
+}
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina > span {
+  grid-row: 3;
+  color: #4f716d;
+  font-size: .72rem;
+  font-weight: 650;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj:is(.is-loading, .is-auto-warning, .is-inactive-warning, .is-complete) .boniteta-identiteta-nadaljuj__vsebina b {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  margin-top: 7px;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading .boniteta-identiteta-nadaljuj__vsebina b > i:last-child {
+  animation: boniteta-insolvenca-pika 1s ease-in-out infinite;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-complete .boniteta-identiteta-nadaljuj__vsebina > span {
+  color: #18724f;
+  font-size: .82rem;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-complete .boniteta-identiteta-nadaljuj__vsebina em {
+  font-size: 1rem;
+  line-height: 1.12;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning:disabled {
+  opacity: 1;
+  cursor: default;
+  border-color: rgba(181, 83, 77, .28);
+  background: #fff9f8;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning .boniteta-identiteta-nadaljuj__ikona {
+  border-color: #fbe5e3;
+  background: #b84f49;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(184, 79, 73, .16);
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning .boniteta-identiteta-nadaljuj__vsebina > small,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning .boniteta-identiteta-nadaljuj__vsebina > strong,
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning .boniteta-identiteta-nadaljuj__vsebina > span {
+  color: #99433e;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-inactive-warning .boniteta-identiteta-nadaljuj__vsebina b {
+  border-color: #b84f49;
+  background: linear-gradient(135deg, #c9635d, #ad4742);
+  box-shadow: 0 8px 18px rgba(173, 71, 66, .16);
+}
+
+@keyframes boniteta-insolvenca-nalaganje { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+@keyframes boniteta-insolvenca-vrtenje { to { transform: rotate(360deg); } }
+@keyframes boniteta-insolvenca-pika { 0%, 100% { opacity: .4; transform: scale(.82); } 50% { opacity: 1; transform: scale(1.08); } }
+
+@media (prefers-reduced-motion: reduce) {
+  #boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading,
+  #boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading .boniteta-identiteta-nadaljuj__ikona,
+  #boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj.is-loading .boniteta-identiteta-nadaljuj__vsebina b > i:last-child { animation: none; }
+}
+
 @media (min-width: 431px) {
   #boniteta-hwk-sklop.is-register-card .boniteta-identiteta-nadaljuj { gap: 2px 7px; }
 }
@@ -2720,18 +2765,6 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   background: #edf2f4;
 }
 
-.boniteta-izbrisi-preverbo {
-  margin-bottom: 10px;
-  border-color: #e7bcbc;
-  background: #fff8f8;
-  color: #a63e3e;
-}
-
-.boniteta-izbrisi-preverbo:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
 .boniteta-posnetek-povecava__url {
   display: grid;
   grid-template-columns: 8px auto minmax(0, 1fr);
@@ -2879,10 +2912,10 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 
 /* Referenčna začetna stran Bonitetne preverbe — 2026-08-17. */
 .stran--bonitetna .boniteta-vsebina {
-  width: min(860px, 100%);
-  max-width: 860px;
-  padding-right: 0;
-  padding-left: 0;
+  width: min(var(--sirina-vsebine), 100%);
+  max-width: var(--sirina-vsebine);
+  padding-right: var(--odmik-roba);
+  padding-left: var(--odmik-roba);
 }
 
 .stran--bonitetna .boniteta-obrazec {
@@ -2999,53 +3032,11 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 .boniteta-zajem__locilo[hidden] { display: none !important; }
 .boniteta-zajem__locilo span { display: none; }
 .boniteta-zajem__locilo h2 { color: #075866; font-size: 1.376rem; white-space: normal; }
-.boniteta-zajem__rezerva {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 15px;
-  align-items: start;
-  padding: 18px 20px;
-  border: 1px solid #ead6a4;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #fffaf0 0%, #fff 78%);
-  text-align: left;
-  box-shadow: 0 8px 22px rgba(107, 79, 17, .07);
-}
-
 .boniteta-dokazilo-status.is-openregister-preview {
   border-color: #bcded4;
   background: #f0faf7;
   color: #285f58;
 }
-.boniteta-zajem__rezerva[hidden] { display: none !important; }
-.boniteta-zajem__rezerva-ikona {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  border-radius: 18px;
-  background: #f9e9be;
-  color: #8a6016;
-}
-.boniteta-zajem__rezerva-ikona svg { width: 30px; height: 30px; }
-.boniteta-zajem__rezerva-oznaka { display: block; margin: 1px 0 5px; color: #9a6816; font: 700 .68rem/1.2 "Figtree", sans-serif; letter-spacing: .09em; }
-.boniteta-zajem__rezerva h2 { margin: 0; color: #254a4c; font: 700 1.35rem/1.15 "Bricolage Grotesque", sans-serif; }
-.boniteta-zajem__rezerva p { margin: 7px 0 0; color: #647775; font: 500 .87rem/1.45 "Figtree", sans-serif; }
-.boniteta-zajem__rezerva-akcije { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 13px; }
-.boniteta-zajem__rezerva-akcije button {
-  min-height: 44px;
-  padding: 9px 12px;
-  border: 1px solid rgba(22, 132, 132, .42);
-  border-radius: 13px;
-  background: #fff;
-  color: #176f72;
-  font: 700 .78rem/1.2 "Figtree", sans-serif;
-  cursor: pointer;
-}
-.boniteta-zajem__rezerva-akcije button:first-child { border-color: #279a98; background: #289b99; color: #fff; }
-.boniteta-zajem__rezerva-akcije button:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(45, 156, 148, .16); }
-.boniteta-zajem__rezerva-akcije button:active { transform: scale(.99); }
-.stran--bonitetna .boniteta-zajem.is-spletna-rezerva { gap: 16px; border-color: #e8d7ad; }
 .boniteta-zajem__nacini { gap: 16px; }
 .boniteta-zajem__nacin {
   min-height: 128px;
@@ -3680,15 +3671,6 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   .boniteta-primerjava__preklop { min-height: 30px; padding: 3px 8px; gap: 4px; font-size: .56rem; }
   .boniteta-primerjava__preklop svg { width: 14px; height: 14px; flex-basis: 14px; }
   .stran--bonitetna .boniteta-zajem { gap: 6px; margin: -22px 10px 0; padding: 12px 10px 8px; border-radius: 22px; }
-  .stran--bonitetna .boniteta-zajem.is-spletna-rezerva { gap: 9px; padding-top: 10px; }
-  .boniteta-zajem__rezerva { grid-template-columns: 42px minmax(0, 1fr); gap: 11px; padding: 14px 12px; border-radius: 17px; }
-  .boniteta-zajem__rezerva-ikona { width: 42px; height: 42px; border-radius: 13px; }
-  .boniteta-zajem__rezerva-ikona svg { width: 23px; height: 23px; }
-  .boniteta-zajem__rezerva-oznaka { margin-bottom: 4px; font-size: .62rem; letter-spacing: .065em; }
-  .boniteta-zajem__rezerva h2 { font-size: 1.12rem; }
-  .boniteta-zajem__rezerva p { margin-top: 6px; font-size: .78rem; line-height: 1.38; }
-  .boniteta-zajem__rezerva-akcije { gap: 8px; margin-top: 11px; }
-  .boniteta-zajem__rezerva-akcije button { min-height: 43px; padding: 8px 7px; border-radius: 12px; font-size: .72rem; }
   .boniteta-zajem__locilo h2 { font-size: 1.015rem; }
   .boniteta-zajem__nacini { gap: 7px; }
   .boniteta-zajem__nacin { min-height: 64px; padding: 3px; border-radius: 16px; }
@@ -3824,7 +3806,6 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   .boniteta-osnovni-pregled { grid-template-columns: 62px minmax(0, 1fr); padding: 9px; }
   .boniteta-popolnost { width: 58px; height: 58px; }
 }
-.boniteta-preverjeni-viri { background: #fbfdfc; }
 .boniteta-razsiritve { border-top: 5px solid #e6f3ef; }
 .boniteta-razsiritve__odpri {
   display: flex;
@@ -3910,7 +3891,7 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 }
 
 #boniteta-hwk-sklop.is-register-card .boniteta-podatki--identiteta.is-state-yellow {
-  background: radial-gradient(ellipse 118% 105% at 50% 50%, rgba(226, 176, 62, .08) 0%, rgba(239, 201, 109, .045) 42%, rgba(251, 237, 199, .022) 72%, rgba(255, 255, 255, .99) 100%);
+  background: #fff;
 }
 
 #boniteta-hwk-sklop.is-register-card .boniteta-podatki--identiteta.is-state-red {
@@ -4142,11 +4123,7 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 
 .stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-vsebina {
   width: min(430px, 100%);
-  padding: 0 12px 112px;
-}
-
-.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-rezultat-okno {
-  display: none !important;
+  padding: 0 12px calc(220px + var(--boniteta-safe-bottom));
 }
 
 .stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-app-testna-vrstica {
@@ -4215,30 +4192,32 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 
 .boniteta-insolvenca-izid {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   min-width: 0;
   min-height: 72px;
-  padding: 10px 11px;
+  padding: 10px 13px;
+  box-sizing: border-box;
   overflow: hidden;
-  border: 1px solid #b8dfcf;
-  border-radius: 17px;
-  background: linear-gradient(145deg, #edf9f4, #fbfdfb);
-  box-shadow: 0 8px 24px rgba(25, 111, 83, .055);
+  border: 1px solid #bde3c9;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eef9f2 0%, #e6f5eb 100%);
+  box-shadow: none;
 }
 
 .boniteta-insolvenca-izid__ikona {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   place-items: center;
+  border: 1px solid #c9ead4;
   border-radius: 50%;
-  background: #1ba564;
-  color: #fff;
-  font: 800 1.2rem/1 "Figtree", sans-serif;
-  box-shadow: 0 7px 16px rgba(27, 165, 100, .2);
+  background: rgba(255, 255, 255, .9);
+  color: #12a357;
+  box-shadow: none;
 }
+.boniteta-insolvenca-izid__ikona svg { width: 20px; height: 20px; }
 
 .boniteta-insolvenca-izid__vsebina {
   display: grid;
@@ -4253,28 +4232,20 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   overflow: visible;
   background: transparent;
   color: #143f37;
-  font: 780 clamp(.76rem, 3.3vw, .91rem)/1.12 "Bricolage Grotesque", sans-serif;
+  font: 780 .984rem/1.12 "Bricolage Grotesque", sans-serif;
   overflow-wrap: anywhere;
   white-space: normal;
 }
 
 .boniteta-insolvenca-izid .boniteta-insolvenca-opis {
   margin: 0;
-  color: #648078;
-  font: 560 clamp(.57rem, 2.35vw, .66rem)/1.25 "Figtree", sans-serif;
+  color: #087c79;
+  font: 560 .744rem/1.18 "Figtree", sans-serif;
   overflow-wrap: anywhere;
 }
 
 .boniteta-insolvenca-izid__znacka {
-  align-self: start;
-  margin-top: 1px;
-  padding: 4px 7px;
-  border: 1px solid #9bd3bb;
-  border-radius: 999px;
-  background: #e3f6ec;
-  color: #168353;
-  font: 800 .48rem/1 "Figtree", sans-serif;
-  letter-spacing: .045em;
+  display: none;
 }
 
 .boniteta-insolvenca-izid__znacka--yellow { border-color: #e3ca8a; background: #fff6d9; color: #8a651c; }
@@ -4421,22 +4392,6 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   -webkit-line-clamp: 3;
 }
 
-.boniteta-insolvenca-okno .boniteta-barvna-primerjava__namig {
-  min-height: 34px;
-  margin: 0;
-  padding: 6px 9px;
-  border-radius: 10px;
-  font-size: .59rem;
-  line-height: 1.22;
-}
-
-.boniteta-insolvenca-okno .boniteta-barvna-primerjava__namig > span {
-  flex-basis: 20px;
-  width: 20px;
-  height: 20px;
-  font-size: .64rem;
-}
-
 .boniteta-insolvenca-okno .boniteta-insolvenca-viri {
   display: flex;
   min-width: 0;
@@ -4451,20 +4406,25 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   white-space: normal;
 }
 
-.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-insolvenca-okno__nazaj-spodaj {
+.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-insolvenca-okno__spodnja-vrstica {
   position: fixed;
   right: 12px;
-  bottom: 8px;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
   left: 12px;
   z-index: 62;
   width: min(406px, calc(100% - 24px));
-  min-height: 45px;
   margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-insolvenca-okno__nazaj-spodaj {
+  min-height: 45px;
+  margin: 0;
   border-radius: 14px;
   background: rgba(255, 255, 255, .97);
-  box-shadow: 0 -2px 14px rgba(31, 69, 63, .055);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 5px 14px rgba(31, 69, 63, .07);
 }
 
 @media (max-width: 370px), (max-height: 810px) {
@@ -4475,7 +4435,6 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   #boniteta-insolvenca-posnetek figcaption,
   #boniteta-identiteta-posnetek figcaption { min-height: 50px; padding-block: 5px; }
   #boniteta-insolvenca-podatki .boniteta-podatek { min-height: 49px; padding-block: 5px; }
-  .boniteta-insolvenca-okno .boniteta-barvna-primerjava__namig { min-height: 30px; padding-block: 4px; }
 }
 
 /* Kompaktna razlicica: celoten widget je priblizno 30 % nizji. */
@@ -5474,6 +5433,20 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete h4 { margin: 0; color: #173c39; font: 750 .88rem/1.2 "Bricolage Grotesque", sans-serif; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete > p { margin: -7px 0 0; color: #6f817d; font: 520 .63rem/1.38 "Figtree", sans-serif; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete > .boniteta-impressum-pregled-manjka {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #edcf95;
+  border-radius: 12px;
+  background: #fff8e8;
+  color: #765321;
+  font-weight: 680;
+}
+.boniteta-impressum-pregled-manjka[hidden] { display: none !important; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete input[aria-invalid="true"] {
+  border-color: #d89a56;
+  background: #fffaf2;
+}
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__mreza { display: grid; grid-template-columns: minmax(0,.66fr) minmax(0,1fr); gap: 8px; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__mreza > label { display: grid; grid-column: 1/-1; gap: 4px; min-width: 0; color: #5e7772; font: 650 .59rem/1.2 "Figtree", sans-serif; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__mreza > label:has(#boniteta-potrdi-posta) { grid-column: 1; }
@@ -5542,23 +5515,27 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   text-align: center;
   line-height: 1.12;
 }
-.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb::after { content: "›"; position: static; grid-column: 3; display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font: 400 1.7rem/1 -apple-system, sans-serif; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb::after { content: none; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb-puscica { grid-column: 3; display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb-puscica svg { width: 19px; height: 19px; }
+.boniteta-insolvenca-okno__nazaj svg,
+#boniteta-monitoring-primerjava-nazaj svg { display: block; width: 18px; height: 18px; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:disabled { background: #dce6e3; color: #84938f; box-shadow: none; cursor: not-allowed; opacity: 1; }
-.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:disabled::after { background: rgba(255,255,255,.42); }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:disabled .boniteta-potrditev-identitete__gumb-puscica { background: rgba(255,255,255,.42); }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading:disabled {
   background: linear-gradient(135deg,#35aaa5,#0b8587 72%,#08717a);
   color: #fff;
   box-shadow: 0 9px 21px rgba(6,118,124,.19);
   cursor: wait;
 }
-.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading::after {
-  content: "";
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading .boniteta-potrditev-identitete__gumb-puscica {
   box-sizing: border-box;
   border: 2px solid rgba(255,255,255,.42);
   border-top-color: #fff;
   background: rgba(255,255,255,.12);
   animation: boniteta-vrtenje .72s linear infinite;
 }
+.boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb.is-loading .boniteta-potrditev-identitete__gumb-puscica svg { visibility: hidden; }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__gumb:not(:disabled):active { transform: scale(.992); }
 .boniteta-insolvenca-okno .boniteta-potrditev-identitete__akcije {
   display: grid;
@@ -5606,7 +5583,7 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
     border-radius: 17px;
   }
   .boniteta-potrditev-dokaz__glava strong { font-size: .79rem; }
-  .boniteta-potrditev-dokaz__okno { height: clamp(104px, 29vw, 126px); min-height: 104px; border-radius: 11px; }
+  .boniteta-potrditev-dokaz__okno { height: clamp(168px, 46vw, 190px); min-height: 168px; border-radius: 11px; }
   .boniteta-potrditev-dokaz figcaption { min-height: 30px; }
   .boniteta-potrditev-dokaz figcaption .boniteta-posnetek-povecava__orodja button {
     min-width: 32px;
@@ -5615,30 +5592,30 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   }
 
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete {
-    gap: 7px;
-    padding: 10px;
+    gap: 5px;
+    padding: 8px 10px;
     border-radius: 17px;
   }
-  .boniteta-insolvenca-okno .boniteta-potrditev-identitete h4 { font-size: .82rem; }
+  .boniteta-insolvenca-okno .boniteta-potrditev-identitete h4 { font-size: .78rem; }
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete > p {
-    margin: -2px 0 0;
-    font-size: .59rem;
-    line-height: 1.3;
+    margin: 0;
+    font-size: .55rem;
+    line-height: 1.22;
   }
-  .boniteta-insolvenca-okno .boniteta-potrditev-identitete__mreza { gap: 5px; }
+  .boniteta-insolvenca-okno .boniteta-potrditev-identitete__mreza { gap: 4px; }
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete__mreza > label {
-    gap: 2px;
-    font-size: .54rem;
+    gap: 1px;
+    font-size: .5rem;
   }
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete input[type="text"] {
-    min-height: 36px;
-    padding: 6px 9px;
+    min-height: 34px;
+    padding: 5px 8px;
     border-radius: 11px;
   }
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete__potrditev {
     grid-template-columns: 38px minmax(0, 1fr) !important;
     gap: 9px !important;
-    min-height: 54px;
+    min-height: 50px;
     margin-top: 1px;
     padding: 6px 9px;
     border-radius: 15px;
@@ -5649,7 +5626,7 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
   }
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete__akcije > .boniteta-potrditev-identitete__potrditev,
   .boniteta-insolvenca-okno .boniteta-potrditev-identitete__akcije > .boniteta-potrditev-identitete__gumb {
-    min-height: 54px;
+    min-height: 50px;
   }
   .boniteta-potrditev-identitete__potrditev-ikona { width: 34px; height: 34px; font-size: 1rem; }
   .boniteta-potrditev-identitete__potrditev-besedilo { gap: 1px; }
@@ -6061,7 +6038,7 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-kartica.is-state-red .boniteta-podjetje-kartica__kljukica { color: #b5534d; }
 
 #boniteta-hwk-sklop.is-register-card .boniteta-podatki--identiteta.is-state-yellow {
-  background: radial-gradient(ellipse 118% 105% at 50% 50%, rgba(43, 151, 145, .035) 0%, rgba(125, 201, 194, .02) 46%, rgba(255, 255, 255, .99) 100%);
+  background: #fff;
 }
 
 #boniteta-hwk-sklop.is-register-card .boniteta-podjetje-kartica.is-state-yellow .boniteta-podjetje-kartica__ikona,
@@ -6071,7 +6048,7 @@ body.boniteta-rocni-popup-odprt .boniteta-app-testna-vrstica { display: none !im
 
 #boniteta-hwk-sklop.is-register-card #boniteta-hwk-status.boniteta-znacka--yellow {
   border-color: rgba(177, 123, 31, .22);
-  background: #fffdf7;
+  background: #fff;
   color: #8c631d;
 }
 
@@ -7550,6 +7527,46 @@ body.boniteta-monitoring-open .boniteta-center-nav { display: none !important; }
 :is(#bp-profiles, #bp-watched) .bp-monitoring-compare.is-danger:hover { background: linear-gradient(135deg,#cd5752,#aa3c39); }
 :is(#bp-profiles, #bp-watched) .bp-monitoring-compare:focus-visible { outline: 2px solid rgba(13,141,138,.3); outline-offset: 2px; }
 
+/* Vsi pogledi Bonitetnega centra uporabljajo isti dejanski rob kot ostale strani. */
+.stran--bonitetna .boniteta-vsebina,
+.stran--bonitetna .boniteta-center-workspace,
+.stran--bonitetna .boniteta-center-active {
+  width: 100%;
+  max-width: var(--sirina-vsebine);
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: var(--odmik-roba);
+  padding-left: var(--odmik-roba);
+  box-sizing: border-box;
+}
+
+.stran--bonitetna .boniteta-zajem,
+.stran--bonitetna .crif-flow-picker {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.stran--bonitetna.boniteta-insolvenca-je-okno .boniteta-vsebina {
+  width: min(var(--sirina-vsebine), 100%);
+  padding-right: var(--odmik-roba);
+  padding-left: var(--odmik-roba);
+}
+
+.stran--bonitetna.boniteta-register-result #boniteta-hwk-sklop.is-register-card {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.boniteta-center-nav {
+  width: min(var(--sirina-vsebine), calc(100% - (2 * var(--odmik-roba))));
+}
+
+@media (max-width: 760px) {
+  .boniteta-center-nav {
+    width: calc(100% - (2 * var(--odmik-roba)));
+  }
+}
+
 .boniteta-monitoring-primerjava[hidden] { display: none !important; }
 .stran--bonitetna.boniteta-monitoring-primerjava-je-okno #boniteta-rezultat { overflow: visible; border: 0; border-radius: 0; background: #f5f7f6; box-shadow: none; }
 .stran--bonitetna.boniteta-monitoring-primerjava-je-okno #boniteta-rezultat > :not(#boniteta-monitoring-primerjava) { display: none !important; }
@@ -7647,6 +7664,9 @@ body.boniteta-monitoring-open .boniteta-center-nav { display: none !important; }
   #bp-profiles #bp-profiles-grid,
   #bp-watched #bp-watched-grid { grid-template-columns: minmax(0,1fr); }
   #boniteta-center-active .boniteta-watched-panel { height: calc(100dvh - 149px - env(safe-area-inset-top,0px) - var(--boniteta-safe-bottom)); }
+  .stran--bonitetna .boniteta-priporocilo__vnos input,
+  .stran--bonitetna .boniteta-priporocilo__polja select,
+  .boniteta-spremljanje-pogostost select { font-size: 16px; }
 }
 
 @media (max-width:620px) {
@@ -7667,3 +7687,55 @@ body.boniteta-monitoring-open .boniteta-center-nav { display: none !important; }
   #bp-watched .bp-card-actions .bp-primary,
   #bp-watched .bp-card-actions .bp-secondary { font-size: .68rem; }
 }
+
+.boniteta-podjetje-glava__svezina {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+#boniteta-hwk-sklop.is-register-card .boniteta-podjetje-glava__svezina > span {
+  min-width: 0;
+}
+
+#boniteta-podjetje-osvezi {
+  min-height: 27px;
+  padding: 4px 9px;
+  border: 1px solid rgba(8, 148, 154, .28);
+  border-radius: 999px;
+  background: rgba(247, 253, 252, .92);
+  color: #087f87;
+  font: inherit;
+  font-size: .64rem;
+  font-weight: 760;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#boniteta-podjetje-osvezi:hover,
+#boniteta-podjetje-osvezi:focus-visible {
+  border-color: rgba(8, 148, 154, .52);
+  background: #eef9f7;
+  outline: none;
+}
+
+#boniteta-podjetje-osvezi.is-loading,
+#boniteta-podjetje-osvezi:disabled {
+  cursor: progress;
+  opacity: .66;
+}
+
+/* Glava ostane skoraj cez cel zaslon; 13px rob velja samo za vsebino spodaj. */
+.stran--bonitetna .boniteta-vsebina > .boniteta-obrazec > .boniteta-hero {
+  margin-right: calc(var(--odmik-roba-glave) - var(--odmik-roba));
+  margin-left: calc(var(--odmik-roba-glave) - var(--odmik-roba));
+}
+/* Center the identity block beside the avatar; pulse only the active status dot. */
+:is(#bp-profiles, #bp-watched) .bp-company-card__header { align-items:center; }
+/* Optical alignment with the visible letter height, independent of the pulse. */
+:is(#bp-profiles, #bp-watched) .bp-company-card__state i { position:relative; top:-1px; }
+:is(#bp-profiles, #bp-watched) .bp-company-card__state.is-active i::after { content:""; position:absolute; inset:-1px; border:1px solid currentColor; border-radius:50%; pointer-events:none; animation:bp-active-dot-pulse 2.1s ease-out infinite; }
+@keyframes bp-active-dot-pulse { 0% { transform:scale(.8); opacity:.65; } 75%,100% { transform:scale(2.1); opacity:0; } }
+@media (prefers-reduced-motion:reduce) { :is(#bp-profiles, #bp-watched) .bp-company-card__state.is-active i::after { animation:none; opacity:0; } }

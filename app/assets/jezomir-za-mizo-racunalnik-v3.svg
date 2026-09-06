@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 750" fill="none">
+<!-- jezomir za mizo z racunalnikom - v3, izpeljan iz originalnega jeza z dokumentom -->
+<!-- stil: turkizna #047189, temno zelena #3f6455, bela, zaobljeni zakljucki, ohranjen dizajn -->
+
+<!-- artistic ozadje - mehak dih -->
+<ellipse cx="450" cy="380" rx="380" ry="300" fill="#eef6f6"/>
+<ellipse cx="450" cy="380" rx="320" ry="250" fill="#f7fbfb"/>
+
+<!-- STOL: sedalo + nogici za jezom -->
+<path d="M180 600 L165 700" stroke="#047189" stroke-width="18" stroke-linecap="round"/>
+<path d="M340 600 L355 700" stroke="#047189" stroke-width="18" stroke-linecap="round"/>
+<rect x="140" y="570" width="240" height="30" rx="15" fill="#ffffff" stroke="#047189" stroke-width="12"/>
+
+<!-- JEZ: bodice - cikcak, ista g composure kot original -->
+<path d="M430 215
+  L410 150 L360 188
+  L320 135 L290 188
+  L230 172 L236 222
+  L168 228 L196 272
+  L124 292 L176 327
+  L110 362 L172 387
+  L115 427 L180 447
+  L130 497 L194 507
+  L154 562 L216 560
+  L190 622 L240 597
+  L240 657 L274 612"
+  fill="#ffffff" stroke="#047189" stroke-width="14"
+  stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- JEZ: telo -->
+<ellipse cx="330" cy="420" rx="175" ry="195" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+
+<!-- JEZ: usesce -->
+<path d="M438 220 L430 175 L463 190" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- JEZ: gobec zgoraj -->
+<path d="M463 190 C503 230 553 265 595 285" fill="none" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+<!-- nos -->
+<circle cx="610" cy="300" r="24" fill="#3f6455"/>
+<!-- spodnja celjust + nasmeh -->
+<path d="M595 285 C587 330 552 365 502 370" fill="none" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+<path d="M502 370 C527 385 557 385 582 365" fill="none" stroke="#047189" stroke-width="13" stroke-linecap="round"/>
+
+<!-- oko pika -->
+<circle cx="510" cy="320" r="15" fill="#3f6455"/>
+<!-- obrv -->
+<path d="M452 245 C470 230 505 230 525 248" fill="none" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<!-- uho - C kot original -->
+<path d="M365 265 C330 255 308 280 316 310 C324 338 352 350 377 340" fill="none" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+
+<!-- JEZ: nogici - sedi -->
+<path d="M235 595 L235 645 C235 659 247 665 277 665 C307 665 317 659 317 645 L317 600" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M340 600 L340 645 C340 659 352 665 382 665 C412 665 422 659 422 645 L422 598" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- prstka na tacki -->
+<path d="M295 645 C300 650 302 656 300 662" stroke="#047189" stroke-width="7" stroke-linecap="round"/>
+<path d="M400 645 C405 650 407 656 405 662" stroke="#047189" stroke-width="7" stroke-linecap="round"/>
+
+<!-- MIZA: plosca cez telo da jez sedi ZA mizo -->
+<rect x="410" y="485" width="400" height="32" rx="16" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+<path d="M730 517 L730 700" stroke="#047189" stroke-width="22" stroke-linecap="round"/>
+
+<!-- RACUNALNIK: monitor -->
+<g>
+  <rect x="530" y="295" width="220" height="155" rx="16" fill="#ffffff" stroke="#047189" stroke-width="13"/>
+  <rect x="546" y="311" width="188" height="123" rx="10" fill="#d9d9d9"/>
+  <!-- artistic vsebina zaslona - dokument + vrstice -->
+  <rect x="562" y="327" width="44" height="56" rx="5" fill="#ffffff" stroke="#3f6455" stroke-width="5"/>
+  <line x1="570" y1="340" x2="598" y2="340" stroke="#3f6455" stroke-width="4" stroke-linecap="round"/>
+  <line x1="570" y1="350" x2="598" y2="350" stroke="#3f6455" stroke-width="4" stroke-linecap="round"/>
+  <line x1="570" y1="360" x2="592" y2="360" stroke="#3f6455" stroke-width="4" stroke-linecap="round"/>
+  <line x1="618" y1="335" x2="700" y2="335" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+  <line x1="618" y1="355" x2="690" y2="355" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+  <line x1="618" y1="375" x2="682" y2="375" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="640" cy="410" r="10" fill="#047189"/>
+  <!-- stojalo -->
+  <path d="M640 450 L640 485" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+  <path d="M595 485 L685 485" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+</g>
+
+<!-- TIPKOVNICA na mizi -->
+<g>
+  <path d="M450 465 L630 465 L650 485 L430 485 Z" fill="#d9d9d9" stroke="#3f6455" stroke-width="8" stroke-linejoin="round"/>
+  <circle cx="535" cy="475" r="4" fill="#3f6455"/>
+  <circle cx="550" cy="475" r="4" fill="#3f6455"/>
+  <circle cx="565" cy="475" r="4" fill="#3f6455"/>
+</g>
+
+<!-- JEZ: roka na tipkovnico - debel cartoon rokav kot original roka z dokumentom -->
+<path d="M320 480 C400 480 470 472 535 470" fill="none" stroke="#047189" stroke-width="46" stroke-linecap="round"/>
+<path d="M320 480 C400 480 470 472 535 470" fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round"/>
+<!-- dlan -->
+<circle cx="548" cy="470" r="28" fill="#ffffff" stroke="#047189" stroke-width="12"/>
+<path d="M562 460 L586 462" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+<path d="M564 476 L588 476" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+
+<!-- artistic detajl: kavica na mizi -->
+<g>
+  <path d="M720 430 L720 460 C720 468 712 474 698 474 C684 474 676 468 676 460 L676 430" fill="#ffffff" stroke="#047189" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M720 438 C732 438 732 452 720 452" fill="none" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+  <path d="M690 410 C688 400 694 394 692 384" stroke="#047189" stroke-width="6" stroke-linecap="round"/>
+  <path d="M704 410 C702 400 708 394 706 384" stroke="#047189" stroke-width="6" stroke-linecap="round"/>
+</g>
+
+<!-- artistic detajl: papirja pod tipkovnico -->
+<g>
+  <rect x="430" y="445" width="80" height="22" rx="6" fill="#ffffff" stroke="#047189" stroke-width="7" transform="rotate(-6 470 456)"/>
+</g>
+</svg>

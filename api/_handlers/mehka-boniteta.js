@@ -55,6 +55,10 @@ var impressumImageOcrCache = globalThis.__ujImpressumImageOcrCache ||
   (globalThis.__ujImpressumImageOcrCache = new Map());
 var impressumImageOcrInFlight = globalThis.__ujImpressumImageOcrInFlight ||
   (globalThis.__ujImpressumImageOcrInFlight = new Map());
+// Za dokazni posnetek ponovno uporabimo isti, že SSRF-varno preneseni pravni
+// dokument, ki je prestal lokalno validacijo. Symbol se ne serializira v JSON
+// in zato surovi HTML ne zapusti strežniškega workflowa.
+var INTERNAL_LEGAL_HTML = Symbol("internalLegalHtml");
 var BROWSER_BUDGET = Object.freeze({
   IMPRESSUM_HTTP: 6000,
   BROWSER_LAUNCH: 8000,
@@ -546,6 +550,82 @@ async function odkrijInPreveriUradniProfil(signali) {
     } catch (_) { return null; }
   }));
   return sestaviUjemajociImenikProfil(imenisko.filter(Boolean), signali);
+}
+
+function domenskiSlug(vrednost, brezVezajev) {
+  var slug = String(vrednost || "")
+    .replace(/ß/g, "ss")
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/&/g, " und ")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-+/g, "-");
+  return brezVezajev ? slug.replace(/-/g, "") : slug;
+}
+
+function ustvariRegistrskeDomenskeKandidate(podjetje) {
+  var naziv = String(podjetje && podjetje.name || "").trim();
+  if (!jeRegistriraniTrgovecOpenRegister(podjetje) || !naziv) return [];
+  var deli = naziv.split(/\be\.?\s*k\.?(?=\s|$|[,;:|])/i);
+  var predObliko = String(deli[0] || "").trim();
+  var zaObliko = String(deli.slice(1).join(" ") || "").trim();
+  var jedra = [];
+  if (zaObliko) {
+    jedra.push(zaObliko);
+    var prveBesede = zaObliko.split(/\s+/).filter(Boolean).slice(0, 2).join(" ");
+    if (prveBesede && prveBesede !== zaObliko) jedra.push(prveBesede);
+  }
+  if (predObliko) jedra.push(predObliko);
+  var neposredniUrl = podjetje && podjetje.contact && podjetje.contact.website_url ||
+    podjetje && (podjetje.website_url || podjetje.websiteUrl) || "";
+  var kandidati = neposredniUrl ? [neposredniUrl] : [];
+  jedra.forEach(function (jedro) {
+    [domenskiSlug(jedro, false), domenskiSlug(jedro, true)].forEach(function (slug) {
+      if (slug.length >= 4 && slug.length <= 63) kandidati.push("https://" + slug + ".de/");
+    });
+  });
+  return Array.from(new Set(kandidati)).slice(0, 6);
+}
+
+function jeNeuradniRegistrskiKandidat(url) {
+  var gostitelj = normalizirajGostitelja(url);
+  return /(?:^|\.)(?:openregister\.de|northdata\.(?:de|com)|handelsregister\.de|unternehmensregister\.de)$/.test(gostitelj) ||
+    jeVerjetniImenikZaOdkritje(url);
+}
+
+async function odkrijImpressumRegistriranegaTrgovca(openregister, moznosti) {
+  moznosti = moznosti || {};
+  if (!openregister || openregister.status !== "found" || !jeRegistriraniTrgovecOpenRegister(openregister.company)) return null;
+  var podjetje = openregister.company || {};
+  var naslov = podjetje.address || {};
+  if (!podjetje.name || !/^\d{5}$/.test(String(naslov.postal_code || ""))) return null;
+  var kandidati = (Array.isArray(moznosti.candidateUrls) ? moznosti.candidateUrls : ustvariRegistrskeDomenskeKandidate(podjetje))
+    .filter(function (url) { return !jeNeuradniRegistrskiKandidat(url); }).slice(0, 6);
+  for (var i = 0; i < kandidati.length; i += 1) {
+    try {
+      var profil;
+      if (typeof moznosti.loadProfile === "function") {
+        profil = await moznosti.loadProfile(kandidati[i]);
+      } else {
+        var varen = await preveriJavniSpletniNaslov(kandidati[i]);
+        var vnos = {
+          spletnaStran: varen.toString(), ime: String(podjetje.name || ""),
+          naslov: String(naslov.street || ""), postnaStevilka: String(naslov.postal_code || ""),
+          kraj: String(naslov.city || ""),
+          registerNumber: [podjetje.register_type, podjetje.register_number].filter(Boolean).join(" "),
+        };
+        profil = await poisciLokalniJavniImpressum(varen, vnos, dolociPravniKontekst(varen), "");
+      }
+      var ujemanje = preveriImpressumDopolnitevRegistriranegaTrgovca(openregister, profil);
+      if (profil && profil.status === "found" && ujemanje.matched) {
+        profil = Object.assign({}, profil, { acquisition: "validated_registry_domain_discovery" });
+        profil.subjekt = Object.assign({}, profil.subjekt, { acquisition: profil.acquisition });
+        return profil;
+      }
+    } catch (_) {
+      // Neposredno izpeljana domena je samo kandidat. Sprejmemo jo izključno,
+      // če javni Impressum potrdi isto registrsko identiteto, naslov in nosilca.
+    }
+  }
+  return null;
 }
 
 async function pripraviHitriOpenRegisterVnosIzSpletneStrani(vnos) {
@@ -3266,7 +3346,9 @@ async function poisciLokalniJavniImpressum(osnova, vnos, pravniKontekst, prednos
         if (!neujemanje) {
           subjekt.sourceKind = jeImpressumDokument(stran.html, stran.url) ? "impressum" : "labelled_provider_page";
           subjekt.acquisition = "local_public_html";
-          return { status: "found", subjekt: subjekt, sourceUrl: stran.url, acquisition: subjekt.acquisition };
+          var najdenProfil = { status: "found", subjekt: subjekt, sourceUrl: stran.url, acquisition: subjekt.acquisition };
+          najdenProfil[INTERNAL_LEGAL_HTML] = { html: stran.html, url: stran.url };
+          return najdenProfil;
         }
         zadnjiRazlog = neujemanje;
       } else {
@@ -4057,9 +4139,8 @@ function potrebujeImpressumDopolnitev(openregister, vnos) {
   var manjkaRegistrskaLokacija = !String(naslov.street || "").trim() ||
     !/^\d{5}$/.test(String(naslov.postal_code || "").trim());
   return Boolean(
-    vnos && vnos.spletnaStran &&
     openregister && openregister.status === "found" &&
-    (jeRegistriraniTrgovecOpenRegister(podjetje) || manjkaRegistrskaLokacija)
+    (jeRegistriraniTrgovecOpenRegister(podjetje) || Boolean(vnos && vnos.spletnaStran && manjkaRegistrskaLokacija))
   );
 }
 
@@ -5708,11 +5789,30 @@ function dodajOsnovniUrlIzvirnemuHtml(html, sourceUrl) {
   return "<!doctype html><html><head>" + base + "</head><body>" + vir + "</body></html>";
 }
 
-async function zajemiIzvirniImpressumHtmlBrezSkript(stran, sourceUrl, identiteta) {
-  var izvirnik = await fetchJavniHtml(sourceUrl, {
-    maxAttempts: 1,
-    timeoutMs: BROWSER_BUDGET.IMPRESSUM_HTTP,
-  });
+function pripraviSamostojniHtmlPravnegaDokaza(html, sourceUrl) {
+  var vir = dodajOsnovniUrlIzvirnemuHtml(html, sourceUrl)
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, "")
+    .replace(/<link\b[^>]*>/gi, "")
+    .replace(/<(?:iframe|video|audio|source)\b[^>]*>[\s\S]*?<\/(?:iframe|video|audio|source)\s*>/gi, "")
+    .replace(/\s(?:src|srcset|poster)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  var dokazniSlog = "<style id=\"uj-pravni-dokaz\">" +
+    "html,body{background:#fff!important;color:#111!important;opacity:1!important;visibility:visible!important}" +
+    "body{font-family:Arial,sans-serif!important;line-height:1.45!important;margin:24px!important;max-width:1100px!important}" +
+    "body *{color:#111!important;text-shadow:none!important;filter:none!important}" +
+    "</style>";
+  return vir.replace(/<head\b[^>]*>/i, function (head) { return head + dokazniSlog; });
+}
+
+async function zajemiIzvirniImpressumHtmlBrezSkript(stran, sourceUrl, identiteta, zePreverjeniDokument) {
+  var izvirnik = zePreverjeniDokument && zePreverjeniDokument.html && zePreverjeniDokument.url
+    ? zePreverjeniDokument
+    : await fetchJavniHtml(sourceUrl, {
+      maxAttempts: 1,
+      timeoutMs: BROWSER_BUDGET.IMPRESSUM_HTTP,
+    });
+  if (normalizirajGostitelja(izvirnik.url) !== normalizirajGostitelja(sourceUrl)) {
+    throw new Error("IDENTITY_EVIDENCE_SOURCE_MISMATCH");
+  }
   var izvirnoBesedilo = besediloIzHtml(izvirnik.html);
   var imeniskaValidacija = identiteta && identiteta.sourceKind === "verified_directory_profile"
     ? validirajVsebinoPravnegaBloka("Javni poslovni profil", izvirnoBesedilo, identiteta)
@@ -5729,7 +5829,7 @@ async function zajemiIzvirniImpressumHtmlBrezSkript(stran, sourceUrl, identiteta
   // Skripte strani se ne zaženejo, zato počasni vtičniki in pojavna okna ne
   // morejo blokirati dokaznega posnetka. Dinamična navigacija ostane rezerva.
   await stran.setJavaScriptEnabled(false);
-  await stran.setContent(dodajOsnovniUrlIzvirnemuHtml(izvirnik.html, izvirnik.url), {
+  await stran.setContent(pripraviSamostojniHtmlPravnegaDokaza(izvirnik.html, izvirnik.url), {
     waitUntil: "domcontentloaded",
     timeout: BROWSER_BUDGET.IMPRESSUM_HTTP,
   });
@@ -5962,7 +6062,7 @@ function sestaviApiDokaziloIdentitete(identiteta, openregister) {
   };
 }
 
-async function zajemiDokaziloIdentitete(identiteta, openregister, _odstranjeniHwk, javniProfil) {
+async function zajemiDokaziloIdentitete(identiteta, openregister, _odstranjeniHwk, javniProfil, zePreverjeniPravniDokument) {
   var apiDokazilo = sestaviApiDokaziloIdentitete(identiteta, openregister);
   if (apiDokazilo) return apiDokazilo;
   var vir = dolociVirDokazilaIdentitete(identiteta, openregister, null, javniProfil);
@@ -6044,7 +6144,12 @@ async function zajemiDokaziloIdentitete(identiteta, openregister, _odstranjeniHw
     var jeImpressumDokazilo = identiteta && ["probable_impressum", "confirmed_impressum", "impressum_review_required"].includes(identiteta.status);
     if (jeImpressumDokazilo) {
       try {
-        vnaprejZajetoDokazilo = await zajemiIzvirniImpressumHtmlBrezSkript(stran, varenUrl.toString(), identiteta);
+        vnaprejZajetoDokazilo = await zajemiIzvirniImpressumHtmlBrezSkript(
+          stran,
+          varenUrl.toString(),
+          identiteta,
+          zePreverjeniPravniDokument
+        );
       } catch (_) {
         // Nekatere pravne strani so resnično odjemalsko izrisane. Zanje spodaj
         // ohranimo obstoječo dinamično navigacijo in varni scriptless fallback.
@@ -6191,7 +6296,8 @@ async function zajemiDopolnilnoImpressumDokazilo(identiteta, _odstranjeniHwk, ja
     impressumIdentiteta,
     { status: "not_found" },
     null,
-    javniProfil
+    javniProfil,
+    javniProfil && javniProfil[INTERNAL_LEGAL_HTML]
   );
   if (!dokazilo) return null;
   return Object.assign({}, dokazilo, {
@@ -7842,10 +7948,29 @@ async function handler(req, res) {
     // To je edina točka zagona ND1 in ND2. Oba Promise-a nastaneta v istem
     // sinhronem koraku takoj po potrjenem OpenRegister zadetku.
     var northDataZacetek = zacniNorthDataPoOpenRegisterju(openregister, zacasnaIdentiteta, svezaNorthDataPreverba);
-    var javniProfil = openregister.status === "found" && !dopolniRegistriranegaTrgovca
-      ? { status: "skipped", reason: "openregister_identity_verified", sourceUrl: vnos.spletnaStran || "" }
-      : hitriSpletniKontekst.publicProfile || await poisciVImpressumu(vnos, "");
-    if (openregister.status !== "found" && javniProfil.status === "found" && vnos.spletnaStran) {
+    var javniProfil;
+    if (openregister.status === "found" && !dopolniRegistriranegaTrgovca) {
+      javniProfil = { status: "skipped", reason: "openregister_identity_verified", sourceUrl: vnos.spletnaStran || "" };
+    } else if (hitriSpletniKontekst.publicProfile) {
+      javniProfil = hitriSpletniKontekst.publicProfile;
+    } else if (dopolniRegistriranegaTrgovca && jeRegistriraniTrgovecOpenRegister(openregister.company) && !vnos.spletnaStran) {
+      var registrskoOdkritjeZacetek = Date.now();
+      javniProfil = await odkrijImpressumRegistriranegaTrgovca(openregister) || {
+        status: "not_found", reason: "registered_merchant_official_site_not_found", sourceUrl: "",
+      };
+      console.info("[mehka-boniteta:workflow-timing]", {
+        phase: "registered_merchant_impressum_discovery",
+        elapsedMs: Date.now() - registrskoOdkritjeZacetek,
+        status: javniProfil.status,
+      });
+    } else {
+      javniProfil = await poisciVImpressumu(vnos, "");
+    }
+    var potrebujeNaknadnoImpressumPotrditev = javniProfil.status === "found" && (
+      (openregister.status !== "found" && Boolean(vnos.spletnaStran)) ||
+      (openregister.status === "found" && dopolniRegistriranegaTrgovca && Boolean(javniProfil.sourceUrl))
+    );
+    if (potrebujeNaknadnoImpressumPotrditev) {
       javniProfil = Object.assign({}, javniProfil, {
         agentValidation: {
           status: "pending_background",
@@ -8260,6 +8385,8 @@ handler._test = {
   razcleniJavnePoslovneSignale: razcleniJavnePoslovneSignale,
   razlikovalniImenskiDel: razlikovalniImenskiDel,
   odkritoUradnoUjemanje: odkritoUradnoUjemanje,
+  ustvariRegistrskeDomenskeKandidate: ustvariRegistrskeDomenskeKandidate,
+  odkrijImpressumRegistriranegaTrgovca: odkrijImpressumRegistriranegaTrgovca,
   odkritoImeniskoUjemanje: odkritoImeniskoUjemanje,
   sestaviUjemajociImenikProfil: sestaviUjemajociImenikProfil,
   staGostiteljaIsteStrani: staGostiteljaIsteStrani,

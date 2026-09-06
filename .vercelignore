@@ -31,6 +31,7 @@ orodje-pozicioniranje-slike.html
 # Izvorne datoteke ostanejo lokalno zaradi razvojnega streznika in regresijskih testov.
 api/boniteta-pro.js
 api/mehka-boniteta.js
+api/mehka-boniteta-podrobnosti.js
 api/mehka-boniteta-opravilo.js
 api/pos-racun-pdf.js
 api/pos-angebot-pdf.js

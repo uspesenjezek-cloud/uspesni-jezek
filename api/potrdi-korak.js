@@ -10,6 +10,7 @@ var sentry = require("./_lib/sentry");
 var crypto = require("crypto");
 var luxon = require("luxon");
 var randomSchedule = require("./_lib/random-schedule");
+var db = require("./_lib/supabase-server");
 
 var TZ = "Europe/Ljubljana";
 
@@ -53,32 +54,6 @@ function izracunajNakljucniMinute(earliest, latest) {
 
 /* ---------- Avtorizacija ---------- */
 
-async function verifyAuth(req, SUPABASE_URL, SERVICE_KEY) {
-  var authHeader = req.headers["authorization"] || "";
-  var token = authHeader.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return { ok: false, status: 401, napaka: "Ni avtorizacijskega žetona." };
-
-  var userRes;
-  try {
-    userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SERVICE_KEY, "Authorization": "Bearer " + token },
-    });
-  } catch (_) {
-    return { ok: false, status: 502, napaka: "Avtorizacijski strežnik ni dosegljiv." };
-  }
-
-  if (!userRes.ok) {
-    return { ok: false, status: 401, napaka: "Neveljaven žeton." };
-  }
-
-  var userData = await userRes.json();
-  if (!userData || !userData.id) {
-    return { ok: false, status: 401, napaka: "Uporabnik ni prepoznan." };
-  }
-
-  return { ok: true, userId: userData.id };
-}
-
 /* ---------- Glavni handler ---------- */
 
 async function handler(req, res) {
@@ -86,21 +61,20 @@ async function handler(req, res) {
     return res.status(405).json({ ok: false, napaka: "Samo POST." });
   }
 
-  var SUPABASE_URL = process.env.SUPABASE_URL;
-  var SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!SUPABASE_URL || !SERVICE_KEY) {
+  var cfg;
+  try { cfg = db.konfiguracija(); }
+  catch (_) {
     return res.status(500).json({
       ok: false, napaka: "Strežnik ni konfiguriran (SUPABASE_SERVICE_ROLE_KEY).",
     });
   }
 
   /* --- 1. Avtorizacija --- */
-  var auth = await verifyAuth(req, SUPABASE_URL, SERVICE_KEY);
+  var auth = await db.preveriUporabnika(req, cfg);
   if (!auth.ok) {
     return res.status(auth.status).json({ ok: false, napaka: auth.napaka });
   }
-  var userId = auth.userId;
+  var userId = auth.user.id;
 
   try {
     var telo = req.body || {};
@@ -113,15 +87,9 @@ async function handler(req, res) {
     }
 
     /* --- 2. Preberi zadevo (service_role, a s preverjenim lastništvom) --- */
-    var fetchUrl = SUPABASE_URL + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
+    var fetchUrl = cfg.url + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
       "&select=id,obrtnik_id,opomin_nacrt";
-    var fetchRes = await fetch(fetchUrl, {
-      headers: {
-        "apikey": SERVICE_KEY,
-        "Authorization": "Bearer " + SERVICE_KEY,
-        "Accept": "application/json",
-      },
-    });
+    var fetchRes = await db.fetchZOmejitvijo(fetchUrl, { headers: db.serviceHeaders(cfg) }, 12000);
 
     if (!fetchRes.ok) {
       return res.status(502).json({ ok: false, napaka: "Baze ni bilo mogoče prebrati." });
@@ -172,7 +140,7 @@ async function handler(req, res) {
       plan.version = versionIncrement(serverVersion);
 
       var patchRes1 = await atomicPatch(
-        SUPABASE_URL, SERVICE_KEY, zadevaId, serverVersion, plan
+        cfg, zadevaId, serverVersion, plan
       );
       if (!patchRes1.ok) {
         return res.status(409).json({ ok: false, napaka: "Sočasna sprememba.", code: "VERSION_CONFLICT" });
@@ -250,7 +218,7 @@ async function handler(req, res) {
     plan.version = versionIncrement(serverVersion);
 
     var patchRes = await atomicPatch(
-      SUPABASE_URL, SERVICE_KEY, zadevaId, serverVersion, plan
+      cfg, zadevaId, serverVersion, plan
     );
 
     if (!patchRes.ok) {
@@ -281,22 +249,20 @@ async function handler(req, res) {
  * Atomski PATCH z optimističnim zaklepom.
  * Vrne { ok: true } samo če je bila posodobljena natanko 1 vrstica.
  */
-async function atomicPatch(SUPABASE_URL, SERVICE_KEY, zadevaId, oldVersion, plan) {
+async function atomicPatch(cfg, zadevaId, oldVersion, plan) {
   try {
     var patchUrl =
-      SUPABASE_URL + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
+      cfg.url + "/rest/v1/zadeve?id=eq." + encodeURIComponent(zadevaId) +
       "&opomin_nacrt->>version=eq." + encodeURIComponent(oldVersion);
 
-    var patchRes = await fetch(patchUrl, {
+    var patchRes = await db.fetchZOmejitvijo(patchUrl, {
       method: "PATCH",
-      headers: {
-        "apikey": SERVICE_KEY,
-        "Authorization": "Bearer " + SERVICE_KEY,
+      headers: db.serviceHeaders(cfg, {
         "Content-Type": "application/json",
         "Prefer": "return=representation",
-      },
+      }),
       body: JSON.stringify({ opomin_nacrt: plan }),
-    });
+    }, 12000);
 
     if (!patchRes.ok) return { ok: false };
 

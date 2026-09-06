@@ -1346,6 +1346,10 @@
       // gre naravnost v isto čakalno vrsto kot vsaka druga dejanska
       // preverba in tam porabi kvečjemu eno sveže OpenRegister iskanje.
       izpolniRazbranoPolje("boniteta-ime", query);
+      ["boniteta-naslov-podjetja", "boniteta-posta", "boniteta-kraj", "boniteta-register", "boniteta-davcna", "boniteta-spletna-stran"].forEach(function (id) {
+        izpolniRazbranoPolje(id, "");
+      });
+      zaporedjePostnePoizvedbe += 1;
       izbranoOpenRegisterPodjetje = null;
       nacinVnosa = "surovo_ime";
       vnosPodrobnosti.hidden = true;
@@ -1460,8 +1464,8 @@
   }
 
   function normalizirajOpenRegisterPodjetje(company, osnovni) {
-    var x = company && typeof company === "object" ? company : {};
     var fallback = osnovni && typeof osnovni === "object" ? osnovni : {};
+    var x = Object.assign({}, fallback, company && typeof company === "object" ? company : {});
     var name = x.name && typeof x.name === "object" ? x.name : {};
     var addressRoot = x.address && typeof x.address === "object" ? x.address : {};
     var address = addressRoot.current && typeof addressRoot.current === "object"
@@ -1471,23 +1475,23 @@
       ? x.register
       : Array.isArray(x.registers) && x.registers[0] || {};
     var contact = x.contact && typeof x.contact === "object" ? x.contact : {};
-    var website = String(prvaVrednost(contact.website_url, contact.website, x.website_url, "")).trim();
+    var website = String(prvaVrednost(contact.website_url, contact.website, x.website_url, x.website, "")).trim();
     if (website && !/^https?:\/\//i.test(website)) website = "https://" + website.replace(/^\/+/, "");
     return {
-      companyId: String(prvaVrednost(x.id, register.company_id, x.company_id, fallback.company_id)).trim(),
+      companyId: String(prvaVrednost(x.id, register.company_id, x.company_id, x.companyId, fallback.company_id)).trim(),
       name: String(prvaVrednost(typeof x.name === "string" ? x.name : "", name.name, x.legal_name, fallback.name)).trim(),
       street: String(prvaVrednost(address.street, address.address, x.street, fallback.street, "")).trim(),
-      postalCode: String(prvaVrednost(address.postal_code, address.postalCode, x.postal_code, fallback.postal_code, fallback.postalCode, "")).replace(/\D/g, "").slice(0, 5),
+      postalCode: String(prvaVrednost(address.postal_code, address.postalCode, x.postal_code, x.postalCode, fallback.postal_code, fallback.postalCode, "")).replace(/\D/g, "").slice(0, 5),
       city: String(prvaVrednost(address.city, x.city, fallback.city, "")).trim(),
-      registerType: String(prvaVrednost(register.register_type, x.register_type, fallback.register_type, "")).trim(),
-      registerNumber: String(prvaVrednost(register.register_number, x.register_number, fallback.register_number, "")).trim(),
-      registerCourt: String(prvaVrednost(register.register_court, x.register_court, fallback.register_court, "")).trim(),
-      vatId: String(prvaVrednost(contact.vat_id, x.vat_id, "")).trim(),
+      registerType: String(prvaVrednost(register.register_type, x.register_type, x.registerType, fallback.register_type, "")).trim(),
+      registerNumber: String(prvaVrednost(register.register_number, x.register_number, x.registerNumber, fallback.register_number, "")).trim(),
+      registerCourt: String(prvaVrednost(register.register_court, x.register_court, x.registerCourt, fallback.register_court, "")).trim(),
+      vatId: String(prvaVrednost(contact.vat_id, x.vat_id, x.vatId, "")).trim(),
       website: website,
-      identityProof: String(prvaVrednost(x.identity_proof, fallback.identity_proof, "")).trim(),
-      suggestionProof: String(prvaVrednost(x.suggestion_proof, fallback.suggestion_proof, "")).trim(),
+      identityProof: String(prvaVrednost(x.identity_proof, x.identityProof, fallback.identity_proof, "")).trim(),
+      suggestionProof: String(prvaVrednost(x.suggestion_proof, x.suggestionProof, fallback.suggestion_proof, "")).trim(),
       source: String(prvaVrednost(x.source, fallback.source, "")).trim(),
-      sourceId: String(prvaVrednost(x.source_id, fallback.source_id, "")).trim(),
+      sourceId: String(prvaVrednost(x.source_id, x.sourceId, fallback.source_id, "")).trim(),
     };
   }
 
@@ -1503,7 +1507,7 @@
       var name = document.createElement("strong");
       name.textContent = company.name || "Podjetje";
       var details = document.createElement("small");
-      details.textContent = [company.register_type, company.register_number, company.register_court || company.city].filter(Boolean).join(" · ") || "Nemški register";
+      details.textContent = [company.register_type || company.registerType, company.register_number || company.registerNumber, company.register_court || company.registerCourt || company.city].filter(Boolean).join(" · ") || "Nemški register";
       var status = document.createElement("span");
       status.textContent = varnaAktivnostZaPrikaz(company.active, company, company.company_id || company.companyId) === false
         ? "Status potrjen" : "Izberi";
@@ -4186,7 +4190,7 @@
     var dodatnePovezave = povezaneDruzbe.slice(3, 8);
     var povezaveHtml = povezaneDruzbe.length ? '<section class="boniteta-dodatno__modul boniteta-dodatno__povezave"><h5>Povezana podjetja</h5><ul>' + vidnePovezave.map(povezavaHtml).join("") + '</ul>' +
       (dodatnePovezave.length ? '<details class="boniteta-dodatno__povezave-vec"><summary><span class="is-closed">Prikaži še ' + dodatnePovezave.length + ' povezav</span><span class="is-open">Skrij dodatne povezave</span><b aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></b></summary><ul>' + dodatnePovezave.map(povezavaHtml).join("") + '</ul></details>' : '') + '</section>' : "";
-    var identifikatorjiHtml = identifikatorji.length ? '<section class="boniteta-dodatno__modul boniteta-dodatno__identifikatorji"><h5>Dodatni identifikatorji</h5><dl class="boniteta-dodatno__zapisi' + (identifikatorji.length === 1 ? ' is-single' : '') + '">' + identifikatorji.join("") + '</dl><footer class="boniteta-dodatno__noga"><small><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span>Posodobljeno' + (preverjenoBesedilo ? ' ' + esc(preverjenoBesedilo) : '') + '</small></footer></section>' : "";
+    var identifikatorjiHtml = identifikatorji.length ? '<section class="boniteta-dodatno__modul boniteta-dodatno__identifikatorji"><h5>Dodatni identifikatorji</h5><dl class="boniteta-dodatno__zapisi' + (identifikatorji.length === 1 ? ' is-single' : '') + '">' + identifikatorji.join("") + '</dl><footer class="boniteta-dodatno__noga"><small><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>Posodobljeno' + (preverjenoBesedilo ? ' ' + esc(preverjenoBesedilo) : '') + '</small></footer></section>' : "";
     var vodstvoHtml = trenutnoVodstvo.length ? '<section class="boniteta-dodatno__modul boniteta-dodatno__osebe"><h5>Trenutno vodstvo</h5><ul>' + trenutnoVodstvo.map(function (v) { return osebaHtml(v, "current"); }).join("") + '</ul></section>' : "";
     var moduli = [vodstvoHtml, povezaveHtml, identifikatorjiHtml].filter(Boolean);
     var dodatnoNaslov = "Zbrani so dodatni registrski podatki.";
@@ -5820,11 +5824,11 @@
     var surovoImeVnos = nacinVnosa === "surovo_ime";
     if (!samoSpletniVnos && !registrskiVnos && !surovoImeVnos && !obrazec.reportValidity()) return;
 
-    var posta = samoSpletniVnos || registrskiVnos ? "" : document.getElementById("boniteta-posta").value.replace(/\D/g, "");
-    var spletnaStran = spletnaPolje.value.trim();
+    var posta = samoSpletniVnos || registrskiVnos || surovoImeVnos ? "" : document.getElementById("boniteta-posta").value.replace(/\D/g, "");
+    var spletnaStran = surovoImeVnos ? "" : spletnaPolje.value.trim();
     var rocnoIme = samoSpletniVnos ? "" : registrskiVnos ? izbranoOpenRegisterPodjetje.name : document.getElementById("boniteta-ime").value.trim();
-    var rocniNaslov = samoSpletniVnos || registrskiVnos ? "" : document.getElementById("boniteta-naslov-podjetja").value.trim();
-    var rocniKraj = samoSpletniVnos || registrskiVnos ? "" : krajPolje.value.trim();
+    var rocniNaslov = samoSpletniVnos || registrskiVnos || surovoImeVnos ? "" : document.getElementById("boniteta-naslov-podjetja").value.trim();
+    var rocniKraj = samoSpletniVnos || registrskiVnos || surovoImeVnos ? "" : krajPolje.value.trim();
     if (!spletnaStran && !registrskiVnos && !surovoImeVnos && (!rocnoIme || rocniNaslov.length < 3 || !/^\d{5}$/.test(posta) || rocniKraj.length < 2)) {
       pokaziNapako("Brez spletne strani izpolnite ime, ulico s hišno številko, poštno številko in kraj.");
       return;
@@ -5854,9 +5858,9 @@
         postnaStevilka: posta,
         kraj: rocniKraj,
         spletnaStran: spletnaStran,
-        registerNumber: samoSpletniVnos || registrskiVnosJeSamoIme ? "" : document.getElementById("boniteta-register").value.trim(),
+        registerNumber: samoSpletniVnos || registrskiVnosJeSamoIme || surovoImeVnos ? "" : document.getElementById("boniteta-register").value.trim(),
         registerCourt: registrskiVnosJeSamoIme ? "" : izbranoOpenRegisterPodjetje && izbranoOpenRegisterPodjetje.registerCourt || "",
-        vatId: samoSpletniVnos ? "" : document.getElementById("boniteta-davcna").value.trim(),
+        vatId: samoSpletniVnos || surovoImeVnos ? "" : document.getElementById("boniteta-davcna").value.trim(),
         openRegisterCompanyId: izbranoOpenRegisterPodjetje && izbranoOpenRegisterPodjetje.companyId || "",
         openRegisterIdentityProof: izbranoOpenRegisterPodjetje && izbranoOpenRegisterPodjetje.identityProof || "",
         companyIndexSource: izbranoOpenRegisterPodjetje && izbranoOpenRegisterPodjetje.source || "",
@@ -5873,8 +5877,8 @@
         var dvoumniKandidati = podatki.openregister.candidates.map(function (kandidat) {
           return normalizirajOpenRegisterPodjetje({}, Object.assign({ source: "openregister_ambiguous" }, kandidat));
         });
-        izrisiAutocompleteZadetke(dvoumniKandidati);
         nastaviHeroNapako("Našli smo več možnih podjetij z enakim imenom. Izberite pravi registrski zapis ali vnesite spletno stran.");
+        izrisiAutocompleteZadetke(dvoumniKandidati, true);
         return;
       }
       var razlogSpletneNapake = podatki && podatki.publicProfile && podatki.publicProfile.reason;

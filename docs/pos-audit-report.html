@@ -1,0 +1,752 @@
+<title>POS plačilni življenjski cikel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#f4f3ee;
+    --paper-raised:#fbfaf6;
+    --ink:#1c1e1c;
+    --ink-soft:#4b4f4a;
+    --ink-faint:#7a7e78;
+    --line:#d8d6cc;
+    --line-strong:#b9b6a8;
+    --accent:#1e4b8f;
+    --accent-soft:#e7edf6;
+    --accent-ink:#123063;
+    --crit:#a3311f;
+    --crit-soft:#f6e4df;
+    --warn:#8a5a12;
+    --warn-soft:#f4e7cd;
+    --ok:#2f6a45;
+    --ok-soft:#e2ede4;
+    --info:#3d5266;
+    --info-soft:#e6ebef;
+    --mono-bg:#26241f;
+    --mono-ink:#f0ede2;
+    --shadow: 0 1px 2px rgba(28,30,28,0.06), 0 6px 20px -8px rgba(28,30,28,0.12);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#17181a;
+      --paper-raised:#1f2123;
+      --ink:#eceae3;
+      --ink-soft:#b9b7ae;
+      --ink-faint:#84837b;
+      --line:#33352f;
+      --line-strong:#45473f;
+      --accent:#7fa8e8;
+      --accent-soft:#1c2c46;
+      --accent-ink:#cfe0fb;
+      --crit:#e08672;
+      --crit-soft:#3a2420;
+      --warn:#e0b568;
+      --warn-soft:#3a2f18;
+      --ok:#8fc9a3;
+      --ok-soft:#1e3226;
+      --info:#9db3c8;
+      --info-soft:#20272e;
+      --mono-bg:#0f0f0e;
+      --mono-ink:#e8e5d8;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#17181a;
+    --paper-raised:#1f2123;
+    --ink:#eceae3;
+    --ink-soft:#b9b7ae;
+    --ink-faint:#84837b;
+    --line:#33352f;
+    --line-strong:#45473f;
+    --accent:#7fa8e8;
+    --accent-soft:#1c2c46;
+    --accent-ink:#cfe0fb;
+    --crit:#e08672;
+    --crit-soft:#3a2420;
+    --warn:#e0b568;
+    --warn-soft:#3a2f18;
+    --ok:#8fc9a3;
+    --ok-soft:#1e3226;
+    --info:#9db3c8;
+    --info-soft:#20272e;
+    --mono-bg:#0f0f0e;
+    --mono-ink:#e8e5d8;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:16px; line-height:1.6;
+  }
+  ::selection{ background:var(--accent-soft); color:var(--accent-ink); }
+  a{ color:var(--accent); text-decoration-thickness:1.5px; text-underline-offset:2px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+
+  h1,h2,h3,h4{ font-family:"Fraunces", Georgia, serif; text-wrap:balance; color:var(--ink); font-weight:600; }
+  code, .mono, .num, td.num, th.num{ font-family:"IBM Plex Mono", ui-monospace, "Courier New", monospace; }
+
+  .doc{ max-width:1180px; margin:0 auto; padding:0 clamp(16px,4vw,48px); }
+
+  /* ---------- masthead ---------- */
+  .masthead{ border-bottom:1px solid var(--line); background:var(--paper-raised); }
+  .masthead-inner{ max-width:1180px; margin:0 auto; padding:28px clamp(16px,4vw,48px) 22px; }
+  .kicker{ font-family:"IBM Plex Mono", monospace; font-size:12.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .kicker .sep{ color:var(--line-strong); }
+  h1.title{ font-size:clamp(28px,4vw,40px); line-height:1.12; margin:10px 0 8px; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-soft); font-size:16.5px; max-width:70ch; margin:0 0 16px; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:14px; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-family:"IBM Plex Mono",monospace; padding:4px 10px; border-radius:999px; border:1px solid var(--line-strong); color:var(--ink-soft); background:var(--paper); }
+  .chip b{ color:var(--ink); font-weight:600; }
+  .chip.crit{ background:var(--crit-soft); color:var(--crit); border-color:transparent; }
+
+  /* ---------- layout: sidebar + article ---------- */
+  .layout{ display:grid; grid-template-columns:250px minmax(0,1fr); gap:44px; padding:36px 0 100px; align-items:start; }
+  @media (max-width:920px){ .layout{ grid-template-columns:1fr; } }
+
+  nav.toc{ position:sticky; top:20px; align-self:start; max-height:calc(100vh - 40px); overflow-y:auto; padding-right:6px; }
+  nav.toc .toc-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; }
+  nav.toc ol{ list-style:none; margin:0; padding:0; border-left:1px solid var(--line); }
+  nav.toc li{ margin:0; }
+  nav.toc a{ display:block; padding:6px 0 6px 14px; font-size:13.6px; color:var(--ink-soft); text-decoration:none; border-left:2px solid transparent; margin-left:-1px; }
+  nav.toc a:hover{ color:var(--ink); }
+  nav.toc a .n{ font-family:"IBM Plex Mono",monospace; color:var(--ink-faint); margin-right:7px; }
+  @media (max-width:920px){
+    nav.toc{ position:static; max-height:none; margin-bottom:8px; }
+    nav.toc details{ border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); padding:10px 14px; }
+    nav.toc summary{ cursor:pointer; font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); }
+  }
+
+  article{ min-width:0; }
+  section{ padding-top:8px; margin-bottom:56px; scroll-margin-top:20px; }
+  section > .sec-head{ display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:22px; }
+  section > .sec-head .sec-num{ font-family:"IBM Plex Mono",monospace; color:var(--accent); font-size:14px; font-weight:600; flex:none; }
+  section > .sec-head h2{ font-size:clamp(21px,2.6vw,27px); margin:0; }
+  section h3{ font-size:18px; margin:30px 0 10px; }
+  section h4{ font-size:15px; margin:20px 0 8px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; font-family:"IBM Plex Sans"; font-weight:600; }
+
+  p{ margin:0 0 14px; max-width:74ch; }
+  ul,ol{ padding-left:22px; margin:0 0 14px; max-width:74ch; }
+  li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+
+  .lede{ font-size:18px; color:var(--ink-soft); max-width:70ch; }
+
+  /* callouts */
+  .callout{ border:1px solid var(--line); border-left:4px solid var(--info); background:var(--info-soft); border-radius:0 var(--radius) var(--radius) 0; padding:14px 18px; margin:18px 0; max-width:74ch; }
+  .callout p:last-child{ margin-bottom:0; }
+  .callout .cal-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--info); margin-bottom:6px; font-weight:600; }
+  .callout.crit{ border-left-color:var(--crit); background:var(--crit-soft); }
+  .callout.crit .cal-label{ color:var(--crit); }
+  .callout.warn{ border-left-color:var(--warn); background:var(--warn-soft); }
+  .callout.warn .cal-label{ color:var(--warn); }
+  .callout.ok{ border-left-color:var(--ok); background:var(--ok-soft); }
+  .callout.ok .cal-label{ color:var(--ok); }
+
+  .fact-tag{ display:inline-flex; align-items:center; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.04em; padding:1px 7px; border-radius:5px; font-weight:600; white-space:nowrap; }
+  .fact-tag.verified{ background:var(--ok-soft); color:var(--ok); }
+  .fact-tag.reco{ background:var(--accent-soft); color:var(--accent-ink); }
+  .fact-tag.open{ background:var(--warn-soft); color:var(--warn); }
+
+  /* tables */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); box-shadow:var(--shadow); margin:18px 0 28px; }
+  table{ border-collapse:collapse; width:100%; min-width:640px; font-size:14.2px; }
+  table.wide{ min-width:960px; }
+  table.xwide{ min-width:1180px; }
+  th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  thead th{ background:var(--paper); font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; position:sticky; top:0; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--accent-soft); }
+  td.num, th.num{ font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+  td code, li code{ background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.6px; color:var(--accent-ink); }
+
+  /* severity pills */
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+  .pill.p0{ background:var(--crit-soft); color:var(--crit); }
+  .pill.p1{ background:var(--warn-soft); color:var(--warn); }
+  .pill.p2{ background:var(--info-soft); color:var(--info); }
+  .pill.p3{ background:var(--ok-soft); color:var(--ok); }
+  .pill.state{ background:var(--paper); border:1px solid var(--line-strong); color:var(--ink); font-size:11.8px; }
+  .pill.term{ background:var(--ink); color:var(--paper); }
+  :root[data-theme="dark"] .pill.term, @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .pill.term{ background:var(--ink); color:var(--paper); } }
+
+  /* state machine diagram */
+  .sm-diagram{ overflow-x:auto; padding:6px 0 18px; }
+  .sm-diagram svg{ display:block; min-width:920px; }
+  .sm-diagram text{ font-family:"IBM Plex Mono", monospace; }
+
+  /* edge case cards */
+  .edge-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; margin:18px 0 28px; }
+  .edge{ border:1px solid var(--line); background:var(--paper-raised); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); }
+  .edge .eid{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--accent); font-weight:600; }
+  .edge h5{ margin:4px 0 8px; font-size:14.5px; font-weight:600; }
+  .edge p{ margin:0; font-size:13.6px; color:var(--ink-soft); max-width:none; }
+  .edge .exp{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); font-size:13.2px; }
+  .edge .exp b{ font-weight:600; }
+
+  /* copy blocks (UX text) */
+  .copy-block{ border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); padding:16px 18px; margin:12px 0; box-shadow:var(--shadow); }
+  .copy-block h5{ margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-family:"IBM Plex Sans"; font-weight:600; }
+  .screen-de{ font-family:"IBM Plex Mono",monospace; background:var(--mono-bg); color:var(--mono-ink); border-radius:8px; padding:14px 16px; font-size:13.6px; line-height:1.55; margin-bottom:10px; }
+  .screen-de .t{ font-weight:600; display:block; margin-bottom:4px; }
+  .screen-de .b{ opacity:.82; }
+  .screen-note{ font-size:12.8px; color:var(--ink-faint); margin:0; }
+
+  hr.rule{ border:none; border-top:1px solid var(--line); margin:36px 0; }
+
+  footer.doc-foot{ border-top:1px solid var(--line); padding:26px 0 60px; color:var(--ink-faint); font-size:12.8px; }
+
+  @media (max-width:640px){
+    table{ font-size:13px; }
+    th,td{ padding:8px 10px; }
+  }
+</style>
+
+<div class="masthead">
+  <div class="masthead-inner">
+    <div class="kicker">POS · UŽ TERMINAL <span class="sep">/</span> READ-ONLY AUDIT <span class="sep">/</span> AUGUST 2026</div>
+    <h1 class="title">Plačilni življenjski cikel POS terminala</h1>
+    <p class="subtitle">Poglobljena produktna, tehnična, varnostna in UX analiza za Uspešni Ježek — POS terminal za nemške obrtnike. State machine, podatkovni model, 40+ robnih primerov, threat model, nemška compliance matrika in fazni načrt izvedbe.</p>
+    <div class="meta-row">
+      <span class="chip crit">1 KRITIČEN scenarij podrobno obdelan · §7</span>
+      <span class="chip">Obseg: <b>read-only</b>, brez posegov v kodo</span>
+      <span class="chip">Vir kode: <b>app/pos-terminal.js, api/_handlers/pos-*, supabase/migrations</b></span>
+      <span class="chip">Pravni viri: <b>gesetze-im-internet.de, bundesfinanzministerium.de, bzst.de</b></span>
+    </div>
+  </div>
+</div>
+
+<div class="doc">
+<div class="layout">
+
+<nav class="toc" aria-label="Kazalo">
+  <details open>
+  <summary class="toc-label">Kazalo</summary>
+  <ol>
+    <li><a href="#s1"><span class="n">01</span>Izvršni povzetek</a></li>
+    <li><a href="#s2"><span class="n">02</span>Zemljevid uporabniških tokov</a></li>
+    <li><a href="#s3"><span class="n">03</span>State machine</a></li>
+    <li><a href="#s4"><span class="n">04</span>Priporočena arhitektura</a></li>
+    <li><a href="#s5"><span class="n">05</span>Podatkovni model</a></li>
+    <li><a href="#s6"><span class="n">06</span>Robni primeri (43)</a></li>
+    <li><a href="#s7"><span class="n">07</span>Nevaren primer: fantomski neuspeh</a></li>
+    <li><a href="#s8"><span class="n">08</span>Threat model</a></li>
+    <li><a href="#s9"><span class="n">09</span>Nemška compliance matrika</a></li>
+    <li><a href="#s10"><span class="n">10</span>UX za mobilni POS</a></li>
+    <li><a href="#s11"><span class="n">11</span>Besedila za kritična stanja</a></li>
+    <li><a href="#s12"><span class="n">12</span>Testni načrt</a></li>
+    <li><a href="#s13"><span class="n">13</span>Ugotovitve P0–P3</a></li>
+    <li><a href="#s14"><span class="n">14</span>Merila sprejema P0/P1</a></li>
+    <li><a href="#s15"><span class="n">15</span>Fazni načrt izvedbe</a></li>
+    <li><a href="#s16"><span class="n">16</span>Odprta vprašanja</a></li>
+  </ol>
+  </details>
+</nav>
+
+<article>
+
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">§ 01</span><h2>Izvršni povzetek</h2></div>
+  <p class="lede">Ta dokument loči dosledno tri stvari: kaj sem <span class="fact-tag verified">PREVERJENO</span> našel v dejanski kodi, kaj je <span class="fact-tag reco">PRIPOROČILO</span> za nadgradnjo, in kje je <span class="fact-tag open">ODPRTO</span> vprašanje, ki ga nisem mogel preveriti read-only. Kartično in gotovinsko plačilo v produkciji trenutno <strong>nista v živo</strong> — oboje teče izključno v sandbox/training načinu (Stripe Test Mode, fiskaly TSE training okolje); to je preverjeno dejstvo, ne ugibanje.</p>
+
+  <ol>
+    <li><span class="fact-tag verified">PREVERJENO</span> Gotovinski checkout ima že danes pravo state-machine disciplino: <code>prepared → signed → completed</code>, s posebnim varnostnim stanjem <code>recovery_required</code>, ko TSE podpis vrže napako ali je izid negotov — plačilo se v tem primeru <strong>ne zapiše</strong> kot uspešno, dokler se ročno ne uskladi. (<code>api/_lib/pos-cash-checkout.js</code>)</li>
+    <li><span class="fact-tag verified">PREVERJENO</span> Ročna potrditev plačila (bančno nakazilo/gotovina brez TSE) uporablja idempotenčni <code>request_key</code>, vezan unikatno na uporabnika — ponovljen klic vrne isto plačilo, ne ustvari drugega. (migracija <code>pos_manual_payment_retry_idempotency.sql</code>)</li>
+    <li><span class="fact-tag verified">PREVERJENO</span> Stripe povračila so zaščitena pred zastarelimi/nezaporednimi webhook dogodki s trigerjem, ki <strong>nikoli</strong> ne zmanjša že zabeleženega <code>refunded_cents</code>. (<code>pos_stripe_refunds_monotonic.sql</code>)</li>
+    <li><span class="fact-tag verified">PREVERJENO</span> Izdan račun (<code>pos_invoices</code>) je na nivoju baze fizično nespremenljiv — trigger zavrne vsak UPDATE/DELETE. Popravki gredo izključno prek novih dokumentov (Storno/Korektur), kar je tudi GoBD zahteva.</li>
+    <li><span class="fact-tag open">ODPRTO</span> V pregledanih migracijah <strong>nisem našel</strong> namenske tabele za blagajniški dnevnik/izmeno (cash session/shift) niti tabele naprav (device/terminal registry). Ker obstaja 120 pos-migracij in nisem prebral vseh, tega ne trdim dokončno — priporočam razvijalcu eksplicitno preveriti pred nadaljnjim delom.</li>
+    <li><span class="fact-tag reco">PRIPOROČILO</span> Trenutni podatkovni model nima eksplicitnega <code>PaymentAttempt</code>, ločenega od <code>Payment</code> — <code>pos_payments</code> meša poskus in izid. To otežuje modeliranje UNKNOWN/RECONCILIATION_REQUIRED stanj za kartično plačilo (glej §5).</li>
+    <li><span class="fact-tag verified">PREVERJENO</span> Nemška fiskalna logika je nesorazmerno zrela za mlado aplikacijo: GoBD Verfahrensdokumentation PDF, WORM arhiv, DSFinV-K izvoz, KoSIT e-račun validacija in §35a postavke že obstajajo v kodi in imajo lastne teste.</li>
+    <li><span class="fact-tag reco">PRIPOROČILO</span> Kanonični state machine iz specifikacije (CREATED…FAILED) danes <strong>ne obstaja kot en sam eksplicitni stolpec</strong> — stanje je razpršeno med <code>pos_payments.status</code> (Stripe: succeeded/failed/…) in ločen <code>cash.STATES</code> enum. Priporočam unifikacijo (glej §3, §15 faza 1).</li>
+    <li><span class="fact-tag verified">PREVERJENO</span> Belegausgabepflicht (§146a AO) je pravno obvezna za vsak POS izdan dokument v Nemčiji ne glede na znesek — kupec ni dolžan vzeti računa, obrtnik pa ga je dolžan izdati. Preverite v UI, da se to dosledno ponuja pri vsakem zaključku, tudi gotovinskem (glej §9).</li>
+    <li><span class="fact-tag open">ODPRTO</span> Offline čakalna vrsta in ponovna sinhronizacija (točka 7 naročila) nisem našel dokazane implementacije v pregledanih datotekah — to je bodisi še nenapisano, bodisi obstaja v delu <code>app/pos-terminal.js</code>, ki ga nisem prebral v celoti (6523 vrstic). Označeno kot odprto vprašanje, glej §16.</li>
+    <li><span class="fact-tag reco">PRIPOROČILO</span> Najresnejše produktno tveganje ni v kodi, ki obstaja, ampak v tem, kar (še) ne obstaja: <strong>rekoncilacija med terminalom in ponudnikom po timeoutu</strong>. Obstoječi <code>recovery_required</code> vzorec za gotovino je odličen predlog za ponovno uporabo pri kartičnem plačilu — glej §7.</li>
+  </ol>
+</section>
+
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">§ 02</span><h2>Zemljevid uporabniških tokov</h2></div>
+  <p>Vsi tokovi izhajajo iz ene točke — izbranega računa (<code>pos_invoices</code>, lahko tudi še neizdan osnutek) z odprtim zneskom (<code>gross_cents − effective_paid_cents</code>). Od tu se pot razveji glede na način plačila.</p>
+
+  <div class="table-wrap">
+    <table class="wide">
+      <thead><tr><th>Tok</th><th>Vstopna točka</th><th>Ključne postaje</th><th>Terminalni izidi</th><th>Status v kodi</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Kartica (Stripe)</strong></td><td>Izbira zneska → "Plačaj s kartico"</td><td>Stripe Checkout Session → preusmeritev → webhook potrdi</td><td>CAPTURED / DECLINED / CANCELLED</td><td><span class="pill p2">Sandbox/Test only</span></td></tr>
+        <tr><td><strong>Gotovina (TSE)</strong></td><td>"Gotovina" → potrditev zneska</td><td>Priprava računa → TSE podpis → zaključek</td><td>CAPTURED / RECONCILIATION_REQUIRED</td><td><span class="pill p2">Training/Mock only</span></td></tr>
+        <tr><td><strong>Ročno/bančno nakazilo</strong></td><td>"Označi kot plačano"</td><td>Izrecna potrditev → idempotenčni zapis</td><td>CAPTURED</td><td><span class="pill term">Produkcijsko aktivno</span></td></tr>
+        <tr><td><strong>Delno plačilo</strong></td><td>Vnos zneska &lt; odprti znesek</td><td>Enak tok kot zgoraj, znesek &lt; outstanding</td><td>PARTIALLY_CAPTURED*</td><td><span class="fact-tag open">Odprto</span> — status kot tak ni potrjen</td></tr>
+        <tr><td><strong>Kombinirano</strong></td><td>Del gotovina + del kartica</td><td>Dva ločena <code>pos_payments</code> zapisa za isti račun</td><td>Skupno CAPTURED, ko vsota = gross</td><td><span class="fact-tag reco">Priporočilo</span> — potrebna eksplicitna orkestracija</td></tr>
+        <tr><td><strong>Obročno</strong></td><td>Plan obrokov ob izdaji</td><td>N ločenih plačilnih ciklov skozi čas</td><td>Vsak obrok CAPTURED/OVERDUE</td><td><span class="fact-tag open">Odprto</span> — ni najdenega POS-specifičnega planerja obrokov (obstaja ločeno v modulu "Izvedba/dogovor")</td></tr>
+        <tr><td><strong>Vračilo/storno</strong></td><td>Iz že plačanega računa</td><td>Refund API/RPC → korekturni dokument</td><td>REFUNDED / PARTIALLY_REFUNDED</td><td><span class="pill term">Preverjeno v kodi</span></td></tr>
+        <tr><td><strong>Offline</strong></td><td>Ni omrežja ob zaključku</td><td>Lokalna čakalna vrsta → sinhronizacija</td><td>PENDING_SYNC → CAPTURED/FAILED</td><td><span class="fact-tag open">Ni najdeno v pregledani kodi</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="screen-note">* Oznake s <code>*</code> so predlagana imena stanj (§3), ne obstoječi nizi v bazi.</p>
+</section>
+
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">§ 03</span><h2>Kanonični state machine</h2></div>
+  <p>Spodnji diagram in tabela predstavljata <strong>predlagan enoten</strong> state machine za <code>PaymentAttempt</code> (glej §5), ki bi nadomestil/poenotil obstoječi razpršeni par <code>pos_payments.status</code> (Stripe) + <code>cash.STATES</code> (gotovina). Obstoječa gotovinska logika (<code>PREPARED→SIGNED→COMPLETED</code>, <code>RECOVERY_REQUIRED</code>) se skoraj eksaktno preslika na <code>PROCESSING→AUTHORIZED→CAPTURED</code>, <code>RECONCILIATION_REQUIRED</code> — to ni nov koncept, je posplošitev že preverjenega vzorca.</p>
+
+  <div class="sm-diagram" role="img" aria-label="Diagram prehodov med stanji plačila">
+  <svg viewBox="0 0 1180 430" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7 Z" fill="var(--ink-faint)"></path>
+      </marker>
+      <marker id="arrowc" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+        <path d="M0,0 L9,3.5 L0,7 Z" fill="var(--crit)"></path>
+      </marker>
+    </defs>
+    <style>
+      .node rect{ fill:var(--paper-raised); stroke:var(--line-strong); stroke-width:1.3; rx:9; }
+      .node.term rect{ fill:var(--ink); stroke:var(--ink); }
+      .node.term text{ fill:var(--paper); }
+      .node.danger rect{ fill:var(--crit-soft); stroke:var(--crit); }
+      .node.danger text{ fill:var(--crit); }
+      .node text{ fill:var(--ink); font-size:12px; font-weight:600; text-anchor:middle; }
+      .edge{ stroke:var(--ink-faint); stroke-width:1.3; fill:none; marker-end:url(#arrow); }
+      .edge.danger{ stroke:var(--crit); stroke-width:1.6; marker-end:url(#arrowc); stroke-dasharray:4 3; }
+      .elabel{ font-size:9.5px; fill:var(--ink-faint); text-anchor:middle; }
+      .elabel.danger{ fill:var(--crit); font-weight:600; }
+    </style>
+
+    <!-- nodes -->
+    <g class="node"><rect x="20" y="30" width="110" height="40"/><text x="75" y="55">CREATED</text></g>
+    <g class="node"><rect x="180" y="30" width="110" height="40"/><text x="235" y="55">READY</text></g>
+    <g class="node"><rect x="340" y="30" width="120" height="40"/><text x="400" y="55">PROCESSING</text></g>
+    <g class="node"><rect x="510" y="30" width="130" height="40"/><text x="575" y="55">AUTHORIZED</text></g>
+    <g class="node term"><rect x="690" y="30" width="120" height="40"/><text x="750" y="55">CAPTURED</text></g>
+
+    <g class="node term"><rect x="340" y="130" width="120" height="40"/><text x="400" y="155">DECLINED</text></g>
+    <g class="node term"><rect x="180" y="130" width="120" height="40"/><text x="240" y="155">CANCELLED</text></g>
+    <g class="node term"><rect x="510" y="130" width="120" height="40"/><text x="570" y="155">FAILED</text></g>
+
+    <g class="node danger"><rect x="340" y="230" width="150" height="46"/><text x="415" y="250">UNKNOWN</text><text x="415" y="264" style="font-size:9px;font-weight:500">(app ≠ resnica)</text></g>
+    <g class="node danger"><rect x="530" y="230" width="200" height="46"/><text x="630" y="250">RECONCILIATION_</text><text x="630" y="264">REQUIRED</text></g>
+
+    <g class="node"><rect x="800" y="130" width="150" height="40"/><text x="875" y="155">REFUND_PENDING</text></g>
+    <g class="node"><rect x="800" y="230" width="170" height="40"/><text x="885" y="255">PARTIALLY_REFUNDED</text></g>
+    <g class="node term"><rect x="820" y="330" width="130" height="40"/><text x="885" y="355">REFUNDED</text></g>
+
+    <!-- edges -->
+    <path class="edge" d="M130,50 L180,50"/>
+    <path class="edge" d="M290,50 L340,50"/>
+    <path class="edge" d="M460,50 L510,50"/>
+    <path class="edge" d="M640,50 L690,50"/>
+    <text class="elabel" x="500" y="42">authorize</text>
+    <text class="elabel" x="665" y="42">capture</text>
+
+    <path class="edge" d="M400,70 L400,130"/>
+    <text class="elabel" x="430" y="102">issuer declines</text>
+    <path class="edge" d="M240,70 L240,130"/>
+    <text class="elabel" x="150" y="102">uporabnik prekine</text>
+    <path class="edge" d="M575,70 L570,130"/>
+    <text class="elabel" x="595" y="102">timeout / drop</text>
+
+    <path class="edge danger" d="M410,170 L410,230"/>
+    <text class="elabel danger" x="440" y="205">brez odgovora</text>
+    <path class="edge danger" d="M575,170 Q600,200 610,230"/>
+    <text class="elabel danger" x="640" y="205">signing error</text>
+    <path class="edge danger" d="M485,253 L530,253"/>
+
+    <path class="edge" d="M630,230 Q690,150 750,70" />
+    <text class="elabel" x="700" y="150">ročno usklajeno: plačilo obstaja</text>
+
+    <path class="edge" d="M810,50 Q870,90 875,130"/>
+    <text class="elabel" x="900" y="95">refund start</text>
+    <path class="edge" d="M875,170 L885,230"/>
+    <text class="elabel" x="930" y="205">delno</text>
+    <path class="edge" d="M885,270 L885,330"/>
+    <text class="elabel" x="930" y="305">v celoti</text>
+  </svg>
+  </div>
+
+  <div class="table-wrap">
+    <table class="xwide">
+      <thead><tr><th>Stanje</th><th>Kako vanj pridemo</th><th>Dovoljeni naslednji prehodi</th><th>Kaj vidi uporabnik</th><th>Dovoljena dejanja</th><th>Preprečitev napačnega ponovnega plačila</th><th>Terminalno?</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill state">CREATED</span></td><td>Uporabnik izbere račun/znesek/način</td><td>READY, CANCELLED</td><td>Zaslon izbire zneska/metode</td><td>Uredi znesek, prekliči</td><td>Ni še poskusa pri ponudniku — ni tveganja</td><td>Ne</td></tr>
+        <tr><td><span class="pill state">READY</span></td><td>Vsi vhodni podatki veljavni, idempotency ključ generiran</td><td>PROCESSING, CANCELLED</td><td>"Pripravljeno" / poteka priprava naprave (kartičnik/TSE)</td><td>Prekliči (dokler ni poslano ponudniku)</td><td>Idempotency ključ (UUID) je že vezan na ta poskus, še ne poslan</td><td>Ne</td></tr>
+        <tr><td><span class="pill state">PROCESSING</span></td><td>Zahteva poslana ponudniku/TSE (nepovratna točka)</td><td>AUTHORIZED, DECLINED, UNKNOWN, CANCELLED*</td><td>Spinner "Ne odmikajte terminala / kartice", <strong>brez gumba Prekliči po tej točki za kartico</strong></td><td>Nobeno (samo čakanje) — UI ne sme ponuditi novega poskusa</td><td>Ta trenutek je najbolj kritičen: enkrat poslano, se NE sme poslati še enkrat z istim ali novim ključem, dokler PROCESSING traja</td><td>Ne</td></tr>
+        <tr><td><span class="pill state">AUTHORIZED</span></td><td>Ponudnik potrdi rezervacijo sredstev (kartica) / TSE podpiše (gotovina→SIGNED)</td><td>CAPTURED, DECLINED (capture fail)</td><td>"Potrjeno, zaključujem…"</td><td>Nobeno uporabniško</td><td>Capture uporablja isti idempotency ključ kot authorize</td><td>Ne</td></tr>
+        <tr><td><span class="pill state">CAPTURED</span></td><td>Sredstva dokončno zajeta, izdan je znesek</td><td>REFUND_PENDING</td><td>Zeleno potrdilo + ponudba tiskanja/pošiljanja Belega</td><td>Natisni/pošlji potrdilo, sproži vračilo</td><td>Nov poskus na istem računu preveri outstanding &gt; 0, sicer zavrne</td><td><strong>Da</strong></td></tr>
+        <tr><td><span class="pill state">DECLINED</span></td><td>Ponudnik izrecno zavrne (nezadostna sredstva, PIN itd.)</td><td>CREATED (nov poskus)</td><td>Jasen razlog + "Poskusi znova" / "Drug način"</td><td>Nov poskus (nov idempotency ključ), zamenjava metode</td><td>Nov poskus dobi nov ključ — DECLINED sam po sebi ne predstavlja tveganja dvojnega bremenjenja</td><td><strong>Da</strong></td></tr>
+        <tr><td><span class="pill state">CANCELLED</span></td><td>Uporabnik prekliče pred PROCESSING</td><td>CREATED (nov poskus)</td><td>"Preklicano"</td><td>Nov poskus</td><td>Ni bilo poslano ponudniku — brez tveganja</td><td><strong>Da</strong></td></tr>
+        <tr><td class="danger"><span class="pill state">UNKNOWN</span></td><td>Timeout, izguba povezave ali crash <strong>med</strong> PROCESSING/AUTHORIZED, brez prejetega odgovora</td><td>RECONCILIATION_REQUIRED (avtomatsko, takoj)</td><td>Rumen/oranžen zaslon: "Preverjamo stanje plačila — ne poskušajte znova" (glej §11)</td><td><strong>Izrecno nobeno</strong> — gumb za ponovno plačilo je onemogočen</td><td>Sistem samodejno preide v RECONCILIATION_REQUIRED namesto da pusti uporabnika klikniti znova</td><td>Ne (mora prehajati naprej)</td></tr>
+        <tr><td class="danger"><span class="pill state">RECONCILIATION_REQUIRED</span></td><td>Iz UNKNOWN, ali ko TSE/kartični podpis vrže napako po oddaji (že preverjen vzorec: <code>cash.STATES.RECOVERY_REQUIRED</code>)</td><td>CAPTURED (če poizvedba pri ponudniku pokaže uspeh), DECLINED/FAILED (če pokaže neuspeh), ostane RECONCILIATION_REQUIRED (če ponudnik tudi ne ve)</td><td>"Preverjamo z bančnim ponudnikom, prosimo počakajte" + status vrstica; po X sekundah ponudi "Pokliči podporo"</td><td>Ročna/samodejna poizvedba (status lookup) pri ponudniku po <code>idempotency key</code>/<code>transactionId</code>, NIKOLI nov poskus zaračunavanja</td><td>Ta poizvedba mora biti <strong>read-only GET po statusu</strong>, ne nov charge — glej §7</td><td>Ne</td></tr>
+        <tr><td><span class="pill state">REFUND_PENDING</span></td><td>Uporabnik sproži vračilo na CAPTURED plačilu</td><td>PARTIALLY_REFUNDED, REFUNDED, CAPTURED (če vračilo pade)</td><td>"Vračilo v obdelavi"</td><td>Nobeno dodatno vračilo, dokler to ni razrešeno</td><td>Refund idempotency ključ (preverjeno: Stripe <code>idempotencyKey</code> vzorec že obstaja v kodi)</td><td>Ne</td></tr>
+        <tr><td><span class="pill state">PARTIALLY_REFUNDED</span></td><td>Delno vrnjen znesek &lt; amount_cents</td><td>REFUND_PENDING (novo delno vračilo), REFUNDED (do polnega)</td><td>Prikaz "Vrnjeno: X od Y €"</td><td>Dodatno delno vračilo do preostanka</td><td>DB trigger <code>pos_preserve_refund_progress</code> — preverjeno, ne dovoli zmanjšanja <code>refunded_cents</code></td><td>Ne</td></tr>
+        <tr><td><span class="pill state">REFUNDED</span></td><td><code>refunded_cents = amount_cents</code></td><td>—</td><td>"V celoti vrnjeno"</td><td>Samo vpogled/izpis dobropisa</td><td>Trigger onemogoča nadaljnje spremembe navzdol</td><td><strong>Da</strong></td></tr>
+        <tr><td><span class="pill state">FAILED</span></td><td>Sistemska/tehnična napaka pred kakršnokoli komunikacijo s ponudnikom (npr. neveljavna konfiguracija, network unreachable pred oddajo)</td><td>CREATED (nov poskus)</td><td>"Tehnična napaka, poskusite znova" + diagnostična koda</td><td>Nov poskus</td><td>Ločeno od DECLINED/UNKNOWN: FAILED pomeni "ponudnik ni bil nikoli dosežen", zato je varno ponoviti brez rekoncilacije</td><td><strong>Da</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="screen-note">* PROCESSING → CANCELLED naj bo dovoljen <strong>samo</strong> za gotovino/ročno pred dejanskim TSE podpisom; za kartico po pošiljanju avtorizacijske zahteve preklic ni varen (glej R-07 v §6) — namesto tega čaka na DECLINED/AUTHORIZED/UNKNOWN.</p>
+</section>
+
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">§ 04</span><h2>Priporočena arhitektura</h2></div>
+  <p><span class="fact-tag reco">PRIPOROČILO</span> — gradi na obstoječem vzorcu (Vercel funkcije + Supabase Postgres RPC + RLS), ne predlaga menjave stacka.</p>
+  <div class="table-wrap">
+    <table class="wide">
+      <thead><tr><th>Plast</th><th>Odgovornost</th><th>Obstoječi gradnik za ponovno rabo</th><th>Kar manjka</th></tr></thead>
+      <tbody>
+        <tr><td>Terminal UI (brskalnik/PWA)</td><td>Izbira, prikaz stanja, offline queue, tiskanje/pošiljanje Belega</td><td><code>app/pos-terminal.js</code></td><td>Eksplicitna offline-first plast (service worker queue) — ni potrjena</td></tr>
+        <tr><td>API rob (Vercel funkcije)</td><td>Auth, validacija payloada, klic ponudnika, zapis v RPC</td><td><code>api/_handlers/pos-stripe-checkout.js</code>, <code>pos-fiskaly.js</code></td><td>Enoten <code>PaymentAttempt</code> orkestrator, ki poenoti kartico/gotovino/ročno pod isti state machine</td></tr>
+        <tr><td>Webhook sprejemnik</td><td>Preveri podpis, normalizira dogodek, kliče idempotenčni RPC</td><td><code>pos-stripe-webhook.js</code> + <code>pos_apply_stripe_event</code> RPC</td><td>Enakovreden webhook/poll adapter za fiskaly produkcijski TSE (danes samo training)</td></tr>
+        <tr><td>Baza (Postgres/Supabase)</td><td>Atomski zapis, RLS, nespremenljivost, monotoni trigerji</td><td><code>pos_payments</code>, <code>pos_invoices</code> (immutable trigger), refund monotonic trigger</td><td>Tabele <code>payment_attempts</code>, <code>cash_sessions</code>, <code>devices</code>, <code>reconciliations</code> (glej §5)</td></tr>
+        <tr><td>Rekoncilacijski worker (cron/scheduled)</td><td>Periodično poizveduje stanje pri ponudniku za vsak <code>RECONCILIATION_REQUIRED</code>/<code>UNKNOWN</code> zapis</td><td>Vzorec obstaja za opomine (<code>scripts</code> cron-runner v drugih delih repozitorija)</td><td>POS-specifičen worker ni najden — <span class="fact-tag open">odprto</span></td></tr>
+        <tr><td>Observability</td><td>Strukturirani dogodki, alarmi brez PAN/kartičnih podatkov</td><td>Obstoječi <code>console.error("[pos-*]", koda)</code> vzorec že ločuje kodo napake od sporočila</td><td>Centralen dashboard/alarm za stanje <code>RECONCILIATION_REQUIRED &gt; N minut</code> — najbolj kritična manjkajoča metrika</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout ok">
+    <div class="cal-label">Dobra novica</div>
+    <p>Vzorec "nikoli ne zapiši uspeha brez popolnega dokaza, ob negotovosti pojdi v varno vmesno stanje" <strong>že obstaja</strong> v kodi gotovinskega TSE toka (<code>createService()</code> v <code>pos-cash-checkout.js</code>). Priporočena arhitektura v resnici samo posplošuje ta že preverjen, dober vzorec na kartično plačilo in na splošni <code>PaymentAttempt</code> nivo — ni treba izumljati novega mehanizma.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">§ 05</span><h2>Podatkovni model</h2></div>
+  <p>Osem entitet po naročilu. Kjer entiteta že obstaja v prepoznavni obliki, je to označeno; kjer je predlog nov, je označen kot priporočilo.</p>
+
+  <h3>PaymentAttempt <span class="fact-tag reco">nov predlog</span></h3>
+  <p>Ločuje "poskus" od "izida" — danes ju <code>pos_payments</code> deloma meša. Ključen za pravilno modeliranje UNKNOWN/RECONCILIATION_REQUIRED, ker poskus lahko obstaja brez potrjenega plačila.</p>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Polje</th><th>Tip</th><th>Opomba</th></tr></thead>
+    <tbody>
+      <tr><td class="num"><code>id</code></td><td>uuid PK</td><td>= idempotency key, ki ga terminal generira <strong>enkrat</strong> ob CREATED in ponovno uporabi pri vsakem retryu istega poskusa</td></tr>
+      <tr><td class="num"><code>invoice_id</code></td><td>uuid FK → pos_invoices</td><td>lahko tudi FK na osnutek, če se plača pred izdajo</td></tr>
+      <tr><td class="num"><code>user_id</code></td><td>uuid FK</td><td>RLS tenant izolacija (obstoječi vzorec)</td></tr>
+      <tr><td class="num"><code>method</code></td><td>enum</td><td><code>card, contactless, cash, bank_transfer, manual, split</code></td></tr>
+      <tr><td class="num"><code>state</code></td><td>enum</td><td>13 stanj iz §3</td></tr>
+      <tr><td class="num"><code>amount_cents</code></td><td>bigint</td><td>&gt; 0</td></tr>
+      <tr><td class="num"><code>provider</code></td><td>text</td><td><code>stripe, fiskaly_tse, manual</code></td></tr>
+      <tr><td class="num"><code>provider_ref</code></td><td>text</td><td>PaymentIntent ID / TSE transactionId</td></tr>
+      <tr><td class="num"><code>device_id</code></td><td>uuid FK → devices</td><td>kateri terminal je sprožil</td></tr>
+      <tr><td class="num"><code>cash_session_id</code></td><td>uuid FK, nullable</td><td>samo za gotovino</td></tr>
+      <tr><td class="num"><code>last_reconciled_at</code></td><td>timestamptz</td><td>zadnja uspešna poizvedba pri ponudniku</td></tr>
+      <tr><td class="num"><code>created_at / updated_at</code></td><td>timestamptz</td><td></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Payment <span class="fact-tag verified">obstaja: <code>pos_payments</code></span></h3>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Polje (dejansko v kodi)</th><th>Opomba</th></tr></thead>
+    <tbody>
+      <tr><td class="num"><code>id, user_id, invoice_id, amount_cents, currency</code></td><td>preverjeno v <code>pos_terminal_core.sql</code></td></tr>
+      <tr><td class="num"><code>method</code> (bank_transfer/external_card/manual)</td><td>prvotna shema; kasnejše migracije so dodale <code>provider, status, refunded_cents, failure_code, metadata</code> (razvidno iz poizvedb v <code>pos-stripe-checkout.js</code>)</td></tr>
+      <tr><td class="num"><code>status</code></td><td>vrednosti razvidne iz kode: <code>succeeded, partially_refunded, refunded</code> + implicitno <code>failed</code>; <strong>ni</strong> eksplicitnega <code>pending/processing</code> — priporočilo: dodati</td></tr>
+      <tr><td class="num"><code>refunded_cents</code></td><td>zaščiten z monotonim trigerjem — preverjeno</td></tr>
+    </tbody>
+  </table></div>
+  <p><span class="fact-tag reco">Priporočilo</span>: dodaj <code>attempt_id</code> FK nazaj na <code>PaymentAttempt</code>, da je razmerje 1 attempt → 0..1 payment eksplicitno, namesto da se sklepa iz idempotency stringov v metadatih.</p>
+
+  <h3>Refund <span class="fact-tag verified">obstaja implicitno prek pos_payments.refunded_cents + Stripe API</span></h3>
+  <p><span class="fact-tag reco">Priporočilo</span>: ločena tabela namesto samo kumulativnega stolpca, ker več delnih vračil danes ni posamično sledljivih (samo skupna vsota). Polja: <code>id, payment_id, amount_cents, reason, requested_by, provider_refund_id, state (REFUND_PENDING/REFUNDED/FAILED), created_at</code>.</p>
+
+  <h3>Receipt <span class="fact-tag verified">obstaja kot PDF/dokument generatorji</span></h3>
+  <p>Preverjeno: <code>api/_lib/pos-pdf.js</code>, <code>pos-offer-pdf.js</code>, <code>pos-adjustment-pdf.js</code>, XRechnung generatorji, WORM arhiv (<code>pos-worm-archive.js</code>). To pokriva pravni Beleg (§146a) in strukturiran e-račun. <span class="fact-tag reco">Priporočilo</span>: eksplicitno <code>receipt_type</code> polje (`kassenbon` vs `rechnung` vs `e_invoice`), ker gre za pravno različne dokumente z različnimi obveznimi polji (§9).</p>
+
+  <h3>CashSession <span class="fact-tag open">ni najdeno v pregledanih datotekah</span></h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Predlagano polje</th><th>Namen</th></tr></thead>
+    <tbody>
+      <tr><td class="num"><code>id, device_id, opened_by, opened_at</code></td><td>začetek izmene</td></tr>
+      <tr><td class="num"><code>opening_float_cents</code></td><td>začetna gotovina v predalu ("Wechselgeld")</td></tr>
+      <tr><td class="num"><code>closed_by, closed_at</code></td><td>zaključek izmene</td></tr>
+      <tr><td class="num"><code>counted_cents</code></td><td>fizično prešteto ob zaključku</td></tr>
+      <tr><td class="num"><code>expected_cents</code></td><td>izračunano: opening + gotovinska prodaja − gotovinska vračila</td></tr>
+      <tr><td class="num"><code>variance_cents</code></td><td><code>counted − expected</code>, obvezen komentar če ≠ 0</td></tr>
+      <tr><td class="num"><code>tse_export_ref</code></td><td>povezava na DSFinV-K/Z-Bon izvoz za to izmeno</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Device <span class="fact-tag open">ni najdeno kot ločena tabela</span></h3>
+  <p>TSE koda referencira <code>tssSerialNumber</code>/<code>clientSerialNumber</code> na nivoju posameznega podpisa (preverjeno v <code>pos-cash-checkout.js</code>), a ni najdene centralne registracijske tabele naprav. §146a Abs. 4 AO <strong>zahteva</strong> prijavo vsakega elektronskega zapisovalnega sistema na Finanzamt (glej §9) — brez lastne tabele naprav je to težko avtomatizirati/revidirati.</p>
+
+  <h3>Reconciliation <span class="fact-tag reco">nov predlog, ključen za §7</span></h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Polje</th><th>Namen</th></tr></thead>
+    <tbody>
+      <tr><td class="num"><code>id, payment_attempt_id</code></td><td>kateri negotov poskus se preverja</td></tr>
+      <tr><td class="num"><code>trigger</code></td><td><code>timeout, network_loss, app_crash, signing_error</code></td></tr>
+      <tr><td class="num"><code>queried_at, provider_response</code></td><td>vsak poskus poizvedbe, tudi neuspešen — polna sled</td></tr>
+      <tr><td class="num"><code>resolution</code></td><td><code>confirmed_captured, confirmed_failed, still_unknown, manual_override</code></td></tr>
+      <tr><td class="num"><code>resolved_by, resolved_at</code></td><td>za manualni override — obvezen človeški podpis</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>AuditEvent <span class="fact-tag verified">obstaja: <code>pos_audit_events</code></span></h3>
+  <p>Preverjeno v <code>pos_terminal_core.sql</code>: <code>entity_type, entity_id, action, details jsonb, created_at</code>, RLS na lastnika. Dober temelj — <span class="fact-tag reco">priporočilo</span>: razširiti <code>entity_type</code> nabor za <code>payment_attempt, cash_session, reconciliation, device</code>.</p>
+</section>
+
+<section id="s6">
+  <div class="sec-head"><span class="sec-num">§ 06</span><h2>43 konkretnih robnih primerov</h2></div>
+  <p>Vsak z ID-jem za sledljivost v testni matriki (§12) in P-oznako, kjer je relevantno.</p>
+  <div class="edge-grid">
+    <div class="edge"><span class="eid">R-01 · P0</span><h5>Uporabnik dvakrat hitro pritisne "Plačaj"</h5><p><b>Pričakovano:</b> drugi klik je no-op — isti <code>PaymentAttempt.id</code> (idempotency key) se ne pošlje dvakrat; UI onemogoči gumb takoj ob prvem kliku.</p></div>
+    <div class="edge"><span class="eid">R-02 · P0</span><h5>Timeout po oddaji kartičnega plačila, ponudnik je dejansko bremenil</h5><p>Glej podrobno obravnavo v §7.</p></div>
+    <div class="edge"><span class="eid">R-03 · P1</span><h5>Izguba WiFi/mobilne povezave med PROCESSING</h5><p>Enako kot R-02 → <code>UNKNOWN</code> → <code>RECONCILIATION_REQUIRED</code>, ne <code>FAILED</code> (ker je bilo že poslano).</p></div>
+    <div class="edge"><span class="eid">R-04 · P0</span><h5>Crash aplikacije med PROCESSING</h5><p>Ob ponovnem zagonu terminal prebere zadnje lokalno shranjeno stanje poskusa in ga takoj postavi v <code>RECONCILIATION_REQUIRED</code>, ne dovoli novega poskusa za isti račun dokler traja.</p></div>
+    <div class="edge"><span class="eid">R-05 · P1</span><h5>Uporabnik zapre aplikacijo (swipe away) med PROCESSING</h5><p>Enako kot R-04; poskus mora biti persistiran na strežniku, ne le v paminu brskalnika.</p></div>
+    <div class="edge"><span class="eid">R-06</span><h5>Kartica zavrnjena (insufficient funds)</h5><p><code>DECLINED</code>, jasen razlog, takojšen nov poskus dovoljen z novim ključem.</p></div>
+    <div class="edge"><span class="eid">R-07 · P1</span><h5>Uporabnik poskuša preklicati med PROCESSING kartičnega plačila</h5><p>Gumb Prekliči mora izginiti takoj ob prehodu v PROCESSING za kartico — preklic po oddaji ni varen (glej state machine opombo §3).</p></div>
+    <div class="edge"><span class="eid">R-08</span><h5>PIN vnesen napačno 3x</h5><p>Terminal/kartičnik sam vrne DECLINED z ustrezno kodo; aplikacija ne sme razlagati kot UNKNOWN.</p></div>
+    <div class="edge"><span class="eid">R-09</span><h5>Brezstično plačilo nad limitom brez PIN fallback</h5><p>Ponudnik zahteva PIN — UI mora znati prikazati vmesni "vnesite PIN" korak, ne obravnavati kot napako.</p></div>
+    <div class="edge"><span class="eid">R-10 · P1</span><h5>Gotovinski TSE podpis vrže napako po tem, ko je gotovina že prejeta v roke</h5><p>Preverjeno v kodi: gre v <code>RECOVERY_REQUIRED</code>, NE v izgubljen zapis — a UI mora obrtniku jasno povedati, naj gotovino fizično zadrži in ne vrne, dokler ni razrešeno.</p></div>
+    <div class="edge"><span class="eid">R-11</span><h5>Gotovinsko plačilo — kupec da napačen znesek (premalo)</h5><p>Sistem preveri <code>grossCents</code> pred TSE podpisom (preverjeno: <code>normalizeCashReceipt</code>) — checkout se ne sme dati podpisati z zneskom, ki ne ustreza računu.</p></div>
+    <div class="edge"><span class="eid">R-12</span><h5>Vračilo drobiža pri gotovini</h5><p>Ni del TSE zneska plačila — ostaja izven fiskalnega zapisa plačila, a mora biti viden v UI kalkulatorju drobiža.</p></div>
+    <div class="edge"><span class="eid">R-13 · P1</span><h5>Delno plačilo: kupec plača 30 od 100 €, nato odide</h5><p>Račun ostane <code>PARTIALLY_CAPTURED</code>, opomin/naslednji korak mora vedeti za preostanek — enako logiko kot obstoječi "Izvedba/dogovor" modul že rešuje na nivoju terjatev, tu gre za POS specifično takojšnjo prodajo.</p></div>
+    <div class="edge"><span class="eid">R-14</span><h5>Kombinirano plačilo: del kartica uspe, del gotovina odpove</h5><p>Dva ločena <code>PaymentAttempt</code> zapisa — uspeli del ostane CAPTURED tudi če drugi del pade; UI prikaže preostanek za ponovni poskus, ne razveljavi uspelega dela.</p></div>
+    <div class="edge"><span class="eid">R-15</span><h5>Obročno plačilo: 1. obrok plačan kartično, 2. gotovina, 3. zamuja</h5><p>Vsak obrok = svoj <code>PaymentAttempt</code>/<code>Payment</code>, povezan na skupni installment plan; zamuda ne sme spremeniti že plačanih.</p></div>
+    <div class="edge"><span class="eid">R-16</span><h5>Kupec zahteva vračilo dan po nakupu, terminal offline</h5><p>Vračilo ne sme biti dovoljeno v offline queue brez potrditve TSE/ponudnika ob ponovni povezavi — queue sme sprejeti zahtevo, izvedba počaka na online.</p></div>
+    <div class="edge"><span class="eid">R-17 · P0</span><h5>Vračilo poskušano dvakrat (dvojni klik na "Povrni")</h5><p>Enako kot R-01, na Refund idempotency ključu — preverjeno: Stripe pot že uporablja <code>idempotencyKey</code> vzorec.</p></div>
+    <div class="edge"><span class="eid">R-18</span><h5>Delno vračilo, nato še eno delno vračilo do skupno &gt; original</h5><p>DB mora zavrniti (preverjeno v refund route: <code>remaining = amount − refunded</code>, zahteva &gt; 0).</p></div>
+    <div class="edge"><span class="eid">R-19</span><h5>Storno računa po tem, ko je bil delno plačan</h5><p>Storno mora ustvariti vračilo za že plačani del, ne le izbrisati/prezreti terjatev (GoBD zahteva sled, ne brisanje).</p></div>
+    <div class="edge"><span class="eid">R-20</span><h5>Dobropis za napačno postavko na že izdanem računu</h5><p>Nov dokument (Gutschrift/Korrekturrechnung), izvirni račun ostaja nespremenjen (preverjeno: immutable trigger).</p></div>
+    <div class="edge"><span class="eid">R-21</span><h5>Popust dodan po tem, ko je bil izdan račun brez popusta</h5><p>Ne sme popraviti obstoječega računa — nov korekturni dokument z razliko.</p></div>
+    <div class="edge"><span class="eid">R-22</span><h5>Reklamacija: kupec trdi, da ni prejel blaga po plačilu</h5><p>Ni avtomatiziran POS state — gre v obstoječi "Izvedba"/spor tok, plačilo samo ostane CAPTURED dokler se spor ne razreši ločeno.</p></div>
+    <div class="edge"><span class="eid">R-23 · P1</span><h5>Zaokroževanje: vsota postavk po centih ≠ prikazani skupni znesek</h5><p>Preverjeno v <code>_pos_issue_invoice</code>: DDV se računa na nivoju vrstice (net/gross split po centih), ne globalno — dobro, a je treba preveriti robni primer 0,005€ zaokroževanja pri liho številu postavk.</p></div>
+    <div class="edge"><span class="eid">R-24</span><h5>Mešane DDV stopnje na istem računu (7% hrana + 19% storitev)</h5><p>Preverjeno: <code>tax_rate_bps in (0,700,1900)</code> po postavki — podprto.</p></div>
+    <div class="edge"><span class="eid">R-25 · P1</span><h5>Dvojna izdaja številke računa ob sočasnem zaključku dveh naprav</h5><p>Preverjeno: <code>next_invoice_sequence</code> je stolpec na profilu s serializiranim update — treba preveriti row-level locking pod konkurenco (<code>for update</code> ni bilo vidno v citiranem izseku za sequence increment specifično; priporočam preveriti eksplicitno).</p></div>
+    <div class="edge"><span class="eid">R-26</span><h5>Test/sandbox račun se pomeša s pravim v štetju prometa</h5><p>Preverjeno: <code>is_test</code> boolean loči <code>TEST-</code> prefiks in ločeno zaporedje — dobro ločen namespace.</p></div>
+    <div class="edge"><span class="eid">R-27</span><h5>Zaključek dneva medtem ko je še en plačilni poskus v PROCESSING</h5><p>Dnevno/izmensko zaključevanje ne sme biti dovoljeno, dokler obstajajo odprti <code>PROCESSING</code>/<code>RECONCILIATION_REQUIRED</code> poskusi — blokada z jasnim sporočilom.</p></div>
+    <div class="edge"><span class="eid">R-28 · P0</span><h5>Blagajniška razlika (Kassendifferenz) ob zaključku izmene</h5><p>Mora se zabeležiti kot <code>variance_cents</code> z obveznim komentarjem, nikoli tiho popraviti pričakovanega zneska.</p></div>
+    <div class="edge"><span class="eid">R-29</span><h5>Izmena se nikoli formalno ne zaključi (obrtnik pozabi)</h5><p>Naslednji dan mora UI jasno opozoriti na odprto izmeno pred novo prodajo.</p></div>
+    <div class="edge"><span class="eid">R-30</span><h5>Zaposlenec brez PIN dovoljenja poskusi izvesti vračilo</h5><p>Vloge/dovoljenja: vračilo in storno naj bosta privzeto rezervirana za lastnika/manager vlogo.</p></div>
+    <div class="edge"><span class="eid">R-31</span><h5>PIN pozabljen — potreba po admin resetu</h5><p>Reset mora pustiti AuditEvent sled (kdo, kdaj), ne tih reset brez sledi.</p></div>
+    <div class="edge"><span class="eid">R-32</span><h5>Dve različni napravi (telefon + tablica) hkrati na istem računu</h5><p>Optimistic concurrency: kdor prvi zaključi plačilo, zaklene račun za drugega — potreben version/lock stolpec na nivoju računa.</p></div>
+    <div class="edge"><span class="eid">R-33 · P1</span><h5>Kartični podatki bi se skoraj shranili v log ob napaki</h5><p>Preverjeno pozitivno: <code>console.error("[pos-stripe-webhook]", koda, eventId.slice(0,80))</code> — beleži samo kodo/ID, ne payload. To načelo mora veljati povsod (glej §8, §13).</p></div>
+    <div class="edge"><span class="eid">R-34</span><h5>Uporabnik izklopi telefon sredi tiskanja Belega</h5><p>Digitalni Beleg (SMS/e-pošta/QR) mora biti privzeta varovalka, ne odvisen izključno od fizičnega tiskalnika.</p></div>
+    <div class="edge"><span class="eid">R-35</span><h5>Kupec noče vzeti Belega</h5><p>Pravno OK (§146a: izdati, ne vsiliti) — UI ne sme blokirati zaključka, če kupec zavrne prevzem.</p></div>
+    <div class="edge"><span class="eid">R-36</span><h5>DSFinV-K izvoz zahtevan sredi aktivne izmene</h5><p>Izvoz mora zajeti samo zaključene transakcije do trenutka zahteve, ne blokirati odprte PROCESSING.</p></div>
+    <div class="edge"><span class="eid">R-37 · P1</span><h5>TSE naprava fizično odklopljena/pokvarjena</h5><p>Zakon zahteva: prodaja se lahko nadaljuje z ročnim beleženjem in obvezno kasnejšo dopolnitvijo, TSE izpad je treba dokumentirati (glej §9) — UI mora ponuditi "izredni način" z jasnim opozorilom, ne tiho nadaljevati brez TSE.</p></div>
+    <div class="edge"><span class="eid">R-38</span><h5>Menjava TSE naprave (nova serijska št.)</h5><p>Zahteva prijavo Finanzamtu v 1 mesecu (§146a Abs. 4) — produktno: opomnik/checklist ob menjavi naprave.</p></div>
+    <div class="edge"><span class="eid">R-39</span><h5>Refund zahtevan za plačilo, ki je še RECONCILIATION_REQUIRED</h5><p>Mora biti blokirano — ni mogoče vrniti nekaj, kar še ni potrjeno kot dejansko zajeto.</p></div>
+    <div class="edge"><span class="eid">R-40</span><h5>Webhook dogodek prispe pred odgovorom na Checkout redirect</h5><p>Preverjeno kot podprto: RPC <code>pos_apply_stripe_event</code> je ločen od <code>pos_register_stripe_checkout</code> in prenese <code>matched</code> zastavico — race je obravnavana.</p></div>
+    <div class="edge"><span class="eid">R-41</span><h5>Webhook dogodek prispe dvakrat (Stripe at-least-once dostava)</h5><p>Preverjeno: <code>p_event_id</code> se pošilja RPC-ju, odgovor vsebuje <code>duplicate</code> zastavico — dedup obstaja.</p></div>
+    <div class="edge"><span class="eid">R-42</span><h5>Uporabnik spremeni sistemski čas telefona nazaj med PROCESSING</h5><p>TSE podpis validacija preverjeno preverja <code>finishedAt &gt;= startedAt</code> in razumno okno — dobra obramba, a lokalni terminal timestamp za UI naj ne bo edini vir resnice za rekoncilacijo (uporabi strežniški čas).</p></div>
+    <div class="edge"><span class="eid">R-43</span><h5>Obrtnik menja iz Kleinunternehmer (§19 UStG) v redno obdavčitev sredi meseca</h5><p>Preverjeno: <code>tax_mode</code> se validira proti profilu ob vsaki izdaji — nove fakture pravilno uporabijo novo stanje, stare ostanejo nespremenjene (immutable).</p></div>
+  </div>
+</section>
+
+<section id="s7">
+  <div class="sec-head"><span class="sec-num">§ 07</span><h2>Nevaren primer: fantomski neuspeh</h2></div>
+  <div class="callout crit">
+    <div class="cal-label">Kritičen scenarij</div>
+    <p><strong>Uporabnik vidi na zaslonu "Plačilo ni uspelo" ali timeout, ponudnik pa je denar dejansko že bremenil.</strong> Če aplikacija na to reagira s ponudbo "Poskusi znova" in uporabnik znova zaračuna isti znesek, je kupec bremenjen dvakrat — to je najresnejša mogoča napaka v celotnem POS toku.</p>
+  </div>
+
+  <h3>Zakaj se to zgodi</h3>
+  <p>HTTP/omrežna povezava med terminalom in strežnikom (ali med strežnikom in ponudnikom) se lahko prekine <strong>po tem</strong>, ko je ponudnik zahtevo že prejel in obdelal, a <strong>preden</strong> je odgovor prispel nazaj do terminala. Aplikacija v tem trenutku objektivno ne ve, ali je plačilo uspelo — edina napaka je, če se odloči, da to pomeni "ni uspelo".</p>
+
+  <h3>Varen postopek — korak za korakom</h3>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>#</th><th>Korak</th><th>Kdo/kaj izvede</th><th>Ključno pravilo</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Terminal ob prehodu v PROCESSING <strong>trajno shrani</strong> <code>PaymentAttempt.id</code> (idempotency key) lokalno in na strežniku, PRED pošiljanjem ponudniku.</td><td>Terminal + API</td><td>Ključ mora preživeti crash/reload — ne sme obstajati samo v RAM stanju brskalnika.</td></tr>
+      <tr><td class="num">2</td><td>Ob timeoutu/izgubi povezave terminal <strong>ne prikaže</strong> "neuspeh" — prikaže nevtralno "Preverjamo stanje plačila" in preide v <code>UNKNOWN</code> → takoj <code>RECONCILIATION_REQUIRED</code>.</td><td>Terminal</td><td>Nobena uporabniška akcija (ponoven "Plačaj") ni na voljo v tem stanju.</td></tr>
+      <tr><td class="num">3</td><td>Strežnik (ne terminal!) sproži <strong>status poizvedbo</strong> pri ponudniku po istem <code>idempotency key</code>/PaymentIntent ID — to je GET/read-only klic, nikoli nov charge.</td><td>API rob</td><td>Uporablja se ista referenca kot pri originalni zahtevi — Stripe npr. omogoča iskanje PaymentIntent po ID; kartičnik/TSE ima ekvivalenten "status" klic.</td></tr>
+      <tr><td class="num">4</td><td>Če poizvedba pokaže <strong>uspeh</strong>: RPC atomsko zapiše <code>Payment</code> kot CAPTURED, poveže z originalnim <code>PaymentAttempt</code>, sproži izdajo Belega. Ker gre skozi isti idempotenčni zapis, se ne more podvojiti tudi če je uporabnik medtem že nekaj kliknil.</td><td>API + DB RPC</td><td>Idempotenca na DB nivoju je zadnja varovalka, ne samo UI disciplina — preverjeno: obstoječi <code>pos_manual_payment_requests</code> vzorec je pravi predlog za posplošitev sem.</td></tr>
+      <tr><td class="num">5</td><td>Če poizvedba pokaže <strong>neuspeh</strong>: zapiše se DECLINED/FAILED, šele zdaj UI ponudi nov poskus z <strong>novim</strong> idempotency ključem.</td><td>API</td><td>Nov ključ je obvezen — recikliranje starega bi zmedlo dedup logiko.</td></tr>
+      <tr><td class="num">6</td><td>Če ponudnik <strong>tudi sam</strong> ne ve (redko, a mogoče pri nekaterih kartičnih terminalih brez trajnega loga): stanje ostane <code>RECONCILIATION_REQUIRED</code>, UI po npr. 60–120 s ponudi "Pokliči podporo ponudnika" in prikaže referenčno številko za ročno preverjanje.</td><td>Terminal + človek</td><td>To je edini primer, kjer je dovoljen ročni <code>manual_override</code> v <code>Reconciliation</code> tabeli — in samo z zabeleženim razlogom in podpisom osebe.</td></tr>
+      <tr><td class="num">7</td><td>Ozadenjski worker ponavlja poizvedbo v razmiku (npr. 10s, 30s, 60s, 5min) za vsak zapis, ki ostane v <code>RECONCILIATION_REQUIRED</code> dlje kot nekaj sekund — ne čaka samo na uporabnikov naslednji obisk zaslona.</td><td>Cron/worker</td><td>Brez tega bi bilo tveganje odvisno od tega, ali obrtnik sploh znova odpre aplikacijo.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Zakaj obstoječa gotovinska koda že dokazuje, da je to izvedljivo</h3>
+  <p>V <code>api/_lib/pos-cash-checkout.js</code> je natanko ta vzorec že implementiran za TSE podpis: če <code>tse.sign()</code> vrže napako, se zapis <strong>ne</strong> označi kot COMPLETED, ampak preide v <code>RECOVERY_REQUIRED</code> in metoda vrže <code>CASH_RECOVERY_REQUIRED</code> namesto tihe napake. To je dokaz koncepta, da je ekipa to tveganje že razumela in pravilno rešila — vprašanje je samo, ali je enaka disciplina uveljavljena tudi za kartično (Stripe) pot, kjer <span class="fact-tag open">nisem našel</span> eksplicitnega "poizvedbe po statusu ob timeoutu" mehanizma (obstaja <code>action: "status"</code> GET pot v <code>pos-stripe-checkout.js</code>, ki BI lahko služila temu namenu, a nisem preveril, ali jo terminal UI dejansko kliče avtomatsko ob timeoutu).</p>
+</section>
+
+<section id="s8">
+  <div class="sec-head"><span class="sec-num">§ 08</span><h2>Threat model</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>Grožnja</th><th>Vektor</th><th>Vpliv</th><th>Obstoječa obramba <span class="fact-tag verified">✓</span> / manjko <span class="fact-tag reco">→</span></th></tr></thead>
+    <tbody>
+      <tr><td>Dvojno bremenjenje kupca</td><td>Retry po timeoutu, dvojni klik, crash+reload</td><td>Finančna škoda kupcu, spor, ugled</td><td>✓ Idempotency ključi (manual payment, Stripe checkout/refund) → potrebna enotna rekoncilacija za kartico (§7)</td></tr>
+      <tr><td>Krađa/uhajanje kartičnih podatkov (PAN, CVV)</td><td>Log, error sporočilo, network capture</td><td>PCI DSS kršitev, pravna odgovornost</td><td>✓ Arhitektura uporablja Stripe Checkout (hosted page) — PAN nikoli ne pride v aplikacijo/strežnik; logi beležijo samo kode napak (preverjeno)</td></tr>
+      <tr><td>Manipulacija fiskalnih zapisov (davčna utaja)</td><td>Izbris/urejanje transakcij, izklop TSE</td><td>Kazenska odgovornost obrtnika, KassenSichV kršitev</td><td>✓ Immutable invoice trigger, TSE podpis vsake gotovinske transakcije, WORM arhiv → preveriti, ali obstaja alarm ob "izrednem načinu brez TSE" (R-37)</td></tr>
+      <tr><td>Cross-tenant uhajanje podatkov</td><td>Napačna RLS politika, manjkajoč <code>user_id</code> filter</td><td>En obrtnik vidi podatke drugega</td><td>✓ Dosledna RLS na vseh pregledanih pos_* tabelah, <code>auth.uid() = user_id</code> vzorec</td></tr>
+      <tr><td>Webhook ponarejanje (lažen "plačilo uspelo")</td><td>Napadalec pošlje ponarejen Stripe webhook</td><td>Blago izdano brez plačila</td><td>✓ <code>stripe.webhooks.constructEvent</code> preverja podpis; livemode dogodki eksplicitno zavrnjeni v test okolju (preverjeno)</td></tr>
+      <tr><td>Replay starega/zastarelega vračila</td><td>Pozen/podvojen webhook z manjšim <code>refunded_cents</code></td><td>Prikaz manjšega vračila od dejanskega, zmeda v knjigah</td><td>✓ <code>pos_preserve_refund_progress</code> trigger — monoton, preverjeno</td></tr>
+      <tr><td>Odklop naprave med izmeno (device spoofing)</td><td>Neregistrirana naprava izvaja transakcije</td><td>Otežena revizijska sled, TSE prijavna obveznost kršena</td><td>→ Ni najdene device-registracijske tabele — priporočilo §5</td></tr>
+      <tr><td>Insider zloraba (zaposlenec izvede lažno vračilo sebi)</td><td>Zaposlenec z dostopom do vračil brez nadzora</td><td>Finančna izguba, prikrita v prometu</td><td>→ Vloge/PIN dovoljenja za vračilo/storno niso bile del pregledane kode — preverite (R-30)</td></tr>
+      <tr><td>Man-in-the-middle na terminalu (javni WiFi)</td><td>Prestrežena komunikacija terminal↔strežnik</td><td>Prestrežen token, manipulacija zneska</td><td>✓ HTTPS povsod (Vercel), Bearer token auth; → preverite certificate pinning ni potreben glede na hosted infra, a preverite CSP/HSTS na terminal domeni</td></tr>
+      <tr><td>Fizična kraja terminala z odklenjeno sejo</td><td>Naprava ostane odklenjena med izmenami</td><td>Nepooblaščen dostop do vračil/nastavitev</td><td>→ Avtomatski PIN-lock po neaktivnosti ni bil del pregledane kode — priporočilo</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s9">
+  <div class="sec-head"><span class="sec-num">§ 09</span><h2>Nemška compliance matrika</h2></div>
+  <div class="callout warn">
+    <div class="cal-label">Pravno opozorilo</div>
+    <p>Spodnje je tehnično-produktna interpretacija primarnih virov, <strong>ne pravno ali davčno mnenje</strong>. Vsaka vrstica označena <span class="pill p1">POTRDI</span> zahteva potrditev nemškega davčnega svetovalca (Steuerberater) ali odvetnika pred zanašanjem nanjo v produkciji.</p>
+  </div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>Zahteva</th><th>Kaj pomeni za POS</th><th>Trenutno stanje v kodi</th><th>Primarni vir</th></tr></thead>
+    <tbody>
+      <tr><td><strong>KassenSichV</strong> + TSE (§146a AO)</td><td>Vsaka elektronska blagajna od 1.1.2020 (prehodno do 2023) potrebuje certificirano Technische Sicherheitseinrichtung, ki nespremenljivo podpiše vsako transakcijo</td><td>✓ TSE podpis arhitektura obstaja in je strukturno pravilna (schema, signature validacija); produkcijski TSE ostaja zaklenjen — samo training/mock</td><td><a href="https://www.gesetze-im-internet.de/kassensichv/" target="_blank" rel="noopener">gesetze-im-internet.de/kassensichv</a></td></tr>
+      <tr><td><strong>§146a AO</strong> — osnovna norma</td><td>Pravna podlaga za KassenSichV in Belegausgabepflicht</td><td>ni presojano ločeno od zgornjega</td><td><a href="https://www.gesetze-im-internet.de/ao_1977/__146a.html" target="_blank" rel="noopener">gesetze-im-internet.de/ao_1977/§146a</a></td></tr>
+      <tr><td><strong>Belegausgabepflicht</strong> (§146a AO)</td><td>Vsak POS zaključek (tudi gotovinski, tudi majhen znesek) mora ponuditi Beleg — kupec ga ni dolžan vzeti</td><td><span class="pill p1">POTRDI</span> ali UI to dosledno ponuja pri VSEH poteh (kartica/gotovina/ročno), ne le pri glavnem toku</td><td><a href="https://www.bundesfinanzministerium.de/Content/DE/FAQ/FAQ-steuergerechtigkeit-belegpflicht.html" target="_blank" rel="noopener">BMF FAQ Belegpflicht</a></td></tr>
+      <tr><td><strong>§146a Abs. 4 AO</strong> — Mitteilungspflicht</td><td>Vsak elektronski zapisovalni sistem (in TSE) je treba prijaviti pristojnemu Finanzamtu prek Mein ELSTER v 1 mesecu od nabave/ukinitve</td><td><span class="pill p1">POTRDI</span> — produktno priporočilo: checklist/opomnik ob prvi aktivaciji in ob menjavi naprave (R-38); brez Device tabele (§5) je težko avtomatizirati</td><td><a href="https://www.elster.de/eportal/formulare-leistungen/alleformulare/aufzeichnung146a" target="_blank" rel="noopener">ELSTER Mitteilung §146a Abs. 4</a>, <a href="https://www.bundesfinanzministerium.de/Content/DE/Downloads/Steuern/FAQ-Ausfuellanleitung.html" target="_blank" rel="noopener">BMF Ausfüllanleitung</a></td></tr>
+      <tr><td><strong>GoBD</strong> (zadnja sprememba 14.7.2025)</td><td>Nespremenljivost, popolnost, pravočasnost, sledljivost zapisov; Verfahrensdokumentation obvezna</td><td>✓ GoBD Verfahrensdokumentation PDF generator obstaja in ima teste (preverjeno v prejšnjih POS pregledih); immutable invoice trigger ustreza načelu nespremenljivosti</td><td><a href="https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2025-07-14-GoBD-2-aenderung.pdf" target="_blank" rel="noopener">BMF GoBD 2. Änderung, 14.7.2025</a></td></tr>
+      <tr><td><strong>Aufbewahrungsfrist</strong></td><td>Retencija poslovnih zapisov skrajšana z 10 na 8 let (BEG IV, od 1.1.2025)</td><td><span class="pill p1">POTRDI</span> ali WORM arhivska retencijska politika v kodi že odraža 8 (ne še 10) let</td><td>del zgornjega BMF GoBD dokumenta</td></tr>
+      <tr><td><strong>DSFinV-K</strong></td><td>Standardiziran izvozni format kasnih podatkov za Z3 dostop pri davčni reviziji; trenutna verzija 2.5 (2.4 = samo redakcijske spremembe)</td><td>✓ <code>app/pos-dsfinvk.js</code> obstaja z lastnimi testi (TRAINING model, cash movements, export) — preverjeno v tej seji</td><td><a href="https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html" target="_blank" rel="noopener">BZSt DSFinV-K</a></td></tr>
+      <tr><td><strong>E-Rechnung Pflicht</strong> (B2B)</td><td>Od 1.1.2025 sprejem obvezen; izdaja v strukturiranem formatu obvezna postopoma do 1.1.2028 (prag 800.000 € letnega prometa za 2027)</td><td>✓ KoSIT/XRechnung validacija in generator že obstajata in sta vgrajena v izdajo računa kot pogoj (preverjeno: <code>p_einvoice_validated</code> zahtevan za javne/2028+ primere v <code>_pos_issue_invoice</code>)</td><td><a href="https://www.bundesfinanzministerium.de/Content/DE/FAQ/e-rechnung.html" target="_blank" rel="noopener">BMF FAQ E-Rechnung</a>, <a href="https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Steuerarten/Umsatzsteuer/2024-10-15-einfuehrung-e-rechnung.pdf" target="_blank" rel="noopener">BMF-Schreiben 15.10.2024</a></td></tr>
+      <tr><td><strong>PCI DSS</strong> (mednarodni, ne nemški, a obvezen)</td><td>Aplikacija ne sme nikoli videti/shraniti PAN/CVV — hosted checkout (Stripe) je pravilna arhitekturna izbira</td><td>✓ preverjeno — ni sledi kartičnih podatkov v shemi/kodi, uporablja se Stripe hosted Checkout</td><td>ni nemški vir; PCI Security Standards Council</td></tr>
+      <tr><td><strong>§35a EStG</strong> (Handwerkerleistungen)</td><td>Ločevanje delovnega/materialnega dela postavke za davčni odbitek gospodinjstev</td><td>✓ preverjeno: <code>eligible_35a_cents</code> stolpec, kategorije <code>labour/travel/machine</code> se štejejo, <code>material/goods/other</code> ne</td><td>ni v tej seji preverjen primarni vir — <span class="pill p1">POTRDI</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s10">
+  <div class="sec-head"><span class="sec-num">§ 10</span><h2>UX za mobilni POS — enoročna hitra uporaba</h2></div>
+  <ul>
+    <li><strong>Palec-cona prva:</strong> gumb "Plačaj"/potrditev vedno v spodnji tretjini zaslona (skladno z obstoječim fiksnim spodnjim navigacijskim vzorcem aplikacije, glej CLAUDE.md pravilo 3).</li>
+    <li><strong>Ni dvojnega branja:</strong> med PROCESSING/RECONCILIATION_REQUIRED je zaslon namensko "prazen" razen enega sporočila in ene animacije — obrtnik mora med hrupno delavnico/gradbiščem razumeti stanje na en pogled, brez branja odstavka.</li>
+    <li><strong>Zvočna/haptična povratna informacija</strong> ob CAPTURED (uspeh) in ob DECLINED (neuspeh) — roke so pogosto umazane/v rokavicah, oko ni edini kanal.</li>
+    <li><strong>Velike tipke za znesek</strong> (numerična tipkovnica, ne drsnik) — hitrost pred eleganco pri vnosu zneska na terenu.</li>
+    <li><strong>En podvojen "Prekliči vse" ni dovolj</strong> — po vsakem koraku mora obstajati jasna pot nazaj, RAZEN v PROCESSING (namerna odsotnost, glej §3).</li>
+    <li><strong>Offline indikator vedno viden</strong> (majhna trajna ikona v vrhu, ne samo ob napaki) — obrtnik na terenu mora vnaprej vedeti, da bo plačilo šlo v čakalno vrsto, še preden poskusi.</li>
+    <li><strong>Kontrast na soncu:</strong> POS se pogosto uporablja zunaj (gradbišče) — visok kontrast za kritična stanja (CAPTURED/DECLINED/RECONCILIATION_REQUIRED), ne zanašati se samo na barvni odtenek.</li>
+    <li><strong>Potrjevanje zneska naglas/vizualno pred oddajo:</strong> velika, nedvoumna prikaz zneska tik pred "Plačaj" — najpogostejši realen napačni-znesek scenarij je tipkarska napaka, ne sistemska.</li>
+  </ul>
+</section>
+
+<section id="s11">
+  <div class="sec-head"><span class="sec-num">§ 11</span><h2>Predlog besedil za kritična stanja</h2></div>
+  <p>Predlogi sledijo obstoječemu tikanju aplikacije (neformalni nemški "du" ni ustrezen za poslovni B2B/B2C POS kontekst — obrtnik nagovarja stranko formalno "Sie"; UI do obrtnika samega je v slovenščini, torej ločeno spodaj).</p>
+
+  <div class="copy-block">
+    <h5>RECONCILIATION_REQUIRED — obrtniku (SL UI)</h5>
+    <div class="screen-de"><span class="t">Preverjamo plačilo …</span><span class="b">Povezava se je prekinila, medtem ko je banka obdelovala plačilo. Preverjamo pri ponudniku, ali je uspelo. To lahko traja do minute — ne poskušajte znova zaračunati.</span></div>
+    <p class="screen-note">Po 60s brez razrešitve: dodaj sekundarni gumb "Pokliči podporo" + prikaži referenčno št. poskusa.</p>
+  </div>
+
+  <div class="copy-block">
+    <h5>RECONCILIATION_REQUIRED razrešen kot CAPTURED</h5>
+    <div class="screen-de"><span class="t">Plačilo je uspelo</span><span class="b">Potrjeno pri ponudniku po krajši prekinitvi povezave. Znesek {amount} € je bil zaračunan enkrat.</span></div>
+  </div>
+
+  <div class="copy-block">
+    <h5>DECLINED — zaslon za stranko (DE, kupčeva stran terminala)</h5>
+    <div class="screen-de"><span class="t">Zahlung nicht möglich</span><span class="b">Ihre Bank hat die Zahlung abgelehnt. Bitte versuchen Sie es mit einer anderen Karte oder wählen Sie eine andere Zahlungsart.</span></div>
+  </div>
+
+  <div class="copy-block">
+    <h5>Gotovina, TSE recovery_required — obrtniku</h5>
+    <div class="screen-de"><span class="t">Gotovino zadržite</span><span class="b">Davčni podpis še ni potrjen. Gotovine stranki še ne vračajte niti ne oddajte kot uspešno prodajo — poskus se samodejno preverja.</span></div>
+  </div>
+
+  <div class="copy-block">
+    <h5>Belegausgabepflicht — ponudba potrdila (DE, kupčeva stran)</h5>
+    <div class="screen-de"><span class="t">Beleg</span><span class="b">Möchten Sie den Kassenbon per SMS, E-Mail oder Ausdruck erhalten? Sie sind nicht verpflichtet, ihn anzunehmen.</span></div>
+  </div>
+
+  <div class="copy-block">
+    <h5>Offline queue — obrtniku</h5>
+    <div class="screen-de"><span class="t">Brez povezave</span><span class="b">Plačilo je shranjeno in bo obdelano takoj, ko se poveže internet. Gotovinsko/ročno plačilo lahko potrdite zdaj; kartično plačilo počaka na povezavo.</span></div>
+  </div>
+</section>
+
+<section id="s12">
+  <div class="sec-head"><span class="sec-num">§ 12</span><h2>Testni načrt</h2></div>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Nivo</th><th>Kaj pokriva</th><th>Primer / obstoječi vzorec za ponovno rabo</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Unit</strong></td><td>Čiste funkcije: DDV split, zaokroževanje, state machine prehodi, TSE signature validacija</td><td>Preverjeno: <code>normalizeCashReceipt</code>, <code>validateSignature</code> že imata jasno testljivo čisto obliko</td></tr>
+      <tr><td><strong>Integration</strong></td><td>API handler + realen (test) Postgres: idempotenca, RLS, immutable trigger</td><td>Obstoječi vzorec: <code>scripts/test-pos-*.js</code></td></tr>
+      <tr><td><strong>Contract</strong></td><td>Stripe/TSE webhook payload oblika se ne spremeni tiho pod nogami</td><td>Snapshot testi na <code>normalizeEvent()</code> izhodu za vsak dogodek tip</td></tr>
+      <tr><td><strong>Simulator</strong></td><td>Mock TSE/Stripe, ki namerno vrača timeout/negotov izid</td><td>Preverjeno: <code>mockTseAdapter({fail:true})</code> že obstaja — razširi na Stripe test doubles za R-02/R-03/R-04</td></tr>
+      <tr><td><strong>Offline</strong></td><td>Prekini omrežje sredi toka (DevTools throttling/offline emulation), preveri queue in ponovno sinhronizacijo</td><td>Nov testni sloj — <span class="fact-tag open">odprto</span>, glej §16</td></tr>
+      <tr><td><strong>Chaos</strong></td><td>Naključno prekini povezavo/ubij proces med vsakim korakom state machine, preveri da noben scenarij ne pripelje do dvojnega bremenjenja ali izgubljenega plačila</td><td>Nov — najvišja prioriteta za R-02/R-04</td></tr>
+      <tr><td><strong>E2E</strong></td><td>Realen brskalnik skozi cel UI tok, vklj. tiskanje/pošiljanje Belega, zaključek izmene</td><td>Obstoječ Playwright vzorec v repozitoriju (<code>scripts/audit-boniteta-100-gmbh-playwright.js</code> kot precedens za orodje)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s13">
+  <div class="sec-head"><span class="sec-num">§ 13</span><h2>Ugotovitve po prioritetah</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>Prio</th><th>Ugotovitev</th><th>Vrsta</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill p0">P0</span></td><td>Ni potrjenega samodejnega rekoncilacijskega mehanizma za kartično plačilo po timeoutu/izgubi povezave (R-02, R-03, R-04) — obstaja samo GET <code>status</code> pot, ni potrjeno da se avtomatsko kliče</td><td><span class="fact-tag open">Odprto → preveri/implementiraj</span></td></tr>
+      <tr><td><span class="pill p0">P0</span></td><td>Ni enotnega <code>PaymentAttempt</code> nivoja idempotence, ki bi bil skupen kartici/gotovini/ročnemu — danes so trije ločeni vzorci</td><td><span class="fact-tag reco">Priporočilo</span></td></tr>
+      <tr><td><span class="pill p0">P0</span></td><td>Ni CashSession/blagajniški dnevnik modela — brez njega ni nadzora nad Kassendifferenz (R-28)</td><td><span class="fact-tag open">Ni najdeno</span></td></tr>
+      <tr><td><span class="pill p1">P1</span></td><td>Ni Device registra — otežuje §146a Abs.4 Mitteilungspflicht disciplino (R-38)</td><td><span class="fact-tag open">Ni najdeno</span></td></tr>
+      <tr><td><span class="pill p1">P1</span></td><td>Offline queue za plačila (točka 7 naročila) ni bila najdena v pregledanem delu kode</td><td><span class="fact-tag open">Odprto</span></td></tr>
+      <tr><td><span class="pill p1">P1</span></td><td>Vloge/PIN dovoljenja za vračilo/storno niso bile del pregledane kode — preveriti obstoj</td><td><span class="fact-tag open">Odprto</span></td></tr>
+      <tr><td><span class="pill p1">P1</span></td><td>Concurrent-naprava zaklep na nivoju enega računa (R-32) ni bil potrjen</td><td><span class="fact-tag open">Odprto</span></td></tr>
+      <tr><td><span class="pill p2">P2</span></td><td>Ločena <code>Refund</code> tabela namesto samo kumulativnega stolpca — izboljša revizijsko sled pri več delnih vračilih</td><td><span class="fact-tag reco">Priporočilo</span></td></tr>
+      <tr><td><span class="pill p2">P2</span></td><td>Retencijska politika WORM arhiva — preveri 8 (ne 10) let po BEG IV</td><td><span class="pill p1">POTRDI</span></td></tr>
+      <tr><td><span class="pill p2">P2</span></td><td>Auto-lock terminala po neaktivnosti (fizična kraja/dostop brez nadzora)</td><td><span class="fact-tag reco">Priporočilo</span></td></tr>
+      <tr><td><span class="pill p3">P3</span></td><td>Zvočna/haptična povratna informacija ob uspehu/neuspehu za delo v rokavicah/hrupu</td><td><span class="fact-tag reco">Priporočilo</span></td></tr>
+      <tr><td><span class="pill p3">P3</span></td><td>§35a EStG primarni vir ni bil preverjen v tej seji (samo koda)</td><td><span class="pill p1">POTRDI</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s14">
+  <div class="sec-head"><span class="sec-num">§ 14</span><h2>Merila sprejema — P0 in P1</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>Naloga</th><th>Merilo sprejema (Definition of Done)</th></tr></thead>
+    <tbody>
+      <tr><td>Kartična rekoncilacija po timeoutu (P0)</td><td>Chaos test, ki namerno prekine povezavo v vsakem od PROCESSING/AUTHORIZED podstanj, v 100/100 ponovitvah pripelje TOČNO do enega od: CAPTURED (potrjeno pri ponudniku) ali DECLINED/FAILED — nikoli do dvojnega bremenjenja in nikoli do trajno obtičalega UNKNOWN brez nadaljnjega poizvedovanja dlje kot 5 minut brez alarma.</td></tr>
+      <tr><td>Enoten PaymentAttempt (P0)</td><td>En sam idempotency mehanizem (DB-nivo unique constraint na <code>attempt_id</code>) pokriva kartico, gotovino IN ročno potrditev; obstoječi ločeni <code>pos_manual_payment_requests</code> in Stripe metadata vzorci so migrirani nanj brez izgube zgodovinskih podatkov.</td></tr>
+      <tr><td>CashSession model (P0)</td><td>Ni mogoče izvesti gotovinskega plačila brez odprte izmene; zaključek izmene zahteva vnos preštetega zneska in avtomatsko izračuna/prikaže razliko; razlika ≠ 0 zahteva obvezen komentar pred potrditvijo zaključka.</td></tr>
+      <tr><td>Device register (P1)</td><td>Vsaka nova naprava, ki izvede prvo TSE transakcijo, ustvari zapis z opozorilom "Prijavite napravo na Finanzamt (§146a Abs. 4 AO) v 1 mesecu" in sledi, ali je prijava potrjena.</td></tr>
+      <tr><td>Offline queue (P1)</td><td>Ročno/gotovinsko plačilo, sprejeto brez povezave, se po ponovni vzpostavitvi poveže z originalnim računom brez podvajanja; kartično plačilo v offline stanju je UI eksplicitno onemogočeno (ne queued kot "poskusi kasneje" — kartice zahtevajo živo avtorizacijo).</td></tr>
+      <tr><td>Vloge za vračilo/storno (P1)</td><td>Uporabnik brez ustrezne vloge/PIN-a fizično ne vidi ali ne more klikniti gumba za vračilo/storno; vsak izveden dogodek nosi <code>AuditEvent</code> z identiteto izvajalca.</td></tr>
+      <tr><td>Concurrent-device zaklep (P1)</td><td>Dva sočasna poskusa plačila na istem računu z različnih naprav: drugi dobi jasno sporočilo "Račun se že obdeluje na drugi napravi", ne dvojen zaslon za plačilo.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s15">
+  <div class="sec-head"><span class="sec-num">§ 15</span><h2>Varen fazni načrt izvedbe</h2></div>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Faza</th><th>Obseg</th><th>Zakaj v tem vrstnem redu</th></tr></thead>
+    <tbody>
+      <tr><td><strong>0 — Potrditev dejstev</strong></td><td>Razvijalec potrdi/ovrže vse <span class="fact-tag open">ODPRTO</span> točke (§16) v dejanski, celotni kodni bazi (vklj. neprebranih delov <code>pos-terminal.js</code>)</td><td>Brez tega je vsaka naslednja faza lahko rešitev za problem, ki morda že obstaja drugje ali ne obstaja</td></tr>
+      <tr><td><strong>1 — Read-only rekoncilacijska poizvedba (P0)</strong></td><td>Dodaj/preveri status-lookup klic ob UNKNOWN za kartico; ne spreminja obstoječih uspešnih poti</td><td>Najvišje razmerje tveganje/korist — čisto dodajanje, nič ne poruši</td></tr>
+      <tr><td><strong>2 — Enoten PaymentAttempt (P0)</strong></td><td>Nova tabela + migracija podatkov iz obstoječih; stari vzorci ostanejo delujoči vzporedno, dokler se ne preklopi</td><td>Temelj za vse nadaljnje — a mora iti PO fazi 1, ker faza 1 razkrije prave robne primere za shemo</td></tr>
+      <tr><td><strong>3 — CashSession (P0)</strong></td><td>Nova tabela, UI za odprtje/zaključek izmene, obvezna pred gotovinskim plačilom</td><td>Neodvisno od faz 1-2, a zahteva mirno okno (spremeni obvezen korak v obstoječem toku)</td></tr>
+      <tr><td><strong>4 — Device register + Mitteilungspflicht opomnik (P1)</strong></td><td>Nova tabela, checklist UI</td><td>Nizko tvegano, a odvisno od tega, kako TSE aktivacija danes teče v produkciji (faza 0)</td></tr>
+      <tr><td><strong>5 — Offline queue (P1)</strong></td><td>Service worker/lokalna vrsta za ročno/gotovinsko; eksplicitna onemogočitev kartice offline</td><td>Največji obseg — zadnja, ker gradi na stabilnem PaymentAttempt modelu iz faze 2</td></tr>
+      <tr><td><strong>6 — Vloge in concurrent-lock (P1)</strong></td><td>PIN/vloge za vračilo, verzija/lock stolpec na računu</td><td>Lahko teče vzporedno s fazo 5, neodvisno</td></tr>
+      <tr><td><strong>7 — Produkcijska aktivacija</strong></td><td>Šele po fazah 1-3 in po zunanji potrditvi (Stripe live keys, TSE produkcijske poverilnice, pravni pregled) — glede na obstoječi <code>check-pos-production-readiness.js</code> gate</td><td>Nobena od zgornjih faz ne sme biti razlog za prehiter live preklop brez zunanjih potrditev</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s16">
+  <div class="sec-head"><span class="sec-num">§ 16</span><h2>Odprta vprašanja za preverbo v dejanski aplikaciji</h2></div>
+  <ul>
+    <li>Ali obstaja kjerkoli v <code>app/pos-terminal.js</code> (6523 vrstic, ni v celoti prebrano) offline čakalna vrsta in samodejna ponovna sinhronizacija?</li>
+    <li>Ali se GET <code>action:"status"</code> pot v <code>pos-stripe-checkout.js</code> dejansko kliče avtomatsko ob timeoutu, ali samo na uporabnikov ročni "Preveri stanje"?</li>
+    <li>Ali obstaja kjerkoli v preostalih ~100 nepregledanih pos-migracijah tabela za blagajniško izmeno/dnevnik ali napravo, ki je ta pregled zgrešil?</li>
+    <li>Kako je danes dejansko rešeno kombinirano/split plačilo v UI — kot dva ločena zaključka ali kot en sestavljen tok?</li>
+    <li>Ali obstaja obročni plačilni načrt specifično za POS prodajo (ne za splošne terjatve v "Izvedba" modulu)?</li>
+    <li>Kakšne vloge/PIN dovoljenja dejansko obstajajo danes za zaposlene na POS terminalu?</li>
+    <li>Kakšna je trenutna retencijska nastavitev WORM arhiva v dnevih/letih — 8 ali 10?</li>
+    <li>Ali produkcijski Fiskaly TSE ključi in Stripe live ključi sploh že obstajajo pripravljeni za preklop, ali je to še povsem odprto (glede na prejšnje ugotovitve: "local_training_complete", "sandbox_only")?</li>
+  </ul>
+</section>
+
+</article>
+</div>
+</div>
+
+<footer class="doc-foot">
+  <div class="doc">
+    Pripravljeno kot read-only avdit, brez posegov v kodo, deploya ali oblikovanja novega UI-ja. Pravna in davčna določila zahtevajo potrditev nemškega Steuerberater/pravnika pred zanašanjem v produkciji — glej §9.
+  </div>
+</footer>

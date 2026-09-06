@@ -76,6 +76,31 @@ if (!/DOLGI_PRITISK_MS = 300/.test(urejevalnikVir) || !/stanje\.pripravljen = tr
   console.log("✓ OK: mobilno vlečenje se aktivira šele po 300 ms dolgem pritisku");
 }
 
+if (!/zacni\(\{ clientX: stanje\.zadnjiX, clientY: stanje\.zadnjiY \}\)/.test(urejevalnikVir)
+  || !/kartica\.setPointerCapture\(stanje\.pointerId\)/.test(urejevalnikVir)) {
+  console.error("✗ NAPAKA: dolg pritisk kartice ne prime takoj in ne zadrži kazalca");
+  napake++;
+} else {
+  console.log("✓ OK: dolg pritisk kartico takoj prime in zadrži kazalec za vlečenje");
+}
+
+if (!/addEventListener\("touchmove", zadrziDotikMedVlecenjem, \{ passive: false \}\)/.test(urejevalnikVir)
+  || !/if \(!stanje \|\| !stanje\.aktivno \|\| !event\.cancelable\) return;\s*event\.preventDefault\(\)/.test(urejevalnikVir)) {
+  console.error("✗ NAPAKA: aktivno mobilno vlečenje ne ustavi prevzema geste za pomikanje");
+  napake++;
+} else {
+  console.log("✓ OK: po dolgem pritisku brskalnik geste ne prevzame za pomikanje");
+}
+
+if (!/requestAnimationFrame\(izrisiVlecenje\)/.test(urejevalnikVir)
+  || !/--predlog-ghost-x/.test(urejevalnikVir)
+  || /stanje\.ghost\.style\.left = event\.clientX/.test(urejevalnikVir)) {
+  console.error("✗ NAPAKA: premik kartice ni usklajen z osveževanjem zaslona");
+  napake++;
+} else {
+  console.log("✓ OK: vlečenje je omejeno na en GPU-premik na osvežitev zaslona");
+}
+
 if (napake === 0) {
   console.log("\n✓ Vsi testi uspešni.");
   process.exit(0);

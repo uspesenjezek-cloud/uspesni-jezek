@@ -38,5 +38,12 @@ tools/slovenski-live-prepis/*
 
 .superpowers/
 
+.env*
+
 # Varna predloga brez skrivnosti mora ostati sledljiva.
 !.env.example
+
+# Osnovni commit 6. 9. 2026: neuporabljena 5 MB OCR datoteka in vizualni dokazi.
+# Datoteki ostajata na disku, samo v gitu ju ne sledimo.
+eng.traineddata
+artifacts/

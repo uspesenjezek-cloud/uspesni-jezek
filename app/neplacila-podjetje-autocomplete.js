@@ -63,7 +63,7 @@
       legalForm: first(x.legalForm, x.legal_form),
       identityProof: first(x.identityProof, x.identity_proof),
       checkedAt: first(x.checkedAt, x.checked_at),
-      active: x.active !== false && x.company_status !== "inactive",
+      active: x.active === true || x.company_status === "active" ? true : null,
       vatId: first(x.vatId, x.vat_id, x.taxId, x.tax_id, contact.vatId, contact.vat_id, identity.vatId, identity.vat_id),
       contactPerson: first(x.contactPerson, x.contact_person, contact.contactPerson, contact.contact_person),
       phone: first(x.phone, contact.phone, identity.phone),

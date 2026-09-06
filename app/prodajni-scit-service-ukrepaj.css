@@ -1,0 +1,47 @@
+.storitev-popup[data-tip="ukrepaj"] { --storitev-akcent:#3f9998; --storitev-akcent-2:#2f7f7e; --storitev-soft:#eaf6f4; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__list { padding:18px; max-height:calc(100dvh - 36px); }
+.storitev-popup[data-tip="ukrepaj"] header { align-items:center; }
+.storitev-popup[data-tip="ukrepaj"] header small,
+.storitev-popup[data-tip="ukrepaj"] header p { display:none; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__vsebina { gap:9px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero { position:relative; height:156px; box-sizing:border-box; padding:16px 16px 16px 40%; overflow:hidden; border:1px solid rgba(63,153,152,.22); border-radius:16px; background:linear-gradient(120deg,#fcf7f2,#f8ecdf); }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__slika { position:absolute; width:175px; max-width:none; height:auto; left:-24px; bottom:-48px; pointer-events:none; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__besedilo { position:relative; display:flex; flex-direction:column; height:100%; justify-content:center; gap:8px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero strong { display:block; height:50px; line-height:1.2; color:#2f3736; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__besedilo > span { display:block; height:34px; font-size:12px; line-height:1.3; color:#61716e; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-moznosti { grid-template-columns:minmax(0,1fr); gap:8px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-moznost { display:grid; grid-template-columns:24px minmax(0,1fr) 26px; height:48px; padding:8px 11px; gap:10px; text-align:left; color:#2f3736; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-moznost::before { content:none; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-moznost > svg { width:24px; height:24px; color:#3f9998; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-moznost__naziv { display:flex; align-items:center; height:32px; line-height:1.15; font-size:13px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-izbira { display:grid; place-items:center; width:26px; height:26px; box-sizing:border-box; border:2px solid #69aaa7; border-radius:50%; background:white; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-izbira svg { width:18px; height:18px; visibility:hidden; }
+.storitev-popup[data-tip="ukrepaj"] [aria-pressed="true"] .ukrepaj-izbira { background:#3f9998; border-color:#3f9998; color:#fff; }
+.storitev-popup[data-tip="ukrepaj"] [aria-pressed="true"] .ukrepaj-izbira svg { visibility:visible; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-moznost:focus-visible { outline:2px solid #3f9998; outline-offset:2px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-pojasnilo,
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-status { margin:0 2px; font-size:10px; line-height:1.35; color:#61716e; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-status:empty { display:none; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__oddaj { margin-top:12px; font-size:14px; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__varnost { font-size:9px; }
+
+/* Approved first-popup geometry. Artwork remains byte-for-byte unchanged. */
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__list > header { align-items: center; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__list > header small,
+.storitev-popup[data-tip="ukrepaj"] .storitev-popup__list > header p { display: none; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero { display: block; height: 156px; padding: 20px 28px 14px 40%; border-radius: 16px; background: linear-gradient(120deg,#fcf7f2,#f8ecdf); }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__slika { width: 194.165px; left: -42.907px; bottom: -67.606px; height: auto; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__besedilo { position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: center; height: 100%; gap: 8px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__besedilo > strong { display: block; height: 50px; line-height: 1.2; font-weight: 700; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__besedilo > span { display: block; height: 32px; line-height: 1.3; color: #61716e; font-weight: 400; }
+.storitev-popup[data-tip="ukrepaj"] .storitev-moznosti { gap: 9px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-vrstica { height: 48px; }
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-vrstica__besedilo > span, .storitev-popup[data-tip="ukrepaj"] .ukrepaj-vrstica__besedilo { height: 30px; }
+@media (min-width: 440px) {
+ .storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero { height: 165px; padding-left: 40%; }
+ .storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__slika { width: 213.581px; left: -45.698px; bottom: -74.367px; }
+}
+
+/* Requested prop revision, aligned to approved face landmarks. */
+.storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__slika { width: 201.183px; left: -45.728px; bottom: -72.072px; mask: url("assets/jezomir-ukrepaj-palec-v7-mask.png") center / 100% 100% no-repeat; }
+@media (min-width: 440px) { .storitev-popup[data-tip="ukrepaj"] .ukrepaj-hero__slika { width: 221.301px; left: -48.800px; bottom: -79.280px; } }

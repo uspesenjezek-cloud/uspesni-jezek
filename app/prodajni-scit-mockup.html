@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Prodajni ščit – Uspešni Ježek</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="styles.css?v=20260904-globalni-rob-13-v2" />
+    <link rel="stylesheet" href="prodajni-scit-mockup.css?v=20260905-edit-step-v56" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
+    <script src="vendor-data.js?v=20260819-local-v1" defer></script>
+    <script src="config.js" defer></script>
+    <script src="supabase-client.js?v=20260829-cross-tab-lock-v1" defer></script>
+    <script src="neplacila-podjetja-nedavna.js?v=20260905-category-chevrons-v4" defer></script>
+    <script src="company-contact-store.js"></script>
+    <script src="scit-contact-details.js"></script>
+  <script src="prodajni-scit-imenik.js?v=20260905-imenik-v2" defer></script>
+    <script src="prodajni-scit-mockup.js?v=20260905-edit-step-v56" defer></script>
+    <link rel="stylesheet" href="prodajni-scit-service-povratni.css?v=20260905-hero-colors-v12" />
+    <script src="prodajni-scit-service-povratni.js?v=20260905-thin-lines-v13" defer></script>
+    <link rel="stylesheet" href="prodajni-scit-service-ponudba.css?v=20260905-hero-colors-v12" />
+    <script src="prodajni-scit-service-ponudba.js?v=20260905-five-services-v27" defer></script>
+    <link rel="stylesheet" href="prodajni-scit-service-ustavi.css?v=20260905-hero-colors-v12" />
+    <script src="prodajni-scit-service-ustavi.js?v=20260905-thin-lines-v13" defer></script>
+    <link rel="stylesheet" href="prodajni-scit-service-preveri.css?v=20260905-hero-colors-v12" />
+    <script src="prodajni-scit-service-preveri.js?v=20260905-five-services-v27" defer></script>
+  <link rel="stylesheet" href="kontaktni-imenik.css?v=20260905-1">
+</head>
+  <body class="stran--storitev prodajni-scit">
+    <main class="prodajni-scit__okvir">
+      <header class="prodajni-scit__glava">
+        <a href="svetovalec-preverba.html" class="prodajni-scit__nazaj" aria-label="Nazaj na svetovalca">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </a>
+        <div><p>Vas kliče prodajalec?</p><h1>Prodajni ščit</h1></div>
+        <button type="button" class="prodajni-scit__pomoc" aria-label="Pomoč">?</button>
+      </header>
+
+      <div class="scit-prodajalec-zgoraj">
+        <div class="scit-atena__kontakt-vrstica">
+        <div class="scit-atena__kontakt">
+          <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18.5Z"/><circle cx="12" cy="9" r="2.5"/><path d="M7.8 17c.8-2 2.2-3 4.2-3s3.4 1 4.2 3"/></svg></span>
+          <input type="text" autocomplete="off" data-scit-atena-kontakt placeholder="Telefon, e-pošta ali ime prodajalca" aria-label="Kontakt prodajalca" />
+        </div>
+          <button type="button" class="scit-atena__imenik" data-scit-imenik aria-haspopup="dialog" aria-controls="podjetja-sheet">Imenik</button>
+        </div>
+        <p data-scit-imenik-status role="status" hidden></p>
+      </div>
+
+      <section class="scit-storitve" aria-labelledby="scit-storitve-naslov">
+        <header class="scit-storitve__glava"><h2 id="scit-storitve-naslov">Kaj lahko uredimo?</h2><div class="scit-preset-akcije"><button type="button" class="scit-preset-upravljaj" data-preset-upravljaj aria-pressed="false">Uredi</button></div><span data-storitve-status hidden>5 storitev</span></header>
+        <button type="button" class="scit-dodaj-opravilo" data-preset-dodaj><span aria-hidden="true">＋</span><span><strong>Dodaj svoje opravilo</strong><small>Opiši željo, skupaj določimo naslednji korak.</small></span></button>
+        <div class="scit-preset-vrstica">
+          <div class="scit-preset-drsnik"><div class="scit-prednastavitve" role="group" aria-label="Hitre prednastavitve — podrsajte za več" data-scit-prednastavitve></div><div class="scit-preset-pike" aria-label="Položaj prednastavitev" data-preset-pike></div></div>
+        </div>
+        <p class="scit-prednastavitve__opis" data-scit-prednastavitev-opis aria-live="polite"></p>
+        <div class="scit-storitve__mreza">
+          <button type="button" class="scit-storitev" data-storitev="zascita"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.8 8.2 7 10 4.2-1.8 7-5.2 7-10V6l-7-3Z"/><path d="m8.7 12 2.1 2.1 4.5-4.5"/></svg><span>Zaščita pred klici</span></button>
+          <button type="button" class="scit-storitev" data-storitev="ustavi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.5 8.5A8 8 0 1 1 15.5 5.5"/><path d="m5.6 5.6 12.8 12.8"/></svg><span>Ustavi klice</span></button>
+          <button type="button" class="scit-storitev" data-storitev="povratni"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4.1 2h3"/><path d="m14 5 5 0 0 5M19 5l-6 6"/></svg><span>Povratni<br />klic</span></button>
+          <button type="button" class="scit-storitev" data-storitev="ponudba"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13 13 20l-9-9V4h7l9 9Z"/><path d="M8.5 8.5h.01"/></svg><span>Pridobi<br />ponudbo</span></button>
+          <button type="button" class="scit-storitev" data-storitev="preveri"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.8 8.2 7 10 4.2-1.8 7-5.2 7-10V6l-7-3Z"/><path d="M9 12h6M12 9v6"/></svg><span>Preveri<br />in oceni</span></button>
+        </div>
+
+      </section>
+
+      <section class="scit-tok" aria-live="polite">
+        <div class="scit-nacina" role="tablist" aria-label="Način vnosa podatkov">
+          <button type="button" id="scit-nacin-natural" role="tab" data-scit-nacin="natural" aria-selected="true" aria-controls="scit-panel-natural"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m16 3 5 5-12 12H4v-5L16 3ZM14 5l5 5M3 22h18"/></svg></span><strong>Povej ali napiši</strong><small>Hitrejši vnos</small></button>
+          <button type="button" id="scit-nacin-manual" role="tab" data-scit-nacin="manual" aria-selected="false" aria-controls="scit-panel-manual" tabindex="-1"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/><path d="M21 12a9 9 0 1 1-7-8.8"/></svg></span><strong>Ročno izberi</strong><small>Vnos po korakih</small></button>
+        </div>
+        <div class="scit-nacin-panel" id="scit-panel-manual" role="tabpanel" aria-labelledby="scit-nacin-manual" data-scit-rocno-panel hidden>
+          <div class="scit-carovnik" data-vsi-koraki>
+            <nav class="scit-carovnik__pilli" data-carovnik-pilli aria-label="Koraki vprašalnika"></nav>
+            <section class="scit-carovnik__kartica" data-carovnik-kartica>
+              <header><span data-carovnik-stevilka></span><div><strong data-carovnik-naslov></strong><p data-carovnik-opis></p></div></header>
+              <div class="scit-carovnik__vsebina" data-carovnik-vsebina></div>
+              <footer><button type="button" data-carovnik-nazaj>‹ Nazaj</button><small data-carovnik-napredek></small><button type="button" data-carovnik-naprej>Naprej ›</button></footer>
+            </section>
+          </div>
+          <button type="button" class="scit-glavni-oddaj" data-oddaj style="--scit-izpolnjeno:0%">
+            <span class="scit-glavni-oddaj__stanje"><strong data-oddaj-stevec>0/5</strong><small>korakov</small></span>
+            <span class="scit-glavni-oddaj__dejanje">Predaj prodajalca<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="scit-atena-dock" id="scit-panel-natural" role="tabpanel" aria-labelledby="scit-nacin-natural" data-scit-atena-panel>
+        <div class="scit-atena__opis-polje">
+          <textarea rows="3" data-scit-atena-opis placeholder="Povejte ali prilepite, kdo vas kliče in kaj ponuja …" aria-label="Opišite prodajni klic"></textarea>
+        </div>
+        <div class="scit-atena__akcije">
+          <button type="button" class="scit-atena__sekundarni" data-scit-atena-glas aria-label="Povej na glas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"/></svg></button>
+          <span class="scit-atena__locilo" aria-hidden="true"></span>
+          <button type="button" class="scit-atena__orodje" data-scit-atena-kamera aria-label="Slikaj ponudbo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4 16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-3h5Z"/><circle cx="12" cy="13" r="3"/></svg></button>
+          <button type="button" class="scit-atena__orodje" data-scit-atena-uvoz aria-label="Uvozi dokument"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5"/><path d="m8 9 4-4 4 4"/><path d="M5 19h14"/></svg></button>
+          <button type="button" class="scit-atena__primarni" data-scit-atena-poizveduj><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><span>Poizveduj</span></button>
+        </div>
+        <input type="file" accept="image/*" capture="environment" data-scit-atena-kamera-datoteka hidden />
+        <input type="file" accept="image/*,.pdf" data-scit-atena-uvoz-datoteka hidden />
+      </section>
+
+      <section class="scit-popup" data-popup hidden aria-modal="true" role="dialog" aria-labelledby="scit-popup-naslov">
+        <button type="button" class="scit-popup__ozadje" data-zapri aria-label="Zapri"></button>
+        <div class="scit-popup__list">
+          <header><div><small data-popup-korak>KORAK</small><strong id="scit-popup-naslov" data-popup-naslov></strong><p data-popup-opis></p></div><button type="button" data-zapri aria-label="Zapri">×</button></header>
+          <div class="scit-popup__vsebina" data-popup-vsebina></div>
+          <button type="button" class="scit-popup__koncano" data-koncano>Končano</button>
+        </div>
+      </section>
+
+      <section class="storitev-popup" data-storitev-popup hidden aria-modal="true" role="dialog" aria-labelledby="storitev-popup-naslov">
+        <button type="button" class="storitev-popup__ozadje" data-storitev-zapri aria-label="Zapri"></button>
+        <div class="storitev-popup__list">
+          <header><span class="storitev-popup__ikona" data-storitev-ikona aria-hidden="true"></span><div><small data-storitev-nadnaslov>STORITEV</small><strong id="storitev-popup-naslov" data-storitev-naslov></strong><p data-storitev-opis></p></div><button type="button" data-storitev-zapri aria-label="Zapri">×</button></header>
+          <div class="storitev-popup__vsebina" data-storitev-vsebina></div>
+          <button type="button" class="storitev-popup__oddaj" data-storitev-oddaj></button>
+          <p class="storitev-popup__varnost">Pred izvedbo vsake pomembne odločitve vas prosimo za potrditev.</p>
+        </div>
+      </section>
+
+      <section class="klic-porocilo" aria-label="Zadnji obravnavani klic">
+        <header><span class="klic-porocilo__znak">TB</span><div><small>Zadnji obravnavani klic</small><strong>Telekom Beispiel GmbH</strong><p>Mobilna naročnina · danes ob 11:42</p></div><span class="klic-porocilo__preverjeno" data-glavni-status>Za odločitev</span></header>
+        <div class="klic-status" aria-label="Potek obravnave"><span class="je-koncano"><i></i><small>Prejeto</small></span><span class="je-koncano"><i></i><small>Preverjeno</small></span><span class="je-aktivno"><i></i><small>Odločitev</small></span><span><i></i><small>Izvedba</small></span></div>
+        <div class="klic-nasvet"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><div><strong>Naš nasvet: še ne sprejmite</strong><p>Redna cena ni navedena, pogodba pa zahteva 24-mesečno vezavo.</p></div></div>
+        <div class="klic-porocilo__dejanja"><button type="button" data-odpri-porocilo>Odpri poročilo</button><button type="button" data-odpri-ukrep>Naslednji korak</button></div>
+      </section>
+
+      <section class="primeri-pregled" aria-labelledby="primeri-naslov">
+        <header><div><strong id="primeri-naslov">Vaši prodajni primeri</strong><p>Na enem mestu vidite, kaj trenutno urejamo.</p></div><span data-primeri-stevec>2 aktivna</span></header>
+        <div class="primeri-filtri" role="tablist" aria-label="Prikaži primere"><button type="button" role="tab" aria-selected="true" data-primer-filter="aktivni">Aktivni <span>2</span></button><button type="button" role="tab" aria-selected="false" data-primer-filter="zakljuceni">Zaključeni <span>2</span></button></div>
+        <div class="primeri-seznam" data-primer-seznam="aktivni">
+          <button type="button" class="primer-vrstica" data-odpri-porocilo><span class="primer-vrstica__znak">TB</span><span><strong>Telekom Beispiel GmbH</strong><small>Mobilna naročnina</small></span><em class="primer-status primer-status--odlocitev" data-seznam-glavni-status>Za odločitev</em></button>
+          <button type="button" class="primer-vrstica" data-primer-obvestilo="EnergieDirekt GmbH – čakamo pisno ponudbo prodajalca."><span class="primer-vrstica__znak primer-vrstica__znak--oranzen">ED</span><span><strong>EnergieDirekt GmbH</strong><small>Elektrika za delavnico</small></span><em class="primer-status primer-status--cakanje">Čakamo odgovor</em></button>
+        </div>
+        <div class="primeri-seznam" data-primer-seznam="zakljuceni" hidden>
+          <button type="button" class="primer-vrstica" data-primer-obvestilo="ToolPro Vertrieb – prodajni klici so ustavljeni."><span class="primer-vrstica__znak primer-vrstica__znak--vijolicen">TP</span><span><strong>ToolPro Vertrieb</strong><small>Orodje in oprema</small></span><em class="primer-status primer-status--koncano">Klici ustavljeni</em></button>
+          <button type="button" class="primer-vrstica" data-primer-obvestilo="MediaWerk Agentur – ponudba je bila zavrnjena."><span class="primer-vrstica__znak primer-vrstica__znak--siv">MW</span><span><strong>MediaWerk Agentur</strong><small>Spletno oglaševanje</small></span><em class="primer-status primer-status--koncano">Zavrnjeno</em></button>
+        </div>
+      </section>
+
+      <section class="primer-popup" data-primer-popup hidden aria-modal="true" role="dialog" aria-labelledby="primer-popup-naslov">
+        <button type="button" class="primer-popup__ozadje" data-primer-zapri aria-label="Zapri"></button>
+        <div class="primer-popup__list">
+          <header><span class="primer-popup__ikona" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></svg></span><div><small data-primer-nadnaslov>POROČILO O KLICU</small><strong id="primer-popup-naslov" data-primer-naslov>Telekom Beispiel GmbH</strong><p data-primer-opis>Danes ob 11:42 · preverjeno</p></div><button type="button" data-primer-zapri aria-label="Zapri">×</button></header>
+
+          <div data-primer-zaslon="porocilo">
+            <section class="porocilo-ocena"><div><small>Naša ocena</small><strong>64<span>/100</span></strong></div><div><strong>Povišana previdnost</strong><p>Ponudba ni dovolj jasna za varno odločitev.</p><i><span style="width:64%"></span></i></div></section>
+            <section class="porocilo-blok"><h3>Kaj vam ponujajo</h3><div class="porocilo-podatki"><span><small>Storitev</small><strong>Mobilna naročnina</strong></span><span><small>Akcijska cena</small><strong>29,90 € / mesec</strong></span><span><small>Redna cena</small><strong>Ni navedena</strong></span><span><small>Vezava</small><strong>24 mesecev</strong></span></div></section>
+            <section class="porocilo-blok"><h3>Preverjanje prodajalca</h3><div class="porocilo-preverjeno"><span><i>✓</i><strong>Podjetje obstaja</strong></span><span><i>✓</i><strong>Kontakt se ujema</strong></span><span class="je-opozorilo"><i>!</i><strong>Pogoji niso popolni</strong></span></div></section>
+            <section class="porocilo-blok porocilo-blok--tveganja"><h3>Na kaj pazite</h3><ul><li>Redna cena po akciji ni navedena.</li><li>Predčasna prekinitev lahko povzroči stroške.</li><li>Ni jasno, ali se pogodba samodejno podaljša.</li></ul></section>
+            <section class="porocilo-priporocilo"><small>NAŠE PRIPOROČILO</small><strong>Najprej zahtevajmo popolno pisno ponudbo.</strong><p>Ko dobimo redno ceno in vse stroške, jo lahko varno primerjamo.</p></section>
+            <button type="button" class="primer-popup__glavni" data-iz-porocila-ukrep>Izberi naslednji korak<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          </div>
+
+          <div data-primer-zaslon="ukrep" hidden>
+            <p class="ukrep-uvod">Izberite eno dejanje. Pred izvedbo boste še enkrat potrdili vse podrobnosti.</p>
+            <div class="ukrep-moznosti">
+              <button type="button" data-ukrep-vrednost="Preveri ponudbo"><span>✓</span><strong>Preveri ponudbo</strong><small>Cena, pogoji in skriti stroški</small></button>
+              <button type="button" data-ukrep-vrednost="Primerjaj ponudbe"><span>⇄</span><strong>Primerjaj ponudbe</strong><small>Primerjava s trgom ali drugo ponudbo</small></button>
+              <button type="button" data-ukrep-vrednost="Pogajaj se"><span>↘</span><strong>Pogajaj se</strong><small>Boljša cena ali krajša vezava</small></button>
+              <button type="button" data-ukrep-vrednost="Pridobi druge ponudbe"><span>＋</span><strong>Pridobi druge ponudbe</strong><small>Najdemo primerljive alternative</small></button>
+              <button type="button" data-ukrep-vrednost="Zavrni ponudbo"><span>×</span><strong>Zavrni ponudbo</strong><small>Vljudno jo zavrnemo namesto vas</small></button>
+              <button type="button" data-ukrep-vrednost="Ustavi klice"><span>⊘</span><strong>Ustavi klice</strong><small>Zahtevamo, naj vas ne kličejo več</small></button>
+            </div>
+            <label class="ukrep-opomba"><span>Posebno navodilo <small>neobvezno</small></span><textarea data-ukrep-opomba placeholder="Npr. brez vezave, največ 35 € na mesec."></textarea></label>
+            <button type="button" class="primer-popup__glavni" data-potrdi-ukrep disabled>Preglej in potrdi</button>
+            <p class="primer-popup__varnost">Brez vaše končne potrditve ničesar ne naročimo ali sprejmemo.</p>
+          </div>
+
+          <div data-primer-zaslon="potrditev" hidden>
+            <section class="ukrep-pregled"><small>IZBRANI NASLEDNJI KORAK</small><strong data-ukrep-povzetek></strong><p data-ukrep-povzetek-opomba></p></section>
+            <div class="ukrep-pregled__vrstice"><span><small>Prodajalec</small><strong>Telekom Beispiel GmbH</strong></span><span><small>Naša varnostna omejitev</small><strong>Ničesar ne sprejmemo brez vas</strong></span></div>
+            <div class="ukrep-potrditvena-gumba"><button type="button" data-nazaj-na-ukrep>Spremeni</button><button type="button" data-dokoncno-potrdi>Potrdi ukrep</button></div>
+            <p class="primer-popup__varnost"><strong>To je končna potrditev.</strong> Ekipa bo začela izvajati samo izbrani korak.</p>
+          </div>
+        </div>
+      </section>
+
+      <p class="prodajni-scit__varnost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.8 8.2 7 10 4.2-1.8 7-5.2 7-10V6l-7-3Z" /></svg>Brez vaše končne potrditve ničesar ne naročimo ali sprejmemo.</p>
+      <div class="prodajni-scit__toast" role="status" aria-live="polite" data-toast hidden></div>
+    </main>
+  </body>
+</html>

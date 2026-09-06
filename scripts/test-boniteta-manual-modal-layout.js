@@ -24,7 +24,7 @@ assert.match(
 );
 assert.match(
   html,
-  /bonitetna-preverba\.css\?v=20260825-manual-fields-align-v68/,
+  /bonitetna-preverba\.css\?v=[^"']+-v\d+/,
   'Različica CSS mora preprečiti prikaz starega predpomnjenega dizajna.'
 );
 

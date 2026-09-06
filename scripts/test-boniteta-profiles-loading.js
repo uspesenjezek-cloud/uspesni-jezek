@@ -3,16 +3,106 @@
 var assert = require("node:assert");
 var fs = require("node:fs");
 var path = require("node:path");
+var vm = require("node:vm");
 
 var root = path.resolve(__dirname, "..");
 function source(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
+function functionSource(sourceText, name) {
+  var match = new RegExp("(?:async\\s+)?function\\s+" + name + "\\s*\\(").exec(sourceText);
+  assert.ok(match, "Manjka funkcija " + name + ".");
+  var start = match.index;
+  var openingBrace = sourceText.indexOf("{", start);
+  assert.ok(openingBrace >= 0, "Funkcija " + name + " nima telesa.");
+  var depth = 0;
+  var quote = "";
+  var escaped = false;
+  var lineComment = false;
+  var blockComment = false;
+  for (var index = openingBrace; index < sourceText.length; index += 1) {
+    var current = sourceText[index];
+    var next = sourceText[index + 1];
+    if (lineComment) {
+      if (current === "\n") lineComment = false;
+      continue;
+    }
+    if (blockComment) {
+      if (current === "*" && next === "/") {
+        blockComment = false;
+        index += 1;
+      }
+      continue;
+    }
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (current === "\\") escaped = true;
+      else if (current === quote) quote = "";
+      continue;
+    }
+    if (current === "/" && next === "/") {
+      lineComment = true;
+      index += 1;
+      continue;
+    }
+    if (current === "/" && next === "*") {
+      blockComment = true;
+      index += 1;
+      continue;
+    }
+    if (current === '"' || current === "'" || current === "`") {
+      quote = current;
+      continue;
+    }
+    if (current === "{") depth += 1;
+    else if (current === "}") {
+      depth -= 1;
+      if (depth === 0) return sourceText.slice(start, index + 1);
+    }
+  }
+  assert.fail("Telesa funkcije " + name + " ni bilo mogoče zaključiti.");
+}
+
 var center = source("app/boniteta-sredisce.js");
 var css = source("app/boniteta-pro.css");
 var shellCss = source("app/bonitetna-preverba.css");
 var html = source("app/bonitetna-preverba.html");
+var loadProfilesSource = functionSource(center, "loadProfiles");
+var loadWatchedSource = functionSource(center, "loadWatched");
+var clientAuthStart = center.indexOf("async function token");
+var clientAuthEnd = center.indexOf("function error", clientAuthStart);
+assert.ok(clientAuthStart >= 0 && clientAuthEnd > clientAuthStart, "Manjka odjemalčev Auth/API sklop.");
+var clientAuthSource = center.slice(clientAuthStart, clientAuthEnd);
+
+["api/boniteta-pro.js", "api/_handlers/boniteta-pro.js"].forEach(function (relativePath) {
+  var handler = source(relativePath);
+  var authStart = handler.indexOf("preveriUporabnika(req, cfg)");
+  var authEnd = handler.indexOf("cfg.userToken = auth.token", authStart);
+  assert.ok(authStart >= 0 && authEnd > authStart, "Manjka Auth meja v " + relativePath + ".");
+  var authFailure = handler.slice(authStart, authEnd);
+  assert.match(authFailure, /code\s*:\s*auth\.code\b/,
+    "Auth odgovor mora ohraniti strojno kodo napake: " + relativePath);
+  assert.match(authFailure, /retryable\s*:\s*auth\.retryable\s*===\s*true/,
+    "Auth odgovor mora ohraniti oznako varnega ponovnega poskusa: " + relativePath);
+});
+
+assert.match(clientAuthSource, /supabaseKlient\.auth\.refreshSession\s*\(/,
+  "odjemalec mora po zavrnjeni ali zastareli seji enkrat prisilno osvežiti žeton");
+assert.match(clientAuthSource, /AUTH_SESSION_(?:INVALID|REFRESH_REQUIRED)/,
+  "odjemalec mora prepoznati zavrnjeno oziroma zastarelo sejo");
+assert.match(clientAuthSource, /AUTH_SERVER_UNAVAILABLE/,
+  "odjemalec mora prepoznati začasno nedosegljiv Auth strežnik");
+assert.match(clientAuthSource, /AUTH_TIMEOUT/,
+  "odjemalec mora prepoznati časovno omejitev Auth strežnika");
+
+assert.doesNotMatch(
+  loadProfilesSource,
+  /if\s*\(\s*responses\[1\]\.status\s*!==\s*["']fulfilled["']\s*\)\s*throw\s+responses\[1\]\.reason/,
+  "odpoved watched seznama ne sme zavreči že uspešno naloženih osnovnih profilov"
+);
+assert.match(loadWatchedSource, /<button\b[^>]*>[\s\S]*?Poskusi znova[\s\S]*?<\/button>/,
+  "neuspešno nalaganje spremljanih podjetij mora ponuditi gumb Poskusi znova");
 
 assert.ok(
   center.includes("if(profilesLoading)return") && center.includes("finally{profilesLoading=false}"),
@@ -56,7 +146,7 @@ assert.ok(
     center.includes('function watchedCard(m){return profileCard(watchedProfile(m),m)}') &&
     html.includes('id="bp-profiles-grid" class="bp-grid bp-profiles-list"') &&
     html.includes('id="bp-watched-grid" class="bp-grid bp-profiles-list"') &&
-    center.includes('if(!companyCardsPreview)loadWatched()'),
+    center.includes('if(!companyCardsPreview&&!monitoringStatesPreview)loadWatched()'),
   "Podjetja uporabljajo svoj obstoječi widget z dodatno akcijo, Spremljano pa ohrani spremljevalno kartico"
 );
 assert.ok(
@@ -81,8 +171,8 @@ assert.ok(
     center.includes('<strong>Poglej zadnjo preverbo</strong>') &&
     center.includes('newCheckHref="bonitetna-preverba.html?profile="+encodeURIComponent(p.id)+"&recheck=1#new"') &&
     center.includes('function openProfileMonitoring(link,event)') &&
-    center.includes('openMonitoringSetup([{name:profile.legal_name||"Podjetje",profileId:profile.id||""}])') &&
-    center.includes('label.textContent="Spremljano"') &&
+    center.includes('openMonitoringSetup([{name:profile.legal_name||"Podjetje",profileId:profile.id||"",monitoring:monitoring}]') &&
+    center.includes('label.textContent="Spremeni spremljanje"') &&
     center.includes('return"Naslednja preverba: "+datum') &&
     center.includes('api("/api/boniteta-profili?view=watched")') &&
     center.includes('window.UJBonitetaPonovnoPreveriProfil(profile)') &&
@@ -112,7 +202,7 @@ assert.ok(
     center.includes('card&&card.querySelector(".bp-monitoring-next span")||card&&card.querySelector(".bp-company-card__insight small")') &&
     !center.includes('function appendMonitoringNextLine') &&
     !shellCss.includes('.bp-company-card__next-check') &&
-    shellCss.includes('#bp-watched .bp-monitoring-next'),
+    shellCss.includes(':is(#bp-profiles, #bp-watched) .bp-monitoring-next'),
   "običajna kartica ohrani termin v informacijskem bloku, primerjalno stanje pa ga prikaže v kompaktni namenski vrstici"
 );
 assert.ok(
@@ -137,4 +227,218 @@ assert.ok(
   "oba pogleda morata uporabljati enoten kompaktni sistem kartic in povzetkov"
 );
 
-console.log("Moja podjetja — zaključek nalaganja in ponovni poskus: OK");
+function fakeResponse(status, body) {
+  return {
+    ok: status >= 200 && status < 300,
+    status: status,
+    json: async function () { return body; }
+  };
+}
+
+function createClient(fetchImpl) {
+  var currentToken = "stari-token";
+  var refreshCalls = 0;
+  var sandbox = {
+    supabaseKlient: {
+      auth: {
+        getSession: async function () {
+          return { data: { session: { access_token: currentToken, expires_at: Math.floor(Date.now() / 1000) + 3600 } }, error: null };
+        },
+        refreshSession: async function () {
+          refreshCalls += 1;
+          currentToken = "osvezeni-token";
+          return { data: { session: { access_token: currentToken, expires_at: Math.floor(Date.now() / 1000) + 3600 } }, error: null };
+        }
+      }
+    },
+    fetch: fetchImpl,
+    AbortSignal: undefined,
+    URL: URL,
+    URLSearchParams: URLSearchParams,
+    console: console,
+    pocakaj: async function () {},
+    setTimeout: function (callback) { callback(); return 1; },
+    clearTimeout: function () {}
+  };
+  sandbox.window = sandbox;
+  vm.runInNewContext(clientAuthSource + "\nglobalThis.__bonitetaApi = api;", sandbox);
+  return {
+    api: sandbox.__bonitetaApi,
+    refreshCalls: function () { return refreshCalls; }
+  };
+}
+
+function fakeStateElement(retryButton) {
+  return {
+    hidden: false,
+    textContent: "",
+    innerHTML: "",
+    querySelector: function () { return retryButton; }
+  };
+}
+
+async function verifyHandlerAuthContract(relativePath) {
+  var db = require(path.join(root, "api", "_lib", "supabase-server"));
+  var originalConfiguration = db.uporabniskaKonfiguracija;
+  var originalVerify = db.preveriUporabnika;
+  var handlerPath = require.resolve(path.join(root, relativePath));
+  delete require.cache[handlerPath];
+  var handler = require(handlerPath);
+  var response = {
+    statusCode: 200,
+    body: null,
+    setHeader: function () {},
+    status: function (status) { this.statusCode = status; return this; },
+    json: function (body) { this.body = body; return this; }
+  };
+  try {
+    db.uporabniskaKonfiguracija = function () {
+      return { url: "https://auth.example.test", publicKey: "anon-test", serviceKey: "anon-test" };
+    };
+    db.preveriUporabnika = async function () {
+      return {
+        ok: false,
+        status: 502,
+        code: "AUTH_SERVER_UNAVAILABLE",
+        retryable: true,
+        napaka: "Prijava začasno ni dosegljiva."
+      };
+    };
+    await handler({ method: "GET", url: "/api/boniteta-pro?route=profiles", query: { route: "profiles" }, headers: {} }, response);
+  } finally {
+    db.uporabniskaKonfiguracija = originalConfiguration;
+    db.preveriUporabnika = originalVerify;
+  }
+  assert.strictEqual(response.statusCode, 502, "handler mora ohraniti začasni Auth HTTP status: " + relativePath);
+  assert.strictEqual(response.body && response.body.code, "AUTH_SERVER_UNAVAILABLE",
+    "handler mora odjemalcu vrniti Auth kodo: " + relativePath);
+  assert.strictEqual(response.body && response.body.retryable, true,
+    "handler mora odjemalcu vrniti retryable=true: " + relativePath);
+}
+
+async function verifyClientAuthBehavior() {
+  var requests = [];
+  var refreshedClient = createClient(async function (_url, options) {
+    requests.push(options);
+    if (requests.length === 1) {
+      return fakeResponse(401, { ok: false, code: "AUTH_SESSION_INVALID", retryable: false, napaka: "Prijava ni več veljavna." });
+    }
+    return fakeResponse(200, { ok: true, profiles: [] });
+  });
+  await refreshedClient.api("/api/boniteta-profili");
+  assert.strictEqual(refreshedClient.refreshCalls(), 1, "HTTP 401 mora sprožiti natanko eno prisilno osvežitev seje");
+  assert.strictEqual(requests.length, 2, "po osvežitvi se mora prvotna zahteva ponoviti natanko enkrat");
+  assert.strictEqual(requests[1].headers.Authorization, "Bearer osvezeni-token",
+    "ponovljena zahteva mora uporabiti novi access token");
+
+  var temporaryCalls = 0;
+  var unavailableClient = createClient(async function () {
+    temporaryCalls += 1;
+    return fakeResponse(502, {
+      ok: false,
+      code: "AUTH_SERVER_UNAVAILABLE",
+      retryable: true,
+      napaka: "Prijava začasno ni dosegljiva."
+    });
+  });
+  await assert.rejects(function () { return unavailableClient.api("/api/boniteta-profili"); });
+  assert.strictEqual(temporaryCalls, 2,
+    "začasni Auth izpad mora prvotno zahtevo ponoviti natanko enkrat");
+
+  var nonRetryableCalls = 0;
+  var nonRetryableClient = createClient(async function () {
+    nonRetryableCalls += 1;
+    return fakeResponse(502, {
+      ok: false,
+      code: "AUTH_SERVER_UNAVAILABLE",
+      retryable: false,
+      napaka: "Napake ni varno samodejno ponoviti."
+    });
+  });
+  await assert.rejects(function () { return nonRetryableClient.api("/api/boniteta-profili"); });
+  assert.strictEqual(nonRetryableCalls, 1,
+    "Auth zahteve brez izrecnega retryable=true ni dovoljeno samodejno ponoviti");
+
+  var unrelatedCalls = 0;
+  var unrelatedClient = createClient(async function () {
+    unrelatedCalls += 1;
+    return fakeResponse(503, { ok: false, code: "BONITETA_PRO_FAILED", retryable: true, napaka: "Napaka storitve." });
+  });
+  await assert.rejects(function () { return unrelatedClient.api("/api/boniteta-profili"); });
+  assert.strictEqual(unrelatedCalls, 1, "splošnih ali stranskih napak API ne sme samodejno ponavljati kot Auth napake");
+}
+
+async function verifyPartialProfileBehavior() {
+  var retryButton = { onclick: null, addEventListener: function (_type, listener) { this.onclick = listener; } };
+  var elements = {
+    "bp-profiles-state": fakeStateElement(retryButton),
+    "bp-profiles-grid": { innerHTML: "" },
+    "bp-profile-count": { textContent: "0" }
+  };
+  var errors = [];
+  var factory = new Function("api", "elements", "errors", [
+    "var profilesLoading=false,profilesLoaded=false,profileRows=[];",
+    "function el(id){return elements[id]}",
+    "function clearError(){}",
+    "function error(value){errors.push(value)}",
+    "function fit(){}",
+    "function companyCard(profile){return '<article data-profile-id=\\\"'+profile.id+'\\\"></article>'}",
+    "function bindCompanyCards(){}",
+    "function updateProfileComparisonUi(){}",
+    loadProfilesSource,
+    "return {loadProfiles:loadProfiles,profileRows:function(){return profileRows}};"
+  ].join("\n"));
+  var subject = factory(async function (url) {
+    if (url.includes("view=watched")) throw new Error("watched začasno ni dosegljiv");
+    return { ok: true, profiles: [{ id: "osnovni-profil" }] };
+  }, elements, errors);
+  await subject.loadProfiles();
+  assert.match(elements["bp-profiles-grid"].innerHTML, /osnovni-profil/,
+    "uspešno naložen osnovni profil mora ostati prikazan, če watched seznam odpove");
+  assert.strictEqual(String(elements["bp-profile-count"].textContent), "1",
+    "delni watched neuspeh ne sme ponastaviti števca osnovnih profilov na nič");
+  assert.strictEqual(subject.profileRows().length, 1,
+    "delni watched neuspeh ne sme izbrisati osnovnih vrstic iz odjemalčevega stanja");
+}
+
+async function verifyWatchedRetryBehavior() {
+  var retryButton = { onclick: null, addEventListener: function (_type, listener) { this.onclick = listener; } };
+  var elements = {
+    "bp-watched-state": fakeStateElement(retryButton),
+    "bp-watched-grid": { innerHTML: "" },
+    "boniteta-active-nav-count": { hidden: false, textContent: "7" },
+    "boniteta-watched-summary-title": { textContent: "Spremljamo 7 podjetij" },
+    "boniteta-active-count": { textContent: "7" }
+  };
+  var errors = [];
+  var factory = new Function("api", "elements", "errors", [
+    "var profileRows=[];",
+    "function el(id){return elements[id]}",
+    "function clearError(){}",
+    "function error(value){errors.push(value)}",
+    "function fit(){}",
+    "function watchedProfile(value){return value}",
+    "function watchedCard(){return ''}",
+    "function applyWatchedNextDates(){}",
+    "function bindCompanyCards(){}",
+    loadWatchedSource,
+    "return {loadWatched:loadWatched};"
+  ].join("\n"));
+  var subject = factory(async function () { throw new Error("watched ni dosegljiv"); }, elements, errors);
+  await subject.loadWatched();
+  assert.match(elements["bp-watched-state"].innerHTML, /<button\b[^>]*>[\s\S]*Poskusi znova[\s\S]*<\/button>/,
+    "napaka spremljanja mora izrisati pravi retry gumb, ne le slepega besedila");
+  assert.strictEqual(typeof retryButton.onclick, "function", "retry gumb mora biti povezan z novim klicem loadWatched");
+}
+
+(async function runBehaviorRegressions() {
+  await verifyHandlerAuthContract("api/boniteta-pro.js");
+  await verifyHandlerAuthContract("api/_handlers/boniteta-pro.js");
+  await verifyClientAuthBehavior();
+  await verifyPartialProfileBehavior();
+  await verifyWatchedRetryBehavior();
+  console.log("Moja podjetja — zaključek nalaganja in ponovni poskus: OK");
+})().catch(function (error) {
+  console.error(error);
+  process.exitCode = 1;
+});

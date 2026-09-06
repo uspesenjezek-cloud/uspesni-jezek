@@ -21,7 +21,7 @@ var VERIFIED_RESULT_TTL_MS = 24 * 60 * 60 * 1000;
 // preverbo, brez brisanja uporabnikove zgodovine ali profila podjetja.
 // Ročna razveljavitev predpomnilnika po potrjeni spremembi resolverja. Ne
 // odstrani zgodovine podjetij, prepreči pa ponovno uporabo starega opravila.
-var VERIFIED_RESULT_CACHE_VERSION = "verified-result-24h-register-anchored-legal-links-v12-no-directory-reverse-search";
+var VERIFIED_RESULT_CACHE_VERSION = "verified-result-24h-register-anchored-legal-links-v13-ek-impressum-auto";
 
 function razlicicaDostopaDoVirov() {
   var skrivnosti = [

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+<!-- KONCEPT 1: frontalno, sedi za mizo, obe taski na laptopu -->
+<!-- telo -->
+<ellipse cx="400" cy="440" rx="172" ry="178" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+<!-- bodice krona -->
+<path d="M244 356 L206 306 L272 312 L258 244 L322 278 L332 208 L384 258 L412 196 L446 258 L500 224 L500 282 L560 272 L548 330 L592 344 L548 372 L400 330 L244 356 Z"
+  fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+<!-- prekrivni lok da se krona spoji s telesom -->
+<path d="M250 360 C300 330 500 330 550 362" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round"/>
+<!-- oci zaprti -->
+<path d="M305 410 C318 392 344 390 356 406" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<path d="M444 406 C456 390 482 392 495 410" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<!-- nos + nasmeh -->
+<circle cx="400" cy="448" r="18" fill="#3f6455"/>
+<path d="M368 484 C382 496 418 496 432 484" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<!-- nogice -->
+<path d="M300 606 L300 660 C300 674 312 680 342 680 C372 680 382 674 382 660 L382 610" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M418 610 L418 660 C418 674 430 680 460 680 C490 680 500 674 500 660 L500 606" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- miza -->
+<path d="M215 640 L215 762" stroke="#047189" stroke-width="22" stroke-linecap="round"/>
+<path d="M585 640 L585 762" stroke="#047189" stroke-width="22" stroke-linecap="round"/>
+<rect x="135" y="606" width="530" height="32" rx="16" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+<!-- laptop -->
+<rect x="298" y="452" width="204" height="132" rx="14" fill="#d9d9d9" stroke="#3f6455" stroke-width="10"/>
+<circle cx="400" cy="470" r="7" fill="#3f6455"/>
+<line x1="338" y1="512" x2="462" y2="512" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+<line x1="358" y1="536" x2="442" y2="536" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+<path d="M278 584 L522 584 L544 608 L256 608 Z" fill="#d9d9d9" stroke="#3f6455" stroke-width="10" stroke-linejoin="round"/>
+<!-- roki -->
+<path d="M262 538 C300 552 330 562 362 572" stroke="#047189" stroke-width="42" stroke-linecap="round"/>
+<path d="M262 538 C300 552 330 562 362 572" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
+<path d="M538 538 C500 552 470 562 438 572" stroke="#047189" stroke-width="42" stroke-linecap="round"/>
+<path d="M538 538 C500 552 470 562 438 572" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
+<circle cx="362" cy="574" r="26" fill="#ffffff" stroke="#047189" stroke-width="11"/>
+<circle cx="438" cy="574" r="26" fill="#ffffff" stroke="#047189" stroke-width="11"/>
+</svg>

@@ -5,6 +5,7 @@ var fs = require("node:fs");
 var os = require("node:os");
 var path = require("node:path");
 var client = require("../api/_lib/apify-northdata-client");
+var accountGuard = require("../api/_lib/apify-account-guard");
 var profileStore = require("../api/_lib/boniteta-pro-store");
 var queue = require("../api/_lib/mehka-boniteta-queue");
 var profileView = require("../app/boniteta-profil");
@@ -14,13 +15,17 @@ function source(file) {
 }
 
 async function main() {
+  accountGuard._test.reset();
+  await accountGuard.verify("apify-secret-test", async function () {
+    return { ok: true, status: 200, json: async function () { return { data: { username: "ruly_caviar_jhh" } }; } };
+  });
   assert.strictEqual(client.ACTOR_ID, "Ja65ilbhWnUTs1Xeb",
     "podrobna dopolnitev mora ostati vezana na Jaka Northdata actor");
-  assert.strictEqual(client.TIMEOUT_SECONDS, 11,
-    "prvi North Data actor sme preverbo zadržati največ 11 sekund");
-  assert.match(source("api/_lib/apify-northdata-client.js"),
-    /setTimeout\(function \(\) \{ controller\.abort\(\); \}, TIMEOUT_SECONDS \* 1000\)/,
-    "lokalna prekinitev prvega actorja mora nastopiti brez dodatnega pribitka");
+  assert.strictEqual(client.MAX_RESULTS, 1, "primarni North Data actor sme vrniti samo eno podjetje");
+  assert.strictEqual(client.POLL_WAIT_SECONDS, 25,
+    "posamezni statusni GET je omejen, vendar actor sam ne sme biti ustavljen");
+  assert.doesNotMatch(source("api/_lib/apify-northdata-client.js"), /ACTOR_ID \+ "\/runs\?timeout=/,
+    "prvi asinhroni actor ne sme imeti Apify runtime omejitve");
   assert.doesNotMatch(source("api/_lib/apify-northdata-client.js"), /silentflow/i,
     "SilentFlow actor se ne sme vrniti v podrobno North Data dopolnitev");
   var official = {
@@ -28,9 +33,9 @@ async function main() {
     address: { street: "Musterstraße 1", postal_code: "10115", city: "Berlin", country: "DE" },
   };
   assert.deepStrictEqual(client.buildInput(official), {
-    searchQueries: ["Beispiel Technik GmbH"], country: "", resultType: "companies",
+    searchQueries: ["Beispiel Technik GmbH"], country: "DE", resultType: "both",
     includeFinancials: true, includeOfficers: true, includeRelatedCompanies: true,
-    includeEvents: true, includeNews: false, maxResults: 3,
+    includeEvents: false, includeNews: false, maxResults: 1,
   });
 
   var company = {
@@ -82,12 +87,13 @@ async function main() {
   });
   assert.strictEqual(calls.length, 1, "plačljivi actor se sme poklicati samo enkrat");
   assert.ok(calls[0].url.includes("/acts/Ja65ilbhWnUTs1Xeb/run-sync-get-dataset-items"));
-  assert.ok(calls[0].url.includes("timeout=11"), "Apify mora dobiti 11-sekundno omejitev prvega actorja");
+  assert.ok(!calls[0].url.includes("timeout="), "prvi actor ne sme dobiti runtime omejitve");
+  assert.ok(calls[0].url.includes("maxItems=1"), "primarni actor sme vrniti samo en nemški rezultat");
   assert.ok(calls[0].url.includes("maxTotalChargeUsd=0.02"));
   assert.ok(!calls[0].url.includes("apify-secret-test"), "žeton ne sme biti v URL-ju");
   assert.strictEqual(calls[0].options.headers.Authorization, "Bearer apify-secret-test");
   assert.strictEqual(result.status, "found");
-  var timedOut = await client.enrichCompany(official, {
+  var failedNetwork = await client.enrichCompany(official, {
     token: "apify-secret-test",
     fetch: async function () {
       var timeoutError = new Error("presežena časovna omejitev");
@@ -95,10 +101,17 @@ async function main() {
       throw timeoutError;
     },
   });
-  assert.strictEqual(timedOut.status, "unavailable");
-  assert.strictEqual(timedOut.reason, "timeout");
-  assert.strictEqual(timedOut.company, undefined,
-    "po timeoutu podatki prvega North Data actorja ne smejo v rezultat");
+  assert.strictEqual(failedNetwork.status, "unavailable");
+  assert.strictEqual(failedNetwork.reason, "network_error");
+  assert.strictEqual(failedNetwork.company, undefined,
+    "po omrežni napaki podatki prvega North Data actorja ne smejo v rezultat");
+  var pending = await client.finishStartedRun({ runId: "PRIMARYRUN12345", actorId: client.ACTOR_ID }, official, {
+    token: "apify-secret-test",
+    fetch: async function () {
+      return { ok: true, status: 200, json: async function () { return { data: { actId: client.ACTOR_ID, status: "RUNNING" } }; } };
+    },
+  });
+  assert.strictEqual(pending.status, "pending_background", "tekoč actor mora ostati v pollingu in ne sme postati unavailable");
   assert.strictEqual(result.company.foundingDate, "2018-04-12");
   assert.deepStrictEqual(result.company.financials.map(function (metric) {
     return { metric: metric.metric, years: metric.values.map(function (entry) { return entry.year; }) };
@@ -171,8 +184,8 @@ async function main() {
   assert.strictEqual((await client.enrichVerifiedIdentity({ status: "not_found" }, identity, { token: "apify-secret-test" })).northData.status, "skipped");
   assert.strictEqual((await client.enrichVerifiedIdentity({ status: "found", company: official }, Object.assign({}, identity, {
     entityType: "person",
-  }), { token: "apify-secret-test", fetch: async function () { throw new Error("oseba ne sme sprožiti actorja"); } })).northData.status, "skipped",
-  "North Data actor se ne sme zagnati za fizične osebe");
+  }), { disableCache: true, token: "apify-secret-test", fetch: async function () { return { ok: true, status: 200, json: async function () { return [company]; } }; } })).northData.status, "found",
+  "uspešen OpenRegister mora sam sprožiti North Data ne glede na prejšnjo razvrstitev identitete");
 
   var trautIdentity = {
     status: "confirmed_impressum", source: "impressum", entityType: "company",
@@ -186,20 +199,9 @@ async function main() {
     foundingDate: "1995-01-17", corporatePurpose: "Gas-, Wasser- und Sanitärinstallationen.",
     address: { street: "Alt Praunheim 21", postalCode: "60488", city: "Frankfurt am Main", country: "DE" },
   });
-  var trautFallback = await client.enrichVerifiedIdentity({ status: "unavailable", reason: "insufficient_credits" }, trautIdentity, {
-    allowConfirmedImpressum: true, disableCache: true, token: "apify-secret-test",
-    fetch: async function () { return { ok: true, status: 200, json: async function () { return [trautCompany]; } }; },
-  });
-  assert.strictEqual(trautFallback.northData.status, "found", "potrjen Impressum z natančnim registrom mora dovoliti North Data dopolnitev tudi ob izčrpani OpenRegister kvoti");
-  assert.strictEqual(trautFallback.identity.incorporatedAt, "1995-01-17");
-  assert.strictEqual(trautFallback.identity.legalForm, "GmbH", "dopolnilni vir ne sme prepisati pravne oblike iz potrjene identitete");
   assert.strictEqual((await client.enrichVerifiedIdentity({ status: "unavailable" }, trautIdentity, {
-    allowConfirmedImpressum: false, token: "apify-secret-test",
-  })).northData.status, "skipped", "nepotrjen Impressum ne sme sprožiti North Data actorja");
-  assert.strictEqual((await client.enrichVerifiedIdentity({ status: "unavailable" }, Object.assign({}, trautIdentity, {
-    registerNumber: "",
-  }), { allowConfirmedImpressum: true, token: "apify-secret-test" })).northData.status, "skipped",
-  "potrjen Impressum brez natančne registrske oznake ne sme sprožiti dopolnitve");
+    token: "apify-secret-test",
+  })).northData.status, "skipped", "brez uspešnega OpenRegisterja se North Data ne sme zagnati");
 
   var tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "northdata-cache-test-"));
   var cachePath = path.join(tempDir, "cache.json");
@@ -232,25 +234,33 @@ async function main() {
 
   ["api/_handlers/mehka-boniteta.js"].forEach(function (file) {
     var api = source(file);
-    assert.match(api, /enrichVerifiedIdentity\(openregister, identiteta, \{[\s\S]*?allowConfirmedImpressum/);
-    assert.strictEqual((api.match(/enrichVerifiedIdentity\(openregister, identiteta, \{/g) || []).length, 1,
-      "končna faza sme vsebovati samo en plačljiv North Data klic");
-    assert.ok(api.indexOf("enrichVerifiedIdentity(openregister, identiteta, {") > api.indexOf("identiteta = potrditev.identity"),
-      "North Data se sme zagnati šele po uradni samodejni ali uporabniški potrditvi identitete");
+    assert.doesNotMatch(api, /allowConfirmedImpressum/,
+      "North Data ne sme imeti Impressum izjeme; odločilen je samo OpenRegister.");
+    assert.strictEqual((api.match(/northDataClient\.startVerifiedIdentity\(openregister, identiteta, moznosti\)/g) || []).length, 1,
+      "osnovni North Data actor se sme začeti samo na enem mestu");
+    assert.strictEqual((api.match(/northDataDetailsClient\.startVerifiedIdentity\(openregister, identiteta, moznosti\)/g) || []).length, 1,
+      "dopolnilni North Data actor se sme začeti samo na enem mestu");
+    assert.ok(api.indexOf("zacniNorthDataPoOpenRegisterju(openregister, identiteta") < api.indexOf("var potrditev = pripraviPotrditevIdentiteteZaZahtevo"),
+      "oba North Data actorja se morata začeti takoj po OpenRegisterju, pred potrditvijo za insolvenčni tok");
     assert.match(api, /function pripraviPotrditevIdentiteteZaZahtevo[\s\S]*?potrditev\.status === "not_provided"[\s\S]*?pripraviSamodejnoRegistrskoPotrditev/,
       "popolna OpenRegister družba mora samodejno nadaljevati brez dodatnega uporabniškega koraka");
     assert.match(api, /var potrditev = pripraviPotrditevIdentiteteZaZahtevo\(/,
       "končna faza mora uporabiti skupno izbiro aktualne registrske potrditve");
-    assert.match(api, /Promise\.all\(\[northDataPromise, insolvencaPromise\]\)/,
-      "North Data in insolvenčna poizvedba morata teči vzporedno");
+    assert.match(api, /dokončajNorthDataPoOpenRegisterju\(northDataZacetek, auth\.user\.id, openregister\)/,
+      "prvi prikaz mora uporabiti že začeta North Data actorja brez drugega plačljivega zagona");
     assert.match(api, /northData: northData/);
-    assert.match(api, /viri\.push\(northDataObogatitev\.source\)/);
+    assert.match(api, /phase: "details_started_parallel"/);
   });
-  assert.strictEqual(queue._test.NORTHDATA_ENRICHMENT_VERSION, "northdata-apify-v10-financial-invariants");
-  assert.strictEqual(client.companyCache.CACHE_VERSION, "northdata-jaka-v6-financial-invariants");
+  assert.strictEqual(queue._test.NORTHDATA_ENRICHMENT_VERSION, "northdata-apify-v15-both-unbounded-polling");
+  assert.strictEqual(client.companyCache.CACHE_VERSION, "northdata-jaka-v9-both-unbounded");
   assert.match(source("scripts/local-server.js"), /APIFY_API_TOKEN/,
     "lokalni strežnik mora naložiti strežniški Apify žeton iz .env.local");
-  assert.match(source("app/bonitetna-preverba.js"), /northData: podatki\.northData \|\| null/);
+  assert.match(source("api/_handlers/boniteta-pro.js"), /var latestCheck = Object\.assign\(\{\}, result,/,
+    "strežnik mora v profil prenesti North Data iz lastniško vezanega zaključenega opravila");
+  assert.match(source("app/bonitetna-preverba.js"), /action: "save_check",\s*jobId: zadnjiJobId/,
+    "odjemalec mora poslati samo ID zaključene preverbe, ne sestavljenega rezultata");
+  assert.doesNotMatch(source("app/bonitetna-preverba.js"), /action: "save_check",[\s\S]{0,240}?northData:/,
+    "odjemalec pri save_check ne sme poslati lastnega North Data rezultata");
   assert.match(source("app/boniteta-profil.js"), /function northDataPayload\(\)/);
   assert.match(source("app/boniteta-profil.js"), /Vključeno v osnovno preverbo · North Data/);
   assert.match(profileView.northDataNetworkHtml({ company: {

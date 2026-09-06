@@ -436,7 +436,7 @@ assert.match(html, /bonitetna-preverba\.css\?v=20260903-larger-evidence-preview-
   "namenski pregled dejanskega Impressuma mora obiti stari predpomnjeni CSS");
 assert.match(css, /\.boniteta-insolvenca-izid \{[\s\S]*?grid-template-columns: 32px minmax\(0, 1fr\);[\s\S]*?min-height: 72px;[\s\S]*?background: linear-gradient\(135deg, #eef9f2 0%, #e6f5eb 100%\);[\s\S]*?\.boniteta-insolvenca-izid__ikona \{[\s\S]*?width: 32px;[\s\S]*?background: rgba\(255, 255, 255, \.9\);[\s\S]*?\.boniteta-insolvenca-izid__znacka \{\s*display: none;/,
   "samostojni insolvenčni rezultat mora uporabljati isti kompakten statusni vzorec kot zgornji widget");
-assert.match(html, /bonitetna-podjetje-grafike\.css\?v=20260903-northdata-progress-v10/,
+assert.match(html, /bonitetna-podjetje-grafike\.css\?v=20260904-preveri-aktiven-v1/,
   "poenoten zgornji widget mora obiti stari predpomnjeni CSS");
 var enotniZgornjiWidgetCss = grafikeCss.slice(grafikeCss.lastIndexOf("Končna poenotitev zgornjega widgeta"));
 assert.match(enotniZgornjiWidgetCss, /--boniteta-zgornji-widget-red: 72px;[\s\S]*?--boniteta-zgornji-widget-glava: 60px;[\s\S]*?grid-template-rows: var\(--boniteta-zgornji-widget-glava\) var\(--boniteta-zgornji-widget-red\);/,
@@ -445,6 +445,8 @@ assert.match(enotniZgornjiWidgetCss, /> \.boniteta-identiteta-nadaljuj:not\(\[hi
   "vsa stanja morajo uporabljati isto geometrijo in desno akcijsko os");
 assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj__puscica,[\s\S]*?grid-column: 3;[\s\S]*?justify-self: end;[\s\S]*?width: 86px;[\s\S]*?height: 34px;/,
   "vsi akcijski gumbi morajo biti enako veliki in poravnani desno");
+assert.match(enotniZgornjiWidgetCss, /boniteta-identiteta-nadaljuj:not\(\.is-loading\):not\(\.is-auto-warning\):not\(\.is-complete\) \.boniteta-identiteta-nadaljuj__puscica \{[\s\S]*?background: linear-gradient\(135deg, #25a7a0, #087f83\);[\s\S]*?color: #fff;/,
+  "gumb Preveri mora biti zelen kot aktivni zavihek Pregled");
 assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj\.is-auto-warning:not\(\[hidden\]\) \{[\s\S]*?background: linear-gradient\(135deg, #fffaf0, #fff5df\);/,
   "opozorilo mora ostati vizualno ločeno brez spremembe višine");
 assert.match(enotniZgornjiWidgetCss, /\.boniteta-identiteta-nadaljuj\.is-complete \.boniteta-identiteta-nadaljuj__puscica::before \{\s*content: "Vir";/,

@@ -92,7 +92,7 @@ test("ocena tveganja je umaknjena s 1. koraka in dostopna ob priporočilu", () =
   assert(/#obrazec-neplacilo \.contact-inputs\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 1fr\)/s.test(css));
   assert(/#obrazec-neplacilo \.zadeva-obrazec__podvrstica--datumi/.test(css));
   assert(!/<section class="ocena-tveganja"/.test(html), "kartica ocene tveganja je še vedno vidna na 1. koraku");
-  assert(/priporocilo-widget__naslov">Priporočilo za ta dolg<\/h3>[\s\S]*data-odpri-oceno-tveganja[\s\S]*Ocena tveganja/.test(posiljanjeHtml), "ob priporočilu manjka mali gumb ocene tveganja");
+  assert(/data-odpri-oceno-tveganja[\s\S]*Nastavitve ocene tveganja/.test(zgodovinaHtml), "na 2. koraku manjka gumb nastavitev ocene tveganja");
   assert(/id="ocena-dolg-sheet" hidden[\s\S]*data-ocena-preklop="dolg"[\s\S]*data-ocena-preklop="zamuda"/.test(posiljanjeHtml), "nad nastavitvami dolga manjkata oba preklopna widgeta");
   assert(/id="ocena-zamuda-sheet" hidden[\s\S]*data-ocena-preklop="dolg"[\s\S]*data-ocena-preklop="zamuda"/.test(posiljanjeHtml), "nad nastavitvami zamude manjkata oba preklopna widgeta");
   assert(/pregledGumb\.addEventListener\("click"[\s\S]*odpriNastavitveOcene\("dolg"\)/.test(ocenaJs), "gumb ne odpre nastavitev neposredno");

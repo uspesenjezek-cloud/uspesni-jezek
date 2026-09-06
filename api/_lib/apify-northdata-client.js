@@ -2,13 +2,15 @@
 
 var ACTOR_ID = "Ja65ilbhWnUTs1Xeb";
 var companyCache = require("./northdata-company-cache");
+var accountGuard = require("./apify-account-guard");
 var API_ROOT = "https://api.apify.com/v2";
 var NORTH_DATA_ROOT = "https://www.northdata.com/";
-var MAX_RESULTS = 3;
+var MAX_RESULTS = 1;
 var MAX_TOTAL_CHARGE_USD = 0.02;
-// Osnovni North Data actor je neobvezen. Če v 11 sekundah ne odgovori,
-// nadaljujemo z uradno identiteto OpenRegister brez North Data podatkov.
-var TIMEOUT_SECONDS = 11;
+var START_TIMEOUT_MS = 10000;
+// Dolgi GET samo toliko časa čaka na spremembo statusa. Ta vrednost ne ustavlja
+// Apify runa; actor nima več runtime omejitve in ga odjemalec ponovno preveri.
+var POLL_WAIT_SECONDS = 25;
 
 function text(value, max) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 5000);
@@ -165,6 +167,7 @@ function mergeIntoIdentity(identity, enrichment) {
 function sourceEntry(enrichment) {
   var value = enrichment || skipped("not_run");
   var messages = {
+    pending_background: "Dopolnilni podatki North Data se nalagajo v ozadju; registrski podatki OpenRegister so že pripravljeni.",
     found: "Dopolnilni podatki podjetja so bili pridobljeni in vezani na potrjen registrski zapis.",
     not_found: "North Data za potrjeno registrsko oznako ni vrnil ujemajočega podjetja.",
     ambiguous: "North Data je vrnil več podobnih zadetkov, zato podatki niso bili samodejno združeni.",
@@ -177,6 +180,15 @@ function sourceEntry(enrichment) {
     reason: value.reason || "", sourceUrl: value.sourceUrl || NORTH_DATA_ROOT,
     message: messages[value.status] || messages.unavailable,
   };
+}
+
+// North Data se sme začeti samo po dejanskem OpenRegister zadetku. Impressum
+// je lahko iskalni kandidat za OpenRegister, nikoli pa samostojna dovolilnica
+// za plačljivi North Data actor.
+function officialForIdentity(openregister) {
+  return openregister && openregister.status === "found" && openregister.company
+    ? openregister.company
+    : null;
 }
 
 function scoreCandidate(item, official) {
@@ -253,6 +265,98 @@ async function readExistingRun(runId, official, options) {
   }, selection);
 }
 
+function validRunId(value) {
+  var id = text(value, 80);
+  return /^[A-Za-z0-9]{10,40}$/.test(id) ? id : "";
+}
+
+async function startCompanyRun(official, options) {
+  var opts = options || {};
+  var token = text(opts.token != null ? opts.token : process.env.APIFY_API_TOKEN, 5000);
+  var fetchImpl = opts.fetch || global.fetch;
+  if (!token) return { status: "not_configured", reason: "token_missing", sourceUrl: NORTH_DATA_ROOT };
+  if (typeof fetchImpl !== "function") return { status: "unavailable", reason: "fetch_unavailable", sourceUrl: NORTH_DATA_ROOT };
+  var controller = new AbortController();
+  var timer = setTimeout(function () { controller.abort(); }, START_TIMEOUT_MS);
+  try {
+    await accountGuard.verify(token, fetchImpl);
+    var response = await fetchImpl(API_ROOT + "/acts/" + ACTOR_ID + "/runs?memory=512&maxTotalChargeUsd=" + MAX_TOTAL_CHARGE_USD, {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(buildInput(official)),
+      signal: controller.signal,
+    });
+    var payload = await response.json().catch(function () { return {}; });
+    var run = payload && payload.data;
+    var id = validRunId(run && run.id);
+    if (!response.ok || !id) {
+      return { status: "unavailable", reason: reasonForStatus(response.status), httpStatus: response.status, sourceUrl: NORTH_DATA_ROOT };
+    }
+    return {
+      status: "started", actorId: ACTOR_ID, runId: id,
+      datasetId: text(run.defaultDatasetId, 80), startedAt: new Date().toISOString(),
+      source: "northdata_apify", sourceLabel: "North Data prek Apify", sourceUrl: NORTH_DATA_ROOT,
+    };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      reason: error && error.code === "APIFY_ACCOUNT_MISMATCH" ? "account_mismatch" : error && error.name === "AbortError" ? "start_timeout" : "start_network_error",
+      sourceUrl: NORTH_DATA_ROOT,
+    };
+  } finally { clearTimeout(timer); }
+}
+
+async function finishStartedRun(started, official, options) {
+  var opts = options || {};
+  var id = validRunId(started && started.runId);
+  if (!id || started && started.actorId && started.actorId !== ACTOR_ID) {
+    return { status: "unavailable", reason: "started_run_invalid", sourceUrl: NORTH_DATA_ROOT };
+  }
+  var token = text(opts.token != null ? opts.token : process.env.APIFY_API_TOKEN, 5000);
+  var fetchImpl = opts.fetch || global.fetch;
+  if (!token) return { status: "not_configured", reason: "token_missing", sourceUrl: NORTH_DATA_ROOT };
+  if (typeof fetchImpl !== "function") return { status: "unavailable", reason: "fetch_unavailable", sourceUrl: NORTH_DATA_ROOT };
+  try {
+    await accountGuard.verify(token, fetchImpl);
+    var runResponse = await fetchImpl(API_ROOT + "/actor-runs/" + id + "?waitForFinish=" + POLL_WAIT_SECONDS, {
+      method: "GET", headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+    });
+    var runPayload = await runResponse.json().catch(function () { return {}; });
+    var run = runPayload && runPayload.data;
+    if (!runResponse.ok || !run || run.actId && run.actId !== ACTOR_ID) {
+      return { status: "unavailable", reason: "run_unavailable", httpStatus: runResponse.status, sourceUrl: NORTH_DATA_ROOT };
+    }
+    if (["READY", "RUNNING"].includes(run.status)) {
+      return { status: "pending_background", reason: "run_still_running", actorId: ACTOR_ID, runId: id, sourceUrl: NORTH_DATA_ROOT };
+    }
+    if (run.status !== "SUCCEEDED") {
+      return { status: "unavailable", reason: "run_failed", sourceUrl: NORTH_DATA_ROOT };
+    }
+    var datasetId = text(run.defaultDatasetId || started && started.datasetId, 80);
+    if (!/^[A-Za-z0-9]{10,40}$/.test(datasetId)) return { status: "unavailable", reason: "dataset_missing", sourceUrl: NORTH_DATA_ROOT };
+    var datasetResponse = await fetchImpl(API_ROOT + "/datasets/" + datasetId + "/items?clean=1&limit=" + MAX_RESULTS, {
+      method: "GET", headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+    });
+    var items = await datasetResponse.json().catch(function () { return []; });
+    if (!datasetResponse.ok || !Array.isArray(items)) {
+      return { status: "unavailable", reason: "dataset_unavailable", httpStatus: datasetResponse.status, sourceUrl: NORTH_DATA_ROOT };
+    }
+    var selection = selectCompany(items, official);
+    return Object.assign({
+      actorId: ACTOR_ID, runId: id, source: "northdata_apify", sourceLabel: "North Data prek Apify",
+      sourceUrl: selection.company && selection.company.sourceUrl || NORTH_DATA_ROOT,
+      fetchedAt: new Date().toISOString(), resultCount: items.length,
+      estimatedCostUsd: 0.00005 + items.length * 0.004,
+    }, selection);
+  } catch (error) {
+    return {
+      status: "unavailable",
+      reason: error && error.code === "APIFY_ACCOUNT_MISMATCH" ? "account_mismatch" : "run_network_error",
+      sourceUrl: NORTH_DATA_ROOT,
+    };
+  }
+}
+
 function selectCompany(items, official) {
   var ranked = (Array.isArray(items) ? items : []).map(function (item) { return scoreCandidate(item, official); })
     .filter(function (entry) { return entry.candidate && entry.score > 0; })
@@ -280,9 +384,11 @@ function buildInput(official) {
   return {
     // Novi Jaka actor je preverjen s celotnim profilom podjetja v načinu
     // "companies"; dodatne sklope vedno zahtevamo eksplicitno spodaj.
-    searchQueries: [query], country: "", resultType: "companies",
+    searchQueries: [query], country: "DE", resultType: "both",
     includeFinancials: true, includeOfficers: true, includeRelatedCompanies: true,
-    includeEvents: true, includeNews: false, maxResults: MAX_RESULTS,
+    // Dogodke že zbira vzporedni dopolnilni actor. Primarni rezultat jih ne
+    // podvaja, da je prvi prikaz hitrejši; po zaključku se varno združijo nazaj.
+    includeEvents: false, includeNews: false, maxResults: MAX_RESULTS,
   };
 }
 
@@ -303,16 +409,15 @@ async function enrichCompany(official, options) {
     return { status: "unavailable", reason: "fetch_unavailable", sourceUrl: NORTH_DATA_ROOT };
   }
   var url = API_ROOT + "/acts/" + ACTOR_ID + "/run-sync-get-dataset-items" +
-    "?timeout=" + TIMEOUT_SECONDS + "&memory=512&maxItems=" + MAX_RESULTS +
+    "?memory=512&maxItems=" + MAX_RESULTS +
     "&maxTotalChargeUsd=" + MAX_TOTAL_CHARGE_USD + "&clean=1";
-  var controller = new AbortController();
-  var timer = setTimeout(function () { controller.abort(); }, TIMEOUT_SECONDS * 1000);
   try {
+    await accountGuard.verify(token, fetchImpl);
     // A paid POST is deliberately never retried automatically.
     var response = await fetchImpl(url, {
       method: "POST",
       headers: { Authorization: "Bearer " + token, Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify(buildInput(official)), signal: controller.signal,
+      body: JSON.stringify(buildInput(official)),
     });
     if (!response.ok) {
       return {
@@ -330,38 +435,19 @@ async function enrichCompany(official, options) {
     }, selection);
   } catch (error) {
     return {
-      status: "unavailable", reason: error && error.name === "AbortError" ? "timeout" : "network_error",
+      status: "unavailable", reason: "network_error",
       sourceUrl: NORTH_DATA_ROOT,
     };
-  } finally { clearTimeout(timer); }
+  }
 }
 
 async function enrichVerifiedIdentity(openregister, identity, options) {
   var opts = options || {};
-  var verifiedRegister = Boolean(openregister && openregister.status === "found" && openregister.company &&
-    identity && identity.status === "verified_register" && identity.entityType === "company");
-  var confirmedImpressum = Boolean(opts.allowConfirmedImpressum === true && identity &&
-    identity.status === "confirmed_impressum" && identity.source === "impressum" && identity.entityType === "company");
-  var register = companyRegister(identity);
-  var hasConfirmedImpressumIdentity = confirmedImpressum && Boolean(
-    text(identity.naziv || identity.ime, 240) && register.type && register.number &&
-    text(identity.naslov, 200) && /^\d{5}$/.test(text(identity.postnaStevilka, 20)) && text(identity.kraj, 120)
-  );
-  if (!verifiedRegister && !hasConfirmedImpressumIdentity) {
+  var sourceIdentity = officialForIdentity(openregister, identity, opts);
+  if (!sourceIdentity) {
     var notRun = skipped("verified_company_required");
     return { identity: Object.assign({}, identity || {}), northData: notRun, source: sourceEntry(notRun) };
   }
-  var sourceIdentity = verifiedRegister ? openregister.company : {
-    name: identity.naziv || identity.ime,
-    register_type: register.type,
-    register_number: register.number,
-    address: {
-      street: identity.naslov,
-      postal_code: identity.postnaStevilka,
-      city: identity.kraj,
-      country: "DE",
-    },
-  };
   var enrichment;
   try {
     enrichment = await companyCache.getOrLoad(sourceIdentity, function () {
@@ -379,9 +465,26 @@ async function enrichVerifiedIdentity(openregister, identity, options) {
   };
 }
 
+async function startVerifiedIdentity(openregister, identity, options) {
+  var official = officialForIdentity(openregister, identity, options);
+  if (!official) return { identity: Object.assign({}, identity || {}), start: skipped("verified_company_required") };
+  return { identity: Object.assign({}, identity || {}), start: await startCompanyRun(official, options) };
+}
+
+async function completeStartedRun(started, openregister, identity, options) {
+  var official = officialForIdentity(openregister, identity, options);
+  if (!official) {
+    var noRun = skipped("verified_company_required");
+    return { identity: Object.assign({}, identity || {}), northData: noRun, source: sourceEntry(noRun) };
+  }
+  var enrichment = await finishStartedRun(started, official, options);
+  return { identity: mergeIntoIdentity(identity, enrichment), northData: enrichment, source: sourceEntry(enrichment) };
+}
+
 module.exports = {
   ACTOR_ID: ACTOR_ID,
-  TIMEOUT_SECONDS: TIMEOUT_SECONDS,
+  MAX_RESULTS: MAX_RESULTS,
+  POLL_WAIT_SECONDS: POLL_WAIT_SECONDS,
   NORTH_DATA_ROOT: NORTH_DATA_ROOT,
   buildInput: buildInput,
   registerFrom: registerFrom,
@@ -391,6 +494,11 @@ module.exports = {
   readExistingRun: readExistingRun,
   mergeIntoIdentity: mergeIntoIdentity,
   sourceEntry: sourceEntry,
+  officialForIdentity: officialForIdentity,
   enrichVerifiedIdentity: enrichVerifiedIdentity,
+  startVerifiedIdentity: startVerifiedIdentity,
+  completeStartedRun: completeStartedRun,
+  startCompanyRun: startCompanyRun,
+  finishStartedRun: finishStartedRun,
   companyCache: companyCache,
 };

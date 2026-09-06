@@ -247,6 +247,27 @@ function extractInstallmentCadences(value, installmentGroups) {
     });
     if (!raw.length) durationPattern.lastIndex += 1;
   }
+  var spacingPatterns = [
+    new RegExp("(?<![\\p{L}\\d])(?:v\\s+)?(?:" + NUMBER + NUMBER_UNIT_GAP + ")?" + UNIT + "(?:\\s+dni)?\\s+(?:razmaka|narazen)(?![\\p{L}\\d])", "giu"),
+    new RegExp("(?<![\\p{L}\\d])v\\s+razmaku\\s+(?:" + NUMBER + NUMBER_UNIT_GAP + ")?" + UNIT + "(?![\\p{L}\\d])", "giu"),
+    new RegExp("(?<![\\p{L}\\d])(?:na|vsakih?)\\s+" + NUMBER + NUMBER_UNIT_GAP + UNIT + "(?![\\p{L}\\d])", "giu"),
+  ];
+  spacingPatterns.forEach(function (pattern) {
+    var match;
+    while ((match = pattern.exec(text))) {
+      var intervalAmount = match[1] == null ? 1 : numberEngine.parseSlovenianNumber(match[1], { count: true });
+      var unit = canonicalUnit(match[2]);
+      if (!Number.isInteger(intervalAmount) || intervalAmount < 1 || !unit) continue;
+      var localCountStart = match[1] == null ? -1 : match[0].indexOf(match[1]);
+      candidates.push({
+        priority: -1, periodCount: null, intervalAmount: intervalAmount, unit: unit,
+        sourceSpan: sourceSpan(text, match.index, match.index + match[0].length),
+        countSpan: localCountStart < 0 ? null : sourceSpan(text, match.index + localCountStart, match.index + localCountStart + match[1].length),
+        reason: "installment_spacing_interval",
+      });
+      if (!match[0].length) pattern.lastIndex += 1;
+    }
+  });
   [
     { pattern: /(?<![\p{L}\d])vsak\s+dan(?![\p{L}\d])/giu, unit: "day", reason: "installment_every_day" },
     { pattern: /(?<![\p{L}\d])vsak\s+teden(?![\p{L}\d])/giu, unit: "week", reason: "installment_every_week" },
@@ -278,14 +299,15 @@ function extractInstallmentCadences(value, installmentGroups) {
     if (!group) return;
     usedGroups.add(group.id);
     var conflict = candidate.periodCount != null && candidate.periodCount !== group.count ? "installment_duration_count_mismatch" : null;
+    var intervalAmount = candidate.intervalAmount || 1;
     var relation = conflict ? null : {
-      anchor: "previous_event", field: "occurredDate", direction: 1, amount: 1, unit: candidate.unit,
+      anchor: "previous_event", field: "occurredDate", direction: 1, amount: intervalAmount, unit: candidate.unit,
       sourceSpan: candidate.sourceSpan, reason: candidate.reason,
     };
     cadences.push({
       id: "installment-cadence-" + (cadences.length + 1), groupId: group.id,
       installmentCount: group.count, periodCount: candidate.periodCount,
-      intervalAmount: conflict ? null : 1, unit: candidate.unit,
+      intervalAmount: conflict ? null : intervalAmount, unit: candidate.unit,
       expectedRelationCount: conflict ? 0 : Math.max(0, group.count - 1),
       sourceSpan: candidate.sourceSpan, countSpan: candidate.countSpan,
       reason: candidate.reason, conflict: conflict, relation: relation,

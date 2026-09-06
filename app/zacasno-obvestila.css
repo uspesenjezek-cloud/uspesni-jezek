@@ -15,10 +15,10 @@
   --zo-surface: #ffffff;
 
   width: 100%;
-  max-width: 460px;
+  max-width: var(--sirina-vsebine);
   min-height: 100dvh;
   margin: 0 auto;
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(30px + env(safe-area-inset-bottom, 0px));
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 0 calc(30px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   background: #ffffff;
   color: var(--zo-ink);
@@ -214,7 +214,7 @@ body.zo-sim-popup-aktiven {
 .zo-sim-popup__okno {
   --zo-accent: #6cae90;
   --zo-accent-rgb: 108, 174, 144;
-  width: min(100%, 430px);
+  width: min(100%, var(--sirina-vsebine));
   padding: 12px;
   border: 1px solid rgba(var(--zo-accent-rgb), .36);
   border-radius: 24px;
@@ -609,7 +609,7 @@ body.zo-detail-aktiven {
 }
 
 body.zo-detail-aktiven .zacasno-obvestila {
-  max-width: 560px;
+  max-width: var(--sirina-vsebine);
   padding: 0;
 }
 
@@ -1056,8 +1056,8 @@ body.zo-detail-aktiven {
 }
 
 body.zo-detail-aktiven .zacasno-obvestila {
-  max-width: 460px;
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(30px + env(safe-area-inset-bottom, 0px));
+  max-width: var(--sirina-vsebine);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 0 calc(30px + env(safe-area-inset-bottom, 0px));
 }
 
 .zo-detail-view {

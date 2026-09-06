@@ -16,10 +16,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260829-korak-gradient-v4" />
+    <link rel="stylesheet" href="styles.css?v=20260904-globalni-rob-13-v2" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260823-sheet-akcije-v2" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#51999a" />
@@ -29,7 +29,7 @@
     <script src="vendor-data.js?v=20260819-local-v1"></script>
     <script src="config.js?v=20260823-obnovljena-konfiguracija-v1"></script>
     <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
-    <script src="supabase-client.js?v=20260823-local-preview-guard-v1"></script>
+    <script src="supabase-client.js?v=20260829-cross-tab-lock-v1"></script>
     <link rel="stylesheet" href="in-app-camera.css?v=20260821-inline-static-v5" data-uj-kamera-slog>
     <script src="in-app-camera.js?v=20260821-iphone-inline-v11" data-uj-kamera></script>
     <script src="auth-zascita.js?v=20260824-local-preview-guard-v2"></script>
@@ -40,19 +40,24 @@
     <div class="korak2">
       <div data-wizard-progress-header data-korak="4" data-wizard-zacetni-zaslon="zascita-posla.html"></div>
       <section class="wizard-debt-summary" data-kompaktni-povzetek-dolga aria-label="Povzetek dolga"></section>
-      <div class="wizard-plan-actions">
-        <button
-          type="button"
-          class="priporocilo-widget__ocena-gumb wizard-plan-risk-button"
-          data-odpri-oceno-tveganja
-          aria-haspopup="dialog"
-          aria-controls="ocena-dolg-sheet"
-          aria-expanded="false"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-          <span>Ocena tveganja</span>
-        </button>
-      </div>
+      <section class="opomin-pristop" id="opomin-pristop" aria-label="Izbira pristopa">
+        <div class="opomin-pristop__razpri-vrstica">
+          <span class="opomin-pristop__razpri-prostor" data-opomin-pristop-povzetek data-pristop="postopno">
+            <span class="opomin-pristop__razpri-pika" aria-hidden="true"></span>
+            <span class="opomin-pristop__razpri-povzetek">
+              <span data-opomin-pristop-predpona>Priporočamo</span>
+              <strong data-opomin-pristop-izbrano>Prijazen pristop</strong>
+            </span>
+          </span>
+          <button type="button" class="opomin-pristop__razpri" id="opomin-pristop-razpri" aria-expanded="false" aria-controls="opomin-pristop-izbire">
+            <span data-opomin-pristop-razpri-oznaka>Spremeni</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+          </button>
+        </div>
+        <div class="opomin-pristop__krogi" id="opomin-pristop-krogi" aria-label="Odpri možnosti pristopa"></div>
+        <div class="opomin-pristop__priporocilo-overlay" id="opomin-pristop-priporocilo-overlay" aria-hidden="true"></div>
+        <div class="opomin-pristop__izbire" id="opomin-pristop-izbire" role="radiogroup" aria-label="Izberite način ukrepanja"></div>
+      </section>
 
       <main class="korak2__vsebina korak2__vsebina--opomin">
         <p class="obrazec__napaka" id="splosna-napaka" hidden></p>
@@ -190,7 +195,7 @@
             <div class="rok-sheet__povzetek-akcija">
               <p class="rok-sheet__povzetek-namig">Določite točni datum</p>
               <div class="rok-sheet__povzetek-dostop" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
               </div>
             </div>
             <input
@@ -351,10 +356,10 @@
               <p class="rok-sheet__oznaka" id="obrocno-sheet-razmik-oznaka">Razmik med obroki</p>
             </div>
             <div class="obrocno-sheet__razmik-izbira" id="obrocno-sheet-razmik-izbira" role="radiogroup" aria-labelledby="obrocno-sheet-razmik-oznaka">
-              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="weekly" role="radio" aria-checked="false"><span><strong>Vsak teden</strong><small>7 dni</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
-              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="biweekly" role="radio" aria-checked="false"><span><strong>Vsaka 2 tedna</strong><small>14 dni</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
-              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="monthly" role="radio" aria-checked="true"><span><strong>Vsak mesec</strong><small>Koledarsko</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
-              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="custom" role="radio" aria-checked="false"><span><strong>Ročno</strong><small>Izberem datume</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="weekly" role="radio" aria-checked="false"><span><strong>Vsak teden</strong><small>7 dni</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="biweekly" role="radio" aria-checked="false"><span><strong>Vsaka 2 tedna</strong><small>14 dni</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="monthly" role="radio" aria-checked="true"><span><strong>Vsak mesec</strong><small>Koledarsko</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></i></button>
+              <button type="button" class="obrocno-sheet__razmik-kartica" data-obrocno-razmik="custom" role="radio" aria-checked="false"><span><strong>Ročno</strong><small>Izberem datume</small></span><i aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></i></button>
             </div>
             <select class="obrocno-sheet__razmik" id="obrocno-sheet-razmik" hidden aria-hidden="true" tabindex="-1">
               <option value="weekly">Vsak teden</option>
@@ -693,7 +698,7 @@
             <p class="ocena-sheet__podnaslov">Ocena je samodejna. Meje prilagodite samo, če želite.</p>
           </div>
           <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-tveganja-zapri>
-            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
+            <span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span>
           </button>
         </div>
         <div class="ocena-sheet__telo">
@@ -729,7 +734,7 @@
         <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
         <div class="ocena-sheet__glava">
           <div class="ocena-sheet__glava-besedilo"><h2 class="ocena-sheet__naslov" id="ocena-dolg-sheet-naslov" tabindex="-1">Meje višine dolga</h2><p class="ocena-sheet__podnaslov">Priporočene meje lahko prilagodite.</p></div>
-          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-dolg-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-dolg-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
         </div>
         <div class="ocena-sheet__telo">
           <div class="ocena-sheet__preklop" role="tablist" aria-label="Vrsta ocene tveganja">
@@ -758,7 +763,7 @@
         <div class="ocena-sheet__rocaj" aria-hidden="true"></div>
         <div class="ocena-sheet__glava">
           <div class="ocena-sheet__glava-besedilo"><h2 class="ocena-sheet__naslov" id="ocena-zamuda-sheet-naslov" tabindex="-1">Meje dolžine zamude</h2><p class="ocena-sheet__podnaslov">Zamuda se izračuna iz roka plačila.</p></div>
-          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-zamuda-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
+          <button type="button" class="ocena-sheet__zapri" aria-label="Zapri" data-ocena-zamuda-zapri><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></span></button>
         </div>
         <div class="ocena-sheet__telo">
           <div class="ocena-sheet__preklop" role="tablist" aria-label="Vrsta ocene tveganja">
@@ -804,11 +809,11 @@
     <script src="ton-predloge.js?v=20260810-korak3-predloge"></script>
     <script src="ton-widget.js?v=20260812-brez-utripa-v2"></script>
     <script src="gsm7-stevec.js?v=20260808-opomin-vsebina"></script>
-    <script src="opomin-kartice-sync.js?v=20260823-confirmation-refresh-v6"></script>
-    <script src="opomin-nacrt.js?v=20260826-zgodovina-odvetnik-v4"></script>
-    <script src="opomin-nacrt-ui.js?v=20260829-korak-gradient-v1"></script>
-    <script src="predlogi-urejevalnik.js?v=20260828-dolgi-pritisk-drag-v1"></script>
+    <script src="opomin-kartice-sync.js?v=20260830-active-wizard-v1"></script>
+    <script src="opomin-nacrt.js?v=20260901-pristop-brez-stare-potrditve-v1"></script>
+    <script src="opomin-nacrt-ui.js?v=20260902-pristop-zaporedno-odpiranje-v1"></script>
+    <script src="predlogi-urejevalnik.js?v=20260830-smooth-drag-v3"></script>
     <script src="storage-priloge-cache.js?v=20260818-egress-v1"></script>
-    <script src="app.js?v=20260827-wizard-four-step-v1-debt-summary-v4"></script>
+    <script src="app.js?v=20260902-risk-gear-v1"></script>
   </body>
 </html>

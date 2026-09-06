@@ -19,6 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run test:koncani-primeri
       - run: npm run test:pos
       - run: npm run check:openapi-contract
       - run: npm run build:assets

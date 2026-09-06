@@ -1,5 +1,7 @@
 "use strict";
 
+var temporalEngine = require("./zgodovina-temporal-engine");
+
 var MAX_EVENTS = 20;
 var MONEY_EPSILON = 0.009;
 
@@ -412,6 +414,15 @@ function reconcileProposals(events, facts) {
         return event && event.type === "installment_payment" && event.evidence && event.evidence.groupId === cadence.groupId ? index : -1;
       }).filter(function (index) { return index >= 0; });
       if (targetIndexes.length !== cadence.installmentCount) return;
+      var hasExplicitSeriesDate = validIsoDate(facts.occurredDate);
+      if (!hasExplicitSeriesDate) {
+        targetIndexes.forEach(function (targetIndex) {
+          if (proposals[targetIndex].occurredDate) diagnostics.push("deterministic_installment_history_rejected_unstated_date:" + targetIndex);
+          proposals[targetIndex].occurredDate = null;
+        });
+        proposals[targetIndexes[0]].dateRelation = null;
+        diagnostics.push("deterministic_installment_history_anchor_deferred_to_user");
+      }
       targetIndexes.slice(1).forEach(function (targetIndex) {
         var relation = Object.assign({}, cadence.relation, {
           sourceSpan: cadence.sourceSpan || cadence.relation.sourceSpan || null,

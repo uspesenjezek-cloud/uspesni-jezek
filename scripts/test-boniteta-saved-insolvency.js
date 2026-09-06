@@ -12,11 +12,13 @@ var sredisce = fs.readFileSync(path.join(root, "app", "boniteta-sredisce.js"), "
 var html = fs.readFileSync(path.join(root, "app", "bonitetna-preverba.html"), "utf8");
 var opraviloHandler = fs.readFileSync(path.join(root, "api", "_handlers", "mehka-boniteta-opravilo.js"), "utf8");
 var lokalnoOpravilo = fs.readFileSync(path.join(root, "api", "mehka-boniteta-opravilo.js"), "utf8");
+var proHandler = fs.readFileSync(path.join(root, "api", "_handlers", "boniteta-pro.js"), "utf8");
 var hramba = require(path.join(root, "app", "boniteta-dokazna-hramba.js"));
 var mehkaBonitetaTest = require(path.join(root, "api", "_handlers", "mehka-boniteta.js"))._test;
 
-assert.match(preverba, /queueJobId:\s*zadnjiJobId/, "Zaključena preverba mora shraniti varno referenco na dokazno opravilo.");
-assert.match(preverba, /entityType:\s*identiteta\.entityType/, "Vrsta identitete mora ostati shranjena tudi za osebe.");
+assert.match(preverba, /action: "save_check",\s*jobId: zadnjiJobId/, "Odjemalec mora shranjevanje vezati na zaključeno dokazno opravilo.");
+assert.match(proHandler, /queueJobId: job\.id/, "Strežnik mora shraniti varno referenco na lastniško preverjeno opravilo.");
+assert.match(proHandler, /entityType: firstValue\(identity, \["entityType", "entity_type"\]\)/, "Vrsta identitete mora ostati shranjena tudi za osebe.");
 assert.match(preverba, /mehka-boniteta-opravilo\?profileId=/, "Stari profili morajo imeti varen fallback za iskanje lastnega dokazila.");
 assert.match(preverba, /kandidat\.status === "completed"/, "Ponovno odpiranje sme uporabiti samo zaključeno opravilo.");
 assert.match(preverba, /imaUradniInsolvencniPosnetek\(kandidat\.result\)/, "Obnovljeni rezultat mora vsebovati dejanski uradni posnetek.");
@@ -57,6 +59,7 @@ assert.match(preverba, /function imaUradniInsolvencniPosnetek\(podatki\)[\s\S]*?
 assert.match(preverba, /function uskladiCasZUradnimInsolvencnimDokazom[\s\S]*?podatki\.checkedAt = official\.checkedAt/, "Čas profila mora po obnovi kazati čas dejanskega uradnega posnetka, ne novejšega neuspelega poskusa.");
 assert.match(preverba, /\["clear", "possible_match"\]\.includes\(zLokalnimDokazom\.insolvency\.status\)[\s\S]*?imaUradniInsolvencniPosnetek\(zLokalnimDokazom\)/, "Neuspešen lokalni zapis ne sme prekriti starejšega veljavnega rezultata iz vrste.");
 assert.match(preverba, /var jeZakljucenShranjeniRezultat = jeZakljucenShranjeniInsolvencniRezultat\(podatki\)/, "Glavni izris mora uporabljati eno strogo pravilo za zaključen shranjeni rezultat.");
+assert.match(preverba, /function jeZakljucenShranjeniInsolvencniRezultat\(podatki\) \{[\s\S]*?imaUradniInsolvencniPosnetek\(podatki\)/, "Tudi shranjeni rezultat ne sme preskočiti obveznega uradnega posnetka.");
 assert.match(preverba, /imaPrikazljivUradniPosnetek \|\| jeZakljucenShranjeniRezultat/, "Živi rezultat mora še vedno zahtevati dokazni posnetek, shranjeni terminalni rezultat pa svojo dokazano časovno sled.");
 assert.match(preverba, /izrisi\(rezultatZDokazilom\);\s*uveljaviZakljucenShranjeniInsolvencniRezultat\(rezultatZDokazilom\)/, "Po vsakem izrisu shranjenega profila se mora ponovno uveljaviti terminalni rezultat.");
 assert.match(preverba, /function uveljaviZakljucenShranjeniInsolvencniRezultat[\s\S]*?zadnjiInsolvencniRezultatPripravljen = true;[\s\S]*?nastaviKarticoInsolvenceZakljuceno\(podatki\)/, "Runtime varovalka mora obnoviti stanje in zaključeno kartico.");
@@ -64,6 +67,8 @@ assert.match(preverba, /options && options\.monitoring[\s\S]*?boniteta-eno-sprem
 assert.doesNotMatch(preverba, /insolvencniStatus === "unavailable" \|\|/, "Unavailable ne sme več postati zaključen insolvenčni rezultat.");
 assert.match(preverba, /if \(job\.status === "failed"\) \{\s*throw new Error/, "Neuspešno opravilo tudi z delnim payloadom ne sme nadaljevati v shranjevanje rezultata.");
 assert.match(preverba, /function nastaviKarticoInsolvenceNedokoncano[\s\S]*?manjka uradni dokazni posnetek/, "Nedokončana preverba mora ostati razložena v profilu brez posebne rezultatne strani.");
+assert.match(preverba, /function nastaviInsolvencnoOkno\(odprto, rezultatPripravljen\)[\s\S]*?var varnoZakljucenRezultat = Boolean\(rezultatPripravljen && zadnjiInsolvencniRezultatPripravljen\);[\s\S]*?if \(odprto && rezultatPripravljen && !varnoZakljucenRezultat\) odprto = false;/,
+  "noben klicatelj ne sme na silo odpreti zaključnega rezultata brez posnetka");
 assert.match(preverba, /Uradni posnetek ni na voljo[\s\S]*?Rezultat brez prikazljivega uradnega posnetka ni dokončan\. Preverjanje ponovite\./, "Manjkajoče dokazilo mora ustvariti jasno rumeno opozorilo za ponovitev.");
 assert.strictEqual(hramba._test.kljuc("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"), "11111111-1111-4111-8111-111111111111:22222222-2222-4222-8222-222222222222");
 assert.strictEqual(hramba._test.kljuc("neveljaven", "22222222-2222-4222-8222-222222222222"), "", "Dokaz se ne sme shraniti brez veljavne uporabniške izolacije.");
@@ -73,7 +78,7 @@ assert.strictEqual(hramba._test.podatkiSlike("data:image/png;base64,QUJD").mimeT
 assert.strictEqual(hramba._test.podatkiSlike("data:image/webp;base64,QUJD").mimeType, "image/webp", "Veljaven WebP mora ohraniti svoj MIME tip.");
 assert.strictEqual(hramba._test.podatkiSlike("data:image/svg+xml;base64,QUJD"), null, "SVG ne sme postati uradno dokazilo.");
 assert.strictEqual(hramba._test.podatkiSlike("data:image/png;base64,ni veljavno"), null, "Sintaktično neveljaven base64 mora biti zavrnjen.");
-assert.strictEqual(mehkaBonitetaTest.razlogNapakeUradnegaInsolvencnegaPortala(new Error("Navigation timeout of 25000 ms exceeded")), "official_portal_timeout");
+assert.strictEqual(mehkaBonitetaTest.razlogNapakeUradnegaInsolvencnegaPortala(Object.assign(new Error("Navigation timeout of 12000 ms exceeded"), { name: "TimeoutError" })), "official_portal_timeout");
 assert.strictEqual(mehkaBonitetaTest.razlogNapakeUradnegaInsolvencnegaPortala(new Error("Failed to launch the browser process")), "browser_launch_failed");
 assert.strictEqual(mehkaBonitetaTest.razlogNapakeUradnegaInsolvencnegaPortala(new Error("Page screenshot failed")), "evidence_capture_failed");
 assert.match(opraviloHandler, /userToken:\s*auth\.token/, "Fallback mora Supabase brati z isto prijavljeno uporabniško sejo.");
@@ -82,15 +87,22 @@ assert.match(lokalnoOpravilo, /forceRemoteQueue:\s*process\.env\.MEHKA_BONITETA_
 
 var guardSource = preverba.match(/function jeZakljucenShranjeniInsolvencniRezultat\(podatki\) \{[\s\S]*?\n  \}/);
 assert(guardSource, "Stroga varovalka za shranjeni insolvenčni rezultat mora obstajati.");
-var guardContext = {};
+var guardContext = {
+  imaUradniInsolvencniPosnetek: function (podatki) {
+    var official = podatki && podatki.insolvency && podatki.insolvency.officialVerification || {};
+    return official.evidenceStatus === "captured" && /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/]+=*$/i.test(String(official.evidenceImage || ""));
+  },
+};
 vm.runInNewContext(guardSource[0] + "; this.guard = jeZakljucenShranjeniInsolvencniRezultat;", guardContext);
+var capturedOfficialEvidence = { evidenceStatus: "captured", evidenceImage: "data:image/jpeg;base64,QUJD" };
 var guardCases = [
-  ["clear/top-level čas", { __shranjeniProfil: true, checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "clear" } }, true],
-  ["clear/čas insolvence", { __shranjeniProfil: true, insolvency: { status: "clear", checkedAt: "2026-08-27T10:00:00Z" } }, true],
-  ["clear/čas uradnega dokaza", { __shranjeniProfil: true, insolvency: { status: "clear", officialVerification: { checkedAt: "2026-08-27T10:00:00Z" } } }, true],
-  ["possible_match/top-level čas", { __shranjeniProfil: true, checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "possible_match" } }, true],
-  ["possible_match/čas insolvence", { __shranjeniProfil: true, insolvency: { status: "possible_match", checkedAt: "2026-08-27T10:00:00Z" } }, true],
-  ["possible_match/čas uradnega dokaza", { __shranjeniProfil: true, insolvency: { status: "possible_match", officialVerification: { checkedAt: "2026-08-27T10:00:00Z" } } }, true],
+  ["clear/top-level čas in posnetek", { __shranjeniProfil: true, checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "clear", officialVerification: capturedOfficialEvidence } }, true],
+  ["clear/čas insolvence in posnetek", { __shranjeniProfil: true, insolvency: { status: "clear", checkedAt: "2026-08-27T10:00:00Z", officialVerification: capturedOfficialEvidence } }, true],
+  ["clear/čas uradnega dokaza in posnetek", { __shranjeniProfil: true, insolvency: { status: "clear", officialVerification: Object.assign({ checkedAt: "2026-08-27T10:00:00Z" }, capturedOfficialEvidence) } }, true],
+  ["possible_match/top-level čas in posnetek", { __shranjeniProfil: true, checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "possible_match", officialVerification: capturedOfficialEvidence } }, true],
+  ["possible_match/čas insolvence in posnetek", { __shranjeniProfil: true, insolvency: { status: "possible_match", checkedAt: "2026-08-27T10:00:00Z", officialVerification: capturedOfficialEvidence } }, true],
+  ["possible_match/čas uradnega dokaza in posnetek", { __shranjeniProfil: true, insolvency: { status: "possible_match", officialVerification: Object.assign({ checkedAt: "2026-08-27T10:00:00Z" }, capturedOfficialEvidence) } }, true],
+  ["shranjeni clear brez posnetka", { __shranjeniProfil: true, checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "clear", officialVerification: { evidenceStatus: "unavailable" } } }, false],
   ["živ clear rezultat", { checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "clear" } }, false],
   ["shranjeni clear brez časa", { __shranjeniProfil: true, insolvency: { status: "clear" } }, false],
   ["zahtevana potrditev", { __shranjeniProfil: true, confirmationRequired: true, checkedAt: "2026-08-27T10:00:00Z", insolvency: { status: "clear" } }, false],
@@ -132,6 +144,29 @@ var trenutnaZiegIdentiteta = {
   companyId: "DE-HRA-F1103-19176", legalForm: "GmbH & Co. KG",
   registerNumber: "HRA 19176",
 };
+var navadnaGmbhBrezDodatnegaPosnetka = mehkaBonitetaTest.sestaviIdentiteto({
+  status: "found",
+  company: {
+    company_id: "DE-HRB-K1101-53683", name: "Fritz Schellhorn GmbH", legal_form: "GmbH",
+    register_type: "HRB", register_number: "53683", register_court: "Hamburg", active: true,
+    address: { street: "Dwarstwiet 6", postal_code: "21035", city: "Hamburg" },
+  },
+}, null, {
+  status: "found", sourceUrl: "https://www.schellhorn-gmbh.de/kontakt/impressum",
+  subjekt: {
+    ime: "Jan Schellhorn", naziv: "Fritz Schellhorn GmbH", nosilec: "Jan Schellhorn",
+    zastopniki: ["Jan Schellhorn"], vloge: [{ ime: "Jan Schellhorn", vloga: "Geschäftsführung" }],
+    naslov: "Dwarstwiet 6", postnaStevilka: "21035", kraj: "Hamburg", registerNumber: "HRB 53683",
+  },
+}, { spletnaStran: "https://www.schellhorn-gmbh.de/" });
+assert.strictEqual(navadnaGmbhBrezDodatnegaPosnetka.impressumSourceUrl, undefined,
+  "navadna GmbH s popolnim uradnim naslovom ne sme čakati dodatnega brskalniškega posnetka Impressuma");
+var prviZiegProfil = mehkaBonitetaTest.pripraviPotrditevIdentiteteZaZahtevo(
+  {}, trenutnaZiegIdentiteta, strukturiranoDokazilo, null
+);
+assert.strictEqual(prviZiegProfil.status, "valid",
+  "potrjeni OpenRegister odgovor mora neposredno nadaljevati v skupno North Data vejo");
+assert.strictEqual(prviZiegProfil.identity.verificationMode, "openregister_automatic");
 var stariZiegProfil = mehkaBonitetaTest.pripraviPotrditevIdentiteteZaZahtevo({
   openRegisterCompanyId: "DE-HRA-F1103-19176",
   confirmedIdentity: {

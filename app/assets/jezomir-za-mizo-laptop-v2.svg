@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+<!-- jezomir za mizo z laptopom - v2, izviren vektorski dizajn v istem stilu -->
+<!-- barve: turkizna #047189, temno zelena #3f6455, svetlo siva #d9d9d9 -->
+
+<!-- MIZA: nogica -->
+<path d="M610 620 L610 760" stroke="#047189" stroke-width="22" stroke-linecap="round"/>
+<!-- MIZA: plosca -->
+<rect x="330" y="592" width="400" height="28" rx="14" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+
+<!-- JEZ: telo -->
+<ellipse cx="330" cy="470" rx="185" ry="205" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+
+<!-- JEZ: bodice (cikcak levo zgoraj) -->
+<path d="M310 272
+  L250 235 L268 295
+  L195 285 L225 340
+  L155 350 L195 395
+  L135 425 L185 455
+  L135 505 L190 520
+  L150 580 L210 580
+  L180 645 L235 630"
+  fill="#ffffff" stroke="#047189" stroke-width="14"
+  stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- JEZ: usesa -->
+<path d="M440 235 L432 190 L465 205" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- JEZ: gobec -->
+<path d="M465 205 C505 245 545 275 585 295" fill="none" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+<path d="M585 295 C575 340 540 375 495 380" fill="none" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+<!-- nos -->
+<circle cx="600" cy="310" r="22" fill="#3f6455"/>
+<!-- oko pika -->
+<circle cx="505" cy="330" r="14" fill="#3f6455"/>
+<!-- zaprto oko -->
+<path d="M350 300 C365 275 400 270 415 292" fill="none" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<!-- nasmeh -->
+<path d="M495 380 C520 395 550 395 575 375" fill="none" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+
+<!-- JEZ: nogice -->
+<path d="M260 665 L260 710 C260 722 270 728 300 728 C330 728 340 722 340 710 L340 670" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M380 665 L380 710 C380 722 390 728 420 728 C450 728 460 722 460 710 L460 665" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+
+<!-- LAPTOP: zaslon -->
+<g>
+  <rect x="480" y="420" width="190" height="140" rx="14" fill="#d9d9d9" stroke="#3f6455" stroke-width="10"/>
+  <circle cx="575" cy="438" r="7" fill="#3f6455"/>
+  <line x1="520" y1="480" x2="630" y2="480" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+  <line x1="540" y1="505" x2="610" y2="505" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+</g>
+<!-- LAPTOP: tipkovnica -->
+<g>
+  <path d="M460 560 L690 560 L710 592 L440 592 Z" fill="#d9d9d9" stroke="#3f6455" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="545" y="556" width="40" height="12" rx="6" fill="#3f6455"/>
+</g>
+
+<!-- JEZ: roki na tipkovnico -->
+<path d="M330 540 C420 550 480 560 530 570" fill="none" stroke="#047189" stroke-width="44" stroke-linecap="round"/>
+<path d="M330 540 C420 550 480 560 530 570" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round"/>
+<!-- dlan -->
+<circle cx="545" cy="572" r="30" fill="#ffffff" stroke="#047189" stroke-width="12"/>
+<!-- prsta -->
+<path d="M560 560 L585 562" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+<path d="M562 578 L587 578" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+</svg>

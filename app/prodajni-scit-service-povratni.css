@@ -1,0 +1,71 @@
+.storitev-popup[data-tip="povratni"] { --storitev-akcent:#3f9998; --storitev-akcent-2:#2f7f7e; --storitev-soft:#eaf6f4; }
+.storitev-popup[data-tip="povratni"] .storitev-popup__list { padding:18px; }
+.storitev-popup[data-tip="povratni"] .storitev-popup__list > header { align-items:center; }
+.storitev-popup[data-tip="povratni"] .storitev-popup__list > header small,
+.storitev-popup[data-tip="povratni"] .storitev-popup__list > header p { display:none; }
+.storitev-popup[data-tip="povratni"] .storitev-moznosti { grid-template-columns:minmax(0,1fr); gap:9px; }
+.storitev-popup[data-tip="povratni"] .storitev-moznosti button { position:relative; box-sizing:border-box; color:#2f3736; text-align:left; }
+.storitev-popup[data-tip="povratni"] .storitev-moznosti button::before { content:none; }
+.storitev-popup[data-tip="povratni"] .povratni-hero { display:block; height:156px; padding:20px 28px 14px max(40%,135px); overflow:hidden; border-radius:16px; background:linear-gradient(120deg,#f4f6fa,#e9eef5); }
+.storitev-popup[data-tip="povratni"] .povratni-hero__slika { position:absolute; width:150px; max-width:none; height:auto; left:-15px; bottom:-40px; pointer-events:none; mask:url("assets/jezomir-slusalke-mask.svg") center / 100% 100% no-repeat; }
+.storitev-popup[data-tip="povratni"] .povratni-hero__besedilo { position:relative; display:flex; height:100%; flex-direction:column; justify-content:center; gap:8px; }
+.storitev-popup[data-tip="povratni"] .povratni-hero__besedilo strong { display:block; height:70px; font-size:20px; line-height:1.2; }
+.storitev-popup[data-tip="povratni"] .povratni-hero__besedilo > span { display:block; height:44px; color:#61716e; font-size:12px; font-weight:400; line-height:1.3; }
+.storitev-popup[data-tip="povratni"] .povratni-vrstica { display:grid; grid-template-columns:25px minmax(0,1fr) 26px; height:52px; padding:9px 12px; gap:12px; justify-content:start; }
+.storitev-popup[data-tip="povratni"] svg { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.storitev-popup[data-tip="povratni"] .povratni-ikona { width:24px; height:24px; color:#3f9998; }
+.storitev-popup[data-tip="povratni"] .povratni-naziv { display:flex; align-items:center; height:32px; font-size:13px; line-height:1.15; }
+.storitev-popup[data-tip="povratni"] .povratni-izbira { display:grid; width:26px; height:26px; place-items:center; border:2px solid #3f9998; border-radius:50%; box-sizing:border-box; }
+.storitev-popup[data-tip="povratni"] .povratni-izbira svg { width:18px; height:18px; visibility:hidden; }
+.storitev-popup[data-tip="povratni"] .povratni-hero .povratni-izbira { position:absolute; right:11px; top:11px; }
+.storitev-popup[data-tip="povratni"] [aria-pressed="true"] > .povratni-izbira { background:#3f9998; color:white; }
+.storitev-popup[data-tip="povratni"] [aria-pressed="true"] > .povratni-izbira svg { visibility:visible; }
+.storitev-popup[data-tip="povratni"] .storitev-popup__oddaj { font-size:14px; margin-top:12px; }
+.storitev-popup[data-tip="povratni"] .storitev-popup__varnost { font-size:9px; }
+.storitev-popup[data-tip="povratni"] .povratni-termin { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:44px; padding:9px 12px; border:1px solid #bcdad7; border-radius:11px; background:#eaf6f4; color:#2f7f7e; font-weight:700; cursor:pointer; }
+.storitev-popup[data-tip="povratni"] .povratni-termin[hidden] { display:none; }
+.storitev-popup[data-tip="povratni"] .povratni-termin span { min-width:0; height:20px; line-height:20px; white-space:nowrap; }
+.storitev-popup[data-tip="povratni"] .povratni-termin svg { width:24px; height:24px; flex-shrink:0; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog { width:min(420px,calc(100vw - 28px)); max-height:calc(100dvh - 36px); box-sizing:border-box; padding:20px; overflow:auto; border:1px solid #bcdad7; border-radius:23px; background:#fff; color:#2f3736; box-shadow:0 24px 70px #18312d38; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog::backdrop { background:#1f2b2959; backdrop-filter:blur(4px); }
+.storitev-popup[data-tip="povratni"] .povratni-dialog header { display:grid; grid-template-columns:minmax(0,1fr) 34px; gap:10px; align-items:start; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog h2 { margin:0; font-size:19px; line-height:1.2; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog p { color:#61716e; font-size:12px; line-height:1.45; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog label { display:grid; gap:6px; margin:14px 0; font-size:12px; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog input,
+.storitev-popup[data-tip="povratni"] .povratni-dialog textarea { width:100%; min-width:0; box-sizing:border-box; padding:10px; border:1px solid #bcdad7; border-radius:10px; background:#fbfdfc; color:#2f3736; font:16px/1.4 inherit; font-size:16px; font-family:inherit; outline-color:#3f9998; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog textarea { resize:none; line-height:1.4; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog button { min-height:34px; border:1px solid #bcdad7; border-radius:10px; background:#fff; color:#2f7f7e; cursor:pointer; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog header button { font-size:21px; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog .povratni-shrani { width:100%; min-height:44px; background:#3f9998; color:#fff; font-size:14px; font-weight:700; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog .povratni-preklic { width:100%; min-height:40px; margin-top:8px; }
+.storitev-popup[data-tip="povratni"] .povratni-dialog .povratni-napaka { color:#a43838; }
+@media(min-width:600px) {
+  .storitev-popup[data-tip="povratni"] .povratni-hero { height:165px; padding-left:max(40%,150px); }
+  .storitev-popup[data-tip="povratni"] .povratni-hero__slika { width:165px; bottom:-44px; }
+}
+
+/* Approved first-popup geometry. Artwork remains byte-for-byte unchanged. */
+.storitev-popup[data-tip="povratni"] .storitev-popup__list > header { align-items: center; }
+.storitev-popup[data-tip="povratni"] .storitev-popup__list > header small,
+.storitev-popup[data-tip="povratni"] .storitev-popup__list > header p { display: none; }
+.storitev-popup[data-tip="povratni"] .povratni-hero { display: block; height: 156px; padding: 20px 28px 14px 40%; border-radius: 16px; background: linear-gradient(120deg,#f4f6fa,#e9eef5); }
+.storitev-popup[data-tip="povratni"] .povratni-hero__slika { width: 150.000px; left: -15.000px; bottom: -40.000px; height: auto; }
+.storitev-popup[data-tip="povratni"] .povratni-hero__besedilo { position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: center; height: 100%; gap: 8px; }
+.storitev-popup[data-tip="povratni"] .povratni-hero__besedilo > strong { display: block; height: 50px; line-height: 1.2; font-weight: 700; }
+.storitev-popup[data-tip="povratni"] .povratni-hero__besedilo > span { display: block; height: 32px; line-height: 1.3; color: #61716e; font-weight: 400; }
+.storitev-popup[data-tip="povratni"] .storitev-moznosti { gap: 9px; }
+.storitev-popup[data-tip="povratni"] .povratni-vrstica { height: 48px; }
+.storitev-popup[data-tip="povratni"] .povratni-vrstica__besedilo > span, .storitev-popup[data-tip="povratni"] .povratni-vrstica__besedilo { height: 30px; }
+@media (min-width: 440px) {
+ .storitev-popup[data-tip="povratni"] .povratni-hero { height: 165px; padding-left: 40%; }
+ .storitev-popup[data-tip="povratni"] .povratni-hero__slika { width: 165.000px; left: -15.000px; bottom: -44.000px; }
+}
+
+/* User-requested mobile phone, same face placement. */
+.storitev-popup[data-tip="povratni"] .povratni-hero__slika { width: 204.886px; left: -48.196px; bottom: -77.125px; mask: url("assets/jezomir-povratni-mobitel-mask.png") center / 100% 100% no-repeat; }
+@media (min-width: 440px) { .storitev-popup[data-tip="povratni"] .povratni-hero__slika { width: 225.374px; left: -51.516px; bottom: -84.837px; } }
+
+/* Requested prop revision, aligned to approved face landmarks. */
+.storitev-popup[data-tip="povratni"] .povratni-hero__slika { width: 215.460px; left: -56.363px; bottom: -89.663px; mask: url("assets/jezomir-povratni-pozicija-v4-mask.png") center / 100% 100% no-repeat; }
+@media (min-width: 440px) { .storitev-popup[data-tip="povratni"] .povratni-hero__slika { width: 237.006px; left: -60.499px; bottom: -98.629px; } }

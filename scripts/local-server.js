@@ -14,6 +14,7 @@ const crypto = require("node:crypto");
 const childProcess = require("node:child_process");
 const citajRacunModul = require.resolve("../api/citaj-racun");
 const mehkaBonitetaModul = require.resolve("../api/mehka-boniteta");
+const mehkaBonitetaPodrobnostiModul = require.resolve("../api/mehka-boniteta-podrobnosti");
 const mehkaBonitetaOpraviloModul = require.resolve("../api/mehka-boniteta-opravilo");
 const mehkaBonitetaDelavecModul = require.resolve("../api/mehka-boniteta-delavec");
 const bonitetaProModul = require.resolve("../api/boniteta-pro");
@@ -34,16 +35,31 @@ const posVerfahrensdokumentationModul = require.resolve("../api/_handlers/pos-ve
 const posDatevModul = require.resolve("../api/_handlers/pos-datev");
 const pridobiIzvedboModul = require.resolve("../api/pridobi-izvedbo");
 const izvediOpominUkrepModul = require.resolve("../api/izvedi-opomin-ukrep");
-  const razcleniZgodovinoModul = require.resolve("../api/_handlers/razcleni-zgodovino");
+const razcleniZgodovinoModul = require.resolve("../api/_handlers/razcleni-zgodovino");
+const razcleniDogovorModul = require.resolve("../api/_handlers/razcleni-dogovor");
+const razcleniCiljModul = require.resolve("../api/_handlers/razcleni-cilj");
+const razcleniSvetovalecModul = require.resolve("../api/_handlers/razcleni-svetovalec");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
 // hranimo v pomnilniku procesa, zato razvoj ne zahteva že izvedene migracije.
 process.env.MEHKA_BONITETA_IN_MEMORY_QUEUE = "true";
 process.env.POS_LOCAL_MOCKS_ENABLED = "true";
+process.env.UJ_LOCAL_PREVIEW_SERVER = "true";
 
 const root = path.resolve(__dirname, "..");
 const apiRoot = path.join(root, "api") + path.sep;
+const apiSharedAppFiles = [
+  "atena-card-schema.js",
+  "ponudba-moduli-engine.js",
+  "svetovalec-storitve-engine.js",
+  "svetovalec-clarification-engine.js",
+  "svetovalec-atena-engine.js",
+  "svetovalec-capability-catalog.js",
+  "svetovalec-service-knowledge-blocks.js",
+  "svetovalec-guided-question-catalog.js"
+].map((ime) => path.join(root, "app", ime));
+const apiSharedAppFileSet = new Set(apiSharedAppFiles);
 const canaryDataRoot = process.env.UJ_SPEECH_HOME || path.join(process.env.LOCALAPPDATA || "", "UspesniJezek", "speech");
 const canaryModel = path.join(canaryDataRoot, "model", "canary-1b-v2-Q5_K_M.gguf");
 const canaryServer = path.join(root, "tools", "slovenski-live-prepis", "canary-progressive-server.js");
@@ -64,6 +80,8 @@ const izvedbaApiPoti = new Set([
   "/api/poslji-opomin-zdaj",
 ]);
 const maxRequestBytes = 8 * 1024 * 1024;
+const authHealthTimeoutMs = 5000;
+const authHealthMaxBytes = 64 * 1024;
 const versionSyncOznaka = '<script src="/app/version-sync.js?v=20260825-localhost-live-v4"></script>';
 const serverStartedAt = new Date().toISOString();
 
@@ -180,7 +198,7 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (url && !process.env.SUPABASE_URL) process.env.SUPABASE_URL = url[1];
       if (anonKey && !process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = anonKey[1];
     }
-    if (!process.env.OPENREGISTER_API_KEY || !process.env.APIFY_API_TOKEN || !process.env.ANTHROPIC_API_KEY || !process.env.OPENAI_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST) {
+    if (!process.env.OPENREGISTER_API_KEY || !process.env.APIFY_API_TOKEN || !process.env.ANTHROPIC_API_KEY || !process.env.OPENAI_API_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.OPENREGISTER_WEBHOOK_SECRET || !process.env.RESEND_WEBHOOK_SECRET || !process.env.FISKALY_API_KEY_TEST || !process.env.FISKALY_API_SECRET_TEST || !process.env.SCRAPLING_IMPRESSUM_URL || !process.env.SCRAPLING_IMPRESSUM_TOKEN) {
       const okolje = preberiLokalnoOkolje(path.join(root, ".env.local"));
       const openregister = okolje.match(/^\s*OPENREGISTER_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openregister && !process.env.OPENREGISTER_API_KEY) process.env.OPENREGISTER_API_KEY = openregister[1].trim();
@@ -190,6 +208,10 @@ function naloziLokalnoSupabaseKonfiguracijo() {
       if (anthropic && !process.env.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = anthropic[1].trim();
       const openai = okolje.match(/^\s*OPENAI_API_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (openai && !process.env.OPENAI_API_KEY) process.env.OPENAI_API_KEY = openai[1].trim();
+      const scraplingUrl = okolje.match(/^\s*SCRAPLING_IMPRESSUM_URL\s*=\s*["']?([^\r\n"']+)/m);
+      if (scraplingUrl && !process.env.SCRAPLING_IMPRESSUM_URL) process.env.SCRAPLING_IMPRESSUM_URL = scraplingUrl[1].trim();
+      const scraplingToken = okolje.match(/^\s*SCRAPLING_IMPRESSUM_TOKEN\s*=\s*["']?([^\r\n"']+)/m);
+      if (scraplingToken && !process.env.SCRAPLING_IMPRESSUM_TOKEN) process.env.SCRAPLING_IMPRESSUM_TOKEN = scraplingToken[1].trim();
       const serviceRole = okolje.match(/^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^\r\n"']+)/m);
       if (serviceRole && !process.env.SUPABASE_SERVICE_ROLE_KEY) process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRole[1].trim();
       const webhookSecret = okolje.match(/^\s*OPENREGISTER_WEBHOOK_SECRET\s*=\s*["']?([^\r\n"']+)/m);
@@ -218,6 +240,129 @@ function naloziLokalnoSupabaseKonfiguracijo() {
     }
   } catch (_) {
     // API bo vrnil jasno konfiguracijsko napako.
+  }
+}
+
+function supabaseAuthJwksUrl() {
+  naloziLokalnoSupabaseKonfiguracijo();
+  const nastavljenUrl = String(process.env.SUPABASE_URL || "").trim();
+  if (!nastavljenUrl) return null;
+
+  try {
+    const osnovniUrl = new URL(nastavljenUrl);
+    if (osnovniUrl.protocol !== "https:" || osnovniUrl.username || osnovniUrl.password) return null;
+    return new URL("/auth/v1/.well-known/jwks.json", osnovniUrl);
+  } catch (_) {
+    return null;
+  }
+}
+
+function jeVeljavenSupabaseJwks(jwks) {
+  return Boolean(jwks && Array.isArray(jwks.keys) && jwks.keys.length > 0 && jwks.keys.every((kljuc) =>
+    kljuc
+    && typeof kljuc.kid === "string"
+    && kljuc.kid.length > 0
+    && !Object.prototype.hasOwnProperty.call(kljuc, "d")
+    && (!kljuc.use || kljuc.use === "sig")
+    && (!kljuc.key_ops || (Array.isArray(kljuc.key_ops) && kljuc.key_ops.includes("verify")))
+    && (
+      (kljuc.alg === "ES256" && kljuc.kty === "EC" && kljuc.crv === "P-256"
+        && typeof kljuc.x === "string" && kljuc.x.length > 0
+        && typeof kljuc.y === "string" && kljuc.y.length > 0)
+      || (kljuc.alg === "RS256" && kljuc.kty === "RSA"
+        && typeof kljuc.n === "string" && kljuc.n.length > 0
+        && typeof kljuc.e === "string" && kljuc.e.length > 0)
+      || (kljuc.alg === "EdDSA" && kljuc.kty === "OKP" && kljuc.crv === "Ed25519"
+        && typeof kljuc.x === "string" && kljuc.x.length > 0)
+    )
+  ));
+}
+
+function jeLokalnaHealthZahteva(req) {
+  const naslov = req.socket && req.socket.remoteAddress;
+  return naslov === "127.0.0.1" || naslov === "::1" || naslov === "::ffff:127.0.0.1";
+}
+
+async function preberiOmejenJwks(odgovor) {
+  if (!odgovor.body || typeof odgovor.body.getReader !== "function") return null;
+  const bralnik = odgovor.body.getReader();
+  const deli = [];
+  let skupnaDolzina = 0;
+  try {
+    while (true) {
+      const del = await bralnik.read();
+      if (del.done) break;
+      skupnaDolzina += del.value.byteLength;
+      if (skupnaDolzina > authHealthMaxBytes) {
+        await bralnik.cancel();
+        return null;
+      }
+      deli.push(Buffer.from(del.value));
+    }
+  } finally {
+    bralnik.releaseLock();
+  }
+  return Buffer.concat(deli, skupnaDolzina).toString("utf8");
+}
+
+function posljiSupabaseAuthHealthRezultat(res, status, code) {
+  posljiJson(res, status, { ok: code === "SUPABASE_AUTH_OK", code });
+}
+
+async function posljiSupabaseAuthHealth(req, res) {
+  if (req.method !== "GET") {
+    posljiJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return;
+  }
+  if (!jeLokalnaHealthZahteva(req)) {
+    posljiJson(res, 403, { ok: false, code: "LOCAL_ONLY" });
+    return;
+  }
+
+  const jwksUrl = supabaseAuthJwksUrl();
+  if (!jwksUrl) {
+    posljiSupabaseAuthHealthRezultat(res, 503, "NOT_CONFIGURED");
+    return;
+  }
+
+  try {
+    const odgovor = await fetch(jwksUrl, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(authHealthTimeoutMs),
+    });
+    if (!odgovor.ok) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "EGRESS_UNAVAILABLE");
+      return;
+    }
+
+    const napovedanaDolzina = Number(odgovor.headers.get("content-length") || 0);
+    if (napovedanaDolzina > authHealthMaxBytes) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "JWKS_INVALID");
+      return;
+    }
+    const suroviJwks = await preberiOmejenJwks(odgovor);
+    if (!suroviJwks) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "JWKS_INVALID");
+      return;
+    }
+
+    let jwks;
+    try {
+      jwks = JSON.parse(suroviJwks);
+    } catch (_) {
+      posljiSupabaseAuthHealthRezultat(res, 502, "JWKS_INVALID");
+      return;
+    }
+    const jeVeljaven = jeVeljavenSupabaseJwks(jwks);
+    posljiSupabaseAuthHealthRezultat(res, jeVeljaven ? 200 : 502,
+      jeVeljaven ? "SUPABASE_AUTH_OK" : "JWKS_INVALID");
+  } catch (napaka) {
+    const jeTimeout = napaka && (napaka.name === "TimeoutError" || napaka.name === "AbortError");
+    posljiSupabaseAuthHealthRezultat(res, jeTimeout ? 504 : 502,
+      jeTimeout ? "TIMEOUT" : "EGRESS_UNAVAILABLE");
   }
 }
 
@@ -273,6 +418,16 @@ function izracunajApiRazlicico() {
     }
   }
   preglej(path.join(root, "api"));
+  // Svetovalni API uporablja tudi skupne Atenine kataloge iz /app. Če se
+  // spremeni mini-widget ali njegov contract, mora lokalni API v istem ciklu
+  // zavreči tudi te CommonJS module, sicer lahko združi star katalog z novim
+  // handlerjem in vrne generično napako lokalnega preverjanja.
+  apiSharedAppFiles.forEach(function (polnaPot) {
+    const stat = fs.statSync(polnaPot);
+    zadnjaSprememba = Math.max(zadnjaSprememba, Math.floor(stat.mtimeMs));
+    skupnaVelikost += stat.size;
+    steviloDatotek += 1;
+  });
   return [zadnjaSprememba, skupnaVelikost, steviloDatotek].join("-");
 }
 
@@ -283,7 +438,7 @@ function osveziApiCeJeSpremenjen() {
   // sočasna klica iste spremembe ne osvežita dvakrat.
   nalozenaApiRazlicica = novaRazlicica;
   Object.keys(require.cache).forEach(function (datoteka) {
-    if (datoteka.startsWith(apiRoot)) delete require.cache[datoteka];
+    if (datoteka.startsWith(apiRoot) || apiSharedAppFileSet.has(datoteka)) delete require.cache[datoteka];
   });
   return true;
 }
@@ -410,7 +565,7 @@ function posljiRazlicicoAplikacije(req, res) {
   posljiJson(res, 200, { ok: true, version: razlicica });
 }
 
-async function posredujZascitenApi(req, res, ciljnaPot) {
+async function posredujOddaljeniZascitenApi(req, res, ciljnaPot, opis) {
   try {
     const telo = ["GET", "HEAD"].includes(req.method) ? null : await preberiTelo(req);
     const headers = {
@@ -433,7 +588,9 @@ async function posredujZascitenApi(req, res, ciljnaPot) {
     res.end(rezultat);
   } catch (napaka) {
     const jeTimeout = napaka && (napaka.name === "TimeoutError" || napaka.name === "AbortError");
-    posljiJson(res, 502, { ok: false, napaka: jeTimeout ? "Strežniški DATEV preizkus je trajal predolgo." : "Zaščitenega DATEV API-ja ni bilo mogoče doseči." });
+    posljiJson(res, 502, { ok: false, napaka: jeTimeout
+      ? String(opis || "Oddaljeni API") + " je trajal predolgo."
+      : String(opis || "Oddaljeni API") + " ni bilo mogoče doseči." });
   }
 }
 
@@ -715,6 +872,21 @@ const server = http.createServer((req, res) => {
     void izvediLokalniApi(req, res, razcleniZgodovinoModul);
     return;
   }
+  if (pathname === "/api/razcleni-dogovor") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    void izvediLokalniApi(req, res, razcleniDogovorModul);
+    return;
+  }
+  if (pathname === "/api/razcleni-cilj") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    void izvediLokalniApi(req, res, razcleniCiljModul);
+    return;
+  }
+  if (pathname === "/api/razcleni-svetovalec") {
+    naloziLokalnoSupabaseKonfiguracijo();
+    void izvediLokalniApi(req, res, razcleniSvetovalecModul);
+    return;
+  }
   if (pathname === "/api/citaj-racun") {
     naloziLokalnoSupabaseKonfiguracijo();
     if (process.env.ANTHROPIC_API_KEY) void izvediLokalniApi(req, res, citajRacunModul);
@@ -727,6 +899,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === "/api/mehka-boniteta") {
     void izvediLokalniApi(req, res, mehkaBonitetaModul);
+    return;
+  }
+  if (pathname === "/api/mehka-boniteta-podrobnosti") {
+    void izvediLokalniApi(req, res, mehkaBonitetaPodrobnostiModul);
     return;
   }
   if (pathname === "/api/mehka-boniteta-opravilo") {
@@ -812,7 +988,7 @@ const server = http.createServer((req, res) => {
   if (pathname === "/api/pos-datev") {
     naloziLokalnoSupabaseKonfiguracijo();
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) void izvediLokalniApi(req, res, posDatevModul);
-    else void posredujZascitenApi(req, res, requestUrl.pathname + requestUrl.search);
+    else void posredujOddaljeniZascitenApi(req, res, requestUrl.pathname + requestUrl.search, "DATEV API-ja");
     return;
   }
   if (pathname === "/__app-version") {
@@ -823,10 +999,14 @@ const server = http.createServer((req, res) => {
     posljiIdentitetoLokalnegaVira(req, res);
     return;
   }
+  if (pathname === "/__dev-auth-health") {
+    void posljiSupabaseAuthHealth(req, res);
+    return;
+  }
   postreziDatoteko(req, res);
 });
 
-server.listen(port, "0.0.0.0", () => {
+server.listen(port, "::", () => {
   console.log(`Lokalna aplikacija: http://localhost:${port}`);
   const lokalniVir = identitetaLokalnegaVira();
   console.log(`Vir: ${lokalniVir.workspaceName} · ${lokalniVir.branch} · ${lokalniVir.commit} · ${lokalniVir.workspaceHash}`);

@@ -20,18 +20,6 @@ function prehodNaStran(url) {
   }
 }
 
-/* Vrstni red statusov - od najbolj svežega do rešenega, točno tak, kot je
-   zapisan v bazi (glej "check" v sql/001_tabela_zadeve.sql).
-   "Pošlji naslednji opomin" premakne zadevo za eno mesto naprej po tem seznamu. */
-const VRSTNI_RED_STATUSOV = [
-  "Nov",
-  "1. opomin poslan",
-  "2. opomin poslan",
-  "Zadnji opomin poslan",
-  "Predano odvetniku",
-  "Rešeno",
-];
-
 /* Poveže besedilo statusa (kot je shranjeno v bazi) z imenom CSS razreda
    za barvno značko - glej .zadeva__status--... v styles.css. */
 const CSS_RAZRED_STATUSA = {
@@ -48,6 +36,7 @@ const CSS_RAZRED_STATUSA = {
    in inicializirajPosiljanje (prebere in na koncu izbriše). */
 const KLJUC_SEJE_KORAK1_PODATKI = "neplacilo-korak1-podatki";
 const KLJUC_SEJE_ZGODOVINA = "neplacilo-zgodovina-podatki";
+const KLJUC_SEJE_CILJ = "neplacilo-cilj-podatki";
 
 function soPodatkiKorak1Uporabni(podatki) {
   if (!podatki || typeof podatki !== "object") return false;
@@ -355,6 +344,7 @@ function shraniKorak1Fingerprint(podatkiAliHash) {
 function imaSejoKorakov2ali3() {
   if (sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA)) return true;
   if (sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI)) return true;
+  if (sessionStorage.getItem(KLJUC_SEJE_CILJ)) return true;
   if (sessionStorage.getItem("neplacilo-korak3-nacrt")) return true;
   return false;
 }
@@ -362,6 +352,7 @@ function imaSejoKorakov2ali3() {
 function pocistiSejoKorakov2in3() {
   sessionStorage.removeItem(KLJUC_SEJE_ZGODOVINA);
   sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+  sessionStorage.removeItem(KLJUC_SEJE_CILJ);
   if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
     window.UJOpominNacrt.pocistiOsnutek();
   } else {
@@ -383,15 +374,32 @@ function oznaciKorak2ZaOsvezitevObIstemRacunu() {
   sessionStorage.setItem(KLJUC_SEJE_KORAK2_PODATKI, JSON.stringify(k2));
 }
 
-/* Najvišji dosežen korak: 2, če obstaja korak 1; 3 šele po potrditvi koraka 2. */
-function ugotoviMaxDosezenKorak() {
+function preberiSejoPostopka(kljuc) {
   try {
-    const zgodovina = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA) || "null");
-    if (zgodovina && zgodovina.potrjena === true) return 3;
+    const podatki = JSON.parse(sessionStorage.getItem(kljuc) || "null");
+    return podatki && typeof podatki === "object" ? podatki : null;
   } catch (_napaka) {
-    // Neveljaven osnutek zgodovine ne odklene pošiljanja.
+    return null;
   }
-  if (sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI)) return 2;
+}
+
+function jeKorak1Potrjen() {
+  const korak1 = preberiSejoPostopka(KLJUC_SEJE_KORAK1_PODATKI);
+  if (!korak1) return false;
+  if (korak1.potrjena === true) return true;
+  if (korak1.potrjena === false) return false;
+  // Združljivost s starejšimi sejami: fingerprint je nastal samo ob uspešnem
+  // nadaljevanju in ne že ob sprotnem shranjevanju osnutka.
+  return soPodatkiKorak1Uporabni(korak1) && Boolean(preberiKorak1Fingerprint());
+}
+
+/* Najvišji dosežen korak napreduje samo po izrecni potrditvi prejšnjega. */
+function ugotoviMaxDosezenKorak() {
+  const cilj = preberiSejoPostopka(KLJUC_SEJE_CILJ);
+  if (cilj && cilj.potrjena === true) return 4;
+  const zgodovina = preberiSejoPostopka(KLJUC_SEJE_ZGODOVINA);
+  if (zgodovina && zgodovina.potrjena === true) return 3;
+  if (jeKorak1Potrjen()) return 2;
   return 1;
 }
 
@@ -400,14 +408,14 @@ function ugotoviMaxDosezenKorak() {
    Korak 2: zapis z zastavico potrjen:true ob »Nadaljuj na pošiljanje«.
    Korak 3: po »Shrani zadevo« se seja počisti – krogec 3 v čarovniku ne ostane. */
 function jeKorakIzpolnjen(stevilka) {
-  if (stevilka === 1) return Boolean(sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI));
+  if (stevilka === 1) return jeKorak1Potrjen();
   if (stevilka === 2) {
-    try {
-      const zgodovina = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA) || "null");
-      return Boolean(zgodovina && zgodovina.potrjena === true);
-    } catch (_napaka) {
-      return false;
-    }
+    const zgodovina = preberiSejoPostopka(KLJUC_SEJE_ZGODOVINA);
+    return Boolean(zgodovina && zgodovina.potrjena === true);
+  }
+  if (stevilka === 3) {
+    const cilj = preberiSejoPostopka(KLJUC_SEJE_CILJ);
+    return Boolean(cilj && cilj.potrjena === true);
   }
   return false;
 }
@@ -453,10 +461,16 @@ const SVG_WIZARD_IKONE = {
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
 };
 
+const SVG_WIZARD_KLJUKICA =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
 function posodobiDebtStepMarker(el, stanje, stevilka) {
-  // Stanje koraka izraža številčni krogec: izpolnjen je poln, sicer prazen.
+  // Zaključen korak pokaže kljukico, trenutni in prihodnji pa svojo številko.
   const stevilkaEl = el.querySelector(".debt-step__number");
-  if (stevilkaEl) stevilkaEl.textContent = String(stevilka);
+  if (stevilkaEl) {
+    if (stanje === "complete") stevilkaEl.innerHTML = SVG_WIZARD_KLJUKICA;
+    else stevilkaEl.textContent = String(stevilka);
+  }
 
   const meta = WIZARD_KORAKI[stevilka - 1];
   if (meta) {
@@ -557,6 +571,17 @@ function oznakaPreteklihZamudKompaktnegaPovzetka(vrednost) {
   return oznaka === "9plus" ? "9+" : oznaka;
 }
 
+function inicialkeKompaktnegaPovzetka(ime) {
+  const besede = String(ime || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!besede.length) return "—";
+  const prva = besede[0].charAt(0);
+  const druga = besede.length > 1 ? besede[1].charAt(0) : besede[0].charAt(1) || "";
+  return (prva + druga).toUpperCase() || "—";
+}
+
 function osveziKompaktniPovzetekDolga(podatkiVhod) {
   const koreni = document.querySelectorAll("[data-kompaktni-povzetek-dolga]");
   if (!koreni.length) return;
@@ -580,18 +605,30 @@ function osveziKompaktniPovzetekDolga(podatkiVhod) {
   const zamuda = dniZamude == null ? "—" : dniZamude + (dniZamude === 1 ? " dan" : " dni");
   const zamudaRazred = dniZamude != null && dniZamude > 0 ? " is-alert" : "";
 
+  const inicialke = inicialkeKompaktnegaPovzetka(ime);
+
   koreni.forEach((koren) => {
     koren.innerHTML =
-      '<div class="debt-summary-skupina">' +
-        '<div class="debt-summary debt-summary--vrstica-1">' +
-          '<div class="debt-summary__amount-column"><span class="debt-summary__label">Dolžnik</span><span class="debt-summary__amount debt-summary__amount--sm wizard-debt-summary__dolznik" data-povzetek-dolznik data-fit-text data-fit-text-lines="2" data-fit-text-min="7" data-fit-text-container=".debt-summary__amount-column"></span></div>' +
+      '<div class="wds">' +
+        '<div class="wds__glava">' +
+          '<span class="wds__avatar" aria-hidden="true" data-povzetek-inicialke></span>' +
+          '<span class="wds__ime" data-povzetek-dolznik data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wds__glava"></span>' +
+          '<button type="button" class="wizard-debt-summary__risk-settings" data-odpri-oceno-tveganja aria-haspopup="dialog" aria-controls="ocena-dolg-sheet" aria-expanded="false" aria-label="Nastavitve ocene tveganja" title="Nastavitve ocene tveganja">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>' +
+          '</button>' +
         '</div>' +
-        '<div class="debt-summary debt-summary--tri debt-summary--vrstica-2">' +
-          '<div class="debt-summary__amount-column wizard-debt-summary__status"><span class="debt-summary__label">Dolg</span><span class="debt-summary__amount debt-summary__amount--sm" data-povzetek-dolg data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wizard-debt-summary__status"></span></div>' +
-          '<div class="debt-summary__amount-column wizard-debt-summary__status"><span class="debt-summary__label">Zapadlost</span><span class="debt-summary__amount debt-summary__amount--sm" data-povzetek-zapadlost data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wizard-debt-summary__status"></span></div>' +
-          '<div class="debt-summary__category-column wizard-debt-summary__status wizard-debt-summary__status--zamuda' + zamudaRazred + '"><span class="debt-summary__label">Zamuda</span><span class="debt-summary__amount debt-summary__amount--sm" data-povzetek-zamuda data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wizard-debt-summary__status"></span></div>' +
+        '<div class="wds__telo">' +
+          '<div class="wds__hero' + zamudaRazred + '">' +
+            '<span class="wds__hero-vrednost" data-povzetek-zamuda data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wds__hero"></span>' +
+            '<span class="wds__hero-oznaka">Zamuda</span>' +
+          '</div>' +
+          '<div class="wds__sklad">' +
+            '<div class="wds__vrstica"><span class="wds__oznaka">Dolg</span><span class="wds__vrednost" data-povzetek-dolg data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wds__sklad"></span></div>' +
+            '<div class="wds__vrstica"><span class="wds__oznaka">Zapadlost</span><span class="wds__vrednost" data-povzetek-zapadlost data-fit-text data-fit-text-lines="1" data-fit-text-min="7" data-fit-text-container=".wds__sklad"></span></div>' +
+          '</div>' +
         '</div>' +
       '</div>';
+    koren.querySelector("[data-povzetek-inicialke]").textContent = inicialke;
     koren.querySelector("[data-povzetek-dolznik]").textContent = ime;
     koren.querySelector("[data-povzetek-dolg]").textContent = dolg;
     koren.querySelector("[data-povzetek-zapadlost]").textContent = formatirajDatumKompaktnegaPovzetka(virZapadlosti);
@@ -1202,6 +1239,7 @@ function inicializirajIzbrisOsnutka() {
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_ZGODOVINA);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_CILJ);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_FINGERPRINT);
     if (window.UJOpominNacrt && typeof window.UJOpominNacrt.pocistiOsnutek === "function") {
       window.UJOpominNacrt.pocistiOsnutek();
@@ -1530,14 +1568,6 @@ async function naloziPrilogoVStorageEnkrat(datoteka, obrtnikId) {
   }
 }
 
-function naslednjiStatus(trenutniStatus) {
-  const indeks = VRSTNI_RED_STATUSOV.indexOf(trenutniStatus);
-  if (indeks === -1 || indeks >= VRSTNI_RED_STATUSOV.length - 1) {
-    return trenutniStatus;
-  }
-  return VRSTNI_RED_STATUSOV[indeks + 1];
-}
-
 /* ---------- Logika strani neplacila.html ---------- */
 
 function isoDatumVRocniVnos(isoDatum) {
@@ -1638,6 +1668,7 @@ function inicializirajRocneVnoseDatumov(obrazec) {
 function inicializirajNeplacila() {
   const obrazec = document.getElementById("obrazec-neplacilo");
   const gumbNaprejKorak1 = document.getElementById("gumb-naprej-korak1");
+  const gumbShraniStik = document.getElementById("gumb-shrani-stik");
   const gumbNaprejKorak1ZacetnaVsebina = gumbNaprejKorak1
     ? gumbNaprejKorak1.innerHTML
     : "";
@@ -1710,6 +1741,11 @@ function inicializirajNeplacila() {
      korak1 osnutku kot ostale priloge, da je vidna tudi na 2. koraku. */
   let racunNiNaVoljo = false;
   let aktivnaVrstaDolznika = "podjetje";
+  let shranjeniPrstniOdtisStika = "";
+  let shranjeniKljucStika = "";
+  /* Namen "Shrani stik" (krog = izbira). Dejansko shranjevanje se zgodi
+     ob kliku "Sestavi opomin", ne ob kliku na krogec. */
+  let zeljaShranjevanjaStika = false;
   const NAJVEC_PRILOG = 6;
   const NAJVECJA_VELIKOST_PRILOGE_B = 10 * 1024 * 1024; // 10 MB - enako kot v sql/003
 
@@ -2455,6 +2491,7 @@ function inicializirajNeplacila() {
       KLJUC_SEJE_KORAK1_PODATKI,
       JSON.stringify({
         ...obstojeci,
+        potrjena: false,
         racunDatotekePoti: poti,
         attachmentOrigins: origins,
         attachmentKanali: kanali,
@@ -2464,6 +2501,7 @@ function inicializirajNeplacila() {
         racunNiNaVoljo: racunNiNaVoljo,
       })
     );
+    inicializirajWizardProgressHeader(1);
   }
 
   function obnoviPrilogeIzSeje(osnutek) {
@@ -2562,11 +2600,13 @@ function inicializirajNeplacila() {
       KLJUC_SEJE_KORAK1_PODATKI,
       JSON.stringify({
         ...obstojeci,
+        potrjena: false,
         opravljenoDatotekePoti: pripravljene.map((p) => String(p.pot)),
         opravljenoAttachmentMeta: pripravljene.map(opisMetaPriloge),
         opravljenoBrezSlike: workAttachments.filter((p) => p && p.textOnly).map(opisMetaPriloge),
       })
     );
+    inicializirajWizardProgressHeader(1);
   }
 
   function obnoviDokazilaOpravljenegaIzSeje(osnutek) {
@@ -4208,10 +4248,16 @@ function inicializirajNeplacila() {
         throw new Error("Podprte so samo slike ali PDF datoteke.");
       }
 
+      const { data: aiSessionData } = await supabaseKlient.auth.getSession();
+      const aiToken = aiSessionData && aiSessionData.session && aiSessionData.session.access_token;
+      if (!aiToken) throw new Error("Prijava je potekla. Prijavite se znova.");
+      const aiRequestId = "document:" + (window.crypto && typeof window.crypto.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2));
       const odgovor = await fetch("/api/citaj-racun", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mediaType, podatki: base64 }),
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + aiToken },
+        body: JSON.stringify({ requestId: aiRequestId, mediaType, podatki: base64 }),
       });
 
       const telo = await odgovor.json().catch(() => null);
@@ -4533,18 +4579,6 @@ function inicializirajNeplacila() {
     const akcije = document.createElement("div");
     akcije.className = "zadeva__akcije";
 
-    if (zadeva.status !== "Rešeno") {
-      const gumbNaprej = document.createElement("button");
-      gumbNaprej.type = "button";
-      gumbNaprej.className = "btn btn--cta btn--majhen";
-      gumbNaprej.textContent =
-        zadeva.status === "Predano odvetniku"
-          ? "Označi kot rešeno"
-          : "Pošlji naslednji opomin";
-      gumbNaprej.addEventListener("click", () => posljiOpomin(zadeva));
-      akcije.appendChild(gumbNaprej);
-    }
-
     // Povezava na produkcijsko stran "Izvedba" - samo za zadeve z
     // aktiviranim avtomatiziranim načrtom opominjanja (opomin_nacrt).
     if (zadeva.opomin_aktiviran) {
@@ -4559,7 +4593,7 @@ function inicializirajNeplacila() {
     gumbIzbrisi.type = "button";
     gumbIzbrisi.className = "btn btn--nevarnost-obris";
     gumbIzbrisi.textContent = "Izbriši zadevo";
-    gumbIzbrisi.addEventListener("click", () => izbrisiZadevo(zadeva.id));
+    gumbIzbrisi.addEventListener("click", () => izbrisiZadevo(zadeva));
     akcije.appendChild(gumbIzbrisi);
 
     kartica.appendChild(akcije);
@@ -4682,29 +4716,23 @@ function inicializirajNeplacila() {
     osveziPrikazSeznama();
   }
 
-  async function posljiOpomin(zadeva) {
-    skrijNapako();
+  async function izbrisiZadevo(zadeva) {
+    const potrjeno = await potrdiVprasanje({
+      naslov: "Izbrišem zadevo?",
+      opis: "Zadeva za »" + String(zadeva.ime_dolznika || "dolžnika") +
+        "« in vsi z njo povezani podatki bodo trajno izbrisani.",
+      potrdiBesedilo: "Trajno izbriši",
+      prekliciBesedilo: "Ohrani zadevo",
+      stil: "nevarno",
+    });
+    if (!potrjeno) return;
 
-    const { error } = await supabaseKlient
-      .from("zadeve")
-      .update({ status: naslednjiStatus(zadeva.status) })
-      .eq("id", zadeva.id);
-
-    if (error) {
-      pokaziNapako("Statusa ni bilo mogoče posodobiti.", error.message);
-      return;
-    }
-
-    osveziSeznam();
-  }
-
-  async function izbrisiZadevo(id) {
     skrijNapako();
 
     const { error } = await supabaseKlient
       .from("zadeve")
       .delete()
-      .eq("id", id);
+      .eq("id", zadeva.id);
 
     if (error) {
       pokaziNapako("Zadeve ni bilo mogoče izbrisati.", error.message);
@@ -4727,6 +4755,238 @@ function inicializirajNeplacila() {
   const stalnaStrankaShrani = document.getElementById("stalna-stranka-shrani");
   const stalnaStrankaRokPolje = document.getElementById("stalna-stranka-rok");
   const stalnaStrankaTrajanjePolje = document.getElementById("stalna-stranka-trajanje");
+
+  const KLJUC_SHRAMBE_STIKOV = "uj_neplacila_podjetja_podatki_v1";
+
+  function normalizirajKljucStika(vrednost) {
+    if (window.UJNedavnaPodjetja && typeof window.UJNedavnaPodjetja.normalizirajIme === "function") {
+      return window.UJNedavnaPodjetja.normalizirajIme(vrednost);
+    }
+    return String(vrednost || "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("sl-SI")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function trenutniPodatkiStika() {
+    const podatki = new FormData(obrazec);
+    const name = String(podatki.get("nazivPodjetja") || "").trim();
+    const companyId = String(podatki.get("openRegisterCompanyId") || "").trim();
+    return {
+      key: companyId || normalizirajKljucStika(name),
+      companyId,
+      name,
+      registerType: String(podatki.get("openRegisterRegisterType") || "").trim(),
+      registerNumber: String(podatki.get("openRegisterRegisterNumber") || "").trim(),
+      registerCourt: String(podatki.get("openRegisterRegisterCourt") || "").trim(),
+      legalForm: String(podatki.get("openRegisterLegalForm") || "").trim(),
+      checkedAt: String(podatki.get("openRegisterVerifiedAt") || "").trim(),
+      vatId: String(podatki.get("davcnaStevilka") || "").trim(),
+      contactPerson: String(podatki.get("kontaktnaOseba") || "").trim(),
+      phone: String(podatki.get("telefon") || "").trim(),
+      email: String(podatki.get("email") || "").trim(),
+    };
+  }
+
+  function prstniOdtisStika(stik) {
+    if (!stik || !stik.name) return "";
+    return JSON.stringify([
+      stik.key,
+      stik.name,
+      stik.vatId,
+      stik.contactPerson,
+      stik.phone,
+      stik.email,
+    ]);
+  }
+
+  function nastaviStanjeShranjevanjaStika(shranjeno) {
+    if (!gumbShraniStik) return;
+    const jePodjetje = aktivnaVrstaDolznika === "podjetje";
+    const oznaceno = (shranjeno || zeljaShranjevanjaStika) && jePodjetje;
+    gumbShraniStik.disabled = !jePodjetje;
+    gumbShraniStik.setAttribute("aria-pressed", oznaceno ? "true" : "false");
+    gumbShraniStik.setAttribute(
+      "aria-label",
+      shranjeno && jePodjetje
+        ? "Podjetje je shranjeno med stike"
+        : oznaceno && jePodjetje
+          ? "Stik bo shranjen ob sestavi opomina"
+          : jePodjetje
+            ? "Shrani podjetje med stike"
+            : "Shranjevanje med stike je na voljo za podjetje"
+    );
+    const napis = gumbShraniStik.querySelector(".obrazec__shrani-stik-napis");
+    if (napis) {
+      napis.textContent = shranjeno && jePodjetje ? "Shranjeno" : "Shrani stik";
+    }
+  }
+
+  function preberiShranjeneStike() {
+    try {
+      const vrednost = JSON.parse(localStorage.getItem(KLJUC_SHRAMBE_STIKOV) || "{}");
+      return vrednost && typeof vrednost === "object" ? vrednost : {};
+    } catch (_napaka) {
+      return {};
+    }
+  }
+
+  function uskladiStanjeShranjevanjaStika() {
+    if (!gumbShraniStik || aktivnaVrstaDolznika !== "podjetje") {
+      nastaviStanjeShranjevanjaStika(false);
+      return;
+    }
+    const stik = trenutniPodatkiStika();
+    const shranjeni = stik.key ? preberiShranjeneStike()[stik.key] : null;
+    const trenutniOdtis = prstniOdtisStika(stik);
+    const shranjeniOdtis = shranjeni
+      ? prstniOdtisStika(Object.assign({ key: stik.key }, shranjeni))
+      : "";
+    const jeShranjeno = Boolean(trenutniOdtis && trenutniOdtis === shranjeniOdtis);
+    shranjeniPrstniOdtisStika = jeShranjeno ? trenutniOdtis : shranjeniPrstniOdtisStika;
+    shranjeniKljucStika = jeShranjeno ? stik.key : shranjeniKljucStika;
+    nastaviStanjeShranjevanjaStika(jeShranjeno);
+  }
+
+  function prostKljucStika(shranjeni, zeleniKljuc) {
+    if (!shranjeni[zeleniKljuc]) return zeleniKljuc;
+    let zaporedna = 2;
+    while (shranjeni[zeleniKljuc + "--" + zaporedna]) zaporedna += 1;
+    return zeleniKljuc + "--" + zaporedna;
+  }
+
+  async function shraniTrenutnoPodjetjeMedStike(opcije) {
+    const tiho = Boolean(opcije && opcije.tiho);
+    if (aktivnaVrstaDolznika !== "podjetje") return false;
+    const stik = trenutniPodatkiStika();
+    if (!stik.name || !stik.key) {
+      const napakaNazivEl = document.getElementById("napaka-naziv");
+      if (napakaNazivEl) napakaNazivEl.hidden = false;
+      const nazivPolje = document.getElementById("naziv-podjetja");
+      if (!tiho && nazivPolje) nazivPolje.focus({ preventScroll: true });
+      return false;
+    }
+    const trenutniOdtis = prstniOdtisStika(stik);
+    const soPodatkiSpremenjeni = Boolean(
+      shranjeniKljucStika &&
+      shranjeniPrstniOdtisStika &&
+      trenutniOdtis !== shranjeniPrstniOdtisStika
+    );
+    let izbira = "isti";
+    if (soPodatkiSpremenjeni) {
+      izbira = await potrdiVprasanje({
+        naslov: "Kako želite shraniti spremembe?",
+        opis: "Podatki stika so se spremenili. Posodobite obstoječi stik ali ga shranite kot nov stik.",
+        dvaIzbira: true,
+        potrdiBesedilo: "Posodobi isti stik",
+        drugiBesedilo: "Shrani kot nov stik",
+        prekliciBesedilo: "Prekliči",
+        stil: "primary",
+      });
+      if (!izbira) return false;
+    }
+    try {
+      const shranjeni = preberiShranjeneStike();
+      const vrednost = Object.assign({}, stik, { usedAt: new Date().toISOString() });
+      delete vrednost.key;
+      const prejsnjiKljuc = shranjeniKljucStika;
+      let ciljniKljuc = stik.key;
+      if (izbira === "nov") {
+        ciljniKljuc = prostKljucStika(shranjeni, stik.key);
+      } else if (
+        prejsnjiKljuc &&
+        prejsnjiKljuc !== stik.key &&
+        shranjeni[stik.key]
+      ) {
+        ciljniKljuc = prostKljucStika(shranjeni, stik.key);
+      }
+      if (izbira === "isti" && prejsnjiKljuc && prejsnjiKljuc !== ciljniKljuc) {
+        delete shranjeni[prejsnjiKljuc];
+      }
+      shranjeni[ciljniKljuc] = vrednost;
+      localStorage.setItem(KLJUC_SHRAMBE_STIKOV, JSON.stringify(shranjeni));
+      shranjeniPrstniOdtisStika = trenutniOdtis;
+      shranjeniKljucStika = ciljniKljuc;
+      nastaviStanjeShranjevanjaStika(true);
+      document.dispatchEvent(new CustomEvent("uj:podjetje-shranjeno", {
+        detail: {
+          key: ciljniKljuc,
+          previousKey: izbira === "isti" ? prejsnjiKljuc : "",
+          company: vrednost,
+        },
+      }));
+      return true;
+    } catch (napakaShranjevanja) {
+      if (!tiho) pokaziNapako("Podjetja ni bilo mogoče shraniti med stike.", napakaShranjevanja.message);
+      return false;
+    }
+  }
+
+  function odstraniTrenutnoPodjetjeIzStikov() {
+    const stik = trenutniPodatkiStika();
+    const kljuc = shranjeniKljucStika || stik.key;
+    if (!kljuc) {
+      shranjeniPrstniOdtisStika = "";
+      shranjeniKljucStika = "";
+      nastaviStanjeShranjevanjaStika(false);
+      return true;
+    }
+    try {
+      const shranjeni = preberiShranjeneStike();
+      delete shranjeni[kljuc];
+      localStorage.setItem(KLJUC_SHRAMBE_STIKOV, JSON.stringify(shranjeni));
+      shranjeniPrstniOdtisStika = "";
+      shranjeniKljucStika = "";
+      nastaviStanjeShranjevanjaStika(false);
+      document.dispatchEvent(new CustomEvent("uj:podjetje-odstranjeno-iz-stikov", {
+        detail: { key: kljuc },
+      }));
+      return true;
+    } catch (napakaShranjevanja) {
+      pokaziNapako("Podjetja ni bilo mogoče odstraniti iz stikov.", napakaShranjevanja.message);
+      return false;
+    }
+  }
+
+  if (gumbShraniStik) {
+    gumbShraniStik.addEventListener("click", async () => {
+      const stik = trenutniPodatkiStika();
+      const odtis = prstniOdtisStika(stik);
+      const jeShranjeno = Boolean(shranjeniPrstniOdtisStika && odtis === shranjeniPrstniOdtisStika);
+      if (jeShranjeno) {
+        /* Že shranjeno: klik odstrani (obstoječa vedenje ostane). */
+        zeljaShranjevanjaStika = false;
+        await odstraniTrenutnoPodjetjeIzStikov();
+        return;
+      }
+      /* Sicer klik samo preklopi izbiro - shranjevanje sledi ob "Sestavi opomin". */
+      zeljaShranjevanjaStika = !zeljaShranjevanjaStika;
+      nastaviStanjeShranjevanjaStika(jeShranjeno);
+    });
+    [
+      "naziv-podjetja",
+      "davcna-stevilka",
+      "kontaktna-oseba",
+      "telefon-dolznika",
+      "email-dolznika",
+      "openregister-company-id",
+    ].forEach((id) => {
+      const polje = document.getElementById(id);
+      if (!polje) return;
+      polje.addEventListener("input", () => {
+        const trenutniOdtis = prstniOdtisStika(trenutniPodatkiStika());
+        nastaviStanjeShranjevanjaStika(Boolean(
+          shranjeniPrstniOdtisStika && trenutniOdtis === shranjeniPrstniOdtisStika
+        ));
+      });
+    });
+    document.querySelectorAll(".tip-dolznika-preklop__gumb").forEach((gumbVrste) => {
+      gumbVrste.addEventListener("click", uskladiStanjeShranjevanjaStika);
+    });
+    uskladiStanjeShranjevanjaStika();
+  }
   const stalnaStrankaPlaciloPolje = document.getElementById("stalna-stranka-placilo");
   const stalnaStrankaRokVrednost = document.getElementById("stalna-stranka-rok-vrednost");
   const stalnaStrankaTrajanjeVrednost = document.getElementById("stalna-stranka-trajanje-vrednost");
@@ -4998,6 +5258,7 @@ function inicializirajNeplacila() {
     sessionStorage.setItem(
       KLJUC_SEJE_KORAK1_PODATKI,
       JSON.stringify({
+        potrjena: false,
         vrstaDolznika: aktivnaVrstaDolznika,
         imeDolznika: vrednostImenaDolznika(),
         nazivPodjetja: String(podatki.get("nazivPodjetja") || "").trim(),
@@ -5036,9 +5297,18 @@ function inicializirajNeplacila() {
         privzetiKanali: trenutniPrivzetiKanali(),
       })
     );
+    inicializirajWizardProgressHeader(1);
   }
 
   function narociShranjevanjeOsnutkaKorak1() {
+    const obstojeci = preberiObstojeciOsnutekKorak1();
+    if (obstojeci.potrjena !== false) {
+      sessionStorage.setItem(
+        KLJUC_SEJE_KORAK1_PODATKI,
+        JSON.stringify({ ...obstojeci, potrjena: false })
+      );
+    }
+    inicializirajWizardProgressHeader(1);
     if (casovnikOsnutkaKorak1) clearTimeout(casovnikOsnutkaKorak1);
     casovnikOsnutkaKorak1 = setTimeout(() => {
       shraniOsnutekKorak1Lokalno();
@@ -5161,6 +5431,14 @@ function inicializirajNeplacila() {
 
     if (!(await validirajOpravljenoVprasanja())) return;
 
+    // Krog "Shrani stik" je izbira: ob "Sestavi opomin" se stik shrani (ali
+    // uskladi poznejše spremembe podatkov, če je bil že shranjen).
+    if (zeljaShranjevanjaStika || shranjeniPrstniOdtisStika) {
+      const stikJeShranjen = await shraniTrenutnoPodjetjeMedStike({ tiho: true });
+      if (!stikJeShranjen) return;
+      zeljaShranjevanjaStika = false;
+    }
+
     // Ocena tveganja je odslej na 2. koraku (Zgodovina). Tukaj ohranimo
     // morebitno že shranjeno izbiro, vendar 1. koraka zaradi nje ne blokiramo.
     let korak1Podatki = {};
@@ -5224,6 +5502,7 @@ function inicializirajNeplacila() {
     }
 
     const noviKorak1 = {
+      potrjena: true,
       vrstaDolznika: aktivnaVrstaDolznika,
       imeDolznika,
       nazivPodjetja:
@@ -5317,6 +5596,7 @@ function inicializirajNeplacila() {
       }
     }
 
+    if (casovnikOsnutkaKorak1) clearTimeout(casovnikOsnutkaKorak1);
     sessionStorage.setItem(KLJUC_SEJE_KORAK1_PODATKI, JSON.stringify(noviKorak1));
     shraniKorak1Fingerprint(novHash);
     zagotoviPodatkeSporocilaZaPosiljanje(noviKorak1);
@@ -5805,7 +6085,7 @@ function inicializirajSporociloDolzniku() {
   const ikonaSvincnika =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
   const ikonaKljukice =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
   /* Mala rumena zvezda (zgoraj levo) pri številki 1 – cifra »1« ostane glavna. */
   const ikonaZvezdePrioriteta =
     '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.75 6.2 6.75.7-5.1 4.55 1.45 6.55L12 16.9l-5.85 3.6 1.45-6.55-5.1-4.55 6.75-.7L12 2.5z"/></svg>';
@@ -8202,7 +8482,7 @@ function inicializirajSporociloDolzniku() {
 
   if (gumbPrezriRok) {
     gumbPrezriRok.innerHTML =
-      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg>';
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>';
     gumbPrezriRok.style.color = "#111111";
     gumbPrezriRok.addEventListener("click", () => prezriPriporocilo("rok"));
   }
@@ -8239,7 +8519,7 @@ function inicializirajSporociloDolzniku() {
 
   if (gumbPrezriObrocno) {
     gumbPrezriObrocno.innerHTML =
-      '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M17 7 7 17"/></svg>';
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>';
     gumbPrezriObrocno.style.color = "#111111";
     gumbPrezriObrocno.addEventListener("click", () =>
       prezriPriporocilo("obrocno")
@@ -9051,9 +9331,8 @@ function inicializirajSporociloDolzniku() {
 }
 
 /* ---------- Logika strani neplacila-posiljanje.html (3. korak) ----------
-   Avtomatiziran "Načrt opominjanja" (SMS koraki 1–3 + ročni korak 4).
-   To NI isto kot ročni "Pošlji naslednji opomin" (posljiOpomin) na
-   neplacila.html — tisti samo napreduje status že obstoječe zadeve. */
+   Avtomatiziran "Načrt opominjanja"; izvedba potrjenih dejanj poteka skozi
+   strežniško revizijsko pot in ne z neposrednim spreminjanjem statusa. */
 
 async function inicializirajPosiljanje() {
   const glavniEl = document.getElementById("opomin-nacrt-glavni");
@@ -9062,7 +9341,19 @@ async function inicializirajPosiljanje() {
   if (!glavniEl || !potrditevEl) return;
 
   if (window.UJOpominKarticeSync) {
-    await window.UJOpominKarticeSync.naloziPredZagonom();
+    const lokalniKorak1PredSync = preberiSejoPostopka(KLJUC_SEJE_KORAK1_PODATKI);
+    const lokalnaZgodovinaPredSync = preberiSejoPostopka(KLJUC_SEJE_ZGODOVINA);
+    const lokalniCiljPredSync = preberiSejoPostopka(KLJUC_SEJE_CILJ);
+    const ohraniLokalniPostopek = Boolean(
+      soPodatkiKorak1Uporabni(lokalniKorak1PredSync) &&
+        lokalnaZgodovinaPredSync &&
+        lokalnaZgodovinaPredSync.potrjena === true &&
+        lokalniCiljPredSync &&
+        lokalniCiljPredSync.potrjena === true
+    );
+    await window.UJOpominKarticeSync.naloziPredZagonom({
+      ohraniLokalniPostopek,
+    });
   }
 
   const podatkiKorak1Json = sessionStorage.getItem(KLJUC_SEJE_KORAK1_PODATKI);
@@ -9077,7 +9368,6 @@ async function inicializirajPosiljanje() {
     window.location.href = "neplacila.html#obrazec";
     return;
   }
-  osveziKompaktniPovzetekDolga(podatkiKorak1);
   let podatkiZgodovine = null;
   try {
     podatkiZgodovine = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_ZGODOVINA) || "null");
@@ -9088,12 +9378,21 @@ async function inicializirajPosiljanje() {
     window.location.href = "neplacila-zgodovina.html";
     return;
   }
+  const podatkiCilja = preberiSejoPostopka(KLJUC_SEJE_CILJ);
+  if (!podatkiCilja || podatkiCilja.potrjena !== true) {
+    window.location.href = "neplacila-cilj.html";
+    return;
+  }
   podatkiKorak1.zgodovinaPredNacrtom = Array.isArray(podatkiZgodovine.dogodki)
     ? podatkiZgodovine.dogodki
     : [];
   podatkiKorak1.preostaliDolgPredNacrtom = Number.isFinite(Number(podatkiZgodovine.preostaliZnesek))
     ? Number(podatkiZgodovine.preostaliZnesek)
     : Number(podatkiKorak1.znesek);
+  osveziKompaktniPovzetekDolga({
+    ...podatkiKorak1,
+    znesek: podatkiKorak1.preostaliDolgPredNacrtom,
+  });
   if (!podatkiKorak2Json) {
     zagotoviPodatkeSporocilaZaPosiljanje(podatkiKorak1);
     podatkiKorak2Json = sessionStorage.getItem(KLJUC_SEJE_KORAK2_PODATKI);
@@ -9310,6 +9609,7 @@ async function inicializirajPosiljanje() {
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_PODATKI);
     sessionStorage.removeItem(KLJUC_SEJE_ZGODOVINA);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK2_PODATKI);
+    sessionStorage.removeItem(KLJUC_SEJE_CILJ);
     sessionStorage.removeItem(KLJUC_SEJE_KORAK1_FINGERPRINT);
     if (window.UJOpominNacrt.pocistiOsnutek) {
       window.UJOpominNacrt.pocistiOsnutek();

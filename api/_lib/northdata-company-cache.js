@@ -7,7 +7,7 @@ var db = require("./supabase-server");
 
 // Nova različica je vezana na Jaka actor; rezultatov prejšnjega actorja ne
 // mešamo z novimi dodatnimi sklopi podjetja.
-var CACHE_VERSION = "northdata-jaka-v6-financial-invariants";
+var CACHE_VERSION = "northdata-jaka-v9-both-unbounded";
 var SOURCE_ACTOR_ID = "Ja65ilbhWnUTs1Xeb";
 var FOUND_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 var NEGATIVE_TTL_MS = 24 * 60 * 60 * 1000;

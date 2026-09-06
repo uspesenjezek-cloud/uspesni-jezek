@@ -51,13 +51,7 @@ let supabaseKlient = null;
   }
 
   try {
-    supabaseKlient = supabase.createClient(url, anonKey, {
-      auth: {
-        // Supabase privzeto uporablja brskalniško "Web Locks" ključavnico.
-        // Aplikacija tega usklajevanja med zavihki ne potrebuje.
-        lock: async (_ime, _casOmejitve, izvedi) => izvedi(),
-      },
-    });
+    supabaseKlient = supabase.createClient(url, anonKey);
   } catch (_napaka) {
     supabaseKlient = null;
     console.warn("Povezave s Supabase ni bilo mogoče vzpostaviti.");

@@ -44,7 +44,7 @@ const back = JSON.parse(JSON.stringify(refreshed));
 const forward = JSON.parse(JSON.stringify(back));
 assert.deepStrictEqual(forward, candidates, "refresh ter Back/Forward ne smeta izgubiti ali podvojiti zamenjave");
 
-assert.match(js, /data-ai-change-candidate[\s\S]*zacniZamenjavo\(aktivniPodatki\.indeks\)/);
+assert.match(js, /data-ai-change-candidate[\s\S]*kandidatIzKontrolnika[\s\S]*zacniZamenjavo\(spremeniPodatki\.indeks\)/);
 assert.doesNotMatch(js.match(/if \(dogodek\.target\.closest\("\[data-ai-change-candidate\]"\)\)[\s\S]*?return;/)[0], /candidates\.splice/);
 assert.match(js, /S čim želite nadomestiti korak\?/);
 assert.match(js, /zgodovina-zamenjava__vrstica[\s\S]*data-ai-replacement-confirm[\s\S]*>Spremeni<\/button>/);

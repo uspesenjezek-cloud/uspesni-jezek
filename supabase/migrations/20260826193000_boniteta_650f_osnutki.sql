@@ -15,11 +15,14 @@ create table if not exists public.boniteta_650f_osnutki (
 );
 
 alter table public.boniteta_650f_osnutki enable row level security;
-revoke all on public.boniteta_650f_osnutki from anon;
+revoke all on public.boniteta_650f_osnutki from public, anon;
 grant select, insert on public.boniteta_650f_osnutki to authenticated;
 drop policy if exists boniteta_650f_lastni_select on public.boniteta_650f_osnutki;
 create policy boniteta_650f_lastni_select on public.boniteta_650f_osnutki for select to authenticated using (auth.uid() = user_id);
 drop policy if exists boniteta_650f_lastni_insert on public.boniteta_650f_osnutki;
 create policy boniteta_650f_lastni_insert on public.boniteta_650f_osnutki for insert to authenticated with check (auth.uid() = user_id);
+
+create index if not exists boniteta_650f_osnutki_owner_profile_idx
+  on public.boniteta_650f_osnutki(user_id, profile_id);
 
 comment on table public.boniteta_650f_osnutki is 'Minimalna revizijska sled osnutkov §650f; posodobitve so namenoma blokirane odjemalcu in legal_review_approved nastavi le ločen pravni strežniški proces.';

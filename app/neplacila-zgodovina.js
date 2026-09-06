@@ -4,14 +4,19 @@
   var KLJUC_KORAK1 = "neplacilo-korak1-podatki";
   var KLJUC_ZGODOVINA = "neplacilo-zgodovina-podatki";
   var ATENA_ENGINE_VERSION = "atena-v7";
-  var HISTORY_CONTRACT_VERSION = "history-fact-v75";
+  var HISTORY_CONTRACT_VERSION = "history-fact-v99";
+  var AGREEMENT_CONTRACT_VERSION = "agreement-fact-v7";
   var debug = window.UJPoravnavaWidget;
   var jeVgrajenaZgodovina = document.body && document.body.classList.contains("stran--izvedba-primer");
   var relativniDatumi = window.UJZgodovinaRelativniDatumi;
   var replacementState = window.UJZgodovinaZamenjavaState;
-  var preverjanjeZneskov = window.UJZgodovinaPreverjanjeZneskov;
   var customActive = false;
   var ocenaActive = false;
+  function jeDogovorniGostitelj() {
+    return Boolean(jeVgrajenaZgodovina && debug && debug.state && debug.state.actionSheetMode === "payment");
+  }
+  function aktivniContractVersion() { return jeDogovorniGostitelj() ? AGREEMENT_CONTRACT_VERSION : HISTORY_CONTRACT_VERSION; }
+  function aktivniRazcleniEndpoint() { return jeDogovorniGostitelj() ? "/api/razcleni-dogovor" : "/api/razcleni-zgodovino"; }
   function lokalniDanesIso(vrednost) {
     var datum = vrednost instanceof Date ? vrednost : new Date();
     function dve(stevilo) { return String(stevilo).padStart(2, "0"); }
@@ -22,6 +27,15 @@
   var analizaGeneracija = 0;
   var analizaStatusCasovnik = 0;
   var analizaStatusKorak = 0;
+  var analizaRetrySekunde = -1;
+  var analizaRetryGate = window.UJAtenaRequest.createRetryGate({
+    onTick: function (remainingMs) {
+      var sekunde = Math.ceil(remainingMs / 1000);
+      if (sekunde === analizaRetrySekunde) return;
+      analizaRetrySekunde = sekunde;
+      if (debug && typeof debug.izrisiActionSheet === "function") debug.izrisiActionSheet();
+    },
+  });
   var virUrejanje = false;
   var virOsnutek = "";
   var ANALIZA_STATUS_BESEDILA = [
@@ -38,7 +52,7 @@
   var prekinitevPoZagonu = false;
   var ravenGlasu = 0;
   var naravni = {
-    mode: "manual",
+    mode: "natural",
     text: "",
     status: "idle",
     statusText: "Napišite ali povejte, kaj se je zgodilo.",
@@ -49,10 +63,12 @@
     questionIndex: 0,
     questionKeys: [],
     questionPlan: [],
+    confirmedCandidateIds: [],
     lunaReport: "",
     lunaReason: "",
     clarificationQuestion: "",
     clarificationClauseId: "",
+    clarificationKind: "",
     clarificationAnswer: "",
     clarificationRound: 0,
     clarificationExhausted: false,
@@ -97,36 +113,44 @@
   }
 
   var shranjeno = jeVgrajenaZgodovina ? {} : (preberiJson(KLJUC_ZGODOVINA) || {});
+  var zgodovinaPotrjena = shranjeno.potrjena === true;
   if (shranjeno.drugoOsnutek) customDraft = shranjeno.drugoOsnutek;
   if (shranjeno.naravniVnos && typeof shranjeno.naravniVnos === "object") {
-    naravni.mode = shranjeno.naravniVnos.mode === "manual" ? "manual" : "natural";
+    naravni.mode = "natural";
     naravni.text = String(shranjeno.naravniVnos.text || "").slice(0, 2000);
     var shranjeniKandidati = Array.isArray(shranjeno.naravniVnos.candidates) ? shranjeno.naravniVnos.candidates.slice(0, 20) : [];
     var zastarelContract = shranjeniKandidati.length > 0 && (
       shranjeno.naravniVnos.engineVersion !== ATENA_ENGINE_VERSION ||
-      shranjeno.naravniVnos.contractVersion !== HISTORY_CONTRACT_VERSION
+      shranjeno.naravniVnos.contractVersion !== aktivniContractVersion()
     );
     naravni.candidates = zastarelContract ? [] : shranjeniKandidati;
     naravni.requestId = zastarelContract ? "" : String(shranjeno.naravniVnos.requestId || "");
-    var shranjenaFaza = ["input", "clarification", "clarification_exhausted", "questions", "review"].indexOf(shranjeno.naravniVnos.phase) >= 0 ? shranjeno.naravniVnos.phase : null;
+    var shranjenaFaza = ["input", "warning", "clarification", "clarification_exhausted", "questions", "review"].indexOf(shranjeno.naravniVnos.phase) >= 0 ? shranjeno.naravniVnos.phase : null;
     naravni.phase = zastarelContract ? "input" : shranjenaFaza || (naravni.candidates.length ? "questions" : "input");
     naravni.questionIndex = Math.max(0, Number(shranjeno.naravniVnos.questionIndex) || 0);
     naravni.questionKeys = Array.isArray(shranjeno.naravniVnos.questionKeys) ? shranjeno.naravniVnos.questionKeys.slice(0, 80) : [];
     naravni.questionPlan = Array.isArray(shranjeno.naravniVnos.questionPlan) ? shranjeno.naravniVnos.questionPlan.slice(0, 20) : [];
+    naravni.confirmedCandidateIds = Array.isArray(shranjeno.naravniVnos.confirmedCandidateIds)
+      ? shranjeno.naravniVnos.confirmedCandidateIds.map(String).slice(0, 20)
+      : [];
     naravni.lunaReport = String(shranjeno.naravniVnos.lunaReport || "").slice(0, 240);
     naravni.lunaReason = String(shranjeno.naravniVnos.lunaReason || "").slice(0, 120);
     naravni.clarificationQuestion = String(shranjeno.naravniVnos.clarificationQuestion || "").slice(0, 180);
     naravni.clarificationClauseId = String(shranjeno.naravniVnos.clarificationClauseId || "").slice(0, 80);
+    naravni.clarificationKind = shranjeno.naravniVnos.clarificationKind === "warning" ? "warning" : (naravni.clarificationQuestion ? "question" : "");
     naravni.clarificationAnswer = String(shranjeno.naravniVnos.clarificationAnswer || "").slice(0, 400);
     naravni.clarificationRound = Math.max(0, Math.min(2, Number(shranjeno.naravniVnos.clarificationRound) || 0));
     naravni.clarificationExhausted = shranjeno.naravniVnos.clarificationExhausted === true;
     if (naravni.phase === "clarification" && !naravni.clarificationQuestion) naravni.phase = "input";
+    if (naravni.phase === "warning" && (!naravni.clarificationQuestion || naravni.clarificationKind !== "warning")) naravni.phase = "input";
     if (naravni.phase === "clarification_exhausted" && !naravni.clarificationExhausted) naravni.phase = "input";
     naravni.editCandidate = Number.isInteger(shranjeno.naravniVnos.editCandidate) ? shranjeno.naravniVnos.editCandidate : null;
     naravni.replacement = shranjeno.naravniVnos.replacement && shranjeno.naravniVnos.replacement.active === true
       ? shranjeno.naravniVnos.replacement
       : null;
     naravni.candidates.forEach(zagotoviKandidatId);
+    var obstojeciKandidatIds = new Set(naravni.candidates.map(function (kandidat) { return kandidat.candidateId; }));
+    naravni.confirmedCandidateIds = naravni.confirmedCandidateIds.filter(function (candidateId) { return obstojeciKandidatIds.has(candidateId); });
     if (naravni.replacement && najdiIzvorniIndeksZamenjave() < 0) naravni.replacement = null;
     if (naravni.candidates.length) {
       dopolniRelativneDatume(naravni.candidates);
@@ -157,7 +181,7 @@
       if (!ciljVgrajenega) return;
       ciljVgrajenega[stanjeVgrajenega.actionSheetMode === "payment" ? "paymentNaturalInput" : "historyNaturalInput"] = {
         engineVersion: ATENA_ENGINE_VERSION,
-        contractVersion: HISTORY_CONTRACT_VERSION,
+        contractVersion: aktivniContractVersion(),
         mode: naravni.mode,
         text: naravni.text,
         requestId: naravni.requestId,
@@ -166,10 +190,12 @@
         questionIndex: naravni.questionIndex,
         questionKeys: naravni.questionKeys,
         questionPlan: naravni.questionPlan,
+        confirmedCandidateIds: naravni.confirmedCandidateIds,
         lunaReport: naravni.lunaReport,
         lunaReason: naravni.lunaReason,
         clarificationQuestion: naravni.clarificationQuestion,
         clarificationClauseId: naravni.clarificationClauseId,
+        clarificationKind: naravni.clarificationKind,
         clarificationAnswer: naravni.clarificationAnswer,
         clarificationRound: naravni.clarificationRound,
         clarificationExhausted: naravni.clarificationExhausted,
@@ -178,6 +204,7 @@
       };
       return;
     }
+    zgodovinaPotrjena = potrjena === true;
     sessionStorage.setItem(KLJUC_ZGODOVINA, JSON.stringify({
       potrjena: potrjena === true,
       dogodki: debug.state.nacrtKoraki || [],
@@ -186,7 +213,7 @@
       drugoOsnutek: customDraft,
       naravniVnos: {
         engineVersion: ATENA_ENGINE_VERSION,
-        contractVersion: HISTORY_CONTRACT_VERSION,
+        contractVersion: aktivniContractVersion(),
         mode: naravni.mode,
         text: naravni.text,
         requestId: naravni.requestId,
@@ -195,10 +222,12 @@
         questionIndex: naravni.questionIndex,
         questionKeys: naravni.questionKeys,
         questionPlan: naravni.questionPlan,
+        confirmedCandidateIds: naravni.confirmedCandidateIds,
         lunaReport: naravni.lunaReport,
         lunaReason: naravni.lunaReason,
         clarificationQuestion: naravni.clarificationQuestion,
         clarificationClauseId: naravni.clarificationClauseId,
+        clarificationKind: naravni.clarificationKind,
         clarificationAnswer: naravni.clarificationAnswer,
         clarificationRound: naravni.clarificationRound,
         clarificationExhausted: naravni.clarificationExhausted,
@@ -213,7 +242,11 @@
   }
 
   var K = window.UJIzvedbaKomponente;
-  var KANDIDAT_META = {
+  var zgodovinaKarticeVir = window.UJAtenaCardTemplates && window.UJAtenaCardTemplates.categories && window.UJAtenaCardTemplates.categories["1.0"];
+  var KANDIDAT_META = zgodovinaKarticeVir && zgodovinaKarticeVir.records ? zgodovinaKarticeVir.records.reduce(function (rezultat, kartica) {
+    rezultat[kartica.id] = { naslov:kartica.title, razred:kartica.tone, ikona:kartica.icon };
+    return rezultat;
+  }, {}) : {
     partial_payment: { naslov: "Delno plačilo", razred: "delno", ikona: "cardDown" },
     paid_in_full: { naslov: "Plačano v celoti", razred: "placano-v-celoti", ikona: "receiptCheck" },
     installment_payment: { naslov: "Plačan obrok", razred: "obrok", ikona: "calendar" },
@@ -260,6 +293,52 @@
       ? window.crypto.randomUUID()
       : Date.now().toString(36) + ":" + Math.random().toString(36).slice(2));
     return kandidat.candidateId;
+  }
+
+  function atributiKandidata(kandidat, indeks) {
+    return ' data-ai-candidate-id="' + esc(zagotoviKandidatId(kandidat)) + '" data-ai-candidate-index="' + indeks + '"';
+  }
+
+  function kandidatIzKontrolnika(kontrolnik) {
+    if (!kontrolnik) return { kandidat: null, indeks: -1 };
+    var candidateId = String(kontrolnik.getAttribute("data-ai-candidate-id") || "");
+    var indeks = candidateId ? naravni.candidates.findIndex(function (kandidat) {
+      return kandidat && kandidat.candidateId === candidateId;
+    }) : -1;
+    if (indeks < 0) {
+      var fallbackIndeks = Number(kontrolnik.getAttribute("data-ai-candidate-index"));
+      indeks = Number.isInteger(fallbackIndeks) && fallbackIndeks >= 0 && fallbackIndeks < naravni.candidates.length ? fallbackIndeks : -1;
+    }
+    return { kandidat: indeks >= 0 ? naravni.candidates[indeks] : null, indeks: indeks };
+  }
+
+  function najdiPoljeKandidata(root, polje, candidateId, fallbackIndeks) {
+    var kontrolniki = Array.prototype.slice.call(root.querySelectorAll('[data-ai-candidate-field="' + polje + '"]'));
+    return kontrolniki.find(function (kontrolnik) {
+      return candidateId && kontrolnik.getAttribute("data-ai-candidate-id") === candidateId;
+    }) || kontrolniki.find(function (kontrolnik) {
+      return Number(kontrolnik.getAttribute("data-ai-candidate-index")) === fallbackIndeks;
+    }) || null;
+  }
+
+  function kandidatJePotrjen(indeks) {
+    var kandidat = naravni.candidates[indeks];
+    var candidateId = zagotoviKandidatId(kandidat);
+    return Boolean(candidateId && naravni.confirmedCandidateIds.indexOf(candidateId) >= 0);
+  }
+
+  function potrdiAktivniKandidat() {
+    var podatki = razcleniKljucVprasanja(naravni.questionKeys[naravni.questionIndex]);
+    var kandidat = naravni.candidates[podatki.indeks];
+    var candidateId = zagotoviKandidatId(kandidat);
+    if (candidateId && naravni.confirmedCandidateIds.indexOf(candidateId) < 0) naravni.confirmedCandidateIds.push(candidateId);
+  }
+
+  function razveljaviPotrditevKandidata(indeks) {
+    var kandidat = naravni.candidates[indeks];
+    var candidateId = kandidat && kandidat.candidateId;
+    if (!candidateId) return;
+    naravni.confirmedCandidateIds = naravni.confirmedCandidateIds.filter(function (potrjeniId) { return potrjeniId !== candidateId; });
   }
 
   function najdiIzvorniIndeksZamenjave() {
@@ -384,6 +463,7 @@
       return;
     }
     izvorniIndeks = zamenjano.index;
+    razveljaviPotrditevKandidata(izvorniIndeks);
     dopolniRelativneDatume(naravni.candidates);
     dopolniIzracunaniNeplacaniObrok(naravni.candidates);
     novi.missing = poljaKiManjkajo(novi);
@@ -429,30 +509,9 @@
     }, 0));
   }
 
-  function opozoriloPrevisokihPlacil(opis) {
-    if (!preverjanjeZneskov || typeof preverjanjeZneskov.oceni !== "function") return null;
-    var rezultat = preverjanjeZneskov.oceni(opis, preostaliDolg());
-    if (!rezultat.presega) return null;
-    function formatiraj(vrednost) {
-      var deli = Number(vrednost || 0).toFixed(2).split(".");
-      return deli[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + deli[1] + " €";
-    }
-    return {
-      vsota: rezultat.vsota,
-      sporocilo: "Opisani plačani zneski (" + formatiraj(rezultat.vsota) + ") presegajo preostali dolg (" + formatiraj(rezultat.dolg) + "). Uredite opis.",
-    };
-  }
-
-  function posodobiOpozoriloPrevisokihPlacil(root) {
-    var opozorilo = opozoriloPrevisokihPlacil(naravni.text);
-    var prikaz = root && root.querySelector("[data-ai-debt-warning]");
-    if (prikaz) {
-      prikaz.hidden = !opozorilo;
-      prikaz.textContent = opozorilo ? opozorilo.sporocilo : "";
-    }
+  function posodobiGumbAnalize(root) {
     var analyze = root && root.querySelector("[data-ai-analyze]");
-    if (analyze) analyze.disabled = !naravni.text.trim() || Boolean(opozorilo) || naravni.status === "analyzing";
-    return opozorilo;
+    if (analyze) analyze.disabled = !naravni.text.trim() || naravni.status === "analyzing" || analizaRetryGate.isBlocked();
   }
 
   function dopolniIzracunaniNeplacaniObrok(kandidati) {
@@ -478,49 +537,6 @@
     return datum.getUTCFullYear() === deli[0] && datum.getUTCMonth() === deli[1] - 1 && datum.getUTCDate() === deli[2];
   }
 
-  function premakniIsoDatum(iso, dni) {
-    if (!veljavenIsoDatum(iso) || !Number.isInteger(dni)) return null;
-    var deli = iso.split("-").map(Number);
-    var datum = new Date(Date.UTC(deli[0], deli[1] - 1, deli[2] + dni));
-    return datum.toISOString().slice(0, 10);
-  }
-
-  function steviloTednov(vrednost) {
-    var besede = { en: 1, ena: 1, eno: 1, prvem: 1, enem: 1, dva: 2, dve: 2, drugem: 2, tri: 3, tretjem: 3, štiri: 4, četrtem: 4 };
-    var stevilo = Object.prototype.hasOwnProperty.call(besede, vrednost) ? besede[vrednost] : Number(vrednost);
-    return Number.isInteger(stevilo) && stevilo >= 1 && stevilo <= 52 ? stevilo : null;
-  }
-
-  function datumPoTednih(iso, vrednost) {
-    var tedni = steviloTednov(vrednost);
-    return tedni == null ? null : premakniIsoDatum(iso, tedni * 7);
-  }
-
-  function lokalniDatumPlacila(text) {
-    var opis = String(text || "").toLowerCase();
-    var izdaja = veljavenIsoDatum(korak1.datumIzdajeRacuna) ? korak1.datumIzdajeRacuna : null;
-    var zapadlost = veljavenIsoDatum(korak1.datumZapadlosti) ? korak1.datumZapadlosti : null;
-    var ujemanje = opis.match(/\bpo\s+(prvem|enem|drugem|tretjem|četrtem|\d+)\s+tedn(?:u|ih)\b/i);
-    if (izdaja && ujemanje) return datumPoTednih(izdaja, ujemanje[1]);
-    ujemanje = opis.match(/\b(\d+|en|ena|eno|dva|dve|tri|štiri)\s+ted(?:en|na|ne|nov)\s+po\s+(?:izdaji|izstavitvi|datumu\s+izdaje)\b/i);
-    if (izdaja && ujemanje) return datumPoTednih(izdaja, ujemanje[1]);
-    ujemanje = opis.match(/\b(\d+|en|ena|eno|dva|dve|tri|štiri)\s+ted(?:en|na|ne|nov)\s+po\s+(?:roku(?:\s+plačila)?|zapadlosti)\b/i);
-    if (zapadlost && ujemanje) return datumPoTednih(zapadlost, ujemanje[1]);
-    return null;
-  }
-
-  function dopolniLokalniDatumPlacila(text, kandidati) {
-    var datum = lokalniDatumPlacila(text);
-    if (!datum) return;
-    (kandidati || []).some(function (kandidat) {
-      if (["partial_payment", "installment_payment", "paid_in_full"].indexOf(kandidat.type) < 0 || veljavenIsoDatum(kandidat.occurredDate)) return false;
-      kandidat.occurredDate = datum;
-      kandidat.occurredDateUnknown = false;
-      kandidat.missing = Array.isArray(kandidat.missing) ? kandidat.missing.filter(function (polje) { return polje !== "occurredDate"; }) : [];
-      return true;
-    });
-  }
-
   function dopolniRelativneDatume(kandidati) {
     if (!relativniDatumi || typeof relativniDatumi.razresiDatume !== "function") return false;
     var changed = relativniDatumi.razresiDatume(kandidati || []);
@@ -531,26 +547,17 @@
     return changed;
   }
 
-  function najpoznejsiDatumKandidata(kandidat) {
-    if (!relativniDatumi || typeof relativniDatumi.najpoznejsiDatumZaKandidata !== "function") return lokalniDanesIso();
-    return relativniDatumi.najpoznejsiDatumZaKandidata(naravni.candidates, kandidat, lokalniDanesIso()) || lokalniDanesIso();
-  }
-
   function poljaKiManjkajo(kandidat) {
     var zahtevana = Array.isArray(kandidat.requiredFields) && kandidat.requiredFields.length
       ? kandidat.requiredFields
       : poljaKandidata(kandidat).filter(function (polje) { return !(kandidat.type === "payment_promise" && polje === "amount"); });
+    if (jePlacilniDogodek(kandidat) && zahtevana.indexOf("paymentMethod") < 0) zahtevana = zahtevana.concat("paymentMethod");
     if (kandidat.type === "remaining_unpaid") zahtevana = zahtevana.filter(function (polje) { return polje !== "amount"; });
     return zahtevana.filter(function (polje) { return !poljeKandidataPrisotno(kandidat, polje); });
   }
 
   function jePlacilniDogodek(kandidat) {
     return Boolean(kandidat && ["partial_payment", "installment_payment", "paid_in_full"].indexOf(kandidat.type) >= 0);
-  }
-
-  function jeIzrecnoDokazanZnesek(kandidat, znesek) {
-    var dokaz = kandidat && kandidat.evidence;
-    return Boolean(dokaz && dokaz.explicit === true && Number(dokaz.explicitAmountEur) === Number(znesek));
   }
 
   function podedujNacinPlacilaNaslednjimPlacilom(kandidat, indeks, vrednost) {
@@ -575,22 +582,21 @@
       if (item === kandidat) break;
       if (["partial_payment", "paid_in_full", "installment_payment", "credit_note", "compensation"].indexOf(item.type) < 0) continue;
       var znesek = Number(item.amount);
-      if (Number.isFinite(znesek) && znesek > 0 && (znesek <= saldo + 0.009 || jeIzrecnoDokazanZnesek(item, znesek))) saldo = Math.max(0, Math.round((saldo - znesek) * 100) / 100);
+      if (Number.isFinite(znesek) && znesek > 0) saldo = Math.max(0, Math.round((saldo - znesek) * 100) / 100);
     }
     return saldo;
   }
 
   function poljeKandidataPrisotno(kandidat, polje) {
     if (polje === "amount") {
+      if (kandidat.amount == null || String(kandidat.amount).trim() === "") return false;
       var znesek = Number(kandidat.amount);
-      var saldo = saldoPredKandidatom(kandidat);
-      if (!Number.isFinite(znesek) || znesek <= 0 || (znesek > saldo + 0.009 && !jeIzrecnoDokazanZnesek(kandidat, znesek))) return false;
-      return kandidat.type !== "paid_in_full" || Math.abs(znesek - saldo) <= 0.009;
+      return Number.isFinite(znesek);
     }
     if (polje === "occurredDate" || polje === "promisedDate") {
       var jePriblizenDatum = kandidat[polje + "Approximate"] === true && Boolean(String(kandidat[polje + "Approximation"] || "").trim());
       var datum = kandidat[polje];
-      var jeVeljavenDatum = veljavenIsoDatum(datum) && (polje !== "occurredDate" || datum <= najpoznejsiDatumKandidata(kandidat));
+      var jeVeljavenDatum = veljavenIsoDatum(datum);
       return kandidat[polje + "Unknown"] === true || jeVeljavenDatum || jePriblizenDatum;
     }
     return Boolean(String(kandidat[polje] || "").trim());
@@ -674,9 +680,11 @@
 
   function oznakaObroka(kandidat, indeks) {
     var opis = String(kandidat && kandidat.description || "").trim();
-    if (/^\d+\/\d+\s+obrok$/u.test(opis)) return opis;
+    var ordinal = opis.match(/^(\d+)\/(\d+)\s+obrok$/u);
+    if (ordinal && Number(ordinal[1]) >= 1 && Number(ordinal[1]) <= Number(ordinal[2])) return opis;
     var zaporedje = kandidatZaporedje(indeks);
-    return zaporedje ? zaporedje + ". obrok" : "";
+    var skupaj = naravni.candidates.filter(function (item) { return item.type === "installment_payment"; }).length;
+    return zaporedje ? zaporedje + (skupaj > 1 ? "/" + skupaj : ".") + " obrok" : "";
   }
 
   function imeDogodka(kandidat, indeks) {
@@ -688,7 +696,7 @@
 
   function jePoljeIzpolnjeno(kandidat, polje) {
     if (!kandidat) return false;
-    if (polje === "amount") return Number(kandidat.amount) > 0;
+    if (polje === "amount") return kandidat.amount != null && String(kandidat.amount).trim() !== "" && Number.isFinite(Number(kandidat.amount));
     if (polje === "occurredDate" || polje === "promisedDate") return /^\d{4}-\d{2}-\d{2}$/.test(String(kandidat[polje] || "")) || kandidat[polje + "Unknown"] === true || (kandidat[polje + "Approximate"] === true && Boolean(String(kandidat[polje + "Approximation"] || "").trim()));
     return Boolean(String(kandidat[polje] || "").trim());
   }
@@ -702,7 +710,7 @@
   function vprasanjeIzpolnjeno(indeks) {
     var podatki = razcleniKljucVprasanja(naravni.questionKeys[indeks]);
     var kandidat = naravni.candidates[podatki.indeks];
-    return podatki.polja.length > 0 && podatki.polja.every(function (polje) {
+    return kandidatJePotrjen(podatki.indeks) && podatki.polja.length > 0 && podatki.polja.every(function (polje) {
       return jePoljeIzpolnjeno(kandidat, polje);
     });
   }
@@ -743,6 +751,26 @@
       (priblizniDatum ? '<span class="zgodovina-ai-vprasanje__datum-namig">Za točen datum izklopite Približno.</span>' : '') + '</span>';
   }
 
+  function kratekMesecLeto(value) {
+    var parts = String(value || "").split("-");
+    var months = ["jan.", "feb.", "mar.", "apr.", "maj", "jun.", "jul.", "avg.", "sep.", "okt.", "nov.", "dec."];
+    return months[Number(parts[1]) - 1] ? months[Number(parts[1]) - 1] + " " + parts[0] : "Mesec in leto";
+  }
+
+  function delniMesecPodatki(kandidat, polje) {
+    if (!kandidat || polje !== "occurredDate" || kandidat[polje + "Unknown"] === true || kandidat[polje + "Approximate"] === true) return null;
+    var yearMonth = String(kandidat.occurredDateKnownYearMonth || kandidat.occurredDateSuggestedYearMonth || "");
+    if (yearMonth && veljavenIsoDatum(kandidat.occurredDate)) yearMonth = kandidat.occurredDate.slice(0, 7);
+    var match = yearMonth.match(/^(\d{4})-(\d{2})$/);
+    if (!match) return null;
+    var year = Number(match[1]);
+    var month = Number(match[2]);
+    if (!Number.isInteger(year) || month < 1 || month > 12) return null;
+    var maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    var selected = String(kandidat.occurredDate || "").match(new RegExp("^" + yearMonth + "-(\\d{2})$"));
+    return { yearMonth: yearMonth, year: year, month: month, maxDay: maxDay, day: selected ? Number(selected[1]) : "" };
+  }
+
   function izbiraVprasanjaHtml(kandidat, indeks, polje, praznoBesedilo, moznosti) {
     var vrednost = String(kandidat && kandidat[polje] || "");
     var izbrana = moznosti.find(function (moznost) { return moznost.value === vrednost; });
@@ -752,28 +780,30 @@
       var aktivna = moznost.value === vrednost;
       return '<button type="button" role="option" data-ai-choice-option data-ai-choice-value="' + esc(moznost.value) + '" aria-selected="' + String(aktivna) + '" class="' + (aktivna ? "is-selected" : "") + '"><span>' + esc(moznost.label) + '</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg></button>';
     }).join("");
-    return '<div class="zgodovina-ai-vprasanje__izbira" data-ai-choice>' +
-      '<input class="zgodovina-ai-vprasanje__izbira-input" type="hidden" data-ai-candidate-field="' + polje + '" data-ai-candidate-index="' + indeks + '" value="' + esc(vrednost) + '">' +
+    return '<div class="zgodovina-ai-vprasanje__izbira" data-ai-choice data-ai-choice-empty-label="' + esc(praznoBesedilo) + '">' +
+      '<input class="zgodovina-ai-vprasanje__izbira-input" type="hidden" data-ai-candidate-field="' + polje + '"' + atributiKandidata(kandidat, indeks) + ' value="' + esc(vrednost) + '">' +
       '<button type="button" class="zgodovina-ai-vprasanje__izbira-gumb" data-ai-choice-toggle aria-haspopup="listbox" aria-expanded="false" aria-controls="' + seznamId + '"><span' + prilagodiBesedilo + '>' + esc(izbrana ? izbrana.label : praznoBesedilo) + '</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></button>' +
       '<div class="zgodovina-ai-vprasanje__izbira-seznam" id="' + seznamId + '" role="listbox" hidden>' + gumbi + '</div></div>';
   }
 
   function kontrolnikVprasanja(kandidat, indeks, polje) {
-    var skupno = ' data-ai-candidate-field="' + polje + '" data-ai-candidate-index="' + indeks + '" data-izvedba-fit data-fit-min="10"';
+    var skupno = ' data-ai-candidate-field="' + polje + '"' + atributiKandidata(kandidat, indeks) + ' data-izvedba-fit data-fit-min="10"';
     if (polje === "amount") {
-      var najvec = jeIzrecnoDokazanZnesek(kandidat, kandidat.amount) ? Math.max(preostaliDolg(), Number(kandidat.amount)) : preostaliDolg();
-      var znesek = '<span class="zgodovina-ai-vprasanje__znesek"><input type="number" inputmode="decimal" step="0.01" min="0.01" max="' + esc(najvec) + '"' + skupno + ' value="' + esc(kandidat.amount == null ? "" : kandidat.amount) + '" placeholder="Vnesite znesek"><b>€</b></span>';
-      return kandidat.type === "payment_promise" ? '<div class="zgodovina-ai-vprasanje__znesek-vrstica">' + znesek + '<button type="button" data-ai-promise-remaining data-ai-candidate-index="' + indeks + '">Preostanek</button></div>' : znesek;
+      var znesek = '<span class="zgodovina-ai-vprasanje__znesek"><input type="number" inputmode="decimal" step="0.01"' + skupno + ' value="' + esc(kandidat.amount == null ? "" : kandidat.amount) + '" placeholder="Vnesite znesek"><b>€</b></span>';
+      return kandidat.type === "payment_promise" ? '<div class="zgodovina-ai-vprasanje__znesek-vrstica">' + znesek + '<button type="button" data-ai-promise-remaining' + atributiKandidata(kandidat, indeks) + '>Preostanek</button></div>' : znesek;
     }
     if (polje === "occurredDate" || polje === "promisedDate") {
       var jeNeznano = kandidat[polje + "Unknown"] === true;
       var jePriblizno = kandidat[polje + "Approximate"] === true;
+      var delniMesec = delniMesecPodatki(kandidat, polje);
       var datumInput = jeNeznano
         ? '<input type="text" data-ai-unknown-date-display' + skupno + ' value="Ne vem" disabled>'
         : jePriblizno
-          ? '<input type="text" maxlength="120" data-ai-candidate-field="' + polje + 'Approximation" data-ai-candidate-index="' + indeks + '" data-izvedba-fit data-fit-min="10" value="' + esc(kandidat[polje + "Approximation"] || "") + '" placeholder="Npr. v začetku avgusta">'
-          : '<input type="date"' + (polje === "occurredDate" ? ' max="' + esc(najpoznejsiDatumKandidata(kandidat)) + '"' : '') + skupno + ' value="' + esc(kandidat[polje] || "") + '">';
-      return '<div class="zgodovina-ai-vprasanje__datum zgodovina-ai-vprasanje__datum--obljuba">' + datumInput + '<button type="button" data-ai-unknown-field="' + polje + '" data-ai-candidate-index="' + indeks + '" aria-pressed="' + String(jeNeznano) + '" class="' + (jeNeznano ? "is-selected" : "") + '">Ne vem</button><button type="button" data-ai-approximate-field="' + polje + '" data-ai-candidate-index="' + indeks + '" aria-pressed="' + String(jePriblizno) + '" class="' + (jePriblizno ? "is-selected" : "") + '">Približno</button></div>';
+          ? '<input type="text" maxlength="120" data-ai-candidate-field="' + polje + 'Approximation"' + atributiKandidata(kandidat, indeks) + ' data-izvedba-fit data-fit-min="10" value="' + esc(kandidat[polje + "Approximation"] || "") + '" placeholder="Npr. v začetku avgusta">'
+          : delniMesec
+            ? '<span class="zgodovina-ai-vprasanje__delni-datum"><input type="number" inputmode="numeric" min="1" max="' + delniMesec.maxDay + '" data-ai-partial-date-day' + atributiKandidata(kandidat, indeks) + ' value="' + esc(delniMesec.day) + '" placeholder="dan ?" aria-label="Izberite dan v mesecu"><span aria-hidden="true"></span><span class="zgodovina-ai-kratek-mesec"><span data-ai-month-label aria-hidden="true">' + esc(kratekMesecLeto(delniMesec.yearMonth)) + '</span><input type="month" data-ai-partial-date-month data-ai-partial-year-month="' + delniMesec.yearMonth + '"' + atributiKandidata(kandidat, indeks) + ' value="' + delniMesec.yearMonth + '" aria-label="Izberite mesec in leto"></span></span>'
+            : '<span class="zgodovina-ai-cel-datum' + (!kandidat[polje] ? ' is-empty' : '') + '"><span aria-hidden="true">dan ? · mesec ? · ' + (kandidat[polje + "KnownYear"] ? "<strong>" + esc(kandidat[polje + "KnownYear"]) + "</strong>" : "leto ?") + '</span><input type="date"' + (polje === "occurredDate" ? ' data-ai-history-date' : '') + skupno + ' value="' + esc(kandidat[polje] || "") + '"></span>';
+      return '<div class="zgodovina-ai-vprasanje__datum zgodovina-ai-vprasanje__datum--obljuba' + (delniMesec ? ' zgodovina-ai-vprasanje__datum--delni' : '') + '">' + datumInput + '<button type="button" data-izvedba-fit data-fit-min="8" data-ai-unknown-field="' + polje + '"' + atributiKandidata(kandidat, indeks) + ' aria-pressed="' + String(jeNeznano) + '" class="' + (jeNeznano ? "is-selected" : "") + '">Ne vem</button><button type="button" data-izvedba-fit data-fit-min="8" data-ai-approximate-field="' + polje + '"' + atributiKandidata(kandidat, indeks) + ' aria-pressed="' + String(jePriblizno) + '" class="' + (jePriblizno ? "is-selected" : "") + '">Približno</button></div>';
     }
     if (polje === "paymentMethod") return izbiraVprasanjaHtml(kandidat, indeks, polje, "Izberite način plačila", [{ value: "bank_transfer", label: "Bančno nakazilo" }, { value: "cash", label: "Gotovina" }, { value: "card", label: "Kartica" }, { value: "direct_debit", label: "Direktna obremenitev" }, { value: "other", label: "Drugo" }, { value: "unknown", label: "Ne vem" }]);
     if (polje === "communicationChannel") return izbiraVprasanjaHtml(kandidat, indeks, polje, "Izberite način komunikacije", [{ value: "phone", label: "Po telefonu" }, { value: "email", label: "Po e-pošti" }, { value: "sms", label: "SMS" }, { value: "in_person", label: "Osebno" }, { value: "letter", label: "Pisno pismo" }, { value: "other", label: "Drugo" }, { value: "unknown", label: "Ne vem" }]);
@@ -795,13 +825,28 @@
       var kandidatKoraka = podatkiKoraka && naravni.candidates[podatkiKoraka.indeks];
       var tonKoraka = kandidatKoraka ? metaKandidata(kandidatKoraka).razred : "povzetek";
       var jePovzetek = indeks === naravni.questionKeys.length;
-      var stanje = indeks === trenutni ? "current" : (!jePovzetek && indeks < trenutni && vprasanjeIzpolnjeno(indeks) ? "completed" : "upcoming");
+      var jeTrenutni = indeks === trenutni;
+      var jeDokoncan = !jePovzetek && vprasanjeIzpolnjeno(indeks);
+      var razrediStanja = [];
+      if (jeTrenutni) razrediStanja.push("is-current");
+      if (jeDokoncan) razrediStanja.push("is-completed");
+      if (!jeTrenutni && !jeDokoncan) razrediStanja.push("is-upcoming");
       var oznaka = jePovzetek ? "Povzetek" : "Korak " + (indeks + 1);
-      var opisStanja = stanje === "current" ? "trenutni" : stanje === "completed" ? "dokončan" : "prihodnji";
+      var opisStanja = jeTrenutni ? (jeDokoncan ? "trenutni in dokončan" : "trenutni") : jeDokoncan ? "dokončan" : "prihodnji";
       var vsebinaKroga = jePovzetek ? K.ikona("thumbsUp") : String(indeks + 1);
-      krogi.push('<button type="button" data-ai-question-step="' + indeks + '" class="is-tone-' + esc(tonKoraka) + ' is-' + stanje + '" aria-label="' + esc(oznaka + ", " + opisStanja) + '"' + (stanje === "current" ? ' aria-current="step"' : '') + '><span>' + vsebinaKroga + '</span></button>');
+      krogi.push('<button type="button" data-ai-question-step="' + indeks + '" class="is-tone-' + esc(tonKoraka) + ' ' + razrediStanja.join(" ") + '" aria-label="' + esc(oznaka + ", " + opisStanja) + '"' + (jeTrenutni ? ' aria-current="step"' : '') + '><span>' + vsebinaKroga + '</span></button>');
     });
-    return '<div class="zgodovina-ai-napredek" aria-label="Korak ' + (trenutni + 1) + ' od ' + skupaj + '"><i aria-hidden="true"></i>' + krogi.join("") + '</div>';
+    var kompaktno = skupaj >= 7 && skupaj <= 8 ? " is-compact" : "";
+    return '<div class="zgodovina-ai-napredek' + kompaktno + '" aria-label="Korak ' + (trenutni + 1) + ' od ' + skupaj + '"><i aria-hidden="true"></i>' + krogi.join("") + '</div>';
+  }
+
+  function posodobiAktivniKorakNapredka(root) {
+    var gumb = root.querySelector('.zgodovina-ai-napredek > button.is-current:not(.is-tone-povzetek)');
+    if (!gumb) return;
+    var jeDokoncan = vprasanjeIzpolnjeno(naravni.questionIndex);
+    var indeks = Number(gumb.getAttribute("data-ai-question-step"));
+    gumb.classList.toggle("is-completed", jeDokoncan);
+    if (Number.isInteger(indeks)) gumb.setAttribute("aria-label", "Korak " + (indeks + 1) + (jeDokoncan ? ", trenutni in dokončan" : ", trenutni"));
   }
 
   function formatirajDatumVnosa(vrednost) {
@@ -844,13 +889,22 @@
   }
 
   function posodobiPrikazPreostalegaDolga(root) {
-    var saldoKoraka = root && root.querySelector("[data-ai-remaining-debt]");
-    if (saldoKoraka) saldoKoraka.textContent = K.formatirajEur(predvideniPreostaliDolgAktivnegaKoraka());
-    var vrednost = root && root.querySelector(".zgodovina-stanje-dolga .izvedba-potek-zneski__stolpec--preostanek .izvedba-potek-zneski__vrednost");
-    if (!vrednost) return;
     var znesek = naravni.mode === "natural" && naravni.candidates.length
       ? predvideniPreostaliDolg()
       : preostaliDolg();
+    var saldoKoraka = root && root.querySelector("[data-ai-remaining-debt]");
+    if (saldoKoraka) saldoKoraka.textContent = K.formatirajEur(predvideniPreostaliDolgAktivnegaKoraka());
+    var tok = root && root.querySelector("[data-ai-live-debt-flow]");
+    if (tok) {
+      var tokVrednost = tok.querySelector("[data-ai-live-debt-remaining]");
+      if (tokVrednost) tokVrednost.textContent = K.formatirajEur(znesek);
+      var prvotni = Number(tok.getAttribute("data-original-debt"));
+      var delez = prvotni > 0 ? Math.max(0, Math.min(100, ((prvotni - znesek) / prvotni) * 100)) : 0;
+      var tokNapredek = tok.querySelector("[data-ai-live-debt-progress]");
+      if (tokNapredek) tokNapredek.style.setProperty("--dolg-napredek", delez.toFixed(2) + "%");
+    }
+    var vrednost = root && root.querySelector(".zgodovina-stanje-dolga .izvedba-potek-zneski__stolpec--preostanek .izvedba-potek-zneski__vrednost");
+    if (!vrednost) return;
     vrednost.textContent = K.formatirajEur(znesek);
   }
 
@@ -875,10 +929,8 @@
     if (kandidat.reason) deli.push(kandidat.reason);
     if (kandidat.description && kandidat.type !== "unpaid_installment" && !(kandidat.type === "installment_payment" && /^\d+\/\d+\s+obrok$/u.test(String(kandidat.description).trim()))) deli.push(kandidat.description);
     var naslov = kandidat.type === "installment_payment" && oznakaObroka(kandidat, indeks) ? oznakaObroka(kandidat, indeks) : kandidat.type === "unpaid_installment" && kandidat.description ? kandidat.description : meta.naslov;
-    var odprto = naravni.editCandidate === indeks;
-    return '<article class="zgodovina-ai-povzetek zgodovina-ai-povzetek--' + esc(meta.razred) + (odprto ? ' is-editing' : '') + '"><span aria-hidden="true">' + K.ikona(meta.ikona) + '</span><div><strong>' + esc(naslov) + '</strong><p>' + esc(deli.join(" · ")) + '</p></div>' +
-      '<span class="zgodovina-ai-povzetek__akcije"><button type="button" data-ai-edit-candidate="' + indeks + '" aria-expanded="' + String(odprto) + '">' + (odprto ? 'Zapri' : 'Uredi') + '</button><button type="button" data-ai-candidate-remove="' + indeks + '" aria-label="Izbriši ' + esc(naslov) + '">×</button></span>' +
-      (odprto ? kandidatPolja(kandidat, indeks) : '') + '</article>';
+    return '<article class="zgodovina-ai-povzetek zgodovina-ai-povzetek--' + esc(meta.razred) + '"><span aria-hidden="true">' + K.ikona(meta.ikona) + '</span><div><strong>' + esc(naslov) + '</strong><p>' + esc(deli.join(" · ")) + '</p></div>' +
+      '<span class="zgodovina-ai-povzetek__akcije"><button type="button" data-ai-edit-candidate="' + indeks + '"' + atributiKandidata(kandidat, indeks) + ' aria-label="Uredi ' + esc(naslov) + '">Uredi</button><button type="button" data-ai-candidate-remove="' + indeks + '"' + atributiKandidata(kandidat, indeks) + ' aria-label="Izbriši ' + esc(naslov) + '">×</button></span></article>';
   }
 
   function pogovorVprasanjeHtml() {
@@ -892,12 +944,13 @@
       var razredPolja = kompaktnoPlacilo && ["amount", "occurredDate", "paymentMethod"].indexOf(polje) >= 0 ? ' class="is-' + (polje === "occurredDate" ? "date" : polje === "paymentMethod" ? "payment-method" : "amount") + '"' : '';
       return '<label' + razredPolja + '>' + oznakaVprasanjaHtml(kandidat, podatki.indeks, polje) + kontrolnikVprasanja(kandidat, podatki.indeks, polje) + '</label>';
     }).join('');
+    var obveznoVprasanjeManjka = !virUrejanje && !aktivnoVprasanjeIzpolnjeno();
     var naslednjiGumb = virUrejanje
       ? '<button type="button" data-ai-source-update' + (!virOsnutek.trim() || virOsnutek.trim() === naravni.text.trim() ? ' disabled' : '') + '>Posodobi</button>'
-      : '<button type="button" data-ai-question-next' + (aktivnoVprasanjeIzpolnjeno() ? '' : ' disabled') + '>' + (naravni.questionIndex + 1 === naravni.questionKeys.length ? 'Pokaži povzetek' : 'Naprej') + '</button>';
+      : '<button type="button" data-ai-question-next' + (obveznoVprasanjeManjka ? ' disabled' : '') + '>' + (naravni.editCandidate != null ? 'Nazaj na predogled' : naravni.questionIndex + 1 === naravni.questionKeys.length ? 'Pokaži povzetek' : 'Naprej') + '</button>';
     return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--' + esc(meta.razred) + '">' + virOpisHtml() + lunaPorociloHtml() + napredekHtml(naravni.questionIndex, skupaj) + stanjeDolgaNapredekHtml() +
-      '<div class="zgodovina-ai-vprasanje zgodovina-ai-vprasanje--' + esc(meta.razred) + '"><button type="button" class="zgodovina-ai-vprasanje__odstrani" data-ai-candidate-remove="' + podatki.indeks + '" aria-label="Izbriši ' + esc(imeDogodka(kandidat, podatki.indeks)) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span class="zgodovina-ai-vprasanje__ikona" aria-hidden="true">' + K.ikona(meta.ikona) + '</span><div><h4>Dopolnite ' + esc(imeDogodka(kandidat, podatki.indeks)) + '</h4><p>Vsi manjkajoči podatki tega dogodka so združeni tukaj.</p></div><button type="button" class="zgodovina-ai-vprasanje__spremeni" data-ai-change-candidate aria-label="Spremeni vrsto dogodka">Spremeni</button><div class="zgodovina-ai-vprasanje__polja' + (kompaktnoPlacilo ? ' zgodovina-ai-vprasanje__polja--placilo-kompaktno' : '') + '">' + poljaHtml + '</div></div>' +
-      '<div class="zgodovina-ai-pogovor__akcije"><button type="button" data-ai-edit-description>Spremeni opis</button>' + naslednjiGumb + '</div></div>';
+      '<div class="zgodovina-ai-vprasanje zgodovina-ai-vprasanje--' + esc(meta.razred) + (obveznoVprasanjeManjka ? ' is-obvezno-manjka' : '') + '"' + atributiKandidata(kandidat, podatki.indeks) + '><button type="button" class="zgodovina-ai-vprasanje__odstrani" data-ai-candidate-remove="' + podatki.indeks + '"' + atributiKandidata(kandidat, podatki.indeks) + ' aria-label="Izbriši ' + esc(imeDogodka(kandidat, podatki.indeks)) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span class="zgodovina-ai-vprasanje__ikona" aria-hidden="true">' + K.ikona(meta.ikona) + '</span><div><h4>Dopolnite ' + esc(imeDogodka(kandidat, podatki.indeks)) + '</h4><p>Vsi manjkajoči podatki tega dogodka so združeni tukaj.</p></div><button type="button" class="zgodovina-ai-vprasanje__spremeni" data-ai-change-candidate' + atributiKandidata(kandidat, podatki.indeks) + ' aria-label="Spremeni vrsto dogodka">Spremeni</button><div class="zgodovina-ai-vprasanje__polja' + (kompaktnoPlacilo ? ' zgodovina-ai-vprasanje__polja--placilo-kompaktno' : '') + '">' + poljaHtml + '</div>' +
+      '<div class="zgodovina-ai-pogovor__akcije"><button type="button" data-ai-edit-description>Spremeni opis</button>' + naslednjiGumb + '</div></div></div>';
   }
 
   function virOpisHtml() {
@@ -936,11 +989,12 @@
     var manjkaHtml = manjka.length
       ? '<p class="zgodovina-ai-osnutek__manjka" role="status">Dopolnite označena polja pred potrditvijo.</p>'
       : '<p class="zgodovina-ai-osnutek__pripravljen">Pripravljeno za potrditev</p>';
-    return '<div class="zgodovina-ai-povzetek__urejanje zgodovina-ai-vprasanje" data-ai-candidate="' + indeks + '"><div class="zgodovina-ai-vprasanje__polja">' + poljaHtml + '</div>' + manjkaHtml + '</div>';
+    return '<div class="zgodovina-ai-povzetek__urejanje zgodovina-ai-vprasanje" data-ai-candidate="' + indeks + '"' + atributiKandidata(kandidat, indeks) + '><div class="zgodovina-ai-vprasanje__polja">' + poljaHtml + '</div>' + manjkaHtml + '</div>';
   }
 
   function naravniStatusHtml() {
     var sporocilo = naravni.error ? sporociloNapakeZaObrtnika(naravni.error) : priporociloZaObrtnika(naravni.statusText);
+    if (naravni.error && analizaRetryGate.isBlocked()) sporocilo += " Ponovno lahko poskusite čez " + Math.ceil(analizaRetryGate.remainingMs() / 1000) + " s.";
     if (!sporocilo) return '';
     var razred = naravni.error ? " is-error" : " is-ready";
     return '<p class="zgodovina-ai__status' + razred + '" aria-live="polite">' + esc(sporocilo) + '</p>';
@@ -993,9 +1047,10 @@
     podnaslov.hidden = false;
     podnaslov.classList.toggle("zgodovina-ai-glava__status--ok", jePripravljeno);
     podnaslov.classList.toggle("zgodovina-ai-glava__status--opozorilo", imaKandidate && !jePripravljeno);
+    var jeDogovor = jeVgrajenaZgodovina && state && state.actionSheetMode === "payment";
     podnaslov.textContent = imaKandidate
-      ? kratkoPorociloPripravljenihDogodkov(naravni.candidates.length) + (jePripravljeno ? " Vse je pripravljeno." : " Nekaj podatkov še manjka.")
-      : "Dodajte samo dogodke, ki so se že zgodili.";
+      ? kratkoPorociloPripravljenihDogodkov(naravni.candidates.length) + (jePripravljeno ? " Vse je pripravljeno." : " Pred nadaljevanjem dopolnite označene podatke.")
+      : (jeDogovor ? "Opišite dogovor, na katerega je pristal dolžnik." : "Dodajte samo dogodke, ki so se že zgodili.");
   }
 
   function lunaPorocilo(semanticPlan, kandidati) {
@@ -1016,6 +1071,17 @@
     if (analizaStatusCasovnik) window.clearInterval(analizaStatusCasovnik);
     analizaStatusCasovnik = 0;
     analizaStatusKorak = 0;
+  }
+
+  function prekiniAktivnoAnalizo() {
+    analizaGeneracija += 1;
+    if (analizaAbort) {
+      analizaAbort.abort();
+      analizaAbort.dispose();
+      analizaAbort = null;
+    }
+    ustaviAnalizaStatus();
+    if (naravni.status === "analyzing") naravni.status = "ready";
   }
 
   function posodobiAnalizaStatus() {
@@ -1079,16 +1145,18 @@
 
   function naravniVnosHtml() {
     var busy = ["starting", "recording", "transcribing", "stopping", "analyzing"].indexOf(naravni.status) >= 0;
+    var retryBlokiran = analizaRetryGate.isBlocked();
     var recording = snemanjeAktivno || Boolean(canary && canary.isRecording());
-    var opozoriloDolga = opozoriloPrevisokihPlacil(naravni.text);
     var merilnik = recording ? '<span class="zgodovina-ai__glasnost" data-ai-voice-meter aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>' : '';
-    var vnos = '<label class="zgodovina-ai__vnos"><span class="sr-only">Opis dogodkov</span><textarea maxlength="2000" data-ai-text placeholder="Npr. plačal je tri obroke po 300 € …">' + esc(naravni.text) + '</textarea></label>' +
+    var jeDogovor = jeVgrajenaZgodovina && state && state.actionSheetMode === "payment";
+    var vnos = '<label class="zgodovina-ai__vnos"><span class="sr-only">' + (jeDogovor ? 'Opis dogovora' : 'Opis dogodkov') + '</span><textarea maxlength="2000" data-ai-text placeholder="' + (jeDogovor ? 'Npr. plačal bo v treh obrokih po 300 € …' : 'Npr. plačal je tri obroke po 300 € …') + '"' + (naravni.status === "analyzing" ? ' disabled' : '') + '>' + esc(naravni.text) + '</textarea></label>' +
       '<div class="zgodovina-ai__akcije"><button type="button" class="zgodovina-ai__snemaj' + (recording ? ' is-recording' : '') + '" data-ai-record aria-label="' + (recording ? 'Prekini snemanje' : 'Povej na glas') + '" aria-pressed="' + String(Boolean(recording)) + '"' + (naravni.status === "analyzing" ? ' disabled' : '') + '>' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span class="zgodovina-ai__snemaj-napis">' + (recording ? 'Prekini snemanje' : 'Povej na glas') + '</span>' + merilnik + '</button>' +
-        '<button type="button" class="zgodovina-ai__razumi" data-ai-analyze' + (naravni.status === "analyzing" ? ' aria-busy="true"' : '') + (!naravni.text.trim() || busy || opozoriloDolga ? ' disabled' : '') + '>' + (naravni.status === "analyzing" ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span><span data-ai-analyze-status>' + esc(ANALIZA_STATUS_BESEDILA[0]) + '</span>' : 'Pripravi dogodke') + '</button></div>' +
-      '<p class="zgodovina-ai__status is-error" data-ai-debt-warning aria-live="polite"' + (opozoriloDolga ? '' : ' hidden') + '>' + esc(opozoriloDolga ? opozoriloDolga.sporocilo : '') + '</p>' + naravniStatusHtml();
+        '<button type="button" class="zgodovina-ai__razumi" data-ai-analyze' + (naravni.status === "analyzing" ? ' aria-busy="true"' : '') + (!naravni.text.trim() || busy || retryBlokiran ? ' disabled' : '') + '>' + (naravni.status === "analyzing" ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span><span data-ai-analyze-status>' + esc(ANALIZA_STATUS_BESEDILA[0]) + '</span>' : 'Pripravi dogodke') + '</button></div>' + naravniStatusHtml();
     var vsebina = naravni.phase === "clarification_exhausted" && naravni.clarificationExhausted
       ? pojasniloIzcrpanoHtml()
+      : naravni.phase === "warning" && naravni.clarificationKind === "warning" && naravni.clarificationQuestion
+      ? opozoriloHtml()
       : naravni.phase === "clarification" && naravni.clarificationQuestion
       ? pojasniloHtml()
       : naravni.phase === "questions" ? pogovorVprasanjeHtml() : naravni.phase === "review" && naravni.candidates.length ? pogovorPovzetekHtml() : vnos;
@@ -1104,6 +1172,7 @@
 
   function pojasniloHtml() {
     var busy = naravni.status === "analyzing";
+    var retryBlokiran = analizaRetryGate.isBlocked();
     var status = busy || naravni.error ? naravniStatusHtml() : "";
     return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--pojasnilo">' + virOpisHtml() +
       '<div class="zgodovina-ai-pojasnilo" role="dialog" aria-modal="false" aria-labelledby="zgodovina-ai-pojasnilo-naslov">' +
@@ -1112,8 +1181,18 @@
       '<h3 id="zgodovina-ai-pojasnilo-naslov">' + esc(naravni.clarificationQuestion) + '</h3>' +
       '<label><span class="sr-only">Vaš odgovor</span><textarea maxlength="400" data-ai-clarification-answer placeholder="Odgovorite s kratkim jasnim stavkom …"' + (busy ? ' disabled' : '') + '>' + esc(naravni.clarificationAnswer) + '</textarea></label>' +
       '<div class="zgodovina-ai-pojasnilo__akcije"><button type="button" data-ai-clarification-edit' + (busy ? ' disabled' : '') + '>Uredi opis</button>' +
-      '<button type="button" class="zgodovina-ai__potrdi" data-ai-clarification-submit' + (!naravni.clarificationAnswer.trim() || busy ? ' disabled' : '') + '>' + (busy ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span> Preverjam …' : 'Odgovori') + '</button></div>' +
+      '<button type="button" class="zgodovina-ai__potrdi" data-ai-clarification-submit' + (!naravni.clarificationAnswer.trim() || busy || retryBlokiran ? ' disabled' : '') + '>' + (busy ? '<span class="izvedba-sticky__loader" aria-hidden="true"></span> Preverjam …' : 'Odgovori') + '</button></div>' +
       status + '</div></div></div>';
+  }
+
+  function opozoriloHtml() {
+    return '<div class="zgodovina-ai-pogovor zgodovina-ai-pogovor--pojasnilo">' + virOpisHtml() +
+      '<div class="zgodovina-ai-pojasnilo zgodovina-ai-pojasnilo--opozorilo" role="alert" aria-labelledby="zgodovina-ai-opozorilo-naslov">' +
+      '<div class="zgodovina-ai-pojasnilo__ikona" aria-hidden="true">!</div>' +
+      '<div class="zgodovina-ai-pojasnilo__vsebina"><p class="zgodovina-ai-pojasnilo__oznaka">Opis ni pravilen</p>' +
+      '<h3 id="zgodovina-ai-opozorilo-naslov">' + esc(naravni.clarificationQuestion) + '</h3>' +
+      '<div class="zgodovina-ai-pojasnilo__akcije zgodovina-ai-pojasnilo__akcije--ena"><button type="button" data-ai-clarification-edit>Uredi opis</button></div>' +
+      '</div></div></div>';
   }
 
   function pojasniloIzcrpanoHtml() {
@@ -1147,14 +1226,15 @@
     if (brezIzbireNacina) return;
     var preklop = document.createElement("section");
     preklop.className = "zgodovina-nacina";
+    var jeDogovor = jeVgrajenaZgodovina && state && state.actionSheetMode === "payment";
     preklop.innerHTML = naravni.replacement
       ? '<div class="zgodovina-zamenjava__vrstica"><p class="zgodovina-zamenjava__opis">Izberite drugo vrsto dogodka za ta korak.</p>' +
         '<div class="zgodovina-zamenjava__akcije"><button type="button" class="zgodovina-zamenjava__potrdi" data-ai-replacement-confirm' + (state.selectedSettlementType ? '' : ' disabled') + '>Spremeni</button>' +
         '<button type="button" class="zgodovina-zamenjava__preklic" data-ai-replacement-cancel aria-label="Nazaj brez zamenjave">×</button></div></div>'
-      : '<div class="zgodovina-nacina__izbira" role="tablist" aria-label="Način dodajanja dogodkov">' +
+      : '<div class="zgodovina-nacina__izbira" role="tablist" aria-label="' + (jeDogovor ? 'Način vnosa dogovora' : 'Način dodajanja dogodkov') + '">' +
         '<button type="button" role="tab" data-zgodovina-mode="natural" aria-selected="' + String(naravni.mode === "natural") + '" class="' + (naravni.mode === "natural" ? 'is-selected' : '') + '"><span aria-hidden="true">' + K.ikona("pencil") + '</span><strong>Povej ali napiši</strong><small>Hitrejši vnos</small></button>' +
-        '<button type="button" role="tab" data-zgodovina-mode="manual" aria-selected="' + String(naravni.mode === "manual") + '" class="' + (naravni.mode === "manual" ? 'is-selected' : '') + '"><span aria-hidden="true">' + K.ikona("checkCircle") + '</span><strong>Ročno izberi</strong><small>Obstoječe kartice</small></button></div>' +
-        (naravni.mode === "natural" ? naravniVnosHtml() : '<p class="zgodovina-nacina__rocno-opis">Izberite vrsto dogodka in ročno dopolnite njegove podatke.</p>');
+        '<button type="button" role="tab" data-zgodovina-mode="manual" aria-selected="' + String(naravni.mode === "manual") + '" class="' + (naravni.mode === "manual" ? 'is-selected' : '') + '"><span aria-hidden="true">' + K.ikona("checkCircle") + '</span><strong>Ročno izberi</strong><small>' + (jeDogovor ? 'Vrste dogovorov' : 'Obstoječe kartice') + '</small></button></div>' +
+        (naravni.mode === "natural" ? naravniVnosHtml() : '<p class="zgodovina-nacina__rocno-opis">' + (jeDogovor ? 'Izberite dogovor in dopolnite njegove podatke.' : 'Izberite vrsto dogodka in ročno dopolnite njegove podatke.') + '</p>');
     cona.parentNode.insertBefore(preklop, cona);
     var cone = root.querySelectorAll(".izvedba-poravnava-cona");
     if (naravni.mode === "natural") {
@@ -1179,6 +1259,7 @@
   }
 
   async function token(prisilnoOsvezi) {
+    if (jeLokalniAtenaPredogled()) return "local-preview";
     var seja = await supabaseKlient.auth.getSession();
     if (seja && seja.error) throw seja.error;
     var trenutnaSeja = seja && seja.data && seja.data.session;
@@ -1193,19 +1274,31 @@
     return accessToken;
   }
 
+  function jeLokalniAtenaPredogled() {
+    var jeLoopback = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    return jeLoopback && (
+      globalThis.UJ_LOKALNI_APP_PREDOGLED === true ||
+      new URLSearchParams(window.location.search).get("app-preview") === "1" ||
+      sessionStorage.getItem("app-iphone-preview") === "1"
+    );
+  }
+
+  function atenaApiGlave(accessToken) {
+    var glave = { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" };
+    if (jeLokalniAtenaPredogled()) glave["X-UJ-Local-Preview"] = "1";
+    return glave;
+  }
+
   async function razcleniBesedilo(pojasnilo) {
     var text = String(naravni.text || "").trim();
-    if (!text || naravni.status === "analyzing") return;
-    if (opozoriloPrevisokihPlacil(text)) {
-      posodobiOpozoriloPrevisokihPlacil(root);
-      return;
-    }
+    if (!text || naravni.status === "analyzing" || analizaRetryGate.isBlocked()) return;
     var analizaZacetek = Date.now();
     analizaGeneracija += 1;
     var mojaGeneracija = analizaGeneracija;
     if (analizaAbort) analizaAbort.abort();
-    analizaAbort = new AbortController();
+    analizaAbort = window.UJAtenaRequest.create();
     if (pojasnilo || !naravni.requestId) naravni.requestId = novRequestId();
+    var mojRequestId = naravni.requestId;
     naravni.status = "analyzing";
     naravni.statusText = "Razumem opis in pripravljam osnutke …";
     naravni.lunaReport = "";
@@ -1215,18 +1308,18 @@
     zacniRazsiritevAtene();
     zacniAnalizaStatus();
     try {
-      var telo = JSON.stringify({ requestId: naravni.requestId, text: text, referenceDate: lokalniDanesIso(), originalDebt: Number(korak1.znesek), remainingDebt: preostaliDolg(), clarification: pojasnilo || null });
+      var telo = JSON.stringify({ requestId: mojRequestId, text: text, referenceDate: lokalniDanesIso(), originalDebt: Number(korak1.znesek), remainingDebt: preostaliDolg(), clarification: pojasnilo || null });
       var odgovor = null;
       var data = {};
       var prisilnoOsvezi = false;
       for (var authPoskus = 0; authPoskus < 3; authPoskus += 1) {
         var accessToken = await token(prisilnoOsvezi);
-        odgovor = await fetch("/api/razcleni-zgodovino", {
+        odgovor = await fetch(aktivniRazcleniEndpoint(), {
           method: "POST",
-          headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+          headers: atenaApiGlave(accessToken),
           body: telo,
           signal: analizaAbort.signal,
-        });
+        }).catch(function (error) { throw window.UJAtenaRequest.networkError(error); });
         data = await odgovor.json().catch(function () { return {}; });
         if (odgovor.ok) break;
         var authZacasna = data.retryable === true && ["AUTH_SERVER_UNAVAILABLE", "AUTH_TIMEOUT"].includes(data.code);
@@ -1241,14 +1334,16 @@
       }
       await pocakajNaRazsiritevGumba(analizaZacetek);
       if (!odgovor.ok) {
-        throw new Error(data.napaka || "Besedila trenutno ni bilo mogoče razumeti.");
+        throw window.UJAtenaRequest.errorFromPayload(data, "Besedila trenutno ni bilo mogoče razumeti.");
       }
-      if (mojaGeneracija !== analizaGeneracija || data.requestId !== naravni.requestId) return;
-      if (data.engineVersion !== ATENA_ENGINE_VERSION || data.contractVersion !== HISTORY_CONTRACT_VERSION) throw new Error("Atena je bila posodobljena. Osvežite stran in poskusite znova.");
+      if (mojaGeneracija !== analizaGeneracija || mojRequestId !== naravni.requestId) return;
+      if (data.requestId !== mojRequestId) return;
+      if (data.engineVersion !== ATENA_ENGINE_VERSION || data.contractVersion !== aktivniContractVersion()) throw new Error("Atena je bila posodobljena. Osvežite stran in poskusite znova.");
       var lunaStatus = data.semanticPlan && String(data.semanticPlan.status || "");
       var lunaSprejet = lunaStatus === "OK" || lunaStatus === "CORRECTED";
       naravni.candidates = lunaSprejet && Array.isArray(data.candidates) ? data.candidates.slice(0, 20) : [];
       naravni.candidates.forEach(zagotoviKandidatId);
+      naravni.confirmedCandidateIds = [];
       naravni.replacement = null;
       naravni.questionPlan = lunaSprejet && Array.isArray(data.questionPlan) ? data.questionPlan.slice(0, 20) : [];
       naravni.lunaReport = lunaPorocilo(data.semanticPlan, naravni.candidates);
@@ -1256,31 +1351,39 @@
       var novoPojasnilo = data.clarification && typeof data.clarification === "object" ? data.clarification : null;
       naravni.clarificationQuestion = novoPojasnilo ? String(novoPojasnilo.question || "").slice(0, 180) : "";
       naravni.clarificationClauseId = novoPojasnilo ? String(novoPojasnilo.clauseId || "").slice(0, 80) : "";
+      naravni.clarificationKind = novoPojasnilo && (novoPojasnilo.kind === "warning" || lunaStatus === "VALIDATION_WARNING") ? "warning" : (novoPojasnilo ? "question" : "");
       naravni.clarificationAnswer = "";
       naravni.clarificationRound = novoPojasnilo ? Math.max(1, Math.min(2, Number(novoPojasnilo.round) || 1)) : 0;
       naravni.clarificationExhausted = data.clarificationExhausted === true;
       if (!lunaSprejet && !naravni.clarificationQuestion && !naravni.clarificationExhausted) naravni.requestId = "";
-      dopolniLokalniDatumPlacila(text, naravni.candidates);
       dopolniRelativneDatume(naravni.candidates);
       dopolniIzracunaniNeplacaniObrok(naravni.candidates);
       naravni.questionKeys = manjkajocaVprasanja();
       naravni.questionIndex = 0;
       naravni.editCandidate = null;
-      naravni.phase = naravni.clarificationExhausted ? "clarification_exhausted" : naravni.clarificationQuestion ? "clarification" : naravni.candidates.length ? (naravni.questionKeys.length ? "questions" : "review") : "input";
+      naravni.phase = naravni.clarificationExhausted ? "clarification_exhausted" : naravni.clarificationKind === "warning" && naravni.clarificationQuestion ? "warning" : naravni.clarificationQuestion ? "clarification" : naravni.candidates.length ? (naravni.questionKeys.length ? "questions" : "review") : "input";
       naravni.status = "ready";
       var pojasnilo = data.needsClarification === true ? String(data.summary || "").trim().slice(0, 240) : "";
-      naravni.statusText = naravni.clarificationExhausted ? String(data.summary || "Dogodke dodajte ročno.").slice(0, 240) : naravni.clarificationQuestion ? "Odgovorite na eno kratko vprašanje. Nič še ni shranjeno." : naravni.candidates.length ? "Odgovorite na kratka vprašanja. Nič še ni shranjeno." : naravni.lunaReport + (pojasnilo ? " " + pojasnilo : "");
+      naravni.statusText = naravni.clarificationExhausted ? String(data.summary || "Dogodke dodajte ročno.").slice(0, 240) : naravni.clarificationKind === "warning" ? "Opis vsebuje nepravilne podatke. Uredite ga; nič še ni shranjeno." : naravni.clarificationQuestion ? "Odgovorite na eno kratko vprašanje. Nič še ni shranjeno." : naravni.candidates.length ? "Odgovorite na kratka vprašanja. Nič še ni shranjeno." : naravni.lunaReport + (pojasnilo ? " " + pojasnilo : "");
       naravni.error = "";
       shrani(false);
     } catch (error) {
-      if (error.name === "AbortError") return;
+      if (mojaGeneracija !== analizaGeneracija || mojRequestId !== naravni.requestId) return;
+      if (error.name === "AbortError") {
+        if (!analizaAbort || !analizaAbort.timedOut()) return;
+        error = new Error("Atena se ni pravočasno odzvala. Poskusite znova.");
+        error.code = "CLIENT_TIMEOUT";
+        error.retryable = true;
+      }
       await pocakajNaRazsiritevGumba(analizaZacetek);
-      naravni.requestId = "";
+      if (!window.UJAtenaRequest.isRetryable(error)) naravni.requestId = "";
       naravni.status = "error";
       naravni.error = error && error.message || "Razumevanje ni uspelo.";
+      if (window.UJAtenaRequest.isRetryable(error)) analizaRetryGate.block(error.retryAfterMs);
     } finally {
       if (mojaGeneracija === analizaGeneracija) {
         ustaviAnalizaStatus();
+        if (analizaAbort) analizaAbort.dispose();
         analizaAbort = null;
         debug.izrisiActionSheet();
       }
@@ -1295,11 +1398,13 @@
         naravni.text = String(text || "").slice(0, 2000);
         naravni.requestId = "";
         naravni.candidates = [];
+        naravni.confirmedCandidateIds = [];
         naravni.phase = "input";
         naravni.questionKeys = [];
         naravni.questionIndex = 0;
         naravni.clarificationQuestion = "";
         naravni.clarificationClauseId = "";
+        naravni.clarificationKind = "";
         naravni.clarificationAnswer = "";
         naravni.clarificationRound = 0;
         naravni.clarificationExhausted = false;
@@ -1368,7 +1473,7 @@
 
   function shraniOcenoZamud(vrednost, polje) {
     var podatki = preberiOcenoZamud();
-    if (polje) podatki.vprasalnikOdgovori[polje] = vrednost === "true";
+    if (polje) podatki.vprasalnikOdgovori[polje] = vrednost == null ? null : vrednost === "true";
     else podatki.zgodovinaZamud = vrednost;
     sessionStorage.setItem(KLJUC_KORAK1, JSON.stringify(podatki));
     korak1 = podatki;
@@ -1416,11 +1521,46 @@
       '</div>';
   }
 
+  window.UJZgodovinaNastaviPrivzetiNacin = function (nacin) {
+    naravni.mode = nacin === "manual" ? "manual" : "natural";
+    customActive = false;
+    ocenaActive = false;
+  };
+
+  window.UJZgodovinaPonastaviVgrajeniVnos = function () {
+    if (!jeVgrajenaZgodovina) return;
+    prekiniAktivnoAnalizo();
+    naravni.text = "";
+    naravni.requestId = "";
+    naravni.candidates = [];
+    naravni.confirmedCandidateIds = [];
+    naravni.phase = "input";
+    naravni.questionIndex = 0;
+    naravni.questionKeys = [];
+    naravni.questionPlan = [];
+    naravni.lunaReport = "";
+    naravni.lunaReason = "";
+    naravni.clarificationQuestion = "";
+    naravni.clarificationClauseId = "";
+    naravni.clarificationKind = "";
+    naravni.clarificationAnswer = "";
+    naravni.clarificationRound = 0;
+    naravni.clarificationExhausted = false;
+    naravni.editCandidate = null;
+    naravni.replacement = null;
+    naravni.error = "";
+    naravni.statusText = "Napišite ali povejte, kaj se je zgodilo.";
+    virUrejanje = false;
+    virOsnutek = "";
+    shrani(false);
+  };
+
   window.UJZgodovinaPoIzrisu = function (_state, root) {
     var neposrednaHitraIzbira = Boolean(_state && _state.actionSheetMode === "payment" && _state.boPlacalHitraIzbira);
+    var jeDogovorniGostitelj = Boolean(_state && _state.actionSheetMode === "payment");
     if (!neposrednaHitraIzbira) posodobiPodnaslovGlave(root);
     var svicer = root.querySelector(".izvedba-poravnava-svicer");
-    if (jeVgrajenaZgodovina && svicer) {
+    if (jeVgrajenaZgodovina && !jeDogovorniGostitelj && svicer) {
       var obstojeciDrugo = svicer.querySelector("[data-action-custom]");
       if (obstojeciDrugo) {
         obstojeciDrugo.removeAttribute("data-action-custom");
@@ -1438,7 +1578,7 @@
       ocenaGumb.innerHTML = '<span class="izvedba-poravnava-svicer__ikona" aria-hidden="true">' + K.ikona("clock") + '</span><span data-izvedba-fit data-fit-min="7">Pretekle zamude</span>';
       svicer.insertBefore(ocenaGumb, svicer.firstChild);
     }
-    if (svicer && !svicer.querySelector("[data-zgodovina-drugo]")) {
+    if (svicer && !jeDogovorniGostitelj && !svicer.querySelector("[data-zgodovina-drugo]")) {
       var gumb = document.createElement("button");
       gumb.type = "button";
       gumb.className = "izvedba-poravnava-svicer__gumb izvedba-poravnava-svicer__gumb--drugo" + (customActive ? " is-selected" : "");
@@ -1456,9 +1596,30 @@
       var stanjeDolga = root.querySelector(".izvedba-odvetnik-zgodovina__dogodki .zgodovina-stanje-dolga");
       if (stanjeDolga) stanjeDolga.hidden = naravni.mode === "natural";
     }
+    if (!jeVgrajenaZgodovina || !jeDogovorniGostitelj) {
+      var praznaZgodovina = !(_state.nacrtKoraki || []).length;
+      var pripravljeniDogodki = root.querySelector(".izvedba-poravnava-cona--atena-dogodki");
+      if (pripravljeniDogodki) pripravljeniDogodki.hidden = praznaZgodovina;
+      var nadaljujBrezZgodovine = root.querySelector("[data-zgodovina-nadaljuj]");
+      if (nadaljujBrezZgodovine) nadaljujBrezZgodovine.hidden = naravni.phase === "warning";
+      if (nadaljujBrezZgodovine && praznaZgodovina) {
+        nadaljujBrezZgodovine.textContent = "Nadaljuj brez zgodovine";
+        if (!jeVgrajenaZgodovina) {
+          var zgodovinaPanel = root.querySelector(".izvedba-action-sheet__panel");
+          var praznaNoga = nadaljujBrezZgodovine.closest(".izvedba-action-sheet__footer");
+          if (zgodovinaPanel) {
+            root.classList.add("zgodovina-nadaljuj-je-zunaj");
+            zgodovinaPanel.classList.add("ima-zunanje-nadaljevanje");
+            nadaljujBrezZgodovine.classList.add("zgodovina-nadaljuj-zunaj");
+            zgodovinaPanel.insertAdjacentElement("afterend", nadaljujBrezZgodovine);
+            if (praznaNoga && !praznaNoga.children.length) praznaNoga.remove();
+          }
+        }
+      }
+    }
     prilagodiPrikazZamenjave(root);
     posodobiPrikazPreostalegaDolga(root);
-    shrani(false);
+    shrani(zgodovinaPotrjena);
   };
 
   window.UJZgodovinaVgrajeniVnosJePripravljen = function () {
@@ -1510,6 +1671,20 @@
     debug.izrisiActionSheet();
   }, true);
   root.addEventListener("click", function (dogodek) {
+    var zgodovinskiDatum = dogodek.target.closest("[data-ai-history-date]");
+    if (zgodovinskiDatum && !zgodovinskiDatum.value && zgodovinskiDatum.max) {
+      zgodovinskiDatum.value = zgodovinskiDatum.max;
+      zgodovinskiDatum.setAttribute("data-ai-picker-preview", "true");
+      if (typeof zgodovinskiDatum.showPicker === "function") {
+        try { zgodovinskiDatum.showPicker(); dogodek.preventDefault(); } catch (_error) { /* privzeti brskalnikov picker ostane rezerva */ }
+      }
+      window.setTimeout(function () {
+        if (zgodovinskiDatum.getAttribute("data-ai-picker-preview") !== "true") return;
+        zgodovinskiDatum.value = "";
+        zgodovinskiDatum.removeAttribute("data-ai-picker-preview");
+      }, 0);
+      return;
+    }
     if (!dogodek.target.closest("[data-ai-choice]")) {
       root.querySelectorAll("[data-ai-choice].is-open").forEach(function (izbira) {
         izbira.classList.remove("is-open");
@@ -1563,11 +1738,15 @@
       dogodek.stopImmediatePropagation();
       var moznostOkvir = izbiraMoznost.closest("[data-ai-choice]");
       var skritoPolje = moznostOkvir.querySelector("[data-ai-candidate-field]");
-      skritoPolje.value = izbiraMoznost.getAttribute("data-ai-choice-value") || "";
+      var izbiraVrednost = izbiraMoznost.getAttribute("data-ai-choice-value") || "";
+      var izbiraOstaneIzbrana = skritoPolje.value !== izbiraVrednost;
+      skritoPolje.value = izbiraOstaneIzbrana ? izbiraVrednost : "";
       skritoPolje.dispatchEvent(new Event("input", { bubbles: true }));
-      moznostOkvir.querySelector("[data-ai-choice-toggle] > span").textContent = izbiraMoznost.querySelector("span").textContent;
+      moznostOkvir.querySelector("[data-ai-choice-toggle] > span").textContent = izbiraOstaneIzbrana
+        ? izbiraMoznost.querySelector("span").textContent
+        : (moznostOkvir.getAttribute("data-ai-choice-empty-label") || "Izberite");
       moznostOkvir.querySelectorAll("[data-ai-choice-option]").forEach(function (moznost) {
-        var aktivna = moznost === izbiraMoznost;
+        var aktivna = izbiraOstaneIzbrana && moznost === izbiraMoznost;
         moznost.classList.toggle("is-selected", aktivna);
         moznost.setAttribute("aria-selected", String(aktivna));
       });
@@ -1590,7 +1769,8 @@
     if (ocenaIzbira) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      shraniOcenoZamud(ocenaIzbira.getAttribute("data-zgodovina-zamud"));
+      var ocenaVrednost = ocenaIzbira.getAttribute("data-zgodovina-zamud");
+      shraniOcenoZamud(preberiOcenoZamud().zgodovinaZamud === ocenaVrednost ? null : ocenaVrednost);
       var napakaOcene = document.getElementById("zgodovina-napaka");
       if (napakaOcene) napakaOcene.hidden = true;
       debug.izrisiActionSheet();
@@ -1600,7 +1780,10 @@
     if (ocenaOdgovor) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      shraniOcenoZamud(ocenaOdgovor.getAttribute("data-zgodovina-ocena-vrednost"), ocenaOdgovor.getAttribute("data-zgodovina-ocena-odgovor"));
+      var ocenaPolje = ocenaOdgovor.getAttribute("data-zgodovina-ocena-odgovor");
+      var ocenaOdgovorVrednost = ocenaOdgovor.getAttribute("data-zgodovina-ocena-vrednost");
+      var trenutniOcenaOdgovor = preberiOcenoZamud().vprasalnikOdgovori[ocenaPolje];
+      shraniOcenoZamud(trenutniOcenaOdgovor === (ocenaOdgovorVrednost === "true") ? null : ocenaOdgovorVrednost, ocenaPolje);
       debug.izrisiActionSheet();
       return;
     }
@@ -1616,6 +1799,7 @@
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
       naravni.mode = mode.getAttribute("data-zgodovina-mode") === "manual" ? "manual" : "natural";
+      if (naravni.mode === "manual" && naravni.status === "analyzing") prekiniAktivnoAnalizo();
       customActive = false;
       ocenaActive = false;
       state.selectedSettlementType = null;
@@ -1675,7 +1859,7 @@
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
       var odgovorPojasnila = String(naravni.clarificationAnswer || "").trim();
-      if (!odgovorPojasnila || !naravni.clarificationQuestion) return;
+      if (!odgovorPojasnila || !naravni.clarificationQuestion || analizaRetryGate.isBlocked()) return;
       razcleniBesedilo({
         question: naravni.clarificationQuestion,
         clauseId: naravni.clarificationClauseId,
@@ -1700,6 +1884,7 @@
       naravni.requestId = "";
       naravni.clarificationQuestion = "";
       naravni.clarificationClauseId = "";
+      naravni.clarificationKind = "";
       naravni.clarificationAnswer = "";
       naravni.clarificationRound = 0;
       naravni.clarificationExhausted = false;
@@ -1713,9 +1898,10 @@
     if (preostanekObljube) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      var preostanekIndeks = Number(preostanekObljube.getAttribute("data-ai-candidate-index"));
-      var preostanekKandidat = naravni.candidates[preostanekIndeks];
-      var preostanekKontrolnik = root.querySelector('[data-ai-candidate-field="amount"][data-ai-candidate-index="' + preostanekIndeks + '"]');
+      var preostanekPodatki = kandidatIzKontrolnika(preostanekObljube);
+      var preostanekIndeks = preostanekPodatki.indeks;
+      var preostanekKandidat = preostanekPodatki.kandidat;
+      var preostanekKontrolnik = najdiPoljeKandidata(root, "amount", preostanekKandidat && preostanekKandidat.candidateId, preostanekIndeks);
       if (preostanekKontrolnik && preostanekKandidat && preostanekKandidat.type === "payment_promise") {
         preostanekKontrolnik.value = saldoPredKandidatom(preostanekKandidat);
         preostanekKontrolnik.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1728,10 +1914,12 @@
     if (pribliznoPolje) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      var pribliznoIndeks = Number(pribliznoPolje.getAttribute("data-ai-candidate-index"));
-      var pribliznoKandidat = naravni.candidates[pribliznoIndeks];
+      var pribliznoPodatki = kandidatIzKontrolnika(pribliznoPolje);
+      var pribliznoIndeks = pribliznoPodatki.indeks;
+      var pribliznoKandidat = pribliznoPodatki.kandidat;
       var pribliznoIme = pribliznoPolje.getAttribute("data-ai-approximate-field");
       if (pribliznoKandidat && (pribliznoIme === "occurredDate" || pribliznoIme === "promisedDate")) {
+        razveljaviPotrditevKandidata(pribliznoIndeks);
         if (relativniDatumi && typeof relativniDatumi.oznaciRocniPopravek === "function") relativniDatumi.oznaciRocniPopravek(pribliznoKandidat, pribliznoIme);
         pribliznoKandidat[pribliznoIme + "Approximate"] = pribliznoKandidat[pribliznoIme + "Approximate"] !== true;
         pribliznoKandidat[pribliznoIme] = null;
@@ -1748,10 +1936,12 @@
     if (neznanoPolje) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      var neznanoIndeks = Number(neznanoPolje.getAttribute("data-ai-candidate-index"));
+      var neznanoPodatki = kandidatIzKontrolnika(neznanoPolje);
+      var neznanoIndeks = neznanoPodatki.indeks;
       var neznanoIme = neznanoPolje.getAttribute("data-ai-unknown-field");
-      var neznanoKandidat = naravni.candidates[neznanoIndeks];
+      var neznanoKandidat = neznanoPodatki.kandidat;
       if (neznanoKandidat && (neznanoIme === "occurredDate" || neznanoIme === "promisedDate")) {
+        razveljaviPotrditevKandidata(neznanoIndeks);
         if (relativniDatumi && typeof relativniDatumi.oznaciRocniPopravek === "function") relativniDatumi.oznaciRocniPopravek(neznanoKandidat, neznanoIme);
         neznanoKandidat[neznanoIme + "Unknown"] = neznanoKandidat[neznanoIme + "Unknown"] !== true;
         if (neznanoKandidat[neznanoIme + "Unknown"] === true) {
@@ -1800,6 +1990,7 @@
       naravni.editCandidate = null;
       naravni.clarificationQuestion = "";
       naravni.clarificationClauseId = "";
+      naravni.clarificationKind = "";
       naravni.clarificationAnswer = "";
       naravni.clarificationRound = 0;
       naravni.clarificationExhausted = false;
@@ -1819,8 +2010,8 @@
         debug.izrisiActionSheet();
         return;
       }
-      if (naravni.questionIndex > 0) naravni.questionIndex -= 1;
-      else if (naravni.editCandidate != null) { naravni.phase = "review"; naravni.editCandidate = null; }
+      if (naravni.editCandidate != null) { naravni.phase = "review"; naravni.editCandidate = null; }
+      else if (naravni.questionIndex > 0) naravni.questionIndex -= 1;
       else naravni.phase = "input";
       naravni.error = "";
       shrani(false);
@@ -1850,8 +2041,10 @@
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
       if (!aktivnoVprasanjeIzpolnjeno()) return;
+      potrdiAktivniKandidat();
       var naslednjiIndeks = naravni.questionIndex + 1;
-      if (naslednjiIndeks < naravni.questionKeys.length) naravni.questionIndex = naslednjiIndeks;
+      if (naravni.editCandidate != null) { naravni.phase = "review"; naravni.editCandidate = null; }
+      else if (naslednjiIndeks < naravni.questionKeys.length) naravni.questionIndex = naslednjiIndeks;
       else { naravni.phase = "review"; naravni.editCandidate = null; }
       naravni.error = "";
       shrani(false);
@@ -1861,16 +2054,28 @@
     if (dogodek.target.closest("[data-ai-change-candidate]")) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      var aktivniPodatki = razcleniKljucVprasanja(naravni.questionKeys[naravni.questionIndex]);
-      if (Number.isInteger(aktivniPodatki.indeks)) zacniZamenjavo(aktivniPodatki.indeks);
+      var spremeniPodatki = kandidatIzKontrolnika(dogodek.target.closest("[data-ai-change-candidate]"));
+      if (Number.isInteger(spremeniPodatki.indeks) && spremeniPodatki.indeks >= 0) zacniZamenjavo(spremeniPodatki.indeks);
       return;
     }
     var urediKandidata = dogodek.target.closest("[data-ai-edit-candidate]");
     if (urediKandidata) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      var urediIndeks = Number(urediKandidata.getAttribute("data-ai-edit-candidate"));
-      naravni.editCandidate = naravni.editCandidate === urediIndeks ? null : urediIndeks;
+      var urediIndeks = kandidatIzKontrolnika(urediKandidata).indeks;
+      var urediKorak = naravni.questionKeys.findIndex(function (kljuc) {
+        return razcleniKljucVprasanja(kljuc).indeks === urediIndeks;
+      });
+      if (urediKorak < 0) {
+        naravni.questionKeys = manjkajocaVprasanja();
+        urediKorak = naravni.questionKeys.findIndex(function (kljuc) {
+          return razcleniKljucVprasanja(kljuc).indeks === urediIndeks;
+        });
+      }
+      if (urediKorak < 0) return;
+      naravni.phase = "questions";
+      naravni.questionIndex = urediKorak;
+      naravni.editCandidate = urediIndeks;
       naravni.error = "";
       shrani(false);
       debug.izrisiActionSheet();
@@ -1889,7 +2094,9 @@
     if (dogodek.target.closest("[data-ai-remove-all]")) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
+      prekiniAktivnoAnalizo();
       naravni.candidates = [];
+      naravni.confirmedCandidateIds = [];
       naravni.text = "";
       naravni.requestId = "";
       naravni.phase = "input";
@@ -1900,6 +2107,7 @@
       naravni.lunaReason = "";
       naravni.clarificationQuestion = "";
       naravni.clarificationClauseId = "";
+      naravni.clarificationKind = "";
       naravni.clarificationAnswer = "";
       naravni.clarificationRound = 0;
       naravni.clarificationExhausted = false;
@@ -1915,7 +2123,9 @@
     if (odstraniKandidat) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
-      var odstraniIndeks = Number(odstraniKandidat.getAttribute("data-ai-candidate-remove"));
+      var odstraniIndeks = kandidatIzKontrolnika(odstraniKandidat).indeks;
+      if (odstraniIndeks < 0) return;
+      razveljaviPotrditevKandidata(odstraniIndeks);
       var prejsnjiKljuci = naravni.questionKeys.slice();
       var odstranjenKorak = prejsnjiKljuci.findIndex(function (kljuc) {
         return razcleniKljucVprasanja(kljuc).indeks === odstraniIndeks;
@@ -1968,6 +2178,7 @@
         return;
       }
       naravni.candidates = [];
+      naravni.confirmedCandidateIds = [];
       naravni.phase = "input";
       naravni.questionKeys = [];
       naravni.questionIndex = 0;
@@ -1977,6 +2188,11 @@
       naravni.status = "ready";
       naravni.statusText = dodano.added + " " + (dodano.added === 1 ? "dogodek je dodan" : "dogodki so dodani") + ". Preverite jih v poteku primera.";
       naravni.error = "";
+      if (!jeVgrajenaZgodovina) {
+        shrani(true);
+        window.location.href = "neplacila-cilj.html";
+        return;
+      }
       shrani(false);
       debug.izrisiActionSheet();
       if (typeof debug.pomakniPotekNaDno === "function") debug.pomakniPotekNaDno(dodano.added);
@@ -1986,6 +2202,13 @@
     if (potrdi) {
       dogodek.preventDefault();
       dogodek.stopImmediatePropagation();
+      if (naravni.phase === "warning") {
+        naravni.mode = "natural";
+        naravni.status = "ready";
+        naravni.statusText = "Najprej uredite nepravilni opis.";
+        debug.izrisiActionSheet();
+        return;
+      }
       if (naravni.candidates.length) {
         naravni.mode = "natural";
         naravni.status = "error";
@@ -2096,32 +2319,81 @@
       naravni.text = dogodek.target.value.slice(0, 2000);
       naravni.requestId = "";
       naravni.candidates = [];
+      naravni.confirmedCandidateIds = [];
       naravni.phase = "input";
       naravni.questionKeys = [];
       naravni.questionIndex = 0;
       naravni.editCandidate = null;
       naravni.clarificationQuestion = "";
       naravni.clarificationClauseId = "";
+      naravni.clarificationKind = "";
       naravni.clarificationAnswer = "";
       naravni.clarificationRound = 0;
       naravni.clarificationExhausted = false;
       naravni.status = "idle";
       naravni.error = "";
-      posodobiOpozoriloPrevisokihPlacil(root);
+      posodobiGumbAnalize(root);
       posodobiPrikazPreostalegaDolga(root);
     }
     if (dogodek.target.matches("[data-ai-clarification-answer]")) {
       naravni.clarificationAnswer = dogodek.target.value.slice(0, 400);
       naravni.error = "";
       var odgovori = root.querySelector("[data-ai-clarification-submit]");
-      if (odgovori) odgovori.disabled = !naravni.clarificationAnswer.trim();
+      if (odgovori) odgovori.disabled = !naravni.clarificationAnswer.trim() || analizaRetryGate.isBlocked();
       shrani(false);
     }
+    var celDatum = dogodek.target.closest(".zgodovina-ai-cel-datum");
+    if (celDatum) celDatum.classList.toggle("is-empty", !dogodek.target.value);
+    if (dogodek.target.matches("[data-ai-partial-date-day], [data-ai-partial-date-month]")) {
+      var delniPodatki = kandidatIzKontrolnika(dogodek.target);
+      var delniKandidat = delniPodatki.kandidat;
+      var delniIndeks = delniPodatki.indeks;
+      var delniDatumOkvir = dogodek.target.closest(".zgodovina-ai-vprasanje__delni-datum");
+      var delniDanPolje = delniDatumOkvir && delniDatumOkvir.querySelector("[data-ai-partial-date-day]");
+      var delniMesecPolje = delniDatumOkvir && delniDatumOkvir.querySelector("[data-ai-partial-date-month]");
+      var delniYearMonth = String(delniMesecPolje && delniMesecPolje.value || "");
+      var delniMesecLabel = delniDatumOkvir && delniDatumOkvir.querySelector("[data-ai-month-label]");
+      if (delniMesecLabel) delniMesecLabel.textContent = kratekMesecLeto(delniYearMonth);
+      var delniMesecMatch = delniYearMonth.match(/^(\d{4})-(\d{2})$/);
+      if (delniKandidat && delniDanPolje && delniMesecMatch) {
+        var delniMax = new Date(Date.UTC(Number(delniMesecMatch[1]), Number(delniMesecMatch[2]), 0)).getUTCDate();
+        delniDanPolje.max = String(delniMax);
+        var delniDan = Number(delniDanPolje.value);
+        if (delniDan > delniMax) {
+          delniDanPolje.value = "";
+          delniDan = 0;
+        }
+        razveljaviPotrditevKandidata(delniIndeks);
+        delniKandidat.occurredDateKnownYearMonth = delniYearMonth;
+        delniKandidat.occurredDate = Number.isInteger(delniDan) && delniDan >= 1 && delniDan <= delniMax
+          ? delniYearMonth + "-" + String(delniDan).padStart(2, "0")
+          : null;
+        delniKandidat.occurredDateUnknown = false;
+        delniKandidat.occurredDateApproximate = false;
+        delniKandidat.occurredDateApproximation = "";
+        if (relativniDatumi && typeof relativniDatumi.oznaciRocniPopravek === "function") {
+          relativniDatumi.oznaciRocniPopravek(delniKandidat, "occurredDate");
+        }
+        dopolniRelativneDatume(naravni.candidates);
+        naravni.error = "";
+        var delniNaslednji = root.querySelector("[data-ai-question-next]");
+        if (delniNaslednji) delniNaslednji.disabled = !aktivnoVprasanjeIzpolnjeno();
+        var delniPotrdi = root.querySelector("[data-ai-confirm-candidates]");
+        if (delniPotrdi) delniPotrdi.disabled = !vsiKandidatiDopolnjeni();
+        var delniOkvir = dogodek.target.closest(".zgodovina-ai-vprasanje");
+        if (delniOkvir) delniOkvir.classList.toggle("is-obvezno-manjka", !aktivnoVprasanjeIzpolnjeno());
+        posodobiAktivniKorakNapredka(root);
+        posodobiPodnaslovGlave(root);
+      }
+    }
     if (dogodek.target.matches("[data-ai-candidate-field]")) {
-      var kandidat = naravni.candidates[Number(dogodek.target.getAttribute("data-ai-candidate-index"))];
-      var kandidatIndeks = Number(dogodek.target.getAttribute("data-ai-candidate-index"));
+      dogodek.target.removeAttribute("data-ai-picker-preview");
+      var kandidatPodatki = kandidatIzKontrolnika(dogodek.target);
+      var kandidat = kandidatPodatki.kandidat;
+      var kandidatIndeks = kandidatPodatki.indeks;
       var poljeKandidata = dogodek.target.getAttribute("data-ai-candidate-field");
       if (kandidat && poljeKandidata) {
+        razveljaviPotrditevKandidata(kandidatIndeks);
         kandidat[poljeKandidata] = poljeKandidata === "amount"
           ? (dogodek.target.value === "" ? null : Number(dogodek.target.value))
           : dogodek.target.value;
@@ -2153,6 +2425,9 @@
         if (confirmCandidates) confirmCandidates.disabled = !vsiKandidatiDopolnjeni();
         var naslednjeVprasanje = root.querySelector("[data-ai-question-next]");
         if (naslednjeVprasanje) naslednjeVprasanje.disabled = !aktivnoVprasanjeIzpolnjeno();
+        var aktivniObvezniOkvir = root.querySelector(".zgodovina-ai-vprasanje");
+        if (aktivniObvezniOkvir) aktivniObvezniOkvir.classList.toggle("is-obvezno-manjka", !aktivnoVprasanjeIzpolnjeno());
+        posodobiAktivniKorakNapredka(root);
         posodobiPodnaslovGlave(root);
       }
     }

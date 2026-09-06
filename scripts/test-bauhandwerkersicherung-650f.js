@@ -31,10 +31,18 @@ var approved = Object.assign({}, draft, { sendGate: { legalReviewStatus: "legal_
 assert.throws(function () { model.sendGate(approved, { craftsmanConfirmed: true }); }, function (error) { return error.code === "SEND_TRANSPORT_NOT_CONNECTED"; });
 
 (async function () {
+  var inserted650f = null, verifiedProfile = { id: "45b98dc3-0d56-4e82-90ac-c191a1711400", legal_name: "Prava Bau GmbH", company_id: "DE-HRB-X-650", register_number: "HRB 650", register_court: "Berlin", checked_at: now, address: { street: "Prava ulica 1", postal_code: "10115", city: "Berlin" } };
+  var prepared650f = await service.prepare({}, "user", { profileId: verifiedProfile.id, identity: { legalName: "Ponarejena GmbH" }, eligibility: base, contractor: { legalName: "Handwerk GmbH" }, contract: { reference: "V-2026-5", project: "Sanacija fasade" } }, { getProfile: async function () { return verifiedProfile; }, rest: async function (_cfg, _path, options) { inserted650f = options.body; return [{ id: "45b98dc3-0d56-4e82-90ac-c191a171142d" }]; } });
+  assert.equal(prepared650f.draft.parties.customer.legalName, "Prava Bau GmbH", "identiteta osnutka mora priti iz lastnega preverjenega profila, ne iz body.identity");
+  assert.equal(prepared650f.draft.parties.customer.sourceUrl, "https://openregister.de/company/DE-HRB-X-650");
+  assert.equal(inserted650f.legal_review_status, "pending", "nov osnutek se nikoli ne sme ustvariti kot pravno odobren");
   var store = { rest: async function () { return [{ id: "45b98dc3-0d56-4e82-90ac-c191a171142c", draft_payload: draft, legal_review_status: "pending" }]; } };
   await assert.rejects(service.send({}, "user", { draftId: "45b98dc3-0d56-4e82-90ac-c191a171142c", craftsmanConfirmed: true }, store), function (error) { return error.code === "LEGAL_REVIEW_REQUIRED"; });
   store.rest = async function () { return [{ id: "45b98dc3-0d56-4e82-90ac-c191a171142c", draft_payload: draft, legal_review_status: "legal_review_approved" }]; };
   await assert.rejects(service.send({}, "user", { draftId: "45b98dc3-0d56-4e82-90ac-c191a171142c", craftsmanConfirmed: true }, store), function (error) { return error.code === "SEND_TRANSPORT_NOT_CONNECTED"; });
+  var authorityMigration = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20260830220944_boniteta_authority_and_ownership_guards.sql"), "utf8");
+  assert.match(authorityMigration, /revoke all on table public\.boniteta_650f_osnutki from public, anon, authenticated/);
+  assert.match(authorityMigration, /drop policy if exists boniteta_650f_lastni_insert/);
   var html = fs.readFileSync(path.join(__dirname, "..", "app", "bonitetna-preverba.html"), "utf8"), check = fs.readFileSync(path.join(__dirname, "..", "app", "bonitetna-preverba.js"), "utf8"), center = fs.readFileSync(path.join(__dirname, "..", "app", "boniteta-sredisce.js"), "utf8"), css = fs.readFileSync(path.join(__dirname, "..", "app", "bonitetna-preverba.css"), "utf8");
   var ui = fs.readFileSync(path.join(__dirname, "..", "app", "bauhandwerkersicherung-ui.js"), "utf8");
   assert.match(check, /window\.UJBonitetaZadnjiRezultat = podatki;[\s\S]*?uj:boniteta:result-data/); assert.match(ui, /current = window\.UJBonitetaZadnjiRezultat \|\| null/); assert.match(ui, /renderRecommendation\(\);\s*updateOfferTransferAction\(\);/); assert.match(ui, /available = Boolean\(transferableIdentity\(current\)\)[\s\S]*?wrap\.hidden = false/);

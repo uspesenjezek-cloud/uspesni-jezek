@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Atena · Laboratorij vprašanj</title>
+  <link rel="stylesheet" href="styles.css?v=20260904-globalni-rob-13-v2">
+  <link rel="stylesheet" href="atena-card-templates.css?v=20260905-bullet-stepper-v5">
+  <link rel="stylesheet" href="atena-question-lab.css?v=20260903-v10">
+  <script src="ponudba-moduli-engine.js?v=20260901-logical-axes-v3" defer></script>
+  <script src="svetovalec-storitve-engine.js?v=20260902-formularji-besedilo-v2" defer></script>
+  <script src="atena-card-segments.js?v=20260903-v1" defer></script>
+  <script src="atena-card-templates.js?v=20260903-composed-card-v4" defer></script>
+  <script src="nazorjeva-engine.js?v=20260831-nazorjeva-engine-v1" defer></script>
+  <script src="atena-widget-contract.js?v=20260831-atena-widget-contract-v3" defer></script>
+  <script src="svetovalec-capability-catalog.js?v=20260902-capability-v3" defer></script>
+  <script src="svetovalec-service-market-catalog.js?v=20260902-market-v1" defer></script>
+  <script src="atena-card-schema.js?v=20260901-logical-axes-v8" defer></script>
+  <script src="atena-card-renderer.js?v=20260903-atena-vprasanja-v10" defer></script>
+  <script src="atena-question-lab-catalog.js?v=20260903-v4" defer></script>
+  <script src="svetovalec-service-knowledge-blocks.js?v=20260902-knowledge-v1" defer></script>
+  <script src="svetovalec-question-graph.js?v=20260903-graph-v1" defer></script>
+  <script src="svetovalec-guided-question-catalog.js?v=20260902-questions-v6" defer></script>
+  <script src="atena-question-lab-engine.js?v=20260903-v3" defer></script>
+  <script src="atena-question-lab.js?v=20260903-v10" defer></script>
+</head>
+<body class="atena-template-page atena-question-lab">
+  <header class="aql-header">
+    <div><span class="aql-eyebrow">ATENA · NOTRANJE ORODJE</span><h1>Laboratorij vprašanj</h1><p>Izberite obliko, v kateri naj Atena vprašanje prikaže obrtniku.</p></div>
+    <div class="aql-header__actions"><button type="button" data-export>Izvozi preslikave</button><button type="button" data-reset>Počisti moje izbire</button><a href="svetovalec-preverba.html?app-preview=1">Nazaj v svetovalca</a></div>
+  </header>
+  <section class="aql-current" aria-live="polite">
+    <div class="aql-current__meta"><span data-progress></span><strong data-scope></strong></div>
+    <blockquote><small>Primer zahteve obrtnika</small><p data-prompt></p></blockquote>
+    <div class="aql-current__question"><small>Atenino vprašanje</small><h2 data-question></h2><span data-current-widget></span></div>
+    <div class="aql-current__nav"><button type="button" data-previous>← Prejšnje</button><button type="button" data-skip>Preskoči</button><button type="button" data-next>Naslednje →</button></div>
+  </section>
+  <nav class="aql-tabs" aria-label="Vrsta vprašanj">
+    <button type="button" data-category="chat" aria-pressed="true">Vprašanja v pogovoru <span data-chat-count></span></button>
+    <button type="button" data-category="fixed" aria-pressed="false">Fiksna vprašanja po storitvah <span data-fixed-count></span></button>
+    <button type="button" data-graph-view aria-pressed="false">Graf odločanja <span data-graph-count></span></button>
+  </nav>
+  <main class="aql-layout" data-card-workspace>
+    <aside class="aql-questions">
+      <label>Najdi vprašanje<input type="search" data-question-search placeholder="Išči po vprašanju ali storitvi"></label>
+      <label>Skupina<select data-group-filter></select></label>
+      <div class="aql-question-list" data-question-list></div>
+    </aside>
+    <section class="aql-picker" aria-labelledby="aql-picker-title">
+      <nav class="aql-card-categories" aria-label="Kategorije kartic">
+        <button type="button" data-card-category="nazorjeva" aria-pressed="true"><b>1</b><span>Nazorjeva <small data-nazorjeva-count></small></span></button>
+        <button type="button" data-card-category="debtor" aria-pressed="false"><b>2</b><span>Atena · Zgodovina in cilji <small data-form-card-count></small></span></button>
+        <button type="button" data-card-category="atena" aria-pressed="false"><b>3</b><span>Atena <small data-atena-card-count></small></span></button>
+      </nav>
+      <div class="aql-section-title"><div><span>V KATEGORIJI <b data-choice-count></b> KARTIC</span><h2 id="aql-picker-title">Kliknite najprimernejšo obliko</h2><p data-card-category-description></p></div><label>Najdi kartico<input type="search" data-widget-search placeholder="Npr. drsnik, pogodba, znesek"></label></div>
+      <div class="aql-card-grid" data-card-grid></div>
+    </section>
+    <aside class="aql-interfaces">
+      <div class="aql-interfaces__head"><span data-interface-category>KATEGORIJA 1</span><h2>Vmesniki <b data-interface-count></b></h2><small>Klik tudi tukaj izbere format.</small></div>
+      <div data-interface-list></div>
+    </aside>
+  </main>
+  <main class="aql-graph" data-graph-workspace hidden>
+    <header class="aql-graph__toolbar">
+      <div><span class="aql-eyebrow">ISTI VIR KOT LUNIN RUNTIME</span><h2>Graf vprašanj in odločitev</h2><p>Vozlišča so dejanska vprašanja in sklopi. Črte so registrirane poti oziroma vrstni red znotraj sklopa.</p></div>
+      <div class="aql-graph__controls">
+        <label>Prikaži<select data-graph-scope><option value="marketing">Marketing</option><option value="contract">Pogodba</option><option value="pilot">Celoten pilot</option></select></label>
+        <button type="button" data-graph-reset>Ponastavi razpored</button>
+      </div>
+    </header>
+    <div class="aql-graph__layout">
+      <section class="aql-graph__viewport" data-graph-viewport tabindex="0" aria-label="Interaktivni graf vprašanj">
+        <div class="aql-graph__canvas" data-graph-canvas>
+          <svg class="aql-graph__edges" data-graph-edges aria-hidden="true"></svg>
+          <div class="aql-graph__nodes" data-graph-nodes></div>
+        </div>
+      </section>
+      <aside class="aql-graph__detail" data-graph-detail>
+        <span class="aql-eyebrow">IZBRANO VOZLIŠČE</span>
+        <h2 data-graph-detail-title>Izberite vozlišče</h2>
+        <p data-graph-detail-description>Kliknite vprašanje ali sklop, da vidite njegov namen, widget in povezave.</p>
+        <dl data-graph-detail-meta></dl>
+      </aside>
+    </div>
+  </main>
+  <section class="aql-note-popover" data-note-popover role="dialog" aria-modal="false" aria-labelledby="aql-note-title" hidden>
+    <div class="aql-note-popover__head"><div><small>KOMBINACIJA KARTIC</small><h2 id="aql-note-title" data-note-title></h2></div><button type="button" data-note-close aria-label="Zapri">×</button></div>
+    <p class="aql-note-popover__help">Kliknite še druge kartice, če želite njihove elemente združiti v eno novo kartico.</p>
+    <div class="aql-note-popover__selection" data-note-selection></div>
+    <label for="aql-note">Kako naj združim ali popravim izbrane kartice?</label>
+    <textarea id="aql-note" data-note-input maxlength="2000" rows="5" placeholder="Npr. iz prve kartice vzemi drsnik, iz druge pa gumbe …"></textarea>
+    <button type="button" class="aql-note-confirm" data-note-confirm>Potrdi kombinacijo</button>
+  </section>
+  <div class="aql-toast" data-toast hidden></div>
+</body>
+</html>

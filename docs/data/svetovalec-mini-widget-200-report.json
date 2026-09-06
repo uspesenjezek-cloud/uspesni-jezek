@@ -1,0 +1,1651 @@
+{
+  "report": {
+    "version": "svetovalec-mini-widget-200-report-v1",
+    "generatedAt": "2027-03-15T10:00:00.000Z",
+    "paidApiCalls": 0,
+    "conversations": 200,
+    "directResolved": 100,
+    "widgetResolved": 98,
+    "conversationalFallbacks": 2,
+    "clarificationWidgetCoverage": 98,
+    "allWithoutFreeTypingPercent": 99,
+    "approvedWidgetTypesUsed": [
+      "mreza-izbir",
+      "dvojni-segment",
+      "da-ne-ne-vem",
+      "navpicni-izbor",
+      "stevilcna-lestvica"
+    ],
+    "clarificationFrequency": {
+      "namen-dejanja": 13,
+      "enkratno-ali-ponavljajoce": 25,
+      "ponudba-ze-obstaja": 25,
+      "vrsta-dokumenta": 15,
+      "glavna-skrb": 10,
+      "prodajni-klic": 5,
+      "stevilo-ponudnikov": 5
+    },
+    "fallbackOptimization": {
+      "corpusRecords": 5,
+      "candidateClusters": []
+    },
+    "nextRequestCatalog": {
+      "fullBytes": 83277,
+      "compactBytes": 50943,
+      "reductionPercent": 38.83
+    },
+    "nextRequestTotal": {
+      "fullBytes": 104483,
+      "compactBytes": 67814,
+      "reductionPercent": 35.1
+    },
+    "runtimeMs": {
+      "p50": 0.0056,
+      "p95": 0.0165,
+      "max": 0.3212,
+      "total": 8.91
+    }
+  },
+  "conversations": [
+    {
+      "id": "200-widget-01-1",
+      "source": "Ali lahko zaradi tega sodelovanja izgubim ugled pri starih strankah?",
+      "mode": "conversation",
+      "clarificationId": null,
+      "serviceCode": null,
+      "question": "Katero tveganje za ugled želite najprej oceniti?"
+    },
+    {
+      "id": "200-widget-01-2",
+      "source": "Kako naj se odločim, če je lastnik ponudnika moj sorodnik?",
+      "mode": "conversation",
+      "clarificationId": null,
+      "serviceCode": null,
+      "question": "Kaj je pri sorodstvenem odnosu za vas največje tveganje?"
+    },
+    {
+      "id": "200-widget-01-3",
+      "source": "Na hitro: Rad bi uredil pogodbo, pa ne vem, kaj je najbolj pametno.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-01-4",
+      "source": "Kot obrtnik sprašujem: Rad bi uredil pogodbo, pa ne vem, kaj je najbolj pametno.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-01-5",
+      "source": "Rabim pomoč — Rad bi uredil pogodbo, pa ne vem, kaj je najbolj pametno.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-02-1",
+      "source": "Dobavitelj mi je poslal dogovor in bi rad nekaj naredil.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-02-2",
+      "source": "Prosim, Dobavitelj mi je poslal dogovor in bi rad nekaj naredil.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-02-3",
+      "source": "Na hitro: Dobavitelj mi je poslal dogovor in bi rad nekaj naredil.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-02-4",
+      "source": "Kot obrtnik sprašujem: Dobavitelj mi je poslal dogovor in bi rad nekaj naredil.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-02-5",
+      "source": "Rabim pomoč — Dobavitelj mi je poslal dogovor in bi rad nekaj naredil.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-03-1",
+      "source": "Pogoji se mi ne zdijo dobri, pomagajte mi naprej.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-03-2",
+      "source": "Prosim, Pogoji se mi ne zdijo dobri, pomagajte mi naprej.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-03-3",
+      "source": "Na hitro: Pogoji se mi ne zdijo dobri, pomagajte mi naprej.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-03-4",
+      "source": "Kot obrtnik sprašujem: Pogoji se mi ne zdijo dobri, pomagajte mi naprej.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-03-5",
+      "source": "Rabim pomoč — Pogoji se mi ne zdijo dobri, pomagajte mi naprej.",
+      "mode": "widget",
+      "clarificationId": "namen-dejanja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-04-1",
+      "source": "Preverite našo marketing pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-04-2",
+      "source": "Prosim, Preverite našo marketing pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-04-3",
+      "source": "Na hitro: Preverite našo marketing pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-04-4",
+      "source": "Kot obrtnik sprašujem: Preverite našo marketing pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-04-5",
+      "source": "Rabim pomoč — Preverite našo marketing pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-05-1",
+      "source": "Imam pogodbo za vzdrževanje spletne strani.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-05-2",
+      "source": "Prosim, Imam pogodbo za vzdrževanje spletne strani.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-05-3",
+      "source": "Na hitro: Imam pogodbo za vzdrževanje spletne strani.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-05-4",
+      "source": "Kot obrtnik sprašujem: Imam pogodbo za vzdrževanje spletne strani.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-05-5",
+      "source": "Rabim pomoč — Imam pogodbo za vzdrževanje spletne strani.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-06-1",
+      "source": "Poglejte dogovor za programsko opremo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-06-2",
+      "source": "Prosim, Poglejte dogovor za programsko opremo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-06-3",
+      "source": "Na hitro: Poglejte dogovor za programsko opremo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-06-4",
+      "source": "Kot obrtnik sprašujem: Poglejte dogovor za programsko opremo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-06-5",
+      "source": "Rabim pomoč — Poglejte dogovor za programsko opremo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-07-1",
+      "source": "Dobil sem pogodbo za servis strojev.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-07-2",
+      "source": "Prosim, Dobil sem pogodbo za servis strojev.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-07-3",
+      "source": "Na hitro: Dobil sem pogodbo za servis strojev.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-07-4",
+      "source": "Kot obrtnik sprašujem: Dobil sem pogodbo za servis strojev.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-07-5",
+      "source": "Rabim pomoč — Dobil sem pogodbo za servis strojev.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-08-1",
+      "source": "Rad bi preveril oglaševalsko pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-08-2",
+      "source": "Prosim, Rad bi preveril oglaševalsko pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-08-3",
+      "source": "Na hitro: Rad bi preveril oglaševalsko pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-08-4",
+      "source": "Kot obrtnik sprašujem: Rad bi preveril oglaševalsko pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-08-5",
+      "source": "Rabim pomoč — Rad bi preveril oglaševalsko pogodbo.",
+      "mode": "widget",
+      "clarificationId": "enkratno-ali-ponavljajoce",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-09-1",
+      "source": "Rabim ponudbo za električarja.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-09-2",
+      "source": "Prosim, Rabim ponudbo za električarja.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-09-3",
+      "source": "Na hitro: Rabim ponudbo za električarja.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-09-4",
+      "source": "Kot obrtnik sprašujem: Rabim ponudbo za električarja.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-09-5",
+      "source": "Rabim pomoč — Rabim ponudbo za električarja.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-10-1",
+      "source": "Potrebujem ceno za pleskanje hale.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-10-2",
+      "source": "Prosim, Potrebujem ceno za pleskanje hale.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-10-3",
+      "source": "Na hitro: Potrebujem ceno za pleskanje hale.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-10-4",
+      "source": "Kot obrtnik sprašujem: Potrebujem ceno za pleskanje hale.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-10-5",
+      "source": "Rabim pomoč — Potrebujem ceno za pleskanje hale.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-11-1",
+      "source": "Uredite mi ponudbo za novo streho.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-11-2",
+      "source": "Prosim, Uredite mi ponudbo za novo streho.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-11-3",
+      "source": "Na hitro: Uredite mi ponudbo za novo streho.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-11-4",
+      "source": "Kot obrtnik sprašujem: Uredite mi ponudbo za novo streho.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-11-5",
+      "source": "Rabim pomoč — Uredite mi ponudbo za novo streho.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-12-1",
+      "source": "Iščem nekoga za vodovod in bi rad ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-12-2",
+      "source": "Prosim, Iščem nekoga za vodovod in bi rad ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-12-3",
+      "source": "Na hitro: Iščem nekoga za vodovod in bi rad ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-12-4",
+      "source": "Kot obrtnik sprašujem: Iščem nekoga za vodovod in bi rad ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-12-5",
+      "source": "Rabim pomoč — Iščem nekoga za vodovod in bi rad ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-13-1",
+      "source": "Za montažo vrat potrebujem ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-13-2",
+      "source": "Prosim, Za montažo vrat potrebujem ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-13-3",
+      "source": "Na hitro: Za montažo vrat potrebujem ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-13-4",
+      "source": "Kot obrtnik sprašujem: Za montažo vrat potrebujem ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-13-5",
+      "source": "Rabim pomoč — Za montažo vrat potrebujem ponudbo.",
+      "mode": "widget",
+      "clarificationId": "ponudba-ze-obstaja",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-14-1",
+      "source": "Dobil sem en papir, poglejte ali je v redu.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-14-2",
+      "source": "Prosim, Dobil sem en papir, poglejte ali je v redu.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-14-3",
+      "source": "Na hitro: Dobil sem en papir, poglejte ali je v redu.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-14-4",
+      "source": "Kot obrtnik sprašujem: Dobil sem en papir, poglejte ali je v redu.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-14-5",
+      "source": "Rabim pomoč — Dobil sem en papir, poglejte ali je v redu.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-15-1",
+      "source": "Poslali so mi dokument in ne vem, kaj sploh je.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-15-2",
+      "source": "Prosim, Poslali so mi dokument in ne vem, kaj sploh je.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-15-3",
+      "source": "Na hitro: Poslali so mi dokument in ne vem, kaj sploh je.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-15-4",
+      "source": "Kot obrtnik sprašujem: Poslali so mi dokument in ne vem, kaj sploh je.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-15-5",
+      "source": "Rabim pomoč — Poslali so mi dokument in ne vem, kaj sploh je.",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-16-1",
+      "source": "Lahko pregledate tole, preden potrdim?",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-16-2",
+      "source": "Prosim, Lahko pregledate tole, preden potrdim?",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-16-3",
+      "source": "Na hitro: Lahko pregledate tole, preden potrdim?",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-16-4",
+      "source": "Kot obrtnik sprašujem: Lahko pregledate tole, preden potrdim?",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-16-5",
+      "source": "Rabim pomoč — Lahko pregledate tole, preden potrdim?",
+      "mode": "widget",
+      "clarificationId": "vrsta-dokumenta",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-17-1",
+      "source": "Ta ponudba se mi zdi čudna.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-17-2",
+      "source": "Prosim, Ta ponudba se mi zdi čudna.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-17-3",
+      "source": "Na hitro: Ta ponudba se mi zdi čudna.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-17-4",
+      "source": "Kot obrtnik sprašujem: Ta ponudba se mi zdi čudna.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-17-5",
+      "source": "Rabim pomoč — Ta ponudba se mi zdi čudna.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-18-1",
+      "source": "Pri pogodbi me nekaj skrbi, ampak ne vem kaj.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-18-2",
+      "source": "Prosim, Pri pogodbi me nekaj skrbi, ampak ne vem kaj.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-18-3",
+      "source": "Na hitro: Pri pogodbi me nekaj skrbi, ampak ne vem kaj.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-18-4",
+      "source": "Kot obrtnik sprašujem: Pri pogodbi me nekaj skrbi, ampak ne vem kaj.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-18-5",
+      "source": "Rabim pomoč — Pri pogodbi me nekaj skrbi, ampak ne vem kaj.",
+      "mode": "widget",
+      "clarificationId": "glavna-skrb",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-19-1",
+      "source": "Prodajalec me bo poklical in rabim pomoč.",
+      "mode": "widget",
+      "clarificationId": "prodajni-klic",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-19-2",
+      "source": "Prosim, Prodajalec me bo poklical in rabim pomoč.",
+      "mode": "widget",
+      "clarificationId": "prodajni-klic",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-19-3",
+      "source": "Na hitro: Prodajalec me bo poklical in rabim pomoč.",
+      "mode": "widget",
+      "clarificationId": "prodajni-klic",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-19-4",
+      "source": "Kot obrtnik sprašujem: Prodajalec me bo poklical in rabim pomoč.",
+      "mode": "widget",
+      "clarificationId": "prodajni-klic",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-19-5",
+      "source": "Rabim pomoč — Prodajalec me bo poklical in rabim pomoč.",
+      "mode": "widget",
+      "clarificationId": "prodajni-klic",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-20-1",
+      "source": "Rad bi zbral več izvajalcev za prenovo.",
+      "mode": "widget",
+      "clarificationId": "stevilo-ponudnikov",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-20-2",
+      "source": "Prosim, Rad bi zbral več izvajalcev za prenovo.",
+      "mode": "widget",
+      "clarificationId": "stevilo-ponudnikov",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-20-3",
+      "source": "Na hitro: Rad bi zbral več izvajalcev za prenovo.",
+      "mode": "widget",
+      "clarificationId": "stevilo-ponudnikov",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-20-4",
+      "source": "Kot obrtnik sprašujem: Rad bi zbral več izvajalcev za prenovo.",
+      "mode": "widget",
+      "clarificationId": "stevilo-ponudnikov",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-widget-20-5",
+      "source": "Rabim pomoč — Rad bi zbral več izvajalcev za prenovo.",
+      "mode": "widget",
+      "clarificationId": "stevilo-ponudnikov",
+      "serviceCode": null,
+      "question": null
+    },
+    {
+      "id": "200-clear-01-1",
+      "source": "Preverite predračun za fasado, predvsem ceno in kaj je vključeno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-01-2",
+      "source": "Prosim, Preverite predračun za fasado, predvsem ceno in kaj je vključeno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-01-3",
+      "source": "Na hitro: Preverite predračun za fasado, predvsem ceno in kaj je vključeno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-01-4",
+      "source": "Kot obrtnik sprašujem: Preverite predračun za fasado, predvsem ceno in kaj je vključeno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-01-5",
+      "source": "Rabim pomoč — Preverite predračun za fasado, predvsem ceno in kaj je vključeno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-02-1",
+      "source": "Preglejte ponudbo za toplotno črpalko pred podpisom.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-02-2",
+      "source": "Prosim, Preglejte ponudbo za toplotno črpalko pred podpisom.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-02-3",
+      "source": "Na hitro: Preglejte ponudbo za toplotno črpalko pred podpisom.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-02-4",
+      "source": "Kot obrtnik sprašujem: Preglejte ponudbo za toplotno črpalko pred podpisom.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-02-5",
+      "source": "Rabim pomoč — Preglejte ponudbo za toplotno črpalko pred podpisom.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-03-1",
+      "source": "Preverite rok izvedbe in predplačilo v ponudbi za streho.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-03-2",
+      "source": "Prosim, Preverite rok izvedbe in predplačilo v ponudbi za streho.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-03-3",
+      "source": "Na hitro: Preverite rok izvedbe in predplačilo v ponudbi za streho.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-03-4",
+      "source": "Kot obrtnik sprašujem: Preverite rok izvedbe in predplačilo v ponudbi za streho.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-03-5",
+      "source": "Rabim pomoč — Preverite rok izvedbe in predplačilo v ponudbi za streho.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-04-1",
+      "source": "Poglejte, ali so dodatna dela vključena v ta predračun.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-04-2",
+      "source": "Prosim, Poglejte, ali so dodatna dela vključena v ta predračun.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-04-3",
+      "source": "Na hitro: Poglejte, ali so dodatna dela vključena v ta predračun.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-04-4",
+      "source": "Kot obrtnik sprašujem: Poglejte, ali so dodatna dela vključena v ta predračun.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-04-5",
+      "source": "Rabim pomoč — Poglejte, ali so dodatna dela vključena v ta predračun.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-05-1",
+      "source": "Preverite garancijo v ponudbi za nova okna.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-05-2",
+      "source": "Prosim, Preverite garancijo v ponudbi za nova okna.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-05-3",
+      "source": "Na hitro: Preverite garancijo v ponudbi za nova okna.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-05-4",
+      "source": "Kot obrtnik sprašujem: Preverite garancijo v ponudbi za nova okna.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-05-5",
+      "source": "Rabim pomoč — Preverite garancijo v ponudbi za nova okna.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudba",
+      "question": null
+    },
+    {
+      "id": "200-clear-06-1",
+      "source": "Preverite mojo mesečno naročnino za poslovni internet.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-06-2",
+      "source": "Prosim, Preverite mojo mesečno naročnino za poslovni internet.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-06-3",
+      "source": "Na hitro: Preverite mojo mesečno naročnino za poslovni internet.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-06-4",
+      "source": "Kot obrtnik sprašujem: Preverite mojo mesečno naročnino za poslovni internet.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-06-5",
+      "source": "Rabim pomoč — Preverite mojo mesečno naročnino za poslovni internet.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-07-1",
+      "source": "Poglejte vezavo in samodejno podaljšanje licence.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-07-2",
+      "source": "Prosim, Poglejte vezavo in samodejno podaljšanje licence.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-07-3",
+      "source": "Na hitro: Poglejte vezavo in samodejno podaljšanje licence.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-07-4",
+      "source": "Kot obrtnik sprašujem: Poglejte vezavo in samodejno podaljšanje licence.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-07-5",
+      "source": "Rabim pomoč — Poglejte vezavo in samodejno podaljšanje licence.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-08-1",
+      "source": "Koliko me stane obstoječa naročnina na računovodski program?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-08-2",
+      "source": "Prosim, Koliko me stane obstoječa naročnina na računovodski program?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-08-3",
+      "source": "Na hitro: Koliko me stane obstoječa naročnina na računovodski program?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-08-4",
+      "source": "Kot obrtnik sprašujem: Koliko me stane obstoječa naročnina na računovodski program?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-08-5",
+      "source": "Rabim pomoč — Koliko me stane obstoječa naročnina na računovodski program?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-09-1",
+      "source": "Preverite odpovedni rok pri telefonski naročnini.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-09-2",
+      "source": "Prosim, Preverite odpovedni rok pri telefonski naročnini.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-09-3",
+      "source": "Na hitro: Preverite odpovedni rok pri telefonski naročnini.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-09-4",
+      "source": "Kot obrtnik sprašujem: Preverite odpovedni rok pri telefonski naročnini.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-09-5",
+      "source": "Rabim pomoč — Preverite odpovedni rok pri telefonski naročnini.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-10-1",
+      "source": "Ali se članstvo po enem letu samodejno obnovi?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-10-2",
+      "source": "Prosim, Ali se članstvo po enem letu samodejno obnovi?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-10-3",
+      "source": "Na hitro: Ali se članstvo po enem letu samodejno obnovi?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-10-4",
+      "source": "Kot obrtnik sprašujem: Ali se članstvo po enem letu samodejno obnovi?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-10-5",
+      "source": "Rabim pomoč — Ali se članstvo po enem letu samodejno obnovi?",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "narocnina",
+      "question": null
+    },
+    {
+      "id": "200-clear-11-1",
+      "source": "Želim se pogajati za nižjo ceno materiala.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-11-2",
+      "source": "Prosim, Želim se pogajati za nižjo ceno materiala.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-11-3",
+      "source": "Na hitro: Želim se pogajati za nižjo ceno materiala.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-11-4",
+      "source": "Kot obrtnik sprašujem: Želim se pogajati za nižjo ceno materiala.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-11-5",
+      "source": "Rabim pomoč — Želim se pogajati za nižjo ceno materiala.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-12-1",
+      "source": "Pomagajte mi odpovedati pogodbo z oglaševalsko agencijo.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-12-2",
+      "source": "Prosim, Pomagajte mi odpovedati pogodbo z oglaševalsko agencijo.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-12-3",
+      "source": "Na hitro: Pomagajte mi odpovedati pogodbo z oglaševalsko agencijo.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-12-4",
+      "source": "Kot obrtnik sprašujem: Pomagajte mi odpovedati pogodbo z oglaševalsko agencijo.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-12-5",
+      "source": "Rabim pomoč — Pomagajte mi odpovedati pogodbo z oglaševalsko agencijo.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-13-1",
+      "source": "Dobavitelju bi rad predlagal krajši plačilni rok.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-13-2",
+      "source": "Prosim, Dobavitelju bi rad predlagal krajši plačilni rok.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-13-3",
+      "source": "Na hitro: Dobavitelju bi rad predlagal krajši plačilni rok.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-13-4",
+      "source": "Kot obrtnik sprašujem: Dobavitelju bi rad predlagal krajši plačilni rok.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-13-5",
+      "source": "Rabim pomoč — Dobavitelju bi rad predlagal krajši plačilni rok.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-14-1",
+      "source": "Hočem zavrniti podražitev in obdržati stare pogoje.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-14-2",
+      "source": "Prosim, Hočem zavrniti podražitev in obdržati stare pogoje.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-14-3",
+      "source": "Na hitro: Hočem zavrniti podražitev in obdržati stare pogoje.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-14-4",
+      "source": "Kot obrtnik sprašujem: Hočem zavrniti podražitev in obdržati stare pogoje.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-14-5",
+      "source": "Rabim pomoč — Hočem zavrniti podražitev in obdržati stare pogoje.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-15-1",
+      "source": "Pripravite me na pogajanje o obsegu vzdrževanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-15-2",
+      "source": "Prosim, Pripravite me na pogajanje o obsegu vzdrževanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-15-3",
+      "source": "Na hitro: Pripravite me na pogajanje o obsegu vzdrževanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-15-4",
+      "source": "Kot obrtnik sprašujem: Pripravite me na pogajanje o obsegu vzdrževanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-15-5",
+      "source": "Rabim pomoč — Pripravite me na pogajanje o obsegu vzdrževanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "pogajanje",
+      "question": null
+    },
+    {
+      "id": "200-clear-16-1",
+      "source": "Poiščite tri izvajalce za prenovo kopalnice.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-16-2",
+      "source": "Prosim, Poiščite tri izvajalce za prenovo kopalnice.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-16-3",
+      "source": "Na hitro: Poiščite tri izvajalce za prenovo kopalnice.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-16-4",
+      "source": "Kot obrtnik sprašujem: Poiščite tri izvajalce za prenovo kopalnice.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-16-5",
+      "source": "Rabim pomoč — Poiščite tri izvajalce za prenovo kopalnice.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-17-1",
+      "source": "Primerjajte štiri ponudbe za sončno elektrarno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-17-2",
+      "source": "Prosim, Primerjajte štiri ponudbe za sončno elektrarno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-17-3",
+      "source": "Na hitro: Primerjajte štiri ponudbe za sončno elektrarno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-17-4",
+      "source": "Kot obrtnik sprašujem: Primerjajte štiri ponudbe za sončno elektrarno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-17-5",
+      "source": "Rabim pomoč — Primerjajte štiri ponudbe za sončno elektrarno.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-18-1",
+      "source": "Pošljite enako povpraševanje več mizarjem.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-18-2",
+      "source": "Prosim, Pošljite enako povpraševanje več mizarjem.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-18-3",
+      "source": "Na hitro: Pošljite enako povpraševanje več mizarjem.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-18-4",
+      "source": "Kot obrtnik sprašujem: Pošljite enako povpraševanje več mizarjem.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-18-5",
+      "source": "Rabim pomoč — Pošljite enako povpraševanje več mizarjem.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "ponudbe",
+      "question": null
+    },
+    {
+      "id": "200-clear-19-1",
+      "source": "Prodajalec je zdaj na telefonu in zahteva takojšnjo odločitev.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-19-2",
+      "source": "Prosim, Prodajalec je zdaj na telefonu in zahteva takojšnjo odločitev.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-19-3",
+      "source": "Na hitro: Prodajalec je zdaj na telefonu in zahteva takojšnjo odločitev.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-19-4",
+      "source": "Kot obrtnik sprašujem: Prodajalec je zdaj na telefonu in zahteva takojšnjo odločitev.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-19-5",
+      "source": "Rabim pomoč — Prodajalec je zdaj na telefonu in zahteva takojšnjo odločitev.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-20-1",
+      "source": "Jutri me kliče prodajalec strojev; pripravite mi vprašanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-20-2",
+      "source": "Prosim, Jutri me kliče prodajalec strojev; pripravite mi vprašanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-20-3",
+      "source": "Na hitro: Jutri me kliče prodajalec strojev; pripravite mi vprašanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-20-4",
+      "source": "Kot obrtnik sprašujem: Jutri me kliče prodajalec strojev; pripravite mi vprašanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    },
+    {
+      "id": "200-clear-20-5",
+      "source": "Rabim pomoč — Jutri me kliče prodajalec strojev; pripravite mi vprašanja.",
+      "mode": "direct",
+      "clarificationId": null,
+      "serviceCode": "klic",
+      "question": null
+    }
+  ]
+}

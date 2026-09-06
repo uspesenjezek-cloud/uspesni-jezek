@@ -13,9 +13,16 @@ var SEED = 0x5eed17;
 var REFERENCE_DATE = "2026-08-28";
 var DEBT = 9446;
 var CONTEXT = { referenceDate: REFERENCE_DATE, originalDebt: DEBT, remainingDebt: DEBT };
-var CONTRACT_VERSION = "history-fact-v75";
+var CONTRACT_VERSION = "history-fact-v99";
 var cases = [];
 var randomState = SEED >>> 0;
+var externalCalls = 0;
+var originalFetch = global.fetch;
+
+global.fetch = async function () {
+  externalCalls += 1;
+  throw new Error("Zunanji klic je v offline testu prepovedan.");
+};
 
 function random() {
   randomState ^= randomState << 13;
@@ -467,6 +474,7 @@ async function main() {
     total: cases.length,
     passed: cases.length - failures.length,
     failed: failures.length,
+    externalCalls: externalCalls,
     families: familyStats,
     timingMs: { p50: percentile(durations, 0.50), p95: percentile(durations, 0.95), max: Math.max.apply(Math, durations) },
     mockLuna: mockLuna,
@@ -475,7 +483,7 @@ async function main() {
     var stat = familyStats[family];
     console.log((stat.failed ? "✗" : "✓") + " " + family + ": " + stat.passed + "/" + stat.total + (stat.failed ? " " + JSON.stringify(stat.causes) : ""));
   });
-  console.log("Skupaj " + summary.passed + "/" + summary.total + "; p50 " + summary.timingMs.p50.toFixed(2) + " ms, p95 " + summary.timingMs.p95.toFixed(2) + " ms, max " + summary.timingMs.max.toFixed(2) + " ms; mock-Luna " + (mockLuna.passed ? "✓ " : "✗ ") + mockLuna.source + (mockLuna.issues.length ? " " + mockLuna.issues.join(",") : "") + ".");
+  console.log("Skupaj " + summary.passed + "/" + summary.total + "; p50 " + summary.timingMs.p50.toFixed(2) + " ms, p95 " + summary.timingMs.p95.toFixed(2) + " ms, max " + summary.timingMs.max.toFixed(2) + " ms; mock-Luna " + (mockLuna.passed ? "✓ " : "✗ ") + mockLuna.source + (mockLuna.issues.length ? " " + mockLuna.issues.join(",") : "") + "; zunanji klici " + summary.externalCalls + ".");
   failures.slice(0, 12).forEach(function (failure) {
     console.log("FAIL " + failure.id + " [" + failure.family + "] " + failure.issues.join(", ") + " :: " + failure.text);
     console.log(JSON.stringify({ clauses: failure.contract.clauses, moneyFacts: failure.contract.moneyFacts, dateRelations: failure.contract.dateRelations, candidates: failure.actual.candidates, ledger: failure.actual.ledger, coverage: failure.actual.coverage, questionPlan: failure.actual.questionPlan }));
@@ -487,10 +495,17 @@ async function main() {
     fs.writeFileSync(reportPath, JSON.stringify({ summary: summary, corpus: cases, failures: failures }, null, 2) + "\n", "utf8");
     console.log("Poročilo: " + reportPath);
   }
+  assert.equal(externalCalls, 0, "Offline test ne sme izvesti zunanjega klica.");
+  assert.ok(summary.timingMs.p95 <= 100, "Zgodovina p95 je presegla varni lokalni proračun 100 ms.");
+  assert.ok(summary.timingMs.max <= 2000, "Zgodovina je v enem primeru presegla varni lokalni proračun 2000 ms.");
   if ((failures.length || !mockLuna.passed) && !process.argv.includes("--baseline")) assert.fail(failures.length + " od 1000 primerov ni prestalo oracle preverjanja; mock-Luna " + (mockLuna.passed ? "uspešen" : mockLuna.issues.join(", ")) + ".");
 }
 
-main().catch(function (error) {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .catch(function (error) {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(function () {
+    global.fetch = originalFetch;
+  });

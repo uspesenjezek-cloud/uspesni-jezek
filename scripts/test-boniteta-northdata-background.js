@@ -114,7 +114,7 @@ async function main() {
   assert.match(frontend, /details-status-preview[\s\S]*?\["loading", "unavailable", "complete"\][\s\S]*?lokalniAudit: true/, "localhost predogled mora pokriti loading, unavailable in uspešno stanje kartice Plus");
   assert.match(html, /bonitetna-preverba\.js\?v=20260904-raw-name-single-search-v7/, "HTML mora prisiliti nalaganje aktualne logike OpenRegister in praznega Plus stanja");
   assert.match(graphicsCss, /rgba\(8, 127, 131, \.34\)/, "premikajoči barvni pas mora ostati umirjen in manj intenziven");
-  assert.match(html, /bonitetna-podjetje-grafike\.css\?v=20260903-northdata-progress-v10/, "HTML mora prisiliti nalaganje aktualne umirjene animacije prihoda podatkov");
+  assert.match(html, /bonitetna-podjetje-grafike\.css\?v=20260904-preveri-aktiven-v1/, "HTML mora prisiliti nalaganje aktualne umirjene animacije prihoda podatkov");
   console.log("✓ OpenRegister se prikaže prvi; oba North Data actorja se nalagata v kartici in uspeh označita na zavihkih.");
 }
 

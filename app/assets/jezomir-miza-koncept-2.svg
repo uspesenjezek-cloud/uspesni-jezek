@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+<!-- KONCEPT 2: stranski profil, kot original, sedi in gleda v laptop desno -->
+<!-- telo -->
+<ellipse cx="340" cy="480" rx="180" ry="195" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+<!-- bodice levo -->
+<path d="M280 310 L210 285 L235 345 L160 350 L200 395 L135 420 L190 450 L140 500 L200 515 L165 575 L225 575 L200 640 L255 625"
+  fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- usesa -->
+<path d="M430 300 L424 240 L462 258" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- gobec -->
+<path d="M462 258 C510 300 560 330 610 350" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+<path d="M610 350 C600 400 560 430 510 432" stroke="#047189" stroke-width="14" stroke-linecap="round"/>
+<circle cx="626" cy="364" r="22" fill="#3f6455"/>
+<!-- oko -->
+<circle cx="516" cy="362" r="14" fill="#3f6455"/>
+<path d="M430 322 C444 300 476 298 490 316" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<path d="M510 432 C530 444 556 444 576 430" stroke="#047189" stroke-width="12" stroke-linecap="round"/>
+<!-- nogici -->
+<path d="M250 660 L250 708 C250 722 262 728 292 728 C322 728 332 722 332 708 L332 662" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M370 662 L370 708 C370 722 382 728 412 728 C442 728 452 722 452 708 L452 660" fill="#ffffff" stroke="#047189" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- miza -->
+<path d="M660 620 L660 762" stroke="#047189" stroke-width="22" stroke-linecap="round"/>
+<rect x="430" y="590" width="280" height="30" rx="15" fill="#ffffff" stroke="#047189" stroke-width="14"/>
+<!-- laptop odprt proti jezu -->
+<rect x="508" y="438" width="150" height="120" rx="12" fill="#d9d9d9" stroke="#3f6455" stroke-width="10"/>
+<circle cx="583" cy="454" r="6" fill="#3f6455"/>
+<line x1="532" y1="492" x2="634" y2="492" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+<line x1="548" y1="514" x2="618" y2="514" stroke="#3f6455" stroke-width="5" stroke-linecap="round"/>
+<path d="M492 558 L662 558 L680 590 L474 590 Z" fill="#d9d9d9" stroke="#3f6455" stroke-width="10" stroke-linejoin="round"/>
+<!-- roka na tipkovnico -->
+<path d="M340 540 C420 550 480 558 540 566" stroke="#047189" stroke-width="44" stroke-linecap="round"/>
+<path d="M340 540 C420 550 480 558 540 566" stroke="#ffffff" stroke-width="28" stroke-linecap="round"/>
+<circle cx="552" cy="568" r="30" fill="#ffffff" stroke="#047189" stroke-width="12"/>
+<path d="M568 556 L592 558" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+<path d="M570 574 L594 574" stroke="#047189" stroke-width="8" stroke-linecap="round"/>
+</svg>

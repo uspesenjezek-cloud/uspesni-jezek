@@ -32,7 +32,35 @@ assert.match(source, /let supabaseKlient = null/);
 assert.match(source, /\["localhost", "127\.0\.0\.1", "::1"\]/);
 assert.match(source, /UJ_LOKALNI_PREDOGLED_BREZ_SUPABASE = jeLoopback/);
 assert.doesNotMatch(source, /\^192\\\.168/);
+
+let prejetiArgumenti = null;
+const veljavenContext = vm.createContext({
+  SUPABASE_CONFIG: { url: "https://primer.supabase.co", anonKey: "test-anon-key" },
+  supabase: {
+    createClient(...argumenti) {
+      prejetiArgumenti = argumenti;
+      return { auth: {} };
+    },
+  },
+  console: { warn() {} },
+  URL,
+  URLSearchParams,
+  window: {
+    location: {
+      hostname: "app.uspesni-jezek.si",
+      href: "https://app.uspesni-jezek.si/neplacila.html",
+      replace() {},
+    },
+  },
+});
+
+assert.doesNotThrow(() => vm.runInContext(source, veljavenContext));
+assert.deepEqual(prejetiArgumenti, [
+  "https://primer.supabase.co",
+  "test-anon-key",
+]);
+assert.doesNotMatch(source, /lock\s*:\s*async/);
 assert.match(syncSource, /typeof supabaseKlient === "undefined"\s*\|\|\s*!supabaseKlient\s*\|\|/);
 assert.match(appSource, /typeof supabaseKlient !== "undefined"\s*&&\s*supabaseKlient\s*&&\s*supabaseKlient\.auth/);
 
-console.log("OK: manjkajoča lokalna Supabase konfiguracija ne sesuje načrta");
+console.log("OK: lokalni predogled ostane varen, Supabase Auth pa uporablja privzeto zaklepanje med zavihki");

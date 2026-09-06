@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="sl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pregled dizajnov insolvenčne preverbe</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 28px; background: #eef3f2; color: #063f45; font-family: Figtree, Arial, sans-serif; }
+      h1 { margin: 0 0 6px; font-size: 26px; }
+      p { margin: 0 0 22px; color: #58706d; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1280px; margin: auto; }
+      figure { margin: 0; overflow: hidden; border: 1px solid #d2e1de; border-radius: 18px; background: #fff; box-shadow: 0 12px 30px rgba(23, 69, 64, .11); }
+      figcaption { padding: 12px 14px; border-bottom: 1px solid #dce9e6; font-weight: 750; font-size: 14px; }
+      .frame { width: 195px; height: 422px; margin: 12px auto; overflow: hidden; border-radius: 13px; background: #fff; box-shadow: 0 0 0 1px #dbe7e4; }
+      iframe { width: 390px; height: 844px; border: 0; transform: scale(.5); transform-origin: top left; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <h1>Trenutni dizajni insolvenčne preverbe</h1>
+    <p>Dejanski lokalni zasloni aplikacije · podjetja in obrtniki</p>
+    <main class="grid">
+      <figure><figcaption>Podjetje · pripravljeno za preverbo</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?company-preview=cta"></iframe></div></figure>
+      <figure><figcaption>Podjetje · preverjanje poteka</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?company-preview=insolvency-loading"></iframe></div></figure>
+      <figure><figcaption>Podjetje · brez zaznanih objav</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?company-preview=compact"></iframe></div></figure>
+      <figure><figcaption>Podjetje · uradni vir ni dosegljiv</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?company-preview=insolvency-source-error"></iframe></div></figure>
+      <figure><figcaption>Podjetje · uradni posnetek</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?saved-preview=insolvency-company"></iframe></div></figure>
+      <figure><figcaption>Obrtnik · brez zaznanih objav</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?person-preview=compact"></iframe></div></figure>
+      <figure><figcaption>Obrtnik · uradni posnetek</figcaption><div class="frame"><iframe src="bonitetna-preverba.html?saved-preview=insolvency"></iframe></div></figure>
+    </main>
+  </body>
+</html>

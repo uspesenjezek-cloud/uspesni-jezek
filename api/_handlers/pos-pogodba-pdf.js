@@ -4,6 +4,10 @@ const crypto = require("crypto");
 const supabase = require("../_lib/supabase-server");
 const providerJson = require("../_lib/provider-json");
 const requestQuery = require("../_lib/pos-request-query");
+const pdfCapacity = require("../_lib/runtime-capacity").sharedGate("pos-pdf-generation", {
+  maxActive: 2, maxQueue: 32, waitTimeoutMs: 8000, retryAfterMs: 1500,
+  busyMessage: "Ustvarjanje PDF-jev je trenutno zasedeno. Poskusite znova čez trenutek."
+});
 const {
   CONTRACT_CONFIRMATION_GENERATOR_VERSION,
   ustvariPogodbenoPotrdiloPdf
@@ -77,7 +81,7 @@ async function insertDocument(cfg, row) {
   throw Object.assign(new Error("Metapodatkov pogodbenega potrdila ni bilo mogoče shraniti."), { status: response.status });
 }
 
-async function ensureDocument(cfg, workOrder, userId) {
+async function ensureDocumentCore(cfg, workOrder, userId) {
   const source = workOrder.locked_payload || {};
   if (source.customer_type !== "private" || !["distance", "off_premises", "urgent_repair"].includes(source.consumer_contract_context)) {
     throw new Error("Posebno pogodbeno potrdilo je namenjeno potrošniški pogodbi na daljavo ali zunaj poslovnih prostorov.");
@@ -138,6 +142,12 @@ async function ensureDocument(cfg, workOrder, userId) {
   return { document, pdf };
 }
 
+function ensureDocument(cfg, workOrder, userId) {
+  return pdfCapacity.run("contract:" + userId + ":" + workOrder.id, function () {
+    return ensureDocumentCore(cfg, workOrder, userId);
+  });
+}
+
 async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return json(res, 405, { ok: false, napaka: "Metoda ni dovoljena." });
   let cfg;
@@ -175,7 +185,7 @@ async function handler(req, res) {
     res.end(result.pdf);
   } catch (error) {
     console.error("[pos-pogodba-pdf]", error && error.stack || error);
-    json(res, 500, { ok: false, napaka: error && error.message || "PDF pogodbenega potrdila ni bil ustvarjen." });
+    json(res, Number(error && error.status || 500), { ok: false, code: error && error.code, retryable: error && error.retryable === true, retryAfterMs: error && error.retryAfterMs, napaka: error && error.message || "PDF pogodbenega potrdila ni bil ustvarjen." });
   }
 }
 

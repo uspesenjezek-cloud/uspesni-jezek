@@ -59,6 +59,20 @@
         if (anchor && anchor.candidateId) relation.anchorCandidateId = anchor.candidateId;
         var anchorDate = anchor && anchor[field];
         if (!veljavenIsoDatum(anchorDate)) {
+          // Keep a month preset while the anchor day is missing. This is a
+          // suggestion, not an exact date: a day/week interval may cross months.
+          var anchorMonth = anchor && !anchor[field + "Unknown"] && !anchor[field + "Approximate"]
+            && (anchor[field + "KnownYearMonth"] || anchor[field + "SuggestedYearMonth"]);
+          var suggestedMonth = null;
+          if (/^\d{4}-\d{2}$/.test(String(anchorMonth || ""))) {
+            var shiftedMonth = (relation.unit === "month" || relation.unit === "year")
+              ? premakniDatum(anchorMonth + "-01", relation) : anchorMonth + "-01";
+            suggestedMonth = shiftedMonth && shiftedMonth.slice(0, 7);
+          }
+          if ((candidate[field + "SuggestedYearMonth"] || null) !== suggestedMonth) {
+            candidate[field + "SuggestedYearMonth"] = suggestedMonth;
+            changed = true;
+          }
           if (candidate[field + "Derived"] === true && candidate[field]) {
             candidate[field] = null;
             changed = true;
@@ -73,6 +87,7 @@
           candidate[field] = derived;
           changed = true;
         }
+        candidate[field + "SuggestedYearMonth"] = null;
         candidate[field + "Derived"] = true;
         candidate[field + "ManualOverride"] = false;
         candidate[field + "DerivedFrom"] = anchor.candidateId || null;
@@ -99,9 +114,12 @@
     function latestFor(item, visited) {
       if (!item || visited.indexOf(item) >= 0) return referenceDate;
       var nextVisited = visited.concat(item);
-      return list.reduce(function (latest, child, index) {
+      var children = list.map(function (child, index) {
         var relation = child && child.dateRelation;
-        if (!relation || Number(relation.direction) !== 1 || anchorFor(child, index) !== item) return latest;
+        return relation && Number(relation.direction) === 1 && anchorFor(child, index) === item ? child : null;
+      }).filter(Boolean);
+      return children.reduce(function (latest, child) {
+        var relation = child.dateRelation;
         var childLatest = latestFor(child, nextVisited);
         var anchorLatest = premakniDatum(childLatest, Object.assign({}, relation, { direction: -1 }));
         return anchorLatest && anchorLatest < latest ? anchorLatest : latest;

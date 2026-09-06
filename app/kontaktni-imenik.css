@@ -1,0 +1,73 @@
+.scit-imenik__status:empty { display:none; }
+.scit-imenik { z-index:2147483500; }
+.scit-imenik .podjetja-sheet__uporabi-podatke { width:calc(100% - 16px); margin:0 8px 8px; }
+.scit-imenik .podjetja-sheet__telo { display:flex; flex-direction:column; min-height:0; }
+.scit-imenik .podjetja-sheet__telo > * { flex:0 0 auto; }
+.scit-imenik .podjetja-sheet__telo > .podjetja-sheet__seznam { flex:1 1 auto; min-height:0; overflow:auto; }
+.scit-imenik .podjetja-sheet__kategorije { align-content:start; }
+.scit-imenik .ocena-sheet__panel { padding-top:8px; grid-template-rows:auto minmax(0,1fr); }
+.scit-imenik .ocena-sheet__rocaj { position:absolute; top:12px; left:50%; margin:0; transform:translateX(-50%); }
+.scit-imenik .ocena-sheet__glava { margin-bottom:6px; }
+.scit-imenik .podjetja-sheet__telo { gap:6px; }
+.scit-imenik .podjetja-sheet__kategorije { gap:3px; padding:0; }
+.scit-imenik .podjetja-sheet__kategorije-uredi { min-height:29px; padding:3px 11px; }
+.scit-imenik .podjetja-sheet__kategorije-dok { height:84px; }
+.scit-imenik .podjetja-sheet__kategorija-vse,
+.scit-imenik .podjetja-sheet__nova-kategorija,
+.scit-imenik .podjetja-sheet__kategorije-dok > .podjetja-sheet__nedavna-gumb { top:0; }
+.scit-imenik .podjetja-sheet__kategorija-izbira { top:42px; }
+.scit-imenik .podjetja-sheet__kategorije-viewport { top:84px; }
+.scit-imenik .podjetja-sheet__kategorija-izbira { display:none; }
+.scit-imenik .podjetja-sheet__kategorije-dok { height:auto; padding-top:42px; }
+.scit-imenik .podjetja-sheet__kategorije-dok .podjetja-sheet__kategorije-viewport { display:block !important; position:relative; top:auto; left:auto; right:auto; }
+.scit-imenik .podjetja-sheet__kategorije-pikice { display:flex !important; padding:5px 0; }
+.scit-imenik .podjetja-sheet__kategorija-gumb > [data-fit-text] { white-space:normal !important; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.15; font-size:12px !important; overflow-wrap:anywhere; }
+.scit-imenik #podjetja-sheet-hitri-pogledi { display:none !important; }
+.scit-imenik__status:empty { display:none; }
+.scit-imenik .scit-dodaj-kontakt { margin:7px 0 5px; min-height:44px; border:1px solid #aed7d2; border-radius:14px; background:linear-gradient(180deg,#f3fbf9,#e1f2ee); color:#267d76; box-shadow:0 2px 4px #286e6814,inset 0 1px 0 #fff; font-weight:600; }
+.scit-imenik .scit-dodaj-kontakt:hover { background:#d9eee8; border-color:#67aaa2; }
+.scit-imenik .podjetja-sheet__orodja { display:grid; grid-template-columns:minmax(0,1fr); align-items:center; gap:8px; }
+.scit-imenik .podjetja-sheet__orodja .podjetja-sheet__iskanje { min-width:0; }
+.scit-imenik .podjetja-sheet__orodja .scit-dodaj-kontakt { width:auto; margin:0; padding:10px 12px; min-height:44px; font-size:14px; white-space:nowrap; border-radius:12px; }
+.scit-imenik .podjetja-sheet__orodja input { min-width:0; width:100%; box-sizing:border-box; }
+.scit-imenik-kontakt { position:relative; box-sizing:border-box; display:grid; grid-template-columns:38px minmax(0,1fr); column-gap:10px; row-gap:6px; width:100%; min-width:0; margin:0 0 9px; padding:13px 33px 13px 12px; border:1px solid #cee3df; border-radius:16px; background:linear-gradient(155deg,#fff 45%,#f1f8f6); box-shadow:0 3px 8px #244f4210,inset 0 1px 0 #fff; color:#345c51; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color 150ms,background 150ms; }
+.scit-imenik-kontakt::after { content:""; position:absolute; right:15px; top:calc(50% - 3px); width:6px; height:6px; border-top:1.5px solid #55968b; border-right:1.5px solid #55968b; transform:rotate(45deg); }
+.scit-imenik-kontakt:hover,.scit-imenik-kontakt:active { background:#edf7f3; border-color:#95c5bb; }
+.scit-imenik-kontakt > strong,.scit-imenik-kontakt__podatki,.scit-imenik-kontakt__skupine { grid-column:2; min-width:0; }
+.scit-imenik-kontakt__ikona { grid-column:1; grid-row:1/4; display:flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid #d4ebe6; border-radius:12px; background:linear-gradient(145deg,#e4f4ef,#f3faf7); color:#399692; }
+.scit-imenik-kontakt__ikona svg { width:21px; height:21px; }
+.scit-imenik-kontakt:focus-visible { outline:2px solid #399692; outline-offset:-2px; }
+.scit-imenik-kontakt strong { font:600 15px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overflow-wrap:anywhere; }
+.scit-imenik-kontakt__podatki { display:flex; flex-wrap:wrap; gap:4px 12px; color:#6a8279; }
+.scit-imenik-kontakt__podatki > span { display:flex; align-items:center; gap:5px; min-width:0; font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.scit-imenik-kontakt__podatki span span { overflow-wrap:anywhere; }
+.scit-imenik-kontakt__podatki svg { width:13px; height:13px; flex-shrink:0; color:#799b91; }
+.scit-imenik-kontakt__skupine { display:flex; flex-wrap:wrap; gap:4px; }
+.scit-imenik-kontakt__skupine small { --group-color:#80958e; display:inline-flex; align-items:center; gap:5px; padding:3px 7px; border-radius:6px; background:color-mix(in srgb,var(--group-color) 11%,white); color:#48655c; font:500 11px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overflow-wrap:anywhere; }
+.scit-imenik-kontakt__skupine small::before { content:""; width:5px; height:5px; flex-shrink:0; border-radius:50%; background:var(--group-color); }
+#podjetja-sheet.scit-imenik { z-index:2147483647 !important; }
+
+.scit-contact-card { margin:0 0 10px; border:1px solid #cee3df; border-radius:16px; background:linear-gradient(145deg,#fff 55%,#f2f8f6); box-shadow:0 2px 6px #244f420b; color:#294d43; }
+.scit-contact-card > summary { position:relative; list-style:none; cursor:pointer; padding:15px 36px 15px 15px; display:grid; gap:6px; }
+.scit-contact-card > summary::-webkit-details-marker { display:none; }
+.scit-contact-card > summary::after { content:""; position:absolute; right:17px; top:23px; width:6px; height:6px; border-right:1.5px solid #55968b; border-bottom:1.5px solid #55968b; transform:rotate(-45deg); transition:transform 180ms; }
+.scit-contact-card[open] > summary::after { transform:rotate(45deg); }
+.scit-contact-card > summary > strong { font:650 15px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overflow-wrap:anywhere; }
+.scit-contact-card__activity { font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#627c73; overflow-wrap:anywhere; }
+.scit-contact-card__relationship { font:500 11px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#267b72; overflow-wrap:anywhere; }
+.scit-contact-card .scit-imenik-kontakt__skupine { gap:6px 10px; align-items:center; }
+.scit-contact-card__body { margin:0 15px; padding:12px 0 14px; border-top:1px solid #e0ece8; }
+.scit-contact-card__body dl { display:grid; grid-template-columns:minmax(0,1fr); gap:3px; margin:0 0 14px; }
+.scit-contact-card__body dt { font-size:11px; color:#70857e; margin-top:7px; }
+.scit-contact-card__body dd { margin:0; font-size:13px; line-height:1.4; overflow-wrap:anywhere; color:#345c51; }
+.scit-contact-card__select { width:100%; min-height:40px; padding:9px; border:0; border-radius:10px; background:linear-gradient(110deg,#249fa1,#0b8087); color:white; font-weight:650; }
+.scit-contact-card__edit { display:block; margin:8px auto 0; border:0; background:transparent; color:#267b72; padding:7px; }
+.scit-contact-card > summary:focus-visible { outline:2px solid #399692; outline-offset:-3px; border-radius:14px; }
+
+#podjetja-sheet .scit-contact-card > summary { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; border:0; border-radius:16px; background:transparent; box-shadow:none; }
+#podjetja-sheet .scit-contact-card > summary > * { grid-column:1; }
+
+.scit-contact-card__contacts { display:flex; flex-wrap:wrap; gap:4px 12px; min-width:0; color:#607d73; font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.scit-contact-card__contacts > span { display:flex; align-items:center; gap:5px; min-width:0; }
+.scit-contact-card__contacts svg { width:13px; height:13px; flex:0 0 13px; color:#4f958b; }
+.scit-contact-card__contacts > span > span { overflow-wrap:anywhere; min-width:0; }

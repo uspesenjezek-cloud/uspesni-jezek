@@ -1,6 +1,6 @@
 :root { --bp-teal:#3d7676; --bp-ink:#183b37; --bp-muted:#657773; --bp-line:#d8e4e0; --bp-bg:#f3f8f5; --bp-warn:#fff5d9; --bp-red:#fce9e8; }
 body.stran--boniteta-pro { background:linear-gradient(180deg,#f4f9f6,#edf5f1); color:var(--bp-ink); }
-.bp-main { width:min(1120px,calc(100% - 28px)); margin:0 auto; padding:26px 0 64px; }
+.bp-main { width:min(var(--sirina-vsebine,480px),100%); margin:0 auto; padding:26px var(--odmik-roba,3px) 64px; box-sizing:border-box; }
 .bp-hero { display:flex; justify-content:space-between; gap:18px; align-items:flex-end; margin-bottom:20px; }
 .bp-eyebrow { margin:0 0 6px; color:var(--bp-teal); font:700 .72rem/1.2 Figtree,sans-serif; letter-spacing:.09em; text-transform:uppercase; }
 .bp-hero h2 { margin:0; font:700 clamp(1.55rem,4vw,2.3rem)/1.08 "Bricolage Grotesque",sans-serif; }

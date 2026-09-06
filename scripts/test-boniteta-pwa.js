@@ -11,6 +11,7 @@ const pwaViewport = fs.readFileSync(path.join(root, "app", "pwa-viewport.js"), "
 const manifest = JSON.parse(
   fs.readFileSync(path.join(root, "app", "bonitetna-manifest.json"), "utf8")
 );
+const buildVersion = (html.match(/name="uj-build-version"\s+content="([^"]+)"/) || [])[1] || "";
 const protectedPages = fs
   .readdirSync(path.join(root, "app"))
   .filter((name) => name.endsWith(".html"))
@@ -93,7 +94,7 @@ assert(
   "Samodejno osveževanje mora biti na lokalnem naslovu vedno vključeno."
 );
 assert(
-  html.includes('name="uj-build-version" content="20260822-company-card-autofit-v34"') &&
+  /-v\d+$/.test(buildVersion) &&
     !devRefresh.includes('params.get("app") !== "1"') &&
     devRefresh.includes('window.matchMedia("(display-mode: standalone)")') &&
     devRefresh.includes("!isPrivateHost && !isStandalone") &&

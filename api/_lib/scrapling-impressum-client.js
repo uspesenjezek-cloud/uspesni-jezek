@@ -7,6 +7,17 @@ var MAX_TEXT_CHARS = 1024 * 1024;
 var RESPONSE_LIMIT_BYTES = 8 * 1024 * 1024;
 var POSITIVE_TTL_MS = 15 * 60 * 1000;
 var NEGATIVE_TTL_MS = 2 * 60 * 1000;
+// To je zdravstveni rok enega zunanjega zbiralnika, ne globalni rok preverbe.
+// Po njem handler prikaže ločeno stanje vira in ne zažene istega zajema po
+// drugem zaporednem drevesu. Tako nedelujoč zbiralnik ne zadrži uporabnika
+// 25–30 sekund.
+var REQUEST_TIMEOUT_MS = 8000;
+// Kratek izpad ob hladnem zagonu ali začasni povezavi zbiralnika ni končen
+// dokaz, da javnega Impressuma ni mogoče prebrati. Ponovimo ga samo enkrat
+// in samo kadar se prvi poskus konča skoraj takoj; tako ne odpremo stare
+// 30-sekundne zaporedne verige niti ne podaljšamo normalnega 8 s zajema.
+var FAST_TRANSIENT_FAILURE_MS = 1500;
+var FAST_TRANSIENT_RETRY_DELAY_MS = 250;
 var cache = globalThis.__ujScraplingImpressumCache || (globalThis.__ujScraplingImpressumCache = new Map());
 var inFlight = globalThis.__ujScraplingImpressumInFlight || (globalThis.__ujScraplingImpressumInFlight = new Map());
 var fetchImplementation = null;
@@ -65,7 +76,7 @@ function normalizirajOdgovor(payload) {
 
 async function izvediZajem(url, config) {
   var controller = new AbortController();
-  var timeout = setTimeout(function () { controller.abort(); }, 25000);
+  var timeout = setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS);
   try {
     var endpoint = new URL("/v1/impressum/fetch", config.url);
     var fetchFn = fetchImplementation || fetch;
@@ -104,7 +115,18 @@ async function fetchImpressum(url) {
   if (existing && existing.expiresAt > Date.now()) return existing.value;
   if (existing) cache.delete(key);
   if (inFlight.has(key)) return inFlight.get(key);
-  var promise = izvediZajem(url, config).then(function (result) {
+  var promise = (async function () {
+    var startedAt = Date.now();
+    var result = await izvediZajem(url, config);
+    var isFastTransientFailure = result && result.status === "unavailable" &&
+      /^(?:service_unavailable|service_http_5\d\d)$/.test(String(result.reason || "")) &&
+      Date.now() - startedAt < FAST_TRANSIENT_FAILURE_MS;
+    if (isFastTransientFailure) {
+      await new Promise(function (resolve) { setTimeout(resolve, FAST_TRANSIENT_RETRY_DELAY_MS); });
+      result = await izvediZajem(url, config);
+    }
+    return result;
+  })().then(function (result) {
     var cacheable = result.status !== "rate_limited" && result.status !== "unavailable";
     if (cacheable) {
       cache.set(key, {
@@ -131,5 +153,6 @@ module.exports = {
     normalizirajOdgovor: normalizirajOdgovor,
     reset: resetForTests,
     setFetch: function (value) { fetchImplementation = value; },
+    timeoutMs: REQUEST_TIMEOUT_MS,
   },
 };

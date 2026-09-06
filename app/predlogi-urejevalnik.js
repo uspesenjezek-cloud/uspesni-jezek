@@ -21,7 +21,7 @@
   var IKONA_SVINCNIKA =
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
   var IKONA_KLJUKICE =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
   function kljucZaUid(osnova, uid) {
     return uid ? osnova + "-" + uid : osnova;
@@ -321,6 +321,11 @@
         if (!stanje) return;
         var jeAktivno = stanje.aktivno;
         pocistiCasovnik();
+        if (stanje.rafId) {
+          cancelAnimationFrame(stanje.rafId);
+          stanje.rafId = null;
+          izrisiVlecenje();
+        }
         if (stanje.ghost && stanje.ghost.parentNode) stanje.ghost.parentNode.removeChild(stanje.ghost);
         kartica.classList.remove("predlog-kartica--vlecenje");
         kartica.classList.remove("predlog-kartica--dolg-pritisk");
@@ -328,6 +333,14 @@
         window.removeEventListener("pointermove", premakni);
         window.removeEventListener("pointerup", spusti);
         window.removeEventListener("pointercancel", preklici);
+        window.removeEventListener("touchmove", zadrziDotikMedVlecenjem);
+        try {
+          if (kartica.hasPointerCapture && kartica.hasPointerCapture(stanje.pointerId)) {
+            kartica.releasePointerCapture(stanje.pointerId);
+          }
+        } catch (e) {
+          // Kazalec je lahko medtem že prenehal obstajati.
+        }
         stanje = null;
         if (!jeAktivno) return;
         if (preklicano) {
@@ -346,6 +359,7 @@
       }
 
       function zacni(event) {
+        if (!stanje || stanje.aktivno) return;
         var rect = kartica.getBoundingClientRect();
         var ghost = kartica.cloneNode(true);
         ghost.className += " predlog-kartica--ghost";
@@ -360,29 +374,43 @@
         stanje.aktivno = true;
         stanje.odmikX = event.clientX - rect.left;
         stanje.odmikY = event.clientY - rect.top;
+        stanje.ghostZacetniX = rect.left;
+        stanje.ghostZacetniY = rect.top;
+        ghost.style.setProperty("--predlog-ghost-x", "0px");
+        ghost.style.setProperty("--predlog-ghost-y", "0px");
         kartica.classList.add("predlog-kartica--vlecenje");
         document.body.classList.add("predloga-se-vlece");
+        try {
+          if (kartica.setPointerCapture) kartica.setPointerCapture(stanje.pointerId);
+        } catch (e) {
+          // Nekateri brskalniki ne dovolijo poznega zajema dotika.
+        }
       }
 
-      function premakni(event) {
-        if (!stanje || event.pointerId !== stanje.pointerId) return;
-        var razdalja = Math.hypot(event.clientX - stanje.zacetniX, event.clientY - stanje.zacetniY);
-        if (!stanje.pripravljen) {
-          if (razdalja >= 8) zakljuci(event, true);
-          return;
-        }
-        if (!stanje.aktivno && razdalja < 6) return;
-        if (!stanje.aktivno) zacni(event);
+      function zadrziDotikMedVlecenjem(event) {
+        if (!stanje || !stanje.aktivno || !event.cancelable) return;
         event.preventDefault();
-        stanje.ghost.style.left = event.clientX - stanje.odmikX + "px";
-        stanje.ghost.style.top = event.clientY - stanje.odmikY + "px";
+      }
 
-        stanje.ghost.style.pointerEvents = "none";
-        var podKazalcem = document.elementFromPoint(event.clientX, event.clientY);
+      function izrisiVlecenje() {
+        if (!stanje || !stanje.aktivno || !stanje.ghost) return;
+        stanje.rafId = null;
+        var x = stanje.zadnjiX;
+        var y = stanje.zadnjiY;
+        stanje.ghost.style.setProperty(
+          "--predlog-ghost-x",
+          x - stanje.odmikX - stanje.ghostZacetniX + "px"
+        );
+        stanje.ghost.style.setProperty(
+          "--predlog-ghost-y",
+          y - stanje.odmikY - stanje.ghostZacetniY + "px"
+        );
+
+        var podKazalcem = document.elementFromPoint(x, y);
         var cilj = podKazalcem && podKazalcem.closest ? podKazalcem.closest(".predlog-kartica") : null;
         if (!cilj || cilj === kartica || cilj.parentNode !== seznamEl) return;
         var ciljRect = cilj.getBoundingClientRect();
-        var zaCiljem = event.clientY > ciljRect.top + ciljRect.height / 2;
+        var zaCiljem = y > ciljRect.top + ciljRect.height / 2;
         var pravoMesto = zaCiljem ? cilj.nextSibling : cilj;
         if (pravoMesto === kartica || (zaCiljem && cilj.nextSibling === kartica)) return;
         var prej = {};
@@ -391,6 +419,21 @@
         });
         seznamEl.insertBefore(kartica, pravoMesto);
         animirajPremikKartic(seznamEl, prej);
+      }
+
+      function premakni(event) {
+        if (!stanje || event.pointerId !== stanje.pointerId) return;
+        stanje.zadnjiX = event.clientX;
+        stanje.zadnjiY = event.clientY;
+        var razdalja = Math.hypot(event.clientX - stanje.zacetniX, event.clientY - stanje.zacetniY);
+        if (!stanje.pripravljen) {
+          if (razdalja >= 8) zakljuci(event, true);
+          return;
+        }
+        if (!stanje.aktivno && razdalja < 6) return;
+        if (!stanje.aktivno) zacni(event);
+        event.preventDefault();
+        if (!stanje.rafId) stanje.rafId = requestAnimationFrame(izrisiVlecenje);
       }
 
       function spusti(event) { zakljuci(event, false); }
@@ -405,9 +448,12 @@
           pointerType: event.pointerType,
           zacetniX: event.clientX,
           zacetniY: event.clientY,
+          zadnjiX: event.clientX,
+          zadnjiY: event.clientY,
           pripravljen: !zahtevaDolgiPritisk,
           aktivno: false,
           ghost: null,
+          rafId: null,
           dolgiPritiskCasovnik: null,
         };
         if (zahtevaDolgiPritisk) {
@@ -417,11 +463,15 @@
             stanje.pripravljen = true;
             kartica.dataset.premaknjeno = "true";
             kartica.classList.add("predlog-kartica--dolg-pritisk");
+            zacni({ clientX: stanje.zadnjiX, clientY: stanje.zadnjiY });
           }, DOLGI_PRITISK_MS);
         }
         window.addEventListener("pointermove", premakni, { passive: false });
         window.addEventListener("pointerup", spusti);
         window.addEventListener("pointercancel", preklici);
+        if (zahtevaDolgiPritisk) {
+          window.addEventListener("touchmove", zadrziDotikMedVlecenjem, { passive: false });
+        }
       });
 
       tipkovniRocaj.addEventListener("keydown", function (event) {

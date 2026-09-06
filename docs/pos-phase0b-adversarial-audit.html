@@ -1,0 +1,388 @@
+<title>POS Phase 0B adversarial audit</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#f4f3ee; --paper-raised:#fbfaf6; --ink:#1c1e1c; --ink-soft:#4b4f4a; --ink-faint:#7a7e78;
+    --line:#d8d6cc; --line-strong:#b9b6a8; --accent:#1e4b8f; --accent-soft:#e7edf6; --accent-ink:#123063;
+    --crit:#a3311f; --crit-soft:#f6e4df; --warn:#8a5a12; --warn-soft:#f4e7cd; --ok:#2f6a45; --ok-soft:#e2ede4;
+    --info:#3d5266; --info-soft:#e6ebef; --mono-bg:#26241f; --mono-ink:#f0ede2;
+    --shadow: 0 1px 2px rgba(28,30,28,0.06), 0 6px 20px -8px rgba(28,30,28,0.12); --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#17181a; --paper-raised:#1f2123; --ink:#eceae3; --ink-soft:#b9b7ae; --ink-faint:#84837b;
+      --line:#33352f; --line-strong:#45473f; --accent:#7fa8e8; --accent-soft:#1c2c46; --accent-ink:#cfe0fb;
+      --crit:#e08672; --crit-soft:#3a2420; --warn:#e0b568; --warn-soft:#3a2f18; --ok:#8fc9a3; --ok-soft:#1e3226;
+      --info:#9db3c8; --info-soft:#20272e; --mono-bg:#0f0f0e; --mono-ink:#e8e5d8;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#17181a; --paper-raised:#1f2123; --ink:#eceae3; --ink-soft:#b9b7ae; --ink-faint:#84837b;
+    --line:#33352f; --line-strong:#45473f; --accent:#7fa8e8; --accent-soft:#1c2c46; --accent-ink:#cfe0fb;
+    --crit:#e08672; --crit-soft:#3a2420; --warn:#e0b568; --warn-soft:#3a2f18; --ok:#8fc9a3; --ok-soft:#1e3226;
+    --info:#9db3c8; --info-soft:#20272e; --mono-bg:#0f0f0e; --mono-ink:#e8e5d8;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 24px -8px rgba(0,0,0,0.5);
+  }
+
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; font-size:16px; line-height:1.6; }
+  ::selection{ background:var(--accent-soft); color:var(--accent-ink); }
+  a{ color:var(--accent); text-decoration-thickness:1.5px; text-underline-offset:2px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  h1,h2,h3,h4{ font-family:"Fraunces", Georgia, serif; text-wrap:balance; color:var(--ink); font-weight:600; }
+  code, .mono, .num, td.num, th.num{ font-family:"IBM Plex Mono", ui-monospace, "Courier New", monospace; }
+  .doc{ max-width:1220px; margin:0 auto; padding:0 clamp(16px,4vw,48px); }
+
+  .masthead{ border-bottom:1px solid var(--line); background:var(--paper-raised); }
+  .masthead-inner{ max-width:1220px; margin:0 auto; padding:28px clamp(16px,4vw,48px) 22px; }
+  .kicker{ font-family:"IBM Plex Mono", monospace; font-size:12.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .kicker .sep{ color:var(--line-strong); }
+  h1.title{ font-size:clamp(26px,4vw,38px); line-height:1.12; margin:10px 0 8px; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-soft); font-size:16.5px; max-width:76ch; margin:0 0 16px; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:14px; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-family:"IBM Plex Mono",monospace; padding:4px 10px; border-radius:999px; border:1px solid var(--line-strong); color:var(--ink-soft); background:var(--paper); }
+  .chip b{ color:var(--ink); font-weight:600; }
+  .chip.crit{ background:var(--crit-soft); color:var(--crit); border-color:transparent; }
+
+  .layout{ display:grid; grid-template-columns:250px minmax(0,1fr); gap:44px; padding:36px 0 100px; align-items:start; }
+  @media (max-width:920px){ .layout{ grid-template-columns:1fr; } }
+  nav.toc{ position:sticky; top:20px; align-self:start; max-height:calc(100vh - 40px); overflow-y:auto; padding-right:6px; }
+  nav.toc .toc-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px; }
+  nav.toc ol{ list-style:none; margin:0; padding:0; border-left:1px solid var(--line); }
+  nav.toc a{ display:block; padding:6px 0 6px 14px; font-size:13.6px; color:var(--ink-soft); text-decoration:none; border-left:2px solid transparent; margin-left:-1px; }
+  nav.toc a:hover{ color:var(--ink); }
+  nav.toc a .n{ font-family:"IBM Plex Mono",monospace; color:var(--ink-faint); margin-right:7px; }
+  @media (max-width:920px){
+    nav.toc{ position:static; max-height:none; margin-bottom:8px; }
+    nav.toc details{ border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); padding:10px 14px; }
+    nav.toc summary{ cursor:pointer; font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); }
+  }
+
+  article{ min-width:0; }
+  section{ padding-top:8px; margin-bottom:56px; scroll-margin-top:20px; }
+  section > .sec-head{ display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:22px; }
+  section > .sec-head .sec-num{ font-family:"IBM Plex Mono",monospace; color:var(--accent); font-size:16px; font-weight:700; flex:none; }
+  section > .sec-head h2{ font-size:clamp(20px,2.4vw,26px); margin:0; }
+  section h3{ font-size:18px; margin:30px 0 10px; }
+
+  p{ margin:0 0 14px; max-width:78ch; }
+  ul,ol{ padding-left:22px; margin:0 0 14px; max-width:78ch; }
+  li{ margin-bottom:6px; }
+  strong{ color:var(--ink); }
+  .lede{ font-size:17.5px; color:var(--ink-soft); max-width:76ch; }
+
+  .callout{ border:1px solid var(--line); border-left:4px solid var(--info); background:var(--info-soft); border-radius:0 var(--radius) var(--radius) 0; padding:14px 18px; margin:18px 0; max-width:78ch; }
+  .callout p:last-child{ margin-bottom:0; }
+  .callout .cal-label{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--info); margin-bottom:6px; font-weight:600; }
+  .callout.crit{ border-left-color:var(--crit); background:var(--crit-soft); }
+  .callout.crit .cal-label{ color:var(--crit); }
+  .callout.ok{ border-left-color:var(--ok); background:var(--ok-soft); }
+  .callout.ok .cal-label{ color:var(--ok); }
+
+  .verdict{ display:inline-flex; align-items:center; gap:8px; font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:13px; letter-spacing:.03em; padding:5px 14px; border-radius:999px; margin:6px 0 18px; }
+  .verdict.confirmed{ background:var(--crit-soft); color:var(--crit); }
+
+  .fact-tag{ display:inline-flex; align-items:center; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.04em; padding:1px 7px; border-radius:5px; font-weight:600; white-space:nowrap; }
+  .fact-tag.verified{ background:var(--ok-soft); color:var(--ok); }
+  .fact-tag.reco{ background:var(--accent-soft); color:var(--accent-ink); }
+  .fact-tag.open{ background:var(--warn-soft); color:var(--warn); }
+  .fact-tag.notchecked{ background:var(--line); color:var(--ink-soft); }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-raised); box-shadow:var(--shadow); margin:18px 0 28px; }
+  table{ border-collapse:collapse; width:100%; min-width:640px; font-size:13.8px; }
+  table.wide{ min-width:960px; }
+  table.xwide{ min-width:1220px; }
+  th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  thead th{ background:var(--paper); font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; position:sticky; top:0; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--accent-soft); }
+  td code, li code{ background:var(--paper); border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:12.4px; color:var(--accent-ink); }
+
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+  .pill.p0{ background:var(--crit-soft); color:var(--crit); }
+  .pill.p1{ background:var(--warn-soft); color:var(--warn); }
+
+  hr.rule{ border:none; border-top:1px solid var(--line); margin:36px 0; }
+  footer.doc-foot{ border-top:1px solid var(--line); padding:26px 0 60px; color:var(--ink-faint); font-size:12.8px; }
+  @media (max-width:640px){ table{ font-size:12.6px; } th,td{ padding:8px 10px; } }
+</style>
+
+<div class="masthead">
+  <div class="masthead-inner">
+    <div class="kicker">POS · UŽ TERMINAL <span class="sep">/</span> PHASE 0B <span class="sep">/</span> ADVERSARIAL AUDIT</div>
+    <h1 class="title">Dvojno bremenjenje: dokaz, ne domneva</h1>
+    <p class="subtitle">Read-only adversarial preverba dveh konkurenčnih hipotez o kartičnih Stripe plačilih (H1, H2) in samostojna najdba o dejanskem runtime gotovinskega toka. Cilj ni potrditi prejšnje poročilo — cilj je poskusiti ga ovreči z dejansko kodo.</p>
+    <div class="meta-row">
+      <span class="chip crit">H1 POTRJENO · H2 POTRJENO</span>
+      <span class="chip">Vir: <b>supabase/migrations/*pos_payments*, api/_handlers/pos-stripe-*, api/_handlers/pos-fiskaly.js</b></span>
+      <span class="chip">Brez sprememb kode, brez produkcijskega dostopa</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc"><div class="layout">
+
+<nav class="toc" aria-label="Kazalo">
+  <details open><summary class="toc-label">Kazalo</summary>
+  <ol>
+    <li><a href="#a"><span class="n">A</span>Enostaven odgovor</a></li>
+    <li><a href="#b"><span class="n">B</span>Dokaz H1 in H2</a></li>
+    <li><a href="#c"><span class="n">C</span>Efektivna shema</a></li>
+    <li><a href="#d"><span class="n">D</span>State-transition matrika</a></li>
+    <li><a href="#e"><span class="n">E</span>Failure-injection (20)</a></li>
+    <li><a href="#f"><span class="n">F</span>Cross-method concurrency</a></li>
+    <li><a href="#g"><span class="n">G</span>Cash runtime vs. DB</a></li>
+    <li><a href="#h"><span class="n">H</span>Test coverage</a></li>
+    <li><a href="#i"><span class="n">I</span>P0/P1 vrzeli</a></li>
+    <li><a href="#j"><span class="n">J</span>Tri variante rešitve</a></li>
+    <li><a href="#k"><span class="n">K</span>Acceptance criteria</a></li>
+    <li><a href="#l"><span class="n">L</span>Ovrženi sklepi</a></li>
+    <li><a href="#m"><span class="n">M</span>docs-impact</a></li>
+  </ol></details>
+</nav>
+
+<article>
+
+<section id="a">
+  <div class="sec-head"><span class="sec-num">A</span><h2>Enostaven DA/NE odgovor</h2></div>
+  <div class="verdict confirmed">DA — dvojno bremenjenje je danes strukturno mogoče</div>
+  <p class="lede">Sedanji model bi ob live omogočitvi kartičnih plačil lahko povzročil dvojno bremenjenje kupca. To ni hipoteza — dokazano je na nivoju dejanske SQL logike (§B), ne le teoretično. Poleg tega je celoten gotovinski (TSE) tok, ki ga UI dejansko uporablja, arhitekturno ranljiv na drugačen način: proces-lokalen pomnilnik namesto trajne baze (§G) — enako resen produkcijski riziko za denar in fiskalno skladnost.</p>
+</section>
+
+<section id="b">
+  <div class="sec-head"><span class="sec-num">B</span><h2>Dokaz H1 in H2</h2></div>
+
+  <h3>H1 — dve sočasni Stripe Checkout seji za isti odprti račun</h3>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>#</th><th>Naprava A</th><th>Naprava B</th><th>Stanje po koraku</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><code>action:"create"</code>, requestId A</td><td>—</td><td><code>invoiceContext()</code> šteje samo <code>status in (succeeded, partially_refunded)</code> — <a href="#">pos-stripe-checkout.js:21-26</a>. Outstanding = gross.</td></tr>
+      <tr><td class="num">2</td><td>Stripe seja A ustvarjena <strong>pred</strong> vpisom v DB — vrstni red dokazan na pos-stripe-checkout.js:212 vs. :217</td><td>—</td><td>Stripe ima sejo A; DB nima še ničesar.</td></tr>
+      <tr><td class="num">3</td><td>—</td><td><code>action:"create"</code>, requestId B, sočasno</td><td><code>invoiceContext()</code> za B bere isti (še prazen) nabor plačil. Outstanding = gross tudi za B.</td></tr>
+      <tr><td class="num">4</td><td>RPC <code>pos_register_stripe_checkout</code> za A: <code>for update</code> zaklep na <code>pos_invoices</code>, preveri znesek proti <code>_pos_effective_paid_cents</code> (ki <strong>izključi pending</strong>) — migracija 20260820204343:128-133,183-185</td><td>čaka na zaklep</td><td>DB: 1 vrstica, <code>status='pending'</code>, polni znesek.</td></tr>
+      <tr><td class="num">5</td><td>—</td><td>Stripe seja B ustvarjena (ločen <code>checkout_session_id</code>)</td><td>Stripe ima <strong>dve ločeni odprti seji</strong> za isti račun.</td></tr>
+      <tr><td class="num">6</td><td>—</td><td>RPC za B: zaklep sproščen, <code>_pos_effective_paid_cents</code> ponovno vrne 0 (A je še <code>pending</code>) → preverba se ujema → <strong>druga vrstica se vstavi</strong></td><td>DB: <strong>2 vrstici</strong>, obe <code>pending</code>, obe za polni znesek. Noben unique index tega ne prepreči (indeksi so per-attempt, ne per-invoice).</td></tr>
+      <tr><td class="num">7</td><td>Kupec dokonča plačilo A</td><td>Kupec/druga oseba dokonča plačilo B</td><td>Stripe zaračuna DVE resnični plačili.</td></tr>
+      <tr><td class="num">8</td><td>Webhook succeeded za A</td><td>Webhook succeeded za B — neodvisno, brez preverbe proti drugim vrsticam istega računa (migracija:322-367)</td><td>DB: <strong>obe <code>succeeded</code></strong>. <code>effectivePaidCents = 2×gross</code>. Noben CHECK to ne prepreči (pos_money_invariants.sql:43-45 je samo per-vrstica).</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Zaklepi, ki dejansko sodelujejo:</strong> <code>for update</code> na <code>pos_invoices</code> (serializira, a ne prepreči — problem je v <em>kaj</em> se preverja, ne <em>kdaj</em>); unique na <code>(provider, provider_attempt_id)</code>/<code>checkout_session_id</code> (per-poskus, ne per-invoice); Stripe idempotencyKey vsebuje <code>requestId</code>, ki je pri H1 namerno različen za A/B, zato Stripe sam dveh sej ne poveže.</p>
+  <p><strong>Najmanjši protiargument:</strong> partial unique index <code>(invoice_id) where provider='stripe' and status='pending'</code> bi korak 6 zavrnil. Tak index <strong>ne obstaja</strong> — preverjeno z izpisom vseh indeksov definicije tabele. Protiargument ne drži.</p>
+  <div class="verdict confirmed">Status H1: POTRJENO</div>
+
+  <h3>H2 — provider "paid", DB "pending", cancel pot</h3>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>#</th><th>Dogajanje</th><th>Dokaz</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Stripe seja S1 v teku, DB <code>pending</code></td><td>—</td></tr>
+      <tr><td class="num">2</td><td>Stripe pri sebi zaključi (<code>payment_status:"paid"</code>), webhook še ni prispel — dokumentiran Stripe-jev znan pojav</td><td>NI PREVERJENO kot produkcijski dogodek; koda sama dokazuje, da je scenarij predviden (glej korak 5)</td></tr>
+      <tr><td class="num">3</td><td>UI redirect-return z <code>stripe=cancelled</code> sproži <code>action:"cancel"</code></td><td>pos-terminal.js:4674</td></tr>
+      <tr><td class="num">4</td><td>API prebere DB (<code>pending</code>) IN sveže Stripe stanje. Pogoj za vstop v cancel-vejo: <code>status not in (succeeded,partially_refunded,refunded)</code> → TRUE (DB pravi pending)</td><td>pos-stripe-checkout.js:178</td></tr>
+      <tr><td class="num">5</td><td><code>if (session.status==="open" && session.payment_status!=="paid") expire()</code> — ker je paid, expire se <strong>pravilno preskoči</strong></td><td>pos-stripe-checkout.js:179</td></tr>
+      <tr><td class="num">6</td><td><strong>Brezpogojno</strong> takoj zatem klican <code>pos_cancel_stripe_checkout</code> — brez enakovrednega "paid → skip" varovala</td><td>pos-stripe-checkout.js:180-182</td></tr>
+      <tr><td class="num">7</td><td>RPC pozna samo DB status (pending), ne Stripe stanja → <code>update status='cancelled', paid_at=null</code></td><td>migracija 20260820204343:239-246</td></tr>
+      <tr><td class="num">8</td><td>UI prikaže "preklicano", ponudi nov <code>action:"create"</code> za NOV znesek/sejo S2</td><td>pos-terminal.js:4636-4649</td></tr>
+      <tr><td class="num">9</td><td>Zakasneli webhook za S1 prispe, poišče vrstico <strong>brez filtra na trenutni status</strong>, pogoj <code>status not in (partially_refunded,refunded)</code> je TRUE za <code>cancelled</code> → <strong>prehod cancelled→succeeded</strong></td><td>migracija:322-328,357-367 — nemonoton prehod, dokazan</td></tr>
+      <tr><td class="num">10</td><td>Če je uporabnik medtem dokončal tudi S2 → webhook zanjo prav tako succeeded</td><td>DB: <strong>dve succeeded vrstici</strong> za isti račun</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Najmanjši protiargument:</strong> Stripe redirecta na cancel_url praviloma samo za resnično opuščene seje. A koda sama (korak 5) dokazuje, da razvijalec ta scenarij že pozna in mu ne zaupa brezpogojno za expire — a POZABI isto nezaupanje uporabiti za DB-cancel. Notranje neskladje, ne izmišljen rob primer.</p>
+  <div class="verdict confirmed">Status H2: POTRJENO (kot koda-nivojska napaka; zunanja Stripe fizična izvedljivost je NI PREVERJENO)</div>
+</section>
+
+<section id="c">
+  <div class="sec-head"><span class="sec-num">C</span><h2>Končna efektivna shema pos_payments</h2></div>
+  <p>Rekonstruirano kronološko iz vseh migracij, ki tabelo spreminjajo: <code>pos_terminal_core</code> → <code>stripe_sandbox_invoice_payments</code> (glavna razširitev) → <code>pos_stripe_refunds_monotonic</code> → <code>pos_money_invariants</code> → <code>pos_already_paid_invoice_payment</code> → <code>pos_manual_payment_retry_idempotency</code> → <code>pos_cash_checkout_state</code>.</p>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Unique/partial indeksi (dejansko obstoječi)</th></tr></thead>
+    <tbody>
+      <tr><td><code>(provider, provider_attempt_id) where provider_attempt_id is not null</code></td></tr>
+      <tr><td><code>(checkout_session_id) where checkout_session_id is not null</code></td></tr>
+      <tr><td><code>(provider, external_payment_id) where external_payment_id is not null</code></td></tr>
+      <tr><td><code>(invoice_id, status, created_at desc)</code> — navaden indeks, NI unique</td></tr>
+      <tr><td><strong>Manjkajoč, koren H1:</strong> noben <code>unique … where provider='stripe' and status='pending'</code> po <code>invoice_id</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout crit">
+    <div class="cal-label">Kar ne obstaja</div>
+    <p>Noben CHECK/trigger ne omejuje <code>sum(amount_cents) filter (succeeded,partially_refunded) − sum(refunded_cents)</code> po <code>invoice_id</code> na <code>≤ gross_cents</code> iz <code>pos_invoices</code>. To je koren, zakaj H1/H2/§F lahko dejansko pripeljejo do preplačila, ne le do nekonsistentnega statusa.</p>
+  </div>
+  <p><strong>RLS:</strong> <code>insert</code> na <code>pos_payments</code> je bil najprej ozko dovoljen authenticated uporabniku, nato <strong>popolnoma odvzet</strong> (<code>revoke insert … from authenticated</code>, <code>pos_manual_payment_retry_idempotency.sql:4</code>) — vsi zapisi zdaj gredo izključno prek <code>security definer</code> RPC-jev na <code>service_role</code>. Dosledno in dobro izvedeno.</p>
+</section>
+
+<section id="d">
+  <div class="sec-head"><span class="sec-num">D</span><h2>State-transition matrika (Stripe)</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>Iz</th><th>V</th><th>Sproži</th><th>Preveri provider live?</th><th>Monoton?</th><th>Nazaj mogoč?</th><th>Dirka</th></tr></thead>
+    <tbody>
+      <tr><td>—</td><td>pending</td><td><code>action:"create"</code></td><td>Ne</td><td>—</td><td>—</td><td>H1</td></tr>
+      <tr><td>pending</td><td>succeeded</td><td>webhook</td><td>Ne — zaupa payloadu + podpisu</td><td>Ne</td><td><strong>DA</strong>, iz cancelled/failed</td><td>H2</td></tr>
+      <tr><td>pending</td><td>failed</td><td>webhook</td><td>Ne</td><td>—</td><td>failed→succeeded mogoč</td><td>—</td></tr>
+      <tr><td>pending/failed</td><td>cancelled</td><td><code>action:"cancel"</code></td><td>Delno — bere, a ne uporabi za DB odločitev</td><td>—</td><td>cancelled→succeeded mogoč</td><td>H2</td></tr>
+      <tr><td>succeeded</td><td>partially_refunded/refunded</td><td>webhook refund</td><td>Ne</td><td><strong>DA</strong> za refunded_cents (trigger)</td><td>Ne (trigger prepreči)</td><td>—</td></tr>
+      <tr><td>katerikoli</td><td>katerikoli</td><td>podvojen webhook (isti event_id)</td><td>—</td><td>—</td><td>—</td><td>Ni dirke — dedup solid</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <div class="cal-label">Ključna ugotovitev</div>
+    <p>Edini res monoton prehod v celotnem modelu je <code>refunded_cents</code> navzgor. Sam <code>status</code> stolpec nima state-machine discipline na DB nivoju — CHECK constrainti zagotavljajo notranjo doslednost ENE vrstice, ne dovoljenost/nedovoljenost prehodov MED statusi.</p>
+  </div>
+</section>
+
+<section id="e">
+  <div class="sec-head"><span class="sec-num">E</span><h2>Failure-injection matrika (20 scenarijev)</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>#</th><th>Scenarij</th><th>Kaj koda naredi</th><th>Ocena</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Timeout pred Stripe create odgovorom</td><td>Ni poskusa, ni DB vrstice</td><td>OK</td></tr>
+      <tr><td class="num">2</td><td>Timeout po create, pred registracijo</td><td>Best-effort <code>session.expire()</code> v catch, napaka požrta tiho</td><td>Delno OK, brez sledi napake</td></tr>
+      <tr><td class="num">3</td><td>Timeout po registraciji, pred vrnitvijo URL</td><td>DB ima pending, uporabnik nima URL-ja</td><td>NI PREVERJENO ali UI ponudi resume</td></tr>
+      <tr><td class="num">4</td><td>Zaprt zavihek med hosted checkout</td><td>Seja poteče sama pri Stripe, DB ostane pending</td><td>Brez avtomatske rekoncilacije</td></tr>
+      <tr><td class="num">5</td><td>Browser crash</td><td>Enako kot zaprt zavihek</td><td>—</td></tr>
+      <tr><td class="num">6</td><td>Reload brez Stripe URL parametrov</td><td>Auto-status poizvedba se sploh ne sproži</td><td>Potrjena vrzel</td></tr>
+      <tr><td class="num">7</td><td>Success redirect, normalen potek</td><td>6× poll z backoffom, ~11s skupaj</td><td>OK, a časovno omejeno</td></tr>
+      <tr><td class="num">8</td><td>Cancel redirect</td><td>Glej H2</td><td>Potrjena vrzel</td></tr>
+      <tr><td class="num">9</td><td>Webhook pred registracijo</td><td><code>matched:false</code> → 503, Stripe retrya</td><td>OK</td></tr>
+      <tr><td class="num">10</td><td>Webhook po cancelu</td><td>Glej H2</td><td>Potrjena vrzel</td></tr>
+      <tr><td class="num">11</td><td>Podvojen webhook</td><td>Dedup na unique event_id</td><td>OK, trdno</td></tr>
+      <tr><td class="num">12</td><td>Webhooki v napačnem vrstnem redu</td><td>Oba tipa vodita v isto "succeeded" vejo</td><td>OK po učinku</td></tr>
+      <tr><td class="num">13</td><td>Nedosegljiva baza med create</td><td>Cleanup + throw, brez DB vrstice</td><td>OK, fail-closed</td></tr>
+      <tr><td class="num">14</td><td>Dve naprave, oba create sočasno</td><td>Glej H1</td><td>Potrjena vrzel</td></tr>
+      <tr><td class="num">15</td><td>Dva zavihka, isti requestId</td><td>Idempotency ključ + RPC vrneta isto sejo/vrstico</td><td>OK — namen ključa</td></tr>
+      <tr><td class="num">16</td><td>Različna requestId</td><td>Glej H1</td><td>Potrjena vrzel</td></tr>
+      <tr><td class="num">17</td><td>Stripe paid, DB pending, brez cancela</td><td>Rešeno prek success-poll ali webhooka</td><td>OK</td></tr>
+      <tr><td class="num">18</td><td>Stripe expired, DB pending</td><td><code>action:"status"</code> samo bere, ne zapiše DB spremembe za expired</td><td>Vrzel — trajno obtičal pending</td></tr>
+      <tr><td class="num">19</td><td>Stripe open, DB cancelled</td><td>Expire se izvede pravilno, ker paid še ni res</td><td>OK v tem pod-primeru</td></tr>
+      <tr><td class="num">20</td><td>Manual payment + Stripe sočasno na isti invoice</td><td>Oba delita isto pending-izključujočo preverbo</td><td>Potrjena dodatna vrzel — glej §F</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="f">
+  <div class="sec-head"><span class="sec-num">F</span><h2>Cross-method concurrency</h2></div>
+  <p>Vsi aktivni plačilni RPC-ji delijo isto <code>_pos_effective_paid_cents</code>, ki šteje samo <code>succeeded</code>/<code>partially_refunded</code>. Noben ne preverja obstoja drugega AKTIVNEGA (<code>pending</code>) poskusa druge metode.</p>
+  <div class="callout crit">
+    <div class="cal-label">Dokazan scenarij preseganja gross_cents</div>
+    <p>1) Stripe <code>create</code> registrira pending za polni znesek. 2) Obrtnik vzporedno potrdi "Ročno potrjeno v POS" — <code>_pos_record_manual_payment</code> vedno vpiše CELOTEN outstanding (pos_manual_payment_rpc.sql:45), ki Stripe pending ne šteje → vpiše se cel znesek kot succeeded manual plačilo. 3) Kupec kasneje dejansko dokonča kartično plačilo → webhook doda ŠE en succeeded zapis, brez preverbe proti računu kot celoti. <strong>Rezultat: 2×gross_cents efektivno plačano</strong>, brez ene same DB varovalke, ki bi to prestregla.</p>
+  </div>
+  <p>Cash+kartica na različnih napravah: ker dejansko klicani gotovinski tok sploh ne uporablja Supabase RPC preverbe (§G), enakega SQL-nivo dokaza ni bilo mogoče izpeljati — <span class="fact-tag notchecked">NI PREVERJENO</span> kot identičen dokaz, a logično sledi enak vzorec, brž ko/če bo produkcijski cash tok vezan na <code>pos_cash_checkouts</code>, ki TO preverbo že ima vgrajeno.</p>
+</section>
+
+<section id="g">
+  <div class="sec-head"><span class="sec-num">G</span><h2>Cash runtime proti DB-design</h2></div>
+  <p class="lede">Najresnejša samostojna najdba tega kroga, neodvisna od H1/H2.</p>
+  <p>Obstajata <strong>dve popolnoma ločeni implementaciji</strong> gotovinskega checkouta:</p>
+  <h3>1 — Supabase, trajna, z RPC-ji (<code>pos_cash_checkouts</code>/<code>pos_cash_refunds</code>)</h3>
+  <p>Popoln <code>prepared→signed→completed/recovery_required</code> state-machine na DB nivoju, <code>unique(user_id,request_key)</code> trajna idempotenca, <code>for update</code> zaklepi, preverba proti outstanding. Definirano v <code>pos_cash_checkout_state.sql</code> in <code>pos_cash_refund_state.sql</code>.</p>
+  <h3>2 — proces-lokalen <code>Map</code>, ki jo DEJANSKO kliče produkcijski handler</h3>
+  <p><code>api/_handlers/pos-fiskaly.js</code> — akciji <code>local-training-cash-checkout</code>/<code>-refund</code> uporabita <code>localCashStore</code>/<code>localCashRefundStore</code>, navadna JS <code>Map</code> na nivoju modula.</p>
+  <div class="callout crit">
+    <div class="cal-label">Dokaz nepovezanosti</div>
+    <p>Iskanje po celotnem repozitoriju za klice imen Supabase RPC-jev Implementacije 1 (<code>pos_prepare_training_cash_checkout</code> itd.) je vrnilo <strong>izključno migracijsko datoteko samo</strong> — noben handler, noben frontend jih ne kliče. <code>scripts/test-pos-cash-checkout.js</code> testira <code>api/_lib/pos-cash-checkout.js</code> prek lastnega ad-hoc in-memory mocka, ne dokazuje povezave z nobeno od dveh pravih implementacij.</p>
+  </div>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Vprašanje</th><th>Odgovor</th></tr></thead>
+    <tbody>
+      <tr><td>Restart Vercel funkcije</td><td>Cel Map se izgubi — ni persistiran nikamor</td></tr>
+      <tr><td>Preživi recovery_required restart?</td><td><strong>NE</strong> — stanje je samo v RAM</td></tr>
+      <tr><td>Zahteva endpoint auth?</td><td><strong>NE</strong> — local-training-cash-* veje se obravnavajo PRED klicem <code>preveriUporabnika()</code></td></tr>
+      <tr><td>Dva procesa/instance, isti requestKey?</td><td><strong>DA</strong> lahko ustvarita različna zapisa — vsaka Vercel instanca ima svoj ločen Map. Idempotenca ne drži globalno, samo znotraj ene tople instance</td></tr>
+      <tr><td>Primerjava s production-readiness besedilom</td><td>Prejšnji izpis "local_training_complete" ne razlikuje med Implementacijo 1 (dobro) in dejansko klicano Implementacijo 2 (šibko) — bralec bi zmotno sklepal na prvo</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout ok">
+    <div class="cal-label">Sklep</div>
+    <p>Hvalnica prejšnjega poročila glede <code>recovery_required</code> vzorca ostaja veljavna KOT ČISTA LOGIKA (dobro napisana), a je bila napačno pripisana kot lastnost trajnega, produkcijsko varnega sistema. Popravek prejšnjega sklepa — glej §L.</p>
+  </div>
+</section>
+
+<section id="h">
+  <div class="sec-head"><span class="sec-num">H</span><h2>Test coverage</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>Test</th><th>Kaj DEJANSKO dokazuje</th><th>Česa NE dokazuje</th></tr></thead>
+    <tbody>
+      <tr><td><code>test-pos-stripe.js</code></td><td>Čiste funkcije na izoliranih vhodih; regex nad migracijskim besedilom</td><td>Da RPC-ji delujejo pod concurrency; H1 in H2 nista testirana; webhook ordering testiran samo kot regex nad SQL, ne kot izvedba</td></tr>
+      <tr><td><code>test-pos-cash-checkout.js</code></td><td>Da <code>createService()</code> pravilno implementira state-machine z lastnim in-memory mockom</td><td>Da je logika vezana na produkcijski handler (ni); da preživi restart; da je auth-zaščitena; da je idempotentna med instancami</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Manjkajoči testi (zahtevani a-f)</h3>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Manjkajoč test</th><th>Kaj bi moral dokazati</th></tr></thead>
+    <tbody>
+      <tr><td>(a) DB pending + Stripe paid + cancel</td><td>Da RPC zavrne cancel ali sproži rekoncilacijo namesto brezpogojnega cancelled</td></tr>
+      <tr><td>(b) dve različni requestId na istem računu</td><td>Da drugi klic zavrne ali vrne obstoječi aktiven poskus</td></tr>
+      <tr><td>(c) dva provider success webhooka za isti invoice</td><td>Da agregat ne sme preseči gross_cents — danes bi FAILAL</td></tr>
+      <tr><td>(d) restart process-local cash store</td><td>Da se recovery_required zapis izgubi ob hladnem zagonu</td></tr>
+      <tr><td>(e) crash po TSE podpisu, pred complete()</td><td>Da delno izveden complete() ne pusti nekonsistentnega vmesnega stanja</td></tr>
+      <tr><td>(f) skupni payment amount &gt; invoice gross</td><td>Regresijski test, ki bi danes FAILAL — najboljši dokaz vrzeli</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="i">
+  <div class="sec-head"><span class="sec-num">I</span><h2>Potrjene P0/P1 vrzeli</h2></div>
+  <div class="table-wrap"><table class="xwide">
+    <thead><tr><th>ID</th><th>Prio</th><th>Naslov</th></tr></thead>
+    <tbody>
+      <tr><td>PB-01</td><td><span class="pill p0">P0</span></td><td>Dve sočasni Stripe seje za isti račun lahko obe uspeta (H1)</td></tr>
+      <tr><td>PB-02</td><td><span class="pill p0">P0</span></td><td>Cancel lahko prepiše plačano sejo, pozni webhook jo tiho vrne v succeeded (H2)</td></tr>
+      <tr><td>PB-03</td><td><span class="pill p0">P0</span></td><td>Noben invariant ne omejuje vsote plačil na gross_cents po računu</td></tr>
+      <tr><td>PB-04</td><td><span class="pill p0">P0</span></td><td>Produkcijsko klicana gotovinska pot je proces-lokalen pomnilnik brez trajnosti in auth</td></tr>
+      <tr><td>PB-05</td><td><span class="pill p1">P1</span></td><td>Manual payment in Stripe pending lahko sočasno "prekrijeta" isti odprti znesek</td></tr>
+      <tr><td>PB-06</td><td><span class="pill p1">P1</span></td><td>action:"status" ne zapiše DB stanja niti za expired Stripe sejo</td></tr>
+      <tr><td>PB-07</td><td><span class="pill p1">P1</span></td><td>Testna pokritost je izključno enotska/regex, brez concurrency preverb za PB-01..04</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="j">
+  <div class="sec-head"><span class="sec-num">J</span><h2>Tri variante rešitve (samo specifikacija)</h2></div>
+  <h3>J.1 Najmanjši hotfix</h3>
+  <p><strong>SQL:</strong> en partial unique index <code>(invoice_id) where provider='stripe' and status='pending'</code>. <strong>API:</strong> v <code>action:"cancel"</code> dodati vejo <code>if (session.payment_status==="paid") return 409 PROVIDER_ALREADY_PAID</code> pred RPC klicem. <strong>Tveganje:</strong> nizko, a najprej preveriti da v produkciji ni že podvojenih pending vrstic. <strong>Odpravi:</strong> H1 v celoti, H2 delno (zapre glavni vstopni kanal). <strong>Ne odpravi:</strong> §F, §G, PB-06.</p>
+  <h3>J.2 Priporočen srednji popravek</h3>
+  <p>Vse iz J.1, plus: nova RPC <code>pos_reconcile_stripe_payment</code>, ki vedno preveri sveže providerjevo stanje pred vsako mutacijo; trigger-invariant "vsota ≤ gross_cents" na <code>pos_payments</code>; blokada novega <code>create</code>, dokler obstaja katerikoli drug pending/recovery_required poskus katerekoli metode. <strong>Tveganje:</strong> srednje — invariant lahko zavrne zgodovinske nekonsistentne vrstice, potreben predhoden avdit podatkov. <strong>Odpravi:</strong> H1, H2 v celoti; §F delno.</p>
+  <h3>J.3 Dolgoročni PaymentAttempt model</h3>
+  <p>En kanoničen state machine za vse metode (kartica, gotovina, ročno), en invoice-level "aktiven poskus" zaklep, ki ga tudi Implementacija 1 gotovine dejansko uporabi namesto proces-lokalnega Mapa. <strong>Tveganje:</strong> visoko — sprememba podatkovnega modela, potrebna postopna soobstoječa migracija. <strong>Odpravi:</strong> vse, vključno z multi-instance cash problemom.</p>
+  <div class="callout">
+    <div class="cal-label">Odgovor na eksplicitno vprašanje naloge</div>
+    <p>Najmanjši hotfix MORA vsebovati: invoice-level active-attempt lock (DA — jedro J.1) in prepoved canceliranja provider-paid seje (DA, sicer H2 ostane odprt). Avtomatska rekoncilacija ni nujna v samem hotfixu (to je J.2). Cap/invariant proti gross_cents je priporočen tudi v hotfixu, ker je poceni in edini zadnji varovalni sloj proti neznanim prihodnjim dirkam.</p>
+  </div>
+</section>
+
+<section id="k">
+  <div class="sec-head"><span class="sec-num">K</span><h2>Konkretna acceptance criteria</h2></div>
+  <div class="table-wrap"><table class="wide">
+    <thead><tr><th>Zahteva</th><th>Merilo sprejema</th></tr></thead>
+    <tbody>
+      <tr><td>PB-01 fix</td><td>Dva sočasna create klica z različnim requestId: drugi MORA dobiti jasno napako, ne drugo veljavno sejo. Test: dva vzporedna procesa proti realni test-Postgres povezavi.</td></tr>
+      <tr><td>PB-02 fix</td><td>Cancel klican, ko mockan <code>session.payment_status==="paid"</code>: DB status MORA ostati nespremenjen ali preiti v rekoncilacijo, nikoli cancelled.</td></tr>
+      <tr><td>PB-03 fix</td><td>Update, ki bi vsoto za invoice pripeljal nad gross_cents, MORA vreči SQL izjemo.</td></tr>
+      <tr><td>PB-04 fix</td><td>Dokazljivo (grep + integracijski test), da produkcijski handler piše v pos_cash_checkouts, ne v proces-lokalen Map.</td></tr>
+      <tr><td>PB-06 fix</td><td>status na expired Stripe seji MORA prestaviti DB v failed/cancelled, ne ostati pending v nedogled.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="l">
+  <div class="sec-head"><span class="sec-num">L</span><h2>Seznam ovrženih/omejenih prejšnjih sklepov</h2></div>
+  <ol>
+    <li><strong>Ovrženo (delno):</strong> prejšnja pohvala <code>recovery_required</code> vzorca ni ločila LOGIKE (dobra) od DEJANSKEGA RUNTIME-a (proces-lokalen, brez auth, brez trajnosti). Dodano v §G.</li>
+    <li><strong>Omejeno/precizirano:</strong> "status BI LAHKO služil rekonciliaciji" je zdaj dokazano DEJANSKO se kliče, a samo na success-redirect poti, samo bere (ne zapiše DB), in ne pokriva expired (PB-06).</li>
+    <li><strong>Novo:</strong> H1 in H2 kot konkretni SQL-nivo dokazi — prejšnje poročilo je imelo samo splošno priporočilo brez dokaza aktivne luknje.</li>
+    <li><strong>Novo:</strong> §F (cross-method preseganje gross_cents) ni bilo del prejšnjega poročila niti kot odprto vprašanje.</li>
+    <li><strong>Potrjeno nespremenjeno:</strong> refund monotonost, webhook dedup, immutable invoice trigger — vsi ostajajo solidni.</li>
+  </ol>
+</section>
+
+<section id="m">
+  <div class="sec-head"><span class="sec-num">M</span><h2>docs-impact</h2></div>
+  <div class="verdict confirmed" style="background:var(--ok-soft);color:var(--ok)">DA</div>
+  <p>Priporočam dopolniti prvotni POS lifecycle dokument z opombo, ki usmeri bralca sem za H1/H2 in popravek §G — brez tega bi prvotni dokument ostal delno zavajajoč glede zrelosti gotovinskega toka, ker je bil objavljen kot samostojen referenčni artefakt.</p>
+</section>
+
+</article>
+</div></div>
+
+<footer class="doc-foot"><div class="doc">Strogo read-only, adversarial preverba. Brez sprememb kode, brez commit/push/deploy, brez branja skrivnosti. Trditve o zunanjem Stripe/produkcijskem vedenju so eksplicitno označene kot NI PREVERJENO, kjer to velja.</div></footer>

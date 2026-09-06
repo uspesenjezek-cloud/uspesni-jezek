@@ -2,6 +2,7 @@
 
 var crypto = require("node:crypto");
 var db = require("./supabase-server");
+var companyStatusSafety = require("./company-status-safety");
 var northdataClient = require("./apify-northdata-client");
 var northdataDetailsClient = require("./apify-northdata-details-client");
 
@@ -71,6 +72,21 @@ function uradnaRegistrskaPolja(input) {
   };
 }
 
+function safeProfileForOutput(profile) {
+  if (!profile || typeof profile !== "object") return profile;
+  var output = Object.assign({}, profile);
+  var latest = output.latest_check && typeof output.latest_check === "object" ? Object.assign({}, output.latest_check) : {};
+  var identity = latest.identity && typeof latest.identity === "object" ? Object.assign({}, latest.identity) : {};
+  var companyId = output.company_id || identity.companyId || identity.company_id || "";
+  output.company_status = companyStatusSafety.safeCompanyStatus(output.company_status, latest, companyId);
+  if (Object.prototype.hasOwnProperty.call(identity, "active")) {
+    identity.active = companyStatusSafety.safeActive(identity.active, latest, companyId);
+    latest.identity = identity;
+    output.latest_check = latest;
+  }
+  return output;
+}
+
 function veljavenNorthDataZaProfil(northData, input) {
   var company = northData && northData.status === "found" && northData.company;
   if (!company) return false;
@@ -112,16 +128,30 @@ function imaPopolnUradniInsolvencniRezultat(result) {
     uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
 }
 
+function imaStrezniskoPotrjenoUradnoOsnovo(result) {
+  var insolvenca = result && result.insolvency || {};
+  var uradna = insolvenca.officialVerification || {};
+  return ["clear", "possible_match"].includes(String(insolvenca.status || "")) &&
+    uradna.evidenceStatus === "captured" && uradna.serverEvidenceVerified === true;
+}
+
+function imaOhranljivoUradnoZgodovino(result) {
+  return imaPopolnUradniInsolvencniRezultat(result) || imaStrezniskoPotrjenoUradnoOsnovo(result);
+}
+
 function izberiVarnoNajnovejsoPreverbo(obstojeci, incoming, incomingCheckedAt) {
   var nova = incoming && typeof incoming === "object" ? incoming : {};
   var stara = obstojeci && obstojeci.latest_check && typeof obstojeci.latest_check === "object" ? obstojeci.latest_check : {};
-  var staraInsolvenca = stara.insolvency || {};
   var novaImaInsolvencnoPreverbo = Boolean(nova.insolvency && nova.insolvency.status && nova.insolvency.status !== "not_checked");
   var novaJeNedokoncana = jeNedokoncanaUradnaPreverba(nova) ||
     (novaImaInsolvencnoPreverbo && !imaPopolnUradniInsolvencniRezultat(nova));
-  var staraJeVeljavna = ["clear", "not_found", "found", "possible_match", "match", "warning"].includes(String(staraInsolvenca.status || ""));
-  if (novaJeNedokoncana && staraJeVeljavna) {
-    return { latestCheck: compactJson(stara, 0) || {}, checkedAt: obstojeci.checked_at || incomingCheckedAt || null, preserved: true };
+  var staraImaZgodovino = imaOhranljivoUradnoZgodovino(stara);
+  // Plitek registrski zapis (npr. shranjevanje zadetka iz iskalnika) ne sme
+  // izbrisati niti starega neavtoritativnega dokaznega zapisa. Za uporabo kot
+  // authority pa mora shranjeni zapis še vedno prestati strogi marker helper.
+  // Enako ohranjanje zgodovine velja za neuspel ali nedokončan ponovni poskus.
+  if ((!novaImaInsolvencnoPreverbo || novaJeNedokoncana) && staraImaZgodovino) {
+    return { latestCheck: JSON.parse(JSON.stringify(stara)), checkedAt: obstojeci.checked_at || incomingCheckedAt || null, preserved: true };
   }
   return { latestCheck: compactJson(nova, 0) || {}, checkedAt: incomingCheckedAt || null, preserved: false, rejected: novaJeNedokoncana };
 }
@@ -158,7 +188,7 @@ async function upsertProfile(cfg, userId, input) {
     legal_name: String(input.legalName || "").trim().slice(0, 240),
     register_number: uradniRegister.registerNumber,
     register_court: uradniRegister.registerCourt,
-    company_status: String(input.companyStatus || "").trim().slice(0, 40) || null,
+    company_status: companyStatusSafety.safeCompanyStatus(input.companyStatus, latestCheck, uradniRegister.companyId),
     address: shortObject(input.address, ["street", "address", "postal_code", "postalCode", "city", "country"]),
     contact: shortObject(input.contact, ["website", "email", "phone"]),
     latest_check: latestCheck,
@@ -171,7 +201,7 @@ async function upsertProfile(cfg, userId, input) {
     headers: { Prefer: "resolution=merge-duplicates,return=representation" },
     body: payload,
   });
-  return Array.isArray(rows) ? rows[0] : rows;
+  return safeProfileForOutput(Array.isArray(rows) ? rows[0] : rows);
 }
 
 async function getProfileByCompanyId(cfg, userId, companyId) {
@@ -179,7 +209,7 @@ async function getProfileByCompanyId(cfg, userId, companyId) {
   if (!id) return null;
   var rows = await rest(cfg, "boniteta_profili?user_id=eq." + encodeURIComponent(userId) +
     "&company_id=eq." + encodeURIComponent(id) + "&select=*&limit=1");
-  return Array.isArray(rows) && rows.length ? rows[0] : null;
+  return Array.isArray(rows) && rows.length ? safeProfileForOutput(rows[0]) : null;
 }
 
 async function saveFoundationDateEvidence(cfg, userId, profile, evidence) {
@@ -212,16 +242,20 @@ async function saveNorthDataPayload(cfg, userId, profile, payload) {
 
 async function listProfiles(cfg, userId, watchedOnly) {
   if (watchedOnly) {
-    return rest(cfg, "boniteta_monitorji?user_id=eq." + encodeURIComponent(userId) +
-      "&select=*,profile:boniteta_profili(*)&order=updated_at.desc");
+    var monitored = await rest(cfg, "boniteta_monitorji?user_id=eq." + encodeURIComponent(userId) +
+      "&select=*,profile:boniteta_profili!boniteta_monitorji_profile_owner_fkey(*)&order=updated_at.desc");
+    return (Array.isArray(monitored) ? monitored : []).map(function (row) {
+      return Object.assign({}, row, { profile: safeProfileForOutput(row && row.profile) });
+    });
   }
-  return rest(cfg, "boniteta_profili?user_id=eq." + encodeURIComponent(userId) + "&select=*&order=updated_at.desc&limit=200");
+  var profiles = await rest(cfg, "boniteta_profili?user_id=eq." + encodeURIComponent(userId) + "&select=*&order=updated_at.desc&limit=200");
+  return (Array.isArray(profiles) ? profiles : []).map(safeProfileForOutput);
 }
 
 async function getProfile(cfg, userId, profileId) {
   var rows = await rest(cfg, "boniteta_profili?id=eq." + encodeURIComponent(profileId) +
     "&user_id=eq." + encodeURIComponent(userId) + "&select=*");
-  return Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+  return Array.isArray(rows) && rows.length === 1 ? safeProfileForOutput(rows[0]) : null;
 }
 
 async function getMonitorByProfile(cfg, userId, profileId) {
@@ -310,7 +344,9 @@ async function markAlertRead(cfg, userId, alertId) {
   var rows = await rest(cfg, "boniteta_opozorila?id=eq." + encodeURIComponent(alertId) + "&user_id=eq." + encodeURIComponent(userId), {
     method: "PATCH", headers: { Prefer: "return=representation" }, body: { read_at: new Date().toISOString() },
   });
-  return Array.isArray(rows) ? rows[0] : rows;
+  var saved = Array.isArray(rows) ? rows[0] : rows;
+  if (!saved) throw Object.assign(new Error("Opozorilo ni bilo najdeno ali ne pripada prijavljenemu uporabniku."), { status: 404, code: "ALERT_NOT_FOUND" });
+  return saved;
 }
 
 async function saveCrifRequest(cfg, userId, input) {
@@ -398,5 +434,7 @@ module.exports = {
   saveCrifProviderResult: saveCrifProviderResult,
   compactJson: compactJson,
   jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba,
-  _test: { validUuid: validUuid, uradnaRegistrskaPolja: uradnaRegistrskaPolja, veljavenNorthDataZaProfil: veljavenNorthDataZaProfil, izberiVarnoNajnovejsoPreverbo: izberiVarnoNajnovejsoPreverbo, jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba, imaPopolnUradniInsolvencniRezultat: imaPopolnUradniInsolvencniRezultat },
+  imaPopolnUradniInsolvencniRezultat: imaPopolnUradniInsolvencniRezultat,
+  imaStrezniskoPotrjenoUradnoOsnovo: imaStrezniskoPotrjenoUradnoOsnovo,
+  _test: { validUuid: validUuid, uradnaRegistrskaPolja: uradnaRegistrskaPolja, veljavenNorthDataZaProfil: veljavenNorthDataZaProfil, izberiVarnoNajnovejsoPreverbo: izberiVarnoNajnovejsoPreverbo, jeNedokoncanaUradnaPreverba: jeNedokoncanaUradnaPreverba, imaPopolnUradniInsolvencniRezultat: imaPopolnUradniInsolvencniRezultat, imaStrezniskoPotrjenoUradnoOsnovo: imaStrezniskoPotrjenoUradnoOsnovo },
 };

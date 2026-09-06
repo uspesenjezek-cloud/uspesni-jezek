@@ -1,9 +1,12 @@
 "use strict";
 
+var companyStatusSafety = require("./company-status-safety");
+
 var crypto = require("node:crypto");
 
 var SEARCH_URL = "https://api.openregister.de/v0/search/company";
 var WEB_URL = "https://openregister.de";
+var SEARCH_TIMEOUT_MS = 30000;
 var CACHE_TTL_MS = 5 * 60 * 1000;
 var PROOF_TTL_MS = 2 * 60 * 60 * 1000;
 var cache = new Map();
@@ -67,7 +70,7 @@ function compactCompany(value) {
     register_number: clean(company.register_number, 60),
     register_court: clean(company.register_court, 120),
     legal_form: clean(company.legal_form, 80),
-    active: company.active !== false,
+    active: companyStatusSafety.safeActive(company.active, company, company.company_id || company.id),
     address: compactAddress(company.address),
   };
 }
@@ -112,7 +115,7 @@ function errorForStatus(status) {
 
 async function fetchOnce(query) {
   var controller = new AbortController();
-  var timer = setTimeout(function () { controller.abort(); }, 12000);
+  var timer = setTimeout(function () { controller.abort(); }, SEARCH_TIMEOUT_MS);
   try {
     var url = new URL(SEARCH_URL);
     url.searchParams.set("query", query);

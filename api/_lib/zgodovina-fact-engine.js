@@ -891,7 +891,7 @@ function segmentClauses(value) {
       span: sourceSpan(text, span.start, span.end), text: text.slice(span.start, span.end).trim(),
       fatherCategories: fathers, eventTypes: Array.from(new Set(active.map(function (item) { return item.eventType; }))),
       semanticStatus: active.length ? "recognized" : "neutral",
-      signals: localSignals, values: extractValues(text, span, localGroups, localSignals, dateRelations, localInstallmentCadences, clauses.length > 0),
+      signals: localSignals, values: extractValues(text, span, installmentGroups, localSignals, dateRelations, localInstallmentCadences, clauses.length > 0),
       installmentGroups: localGroups, dateRelations: localDateRelations, installmentCadences: localInstallmentCadences,
     });
   });
@@ -901,6 +901,42 @@ function segmentClauses(value) {
     if (target) target.dateRelations.push(annotateDateRelationForClause(relation, target));
   });
   bindSharedInstallmentGroupDates(text, clauses);
+  clauses.forEach(function (clause, index) {
+    if (!clause || clause.semanticStatus !== "neutral") return;
+    var previous = clauses.slice(0, index).reverse().find(function (candidate) {
+      return candidate && candidate.semanticStatus === "recognized" && Array.isArray(candidate.eventTypes) && candidate.eventTypes.length;
+    });
+    if (!previous || !previous.eventTypes.every(function (eventType) {
+      return ["payment_promise", "deadline_extension", "installment_agreement"].includes(eventType);
+    })) return;
+    var bridge = text.slice(previous.span.end, clause.span.start);
+    var continuation = bridge.length <= 30 && /^\s*(?:(?:[,.!?;:]|in|pa|ampak|vendar|toda|ter)\s*)*$/iu.test(bridge);
+    if (!continuation) return;
+    var targetEventType = previous.eventTypes.length === 1 ? previous.eventTypes[0] : null;
+    var valueContinuation = /(?:^|[^\p{L}\d])(?:samo|zgolj|le|znesek|v\s+višini|za|ko|če|šele|največ|minimalno|maksimalno)(?=$|[^\p{L}\d])/iu.test(clause.text);
+    if (valueContinuation && Array.isArray(clause.values)) {
+      clause.values = clause.values.map(function (item) {
+        if (!item || item.kind !== "money") return item;
+        return Object.assign({}, item, {
+          targetClauseId: previous.id,
+          targetEventType: targetEventType,
+          reason: item.reason + ":continuation_bound_to_prior_agreement",
+        });
+      });
+    }
+    var schedulingContinuation = /(?:^|[^\p{L}\d])(?:šele|rok\w*|do|čez|po)(?=$|[^\p{L}\d])/iu.test(clause.text);
+    if (schedulingContinuation && ["payment_promise", "deadline_extension"].includes(targetEventType) && Array.isArray(clause.dateRelations)) {
+      clause.dateRelations = clause.dateRelations.map(function (relation) {
+        if (!relation || relation.direction < 0) return relation;
+        return Object.assign({}, relation, {
+          anchor: "reference_date", field: "promisedDate",
+          targetClauseId: previous.id, targetEventType: targetEventType,
+          fatherCategory: "payment_promised", eventType: targetEventType,
+          reason: relation.reason + ":continuation_bound_to_prior_agreement_deadline",
+        });
+      });
+    }
+  });
   return { text: text, signals: signals, clauses: clauses, installmentGroups: installmentGroups, dateRelations: dateRelations, installmentCadences: installmentCadences };
 }
 
@@ -923,8 +959,8 @@ function buildFactContract(value) {
         id: "fact-" + (facts.length + 1), kind: item.kind, category: clause.fatherCategories.length === 1 ? clause.fatherCategories[0] : null,
         value: item.value, currency: item.currency, explicit: item.explicit,
         priority: item.priority, confidence: item.confidence, sourceSpan: item.evidence,
-        clauseId: clause.id, reason: item.reason, relation: item.relation || null, groupId: item.groupId || null,
-        eventType: item.kind === "repeat" ? "installment_payment" : null,
+        clauseId: item.targetClauseId || clause.id, reason: item.reason, relation: item.relation || null, groupId: item.groupId || null,
+        eventType: item.targetEventType || (item.kind === "repeat" ? "installment_payment" : null),
       });
     });
     clause.installmentGroups.forEach(function (group) {
@@ -953,13 +989,13 @@ function buildFactContract(value) {
         eventType: relation.eventType || (clause.eventTypes.length === 1 ? clause.eventTypes[0] : null),
         assertion: relation.assertion || "positive",
         value: relation.amount, explicit: true, priority: 285, confidence: "high",
-        sourceSpan: relation.sourceSpan, clauseId: clause.id, reason: relation.reason,
+        sourceSpan: relation.sourceSpan, clauseId: relation.targetClauseId || clause.id, reason: relation.reason,
         relation: relation, groupId: relation.groupId || null,
       });
     });
   });
   var contract = {
-    version: 26, textLength: segmented.text.length, clauses: segmented.clauses,
+    version: 28, textLength: segmented.text.length, clauses: segmented.clauses,
     facts: facts, fatherCategories: Array.from(new Set(facts.filter(function (fact) { return fact.kind === "category" && fact.assertion === "positive"; }).map(function (fact) { return fact.category; }))),
     installmentGroups: segmented.installmentGroups, dateRelations: segmented.dateRelations, installmentCadences: segmented.installmentCadences,
     invariants: Object.freeze(["all_nonempty_source_spans_preserved", "all_father_signals_discovered", "temporal_father_leads_start_clauses", "named_day_event_transitions_preserve_prior_narrative", "modal_temporal_facts_are_non_executed", "collection_actions_are_independent_events", "collection_outcomes_require_prior_completed_payment_or_collection_action", "numbers_bound_inside_clause", "temporal_counts_never_money", "relative_dates_keep_explicit_anchor", "relative_amounts_keep_explicit_anchor", "installment_cadence_chains_previous_events", "non_money_numbers_never_reduce_balance", "explicit_installment_counts_preserved", "repeated_groups_preserved", "canonical_model_values_require_exact_evidence", "explicit_over_inferred", "future_not_occurred", "ledger_never_negative"]),
