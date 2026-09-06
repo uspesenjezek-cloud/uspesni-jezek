@@ -107,22 +107,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/_lib/:pot*",
-      "destination": "/uj-ni-najdeno"
-    },
-    {
-      "source": "/api/_handlers/:pot*",
-      "destination": "/uj-ni-najdeno"
-    },
-    {
-      "source": "/supabase/:pot*",
-      "destination": "/uj-ni-najdeno"
-    },
-    {
-      "source": "/scripts/:pot*",
-      "destination": "/uj-ni-najdeno"
-    },
-    {
       "source": "/api/razcleni-zgodovino",
       "destination": "/api/izvedi-opomin-ukrep?handler=history-ai"
     },
@@ -277,5 +261,27 @@
         "fra1"
       ]
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/api/_lib/:pot*",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/api/_handlers/:pot*",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/supabase/:pot*",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    },
+    {
+      "source": "/scripts/:pot*",
+      "destination": "/uj-ni-najdeno",
+      "permanent": false
+    }
+  ]
 }
