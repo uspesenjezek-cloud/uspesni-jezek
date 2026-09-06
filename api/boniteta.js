@@ -14,8 +14,12 @@ function route(req) {
 }
 
 module.exports = function handler(req, res) {
-  const selected = handlers[route(req)];
-  if (!selected) return res.status(404).json({ ok: false, napaka: "Neznana bonitetna pot." });
+  // Brez lastnostne preverbe bi ?handler=constructor / toString / __proto__
+  // nasel podedovano lastnost z Object.prototype in jo poskusil poklicati
+  // kot rokovalnik. Zahteva ostane brez odgovora, namesto da vrne 404.
+  const pot = route(req);
+  const selected = Object.prototype.hasOwnProperty.call(handlers, pot) ? handlers[pot] : null;
+  if (typeof selected !== "function") return res.status(404).json({ ok: false, napaka: "Neznana bonitetna pot." });
   return selected(req, res);
 };
 
