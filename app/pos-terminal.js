@@ -1989,7 +1989,62 @@
   var FISKALY_TRAINING_ID_KEY = "uj_pos_fiskaly_training_id";
   var FISKALY_TRAINING_RECEIPT_KEY = "uj_pos_fiskaly_training_receipt";
   var fiskalyTestRequestId = null;
-  try { fiskalyTestRequestId = global.sessionStorage.getItem(FISKALY_TRAINING_ID_KEY) || null; } catch (_error) {}
+  // Sidro za nadaljevanje TSE transakcije. Streznik zahteva, da se prekinjen
+  // poskus nadaljuje z ISTIM transaction ID, zato ga ne smemo izgubiti ob
+  // osvezitvi strani. sessionStorage sam ne zadostuje: v zasebnem oknu in
+  // ponekod v iOS PWA vrze izjemo, umre pa tudi ob zaprtju zavihka. Zato
+  // pisemo v obe trajni shrambi in dodatno v pomnilnik, beremo pa po vrsti.
+  var fiskalyAnchorMemory = { id: null, receipt: null };
+
+  function fiskalyStores() {
+    var stores = [];
+    try { if (global.sessionStorage) stores.push(global.sessionStorage); } catch (_error) {}
+    try { if (global.localStorage) stores.push(global.localStorage); } catch (_error) {}
+    return stores;
+  }
+
+  function readFiskalyAnchor(key) {
+    var stores = fiskalyStores();
+    for (var i = 0; i < stores.length; i += 1) {
+      try {
+        var value = stores[i].getItem(key);
+        if (value) return value;
+      } catch (_error) {}
+    }
+    if (key === FISKALY_TRAINING_ID_KEY) return fiskalyAnchorMemory.id;
+    if (key === FISKALY_TRAINING_RECEIPT_KEY) return fiskalyAnchorMemory.receipt;
+    return null;
+  }
+
+  // Vrne true samo, kadar je sidro pristalo v shrambi, ki prezivi osvezitev strani.
+  function writeFiskalyAnchor(transactionId, receiptJson) {
+    fiskalyAnchorMemory.id = transactionId;
+    fiskalyAnchorMemory.receipt = receiptJson;
+    var stores = fiskalyStores();
+    var durable = false;
+    for (var i = 0; i < stores.length; i += 1) {
+      try {
+        stores[i].setItem(FISKALY_TRAINING_ID_KEY, transactionId);
+        stores[i].setItem(FISKALY_TRAINING_RECEIPT_KEY, receiptJson);
+        durable = true;
+      } catch (_error) {}
+    }
+    return durable;
+  }
+
+  function clearFiskalyAnchor() {
+    fiskalyAnchorMemory.id = null;
+    fiskalyAnchorMemory.receipt = null;
+    var stores = fiskalyStores();
+    for (var i = 0; i < stores.length; i += 1) {
+      try {
+        stores[i].removeItem(FISKALY_TRAINING_ID_KEY);
+        stores[i].removeItem(FISKALY_TRAINING_RECEIPT_KEY);
+      } catch (_error) {}
+    }
+  }
+
+  fiskalyTestRequestId = readFiskalyAnchor(FISKALY_TRAINING_ID_KEY) || null;
   var fiskalyReceiptItems = [
     { id: uid("fiskaly-item"), description: "Arbeitszeit (Test)", quantityMilli: 1000, unitGrossCents: 11900, vatRate: "19" },
     { id: uid("fiskaly-item"), description: "Testmaterial", quantityMilli: 1000, unitGrossCents: 1070, vatRate: "7" }
@@ -4448,17 +4503,14 @@
 
   function storedFiskalyTrainingReceipt() {
     try {
-      var stored = JSON.parse(global.sessionStorage.getItem(FISKALY_TRAINING_RECEIPT_KEY) || "null");
+      var stored = JSON.parse(readFiskalyAnchor(FISKALY_TRAINING_RECEIPT_KEY) || "null");
       return stored && typeof stored === "object" ? stored : null;
     } catch (_error) { return null; }
   }
 
   function clearFiskalyTrainingRetry() {
     fiskalyTestRequestId = null;
-    try {
-      global.sessionStorage.removeItem(FISKALY_TRAINING_ID_KEY);
-      global.sessionStorage.removeItem(FISKALY_TRAINING_RECEIPT_KEY);
-    } catch (_error) {}
+    clearFiskalyAnchor();
   }
 
   function renderSignedKassenbon(transaction) {
@@ -4526,10 +4578,11 @@
       };
       var receiptPayload = fiskalyTestRequestId && storedFiskalyTrainingReceipt() || currentReceipt;
       fiskalyTestRequestId = transactionId;
-      try {
-        global.sessionStorage.setItem(FISKALY_TRAINING_ID_KEY, transactionId);
-        global.sessionStorage.setItem(FISKALY_TRAINING_RECEIPT_KEY, JSON.stringify(receiptPayload));
-      } catch (_error) {}
+      // Tiho spodleteli zapis je bil nevaren: po osvezitvi strani sidra ni bilo
+      // vec in prekinjene transakcije ni bilo mogoce nadaljevati z istim ID.
+      if (!writeFiskalyAnchor(transactionId, JSON.stringify(receiptPayload))) {
+        showToast("Opozorilo: brskalnik ne shrani podatkov za nadaljevanje. Med podpisovanjem ne osvežujte strani.");
+      }
       var response;
       try {
         response = await posFetch("/api/pos-fiskaly", {
