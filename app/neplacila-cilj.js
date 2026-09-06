@@ -70,17 +70,40 @@
     })];
   })));
 
+  // Rezervna izvedba, ce se varna-shramba.js iz kaksnega razloga ne nalozi:
+  // vedenje ostane enako, samo brez skupnega sloja.
+  function varnaShramba() {
+    if (window.VarnaShramba) return window.VarnaShramba;
+    return {
+      preberiJson: function (kljuc) {
+        try {
+          var v = JSON.parse(sessionStorage.getItem(kljuc) || "null");
+          return v && typeof v === "object" ? v : null;
+        } catch (_napaka) { return null; }
+      },
+      zapisiJson: function (kljuc, vrednost) {
+        try { sessionStorage.setItem(kljuc, JSON.stringify(vrednost)); return true; }
+        catch (_napaka) { return false; }
+      }
+    };
+  }
+
+  function opozoriONeshranjenemKoraku() {
+    if (typeof window.UJPrikaziObvestilo === "function") {
+      window.UJPrikaziObvestilo("Brskalnik ne shrani vmesnih podatkov. Ne osvežujte strani do konca vnosa.");
+    }
+  }
+
   function preberiCiljSejo() {
     try {
-      var podatki = JSON.parse(sessionStorage.getItem(KLJUC_SEJE_CILJ) || "null");
-      return podatki && typeof podatki === "object" ? podatki : null;
+      return varnaShramba().preberiJson(KLJUC_SEJE_CILJ);
     } catch (_napaka) {
       return null;
     }
   }
 
   try {
-    korak1 = JSON.parse(sessionStorage.getItem("neplacilo-korak1-podatki") || "null");
+    korak1 = varnaShramba().preberiJson("neplacilo-korak1-podatki");
   } catch (_napaka) {
     korak1 = null;
   }
@@ -88,7 +111,7 @@
   function izracunajCiljniDolg() {
     var prvotni = Number(korak1 && korak1.znesek) || 0;
     try {
-      var zgodovina = JSON.parse(sessionStorage.getItem("neplacilo-zgodovina-podatki") || "null");
+      var zgodovina = varnaShramba().preberiJson("neplacilo-zgodovina-podatki");
       if (!zgodovina || zgodovina.potrjena !== true || !Array.isArray(zgodovina.dogodki)) return prvotni;
       var zmanjsanje = zgodovina.dogodki.reduce(function (vsota, dogodek) {
         var znesek = Number(dogodek && dogodek.znesek);
@@ -801,7 +824,11 @@
 
   function shraniCilj(potrjena) {
     pravnaOsnutekPodatki = ocistiPravneCiljnePodatke(pravnaOsnutekId, pravnaOsnutekPodatki);
-    sessionStorage.setItem(KLJUC_SEJE_CILJ, JSON.stringify({
+    // Nezascitten setItem je v brskalniku, ki shrambo zavrne (zasebno okno,
+    // blokirani piskotki), vrgel SecurityError sredi uporabnikovega dejanja in
+    // prekinil potrditev cilja. VarnaShramba nikoli ne vrze in posteno pove,
+    // ali je vrednost pristala. Trajnost ostane enaka kot prej: samo seja.
+    var shranjeno = varnaShramba().zapisiJson(KLJUC_SEJE_CILJ, {
       potrjena: potrjena === true,
       nacin: nacin,
       naravniOpis: naravniOpis,
@@ -821,7 +848,8 @@
       pravnaOsnutekId: pravnaOsnutekId,
       pravnaOsnutekPodatki: pravnaOsnutekPodatki,
       pravnaIzbiraIzLune: pravnaIzbiraIzLune,
-    }));
+    });
+    if (!shranjeno) opozoriONeshranjenemKoraku();
     if (typeof window.UJInicializirajWizardProgressHeader === "function") {
       window.UJInicializirajWizardProgressHeader(3);
     }
