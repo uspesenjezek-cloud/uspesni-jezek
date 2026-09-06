@@ -67,12 +67,26 @@ function ciljnoOkolje() {
   return { oznaka, gostitelj, jeProdukcija: /^(produkcija|production|prod)$/i.test(oznaka) };
 }
 
+/*
+ * Zascita ne sme sloneti na poljubni oznaki: kdor jo napacno napise, pise v
+ * produkcijo. Zato jo vezemo na DEJANSKI ciljni projekt. Operater mora
+ * izrecno navesti, kateri Supabase gostitelj je testni
+ * (UJ_TEST_EXPECTED_SUPABASE_HOST), in ta se mora ujemati s SUPABASE_URL.
+ * Ce se ne ujemata, pisocih sond ni - ne glede na vse ostale zastavice.
+ */
 function pisoceSondeDovoljene(okolje) {
   if (String(process.env.UJ_TEST_ALLOW_WRITE_PROBES || "").toLowerCase() !== "true") {
     return { ok: false, razlog: "UJ_TEST_ALLOW_WRITE_PROBES ni true" };
   }
+  const pricakovan = String(process.env.UJ_TEST_EXPECTED_SUPABASE_HOST || "").trim().toLowerCase();
+  if (!pricakovan) {
+    return { ok: false, razlog: "UJ_TEST_EXPECTED_SUPABASE_HOST ni nastavljen - ciljni projekt ni potrjen" };
+  }
+  if (pricakovan !== okolje.gostitelj.toLowerCase()) {
+    return { ok: false, razlog: "SUPABASE_URL (" + okolje.gostitelj + ") se NE ujema s potrjenim testnim projektom (" + pricakovan + ")" };
+  }
   if (okolje.jeProdukcija) {
-    return { ok: false, razlog: "UJ_TEST_ENV_LABEL je produkcija - pisoce sonde so zavrnjene" };
+    return { ok: false, razlog: "UJ_TEST_ENV_LABEL je produkcija" };
   }
   return { ok: true, razlog: "" };
 }
