@@ -37,6 +37,12 @@ const ATOMIC_MIGRATION_GROUPS = [
 // This plan describes local Phase 0b ordering only. It is intentionally
 // separate from POS_MIGRATION_MANIFEST and never authorizes deployment.
 const PHASE_0B_MIGRATION_DEPENDENCIES = Object.freeze({
+  "20260825130657_pos_openapi_reconciliation_failure_budget.sql": Object.freeze([]),
+  "20260826131305_pos_openapi_succeeded_delivery_state.sql": Object.freeze([]),
+  "20260907231801_pos_openapi_reconciliation_terminal_budget_compat.sql": Object.freeze([
+    "20260825130657_pos_openapi_reconciliation_failure_budget.sql",
+    "20260826131305_pos_openapi_succeeded_delivery_state.sql",
+  ]),
   "20260826182713_pos_cash_checkout_state.sql": Object.freeze([]),
   "20260826194158_pos_cash_refund_state.sql": Object.freeze([
     "20260826182713_pos_cash_checkout_state.sql",

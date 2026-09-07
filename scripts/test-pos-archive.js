@@ -191,6 +191,20 @@ assert.strictEqual(completeSummary.verifiedCount, 1249);
 assert.strictEqual(completeSummary.replicaPendingCount, 50);
 assert.deepStrictEqual(completeSummary.records, []);
 
+// A failed database sync must override initial loading and stale archive success.
+for (const capability of [
+  { loaded: false, loading: false },
+  { loaded: false, loading: true },
+  { loaded: true, loading: false, productionReady: true, independentBackupReady: true }
+]) {
+  const disconnected = terminal.archiveCapabilityView(capability, 'storage unavailable');
+  assert.strictEqual(disconnected.pending, false);
+  assert.strictEqual(disconnected.unavailable, true);
+  assert.strictEqual(disconnected.allVerified, false);
+  assert.strictEqual(disconnected.badgeText, 'Ni dosegljivo');
+}
+const restoredArchive = terminal.archiveCapabilityView({ loaded: true, loading: false }, '');
+assert.strictEqual(restoredArchive.unavailable, false);
 const loadingView = terminal.archiveCapabilityView({ loaded: false, loading: false, independentBackupReady: false });
 assert.strictEqual(loadingView.badgeText, "Preverjam");
 assert.strictEqual(loadingView.integrityText, "—");

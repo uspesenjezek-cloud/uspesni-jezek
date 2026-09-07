@@ -485,9 +485,15 @@ async function runTrainingTransaction(source, requestedId) {
   });
 }
 
-async function retrieveTrainingReceipt(source, requestedId, receiptInput, expectedFiscalType) {
+async function retrieveReceipt(source, requestedId, receiptInput, expectedFiscalType, production) {
   const cfg = configuration(source);
-  requireTraining(cfg);
+  if (production) {
+    if (cfg.mode !== "production") {
+      const error = new Error("Produkcijska uskladitev zahteva produkcijski način.");
+      error.code = "FISKALY_LIVE_LOCKED";
+      throw error;
+    }
+  } else requireTraining(cfg);
   const transactionId = uuidV4(requestedId);
   if (!transactionId) {
     const error = new Error("Neveljaven identifikator testne transakcije.");
@@ -501,6 +507,11 @@ async function retrieveTrainingReceipt(source, requestedId, receiptInput, expect
   }
   const receipt = normalizeTrainingReceipt(receiptInput);
   const expectedType = fiscalType(expectedFiscalType);
+  if (production && expectedType !== "SALE") {
+    const error = new Error("Produkcijski refund še nima potrjene izvedbe.");
+    error.code = "FISKALY_LIVE_REFUND_LOCKED";
+    throw error;
+  }
   const token = await authenticate(cfg);
   let body;
   try {
@@ -527,7 +538,11 @@ async function retrieveTrainingReceipt(source, requestedId, receiptInput, expect
   }
   if (result.state === "FINISHED") assertFinishedSignature(result);
   if (result.state === "FINISHED") {
-    const evidence = providerTrainingEvidence(body, receipt, expectedType);
+    if (production && result.revision !== "2") failLookup();
+    const evidence = production
+      ? providerReceiptEvidence(body, receipt, expectedType, "RECEIPT", "fiscal_kassenbon")
+      : providerTrainingEvidence(body, receipt, expectedType);
+    result.training = !production;
     result.fiscalType = evidence.fiscalType;
     result.paymentType = evidence.paymentType;
     result.amount = money(evidence.grossCents);
@@ -536,6 +551,14 @@ async function retrieveTrainingReceipt(source, requestedId, receiptInput, expect
   }
   result.observedAt = new Date().toISOString();
   return result;
+}
+
+async function retrieveTrainingReceipt(source, requestedId, receiptInput, expectedFiscalType) {
+  return retrieveReceipt(source, requestedId, receiptInput, expectedFiscalType, false);
+}
+
+async function retrieveProductionReceipt(source, requestedId, receiptInput, expectedFiscalType) {
+  return retrieveReceipt(source, requestedId, receiptInput, expectedFiscalType || "SALE", true);
 }
 
 async function authenticate(cfg) {
@@ -603,6 +626,7 @@ module.exports = {
   runTrainingReceipt,
   runProductionReceipt,
   retrieveTrainingReceipt,
+  retrieveProductionReceipt,
   listCount,
   _test: {
     requestJson,

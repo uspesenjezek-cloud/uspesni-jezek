@@ -437,4 +437,5 @@ assert.match(
   "POS Stripe event invoice-lock migracija mora celoten zapisovalni mejnik zaključiti s commit."
 );
 
+require("./test-offer-migration-replay");
 console.log("POS migration deployment guard tests passed.");

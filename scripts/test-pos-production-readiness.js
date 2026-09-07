@@ -16,6 +16,7 @@ assert.match(verifyWorkflow, /version:\s*2\.115\.0/);
   "20260830212449_pos_bank_confirm_retry_idempotency.sql",
   "20260830212909_pos_cash_provider_recovery_lock_order.sql",
   "20260830213055_pos_archive_primary_object_recovery.sql",
+  "20260907231801_pos_openapi_reconciliation_terminal_budget_compat.sql",
 ].forEach((name) => assert.match(
   verifyWorkflow,
   new RegExp("git ls-files --error-unmatch --[\\s\\S]*supabase/migrations/" + name.replace(/\./g, "\\.")),
@@ -122,7 +123,7 @@ const completeEnv = {
   POS_DATABASE_CI_GATE_CONFIRMED: "true",
   POS_DATABASE_CI_GATE_REFERENCE: "GITHUB-ACTIONS-POS-DB-2026-08-31",
   POS_DATABASE_CI_GATE_CONFIRMED_AT: new Date().toISOString(),
-  POS_DATABASE_CI_GATE_MIGRATION_HEAD: "20260830213055",
+  POS_DATABASE_CI_GATE_MIGRATION_HEAD: "20260907231801",
   OPENAPI_INVOICE_TOKEN: secretValues.openapi,
   OPENAPI_INVOICE_TOKEN_EXPIRES_AT: "2099-12-31T23:59:59Z",
   OPENAPI_INVOICE_MODE: "production",
@@ -199,7 +200,7 @@ const wrongDatabaseMigrationHead = readiness.assess(Object.assign({}, completeEn
   POS_DATABASE_CI_GATE_MIGRATION_HEAD: "20260830172315",
 }));
 assert.strictEqual(wrongDatabaseMigrationHead.checks.find((check) => check.id === "supabase_core").ready, false);
-assert.ok(wrongDatabaseMigrationHead.checks.find((check) => check.id === "supabase_core").missing.includes("POS_DATABASE_CI_GATE_MIGRATION_HEAD=20260830213055"));
+assert.ok(wrongDatabaseMigrationHead.checks.find((check) => check.id === "supabase_core").missing.includes("POS_DATABASE_CI_GATE_MIGRATION_HEAD=20260907231801"));
 const sendLocked = readiness.assess(Object.assign({}, {
   SUPABASE_URL: "https://project.supabase.co",
   SUPABASE_ANON_KEY: "anon",

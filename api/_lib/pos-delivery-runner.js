@@ -51,6 +51,16 @@ function acceptedPendingDelivery(claimed, providerResult) {
   });
 }
 
+async function resendFirstAttemptAt(cfg, delivery, readRows) {
+  // Claims append this event atomically before POST. Unlike locked_at and
+  // attempt_count, its timestamp survives subsequent claims and requeues.
+  const rows = await (readRows || supabase.pridobiVrstice)(cfg, "pos_invoice_delivery_events",
+    "delivery_id=eq." + encodeURIComponent(delivery.id) +
+    "&user_id=eq." + encodeURIComponent(delivery.user_id) +
+    "&event_type=eq.processing&details->>provider=eq.resend&select=created_at&order=created_at.asc&limit=1");
+  return rows && rows[0] && rows[0].created_at || "";
+}
+
 async function processClaimed(cfg, claimed, workerId, dependencies) {
   const deps = dependencies || {};
   const buildPackage = deps.buildDeliveryPackage || buildDeliveryPackage;
@@ -60,6 +70,9 @@ async function processClaimed(cfg, claimed, workerId, dependencies) {
   let providerResult;
   try {
     const deliveryPackage = await buildPackage(cfg, claimed);
+    if (claimed.provider === "resend") {
+      deliveryPackage.resendFirstAttemptAt = await resendFirstAttemptAt(cfg, claimed, deps.readRows);
+    }
     const provider = selectProvider(claimed.provider);
     providerResult = await provider.deliver(deliveryPackage);
   } catch (error) {
@@ -105,4 +118,4 @@ async function processClaimed(cfg, claimed, workerId, dependencies) {
   return { ok: true, delivery: completed, providerResult };
 }
 
-module.exports = { acceptedPendingDelivery, applyImmediateOpenapiResult, finish, processClaimed, rpcRow };
+module.exports = { resendFirstAttemptAt, acceptedPendingDelivery, applyImmediateOpenapiResult, finish, processClaimed, rpcRow };

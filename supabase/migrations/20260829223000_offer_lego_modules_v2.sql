@@ -32,6 +32,31 @@ insert into public.offer_review_modules (id,code,label,description,sort_order) v
 (4027,'a01','Končni povzetek','Potrjena dejstva in manjkajoči podatki',28)
 on conflict (id) do update set code=excluded.code,label=excluded.label,description=excluded.description,sort_order=excluded.sort_order;
 
+-- Park only the relocated catalog IDs before immediate UNIQUE checks run.
+-- Field IDs and answer foreign keys stay unchanged; custom rows are untouched.
+do $$
+declare
+  moved_ids integer[] := array[5101,5102,5103,5104,5105,5106,5107,5108,5201,5202,5203,5204,5205,5206,5207,5208,5301,5302,5303,5304,5305,5306,5307,5308,5401,5402,5403,5404,5405,5406,5407,5408,5501,5502,5503,5504,5505,5506,5507,5601,5602,5603,5604,5605,5606,5607,5608,5609,5610,5611,5612];
+begin
+  if (select count(*) from public.offer_review_fields where id = any(moved_ids)) <> cardinality(moved_ids)
+     or exists (select 1 from public.offer_review_fields where id = any(moved_ids) and sort_order <= 0) then
+    raise exception 'Offer v2 relocation requires the complete positive-order predecessor catalog';
+  end if;
+  if exists (
+    select 1 from public.offer_review_fields moved
+    join public.offer_review_fields occupied
+      on occupied.module_id = moved.module_id and occupied.sort_order = -moved.id
+    where moved.id = any(moved_ids)
+  ) then
+    raise exception 'Offer v2 temporary field ordering is occupied';
+  end if;
+  update public.offer_review_fields set sort_order = -id where id = any(moved_ids);
+end;
+$$;
+
+-- Match the existing application catalog; retain the historical field ID/answers.
+update public.offer_review_fields set code='vir-ponudbe-opomba' where id=5611;
+
 with premik(field_id,module_id) as (values
   (5101,4009),(5102,4009),(5103,4006),(5104,4012),(5105,4012),(5106,4010),(5107,4012),(5108,4011),
   (5201,4004),(5202,4007),(5203,4005),(5204,4005),(5205,4008),(5206,4023),(5207,4019),(5208,4007),

@@ -87,6 +87,19 @@ function validEmail(value) {
   return text.length <= 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text) && !/[\r\n]/.test(text);
 }
 
+// Resend forgets keys after 24h; reserve one minute for transit/clock skew.
+const RESEND_RETRY_WINDOW_MS = 24 * 60 * 60 * 1000 - 60 * 1000;
+function assertResendRetryWindow(deliveryPackage, now) {
+  const first = Date.parse(deliveryPackage && deliveryPackage.resendFirstAttemptAt || "");
+  const current = now == null ? Date.now() : Number(now);
+  if (!Number.isFinite(first) || !Number.isFinite(current) || first > current
+      || current - first >= RESEND_RETRY_WINDOW_MS) {
+    throw new DeliveryProviderError("Samodejna ponovitev Resend dostave ni varna. Preverite prvo pošiljanje pri ponudniku in uskladite dostavo pred novim pošiljanjem.", {
+      code: "RESEND_RECONCILIATION_REQUIRED", retryable: false,
+    });
+  }
+}
+
 function resendIdempotencyKey(deliveryPackage) {
   return ["invoice-delivery", deliveryPackage.delivery.id, deliveryPackage.manifestSha256.slice(0, 32)].join("/");
 }
@@ -157,6 +170,7 @@ function resendProvider(options) {
       };
       const replyTo = String(env.POS_EMAIL_REPLY_TO || "").trim();
       if (validEmail(replyTo)) payload.reply_to = replyTo;
+      assertResendRetryWindow(deliveryPackage, settings.now ? settings.now() : Date.now());
       let response;
       try {
         response = await fetchFn(RESEND_ENDPOINT, {
@@ -208,6 +222,8 @@ module.exports = {
   providerFor,
   providerResponseJson,
   resendIdempotencyKey,
+  assertResendRetryWindow,
+  RESEND_RETRY_WINDOW_MS,
   resendProvider,
   sandboxReference,
   validEmail,

@@ -415,6 +415,40 @@ async function verifyProductionFlow() {
     assert.strictEqual(active.metadata.receipt_type, "receipt");
     assert.strictEqual(finished.schema.standard_v1.receipt.receipt_type, "RECEIPT");
     assert.doesNotMatch(JSON.stringify(result), /live-secret-never-print|live-key/);
+    let lookupBody = JSON.parse(JSON.stringify(finishedBody));
+    let lookupStatus = 200;
+    calls.length = 0;
+    global.fetch = async (url, options) => {
+      calls.push({ url: String(url), options });
+      if (String(url).endsWith("/auth")) return new Response(JSON.stringify({ access_token: "live-token" }), { status: 200 });
+      return new Response(JSON.stringify(lookupBody), { status: lookupStatus });
+    };
+    const lookup = () => client.retrieveProductionReceipt(liveEnv, transactionId, receiptInput, "SALE");
+    const recovered = await lookup();
+    assert.strictEqual(recovered.training, false);
+    assert.strictEqual(recovered.amount, "129.70");
+    assert.strictEqual(recovered.fiscalType, "SALE");
+    assert.ok(calls.every(call => call.options.method !== "PUT"), "Recovery lookup must never create or alter a fiscal transaction");
+    for (const mutate of [
+      body => { body._id = liveEnv.FISKALY_TSS_ID_LIVE; },
+      body => { body.client_id = "wrong-client"; },
+      body => { body.revision = 3; },
+      body => { body.schema.standard_v1.receipt.receipt_type = "TRAINING"; },
+      body => { body.schema.standard_v1.receipt.amounts_per_payment_type[0].amount = "129.71"; },
+      body => { body.schema.standard_v1.receipt.amounts_per_payment_type[0].currency_code = "USD"; },
+      body => { body.metadata.fiscal_type = "refund"; },
+    ]) {
+      lookupBody = JSON.parse(JSON.stringify(finishedBody));
+      mutate(lookupBody);
+      await assert.rejects(lookup, error => error.code === "FISKALY_TX_LOOKUP_MISMATCH");
+    }
+    lookupBody = {};
+    lookupStatus = 404;
+    assert.strictEqual((await lookup()).state, "NOT_FOUND");
+    lookupStatus = 503;
+    await assert.rejects(lookup);
+    await assert.rejects(() => client.retrieveProductionReceipt({ FISKALY_API_KEY_TEST: "key", FISKALY_API_SECRET_TEST: "secret" }, transactionId, receiptInput), error => error.code === "FISKALY_LIVE_LOCKED" || error.code === "FISKALY_NOT_CONFIGURED");
+
   } finally {
     global.fetch = originalFetch;
   }

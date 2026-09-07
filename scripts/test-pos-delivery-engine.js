@@ -59,6 +59,13 @@ const reconciliationFailureSql = reconciliationFailureMigration.slice(
   reconciliationFailureMigration.indexOf("create or replace function private._pos_record_openapi_reconciliation_failure"),
   reconciliationFailureMigration.indexOf("create or replace function public.pos_record_openapi_reconciliation_failure")
 );
+const compatSql = fs.readFileSync(path.join(root, "supabase", "migrations", "20260907231801_pos_openapi_reconciliation_terminal_budget_compat.sql"), "utf8");
+assert.match(compatSql, /last_reconciled_at = v_checked_at/);
+assert.match(compatSql, /reconciliation_attempt_count between 1 and 7/);
+assert.doesNotMatch(compatSql, /reconciliation_attempt_count\s*=/);
+assert.match(compatSql, /v_terminal :=[\s\S]*'DONE', 'ERROR'[\s\S]*'SENT'[\s\S]*'succeeded'/);
+assert.match(compatSql, /when v_terminal or reconciliation_attempt_count >= 7 then null/);
+assert.match(compatSql, /revoke all[\s\S]*from public, anon, authenticated/);
 const api = fs.readFileSync(path.join(root, "api", "_handlers", "pos-dostava-sandbox.js"), "utf8");
 const providerSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-providers.js"), "utf8");
 const packageSource = fs.readFileSync(path.join(root, "api", "_lib", "pos-delivery-package.js"), "utf8");
@@ -259,6 +266,7 @@ assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
         finishCalls.push({ cfg, delivery, workerId, outcome });
         return finishDelivery();
       },
+      readRows: async function () { return [{ created_at: new Date().toISOString() }]; },
       logError: function () {},
     });
     assert.strictEqual(result.ok, false);
@@ -298,6 +306,7 @@ assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
     provider: "resend",
     status: "processing",
   }, "worker-id", {
+    readRows: async function () { return [{ created_at: new Date().toISOString() }]; },
     buildDeliveryPackage: async function () { return {}; },
     providerFor: function () { return { deliver: async function () { throw providerFailure; } }; },
     finish: async function (_cfg, _delivery, _workerId, outcome) {
@@ -330,6 +339,7 @@ assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
   const reconciledIds = [];
   let workerCounter = 0;
   const workerResult = await worker._test.runWorker({}, {
+    exhaustedCandidates: async function () { return []; },
     candidates: async function (_cfg, limit) {
       assert.strictEqual(limit, 3);
       return queued;
@@ -517,6 +527,7 @@ assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
   );
   const requests = [];
   const livePackage = {
+    resendFirstAttemptAt: new Date().toISOString(),
     delivery: {
       id: "cbcb9da5-9c5a-4f58-a8db-06c314fefb93",
       invoice_id: "5d286b15-6d18-4cf6-8fe0-b151456e5a40",
@@ -579,6 +590,111 @@ assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
     /izbranem načinu/
   );
   assert.throws(() => providers.providerFor("resend", { env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "a@b.de" } }), /ni vključeno/);
+  // Real runner + real provider, with a durable audit clock and fake HTTP only.
+  const firstAttempt = Date.parse("2026-09-08T10:00:00.000Z");
+  let clockNow = firstAttempt;
+  for (const failureKind of ["timeout", "finalization"]) {
+    let postCount = 0;
+    let finalizationCount = 0;
+    const outcomes = [];
+    const claimed = Object.assign({}, livePackage.delivery, {
+      user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", status: "processing",
+      locked_at: new Date(firstAttempt).toISOString(), attempt_count: 1,
+    });
+    clockNow = firstAttempt;
+    const actualProvider = providers.providerFor("resend", {
+      env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>", POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true" },
+      now: () => clockNow,
+      fetch: async function () {
+        postCount += 1;
+        if (failureKind === "timeout" && postCount === 1) throw new Error("response lost after remote acceptance");
+        return { ok: true, status: 200, json: async () => ({ id: "remote-stable-id" }) };
+      },
+    });
+    const dependencies = {
+      buildDeliveryPackage: async () => Object.assign({}, livePackage, { delivery: claimed }),
+      readRows: async function (_cfg, table, query) {
+        assert.strictEqual(table, "pos_invoice_delivery_events");
+        assert.ok(query.includes("user_id=eq." + claimed.user_id));
+        assert.ok(query.includes("delivery_id=eq." + claimed.id));
+        assert.ok(query.includes("event_type=eq.processing&details->>provider=eq.resend"));
+        assert.ok(query.includes("order=created_at.asc&limit=1"));
+        return [{ created_at: new Date(firstAttempt).toISOString() }];
+      },
+      providerFor: () => actualProvider,
+      finish: async function (_cfg, _delivery, _worker, outcome) {
+        outcomes.push(outcome);
+        if (outcome.success && failureKind === "finalization" && ++finalizationCount === 1) throw new Error("database unavailable");
+        return Object.assign({}, claimed, { status: outcome.success ? "sent" : outcome.retryable ? "queued" : "failed" });
+      },
+      logError: () => {},
+    };
+    const initial = await runner.processClaimed({}, claimed, "worker-1", dependencies);
+    assert.strictEqual(initial.ok, false);
+    assert.strictEqual(postCount, 1);
+    if (failureKind === "finalization") assert.strictEqual(initial.finalizationPending, true);
+    else assert.strictEqual(initial.error.code, "RESEND_NETWORK_ERROR");
+
+    clockNow = firstAttempt + 2 * 60 * 1000;
+    claimed.attempt_count = 2;
+    claimed.locked_at = new Date(clockNow).toISOString();
+    const safeRetry = await runner.processClaimed({}, claimed, "worker-2", dependencies);
+    assert.strictEqual(safeRetry.ok, true, "a safe same-key retry inside retention must still work");
+    assert.strictEqual(postCount, 2);
+
+    // Simulate loss of that DB commit too, then a worker resuming 25h later.
+    clockNow = firstAttempt + 25 * 60 * 60 * 1000;
+    claimed.attempt_count = 3;
+    claimed.locked_at = new Date(clockNow).toISOString();
+    const expired = await runner.processClaimed({}, claimed, "worker-3", dependencies);
+    assert.strictEqual(expired.error.code, "RESEND_RECONCILIATION_REQUIRED");
+    assert.strictEqual(expired.delivery.status, "failed");
+    assert.strictEqual(outcomes.at(-1).retryable, false);
+    assert.strictEqual(postCount, 2, "fresh locked_at must not permit a POST outside the original key window");
+  }
+  const anchored = { resendFirstAttemptAt: new Date(firstAttempt).toISOString() };
+  providers.assertResendRetryWindow(anchored, firstAttempt + providers.RESEND_RETRY_WINDOW_MS - 1);
+  for (const [input, at] of [[anchored, firstAttempt + providers.RESEND_RETRY_WINDOW_MS], [{}, firstAttempt],
+    [{ resendFirstAttemptAt: "invalid" }, firstAttempt], [anchored, firstAttempt - 1]]) {
+    assert.throws(() => providers.assertResendRetryWindow(input, at), { code: "RESEND_RECONCILIATION_REQUIRED" });
+  }
+
+  // The actual query must exclude every allowed exhausted-budget shape,
+  // rather than merely dropping three fetched rows after their limit.
+  const budgetQuery = worker._test.candidateQuery("processing", new Date(firstAttempt).toISOString(), 3, "resend", false);
+  function matchesBudget(query, row) {
+    return [...query.matchAll(/and\(max_attempts\.eq\.(\d+),attempt_count\.(lt|gte)\.(\d+)\)/g)].some((match) =>
+      row.max_attempts === Number(match[1]) && (match[2] === "lt" ? row.attempt_count < Number(match[3]) : row.attempt_count >= Number(match[3])));
+  }
+  for (let max = 1; max <= 10; max += 1) {
+    assert.strictEqual(matchesBudget(budgetQuery, { max_attempts: max, attempt_count: max }), false);
+    assert.strictEqual(matchesBudget(budgetQuery, { max_attempts: max, attempt_count: max - 1 }), true);
+  }
+  const exhausted = [1, 2, 3].map((id) => ({ id: "exhausted-" + id, provider: "sandbox", attempt_count: 3, max_attempts: 3 }));
+  const healthy = { id: "healthy", provider: "sandbox", attempt_count: 0, max_attempts: 3 };
+  supabase.pridobiVrstice = async function (_cfg, table, query) {
+    assert.strictEqual(table, "pos_invoice_deliveries");
+    if (query.includes("status=eq.queued")) return [];
+    return exhausted.concat(healthy).filter((row) => matchesBudget(query, row)).slice(0, 3);
+  };
+  const selected = await worker._test.candidates({}, 3);
+  assert.deepStrictEqual(selected.map((row) => row.id), ["healthy"]);
+  const stalled = await worker._test.exhaustedCandidates({}, new Date(firstAttempt));
+  assert.deepStrictEqual(stalled.map((row) => row.id), exhausted.map((row) => row.id));
+  supabase.pridobiVrstice = originalRows;
+  const recoveryWorker = await worker._test.runWorker({}, {
+    candidates: async () => selected,
+    claim: async (_cfg, row) => row,
+    processClaimed: async (_cfg, row) => ({ ok: true, delivery: Object.assign({}, row, { status: "test_completed" }) }),
+    exhaustedCandidates: async () => stalled,
+    deliveryReadiness: () => ({ mode: "disabled", sendEnabled: false }),
+    openapiInvoiceReadiness: () => ({}),
+    reconciliationCandidates: async () => [],
+  });
+  assert.strictEqual(recoveryWorker.completed, 1);
+  assert.strictEqual(recoveryWorker.recoveryRequired.length, 3);
+  assert.strictEqual(recoveryWorker.recoveryRequired[0].code, "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED");
+
   console.log("POS delivery engine tests passed.");
 })().catch((error) => {
   console.error(error);

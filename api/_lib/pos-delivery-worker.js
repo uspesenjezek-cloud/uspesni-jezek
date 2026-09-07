@@ -30,6 +30,21 @@ function cronAuthorized(req) {
   return secret.length >= 16 && safeEqual(bearer(req), secret);
 }
 
+// max_attempts is constrained to 1..10 by the delivery schema. Express the
+// column comparison in PostgREST so exhausted rows never occupy claim slots.
+function attemptBudgetFilter(exhausted) {
+  return "&or=(" + Array.from({ length: 10 }, (_, index) => {
+    const max = index + 1;
+    return "and(max_attempts.eq." + max + ",attempt_count." + (exhausted ? "gte." : "lt.") + max + ")";
+  }).join(",") + ")";
+}
+
+async function exhaustedCandidates(cfg, now) {
+  return supabase.pridobiVrstice(cfg, "pos_invoice_deliveries",
+    "status=eq.processing&locked_at=lt." + encodeURIComponent(new Date(now.getTime() - 120000).toISOString()) +
+    attemptBudgetFilter(true) + "&select=id,provider&order=locked_at.asc&limit=3");
+}
+
 function candidateQuery(status, at, limit, provider, isTest) {
   const timeColumn = status === "processing" ? "locked_at" : "next_attempt_at";
   const operator = status === "processing" ? "lt" : "lte";
@@ -37,7 +52,7 @@ function candidateQuery(status, at, limit, provider, isTest) {
     "&provider=eq." + encodeURIComponent(provider || "sandbox") +
     "&is_test=eq." + (isTest === false ? "false" : "true") +
     "&" + timeColumn + "=" + operator + "." + encodeURIComponent(at) +
-    "&select=*&order=" + timeColumn + ".asc&limit=" + Math.max(1, Math.min(MAX_PER_RUN, Number(limit) || 1));
+    attemptBudgetFilter(false) + "&select=*&order=" + timeColumn + ".asc&limit=" + Math.max(1, Math.min(MAX_PER_RUN, Number(limit) || 1));
 }
 
 async function modeCandidates(cfg, limit, provider, isTest, now) {
@@ -200,8 +215,19 @@ async function runWorker(cfg, dependencies) {
     }
   }
 
+  let recoveryRequired = [];
+  let recoveryDiagnosticsUnavailable = false;
+  try {
+    recoveryRequired = await (deps.exhaustedCandidates || exhaustedCandidates)(cfg, now());
+  } catch (error) {
+    recoveryDiagnosticsUnavailable = true;
+    console.error("[pos-delivery-recovery-diagnostics]", error && error.message || error);
+  }
   return {
     ok: true,
+    recoveryRequired: recoveryRequired.map((row) => ({ id: row.id, provider: row.provider,
+      code: "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED" })),
+    recoveryDiagnosticsUnavailable,
     mode: readiness.mode,
     openapiMode: openapi.mode,
     sandbox: !readiness.sendEnabled,
@@ -237,6 +263,8 @@ module.exports._test = {
   RECONCILIATION_MAX_PER_RUN,
   bearer,
   candidateQuery,
+  attemptBudgetFilter,
+  exhaustedCandidates,
   candidates,
   claimReconciliationCandidate,
   cronAuthorized,

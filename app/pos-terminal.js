@@ -1862,11 +1862,11 @@
     });
   }
 
-  function archiveCapabilityView(capability) {
+  function archiveCapabilityView(capability, storageError) {
     var archive = capability || {};
     var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
-    var unavailable = Boolean(archive.error);
-    var pending = Boolean(archive.loading || (!archive.loaded && !unavailable));
+    var unavailable = Boolean(archive.error || storageError);
+    var pending = Boolean(!unavailable && (archive.loading || !archive.loaded));
     var allVerified = Boolean(archive.loaded && !unavailable && !failed &&
       Number(archive.uncheckedCount || 0) === 0 && Number(archive.replicaPendingCount || 0) === 0);
     var documentCount = Number(archive.documentCount || 0);
@@ -3570,7 +3570,7 @@
   function renderArchiveCapability() {
     var badge = query("[data-archive-badge]");
     if (!badge) return;
-    var view = archiveCapabilityView(archiveCapability);
+    var view = archiveCapabilityView(archiveCapability, backend.error);
     badge.classList.toggle("is-ready", view.allVerified && archiveCapability.independentBackupReady);
     badge.classList.toggle("is-error", view.failed || view.unavailable);
     badge.textContent = view.badgeText;

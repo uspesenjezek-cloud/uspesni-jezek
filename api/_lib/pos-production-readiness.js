@@ -10,7 +10,7 @@ const VERSION = "pos-de-production-readiness-v17";
 const MAX_ARCHIVE_READINESS_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_DATABASE_CI_GATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CONFIRMATION_FUTURE_SKEW_MS = 5 * 60 * 1000;
-const REQUIRED_DATABASE_MIGRATION_HEAD = "20260830213055";
+const REQUIRED_DATABASE_MIGRATION_HEAD = "20260907231801";
 
 function text(value) {
   return String(value == null ? "" : value).trim();
