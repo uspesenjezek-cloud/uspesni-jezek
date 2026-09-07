@@ -415,6 +415,15 @@ async function verifyProductionFlow() {
     assert.strictEqual(active.metadata.receipt_type, "receipt");
     assert.strictEqual(finished.schema.standard_v1.receipt.receipt_type, "RECEIPT");
     assert.doesNotMatch(JSON.stringify(result), /live-secret-never-print|live-key/);
+    for (const revision of [undefined, 1, 3]) {
+      finishedBody.revision = revision;
+      await assert.rejects(
+        () => client.runProductionReceipt(liveEnv, transactionId, receiptInput, "SALE"),
+        error => error.code === "FISKALY_TX_LOOKUP_MISMATCH",
+        "Production signing must reject missing or unexpected finished revision"
+      );
+    }
+    finishedBody.revision = 2;
     let lookupBody = JSON.parse(JSON.stringify(finishedBody));
     let lookupStatus = 200;
     calls.length = 0;

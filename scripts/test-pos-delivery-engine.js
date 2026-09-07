@@ -556,6 +556,41 @@ assert.doesNotMatch(workerSource, /MAX_PER_RUN\s*-\s*results\.length/);
   const resendPayload = JSON.parse(requests[0].options.body);
   assert.deepStrictEqual(resendPayload.to, ["kunde@example.de"]);
   assert.strictEqual(resendPayload.attachments[0].content, content.toString("base64"));
+  for (const responseFactory of [
+    () => new Response("", { status: 200 }),
+    () => new Response("not-json", { status: 200 }),
+    () => new Response('{"id":{}}', { status: 200 }),
+    () => new Response(new ReadableStream({ start(controller) { controller.error(new Error("socket interrupted")); } }), { status: 200 }),
+  ]) {
+    const keys = [];
+    const uncertain = providers.providerFor("resend", {
+      env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "a@b.de", POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true" },
+      fetch: async (_url, options) => { keys.push(options.headers["Idempotency-Key"]); return responseFactory(); },
+    });
+    for (let attempt = 0; attempt < 2; attempt++) await assert.rejects(() => uncertain.deliver(livePackage), error => error.retryable === true);
+    assert.strictEqual(keys[0], keys[1], "Unknown outcome retries must retain the same key");
+  }
+  for (const stage of ["package", "firstAttempt"]) {
+    for (const [error, retryable] of [
+      [Object.assign(new Error("temporary"), { status: 503, code: "DATABASE_READ_FAILED" }), true],
+      [Object.assign(new Error("limited"), { status: 429 }), true],
+      [Object.assign(new Error("transport"), { code: "ETIMEDOUT" }), true],
+      [new TypeError("fetch failed", { cause: Object.assign(new Error("connection"), { code: "ECONNRESET" }) }), true],
+      [Object.assign(new TypeError("fetch failed", { cause: { code: "ECONNRESET" } }), { retryable: false }), false],
+      [Object.assign(new Error("missing"), { status: 404 }), false],
+      [Object.assign(new Error("corrupt"), { retryable: false, status: 503 }), false],
+    ]) {
+      let posted = false, outcome;
+      await runner.processClaimed({}, livePackage.delivery, "worker", {
+        buildDeliveryPackage: async () => { if (stage === "package") throw error; return { ...livePackage }; },
+        readRows: async () => { throw error; },
+        providerFor: () => ({ deliver: async () => { posted = true; } }),
+        finish: async (_cfg, _claimed, _worker, result) => { outcome = result; return {}; },
+      });
+      assert.strictEqual(outcome.retryable, retryable);
+      assert.strictEqual(posted, false);
+    }
+  }
   const oversizedResponseProvider = providers.providerFor("resend", {
     env: { RESEND_API_KEY: "re_test", POS_EMAIL_FROM: "Firma <rechnung@example.de>", POS_EMAIL_DELIVERY_MODE: "production", POS_EMAIL_DELIVERY_ENABLED: "true" },
     fetch: async () => new Response("{}", {

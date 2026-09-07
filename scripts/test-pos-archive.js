@@ -822,3 +822,13 @@ runArchiveTests().then(function () {
   console.error(error);
   process.exitCode = 1;
 });
+
+for (const wormProviderReady of [false, true]) {
+  const empty = terminal.archiveCapabilityView({ loaded: true, documentCount: 0, wormProviderReady, productionReady: true });
+  assert.strictEqual(empty.allVerified, false);
+  assert.strictEqual(empty.badgeText, "Arhiv je prazen");
+  assert.doesNotMatch(empty.copyText, /Vsi trenutni|8-letnim/);
+}
+for (const partial of [{verifiedCount:9,replicatedCount:10},{verifiedCount:10,replicatedCount:9}]) {
+  assert.strictEqual(terminal.archiveCapabilityView({loaded:true,documentCount:10,wormProviderReady:true,...partial}).allVerified,false);
+}

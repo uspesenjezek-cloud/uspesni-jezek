@@ -186,7 +186,15 @@ function resendProvider(options) {
       } catch (_) {
         throw new DeliveryProviderError("E-poštni ponudnik trenutno ni dosegljiv.", { code: "RESEND_NETWORK_ERROR", retryable: true });
       }
-      const body = await providerResponseJson(response);
+      let body;
+      try { body = await providerResponseJson(response); }
+      catch (error) {
+        if (error instanceof DeliveryProviderError) throw error;
+        throw new DeliveryProviderError("Odgovor e-poštnega ponudnika je bil prekinjen; izid še ni znan.", { code: "RESEND_RESPONSE_INTERRUPTED", retryable: true });
+      }
+      if (response.ok && (!body || typeof body.id !== "string" || !body.id.trim())) {
+        throw new DeliveryProviderError("E-poštni ponudnik ni vrnil potrditve; izid še ni znan.", { code: "RESEND_RESPONSE_INVALID", retryable: true });
+      }
       if (!response.ok || !body || !body.id) {
         const retryable = response.status === 408 || response.status === 409 || response.status === 425 || response.status === 429 || response.status >= 500;
         throw new DeliveryProviderError(retryable ? "E-poštni ponudnik je začasno zavrnil pošiljanje." : "E-poštni ponudnik je zavrnil podatke pošiljanja.", {

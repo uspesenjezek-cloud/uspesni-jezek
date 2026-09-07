@@ -474,7 +474,7 @@ async function runProductionReceipt(source, requestedId, receiptInput, fiscalTyp
   const evidence = providerReceiptEvidence(finished, receipt, "SALE", "RECEIPT", "fiscal_kassenbon");
   const result = publicTransaction(finished, receipt, evidence);
   assertFinishedSignature(result);
-  if (result.transactionId !== transactionId || result.training) failLookup();
+  if (result.transactionId !== transactionId || result.revision !== "2" || result.training) failLookup();
   return result;
 }
 

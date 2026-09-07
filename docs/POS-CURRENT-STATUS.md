@@ -28,7 +28,7 @@ POS še ni potrjen za produkcijsko uporabo. Preverjanje temelji na lokalni kodi,
 
    Izolirani native ponovni tek je uspešen. Pred namestitvijo ostajata aktualni preflight in razjasnitev podvojenih testnih Stripe poskusov. Compatibility migracija `20260907231801` ohrani nove terminalne semantike in stare omejitve poskusov tudi pri naknadni namestitvi stare migracije.
 
-2. **Celoten Supabase CI še nima svežega dokaza.** Docker Linux pipe lokalno ni dosegljiv. [Zadnji zeleni DB CI](https://github.com/uspesenjezek-cloud/uspesni-jezek/actions/runs/33401875238/job/99519892494) je za commit `22e82bf` (31. avgust). [Novejši CI](https://github.com/uspesenjezek-cloud/uspesni-jezek/actions/runs/33427105673/job/99603238921) je padel zaradi zgoraj odpravljenih konfliktov. Native PostgreSQL 18.4 je uspešno ponovno izvedel 132 migracij, 14 Stripe snapshot primerov, 54 končnih RPC podpisov/pravic, sočasnost plačil in sedem Openapi terminalnih primerov. Uporabljene so minimalne auth/storage fixtures, zato to ne nadomesti polnega Supabase REST/CI preverjanja. Stari hash v `docs/POS-MIGRACIJE-ZA-ODOBRITEV.txt` za spremenjeno migracijo ne velja več; ni bil samodejno obnovljen kot odobritev.
+2. **Svež podatkovni Supabase CI je uspešen.** Run `34170608186`, commit `347ef3dc1b3e83cabc5c34ccbb684fec61659c08`, job `pos-payment-concurrency` je uspešno izvedel dejanske migracije, Stripe snapshot, Openapi terminal/budget preizkuse, lint, RPC pravice in sočasnost plačil. Splošni job je padel na nepovezani Boniteta regresiji (`if (!jeLokalniAudit) void shraniZakljucenoPreverbo`); POS unit korak je bil zato preskočen. Lokalni workflow sedaj vsebuje samostojni `pos-unit` job. Prvi push je samodejni pregled zavrnil; uporabnik je nato neposredno odobril push in predajo. Nov job še čaka CI rezultat.
 
 3. **Produkcijski pogoji.** Potrebni so potrjeni produkcijski Openapi dostop in webhook, S3 WORM z obnovitvenim preizkusom, nemški pravni pregled, pilot, finAPI live ter gotovinski/TSE tok. Njihove aktivacije se ne sme nadomestiti z lokalnimi testi ali ročno nastavljenimi potrditvami brez dokazov.
 
@@ -41,5 +41,17 @@ Spremenjene datoteke: `api/_lib/pos-delivery-providers.js`, `pos-delivery-runner
 - Dodan `retrieveProductionReceipt`: samo poizvedba obstoječega SALE, preverjanje klienta, UUID, FINISHED revizije 2, podpisnih dokazil, fiskalne vrste, zneska, DDV in valute. Natančen 404 je NOT_FOUND; napake ostanejo napake. Produkcijski checkout/refund servis in UI še nista povezana; prazna cash migracija ni izvedba.
 - Novi `scripts/test-pos-openapi-terminal-budget.js` in `scripts/sql/test-pos-openapi-terminal-budget.sql` sta vključena v DB CI z obveznim `POS_REQUIRE_OPENAPI_DATABASE=1`. Preizkus teče znotraj read-only transakcije.
 - Ponovno potrjen lokalni vir in Auth egress. V tej fazi ni sprememb UI ali novega vizualnega dokaza.
-- Vercel metadata potrjuje samo sensitive `STRIPE_SECRET_KEY` v production okolju; branje vrednosti je samodejni varnostni pregled zavrnil. Čaka izrecno uporabnikovo dovoljenje. Vrednost ni bila pridobljena; Stripe status zato še ni dokazan.
+- Vercel sensitive production STRIPE_SECRET_KEY po dovoljenem read ni vrnil uporabnega sk_test_ ali sk_live_ ključa. Noben Stripe GET ni bil izveden; ponudniški dokaz ostaja odprt. Ključ ni bil prikazan ali shranjen.
 - `docs-impact: da` — dodana provider uskladitev in trajno DB CI preverjanje. Nobene zunanje finančne ali podatkovne mutacije.
+
+## Zadnji checkpoint: dodatne potrjene napake
+
+- Neposredni produkcijski Fiskaly odgovor zdaj zahteva revizijo 2, enako kot recovery GET. Gotovinski normalizer zavrne izrecno ne-EUR valuto pred pripravo ali podpisom. Regresije uspešne.
+- Ciljna osvežitev uporablja obstoječi fetchAllRows za payments/deliveries/events s stabilnim created_at+id vrstnim redom. Novi test-pos-targeted-refresh.js preveri 1001 zapis in napako druge strani vsake tabele brez delnega prepisa.
+- Prazen ali nepovezan arhiv ne trdi dvojne zaščite; dodani nemški prevodi. Polno preverjanje zahteva dejanske enake pozitivne document/verified/replicated counts.
+- Prekinjen, prazen ali neveljaven uspešen Resend odgovor je negotov ponovljiv izid z istim idempotency ključem. Runner razvrsti 429/5xx in znane transportne napake, tudi bounded cause verigo, kot začasne; izrecni retryable:false ostane prednosten.
+- npm run test:pos po vseh spremembah PASS; 4 DB preizkusi lokalno SKIP brez DB URL. Nova poslovna SQL ni bila dodana. verify:local PASS.
+- Svež CUA dejanski prikaz pri 390x844 in 980x900 kaže nedosegljiv arhiv (povezana POS baza ni pripravljena), brez DOM overflow in console warn/error. Interni screenshots zajeti; prazno/polno stanje je trenutno preverjeno s funkcijskimi testi, ne z dejanskim brskalniškim podatkovnim stanjem. Vizualna potrditev teh stanj ostaja odprta.
+- Produkcijska gotovina še NI implementirana; 20260907232019_pos_production_cash_binding.sql ostaja prazna, server/UI training-only. Nobene produkcijske aktivacije.
+- Uporabnik je neposredno odobril push pregledanih POS popravkov na codex/pos-recovery-ci-20260908 in prenos konteksta v novo Codex nalogo. Odobritev ne vključuje mergea v main, produkcijske objave ali finančnih mutacij.
+- docs-impact: da — popravljena validacija plačil, obnova dostave in arhivski status.

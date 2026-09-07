@@ -82,6 +82,23 @@ const request = {
 };
 
 async function run() {
+  for (const currency of ["USD", "CHF", "", "   "]) {
+    let prepared = false;
+    let signed = false;
+    const invalidCurrencyService = cash.createService({
+      store: { prepare: async () => { prepared = true; } },
+      tse: { environment: "training", sign: async () => { signed = true; } },
+    });
+    await assert.rejects(
+      () => invalidCurrencyService({ ...request, receipt: { ...request.receipt, currency } }),
+      error => error.code === "CASH_CURRENCY_INVALID"
+    );
+    assert.strictEqual(prepared, false, "Invalid currency must fail before durable preparation");
+    assert.strictEqual(signed, false, "Invalid currency must never reach the fiscal provider");
+  }
+  assert.strictEqual(cash.normalizeCashReceipt({ ...request.receipt, currency: "eur" }).currency, "EUR");
+  assert.strictEqual(cash.normalizeCashReceipt(request.receipt).currency, "EUR", "Legacy EUR-only callers remain compatible");
+
   const store = memoryStore();
   let signatures = 0;
   const adapter = cash.mockTseAdapter({ signatureCounter: "44" });

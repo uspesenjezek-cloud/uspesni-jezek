@@ -29,6 +29,9 @@ function uuid(value) {
 
 function normalizeCashReceipt(input) {
   const receipt = input && typeof input === "object" ? input : {};
+  if (receipt.currency != null && text(receipt.currency).toUpperCase() !== "EUR") {
+    fail("CASH_CURRENCY_INVALID", "Gotovinski checkout zahteva valuto EUR.");
+  }
   const grossCents = Number(receipt.grossCents);
   if (text(receipt.paymentType).toUpperCase() !== "CASH") fail("CASH_PAYMENT_REQUIRED", "Gotovinski checkout zahteva način plačila CASH.");
   if (!Number.isSafeInteger(grossCents) || grossCents <= 0 || grossCents > 100000000000) {

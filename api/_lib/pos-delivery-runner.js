@@ -61,6 +61,21 @@ async function resendFirstAttemptAt(cfg, delivery, readRows) {
   return rows && rows[0] && rows[0].created_at || "";
 }
 
+function retryableDeliveryError(error) {
+  if (!error) return false;
+  if (typeof error.retryable === "boolean") return error.retryable;
+  const seen = new Set();
+  for (let current = error, depth = 0; current && depth < 5 && !seen.has(current); current = current.cause, depth++) {
+    seen.add(current);
+    if (current.retryable === false) return false;
+    const status = Number(current.status || current.statusCode);
+    if (current.retryable === true || status === 408 || status === 429 || (status >= 500 && status <= 599)
+      || ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "EAI_AGAIN", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET"].includes(current.code)
+      || ["AbortError", "TimeoutError"].includes(current.name)) return true;
+  }
+  return false;
+}
+
 async function processClaimed(cfg, claimed, workerId, dependencies) {
   const deps = dependencies || {};
   const buildPackage = deps.buildDeliveryPackage || buildDeliveryPackage;
@@ -78,7 +93,7 @@ async function processClaimed(cfg, claimed, workerId, dependencies) {
   } catch (error) {
     const failed = await finishDelivery(cfg, claimed, workerId, {
       success: false,
-      retryable: Boolean(error && error.retryable),
+      retryable: retryableDeliveryError(error),
       error: String(error && error.message || "Dostava ni uspela.").slice(0, 1000),
     });
     return { ok: false, delivery: failed, error };
@@ -118,4 +133,4 @@ async function processClaimed(cfg, claimed, workerId, dependencies) {
   return { ok: true, delivery: completed, providerResult };
 }
 
-module.exports = { resendFirstAttemptAt, acceptedPendingDelivery, applyImmediateOpenapiResult, finish, processClaimed, rpcRow };
+module.exports = { retryableDeliveryError, resendFirstAttemptAt, acceptedPendingDelivery, applyImmediateOpenapiResult, finish, processClaimed, rpcRow };

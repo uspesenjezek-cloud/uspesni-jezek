@@ -1867,7 +1867,9 @@
     var failed = Number(archive.failureCount || 0) > 0 || Number(archive.replicaFailureCount || 0) > 0;
     var unavailable = Boolean(archive.error || storageError);
     var pending = Boolean(!unavailable && (archive.loading || !archive.loaded));
-    var allVerified = Boolean(archive.loaded && !unavailable && !failed &&
+    var allVerified = Boolean(archive.loaded && !unavailable && !failed && archive.wormProviderReady &&
+      Number(archive.documentCount || 0) > 0 && Number(archive.verifiedCount || 0) === Number(archive.documentCount) &&
+      Number(archive.replicatedCount || 0) === Number(archive.documentCount) &&
       Number(archive.uncheckedCount || 0) === 0 && Number(archive.replicaPendingCount || 0) === 0);
     var documentCount = Number(archive.documentCount || 0);
     var verifiedCount = Number(archive.verifiedCount || 0);
@@ -1877,7 +1879,7 @@
       unavailable: unavailable,
       pending: pending,
       allVerified: allVerified,
-      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Dvojno zaščiten" : "Kopiranje čaka",
+      badgeText: pending ? "Preverjam" : unavailable ? "Ni dosegljivo" : failed ? "Potrebna pozornost" : allVerified ? "Dvojno zaščiten" : !documentCount ? "Arhiv je prazen" : !archive.wormProviderReady ? "AWS ni povezan" : "Kopiranje čaka",
       integrityText: pending || unavailable ? "—" : documentCount ? verifiedCount + " / " + documentCount + " preverjenih" : "ni izvirnikov",
       backupText: pending ? "preverjam" : unavailable ? "ni dosegljivo" : archive.wormProviderReady
         ? "AWS Object Lock: " + replicatedCount + " / " + documentCount
@@ -1888,8 +1890,10 @@
           ? "Stanja arhiva trenutno ni mogoče prebrati. Produkcija ostaja varno zaklenjena."
           : failed
             ? "Najmanj en izvirnik ali njegova AWS kopija ni prestala preverjanja. Produkcija ostaja zaklenjena."
-            : archive.productionReady
+            : archive.productionReady && allVerified
               ? "PDF/XML izvirniki imajo preverjeno SHA-256 sled in ločeno AWS različico z 8-letnim Compliance zaklepom."
+              : !documentCount
+                ? "Arhiv še nima izvirnikov. Zaščito bo mogoče preveriti po shranitvi dokumentov."
               : allVerified
                 ? "Vsi trenutni izvirniki imajo preverjeno ločeno AWS Object Lock kopijo. Produkcija čaka poslovni AWS račun in Compliance način."
                 : "Izvirniki ostajajo v Supabase; ločene AWS Object Lock kopije se še pripravljajo. Produkcija ostaja zaklenjena."
@@ -2740,10 +2744,10 @@
       var requests = [];
       var keys = [];
       function add(key, request) { keys.push(key); requests.push(request); }
-      if (scopes.payments) add("payments", backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,metadata,created_at").eq("user_id", userId).order("created_at", { ascending: true }));
+      if (scopes.payments) add("payments", fetchAllRows(function () { return backend.client.from("pos_payments").select("id,invoice_id,amount_cents,currency,method,provider,provider_reference,paid_at,source_bank_transaction_id,status,refunded_cents,failure_code,checkout_session_id,external_payment_id,expires_at,metadata,created_at").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }));
       if (scopes.deliveries) {
-        add("deliveries", backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
-        add("deliveryEvents", backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }));
+        add("deliveries", fetchAllRows(function () { return backend.client.from("pos_invoice_deliveries").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }));
+        add("deliveryEvents", fetchAllRows(function () { return backend.client.from("pos_invoice_delivery_events").select("*").eq("user_id", userId).order("created_at", { ascending: true }).order("id", { ascending: true }); }));
       }
       if (scopes.bank) add("bank", loadBankTransactionRows(userId));
       var values = await Promise.all(requests);
