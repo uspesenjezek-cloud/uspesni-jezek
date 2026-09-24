@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kaj trenutno sprejemam – demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dosegljivost-status.css?v=20260924-1">
+<style>
+  body{margin:0;background:#eef0fb;font-family:Figtree,system-ui,sans-serif}
+  main{max-width:480px;margin:0 auto;padding:16px 16px calc(128px + env(safe-area-inset-bottom))}
+</style>
+</head>
+<body>
+<main><div id="dosegljivost"></div></main>
+<script src="dosegljivost-status.js?v=20260924-1"></script>
+<script>
+  window.ujds = UJDosegljivost.mount(document.getElementById('dosegljivost'), { storageKey: 'uj.dosegljivost.demo' });
+</script>
+</body>
+</html>
