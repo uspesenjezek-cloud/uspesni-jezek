@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 40" width="720" height="400" style="color:#347de6">
+            <ellipse cx="36" cy="38.4" rx="29" ry="1.6" fill="#1c2140" opacity=".14"/>
+            <path d="M13 5.2h26M13 3.6h24M15 3.6v1.6M20 3.6v1.6M25 3.6v1.6M30 3.6v1.6M35 3.6v1.6M17 5.2v1.4M36 5.2v1.4" stroke="#aeb2c3" stroke-width=".9" stroke-linecap="round"/>
+            <path d="M8 30V12c0-3.6 2.6-6 6-6h38c8 0 13 4 14 12v12c0 1.7-1.2 3-3 3H10.5C9.1 33 8 31.8 8 30z" fill="currentColor"/>
+            <path d="M8 12c0-3.6 2.6-6 6-6h38c3.4 0 6.3.7 8.6 2.2H8.3z" fill="#f8f5ee"/>
+            <path d="M8 18.8h58" stroke="#ffffff" stroke-opacity=".22" stroke-width="1"/>
+            <rect x="11.5" y="10.6" width="27" height="17" rx="3" fill="none" stroke="#1c2140" stroke-opacity=".12" stroke-width=".7"/>
+            <path d="M40.5 10v20.5" stroke="#1c2140" stroke-opacity=".14" stroke-width=".7"/>
+            <path d="M44.6 10.2v20.3" stroke="#1c2140" stroke-opacity=".14" stroke-width=".7"/>
+            <path d="M45.6 10.2h5.6c4.8 0 8.4 2.4 9.9 6.8H45.6z" fill="#2a3350" opacity=".85"/>
+            <path d="M47 11.6h3.4" stroke="#ffffff" stroke-opacity=".35" stroke-width=".8" stroke-linecap="round"/>
+            <rect x="46.4" y="21.4" width="2.6" height=".9" rx=".45" fill="#1c2140" opacity=".25"/>
+            <rect x="37.4" y="21.4" width="2.2" height=".9" rx=".45" fill="#1c2140" opacity=".25"/>
+            <circle cx="63.4" cy="21.8" r="2.3" fill="#fff6d6" stroke="#1c2140" stroke-opacity=".18" stroke-width=".5"/>
+            <rect x="61.9" y="25.2" width="3.4" height="1.7" rx=".85" fill="#ffae1a"/>
+            <rect x="7.4" y="20.4" width="2.1" height="3.9" rx="1" fill="#e2483d"/>
+            <rect x="7.4" y="25.2" width="2.1" height="1.7" rx=".85" fill="#ffae1a"/>
+            <rect x="60" y="30.4" width="7.6" height="2.1" rx="1.05" fill="#cfd2dd"/>
+            <rect x="5.4" y="30.4" width="7" height="2.1" rx="1.05" fill="#cfd2dd"/>
+            <circle cx="19" cy="33" r="5.4" fill="#262b40"/><circle cx="19" cy="33" r="2.9" fill="#f4f1ea"/><circle cx="19" cy="33" r=".9" fill="#b9bccb"/>
+            <circle cx="54" cy="33" r="5.4" fill="#262b40"/><circle cx="54" cy="33" r="2.9" fill="#f4f1ea"/><circle cx="54" cy="33" r=".9" fill="#b9bccb"/>
+</svg>

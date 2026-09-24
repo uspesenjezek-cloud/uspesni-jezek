@@ -1,0 +1,113 @@
+/* Nastavitve · urnik (iz zasnove Urnik H) */
+.urnik .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0 -8px;padding:3px 0}
+.urnik .dy{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0}
+.urnik .dy:active .stk{transform:scale(.96)}
+.urnik .dy .n{text-align:center;font-size:12px;font-weight:700;color:#7a5af0;letter-spacing:.02em;opacity:.9}
+.urnik .dy.dif .n{color:#b86a0c}
+.urnik .dy.cls .n{color:#d65a6e}
+.urnik .stk{position:relative;display:flex;flex-direction:column;gap:5px;height:108px;border-radius:24px;transition:transform .15s ease}
+.urnik .wk.tall .stk{height:112px}
+.urnik .pl{flex:1 1 0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:999px;font-variant-numeric:tabular-nums;line-height:1}
+.urnik .pl b{display:inline-flex;align-items:flex-start;justify-content:center;font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.urnik .pl b small{margin:1px 0 0 1px;font-size:9.5px;font-weight:700;letter-spacing:0;line-height:1;opacity:.72}
+.urnik .pl.top b,.pl.bot b{font-size:16px}
+.urnik .pl.top b small,.pl.bot b small{font-size:8.5px}
+.urnik .pl i{width:2px;height:10px;border-radius:1px;margin:2px 0 4px}
+.urnik .pl.top i,.pl.bot i{height:8px;margin:2px 0 4px}
+.urnik .dy.reg .pl{background:linear-gradient(165deg,#744fdb 0%,#8663ea 50%,#a282f3 100%);color:#fff;box-shadow:0 8px 18px rgba(108,77,230,.24)}
+.urnik .dy.reg .pl i{background:rgba(255,255,255,.35)}
+.urnik .dy.dif .pl{background:#fff8ee;color:#94550a;box-shadow:inset 0 0 0 1.5px #f5c68a}
+.urnik .dy.dif .pl i{background:#f3b457}
+.urnik .dy.cls .pl{background:repeating-linear-gradient(135deg,#fdeef0 0 6px,#fff7f8 6px 12px);color:#d65a6e;box-shadow:inset 0 0 0 1px #f6cdd3}
+.urnik .dy.cls .z{display:flex;opacity:.9}
+.urnik .pl.top{border-radius:23px 23px 12px 12px;padding-top:4px;box-sizing:border-box}
+.urnik .pl.bot{border-radius:12px 12px 23px 23px;padding-bottom:4px;box-sizing:border-box}
+.urnik .stk:before{content:"";position:absolute;inset:-2.5px;border-radius:26px;padding:1.5px;background:linear-gradient(180deg,#c6b3fb 0%,#e0d6ff 55%,#b7a0f6 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);pointer-events:none}
+.urnik .stk:before{display:none}
+.urnik .dy.split .stk:before{display:block}
+.urnik .dy.split.dif .stk:before{background:linear-gradient(180deg,#fcc983 0%,#ffe6c2 55%,#f4b45f 100%)}
+.urnik .dy.split.dif .pl{box-shadow:inset 0 0 0 1px #f7cf96}
+.urnik 
+.urnik .dy.sel .stk:before{display:none}
+.urnik .dy.sel .stk{outline:2.5px solid #6c4de6;outline-offset:2px}
+.urnik .pn{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:20px;background:#f6f4fe;border:1px solid #ebe6fd}
+.urnik .pt{display:flex;align-items:center;justify-content:space-between}
+.urnik .pt b{font-size:15px;font-weight:800}
+.urnik .pt small{font-size:11.5px;font-weight:700;color:#b86a0c;background:#fff1dc;padding:3px 8px;border-radius:999px}
+.urnik .seg{display:flex;gap:3px;padding:3px;border-radius:14px;background:#ffffff}
+.urnik .seg button{flex:1 1 0;height:34px;border-radius:11px;font-size:12.5px;font-weight:800;color:#8b90a8}
+.urnik .seg button.on{background:linear-gradient(100deg,#a58bf8,#6c4de6);color:#fff}
+.urnik .tm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.urnik .stp{display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 4px;border-radius:12px;background:#ffffff;border:1px solid #ebe8fb}
+.urnik .stp button{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#6c4de6;background:#f4f2fd}
+.urnik .stp span{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.urnik .stp small{font-size:10.5px;font-weight:700;color:#a9acc0;margin-right:3px}
+.urnik .pa{display:flex;gap:8px}
+.urnik .pa button{flex:1 1 0;height:40px;border-radius:12px;font-size:12.5px;font-weight:800}
+.urnik .pa .ghost{background:#ffffff;color:#6c4de6;border:1px solid #e3dcfc}
+.urnik .pa .ok{background:linear-gradient(100deg,#a58bf8 0%,#7a5af0 55%,#6c4de6 100%);color:#fff}
+.urnik .pp{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#8b90a8;letter-spacing:.04em;text-transform:uppercase;padding:2px 2px 0}
+.urnik .pp i{flex-grow:1;height:1px;background:#e6e1fb}
+.urnik .pa .add{display:flex;align-items:center;justify-content:center;gap:5px}
+.urnik .sg{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:4px;margin:0 -6px;border-radius:999px;background:#f3f1fb;box-shadow:inset 0 0 0 1px #ebe8f7}
+.urnik .th{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:999px;transition:transform .38s cubic-bezier(.32,.72,.24,1.12),background .3s ease,box-shadow .3s ease}
+.urnik .th.p{transform:translateX(0);background:linear-gradient(160deg,#9575f2 0%,#6c4de6 100%);box-shadow:0 8px 18px rgba(108,77,230,.32)}
+.urnik .th.b{transform:translateX(100%);background:linear-gradient(160deg,#63a1f6 0%,#3a73e0 100%);box-shadow:0 8px 18px rgba(58,115,224,.30)}
+.urnik .th.o{transform:translateX(200%);background:linear-gradient(160deg,#ff9f72 0%,#f0603f 100%);box-shadow:0 8px 18px rgba(240,96,63,.30)}
+.urnik .sb{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border-radius:999px;color:#1c2140;transition:color .25s ease}
+.urnik .sb svg{flex:none;transition:color .25s ease}
+.urnik .sb.p svg{color:#6c4de6}
+.urnik .sb.b svg{color:#3a73e0}
+.urnik .sb.o svg{color:#f0603f}
+.urnik .sb .tx{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.1;text-align:left}
+.urnik .sb .tx b{font-size:13.5px;font-weight:800;letter-spacing:-.01em}
+.urnik .sb .tx span{font-size:10px;font-weight:600;color:#8b90a8;white-space:nowrap;transition:color .25s ease}
+.urnik .sb.on{color:#ffffff}
+.urnik .sb.on svg{color:#ffffff}
+.urnik .sb.on .tx span{color:rgba(255,255,255,.82)}
+.urnik{display:flex;flex-direction:column;gap:14px;padding:18px 16px 16px!important;border-radius:28px;background:#fff;box-shadow:0 16px 40px rgba(92,78,190,.10);margin-bottom:14px;font-family:Figtree,system-ui,sans-serif;color:#1c2140}
+.urnik button{font:inherit;color:inherit;margin:0;border:0;background:none;padding:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.urnik .urnik-title{display:flex;align-items:center;gap:10px;margin:0}
+.urnik .urnik-no{width:26px;height:26px;border-radius:50%;background:#ece7fd;color:#6c4de6;display:flex;align-items:center;justify-content:center;flex:none}
+.urnik .urnik-title h2{margin:0;font-size:18px;font-weight:800;letter-spacing:-.015em}
+.urnik .us{display:flex;flex-direction:column;gap:3px;padding:0 2px}
+.urnik .us div{display:flex;align-items:center;justify-content:space-between}
+.urnik .us span{font-size:12px;font-weight:700;color:#8b90a8}
+.urnik .us em{font-style:normal;font-size:12px;font-weight:700;color:#6c4de6;background:#f1eefe;padding:4px 9px;border-radius:999px}
+.urnik .us strong{font-size:20px;font-weight:800;letter-spacing:-.02em;color:#1c2140;font-variant-numeric:tabular-nums}
+.urnik .seg button.on{color:#fff}
+.urnik .pa .ok{color:#fff}
+.urnik .sb.on{color:#fff}
+@media (max-width:360px){
+.urnik .wk{gap:4px;margin:0 -4px}
+.urnik .pl b,.urnik .pl.top b,.urnik .pl.bot b{font-size:13px;letter-spacing:-.04em}
+.urnik .pl b small,.urnik .pl.top b small,.urnik .pl.bot b small{font-size:7.5px}
+.urnik .sb{gap:4px}.urnik .sb svg{width:14px;height:14px}
+.urnik .sb .tx b{font-size:12px}.urnik .sb .tx span{font-size:9px}
+.urnik .us strong{font-size:17px}
+.urnik .stp span{font-size:13px}
+}
+/* Brez premorov: nižji dnevi */
+.urnik .wk:not(.tall) .stk{height:80px}
+/* Odprti dnevi: polna, a umirjena zelena */
+.urnik .dy.reg .n{color:#3a9a70}
+.urnik .dy.reg .pl{background:linear-gradient(170deg,#4dbb88 0%,#6ccb9e 45%,#9ee2c1 100%);color:#fff;text-shadow:0 1px 1px rgba(20,90,60,.18);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(20,110,70,.16),0 6px 14px rgba(76,180,132,.22)}
+.urnik .dy.reg .pl i{background:rgba(255,255,255,.45)}
+.urnik .dy.reg.split .stk:before{background:linear-gradient(180deg,#a8e2c6 0%,#d6f2e4 55%,#9adbbc 100%)}
+.urnik .dy.reg.split .pl{box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(20,110,70,.14),0 4px 10px rgba(76,180,132,.16)}
+/* Izbran dan: obroba v barvi dneva */
+.urnik .dy.sel .stk{outline:2.5px solid #6c4de6;outline-offset:2px}
+.urnik .dy.reg.sel .stk{outline-color:#3aa874}
+.urnik .dy.dif.sel .stk{outline-color:#eea24a}
+.urnik .dy.cls.sel .stk{outline-color:#e7899a}
+/* Drugačne ure in zaprto: polna barva z rahlim 3D, kot odprti dnevi */
+.urnik .dy.dif .n{color:#c77a1e}
+.urnik .dy.dif .pl{background:linear-gradient(170deg,#f2a64a 0%,#f7bd6e 45%,#fbd79f 100%);color:#fff;text-shadow:0 1px 1px rgba(140,70,0,.2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(160,80,0,.16),0 6px 14px rgba(240,160,60,.22)}
+.urnik .dy.dif .pl i{background:rgba(255,255,255,.5)}
+.urnik .dy.dif.split .stk:before{background:linear-gradient(180deg,#f8cf94 0%,#fde9cc 55%,#f5c27e 100%)}
+.urnik .dy.dif.split .pl{box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(160,80,0,.14),0 4px 10px rgba(240,160,60,.16)}
+.urnik .dy.cls .n{color:#d9667a}
+.urnik .dy.cls .pl{background:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 6px,transparent 6px 12px),linear-gradient(170deg,#ec7f92 0%,#f39aa9 45%,#f8bcc6 100%);color:#fff;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(170,40,60,.16),0 6px 14px rgba(236,127,146,.22)}
+/* Številki bližje skupaj */
+.urnik .pl i{height:6px;margin:1px 0 3px}
+.urnik .pl.top i,.urnik .pl.bot i{height:4px;margin:1px 0 2px}
