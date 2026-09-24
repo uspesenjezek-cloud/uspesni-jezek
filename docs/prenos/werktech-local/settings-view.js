@@ -44,6 +44,12 @@
     workDistances: { ...defaults.workDistances, ...(stored.workDistances && typeof stored.workDistances === 'object' ? stored.workDistances : {}) },
     workEnabled: { ...defaults.workEnabled, ...(stored.workEnabled && typeof stored.workEnabled === 'object' ? stored.workEnabled : {}) }
   };
+  // Status C »Kaj trenutno sprejemam«: podrobno stanje komponente UJDosegljivost.
+  // Obstoječa izbira state.availability se ob prvem nalaganju prenese v novo stanje in se ohranja za začetno stran.
+  if (!state.dosegljivost || typeof state.dosegljivost !== 'object') {
+    state.dosegljivost = { on: { open: { a: true, b: false, c: false }, urgent: { a: false, b: true, c: false }, vacation: { a: false, b: false, c: true } }[state.availability] || { a: true, b: false, c: false } };
+  }
+  let availabilityFocus = '';
   let panel = '';
   let view = 'settings';
   let edit = '';
@@ -122,14 +128,20 @@
       ${edit === 'city' ? `<form class="wt-inline-editor" data-form="city"><label>Dodaj kraj<input name="value" maxlength="60" required></label><button type="submit">Dodaj</button><button type="button" data-action="cancel-edit">Prekliči</button></form>` : ''}
     </div>
   </section>`;
-  const availability = () => {
-    const dateParts = String(state.nextDate || '').split('-');
-    const openHint = dateParts.length === 3 ? `prost od ${Number(dateParts[2])}. ${Number(dateParts[1])}.` : 'datum po dogovoru';
-    const choices = [['open', 'Sprejemam', openHint, 'check'], ['urgent', 'Samo nujno', 'zasedeno', 'bolt'], ['vacation', 'Dopust', 'z datumom', 'sun']];
-    return `<section class="wt-card wt-availability" id="wt-availability">
-      <div class="wt-availability-title"><span class="wt-availability-number">2</span><h2>Kaj trenutno sprejemam</h2></div>
-      <div class="wt-availability-tiles" role="group" aria-label="Sprejemanje novih del">${choices.map(([value, label, hint, symbol]) => `<button type="button" data-availability="${value}" class="${state.availability === value ? 'active' : ''}" aria-pressed="${state.availability === value}">${icon(symbol)}<span><strong data-fit>${label}</strong><small data-fit>${esc(hint)}</small></span></button>`).join('')}</div>
-    </section>`;
+  const availability = () => `<section class="wt-availability wt-dstat" id="wt-availability" aria-label="Kaj trenutno sprejemam"><div id="wt-dosegljivost"></div></section>`;
+  const mountAvailability = () => {
+    const host = screen.querySelector('#wt-dosegljivost');
+    if (!host || !window.UJDosegljivost) return;
+    window.UJDosegljivost.mount(host, {
+      load: () => state.dosegljivost,
+      save: next => {
+        state.dosegljivost = next;
+        state.availability = next.on.c ? 'vacation' : next.on.a ? 'open' : 'urgent';
+        save();
+      },
+      focus: availabilityFocus,
+      onFocusChange: k => { availabilityFocus = k; }
+    });
   };
   const workArea = () => {
     const van = (km, color) => {
@@ -228,6 +240,7 @@
       ${contact()}
       ${workArea()}
       ${message ? `<p class="wt-message" role="status">${esc(message)}</p>` : ''}`;
+    mountAvailability();
     scroller.scrollTop = y;
     fitText();
     requestAnimationFrame(updateWorkRows);

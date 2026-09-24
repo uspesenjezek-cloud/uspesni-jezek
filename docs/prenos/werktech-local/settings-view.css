@@ -284,3 +284,7 @@
 .wt-work-row:not(.is-off) .wt-work-copy small{color:var(--work-accent);font-weight:700}
 @media(max-width:350px){.wt-work-heading h2{font-size:13px}.wt-work-heading>span{font-size:9px}.wt-work-copy strong{font-size:9px}.wt-work-extra{gap:2px;font-size:8.5px}.wt-work-extra input{width:47px;height:26px;font-size:10px;line-height:24px}}
 
+
+/* Status C »Kaj trenutno sprejemam« (UJDosegljivost): komponenta ima lastno kartico, zato ovoj ne riše druge. */
+.wt-availability.wt-dstat{padding:0;border-radius:0;background:none;box-shadow:none}
+.wt-availability.wt-dstat .ujds{font-family:inherit}
