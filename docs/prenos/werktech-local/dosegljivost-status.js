@@ -209,7 +209,7 @@
         var len = Math.round((v.to_ - v.f) / 864e5) + 1;
         return '<div class="vw"><div class="r1"><span class="dt"><b>' + fd(v.f) + ' – ' + fd(v.to_) + ' ' + v.to_.getFullYear() + '</b><small>' + dni(len) + '</small></span>' +
           '<button class="ib" data-act="vdel" data-id="' + v.id + '" aria-label="Odstrani dopust">' + I.x + '</button></div>' +
-          '<div class="r2"><input class="nm2" type="text" maxlength="40" placeholder="Dodaj naziv, npr. Sejem" value="' + esc(v.label) + '" data-act="vlabel" data-id="' + v.id + '" aria-label="Naziv odsotnosti">' +
+          '<div class="r2"><textarea class="nm2" rows="1" maxlength="40" placeholder="Dodaj naziv, npr. Sejem" data-act="vlabel" data-id="' + v.id + '" aria-label="Naziv odsotnosti">' + esc(v.label) + '</textarea>' +
           '<span class="sl">Pokaži<br>strankam</span>' +
           '<button class="sw2' + (v.pub ? ' on' : '') + '" data-act="vpub" data-id="' + v.id + '" aria-pressed="' + !!v.pub + '" aria-label="Pokaži naziv strankam"><i></i></button></div></div>';
       }).join('') || '<div class="em">Ni načrtovanih dopustov.</div>';
@@ -248,6 +248,27 @@
         var size = parseFloat(global.getComputedStyle(el).fontSize), min = Math.max(9, size * 0.72), guard = 0;
         while (el.scrollWidth > el.clientWidth + 0.5 && size > min && guard++ < 30) { size -= 0.5; el.style.fontSize = size + 'px'; }
       });
+      Array.prototype.forEach.call(root.querySelectorAll('.bb input, .nm2'), fitField);
+    }
+    /* Polja: izmerimo prikazano besedilo; pisava se zmanjša do meje, naziv se po potrebi prelomi v drugo vrstico. */
+    var measureCtx = null;
+    function textWidth(text, cs) {
+      measureCtx = measureCtx || document.createElement('canvas').getContext('2d');
+      measureCtx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      return measureCtx.measureText(text).width * (1 + (parseFloat(cs.letterSpacing) || 0) / 100);
+    }
+    function fitField(el) {
+      el.style.fontSize = '';
+      var isArea = el.tagName === 'TEXTAREA';
+      var text = el.value || el.placeholder || '';
+      if (el.type === 'date' && el.value) {
+        try { text = parse(el.value).toLocaleDateString(document.documentElement.lang || undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) {}
+      }
+      var cs = global.getComputedStyle(el);
+      var room = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - 2;
+      var size = parseFloat(cs.fontSize), min = isArea ? 11 : 10, guard = 0;
+      while (room > 0 && textWidth(text, global.getComputedStyle(el)) > room && size > min && guard++ < 30) { size -= 0.5; el.style.fontSize = size + 'px'; }
+      if (isArea) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
     }
     var rt; var onResize = function () { if (!root.isConnected) { global.removeEventListener('resize', onResize); return; } clearTimeout(rt); rt = setTimeout(fit, 80); };
     global.addEventListener('resize', onResize);
@@ -312,7 +333,10 @@
     });
     root.addEventListener('input', function (e) {
       var el = e.target; var a = el.getAttribute('data-act');
-      if (a === 'vlabel') { var id = +el.getAttribute('data-id'); set({ vac: st.vac.map(function (x) { return x.id === id ? Object.assign({}, x, { label: el.value.slice(0, 40) }) : x; }) }, true); }
+      if (a === 'vlabel') { var clean = el.value.replace(/[\r\n]+/g, ' '); if (clean !== el.value) el.value = clean; var id = +el.getAttribute('data-id'); set({ vac: st.vac.map(function (x) { return x.id === id ? Object.assign({}, x, { label: clean.slice(0, 40) }) : x; }) }, true); fitField(el); }
+    });
+    root.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('nm2')) { e.preventDefault(); e.target.blur(); }
     });
     root.addEventListener('change', function (e) {
       var el = e.target; var a = el.getAttribute('data-act');

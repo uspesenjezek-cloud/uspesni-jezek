@@ -27,8 +27,8 @@ Paket še **ni vgrajen** v stran `http://127.0.0.1:18763/`, ker ta koda ni v rep
 
 1. Kopiraj obe datoteki k ostalim virom strani in ju poveži z novo `?v=` različico:
    ```html
-   <link rel="stylesheet" href="dosegljivost-status.css?v=20260924-1">
-   <script src="dosegljivost-status.js?v=20260924-1"></script>
+   <link rel="stylesheet" href="dosegljivost-status.css?v=20260924-2">
+   <script src="dosegljivost-status.js?v=20260924-2"></script>
    ```
    Pisava Figtree mora biti naložena (stran jo že uporablja).
 2. Obstoječi blok »Kaj trenutno sprejemam« (stare tri ploščice) zamenjaj z enim elementom na **istem mestu**, pod karto »Kdaj me stranke dosežejo«:
