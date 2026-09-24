@@ -14,3 +14,15 @@ V **tej mapi**, ne v korenski aplikaciji Uspešni Ježek, vgradi že potrjeni pa
 Pred zapisom preberi aktualne vire; en pisec, brez prepisovanja tujih sprememb. Ohrani urnik, kontakte in kombije. Brez odstopanja od potrjenega Status C. Preveri vse tri plošče, ločene kroge, Zapri, spremembe nastavitev, shranjevanje in ponovno nalaganje pri 320/390 px in namizju. Besedilo mora ostati berljivo. Poročaj točno preverjeno in morebitne blokade. Samodejno štetje zasedenosti zahteva dejanski vir koledarskih dogodkov; ne trdi, da obstaja povezava, če je ni.
 
 Zagon za pregled: v tej mapi `python3 -m http.server 18763 --bind 127.0.0.1`, nato odpri `/index.html` in v spodnji navigaciji Nastavitve. Vgradnja v to GitHub kopijo še ne spremeni uporabnikove lokalne strani; po končanem commitu je treba spremenjene datoteke prenesti nazaj in lokalno preveriti isti tok.
+
+## Samodejni prenos na lokalno stran 8001
+
+Ta mapa je vir, ki ga ureja Claude. Na računalniku, kjer teče `http://localhost:8001/app/spletna-stran/`, v korenu repozitorija zaženi:
+
+```
+python3 tools/werktech-sync.py
+```
+
+Skripta vsakih 5 s naredi `git fetch` veje `claude/happy-maxwell-n3dkxx` in spremenjene datoteke iz te mape zapiše v `app/spletna-stran/`. Trenutne veje in delovnega drevesa ne spreminja. Stran z `?_dev=` se po prenosu sama osveži.
+
+Datoteke, ki so bile lokalno spremenjene in se razlikujejo od GitHuba, skripta **ne prepiše** in jih izpiše kot `KONFLIKT`. Take lokalne spremembe je treba kopirati v to mapo in pushati, da jih Claude vidi; potem se naslednji prenosi spet izvajajo samodejno.
