@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bonitetna preverba – 3 predlogi</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#25265e;--muted:#6f7190;--line:#e4e3f1;--acc:#5b57c9;--acc-soft:#efeefb;--bg:#f3f2f8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Figtree,system-ui,sans-serif;color:var(--ink);padding:24px 16px}
+h1.page{font:700 20px 'Bricolage Grotesque';text-align:center;margin:0 0 20px}
+.grid{display:flex;flex-wrap:wrap;gap:28px;justify-content:center}
+.col{width:390px;max-width:100%}
+.lbl{font:600 13px Figtree;color:var(--muted);margin:0 0 8px 4px;text-transform:uppercase;letter-spacing:.06em}
+.lbl b{color:var(--ink)}
+.note{font-size:13px;color:var(--muted);margin:10px 4px 0;line-height:1.45}
+.card{background:#fff;padding:22px 18px 18px}
+.t{font:800 26px/1.1 'Bricolage Grotesque';margin:0;letter-spacing:-.01em}
+.s{margin:4px 0 16px;font-size:14px;color:var(--muted)}
+.seg{display:grid;grid-template-columns:1fr 1fr;padding:4px;gap:4px}
+.seg button{border:0;background:none;font:600 14px Figtree;color:var(--muted);height:36px;cursor:pointer}
+.seg .on{background:#fff;color:var(--ink)}
+.in{display:flex;align-items:center;gap:10px;margin-top:12px;height:52px;padding:0 16px;font-size:16px;color:#9a9bb3}
+.in svg{width:20px;height:20px;flex:none}
+.h2{font:700 15px Figtree;text-align:center;margin:18px 0 12px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px;border:0;font:700 13px Figtree;color:var(--ink);cursor:pointer}
+.tile small{font:500 11px Figtree;color:var(--muted)}
+.ic{display:grid;place-items:center;width:38px;height:38px}
+.ic svg{width:20px;height:20px}
+
+/* A – Mehko & zračno */
+.a .card{border-radius:26px;box-shadow:0 14px 40px rgba(60,55,140,.08);border:1px solid var(--line)}
+.a .seg{background:var(--acc-soft);border-radius:14px}
+.a .seg .on{border-radius:11px;box-shadow:0 2px 8px rgba(60,55,140,.12)}
+.a .in{background:#f7f7fc;border:1px solid var(--line);border-radius:16px}
+.a .h2{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:600}
+.a .h2:before,.a .h2:after{content:"";flex:1;height:1px;background:var(--line)}
+.a .tile{background:#fff;border:1px solid var(--line);border-radius:16px}
+.a .ic{background:var(--acc-soft);color:var(--acc);border-radius:12px}
+
+/* B – Kompaktno & jasno (seznam) */
+.b .card{border-radius:24px;border:1px solid var(--line)}
+.b .seg{border:1px solid var(--line);border-radius:999px}
+.b .seg button{border-radius:999px;height:34px}
+.b .seg .on{background:var(--ink);color:#fff}
+.b .in{border:1.5px solid var(--acc);border-radius:999px;box-shadow:0 0 0 4px var(--acc-soft)}
+.b .h2{text-align:left;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:20px 0 8px}
+.b .tiles{grid-template-columns:1fr;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.b .tile{flex-direction:row;background:#fff;padding:12px 14px;gap:12px;text-align:left;border-bottom:1px solid var(--line)}
+.b .tile:last-child{border-bottom:0}
+.b .tile span.txt{display:flex;flex-direction:column;flex:1}
+.b .tile .chev{color:#b7b8cc}
+.b .ic{background:var(--acc-soft);color:var(--acc);border-radius:10px;width:36px;height:36px}
+
+/* C – Poudarjeno z gradientom */
+.c .card{border-radius:28px;background:linear-gradient(180deg,#f1f0fd 0,#fff 150px);border:1px solid var(--line);box-shadow:0 18px 44px rgba(60,55,140,.1)}
+.c .seg{background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:14px}
+.c .seg .on{background:linear-gradient(135deg,#6a66d6,#4f4bb8);color:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(79,75,184,.3)}
+.c .in{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 18px rgba(60,55,140,.07)}
+.c .h2{font-size:14px}
+.c .tile{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 16px rgba(60,55,140,.06)}
+.c .ic{border-radius:50%;background:linear-gradient(135deg,#6a66d6,#4f4bb8);color:#fff;box-shadow:0 4px 10px rgba(79,75,184,.28)}
+</style>
+</head>
+<body>
+<h1 class="page">Bonitetna preverba – 3 predlogi</h1>
+<div class="grid" id="g"></div>
+<template id="tpl">
+  <div class="card">
+    <h2 class="t">Bonitetna preverba</h2>
+    <p class="s">Preveri podjetje, osebo ali spletno stran</p>
+    <div class="seg"><button class="on">Eno podjetje</button><button>Primerjaj podjetji</button></div>
+    <div class="in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Ime, oseba, podjetje ali URL</div>
+    <div class="h2">Ali dodajate stranko drugače</div>
+    <div class="tiles">
+      <button class="tile"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7 8.5 4h7L17 7"/><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="3.5"/></svg></span><span class="txt">Slikaj<small>Račun ali ponudbo</small></span><span class="chev">›</span></button>
+      <button class="tile"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21H6z"/><path d="M14 2.5v4h4"/><path d="M9 13h6M9 17h4"/></svg></span><span class="txt">Uvozi PDF<small>Izberi dokument</small></span><span class="chev">›</span></button>
+      <button class="tile"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.5"/><path d="m13 11 7.2-7.2a1.8 1.8 0 0 1 2.5 2.5L15.5 13 12 14z"/></svg></span><span class="txt">Vnesi ročno<small>Vpiši podatke</small></span><span class="chev">›</span></button>
+    </div>
+  </div>
+</template>
+<script>
+const v=[['a','A · Mehko in zračno','Tanjše obrobe, ikone v mehkih lila kvadratkih, ločilna črta z naslovom na sredini. Najbližje obstoječemu.'],
+['b','B · Kompaktno in jasno','Pill-stikalo s temnim aktivnim stanjem, poudarjen vnos, trije načini kot seznam s puščico – manj višine, večje dotikalne tarče.'],
+['c','C · Poudarjeno z gradientom','Rahel lila gradient v glavi kartice, aktivni zavihek in ikone v gradientu, mehke sence na ploščicah.']];
+const g=document.getElementById('g'),t=document.getElementById('tpl');
+v.forEach(([k,n,d])=>{const c=document.createElement('div');c.className='col '+k;
+c.innerHTML=`<p class="lbl"><b>${n}</b></p>`;c.appendChild(t.content.cloneNode(true));
+c.insertAdjacentHTML('beforeend',`<p class="note">${d}</p>`);
+if(k!=='b')c.querySelectorAll('.chev').forEach(e=>e.remove());g.appendChild(c)});
+</script>
+</body>
+</html>
