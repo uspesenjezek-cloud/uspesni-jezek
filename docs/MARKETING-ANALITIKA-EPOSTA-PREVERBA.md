@@ -35,7 +35,7 @@ Manjka: posnetek obstoječe strani Analitika → E-pošta. Brez njega razdelka D
    - **povpraševanja in naročila iz evidence**;
    - **ogledi in sprejem ponudbe na spletu**;
    - kliki, a samo **po filtriranju** varnostnih skenerjev, ki sami klikajo povezave.
-4. **Seznam »Pokličite jih«** z imeni ljudi, ki so kliknili, je najbolj uporaben podatek za obrtnika. Dovoljen je samo iz klikov (nikoli iz odprtij) in samo pri prejemnikih s privolitvijo v sledenje.
+4. **Analitika kaže samo rezultate.** Seznami za ukrepanje (koga poklicati, katera ponudba čaka) so v drugem delu aplikacije, ne na tej strani.
 5. **Pošiljamo v imenu obrtnika z naše poddomene**, npr. `"Vodovod Novak" <novak@obvestila.nasaapp.si>`, z odgovorom na obrtnikov naslov. Obrtnik ne nastavlja ničesar. Lastna domena je nadgradnja.
 6. **Resend pri več obrtnikih:**
    - Ima skupne kontakte in odjave za ves račun: odjava pri enem obrtniku bi ustavila pošto vseh.
@@ -137,7 +137,7 @@ Ker odprtij ne pokažemo, je prednost drugih ponudnikov pri nas predvsem **hramb
 | 5 | Kaj deluje najbolje? | najboljša kampanja po povpraševanjih, nato po klikih; najbolj kliknjena ponudba |
 | 6 | Koliko stane in koliko prinese? | strošek pošiljanja (če ga plača obrtnik) ob vrednosti naročil; pas vrednosti kot pri oglasih |
 | 7 | Od kod in za katero delo? | kraj in delo iz povpraševanja v evidenci (isti modul s hišami); samo od 2 povpraševanj naprej |
-| 8 | Kaj naj naredim zdaj? | »Pokličite jih« (ljudje, ki so kliknili ponudbo) + ponudbe, ki so ogledane, a ne sprejete |
+| 8 | Kaj naj naredim zdaj? | **ni na tej strani** – ukrepanje je v drugem delu aplikacije; tu samo UKREPALI BOMO TAKO |
 
 ---
 
@@ -174,7 +174,7 @@ Nov modul je samo **»Ponudbe«** (časovnica posamezne ponudbe), ker ga drugi k
 |---|---|
 | ni še nobene kampanje | »Pošljimo prvo obvestilo vašim strankam – npr. opomnik za servis.« |
 | kampanja poslana, rezultati še prihajajo (< 48 h) | »Rezultati se še zbirajo.« |
-| privolitev v sledenje nima nihče | brez seznama »Pokličite jih«; kliki samo kot skupno število |
+| privolitev v sledenje nima nihče | kliki samo kot skupno število |
 | 0 klikov | »Ponudbe še ni kliknil nihče. Odgovori: N.« (brez rdeče) |
 | 0 naročil | tretja oseba »V TEKU« |
 | zavrnitve > 4 % ali pritožbe > 0,08 % | v zdravju seznama »Preverimo seznam« (oranžno, ne rdeče); pošiljanje začasno ustavimo samodejno |
@@ -218,7 +218,7 @@ Nov modul je samo **»Ponudbe«** (časovnica posamezne ponudbe), ker ga drugi k
 - **Privzeto pri nas:**
   - brez slikovnega sledilnika;
   - kliki prek naše povezave **brez osebne oznake** (skupno število na kampanjo);
-  - osebni kliki in seznam »Pokličite jih« samo pri prejemnikih s privolitvijo (ločeno potrditveno polje, odjava sledenja v nogi vsakega sporočila).
+  - osebni kliki samo pri prejemnikih s privolitvijo (ločeno potrditveno polje, odjava sledenja v nogi vsakega sporočila); analitika jih kaže samo kot skupno število.
 - Ponudbe, ki jih je stranka zahtevala: beleženje ogleda in sprejema na strežniku je del storitve. Podrobna analitika po straneh (čas na strani) je samo s privolitvijo v pregledovalniku.
 
 ### H.3 Dostava (veljajo za nas, ker pošiljamo za vse obrtnike skupaj > 5.000 na dan)
@@ -263,18 +263,17 @@ Ni izvedeno, ker manjka posnetek.
 
 ## J. Videz
 
-Ni izveden; slika sledi po posnetku. Predlagana zgradba strani, največ 6 številk in 2 seznama:
+Ni izveden; slika sledi po posnetku. Predlagana zgradba strani (samo rezultati, brez seznamov za ukrepanje):
 
 1. **Glava:** povpraševanja iz e-pošte · naročila · vrednost (strošek, če ga plača obrtnik).
 2. **Kampanje** (vzorec WhatsApp):
    - izbira kampanje, predogled sporočila;
    - **Dostavljeno 142 · Kliknili 9 ljudi · Odgovorili 4 · Povpraševanja 2**;
    - tri osebe s stanjem »V TEKU«.
-3. **Pokličite jih:** do 5 imen (samo kliki, zadnjih 30 dni, samo s privolitvijo), za vsako kaj je kliknila in gumb »Pokliči«.
-4. **Ponudbe:** časovnica za vsako ponudbo: Poslano → Dostavljeno → **Ogledano na spletu (2×)** → Preneseno → **Sprejeto**. Pod časovnico opomba: »Če je stranka odprla priponko, tega ne vidimo.«
-5. **Kaj vas sprašujejo** (iz odgovorov), od 3 vprašanj naprej.
-6. **Zdravje seznama:** semafor »V redu / Preverimo«, ob dotiku neveljavni naslovi, odjave, prijave neželene pošte, +novi kontakti.
-7. **Povzetek meseca.**
+3. **Ponudbe:** samo števila: **5 poslanih · 4 pogledane na spletu · 2 sprejeti**. Opomba: »Če je stranka odprla priponko, tega ne vidimo.« Brez imen in brez časovnice posamezne ponudbe (ta je pri ponudbi v drugem delu aplikacije).
+4. **Kaj vas sprašujejo** (iz odgovorov), od 3 vprašanj naprej.
+5. **Zdravje seznama:** semafor »V redu / Preverimo«, ob dotiku neveljavni naslovi, odjave, prijave neželene pošte, +novi kontakti.
+6. **Povzetek meseca.**
 
 **Ne kažemo:**
 - deleža odprtih;
@@ -288,7 +287,7 @@ Ni izveden; slika sledi po posnetku. Predlagana zgradba strani, največ 6 števi
 
 1. Ponudnik: ostanemo pri Resendu; lastni seznami, odjave in hramba dogodkov pri nas.
 2. Strošek pošiljanja se obrtniku ne prikaže (zanemarljiv).
-3. Privolitev v sledenje: eno potrditveno polje pri vsakem novem kontaktu; brez nje človek ni na seznamu »Pokličite jih«, šteje se samo v skupnem številu.
+3. Privolitev v sledenje: eno potrditveno polje pri vsakem novem kontaktu; analitika vedno kaže samo skupna števila.
 4. Ponudbe na spletu z gumbom »Sprejmi ponudbo«: da.
 5. Pravni pregled H.1 in H.2 pred zagonom (naše opravilo).
 
