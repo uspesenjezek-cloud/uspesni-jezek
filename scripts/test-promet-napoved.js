@@ -486,9 +486,10 @@ section("OpenHolidays odjemalec");
     PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE: "https://nap.test/odseki", PROMET_NAP_URL_FCD: "-"
   };
   var napGlave = [];
+  var zetonSignal = null;
   var zetonOdg = function () { return new Response(JSON.stringify({ access_token: "tok1", token_type: "bearer", expires_in: 3599, refresh_token: "ref1" }), { status: 200 }); };
   var napSvet = async function (url, opts) {
-    if (/\/uc\/user\/token$/.test(url)) return zetonOdg();
+    if (/\/uc\/user\/token$/.test(url)) { zetonSignal = opts && opts.signal; return zetonOdg(); }
     napGlave.push(opts && opts.headers && opts.headers.authorization);
     var m = { "https://nap.test/dogodki": "nap-situacije.xml", "https://nap.test/stevci": "nap-meritve.xml", "https://nap.test/mesta": "nap-merilna-mesta.xml",
       "https://nap.test/casi": "nap-potovalni-casi.xml", "https://nap.test/odseki": "nap-odseki.xml" }[url];
@@ -498,6 +499,7 @@ section("OpenHolidays odjemalec");
   var napSt = await NAP.stevci({ env: napEnv, fetch: napSvet });
   assert(napSt.length === 2 && napSt.every(function (s) { return s.lat && s.lon; }), "števci z lokacijami; meritev brez mesta izločena");
   assert(napGlave[0] === "bearer tok1", "prijava OAuth2: žeton iz /uc/user/token, nato bearer (po navodilih NAP)");
+  assert(zetonSignal && typeof zetonSignal.aborted === "boolean", "zahteva za žeton ima časovno omejitev");
   var napPc = await NAP.potovalniCasi({ env: napEnv, fetch: napSvet });
   assert(napPc.length === 2 && napPc[0].ime === "Kranj – Ljubljana" && napPc[0].tocke.length === 2, "potovalni časi dobijo odseke");
   var zavrnjeno = null;

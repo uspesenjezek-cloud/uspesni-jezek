@@ -79,8 +79,10 @@ async function pridobiZeton(n, f, vsiliNovega) {
   if (!vsiliNovega && zeton && zeton.kljuc === kljuc && zeton.potece - 60000 > zdaj) return zeton.access;
   async function zahtevaj(telo) {
     var res;
+    var opts = { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "UspesniJezek-promet/1.0" }, body: telo.toString() };
+    if (typeof AbortSignal !== "undefined" && AbortSignal.timeout) opts.signal = AbortSignal.timeout(15000);
     try {
-      res = await f(URL_ZETON, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "UspesniJezek-promet/1.0" }, body: telo.toString() });
+      res = await f(URL_ZETON, opts);
     } catch (e) {
       throw skupno.napakaVira(VIR, "prijava NAP: povezava ni uspela (" + (e && (e.cause && e.cause.code || e.message)) + ")");
     }
