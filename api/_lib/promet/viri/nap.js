@@ -1,10 +1,14 @@
 "use strict";
 
 /* NAP Slovenija (nap.si) — DATEX II v3.3 viri DARS/DRSI (NCUP), licenca
-   CC BY-SA 4.0. Uradni naslovi so privzeti (preverjeno na nap.si, 6. 10. 2026);
-   potrebna je samo prijava, ki je SAMO v nastavitvah okolja (Vercel →
-   Environment Variables), nikoli v kodi:
-     PROMET_NAP_UPORABNIK, PROMET_NAP_GESLO
+   CC BY-SA 4.0. Uradni naslovi so privzeti (preverjeno na nap.si, 6. 10. 2026).
+   Prijava po uradnih navodilih »NAP navodila za dostop do podatkov B2B«
+   (https://www.nap.si/resources/doc/nap_B2B_sl.pdf): OAuth2 — POST
+   https://b2b.nap.si/uc/user/token (grant_type=password) vrne access_token,
+   s katerim beremo vire (Authorization: bearer). Vsak vir mora biti v profilu
+   na nap.si zaprošen in odobren (stolpec »Pravice«), sicer strežnik vrne 401.
+   Prijava je SAMO v nastavitvah okolja (Vercel → Environment Variables):
+     PROMET_NAP_UPORABNIK (e-pošta), PROMET_NAP_GESLO
    Naslove je mogoče preglasiti s PROMET_NAP_URL_* (npr. PROMET_NAP_URL_FCD="-"
    izklopi vir). */
 
@@ -15,7 +19,9 @@ var VIR = "nap";
 var LOKACIJE_VELJAVNOST_MS = 6 * 3600 * 1000; // tabele lokacij se redko spreminjajo
 var predpomnilnikLokacij = new Map();
 
-var B2B = "https://b2b.ncup.si/data/";
+var B2B = process.env.PROMET_NAP_B2B || "https://b2b.nap.si/data/";
+var URL_ZETON = process.env.PROMET_NAP_URL_ZETON || "https://b2b.nap.si/uc/user/token";
+var zeton = null; // { access, refresh, potece, kljuc }
 var PRIVZETI = {
   DOGODKI: B2B + "b2b.events.datexii33",                       // prometni dogodki (zastoji, dela, zapore)
   STEVCI: B2B + "b2b.counters.datexii33",                      // števci: AC, državne in regionalne ceste, do 5 min
@@ -59,17 +65,57 @@ function skrij(besedilo, n) {
   return t;
 }
 
+function napakaPrijave(sporocilo) {
+  var e = skupno.napakaVira(VIR, sporocilo);
+  e.koda = "NAP_PRIJAVA";
+  return e;
+}
+
+/* OAuth2: žeton se predpomni do 1 min pred iztekom; nato refresh_token,
+   ob neuspehu ponovna prijava z uporabniškim imenom in geslom. */
+async function pridobiZeton(n, f, vsiliNovega) {
+  var kljuc = n.uporabnik;
+  var zdaj = Date.now();
+  if (!vsiliNovega && zeton && zeton.kljuc === kljuc && zeton.potece - 60000 > zdaj) return zeton.access;
+  async function zahtevaj(telo) {
+    var res;
+    try {
+      res = await f(URL_ZETON, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": "UspesniJezek-promet/1.0" }, body: telo.toString() });
+    } catch (e) {
+      throw skupno.napakaVira(VIR, "prijava NAP: povezava ni uspela (" + (e && (e.cause && e.cause.code || e.message)) + ")");
+    }
+    if (!res.ok) return null;
+    var d = null;
+    try { d = await res.json(); } catch (_) {}
+    return d && d.access_token ? d : null;
+  }
+  var d = null;
+  if (zeton && zeton.kljuc === kljuc && zeton.refresh && !vsiliNovega) {
+    d = await zahtevaj(new URLSearchParams({ grant_type: "refresh_token", refresh_token: zeton.refresh }));
+  }
+  if (!d) d = await zahtevaj(new URLSearchParams({ grant_type: "password", username: n.uporabnik, password: n.geslo }));
+  if (!d) throw napakaPrijave("prijava NAP zavrnjena: preverite PROMET_NAP_UPORABNIK (e-pošta) in PROMET_NAP_GESLO");
+  zeton = { access: d.access_token, refresh: d.refresh_token || null, potece: zdaj + (Number(d.expires_in) || 3600) * 1000, kljuc: kljuc };
+  return zeton.access;
+}
+
 async function preberiXml(url, n, fetchFn) {
   var f = fetchFn || fetch;
-  var glave = { accept: "application/xml, text/xml, */*", "user-agent": "UspesniJezek-promet/1.0" };
-  if (n.uporabnik || n.geslo) glave.authorization = "Basic " + Buffer.from(n.uporabnik + ":" + n.geslo).toString("base64");
-  var opts = { headers: glave };
-  if (typeof AbortSignal !== "undefined" && AbortSignal.timeout) opts.signal = AbortSignal.timeout(25000);
-  var res;
-  try { res = await f(url, opts); } catch (e) {
-    throw skupno.napakaVira(VIR, skrij("povezava ni uspela (" + (e && (e.cause && e.cause.code || e.message)) + ") — " + url, n));
+  async function poskus(vsiliNovZeton) {
+    var glave = { accept: "application/xml, text/xml, */*", "user-agent": "UspesniJezek-promet/1.0" };
+    if (n.uporabnik && n.geslo) glave.authorization = "bearer " + await pridobiZeton(n, f, vsiliNovZeton);
+    var opts = { headers: glave };
+    if (typeof AbortSignal !== "undefined" && AbortSignal.timeout) opts.signal = AbortSignal.timeout(25000);
+    try { return await f(url, opts); } catch (e) {
+      throw skupno.napakaVira(VIR, skrij("povezava ni uspela (" + (e && (e.cause && e.cause.code || e.message)) + ") — " + url, n));
+    }
   }
-  if (res.status === 401 || res.status === 403) throw skupno.napakaVira(VIR, "dostop zavrnjen (HTTP " + res.status + "): preverite uporabniško ime, geslo in ali je vir na nap.si naročen — " + url);
+  var res = await poskus(false);
+  // Po navodilih NAP: ob 401 osveži žeton in poskusi še enkrat.
+  if (res.status === 401 && n.uporabnik && n.geslo) res = await poskus(true);
+  if (res.status === 401 || res.status === 403) {
+    throw skupno.napakaVira(VIR, "dostop do vira ni odobren (HTTP " + res.status + "): na nap.si v profilu zaprosite za ta vir in počakajte na odobritev (stolpec »Pravice«) — " + url);
+  }
   if (!res.ok) throw skupno.napakaVira(VIR, "HTTP " + res.status + " — " + url);
   return res.text();
 }
@@ -139,4 +185,4 @@ async function fcd(o) {
 }
 
 module.exports = { VIR: VIR, PRIVZETI: PRIVZETI, nastavitve: nastavitve, nastavljen: nastavljen, dogodki: dogodki, stevci: stevci, potovalniCasi: potovalniCasi, fcd: fcd,
-  _ponastavi: function () { predpomnilnikLokacij.clear(); } };
+  _ponastavi: function () { predpomnilnikLokacij.clear(); zeton = null; } };
