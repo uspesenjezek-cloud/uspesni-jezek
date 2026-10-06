@@ -470,6 +470,17 @@ body.stran--samo-obrazec .neplacila-seznam-vsebina {
   cursor: pointer;
 }
 
+/* Ista kartica kot povezava na podstran (npr. Dnevni načrt poti). */
+a.kartica--placeholder {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.kartica--placeholder .kartica__opis {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
 /* Ovojnica za več kartic kategorij druga pod drugo na podstraneh nivoja 2 */
 .kartice-seznam {
   display: flex;

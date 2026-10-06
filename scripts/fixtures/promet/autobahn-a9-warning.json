@@ -1,0 +1,11 @@
+{"warning":[
+ {"identifier":"W1","title":"A9 | Nürnberg - München","subtitle":"Nürnberg Richtung München","future":false,"isBlocked":"false",
+  "abnormalTrafficType":"STATIONARY_TRAFFIC","delayTimeValue":"12","averageSpeed":"8.0",
+  "coordinate":{"lat":"48.30","long":"11.60"},
+  "geometry":{"type":"LineString","coordinates":[[11.60,48.30],[11.61,48.33],[11.62,48.36]]},
+  "description":["Stau zwischen A und B"]},
+ {"identifier":"W2","title":"A9 | Gefahr","subtitle":"Gegenstand auf der Fahrbahn","future":false,
+  "coordinate":{"lat":"49.0","long":"11.4"},"description":["Gegenstand auf der Fahrbahn"]},
+ {"identifier":"W3","title":"A9 | Stau","subtitle":"geplant","future":true,"abnormalTrafficType":"STATIONARY_TRAFFIC",
+  "coordinate":{"lat":"49.5","long":"11.3"},"description":[]}
+]}

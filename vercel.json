@@ -18,7 +18,11 @@
     { "source": "/api/pos-stripe-checkout", "destination": "/api/pos?handler=stripe-checkout" },
     { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" },
     { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" },
-    { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" }
+    { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" },
+    { "source": "/api/promet-dan", "destination": "/api/pos?handler=promet&akcija=dan" },
+    { "source": "/api/promet-napoved", "destination": "/api/pos?handler=promet&akcija=napoved" },
+    { "source": "/api/promet-stanje", "destination": "/api/pos?handler=promet&akcija=stanje" },
+    { "source": "/api/promet-zemljevid", "destination": "/api/pos?handler=promet&akcija=zemljevid" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },

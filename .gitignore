@@ -20,3 +20,4 @@ tmp-visual/
 work/
 .claude/settings.local.json
 .env*
+.promet-podatki/

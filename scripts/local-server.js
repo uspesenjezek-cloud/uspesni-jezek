@@ -26,6 +26,7 @@ const posDostavaEmailModul = require.resolve("../api/_handlers/pos-dostava-email
 const posDostavaWebhookModul = require.resolve("../api/_handlers/pos-dostava-webhook");
 const posFiskalyModul = require.resolve("../api/_handlers/pos-fiskaly");
 const posDatevModul = require.resolve("../api/_handlers/pos-datev");
+const prometModul = require.resolve("../api/_handlers/promet");
 const nemcijaPostaHandler = require("../api/nemcija-posta");
 
 // Lokalno uporabljamo isti vrstni red, omejitev in ponovitve, le da opravila
@@ -464,6 +465,11 @@ const server = http.createServer((req, res) => {
     naloziLokalnoSupabaseKonfiguracijo();
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) void izvediLokalniApi(req, res, posDatevModul);
     else void posredujZascitenApi(req, res, requestUrl.pathname + requestUrl.search);
+    return;
+  }
+  if (/^\/api\/promet-(napoved|stanje|dan|zemljevid)$/.test(pathname)) {
+    req.query.akcija = pathname.replace("/api/promet-", "");
+    void izvediLokalniApi(req, res, prometModul);
     return;
   }
   if (pathname === "/__app-version") {

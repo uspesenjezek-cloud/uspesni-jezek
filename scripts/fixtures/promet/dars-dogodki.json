@@ -1,0 +1,10 @@
+{"type":"FeatureCollection","features":[
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[462000,101000]},
+  "properties":{"Id":"D1","Cesta":"A1 Ljubljanska obvoznica","Kategorija":"Zastoj","Opis":"Zastoj na južni obvoznici, čakalna doba 10-15 min."}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[15.6459,46.5547]},
+  "properties":{"Id":"D2","Cesta":"A1 Maribor","Kategorija":"Dela na cesti","Opis":"Delovna zapora, promet poteka po enem pasu."}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[14.2,46.3]},
+  "properties":{"Id":"D3","Cesta":"Kranj","Kategorija":"Zastoj","Opis":"Gost promet."}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[14.9,46.2]},
+  "properties":{"Id":"D4","Kategorija":"Veter","Opis":"Burja, prepoved za počitniške prikolice."}}
+]}

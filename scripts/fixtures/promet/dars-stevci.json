@@ -1,0 +1,11 @@
+{"type":"FeatureCollection","features":[
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[14.4870,46.0700]},
+  "properties":{"stevci_cestaOpis":"A2 Ljubljana–Kranj","stevci_lokacijaOpis":"Šentvid","stevci_hit":"92","stevci_vmax":"130","stevci_statOpis":"Normalen promet"}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[14.4870,46.0700]},
+  "properties":{"stevci_cestaOpis":"A2 Ljubljana–Kranj","stevci_lokacijaOpis":"Šentvid","stevci_hit":"21","stevci_vmax":"130","stevci_statOpis":"Zastoj"}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[462000,101000]},
+  "properties":{"stevci_cestaOpis":"Obvoznica","stevci_lokacijaOpis":"Kozarje","stevci_hit":"55","stevci_vmax":"100"}},
+ {"type":"Feature","geometry":{"type":"Point","coordinates":[15.0,46.3]},
+  "properties":{"stevci_cestaOpis":"R2","stevci_lokacijaOpis":"Noč","stevci_hit":"0"}},
+ {"type":"Feature","geometry":null,"properties":{"stevci_hit":"80"}}
+]}
