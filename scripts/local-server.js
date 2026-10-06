@@ -467,8 +467,8 @@ const server = http.createServer((req, res) => {
     else void posredujZascitenApi(req, res, requestUrl.pathname + requestUrl.search);
     return;
   }
-  if (pathname === "/api/promet-napoved" || pathname === "/api/promet-stanje") {
-    req.query.akcija = pathname === "/api/promet-napoved" ? "napoved" : "stanje";
+  if (pathname === "/api/promet-napoved" || pathname === "/api/promet-stanje" || pathname === "/api/promet-dan") {
+    req.query.akcija = pathname.replace("/api/promet-", "");
     void izvediLokalniApi(req, res, prometModul);
     return;
   }

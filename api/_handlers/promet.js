@@ -2,11 +2,13 @@
 
 /* Lokalni API za napoved odhoda (faza »vse na mojem računalniku«).
    GET  /api/promet-stanje   -> koliko podatkov je zbranih
-   POST /api/promet-napoved  -> { izhodisce, cilj, datum, prihod, jezik } */
+   POST /api/promet-napoved  -> { izhodisce, cilj, datum, prihod, jezik }
+   POST /api/promet-dan      -> { izhodisce, datum, jezik, naloge: [{ id, stranka, naslov, zacetek, konec }] } */
 
 var fs = require("fs");
 var path = require("path");
 var storitev = require("../_lib/promet/storitev");
+var dan = require("../_lib/promet/dan");
 
 /* Lokalno: nastavitve PROMET_* (npr. PROMET_OSRM_URL_SI) preberemo iz .env.local. */
 function naloziLokalneNastavitve() {
@@ -33,6 +35,11 @@ module.exports = async function promet(req, res) {
       if (req.method !== "POST") return res.status(405).json({ ok: false, napaka: "Metoda ni dovoljena." });
       var r = await storitev.napovejNalog(req.body || {});
       return res.status(200).json(Object.assign({ ok: true }, r));
+    }
+    if (akcija === "dan") {
+      if (req.method !== "POST") return res.status(405).json({ ok: false, napaka: "Metoda ni dovoljena." });
+      var d = await dan.izracunajDan(req.body || {});
+      return res.status(200).json(Object.assign({ ok: true }, d));
     }
     return res.status(404).json({ ok: false, napaka: "Neznana akcija." });
   } catch (e) {

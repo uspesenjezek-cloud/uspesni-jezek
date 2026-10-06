@@ -8,6 +8,7 @@ module.exports = {
   osrm: require("./osrm"),
   geokodiranje: require("./geokodiranje"),
   storitev: require("./storitev"),
+  dan: require("./dan"),
   lokalno: require("./lokalno"),
   viri: { autobahn: require("./viri/autobahn"), dars: require("./viri/dars") }
 };

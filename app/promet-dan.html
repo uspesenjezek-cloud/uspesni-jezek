@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="sl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Dnevni načrt poti – Uspešni Jezek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20261006-promet-dan-v1" />
+    <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
+    <link rel="stylesheet" href="promet-dan.css?v=20261006-promet-dan-v2" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3d7676" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <script src="vendor-data.js?v=20260819-local-v1"></script>
+    <script src="config.js"></script>
+    <script src="sentry.bundle.js?v=20260816-sentry-v1"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth-zascita.js?v=20260817-iphone-preview-v1"></script>
+    <script src="testna-vrstica.js?v=20260819-inner-back-v4" defer></script>
+  </head>
+  <body class="stran--promet-dan">
+    <header class="app__header">
+      <a class="app__nazaj" href="skrb-stranke-delavci.html">← Nazaj</a>
+      <h1 class="app__naslov-podstrani">Dnevni načrt poti</h1>
+      <p class="pdan__podnaslov">Nalogi za dan in kdaj se odpraviti, da kljub prometu prispete pravočasno.</p>
+    </header>
+
+    <main class="app__vsebina pdan">
+      <section class="kartica pdan__kartica" aria-labelledby="pdan-izhodisce-naslov">
+        <h2 class="kartica__naslov" id="pdan-izhodisce-naslov">Izhodišče</h2>
+        <div class="obrazec__polje">
+          <label for="pdan-izhodisce">Od kod začnete dan</label>
+          <input id="pdan-izhodisce" type="text" autocomplete="off" data-fit-input maxlength="300"
+                 placeholder="npr. Šiška, Ljubljana" />
+        </div>
+        <p class="pdan__namig">Približna lokacija zadošča (ulica ali del kraja).</p>
+      </section>
+
+      <section class="pdan__dan" aria-label="Izbira dneva">
+        <button type="button" class="pdan__puscica" id="pdan-prejsnji" aria-label="Prejšnji dan">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <label class="pdan__datum">
+          <span class="pdan__datum-besedilo" id="pdan-datum-besedilo" data-fit-text data-fit-text-min="12"></span>
+          <input type="date" id="pdan-datum" class="pdan__datum-vnos" aria-label="Datum" />
+        </label>
+        <button type="button" class="pdan__puscica" id="pdan-naslednji" aria-label="Naslednji dan">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </section>
+
+      <section class="pdan__seznam-ovoj" aria-labelledby="pdan-nalogi-naslov">
+        <div class="pdan__glava">
+          <h2 class="kartica__naslov" id="pdan-nalogi-naslov">Delovni nalogi</h2>
+          <button type="button" class="btn btn--obris btn--majhen pdan__dodaj" id="pdan-dodaj">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M12 5v14M5 12h14"/></svg>
+            Dodaj nalog
+          </button>
+        </div>
+
+        <form class="kartica pdan__obrazec" id="pdan-obrazec" hidden novalidate>
+          <h3 class="pdan__obrazec-naslov" id="pdan-obrazec-naslov">Nov nalog</h3>
+          <div class="obrazec__polje">
+            <label for="pdan-stranka">Stranka</label>
+            <input id="pdan-stranka" type="text" data-fit-input maxlength="120" placeholder="npr. Novak d.o.o." />
+          </div>
+          <div class="obrazec__polje">
+            <label for="pdan-naslov">Naslov</label>
+            <input id="pdan-naslov" type="text" data-fit-input maxlength="300" placeholder="Ulica in kraj" required />
+          </div>
+          <div class="pdan__ure">
+            <div class="obrazec__polje">
+              <label for="pdan-zacetek">Začetek</label>
+              <input id="pdan-zacetek" type="time" step="300" required />
+            </div>
+            <div class="obrazec__polje">
+              <label for="pdan-konec">Konec</label>
+              <input id="pdan-konec" type="time" step="300" required />
+            </div>
+          </div>
+          <p class="pdan__napaka-obrazca" id="pdan-napaka-obrazca" role="alert" hidden></p>
+          <div class="kartica__gumbi">
+            <button type="button" class="btn btn--obris" id="pdan-preklici">Prekliči</button>
+            <button type="submit" class="btn btn--cta" id="pdan-shrani">Shrani nalog</button>
+          </div>
+        </form>
+
+        <ol class="pdan__seznam" id="pdan-seznam" aria-live="polite"></ol>
+        <p class="pdan__prazno" id="pdan-prazno" hidden>Za ta dan še ni nalogov.</p>
+      </section>
+
+      <div class="pdan__akcije">
+        <button type="button" class="btn btn--cta" id="pdan-izracunaj">Izračunaj poti</button>
+        <p class="pdan__status" id="pdan-status" role="status" hidden></p>
+      </div>
+
+      <section class="kartica pdan__kartica pdan__povzetek" id="pdan-povzetek" hidden aria-labelledby="pdan-povzetek-naslov">
+        <div class="pdan__povzetek-glava">
+          <h2 class="kartica__naslov" id="pdan-povzetek-naslov">Sporočilo za dan</h2>
+          <select id="pdan-jezik" class="pdan__jezik" aria-label="Jezik sporočila">
+            <option value="sl">SL</option>
+            <option value="de">DE</option>
+          </select>
+        </div>
+        <p class="pdan__sporocilo" id="pdan-sporocilo"></p>
+        <button type="button" class="btn btn--obris btn--majhen" id="pdan-kopiraj">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+          <span id="pdan-kopiraj-besedilo">Kopiraj sporočilo</span>
+        </button>
+      </section>
+
+      <section class="kartica pdan__kartica pdan__podatki" aria-labelledby="pdan-podatki-naslov">
+        <h2 class="kartica__naslov" id="pdan-podatki-naslov">Podatki o prometu</h2>
+        <p class="pdan__podatki-besedilo" id="pdan-podatki">Nalagam …</p>
+      </section>
+    </main>
+
+    <template id="pdan-odsek-predloga">
+      <li class="pdan__odsek">
+        <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona pdan__odsek-ikona"><path d="M5 17h14M6 17l1.5-5h9L18 17M8 12l1.2-3.5h5.6L16 12"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg>
+        <div class="pdan__odsek-besedilo">
+          <p class="pdan__odsek-glavno"></p>
+          <p class="pdan__odsek-podrobno"></p>
+        </div>
+        <span class="pdan__znacka" hidden></span>
+      </li>
+    </template>
+
+    <template id="pdan-nalog-predloga">
+      <li class="kartica pdan__nalog">
+        <div class="pdan__nalog-cas" data-fit-text data-fit-text-min="12"></div>
+        <div class="pdan__nalog-vsebina">
+          <p class="pdan__nalog-stranka"></p>
+          <p class="pdan__nalog-naslov"></p>
+        </div>
+        <div class="pdan__nalog-gumbi">
+          <button type="button" class="pdan__gumb-ikona" data-akcija="uredi" aria-label="Uredi nalog">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>
+          </button>
+          <button type="button" class="pdan__gumb-ikona" data-akcija="izbrisi" aria-label="Izbriši nalog">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+          </button>
+        </div>
+      </li>
+    </template>
+
+    <script src="app.js?v=20260814-auto-fit-pill-v8"></script>
+    <script src="promet-dan.js?v=20261006-promet-dan-v1"></script>
+  </body>
+</html>

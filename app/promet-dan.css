@@ -1,0 +1,364 @@
+/* ==========================================================
+   promet-dan.css — Dnevni načrt poti (promet-dan.html).
+   Uporablja obstoječe žetone in komponente iz styles.css
+   (.kartica, .obrazec__polje, .btn); tu so samo postavitve strani.
+   ========================================================== */
+
+.pdan__podnaslov {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.pdan {
+  gap: 1.25rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+
+.pdan [hidden] {
+  display: none !important;
+}
+
+.pdan__ikona {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pdan__kartica .obrazec__polje + .obrazec__polje {
+  margin-top: 0.75rem;
+}
+
+.pdan__namig {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- izbira dneva ---------- */
+.pdan__dan {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pdan__puscica,
+.pdan__gumb-ikona {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary-strong);
+  cursor: pointer;
+}
+
+.pdan__puscica:focus-visible,
+.pdan__gumb-ikona:focus-visible,
+.pdan__datum:focus-within {
+  outline: 3px solid rgba(77, 148, 148, 0.18);
+  outline-offset: 1px;
+}
+
+.pdan__datum {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.pdan__datum-besedilo {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--pisava-naslov);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+}
+
+/* Pravi datumski vnos prekrije gumb, da sistemski izbirnik deluje povsod. */
+.pdan__datum-vnos {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ---------- seznam nalogov ---------- */
+.pdan__glava,
+.pdan__povzetek-glava {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pdan__glava .kartica__naslov,
+.pdan__povzetek-glava .kartica__naslov {
+  margin: 0;
+}
+
+.pdan__dodaj {
+  gap: 0.35rem;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.pdan__seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pdan__prazno {
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px dashed var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.pdan__nalog {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 0.9rem 0.9rem 1rem;
+}
+
+.pdan__nalog-cas {
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--pisava-naslov);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-primary-strong);
+}
+
+.pdan__nalog-cas span {
+  display: block;
+  font-family: var(--pisava-telo);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.pdan__nalog-vsebina {
+  min-width: 0;
+}
+
+.pdan__nalog-stranka {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.pdan__nalog-naslov {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.pdan__nalog-gumbi {
+  display: flex;
+  gap: 0.35rem;
+}
+
+/* ---------- odsek poti med nalogi (časovnica) ---------- */
+.pdan__odsek {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0 1.75rem;
+  padding: 0.7rem 0.75rem 0.7rem 0.9rem;
+  border-left: 2px solid var(--color-primary);
+  background: var(--color-teal-soft);
+}
+
+.pdan__nalog + .pdan__odsek,
+.pdan__odsek + .pdan__nalog {
+  margin-top: 0.5rem;
+}
+
+.pdan__odsek:first-child {
+  margin-bottom: 0.5rem;
+}
+
+.pdan__odsek-ikona {
+  color: var(--color-primary-strong);
+}
+
+.pdan__odsek-besedilo {
+  min-width: 0;
+}
+
+.pdan__odsek-glavno {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pdan__odsek-podrobno {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.pdan__znacka {
+  flex-shrink: 0;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-gumb);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--color-surface);
+  color: var(--color-primary-strong);
+  border: 1px solid var(--color-border);
+}
+
+.pdan__odsek--tesno {
+  border-left-color: var(--color-ai-manjka);
+}
+
+.pdan__odsek--tesno .pdan__znacka {
+  background: var(--color-ai-manjka-soft);
+  border-color: transparent;
+  color: #7a5b0e;
+}
+
+.pdan__odsek--zamuda,
+.pdan__odsek--napaka {
+  border-left-color: var(--color-danger);
+  background: #fbf3f2;
+}
+
+.pdan__odsek--zamuda .pdan__znacka,
+.pdan__odsek--napaka .pdan__znacka {
+  background: var(--color-surface);
+  border-color: rgba(157, 58, 54, 0.3);
+  color: var(--color-danger);
+}
+
+/* ---------- obrazec nalogov ---------- */
+.pdan__obrazec {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pdan__obrazec-naslov {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pdan__ure {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.pdan__napaka-obrazca,
+.pdan__status--napaka {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+/* ---------- izračun in povzetek ---------- */
+.pdan__akcije {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pdan__akcije .btn[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.pdan__status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.pdan__jezik {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  font: 600 0.85rem/1 var(--pisava-telo);
+  color: var(--color-text);
+}
+
+.pdan__sporocilo {
+  margin: 0 0 0.9rem;
+  white-space: pre-line;
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+#pdan-kopiraj {
+  gap: 0.4rem;
+  min-height: 44px;
+}
+
+.pdan__podatki-besedilo {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 360px) {
+  .pdan__nalog {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .pdan__nalog-gumbi {
+    flex-direction: column;
+  }
+
+  .pdan__odsek {
+    margin-left: 1rem;
+  }
+}

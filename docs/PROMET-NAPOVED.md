@@ -114,6 +114,22 @@ na majhni VM s crontabom:
 41 2 * * *    cd /srv/uspesni-jezek && node scripts/promet-profil.js   >> .promet-podatki/promet.log 2>&1
 ```
 
+## 4a. Aplikacija: Dnevni načrt poti
+
+Stran `app/promet-dan.html` (Skrb za stranke ter delavce → Dnevni načrt poti):
+
+1. Zaženi lokalni strežnik: `npm run dev` (http://localhost:8001/app/promet-dan.html).
+2. Vpiši približno izhodišče (npr. »Šiška, Ljubljana«).
+3. Za izbrani dan dodaj naloge: stranka, naslov, začetek, konec.
+4. »Izračunaj poti« izračuna vsak odsek (dom → A → B → …) ob uri, ko se bo vozil:
+   priporočen odhod, rezerva, »tesno« ali predvidena zamuda med nalogi.
+5. »Kopiraj sporočilo« (SL/DE) za pošiljanje obrtniku.
+
+Nalogi so zaenkrat shranjeni na napravi (brskalnik); povezava s skupnim
+koledarjem in obvestili pride pozneje. API: `POST /api/promet-dan` (samo
+lokalni strežnik). Pot se računa z lokalnim OSRM; če ne teče, z javnim
+preizkusnim strežnikom (samo za preizkus, označeno v rezultatu).
+
 ## 5. Naslednji koraki
 
 1. Registracija na NAP (DARS) in naročnina na Autobahn detektorske podatke v

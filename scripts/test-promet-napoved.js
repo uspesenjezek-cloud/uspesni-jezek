@@ -270,6 +270,51 @@ section("OpenHolidays odjemalec");
   assert(nv === "NEVELJAVEN_VNOS", "napačna ura -> napaka vnosa");
   var st = promet.storitev.stanje({ mapa: smapa, zdajMs: t0 });
   assert(st.zbiralnikTece === false && st.viri.length === 2, "stanje: zbiralnik še ni tekel");
+  section("Dnevni načrt (veriga nalogov)");
+  var D = promet.dan;
+  var urejeni = D.pripraviNaloge([
+    { id: "b", stranka: "BTC", naslov: "BTC, Ljubljana", zacetek: "10:30", konec: "12:00" },
+    { id: "a", stranka: "Center", naslov: "Slovenska 1, Ljubljana", zacetek: "08:00", konec: "10:00" }
+  ]);
+  assert(urejeni[0].id === "a" && urejeni[1].id === "b", "nalogi so urejeni po začetku");
+  var nap = function (naloge) { try { D.pripraviNaloge(naloge); return null; } catch (e) { return e.code; } };
+  assert(nap([{ naslov: "x", zacetek: "08:00", konec: "10:00" }, { naslov: "y", zacetek: "09:30", konec: "11:00" }]) === "NEVELJAVEN_VNOS", "prekrivanje nalogov je napaka");
+  assert(nap([{ naslov: "x", zacetek: "10:00", konec: "09:00" }]) === "NEVELJAVEN_VNOS", "konec pred začetkom je napaka");
+  assert(nap([{ naslov: "x", zacetek: "10:00" }]) === "NEVELJAVEN_VNOS", "manjka konec");
+  assert(nap([{ naslov: "", zacetek: "08:00", konec: "09:00" }]) === "NEVELJAVEN_VNOS", "manjka naslov");
+  assert(nap([]) === "NEVELJAVEN_VNOS", "prazen dan");
+
+  var lx = require("luxon").DateTime;
+  var tz = "Europe/Ljubljana";
+  var konecA = lx.fromISO("2026-10-07T10:00", { zone: tz });
+  var zacB = lx.fromISO("2026-10-07T10:30", { zone: tz });
+  var ev = D.ovrednotiPrehod({ priporocenOdhod: "2026-10-07T10:05:00+02:00", trajanjeVarnoMin: 15 }, konecA, zacB);
+  assert(ev.stanje === "ok" && ev.rezervaMin === 5, "odhod po koncu -> ok, 5 min rezerve");
+  var ev2 = D.ovrednotiPrehod({ priporocenOdhod: "2026-10-07T09:55:00+02:00", trajanjeVarnoMin: 25 }, konecA, zacB);
+  assert(ev2.stanje === "tesno" && ev2.zamudaMin === 0, "vožnja gre v okno, a brez rezerve -> tesno");
+  var ev3 = D.ovrednotiPrehod({ priporocenOdhod: "2026-10-07T09:40:00+02:00", trajanjeVarnoMin: 40 }, konecA, zacB);
+  assert(ev3.stanje === "zamuda" && ev3.zamudaMin === 10 && ev3.predvidenPrihodUra === "10:40", "predviden prihod 10:40 -> 10 min zamude");
+
+  var dmapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-dan-"));
+  var dn = await D.izracunajDan({ izhodisce: "Šiška, Ljubljana", datum: "2026-10-07", naloge: [
+    { id: "2", stranka: "Novak", naslov: "Celje, Mariborska 1", zacetek: "10:30", konec: "12:00" },
+    { id: "1", stranka: "Kovač", naslov: "Celje, Prešernova 1", zacetek: "08:00", konec: "10:00" },
+    { id: "3", stranka: "Novak – 2. del", naslov: "celje,  mariborska 1", zacetek: "12:30", konec: "14:00" },
+    { id: "4", stranka: "Neznan", naslov: "neobstaja 5", zacetek: "15:00", konec: "16:00" }
+  ] }, { mapa: dmapa, fetch: svet });
+  var o = dn.odseki;
+  assert(o.length === 4 && o[0].nalogId === "1" && o[0].prvi && o[0].priporocenOdhodUra === "07:10", "prvi odsek od doma: odhod 07:10");
+  assert(o[1].stanje === "zamuda" && o[1].zamudaMin === 3 && o[1].predvidenPrihodUra === "10:33", "Kovač 10:00 -> Novak 10:30: 33 min vožnje -> 3 min zamude");
+  assert(o[2].stanje === "isti_naslov", "isti naslov (drugače zapisan) -> brez vožnje");
+  assert(o[3].stanje === "napaka" && /ni bilo mogoče najti/.test(o[3].napaka), "neznan naslov ne podre ostalih odsekov");
+  assert(/07:10/.test(dn.sporocilo) && /3 min pozni/.test(dn.sporocilo), "sporočilo dneva navede odhod in zamudo");
+  var dnDe = await D.izracunajDan({ izhodisce: "Šiška", datum: "2026-10-07", jezik: "de", naloge: [{ stranka: "Kovač", naslov: "Celje, Prešernova 1", zacetek: "08:00", konec: "10:00" }] }, { mapa: dmapa, fetch: svet });
+  assert(/Abfahrt spätestens um 07:10/.test(dnDe.sporocilo), "nemško sporočilo dneva");
+  var brezIzh = null;
+  try { await D.izracunajDan({ datum: "2026-10-07", naloge: [] }, { mapa: dmapa, fetch: svet }); } catch (e) { brezIzh = e.code; }
+  assert(brezIzh === "NEVELJAVEN_VNOS", "brez izhodišča -> napaka vnosa");
+  fs.rmSync(dmapa, { recursive: true, force: true });
+
   [smapa].forEach(function (m) { fs.rmSync(m, { recursive: true, force: true }); });
 
   console.log("\n" + OK + " uspešnih, " + FAIL + " neuspešnih");
