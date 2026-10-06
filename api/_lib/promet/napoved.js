@@ -28,17 +28,31 @@ var PRIVZETO = {
 };
 
 /* Začetna ocena konic (faktor na čas prostega toka), dokler ni meritev.
-   Namenoma konzervativna; zamenja jo merjeni profil. [od, do, faktor] v urah. */
+   To NI meritev: le groba, previdna predpostavka o urah konic po državah,
+   ki jo za vsak odsek zamenja merjeni profil, ko je vzorcev dovolj.
+   [od, do, faktor] v lokalnih urah.
+   SI: delovni čas pogosto 7–15, zato popoldanska konica že od ~13:30;
+   petek od 12:00. DE: popoldanska konica ~15:00–18:30. */
 var ZACETNE_KONICE = {
-  delavnik: [[6.5, 8.5, 1.3], [8.5, 15, 1.1], [15, 17.5, 1.3], [17.5, 20, 1.1]],
-  petek: [[6.5, 8.5, 1.3], [8.5, 13, 1.1], [13, 18, 1.35], [18, 20, 1.1]],
-  pocitnice_delavnik: [[6.5, 8.5, 1.15], [8.5, 15, 1.05], [15, 17.5, 1.15]],
-  sobota: [[9, 13, 1.1]],
-  nedelja_praznik: []
+  SI: {
+    delavnik: [[6, 6.5, 1.15], [6.5, 8.5, 1.4], [8.5, 13.5, 1.1], [13.5, 17.5, 1.45], [17.5, 19, 1.15]],
+    petek: [[6, 6.5, 1.15], [6.5, 8.5, 1.35], [8.5, 12, 1.1], [12, 17, 1.5], [17, 19, 1.15]],
+    pocitnice_delavnik: [[6.5, 8.5, 1.2], [8.5, 13.5, 1.05], [13.5, 17, 1.25]],
+    sobota: [[9, 13, 1.15]],
+    nedelja_praznik: []
+  },
+  DE: {
+    delavnik: [[6.5, 9, 1.35], [9, 15, 1.1], [15, 18.5, 1.4], [18.5, 20, 1.1]],
+    petek: [[6.5, 9, 1.3], [9, 12.5, 1.1], [12.5, 18, 1.45], [18, 20, 1.1]],
+    pocitnice_delavnik: [[6.5, 9, 1.15], [9, 15, 1.05], [15, 18, 1.2]],
+    sobota: [[9, 13, 1.1]],
+    nedelja_praznik: []
+  }
 };
 
-function faktorKonice(tip, uraDec) {
-  var p = (ZACETNE_KONICE[tip] || []).find(function (r) { return uraDec >= r[0] && uraDec < r[1]; });
+function faktorKonice(tip, uraDec, drzava) {
+  var tabela = ZACETNE_KONICE[drzava] || ZACETNE_KONICE.SI;
+  var p = (tabela[tip] || []).find(function (r) { return uraDec >= r[0] && uraDec < r[1]; });
   return p ? p[2] : 1;
 }
 
@@ -70,7 +84,7 @@ function zamudaOdseka(odsek, dt, tip, idx, o) {
     });
     return { p85S: najvec.p85, medianaS: najvec.mediana, osnova: "meritve", vir: najvec.vir, nVzorcev: najvec.n, pZastoja: najvec.p };
   }
-  var f = faktorKonice(tip, dt.hour + dt.minute / 60);
+  var f = faktorKonice(tip, dt.hour + dt.minute / 60, o.drzava);
   var dodatek = Math.round(odsek.trajanjeProstoS * (f - 1));
   return { p85S: dodatek, medianaS: Math.round(dodatek / 2), osnova: "zacetna_ocena", vir: null, nVzorcev: 0, pZastoja: null };
 }
@@ -112,7 +126,7 @@ function casDoKonvergence(prihod, odseki, tip, idx, o, kljuc, kaznS) {
 /* vhod: { prihod: "2026-10-07T07:30", tz, drzava, regija, koledar,
            pot: { trajanjeProstoS, tocke: [{lat,lon}] }, profil, dogodki, opcije } */
 function izracunajOdhod(vhod) {
-  var o = Object.assign({}, PRIVZETO, vhod.opcije || {});
+  var o = Object.assign({}, PRIVZETO, vhod.opcije || {}, { drzava: vhod.drzava === "DE" ? "DE" : "SI" });
   var tz = vhod.tz || profilMod.CASOVNI_PAS[vhod.drzava] || "Europe/Ljubljana";
   var prihod = luxon.DateTime.fromISO(String(vhod.prihod), { zone: tz });
   if (!prihod.isValid) throw new Error("Neveljaven čas prihoda.");

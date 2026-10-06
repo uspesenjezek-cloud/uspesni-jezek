@@ -17,13 +17,15 @@ async function zahteva(cfg, pot, opcije) {
   return besedilo ? JSON.parse(besedilo) : null;
 }
 
-async function zapisiZajem(cfg, rezultat, cas) {
+/* kontekst: { tip, interval } iz profil.kontekstZajema (za profil v bazi). */
+async function zapisiZajem(cfg, rezultat, cas, kontekst) {
   var uspeh = rezultat.napake.length === 0 && rezultat.pokritost > 0;
   var vrstica = (await zahteva(cfg, "promet_zajem", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({ vir: rezultat.vir, cas: cas, uspeh: uspeh, pokritost: rezultat.pokritost, skupaj: rezultat.skupaj,
-      st_opazovanj: rezultat.opazovanja.length, napake: rezultat.napake })
+      st_opazovanj: rezultat.opazovanja.length, napake: rezultat.napake.slice(0, 20),
+      tip_dneva: kontekst ? kontekst.tip : null, interval: kontekst ? kontekst.interval : null })
   }))[0];
   for (var i = 0; i < rezultat.opazovanja.length; i += 1000) {
     await zahteva(cfg, "promet_opazovanje", {
@@ -75,7 +77,7 @@ async function zamenjajProfil(cfg, profil) {
 }
 
 async function preberiProfil(cfg, celiceSeznam) {
-  var filter = celiceSeznam && celiceSeznam.length ? "&celica=in.(" + celiceSeznam.map(encodeURIComponent).join(",") + ")" : "";
+  var filter = celiceSeznam && celiceSeznam.length ? "&celica=in.(" + celiceSeznam.map(function (c) { return encodeURIComponent('"' + c + '"'); }).join(",") + ")" : "";
   return {
     vrstice: await preberiVse(cfg, "promet_profil", "select=vir,celica,tip_dneva,interval,n_vzorcev,p_zastoja,mediana_s,p85_s" + filter),
     pokritost: await preberiVse(cfg, "promet_pokritost", "select=vir,tip_dneva,interval,n_vzorcev")
@@ -87,4 +89,38 @@ async function preberiDogodke(cfg) {
   return vrstice.map(function (d) { return { vir: d.vir, zunanjiId: d.zunanji_id, tip: d.tip, cesta: d.cesta, naslov: d.naslov, zaprto: d.zaprto, tocke: d.tocke }; });
 }
 
-module.exports = { zapisiZajem: zapisiZajem, preberiZgodovino: preberiZgodovino, zamenjajProfil: zamenjajProfil, preberiProfil: preberiProfil, preberiDogodke: preberiDogodke };
+async function zadnjiZajem(cfg) {
+  var v = await zahteva(cfg, "promet_zajem?select=cas&order=cas.desc&limit=1", {});
+  return v && v[0] ? v[0].cas : null;
+}
+
+async function prestej(cfg, pot) {
+  var res = await fetch(cfg.url + "/rest/v1/" + pot, { method: "HEAD", headers: supa.serviceHeaders(cfg, { Prefer: "count=exact", Range: "0-0" }) });
+  if (!res.ok && res.status !== 206) throw new Error("Supabase štetje: HTTP " + res.status);
+  var obseg = res.headers.get("content-range") || "";
+  var n = Number(obseg.split("/")[1]);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/* Povzetek zbiranja za stran (enaka oblika kot storitev.stanje). */
+async function stanje(cfg, zdajMs, minVzorcev) {
+  var od = encodeURIComponent(new Date(zdajMs - 56 * 86400000).toISOString());
+  var viri = [];
+  for (var vir of ["dars", "autobahn"]) {
+    var zadnji = await zahteva(cfg, "promet_zajem?select=cas,uspeh,napake&vir=eq." + vir + "&order=cas.desc&limit=1", {});
+    viri.push({
+      vir: vir,
+      zajemov: await prestej(cfg, "promet_zajem?select=id&vir=eq." + vir + "&cas=gte." + od),
+      uspesnih: await prestej(cfg, "promet_zajem?select=id&uspeh=is.true&vir=eq." + vir + "&cas=gte." + od),
+      zadnji: zadnji && zadnji[0] ? { cas: zadnji[0].cas, uspeh: zadnji[0].uspeh, napaka: (zadnji[0].napake || [])[0] ? String(zadnji[0].napake[0].napaka || "").slice(0, 200) : null } : null,
+      pokritostDelavnik: Math.round(Math.min(1, (await prestej(cfg, "promet_pokritost?select=vir&vir=eq." + vir + "&tip_dneva=eq.delavnik&n_vzorcev=gte." + minVzorcev)) / 56) * 100)
+    });
+  }
+  var casi = viri.map(function (v) { return v.zadnji && Date.parse(v.zadnji.cas); }).filter(Boolean);
+  var zadnjiCas = casi.length ? Math.max.apply(null, casi) : null;
+  return { viri: viri, zbiralnikTece: !!zadnjiCas && zdajMs - zadnjiCas < 40 * 60000, zadnjiZajem: zadnjiCas ? new Date(zadnjiCas).toISOString() : null, shramba: "supabase" };
+}
+
+module.exports = {
+  zadnjiZajem: zadnjiZajem,
+  stanje: stanje, zapisiZajem: zapisiZajem, preberiZgodovino: preberiZgodovino, zamenjajProfil: zamenjajProfil, preberiProfil: preberiProfil, preberiDogodke: preberiDogodke };

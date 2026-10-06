@@ -90,4 +90,4 @@ function zgradiProfil(zajemi, opazovanja, koledarji) {
   return { vrstice: vrstice, pokritost: pokr, verzija: VERZIJA };
 }
 
-module.exports = { zgradiProfil: zgradiProfil, kvantil: kvantil, INTERVAL_MIN: INTERVAL_MIN, CASOVNI_PAS: CASOVNI_PAS, DRZAVA_VIRA: DRZAVA_VIRA, PRIVZETA_ZAMUDA_CELICE_S: PRIVZETA_ZAMUDA_CELICE_S, VERZIJA: VERZIJA };
+module.exports = { zgradiProfil: zgradiProfil, kvantil: kvantil, kontekstZajema: kontekstZajema, INTERVAL_MIN: INTERVAL_MIN, CASOVNI_PAS: CASOVNI_PAS, DRZAVA_VIRA: DRZAVA_VIRA, PRIVZETA_ZAMUDA_CELICE_S: PRIVZETA_ZAMUDA_CELICE_S, VERZIJA: VERZIJA };

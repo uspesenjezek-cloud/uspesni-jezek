@@ -108,9 +108,15 @@ var potX = { trajanjeProstoS: 1800, tocke: [{ lat: 46.15, lon: 14.8 }, { lat: 46
 var osnovniVhod = { prihod: "2026-10-07T08:00", drzava: "SI", koledar: KOLEDAR_SI, pot: potX, profil: { vrstice: [], pokritost: [] }, dogodki: [] };
 var r0 = promet.napoved.izracunajOdhod(osnovniVhod);
 assert(r0.osnova === "zacetna_ocena", "brez meritev -> začetna ocena");
-assert(r0.trajanjeVarnoMin === 39, "07:20–08:00 konica 1,3 -> 30 min * 1,3 = 39 min");
-assert(r0.priporocenOdhodUra === "07:10", "08:00 − 39 − 10 rezerve = 07:11 -> zaokroženo navzdol 07:10");
-assert(r0.opozorilo === false, "9 min dodatka je pod pragom opozorila");
+assert(r0.trajanjeVarnoMin === 42, "SI jutranja konica 1,4 -> 30 min * 1,4 = 42 min");
+assert(r0.priporocenOdhodUra === "07:05", "08:00 − 42 − 10 rezerve = 07:08 -> zaokroženo navzdol 07:05");
+assert(r0.opozorilo === true, "12 min dodatka je nad pragom opozorila");
+// Prijavljen primer: Ljubljana, sreda, prihod 15:00, 14 min brez prometa.
+// Stara tabela je konico začela ob 15:00 in dala le +1 min.
+var popoldne = promet.napoved.izracunajOdhod(Object.assign({}, osnovniVhod, { prihod: "2026-10-07T15:00", pot: { trajanjeProstoS: 14 * 60, tocke: potX.tocke } }));
+assert(popoldne.dodatnaZamudaMin === 6 && popoldne.trajanjeVarnoMin === 20, "SI 14:40–15:00 je že popoldanska konica: 14 min -> +6 min");
+assert(promet.napoved.faktorKonice("delavnik", 14.6, "DE") === 1.1 && promet.napoved.faktorKonice("delavnik", 14.6, "SI") === 1.45, "konice so ločene po državah");
+assert(promet.napoved.faktorKonice("petek", 12.5, "SI") === 1.5, "SI petek: konica od 12:00");
 var r0b = promet.napoved.izracunajOdhod(osnovniVhod);
 assert(JSON.stringify(r0) === JSON.stringify(r0b), "isti vhod -> isti izhod");
 
@@ -257,9 +263,9 @@ section("OpenHolidays odjemalec");
   var vhodN = { izhodisce: "Ljubljana, Slovenska 1", cilj: "Celje, Prešernova 1", datum: "2026-10-07", prihod: "08:00" };
   var s1 = await promet.storitev.napovejNalog(vhodN, { mapa: smapa, fetch: svet, zdajMs: t0 });
   assert(s1.virPoti === "lokalni" && s1.osnova === "zacetna_ocena" && s1.drzava === "SI", "lokalni OSRM + lastna ocena");
-  assert(s1.priporocenOdhodUra === "07:10" && /07:10/.test(s1.sporocilo), "08:00 − 39 − 10 -> 07:10, v sporočilu");
+  assert(s1.priporocenOdhodUra === "07:05" && /07:05/.test(s1.sporocilo), "08:00 − 42 − 10 -> 07:05, v sporočilu");
   var s2 = await promet.storitev.napovejNalog(vhodN, { mapa: smapa, fetch: svet, zdajMs: t0 + 60000 });
-  assert(klici2.nominatim === 2 && s2.priporocenOdhodUra === "07:10", "ponovitev: naslova iz predpomnilnika (brez novih klicev Nominatim)");
+  assert(klici2.nominatim === 2 && s2.priporocenOdhodUra === "07:05", "ponovitev: naslova iz predpomnilnika (brez novih klicev Nominatim)");
   var s4 = await promet.storitev.napovejNalog(Object.assign({}, vhodN, { cilj: "München, Marienplatz 1" }), { mapa: smapa, fetch: svet, zdajMs: t0 });
   assert(s4.drzava === "DE" && /Abfahrt|Ankunft/.test(promet.napoved.sporocilo(s4, "de")), "naslov v Nemčiji -> DE");
   var nn = null;
@@ -268,7 +274,7 @@ section("OpenHolidays odjemalec");
   var nv = null;
   try { await promet.storitev.napovejNalog(Object.assign({}, vhodN, { prihod: "8" }), { mapa: smapa, fetch: svet }); } catch (e) { nv = e.code; }
   assert(nv === "NEVELJAVEN_VNOS", "napačna ura -> napaka vnosa");
-  var st = promet.storitev.stanje({ mapa: smapa, zdajMs: t0 });
+  var st = await promet.storitev.stanje({ mapa: smapa, zdajMs: t0 });
   assert(st.zbiralnikTece === false && st.viri.length === 2, "stanje: zbiralnik še ni tekel");
   section("Dnevni načrt (veriga nalogov)");
   var D = promet.dan;
@@ -303,13 +309,13 @@ section("OpenHolidays odjemalec");
     { id: "4", stranka: "Neznan", naslov: "neobstaja 5", zacetek: "15:00", konec: "16:00" }
   ] }, { mapa: dmapa, fetch: svet });
   var o = dn.odseki;
-  assert(o.length === 4 && o[0].nalogId === "1" && o[0].prvi && o[0].priporocenOdhodUra === "07:10", "prvi odsek od doma: odhod 07:10");
+  assert(o.length === 4 && o[0].nalogId === "1" && o[0].prvi && o[0].priporocenOdhodUra === "07:05", "prvi odsek od doma: odhod 07:05");
   assert(o[1].stanje === "zamuda" && o[1].zamudaMin === 3 && o[1].predvidenPrihodUra === "10:33", "Kovač 10:00 -> Novak 10:30: 33 min vožnje -> 3 min zamude");
   assert(o[2].stanje === "isti_naslov", "isti naslov (drugače zapisan) -> brez vožnje");
   assert(o[3].stanje === "napaka" && /ni bilo mogoče najti/.test(o[3].napaka), "neznan naslov ne podre ostalih odsekov");
-  assert(/07:10/.test(dn.sporocilo) && /3 min pozni/.test(dn.sporocilo), "sporočilo dneva navede odhod in zamudo");
+  assert(/07:05/.test(dn.sporocilo) && /3 min pozni/.test(dn.sporocilo), "sporočilo dneva navede odhod in zamudo");
   var dnDe = await D.izracunajDan({ izhodisce: "Šiška", datum: "2026-10-07", jezik: "de", naloge: [{ stranka: "Kovač", naslov: "Celje, Prešernova 1", zacetek: "08:00", konec: "10:00" }] }, { mapa: dmapa, fetch: svet });
-  assert(/Abfahrt spätestens um 07:10/.test(dnDe.sporocilo), "nemško sporočilo dneva");
+  assert(/Abfahrt spätestens um 07:05/.test(dnDe.sporocilo), "nemško sporočilo dneva");
   var brezIzh = null;
   try { await D.izracunajDan({ datum: "2026-10-07", naloge: [] }, { mapa: dmapa, fetch: svet }); } catch (e) { brezIzh = e.code; }
   assert(brezIzh === "NEVELJAVEN_VNOS", "brez izhodišča -> napaka vnosa");
@@ -385,10 +391,69 @@ section("OpenHolidays odjemalec");
   var vcfg = JSON.parse(fs.readFileSync(path.join(koren, "vercel.json"), "utf8"));
   assert(Object.keys(vcfg.functions || {}).every(function (f) { return funkcije.indexOf(f) !== -1; }), "vsaka nastavitev v »functions« ima objavljeno datoteko");
   var promRew = vcfg.rewrites.filter(function (r) { return /^\/api\/promet-/.test(r.source); });
-  assert(promRew.length === 4 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
+  assert(promRew.length === 5 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
   var posRes = lazniRes();
   await require("../api/pos.js")({ method: "GET", url: "/api/pos?handler=promet&akcija=neznano", query: { handler: "promet", akcija: "neznano" } }, posRes);
   assert(posRes.koda === 404 && posRes.telo.napaka === "Neznana akcija.", "api/pos.js preda promet handlerju");
+
+  section("Zbiralnik na produkciji (Supabase + pg_cron)");
+  var izvirniFetch = global.fetch;
+  var zapisi = { zajemi: [], opazovanja: [], dogodki: 0 };
+  var odg = function (b, status) { return new Response(JSON.stringify(b), { status: status || 200, headers: { "content-type": "application/json" } }); };
+  global.fetch = async function (url, opts) {
+    var u = String(url);
+    var metoda = (opts && opts.method) || "GET";
+    if (u.indexOf("https://sb.test/rest/v1/promet_zajem?select=cas") === 0) {
+      var zadnji = zapisi.zajemi[zapisi.zajemi.length - 1];
+      return odg(zadnji ? [{ cas: zadnji.cas }] : []);
+    }
+    if (u === "https://sb.test/rest/v1/promet_zajem" && metoda === "POST") {
+      var v = JSON.parse(opts.body);
+      v.id = zapisi.zajemi.length + 1;
+      zapisi.zajemi.push(v);
+      return odg([v], 201);
+    }
+    if (u === "https://sb.test/rest/v1/promet_opazovanje") { zapisi.opazovanja = zapisi.opazovanja.concat(JSON.parse(opts.body)); return new Response(null, { status: 201 }); }
+    if (u.indexOf("https://sb.test/rest/v1/promet_dogodek") === 0) { zapisi.dogodki += JSON.parse(opts.body).length; return new Response(null, { status: 201 }); }
+    if (/openholidays/.test(u)) return odg([]);
+    if (/autobahn\/$/.test(u)) return odg({ roads: ["A9"] });
+    if (/warning$/.test(u)) return odg(fixture("autobahn-a9-warning.json"));
+    if (/closure$/.test(u)) return odg({ closure: [] });
+    if (/roadworks$/.test(u)) return odg({ roadworks: [{ identifier: "RW1", title: "A9 Baustelle", coordinate: { lat: "48.4", long: "11.5" } }] });
+    if (/dogodki/.test(u)) return odg(fixture("dars-dogodki.json"));
+    return odg({}, 404);
+  };
+  try {
+    var ZB = require("../api/_lib/promet/zbiralnik");
+    var cfgT = { url: "https://sb.test", serviceKey: "k" };
+    var tz0 = Date.parse("2026-10-07T05:31:00Z"); // sreda 07:31 v Ljubljani
+    var z1 = await ZB.zberi(cfgT, { zdajMs: tz0 });
+    assert(!z1.preskoceno && z1.viri.length === 2 && z1.viri.every(function (v) { return v.uspeh; }), "zajem obeh virov je uspel");
+    assert(zapisi.zajemi.length === 2 && zapisi.zajemi.every(function (z) { return z.tip_dneva === "delavnik" && z.interval === 30; }), "zajem ima tip dneva in interval (07:30 -> 30)");
+    assert(zapisi.opazovanja.length > 0 && zapisi.opazovanja.every(function (o) { return o.zajem_id && o.celica; }), "opazovanja so vezana na zajem");
+    assert(zapisi.dogodki >= 2, "dela/zapore DE in SI so zapisani");
+    var z2 = await ZB.zberi(cfgT, { zdajMs: tz0 + 5 * 60000 });
+    assert(z2.preskoceno === true && zapisi.zajemi.length === 2, "ponoven klic v 12 min se preskoči (brez podvojenih vzorcev)");
+    var z3 = await ZB.zberi(cfgT, { zdajMs: tz0 + 15 * 60000 });
+    assert(!z3.preskoceno && zapisi.zajemi.length === 4 && zapisi.zajemi[3].interval === 31, "naslednji zajem 15 min pozneje -> interval 31");
+  } finally {
+    global.fetch = izvirniFetch;
+  }
+
+  section("Produkcija brez pripravljenih tabel");
+  var fetchPrej = global.fetch;
+  global.fetch = async function () { return new Response(JSON.stringify({ message: "relation \"promet_profil\" does not exist" }), { status: 404 }); };
+  try {
+    var bmapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-brezbaze-"));
+    var rb = await promet.storitev.napovejNalog(vhodN, { mapa: bmapa, fetch: svet, cfg: { url: "https://sb.test", serviceKey: "k" }, zdajMs: t0 });
+    assert(rb.priporocenOdhodUra && rb.osnova === "zacetna_ocena", "napoved deluje z oceno konic, ko zgodovina ni dosegljiva");
+    assert(rb.opozorilaPodatkov.some(function (t) { return /Zgodovina prometa ni dosegljiva/.test(t); }), "in to jasno sporoči");
+    var sb = await promet.storitev.stanje({ cfg: { url: "https://sb.test", serviceKey: "k" }, zdajMs: t0 });
+    assert(sb.napaka && /niso pripravljene/.test(sb.napaka) && sb.zbiralnikTece === false, "stanje pove, da tabele niso pripravljene");
+    fs.rmSync(bmapa, { recursive: true, force: true });
+  } finally {
+    global.fetch = fetchPrej;
+  }
 
   section("Stran: prijavni žeton");
   var stranJs = fs.readFileSync(path.join(koren, "app", "promet-dan.js"), "utf8");

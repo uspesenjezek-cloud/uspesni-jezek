@@ -191,6 +191,18 @@
   overflow-wrap: anywhere;
 }
 
+.pdan__nalog-voznja {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-primary-strong);
+}
+
+.pdan__nalog-voznja--gneca {
+  color: #9a4f1c;
+}
+
 .pdan__nalog-gumbi {
   display: flex;
   gap: 0.35rem;
