@@ -1,0 +1,230 @@
+<MeasurementSiteTablePublication xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" lang="sl" modelBaseVersion="3">
+  <publicationTime xmlns="http://datex2.eu/schema/3/common">2022-12-19T11:36:45.7593847Z</publicationTime>
+  <publicationCreator xmlns="http://datex2.eu/schema/3/common">
+    <country>si</country>
+    <nationalIdentifier>NCUP</nationalIdentifier>
+  </publicationCreator>
+  <headerInformation xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+  </headerInformation>
+  <measurementSiteTable id="counters" version="1" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <measurementSite id="1001-11">
+      <measurementSiteRecordVersionTime>2022-12-19T12:30:00</measurementSiteRecordVersionTime>
+      <measurementSiteName>
+        <values xmlns="http://datex2.eu/schema/3/common">
+          <value lang="sl_SI">AC-A1, R Zadobrova(MB-LJsev) : MB-LJsev (v)</value>
+        </values>
+      </measurementSiteName>
+      <measurementSiteIdentification>1001-11</measurementSiteIdentification>
+      <measurementSpecificCharacteristics index="0">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficFlow</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="1">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficFlow</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">passengerCar</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="2">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficFlow</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">lorry</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="3">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficSpeed</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="4">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficHeadway</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="5">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficConcentration</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSiteLocation xmlns:q1="http://datex2.eu/schema/3/locationReferencing" xsi:type="q1:PointLocation">
+        <q1:coordinatesForDisplay>
+          <q1:latitude>46.06786</q1:latitude>
+          <q1:longitude>14.570367</q1:longitude>
+        </q1:coordinatesForDisplay>
+        <q1:pointByCoordinates>
+          <q1:pointCoordinates>
+            <q1:latitude>46.06786</q1:latitude>
+            <q1:longitude>14.570367</q1:longitude>
+          </q1:pointCoordinates>
+        </q1:pointByCoordinates>
+        <q1:pointAlongLinearElement>
+          <q1:directionRelativeAtPoint>aligned</q1:directionRelativeAtPoint>
+          <q1:linearElement xsi:type="q1:LinearElementByCode">
+            <q1:linearElementIdentifier>0146</q1:linearElementIdentifier>
+          </q1:linearElement>
+          <q1:distanceAlongLinearElement xsi:type="q1:DistanceFromLinearElementStart">
+            <q1:distanceAlong>696</q1:distanceAlong>
+          </q1:distanceAlongLinearElement>
+        </q1:pointAlongLinearElement>
+        <q1:alertCPoint xsi:type="q1:AlertCMethod4Point">
+          <q1:alertCLocationCountryCode>702</q1:alertCLocationCountryCode>
+          <q1:alertCLocationTableNumber>35</q1:alertCLocationTableNumber>
+          <q1:alertCLocationTableVersion>2.2</q1:alertCLocationTableVersion>
+          <q1:alertCDirection>
+            <q1:alertCDirectionCoded>positive</q1:alertCDirectionCoded>
+            <q1:alertCAffectedDirection>aligned</q1:alertCAffectedDirection>
+          </q1:alertCDirection>
+          <q1:alertCMethod4PrimaryPointLocation>
+            <q1:alertCLocation>
+              <q1:specificLocation>30038</q1:specificLocation>
+            </q1:alertCLocation>
+            <q1:offsetDistance>
+              <q1:offsetDistance>0</q1:offsetDistance>
+            </q1:offsetDistance>
+          </q1:alertCMethod4PrimaryPointLocation>
+        </q1:alertCPoint>
+        <q1:openlrPointLocationReference xsi:type="q1:OpenlrGeoCoordinate">
+          <q1:openlrCoordinates>
+            <q1:latitude>46.06786</q1:latitude>
+            <q1:longitude>14.570367</q1:longitude>
+          </q1:openlrCoordinates>
+        </q1:openlrPointLocationReference>
+      </measurementSiteLocation>
+    </measurementSite>
+    <measurementSite id="1001-12">
+      <measurementSiteRecordVersionTime>2022-12-19T12:30:00</measurementSiteRecordVersionTime>
+      <measurementSiteName>
+        <values xmlns="http://datex2.eu/schema/3/common">
+          <value lang="sl_SI">AC-A1, R Zadobrova(MB-LJsev) : MB-LJsev (p)</value>
+        </values>
+      </measurementSiteName>
+      <measurementSiteIdentification>1001-12</measurementSiteIdentification>
+      <measurementSpecificCharacteristics index="0">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficFlow</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="1">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficFlow</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">passengerCar</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="2">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficFlow</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">lorry</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="3">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficSpeed</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="4">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficHeadway</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSpecificCharacteristics index="5">
+        <measurementSpecificCharacteristics>
+          <period>300</period>
+          <specificMeasurementValueType>trafficConcentration</specificMeasurementValueType>
+          <specificVehicleCharacteristics>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </specificVehicleCharacteristics>
+        </measurementSpecificCharacteristics>
+      </measurementSpecificCharacteristics>
+      <measurementSiteLocation xmlns:q2="http://datex2.eu/schema/3/locationReferencing" xsi:type="q2:PointLocation">
+        <q2:coordinatesForDisplay>
+          <q2:latitude>46.06786</q2:latitude>
+          <q2:longitude>14.570367</q2:longitude>
+        </q2:coordinatesForDisplay>
+        <q2:pointByCoordinates>
+          <q2:pointCoordinates>
+            <q2:latitude>46.06786</q2:latitude>
+            <q2:longitude>14.570367</q2:longitude>
+          </q2:pointCoordinates>
+        </q2:pointByCoordinates>
+        <q2:pointAlongLinearElement>
+          <q2:directionRelativeAtPoint>aligned</q2:directionRelativeAtPoint>
+          <q2:linearElement xsi:type="q2:LinearElementByCode">
+            <q2:linearElementIdentifier>0146</q2:linearElementIdentifier>
+          </q2:linearElement>
+          <q2:distanceAlongLinearElement xsi:type="q2:DistanceFromLinearElementStart">
+            <q2:distanceAlong>696</q2:distanceAlong>
+          </q2:distanceAlongLinearElement>
+        </q2:pointAlongLinearElement>
+        <q2:alertCPoint xsi:type="q2:AlertCMethod4Point">
+          <q2:alertCLocationCountryCode>702</q2:alertCLocationCountryCode>
+          <q2:alertCLocationTableNumber>35</q2:alertCLocationTableNumber>
+          <q2:alertCLocationTableVersion>2.2</q2:alertCLocationTableVersion>
+          <q2:alertCDirection>
+            <q2:alertCDirectionCoded>positive</q2:alertCDirectionCoded>
+            <q2:alertCAffectedDirection>aligned</q2:alertCAffectedDirection>
+          </q2:alertCDirection>
+          <q2:alertCMethod4PrimaryPointLocation>
+            <q2:alertCLocation>
+              <q2:specificLocation>30038</q2:specificLocation>
+            </q2:alertCLocation>
+            <q2:offsetDistance>
+              <q2:offsetDistance>0</q2:offsetDistance>
+            </q2:offsetDistance>
+          </q2:alertCMethod4PrimaryPointLocation>
+        </q2:alertCPoint>
+        <q2:openlrPointLocationReference xsi:type="q2:OpenlrGeoCoordinate">
+          <q2:openlrCoordinates>
+            <q2:latitude>46.06786</q2:latitude>
+            <q2:longitude>14.570367</q2:longitude>
+          </q2:openlrCoordinates>
+        </q2:openlrPointLocationReference>
+      </measurementSiteLocation>
+    </measurementSite>
+    <informationManager>
+      <country xmlns="http://datex2.eu/schema/3/common">si</country>
+      <nationalIdentifier xmlns="http://datex2.eu/schema/3/common">NCUP</nationalIdentifier>
+    </informationManager>
+  </measurementSiteTable>
+</MeasurementSiteTablePublication>

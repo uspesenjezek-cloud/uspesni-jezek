@@ -1,0 +1,1413 @@
+<SituationPublication xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" lang="sl" modelBaseVersion="3">
+  <publicationTime xmlns="http://datex2.eu/schema/3/common">2022-12-19T13:01:25.6220806Z</publicationTime>
+  <situation id="DARS;602380;17f7c3d3-1175-4d08-9544-16715e6ca56a" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="GeneralObstruction" id="DARS;602380;17f7c3d3-1175-4d08-9544-16715e6ca56a" version="1">
+      <situationRecordCreationTime>2022-12-19T12:55:06.77Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-19T12:55:06.77Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>true</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-19T12:55:02.7Z</overallStartTime>
+          <overallEndTime>2022-12-19T18:00:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">A1, Koper - Ljubljana, izvoz Brezovica iz smeri Ljubljane, predmet na vozišču, oviran promet.</value>
+            <value lang="en">A1-E61/70, motorway, between Ljubljana and Postojna in the direction of Koper, object on the road, traffic obstructed.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q1="http://datex2.eu/schema/3/locationReferencing" xsi:type="q1:PointLocation">
+        <q1:coordinatesForDisplay>
+          <q1:latitude>46.026104</q1:latitude>
+          <q1:longitude>14.435132</q1:longitude>
+        </q1:coordinatesForDisplay>
+        <q1:supplementaryPositionalDescription>
+          <q1:infrastructureDescriptor>onConnector</q1:infrastructureDescriptor>
+          <q1:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">A1-E61, E70, Koper - Ljubljana</value>
+              <value lang="en">A1-E61, E70, Koper - Ljubljana</value>
+            </values>
+          </q1:locationDescription>
+        </q1:supplementaryPositionalDescription>
+        <q1:pointByCoordinates>
+          <q1:pointCoordinates>
+            <q1:latitude>46.026104</q1:latitude>
+            <q1:longitude>14.435132</q1:longitude>
+          </q1:pointCoordinates>
+        </q1:pointByCoordinates>
+        <q1:pointAlongLinearElement>
+          <q1:linearElement xsi:type="q1:LinearElementByCode">
+            <q1:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">A1</value>
+                <value lang="en">A1</value>
+              </values>
+            </q1:roadName>
+            <q1:linearElementIdentifier>0149</q1:linearElementIdentifier>
+          </q1:linearElement>
+          <q1:distanceAlongLinearElement xsi:type="q1:DistanceFromLinearElementStart">
+            <q1:distanceAlong>35</q1:distanceAlong>
+          </q1:distanceAlongLinearElement>
+        </q1:pointAlongLinearElement>
+        <q1:alertCPoint xsi:type="q1:AlertCMethod4Point">
+          <q1:alertCLocationCountryCode>702</q1:alertCLocationCountryCode>
+          <q1:alertCLocationTableNumber>35</q1:alertCLocationTableNumber>
+          <q1:alertCLocationTableVersion>2.2</q1:alertCLocationTableVersion>
+          <q1:alertCDirection>
+            <q1:alertCDirectionCoded>positive</q1:alertCDirectionCoded>
+            <q1:alertCAffectedDirection>aligned</q1:alertCAffectedDirection>
+          </q1:alertCDirection>
+          <q1:alertCMethod4PrimaryPointLocation>
+            <q1:alertCLocation>
+              <q1:specificLocation>30049</q1:specificLocation>
+            </q1:alertCLocation>
+            <q1:offsetDistance>
+              <q1:offsetDistance>0</q1:offsetDistance>
+            </q1:offsetDistance>
+          </q1:alertCMethod4PrimaryPointLocation>
+        </q1:alertCPoint>
+        <q1:openlrPointLocationReference xsi:type="q1:OpenlrPointAlongLine">
+          <q1:openlrSideOfRoad>onRoadOrUnknown</q1:openlrSideOfRoad>
+          <q1:openlrOrientation>noOrientationOrUnknown</q1:openlrOrientation>
+          <q1:openlrLocationReferencePoint>
+            <q1:openlrCoordinates>
+              <q1:latitude>46.026173</q1:latitude>
+              <q1:longitude>14.435756</q1:longitude>
+            </q1:openlrCoordinates>
+            <q1:openlrLineAttributes>
+              <q1:openlrFunctionalRoadClass>frc3</q1:openlrFunctionalRoadClass>
+              <q1:openlrFormOfWay>slipRoad</q1:openlrFormOfWay>
+              <q1:openlrBearing>261</q1:openlrBearing>
+            </q1:openlrLineAttributes>
+            <q1:openlrPathAttributes>
+              <q1:openlrLowestFrcToNextLRPoint>frc3</q1:openlrLowestFrcToNextLRPoint>
+              <q1:openlrDistanceToNextLRPoint>179</q1:openlrDistanceToNextLRPoint>
+            </q1:openlrPathAttributes>
+          </q1:openlrLocationReferencePoint>
+          <q1:openlrLastLocationReferencePoint>
+            <q1:openlrCoordinates>
+              <q1:latitude>46.026783</q1:latitude>
+              <q1:longitude>14.43394</q1:longitude>
+            </q1:openlrCoordinates>
+            <q1:openlrLineAttributes>
+              <q1:openlrFunctionalRoadClass>frc3</q1:openlrFunctionalRoadClass>
+              <q1:openlrFormOfWay>slipRoad</q1:openlrFormOfWay>
+              <q1:openlrBearing>154</q1:openlrBearing>
+            </q1:openlrLineAttributes>
+          </q1:openlrLastLocationReferencePoint>
+          <q1:openlrOffsets>
+            <q1:openlrPositiveOffset>48</q1:openlrPositiveOffset>
+          </q1:openlrOffsets>
+        </q1:openlrPointLocationReference>
+      </locationReference>
+      <trafficConstrictionType>roadPartiallyObstructed</trafficConstrictionType>
+      <obstructionType>obstructionOnTheRoad</obstructionType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;602379;46f87c35-1b8c-4ed4-a1aa-cd3bab8e5e18" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="VehicleObstruction" id="DARS;602379;46f87c35-1b8c-4ed4-a1aa-cd3bab8e5e18" version="1">
+      <situationRecordCreationTime>2022-12-19T12:48:01.573Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-19T12:48:01.573Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>true</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-19T12:47:56.183Z</overallStartTime>
+          <overallEndTime>2022-12-19T18:00:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>50</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">A1, Ljubljana - Maribor, pred priključkom Domžale v smeri Celja, okvara tovornega vozila, oviran promet.</value>
+            <value lang="en">A1-E57, motorway, between Kompolje and Ljubljana in the direction of Maribor, HGV breakdown, traffic obstructed.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q2="http://datex2.eu/schema/3/locationReferencing" xsi:type="q2:PointLocation">
+        <q2:coordinatesForDisplay>
+          <q2:latitude>46.125034</q2:latitude>
+          <q2:longitude>14.604139</q2:longitude>
+        </q2:coordinatesForDisplay>
+        <q2:supplementaryPositionalDescription>
+          <q2:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">A1-E57, Ljubljana - Maribor</value>
+              <value lang="en">A1-E57, Ljubljana - Maribor</value>
+            </values>
+          </q2:locationDescription>
+        </q2:supplementaryPositionalDescription>
+        <q2:pointByCoordinates>
+          <q2:pointCoordinates>
+            <q2:latitude>46.125034</q2:latitude>
+            <q2:longitude>14.604139</q2:longitude>
+          </q2:pointCoordinates>
+        </q2:pointByCoordinates>
+        <q2:pointAlongLinearElement>
+          <q2:linearElement xsi:type="q2:LinearElementByCode">
+            <q2:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">A1</value>
+                <value lang="en">A1</value>
+              </values>
+            </q2:roadName>
+            <q2:linearElementIdentifier>0646</q2:linearElementIdentifier>
+          </q2:linearElement>
+          <q2:distanceAlongLinearElement xsi:type="q2:DistanceFromLinearElementStart">
+            <q2:distanceAlong>1359</q2:distanceAlong>
+          </q2:distanceAlongLinearElement>
+        </q2:pointAlongLinearElement>
+        <q2:alertCPoint xsi:type="q2:AlertCMethod4Point">
+          <q2:alertCLocationCountryCode>702</q2:alertCLocationCountryCode>
+          <q2:alertCLocationTableNumber>35</q2:alertCLocationTableNumber>
+          <q2:alertCLocationTableVersion>2.2</q2:alertCLocationTableVersion>
+          <q2:alertCDirection>
+            <q2:alertCDirectionCoded>negative</q2:alertCDirectionCoded>
+            <q2:alertCAffectedDirection>opposite</q2:alertCAffectedDirection>
+          </q2:alertCDirection>
+          <q2:alertCMethod4PrimaryPointLocation>
+            <q2:alertCLocation>
+              <q2:specificLocation>30035</q2:specificLocation>
+            </q2:alertCLocation>
+            <q2:offsetDistance>
+              <q2:offsetDistance>1357</q2:offsetDistance>
+            </q2:offsetDistance>
+          </q2:alertCMethod4PrimaryPointLocation>
+        </q2:alertCPoint>
+        <q2:openlrPointLocationReference xsi:type="q2:OpenlrPointAlongLine">
+          <q2:openlrSideOfRoad>onRoadOrUnknown</q2:openlrSideOfRoad>
+          <q2:openlrOrientation>noOrientationOrUnknown</q2:openlrOrientation>
+          <q2:openlrLocationReferencePoint>
+            <q2:openlrCoordinates>
+              <q2:latitude>46.0933</q2:latitude>
+              <q2:longitude>14.587907</q2:longitude>
+            </q2:openlrCoordinates>
+            <q2:openlrLineAttributes>
+              <q2:openlrFunctionalRoadClass>frc0</q2:openlrFunctionalRoadClass>
+              <q2:openlrFormOfWay>motorway</q2:openlrFormOfWay>
+              <q2:openlrBearing>21</q2:openlrBearing>
+            </q2:openlrLineAttributes>
+            <q2:openlrPathAttributes>
+              <q2:openlrLowestFrcToNextLRPoint>frc0</q2:openlrLowestFrcToNextLRPoint>
+              <q2:openlrDistanceToNextLRPoint>5189</q2:openlrDistanceToNextLRPoint>
+            </q2:openlrPathAttributes>
+          </q2:openlrLocationReferencePoint>
+          <q2:openlrLastLocationReferencePoint>
+            <q2:openlrCoordinates>
+              <q2:latitude>46.13445</q2:latitude>
+              <q2:longitude>14.615271</q2:longitude>
+            </q2:openlrCoordinates>
+            <q2:openlrLineAttributes>
+              <q2:openlrFunctionalRoadClass>frc0</q2:openlrFunctionalRoadClass>
+              <q2:openlrFormOfWay>motorway</q2:openlrFormOfWay>
+              <q2:openlrBearing>237</q2:openlrBearing>
+            </q2:openlrLineAttributes>
+          </q2:openlrLastLocationReferencePoint>
+          <q2:openlrOffsets>
+            <q2:openlrPositiveOffset>3807</q2:openlrPositiveOffset>
+          </q2:openlrOffsets>
+        </q2:openlrPointLocationReference>
+      </locationReference>
+      <trafficConstrictionType>roadPartiallyObstructed</trafficConstrictionType>
+      <vehicleObstructionType>other</vehicleObstructionType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;602378;53b9a75c-cbb0-469e-be30-b2b60da0bfdc" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="AbnormalTraffic" id="DARS;602378;53b9a75c-cbb0-469e-be30-b2b60da0bfdc" version="1">
+      <situationRecordCreationTime>2022-12-19T12:24:58.233Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-19T12:24:58.233Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-19T12:24:37.573Z</overallStartTime>
+          <overallEndTime>2022-12-19T18:00:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">A2, Ljubljana - Karavanke, pred predorom Karavanke v smeri Karavank, Avstrije, zastoj tovornih vozil, dolžina: 1 km.</value>
+            <value lang="en">A2-E61, motorway, near Karavanke tunnel in the direction of Austria, queueing trucks, length: 1 km.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q3="http://datex2.eu/schema/3/locationReferencing" xsi:type="q3:PointLocation">
+        <q3:coordinatesForDisplay>
+          <q3:latitude>46.44166</q3:latitude>
+          <q3:longitude>14.023663</q3:longitude>
+        </q3:coordinatesForDisplay>
+        <q3:supplementaryPositionalDescription>
+          <q3:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">A2-E61, Ljubljana - Karavanke</value>
+              <value lang="en">A2-E61, Ljubljana - Karavanke</value>
+            </values>
+          </q3:locationDescription>
+        </q3:supplementaryPositionalDescription>
+        <q3:pointByCoordinates>
+          <q3:pointCoordinates>
+            <q3:latitude>46.44166</q3:latitude>
+            <q3:longitude>14.023663</q3:longitude>
+          </q3:pointCoordinates>
+        </q3:pointByCoordinates>
+        <q3:pointAlongLinearElement>
+          <q3:linearElement xsi:type="q3:LinearElementByCode">
+            <q3:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">A2</value>
+                <value lang="en">A2</value>
+              </values>
+            </q3:roadName>
+            <q3:linearElementIdentifier>0602</q3:linearElementIdentifier>
+          </q3:linearElement>
+          <q3:distanceAlongLinearElement xsi:type="q3:DistanceFromLinearElementStart">
+            <q3:distanceAlong>1070</q3:distanceAlong>
+          </q3:distanceAlongLinearElement>
+        </q3:pointAlongLinearElement>
+        <q3:alertCPoint xsi:type="q3:AlertCMethod4Point">
+          <q3:alertCLocationCountryCode>702</q3:alertCLocationCountryCode>
+          <q3:alertCLocationTableNumber>35</q3:alertCLocationTableNumber>
+          <q3:alertCLocationTableVersion>2.2</q3:alertCLocationTableVersion>
+          <q3:alertCDirection>
+            <q3:alertCDirectionCoded>negative</q3:alertCDirectionCoded>
+            <q3:alertCAffectedDirection>opposite</q3:alertCAffectedDirection>
+          </q3:alertCDirection>
+          <q3:alertCMethod4PrimaryPointLocation>
+            <q3:alertCLocation>
+              <q3:specificLocation>30073</q3:specificLocation>
+            </q3:alertCLocation>
+            <q3:offsetDistance>
+              <q3:offsetDistance>851</q3:offsetDistance>
+            </q3:offsetDistance>
+          </q3:alertCMethod4PrimaryPointLocation>
+        </q3:alertCPoint>
+        <q3:openlrPointLocationReference xsi:type="q3:OpenlrPointAlongLine">
+          <q3:openlrSideOfRoad>onRoadOrUnknown</q3:openlrSideOfRoad>
+          <q3:openlrOrientation>noOrientationOrUnknown</q3:openlrOrientation>
+          <q3:openlrLocationReferencePoint>
+            <q3:openlrCoordinates>
+              <q3:latitude>46.44135</q3:latitude>
+              <q3:longitude>14.024922</q3:longitude>
+            </q3:openlrCoordinates>
+            <q3:openlrLineAttributes>
+              <q3:openlrFunctionalRoadClass>frc0</q3:openlrFunctionalRoadClass>
+              <q3:openlrFormOfWay>motorway</q3:openlrFormOfWay>
+              <q3:openlrBearing>289</q3:openlrBearing>
+            </q3:openlrLineAttributes>
+            <q3:openlrPathAttributes>
+              <q3:openlrLowestFrcToNextLRPoint>frc0</q3:openlrLowestFrcToNextLRPoint>
+              <q3:openlrDistanceToNextLRPoint>1063</q3:openlrDistanceToNextLRPoint>
+            </q3:openlrPathAttributes>
+          </q3:openlrLocationReferencePoint>
+          <q3:openlrLastLocationReferencePoint>
+            <q3:openlrCoordinates>
+              <q3:latitude>46.445305</q3:latitude>
+              <q3:longitude>14.012336</q3:longitude>
+            </q3:openlrCoordinates>
+            <q3:openlrLineAttributes>
+              <q3:openlrFunctionalRoadClass>frc0</q3:openlrFunctionalRoadClass>
+              <q3:openlrFormOfWay>motorway</q3:openlrFormOfWay>
+              <q3:openlrBearing>115</q3:openlrBearing>
+            </q3:openlrLineAttributes>
+          </q3:openlrLastLocationReferencePoint>
+          <q3:openlrOffsets>
+            <q3:openlrPositiveOffset>103</q3:openlrPositiveOffset>
+          </q3:openlrOffsets>
+        </q3:openlrPointLocationReference>
+      </locationReference>
+      <abnormalTrafficType>queuingTraffic</abnormalTrafficType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;602309;908081aa-b2be-4315-9bae-3e6658821c27" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="AbnormalTraffic" id="DARS;602309;908081aa-b2be-4315-9bae-3e6658821c27" version="1">
+      <situationRecordCreationTime>2022-12-19T04:40:48.55Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-19T05:56:07.017Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-19T04:40:34.213Z</overallStartTime>
+          <overallEndTime>2022-12-19T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">A2, mejni prehod Obrežje, Bregana, čakalne dobe: tovorna vozila 1-2 h pri vstopu.</value>
+            <value lang="en">A2, border crossing Obrežje, Bregana, delays info: heavy vehicles 1-2 h at entrance.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q4="http://datex2.eu/schema/3/locationReferencing" xsi:type="q4:PointLocation">
+        <q4:coordinatesForDisplay>
+          <q4:latitude>45.84851</q4:latitude>
+          <q4:longitude>15.690721</q4:longitude>
+        </q4:coordinatesForDisplay>
+        <q4:supplementaryPositionalDescription>
+          <q4:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">A2Obrežje - Brežice</value>
+              <value lang="en">A2Obrežje - Brežice</value>
+            </values>
+          </q4:locationDescription>
+        </q4:supplementaryPositionalDescription>
+        <q4:pointByCoordinates>
+          <q4:pointCoordinates>
+            <q4:latitude>45.84851</q4:latitude>
+            <q4:longitude>15.690721</q4:longitude>
+          </q4:pointCoordinates>
+        </q4:pointByCoordinates>
+        <q4:pointAlongLinearElement>
+          <q4:linearElement xsi:type="q4:LinearElementByCode">
+            <q4:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">A2</value>
+                <value lang="en">A2</value>
+              </values>
+            </q4:roadName>
+            <q4:linearElementIdentifier>0629</q4:linearElementIdentifier>
+          </q4:linearElement>
+          <q4:distanceAlongLinearElement xsi:type="q4:DistanceFromLinearElementStart">
+            <q4:distanceAlong>8011</q4:distanceAlong>
+          </q4:distanceAlongLinearElement>
+        </q4:pointAlongLinearElement>
+        <q4:alertCPoint xsi:type="q4:AlertCMethod4Point">
+          <q4:alertCLocationCountryCode>702</q4:alertCLocationCountryCode>
+          <q4:alertCLocationTableNumber>35</q4:alertCLocationTableNumber>
+          <q4:alertCLocationTableVersion>2.2</q4:alertCLocationTableVersion>
+          <q4:alertCDirection>
+            <q4:alertCDirectionCoded>negative</q4:alertCDirectionCoded>
+            <q4:alertCAffectedDirection>opposite</q4:alertCAffectedDirection>
+          </q4:alertCDirection>
+          <q4:alertCMethod4PrimaryPointLocation>
+            <q4:alertCLocation>
+              <q4:specificLocation>45739</q4:specificLocation>
+            </q4:alertCLocation>
+            <q4:offsetDistance>
+              <q4:offsetDistance>233</q4:offsetDistance>
+            </q4:offsetDistance>
+          </q4:alertCMethod4PrimaryPointLocation>
+        </q4:alertCPoint>
+        <q4:openlrPointLocationReference xsi:type="q4:OpenlrPointAlongLine">
+          <q4:openlrSideOfRoad>onRoadOrUnknown</q4:openlrSideOfRoad>
+          <q4:openlrOrientation>noOrientationOrUnknown</q4:openlrOrientation>
+          <q4:openlrLocationReferencePoint>
+            <q4:openlrCoordinates>
+              <q4:latitude>45.83235</q4:latitude>
+              <q4:longitude>15.721245</q4:longitude>
+            </q4:openlrCoordinates>
+            <q4:openlrLineAttributes>
+              <q4:openlrFunctionalRoadClass>frc0</q4:openlrFunctionalRoadClass>
+              <q4:openlrFormOfWay>motorway</q4:openlrFormOfWay>
+              <q4:openlrBearing>294</q4:openlrBearing>
+            </q4:openlrLineAttributes>
+            <q4:openlrPathAttributes>
+              <q4:openlrLowestFrcToNextLRPoint>frc0</q4:openlrLowestFrcToNextLRPoint>
+              <q4:openlrDistanceToNextLRPoint>3284</q4:openlrDistanceToNextLRPoint>
+            </q4:openlrPathAttributes>
+          </q4:openlrLocationReferencePoint>
+          <q4:openlrLastLocationReferencePoint>
+            <q4:openlrCoordinates>
+              <q4:latitude>45.850597</q4:latitude>
+              <q4:longitude>15.688644</q4:longitude>
+            </q4:openlrCoordinates>
+            <q4:openlrLineAttributes>
+              <q4:openlrFunctionalRoadClass>frc0</q4:openlrFunctionalRoadClass>
+              <q4:openlrFormOfWay>motorway</q4:openlrFormOfWay>
+              <q4:openlrBearing>145</q4:openlrBearing>
+            </q4:openlrLineAttributes>
+          </q4:openlrLastLocationReferencePoint>
+          <q4:openlrOffsets>
+            <q4:openlrPositiveOffset>3040</q4:openlrPositiveOffset>
+          </q4:openlrOffsets>
+        </q4:openlrPointLocationReference>
+      </locationReference>
+      <abnormalTrafficType>stationaryTraffic</abnormalTrafficType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;602297;3c99f0ec-48d8-4185-a077-552f620d63ca" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="AbnormalTraffic" id="DARS;602297;3c99f0ec-48d8-4185-a077-552f620d63ca" version="1">
+      <situationRecordCreationTime>2022-12-18T23:20:19.07Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-19T08:28:53.557Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-18T23:19:36.957Z</overallStartTime>
+          <overallEndTime>2022-12-22T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">A4, mejni prehod Gruškovje, Macelj, čakalne dobe: tovorna vozila 1-2 h pri vstopu.</value>
+            <value lang="en">A4, border crossing Gruškovje, Macelj, delays info: heavy vehicles 1-2 h at entrance.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q5="http://datex2.eu/schema/3/locationReferencing" xsi:type="q5:PointLocation">
+        <q5:coordinatesForDisplay>
+          <q5:latitude>46.275326</q5:latitude>
+          <q5:longitude>15.866542</q5:longitude>
+        </q5:coordinatesForDisplay>
+        <q5:supplementaryPositionalDescription>
+          <q5:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">A4Gruškovje - Podlehnik</value>
+              <value lang="en">A4Gruškovje - Podlehnik</value>
+            </values>
+          </q5:locationDescription>
+        </q5:supplementaryPositionalDescription>
+        <q5:pointByCoordinates>
+          <q5:pointCoordinates>
+            <q5:latitude>46.275326</q5:latitude>
+            <q5:longitude>15.866542</q5:longitude>
+          </q5:pointCoordinates>
+        </q5:pointByCoordinates>
+        <q5:pointAlongLinearElement>
+          <q5:linearElement xsi:type="q5:LinearElementByCode">
+            <q5:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">A4</value>
+                <value lang="en">A4</value>
+              </values>
+            </q5:roadName>
+            <q5:linearElementIdentifier>0694</q5:linearElementIdentifier>
+          </q5:linearElement>
+          <q5:distanceAlongLinearElement xsi:type="q5:DistanceFromLinearElementStart">
+            <q5:distanceAlong>8130</q5:distanceAlong>
+          </q5:distanceAlongLinearElement>
+        </q5:pointAlongLinearElement>
+        <q5:alertCPoint xsi:type="q5:AlertCMethod4Point">
+          <q5:alertCLocationCountryCode>702</q5:alertCLocationCountryCode>
+          <q5:alertCLocationTableNumber>35</q5:alertCLocationTableNumber>
+          <q5:alertCLocationTableVersion>2.2</q5:alertCLocationTableVersion>
+          <q5:alertCDirection>
+            <q5:alertCDirectionCoded>negative</q5:alertCDirectionCoded>
+            <q5:alertCAffectedDirection>opposite</q5:alertCAffectedDirection>
+          </q5:alertCDirection>
+          <q5:alertCMethod4PrimaryPointLocation>
+            <q5:alertCLocation>
+              <q5:specificLocation>45729</q5:specificLocation>
+            </q5:alertCLocation>
+            <q5:offsetDistance>
+              <q5:offsetDistance>32</q5:offsetDistance>
+            </q5:offsetDistance>
+          </q5:alertCMethod4PrimaryPointLocation>
+        </q5:alertCPoint>
+        <q5:openlrPointLocationReference xsi:type="q5:OpenlrPointAlongLine">
+          <q5:openlrSideOfRoad>onRoadOrUnknown</q5:openlrSideOfRoad>
+          <q5:openlrOrientation>noOrientationOrUnknown</q5:openlrOrientation>
+          <q5:openlrLocationReferencePoint>
+            <q5:openlrCoordinates>
+              <q5:latitude>46.263477</q5:latitude>
+              <q5:longitude>15.86875</q5:longitude>
+            </q5:openlrCoordinates>
+            <q5:openlrLineAttributes>
+              <q5:openlrFunctionalRoadClass>frc0</q5:openlrFunctionalRoadClass>
+              <q5:openlrFormOfWay>motorway</q5:openlrFormOfWay>
+              <q5:openlrBearing>27</q5:openlrBearing>
+            </q5:openlrLineAttributes>
+            <q5:openlrPathAttributes>
+              <q5:openlrLowestFrcToNextLRPoint>frc0</q5:openlrLowestFrcToNextLRPoint>
+              <q5:openlrDistanceToNextLRPoint>1394</q5:openlrDistanceToNextLRPoint>
+            </q5:openlrPathAttributes>
+          </q5:openlrLocationReferencePoint>
+          <q5:openlrLastLocationReferencePoint>
+            <q5:openlrCoordinates>
+              <q5:latitude>46.275555</q5:latitude>
+              <q5:longitude>15.866297</q5:longitude>
+            </q5:openlrCoordinates>
+            <q5:openlrLineAttributes>
+              <q5:openlrFunctionalRoadClass>frc0</q5:openlrFunctionalRoadClass>
+              <q5:openlrFormOfWay>motorway</q5:openlrFormOfWay>
+              <q5:openlrBearing>142</q5:openlrBearing>
+            </q5:openlrLineAttributes>
+          </q5:openlrLastLocationReferencePoint>
+          <q5:openlrOffsets>
+            <q5:openlrPositiveOffset>1358</q5:openlrPositiveOffset>
+          </q5:openlrOffsets>
+        </q5:openlrPointLocationReference>
+      </locationReference>
+      <abnormalTrafficType>stationaryTraffic</abnormalTrafficType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;602263;1a0aae04-494b-4928-a083-c2b75fce07e0" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="GeneralNetworkManagement" id="DARS;602263;1a0aae04-494b-4928-a083-c2b75fce07e0" version="1">
+      <situationRecordCreationTime>2022-12-18T09:40:55.367Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-18T10:42:36.193Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-18T09:39:45.117Z</overallStartTime>
+          <overallEndTime>2022-12-20T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>0</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">LC, Hrastnik - Radeče, pri Podkraju, popolna zapora, plaz.</value>
+            <value lang="en">LC, Hrastnik - Radeče, at Podkraj, road closed, landslide.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl"> plaz</value>
+          </values>
+        </comment>
+        <commentType>other</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q6="http://datex2.eu/schema/3/locationReferencing" xsi:type="q6:PointLocation">
+        <q6:coordinatesForDisplay>
+          <q6:latitude>46.104946</q6:latitude>
+          <q6:longitude>15.129816</q6:longitude>
+        </q6:coordinatesForDisplay>
+        <q6:supplementaryPositionalDescription>
+          <q6:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">LC-122010, Hrastnik - Radeče</value>
+              <value lang="en">LC-122010, Hrastnik - Radeče</value>
+            </values>
+          </q6:locationDescription>
+        </q6:supplementaryPositionalDescription>
+        <q6:pointByCoordinates>
+          <q6:pointCoordinates>
+            <q6:latitude>46.104946</q6:latitude>
+            <q6:longitude>15.129816</q6:longitude>
+          </q6:pointCoordinates>
+        </q6:pointByCoordinates>
+        <q6:pointAlongLinearElement>
+          <q6:linearElement xsi:type="q6:LinearElementByCode">
+            <q6:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">LC</value>
+                <value lang="en">LC</value>
+              </values>
+            </q6:roadName>
+            <q6:linearElementIdentifier>122011</q6:linearElementIdentifier>
+          </q6:linearElement>
+          <q6:distanceAlongLinearElement xsi:type="q6:DistanceFromLinearElementStart">
+            <q6:distanceAlong>3948</q6:distanceAlong>
+          </q6:distanceAlongLinearElement>
+        </q6:pointAlongLinearElement>
+        <q6:alertCPoint xsi:type="q6:AlertCMethod4Point">
+          <q6:alertCLocationCountryCode>702</q6:alertCLocationCountryCode>
+          <q6:alertCLocationTableNumber>35</q6:alertCLocationTableNumber>
+          <q6:alertCLocationTableVersion>2.2</q6:alertCLocationTableVersion>
+          <q6:alertCDirection>
+            <q6:alertCDirectionCoded>positive</q6:alertCDirectionCoded>
+            <q6:alertCAffectedDirection>both</q6:alertCAffectedDirection>
+          </q6:alertCDirection>
+          <q6:alertCMethod4PrimaryPointLocation>
+            <q6:alertCLocation>
+              <q6:specificLocation>38230</q6:specificLocation>
+            </q6:alertCLocation>
+            <q6:offsetDistance>
+              <q6:offsetDistance>3948</q6:offsetDistance>
+            </q6:offsetDistance>
+          </q6:alertCMethod4PrimaryPointLocation>
+        </q6:alertCPoint>
+        <q6:openlrPointLocationReference xsi:type="q6:OpenlrPointAlongLine">
+          <q6:openlrSideOfRoad>onRoadOrUnknown</q6:openlrSideOfRoad>
+          <q6:openlrOrientation>noOrientationOrUnknown</q6:openlrOrientation>
+          <q6:openlrLocationReferencePoint>
+            <q6:openlrCoordinates>
+              <q6:latitude>46.10614</q6:latitude>
+              <q6:longitude>15.121573</q6:longitude>
+            </q6:openlrCoordinates>
+            <q6:openlrLineAttributes>
+              <q6:openlrFunctionalRoadClass>frc5</q6:openlrFunctionalRoadClass>
+              <q6:openlrFormOfWay>singleCarriageway</q6:openlrFormOfWay>
+              <q6:openlrBearing>142</q6:openlrBearing>
+            </q6:openlrLineAttributes>
+            <q6:openlrPathAttributes>
+              <q6:openlrLowestFrcToNextLRPoint>frc5</q6:openlrLowestFrcToNextLRPoint>
+              <q6:openlrDistanceToNextLRPoint>1212</q6:openlrDistanceToNextLRPoint>
+            </q6:openlrPathAttributes>
+          </q6:openlrLocationReferencePoint>
+          <q6:openlrLastLocationReferencePoint>
+            <q6:openlrCoordinates>
+              <q6:latitude>46.10319</q6:latitude>
+              <q6:longitude>15.135464</q6:longitude>
+            </q6:openlrCoordinates>
+            <q6:openlrLineAttributes>
+              <q6:openlrFunctionalRoadClass>frc5</q6:openlrFunctionalRoadClass>
+              <q6:openlrFormOfWay>singleCarriageway</q6:openlrFormOfWay>
+              <q6:openlrBearing>319</q6:openlrBearing>
+            </q6:openlrLineAttributes>
+          </q6:openlrLastLocationReferencePoint>
+          <q6:openlrOffsets>
+            <q6:openlrPositiveOffset>693</q6:openlrPositiveOffset>
+          </q6:openlrOffsets>
+        </q6:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <generalNetworkManagementType>other</generalNetworkManagementType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;602015;238e3a45-5944-4f3f-bfc4-ca8285e9b42c" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="RoadOrCarriagewayOrLaneManagement" id="DARS;602015;238e3a45-5944-4f3f-bfc4-ca8285e9b42c" version="1">
+      <situationRecordCreationTime>2022-12-16T11:19:16.957Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-16T11:19:26.66Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-16T11:18:03.33Z</overallStartTime>
+          <overallEndTime>2023-03-15T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>0</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">R3-608, Lokve - Čepovan, popolna zapora v zimskem času.</value>
+            <value lang="en">R3-608, Lokve - Čepovan, road closed in winter time.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q7="http://datex2.eu/schema/3/locationReferencing" xsi:type="q7:PointLocation">
+        <q7:coordinatesForDisplay>
+          <q7:latitude>46.027546</q7:latitude>
+          <q7:longitude>13.788281</q7:longitude>
+        </q7:coordinatesForDisplay>
+        <q7:supplementaryPositionalDescription>
+          <q7:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">R3-608, Lokve - Čepovan</value>
+              <value lang="en">R3-608, Lokve - Čepovan</value>
+            </values>
+          </q7:locationDescription>
+        </q7:supplementaryPositionalDescription>
+        <q7:pointByCoordinates>
+          <q7:pointCoordinates>
+            <q7:latitude>46.027546</q7:latitude>
+            <q7:longitude>13.788281</q7:longitude>
+          </q7:pointCoordinates>
+        </q7:pointByCoordinates>
+        <q7:pointAlongLinearElement>
+          <q7:linearElement xsi:type="q7:LinearElementByCode">
+            <q7:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">R3</value>
+                <value lang="en">R3</value>
+              </values>
+            </q7:roadName>
+            <q7:linearElementIdentifier>1065</q7:linearElementIdentifier>
+          </q7:linearElement>
+          <q7:distanceAlongLinearElement xsi:type="q7:DistanceFromLinearElementStart">
+            <q7:distanceAlong>2111</q7:distanceAlong>
+          </q7:distanceAlongLinearElement>
+        </q7:pointAlongLinearElement>
+        <q7:alertCPoint xsi:type="q7:AlertCMethod4Point">
+          <q7:alertCLocationCountryCode>702</q7:alertCLocationCountryCode>
+          <q7:alertCLocationTableNumber>35</q7:alertCLocationTableNumber>
+          <q7:alertCLocationTableVersion>2.2</q7:alertCLocationTableVersion>
+          <q7:alertCDirection>
+            <q7:alertCDirectionCoded>positive</q7:alertCDirectionCoded>
+            <q7:alertCAffectedDirection>both</q7:alertCAffectedDirection>
+          </q7:alertCDirection>
+          <q7:alertCMethod4PrimaryPointLocation>
+            <q7:alertCLocation>
+              <q7:specificLocation>32514</q7:specificLocation>
+            </q7:alertCLocation>
+            <q7:offsetDistance>
+              <q7:offsetDistance>2380</q7:offsetDistance>
+            </q7:offsetDistance>
+          </q7:alertCMethod4PrimaryPointLocation>
+        </q7:alertCPoint>
+        <q7:openlrPointLocationReference xsi:type="q7:OpenlrPointAlongLine">
+          <q7:openlrSideOfRoad>onRoadOrUnknown</q7:openlrSideOfRoad>
+          <q7:openlrOrientation>noOrientationOrUnknown</q7:openlrOrientation>
+          <q7:openlrLocationReferencePoint>
+            <q7:openlrCoordinates>
+              <q7:latitude>46.018528</q7:latitude>
+              <q7:longitude>13.786264</q7:longitude>
+            </q7:openlrCoordinates>
+            <q7:openlrLineAttributes>
+              <q7:openlrFunctionalRoadClass>frc4</q7:openlrFunctionalRoadClass>
+              <q7:openlrFormOfWay>singleCarriageway</q7:openlrFormOfWay>
+              <q7:openlrBearing>333</q7:openlrBearing>
+            </q7:openlrLineAttributes>
+            <q7:openlrPathAttributes>
+              <q7:openlrLowestFrcToNextLRPoint>frc4</q7:openlrLowestFrcToNextLRPoint>
+              <q7:openlrDistanceToNextLRPoint>3397</q7:openlrDistanceToNextLRPoint>
+            </q7:openlrPathAttributes>
+          </q7:openlrLocationReferencePoint>
+          <q7:openlrLastLocationReferencePoint>
+            <q7:openlrCoordinates>
+              <q7:latitude>46.0472</q7:latitude>
+              <q7:longitude>13.792111</q7:longitude>
+            </q7:openlrCoordinates>
+            <q7:openlrLineAttributes>
+              <q7:openlrFunctionalRoadClass>frc4</q7:openlrFunctionalRoadClass>
+              <q7:openlrFormOfWay>singleCarriageway</q7:openlrFormOfWay>
+              <q7:openlrBearing>137</q7:openlrBearing>
+            </q7:openlrLineAttributes>
+          </q7:openlrLastLocationReferencePoint>
+          <q7:openlrOffsets>
+            <q7:openlrPositiveOffset>1072</q7:openlrPositiveOffset>
+          </q7:openlrOffsets>
+        </q7:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <roadOrCarriagewayOrLaneManagementType>closedPermanentlyForTheWinter</roadOrCarriagewayOrLaneManagementType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;601994;b8731c20-a712-4eaa-a48c-2c6104dea737" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="RoadOrCarriagewayOrLaneManagement" id="DARS;601994;b8731c20-a712-4eaa-a48c-2c6104dea737" version="1">
+      <situationRecordCreationTime>2022-12-16T08:24:14.573Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-17T05:59:19.447Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-16T08:21:30.643Z</overallStartTime>
+          <overallEndTime>2023-03-01T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>0</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">R3-702, Dravograd - Trbonje, Trbonje - Sv. Danijel, popolna zapora v zimskem času.</value>
+            <value lang="en">R3-702, Dravograd - Trbonje, Trbonje - Sv. Danijel, road closed in winter time.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q8="http://datex2.eu/schema/3/locationReferencing" xsi:type="q8:PointLocation">
+        <q8:coordinatesForDisplay>
+          <q8:latitude>46.601677</q8:latitude>
+          <q8:longitude>15.092022</q8:longitude>
+        </q8:coordinatesForDisplay>
+        <q8:supplementaryPositionalDescription>
+          <q8:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">R3-702, Dravograd - Trbonje</value>
+              <value lang="en">R3-702, Dravograd - Trbonje</value>
+            </values>
+          </q8:locationDescription>
+        </q8:supplementaryPositionalDescription>
+        <q8:pointByCoordinates>
+          <q8:pointCoordinates>
+            <q8:latitude>46.601677</q8:latitude>
+            <q8:longitude>15.092022</q8:longitude>
+          </q8:pointCoordinates>
+        </q8:pointByCoordinates>
+        <q8:pointAlongLinearElement>
+          <q8:linearElement xsi:type="q8:LinearElementByCode">
+            <q8:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">R3</value>
+                <value lang="en">R3</value>
+              </values>
+            </q8:roadName>
+            <q8:linearElementIdentifier>2703</q8:linearElementIdentifier>
+          </q8:linearElement>
+          <q8:distanceAlongLinearElement xsi:type="q8:DistanceFromLinearElementStart">
+            <q8:distanceAlong>6041</q8:distanceAlong>
+          </q8:distanceAlongLinearElement>
+        </q8:pointAlongLinearElement>
+        <q8:alertCPoint xsi:type="q8:AlertCMethod4Point">
+          <q8:alertCLocationCountryCode>702</q8:alertCLocationCountryCode>
+          <q8:alertCLocationTableNumber>35</q8:alertCLocationTableNumber>
+          <q8:alertCLocationTableVersion>2.2</q8:alertCLocationTableVersion>
+          <q8:alertCDirection>
+            <q8:alertCDirectionCoded>positive</q8:alertCDirectionCoded>
+            <q8:alertCAffectedDirection>both</q8:alertCAffectedDirection>
+          </q8:alertCDirection>
+          <q8:alertCMethod4PrimaryPointLocation>
+            <q8:alertCLocation>
+              <q8:specificLocation>39878</q8:specificLocation>
+            </q8:alertCLocation>
+            <q8:offsetDistance>
+              <q8:offsetDistance>1104</q8:offsetDistance>
+            </q8:offsetDistance>
+          </q8:alertCMethod4PrimaryPointLocation>
+        </q8:alertCPoint>
+        <q8:openlrPointLocationReference xsi:type="q8:OpenlrPointAlongLine">
+          <q8:openlrSideOfRoad>onRoadOrUnknown</q8:openlrSideOfRoad>
+          <q8:openlrOrientation>noOrientationOrUnknown</q8:openlrOrientation>
+          <q8:openlrLocationReferencePoint>
+            <q8:openlrCoordinates>
+              <q8:latitude>46.60189</q8:latitude>
+              <q8:longitude>15.0721</q8:longitude>
+            </q8:openlrCoordinates>
+            <q8:openlrLineAttributes>
+              <q8:openlrFunctionalRoadClass>frc4</q8:openlrFunctionalRoadClass>
+              <q8:openlrFormOfWay>singleCarriageway</q8:openlrFormOfWay>
+              <q8:openlrBearing>64</q8:openlrBearing>
+            </q8:openlrLineAttributes>
+            <q8:openlrPathAttributes>
+              <q8:openlrLowestFrcToNextLRPoint>frc4</q8:openlrLowestFrcToNextLRPoint>
+              <q8:openlrDistanceToNextLRPoint>2751</q8:openlrDistanceToNextLRPoint>
+            </q8:openlrPathAttributes>
+          </q8:openlrLocationReferencePoint>
+          <q8:openlrLastLocationReferencePoint>
+            <q8:openlrCoordinates>
+              <q8:latitude>46.60322</q8:latitude>
+              <q8:longitude>15.105189</q8:longitude>
+            </q8:openlrCoordinates>
+            <q8:openlrLineAttributes>
+              <q8:openlrFunctionalRoadClass>frc4</q8:openlrFunctionalRoadClass>
+              <q8:openlrFormOfWay>singleCarriageway</q8:openlrFormOfWay>
+              <q8:openlrBearing>309</q8:openlrBearing>
+            </q8:openlrLineAttributes>
+          </q8:openlrLastLocationReferencePoint>
+          <q8:openlrOffsets>
+            <q8:openlrPositiveOffset>1639</q8:openlrPositiveOffset>
+          </q8:openlrOffsets>
+        </q8:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <roadOrCarriagewayOrLaneManagementType>closedPermanentlyForTheWinter</roadOrCarriagewayOrLaneManagementType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;601235;2f5dd6c4-95a6-4b30-9800-50ba1b0741ac" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="RoadOrCarriagewayOrLaneManagement" id="DARS;601235;2f5dd6c4-95a6-4b30-9800-50ba1b0741ac" version="1">
+      <situationRecordCreationTime>2022-12-11T08:53:23.357Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-16T04:36:50.177Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-11T08:52:58.783Z</overallStartTime>
+          <overallEndTime>2023-01-01T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>0</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">R3-605, Kambreško - Solarji - Livek, sneg, popolna zapora zimske razmere.</value>
+            <value lang="en">R3-605, Kambreško - Solarji - Livek, snow, road closed due to winter condition.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q9="http://datex2.eu/schema/3/locationReferencing" xsi:type="q9:PointLocation">
+        <q9:coordinatesForDisplay>
+          <q9:latitude>46.178555</q9:latitude>
+          <q9:longitude>13.666834</q9:longitude>
+        </q9:coordinatesForDisplay>
+        <q9:supplementaryPositionalDescription>
+          <q9:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">R3-605, Kambreško - Kuščarji - Livek</value>
+              <value lang="en">R3-605, Kambreško - Kuščarji - Livek</value>
+            </values>
+          </q9:locationDescription>
+        </q9:supplementaryPositionalDescription>
+        <q9:pointByCoordinates>
+          <q9:pointCoordinates>
+            <q9:latitude>46.178555</q9:latitude>
+            <q9:longitude>13.666834</q9:longitude>
+          </q9:pointCoordinates>
+        </q9:pointByCoordinates>
+        <q9:pointAlongLinearElement>
+          <q9:linearElement xsi:type="q9:LinearElementByCode">
+            <q9:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">R3</value>
+                <value lang="en">R3</value>
+              </values>
+            </q9:roadName>
+            <q9:linearElementIdentifier>5702</q9:linearElementIdentifier>
+          </q9:linearElement>
+          <q9:distanceAlongLinearElement xsi:type="q9:DistanceFromLinearElementStart">
+            <q9:distanceAlong>9784</q9:distanceAlong>
+          </q9:distanceAlongLinearElement>
+        </q9:pointAlongLinearElement>
+        <q9:alertCPoint xsi:type="q9:AlertCMethod4Point">
+          <q9:alertCLocationCountryCode>702</q9:alertCLocationCountryCode>
+          <q9:alertCLocationTableNumber>35</q9:alertCLocationTableNumber>
+          <q9:alertCLocationTableVersion>2.2</q9:alertCLocationTableVersion>
+          <q9:alertCDirection>
+            <q9:alertCDirectionCoded>positive</q9:alertCDirectionCoded>
+            <q9:alertCAffectedDirection>both</q9:alertCAffectedDirection>
+          </q9:alertCDirection>
+          <q9:alertCMethod4PrimaryPointLocation>
+            <q9:alertCLocation>
+              <q9:specificLocation>39688</q9:specificLocation>
+            </q9:alertCLocation>
+            <q9:offsetDistance>
+              <q9:offsetDistance>714</q9:offsetDistance>
+            </q9:offsetDistance>
+          </q9:alertCMethod4PrimaryPointLocation>
+        </q9:alertCPoint>
+        <q9:openlrPointLocationReference xsi:type="q9:OpenlrPointAlongLine">
+          <q9:openlrSideOfRoad>onRoadOrUnknown</q9:openlrSideOfRoad>
+          <q9:openlrOrientation>noOrientationOrUnknown</q9:openlrOrientation>
+          <q9:openlrLocationReferencePoint>
+            <q9:openlrCoordinates>
+              <q9:latitude>46.179825</q9:latitude>
+              <q9:longitude>13.664842</q9:longitude>
+            </q9:openlrCoordinates>
+            <q9:openlrLineAttributes>
+              <q9:openlrFunctionalRoadClass>frc5</q9:openlrFunctionalRoadClass>
+              <q9:openlrFormOfWay>singleCarriageway</q9:openlrFormOfWay>
+              <q9:openlrBearing>162</q9:openlrBearing>
+            </q9:openlrLineAttributes>
+            <q9:openlrPathAttributes>
+              <q9:openlrLowestFrcToNextLRPoint>frc5</q9:openlrLowestFrcToNextLRPoint>
+              <q9:openlrDistanceToNextLRPoint>4443</q9:openlrDistanceToNextLRPoint>
+            </q9:openlrPathAttributes>
+          </q9:openlrLocationReferencePoint>
+          <q9:openlrLastLocationReferencePoint>
+            <q9:openlrCoordinates>
+              <q9:latitude>46.159584</q9:latitude>
+              <q9:longitude>13.676655</q9:longitude>
+            </q9:openlrCoordinates>
+            <q9:openlrLineAttributes>
+              <q9:openlrFunctionalRoadClass>frc5</q9:openlrFunctionalRoadClass>
+              <q9:openlrFormOfWay>singleCarriageway</q9:openlrFormOfWay>
+              <q9:openlrBearing>11</q9:openlrBearing>
+            </q9:openlrLineAttributes>
+          </q9:openlrLastLocationReferencePoint>
+          <q9:openlrOffsets>
+            <q9:openlrPositiveOffset>718</q9:openlrPositiveOffset>
+          </q9:openlrOffsets>
+        </q9:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <roadOrCarriagewayOrLaneManagementType>closedPermanentlyForTheWinter</roadOrCarriagewayOrLaneManagementType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;600997;5f21ebbd-b12a-4f28-b4e0-845e8c618142" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="WinterDrivingManagement" id="DARS;600997;5f21ebbd-b12a-4f28-b4e0-845e8c618142" version="1">
+      <situationRecordCreationTime>2022-12-09T06:28:51.297Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-12-19T11:04:43.24Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-12-09T06:28:36.673Z</overallStartTime>
+          <overallEndTime>2022-12-29T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>50</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">R1-206, Kranjska Gora - Vršič - Bovec, prelaz Vršič, sneg, prevozen samo za osebna vozila z verigami.</value>
+            <value lang="en">R1-206, Kranjska Gora - Vršič - Bovec, pass Vršič, snow, tire chains mandatory, passenger cars.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q10="http://datex2.eu/schema/3/locationReferencing" xsi:type="q10:PointLocation">
+        <q10:coordinatesForDisplay>
+          <q10:latitude>46.41762</q10:latitude>
+          <q10:longitude>13.742554</q10:longitude>
+        </q10:coordinatesForDisplay>
+        <q10:supplementaryPositionalDescription>
+          <q10:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">R1-206, Vršič - Trenta</value>
+              <value lang="en">R1-206, Vršič - Trenta</value>
+            </values>
+          </q10:locationDescription>
+        </q10:supplementaryPositionalDescription>
+        <q10:pointByCoordinates>
+          <q10:pointCoordinates>
+            <q10:latitude>46.41762</q10:latitude>
+            <q10:longitude>13.742554</q10:longitude>
+          </q10:pointCoordinates>
+        </q10:pointByCoordinates>
+        <q10:pointAlongLinearElement>
+          <q10:linearElement xsi:type="q10:LinearElementByCode">
+            <q10:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">R1</value>
+                <value lang="en">R1</value>
+              </values>
+            </q10:roadName>
+            <q10:linearElementIdentifier>1028</q10:linearElementIdentifier>
+          </q10:linearElement>
+          <q10:distanceAlongLinearElement xsi:type="q10:DistanceFromLinearElementStart">
+            <q10:distanceAlong>2352</q10:distanceAlong>
+          </q10:distanceAlongLinearElement>
+        </q10:pointAlongLinearElement>
+        <q10:alertCPoint xsi:type="q10:AlertCMethod4Point">
+          <q10:alertCLocationCountryCode>702</q10:alertCLocationCountryCode>
+          <q10:alertCLocationTableNumber>35</q10:alertCLocationTableNumber>
+          <q10:alertCLocationTableVersion>2.2</q10:alertCLocationTableVersion>
+          <q10:alertCDirection>
+            <q10:alertCDirectionCoded>positive</q10:alertCDirectionCoded>
+            <q10:alertCAffectedDirection>both</q10:alertCAffectedDirection>
+          </q10:alertCDirection>
+          <q10:alertCMethod4PrimaryPointLocation>
+            <q10:alertCLocation>
+              <q10:specificLocation>30693</q10:specificLocation>
+            </q10:alertCLocation>
+            <q10:offsetDistance>
+              <q10:offsetDistance>6608</q10:offsetDistance>
+            </q10:offsetDistance>
+          </q10:alertCMethod4PrimaryPointLocation>
+        </q10:alertCPoint>
+        <q10:openlrPointLocationReference xsi:type="q10:OpenlrPointAlongLine">
+          <q10:openlrSideOfRoad>onRoadOrUnknown</q10:openlrSideOfRoad>
+          <q10:openlrOrientation>noOrientationOrUnknown</q10:openlrOrientation>
+          <q10:openlrLocationReferencePoint>
+            <q10:openlrCoordinates>
+              <q10:latitude>46.40591</q10:latitude>
+              <q10:longitude>13.739277</q10:longitude>
+            </q10:openlrCoordinates>
+            <q10:openlrLineAttributes>
+              <q10:openlrFunctionalRoadClass>frc3</q10:openlrFunctionalRoadClass>
+              <q10:openlrFormOfWay>singleCarriageway</q10:openlrFormOfWay>
+              <q10:openlrBearing>61</q10:openlrBearing>
+            </q10:openlrLineAttributes>
+            <q10:openlrPathAttributes>
+              <q10:openlrLowestFrcToNextLRPoint>frc3</q10:openlrLowestFrcToNextLRPoint>
+              <q10:openlrDistanceToNextLRPoint>9782</q10:openlrDistanceToNextLRPoint>
+            </q10:openlrPathAttributes>
+          </q10:openlrLocationReferencePoint>
+          <q10:openlrLastLocationReferencePoint>
+            <q10:openlrCoordinates>
+              <q10:latitude>46.438953</q10:latitude>
+              <q10:longitude>13.74805</q10:longitude>
+            </q10:openlrCoordinates>
+            <q10:openlrLineAttributes>
+              <q10:openlrFunctionalRoadClass>frc3</q10:openlrFunctionalRoadClass>
+              <q10:openlrFormOfWay>singleCarriageway</q10:openlrFormOfWay>
+              <q10:openlrBearing>217</q10:openlrBearing>
+            </q10:openlrLineAttributes>
+          </q10:openlrLastLocationReferencePoint>
+          <q10:openlrOffsets>
+            <q10:openlrPositiveOffset>6638</q10:openlrPositiveOffset>
+          </q10:openlrOffsets>
+        </q10:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <winterEquipmentManagementType>useSnowChains</winterEquipmentManagementType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;598910;bfbd3827-4b65-4c10-a141-ab84f32868bc" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="RoadOrCarriagewayOrLaneManagement" id="DARS;598910;bfbd3827-4b65-4c10-a141-ab84f32868bc" version="1">
+      <situationRecordCreationTime>2022-11-23T07:47:34.23Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-11-24T05:08:46.62Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-11-23T07:46:21.553Z</overallStartTime>
+          <overallEndTime>2023-03-15T22:00:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>0</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">R3-609, Predmeja - Lokve, popolna zapora v zimskem času, do 15. 3. 2023.</value>
+            <value lang="en">R3-609, Predmeja - Lokve, road closed in winter time, until 15. 3. 2023.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q11="http://datex2.eu/schema/3/locationReferencing" xsi:type="q11:PointLocation">
+        <q11:coordinatesForDisplay>
+          <q11:latitude>45.965168</q11:latitude>
+          <q11:longitude>13.8406925</q11:longitude>
+        </q11:coordinatesForDisplay>
+        <q11:supplementaryPositionalDescription>
+          <q11:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">R3-609, Predmeja - Lokve</value>
+              <value lang="en">R3-609, Predmeja - Lokve</value>
+            </values>
+          </q11:locationDescription>
+        </q11:supplementaryPositionalDescription>
+        <q11:pointByCoordinates>
+          <q11:pointCoordinates>
+            <q11:latitude>45.965168</q11:latitude>
+            <q11:longitude>13.8406925</q11:longitude>
+          </q11:pointCoordinates>
+        </q11:pointByCoordinates>
+        <q11:pointAlongLinearElement>
+          <q11:linearElement xsi:type="q11:LinearElementByCode">
+            <q11:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">R3</value>
+                <value lang="en">R3</value>
+              </values>
+            </q11:roadName>
+            <q11:linearElementIdentifier>1064</q11:linearElementIdentifier>
+          </q11:linearElement>
+          <q11:distanceAlongLinearElement xsi:type="q11:DistanceFromLinearElementStart">
+            <q11:distanceAlong>4264</q11:distanceAlong>
+          </q11:distanceAlongLinearElement>
+        </q11:pointAlongLinearElement>
+        <q11:alertCPoint xsi:type="q11:AlertCMethod4Point">
+          <q11:alertCLocationCountryCode>702</q11:alertCLocationCountryCode>
+          <q11:alertCLocationTableNumber>35</q11:alertCLocationTableNumber>
+          <q11:alertCLocationTableVersion>2.2</q11:alertCLocationTableVersion>
+          <q11:alertCDirection>
+            <q11:alertCDirectionCoded>positive</q11:alertCDirectionCoded>
+            <q11:alertCAffectedDirection>both</q11:alertCAffectedDirection>
+          </q11:alertCDirection>
+          <q11:alertCMethod4PrimaryPointLocation>
+            <q11:alertCLocation>
+              <q11:specificLocation>32531</q11:specificLocation>
+            </q11:alertCLocation>
+            <q11:offsetDistance>
+              <q11:offsetDistance>933</q11:offsetDistance>
+            </q11:offsetDistance>
+          </q11:alertCMethod4PrimaryPointLocation>
+        </q11:alertCPoint>
+        <q11:openlrPointLocationReference xsi:type="q11:OpenlrPointAlongLine">
+          <q11:openlrSideOfRoad>onRoadOrUnknown</q11:openlrSideOfRoad>
+          <q11:openlrOrientation>noOrientationOrUnknown</q11:openlrOrientation>
+          <q11:openlrLocationReferencePoint>
+            <q11:openlrCoordinates>
+              <q11:latitude>45.966286</q11:latitude>
+              <q11:longitude>13.839181</q11:longitude>
+            </q11:openlrCoordinates>
+            <q11:openlrLineAttributes>
+              <q11:openlrFunctionalRoadClass>frc4</q11:openlrFunctionalRoadClass>
+              <q11:openlrFormOfWay>singleCarriageway</q11:openlrFormOfWay>
+              <q11:openlrBearing>144</q11:openlrBearing>
+            </q11:openlrLineAttributes>
+            <q11:openlrPathAttributes>
+              <q11:openlrLowestFrcToNextLRPoint>frc4</q11:openlrLowestFrcToNextLRPoint>
+              <q11:openlrDistanceToNextLRPoint>412</q11:openlrDistanceToNextLRPoint>
+            </q11:openlrPathAttributes>
+          </q11:openlrLocationReferencePoint>
+          <q11:openlrLastLocationReferencePoint>
+            <q11:openlrCoordinates>
+              <q11:latitude>45.96339</q11:latitude>
+              <q11:longitude>13.84244</q11:longitude>
+            </q11:openlrCoordinates>
+            <q11:openlrLineAttributes>
+              <q11:openlrFunctionalRoadClass>frc4</q11:openlrFunctionalRoadClass>
+              <q11:openlrFormOfWay>singleCarriageway</q11:openlrFormOfWay>
+              <q11:openlrBearing>333</q11:openlrBearing>
+            </q11:openlrLineAttributes>
+          </q11:openlrLastLocationReferencePoint>
+          <q11:openlrOffsets>
+            <q11:openlrPositiveOffset>172</q11:openlrPositiveOffset>
+          </q11:openlrOffsets>
+        </q11:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <roadOrCarriagewayOrLaneManagementType>closedPermanentlyForTheWinter</roadOrCarriagewayOrLaneManagementType>
+    </situationRecord>
+  </situation>
+  <situation id="DARS;598409;8c22a742-a255-4e68-aa06-d5f256127685" xmlns="http://datex2.eu/schema/3/situation">
+    <headerInformation>
+      <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+      <informationStatus xmlns="http://datex2.eu/schema/3/common">real</informationStatus>
+    </headerInformation>
+    <situationRecord xsi:type="RoadOrCarriagewayOrLaneManagement" id="DARS;598409;8c22a742-a255-4e68-aa06-d5f256127685" version="1">
+      <situationRecordCreationTime>2022-11-19T05:03:42.04Z</situationRecordCreationTime>
+      <situationRecordVersionTime>2022-11-19T05:03:42.04Z</situationRecordVersionTime>
+      <probabilityOfOccurrence>certain</probabilityOfOccurrence>
+      <severity>unknown</severity>
+      <safetyRelatedMessage>false</safetyRelatedMessage>
+      <validity>
+        <validityStatus xmlns="http://datex2.eu/schema/3/common">definedByValidityTimeSpec</validityStatus>
+        <validityTimeSpecification xmlns="http://datex2.eu/schema/3/common">
+          <overallStartTime>2022-11-19T05:02:12.587Z</overallStartTime>
+          <overallEndTime>2023-03-15T22:59:00Z</overallEndTime>
+        </validityTimeSpecification>
+      </validity>
+      <impact>
+        <capacityRemaining>0</capacityRemaining>
+      </impact>
+      <generalPublicComment>
+        <comment>
+          <values xmlns="http://datex2.eu/schema/3/common">
+            <value lang="sl">RT-929, Areh - Šumik - Osankarica - Lukanja, popolna zapora v zimskem času, do 15. 3. 2023.</value>
+            <value lang="en">RT-929, Areh - Šumik - Osankarica - Lukanja, road closed in winter time, until 15. 3. 2023.</value>
+          </values>
+        </comment>
+        <commentType>description</commentType>
+      </generalPublicComment>
+      <locationReference xmlns:q12="http://datex2.eu/schema/3/locationReferencing" xsi:type="q12:PointLocation">
+        <q12:coordinatesForDisplay>
+          <q12:latitude>46.50012</q12:latitude>
+          <q12:longitude>15.480266</q12:longitude>
+        </q12:coordinatesForDisplay>
+        <q12:supplementaryPositionalDescription>
+          <q12:locationDescription>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">RT-929, Areh - Šumik - Osankarica - Lukanja</value>
+              <value lang="en">RT-929, Areh - Šumik - Osankarica - Lukanja</value>
+            </values>
+          </q12:locationDescription>
+        </q12:supplementaryPositionalDescription>
+        <q12:pointByCoordinates>
+          <q12:pointCoordinates>
+            <q12:latitude>46.50012</q12:latitude>
+            <q12:longitude>15.480266</q12:longitude>
+          </q12:pointCoordinates>
+        </q12:pointByCoordinates>
+        <q12:pointAlongLinearElement>
+          <q12:linearElement xsi:type="q12:LinearElementByCode">
+            <q12:roadName>
+              <values xmlns="http://datex2.eu/schema/3/common">
+                <value lang="sl">RT</value>
+                <value lang="en">RT</value>
+              </values>
+            </q12:roadName>
+            <q12:linearElementIdentifier>7070</q12:linearElementIdentifier>
+          </q12:linearElement>
+          <q12:distanceAlongLinearElement xsi:type="q12:DistanceFromLinearElementStart">
+            <q12:distanceAlong>2282</q12:distanceAlong>
+          </q12:distanceAlongLinearElement>
+        </q12:pointAlongLinearElement>
+        <q12:alertCPoint xsi:type="q12:AlertCMethod4Point">
+          <q12:alertCLocationCountryCode>702</q12:alertCLocationCountryCode>
+          <q12:alertCLocationTableNumber>35</q12:alertCLocationTableNumber>
+          <q12:alertCLocationTableVersion>2.2</q12:alertCLocationTableVersion>
+          <q12:alertCDirection>
+            <q12:alertCDirectionCoded>positive</q12:alertCDirectionCoded>
+            <q12:alertCAffectedDirection>both</q12:alertCAffectedDirection>
+          </q12:alertCDirection>
+          <q12:alertCMethod4PrimaryPointLocation>
+            <q12:alertCLocation>
+              <q12:specificLocation>34512</q12:specificLocation>
+            </q12:alertCLocation>
+            <q12:offsetDistance>
+              <q12:offsetDistance>2419</q12:offsetDistance>
+            </q12:offsetDistance>
+          </q12:alertCMethod4PrimaryPointLocation>
+        </q12:alertCPoint>
+        <q12:openlrPointLocationReference xsi:type="q12:OpenlrPointAlongLine">
+          <q12:openlrSideOfRoad>onRoadOrUnknown</q12:openlrSideOfRoad>
+          <q12:openlrOrientation>noOrientationOrUnknown</q12:openlrOrientation>
+          <q12:openlrLocationReferencePoint>
+            <q12:openlrCoordinates>
+              <q12:latitude>46.499424</q12:latitude>
+              <q12:longitude>15.475153</q12:longitude>
+            </q12:openlrCoordinates>
+            <q12:openlrLineAttributes>
+              <q12:openlrFunctionalRoadClass>frc4</q12:openlrFunctionalRoadClass>
+              <q12:openlrFormOfWay>singleCarriageway</q12:openlrFormOfWay>
+              <q12:openlrBearing>69</q12:openlrBearing>
+            </q12:openlrLineAttributes>
+            <q12:openlrPathAttributes>
+              <q12:openlrLowestFrcToNextLRPoint>frc4</q12:openlrLowestFrcToNextLRPoint>
+              <q12:openlrDistanceToNextLRPoint>2440</q12:openlrDistanceToNextLRPoint>
+            </q12:openlrPathAttributes>
+          </q12:openlrLocationReferencePoint>
+          <q12:openlrLastLocationReferencePoint>
+            <q12:openlrCoordinates>
+              <q12:latitude>46.496437</q12:latitude>
+              <q12:longitude>15.504735</q12:longitude>
+            </q12:openlrCoordinates>
+            <q12:openlrLineAttributes>
+              <q12:openlrFunctionalRoadClass>frc4</q12:openlrFunctionalRoadClass>
+              <q12:openlrFormOfWay>singleCarriageway</q12:openlrFormOfWay>
+              <q12:openlrBearing>305</q12:openlrBearing>
+            </q12:openlrLineAttributes>
+          </q12:openlrLastLocationReferencePoint>
+          <q12:openlrOffsets>
+            <q12:openlrPositiveOffset>422</q12:openlrPositiveOffset>
+          </q12:openlrOffsets>
+        </q12:openlrPointLocationReference>
+      </locationReference>
+      <complianceOption>mandatory</complianceOption>
+      <roadOrCarriagewayOrLaneManagementType>closedPermanentlyForTheWinter</roadOrCarriagewayOrLaneManagementType>
+    </situationRecord>
+  </situation>
+</SituationPublication>

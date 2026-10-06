@@ -157,26 +157,26 @@ niso pripravljene, napoved deluje z oceno tipičnih konic in to izpiše.
 (`supabase db push` ali SQL Editor). Na Vercelu mora biti nastavljen
 `SUPABASE_SERVICE_ROLE_KEY`.
 
-## 4c. Dostop NAP (Slovenija, DATEX II)
+## 4c. Dostop NAP (Slovenija, DATEX II v3.3)
 
-Z osebnim dostopom do nap.si aplikacija bere števce prometa, potovalne čase
-in dogodke DARS (`api/_lib/promet/viri/nap.js`, `datex2.js`). Nastavitve so
-**samo v Vercel → Settings → Environment Variables** (nikoli v kodi):
+Z osebnim dostopom do nap.si aplikacija bere uradne vire NCUP (DARS/DRSI),
+licenca CC BY-SA 4.0 (navedba vira). Naslovi so preverjeni na nap.si in
+privzeti v `api/_lib/promet/viri/nap.js`:
 
-| Ime | Vrednost |
-|---|---|
-| `PROMET_NAP_UPORABNIK` | uporabniško ime na nap.si |
-| `PROMET_NAP_GESLO` | geslo na nap.si |
-| `PROMET_NAP_URL_DOGODKI` | naslov vira dogodkov (DATEX II) |
-| `PROMET_NAP_URL_STEVCI` | naslov meritev števcev prometa |
-| `PROMET_NAP_URL_STEVCI_LOKACIJE` | naslov tabele merilnih mest (če je ločen) |
-| `PROMET_NAP_URL_POTOVALNI_CASI` | naslov potovalnih časov |
-| `PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE` | naslov preddefiniranih odsekov (če je ločen) |
+| Vir | Naslov | Pokritost | Osveževanje |
+|---|---|---|---|
+| Števci prometa | `b2b.ncup.si/data/b2b.counters.datexii33` (+ `.locations`) | avtoceste, državne, regionalne ceste | do 5 min |
+| Potovalni časi | `b2b.ncup.si/data/b2b.traveltimes.promet.datexii33` | avtoceste | do 1 min |
+| FCD (podatki iz vozil) | `b2b.ncup.si/data/b2b.fcd.datexii33.status` (+ `.locations`) | avtoceste | do 1 min |
+| Prometni dogodki | `b2b.ncup.si/data/b2b.events.datexii33` | vse ceste | sproti |
 
-Manjkajoč naslov pomeni, da vir ni vključen. Ko je nastavljen vsaj en
-naslov, zemljevid in zbiralnik zgodovine uporabljata NAP namesto javnih virov
-promet.si. Napake (npr. »dostop zavrnjen (HTTP 401)«) so izpisane pod
-zemljevidom; geslo se nikoli ne izpiše.
+**Nastaviti je treba samo prijavo** (Vercel → Settings → Environment Variables):
+`PROMET_NAP_UPORABNIK`, `PROMET_NAP_GESLO`. Naslove je mogoče preglasiti s
+`PROMET_NAP_URL_<VIR>` ali vir izklopiti z vrednostjo `-`.
+
+Bralnik je preizkušen na uradnih vzorcih z nap.si
+(`scripts/fixtures/promet/nap-real-*.xml`). Vsi števci (≈1.500, 31 MB XML)
+se razčlenijo v ~4 s pri ~260 MB pomnilnika.
 
 ## 5. Naslednji koraki
 

@@ -78,21 +78,34 @@ function id(v) {
   return String(v["@id"] || v["@targetId"] || v["@idG"] || besedilo(v["id"]) || "");
 }
 
-/* Koordinate v lokaciji: pointCoordinates (lat/lon) ali GML posList. */
-function koordinate(lokacija) {
-  var tocke = [];
-  najdiVse(lokacija, "pointCoordinates").forEach(function (p) {
+/* Koordinate v lokaciji. Po vrstnem redu natančnosti (prvi, ki obstaja):
+   GML posList (cela linija) -> OpenLR referenčne točke -> pointCoordinates
+   -> coordinatesForDisplay (ena točka za prikaz). NAP v3.3 uporablja vse. */
+function tockeIz(seznamVozlisc) {
+  var out = [];
+  seznamVozlisc.forEach(function (p) {
     var lat = stevilo(p.latitude);
     var lon = stevilo(p.longitude);
-    if (lat != null && lon != null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) tocke.push({ lat: lat, lon: lon });
+    if (lat != null && lon != null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) out.push({ lat: lat, lon: lon });
   });
+  return out;
+}
+
+function koordinate(lokacija) {
+  var tocke = [];
   najdiVse(lokacija, "posList").forEach(function (pl) {
     var d = besedilo(pl).trim().split(/\s+/).map(Number);
     for (var i = 0; i + 1 < d.length; i += 2) {
       if (Number.isFinite(d[i]) && Number.isFinite(d[i + 1])) tocke.push({ lat: d[i], lon: d[i + 1] });
     }
   });
-  return tocke;
+  if (tocke.length >= 2) return tocke;
+  var openlr = tockeIz(najdiVse(lokacija, "openlrCoordinates"));
+  if (openlr.length) return openlr;
+  if (tocke.length) return tocke;
+  var tocka = tockeIz(najdiVse(lokacija, "pointCoordinates"));
+  if (tocka.length) return tocka;
+  return tockeIz(najdiVse(lokacija, "coordinatesForDisplay"));
 }
 
 /* ---------- Situacije (dogodki) ---------- */
@@ -149,7 +162,8 @@ function razcleniSituacije(xml) {
 function razcleniMerilnaMesta(xml) {
   var drevo = typeof xml === "string" ? razcleni(xml) : xml;
   var mesta = new Map();
-  najdiVse(drevo, "measurementSiteRecord").forEach(function (m) {
+  // v2.3: measurementSiteRecord; v3.x (NAP): measurementSite
+  najdiVse(drevo, "measurementSiteRecord").concat(najdiVse(drevo, "measurementSite")).forEach(function (m) {
     var tocke = koordinate(m.measurementSiteLocation || m);
     if (!tocke.length) return;
     mesta.set(id(m), {
@@ -195,24 +209,29 @@ function razcleniMeritve(xml) {
 function razcleniPotovalneCase(xml) {
   var drevo = typeof xml === "string" ? razcleni(xml) : xml;
   var out = [];
-  najdiVse(drevo, "basicData").concat(najdiVse(drevo, "elaboratedData").map(function (e) { return e.basicData; }).filter(Boolean))
-    .filter(function (b, i, a) { return a.indexOf(b) === i; })
-    .forEach(function (b) {
+  // v3.x: physicalQuantity { pertinentLocation, source, basicData }; v2.3: elaboratedData { basicData { pertinentLocation } }
+  var vsebniki = najdiVse(drevo, "physicalQuantity").concat(najdiVse(drevo, "elaboratedData"));
+  vsebniki.forEach(function (v) {
+    seznam(v.basicData).forEach(function (b) {
       if (!/TravelTime/i.test(tip(b))) return;
-      var cas = stevilo(prvi(b.travelTime || b, "duration"));
+      var cas = stevilo(prvi(b.travelTime || {}, "duration"));
       if (cas == null) cas = stevilo(b.travelTime);
+      if (cas == null) return;
       var prosto = stevilo(prvi(b.freeFlowTravelTime || {}, "duration"));
       if (prosto == null) prosto = stevilo(b.freeFlowTravelTime);
-      var lok = b.pertinentLocation || b.locationReference || b;
-      var predef = prvi(lok, "predefinedLocationReference") || prvi(b, "predefinedLocationReference");
-      if (cas == null) return;
+      var obicajno = stevilo(prvi(b.normallyExpectedTravelTime || {}, "duration"));
+      var lok = v.pertinentLocation || b.pertinentLocation || {};
+      var predef = prvi(lok, "predefinedLocationReference");
       out.push({
-        lokacija: id(predef) || besedilo(predef) || null,
-        tocke: koordinate(lok),
+        lokacija: predef ? (id(predef) || besedilo(predef)) : null,
+        tocke: predef ? [] : koordinate(lok),
+        ime: besedilo(prvi(v.source || {}, "sourceName")),
         casS: cas,
-        prostoS: prosto
+        prostoS: prosto,
+        obicajnoS: obicajno
       });
     });
+  });
   return out;
 }
 
@@ -220,10 +239,12 @@ function razcleniPotovalneCase(xml) {
 function razcleniLokacije(xml) {
   var drevo = typeof xml === "string" ? razcleni(xml) : xml;
   var lokacije = new Map();
-  ["predefinedLocation", "predefinedItinerary", "predefinedLocationContainer"].forEach(function (ime) {
+  // NAP v3.3: predefinedLocationReference (xsi:type PredefinedLocation) z id in lokacijo
+  ["predefinedLocation", "predefinedLocationReference", "predefinedItinerary"].forEach(function (ime) {
     najdiVse(drevo, ime).forEach(function (l) {
+      if (!l || typeof l !== "object" || !id(l) || lokacije.has(id(l))) return;
       var t = koordinate(l);
-      if (t.length && id(l)) lokacije.set(id(l), { ime: besedilo(l.predefinedLocationName) || besedilo(l.name), tocke: t });
+      if (t.length) lokacije.set(id(l), { ime: besedilo(l.predefinedLocationName) || besedilo(l.name), tocke: t });
     });
   });
   return lokacije;

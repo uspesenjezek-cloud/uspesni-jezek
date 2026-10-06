@@ -1,0 +1,1487 @@
+<MeasuredDataPublication xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" lang="sl" modelBaseVersion="3">
+  <publicationTime xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:29:39.4318353Z</publicationTime>
+  <publicationCreator xmlns="http://datex2.eu/schema/3/common">
+    <country>si</country>
+    <nationalIdentifier>NCUP</nationalIdentifier>
+  </publicationCreator>
+  <measurementSiteTableReference id="counters" version="1" targetClass="roa:MeasurementSiteTable" xmlns="http://datex2.eu/schema/3/roadTrafficData" />
+  <headerInformation xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <confidentiality xmlns="http://datex2.eu/schema/3/common">noRestriction</confidentiality>
+  </headerInformation>
+  <siteMeasurements xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <measurementSiteReference id="1001-11" version="1" targetClass="roa:MeasurementSite" />
+    <physicalQuantity index="0">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q1="http://datex2.eu/schema/3/locationReferencing" xsi:type="q1:PointLocation">
+          <q1:coordinatesForDisplay>
+            <q1:latitude>46.06786</q1:latitude>
+            <q1:longitude>14.570367</q1:longitude>
+          </q1:coordinatesForDisplay>
+          <q1:pointByCoordinates>
+            <q1:pointCoordinates>
+              <q1:latitude>46.06786</q1:latitude>
+              <q1:longitude>14.570367</q1:longitude>
+            </q1:pointCoordinates>
+          </q1:pointByCoordinates>
+          <q1:pointAlongLinearElement>
+            <q1:directionRelativeAtPoint>aligned</q1:directionRelativeAtPoint>
+            <q1:linearElement xsi:type="q1:LinearElementByCode">
+              <q1:linearElementIdentifier>0146</q1:linearElementIdentifier>
+            </q1:linearElement>
+            <q1:distanceAlongLinearElement xsi:type="q1:DistanceFromLinearElementStart">
+              <q1:distanceAlong>696</q1:distanceAlong>
+            </q1:distanceAlongLinearElement>
+          </q1:pointAlongLinearElement>
+          <q1:alertCPoint xsi:type="q1:AlertCMethod4Point">
+            <q1:alertCLocationCountryCode>702</q1:alertCLocationCountryCode>
+            <q1:alertCLocationTableNumber>35</q1:alertCLocationTableNumber>
+            <q1:alertCLocationTableVersion>2.2</q1:alertCLocationTableVersion>
+            <q1:alertCDirection>
+              <q1:alertCDirectionCoded>positive</q1:alertCDirectionCoded>
+              <q1:alertCAffectedDirection>aligned</q1:alertCAffectedDirection>
+            </q1:alertCDirection>
+            <q1:alertCMethod4PrimaryPointLocation>
+              <q1:alertCLocation>
+                <q1:specificLocation>30038</q1:specificLocation>
+              </q1:alertCLocation>
+              <q1:offsetDistance>
+                <q1:offsetDistance>0</q1:offsetDistance>
+              </q1:offsetDistance>
+            </q1:alertCMethod4PrimaryPointLocation>
+          </q1:alertCPoint>
+          <q1:openlrPointLocationReference xsi:type="q1:OpenlrPointAlongLine">
+            <q1:openlrSideOfRoad>onRoadOrUnknown</q1:openlrSideOfRoad>
+            <q1:openlrOrientation>noOrientationOrUnknown</q1:openlrOrientation>
+            <q1:openlrLocationReferencePoint>
+              <q1:openlrCoordinates>
+                <q1:latitude>46.070866</q1:latitude>
+                <q1:longitude>14.5778</q1:longitude>
+              </q1:openlrCoordinates>
+              <q1:openlrLineAttributes>
+                <q1:openlrFunctionalRoadClass>frc0</q1:openlrFunctionalRoadClass>
+                <q1:openlrFormOfWay>undefined</q1:openlrFormOfWay>
+                <q1:openlrBearing>231</q1:openlrBearing>
+              </q1:openlrLineAttributes>
+              <q1:openlrPathAttributes>
+                <q1:openlrLowestFrcToNextLRPoint>frc0</q1:openlrLowestFrcToNextLRPoint>
+                <q1:openlrDistanceToNextLRPoint>766</q1:openlrDistanceToNextLRPoint>
+              </q1:openlrPathAttributes>
+            </q1:openlrLocationReferencePoint>
+            <q1:openlrLastLocationReferencePoint>
+              <q1:openlrCoordinates>
+                <q1:latitude>46.067684</q1:latitude>
+                <q1:longitude>14.569692</q1:longitude>
+              </q1:openlrCoordinates>
+              <q1:openlrLineAttributes>
+                <q1:openlrFunctionalRoadClass>frc0</q1:openlrFunctionalRoadClass>
+                <q1:openlrFormOfWay>undefined</q1:openlrFormOfWay>
+                <q1:openlrBearing>45</q1:openlrBearing>
+              </q1:openlrLineAttributes>
+            </q1:openlrLastLocationReferencePoint>
+            <q1:openlrOffsets>
+              <q1:openlrPositiveOffset>703</q1:openlrPositiveOffset>
+            </q1:openlrOffsets>
+          </q1:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficFlow">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <forVehiclesWithCharacteristicsOf>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </forVehiclesWithCharacteristicsOf>
+          <vehicleFlow>
+            <vehicleFlowRate xmlns="http://datex2.eu/schema/3/common">372</vehicleFlowRate>
+          </vehicleFlow>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="3">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q2="http://datex2.eu/schema/3/locationReferencing" xsi:type="q2:PointLocation">
+          <q2:coordinatesForDisplay>
+            <q2:latitude>46.06786</q2:latitude>
+            <q2:longitude>14.570367</q2:longitude>
+          </q2:coordinatesForDisplay>
+          <q2:pointByCoordinates>
+            <q2:pointCoordinates>
+              <q2:latitude>46.06786</q2:latitude>
+              <q2:longitude>14.570367</q2:longitude>
+            </q2:pointCoordinates>
+          </q2:pointByCoordinates>
+          <q2:pointAlongLinearElement>
+            <q2:directionRelativeAtPoint>aligned</q2:directionRelativeAtPoint>
+            <q2:linearElement xsi:type="q2:LinearElementByCode">
+              <q2:linearElementIdentifier>0146</q2:linearElementIdentifier>
+            </q2:linearElement>
+            <q2:distanceAlongLinearElement xsi:type="q2:DistanceFromLinearElementStart">
+              <q2:distanceAlong>696</q2:distanceAlong>
+            </q2:distanceAlongLinearElement>
+          </q2:pointAlongLinearElement>
+          <q2:alertCPoint xsi:type="q2:AlertCMethod4Point">
+            <q2:alertCLocationCountryCode>702</q2:alertCLocationCountryCode>
+            <q2:alertCLocationTableNumber>35</q2:alertCLocationTableNumber>
+            <q2:alertCLocationTableVersion>2.2</q2:alertCLocationTableVersion>
+            <q2:alertCDirection>
+              <q2:alertCDirectionCoded>positive</q2:alertCDirectionCoded>
+              <q2:alertCAffectedDirection>aligned</q2:alertCAffectedDirection>
+            </q2:alertCDirection>
+            <q2:alertCMethod4PrimaryPointLocation>
+              <q2:alertCLocation>
+                <q2:specificLocation>30038</q2:specificLocation>
+              </q2:alertCLocation>
+              <q2:offsetDistance>
+                <q2:offsetDistance>0</q2:offsetDistance>
+              </q2:offsetDistance>
+            </q2:alertCMethod4PrimaryPointLocation>
+          </q2:alertCPoint>
+          <q2:openlrPointLocationReference xsi:type="q2:OpenlrPointAlongLine">
+            <q2:openlrSideOfRoad>onRoadOrUnknown</q2:openlrSideOfRoad>
+            <q2:openlrOrientation>noOrientationOrUnknown</q2:openlrOrientation>
+            <q2:openlrLocationReferencePoint>
+              <q2:openlrCoordinates>
+                <q2:latitude>46.070866</q2:latitude>
+                <q2:longitude>14.5778</q2:longitude>
+              </q2:openlrCoordinates>
+              <q2:openlrLineAttributes>
+                <q2:openlrFunctionalRoadClass>frc0</q2:openlrFunctionalRoadClass>
+                <q2:openlrFormOfWay>undefined</q2:openlrFormOfWay>
+                <q2:openlrBearing>231</q2:openlrBearing>
+              </q2:openlrLineAttributes>
+              <q2:openlrPathAttributes>
+                <q2:openlrLowestFrcToNextLRPoint>frc0</q2:openlrLowestFrcToNextLRPoint>
+                <q2:openlrDistanceToNextLRPoint>766</q2:openlrDistanceToNextLRPoint>
+              </q2:openlrPathAttributes>
+            </q2:openlrLocationReferencePoint>
+            <q2:openlrLastLocationReferencePoint>
+              <q2:openlrCoordinates>
+                <q2:latitude>46.067684</q2:latitude>
+                <q2:longitude>14.569692</q2:longitude>
+              </q2:openlrCoordinates>
+              <q2:openlrLineAttributes>
+                <q2:openlrFunctionalRoadClass>frc0</q2:openlrFunctionalRoadClass>
+                <q2:openlrFormOfWay>undefined</q2:openlrFormOfWay>
+                <q2:openlrBearing>45</q2:openlrBearing>
+              </q2:openlrLineAttributes>
+            </q2:openlrLastLocationReferencePoint>
+            <q2:openlrOffsets>
+              <q2:openlrPositiveOffset>703</q2:openlrPositiveOffset>
+            </q2:openlrOffsets>
+          </q2:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficSpeed">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageVehicleSpeed>
+            <speed xmlns="http://datex2.eu/schema/3/common">87</speed>
+          </averageVehicleSpeed>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="4">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q3="http://datex2.eu/schema/3/locationReferencing" xsi:type="q3:PointLocation">
+          <q3:coordinatesForDisplay>
+            <q3:latitude>46.06786</q3:latitude>
+            <q3:longitude>14.570367</q3:longitude>
+          </q3:coordinatesForDisplay>
+          <q3:pointByCoordinates>
+            <q3:pointCoordinates>
+              <q3:latitude>46.06786</q3:latitude>
+              <q3:longitude>14.570367</q3:longitude>
+            </q3:pointCoordinates>
+          </q3:pointByCoordinates>
+          <q3:pointAlongLinearElement>
+            <q3:directionRelativeAtPoint>aligned</q3:directionRelativeAtPoint>
+            <q3:linearElement xsi:type="q3:LinearElementByCode">
+              <q3:linearElementIdentifier>0146</q3:linearElementIdentifier>
+            </q3:linearElement>
+            <q3:distanceAlongLinearElement xsi:type="q3:DistanceFromLinearElementStart">
+              <q3:distanceAlong>696</q3:distanceAlong>
+            </q3:distanceAlongLinearElement>
+          </q3:pointAlongLinearElement>
+          <q3:alertCPoint xsi:type="q3:AlertCMethod4Point">
+            <q3:alertCLocationCountryCode>702</q3:alertCLocationCountryCode>
+            <q3:alertCLocationTableNumber>35</q3:alertCLocationTableNumber>
+            <q3:alertCLocationTableVersion>2.2</q3:alertCLocationTableVersion>
+            <q3:alertCDirection>
+              <q3:alertCDirectionCoded>positive</q3:alertCDirectionCoded>
+              <q3:alertCAffectedDirection>aligned</q3:alertCAffectedDirection>
+            </q3:alertCDirection>
+            <q3:alertCMethod4PrimaryPointLocation>
+              <q3:alertCLocation>
+                <q3:specificLocation>30038</q3:specificLocation>
+              </q3:alertCLocation>
+              <q3:offsetDistance>
+                <q3:offsetDistance>0</q3:offsetDistance>
+              </q3:offsetDistance>
+            </q3:alertCMethod4PrimaryPointLocation>
+          </q3:alertCPoint>
+          <q3:openlrPointLocationReference xsi:type="q3:OpenlrPointAlongLine">
+            <q3:openlrSideOfRoad>onRoadOrUnknown</q3:openlrSideOfRoad>
+            <q3:openlrOrientation>noOrientationOrUnknown</q3:openlrOrientation>
+            <q3:openlrLocationReferencePoint>
+              <q3:openlrCoordinates>
+                <q3:latitude>46.070866</q3:latitude>
+                <q3:longitude>14.5778</q3:longitude>
+              </q3:openlrCoordinates>
+              <q3:openlrLineAttributes>
+                <q3:openlrFunctionalRoadClass>frc0</q3:openlrFunctionalRoadClass>
+                <q3:openlrFormOfWay>undefined</q3:openlrFormOfWay>
+                <q3:openlrBearing>231</q3:openlrBearing>
+              </q3:openlrLineAttributes>
+              <q3:openlrPathAttributes>
+                <q3:openlrLowestFrcToNextLRPoint>frc0</q3:openlrLowestFrcToNextLRPoint>
+                <q3:openlrDistanceToNextLRPoint>766</q3:openlrDistanceToNextLRPoint>
+              </q3:openlrPathAttributes>
+            </q3:openlrLocationReferencePoint>
+            <q3:openlrLastLocationReferencePoint>
+              <q3:openlrCoordinates>
+                <q3:latitude>46.067684</q3:latitude>
+                <q3:longitude>14.569692</q3:longitude>
+              </q3:openlrCoordinates>
+              <q3:openlrLineAttributes>
+                <q3:openlrFunctionalRoadClass>frc0</q3:openlrFunctionalRoadClass>
+                <q3:openlrFormOfWay>undefined</q3:openlrFormOfWay>
+                <q3:openlrBearing>45</q3:openlrBearing>
+              </q3:openlrLineAttributes>
+            </q3:openlrLastLocationReferencePoint>
+            <q3:openlrOffsets>
+              <q3:openlrPositiveOffset>703</q3:openlrPositiveOffset>
+            </q3:openlrOffsets>
+          </q3:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficHeadway">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageDistanceHeadway>
+            <distance xmlns="http://datex2.eu/schema/3/common">251.33333</distance>
+          </averageDistanceHeadway>
+          <averageTimeHeadway>
+            <duration>10.4</duration>
+          </averageTimeHeadway>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="5">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q4="http://datex2.eu/schema/3/locationReferencing" xsi:type="q4:PointLocation">
+          <q4:coordinatesForDisplay>
+            <q4:latitude>46.06786</q4:latitude>
+            <q4:longitude>14.570367</q4:longitude>
+          </q4:coordinatesForDisplay>
+          <q4:pointByCoordinates>
+            <q4:pointCoordinates>
+              <q4:latitude>46.06786</q4:latitude>
+              <q4:longitude>14.570367</q4:longitude>
+            </q4:pointCoordinates>
+          </q4:pointByCoordinates>
+          <q4:pointAlongLinearElement>
+            <q4:directionRelativeAtPoint>aligned</q4:directionRelativeAtPoint>
+            <q4:linearElement xsi:type="q4:LinearElementByCode">
+              <q4:linearElementIdentifier>0146</q4:linearElementIdentifier>
+            </q4:linearElement>
+            <q4:distanceAlongLinearElement xsi:type="q4:DistanceFromLinearElementStart">
+              <q4:distanceAlong>696</q4:distanceAlong>
+            </q4:distanceAlongLinearElement>
+          </q4:pointAlongLinearElement>
+          <q4:alertCPoint xsi:type="q4:AlertCMethod4Point">
+            <q4:alertCLocationCountryCode>702</q4:alertCLocationCountryCode>
+            <q4:alertCLocationTableNumber>35</q4:alertCLocationTableNumber>
+            <q4:alertCLocationTableVersion>2.2</q4:alertCLocationTableVersion>
+            <q4:alertCDirection>
+              <q4:alertCDirectionCoded>positive</q4:alertCDirectionCoded>
+              <q4:alertCAffectedDirection>aligned</q4:alertCAffectedDirection>
+            </q4:alertCDirection>
+            <q4:alertCMethod4PrimaryPointLocation>
+              <q4:alertCLocation>
+                <q4:specificLocation>30038</q4:specificLocation>
+              </q4:alertCLocation>
+              <q4:offsetDistance>
+                <q4:offsetDistance>0</q4:offsetDistance>
+              </q4:offsetDistance>
+            </q4:alertCMethod4PrimaryPointLocation>
+          </q4:alertCPoint>
+          <q4:openlrPointLocationReference xsi:type="q4:OpenlrPointAlongLine">
+            <q4:openlrSideOfRoad>onRoadOrUnknown</q4:openlrSideOfRoad>
+            <q4:openlrOrientation>noOrientationOrUnknown</q4:openlrOrientation>
+            <q4:openlrLocationReferencePoint>
+              <q4:openlrCoordinates>
+                <q4:latitude>46.070866</q4:latitude>
+                <q4:longitude>14.5778</q4:longitude>
+              </q4:openlrCoordinates>
+              <q4:openlrLineAttributes>
+                <q4:openlrFunctionalRoadClass>frc0</q4:openlrFunctionalRoadClass>
+                <q4:openlrFormOfWay>undefined</q4:openlrFormOfWay>
+                <q4:openlrBearing>231</q4:openlrBearing>
+              </q4:openlrLineAttributes>
+              <q4:openlrPathAttributes>
+                <q4:openlrLowestFrcToNextLRPoint>frc0</q4:openlrLowestFrcToNextLRPoint>
+                <q4:openlrDistanceToNextLRPoint>766</q4:openlrDistanceToNextLRPoint>
+              </q4:openlrPathAttributes>
+            </q4:openlrLocationReferencePoint>
+            <q4:openlrLastLocationReferencePoint>
+              <q4:openlrCoordinates>
+                <q4:latitude>46.067684</q4:latitude>
+                <q4:longitude>14.569692</q4:longitude>
+              </q4:openlrCoordinates>
+              <q4:openlrLineAttributes>
+                <q4:openlrFunctionalRoadClass>frc0</q4:openlrFunctionalRoadClass>
+                <q4:openlrFormOfWay>undefined</q4:openlrFormOfWay>
+                <q4:openlrBearing>45</q4:openlrBearing>
+              </q4:openlrLineAttributes>
+            </q4:openlrLastLocationReferencePoint>
+            <q4:openlrOffsets>
+              <q4:openlrPositiveOffset>703</q4:openlrPositiveOffset>
+            </q4:openlrOffsets>
+          </q4:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficConcentration">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <density>
+            <densityOfVehicles>3</densityOfVehicles>
+          </density>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+  </siteMeasurements>
+  <siteMeasurements xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <measurementSiteReference id="1001-12" version="1" targetClass="roa:MeasurementSite" />
+    <physicalQuantity index="0">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q5="http://datex2.eu/schema/3/locationReferencing" xsi:type="q5:PointLocation">
+          <q5:coordinatesForDisplay>
+            <q5:latitude>46.06786</q5:latitude>
+            <q5:longitude>14.570367</q5:longitude>
+          </q5:coordinatesForDisplay>
+          <q5:pointByCoordinates>
+            <q5:pointCoordinates>
+              <q5:latitude>46.06786</q5:latitude>
+              <q5:longitude>14.570367</q5:longitude>
+            </q5:pointCoordinates>
+          </q5:pointByCoordinates>
+          <q5:pointAlongLinearElement>
+            <q5:directionRelativeAtPoint>aligned</q5:directionRelativeAtPoint>
+            <q5:linearElement xsi:type="q5:LinearElementByCode">
+              <q5:linearElementIdentifier>0146</q5:linearElementIdentifier>
+            </q5:linearElement>
+            <q5:distanceAlongLinearElement xsi:type="q5:DistanceFromLinearElementStart">
+              <q5:distanceAlong>696</q5:distanceAlong>
+            </q5:distanceAlongLinearElement>
+          </q5:pointAlongLinearElement>
+          <q5:alertCPoint xsi:type="q5:AlertCMethod4Point">
+            <q5:alertCLocationCountryCode>702</q5:alertCLocationCountryCode>
+            <q5:alertCLocationTableNumber>35</q5:alertCLocationTableNumber>
+            <q5:alertCLocationTableVersion>2.2</q5:alertCLocationTableVersion>
+            <q5:alertCDirection>
+              <q5:alertCDirectionCoded>positive</q5:alertCDirectionCoded>
+              <q5:alertCAffectedDirection>aligned</q5:alertCAffectedDirection>
+            </q5:alertCDirection>
+            <q5:alertCMethod4PrimaryPointLocation>
+              <q5:alertCLocation>
+                <q5:specificLocation>30038</q5:specificLocation>
+              </q5:alertCLocation>
+              <q5:offsetDistance>
+                <q5:offsetDistance>0</q5:offsetDistance>
+              </q5:offsetDistance>
+            </q5:alertCMethod4PrimaryPointLocation>
+          </q5:alertCPoint>
+          <q5:openlrPointLocationReference xsi:type="q5:OpenlrPointAlongLine">
+            <q5:openlrSideOfRoad>onRoadOrUnknown</q5:openlrSideOfRoad>
+            <q5:openlrOrientation>noOrientationOrUnknown</q5:openlrOrientation>
+            <q5:openlrLocationReferencePoint>
+              <q5:openlrCoordinates>
+                <q5:latitude>46.070866</q5:latitude>
+                <q5:longitude>14.5778</q5:longitude>
+              </q5:openlrCoordinates>
+              <q5:openlrLineAttributes>
+                <q5:openlrFunctionalRoadClass>frc0</q5:openlrFunctionalRoadClass>
+                <q5:openlrFormOfWay>undefined</q5:openlrFormOfWay>
+                <q5:openlrBearing>231</q5:openlrBearing>
+              </q5:openlrLineAttributes>
+              <q5:openlrPathAttributes>
+                <q5:openlrLowestFrcToNextLRPoint>frc0</q5:openlrLowestFrcToNextLRPoint>
+                <q5:openlrDistanceToNextLRPoint>766</q5:openlrDistanceToNextLRPoint>
+              </q5:openlrPathAttributes>
+            </q5:openlrLocationReferencePoint>
+            <q5:openlrLastLocationReferencePoint>
+              <q5:openlrCoordinates>
+                <q5:latitude>46.067684</q5:latitude>
+                <q5:longitude>14.569692</q5:longitude>
+              </q5:openlrCoordinates>
+              <q5:openlrLineAttributes>
+                <q5:openlrFunctionalRoadClass>frc0</q5:openlrFunctionalRoadClass>
+                <q5:openlrFormOfWay>undefined</q5:openlrFormOfWay>
+                <q5:openlrBearing>45</q5:openlrBearing>
+              </q5:openlrLineAttributes>
+            </q5:openlrLastLocationReferencePoint>
+            <q5:openlrOffsets>
+              <q5:openlrPositiveOffset>703</q5:openlrPositiveOffset>
+            </q5:openlrOffsets>
+          </q5:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficFlow">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <forVehiclesWithCharacteristicsOf>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </forVehiclesWithCharacteristicsOf>
+          <vehicleFlow>
+            <vehicleFlowRate xmlns="http://datex2.eu/schema/3/common">264</vehicleFlowRate>
+          </vehicleFlow>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="3">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q6="http://datex2.eu/schema/3/locationReferencing" xsi:type="q6:PointLocation">
+          <q6:coordinatesForDisplay>
+            <q6:latitude>46.06786</q6:latitude>
+            <q6:longitude>14.570367</q6:longitude>
+          </q6:coordinatesForDisplay>
+          <q6:pointByCoordinates>
+            <q6:pointCoordinates>
+              <q6:latitude>46.06786</q6:latitude>
+              <q6:longitude>14.570367</q6:longitude>
+            </q6:pointCoordinates>
+          </q6:pointByCoordinates>
+          <q6:pointAlongLinearElement>
+            <q6:directionRelativeAtPoint>aligned</q6:directionRelativeAtPoint>
+            <q6:linearElement xsi:type="q6:LinearElementByCode">
+              <q6:linearElementIdentifier>0146</q6:linearElementIdentifier>
+            </q6:linearElement>
+            <q6:distanceAlongLinearElement xsi:type="q6:DistanceFromLinearElementStart">
+              <q6:distanceAlong>696</q6:distanceAlong>
+            </q6:distanceAlongLinearElement>
+          </q6:pointAlongLinearElement>
+          <q6:alertCPoint xsi:type="q6:AlertCMethod4Point">
+            <q6:alertCLocationCountryCode>702</q6:alertCLocationCountryCode>
+            <q6:alertCLocationTableNumber>35</q6:alertCLocationTableNumber>
+            <q6:alertCLocationTableVersion>2.2</q6:alertCLocationTableVersion>
+            <q6:alertCDirection>
+              <q6:alertCDirectionCoded>positive</q6:alertCDirectionCoded>
+              <q6:alertCAffectedDirection>aligned</q6:alertCAffectedDirection>
+            </q6:alertCDirection>
+            <q6:alertCMethod4PrimaryPointLocation>
+              <q6:alertCLocation>
+                <q6:specificLocation>30038</q6:specificLocation>
+              </q6:alertCLocation>
+              <q6:offsetDistance>
+                <q6:offsetDistance>0</q6:offsetDistance>
+              </q6:offsetDistance>
+            </q6:alertCMethod4PrimaryPointLocation>
+          </q6:alertCPoint>
+          <q6:openlrPointLocationReference xsi:type="q6:OpenlrPointAlongLine">
+            <q6:openlrSideOfRoad>onRoadOrUnknown</q6:openlrSideOfRoad>
+            <q6:openlrOrientation>noOrientationOrUnknown</q6:openlrOrientation>
+            <q6:openlrLocationReferencePoint>
+              <q6:openlrCoordinates>
+                <q6:latitude>46.070866</q6:latitude>
+                <q6:longitude>14.5778</q6:longitude>
+              </q6:openlrCoordinates>
+              <q6:openlrLineAttributes>
+                <q6:openlrFunctionalRoadClass>frc0</q6:openlrFunctionalRoadClass>
+                <q6:openlrFormOfWay>undefined</q6:openlrFormOfWay>
+                <q6:openlrBearing>231</q6:openlrBearing>
+              </q6:openlrLineAttributes>
+              <q6:openlrPathAttributes>
+                <q6:openlrLowestFrcToNextLRPoint>frc0</q6:openlrLowestFrcToNextLRPoint>
+                <q6:openlrDistanceToNextLRPoint>766</q6:openlrDistanceToNextLRPoint>
+              </q6:openlrPathAttributes>
+            </q6:openlrLocationReferencePoint>
+            <q6:openlrLastLocationReferencePoint>
+              <q6:openlrCoordinates>
+                <q6:latitude>46.067684</q6:latitude>
+                <q6:longitude>14.569692</q6:longitude>
+              </q6:openlrCoordinates>
+              <q6:openlrLineAttributes>
+                <q6:openlrFunctionalRoadClass>frc0</q6:openlrFunctionalRoadClass>
+                <q6:openlrFormOfWay>undefined</q6:openlrFormOfWay>
+                <q6:openlrBearing>45</q6:openlrBearing>
+              </q6:openlrLineAttributes>
+            </q6:openlrLastLocationReferencePoint>
+            <q6:openlrOffsets>
+              <q6:openlrPositiveOffset>703</q6:openlrPositiveOffset>
+            </q6:openlrOffsets>
+          </q6:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficSpeed">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageVehicleSpeed>
+            <speed xmlns="http://datex2.eu/schema/3/common">88</speed>
+          </averageVehicleSpeed>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="4">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q7="http://datex2.eu/schema/3/locationReferencing" xsi:type="q7:PointLocation">
+          <q7:coordinatesForDisplay>
+            <q7:latitude>46.06786</q7:latitude>
+            <q7:longitude>14.570367</q7:longitude>
+          </q7:coordinatesForDisplay>
+          <q7:pointByCoordinates>
+            <q7:pointCoordinates>
+              <q7:latitude>46.06786</q7:latitude>
+              <q7:longitude>14.570367</q7:longitude>
+            </q7:pointCoordinates>
+          </q7:pointByCoordinates>
+          <q7:pointAlongLinearElement>
+            <q7:directionRelativeAtPoint>aligned</q7:directionRelativeAtPoint>
+            <q7:linearElement xsi:type="q7:LinearElementByCode">
+              <q7:linearElementIdentifier>0146</q7:linearElementIdentifier>
+            </q7:linearElement>
+            <q7:distanceAlongLinearElement xsi:type="q7:DistanceFromLinearElementStart">
+              <q7:distanceAlong>696</q7:distanceAlong>
+            </q7:distanceAlongLinearElement>
+          </q7:pointAlongLinearElement>
+          <q7:alertCPoint xsi:type="q7:AlertCMethod4Point">
+            <q7:alertCLocationCountryCode>702</q7:alertCLocationCountryCode>
+            <q7:alertCLocationTableNumber>35</q7:alertCLocationTableNumber>
+            <q7:alertCLocationTableVersion>2.2</q7:alertCLocationTableVersion>
+            <q7:alertCDirection>
+              <q7:alertCDirectionCoded>positive</q7:alertCDirectionCoded>
+              <q7:alertCAffectedDirection>aligned</q7:alertCAffectedDirection>
+            </q7:alertCDirection>
+            <q7:alertCMethod4PrimaryPointLocation>
+              <q7:alertCLocation>
+                <q7:specificLocation>30038</q7:specificLocation>
+              </q7:alertCLocation>
+              <q7:offsetDistance>
+                <q7:offsetDistance>0</q7:offsetDistance>
+              </q7:offsetDistance>
+            </q7:alertCMethod4PrimaryPointLocation>
+          </q7:alertCPoint>
+          <q7:openlrPointLocationReference xsi:type="q7:OpenlrPointAlongLine">
+            <q7:openlrSideOfRoad>onRoadOrUnknown</q7:openlrSideOfRoad>
+            <q7:openlrOrientation>noOrientationOrUnknown</q7:openlrOrientation>
+            <q7:openlrLocationReferencePoint>
+              <q7:openlrCoordinates>
+                <q7:latitude>46.070866</q7:latitude>
+                <q7:longitude>14.5778</q7:longitude>
+              </q7:openlrCoordinates>
+              <q7:openlrLineAttributes>
+                <q7:openlrFunctionalRoadClass>frc0</q7:openlrFunctionalRoadClass>
+                <q7:openlrFormOfWay>undefined</q7:openlrFormOfWay>
+                <q7:openlrBearing>231</q7:openlrBearing>
+              </q7:openlrLineAttributes>
+              <q7:openlrPathAttributes>
+                <q7:openlrLowestFrcToNextLRPoint>frc0</q7:openlrLowestFrcToNextLRPoint>
+                <q7:openlrDistanceToNextLRPoint>766</q7:openlrDistanceToNextLRPoint>
+              </q7:openlrPathAttributes>
+            </q7:openlrLocationReferencePoint>
+            <q7:openlrLastLocationReferencePoint>
+              <q7:openlrCoordinates>
+                <q7:latitude>46.067684</q7:latitude>
+                <q7:longitude>14.569692</q7:longitude>
+              </q7:openlrCoordinates>
+              <q7:openlrLineAttributes>
+                <q7:openlrFunctionalRoadClass>frc0</q7:openlrFunctionalRoadClass>
+                <q7:openlrFormOfWay>undefined</q7:openlrFormOfWay>
+                <q7:openlrBearing>45</q7:openlrBearing>
+              </q7:openlrLineAttributes>
+            </q7:openlrLastLocationReferencePoint>
+            <q7:openlrOffsets>
+              <q7:openlrPositiveOffset>703</q7:openlrPositiveOffset>
+            </q7:openlrOffsets>
+          </q7:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficHeadway">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageDistanceHeadway>
+            <distance xmlns="http://datex2.eu/schema/3/common">330</distance>
+          </averageDistanceHeadway>
+          <averageTimeHeadway>
+            <duration>13.5</duration>
+          </averageTimeHeadway>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="5">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q8="http://datex2.eu/schema/3/locationReferencing" xsi:type="q8:PointLocation">
+          <q8:coordinatesForDisplay>
+            <q8:latitude>46.06786</q8:latitude>
+            <q8:longitude>14.570367</q8:longitude>
+          </q8:coordinatesForDisplay>
+          <q8:pointByCoordinates>
+            <q8:pointCoordinates>
+              <q8:latitude>46.06786</q8:latitude>
+              <q8:longitude>14.570367</q8:longitude>
+            </q8:pointCoordinates>
+          </q8:pointByCoordinates>
+          <q8:pointAlongLinearElement>
+            <q8:directionRelativeAtPoint>aligned</q8:directionRelativeAtPoint>
+            <q8:linearElement xsi:type="q8:LinearElementByCode">
+              <q8:linearElementIdentifier>0146</q8:linearElementIdentifier>
+            </q8:linearElement>
+            <q8:distanceAlongLinearElement xsi:type="q8:DistanceFromLinearElementStart">
+              <q8:distanceAlong>696</q8:distanceAlong>
+            </q8:distanceAlongLinearElement>
+          </q8:pointAlongLinearElement>
+          <q8:alertCPoint xsi:type="q8:AlertCMethod4Point">
+            <q8:alertCLocationCountryCode>702</q8:alertCLocationCountryCode>
+            <q8:alertCLocationTableNumber>35</q8:alertCLocationTableNumber>
+            <q8:alertCLocationTableVersion>2.2</q8:alertCLocationTableVersion>
+            <q8:alertCDirection>
+              <q8:alertCDirectionCoded>positive</q8:alertCDirectionCoded>
+              <q8:alertCAffectedDirection>aligned</q8:alertCAffectedDirection>
+            </q8:alertCDirection>
+            <q8:alertCMethod4PrimaryPointLocation>
+              <q8:alertCLocation>
+                <q8:specificLocation>30038</q8:specificLocation>
+              </q8:alertCLocation>
+              <q8:offsetDistance>
+                <q8:offsetDistance>0</q8:offsetDistance>
+              </q8:offsetDistance>
+            </q8:alertCMethod4PrimaryPointLocation>
+          </q8:alertCPoint>
+          <q8:openlrPointLocationReference xsi:type="q8:OpenlrPointAlongLine">
+            <q8:openlrSideOfRoad>onRoadOrUnknown</q8:openlrSideOfRoad>
+            <q8:openlrOrientation>noOrientationOrUnknown</q8:openlrOrientation>
+            <q8:openlrLocationReferencePoint>
+              <q8:openlrCoordinates>
+                <q8:latitude>46.070866</q8:latitude>
+                <q8:longitude>14.5778</q8:longitude>
+              </q8:openlrCoordinates>
+              <q8:openlrLineAttributes>
+                <q8:openlrFunctionalRoadClass>frc0</q8:openlrFunctionalRoadClass>
+                <q8:openlrFormOfWay>undefined</q8:openlrFormOfWay>
+                <q8:openlrBearing>231</q8:openlrBearing>
+              </q8:openlrLineAttributes>
+              <q8:openlrPathAttributes>
+                <q8:openlrLowestFrcToNextLRPoint>frc0</q8:openlrLowestFrcToNextLRPoint>
+                <q8:openlrDistanceToNextLRPoint>766</q8:openlrDistanceToNextLRPoint>
+              </q8:openlrPathAttributes>
+            </q8:openlrLocationReferencePoint>
+            <q8:openlrLastLocationReferencePoint>
+              <q8:openlrCoordinates>
+                <q8:latitude>46.067684</q8:latitude>
+                <q8:longitude>14.569692</q8:longitude>
+              </q8:openlrCoordinates>
+              <q8:openlrLineAttributes>
+                <q8:openlrFunctionalRoadClass>frc0</q8:openlrFunctionalRoadClass>
+                <q8:openlrFormOfWay>undefined</q8:openlrFormOfWay>
+                <q8:openlrBearing>45</q8:openlrBearing>
+              </q8:openlrLineAttributes>
+            </q8:openlrLastLocationReferencePoint>
+            <q8:openlrOffsets>
+              <q8:openlrPositiveOffset>703</q8:openlrPositiveOffset>
+            </q8:openlrOffsets>
+          </q8:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1001-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficConcentration">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <density>
+            <densityOfVehicles>3</densityOfVehicles>
+          </density>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+  </siteMeasurements>
+  <siteMeasurements xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <measurementSiteReference id="1002-11" version="1" targetClass="roa:MeasurementSite" />
+    <physicalQuantity index="0">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q9="http://datex2.eu/schema/3/locationReferencing" xsi:type="q9:PointLocation">
+          <q9:coordinatesForDisplay>
+            <q9:latitude>46.06776</q9:latitude>
+            <q9:longitude>14.572721</q9:longitude>
+          </q9:coordinatesForDisplay>
+          <q9:pointByCoordinates>
+            <q9:pointCoordinates>
+              <q9:latitude>46.06776</q9:latitude>
+              <q9:longitude>14.572721</q9:longitude>
+            </q9:pointCoordinates>
+          </q9:pointByCoordinates>
+          <q9:pointAlongLinearElement>
+            <q9:directionRelativeAtPoint>aligned</q9:directionRelativeAtPoint>
+            <q9:linearElement xsi:type="q9:LinearElementByCode">
+              <q9:linearElementIdentifier>0146</q9:linearElementIdentifier>
+            </q9:linearElement>
+            <q9:distanceAlongLinearElement xsi:type="q9:DistanceFromLinearElementStart">
+              <q9:distanceAlong>798</q9:distanceAlong>
+            </q9:distanceAlongLinearElement>
+          </q9:pointAlongLinearElement>
+          <q9:alertCPoint xsi:type="q9:AlertCMethod4Point">
+            <q9:alertCLocationCountryCode>702</q9:alertCLocationCountryCode>
+            <q9:alertCLocationTableNumber>35</q9:alertCLocationTableNumber>
+            <q9:alertCLocationTableVersion>2.2</q9:alertCLocationTableVersion>
+            <q9:alertCDirection>
+              <q9:alertCDirectionCoded>positive</q9:alertCDirectionCoded>
+              <q9:alertCAffectedDirection>aligned</q9:alertCAffectedDirection>
+            </q9:alertCDirection>
+            <q9:alertCMethod4PrimaryPointLocation>
+              <q9:alertCLocation>
+                <q9:specificLocation>30038</q9:specificLocation>
+              </q9:alertCLocation>
+              <q9:offsetDistance>
+                <q9:offsetDistance>0</q9:offsetDistance>
+              </q9:offsetDistance>
+            </q9:alertCMethod4PrimaryPointLocation>
+          </q9:alertCPoint>
+          <q9:openlrPointLocationReference xsi:type="q9:OpenlrPointAlongLine">
+            <q9:openlrSideOfRoad>onRoadOrUnknown</q9:openlrSideOfRoad>
+            <q9:openlrOrientation>noOrientationOrUnknown</q9:openlrOrientation>
+            <q9:openlrLocationReferencePoint>
+              <q9:openlrCoordinates>
+                <q9:latitude>46.067707</q9:latitude>
+                <q9:longitude>14.5720825</q9:longitude>
+              </q9:openlrCoordinates>
+              <q9:openlrLineAttributes>
+                <q9:openlrFunctionalRoadClass>frc0</q9:openlrFunctionalRoadClass>
+                <q9:openlrFormOfWay>undefined</q9:openlrFormOfWay>
+                <q9:openlrBearing>262</q9:openlrBearing>
+              </q9:openlrLineAttributes>
+              <q9:openlrPathAttributes>
+                <q9:openlrLowestFrcToNextLRPoint>frc0</q9:openlrLowestFrcToNextLRPoint>
+                <q9:openlrDistanceToNextLRPoint>182</q9:openlrDistanceToNextLRPoint>
+              </q9:openlrPathAttributes>
+            </q9:openlrLocationReferencePoint>
+            <q9:openlrLastLocationReferencePoint>
+              <q9:openlrCoordinates>
+                <q9:latitude>46.067547</q9:latitude>
+                <q9:longitude>14.569731</q9:longitude>
+              </q9:openlrCoordinates>
+              <q9:openlrLineAttributes>
+                <q9:openlrFunctionalRoadClass>frc0</q9:openlrFunctionalRoadClass>
+                <q9:openlrFormOfWay>undefined</q9:openlrFormOfWay>
+                <q9:openlrBearing>87</q9:openlrBearing>
+              </q9:openlrLineAttributes>
+            </q9:openlrLastLocationReferencePoint>
+            <q9:openlrOffsets>
+              <q9:openlrPositiveOffset>134</q9:openlrPositiveOffset>
+            </q9:openlrOffsets>
+          </q9:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficFlow">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <forVehiclesWithCharacteristicsOf>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </forVehiclesWithCharacteristicsOf>
+          <vehicleFlow>
+            <vehicleFlowRate xmlns="http://datex2.eu/schema/3/common">600</vehicleFlowRate>
+          </vehicleFlow>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="3">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q10="http://datex2.eu/schema/3/locationReferencing" xsi:type="q10:PointLocation">
+          <q10:coordinatesForDisplay>
+            <q10:latitude>46.06776</q10:latitude>
+            <q10:longitude>14.572721</q10:longitude>
+          </q10:coordinatesForDisplay>
+          <q10:pointByCoordinates>
+            <q10:pointCoordinates>
+              <q10:latitude>46.06776</q10:latitude>
+              <q10:longitude>14.572721</q10:longitude>
+            </q10:pointCoordinates>
+          </q10:pointByCoordinates>
+          <q10:pointAlongLinearElement>
+            <q10:directionRelativeAtPoint>aligned</q10:directionRelativeAtPoint>
+            <q10:linearElement xsi:type="q10:LinearElementByCode">
+              <q10:linearElementIdentifier>0146</q10:linearElementIdentifier>
+            </q10:linearElement>
+            <q10:distanceAlongLinearElement xsi:type="q10:DistanceFromLinearElementStart">
+              <q10:distanceAlong>798</q10:distanceAlong>
+            </q10:distanceAlongLinearElement>
+          </q10:pointAlongLinearElement>
+          <q10:alertCPoint xsi:type="q10:AlertCMethod4Point">
+            <q10:alertCLocationCountryCode>702</q10:alertCLocationCountryCode>
+            <q10:alertCLocationTableNumber>35</q10:alertCLocationTableNumber>
+            <q10:alertCLocationTableVersion>2.2</q10:alertCLocationTableVersion>
+            <q10:alertCDirection>
+              <q10:alertCDirectionCoded>positive</q10:alertCDirectionCoded>
+              <q10:alertCAffectedDirection>aligned</q10:alertCAffectedDirection>
+            </q10:alertCDirection>
+            <q10:alertCMethod4PrimaryPointLocation>
+              <q10:alertCLocation>
+                <q10:specificLocation>30038</q10:specificLocation>
+              </q10:alertCLocation>
+              <q10:offsetDistance>
+                <q10:offsetDistance>0</q10:offsetDistance>
+              </q10:offsetDistance>
+            </q10:alertCMethod4PrimaryPointLocation>
+          </q10:alertCPoint>
+          <q10:openlrPointLocationReference xsi:type="q10:OpenlrPointAlongLine">
+            <q10:openlrSideOfRoad>onRoadOrUnknown</q10:openlrSideOfRoad>
+            <q10:openlrOrientation>noOrientationOrUnknown</q10:openlrOrientation>
+            <q10:openlrLocationReferencePoint>
+              <q10:openlrCoordinates>
+                <q10:latitude>46.067707</q10:latitude>
+                <q10:longitude>14.5720825</q10:longitude>
+              </q10:openlrCoordinates>
+              <q10:openlrLineAttributes>
+                <q10:openlrFunctionalRoadClass>frc0</q10:openlrFunctionalRoadClass>
+                <q10:openlrFormOfWay>undefined</q10:openlrFormOfWay>
+                <q10:openlrBearing>262</q10:openlrBearing>
+              </q10:openlrLineAttributes>
+              <q10:openlrPathAttributes>
+                <q10:openlrLowestFrcToNextLRPoint>frc0</q10:openlrLowestFrcToNextLRPoint>
+                <q10:openlrDistanceToNextLRPoint>182</q10:openlrDistanceToNextLRPoint>
+              </q10:openlrPathAttributes>
+            </q10:openlrLocationReferencePoint>
+            <q10:openlrLastLocationReferencePoint>
+              <q10:openlrCoordinates>
+                <q10:latitude>46.067547</q10:latitude>
+                <q10:longitude>14.569731</q10:longitude>
+              </q10:openlrCoordinates>
+              <q10:openlrLineAttributes>
+                <q10:openlrFunctionalRoadClass>frc0</q10:openlrFunctionalRoadClass>
+                <q10:openlrFormOfWay>undefined</q10:openlrFormOfWay>
+                <q10:openlrBearing>87</q10:openlrBearing>
+              </q10:openlrLineAttributes>
+            </q10:openlrLastLocationReferencePoint>
+            <q10:openlrOffsets>
+              <q10:openlrPositiveOffset>134</q10:openlrPositiveOffset>
+            </q10:openlrOffsets>
+          </q10:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficSpeed">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageVehicleSpeed>
+            <speed xmlns="http://datex2.eu/schema/3/common">88</speed>
+          </averageVehicleSpeed>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="4">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q11="http://datex2.eu/schema/3/locationReferencing" xsi:type="q11:PointLocation">
+          <q11:coordinatesForDisplay>
+            <q11:latitude>46.06776</q11:latitude>
+            <q11:longitude>14.572721</q11:longitude>
+          </q11:coordinatesForDisplay>
+          <q11:pointByCoordinates>
+            <q11:pointCoordinates>
+              <q11:latitude>46.06776</q11:latitude>
+              <q11:longitude>14.572721</q11:longitude>
+            </q11:pointCoordinates>
+          </q11:pointByCoordinates>
+          <q11:pointAlongLinearElement>
+            <q11:directionRelativeAtPoint>aligned</q11:directionRelativeAtPoint>
+            <q11:linearElement xsi:type="q11:LinearElementByCode">
+              <q11:linearElementIdentifier>0146</q11:linearElementIdentifier>
+            </q11:linearElement>
+            <q11:distanceAlongLinearElement xsi:type="q11:DistanceFromLinearElementStart">
+              <q11:distanceAlong>798</q11:distanceAlong>
+            </q11:distanceAlongLinearElement>
+          </q11:pointAlongLinearElement>
+          <q11:alertCPoint xsi:type="q11:AlertCMethod4Point">
+            <q11:alertCLocationCountryCode>702</q11:alertCLocationCountryCode>
+            <q11:alertCLocationTableNumber>35</q11:alertCLocationTableNumber>
+            <q11:alertCLocationTableVersion>2.2</q11:alertCLocationTableVersion>
+            <q11:alertCDirection>
+              <q11:alertCDirectionCoded>positive</q11:alertCDirectionCoded>
+              <q11:alertCAffectedDirection>aligned</q11:alertCAffectedDirection>
+            </q11:alertCDirection>
+            <q11:alertCMethod4PrimaryPointLocation>
+              <q11:alertCLocation>
+                <q11:specificLocation>30038</q11:specificLocation>
+              </q11:alertCLocation>
+              <q11:offsetDistance>
+                <q11:offsetDistance>0</q11:offsetDistance>
+              </q11:offsetDistance>
+            </q11:alertCMethod4PrimaryPointLocation>
+          </q11:alertCPoint>
+          <q11:openlrPointLocationReference xsi:type="q11:OpenlrPointAlongLine">
+            <q11:openlrSideOfRoad>onRoadOrUnknown</q11:openlrSideOfRoad>
+            <q11:openlrOrientation>noOrientationOrUnknown</q11:openlrOrientation>
+            <q11:openlrLocationReferencePoint>
+              <q11:openlrCoordinates>
+                <q11:latitude>46.067707</q11:latitude>
+                <q11:longitude>14.5720825</q11:longitude>
+              </q11:openlrCoordinates>
+              <q11:openlrLineAttributes>
+                <q11:openlrFunctionalRoadClass>frc0</q11:openlrFunctionalRoadClass>
+                <q11:openlrFormOfWay>undefined</q11:openlrFormOfWay>
+                <q11:openlrBearing>262</q11:openlrBearing>
+              </q11:openlrLineAttributes>
+              <q11:openlrPathAttributes>
+                <q11:openlrLowestFrcToNextLRPoint>frc0</q11:openlrLowestFrcToNextLRPoint>
+                <q11:openlrDistanceToNextLRPoint>182</q11:openlrDistanceToNextLRPoint>
+              </q11:openlrPathAttributes>
+            </q11:openlrLocationReferencePoint>
+            <q11:openlrLastLocationReferencePoint>
+              <q11:openlrCoordinates>
+                <q11:latitude>46.067547</q11:latitude>
+                <q11:longitude>14.569731</q11:longitude>
+              </q11:openlrCoordinates>
+              <q11:openlrLineAttributes>
+                <q11:openlrFunctionalRoadClass>frc0</q11:openlrFunctionalRoadClass>
+                <q11:openlrFormOfWay>undefined</q11:openlrFormOfWay>
+                <q11:openlrBearing>87</q11:openlrBearing>
+              </q11:openlrLineAttributes>
+            </q11:openlrLastLocationReferencePoint>
+            <q11:openlrOffsets>
+              <q11:openlrPositiveOffset>134</q11:openlrPositiveOffset>
+            </q11:openlrOffsets>
+          </q11:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficHeadway">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageDistanceHeadway>
+            <distance xmlns="http://datex2.eu/schema/3/common">158.88889</distance>
+          </averageDistanceHeadway>
+          <averageTimeHeadway>
+            <duration>6.5</duration>
+          </averageTimeHeadway>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="5">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q12="http://datex2.eu/schema/3/locationReferencing" xsi:type="q12:PointLocation">
+          <q12:coordinatesForDisplay>
+            <q12:latitude>46.06776</q12:latitude>
+            <q12:longitude>14.572721</q12:longitude>
+          </q12:coordinatesForDisplay>
+          <q12:pointByCoordinates>
+            <q12:pointCoordinates>
+              <q12:latitude>46.06776</q12:latitude>
+              <q12:longitude>14.572721</q12:longitude>
+            </q12:pointCoordinates>
+          </q12:pointByCoordinates>
+          <q12:pointAlongLinearElement>
+            <q12:directionRelativeAtPoint>aligned</q12:directionRelativeAtPoint>
+            <q12:linearElement xsi:type="q12:LinearElementByCode">
+              <q12:linearElementIdentifier>0146</q12:linearElementIdentifier>
+            </q12:linearElement>
+            <q12:distanceAlongLinearElement xsi:type="q12:DistanceFromLinearElementStart">
+              <q12:distanceAlong>798</q12:distanceAlong>
+            </q12:distanceAlongLinearElement>
+          </q12:pointAlongLinearElement>
+          <q12:alertCPoint xsi:type="q12:AlertCMethod4Point">
+            <q12:alertCLocationCountryCode>702</q12:alertCLocationCountryCode>
+            <q12:alertCLocationTableNumber>35</q12:alertCLocationTableNumber>
+            <q12:alertCLocationTableVersion>2.2</q12:alertCLocationTableVersion>
+            <q12:alertCDirection>
+              <q12:alertCDirectionCoded>positive</q12:alertCDirectionCoded>
+              <q12:alertCAffectedDirection>aligned</q12:alertCAffectedDirection>
+            </q12:alertCDirection>
+            <q12:alertCMethod4PrimaryPointLocation>
+              <q12:alertCLocation>
+                <q12:specificLocation>30038</q12:specificLocation>
+              </q12:alertCLocation>
+              <q12:offsetDistance>
+                <q12:offsetDistance>0</q12:offsetDistance>
+              </q12:offsetDistance>
+            </q12:alertCMethod4PrimaryPointLocation>
+          </q12:alertCPoint>
+          <q12:openlrPointLocationReference xsi:type="q12:OpenlrPointAlongLine">
+            <q12:openlrSideOfRoad>onRoadOrUnknown</q12:openlrSideOfRoad>
+            <q12:openlrOrientation>noOrientationOrUnknown</q12:openlrOrientation>
+            <q12:openlrLocationReferencePoint>
+              <q12:openlrCoordinates>
+                <q12:latitude>46.067707</q12:latitude>
+                <q12:longitude>14.5720825</q12:longitude>
+              </q12:openlrCoordinates>
+              <q12:openlrLineAttributes>
+                <q12:openlrFunctionalRoadClass>frc0</q12:openlrFunctionalRoadClass>
+                <q12:openlrFormOfWay>undefined</q12:openlrFormOfWay>
+                <q12:openlrBearing>262</q12:openlrBearing>
+              </q12:openlrLineAttributes>
+              <q12:openlrPathAttributes>
+                <q12:openlrLowestFrcToNextLRPoint>frc0</q12:openlrLowestFrcToNextLRPoint>
+                <q12:openlrDistanceToNextLRPoint>182</q12:openlrDistanceToNextLRPoint>
+              </q12:openlrPathAttributes>
+            </q12:openlrLocationReferencePoint>
+            <q12:openlrLastLocationReferencePoint>
+              <q12:openlrCoordinates>
+                <q12:latitude>46.067547</q12:latitude>
+                <q12:longitude>14.569731</q12:longitude>
+              </q12:openlrCoordinates>
+              <q12:openlrLineAttributes>
+                <q12:openlrFunctionalRoadClass>frc0</q12:openlrFunctionalRoadClass>
+                <q12:openlrFormOfWay>undefined</q12:openlrFormOfWay>
+                <q12:openlrBearing>87</q12:openlrBearing>
+              </q12:openlrLineAttributes>
+            </q12:openlrLastLocationReferencePoint>
+            <q12:openlrOffsets>
+              <q12:openlrPositiveOffset>134</q12:openlrPositiveOffset>
+            </q12:openlrOffsets>
+          </q12:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-11</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficConcentration">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <density>
+            <densityOfVehicles>6</densityOfVehicles>
+          </density>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+  </siteMeasurements>
+  <siteMeasurements xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <measurementSiteReference id="1002-12" version="1" targetClass="roa:MeasurementSite" />
+    <physicalQuantity index="0">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q13="http://datex2.eu/schema/3/locationReferencing" xsi:type="q13:PointLocation">
+          <q13:coordinatesForDisplay>
+            <q13:latitude>46.06776</q13:latitude>
+            <q13:longitude>14.572721</q13:longitude>
+          </q13:coordinatesForDisplay>
+          <q13:pointByCoordinates>
+            <q13:pointCoordinates>
+              <q13:latitude>46.06776</q13:latitude>
+              <q13:longitude>14.572721</q13:longitude>
+            </q13:pointCoordinates>
+          </q13:pointByCoordinates>
+          <q13:pointAlongLinearElement>
+            <q13:directionRelativeAtPoint>aligned</q13:directionRelativeAtPoint>
+            <q13:linearElement xsi:type="q13:LinearElementByCode">
+              <q13:linearElementIdentifier>0146</q13:linearElementIdentifier>
+            </q13:linearElement>
+            <q13:distanceAlongLinearElement xsi:type="q13:DistanceFromLinearElementStart">
+              <q13:distanceAlong>798</q13:distanceAlong>
+            </q13:distanceAlongLinearElement>
+          </q13:pointAlongLinearElement>
+          <q13:alertCPoint xsi:type="q13:AlertCMethod4Point">
+            <q13:alertCLocationCountryCode>702</q13:alertCLocationCountryCode>
+            <q13:alertCLocationTableNumber>35</q13:alertCLocationTableNumber>
+            <q13:alertCLocationTableVersion>2.2</q13:alertCLocationTableVersion>
+            <q13:alertCDirection>
+              <q13:alertCDirectionCoded>positive</q13:alertCDirectionCoded>
+              <q13:alertCAffectedDirection>aligned</q13:alertCAffectedDirection>
+            </q13:alertCDirection>
+            <q13:alertCMethod4PrimaryPointLocation>
+              <q13:alertCLocation>
+                <q13:specificLocation>30038</q13:specificLocation>
+              </q13:alertCLocation>
+              <q13:offsetDistance>
+                <q13:offsetDistance>0</q13:offsetDistance>
+              </q13:offsetDistance>
+            </q13:alertCMethod4PrimaryPointLocation>
+          </q13:alertCPoint>
+          <q13:openlrPointLocationReference xsi:type="q13:OpenlrPointAlongLine">
+            <q13:openlrSideOfRoad>onRoadOrUnknown</q13:openlrSideOfRoad>
+            <q13:openlrOrientation>noOrientationOrUnknown</q13:openlrOrientation>
+            <q13:openlrLocationReferencePoint>
+              <q13:openlrCoordinates>
+                <q13:latitude>46.067707</q13:latitude>
+                <q13:longitude>14.5720825</q13:longitude>
+              </q13:openlrCoordinates>
+              <q13:openlrLineAttributes>
+                <q13:openlrFunctionalRoadClass>frc0</q13:openlrFunctionalRoadClass>
+                <q13:openlrFormOfWay>undefined</q13:openlrFormOfWay>
+                <q13:openlrBearing>262</q13:openlrBearing>
+              </q13:openlrLineAttributes>
+              <q13:openlrPathAttributes>
+                <q13:openlrLowestFrcToNextLRPoint>frc0</q13:openlrLowestFrcToNextLRPoint>
+                <q13:openlrDistanceToNextLRPoint>182</q13:openlrDistanceToNextLRPoint>
+              </q13:openlrPathAttributes>
+            </q13:openlrLocationReferencePoint>
+            <q13:openlrLastLocationReferencePoint>
+              <q13:openlrCoordinates>
+                <q13:latitude>46.067547</q13:latitude>
+                <q13:longitude>14.569731</q13:longitude>
+              </q13:openlrCoordinates>
+              <q13:openlrLineAttributes>
+                <q13:openlrFunctionalRoadClass>frc0</q13:openlrFunctionalRoadClass>
+                <q13:openlrFormOfWay>undefined</q13:openlrFormOfWay>
+                <q13:openlrBearing>87</q13:openlrBearing>
+              </q13:openlrLineAttributes>
+            </q13:openlrLastLocationReferencePoint>
+            <q13:openlrOffsets>
+              <q13:openlrPositiveOffset>134</q13:openlrPositiveOffset>
+            </q13:openlrOffsets>
+          </q13:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficFlow">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <forVehiclesWithCharacteristicsOf>
+            <vehicleType xmlns="http://datex2.eu/schema/3/common">anyVehicle</vehicleType>
+          </forVehiclesWithCharacteristicsOf>
+          <vehicleFlow>
+            <vehicleFlowRate xmlns="http://datex2.eu/schema/3/common">600</vehicleFlowRate>
+          </vehicleFlow>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="3">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q14="http://datex2.eu/schema/3/locationReferencing" xsi:type="q14:PointLocation">
+          <q14:coordinatesForDisplay>
+            <q14:latitude>46.06776</q14:latitude>
+            <q14:longitude>14.572721</q14:longitude>
+          </q14:coordinatesForDisplay>
+          <q14:pointByCoordinates>
+            <q14:pointCoordinates>
+              <q14:latitude>46.06776</q14:latitude>
+              <q14:longitude>14.572721</q14:longitude>
+            </q14:pointCoordinates>
+          </q14:pointByCoordinates>
+          <q14:pointAlongLinearElement>
+            <q14:directionRelativeAtPoint>aligned</q14:directionRelativeAtPoint>
+            <q14:linearElement xsi:type="q14:LinearElementByCode">
+              <q14:linearElementIdentifier>0146</q14:linearElementIdentifier>
+            </q14:linearElement>
+            <q14:distanceAlongLinearElement xsi:type="q14:DistanceFromLinearElementStart">
+              <q14:distanceAlong>798</q14:distanceAlong>
+            </q14:distanceAlongLinearElement>
+          </q14:pointAlongLinearElement>
+          <q14:alertCPoint xsi:type="q14:AlertCMethod4Point">
+            <q14:alertCLocationCountryCode>702</q14:alertCLocationCountryCode>
+            <q14:alertCLocationTableNumber>35</q14:alertCLocationTableNumber>
+            <q14:alertCLocationTableVersion>2.2</q14:alertCLocationTableVersion>
+            <q14:alertCDirection>
+              <q14:alertCDirectionCoded>positive</q14:alertCDirectionCoded>
+              <q14:alertCAffectedDirection>aligned</q14:alertCAffectedDirection>
+            </q14:alertCDirection>
+            <q14:alertCMethod4PrimaryPointLocation>
+              <q14:alertCLocation>
+                <q14:specificLocation>30038</q14:specificLocation>
+              </q14:alertCLocation>
+              <q14:offsetDistance>
+                <q14:offsetDistance>0</q14:offsetDistance>
+              </q14:offsetDistance>
+            </q14:alertCMethod4PrimaryPointLocation>
+          </q14:alertCPoint>
+          <q14:openlrPointLocationReference xsi:type="q14:OpenlrPointAlongLine">
+            <q14:openlrSideOfRoad>onRoadOrUnknown</q14:openlrSideOfRoad>
+            <q14:openlrOrientation>noOrientationOrUnknown</q14:openlrOrientation>
+            <q14:openlrLocationReferencePoint>
+              <q14:openlrCoordinates>
+                <q14:latitude>46.067707</q14:latitude>
+                <q14:longitude>14.5720825</q14:longitude>
+              </q14:openlrCoordinates>
+              <q14:openlrLineAttributes>
+                <q14:openlrFunctionalRoadClass>frc0</q14:openlrFunctionalRoadClass>
+                <q14:openlrFormOfWay>undefined</q14:openlrFormOfWay>
+                <q14:openlrBearing>262</q14:openlrBearing>
+              </q14:openlrLineAttributes>
+              <q14:openlrPathAttributes>
+                <q14:openlrLowestFrcToNextLRPoint>frc0</q14:openlrLowestFrcToNextLRPoint>
+                <q14:openlrDistanceToNextLRPoint>182</q14:openlrDistanceToNextLRPoint>
+              </q14:openlrPathAttributes>
+            </q14:openlrLocationReferencePoint>
+            <q14:openlrLastLocationReferencePoint>
+              <q14:openlrCoordinates>
+                <q14:latitude>46.067547</q14:latitude>
+                <q14:longitude>14.569731</q14:longitude>
+              </q14:openlrCoordinates>
+              <q14:openlrLineAttributes>
+                <q14:openlrFunctionalRoadClass>frc0</q14:openlrFunctionalRoadClass>
+                <q14:openlrFormOfWay>undefined</q14:openlrFormOfWay>
+                <q14:openlrBearing>87</q14:openlrBearing>
+              </q14:openlrLineAttributes>
+            </q14:openlrLastLocationReferencePoint>
+            <q14:openlrOffsets>
+              <q14:openlrPositiveOffset>134</q14:openlrPositiveOffset>
+            </q14:openlrOffsets>
+          </q14:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficSpeed">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageVehicleSpeed>
+            <speed xmlns="http://datex2.eu/schema/3/common">104</speed>
+          </averageVehicleSpeed>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="4">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q15="http://datex2.eu/schema/3/locationReferencing" xsi:type="q15:PointLocation">
+          <q15:coordinatesForDisplay>
+            <q15:latitude>46.06776</q15:latitude>
+            <q15:longitude>14.572721</q15:longitude>
+          </q15:coordinatesForDisplay>
+          <q15:pointByCoordinates>
+            <q15:pointCoordinates>
+              <q15:latitude>46.06776</q15:latitude>
+              <q15:longitude>14.572721</q15:longitude>
+            </q15:pointCoordinates>
+          </q15:pointByCoordinates>
+          <q15:pointAlongLinearElement>
+            <q15:directionRelativeAtPoint>aligned</q15:directionRelativeAtPoint>
+            <q15:linearElement xsi:type="q15:LinearElementByCode">
+              <q15:linearElementIdentifier>0146</q15:linearElementIdentifier>
+            </q15:linearElement>
+            <q15:distanceAlongLinearElement xsi:type="q15:DistanceFromLinearElementStart">
+              <q15:distanceAlong>798</q15:distanceAlong>
+            </q15:distanceAlongLinearElement>
+          </q15:pointAlongLinearElement>
+          <q15:alertCPoint xsi:type="q15:AlertCMethod4Point">
+            <q15:alertCLocationCountryCode>702</q15:alertCLocationCountryCode>
+            <q15:alertCLocationTableNumber>35</q15:alertCLocationTableNumber>
+            <q15:alertCLocationTableVersion>2.2</q15:alertCLocationTableVersion>
+            <q15:alertCDirection>
+              <q15:alertCDirectionCoded>positive</q15:alertCDirectionCoded>
+              <q15:alertCAffectedDirection>aligned</q15:alertCAffectedDirection>
+            </q15:alertCDirection>
+            <q15:alertCMethod4PrimaryPointLocation>
+              <q15:alertCLocation>
+                <q15:specificLocation>30038</q15:specificLocation>
+              </q15:alertCLocation>
+              <q15:offsetDistance>
+                <q15:offsetDistance>0</q15:offsetDistance>
+              </q15:offsetDistance>
+            </q15:alertCMethod4PrimaryPointLocation>
+          </q15:alertCPoint>
+          <q15:openlrPointLocationReference xsi:type="q15:OpenlrPointAlongLine">
+            <q15:openlrSideOfRoad>onRoadOrUnknown</q15:openlrSideOfRoad>
+            <q15:openlrOrientation>noOrientationOrUnknown</q15:openlrOrientation>
+            <q15:openlrLocationReferencePoint>
+              <q15:openlrCoordinates>
+                <q15:latitude>46.067707</q15:latitude>
+                <q15:longitude>14.5720825</q15:longitude>
+              </q15:openlrCoordinates>
+              <q15:openlrLineAttributes>
+                <q15:openlrFunctionalRoadClass>frc0</q15:openlrFunctionalRoadClass>
+                <q15:openlrFormOfWay>undefined</q15:openlrFormOfWay>
+                <q15:openlrBearing>262</q15:openlrBearing>
+              </q15:openlrLineAttributes>
+              <q15:openlrPathAttributes>
+                <q15:openlrLowestFrcToNextLRPoint>frc0</q15:openlrLowestFrcToNextLRPoint>
+                <q15:openlrDistanceToNextLRPoint>182</q15:openlrDistanceToNextLRPoint>
+              </q15:openlrPathAttributes>
+            </q15:openlrLocationReferencePoint>
+            <q15:openlrLastLocationReferencePoint>
+              <q15:openlrCoordinates>
+                <q15:latitude>46.067547</q15:latitude>
+                <q15:longitude>14.569731</q15:longitude>
+              </q15:openlrCoordinates>
+              <q15:openlrLineAttributes>
+                <q15:openlrFunctionalRoadClass>frc0</q15:openlrFunctionalRoadClass>
+                <q15:openlrFormOfWay>undefined</q15:openlrFormOfWay>
+                <q15:openlrBearing>87</q15:openlrBearing>
+              </q15:openlrLineAttributes>
+            </q15:openlrLastLocationReferencePoint>
+            <q15:openlrOffsets>
+              <q15:openlrPositiveOffset>134</q15:openlrPositiveOffset>
+            </q15:openlrOffsets>
+          </q15:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficHeadway">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <averageDistanceHeadway>
+            <distance xmlns="http://datex2.eu/schema/3/common">234</distance>
+          </averageDistanceHeadway>
+          <averageTimeHeadway>
+            <duration>8.1</duration>
+          </averageTimeHeadway>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+    <physicalQuantity index="5">
+      <physicalQuantity xsi:type="SinglePhysicalQuantity">
+        <pertinentLocation xmlns:q16="http://datex2.eu/schema/3/locationReferencing" xsi:type="q16:PointLocation">
+          <q16:coordinatesForDisplay>
+            <q16:latitude>46.06776</q16:latitude>
+            <q16:longitude>14.572721</q16:longitude>
+          </q16:coordinatesForDisplay>
+          <q16:pointByCoordinates>
+            <q16:pointCoordinates>
+              <q16:latitude>46.06776</q16:latitude>
+              <q16:longitude>14.572721</q16:longitude>
+            </q16:pointCoordinates>
+          </q16:pointByCoordinates>
+          <q16:pointAlongLinearElement>
+            <q16:directionRelativeAtPoint>aligned</q16:directionRelativeAtPoint>
+            <q16:linearElement xsi:type="q16:LinearElementByCode">
+              <q16:linearElementIdentifier>0146</q16:linearElementIdentifier>
+            </q16:linearElement>
+            <q16:distanceAlongLinearElement xsi:type="q16:DistanceFromLinearElementStart">
+              <q16:distanceAlong>798</q16:distanceAlong>
+            </q16:distanceAlongLinearElement>
+          </q16:pointAlongLinearElement>
+          <q16:alertCPoint xsi:type="q16:AlertCMethod4Point">
+            <q16:alertCLocationCountryCode>702</q16:alertCLocationCountryCode>
+            <q16:alertCLocationTableNumber>35</q16:alertCLocationTableNumber>
+            <q16:alertCLocationTableVersion>2.2</q16:alertCLocationTableVersion>
+            <q16:alertCDirection>
+              <q16:alertCDirectionCoded>positive</q16:alertCDirectionCoded>
+              <q16:alertCAffectedDirection>aligned</q16:alertCAffectedDirection>
+            </q16:alertCDirection>
+            <q16:alertCMethod4PrimaryPointLocation>
+              <q16:alertCLocation>
+                <q16:specificLocation>30038</q16:specificLocation>
+              </q16:alertCLocation>
+              <q16:offsetDistance>
+                <q16:offsetDistance>0</q16:offsetDistance>
+              </q16:offsetDistance>
+            </q16:alertCMethod4PrimaryPointLocation>
+          </q16:alertCPoint>
+          <q16:openlrPointLocationReference xsi:type="q16:OpenlrPointAlongLine">
+            <q16:openlrSideOfRoad>onRoadOrUnknown</q16:openlrSideOfRoad>
+            <q16:openlrOrientation>noOrientationOrUnknown</q16:openlrOrientation>
+            <q16:openlrLocationReferencePoint>
+              <q16:openlrCoordinates>
+                <q16:latitude>46.067707</q16:latitude>
+                <q16:longitude>14.5720825</q16:longitude>
+              </q16:openlrCoordinates>
+              <q16:openlrLineAttributes>
+                <q16:openlrFunctionalRoadClass>frc0</q16:openlrFunctionalRoadClass>
+                <q16:openlrFormOfWay>undefined</q16:openlrFormOfWay>
+                <q16:openlrBearing>262</q16:openlrBearing>
+              </q16:openlrLineAttributes>
+              <q16:openlrPathAttributes>
+                <q16:openlrLowestFrcToNextLRPoint>frc0</q16:openlrLowestFrcToNextLRPoint>
+                <q16:openlrDistanceToNextLRPoint>182</q16:openlrDistanceToNextLRPoint>
+              </q16:openlrPathAttributes>
+            </q16:openlrLocationReferencePoint>
+            <q16:openlrLastLocationReferencePoint>
+              <q16:openlrCoordinates>
+                <q16:latitude>46.067547</q16:latitude>
+                <q16:longitude>14.569731</q16:longitude>
+              </q16:openlrCoordinates>
+              <q16:openlrLineAttributes>
+                <q16:openlrFunctionalRoadClass>frc0</q16:openlrFunctionalRoadClass>
+                <q16:openlrFormOfWay>undefined</q16:openlrFormOfWay>
+                <q16:openlrBearing>87</q16:openlrBearing>
+              </q16:openlrLineAttributes>
+            </q16:openlrLastLocationReferencePoint>
+            <q16:openlrOffsets>
+              <q16:openlrPositiveOffset>134</q16:openlrPositiveOffset>
+            </q16:openlrOffsets>
+          </q16:openlrPointLocationReference>
+        </pertinentLocation>
+        <source>
+          <sourceIdentification xmlns="http://datex2.eu/schema/3/common">1002-12</sourceIdentification>
+        </source>
+        <basicData xsi:type="TrafficConcentration">
+          <measurementOrCalculationTime>
+            <timeValue>2023-10-24T17:25:00Z</timeValue>
+            <period>
+              <startOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:25:00Z</startOfPeriod>
+              <endOfPeriod xmlns="http://datex2.eu/schema/3/common">2023-10-24T17:30:00Z</endOfPeriod>
+            </period>
+          </measurementOrCalculationTime>
+          <density>
+            <densityOfVehicles>4</densityOfVehicles>
+          </density>
+        </basicData>
+      </physicalQuantity>
+    </physicalQuantity>
+  </siteMeasurements>
+</MeasuredDataPublication>

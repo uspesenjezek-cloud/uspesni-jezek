@@ -106,7 +106,7 @@ var BARVA_AB = { STATIONARY_TRAFFIC: "rdece", QUEUING_TRAFFIC: "rdece", SLOW_TRA
 /* Autobahn opozorila -> črte zastojev. */
 function opozorilaAutobahn(cesta, data) {
   return ((data && data.warning) || []).filter(function (w) {
-    return w && String(w.future) !== "true" && BARVA_AB[String(w.abnormalTrafficType || "").toUpperCase()];
+    return w && String(w.future).toLowerCase() !== "true" && BARVA_AB[String(w.abnormalTrafficType || "").toUpperCase()];
   }).map(function (w) {
     var g = w.geometry && w.geometry.type === "LineString" && w.geometry.coordinates.length >= 2
       ? { type: "LineString", coordinates: w.geometry.coordinates.map(function (c) { return [+Number(c[0]).toFixed(5), +Number(c[1]).toFixed(5)]; }) }
@@ -169,6 +169,17 @@ async function zberiNap(f, viri) {
       viri.push({ vir: "nap-potovalni-casi", ok: true, st: pc.length });
     }
   } catch (e) { viri.push({ vir: "nap-potovalni-casi", ok: false, napaka: e.message }); }
+  try {
+    var fc = await nap.fcd(o);
+    if (fc) {
+      fc.forEach(function (c) {
+        features.push({ type: "Feature", geometry: vCrto(c.tocke),
+          properties: { vrsta: "potovalni_cas", barva: barvaPotovalnegaCasa(c.casS, c.prostoS), cesta: c.ime, opis: "Podatki iz vozil (FCD): " + Math.round(c.casS) + " s",
+            zamudaMin: c.prostoS > 0 ? Math.max(0, Math.round((c.casS - c.prostoS) / 60)) : null } });
+      });
+      viri.push({ vir: "nap-fcd", ok: true, st: fc.length });
+    }
+  } catch (e) { viri.push({ vir: "nap-fcd", ok: false, napaka: e.message }); }
   try {
     var dg = await nap.dogodki(o);
     if (dg) {

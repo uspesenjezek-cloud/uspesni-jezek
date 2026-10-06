@@ -33,7 +33,7 @@ function razcleniOpozorila(cesta, data) {
   if (!data || !Array.isArray(data.warning)) throw skupno.napakaVira(VIR, "odgovor za " + cesta + " nima polja warning");
   var out = [];
   data.warning.forEach(function (w) {
-    if (!w || w.future === true || String(w.future) === "true" || !jeZastoj(w)) return;
+    if (!w || String(w.future).toLowerCase() === "true" || !jeZastoj(w)) return; // API vrača "False"/"True"
     var zamudaMin = skupno.stevilo(w.delayTimeValue);
     out = out.concat(skupno.opazovanjaIzGeometrije(tockeIzOpozorila(w), {
       vir: VIR,

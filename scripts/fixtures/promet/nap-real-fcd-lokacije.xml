@@ -1,0 +1,412 @@
+<PredefinedLocationsPublication xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" lang="sl" modelBaseVersion="3" profileVersion="0">
+  <publicationTime xmlns="http://datex2.eu/schema/3/common">2022-12-14T06:53:37.9864378+01:00</publicationTime>
+  <publicationCreator xmlns="http://datex2.eu/schema/3/common">
+    <country>si</country>
+    <nationalIdentifier>NCUP</nationalIdentifier>
+  </publicationCreator>
+  <predefinedLocationReference xsi:type="PredefinedLocation" id="1" version="0" xmlns="http://datex2.eu/schema/3/locationReferencing">
+    <location xsi:type="SingleRoadLinearLocation">
+      <openlrLinear>
+        <firstDirection>
+          <openlrLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.21963</latitude>
+              <longitude>14.43717</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>129</openlrBearing>
+            </openlrLineAttributes>
+            <openlrPathAttributes>
+              <openlrLowestFrcToNextLRPoint>frc0</openlrLowestFrcToNextLRPoint>
+              <openlrDistanceToNextLRPoint>5367</openlrDistanceToNextLRPoint>
+            </openlrPathAttributes>
+          </openlrLocationReferencePoint>
+          <openlrLastLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.1838722</latitude>
+              <longitude>14.4832067</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>337</openlrBearing>
+            </openlrLineAttributes>
+          </openlrLastLocationReferencePoint>
+        </firstDirection>
+      </openlrLinear>
+      <gmlLineString>
+        <posList>46.2196312215145 14.4371694537646 46.2194658227091 14.4374663444954</posList>
+      </gmlLineString>
+      <alertCLinear xsi:type="AlertCMethod4Linear">
+        <alertCLocationCountryCode>9</alertCLocationCountryCode>
+        <alertCLocationTableNumber>35</alertCLocationTableNumber>
+        <alertCLocationTableVersion>2.2</alertCLocationTableVersion>
+        <alertCDirection>
+          <alertCDirectionCoded>negative</alertCDirectionCoded>
+          <alertCAffectedDirection>opposite</alertCAffectedDirection>
+        </alertCDirection>
+        <alertCMethod4PrimaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4PrimaryPointLocation>
+        <alertCMethod4SecondaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4SecondaryPointLocation>
+      </alertCLinear>
+      <linearWithinLinearElement>
+        <directionOnLinearSection>unknown</directionOnLinearSection>
+        <directionRelativeOnLinearSection>aligned</directionRelativeOnLinearSection>
+        <linearElement>
+          <roadName>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">AC-A2</value>
+            </values>
+          </roadName>
+          <roadNumber>0008</roadNumber>
+          <linearElementNature>road</linearElementNature>
+        </linearElement>
+        <fromPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>3841</distanceAlong>
+        </fromPoint>
+        <toPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>3870.5</distanceAlong>
+        </toPoint>
+      </linearWithinLinearElement>
+    </location>
+  </predefinedLocationReference>
+  <predefinedLocationReference xsi:type="PredefinedLocation" id="2" version="0" xmlns="http://datex2.eu/schema/3/locationReferencing">
+    <location xsi:type="SingleRoadLinearLocation">
+      <openlrLinear>
+        <firstDirection>
+          <openlrLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.21963</latitude>
+              <longitude>14.43717</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>129</openlrBearing>
+            </openlrLineAttributes>
+            <openlrPathAttributes>
+              <openlrLowestFrcToNextLRPoint>frc0</openlrLowestFrcToNextLRPoint>
+              <openlrDistanceToNextLRPoint>5367</openlrDistanceToNextLRPoint>
+            </openlrPathAttributes>
+          </openlrLocationReferencePoint>
+          <openlrLastLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.1838722</latitude>
+              <longitude>14.4832067</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>337</openlrBearing>
+            </openlrLineAttributes>
+          </openlrLastLocationReferencePoint>
+        </firstDirection>
+      </openlrLinear>
+      <gmlLineString>
+        <posList>46.2194658227091 14.4374663444954 46.2194227889294 14.4375435900976 46.2193006399033 14.4377633554212</posList>
+      </gmlLineString>
+      <alertCLinear xsi:type="AlertCMethod4Linear">
+        <alertCLocationCountryCode>9</alertCLocationCountryCode>
+        <alertCLocationTableNumber>35</alertCLocationTableNumber>
+        <alertCLocationTableVersion>2.2</alertCLocationTableVersion>
+        <alertCDirection>
+          <alertCDirectionCoded>negative</alertCDirectionCoded>
+          <alertCAffectedDirection>opposite</alertCAffectedDirection>
+        </alertCDirection>
+        <alertCMethod4PrimaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4PrimaryPointLocation>
+        <alertCMethod4SecondaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4SecondaryPointLocation>
+      </alertCLinear>
+      <linearWithinLinearElement>
+        <directionOnLinearSection>unknown</directionOnLinearSection>
+        <directionRelativeOnLinearSection>aligned</directionRelativeOnLinearSection>
+        <linearElement>
+          <roadName>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">AC-A2</value>
+            </values>
+          </roadName>
+          <roadNumber>0008</roadNumber>
+          <linearElementNature>road</linearElementNature>
+        </linearElement>
+        <fromPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>3870.5</distanceAlong>
+        </fromPoint>
+        <toPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>3900</distanceAlong>
+        </toPoint>
+      </linearWithinLinearElement>
+    </location>
+  </predefinedLocationReference>
+  <predefinedLocationReference xsi:type="PredefinedLocation" id="3" version="0" xmlns="http://datex2.eu/schema/3/locationReferencing">
+    <location xsi:type="SingleRoadLinearLocation">
+      <openlrLinear>
+        <firstDirection>
+          <openlrLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.21963</latitude>
+              <longitude>14.43717</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>129</openlrBearing>
+            </openlrLineAttributes>
+            <openlrPathAttributes>
+              <openlrLowestFrcToNextLRPoint>frc0</openlrLowestFrcToNextLRPoint>
+              <openlrDistanceToNextLRPoint>5367</openlrDistanceToNextLRPoint>
+            </openlrPathAttributes>
+          </openlrLocationReferencePoint>
+          <openlrLastLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.1838722</latitude>
+              <longitude>14.4832067</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>337</openlrBearing>
+            </openlrLineAttributes>
+          </openlrLastLocationReferencePoint>
+        </firstDirection>
+      </openlrLinear>
+      <gmlLineString>
+        <posList>46.2193006399033 14.4377633554212 46.2191127560839 14.4381036026022 46.2190355396808 14.4382414296284</posList>
+      </gmlLineString>
+      <alertCLinear xsi:type="AlertCMethod4Linear">
+        <alertCLocationCountryCode>9</alertCLocationCountryCode>
+        <alertCLocationTableNumber>35</alertCLocationTableNumber>
+        <alertCLocationTableVersion>2.2</alertCLocationTableVersion>
+        <alertCDirection>
+          <alertCDirectionCoded>negative</alertCDirectionCoded>
+          <alertCAffectedDirection>opposite</alertCAffectedDirection>
+        </alertCDirection>
+        <alertCMethod4PrimaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4PrimaryPointLocation>
+        <alertCMethod4SecondaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4SecondaryPointLocation>
+      </alertCLinear>
+      <linearWithinLinearElement>
+        <directionOnLinearSection>unknown</directionOnLinearSection>
+        <directionRelativeOnLinearSection>aligned</directionRelativeOnLinearSection>
+        <linearElement>
+          <roadName>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">AC-A2</value>
+            </values>
+          </roadName>
+          <roadNumber>0009</roadNumber>
+          <linearElementNature>road</linearElementNature>
+        </linearElement>
+        <fromPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>0</distanceAlong>
+        </fromPoint>
+        <toPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>49.9619064</distanceAlong>
+        </toPoint>
+      </linearWithinLinearElement>
+    </location>
+  </predefinedLocationReference>
+  <predefinedLocationReference xsi:type="PredefinedLocation" id="4" version="0" xmlns="http://datex2.eu/schema/3/locationReferencing">
+    <location xsi:type="SingleRoadLinearLocation">
+      <openlrLinear>
+        <firstDirection>
+          <openlrLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.21963</latitude>
+              <longitude>14.43717</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>129</openlrBearing>
+            </openlrLineAttributes>
+            <openlrPathAttributes>
+              <openlrLowestFrcToNextLRPoint>frc0</openlrLowestFrcToNextLRPoint>
+              <openlrDistanceToNextLRPoint>5367</openlrDistanceToNextLRPoint>
+            </openlrPathAttributes>
+          </openlrLocationReferencePoint>
+          <openlrLastLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.1838722</latitude>
+              <longitude>14.4832067</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>337</openlrBearing>
+            </openlrLineAttributes>
+          </openlrLastLocationReferencePoint>
+        </firstDirection>
+      </openlrLinear>
+      <gmlLineString>
+        <posList>46.2190355396808 14.4382414296284 46.2190086075498 14.4382895019987 46.218805275783 14.4386534702267 46.2187684763074 14.4387184110371</posList>
+      </gmlLineString>
+      <alertCLinear xsi:type="AlertCMethod4Linear">
+        <alertCLocationCountryCode>9</alertCLocationCountryCode>
+        <alertCLocationTableNumber>35</alertCLocationTableNumber>
+        <alertCLocationTableVersion>2.2</alertCLocationTableVersion>
+        <alertCDirection>
+          <alertCDirectionCoded>negative</alertCDirectionCoded>
+          <alertCAffectedDirection>opposite</alertCAffectedDirection>
+        </alertCDirection>
+        <alertCMethod4PrimaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4PrimaryPointLocation>
+        <alertCMethod4SecondaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4SecondaryPointLocation>
+      </alertCLinear>
+      <linearWithinLinearElement>
+        <directionOnLinearSection>unknown</directionOnLinearSection>
+        <directionRelativeOnLinearSection>aligned</directionRelativeOnLinearSection>
+        <linearElement>
+          <roadName>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">AC-A2</value>
+            </values>
+          </roadName>
+          <roadNumber>0009</roadNumber>
+          <linearElementNature>road</linearElementNature>
+        </linearElement>
+        <fromPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>49.9619064</distanceAlong>
+        </fromPoint>
+        <toPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>99.92381</distanceAlong>
+        </toPoint>
+      </linearWithinLinearElement>
+    </location>
+  </predefinedLocationReference>
+  <predefinedLocationReference xsi:type="PredefinedLocation" id="5" version="0" xmlns="http://datex2.eu/schema/3/locationReferencing">
+    <location xsi:type="SingleRoadLinearLocation">
+      <openlrLinear>
+        <firstDirection>
+          <openlrLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.21963</latitude>
+              <longitude>14.43717</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>129</openlrBearing>
+            </openlrLineAttributes>
+            <openlrPathAttributes>
+              <openlrLowestFrcToNextLRPoint>frc0</openlrLowestFrcToNextLRPoint>
+              <openlrDistanceToNextLRPoint>5367</openlrDistanceToNextLRPoint>
+            </openlrPathAttributes>
+          </openlrLocationReferencePoint>
+          <openlrLastLocationReferencePoint>
+            <openlrCoordinates>
+              <latitude>46.1838722</latitude>
+              <longitude>14.4832067</longitude>
+            </openlrCoordinates>
+            <openlrLineAttributes>
+              <openlrFunctionalRoadClass>frc0</openlrFunctionalRoadClass>
+              <openlrFormOfWay>undefined</openlrFormOfWay>
+              <openlrBearing>337</openlrBearing>
+            </openlrLineAttributes>
+          </openlrLastLocationReferencePoint>
+        </firstDirection>
+      </openlrLinear>
+      <gmlLineString>
+        <posList>46.2187684763074 14.4387184110371 46.2185942534946 14.4390258657074 46.2185004832405 14.4391948662764</posList>
+      </gmlLineString>
+      <alertCLinear xsi:type="AlertCMethod4Linear">
+        <alertCLocationCountryCode>9</alertCLocationCountryCode>
+        <alertCLocationTableNumber>35</alertCLocationTableNumber>
+        <alertCLocationTableVersion>2.2</alertCLocationTableVersion>
+        <alertCDirection>
+          <alertCDirectionCoded>negative</alertCDirectionCoded>
+          <alertCAffectedDirection>opposite</alertCAffectedDirection>
+        </alertCDirection>
+        <alertCMethod4PrimaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4PrimaryPointLocation>
+        <alertCMethod4SecondaryPointLocation>
+          <alertCLocation>
+            <specificLocation>30085</specificLocation>
+          </alertCLocation>
+          <offsetDistance>
+            <offsetDistance>0</offsetDistance>
+          </offsetDistance>
+        </alertCMethod4SecondaryPointLocation>
+      </alertCLinear>
+      <linearWithinLinearElement>
+        <directionOnLinearSection>unknown</directionOnLinearSection>
+        <directionRelativeOnLinearSection>aligned</directionRelativeOnLinearSection>
+        <linearElement>
+          <roadName>
+            <values xmlns="http://datex2.eu/schema/3/common">
+              <value lang="sl">AC-A2</value>
+            </values>
+          </roadName>
+          <roadNumber>0009</roadNumber>
+          <linearElementNature>road</linearElementNature>
+        </linearElement>
+        <fromPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>99.92381</distanceAlong>
+        </fromPoint>
+        <toPoint xsi:type="DistanceFromLinearElementStart">
+          <distanceAlong>149.885712</distanceAlong>
+        </toPoint>
+      </linearWithinLinearElement>
+    </location>
+  </predefinedLocationReference>
+</PredefinedLocationsPublication>
