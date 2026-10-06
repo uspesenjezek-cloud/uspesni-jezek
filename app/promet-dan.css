@@ -203,6 +203,49 @@
   color: #9a4f1c;
 }
 
+.pdan__nalog-dejansko {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+/* Odhajam / Na lokaciji: čez celotno širino kartice, pod vsebino. */
+.pdan__nalog-sledenje {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.pdan__gumb-sledenje {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  gap: 0.35rem;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+}
+
+/* Besedilo ostane v eni vrstici; app.js ga po potrebi pomanjša (data-fit-text). */
+.pdan__gumb-besedilo {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pdan__gumb-sledenje[aria-pressed="true"],
+.pdan__gumb-sledenje[aria-pressed="true"]:hover {
+  background: var(--color-teal-soft);
+  color: var(--color-primary-strong);
+}
+
+.pdan__gumb-sledenje[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .pdan__nalog-gumbi {
   display: flex;
   gap: 0.35rem;

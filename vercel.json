@@ -23,7 +23,8 @@
     { "source": "/api/promet-napoved", "destination": "/api/pos?handler=promet&akcija=napoved" },
     { "source": "/api/promet-stanje", "destination": "/api/pos?handler=promet&akcija=stanje" },
     { "source": "/api/promet-zemljevid", "destination": "/api/pos?handler=promet&akcija=zemljevid" },
-    { "source": "/api/promet-zbiraj", "destination": "/api/pos?handler=promet&akcija=zbiraj" }
+    { "source": "/api/promet-zbiraj", "destination": "/api/pos?handler=promet&akcija=zbiraj" },
+    { "source": "/api/promet-voznja", "destination": "/api/pos?handler=promet&akcija=voznja" }
   ],
   "crons": [
     { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },

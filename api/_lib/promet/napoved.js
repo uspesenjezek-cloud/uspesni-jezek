@@ -143,6 +143,16 @@ function izracunajOdhod(vhod) {
   var obicajno = casDoKonvergence(prihod, odseki, tip, idx, o, "medianaS", kaznS);
   var varno = casDoKonvergence(prihod, odseki, tip, idx, o, "p85S", kaznS);
 
+  // Vreme ob uri vožnje: faktor na celoten čas vožnje (dež, sneg, megla).
+  var vreme = vhod.vreme && vhod.vreme.faktor > 1 ? vhod.vreme : null;
+  var vremeDodatekS = 0;
+  if (vreme) {
+    vremeDodatekS = Math.round(varno.trajanjeS * (vreme.faktor - 1));
+    varno.trajanjeS += vremeDodatekS;
+    obicajno.trajanjeS += Math.round(obicajno.trajanjeS * (vreme.faktor - 1));
+    varno.razlogi.push({ celica: null, ura: null, zamudaS: vremeDodatekS, osnova: "vreme", vir: vreme.vir || null, nVzorcev: null, pZastoja: null, razred: vreme.razred });
+  }
+
   var rezervaS = o.rezervaMin * 60;
   var surovOdhod = prihod.minus({ seconds: varno.trajanjeS + rezervaS });
   var z = o.zaokrozitevMin;
@@ -168,6 +178,8 @@ function izracunajOdhod(vhod) {
     delezMeritev: Math.round(deleziMeritev * 100) / 100,
     razlogi: varno.razlogi,
     dogodki: naPoti.map(function (d) { return { vir: d.vir, tip: d.tip, cesta: d.cesta, naslov: d.naslov, zaprto: !!d.zaprto }; }),
+    vreme: vhod.vreme ? { razred: vhod.vreme.razred, faktor: vhod.vreme.faktor, dodatekMin: Math.round(vremeDodatekS / 60),
+      padavineMmH: vhod.vreme.padavineMmH, temperatura: vhod.vreme.temperatura, vir: vhod.vreme.vir } : null,
     verzijaModela: profilMod.VERZIJA
   };
 }
@@ -178,14 +190,16 @@ var BESEDILA = {
     dogodek: "Na poti so napovedana dela ali zapora: {d}.",
     odhod: "Za prihod ob {p} priporočamo odhod najkasneje ob {o}.",
     normalno: "Na poti ne pričakujemo posebne gneče. Odhod ob {o} zadošča za prihod ob {p}.",
-    ocena: "(Ocena na podlagi tipičnih konic; meritve za to pot še zbiramo.)"
+    ocena: "(Ocena na podlagi tipičnih konic; meritve za to pot še zbiramo.)",
+    vreme: "Napovedano vreme: {v} (+{z} min)."
   },
   de: {
     gneca: "Zu dieser Uhrzeit ist auf Ihrer Strecke üblicherweise Stau (bis zu +{z} Min.).",
     dogodek: "Auf der Strecke sind Baustellen oder Sperrungen gemeldet: {d}.",
     odhod: "Für die Ankunft um {p} empfehlen wir die Abfahrt spätestens um {o}.",
     normalno: "Auf der Strecke ist kein besonderer Stau zu erwarten. Abfahrt um {o} reicht für die Ankunft um {p}.",
-    ocena: "(Schätzung anhand typischer Stoßzeiten; Messwerte für diese Strecke werden noch gesammelt.)"
+    ocena: "(Schätzung anhand typischer Stoßzeiten; Messwerte für diese Strecke werden noch gesammelt.)",
+    vreme: "Wettervorhersage: {v} (+{z} Min.)."
   }
 };
 
@@ -195,8 +209,12 @@ function sporocilo(r, jezik) {
   var vrstice = [];
   var f = function (s) { return s.replace("{z}", r.dodatnaZamudaMin).replace("{p}", prihod).replace("{o}", r.priporocenOdhodUra).replace("{d}", r.dogodki.map(function (d) { return d.cesta || d.naslov; }).filter(Boolean).join(", ")); };
   if (r.opozorilo) { vrstice.push(f(b.gneca)); }
+  if (r.vreme && r.vreme.dodatekMin > 0) {
+    var opisVremena = (require("./vreme").RAZREDI[r.vreme.razred] || {}).opis || {};
+    vrstice.push(b.vreme.replace("{v}", opisVremena[jezik] || opisVremena.sl || r.vreme.razred).replace("{z}", r.vreme.dodatekMin));
+  }
   if (r.dogodki.length) vrstice.push(f(b.dogodek));
-  vrstice.push(f(r.opozorilo || r.dogodki.length ? b.odhod : b.normalno));
+  vrstice.push(f(r.opozorilo || r.dogodki.length || (r.vreme && r.vreme.dodatekMin > 0) ? b.odhod : b.normalno));
   if (r.osnova !== "meritve") vrstice.push(b.ocena);
   return vrstice.join(" ");
 }
