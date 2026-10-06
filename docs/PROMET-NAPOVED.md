@@ -157,6 +157,27 @@ niso pripravljene, napoved deluje z oceno tipičnih konic in to izpiše.
 (`supabase db push` ali SQL Editor). Na Vercelu mora biti nastavljen
 `SUPABASE_SERVICE_ROLE_KEY`.
 
+## 4c. Dostop NAP (Slovenija, DATEX II)
+
+Z osebnim dostopom do nap.si aplikacija bere števce prometa, potovalne čase
+in dogodke DARS (`api/_lib/promet/viri/nap.js`, `datex2.js`). Nastavitve so
+**samo v Vercel → Settings → Environment Variables** (nikoli v kodi):
+
+| Ime | Vrednost |
+|---|---|
+| `PROMET_NAP_UPORABNIK` | uporabniško ime na nap.si |
+| `PROMET_NAP_GESLO` | geslo na nap.si |
+| `PROMET_NAP_URL_DOGODKI` | naslov vira dogodkov (DATEX II) |
+| `PROMET_NAP_URL_STEVCI` | naslov meritev števcev prometa |
+| `PROMET_NAP_URL_STEVCI_LOKACIJE` | naslov tabele merilnih mest (če je ločen) |
+| `PROMET_NAP_URL_POTOVALNI_CASI` | naslov potovalnih časov |
+| `PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE` | naslov preddefiniranih odsekov (če je ločen) |
+
+Manjkajoč naslov pomeni, da vir ni vključen. Ko je nastavljen vsaj en
+naslov, zemljevid in zbiralnik zgodovine uporabljata NAP namesto javnih virov
+promet.si. Napake (npr. »dostop zavrnjen (HTTP 401)«) so izpisane pod
+zemljevidom; geslo se nikoli ne izpiše.
+
 ## 5. Naslednji koraki
 
 1. Registracija na NAP (DARS) in naročnina na Autobahn detektorske podatke v

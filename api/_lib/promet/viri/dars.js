@@ -124,8 +124,88 @@ function razcleniDogodke(data) {
   return { opazovanja: opazovanja, dogodki: dogodki };
 }
 
+var PROSTA_HITROST_KMH = 100; // privzeta prosta hitrost za oceno zamude iz števca
+var DOLZINA_CELICE_M = 2000;
+
+/* Zamuda na ~2 km celice iz izmerjene hitrosti števca (0, če je hitrost normalna). */
+function zamudaIzHitrosti(hitrostKmh) {
+  var h = Number(hitrostKmh);
+  if (!(h > 0)) return null;
+  var s = DOLZINA_CELICE_M / (h / 3.6) - DOLZINA_CELICE_M / (PROSTA_HITROST_KMH / 3.6);
+  return Math.max(0, Math.round(s));
+}
+
+/* NAP (DATEX II) -> en zajem za Slovenijo. Vsaka celica dobi največjo
+   zamudo izmed virov (dogodek, števec, potovalni čas), da se ista gneča ne
+   šteje dvakrat. Števci in potovalni časi zapišejo tudi zamudo 0 — tako
+   profil ve, da je bil odsek izmerjen in prost, ne neznan. */
+async function zajemiNap(o) {
+  var nap = require("./nap");
+  var napake = [];
+  var skupaj = 0;
+  var pokritost = 0;
+  var opazovanja = [];
+  var dogodki = [];
+  async function poskusi(ime, fn) {
+    try {
+      var r = await fn();
+      if (r === null) return null; // vir ni nastavljen
+      skupaj++;
+      pokritost++;
+      return r;
+    } catch (e) {
+      skupaj++;
+      napake.push({ vir: ime, napaka: e.message });
+      return null;
+    }
+  }
+  var rez = await Promise.all([
+    poskusi("dogodki", function () { return nap.dogodki(o); }),
+    poskusi("stevci", function () { return nap.stevci(o); }),
+    poskusi("potovalni_casi", function () { return nap.potovalniCasi(o); })
+  ]);
+  (rez[0] || []).forEach(function (d) {
+    if (d.vrsta === "zastoj") {
+      opazovanja = opazovanja.concat(skupno.opazovanjaIzGeometrije(d.tocke, { vir: VIR, drzava: "SI", cesta: d.cesta, tip: "zastoj",
+        zamudaS: d.zamudaMin != null ? d.zamudaMin * 60 : null, hitrostKmh: null, zunanjiId: d.id }));
+    } else {
+      dogodki.push({ vir: VIR, drzava: "SI", cesta: d.cesta, tip: d.vrsta === "zapora" ? "zapora" : "dela", naslov: d.cesta, opis: d.opis,
+        zacetek: null, tocke: d.tocke, zaprto: d.zaprto, zunanjiId: d.id });
+    }
+  });
+  (rez[1] || []).forEach(function (s) {
+    var z = zamudaIzHitrosti(s.hitrost);
+    if (z == null) return;
+    opazovanja = opazovanja.concat(skupno.opazovanjaIzGeometrije([{ lat: s.lat, lon: s.lon }], { vir: VIR, drzava: "SI", cesta: s.cesta, tip: "stevec",
+      zamudaS: z, hitrostKmh: s.hitrost, zunanjiId: s.id }));
+  });
+  (rez[2] || []).forEach(function (c) {
+    var z = c.prostoS > 0 ? Math.max(0, Math.round(c.casS - c.prostoS)) : null;
+    if (z == null) return;
+    opazovanja = opazovanja.concat(skupno.opazovanjaIzGeometrije(c.tocke, { vir: VIR, drzava: "SI", cesta: c.ime, tip: "potovalni_cas",
+      zamudaS: z, hitrostKmh: null, zunanjiId: c.lokacija }));
+  });
+  // največja zamuda na celico (null = zastoj brez podatka -> 120 s, kot v profilu)
+  var poCelici = new Map();
+  opazovanja.forEach(function (x) {
+    var v = x.zamudaS == null ? 120 : x.zamudaS;
+    var obst = poCelici.get(x.celica);
+    if (!obst || v > (obst.zamudaS == null ? 120 : obst.zamudaS)) poCelici.set(x.celica, x);
+  });
+  return {
+    vir: VIR,
+    opazovanja: Array.from(poCelici.values()),
+    dogodki: rez[0] ? dogodki : [],
+    napakeDogodkov: rez[0] ? 0 : 1,
+    napake: napake,
+    pokritost: pokritost,
+    skupaj: skupaj
+  };
+}
+
 async function zajemi(opcije) {
   var o = opcije || {};
+  if (require("./nap").nastavljen(o.env)) return zajemiNap(o);
   try {
     var data = await skupno.preberiJson(VIR, o.url || URL_DOGODKI, o.fetch);
     var r = razcleniDogodke(data);
@@ -135,4 +215,4 @@ async function zajemi(opcije) {
   }
 }
 
-module.exports = { VIR: VIR, URL_DOGODKI: URL_DOGODKI, d96tmVWgs84: d96tmVWgs84, vTocko: vTocko, tockeIzGeometrije: tockeIzGeometrije, razvrsti: razvrsti, razcleniDogodke: razcleniDogodke, zamudaIzBesedila: zamudaIzBesedila, zajemi: zajemi };
+module.exports = { VIR: VIR, URL_DOGODKI: URL_DOGODKI, d96tmVWgs84: d96tmVWgs84, vTocko: vTocko, tockeIzGeometrije: tockeIzGeometrije, razvrsti: razvrsti, razcleniDogodke: razcleniDogodke, zamudaIzBesedila: zamudaIzBesedila, zamudaIzHitrosti: zamudaIzHitrosti, zajemi: zajemi };

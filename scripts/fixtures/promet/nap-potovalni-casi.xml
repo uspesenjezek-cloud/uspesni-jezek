@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2LogicalModel xmlns="http://datex2.eu/schema/2/2_0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" modelBaseVersion="2">
+  <payloadPublication xsi:type="ElaboratedDataPublication" lang="sl">
+    <elaboratedData>
+      <basicData xsi:type="TravelTimeData">
+        <pertinentLocation xsi:type="LocationByReference"><predefinedLocationReference targetClass="PredefinedLocation" id="PL1" version="1"/></pertinentLocation>
+        <travelTime><duration>1260</duration></travelTime>
+        <freeFlowTravelTime><duration>840</duration></freeFlowTravelTime>
+      </basicData>
+    </elaboratedData>
+    <elaboratedData>
+      <basicData xsi:type="TravelTimeData">
+        <pertinentLocation xsi:type="LocationByReference"><predefinedLocationReference targetClass="PredefinedLocation" id="PL2" version="1"/></pertinentLocation>
+        <travelTime><duration>500</duration></travelTime>
+        <freeFlowTravelTime><duration>480</duration></freeFlowTravelTime>
+      </basicData>
+    </elaboratedData>
+  </payloadPublication>
+</d2LogicalModel>

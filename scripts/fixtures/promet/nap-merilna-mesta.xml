@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2LogicalModel xmlns="http://datex2.eu/schema/2/2_0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" modelBaseVersion="2">
+  <payloadPublication xsi:type="MeasurementSiteTablePublication" lang="sl">
+    <measurementSiteTable id="T1" version="1">
+      <measurementSiteRecord id="0012" version="1">
+        <measurementSiteName><values><value lang="sl">Šentvid</value></values></measurementSiteName>
+        <measurementSiteLocation xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>46.0950</latitude><longitude>14.4800</longitude></pointCoordinates></pointByCoordinates></measurementSiteLocation>
+      </measurementSiteRecord>
+      <measurementSiteRecord id="0013" version="1">
+        <measurementSiteName><values><value lang="sl">Kozarje</value></values></measurementSiteName>
+        <measurementSiteLocation xsi:type="Point"><pointByCoordinates><pointCoordinates><latitude>46.0400</latitude><longitude>14.4500</longitude></pointCoordinates></pointByCoordinates></measurementSiteLocation>
+      </measurementSiteRecord>
+    </measurementSiteTable>
+  </payloadPublication>
+</d2LogicalModel>

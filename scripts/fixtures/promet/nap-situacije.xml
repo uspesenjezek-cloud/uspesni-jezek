@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2:payload xmlns:d2="http://levelC/schema/3/d2Payload" xmlns:sit="http://datex2.eu/schema/3/situation" xmlns:com="http://datex2.eu/schema/3/common" xmlns:loc="http://datex2.eu/schema/3/locationReferencing" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="sit:SituationPublication" lang="sl">
+  <sit:situation id="S1">
+    <sit:situationRecord xsi:type="sit:AbnormalTraffic" id="R1" version="1">
+      <sit:generalPublicComment><sit:comment><com:values><com:value lang="sl">Zastoj na severni obvoznici</com:value></com:values></sit:comment></sit:generalPublicComment>
+      <sit:impact><sit:delays><sit:delayTimeValue>600</sit:delayTimeValue></sit:delays></sit:impact>
+      <sit:locationReference xsi:type="loc:SingleRoadLinearLocation">
+        <loc:supplementaryPositionalDescription><loc:roadInformation><loc:roadNumber>H3</loc:roadNumber></loc:roadInformation></loc:supplementaryPositionalDescription>
+        <loc:gmlLineString srsName="EPSG:4326"><loc:posList>46.0700 14.4700 46.0750 14.4900 46.0780 14.5100</loc:posList></loc:gmlLineString>
+      </sit:locationReference>
+      <sit:abnormalTrafficType>stationaryTraffic</sit:abnormalTrafficType>
+    </sit:situationRecord>
+  </sit:situation>
+  <sit:situation id="S2">
+    <sit:situationRecord xsi:type="sit:MaintenanceWorks" id="R2" version="3">
+      <sit:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates><loc:pointCoordinates><loc:latitude>46.2400</loc:latitude><loc:longitude>14.3550</loc:longitude></loc:pointCoordinates></loc:pointByCoordinates>
+      </sit:locationReference>
+    </sit:situationRecord>
+  </sit:situation>
+  <sit:situation id="S3">
+    <sit:situationRecord xsi:type="sit:RoadOrCarriagewayOrLaneManagement" id="R3" version="1">
+      <sit:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates><loc:pointCoordinates><loc:latitude>46.0400</loc:latitude><loc:longitude>14.4880</loc:longitude></loc:pointCoordinates></loc:pointByCoordinates>
+      </sit:locationReference>
+      <sit:roadOrCarriagewayOrLaneManagementType>roadClosed</sit:roadOrCarriagewayOrLaneManagementType>
+    </sit:situationRecord>
+  </sit:situation>
+  <sit:situation id="S4">
+    <sit:situationRecord xsi:type="sit:PoorEnvironmentConditions" id="R4" version="1">
+      <sit:locationReference xsi:type="loc:PointLocation">
+        <loc:pointByCoordinates><loc:pointCoordinates><loc:latitude>45.9</loc:latitude><loc:longitude>14.2</loc:longitude></loc:pointCoordinates></loc:pointByCoordinates>
+      </sit:locationReference>
+    </sit:situationRecord>
+  </sit:situation>
+</d2:payload>

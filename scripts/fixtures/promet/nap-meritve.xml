@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2LogicalModel xmlns="http://datex2.eu/schema/2/2_0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" modelBaseVersion="2">
+  <payloadPublication xsi:type="MeasuredDataPublication" lang="sl">
+    <siteMeasurements>
+      <measurementSiteReference targetClass="MeasurementSiteRecord" id="0012" version="1"/>
+      <measurementTimeDefault>2026-10-07T05:30:00Z</measurementTimeDefault>
+      <measuredValue index="1"><measuredValue><basicData xsi:type="TrafficSpeed"><averageVehicleSpeed numberOfInputValuesUsed="20"><speed>95</speed></averageVehicleSpeed></basicData></measuredValue></measuredValue>
+      <measuredValue index="2"><measuredValue><basicData xsi:type="TrafficSpeed"><averageVehicleSpeed numberOfInputValuesUsed="18"><speed>24</speed></averageVehicleSpeed></basicData></measuredValue></measuredValue>
+      <measuredValue index="3"><measuredValue><basicData xsi:type="TrafficFlow"><vehicleFlow><vehicleFlowRate>1200</vehicleFlowRate></vehicleFlow></basicData></measuredValue></measuredValue>
+    </siteMeasurements>
+    <siteMeasurements>
+      <measurementSiteReference targetClass="MeasurementSiteRecord" id="0013" version="1"/>
+      <measuredValue index="1"><measuredValue><basicData xsi:type="TrafficSpeed"><averageVehicleSpeed><speed>110</speed></averageVehicleSpeed></basicData></measuredValue></measuredValue>
+    </siteMeasurements>
+    <siteMeasurements>
+      <measurementSiteReference targetClass="MeasurementSiteRecord" id="9999" version="1"/>
+      <measuredValue index="1"><measuredValue><basicData xsi:type="TrafficSpeed"><averageVehicleSpeed><speed>80</speed></averageVehicleSpeed></basicData></measuredValue></measuredValue>
+    </siteMeasurements>
+  </payloadPublication>
+</d2LogicalModel>

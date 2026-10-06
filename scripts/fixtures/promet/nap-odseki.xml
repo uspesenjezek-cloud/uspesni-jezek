@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<d2LogicalModel xmlns="http://datex2.eu/schema/2/2_0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" modelBaseVersion="2">
+  <payloadPublication xsi:type="PredefinedLocationsPublication" lang="sl">
+    <predefinedLocationSet id="SET" version="1">
+      <predefinedLocation id="PL1" version="1">
+        <predefinedLocationName><values><value lang="sl">Kranj – Ljubljana</value></values></predefinedLocationName>
+        <predefinedLocation xsi:type="Linear">
+          <linearByCoordinates>
+            <startPointOfLinearByCoordinates><pointCoordinates><latitude>46.2390</latitude><longitude>14.3550</longitude></pointCoordinates></startPointOfLinearByCoordinates>
+            <endPointOfLinearByCoordinates><pointCoordinates><latitude>46.0950</latitude><longitude>14.4800</longitude></pointCoordinates></endPointOfLinearByCoordinates>
+          </linearByCoordinates>
+        </predefinedLocation>
+      </predefinedLocation>
+      <predefinedLocation id="PL2" version="1">
+        <predefinedLocationName><values><value lang="sl">Ljubljana – Grosuplje</value></values></predefinedLocationName>
+        <predefinedLocation xsi:type="Linear">
+          <linearByCoordinates>
+            <startPointOfLinearByCoordinates><pointCoordinates><latitude>46.0300</latitude><longitude>14.5500</longitude></pointCoordinates></startPointOfLinearByCoordinates>
+            <endPointOfLinearByCoordinates><pointCoordinates><latitude>45.9550</latitude><longitude>14.6580</longitude></pointCoordinates></endPointOfLinearByCoordinates>
+          </linearByCoordinates>
+        </predefinedLocation>
+      </predefinedLocation>
+    </predefinedLocationSet>
+  </payloadPublication>
+</d2LogicalModel>
