@@ -6,6 +6,8 @@
 "use strict";
 
 var path = require("path");
+// Testi ne smejo uporabiti pravih nastavitev okolja (npr. prijave NAP).
+Object.keys(process.env).filter(function (k) { return /^PROMET_/.test(k); }).forEach(function (k) { delete process.env[k]; });
 var promet = require("../api/_lib/promet");
 
 var OK = 0;
@@ -484,7 +486,9 @@ section("OpenHolidays odjemalec");
     PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE: "https://nap.test/odseki", PROMET_NAP_URL_FCD: "-"
   };
   var napGlave = [];
+  var zetonOdg = function () { return new Response(JSON.stringify({ access_token: "tok1", token_type: "bearer", expires_in: 3599, refresh_token: "ref1" }), { status: 200 }); };
   var napSvet = async function (url, opts) {
+    if (/\/uc\/user\/token$/.test(url)) return zetonOdg();
     napGlave.push(opts && opts.headers && opts.headers.authorization);
     var m = { "https://nap.test/dogodki": "nap-situacije.xml", "https://nap.test/stevci": "nap-meritve.xml", "https://nap.test/mesta": "nap-merilna-mesta.xml",
       "https://nap.test/casi": "nap-potovalni-casi.xml", "https://nap.test/odseki": "nap-odseki.xml" }[url];
@@ -493,12 +497,25 @@ section("OpenHolidays odjemalec");
   assert(NAP.nastavljen(napEnv) && !NAP.nastavljen({}), "NAP vključen samo z nastavljenimi naslovi");
   var napSt = await NAP.stevci({ env: napEnv, fetch: napSvet });
   assert(napSt.length === 2 && napSt.every(function (s) { return s.lat && s.lon; }), "števci z lokacijami; meritev brez mesta izločena");
-  assert(napGlave[0] === "Basic " + Buffer.from("podjetje:skrivnost123").toString("base64"), "prijava HTTP Basic iz nastavitev okolja");
+  assert(napGlave[0] === "bearer tok1", "prijava OAuth2: žeton iz /uc/user/token, nato bearer (po navodilih NAP)");
   var napPc = await NAP.potovalniCasi({ env: napEnv, fetch: napSvet });
   assert(napPc.length === 2 && napPc[0].ime === "Kranj – Ljubljana" && napPc[0].tocke.length === 2, "potovalni časi dobijo odseke");
   var zavrnjeno = null;
-  try { await NAP.dogodki({ env: napEnv, fetch: async function () { return new Response("", { status: 401 }); } }); } catch (e) { zavrnjeno = e.message; }
-  assert(/dostop zavrnjen/.test(zavrnjeno) && zavrnjeno.indexOf("skrivnost123") === -1, "401: jasno sporočilo, geslo ni izpisano");
+  NAP._ponastavi();
+  var tokKlici = 0;
+  try { await NAP.dogodki({ env: napEnv, fetch: async function (u) { if (/token$/.test(u)) { tokKlici++; return zetonOdg(); } return new Response("", { status: 401 }); } }); } catch (e) { zavrnjeno = e.message; }
+  assert(/ni odobren/.test(zavrnjeno) && zavrnjeno.indexOf("skrivnost123") === -1, "401 na viru: »dostop ni odobren«, geslo ni izpisano");
+  assert(tokKlici === 2, "ob 401 se žeton osveži in zahteva ponovi enkrat");
+  NAP._ponastavi();
+  var napacnoGeslo = null;
+  try { await NAP.dogodki({ env: napEnv, fetch: async function (u) { return /token$/.test(u) ? new Response("{\"error\":\"invalid_grant\"}", { status: 400 }) : new Response("", { status: 200 }); } }); } catch (e) { napacnoGeslo = e.message; }
+  assert(/prijava NAP zavrnjena/.test(napacnoGeslo) && napacnoGeslo.indexOf("skrivnost123") === -1, "napačno geslo: jasno sporočilo");
+  NAP._ponastavi();
+  var stZetonov = 0;
+  var enZeton = async function (u, o) { if (/token$/.test(u)) { stZetonov++; return zetonOdg(); } return napSvet(u, o); };
+  await NAP.dogodki({ env: napEnv, fetch: enZeton });
+  await NAP.dogodki({ env: napEnv, fetch: enZeton });
+  assert(stZetonov === 1, "žeton se predpomni (ena prijava za več zahtev)");
 
   var DARS = promet.viri.dars;
   var napZajem = await DARS.zajemi({ env: napEnv, fetch: napSvet });
@@ -620,12 +637,13 @@ section("OpenHolidays odjemalec");
     "b2b.fcd.datexii33.status": "nap-real-fcd-stanje.xml", "b2b.fcd.datexii33.locations": "nap-real-fcd-lokacije.xml" };
   var praviKlici = [];
   var praviSvet = async function (url, opts) {
+    if (/\/uc\/user\/token$/.test(url)) return zetonOdg();
     praviKlici.push(url);
-    var ime = String(url).replace("https://b2b.ncup.si/data/", "");
+    var ime = String(url).replace("https://b2b.nap.si/data/", "");
     return pravi[ime] ? new Response(xml(pravi[ime]), { status: 200 }) : new Response("", { status: 404 });
   };
   var samoPrijava = { PROMET_NAP_UPORABNIK: "podjetje", PROMET_NAP_GESLO: "skrivnost123" };
-  assert(NAP.nastavljen(samoPrijava) && NAP.nastavitve(samoPrijava).fcd === "https://b2b.ncup.si/data/b2b.fcd.datexii33.status", "za vklop zadoščata uporabnik in geslo; uradni naslovi so privzeti");
+  assert(NAP.nastavljen(samoPrijava) && NAP.nastavitve(samoPrijava).fcd === "https://b2b.nap.si/data/b2b.fcd.datexii33.status", "za vklop zadoščata uporabnik in geslo; uradni naslovi so privzeti");
   var rDog = await NAP.dogodki({ env: samoPrijava, fetch: praviSvet });
   assert(rDog.length >= 8 && rDog.every(function (d) { return d.tocke.length && ["zastoj", "dela", "zapora"].indexOf(d.vrsta) !== -1; }), "pravi dogodki DARS: vsi z lokacijo in vrsto");
   var rSt = await NAP.stevci({ env: samoPrijava, fetch: praviSvet });
@@ -641,7 +659,7 @@ section("OpenHolidays odjemalec");
   var rZaj = await DARS.zajemi({ env: samoPrijava, fetch: praviSvet });
   assert(rZaj.skupaj === 4 && rZaj.pokritost === 3 && rZaj.napake.length === 1 && rZaj.napake[0].vir === "fcd", "zajem SI iz pravih vzorcev: 3 viri OK, FCD napaka vidna");
   assert(rZaj.opazovanja.length > 30, "pravi zajem da opazovanja po celicah (" + rZaj.opazovanja.length + ")");
-  assert(praviKlici.every(function (u) { return u.indexOf("https://b2b.ncup.si/data/") === 0; }), "kliče samo uradne naslove NCUP");
+  assert(praviKlici.every(function (u) { return u.indexOf("https://b2b.nap.si/data/") === 0; }), "kliče samo uradne naslove B2B NAP");
   NAP._ponastavi();
 
   section("Stran: prijavni žeton");

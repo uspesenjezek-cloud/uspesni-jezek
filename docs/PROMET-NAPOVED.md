@@ -165,10 +165,15 @@ privzeti v `api/_lib/promet/viri/nap.js`:
 
 | Vir | Naslov | Pokritost | Osveževanje |
 |---|---|---|---|
-| Števci prometa | `b2b.ncup.si/data/b2b.counters.datexii33` (+ `.locations`) | avtoceste, državne, regionalne ceste | do 5 min |
-| Potovalni časi | `b2b.ncup.si/data/b2b.traveltimes.promet.datexii33` | avtoceste | do 1 min |
-| FCD (podatki iz vozil) | `b2b.ncup.si/data/b2b.fcd.datexii33.status` (+ `.locations`) | avtoceste | do 1 min |
-| Prometni dogodki | `b2b.ncup.si/data/b2b.events.datexii33` | vse ceste | sproti |
+| Števci prometa | `b2b.nap.si/data/b2b.counters.datexii33` (+ `.locations`) | avtoceste, državne, regionalne ceste | do 5 min |
+| Potovalni časi | `b2b.nap.si/data/b2b.traveltimes.promet.datexii33` | avtoceste | do 1 min |
+| FCD (podatki iz vozil) | `b2b.nap.si/data/b2b.fcd.datexii33.status` (+ `.locations`) | avtoceste | do 1 min |
+| Prometni dogodki | `b2b.nap.si/data/b2b.events.datexii33` | vse ceste | sproti |
+
+**Prijava** (uradna navodila: https://www.nap.si/resources/doc/nap_B2B_sl.pdf):
+OAuth2 — `POST https://b2b.nap.si/uc/user/token` z `grant_type=password`
+vrne žeton, viri se berejo z `Authorization: bearer`. **Vsak vir mora biti v
+profilu na nap.si zaprošen in odobren** (stolpec »Pravice«), sicer vrne 401.
 
 **Nastaviti je treba samo prijavo** (Vercel → Settings → Environment Variables):
 `PROMET_NAP_UPORABNIK`, `PROMET_NAP_GESLO`. Naslove je mogoče preglasiti s
