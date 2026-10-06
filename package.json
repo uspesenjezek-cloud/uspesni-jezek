@@ -30,6 +30,7 @@
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/supabase-js": "2.112.3",
     "esbuild": "^0.25.12",
+    "fast-xml-parser": "5.11.2",
     "jose": "6.2.9",
     "luxon": "3.7.2",
     "pdf-lib": "1.17.1",

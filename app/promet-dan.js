@@ -307,7 +307,7 @@
       ["promet-crte", "promet-stevci", "promet-dogodki"].forEach(function (sloj) {
         zemljevid.on("click", sloj, function (e) {
           var p = e.features[0].properties;
-          var vrsta = { stevec: "Števec prometa", zastoj: "Zastoj", dela: "Dela na cesti", zapora: "Zapora" }[p.vrsta] || "Promet";
+          var vrsta = { stevec: "Števec prometa", zastoj: "Zastoj", dela: "Dela na cesti", zapora: "Zapora", potovalni_cas: "Potovalni čas (DARS)" }[p.vrsta] || "Promet";
           var deli = [vrsta + (p.cesta ? " · " + p.cesta : ""), p.opis, p.stanje, p.hitrost ? "Hitrost: " + p.hitrost + " km/h" : "", p.zamudaMin ? "Zamuda: " + p.zamudaMin + " min" : ""].filter(Boolean);
           var div = document.createElement("div");
           deli.forEach(function (d, i) { var el = document.createElement(i ? "div" : "strong"); el.textContent = d; div.appendChild(el); });
@@ -338,7 +338,8 @@
       // Pri napaki vira izpišemo tudi razlog (HTTP koda, napačen odgovor …),
       // da je jasno, ali gre za vir ali za našo aplikacijo.
       var napake = d.viri.filter(function (v) { return !v.ok; }).map(function (v) {
-        var ime = { "dars-stevci": "števci DARS", "dars-dogodki": "dogodki DARS", autobahn: "nemške avtoceste" }[v.vir] || v.vir;
+        var ime = { "dars-stevci": "števci DARS", "dars-dogodki": "dogodki DARS", "nap-stevci": "števci NAP", "nap-potovalni-casi": "potovalni časi NAP",
+          "nap-dogodki": "dogodki NAP", autobahn: "nemške avtoceste" }[v.vir] || v.vir;
         return ime + (v.napaka ? " (" + String(v.napaka).replace(/^[a-z-]+: /, "").slice(0, 140) + ")" : "");
       });
       status.textContent = "Posodobljeno ob " + ura + " · DARS (SI) in Autobahn (DE)." +

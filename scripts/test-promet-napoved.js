@@ -455,6 +455,82 @@ section("OpenHolidays odjemalec");
     global.fetch = fetchPrej;
   }
 
+  section("NAP / DATEX II (osebni dostop)");
+  var D2 = require("../api/_lib/promet/viri/datex2");
+  var xml = function (ime) { return fs.readFileSync(path.join(__dirname, "fixtures", "promet", ime), "utf8"); };
+  var sit = D2.razcleniSituacije(xml("nap-situacije.xml"));
+  assert(sit.length === 3, "zastoj, dela, zapora; slabe vremenske razmere izločene");
+  assert(sit[0].vrsta === "zastoj" && sit[0].zamudaMin === 10 && sit[0].tocke.length === 3 && sit[0].cesta === "H3", "zastoj: 600 s, posList (3 točke), cesta");
+  assert(sit[1].vrsta === "dela" && sit[1].zamudaMin === null, "dela brez zamude -> null, ne 0");
+  assert(sit[2].vrsta === "zapora" && sit[2].zaprto === true, "roadClosed -> zapora");
+  var mesta = D2.razcleniMerilnaMesta(xml("nap-merilna-mesta.xml"));
+  assert(mesta.get("0012") && mesta.get("0012").ime === "Šentvid", "oznaka »0012« ostane besedilo (ne 12)");
+  var mer = D2.razcleniMeritve(xml("nap-meritve.xml"));
+  assert(mer.get("0012").hitrost === 24 && mer.get("0012").pretok === 1200, "več pasov: najnižja hitrost, pretok seštet");
+  var ptc = D2.razcleniPotovalneCase(xml("nap-potovalni-casi.xml"));
+  assert(ptc.length === 2 && ptc[0].lokacija === "PL1" && ptc[0].casS === 1260 && ptc[0].prostoS === 840, "potovalni čas Kranj–Ljubljana 21 min proti 14 min");
+  var lok = D2.razcleniLokacije(xml("nap-odseki.xml"));
+  assert(lok.get("PL1").tocke.length === 2 && lok.get("PL1").ime === "Kranj – Ljubljana", "preddefinirani odsek s koordinatami");
+  var neXml = null;
+  try { D2.razcleniSituacije("{\"napaka\":1}"); } catch (e) { neXml = e.code; }
+  assert(neXml === "ZUNANJI_VIR", "ne-XML odgovor je napaka vira");
+
+  var NAP = require("../api/_lib/promet/viri/nap");
+  NAP._ponastavi();
+  var napEnv = {
+    PROMET_NAP_UPORABNIK: "podjetje", PROMET_NAP_GESLO: "skrivnost123",
+    PROMET_NAP_URL_DOGODKI: "https://nap.test/dogodki", PROMET_NAP_URL_STEVCI: "https://nap.test/stevci",
+    PROMET_NAP_URL_STEVCI_LOKACIJE: "https://nap.test/mesta", PROMET_NAP_URL_POTOVALNI_CASI: "https://nap.test/casi",
+    PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE: "https://nap.test/odseki"
+  };
+  var napGlave = [];
+  var napSvet = async function (url, opts) {
+    napGlave.push(opts && opts.headers && opts.headers.authorization);
+    var m = { "https://nap.test/dogodki": "nap-situacije.xml", "https://nap.test/stevci": "nap-meritve.xml", "https://nap.test/mesta": "nap-merilna-mesta.xml",
+      "https://nap.test/casi": "nap-potovalni-casi.xml", "https://nap.test/odseki": "nap-odseki.xml" }[url];
+    return m ? new Response(xml(m), { status: 200 }) : new Response("ne", { status: 404 });
+  };
+  assert(NAP.nastavljen(napEnv) && !NAP.nastavljen({}), "NAP vključen samo z nastavljenimi naslovi");
+  var napSt = await NAP.stevci({ env: napEnv, fetch: napSvet });
+  assert(napSt.length === 2 && napSt.every(function (s) { return s.lat && s.lon; }), "števci z lokacijami; meritev brez mesta izločena");
+  assert(napGlave[0] === "Basic " + Buffer.from("podjetje:skrivnost123").toString("base64"), "prijava HTTP Basic iz nastavitev okolja");
+  var napPc = await NAP.potovalniCasi({ env: napEnv, fetch: napSvet });
+  assert(napPc.length === 2 && napPc[0].ime === "Kranj – Ljubljana" && napPc[0].tocke.length === 2, "potovalni časi dobijo odseke");
+  var zavrnjeno = null;
+  try { await NAP.dogodki({ env: napEnv, fetch: async function () { return new Response("", { status: 401 }); } }); } catch (e) { zavrnjeno = e.message; }
+  assert(/dostop zavrnjen/.test(zavrnjeno) && zavrnjeno.indexOf("skrivnost123") === -1, "401: jasno sporočilo, geslo ni izpisano");
+
+  var DARS = promet.viri.dars;
+  var napZajem = await DARS.zajemi({ env: napEnv, fetch: napSvet });
+  assert(napZajem.napake.length === 0 && napZajem.pokritost === 3 && napZajem.skupaj === 3, "zajem SI prek NAP: vsi trije viri");
+  var pocCelica = function (lat, lon) { return napZajem.opazovanja.filter(function (o) { return o.celica === c.celica(lat, lon); }); };
+  assert(pocCelica(46.095, 14.48).length === 1, "ena vrednost na celico (največja izmed virov)");
+  assert(pocCelica(46.04, 14.45)[0].zamudaS === 0, "števec s 110 km/h zapiše zamudo 0 (izmerjeno prosto, ne neznano)");
+  assert(DARS.zamudaIzHitrosti(24) === Math.round(2000 / (24 / 3.6) - 72), "zamuda iz hitrosti 24 km/h na 2 km");
+  assert(napZajem.dogodki.length === 2 && napZajem.dogodki.some(function (d) { return d.tip === "zapora" && d.zaprto; }), "dela in zapora za napoved");
+  var napDelno = await DARS.zajemi({ env: napEnv, fetch: async function (u, o) { return /casi/.test(u) ? new Response("", { status: 500 }) : napSvet(u, o); } });
+  assert(napDelno.napake.length === 1 && napDelno.pokritost === 2, "delna napaka vira je vidna (zajem ne bo štet kot uspešen)");
+  var brezNap = await DARS.zajemi({ env: {}, url: "https://x.invalid/", fetch: async function () { return new Response("[]", { status: 404 }); } });
+  assert(brezNap.napake.length === 1, "brez NAP ostane stari vir promet.si");
+
+  var envPrej = {};
+  Object.keys(napEnv).forEach(function (k) { envPrej[k] = process.env[k]; process.env[k] = napEnv[k]; });
+  try {
+    Z._ponastavi();
+    NAP._ponastavi();
+    var zNap = await Z.zemljevid({ fetch: async function (u, o) { return /autobahn/.test(u) ? new Response(JSON.stringify(/\/$/.test(u) ? { roads: [] } : { warning: [] })) : napSvet(u, o); }, zdajMs: t0 });
+    var vrste = zNap.features.map(function (f) { return f.properties.vrsta; });
+    assert(vrste.filter(function (v) { return v === "stevec"; }).length === 2 && vrste.filter(function (v) { return v === "potovalni_cas"; }).length === 2, "zemljevid: števci in potovalni časi NAP");
+    var kl = zNap.features.find(function (f) { return f.properties.vrsta === "potovalni_cas" && f.properties.cesta === "Kranj – Ljubljana"; });
+    assert(kl.properties.barva === "rdece" && kl.properties.zamudaMin === 7 && kl.geometry.type === "LineString", "Kranj–Ljubljana 21 min namesto 14 (1,5×) -> rdeče, +7 min");
+    assert(Z.barvaPotovalnegaCasa(500, 480) === "zeleno" && Z.barvaPotovalnegaCasa(600, 480) === "oranzno" && Z.barvaPotovalnegaCasa(0, 480) === "ni_podatka", "meje barv potovalnega časa");
+    assert(zNap.viri.some(function (v) { return v.vir === "nap-dogodki" && v.ok; }) && !zNap.viri.some(function (v) { return v.vir === "dars-stevci"; }), "z NAP se stari viri promet.si ne kličejo");
+  } finally {
+    Object.keys(napEnv).forEach(function (k) { if (envPrej[k] === undefined) delete process.env[k]; else process.env[k] = envPrej[k]; });
+    Z._ponastavi();
+    NAP._ponastavi();
+  }
+
   section("Stran: prijavni žeton");
   var stranJs = fs.readFileSync(path.join(koren, "app", "promet-dan.js"), "utf8");
   var klientJs = fs.readFileSync(path.join(koren, "app", "supabase-client.js"), "utf8");

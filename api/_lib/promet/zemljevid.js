@@ -128,19 +128,79 @@ async function vzporedno(seznam, n, fn) {
   return out;
 }
 
+function vCrto(tocke) {
+  return tocke.length >= 2
+    ? { type: "LineString", coordinates: tocke.map(function (t) { return [+t.lon.toFixed(5), +t.lat.toFixed(5)]; }) }
+    : { type: "Point", coordinates: [+tocke[0].lon.toFixed(5), +tocke[0].lat.toFixed(5)] };
+}
+
+/* Barva odseka iz potovalnega časa: razmerje trenutni / prosti čas. */
+function barvaPotovalnegaCasa(casS, prostoS) {
+  if (!(prostoS > 0) || !(casS > 0)) return "ni_podatka";
+  var r = casS / prostoS;
+  if (r >= 1.5) return "rdece";
+  if (r >= 1.15) return "oranzno";
+  return "zeleno";
+}
+
+/* Slovenija prek NAP (osebni dostop): števci, potovalni časi, dogodki. */
+async function zberiNap(f, viri) {
+  var nap = require("./viri/nap");
+  var features = [];
+  var o = { fetch: f };
+  try {
+    var st = await nap.stevci(o);
+    if (st) {
+      st.forEach(function (s) {
+        features.push({ type: "Feature", geometry: { type: "Point", coordinates: [+s.lon.toFixed(5), +s.lat.toFixed(5)] },
+          properties: { vrsta: "stevec", barva: barvaStevca("", s.hitrost, 100), cesta: s.cesta, opis: s.ime, stanje: "", hitrost: s.hitrost } });
+      });
+      viri.push({ vir: "nap-stevci", ok: true, st: st.length });
+    }
+  } catch (e) { viri.push({ vir: "nap-stevci", ok: false, napaka: e.message }); }
+  try {
+    var pc = await nap.potovalniCasi(o);
+    if (pc) {
+      pc.forEach(function (c) {
+        features.push({ type: "Feature", geometry: vCrto(c.tocke),
+          properties: { vrsta: "potovalni_cas", barva: barvaPotovalnegaCasa(c.casS, c.prostoS), cesta: c.ime, opis: "Potovalni čas: " + Math.round(c.casS / 60) + " min",
+            zamudaMin: c.prostoS > 0 ? Math.max(0, Math.round((c.casS - c.prostoS) / 60)) : null } });
+      });
+      viri.push({ vir: "nap-potovalni-casi", ok: true, st: pc.length });
+    }
+  } catch (e) { viri.push({ vir: "nap-potovalni-casi", ok: false, napaka: e.message }); }
+  try {
+    var dg = await nap.dogodki(o);
+    if (dg) {
+      dg.forEach(function (d) {
+        features.push({ type: "Feature", geometry: vCrto(d.tocke),
+          properties: { vrsta: d.vrsta, barva: d.barva, cesta: d.cesta, opis: d.opis, zamudaMin: d.zamudaMin } });
+      });
+      viri.push({ vir: "nap-dogodki", ok: true, st: dg.length });
+    }
+  } catch (e) { viri.push({ vir: "nap-dogodki", ok: false, napaka: e.message }); }
+  return features;
+}
+
 async function zberi(f) {
   var viri = [];
   var features = [];
-  try {
-    var st = razcleniStevce(await skupno.preberiJson("dars-stevci", URL_STEVCI, f));
-    features = features.concat(st);
-    viri.push({ vir: "dars-stevci", ok: true, st: st.length });
-  } catch (e) { viri.push({ vir: "dars-stevci", ok: false, napaka: e.message }); }
-  try {
-    var dg = dogodkiDars(await skupno.preberiJson("dars", dars.URL_DOGODKI, f));
-    features = features.concat(dg.tocke);
-    viri.push({ vir: "dars-dogodki", ok: true, st: dg.tocke.length });
-  } catch (e) { viri.push({ vir: "dars-dogodki", ok: false, napaka: e.message }); }
+  if (require("./viri/nap").nastavljen()) {
+    // Slovenija z osebnim dostopom NAP (števci, potovalni časi, dogodki).
+    features = features.concat(await zberiNap(f, viri));
+  } else {
+    // Brez NAP: javni viri promet.si (brez prijave pogosto niso dosegljivi).
+    try {
+      var st = razcleniStevce(await skupno.preberiJson("dars-stevci", URL_STEVCI, f));
+      features = features.concat(st);
+      viri.push({ vir: "dars-stevci", ok: true, st: st.length });
+    } catch (e) { viri.push({ vir: "dars-stevci", ok: false, napaka: e.message + " — nastavite dostop NAP (PROMET_NAP_*)" }); }
+    try {
+      var dg = dogodkiDars(await skupno.preberiJson("dars", dars.URL_DOGODKI, f));
+      features = features.concat(dg.tocke);
+      viri.push({ vir: "dars-dogodki", ok: true, st: dg.tocke.length });
+    } catch (e) { viri.push({ vir: "dars-dogodki", ok: false, napaka: e.message + " — nastavite dostop NAP (PROMET_NAP_*)" }); }
+  }
   try {
     var ceste = await autobahn.seznamCest(f);
     var napake = 0;
@@ -169,5 +229,5 @@ async function zemljevid(opcije) {
   return vTeku;
 }
 
-module.exports = { zemljevid: zemljevid, razcleniStevce: razcleniStevce, barvaStevca: barvaStevca, opozorilaAutobahn: opozorilaAutobahn, dogodkiDars: dogodkiDars, URL_STEVCI: URL_STEVCI,
+module.exports = { zemljevid: zemljevid, razcleniStevce: razcleniStevce, barvaStevca: barvaStevca, barvaPotovalnegaCasa: barvaPotovalnegaCasa, opozorilaAutobahn: opozorilaAutobahn, dogodkiDars: dogodkiDars, URL_STEVCI: URL_STEVCI,
   _ponastavi: function () { predpomnilnik = null; vTeku = null; } };
