@@ -14,6 +14,8 @@ var tipDneva = require("./tip-dneva");
 var napoved = require("./napoved");
 var lokalno = require("./lokalno");
 var profilMod = require("./profil");
+var celice = require("./celice");
+var shramba = require("./shramba");
 
 var LOKALNI_OSRM = { SI: "http://localhost:5000", DE: "http://localhost:5001" };
 var JAVNI_OSRM = "https://router.project-osrm.org";
@@ -80,10 +82,28 @@ async function napovejNalog(vhod, opcije) {
   var kol = await koledar(mapa, drzava, prihod.year, o.fetch);
   // Profil za DE ne loči šolskih počitnic (so po deželah).
   if (drzava === "DE") kol = { prazniki: kol.prazniki, solskePocitnice: [] };
-  var d = lokalno.preberiDogodke(mapa, o.zdajMs || Date.now(), 2);
+  var profil;
+  var d;
+  var cfg = konfiguracijaBaze(o);
+  if (cfg) {
+    // Produkcija: zgodovina in zapore iz Supabase (polni jih pg_cron + zbiralnik).
+    var celiceNaPoti = Array.from(new Set(celice.odsekiPoCelicah(pot.tocke, pot.trajanjeProstoS).map(function (x) { return x.celica; })));
+    try {
+      profil = await shramba.preberiProfil(cfg, celiceNaPoti);
+      d = { dogodki: await shramba.preberiDogodke(cfg), opozorila: [] };
+    } catch (e) {
+      // Zgodovina ni dosegljiva (npr. migracija še ni izvedena): napoved
+      // vseeno deluje z oceno tipičnih konic in to jasno pove.
+      profil = { vrstice: [], pokritost: [] };
+      d = { dogodki: [], opozorila: ["Zgodovina prometa ni dosegljiva (" + String(e.message || e).slice(0, 120) + ")."] };
+    }
+  } else {
+    profil = lokalno.preberiProfil(mapa);
+    d = lokalno.preberiDogodke(mapa, o.zdajMs || Date.now(), 2);
+  }
   var r = napoved.izracunajOdhod({
     prihod: prihod.toISO(), drzava: drzava, regija: doT.regija, koledar: kol,
-    pot: pot, profil: lokalno.preberiProfil(mapa), dogodki: d.dogodki
+    pot: pot, profil: profil, dogodki: d.dogodki
   });
   var jezik = v.jezik === "de" ? "de" : "sl";
   return Object.assign({}, r, {
@@ -114,8 +134,25 @@ function poenostavi(tocke, najvec) {
   return out;
 }
 
-function stanje(opcije) {
+/* Supabase (service role) se uporabi na Vercelu ali s PROMET_SHRAMBA=supabase;
+   sicer lokalne datoteke. opcije.cfg / opcije.lokalno za teste. */
+function konfiguracijaBaze(o) {
+  if (o && o.lokalno) return null;
+  if (o && o.cfg) return o.cfg;
+  if (!process.env.VERCEL && process.env.PROMET_SHRAMBA !== "supabase") return null;
+  try { return require("../supabase-server").konfiguracija(); } catch (_) { return null; }
+}
+
+async function stanje(opcije) {
   var o = opcije || {};
+  var cfg = konfiguracijaBaze(o);
+  if (cfg) {
+    try {
+      return await shramba.stanje(cfg, o.zdajMs || Date.now(), napoved.PRIVZETO.minVzorcev);
+    } catch (e) {
+      return { viri: [], zbiralnikTece: false, zadnjiZajem: null, shramba: "supabase", napaka: "Tabele za zgodovino prometa v Supabase niso pripravljene (" + String(e.message || e).slice(0, 120) + ")." };
+    }
+  }
   var mapa = o.mapa || lokalno.PRIVZETA_MAPA;
   var zdaj = o.zdajMs || Date.now();
   var z = lokalno.preberiZgodovino(mapa, new Date(zdaj - lokalno.HRAMBA_DNI * 86400000).toISOString());
@@ -139,4 +176,4 @@ function stanje(opcije) {
   return { viri: viri, zbiralnikTece: !!zadnji && zdaj - zadnji < 40 * 60000, zadnjiZajem: zadnji ? new Date(zadnji).toISOString() : null };
 }
 
-module.exports = { napovejNalog: napovejNalog, stanje: stanje, poenostavi: poenostavi, poisciPot: poisciPot, JAVNI_OSRM: JAVNI_OSRM };
+module.exports = { napovejNalog: napovejNalog, stanje: stanje, koledar: koledar, konfiguracijaBaze: konfiguracijaBaze, poenostavi: poenostavi, poisciPot: poisciPot, JAVNI_OSRM: JAVNI_OSRM };

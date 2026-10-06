@@ -5,6 +5,7 @@
    GET  /api/promet-zemljevid  -> GeoJSON prometa v živo (števci, zastoji, zapore)
    POST /api/promet-napoved    -> { izhodisce, cilj, datum, prihod, jezik }
    POST /api/promet-dan        -> { izhodisce, datum, jezik, naloge: [{ id, stranka, naslov, zacetek, konec }] }
+   GET  /api/promet-zbiraj     -> en zajem virov v Supabase (kliče ga pg_cron vsakih 15 min)
    Na Vercelu je obvezna prijava (Bearer žeton Supabase); lokalni razvojni
    strežnik je dosegljiv samo v domačem omrežju in prijave ne preverja. */
 
@@ -15,7 +16,10 @@ var dan = require("../_lib/promet/dan");
 var zemljevid = require("../_lib/promet/zemljevid");
 
 var STATUS = { NEVELJAVEN_VNOS: 400, NASLOV_NI_NAJDEN: 422, POT_NI_NA_VOLJO: 503, ZUNANJI_VIR: 502 };
-var AKCIJE = { stanje: "GET", zemljevid: "GET", napoved: "POST", dan: "POST" };
+var AKCIJE = { stanje: "GET", zemljevid: "GET", napoved: "POST", dan: "POST", zbiraj: "GET" };
+// Zbiranje sproži Supabase pg_cron brez prijave; zbiralnik sam omeji klice na
+// enega na 12 minut in bere samo javne vire, zato prijava ni potrebna.
+var BREZ_PRIJAVE = { zbiraj: true };
 
 /* Lokalno: nastavitve PROMET_* (npr. PROMET_OSRM_URL_SI) preberemo iz .env.local. */
 function naloziLokalneNastavitve() {
@@ -57,10 +61,15 @@ module.exports = async function promet(req, res) {
   try {
     if (!AKCIJE[akcija]) return res.status(404).json({ ok: false, napaka: "Neznana akcija." });
     if (req.method !== AKCIJE[akcija]) return res.status(405).json({ ok: false, napaka: "Metoda ni dovoljena." });
-    var auth = await preveriPrijavo(req);
+    var auth = BREZ_PRIJAVE[akcija] ? { ok: true } : await preveriPrijavo(req);
     if (!auth.ok) return res.status(auth.status || 401).json({ ok: false, koda: auth.code || "AUTH", napaka: auth.napaka || "Prijava je obvezna." });
 
-    if (akcija === "stanje") return res.status(200).json(Object.assign({ ok: true }, storitev.stanje()));
+    if (akcija === "stanje") return res.status(200).json(Object.assign({ ok: true }, await storitev.stanje()));
+    if (akcija === "zbiraj") {
+      var cfg = storitev.konfiguracijaBaze({});
+      if (!cfg) return res.status(503).json({ ok: false, napaka: "Zbiranje na strežniku potrebuje Supabase (SUPABASE_SERVICE_ROLE_KEY)." });
+      return res.status(200).json(Object.assign({ ok: true }, await require("../_lib/promet/zbiralnik").zberi(cfg)));
+    }
     if (akcija === "zemljevid") {
       var z = await zemljevid.zemljevid();
       if (res.setHeader) res.setHeader("Cache-Control", "private, max-age=60");

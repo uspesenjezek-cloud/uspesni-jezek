@@ -68,6 +68,14 @@ function razcleniDogodke(cesta, data, kljuc) {
   });
 }
 
+async function vzporedno(seznam, n, fn) {
+  var out = new Array(seznam.length);
+  var i = 0;
+  async function delavec() { while (i < seznam.length) { var j = i++; out[j] = await fn(seznam[j]); } }
+  await Promise.all(Array.from({ length: Math.min(n, seznam.length) }, delavec));
+  return out;
+}
+
 async function seznamCest(fetchFn) {
   var data = await skupno.preberiJson(VIR, OSNOVA + "/", fetchFn);
   if (!data || !Array.isArray(data.roads)) throw skupno.napakaVira(VIR, "seznam cest ni na voljo");
@@ -82,26 +90,31 @@ async function zajemi(opcije) {
   } catch (e) {
     return { vir: VIR, opazovanja: [], dogodki: [], napakeDogodkov: 1, napake: [{ napaka: e.message }], pokritost: 0, skupaj: 0 };
   }
-  var opazovanja = [];
-  var napake = [];
-  var dogodki = [];
   var napakeDogodkov = 0;
-  for (var cesta of ceste) {
+  // Ceste obdelamo vzporedno (do 8 hkrati), da zajem vseh ~100 avtocest
+  // ostane v časovni omejitvi strežniške funkcije. Rezultat je urejen po
+  // vrstnem redu cest, zato ni odvisen od hitrosti odgovorov.
+  var poCestah = await vzporedno(ceste, o.vzporedno || 8, async function (cesta) {
     var osnova = OSNOVA + "/" + encodeURIComponent(cesta) + "/services/";
+    var r = { opazovanja: [], dogodki: [], napaka: null };
     try {
-      opazovanja = opazovanja.concat(razcleniOpozorila(cesta, await skupno.preberiJson(VIR, osnova + "warning", o.fetch)));
+      r.opazovanja = razcleniOpozorila(cesta, await skupno.preberiJson(VIR, osnova + "warning", o.fetch));
     } catch (e) {
-      napake.push({ cesta: cesta, napaka: e.message });
+      r.napaka = { cesta: cesta, napaka: e.message };
     }
-    if (o.brezDogodkov) continue;
+    if (o.brezDogodkov) return r;
     for (var kljuc of ["closure", "roadworks"]) {
       try {
-        dogodki = dogodki.concat(razcleniDogodke(cesta, await skupno.preberiJson(VIR, osnova + kljuc, o.fetch), kljuc));
+        r.dogodki = r.dogodki.concat(razcleniDogodke(cesta, await skupno.preberiJson(VIR, osnova + kljuc, o.fetch), kljuc));
       } catch (_) {
         napakeDogodkov++;
       }
     }
-  }
+    return r;
+  });
+  var opazovanja = [].concat.apply([], poCestah.map(function (r) { return r.opazovanja; }));
+  var dogodki = [].concat.apply([], poCestah.map(function (r) { return r.dogodki; }));
+  var napake = poCestah.map(function (r) { return r.napaka; }).filter(Boolean);
   // Dela/zapore ne vplivajo na uspeh zajema zastojev; nepopoln seznam pa ne
   // sme prepisati zadnjega popolnega (napakeDogodkov > 0).
   return { vir: VIR, opazovanja: opazovanja, napake: napake, dogodki: o.brezDogodkov ? undefined : dogodki,

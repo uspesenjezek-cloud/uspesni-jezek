@@ -268,7 +268,7 @@ section("OpenHolidays odjemalec");
   var nv = null;
   try { await promet.storitev.napovejNalog(Object.assign({}, vhodN, { prihod: "8" }), { mapa: smapa, fetch: svet }); } catch (e) { nv = e.code; }
   assert(nv === "NEVELJAVEN_VNOS", "napačna ura -> napaka vnosa");
-  var st = promet.storitev.stanje({ mapa: smapa, zdajMs: t0 });
+  var st = await promet.storitev.stanje({ mapa: smapa, zdajMs: t0 });
   assert(st.zbiralnikTece === false && st.viri.length === 2, "stanje: zbiralnik še ni tekel");
   section("Dnevni načrt (veriga nalogov)");
   var D = promet.dan;
@@ -385,10 +385,69 @@ section("OpenHolidays odjemalec");
   var vcfg = JSON.parse(fs.readFileSync(path.join(koren, "vercel.json"), "utf8"));
   assert(Object.keys(vcfg.functions || {}).every(function (f) { return funkcije.indexOf(f) !== -1; }), "vsaka nastavitev v »functions« ima objavljeno datoteko");
   var promRew = vcfg.rewrites.filter(function (r) { return /^\/api\/promet-/.test(r.source); });
-  assert(promRew.length === 4 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
+  assert(promRew.length === 5 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
   var posRes = lazniRes();
   await require("../api/pos.js")({ method: "GET", url: "/api/pos?handler=promet&akcija=neznano", query: { handler: "promet", akcija: "neznano" } }, posRes);
   assert(posRes.koda === 404 && posRes.telo.napaka === "Neznana akcija.", "api/pos.js preda promet handlerju");
+
+  section("Zbiralnik na produkciji (Supabase + pg_cron)");
+  var izvirniFetch = global.fetch;
+  var zapisi = { zajemi: [], opazovanja: [], dogodki: 0 };
+  var odg = function (b, status) { return new Response(JSON.stringify(b), { status: status || 200, headers: { "content-type": "application/json" } }); };
+  global.fetch = async function (url, opts) {
+    var u = String(url);
+    var metoda = (opts && opts.method) || "GET";
+    if (u.indexOf("https://sb.test/rest/v1/promet_zajem?select=cas") === 0) {
+      var zadnji = zapisi.zajemi[zapisi.zajemi.length - 1];
+      return odg(zadnji ? [{ cas: zadnji.cas }] : []);
+    }
+    if (u === "https://sb.test/rest/v1/promet_zajem" && metoda === "POST") {
+      var v = JSON.parse(opts.body);
+      v.id = zapisi.zajemi.length + 1;
+      zapisi.zajemi.push(v);
+      return odg([v], 201);
+    }
+    if (u === "https://sb.test/rest/v1/promet_opazovanje") { zapisi.opazovanja = zapisi.opazovanja.concat(JSON.parse(opts.body)); return new Response(null, { status: 201 }); }
+    if (u.indexOf("https://sb.test/rest/v1/promet_dogodek") === 0) { zapisi.dogodki += JSON.parse(opts.body).length; return new Response(null, { status: 201 }); }
+    if (/openholidays/.test(u)) return odg([]);
+    if (/autobahn\/$/.test(u)) return odg({ roads: ["A9"] });
+    if (/warning$/.test(u)) return odg(fixture("autobahn-a9-warning.json"));
+    if (/closure$/.test(u)) return odg({ closure: [] });
+    if (/roadworks$/.test(u)) return odg({ roadworks: [{ identifier: "RW1", title: "A9 Baustelle", coordinate: { lat: "48.4", long: "11.5" } }] });
+    if (/dogodki/.test(u)) return odg(fixture("dars-dogodki.json"));
+    return odg({}, 404);
+  };
+  try {
+    var ZB = require("../api/_lib/promet/zbiralnik");
+    var cfgT = { url: "https://sb.test", serviceKey: "k" };
+    var tz0 = Date.parse("2026-10-07T05:31:00Z"); // sreda 07:31 v Ljubljani
+    var z1 = await ZB.zberi(cfgT, { zdajMs: tz0 });
+    assert(!z1.preskoceno && z1.viri.length === 2 && z1.viri.every(function (v) { return v.uspeh; }), "zajem obeh virov je uspel");
+    assert(zapisi.zajemi.length === 2 && zapisi.zajemi.every(function (z) { return z.tip_dneva === "delavnik" && z.interval === 30; }), "zajem ima tip dneva in interval (07:30 -> 30)");
+    assert(zapisi.opazovanja.length > 0 && zapisi.opazovanja.every(function (o) { return o.zajem_id && o.celica; }), "opazovanja so vezana na zajem");
+    assert(zapisi.dogodki >= 2, "dela/zapore DE in SI so zapisani");
+    var z2 = await ZB.zberi(cfgT, { zdajMs: tz0 + 5 * 60000 });
+    assert(z2.preskoceno === true && zapisi.zajemi.length === 2, "ponoven klic v 12 min se preskoči (brez podvojenih vzorcev)");
+    var z3 = await ZB.zberi(cfgT, { zdajMs: tz0 + 15 * 60000 });
+    assert(!z3.preskoceno && zapisi.zajemi.length === 4 && zapisi.zajemi[3].interval === 31, "naslednji zajem 15 min pozneje -> interval 31");
+  } finally {
+    global.fetch = izvirniFetch;
+  }
+
+  section("Produkcija brez pripravljenih tabel");
+  var fetchPrej = global.fetch;
+  global.fetch = async function () { return new Response(JSON.stringify({ message: "relation \"promet_profil\" does not exist" }), { status: 404 }); };
+  try {
+    var bmapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-brezbaze-"));
+    var rb = await promet.storitev.napovejNalog(vhodN, { mapa: bmapa, fetch: svet, cfg: { url: "https://sb.test", serviceKey: "k" }, zdajMs: t0 });
+    assert(rb.priporocenOdhodUra && rb.osnova === "zacetna_ocena", "napoved deluje z oceno konic, ko zgodovina ni dosegljiva");
+    assert(rb.opozorilaPodatkov.some(function (t) { return /Zgodovina prometa ni dosegljiva/.test(t); }), "in to jasno sporoči");
+    var sb = await promet.storitev.stanje({ cfg: { url: "https://sb.test", serviceKey: "k" }, zdajMs: t0 });
+    assert(sb.napaka && /niso pripravljene/.test(sb.napaka) && sb.zbiralnikTece === false, "stanje pove, da tabele niso pripravljene");
+    fs.rmSync(bmapa, { recursive: true, force: true });
+  } finally {
+    global.fetch = fetchPrej;
+  }
 
   section("Stran: prijavni žeton");
   var stranJs = fs.readFileSync(path.join(koren, "app", "promet-dan.js"), "utf8");

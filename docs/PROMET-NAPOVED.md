@@ -138,6 +138,25 @@ in na Vercelu (tam s prijavo; prek usmerjevalnika `api/pos.js?handler=promet`,
 ker paket Vercel Hobby dovoli največ 12 funkcij). Pot se računa z lokalnim OSRM; če ne teče, z javnim
 preizkusnim strežnikom (samo za preizkus, označeno v rezultatu).
 
+## 4b. Zbiranje zgodovine na produkciji
+
+Na produkciji zgodovino zbira **Supabase pg_cron** (brezplačno), ne domač
+računalnik:
+
+- vsakih 15 min `GET /api/promet-zbiraj` (Vercel, prek `api/pos.js`): en zajem
+  DARS + Autobahn v `promet_zajem` / `promet_opazovanje` / `promet_dogodek`;
+  klic, ki pride manj kot 12 min po zadnjem zajemu, se preskoči;
+- vsako noč `promet_preracunaj_profil(56)` v bazi (enaka pravila kot
+  `profil.js`, preverjeno na naključnih podatkih) in `promet_pocisti(56)`.
+
+Napoved in stran na Vercelu bereta profil in zapore iz Supabase. Če tabele še
+niso pripravljene, napoved deluje z oceno tipičnih konic in to izpiše.
+
+**Enkratna nastavitev:** v Supabase izvedi migraciji
+`20261006120000_promet_napoved.sql` in `20261007090000_promet_zbiranje_produkcija.sql`
+(`supabase db push` ali SQL Editor). Na Vercelu mora biti nastavljen
+`SUPABASE_SERVICE_ROLE_KEY`.
+
 ## 5. Naslednji koraki
 
 1. Registracija na NAP (DARS) in naročnina na Autobahn detektorske podatke v

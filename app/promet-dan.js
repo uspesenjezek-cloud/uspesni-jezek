@@ -70,7 +70,18 @@
   }
 
   /* ---------- prikaz ---------- */
-  function ustvariNalog(n) {
+  /* »Vožnja: običajno 20 min · ob tej uri +4 min (gneča)« — čas brez prometa
+     proti času ob uri, ko se bo ta pot dejansko vozila. */
+  function besediloVoznje(o) {
+    if (!o || o.trajanjeProstoMin == null || o.stanje === "napaka" || o.stanje === "isti_naslov") return "";
+    var dodatno = o.dodatnaZamudaMin || 0;
+    var deli = ["Vožnja: običajno " + o.trajanjeProstoMin + " min"];
+    deli.push(dodatno > 0 ? "ob tej uri +" + dodatno + " min" + (o.opozorilo ? " (gneča)" : "") : "ob tej uri brez zamude");
+    deli.push(o.osnova === "meritve" ? "po meritvah" : o.osnova === "mesano" ? "delno po meritvah" : "ocena, meritve se še zbirajo");
+    return deli.join(" · ");
+  }
+
+  function ustvariNalog(n, odsek) {
     var li = $("pdan-nalog-predloga").content.firstElementChild.cloneNode(true);
     li.dataset.id = n.id;
     var cas = li.querySelector(".pdan__nalog-cas");
@@ -80,6 +91,10 @@
     cas.appendChild(konec);
     li.querySelector(".pdan__nalog-stranka").textContent = n.stranka || n.naslov;
     li.querySelector(".pdan__nalog-naslov").textContent = n.naslov;
+    var voznja = li.querySelector(".pdan__nalog-voznja");
+    voznja.textContent = besediloVoznje(odsek);
+    voznja.hidden = !voznja.textContent;
+    voznja.classList.toggle("pdan__nalog-voznja--gneca", !!(odsek && odsek.opozorilo));
     return li;
   }
 
@@ -135,7 +150,7 @@
     if (rez) rez.odseki.forEach(function (o) { odsekiPoNalogu[o.nalogId] = o; });
     nalogi.forEach(function (n) {
       if (odsekiPoNalogu[n.id]) seznam.appendChild(ustvariOdsek(odsekiPoNalogu[n.id]));
-      seznam.appendChild(ustvariNalog(n));
+      seznam.appendChild(ustvariNalog(n, odsekiPoNalogu[n.id]));
     });
     $("pdan-prazno").hidden = nalogi.length > 0;
     $("pdan-izracunaj").hidden = nalogi.length === 0;
@@ -320,11 +335,14 @@
       zadnjiPromet = { type: "FeatureCollection", features: d.features };
       if (zemljevidPripravljen) zemljevid.getSource("promet").setData(zadnjiPromet);
       var ura = new Date(d.posodobljeno).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
+      // Pri napaki vira izpišemo tudi razlog (HTTP koda, napačen odgovor …),
+      // da je jasno, ali gre za vir ali za našo aplikacijo.
       var napake = d.viri.filter(function (v) { return !v.ok; }).map(function (v) {
-        return { "dars-stevci": "števci DARS", "dars-dogodki": "dogodki DARS", autobahn: "nemške avtoceste" }[v.vir] || v.vir;
+        var ime = { "dars-stevci": "števci DARS", "dars-dogodki": "dogodki DARS", autobahn: "nemške avtoceste" }[v.vir] || v.vir;
+        return ime + (v.napaka ? " (" + String(v.napaka).replace(/^[a-z-]+: /, "").slice(0, 140) + ")" : "");
       });
       status.textContent = "Posodobljeno ob " + ura + " · DARS (SI) in Autobahn (DE)." +
-        (napake.length ? " Trenutno ni podatkov: " + napake.join(", ") + "." : "") +
+        (napake.length ? " Ni podatkov: " + napake.join("; ") + "." : "") +
         " Ceste brez števca niso pobarvane.";
     } catch (e) {
       status.textContent = "Promet v živo ni na voljo: " + e.message;
@@ -407,7 +425,10 @@
       }
       rezultati[datum] = podatki;
       var tezave = podatki.odseki.filter(function (o) { return o.stanje === "zamuda" || o.stanje === "napaka"; }).length;
-      nastaviStatus(tezave ? "Pozor: " + tezave + (tezave === 1 ? " odsek potrebuje" : " odseki potrebujejo") + " pozornost." : "Vse poti so izračunane.");
+      var opozorilaPodatkov = [];
+      podatki.odseki.forEach(function (o) { (o.opozorila || []).forEach(function (t) { if (opozorilaPodatkov.indexOf(t) === -1) opozorilaPodatkov.push(t); }); });
+      nastaviStatus((tezave ? "Pozor: " + tezave + (tezave === 1 ? " odsek potrebuje" : " odseki potrebujejo") + " pozornost." : "Vse poti so izračunane.") +
+        (opozorilaPodatkov.length ? " " + opozorilaPodatkov.join(" ") : ""));
       if (datum === izbranDatum) izrisi();
     } catch (_) {
       if (stevilka === tekociIzracun) nastaviStatus("Povezava s strežnikom ni uspela. Preverite internetno povezavo oziroma ali teče strežnik.", true);
@@ -437,16 +458,22 @@
     var p = $("pdan-podatki");
     try {
       var r = await fetch("/api/promet-stanje", { cache: "no-store", headers: await glave() });
-      var d = await r.json();
-      if (!r.ok || !d.ok) throw new Error();
+      var d = null;
+      try { d = await r.json(); } catch (_) {}
+      if (!r.ok || !d || !d.ok) throw new Error(sporociloNapake(r, d));
       var ime = { dars: "Slovenija (DARS)", autobahn: "Nemčija (avtoceste)" };
       var deli = [d.zbiralnikTece
-        ? "Zbiranje podatkov teče (zadnji zajem ob " + new Date(d.zadnjiZajem).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) + ")."
-        : "Zbiranje podatkov trenutno ne teče — napoved uporablja oceno tipičnih konic."];
-      d.viri.forEach(function (v) { deli.push(ime[v.vir] + ": " + v.uspesnih + " zajemov, pokritost delavnika " + v.pokritostDelavnik + " %."); });
+        ? "Zgodovina se zbira vsakih 15 min (zadnji zajem ob " + new Date(d.zadnjiZajem).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) + ")."
+        : "Zgodovina prometa se še ne zbira — napoved uporablja oceno tipičnih konic."];
+      d.viri.forEach(function (v) {
+        var vrstica = ime[v.vir] + ": " + v.uspesnih + " uspešnih zajemov, pokritost delavnika " + v.pokritostDelavnik + " %.";
+        if (v.zadnji && !v.zadnji.uspeh && v.zadnji.napaka) vrstica += " Zadnja napaka: " + v.zadnji.napaka.replace(/^[a-z-]+: /, "") + ".";
+        deli.push(vrstica);
+      });
+      if (d.napaka) deli = [d.napaka + " Napoved zato uporablja oceno tipičnih konic."];
       p.textContent = deli.join(" ");
-    } catch (_) {
-      p.textContent = "Podatki o prometu so na voljo, ko aplikacija teče prek lokalnega strežnika.";
+    } catch (e) {
+      p.textContent = "Stanja zbiranja ni bilo mogoče prebrati" + (e && e.message ? " (" + e.message + ")" : "") + ".";
     }
   }
 

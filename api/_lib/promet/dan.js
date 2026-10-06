@@ -98,7 +98,8 @@ async function izracunajDan(vhod, opcije) {
         odTocka: r.izhodisceTocka,
         doTocka: r.ciljTocka,
         priblizno: r.ciljPriblizno,
-        iskano: r.ciljIskano
+        iskano: r.ciljIskano,
+        opozorila: r.opozorilaPodatkov || []
       });
       if (prejsnji) {
         var tz = profilMod.CASOVNI_PAS[r.drzava];
