@@ -7,7 +7,9 @@ var fs = require("fs");
 var path = require("path");
 
 var HRAMBA_DNI = 56;
-var PRIVZETA_MAPA = path.join(__dirname, "..", "..", "..", ".promet-podatki");
+// Na Vercelu je zapisljiv samo začasni imenik; lokalno podatki ostanejo v repozitoriju.
+var PRIVZETA_MAPA = process.env.PROMET_MAPA
+  || (process.env.VERCEL ? path.join(require("os").tmpdir(), "promet-podatki") : path.join(__dirname, "..", "..", "..", ".promet-podatki"));
 
 function beriJsonl(datoteka) {
   if (!fs.existsSync(datoteka)) return [];

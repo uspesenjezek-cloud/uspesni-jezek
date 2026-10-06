@@ -93,7 +93,12 @@ async function izracunajDan(vhod, opcije) {
         dogodki: r.dogodki,
         virPoti: r.virPoti,
         drzava: r.drzava,
-        tipDneva: r.tipDneva
+        tipDneva: r.tipDneva,
+        geometrija: r.geometrija,
+        odTocka: r.izhodisceTocka,
+        doTocka: r.ciljTocka,
+        priblizno: r.ciljPriblizno,
+        iskano: r.ciljIskano
       });
       if (prejsnji) {
         var tz = profilMod.CASOVNI_PAS[r.drzava];

@@ -315,6 +315,81 @@ section("OpenHolidays odjemalec");
   assert(brezIzh === "NEVELJAVEN_VNOS", "brez izhodišča -> napaka vnosa");
   fs.rmSync(dmapa, { recursive: true, force: true });
 
+  section("Zemljevid v živo");
+  var Z = promet.zemljevid;
+  assert(Z.barvaStevca("Zastoj", 90) === "rdece", "opis »Zastoj« ima prednost pred hitrostjo");
+  assert(Z.barvaStevca("Gost promet", 80) === "oranzno", "gost promet -> oranžno");
+  assert(Z.barvaStevca("", 55, 100) === "oranzno" && Z.barvaStevca("", 85, 100) === "zeleno" && Z.barvaStevca("", 25, 100) === "rdece", "brez opisa: razmerje hitrost/omejitev");
+  assert(Z.barvaStevca("", 0) === "ni_podatka" && Z.barvaStevca("", null) === "ni_podatka", "brez hitrosti -> ni podatka (ne zeleno)");
+  var st2 = Z.razcleniStevce(fixture("dars-stevci.json"));
+  assert(st2.length === 3, "en števec na lokacijo, neveljavna geometrija izločena");
+  var sentvid = st2.find(function (f) { return f.properties.opis === "Šentvid"; });
+  assert(sentvid && sentvid.properties.barva === "rdece", "na lokaciji z več pasovi velja najslabši pas");
+  var kozarje = st2.find(function (f) { return f.properties.opis === "Kozarje"; });
+  assert(kozarje && Math.abs(kozarje.geometry.coordinates[1] - 46.048) < 0.01, "D96/TM števec pretvorjen v WGS84");
+  var abZ = Z.opozorilaAutobahn("A9", fixture("autobahn-a9-warning.json"));
+  assert(abZ.length === 1 && abZ[0].geometry.type === "LineString" && abZ[0].properties.barva === "rdece" && abZ[0].properties.zamudaMin === 12, "Autobahn zastoj kot rdeča črta z zamudo");
+  var dgZ = Z.dogodkiDars(fixture("dars-dogodki.json"));
+  assert(dgZ.tocke.length === 3 && dgZ.tocke.filter(function (f) { return f.properties.vrsta === "zastoj"; }).length === 2, "DARS: 2 zastoja + 1 dela, veter izločen");
+
+  Z._ponastavi();
+  var zKlici = 0;
+  var zSvet = async function (url) {
+    zKlici++;
+    var odg = function (b) { return { ok: true, json: async function () { return b; } }; };
+    if (/stevci/.test(url)) return odg(fixture("dars-stevci.json"));
+    if (/dogodki/.test(url)) return odg(fixture("dars-dogodki.json"));
+    if (/autobahn\/$/.test(url)) return odg({ roads: ["A9", "A8"] });
+    if (/A8/.test(url)) return { ok: false, status: 500 };
+    return odg(fixture("autobahn-a9-warning.json"));
+  };
+  var zz = await Z.zemljevid({ fetch: zSvet, zdajMs: t0 });
+  assert(zz.features.length === 3 + 3 + 1, "zemljevid združi števce, dogodke DARS in Autobahn");
+  var abVir = zz.viri.find(function (v) { return v.vir === "autobahn"; });
+  assert(abVir && !abVir.ok && /1 od 2/.test(abVir.napaka), "delna napaka Autobahn je vidna");
+  var kliciPrej = zKlici;
+  await Z.zemljevid({ fetch: zSvet, zdajMs: t0 + 60000 });
+  assert(zKlici === kliciPrej, "v 3 minutah iz predpomnilnika");
+  await Z.zemljevid({ fetch: zSvet, zdajMs: t0 + 4 * 60000 });
+  assert(zKlici > kliciPrej, "po 3 minutah znova");
+  Z._ponastavi();
+  var zNic = await Z.zemljevid({ fetch: async function () { return { ok: false, status: 503 }; }, zdajMs: t0 });
+  assert(zNic.features.length === 0 && zNic.viri.every(function (v) { return !v.ok; }), "vsi viri nedosegljivi -> prazno z razlogi");
+  var zPo = await Z.zemljevid({ fetch: zSvet, zdajMs: t0 + 1000 });
+  assert(zPo.features.length > 0, "neuspešen zajem se ne predpomni");
+  Z._ponastavi();
+
+  section("API (handler)");
+  var H = require("../api/_handlers/promet");
+  assert(H._test.akcijaIzZahteve({ url: "/api/promet?akcija=dan" }) === "dan", "akcija iz poizvedbe (Vercel rewrite)");
+  assert(H._test.akcijaIzZahteve({ url: "/api/promet-zemljevid" }) === "zemljevid", "akcija iz poti");
+  var lazniRes = function () { var r = { koda: 0, telo: null }; r.status = function (k) { r.koda = k; return r; }; r.json = function (t) { r.telo = t; return r; }; r.setHeader = function () {}; return r; };
+  var rr = lazniRes();
+  await H({ method: "GET", url: "/api/promet?akcija=dan", query: { akcija: "dan" } }, rr);
+  assert(rr.koda === 405, "dan zahteva POST");
+  var rr2 = lazniRes();
+  process.env.VERCEL = "1";
+  await H({ method: "GET", url: "/api/promet?akcija=stanje", query: { akcija: "stanje" }, headers: {} }, rr2);
+  delete process.env.VERCEL;
+  assert(rr2.koda === 401 || rr2.koda === 503, "na Vercelu brez prijave zavrnjeno");
+  var rr3 = lazniRes();
+  await H({ method: "POST", url: "/api/promet-dan", query: { akcija: "dan" }, body: { datum: "2026-10-07", naloge: [] } }, rr3);
+  assert(rr3.koda === 400 && /izhodišče/.test(rr3.telo.napaka), "napaka vnosa ima jasno sporočilo");
+
+  section("Geokodiranje: različice naslova");
+  var rz = promet.geokodiranje.razlicice("BTC, Šmartinska 152, Ljubljana");
+  assert(rz[0] === "BTC, Šmartinska 152, Ljubljana" && rz[1] === "Šmartinska 152, Ljubljana" && rz[rz.length - 1] === "Ljubljana", "od natančnega do kraja");
+  var gmapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-geo-"));
+  var gKlici = [];
+  var gSvet = async function (url) {
+    var q = decodeURIComponent(url.split("q=")[1]);
+    gKlici.push(q);
+    return { ok: true, json: async function () { return q === "Šmartinska 152, Ljubljana" ? [{ lat: "46.066", lon: "14.542", display_name: "Šmartinska 152", address: { country_code: "si" } }] : []; } };
+  };
+  var gz = await promet.geokodiranje.poisci("BTC, Šmartinska 152, Ljubljana", { fetch: gSvet, predpomnilnik: path.join(gmapa, "g.json") });
+  assert(gz.priblizno === true && gz.iskano === "Šmartinska 152, Ljubljana" && gKlici.length === 2, "ime objekta odstranjeno, najden drugi poskus");
+  fs.rmSync(gmapa, { recursive: true, force: true });
+
   [smapa].forEach(function (m) { fs.rmSync(m, { recursive: true, force: true }); });
 
   console.log("\n" + OK + " uspešnih, " + FAIL + " neuspešnih");

@@ -135,4 +135,4 @@ async function zajemi(opcije) {
   }
 }
 
-module.exports = { VIR: VIR, URL_DOGODKI: URL_DOGODKI, d96tmVWgs84: d96tmVWgs84, razcleniDogodke: razcleniDogodke, zamudaIzBesedila: zamudaIzBesedila, zajemi: zajemi };
+module.exports = { VIR: VIR, URL_DOGODKI: URL_DOGODKI, d96tmVWgs84: d96tmVWgs84, vTocko: vTocko, tockeIzGeometrije: tockeIzGeometrije, razvrsti: razvrsti, razcleniDogodke: razcleniDogodke, zamudaIzBesedila: zamudaIzBesedila, zajemi: zajemi };

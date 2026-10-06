@@ -9,6 +9,7 @@ module.exports = {
   geokodiranje: require("./geokodiranje"),
   storitev: require("./storitev"),
   dan: require("./dan"),
+  zemljevid: require("./zemljevid"),
   lokalno: require("./lokalno"),
   viri: { autobahn: require("./viri/autobahn"), dars: require("./viri/dars") }
 };

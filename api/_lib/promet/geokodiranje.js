@@ -50,6 +50,33 @@ function pocakajNaVrsto(fn) {
   return naslednji;
 }
 
+/* Različice naslova od najbolj do najmanj natančne. Nominatim pogosto ne
+   najde zapisa »ime objekta, ulica št., kraj«; zato poskusimo brez prvih
+   delov, nato brez hišne številke. Vsak poskus je en klic (1/s). */
+function razlicice(naslov) {
+  var deli = String(naslov || "").split(",").map(function (d) { return d.trim(); }).filter(Boolean);
+  var brezSt = function (arr) { return arr.map(function (d) { return d.replace(/\s+\d+\s*[a-zA-Z]?$/, ""); }); };
+  var out = [];
+  // 1) celoten naslov, nato brez vodilnih delov (ime objekta), vedno vsaj »ulica, kraj«
+  for (var i = 0; i <= Math.max(0, deli.length - 2); i++) out.push(deli.slice(i).join(", "));
+  // 2) ulica brez hišne številke
+  if (deli.length >= 2) out.push(brezSt(deli.slice(-2)).join(", "));
+  // 3) samo kraj (najmanj natančno)
+  if (deli.length >= 2) out.push(deli[deli.length - 1]);
+  return out.filter(function (v, j, arr) { return v.length >= 3 && arr.indexOf(v) === j; }).slice(0, 5);
+}
+
+async function poisciEno(niz, f) {
+  var url = URL_NOMINATIM + "/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=si,de&accept-language=sl&q=" + encodeURIComponent(niz);
+  var data = await pocakajNaVrsto(function () {
+    return skupno.preberiJson("nominatim", url, function (u, opts) {
+      return f(u, Object.assign({}, opts, { headers: Object.assign({}, opts && opts.headers, { "User-Agent": USER_AGENT }) }));
+    });
+  });
+  if (!Array.isArray(data)) throw skupno.napakaVira("nominatim", "nepričakovan odgovor");
+  return data[0] || null;
+}
+
 async function poisci(naslov, opcije) {
   var o = opcije || {};
   var k = kljuc(naslov);
@@ -62,20 +89,22 @@ async function poisci(naslov, opcije) {
   var pomnilnik = datoteka ? beriPredpomnilnik(datoteka) : {};
   if (pomnilnik[k]) return Object.assign({ izPredpomnilnika: true }, pomnilnik[k]);
 
-  var url = URL_NOMINATIM + "/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=si,de&accept-language=sl&q=" + encodeURIComponent(naslov);
   var f = o.fetch || fetch;
-  var data = await pocakajNaVrsto(function () {
-    return skupno.preberiJson("nominatim", url, function (u, opts) {
-      return f(u, Object.assign({}, opts, { headers: Object.assign({}, opts && opts.headers, { "User-Agent": USER_AGENT }) }));
-    });
-  });
-  if (!Array.isArray(data)) throw skupno.napakaVira("nominatim", "nepričakovan odgovor");
-  if (!data.length) {
-    var n = new Error("Naslova »" + String(naslov).trim() + "« ni bilo mogoče najti v Sloveniji ali Nemčiji.");
+  var poskusi = razlicice(naslov);
+  var zadetek = null;
+  var uporabljen = null;
+  for (var i = 0; i < poskusi.length && !zadetek; i++) {
+    zadetek = await poisciEno(poskusi[i], f);
+    if (zadetek) uporabljen = i;
+  }
+  if (!zadetek) {
+    var n = new Error("Naslova »" + String(naslov).trim() + "« ni bilo mogoče najti v Sloveniji ali Nemčiji. Preverite zapis (ulica, hišna številka, kraj).");
     n.code = "NASLOV_NI_NAJDEN";
     throw n;
   }
-  var rezultat = izZadetka(data[0]);
+  var rezultat = izZadetka(zadetek);
+  rezultat.priblizno = uporabljen > 0;
+  rezultat.iskano = poskusi[uporabljen];
   if (!Number.isFinite(rezultat.lat) || !Number.isFinite(rezultat.lon)) throw skupno.napakaVira("nominatim", "zadetek nima koordinat");
   if (datoteka) {
     pomnilnik[k] = rezultat;
@@ -84,4 +113,4 @@ async function poisci(naslov, opcije) {
   return rezultat;
 }
 
-module.exports = { poisci: poisci, izZadetka: izZadetka, kljuc: kljuc };
+module.exports = { poisci: poisci, izZadetka: izZadetka, kljuc: kljuc, razlicice: razlicice };

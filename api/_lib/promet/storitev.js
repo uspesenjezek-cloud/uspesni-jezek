@@ -91,11 +91,27 @@ async function napovejNalog(vhod, opcije) {
     sporocilo: napoved.sporocilo(r, jezik),
     izhodisce: od.prikaz,
     cilj: doT.prikaz,
+    izhodisceTocka: [od.lon, od.lat],
+    ciljTocka: [doT.lon, doT.lat],
+    ciljPriblizno: !!doT.priblizno,
+    ciljIskano: doT.iskano || null,
+    geometrija: poenostavi(pot.tocke, 200),
     drzava: drzava,
     razdaljaKm: Math.round(pot.razdaljaM / 100) / 10,
     virPoti: pot.virPoti,
     opozorilaPodatkov: d.opozorila
   });
+}
+
+/* Za zemljevid: največ ~200 točk, [lon, lat] z 5 decimalkami (~1 m). */
+function poenostavi(tocke, najvec) {
+  var n = tocke.length;
+  var korak = Math.max(1, Math.ceil(n / (najvec || 200)));
+  var out = [];
+  for (var i = 0; i < n; i += korak) out.push([+tocke[i].lon.toFixed(5), +tocke[i].lat.toFixed(5)]);
+  var zadnja = tocke[n - 1];
+  if (n && (i - korak) !== n - 1) out.push([+zadnja.lon.toFixed(5), +zadnja.lat.toFixed(5)]);
+  return out;
 }
 
 function stanje(opcije) {
@@ -123,4 +139,4 @@ function stanje(opcije) {
   return { viri: viri, zbiralnikTece: !!zadnji && zdaj - zadnji < 40 * 60000, zadnjiZajem: zadnji ? new Date(zadnji).toISOString() : null };
 }
 
-module.exports = { napovejNalog: napovejNalog, stanje: stanje, poisciPot: poisciPot, JAVNI_OSRM: JAVNI_OSRM };
+module.exports = { napovejNalog: napovejNalog, stanje: stanje, poenostavi: poenostavi, poisciPot: poisciPot, JAVNI_OSRM: JAVNI_OSRM };

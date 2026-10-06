@@ -12,7 +12,8 @@
     />
     <link rel="stylesheet" href="styles.css?v=20261006-promet-dan-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
-    <link rel="stylesheet" href="promet-dan.css?v=20261006-promet-dan-v2" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="promet-dan.css?v=20261007-promet-zemljevid-v1" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -31,6 +32,23 @@
     </header>
 
     <main class="app__vsebina pdan">
+      <section class="kartica pdan__zemljevid-kartica" aria-labelledby="pdan-zemljevid-naslov">
+        <div class="pdan__zemljevid-glava">
+          <h2 class="kartica__naslov" id="pdan-zemljevid-naslov">Promet zdaj</h2>
+          <button type="button" class="pdan__gumb-ikona" id="pdan-osvezi" aria-label="Osveži promet">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>
+          </button>
+        </div>
+        <div class="pdan__zemljevid" id="pdan-zemljevid" role="region" aria-label="Zemljevid prometa"></div>
+        <ul class="pdan__legenda" aria-label="Legenda">
+          <li><span class="pdan__pika pdan__pika--rdece"></span>Zastoj</li>
+          <li><span class="pdan__pika pdan__pika--oranzno"></span>Gost promet, dela</li>
+          <li><span class="pdan__pika pdan__pika--zeleno"></span>Normalno</li>
+          <li><span class="pdan__pika pdan__pika--siva"></span>Ni podatka</li>
+        </ul>
+        <p class="pdan__zemljevid-status" id="pdan-zemljevid-status" role="status">Nalagam promet …</p>
+      </section>
+
       <section class="kartica pdan__kartica" aria-labelledby="pdan-izhodisce-naslov">
         <h2 class="kartica__naslov" id="pdan-izhodisce-naslov">Izhodišče</h2>
         <div class="obrazec__polje">
@@ -150,6 +168,7 @@
     </template>
 
     <script src="app.js?v=20260814-auto-fit-pill-v8"></script>
-    <script src="promet-dan.js?v=20261006-promet-dan-v1"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="promet-dan.js?v=20261007-promet-zemljevid-v3"></script>
   </body>
 </html>

@@ -125,9 +125,16 @@ Stran `app/promet-dan.html` (Skrb za stranke ter delavce → Dnevni načrt poti)
    priporočen odhod, rezerva, »tesno« ali predvidena zamuda med nalogi.
 5. »Kopiraj sporočilo« (SL/DE) za pošiljanje obrtniku.
 
+Na vrhu je zemljevid **Promet zdaj** (MapLibre + brezplačna podlaga
+OpenFreeMap): števci DARS obarvani po izmerjenem stanju (zeleno/oranžno/rdeče),
+zastoji, dela in zapore DARS ter zastoji na nemških avtocestah; osvežuje se na
+3 minute. Ceste brez števca niso pobarvane — tam podatka ni. Po izračunu so
+na zemljevidu še poti dneva (barva po napovedani zamudi) in točke D, 1, 2 …
+
 Nalogi so zaenkrat shranjeni na napravi (brskalnik); povezava s skupnim
-koledarjem in obvestili pride pozneje. API: `POST /api/promet-dan` (samo
-lokalni strežnik). Pot se računa z lokalnim OSRM; če ne teče, z javnim
+koledarjem in obvestili pride pozneje. API (`/api/promet-dan`,
+`/api/promet-zemljevid`, `/api/promet-stanje`) deluje na lokalnem strežniku
+in na Vercelu (tam s prijavo; `api/promet.js`). Pot se računa z lokalnim OSRM; če ne teče, z javnim
 preizkusnim strežnikom (samo za preizkus, označeno v rezultatu).
 
 ## 5. Naslednji koraki
