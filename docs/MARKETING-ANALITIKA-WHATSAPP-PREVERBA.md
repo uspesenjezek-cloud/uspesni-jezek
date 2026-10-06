@@ -79,7 +79,7 @@ Zdaj je mreža statična in v nasprotju z naslovom. Izračunati jo je treba iz *
 |---|---|---|
 | mreža | statične barve | iz podatkov; celice z opisom »Torek, večer: 5 ljudi« |
 | naslov | Največ pišejo v nedeljo zjutraj. (mreža kaže torek zvečer) | izračunan iz iste mreže, npr. **Največ pišejo v torek zvečer.** |
-| KAJ VIDIMO | Kaj kažejo podatki … | **6 od 21 ljudi vam je pisalo po delovnem času.** |
+| KAJ VIDIMO | Kaj kažejo podatki … | **11 od 21 ljudi vam je pisalo zvečer, po delovnem času.** |
 | UKREPALI | Spremljanje odzivov prilagodimo … | **Vklopimo samodejni odgovor po delovnem času: »Odgovorimo vam zjutraj do 8.00.«** |
 
 ## 7. Povzetek meseca
