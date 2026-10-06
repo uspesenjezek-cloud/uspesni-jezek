@@ -1,0 +1,162 @@
+<ElaboratedDataPublication xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" lang="sl" modelBaseVersion="3">
+  <publicationTime xmlns="http://datex2.eu/schema/3/common">2022-12-19T10:49:07</publicationTime>
+  <publicationCreator xmlns="http://datex2.eu/schema/3/common">
+    <country>si</country>
+    <nationalIdentifier>NCUP</nationalIdentifier>
+  </publicationCreator>
+  <timeDefault xmlns="http://datex2.eu/schema/3/roadTrafficData">2022-12-19T10:49:07</timeDefault>
+  <physicalQuantity xsi:type="SinglePhysicalQuantity" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <pertinentLocation xmlns:q1="http://datex2.eu/schema/3/locationReferencing" xsi:type="q1:LocationByReference">
+      <q1:predefinedLocationReference id="1586" version="0" targetClass="loc:PredefinedLocation" />
+    </pertinentLocation>
+    <basicData xsi:type="TravelTimeData">
+      <measurementOrCalculationTime>
+        <timeValue>2022-12-19T10:49:07</timeValue>
+      </measurementOrCalculationTime>
+      <travelTime>
+        <duration>31.843</duration>
+      </travelTime>
+      <freeFlowTravelTime>
+        <duration>4.17152548</duration>
+      </freeFlowTravelTime>
+      <normallyExpectedTravelTime>
+        <duration>4.17152548</duration>
+      </normallyExpectedTravelTime>
+      <travelTimeDelay>
+        <duration>27.6714745</duration>
+      </travelTimeDelay>
+      <freeFlowSpeed>
+        <speed xmlns="http://datex2.eu/schema/3/common">39.9999962</speed>
+      </freeFlowSpeed>
+    </basicData>
+  </physicalQuantity>
+  <physicalQuantity xsi:type="SinglePhysicalQuantity" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <pertinentLocation xmlns:q2="http://datex2.eu/schema/3/locationReferencing" xsi:type="q2:LocationByReference">
+      <q2:predefinedLocationReference id="1602" version="0" targetClass="loc:PredefinedLocation" />
+    </pertinentLocation>
+    <basicData xsi:type="TravelTimeData">
+      <measurementOrCalculationTime>
+        <timeValue>2022-12-19T10:49:07</timeValue>
+      </measurementOrCalculationTime>
+      <travelTime>
+        <duration>26.063</duration>
+      </travelTime>
+      <freeFlowTravelTime>
+        <duration>4.3382473</duration>
+      </freeFlowTravelTime>
+      <normallyExpectedTravelTime>
+        <duration>4.3382473</duration>
+      </normallyExpectedTravelTime>
+      <travelTimeDelay>
+        <duration>21.7247543</duration>
+      </travelTimeDelay>
+      <freeFlowSpeed>
+        <speed xmlns="http://datex2.eu/schema/3/common">40</speed>
+      </freeFlowSpeed>
+    </basicData>
+  </physicalQuantity>
+  <physicalQuantity xsi:type="SinglePhysicalQuantity" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <pertinentLocation xmlns:q3="http://datex2.eu/schema/3/locationReferencing" xsi:type="q3:LocationByReference">
+      <q3:predefinedLocationReference id="1619" version="0" targetClass="loc:PredefinedLocation" />
+    </pertinentLocation>
+    <basicData xsi:type="TravelTimeData">
+      <measurementOrCalculationTime>
+        <timeValue>2022-12-19T10:49:07</timeValue>
+      </measurementOrCalculationTime>
+      <travelTime>
+        <duration>54.931</duration>
+      </travelTime>
+      <freeFlowTravelTime>
+        <duration>4.3382473</duration>
+      </freeFlowTravelTime>
+      <normallyExpectedTravelTime>
+        <duration>4.3382473</duration>
+      </normallyExpectedTravelTime>
+      <travelTimeDelay>
+        <duration>50.5927544</duration>
+      </travelTimeDelay>
+      <freeFlowSpeed>
+        <speed xmlns="http://datex2.eu/schema/3/common">40</speed>
+      </freeFlowSpeed>
+    </basicData>
+  </physicalQuantity>
+  <physicalQuantity xsi:type="SinglePhysicalQuantity" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <pertinentLocation xmlns:q4="http://datex2.eu/schema/3/locationReferencing" xsi:type="q4:LocationByReference">
+      <q4:predefinedLocationReference id="1795" version="0" targetClass="loc:PredefinedLocation" />
+    </pertinentLocation>
+    <basicData xsi:type="TravelTimeData">
+      <measurementOrCalculationTime>
+        <timeValue>2022-12-19T10:49:07</timeValue>
+      </measurementOrCalculationTime>
+      <travelTime>
+        <duration>29.752</duration>
+      </travelTime>
+      <freeFlowTravelTime>
+        <duration>3.532519</duration>
+      </freeFlowTravelTime>
+      <normallyExpectedTravelTime>
+        <duration>3.532519</duration>
+      </normallyExpectedTravelTime>
+      <travelTimeDelay>
+        <duration>26.21948</duration>
+      </travelTimeDelay>
+      <freeFlowSpeed>
+        <speed xmlns="http://datex2.eu/schema/3/common">50</speed>
+      </freeFlowSpeed>
+    </basicData>
+  </physicalQuantity>
+  <physicalQuantity xsi:type="SinglePhysicalQuantity" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <pertinentLocation xmlns:q5="http://datex2.eu/schema/3/locationReferencing" xsi:type="q5:LocationByReference">
+      <q5:predefinedLocationReference id="1971" version="0" targetClass="loc:PredefinedLocation" />
+    </pertinentLocation>
+    <basicData xsi:type="TravelTimeData">
+      <measurementOrCalculationTime>
+        <timeValue>2022-12-19T10:49:07</timeValue>
+      </measurementOrCalculationTime>
+      <travelTime>
+        <duration>41.602</duration>
+      </travelTime>
+      <freeFlowTravelTime>
+        <duration>4.067303</duration>
+      </freeFlowTravelTime>
+      <normallyExpectedTravelTime>
+        <duration>4.067303</duration>
+      </normallyExpectedTravelTime>
+      <travelTimeDelay>
+        <duration>37.5346947</duration>
+      </travelTimeDelay>
+      <freeFlowSpeed>
+        <speed xmlns="http://datex2.eu/schema/3/common">39.9999962</speed>
+      </freeFlowSpeed>
+    </basicData>
+  </physicalQuantity>
+  <physicalQuantity xsi:type="SinglePhysicalQuantity" xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <pertinentLocation xmlns:q6="http://datex2.eu/schema/3/locationReferencing" xsi:type="q6:LocationByReference">
+      <q6:predefinedLocationReference id="1980" version="0" targetClass="loc:PredefinedLocation" />
+    </pertinentLocation>
+    <basicData xsi:type="TravelTimeData">
+      <measurementOrCalculationTime>
+        <timeValue>2022-12-19T10:49:07</timeValue>
+      </measurementOrCalculationTime>
+      <travelTime>
+        <duration>51.598</duration>
+      </travelTime>
+      <freeFlowTravelTime>
+        <duration>4.067303</duration>
+      </freeFlowTravelTime>
+      <normallyExpectedTravelTime>
+        <duration>4.067303</duration>
+      </normallyExpectedTravelTime>
+      <travelTimeDelay>
+        <duration>47.5306969</duration>
+      </travelTimeDelay>
+      <freeFlowSpeed>
+        <speed xmlns="http://datex2.eu/schema/3/common">39.9999962</speed>
+      </freeFlowSpeed>
+    </basicData>
+  </physicalQuantity>
+  <informationManager xmlns="http://datex2.eu/schema/3/roadTrafficData">
+    <country xmlns="http://datex2.eu/schema/3/common">si</country>
+    <nationalIdentifier xmlns="http://datex2.eu/schema/3/common">NCUP</nationalIdentifier>
+  </informationManager>
+</ElaboratedDataPublication>

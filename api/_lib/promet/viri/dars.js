@@ -162,7 +162,8 @@ async function zajemiNap(o) {
   var rez = await Promise.all([
     poskusi("dogodki", function () { return nap.dogodki(o); }),
     poskusi("stevci", function () { return nap.stevci(o); }),
-    poskusi("potovalni_casi", function () { return nap.potovalniCasi(o); })
+    poskusi("potovalni_casi", function () { return nap.potovalniCasi(o); }),
+    poskusi("fcd", function () { return nap.fcd(o); })
   ]);
   (rez[0] || []).forEach(function (d) {
     if (d.vrsta === "zastoj") {
@@ -179,7 +180,7 @@ async function zajemiNap(o) {
     opazovanja = opazovanja.concat(skupno.opazovanjaIzGeometrije([{ lat: s.lat, lon: s.lon }], { vir: VIR, drzava: "SI", cesta: s.cesta, tip: "stevec",
       zamudaS: z, hitrostKmh: s.hitrost, zunanjiId: s.id }));
   });
-  (rez[2] || []).forEach(function (c) {
+  (rez[2] || []).concat(rez[3] || []).forEach(function (c) {
     var z = c.prostoS > 0 ? Math.max(0, Math.round(c.casS - c.prostoS)) : null;
     if (z == null) return;
     opazovanja = opazovanja.concat(skupno.opazovanjaIzGeometrije(c.tocke, { vir: VIR, drzava: "SI", cesta: c.ime, tip: "potovalni_cas",

@@ -399,7 +399,7 @@
       // da je jasno, ali gre za vir ali za našo aplikacijo.
       var napake = d.viri.filter(function (v) { return !v.ok; }).map(function (v) {
         var ime = { "dars-stevci": "števci DARS", "dars-dogodki": "dogodki DARS", "nap-stevci": "števci NAP", "nap-potovalni-casi": "potovalni časi NAP",
-          "nap-dogodki": "dogodki NAP", autobahn: "nemške avtoceste" }[v.vir] || v.vir;
+          "nap-dogodki": "dogodki NAP", "nap-fcd": "podatki iz vozil NAP", autobahn: "nemške avtoceste" }[v.vir] || v.vir;
         return ime + (v.napaka ? " (" + String(v.napaka).replace(/^[a-z-]+: /, "").slice(0, 140) + ")" : "");
       });
       status.textContent = "Posodobljeno ob " + ura + " · DARS (SI) in Autobahn (DE)." +

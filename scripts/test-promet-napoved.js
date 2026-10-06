@@ -481,7 +481,7 @@ section("OpenHolidays odjemalec");
     PROMET_NAP_UPORABNIK: "podjetje", PROMET_NAP_GESLO: "skrivnost123",
     PROMET_NAP_URL_DOGODKI: "https://nap.test/dogodki", PROMET_NAP_URL_STEVCI: "https://nap.test/stevci",
     PROMET_NAP_URL_STEVCI_LOKACIJE: "https://nap.test/mesta", PROMET_NAP_URL_POTOVALNI_CASI: "https://nap.test/casi",
-    PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE: "https://nap.test/odseki"
+    PROMET_NAP_URL_POTOVALNI_CASI_LOKACIJE: "https://nap.test/odseki", PROMET_NAP_URL_FCD: "-"
   };
   var napGlave = [];
   var napSvet = async function (url, opts) {
@@ -612,6 +612,37 @@ section("OpenHolidays odjemalec");
   } finally {
     global.fetch = fetchPrejV;
   }
+
+  section("NAP: pravi vzorci z nap.si (DATEX II v3.3)");
+  NAP._ponastavi();
+  var pravi = { "b2b.events.datexii33": "nap-real-dogodki.xml", "b2b.counters.datexii33": "nap-real-stevci.xml",
+    "b2b.counters.datexii33.locations": "nap-real-stevci-lokacije.xml", "b2b.traveltimes.promet.datexii33": "nap-real-potovalni.xml",
+    "b2b.fcd.datexii33.status": "nap-real-fcd-stanje.xml", "b2b.fcd.datexii33.locations": "nap-real-fcd-lokacije.xml" };
+  var praviKlici = [];
+  var praviSvet = async function (url, opts) {
+    praviKlici.push(url);
+    var ime = String(url).replace("https://b2b.ncup.si/data/", "");
+    return pravi[ime] ? new Response(xml(pravi[ime]), { status: 200 }) : new Response("", { status: 404 });
+  };
+  var samoPrijava = { PROMET_NAP_UPORABNIK: "podjetje", PROMET_NAP_GESLO: "skrivnost123" };
+  assert(NAP.nastavljen(samoPrijava) && NAP.nastavitve(samoPrijava).fcd === "https://b2b.ncup.si/data/b2b.fcd.datexii33.status", "za vklop zadoščata uporabnik in geslo; uradni naslovi so privzeti");
+  var rDog = await NAP.dogodki({ env: samoPrijava, fetch: praviSvet });
+  assert(rDog.length >= 8 && rDog.every(function (d) { return d.tocke.length && ["zastoj", "dela", "zapora"].indexOf(d.vrsta) !== -1; }), "pravi dogodki DARS: vsi z lokacijo in vrsto");
+  var rSt = await NAP.stevci({ env: samoPrijava, fetch: praviSvet });
+  assert(rSt.length >= 1 && rSt[0].id === "1001-11" && rSt[0].hitrost > 0 && Math.abs(rSt[0].lat - 46.06786) < 1e-6, "pravi števec 1001-11 (Zadobrova) s hitrostjo in koordinatami");
+  var rPc = await NAP.potovalniCasi({ env: samoPrijava, fetch: praviSvet });
+  assert(rPc.length === 2 && rPc[0].ime === "LJ - Karavanke" && rPc[0].tocke.length > 100 && Math.round(rPc[0].casS) === 2622 && Math.round(rPc[0].prostoS) === 2206, "pravi potovalni čas LJ–Karavanke: 43,7 min proti 36,8 min, celotna geometrija");
+  var rFcdNapaka = null;
+  try { await NAP.fcd({ env: samoPrijava, fetch: praviSvet }); } catch (e) { rFcdNapaka = e.message; }
+  assert(/nima ujemajočih odsekov/.test(rFcdNapaka || ""), "vzorec FCD ima odseke, ki jih vzorec lokacij nima: jasna napaka, ne tiha praznina");
+  var fcdLok = D2.razcleniLokacije(xml("nap-real-fcd-lokacije.xml"));
+  var fcdSt = D2.razcleniPotovalneCase(xml("nap-real-fcd-stanje.xml"));
+  assert(fcdLok.size >= 1 && fcdSt.length >= 1 && fcdSt.every(function (x) { return x.lokacija && x.casS > 0 && x.prostoS > 0; }), "FCD: stanje s sklicem na odsek in lokacije odsekov se razčlenijo");
+  var rZaj = await DARS.zajemi({ env: samoPrijava, fetch: praviSvet });
+  assert(rZaj.skupaj === 4 && rZaj.pokritost === 3 && rZaj.napake.length === 1 && rZaj.napake[0].vir === "fcd", "zajem SI iz pravih vzorcev: 3 viri OK, FCD napaka vidna");
+  assert(rZaj.opazovanja.length > 30, "pravi zajem da opazovanja po celicah (" + rZaj.opazovanja.length + ")");
+  assert(praviKlici.every(function (u) { return u.indexOf("https://b2b.ncup.si/data/") === 0; }), "kliče samo uradne naslove NCUP");
+  NAP._ponastavi();
 
   section("Stran: prijavni žeton");
   var stranJs = fs.readFileSync(path.join(koren, "app", "promet-dan.js"), "utf8");
