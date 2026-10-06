@@ -18,10 +18,13 @@
 
   /* ---------- shranjevanje ---------- */
   function naloziStanje() {
-    var privzeto = { izhodisce: "", jezik: "sl", nalogi: {} };
+    var privzeto = { izhodisce: "", jezik: "sl", nalogi: {}, voznje: {} };
     try {
       var s = JSON.parse(localStorage.getItem(KLJUC) || "null");
-      if (s && typeof s === "object") return Object.assign(privzeto, s, { nalogi: s.nalogi && typeof s.nalogi === "object" ? s.nalogi : {} });
+      if (s && typeof s === "object") return Object.assign(privzeto, s, {
+        nalogi: s.nalogi && typeof s.nalogi === "object" ? s.nalogi : {},
+        voznje: s.voznje && typeof s.voznje === "object" ? s.voznje : {}
+      });
     } catch (_) {}
     return privzeto;
   }
@@ -77,8 +80,58 @@
     var dodatno = o.dodatnaZamudaMin || 0;
     var deli = ["Vožnja: običajno " + o.trajanjeProstoMin + " min"];
     deli.push(dodatno > 0 ? "ob tej uri +" + dodatno + " min" + (o.opozorilo ? " (gneča)" : "") : "ob tej uri brez zamude");
+    if (o.vreme && o.vreme.dodatekMin > 0) deli.push(({ rahel_dez: "rahel dež", zmeren_dez: "dež", mocan_dez: "močan dež", rahel_sneg: "sneg", mocan_sneg: "močan sneg/poledica", megla: "megla" }[o.vreme.razred] || "vreme") + " +" + o.vreme.dodatekMin + " min");
     deli.push(o.osnova === "meritve" ? "po meritvah" : o.osnova === "mesano" ? "delno po meritvah" : "groba ocena, še brez meritev");
     return deli.join(" · ");
+  }
+
+  function uraIz(iso) {
+    return iso ? new Date(iso).toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" }) : "";
+  }
+
+  /* »Odšli ob 07:27« / »Vožnja 28 min · napoved 25 min (+3)« */
+  function besediloDejanske(z) {
+    if (!z) return "";
+    if (z.dejanskoMin != null) {
+      var del = "Vožnja " + z.dejanskoMin + " min";
+      if (z.napovedVarnoMin != null) del += " · napoved " + z.napovedVarnoMin + " min (" + (z.razlikaMin > 0 ? "+" : "") + z.razlikaMin + ")";
+      return del;
+    }
+    if (z.prihod) return "Na lokaciji ob " + uraIz(z.prihod);
+    if (z.odhod) return "Odšli ob " + uraIz(z.odhod);
+    return "";
+  }
+
+  async function zabeleziVoznjo(nalog, dogodek, gumb) {
+    var rez = rezultati[izbranDatum];
+    var odsek = rez && rez.odseki.find(function (o) { return o.nalogId === nalog.id; });
+    var nalogi = nalogiDneva();
+    var i = nalogi.findIndex(function (x) { return x.id === nalog.id; });
+    var datum = izbranDatum;
+    gumb.disabled = true;
+    try {
+      var r = await fetch("/api/promet-voznja", {
+        method: "POST",
+        headers: await glave({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          datum: datum, nalogId: nalog.id, dogodek: dogodek, stranka: nalog.stranka,
+          od: i > 0 ? nalogi[i - 1].naslov : $("pdan-izhodisce").value.trim(), do: nalog.naslov,
+          napoved: odsek ? { prihod: nalog.zacetek, odhod: odsek.priporocenOdhodUra, prostoMin: odsek.trajanjeProstoMin,
+            varnoMin: odsek.trajanjeVarnoMin, osnova: odsek.osnova, vreme: odsek.vreme } : null
+        })
+      });
+      var d = null;
+      try { d = await r.json(); } catch (_) {}
+      if (!r.ok || !d || !d.ok) throw new Error(sporociloNapake(r, d));
+      stanje.voznje[datum] = stanje.voznje[datum] || {};
+      stanje.voznje[datum][nalog.id] = { odhod: d.odhod, prihod: d.prihod, dejanskoMin: d.dejanskoMin, napovedVarnoMin: d.napovedVarnoMin, razlikaMin: d.razlikaMin };
+      shrani();
+      nastaviStatus(dogodek === "odhod" ? "Odhod zabeležen. Ob prihodu pritisnite »Na lokaciji«." : "Prihod zabeležen" + (d.dejanskoMin != null ? ": vožnja " + d.dejanskoMin + " min." : "."));
+      izrisi();
+    } catch (e) {
+      nastaviStatus("Vožnje ni bilo mogoče zabeležiti: " + e.message, true);
+      gumb.disabled = false;
+    }
   }
 
   function ustvariNalog(n, odsek) {
@@ -95,6 +148,12 @@
     voznja.textContent = besediloVoznje(odsek);
     voznja.hidden = !voznja.textContent;
     voznja.classList.toggle("pdan__nalog-voznja--gneca", !!(odsek && odsek.opozorilo));
+    var zabelezeno = (stanje.voznje[izbranDatum] || {})[n.id];
+    var dejansko = li.querySelector(".pdan__nalog-dejansko");
+    dejansko.textContent = besediloDejanske(zabelezeno);
+    dejansko.hidden = !dejansko.textContent;
+    li.querySelector('[data-akcija="odhod"]').setAttribute("aria-pressed", zabelezeno && zabelezeno.odhod && !zabelezeno.prihod ? "true" : "false");
+    li.querySelector('[data-akcija="prihod"]').setAttribute("aria-pressed", zabelezeno && zabelezeno.prihod ? "true" : "false");
     return li;
   }
 
@@ -226,6 +285,7 @@
     var nalog = (stanje.nalogi[izbranDatum] || []).find(function (n) { return n.id === id; });
     if (!nalog) return;
     if (gumb.dataset.akcija === "uredi") return odpriObrazec(nalog);
+    if (gumb.dataset.akcija === "odhod" || gumb.dataset.akcija === "prihod") return zabeleziVoznjo(nalog, gumb.dataset.akcija, gumb);
     if (gumb.dataset.akcija === "izbrisi" && window.confirm("Izbrišem nalog »" + (nalog.stranka || nalog.naslov) + "«?")) {
       stanje.nalogi[izbranDatum] = stanje.nalogi[izbranDatum].filter(function (n) { return n.id !== id; });
       if (!stanje.nalogi[izbranDatum].length) delete stanje.nalogi[izbranDatum];

@@ -5,6 +5,7 @@
    GET  /api/promet-zemljevid  -> GeoJSON prometa v živo (števci, zastoji, zapore)
    POST /api/promet-napoved    -> { izhodisce, cilj, datum, prihod, jezik }
    POST /api/promet-dan        -> { izhodisce, datum, jezik, naloge: [{ id, stranka, naslov, zacetek, konec }] }
+   POST /api/promet-voznja     -> { datum, nalogId, dogodek: "odhod"|"prihod", stranka, od, do, napoved }
    GET  /api/promet-zbiraj     -> en zajem virov v Supabase (kliče ga pg_cron vsakih 15 min)
    Na Vercelu je obvezna prijava (Bearer žeton Supabase); lokalni razvojni
    strežnik je dosegljiv samo v domačem omrežju in prijave ne preverja. */
@@ -15,8 +16,8 @@ var storitev = require("../_lib/promet/storitev");
 var dan = require("../_lib/promet/dan");
 var zemljevid = require("../_lib/promet/zemljevid");
 
-var STATUS = { NEVELJAVEN_VNOS: 400, NASLOV_NI_NAJDEN: 422, POT_NI_NA_VOLJO: 503, ZUNANJI_VIR: 502 };
-var AKCIJE = { stanje: "GET", zemljevid: "GET", napoved: "POST", dan: "POST", zbiraj: "GET" };
+var STATUS = { DATABASE_FAILED: 503, NEVELJAVEN_VNOS: 400, NASLOV_NI_NAJDEN: 422, POT_NI_NA_VOLJO: 503, ZUNANJI_VIR: 502 };
+var AKCIJE = { stanje: "GET", zemljevid: "GET", napoved: "POST", dan: "POST", zbiraj: "GET", voznja: "POST" };
 // Zbiranje sproži Supabase pg_cron brez prijave; zbiralnik sam omeji klice na
 // enega na 12 minut in bere samo javne vire, zato prijava ni potrebna.
 var BREZ_PRIJAVE = { zbiraj: true };
@@ -74,6 +75,13 @@ module.exports = async function promet(req, res) {
       var z = await zemljevid.zemljevid();
       if (res.setHeader) res.setHeader("Cache-Control", "private, max-age=60");
       return res.status(200).json(Object.assign({ ok: true }, z));
+    }
+    if (akcija === "voznja") {
+      // Na Vercelu po uporabniku v Supabase; lokalno v datoteko.
+      var cfgV = process.env.VERCEL ? storitev.konfiguracijaBaze({}) : null;
+      if (process.env.VERCEL && !cfgV) return res.status(503).json({ ok: false, napaka: "Shranjevanje voženj potrebuje Supabase (SUPABASE_SERVICE_ROLE_KEY)." });
+      var userId = auth.user && auth.user.id;
+      return res.status(200).json(Object.assign({ ok: true }, await require("../_lib/promet/voznje").zabelezi(telo(req), cfgV ? { cfg: cfgV, userId: userId } : {})));
     }
     if (akcija === "napoved") return res.status(200).json(Object.assign({ ok: true }, await storitev.napovejNalog(telo(req))));
     return res.status(200).json(Object.assign({ ok: true }, await dan.izracunajDan(telo(req))));

@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="styles.css?v=20261006-promet-dan-v1" />
     <link rel="stylesheet" href="testna-vrstica.css?v=20260818-tipkovnica-v4" />
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-    <link rel="stylesheet" href="promet-dan.css?v=20261007-zgodovina-v2" />
+    <link rel="stylesheet" href="promet-dan.css?v=20261007-voznje-v4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#3d7676" />
     <link rel="apple-touch-icon" href="icon-192.png" />
@@ -156,6 +156,7 @@
           <p class="pdan__nalog-stranka"></p>
           <p class="pdan__nalog-naslov"></p>
           <p class="pdan__nalog-voznja" hidden></p>
+          <p class="pdan__nalog-dejansko" hidden></p>
         </div>
         <div class="pdan__nalog-gumbi">
           <button type="button" class="pdan__gumb-ikona" data-akcija="uredi" aria-label="Uredi nalog">
@@ -165,11 +166,21 @@
             <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
           </button>
         </div>
+        <div class="pdan__nalog-sledenje">
+          <button type="button" class="btn btn--obris btn--majhen pdan__gumb-sledenje" data-akcija="odhod">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M5 12h12M13 6l6 6-6 6"/></svg>
+            <span class="pdan__gumb-besedilo" data-fit-text data-fit-text-min="11">Odhajam</span>
+          </button>
+          <button type="button" class="btn btn--obris btn--majhen pdan__gumb-sledenje" data-akcija="prihod">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="pdan__ikona"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>
+            <span class="pdan__gumb-besedilo" data-fit-text data-fit-text-min="11">Na lokaciji</span>
+          </button>
+        </div>
       </li>
     </template>
 
     <script src="app.js?v=20260814-auto-fit-pill-v8"></script>
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-    <script src="promet-dan.js?v=20261007-nap-v7"></script>
+    <script src="promet-dan.js?v=20261007-voznje-vreme-v9"></script>
   </body>
 </html>

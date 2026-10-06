@@ -391,7 +391,7 @@ section("OpenHolidays odjemalec");
   var vcfg = JSON.parse(fs.readFileSync(path.join(koren, "vercel.json"), "utf8"));
   assert(Object.keys(vcfg.functions || {}).every(function (f) { return funkcije.indexOf(f) !== -1; }), "vsaka nastavitev v »functions« ima objavljeno datoteko");
   var promRew = vcfg.rewrites.filter(function (r) { return /^\/api\/promet-/.test(r.source); });
-  assert(promRew.length === 5 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
+  assert(promRew.length === 6 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
   var posRes = lazniRes();
   await require("../api/pos.js")({ method: "GET", url: "/api/pos?handler=promet&akcija=neznano", query: { handler: "promet", akcija: "neznano" } }, posRes);
   assert(posRes.koda === 404 && posRes.telo.napaka === "Neznana akcija.", "api/pos.js preda promet handlerju");
@@ -529,6 +529,88 @@ section("OpenHolidays odjemalec");
     Object.keys(napEnv).forEach(function (k) { if (envPrej[k] === undefined) delete process.env[k]; else process.env[k] = envPrej[k]; });
     Z._ponastavi();
     NAP._ponastavi();
+  }
+
+  section("Vreme (MET Norway)");
+  var V = require("../api/_lib/promet/vreme");
+  assert(V.razvrsti("clearsky_day", 0, 15) === "suho", "jasno -> suho");
+  assert(V.razvrsti("lightrain", 0.6, 12) === "rahel_dez" && V.razvrsti("rain", 3.1, 12) === "zmeren_dez" && V.razvrsti("heavyrain", 9, 12) === "mocan_dez", "razredi dežja po mm/h");
+  assert(V.razvrsti("lightsnow", 0.4, -2) === "rahel_sneg" && V.razvrsti("heavysnow", 3, -3) === "mocan_sneg", "sneg");
+  assert(V.razvrsti("rain", 1, 0) === "mocan_sneg", "dež pri 0 °C -> poledica (najvišji razred)");
+  assert(V.razvrsti("fog", 0, 8) === "megla", "megla");
+  var metOdg = { properties: { timeseries: [
+    { time: "2026-10-07T05:00:00Z", data: { instant: { details: { air_temperature: 11 } }, next_1_hours: { summary: { symbol_code: "cloudy" }, details: { precipitation_amount: 0 } } } },
+    { time: "2026-10-07T06:00:00Z", data: { instant: { details: { air_temperature: 10 } }, next_1_hours: { summary: { symbol_code: "heavyrain" }, details: { precipitation_amount: 8.2 } } } },
+    { time: "2026-10-07T07:00:00Z", data: { instant: { details: { air_temperature: 10 } }, next_1_hours: { summary: { symbol_code: "rain" }, details: { precipitation_amount: 3 } } } }
+  ] } };
+  var u1 = V.zaUro(metOdg, "2026-10-07T06:30:00Z");
+  assert(u1.razred === "mocan_dez" && u1.faktor === 1.12 && u1.padavineMmH === 8.2, "ura 06:30Z -> vrsta 06:00Z (naliv)");
+  assert(V.zaUro(metOdg, "2026-10-01T06:00:00Z") === null, "pred začetkom napovedi -> brez vremena");
+  var vDez = promet.napoved.izracunajOdhod(Object.assign({}, osnovniVhod, { prihod: "2026-10-07T03:00", vreme: { razred: "mocan_dez", faktor: 1.12, vir: "met.no" } }));
+  assert(vDez.trajanjeVarnoMin === 34 && vDez.vreme.dodatekMin === 4, "naliv: 30 min × 1,12 = +4 min");
+  assert(/močan dež \(\+4 min\)/.test(promet.napoved.sporocilo(vDez, "sl")) && /Starkregen/.test(promet.napoved.sporocilo(vDez, "de")), "sporočilo omeni vreme");
+  var vSuho = promet.napoved.izracunajOdhod(Object.assign({}, osnovniVhod, { prihod: "2026-10-07T03:00", vreme: { razred: "suho", faktor: 1, vir: "met.no" } }));
+  assert(vSuho.trajanjeVarnoMin === 30 && vSuho.vreme.dodatekMin === 0, "suho vreme ne spremeni časa");
+  V._ponastavi();
+  var metKlici = [];
+  var svetZVremenom = async function (url, opts) {
+    if (/api\.met\.no/.test(url)) { metKlici.push(opts && opts.headers && opts.headers["user-agent"]); return { ok: true, json: async function () { return metOdg; } }; }
+    return svet(url, opts);
+  };
+  var wmapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-vreme-"));
+  var sv = await promet.storitev.napovejNalog(Object.assign({}, vhodN, { prihod: "08:30" }), { mapa: wmapa, fetch: svetZVremenom, lokalno: true, zdajMs: t0 });
+  assert(sv.vreme && sv.vreme.razred === "mocan_dez" && sv.vreme.dodatekMin > 0, "storitev upošteva napoved vremena na cilju");
+  assert(metKlici.length === 1 && /UspesniJezek/.test(metKlici[0]), "MET Norway: prepoznaven User-Agent");
+  await promet.storitev.napovejNalog(Object.assign({}, vhodN, { prihod: "08:45" }), { mapa: wmapa, fetch: svetZVremenom, lokalno: true, zdajMs: t0 + 60000 });
+  assert(metKlici.length === 1, "vreme iz predpomnilnika (30 min)");
+  fs.rmSync(wmapa, { recursive: true, force: true });
+  V._ponastavi();
+
+  section("Dejanske vožnje (Odhajam / Na lokaciji)");
+  var VZ = require("../api/_lib/promet/voznje");
+  var vmapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-voznje-"));
+  var napovedV = { prihod: "08:00", odhod: "07:25", prostoMin: 20, varnoMin: 25, osnova: "zacetna_ocena", vreme: { razred: "rahel_dez", faktor: 1.03, padavineMmH: 0.8 } };
+  var o1 = await VZ.zabelezi({ datum: "2026-10-07", nalogId: "a", dogodek: "odhod", stranka: "Kovač", od: "Šiška", do: "Center", napoved: napovedV }, { mapa: vmapa, zdajMs: Date.parse("2026-10-07T05:27:00Z") });
+  assert(o1.odhod === "2026-10-07T05:27:00.000Z" && o1.prihod === null && o1.dejanskoMin === null, "odhod zabeležen s strežniškim časom");
+  var o2 = await VZ.zabelezi({ datum: "2026-10-07", nalogId: "a", dogodek: "prihod" }, { mapa: vmapa, zdajMs: Date.parse("2026-10-07T05:55:00Z") });
+  assert(o2.dejanskoMin === 28 && o2.napovedVarnoMin === 25 && o2.razlikaMin === 3, "prihod: dejansko 28 min, napoved 25, razlika +3");
+  var shranjeno = JSON.parse(fs.readFileSync(path.join(vmapa, "voznje.json"), "utf8"))["2026-10-07|a"];
+  assert(shranjeno.vreme.razred === "rahel_dez" && shranjeno.napoved_osnova === "zacetna_ocena", "shranjena napoved in vreme ob odhodu (za umerjanje)");
+  var o3 = await VZ.zabelezi({ datum: "2026-10-07", nalogId: "b", dogodek: "prihod" }, { mapa: vmapa, zdajMs: Date.parse("2026-10-07T08:00:00Z") });
+  assert(o3.prihod && o3.dejanskoMin === null, "prihod brez odhoda: brez dejanskega časa");
+  var o4 = await VZ.zabelezi({ datum: "2026-10-07", nalogId: "a", dogodek: "odhod", napoved: napovedV }, { mapa: vmapa, zdajMs: Date.parse("2026-10-07T09:00:00Z") });
+  assert(o4.prihod === null && o4.dejanskoMin === null, "ponoven odhod začne novo vožnjo");
+  var stara = VZ.zdruzi({ odhod: "2026-10-07T01:00:00Z" }, { datum: "2026-10-07", nalogId: "x", dogodek: "prihod" }, "2026-10-07T09:00:00Z");
+  assert(stara.dejansko_min === null, "nesmiselno dolga vožnja (>6 h, pozabljen gumb) se ne šteje");
+  var napacnih = 0;
+  for (var nv2 of [{}, { datum: "2026-10-07" }, { datum: "2026-10-07", nalogId: "a", dogodek: "x" }]) {
+    try { await VZ.zabelezi(nv2, { mapa: vmapa }); } catch (e) { if (e.code === "NEVELJAVEN_VNOS") napacnih++; }
+  }
+  assert(napacnih === 3, "neveljaven vnos zavrnjen");
+  fs.rmSync(vmapa, { recursive: true, force: true });
+
+  var sbVoznje = [];
+  var fetchPrejV = global.fetch;
+  global.fetch = async function (url, opts) {
+    var u = String(url);
+    if (/promet_voznja\?select=\*/.test(u)) return new Response(JSON.stringify(sbVoznje.filter(function (r) { return u.indexOf("nalog_id=eq." + r.nalog_id) !== -1 && u.indexOf("user_id=eq." + r.user_id) !== -1; })), { status: 200 });
+    if (/promet_voznja\?on_conflict/.test(u)) {
+      var r = JSON.parse(opts.body);
+      sbVoznje = sbVoznje.filter(function (x) { return !(x.user_id === r.user_id && x.nalog_id === r.nalog_id && x.datum === r.datum); }).concat([r]);
+      return new Response(JSON.stringify([r]), { status: 201 });
+    }
+    return new Response("{}", { status: 404 });
+  };
+  try {
+    var cfgSb = { url: "https://sb.test", serviceKey: "k" };
+    await VZ.zabelezi({ datum: "2026-10-07", nalogId: "a", dogodek: "odhod", napoved: napovedV }, { cfg: cfgSb, userId: "u1", zdajMs: Date.parse("2026-10-07T05:27:00Z") });
+    var sbR = await VZ.zabelezi({ datum: "2026-10-07", nalogId: "a", dogodek: "prihod" }, { cfg: cfgSb, userId: "u1", zdajMs: Date.parse("2026-10-07T05:55:00Z") });
+    assert(sbR.dejanskoMin === 28 && sbVoznje.length === 1 && sbVoznje[0].user_id === "u1", "Supabase: ena vrstica na uporabnika in nalog, dejansko 28 min");
+    var brezUp = null;
+    try { await VZ.zabelezi({ datum: "2026-10-07", nalogId: "a", dogodek: "prihod" }, { cfg: cfgSb }); } catch (e) { brezUp = e.message; }
+    assert(/Prijava/.test(brezUp), "brez uporabnika se v bazo ne zapiše");
+  } finally {
+    global.fetch = fetchPrejV;
   }
 
   section("Stran: prijavni žeton");

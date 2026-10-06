@@ -101,9 +101,18 @@ async function napovejNalog(vhod, opcije) {
     profil = lokalno.preberiProfil(mapa);
     d = lokalno.preberiDogodke(mapa, o.zdajMs || Date.now(), 2);
   }
+  // Vreme na cilju ob uri prihoda (napoved MET Norway); brez napovedi brez faktorja.
+  var vreme = null;
+  if (o.vreme !== false) {
+    try {
+      vreme = await require("./vreme").napoved(doT.lat, doT.lon, prihod.toUTC().toISO(), { fetch: o.fetch, zdajMs: o.zdajMs });
+    } catch (e) {
+      d.opozorila = (d.opozorila || []).concat(["Vremenska napoved ni dosegljiva (" + String(e.message || e).slice(0, 100) + ")."]);
+    }
+  }
   var r = napoved.izracunajOdhod({
     prihod: prihod.toISO(), drzava: drzava, regija: doT.regija, koledar: kol,
-    pot: pot, profil: profil, dogodki: d.dogodki
+    pot: pot, profil: profil, dogodki: d.dogodki, vreme: vreme
   });
   var jezik = v.jezik === "de" ? "de" : "sl";
   return Object.assign({}, r, {
