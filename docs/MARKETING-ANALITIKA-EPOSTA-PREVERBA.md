@@ -42,7 +42,7 @@ Manjka: posnetek obstoječe strani Analitika → E-pošta. Brez njega razdelka D
    - Podatke računa hrani v ZDA.
    - Dogodke hrani kratek čas.
 
-   Zato vodimo **lastne sezname, odjave in zgodovino dogodkov**. **[odločitev]** Ali ostanemo pri Resendu ali za trženjsko pošto vzamemo ponudnika s hrambo v EU (Brevo, MailerLite, Amazon SES EU, Mailgun EU).
+   Zato vodimo **lastne sezname, odjave in zgodovino dogodkov**. Privzeto ostanemo pri Resendu; ponudnik s hrambo v EU (Brevo, MailerLite, Amazon SES EU, Mailgun EU) je možna kasnejša zamenjava.
 7. **Najprej je treba popraviti tveganje v obstoječi kodi:** POS webhook vrne 503 za vsak neznan `email_id`. Če gre nanj tudi trženjska pošta, bo Resend en dan ponavljal pošiljanje in po približno 5 dneh webhook izklopil (§I).
 
 ---
@@ -185,7 +185,7 @@ Nov modul je samo **»Ponudbe«** (časovnica posamezne ponudbe), ker ga drugi k
 
 ## G. Denar in štetje
 
-- Strošek Resenda na sporočilo je zanemarljiv. **[odločitev]** Ali je pošiljanje v paketu (stanje B: »Vključeno v vaš paket«)?
+- Strošek Resenda na sporočilo je zanemarljiv, zato ga obrtniku ne prikažemo.
 - Povpraševanje iz e-pošte se šteje enkrat, tudi če je stranka hkrati klikala tudi oglas: zadnji dotik.
 - Odstotkov ne kažemo, ker je seznam majhen (1 klik pri 150 kontaktih je 0,7 %). Kažemo števila.
 - Brez primerjave s »povprečjem panoge«: definicije ponudnikov se preveč razlikujejo. Primerjamo samo s prejšnjimi kampanjami istega obrtnika.
@@ -284,13 +284,13 @@ Ni izveden; slika sledi po posnetku. Predlagana zgradba strani, največ 6 števi
 
 ---
 
-## Odločitve, ki so uporabnikove
+## Privzete izbire (ne vplivajo na to, kaj obrtnik vidi)
 
-1. Ostanemo pri Resendu za trženje ali vzamemo ponudnika s hrambo v EU?
-2. Ali je pošiljanje v paketu?
-3. Ali zbiramo privolitev v sledenje (potrebno za »Pokličite jih«)?
-4. Ali uvedemo ponudbe na spletu z gumbom »Sprejmi ponudbo«?
-5. Pravni pregled točk H.1 in H.2 pred zagonom.
+1. Ponudnik: ostanemo pri Resendu; lastni seznami, odjave in hramba dogodkov pri nas.
+2. Strošek pošiljanja se obrtniku ne prikaže (zanemarljiv).
+3. Privolitev v sledenje: eno potrditveno polje pri vsakem novem kontaktu; brez nje človek ni na seznamu »Pokličite jih«, šteje se samo v skupnem številu.
+4. Ponudbe na spletu z gumbom »Sprejmi ponudbo«: da.
+5. Pravni pregled H.1 in H.2 pred zagonom (naše opravilo).
 
 ## Kontrolni seznam postopka
 
