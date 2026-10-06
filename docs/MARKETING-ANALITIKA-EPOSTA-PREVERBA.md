@@ -25,7 +25,7 @@ Manjka: posnetek obstoječe strani Analitika → E-pošta. Brez njega razdelka D
    - Apple samodejno »odpre« vsa sporočila (okoli 50 % vseh odprtij je Apple Mail).
    - Resend pri odprtju ne pošlje ne naslova IP ne naprave, zato lažnih odprtij sploh ne moremo izločiti.
    - V Nemčiji (TDDDG §25), Franciji (CNIL, april 2026) in Italiji (Garante, rok 28. 10. 2026) je za merjenje odprtij potrebna **ločena privolitev**. Za Slovenijo (ZEKom-2, 225. člen) velja ista evropska osnova.
-2. **Kdo je odprl PDF v priponki, se ne da izmeriti.** Nihče tega ne zna, triki pa so nezakoniti in tvegajo, da sporočilo konča med vsiljeno pošto. Rešitev: **osebna povezava do ponudbe na spletu** in gumb **»Sprejmi ponudbo«**. Priponka ostane, kjer jo stranka pričakuje.
+2. **Odpiranje PDF izmerimo, ko je PDF poslan kot povezava** (gumb »Odpri ponudbo« → naš pregledovalnik): odprto in kolikokrat, kdaj, katere strani in koliko časa, prenos. Tako delajo DocSend, PandaDoc, HubSpot. **PDF kot priponke ne moremo zanesljivo izmeriti:** triki s klicem na strežnik iz datoteke delujejo samo v Adobe Readerju (z opozorilom), ne na telefonih, v Chromu ali Gmailu, in povečajo tveganje za vsiljeno pošto. Zato PDF pošiljamo kot povezavo; priponka je lahko zraven, štejemo odpiranja prek povezave. Plus gumb **»Sprejmi ponudbo«**.
 3. **Zanesljive številke** so samo te:
    - dostavljeno;
    - neveljaven naslov;
@@ -270,7 +270,7 @@ Ni izveden; slika sledi po posnetku. Predlagana zgradba strani (samo rezultati, 
    - izbira kampanje, predogled sporočila;
    - **Dostavljeno 142 · Kliknili 9 ljudi · Odgovorili 4 · Povpraševanja 2**;
    - tri osebe s stanjem »V TEKU«.
-3. **Ponudbe:** samo števila: **5 poslanih · 4 pogledane na spletu · 2 sprejeti**. Opomba: »Če je stranka odprla priponko, tega ne vidimo.« Brez imen in brez časovnice posamezne ponudbe (ta je pri ponudbi v drugem delu aplikacije).
+3. **Ponudbe:** samo števila: **5 poslanih · 4 pogledane na spletu · 2 sprejeti**. Opomba (samo če je bila poslana tudi priponka): »Odprtja priponke ne štejemo, samo odprtja prek povezave.« Brez imen in brez časovnice posamezne ponudbe (ta je pri ponudbi v drugem delu aplikacije).
 4. **Kaj vas sprašujejo** (iz odgovorov), od 3 vprašanj naprej.
 5. **Zdravje seznama:** semafor »V redu / Preverimo«, ob dotiku neveljavni naslovi, odjave, prijave neželene pošte, +novi kontakti.
 6. **Povzetek meseca.**
