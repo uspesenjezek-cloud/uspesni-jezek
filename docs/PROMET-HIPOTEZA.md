@@ -7,6 +7,27 @@ klic**. Komercialni API-ji (Google, TomTom, HERE) so zavrnjeni: brezplačni
 paketi so omejeni, pri rasti postanejo strošek na uporabnika, pogoji se lahko
 spremenijo.
 
+## 0. Odločitev uporabnika (6. 10. 2026): brez sledenja GPS
+
+Obrtnikov **ne spremljamo z GPS**. Beležimo samo delovne naloge (naslov
+stranke, ura prihoda) in **prednastavljeno približno izhodišče**, ki ga obrtnik
+nastavi sam (npr. delavnica ali kraj). Posledice za zasnovo:
+
+- Sloj »lastne vožnje iz GPS« (Traccar → map matching) **odpade**. Poglavja 1, 4,
+  6 in 7 spodaj so zato posodobljena; prvotna različica je v zgodovini gita.
+- Približno izhodišče zadošča: promet ocenjujemo po ~2 km celicah, zato nekaj
+  sto metrov odstopanja ne spremeni rezultata.
+- Pravno je bistveno lažje: ni sledenja zaposlenih, ni DPIA za geolokacijo,
+  ni soodločanja Betriebsrata zaradi naprave za nadzor.
+- Cena: za **mestne in lokalne ceste nimamo merjenih podatkov**. Tam velja
+  deterministični osnovni model (vrsta ceste iz OSM × mesto/podeželje × ura ×
+  tip dneva). Koliko je natančen, mora pokazati pilot — tega ne predpostavljamo.
+
+Neobvezna dopolnitev brez GPS (predlog, ni odločeno): na nalogu dva gumba
+**»Odhajam«** in **»Na lokaciji«**, ki shranita le *čas* (ne položaja). Iz
+razlike dobimo dejansko trajanje poti izhodišče → stranka, kar umerja osnovni
+model po območju, uri in tipu dneva, ter meri, ali napovedi držijo.
+
 ## 1. Ključno spoznanje
 
 Google ve, kakšen je promet na vsaki ulici, ker ima položaje milijonov
@@ -14,13 +35,15 @@ telefonov. **Odprtega vira z enakim pokritjem za vse ceste v SI in DE ni.**
 Odprti državni viri pokrivajo avtoceste in del državnih cest; mestne in lokalne
 ceste skoraj nihče ne objavlja.
 
-Edina pot do »Googla na naši bazi« brez stroška na klic je zato:
+Brez lastnih GPS podatkov (glej poglavje 0) je zasnova:
 
-> **lastni podatki o vožnjah naših obrtnikov** (floating car data)
-> + odprti državni viri + OpenStreetMap + odprtokodni usmerjevalnik.
+> **odprti državni viri** (merjeno, kjer obstajajo) + **deterministični osnovni
+> model** iz OpenStreetMap za ostale ceste + **neobvezni časi »Odhajam / Na
+> lokaciji«** za umerjanje + odprtokodni usmerjevalnik.
 
-To se z rastjo *izboljšuje*, ne draži: več obrtnikov = več prevoženih poti =
-natančnejši profil, strošek pa ostane fiksen (en strežnik).
+Strošek ostane fiksen (en računalnik oziroma strežnik), ne glede na število
+obrtnikov. Natančnost na mestnih cestah bo nižja kot pri Googlu; pilot pove,
+ali je dovolj dobra za priporočilo odhoda z rezervo.
 
 ## 2. O »scraperju«
 
@@ -37,110 +60,98 @@ natančnejši profil, strošek pa ostane fiksen (en strežnik).
   ki jih je mogoče napovedati iz zgodovine po tipu dneva in uri. Nepredvidljive
   nesreče se dan prej ne dajo napovedati nikomur (tudi Googlu ne), zato jih
   pokrijemo z jutranjim ponovnim preverjanjem aktualnih dogodkov.
-- **H2 — dovolj podatkov iz flote.** Obrtniki vozijo pretežno po omejenem
-  območju (svoja regija). Že 10–20 obrtnikov v nekaj tednih prevozi ključne
-  koridorje dovolj pogosto za zanesljiv profil po uri.
-- **H3 — osnovni model za ostalo.** Za ceste brez podatkov zadošča
+- **H2 — (opuščena: GPS podatkov flote ne zbiramo).** Nadomesti jo: če obrtniki
+  pritiskajo »Odhajam / Na lokaciji«, se v nekaj tednih nabere dovolj voženj na
+  območje in uro za umerjanje osnovnega modela.
+- **H3 — osnovni model za ostalo.** Za ceste brez meritev zadošča
   deterministični model: razred ceste iz OSM (avtocesta / glavna / lokalna) ×
-  mesto ali podeželje × ura × tip dneva, *kalibriran iz lastnih voženj*.
+  mesto ali podeželje × ura × tip dneva, umerjen s časi voženj (če so na voljo).
 - **H4 — cilj natančnosti.** S priporočenim odhodom (p85 + fiksna rezerva)
   prispe pravočasno ≥ 90 % obrtnikov, ob povprečni »odvečni« rezervi ≤ 15 min.
 
 Vsaka hipoteza ima v pilotu merilo; če ne zdrži, se smer spremeni pred gradnjo.
 
-## 4. Kako bi točno delovalo
+## 4. Kako bi točno delovalo (brez GPS)
 
 ```
-Telefon obrtnika ──(Traccar Client, odprtokodno, tudi v ozadju na iOS)──► lasten Traccar strežnik
-                                                                              │ samo vožnje na naloge
-                                                                              ▼
-                       Valhalla map matching (Meili): GPS točke → odseki OSM ceste + dejanska hitrost
-                                                                              │
-Odprti državni viri (DARS, Autobahn, Mobilithek, NAP števci) ────────────────┤
-                                                                              ▼
-            Profil hitrosti po odseku × tip dneva × ura (mediana, p85), hierarhično dopolnjen
-                                                                              │
-                                                                              ▼
-       Valhalla »arrive_by« s časovno odvisnimi hitrostmi → trajanje → priporočen odhod
-                                                                              │
-                  dan prej 18:00 napoved  ·  zjutraj 05:30 preverba novih zapor/nesreč
+Obrtnik nastavi približno izhodišče ──┐
+Delovni nalog: naslov stranke + ura ──┼─► naslov → koordinate (OSM Nominatim, predpomnjeno)
+                                      ▼
+            usmerjevalnik nad OSM (OSRM zdaj, Valhalla pozneje) → pot + čas brez prometa
+                                      │
+  odprti državni viri (DARS, Autobahn, │  zbiralnik vsakih 15 min → profil zastojev
+  Mobilithek, NAP števci) ────────────┤  (merjeno, kjer viri obstajajo)
+                                      │
+  osnovni model OSM (vrsta ceste ×    ├─► za odseke brez meritev
+  mesto/podeželje × ura × tip dneva)  │
+                                      │
+  neobvezno: časi Odhajam/Na lokaciji ┘─► umerjanje osnovnega modela po območju in uri
+                                      ▼
+        priporočen odhod = prihod − (čas + p85 zamuda + zapore) − rezerva
+        dan prej 18:00 napoved · zjutraj 05:30 preverba novih zapor
 ```
 
-Sestavni deli (vsi odprtokodni, brez stroška na klic):
-
-| Del | Orodje | Licenca |
+| Del | Orodje | Licenca / cena |
 |---|---|---|
-| Zemljevid | OpenStreetMap (Geofabrik izvlečki SI + DE) | ODbL |
-| Zajem GPS | Traccar Client (iOS/Android, deluje v ozadju) ali Traccar SDK v naši aplikaciji | Apache 2.0 |
-| Sprejem GPS | Traccar server | Apache 2.0 |
-| Ujemanje GPS s cesto + usmerjanje z zgodovinskim prometom | Valhalla (Meili + »historical traffic«: profil hitrosti za cel teden v 5-min intervalih na odsek) | MIT |
-| Javni viri, profil, pravila odhoda | naša koda (že delno narejena) | — |
-
-Zakaj Valhalla namesto OSRM: Valhalla zna sama oboje, kar potrebujemo —
-ujemanje GPS sledi s cestami in usmerjanje z vgrajenimi zgodovinskimi
-hitrostmi po odsekih (`valhalla_add_predicted_traffic`). OSRM tega nima.
+| Zemljevid, iskanje naslovov | OpenStreetMap, Nominatim | ODbL, brezplačno |
+| Pot in čas brez prometa | OSRM (pozneje Valhalla) | BSD / MIT |
+| Zastoji, dela, zapore | DARS, Autobahn GmbH, Mobilithek, NAP | javni podatki |
+| Prazniki, počitnice | OpenHolidays | brezplačno |
+| Pravila odhoda, profil, model | naša koda (deloma že narejena) | — |
 
 ### Deterministična pravila (isti vhod → isti izhod)
 
-1. Odsek z ≥ N vzorci v (tip dneva, ura) → njegova p85 hitrost.
-2. Sicer: isti razred ceste v istem območju (npr. 5 km) in isti uri → p85.
-3. Sicer: osnovni model H3.
-4. + znane zapore/dela na poti, + fiksna rezerva, zaokroženo navzdol na 5 min.
+1. Odsek z meritvami iz javnih virov (≥ 8 zajemov v tem tipu dneva in intervalu)
+   → p85 zamuda iz meritev.
+2. Sicer osnovni model (faktor konice po vrsti ceste in okolju), umerjen s časi
+   voženj, kjer jih je dovolj (≥ 8 na območje in uro).
+3. + znane zapore/dela na poti, + fiksna rezerva, zaokroženo navzdol na 5 min.
 
-Tip dneva: delavnik, petek, sobota, nedelja/praznik, šolske počitnice
-(OpenHolidays, brezplačno).
+## 5. Obseg in strošek
 
-## 5. Koliko podatkov to je (ocena)
+Brez GPS sledi so podatki zanemarljivi: en nalog je nekaj vrstic, zbiralnik
+javnih virov nekaj sto MB na 56 dni. Pri 10, 50 ali 100 obrtnikih: 0 € na
+domačem računalniku oziroma fiksnih 0–20 €/mes za en strežnik. Ni stroška na
+klic ali na obrtnika.
 
-| Obrtnikov | Voženj/dan (≈3 na obrtnika) | GPS točk/mesec (1 točka / 5 s, 25 min) | Strošek |
-|---|---|---|---|
-| 10 | 30 | ~0,3 mio | 0 € (domač računalnik) |
-| 50 | 150 | ~1,4 mio | 0–20 €/mes (1 strežnik) |
-| 100 | 300 | ~2,7 mio | 0–20 €/mes (isti strežnik) |
+## 6. Pravna plat
 
-To so majhne količine; omejitev ni strežnik, ampak **gostota vzorcev po uri na
-odsek** — zato hierarhija v pravilih zgoraj in urni (ne 15-min) intervali za
-lastne podatke.
-
-## 6. Pravna plat (pomembno, posebej DE)
-
-- Položaj zaposlenega je osebni podatek (GDPR). Geolokacija zaposlenih je na
-  seznamih obdelav, kjer je potrebna **ocena učinka (DPIA)**.
-- V Nemčiji ima **Betriebsrat soodločanje** pri napravah, ki lahko nadzorujejo
-  zaposlene (§87(1)6 BetrVG) — običajno z Betriebsvereinbarung.
-- Zasnova za zmanjšanje tveganja: beleženje **samo med vožnjo na nalog**
-  (začetek/konec), za profil se hranijo le **anonimne hitrosti po odsekih**,
-  surove sledi se izbrišejo po npr. 30 dneh, nikoli ocenjevanje posameznika.
-  Pred pilotom: pisna privolitev udeležencev.
+Ker ne sledimo lokaciji zaposlenih, odpadejo DPIA za geolokacijo in
+soodločanje Betriebsrata zaradi nadzorne naprave. Ostane običajna obravnava
+podatkov nalogov (naslovi strank) po GDPR. Časi »Odhajam / Na lokaciji«
+(če jih uvedemo) so podatki o delovnem času — o tem obvestiti zaposlene;
+za umerjanje se uporabljajo samo združeno po območju in uri, nikoli za
+ocenjevanje posameznika.
 
 ## 7. Preverba (pilot) — preden karkoli gradimo naprej
 
 Trajanje 4–6 tednov, strošek 0 €, vse na tvojem računalniku.
 
 1. **Javni viri:** zbiralnik (že narejen) teče vsakih 15 min → izmerimo, koliko
-   in kje so zastoji, ki jih javni viri sploh vidijo.
-2. **Lastne vožnje:** 3–5 obrtnikov (lahko tudi ti) namesti Traccar Client;
-   Traccar server teče v Dockerju na tvojem računalniku. Nič novega ne razvijamo.
-3. **Primerjava:** za vsako dejansko vožnjo na nalog zabeležimo
-   (a) čas brez prometa (OSM usmerjevalnik), (b) napoved osnovnega modela,
-   (c) dejansko trajanje.
+   in kje so zastoji, ki jih javni viri vidijo.
+2. **Resnične vožnje brez GPS:** ti (in po želji nekaj obrtnikov) za vsako
+   vožnjo na nalog zapišete le izhodišče, naslov, čas odhoda in čas prihoda
+   (lahko v preprosto tabelo). Cilj: ~50–100 voženj, različne ure in kraji.
+3. **Primerjava:** za vsako vožnjo izračunamo napoved (čas brez prometa +
+   osnovni model + javni viri) in jo primerjamo z dejanskim trajanjem.
 4. **Merila odločitve:**
    - H4: delež pravočasnih prihodov s priporočenim odhodom ≥ 90 %, povprečna
      odvečna rezerva ≤ 15 min.
-   - H2: po koliko tednih imajo najpogostejši koridorji ≥ 8 vzorcev na uro.
-   - H1: delež zamude, ki se ponavlja (isti odsek, ista ura, različni dnevi).
+   - Ločeno za avtoceste, mesta in podeželje — da vidimo, kje model ne zadošča.
 5. **Odločitev:**
-   - Če osnovni model + javni viri že dosežejo H4 → gradimo samo aplikacijo
-     za naloge in obvestila (najmanj dela).
-   - Če ne → gradimo cevovod lastnih voženj (Traccar → Valhalla → profil).
-   - Če tudi to po pilotu ne zadošča → ponovno razmislimo, preden kdorkoli
-     plača karkoli.
+   - Model dosega cilj → gradimo aplikacijo za naloge in obvestila.
+   - Model ne dosega cilja v mestih → uvedemo gumba »Odhajam / Na lokaciji« za
+     sprotno umerjanje in/ali povečamo rezervo v mestih.
+   - Tudi to ne zadošča → ponovno razmislimo, preden kdorkoli plača karkoli.
 
 ## 8. Kaj od že narejenega ostane
 
 - **Ostane:** zbiralnik javnih virov (DARS, Autobahn), tip dneva in prazniki,
   deterministična pravila odhoda, lokalni način na računalniku — to je sloj
   »javni viri« in »pravila« iz te zasnove.
-- **Zamenja se v 2. fazi:** OSRM → Valhalla (zaradi map matchinga in
-  zgodovinskih hitrosti).
+- **Ostane tudi:** iskanje naslovov (Nominatim) in lokalni API za napoved iz
+  naslova in ure.
+- **Morda pozneje:** OSRM → Valhalla (časovno odvisno usmerjanje z vgrajenimi
+  zgodovinskimi hitrostmi), če umerjanje pokaže, da je to potrebno.
+- **Odpade:** Traccar / GPS sledenje (odločitev v poglavju 0).
 - **Zavrženo:** integracija TomTom (ni bila commitana).
