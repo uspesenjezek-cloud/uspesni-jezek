@@ -77,7 +77,7 @@
     var dodatno = o.dodatnaZamudaMin || 0;
     var deli = ["Vožnja: običajno " + o.trajanjeProstoMin + " min"];
     deli.push(dodatno > 0 ? "ob tej uri +" + dodatno + " min" + (o.opozorilo ? " (gneča)" : "") : "ob tej uri brez zamude");
-    deli.push(o.osnova === "meritve" ? "po meritvah" : o.osnova === "mesano" ? "delno po meritvah" : "ocena, meritve se še zbirajo");
+    deli.push(o.osnova === "meritve" ? "po meritvah" : o.osnova === "mesano" ? "delno po meritvah" : "groba ocena, še brez meritev");
     return deli.join(" · ");
   }
 
@@ -105,7 +105,7 @@
       if (o.dodatnaZamudaMin > 0) podrobno.push("+" + o.dodatnaZamudaMin + " min promet");
       if (o.razdaljaKm != null) podrobno.push(String(o.razdaljaKm).replace(".", ",") + " km");
     }
-    if (o.osnova === "zacetna_ocena" || o.osnova === "mesano") podrobno.push("ocena tipičnih konic");
+    if (o.osnova === "zacetna_ocena" || o.osnova === "mesano") podrobno.push("groba ocena, še brez meritev");
     if (o.virPoti === "javni_preizkusni") podrobno.push("pot: javni preizkusni strežnik");
     if (o.priblizno && o.iskano) podrobno.push("naslov približno: " + o.iskano);
     (o.dogodki || []).forEach(function (d) { podrobno.push((d.zaprto ? "zapora" : "dela") + (d.cesta ? " " + d.cesta : "")); });

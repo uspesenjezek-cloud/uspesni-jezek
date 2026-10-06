@@ -108,9 +108,15 @@ var potX = { trajanjeProstoS: 1800, tocke: [{ lat: 46.15, lon: 14.8 }, { lat: 46
 var osnovniVhod = { prihod: "2026-10-07T08:00", drzava: "SI", koledar: KOLEDAR_SI, pot: potX, profil: { vrstice: [], pokritost: [] }, dogodki: [] };
 var r0 = promet.napoved.izracunajOdhod(osnovniVhod);
 assert(r0.osnova === "zacetna_ocena", "brez meritev -> začetna ocena");
-assert(r0.trajanjeVarnoMin === 39, "07:20–08:00 konica 1,3 -> 30 min * 1,3 = 39 min");
-assert(r0.priporocenOdhodUra === "07:10", "08:00 − 39 − 10 rezerve = 07:11 -> zaokroženo navzdol 07:10");
-assert(r0.opozorilo === false, "9 min dodatka je pod pragom opozorila");
+assert(r0.trajanjeVarnoMin === 42, "SI jutranja konica 1,4 -> 30 min * 1,4 = 42 min");
+assert(r0.priporocenOdhodUra === "07:05", "08:00 − 42 − 10 rezerve = 07:08 -> zaokroženo navzdol 07:05");
+assert(r0.opozorilo === true, "12 min dodatka je nad pragom opozorila");
+// Prijavljen primer: Ljubljana, sreda, prihod 15:00, 14 min brez prometa.
+// Stara tabela je konico začela ob 15:00 in dala le +1 min.
+var popoldne = promet.napoved.izracunajOdhod(Object.assign({}, osnovniVhod, { prihod: "2026-10-07T15:00", pot: { trajanjeProstoS: 14 * 60, tocke: potX.tocke } }));
+assert(popoldne.dodatnaZamudaMin === 6 && popoldne.trajanjeVarnoMin === 20, "SI 14:40–15:00 je že popoldanska konica: 14 min -> +6 min");
+assert(promet.napoved.faktorKonice("delavnik", 14.6, "DE") === 1.1 && promet.napoved.faktorKonice("delavnik", 14.6, "SI") === 1.45, "konice so ločene po državah");
+assert(promet.napoved.faktorKonice("petek", 12.5, "SI") === 1.5, "SI petek: konica od 12:00");
 var r0b = promet.napoved.izracunajOdhod(osnovniVhod);
 assert(JSON.stringify(r0) === JSON.stringify(r0b), "isti vhod -> isti izhod");
 
@@ -257,9 +263,9 @@ section("OpenHolidays odjemalec");
   var vhodN = { izhodisce: "Ljubljana, Slovenska 1", cilj: "Celje, Prešernova 1", datum: "2026-10-07", prihod: "08:00" };
   var s1 = await promet.storitev.napovejNalog(vhodN, { mapa: smapa, fetch: svet, zdajMs: t0 });
   assert(s1.virPoti === "lokalni" && s1.osnova === "zacetna_ocena" && s1.drzava === "SI", "lokalni OSRM + lastna ocena");
-  assert(s1.priporocenOdhodUra === "07:10" && /07:10/.test(s1.sporocilo), "08:00 − 39 − 10 -> 07:10, v sporočilu");
+  assert(s1.priporocenOdhodUra === "07:05" && /07:05/.test(s1.sporocilo), "08:00 − 42 − 10 -> 07:05, v sporočilu");
   var s2 = await promet.storitev.napovejNalog(vhodN, { mapa: smapa, fetch: svet, zdajMs: t0 + 60000 });
-  assert(klici2.nominatim === 2 && s2.priporocenOdhodUra === "07:10", "ponovitev: naslova iz predpomnilnika (brez novih klicev Nominatim)");
+  assert(klici2.nominatim === 2 && s2.priporocenOdhodUra === "07:05", "ponovitev: naslova iz predpomnilnika (brez novih klicev Nominatim)");
   var s4 = await promet.storitev.napovejNalog(Object.assign({}, vhodN, { cilj: "München, Marienplatz 1" }), { mapa: smapa, fetch: svet, zdajMs: t0 });
   assert(s4.drzava === "DE" && /Abfahrt|Ankunft/.test(promet.napoved.sporocilo(s4, "de")), "naslov v Nemčiji -> DE");
   var nn = null;
@@ -303,13 +309,13 @@ section("OpenHolidays odjemalec");
     { id: "4", stranka: "Neznan", naslov: "neobstaja 5", zacetek: "15:00", konec: "16:00" }
   ] }, { mapa: dmapa, fetch: svet });
   var o = dn.odseki;
-  assert(o.length === 4 && o[0].nalogId === "1" && o[0].prvi && o[0].priporocenOdhodUra === "07:10", "prvi odsek od doma: odhod 07:10");
+  assert(o.length === 4 && o[0].nalogId === "1" && o[0].prvi && o[0].priporocenOdhodUra === "07:05", "prvi odsek od doma: odhod 07:05");
   assert(o[1].stanje === "zamuda" && o[1].zamudaMin === 3 && o[1].predvidenPrihodUra === "10:33", "Kovač 10:00 -> Novak 10:30: 33 min vožnje -> 3 min zamude");
   assert(o[2].stanje === "isti_naslov", "isti naslov (drugače zapisan) -> brez vožnje");
   assert(o[3].stanje === "napaka" && /ni bilo mogoče najti/.test(o[3].napaka), "neznan naslov ne podre ostalih odsekov");
-  assert(/07:10/.test(dn.sporocilo) && /3 min pozni/.test(dn.sporocilo), "sporočilo dneva navede odhod in zamudo");
+  assert(/07:05/.test(dn.sporocilo) && /3 min pozni/.test(dn.sporocilo), "sporočilo dneva navede odhod in zamudo");
   var dnDe = await D.izracunajDan({ izhodisce: "Šiška", datum: "2026-10-07", jezik: "de", naloge: [{ stranka: "Kovač", naslov: "Celje, Prešernova 1", zacetek: "08:00", konec: "10:00" }] }, { mapa: dmapa, fetch: svet });
-  assert(/Abfahrt spätestens um 07:10/.test(dnDe.sporocilo), "nemško sporočilo dneva");
+  assert(/Abfahrt spätestens um 07:05/.test(dnDe.sporocilo), "nemško sporočilo dneva");
   var brezIzh = null;
   try { await D.izracunajDan({ datum: "2026-10-07", naloge: [] }, { mapa: dmapa, fetch: svet }); } catch (e) { brezIzh = e.code; }
   assert(brezIzh === "NEVELJAVEN_VNOS", "brez izhodišča -> napaka vnosa");
