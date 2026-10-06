@@ -237,6 +237,41 @@ section("OpenHolidays odjemalec");
   assert(u("DE", { PROMET_OSRM_URL_SI: "a", PROMET_OSRM_URL: "http://skupni" }) === "http://skupni", "rezerva na skupni URL");
   assert(u("DE", {}) === "", "brez nastavitve prazno");
 
+  var t0 = Date.parse("2026-10-07T10:00:00Z");
+  section("Storitev: naslov -> odhod");
+  var klici2 = { nominatim: 0, osrm: 0 };
+  var svet = async function (url) {
+    var odg = function (b) { return { ok: true, json: async function () { return b; } }; };
+    if (/nominatim/.test(url)) {
+      klici2.nominatim++;
+      if (/neobstaja/.test(url)) return odg([]);
+      var de = /M%C3%BCnchen|Munchen/.test(url);
+      return odg([{ lat: de ? "48.137" : "46.25", lon: de ? "11.575" : "15.0", display_name: de ? "München" : "Celje",
+        address: de ? { country_code: "de", "ISO3166-2-lvl4": "DE-BY" } : { country_code: "si" } }]);
+    }
+    if (/openholidaysapi/.test(url)) return odg([]);
+    if (/route\/v1/.test(url)) { klici2.osrm++; return odg({ code: "Ok", routes: [{ duration: 1800, distance: 21000, geometry: { coordinates: potX.tocke.map(function (t) { return [t.lon, t.lat]; }) } }] }); }
+    return { ok: false, status: 404 };
+  };
+  var smapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-storitev-"));
+  var vhodN = { izhodisce: "Ljubljana, Slovenska 1", cilj: "Celje, Prešernova 1", datum: "2026-10-07", prihod: "08:00" };
+  var s1 = await promet.storitev.napovejNalog(vhodN, { mapa: smapa, fetch: svet, zdajMs: t0 });
+  assert(s1.virPoti === "lokalni" && s1.osnova === "zacetna_ocena" && s1.drzava === "SI", "lokalni OSRM + lastna ocena");
+  assert(s1.priporocenOdhodUra === "07:10" && /07:10/.test(s1.sporocilo), "08:00 − 39 − 10 -> 07:10, v sporočilu");
+  var s2 = await promet.storitev.napovejNalog(vhodN, { mapa: smapa, fetch: svet, zdajMs: t0 + 60000 });
+  assert(klici2.nominatim === 2 && s2.priporocenOdhodUra === "07:10", "ponovitev: naslova iz predpomnilnika (brez novih klicev Nominatim)");
+  var s4 = await promet.storitev.napovejNalog(Object.assign({}, vhodN, { cilj: "München, Marienplatz 1" }), { mapa: smapa, fetch: svet, zdajMs: t0 });
+  assert(s4.drzava === "DE" && /Abfahrt|Ankunft/.test(promet.napoved.sporocilo(s4, "de")), "naslov v Nemčiji -> DE");
+  var nn = null;
+  try { await promet.storitev.napovejNalog(Object.assign({}, vhodN, { cilj: "neobstaja 123" }), { mapa: smapa, fetch: svet }); } catch (e) { nn = e.code; }
+  assert(nn === "NASLOV_NI_NAJDEN", "neznan naslov -> jasna napaka");
+  var nv = null;
+  try { await promet.storitev.napovejNalog(Object.assign({}, vhodN, { prihod: "8" }), { mapa: smapa, fetch: svet }); } catch (e) { nv = e.code; }
+  assert(nv === "NEVELJAVEN_VNOS", "napačna ura -> napaka vnosa");
+  var st = promet.storitev.stanje({ mapa: smapa, zdajMs: t0 });
+  assert(st.zbiralnikTece === false && st.viri.length === 2, "stanje: zbiralnik še ni tekel");
+  [smapa].forEach(function (m) { fs.rmSync(m, { recursive: true, force: true }); });
+
   console.log("\n" + OK + " uspešnih, " + FAIL + " neuspešnih");
   if (FAIL) process.exit(1);
 })();

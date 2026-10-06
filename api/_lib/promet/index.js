@@ -6,6 +6,8 @@ module.exports = {
   profil: require("./profil"),
   napoved: require("./napoved"),
   osrm: require("./osrm"),
+  geokodiranje: require("./geokodiranje"),
+  storitev: require("./storitev"),
   lokalno: require("./lokalno"),
   viri: { autobahn: require("./viri/autobahn"), dars: require("./viri/dars") }
 };
