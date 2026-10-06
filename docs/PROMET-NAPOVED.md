@@ -134,7 +134,8 @@ na zemljevidu še poti dneva (barva po napovedani zamudi) in točke D, 1, 2 …
 Nalogi so zaenkrat shranjeni na napravi (brskalnik); povezava s skupnim
 koledarjem in obvestili pride pozneje. API (`/api/promet-dan`,
 `/api/promet-zemljevid`, `/api/promet-stanje`) deluje na lokalnem strežniku
-in na Vercelu (tam s prijavo; `api/promet.js`). Pot se računa z lokalnim OSRM; če ne teče, z javnim
+in na Vercelu (tam s prijavo; prek usmerjevalnika `api/pos.js?handler=promet`,
+ker paket Vercel Hobby dovoli največ 12 funkcij). Pot se računa z lokalnim OSRM; če ne teče, z javnim
 preizkusnim strežnikom (samo za preizkus, označeno v rezultatu).
 
 ## 5. Naslednji koraki
