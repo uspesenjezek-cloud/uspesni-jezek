@@ -1,0 +1,295 @@
+<title>Analitika obrtnika – predlog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Postavitev: en mobilni stolpec (max 430px), na vrhu kanal, nato vedno enaka lestvica: Glava → Kako so vas našli → Kaj je delovalo → Naslednji korak */
+:root{
+  --bg:#f4f3fa; --card:#ffffff; --fg:#1c1a31; --muted:#6c6886; --line:#e6e3f2;
+  --accent:#6a4fe0; --accent-2:#8e76f3; --accent-soft:#efebfd; --on-accent:#ffffff;
+  --good:#17946a; --good-soft:#e3f5ee; --warn:#e3862a; --warn-soft:#fdf1e4; --teal:#10797d;
+  --bar:#d9d2fb; --shadow:0 10px 30px rgba(60,40,140,.08);
+  --f-display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#13121c; --card:#1d1b2a; --fg:#eeecf8; --muted:#a29fba; --line:#2f2c42;
+  --accent:#8a72f5; --accent-2:#6a4fe0; --accent-soft:#2a2547; --on-accent:#ffffff;
+  --good:#45c79a; --good-soft:#173329; --warn:#f0a05a; --warn-soft:#3a2a1a; --teal:#4fb7ba;
+  --bar:#3d3570; --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13121c; --card:#1d1b2a; --fg:#eeecf8; --muted:#a29fba; --line:#2f2c42;
+  --accent:#8a72f5; --accent-2:#6a4fe0; --accent-soft:#2a2547; --on-accent:#ffffff;
+  --good:#45c79a; --good-soft:#173329; --warn:#f0a05a; --warn-soft:#3a2a1a; --teal:#4fb7ba;
+  --bar:#3d3570; --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:12px 40px}
+.app{max-width:430px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+
+/* vrh */
+.top{display:flex;align-items:center;gap:12px}
+.back{width:44px;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--fg)}
+.top h1{font-size:22px}
+.top small{display:block;color:var(--muted);font-size:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--accent-soft);border-radius:14px;padding:4px}
+.seg span{text-align:center;padding:9px;border-radius:11px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg span.on{background:var(--card);color:var(--fg);box-shadow:var(--shadow)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:0 14px;min-height:40px;font:600 14px var(--f-body);display:flex;align-items:center;gap:7px;cursor:pointer}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip:focus-visible,.more:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+
+/* hero */
+.hero{border-radius:24px 24px 40px 24px;padding:18px 18px 16px;color:#fff;background:linear-gradient(150deg,#5b3fd6 0%,#7a5cf0 55%,#9a83f6 100%);box-shadow:0 18px 40px rgba(90,60,210,.28);position:relative;overflow:hidden}
+.hero .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.85}
+.pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;white-space:nowrap}
+.hero h2{font-size:25px;line-height:1.12;margin:12px 0 4px;max-width:20ch}
+.hero .sub{font-size:13px;opacity:.9}
+.skyline{display:block;width:100%;height:58px;margin:8px 0 4px;opacity:.9}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:10px 8px;text-align:center;min-width:0}
+.kpi b{display:block;font:800 24px/1 var(--f-display)}
+.kpi span{display:block;font-size:12px;margin-top:4px;opacity:.92}
+.kpi em{display:inline-block;margin-top:6px;font-style:normal;font-size:11px;font-weight:700;background:rgba(255,255,255,.2);border-radius:999px;padding:2px 7px}
+.money{display:flex;justify-content:space-between;gap:10px;margin-top:10px;background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px;font-size:13px}
+.money b{font-family:var(--f-display);font-size:17px}
+.split{margin-top:8px;font-size:12.5px;opacity:.92}
+
+/* kartice */
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.card h3{font-size:20px;line-height:1.18}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0;background:var(--bg)}
+.tile b{display:block;font:800 22px/1.05 var(--f-display)}
+.tile span{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+.tile.na b{font-size:15px;color:var(--muted);font-family:var(--f-body);font-weight:700}
+.alert{display:flex;align-items:center;gap:10px;background:var(--warn-soft);color:var(--fg);border-radius:14px;padding:10px 12px;font-weight:600;font-size:14px}
+.alert::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 25%,transparent)}
+.ok{background:var(--good-soft)}.ok::before{background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 25%,transparent)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:14px}
+.bar .t{min-width:0;overflow-wrap:anywhere}
+.bar .t small{display:block;color:var(--muted);font-size:12px}
+.bar .v{font-weight:700;text-align:right}
+.bar .track{grid-column:1/-1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar .track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.note{font-size:12.5px;color:var(--muted)}
+.best{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--bg)}
+.thumb{width:76px;height:76px;border-radius:12px;background:linear-gradient(160deg,var(--accent-soft),var(--bar));display:grid;place-items:center;color:var(--accent)}
+.best b{display:block;font-family:var(--f-display);font-size:16px;line-height:1.2}
+.best .meta{font-size:13px;color:var(--muted);margin-top:4px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 8px;background:var(--accent-soft);color:var(--accent);margin-bottom:4px}
+.qs{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.qs li{display:flex;gap:10px;align-items:baseline;font-size:14px}
+.qs li b{flex:none;min-width:30px;font-family:var(--f-display);color:var(--accent)}
+.stars{display:flex;gap:14px;align-items:center}
+.score{font:800 44px/1 var(--f-display)}
+.dist{flex:1;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.dist div{display:grid;grid-template-columns:10px 1fr 22px;gap:6px;align-items:center}
+.dist i{height:6px;border-radius:9px;background:var(--line);overflow:hidden;display:block}
+.dist i s{display:block;height:100%;background:var(--warn);text-decoration:none}
+.rev{border-top:1px solid var(--line);padding-top:10px;font-size:14px}
+.rev header{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.rev header span{font-weight:700;font-size:11px;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.rev .yes{background:var(--good-soft);color:var(--good)}
+.rev .no{background:var(--warn-soft);color:var(--warn)}
+.why{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px}
+.why p{margin:0;font-size:14px;display:grid;grid-template-columns:12px 1fr;gap:10px}
+.why p::before{content:"";width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--warn)}
+.why p.do::before{background:var(--teal)}
+.why strong{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.step{background:linear-gradient(160deg,var(--accent-soft),var(--card))}
+.more{border:1px solid var(--line);background:var(--card);color:var(--accent);border-radius:14px;min-height:44px;font:700 14px var(--f-body);cursor:pointer}
+.foot{font-size:12px;color:var(--muted);text-align:center;padding-inline:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+@media (prefers-reduced-motion:no-preference){.card,.hero{animation:in .35s ease both}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+
+<div class="app">
+  <div class="top">
+    <span class="back" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+    <div><h1>Marketing</h1><small id="crumb">September · Vsi kanali</small></div>
+  </div>
+  <div class="seg" aria-hidden="true"><span>Splošno</span><span class="on">Analitika</span></div>
+  <nav class="chips" id="chips" aria-label="Kanal"></nav>
+  <main id="view" style="display:flex;flex-direction:column;gap:14px"></main>
+  <p class="foot">Primer podatkov – prave številke se pokažejo, ko povežemo vaše kanale.</p>
+</div>
+
+<script>
+const N = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const pl = (n, f) => { const m = Math.abs(n) % 100; return f[m === 1 ? 0 : m === 2 ? 1 : (m === 3 || m === 4) ? 2 : 3]; };
+const W = {
+  povp:["povpraševanje","povpraševanji","povpraševanja","povpraševanj"],
+  nar:["naročilo","naročili","naročila","naročil"],
+  ogl:["ogled","ogleda","ogledi","ogledov"],
+  klik:["klik","klika","kliki","klikov"],
+  pog:["pogovor","pogovora","pogovori","pogovorov"],
+  clo:["človek","človeka","ljudje","ljudi"],
+  oc:["ocena","oceni","ocene","ocen"],
+  sl:["nov sledilec","nova sledilca","novi sledilci","novih sledilcev"],
+  obi:["obisk","obiska","obiski","obiskov"],
+  kon:["kontakt","kontakta","kontakti","kontaktov"],
+};
+const x = (n, w) => `${N(n)} ${pl(n, W[w])}`;
+const diff = (now, prev) => prev == null ? "" : now === prev ? "enako kot avgusta" : `${now > prev ? "+" : "−"}${N(Math.abs(now - prev))} od avgusta`;
+const skyline = `<svg class="skyline" viewBox="0 0 360 58" preserveAspectRatio="none" aria-hidden="true" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.6" stroke-linejoin="round"><path d="M0 56h360"/><path d="M14 56V30l22-16 22 16v26M28 56V42h16v14"/><path d="M78 56V36l16-12 16 12v20"/><path d="M128 56V26l26-18 26 18v30M146 56V40h16v16"/><path d="M200 56V34l18-13 18 13v22"/><path d="M252 56V28l24-17 24 17v28M268 56V42h16v14"/><path d="M318 56V38l14-10 14 10v18"/><circle cx="330" cy="12" r="6" fill="rgba(255,255,255,.35)" stroke="none"/></svg>`;
+const icon = {
+  play:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg>`,
+  img:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg>`,
+  chat:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>`,
+  page:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>`,
+};
+
+/* ---------- gradniki ---------- */
+const hero = h => `<section class="hero">
+  <div class="row"><span class="eyebrow">${h.eyebrow}</span><span class="pill">September 2026</span></div>
+  <h2>${h.title}</h2>${h.sub ? `<div class="sub">${h.sub}</div>` : ""}
+  ${skyline}
+  <div class="kpis">${h.kpis.map(k => `<div class="kpi"><b class="num">${k.na ? "–" : N(k.v)}</b><span>${k.label}</span>${k.prev !== undefined ? `<em>${k.na ? "Ni podatka" : diff(k.v, k.prev)}</em>` : ""}</div>`).join("")}</div>
+  ${h.money ? `<div class="money">${h.money.map(m => `<div>${m[0]}<br><b class="num">${m[1]}</b></div>`).join("")}</div>` : ""}
+  ${h.split ? `<div class="split">${h.split}</div>` : ""}
+</section>`;
+const card = (label, title, body) => `<section class="card"><div class="label">${label}</div><h3>${title}</h3>${body}</section>`;
+const tiles = arr => `<div class="tiles">${arr.map(t => t.na ? `<div class="tile na"><b>Ni podatka</b><span>${t.label}</span></div>` : `<div class="tile"><b class="num">${t.raw ?? N(t.v)}</b><span>${t.label}</span></div>`).join("")}</div>`;
+const bars = (arr, unit) => { const max = Math.max(...arr.map(a => a.v || 0)); return `<div class="bars">${arr.map(a => `<div class="bar"><div class="t">${a.t}${a.s ? `<small>${a.s}</small>` : ""}</div><div class="v num">${a.raw ?? (unit ? x(a.v, unit) : N(a.v))}</div><div class="track"><i style="width:${Math.max(6, Math.round((a.v || 0) / max * 100))}%"></i></div></div>`).join("")}</div>`; };
+const alert = (t, ok) => `<div class="alert${ok ? " ok" : ""}">${t}</div>`;
+const best = (b, ic) => `<div class="best"><div class="thumb">${icon[ic] || icon.img}</div><div><span class="tag">${b.tag}</span><b>${b.t}</b><div class="meta">${b.meta}</div></div></div>`;
+const qs = arr => `<ul class="qs">${arr.map(q => `<li><b class="num">${q[0]}×</b><span>${q[1]}</span></li>`).join("")}</ul>`;
+const step = (see, doIt) => `<section class="card step"><div class="label">Naš naslednji korak</div><div class="why" style="border:0;padding:0"><p><span><strong>Kaj vidimo</strong>${see}</span></p><p class="do"><span><strong>Ukrepali bomo tako</strong>${doIt}</span></p></div></section>`;
+
+/* ---------- kanali ---------- */
+const CH = {
+vsi: { name:"Vsi kanali", c:"#6a4fe0", render(){
+  const rows = [["Google",8,3],["WhatsApp",3,1],["Facebook",3,1],["Instagram",2,1],["Splet",2,1],["TikTok",1,0]];
+  return hero({eyebrow:"September · vsi kanali", title:"Ta mesec ste dobili 19 povpraševanj in 7 naročil.", sub:"Največ vam prinaša Google.",
+    kpis:[{v:19,label:pl(19,W.povp),prev:15},{v:7,label:pl(7,W.nar),prev:5},{v:6,label:"kanalov prinaša delo"}],
+    money:[["Poraba za oglase","370 €"],["Vrednost naročil","8.940 €"]]})
+  + card("Kje čakajo na vas","5 stvari čaka na vaš odgovor.",
+      bars([{t:"Instagram sporočila",v:2},{t:"WhatsApp",v:1},{t:"Facebook Messenger",v:1},{t:"Google ocena",v:1}])
+      + `<p class="note">Odgovor v prvi uri najpogosteje pomeni posel.</p>`)
+  + card("Od kod je prišlo delo","Google prinese največ povpraševanj.",
+      `<div class="legend"><span><i style="background:var(--accent)"></i>povpraševanja</span><span><i style="background:var(--good)"></i>naročila</span></div>`
+      + `<div class="bars">${rows.map(r => `<div class="bar"><div class="t">${r[0]}</div><div class="v num">${x(r[1],"povp")} · ${x(r[2],"nar")}</div><div class="track"><i style="width:${r[1]/8*100}%"></i></div></div>`).join("")}</div>`
+      + `<p class="note">Vsako povpraševanje štejemo enkrat, tudi če je stranka pisala na več mestih.</p>`)
+  + card("Oglasi skupaj","370 € je prineslo 11 povpraševanj.",
+      tiles([{raw:"34 €",label:"na povpraševanje"},{raw:"28 €",label:"Google · najceneje"},{raw:"53 €",label:"Facebook · najdražje"}]))
+  + step("Google oglasi so ta mesec najcenejši vir dela, 5 strank pa še čaka na odgovor.", "Odgovorimo na čakajoča sporočila in del Facebook proračuna prestavimo na Google oglase.");
+}},
+google: { name:"Google", c:"#4285f4", render(){
+  return hero({eyebrow:"Google", title:"Google vam je ta mesec prinesel 3 naročila.",
+    kpis:[{v:1280,label:pl(1280,W.ogl)+" profila",prev:1190},{v:8,label:pl(8,W.povp),prev:6},{v:3,label:pl(3,W.nar),prev:2}],
+    money:[["Poraba za oglase","140 €"],["Vrednost naročil","3.450 €"]],
+    split:"Oglasi: 5 povpraševanj · 2 naročili  ·  Profil: 3 povpraševanja · 1 naročilo (0 €)"})
+  + card("Vaš Google profil","1.280 ogledov profila – 40 klikov za stik.",
+      tiles([{v:810,label:"ogledov na Zemljevidih"},{v:470,label:"ogledov v Iskanju"}])
+      + tiles([{v:31,label:"klikov na spletno stran"},{v:9,label:"klikov »Pokliči«"},{v:4,label:"poti do vas"}])
+      + `<p class="note">Klik »Pokliči« pomeni pritisk na gumb, ne nujno opravljen klic. Podatki do 26. 9.</p>`)
+  + card("Iskalni izrazi","Največ vas iščejo s krajem.",
+      bars([{t:"vodoinštalater domžale",s:"Storitev + kraj",v:59},{t:"menjava bojlerja",s:"Samo storitev",v:43},{t:"vodovod novak",s:"Vaše ime – ti vas že poznajo",v:27},{t:"nujni vodoinštalater",s:"Nujno",v:8,raw:"manj kot 15"}],"clo")
+      + `<p class="note">Izraze z manj kot 15 ljudmi Google ne pokaže natančno.</p>`)
+  + card("Google ocene","Stranke vas hvalijo – 4,6 ★",
+      `<div class="stars"><div><div class="score">4,6</div><div class="note">38 ocen · +2 v septembru</div></div><div class="dist">${[[5,30],[4,5],[3,1],[2,0],[1,2]].map(d=>`<div><span>${d[0]}</span><i><s style="width:${d[1]/30*100}%"></s></i><span class="num">${d[1]}</span></div>`).join("")}</div></div>`
+      + alert("1 ocena čaka na vaš odgovor")
+      + `<div class="rev"><header>Tomaž R. · ★★★★<span class="no">brez odgovora</span></header>Hitro in pošteno, priporočam.</div>`
+      + `<div class="rev"><header>Maja K. · ★★★★★<span class="yes">odgovorjeno</span></header>Prišel še isti dan, zamenjal bojler in vse počistil.</div>`
+      + `<button class="more" type="button">Pokaži vseh 38 ocen</button>`)
+  + card("Google oglasi","Oglasi so prinesli 5 povpraševanj – eno vas je stalo 28 €.",
+      tiles([{raw:"140 €",label:"porabljeno"},{v:5,label:pl(5,W.povp)},{raw:"28 €",label:"na povpraševanje"}])
+      + `<div class="label">Kje so kliknili</div>` + bars([{t:"Domžale",v:24},{t:"Kamnik",v:11},{t:"Ljubljana",v:9}],"klik")
+      + `<div class="label">Iskanja, ki so sprožila oglas</div>` + bars([{t:"vodoinštalater domžale",v:18},{t:"menjava bojlerja cena",v:9},{t:"vodoinštalater nujno",v:6}],"klik"))
+  + step("Tomaž R. je pustil oceno, na katero še niste odgovorili. Oglasi v Domžalah prinesejo največ klikov.", "Pripravimo vam predlog odgovora na oceno. Oglase v Domžalah obdržimo, Ljubljano preverimo naslednji mesec.");
+}},
+splet: { name:"Splet", c:"#10797d", render(){
+  return hero({eyebrow:"Spletna stran", title:"Spletna stran vam je prinesla 2 povpraševanji.",
+    kpis:[{v:640,label:pl(640,W.obi),prev:590},{v:2,label:pl(2,W.povp),prev:1},{v:1,label:pl(1,W.nar),prev:1}],
+    money:[["Poraba","0 €"],["Vrednost naročil","980 €"]]})
+  + card("Kako so prišli na stran","Večina pride iz Googla.",
+      bars([{t:"Iskanje v Googlu",v:330},{t:"Google profil",v:136},{t:"Neposredno",v:96},{t:"Facebook in Instagram",v:78}],"obi")
+      + `<p class="note">Obiske štejemo brez piškotkov, zato so vidni vsi obiskovalci.</p>`)
+  + card("Kako so vas kontaktirali","12 ljudi je stopilo v stik s strani.",
+      tiles([{v:2,label:"poslana obrazca"},{v:7,label:"klikov na telefon"},{v:3,label:"klikov na WhatsApp"}]))
+  + card("Kaj je delovalo","Stran o menjavi bojlerja je najbolj obiskana.",
+      best({tag:"Stran",t:"Menjava bojlerja",meta:"180 obiskov · 1 poslan obrazec"},"page")
+      + `<div class="label">S temi iskanji so vas našli v Googlu</div>`
+      + bars([{t:"menjava bojlerja cena",v:42},{t:"vodoinštalater domžale",v:31},{t:"zamašen odtok",v:12}],"klik"))
+  + step("Stran o menjavi bojlerja ima največ obiskov, a na telefonu nima gumba za klic.", "Na to stran dodamo gumb »Pokliči« in ga po enem mesecu primerjamo.");
+}},
+facebook: { name:"Facebook", c:"#1877f2", render(){
+  return hero({eyebrow:"Facebook", title:"Facebook vam je ta mesec prinesel 1 naročilo.",
+    kpis:[{v:4200,label:"ljudi vas je videlo",prev:3900},{v:3,label:pl(3,W.povp),prev:4},{v:1,label:pl(1,W.nar),prev:1}],
+    money:[["Poraba za oglase","160 €"],["Na povpraševanje","53 €"]]})
+  + card("Kako so vas našli in kontaktirali","9 pogovorov v Messengerju.",
+      tiles([{v:96,label:"obiskov strani"},{v:14,label:pl(14,W.sl)},{v:4,label:"klikov na kontakt"}])
+      + tiles([{v:9,label:pl(9,W.pog)},{raw:"35 min",label:"prvi odgovor"}])
+      + alert("1 pogovor čaka na odgovor"))
+  + card("Kaj je delovalo","Objava nove kopalnice je dosegla največ ljudi.",
+      best({tag:"Objava",t:"Nova kopalnica v Mengšu",meta:"410 ogledov · 18 všečkov · 3 delitve"},"img")
+      + `<div class="label">Kaj vas sprašujejo</div>`
+      + qs([[5,"Koliko stane menjava bojlerja?"],[4,"Pušča pod koritom, lahko pridete?"],[3,"Koliko stane ogled?"]]))
+  + step("Največ ljudi vas sprašuje za ceno menjave bojlerja.", "Pripravimo objavo z okvirno ceno menjave bojlerja in jo uporabimo tudi v oglasu.");
+}},
+instagram: { name:"Instagram", c:"#e1306c", render(){
+  return hero({eyebrow:"Instagram", title:"Instagram vam je ta mesec prinesel 1 naročilo.",
+    kpis:[{v:2100,label:"ljudi vas je videlo",prev:1800},{v:2,label:pl(2,W.povp),prev:1},{v:1,label:pl(1,W.nar),prev:0}],
+    money:[["Poraba za oglase","70 €"],["Na povpraševanje","35 €"]]})
+  + card("Kako so vas kontaktirali","13 klikov za stik na profilu.",
+      tiles([{v:4,label:"»Pokliči«"},{v:2,label:"»Pot«"},{v:1,label:"»E-pošta«"},{v:6,label:"povezava"}])
+      + tiles([{v:9,label:pl(9,W.pog)},{v:18,label:pl(18,W.sl)},{raw:"30 min",label:"prvi odgovor"}])
+      + alert("2 pogovora čakata na odgovor"))
+  + card("Kaj je delovalo","Kratek video menjave sifona so ljudje gledali največ.",
+      best({tag:"Reel",t:"Menjava sifona v 30 sekundah",meta:"870 ogledov · 26 shranitev"},"play")
+      + best({tag:"Objava",t:"Kopalnica Mengeš – pred in po",meta:"2 klika »Pokliči« · 12 obiskov profila"},"img"))
+  + step("Kratki videi dela imajo več ogledov kot fotografije.", "Naslednji mesec objavimo dva kratka videa z vašega dela.");
+}},
+tiktok: { name:"TikTok", c:"#111111", render(){
+  return hero({eyebrow:"TikTok", title:"TikTok vam je ta mesec prinesel 1 povpraševanje.",
+    kpis:[{v:5820,label:pl(5820,W.ogl)+" videov",prev:4100},{v:1,label:pl(1,W.povp),prev:0},{v:0,label:pl(0,W.nar),prev:0}],
+    money:[["Poraba za oglase","50 €"],["Oglasi so prinesli","2 kontakta"]]})
+  + card("Kako so vas našli in kontaktirali","73 ljudi je odprlo vaš profil.",
+      tiles([{v:73,label:"obiskov profila"},{v:21,label:pl(21,W.sl)},{v:12,label:"klikov na povezavo"}])
+      + tiles([{na:true,label:"klik na telefon"}])
+      + `<p class="note">Klike na telefon TikTok pokaže samo za registriran poslovni račun. Pomagamo vam ga vklopiti.</p>`)
+  + card("Kaj je delovalo","Video menjave sifona so ljudje najpogosteje gledali do konca.",
+      best({tag:"Video",t:"Menjava sifona",meta:"1.280 ogledov · 46 % do konca"},"play")
+      + best({tag:"Video",t:"Kopalnica · pred in po",meta:"1.840 ogledov · 38 % do konca"},"play")
+      + `<button class="more" type="button">Pokaži še 1 video</button>`)
+  + step("Krajši video z enim opravilom ljudje pogosteje pogledajo do konca.", "Naslednje videe skrajšamo na 20–30 sekund in na začetku pokažemo končan izdelek.");
+}},
+whatsapp: { name:"WhatsApp", c:"#25d366", render(){
+  return hero({eyebrow:"WhatsApp", title:"WhatsApp vam je ta mesec prinesel 1 naročilo.",
+    kpis:[{v:21,label:"ljudi vam je pisalo",prev:17},{v:3,label:pl(3,W.povp),prev:2},{v:1,label:pl(1,W.nar),prev:0}],
+    money:[["Novih ljudi","8"],["Vrednost naročil","1.200 €"]]})
+  + card("Kako hitro odgovarjate","Prvi odgovor običajno v 18 minutah.",
+      tiles([{raw:"18 min",label:"prvi odgovor"},{v:20,label:"odgovorjenih"}])
+      + alert("1 človek čaka na odgovor")
+      + `<p class="note">Merimo v delovnem času. Samodejni pozdrav ne šteje.</p>`)
+  + card("Od kod so prišli","Največ jih pride iz vaše kampanje.",
+      bars([{t:"Odgovor na kampanjo",v:9},{t:"Facebook oglas",v:4},{t:"Vaša spletna stran",v:4},{t:"Drugo ali neznano",v:4}],"clo"))
+  + card("Kaj je delovalo","Akcija za menjavo bojlerja je prinesla naročilo.",
+      best({tag:"Kampanja · 3. 9.",t:"Akcija: menjava bojlerja",meta:"120 poslanih · 2 odgovora · 1 naročilo · 1.200 €"},"chat")
+      + best({tag:"Kampanja · 12. 9.",t:"Opomnik za servis",meta:"85 poslanih · 7 odgovorov · 2 povpraševanji"},"chat"))
+  + step("Opomnik za servis je dobil največ odgovorov, a še nobenega naročila.", "Strankam, ki so odgovorile na opomnik, pošljemo predlog termina.");
+}},
+};
+
+const order = ["vsi","google","splet","facebook","whatsapp","instagram","tiktok"];
+const chips = document.getElementById("chips"), view = document.getElementById("view"), crumb = document.getElementById("crumb");
+function show(k){
+  for (const b of chips.children) b.setAttribute("aria-pressed", b.dataset.k === k);
+  view.innerHTML = CH[k].render();
+  crumb.textContent = "September · " + CH[k].name;
+  try { localStorage.setItem("kanal", k); } catch(e){}
+}
+chips.innerHTML = order.map(k => `<button class="chip" type="button" data-k="${k}" aria-pressed="false" style="--c:${CH[k].c}"><i></i>${CH[k].name}</button>`).join("");
+chips.addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) { show(b.dataset.k); window.scrollTo({top:0}); } });
+let start = "google"; try { const s = localStorage.getItem("kanal"); if (s && CH[s]) start = s; } catch(e){}
+show(start);
+</script>
