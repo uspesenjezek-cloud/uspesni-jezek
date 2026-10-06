@@ -14,6 +14,9 @@ const handlers = Object.freeze({
   "stripe-webhook": require("./_handlers/pos-stripe-webhook"),
   "archive": require("./_handlers/pos-arhiv"),
   "datev": require("./_handlers/pos-datev"),
+  // Napoved prometa (/api/promet-*): brez lastne funkcije, ker paket Vercel
+  // Hobby dovoli največ 12 funkcij. Akcijo izbere parameter »akcija«.
+  "promet": require("./_handlers/promet"),
 });
 
 function route(req) {

@@ -361,7 +361,7 @@ section("OpenHolidays odjemalec");
 
   section("API (handler)");
   var H = require("../api/_handlers/promet");
-  assert(H._test.akcijaIzZahteve({ url: "/api/promet?akcija=dan" }) === "dan", "akcija iz poizvedbe (Vercel rewrite)");
+  assert(H._test.akcijaIzZahteve({ url: "/api/pos?handler=promet&akcija=dan" }) === "dan", "akcija iz poizvedbe (Vercel rewrite prek api/pos.js)");
   assert(H._test.akcijaIzZahteve({ url: "/api/promet-zemljevid" }) === "zemljevid", "akcija iz poti");
   var lazniRes = function () { var r = { koda: 0, telo: null }; r.status = function (k) { r.koda = k; return r; }; r.json = function (t) { r.telo = t; return r; }; r.setHeader = function () {}; return r; };
   var rr = lazniRes();
@@ -375,6 +375,20 @@ section("OpenHolidays odjemalec");
   var rr3 = lazniRes();
   await H({ method: "POST", url: "/api/promet-dan", query: { akcija: "dan" }, body: { datum: "2026-10-07", naloge: [] } }, rr3);
   assert(rr3.koda === 400 && /izhodišče/.test(rr3.telo.napaka), "napaka vnosa ima jasno sporočilo");
+
+  section("Vercel: omejitev funkcij (paket Hobby)");
+  var koren = path.join(__dirname, "..");
+  var prezrte = fs.readFileSync(path.join(koren, ".vercelignore"), "utf8").split(/\r?\n/).map(function (v) { return v.trim(); }).filter(function (v) { return v && v[0] !== "#"; });
+  var funkcije = fs.readdirSync(path.join(koren, "api")).filter(function (f) { return /\.js$/.test(f); }).map(function (f) { return "api/" + f; })
+    .filter(function (f) { return prezrte.indexOf(f) === -1; });
+  assert(funkcije.length <= 12, "največ 12 Vercel funkcij (zdaj " + funkcije.length + ")");
+  var vcfg = JSON.parse(fs.readFileSync(path.join(koren, "vercel.json"), "utf8"));
+  assert(Object.keys(vcfg.functions || {}).every(function (f) { return funkcije.indexOf(f) !== -1; }), "vsaka nastavitev v »functions« ima objavljeno datoteko");
+  var promRew = vcfg.rewrites.filter(function (r) { return /^\/api\/promet-/.test(r.source); });
+  assert(promRew.length === 4 && promRew.every(function (r) { return funkcije.indexOf(r.destination.split("?")[0].slice(1) + ".js") !== -1; }), "poti /api/promet-* kažejo na objavljeno funkcijo");
+  var posRes = lazniRes();
+  await require("../api/pos.js")({ method: "GET", url: "/api/pos?handler=promet&akcija=neznano", query: { handler: "promet", akcija: "neznano" } }, posRes);
+  assert(posRes.koda === 404 && posRes.telo.napaka === "Neznana akcija.", "api/pos.js preda promet handlerju");
 
   section("Geokodiranje: različice naslova");
   var rz = promet.geokodiranje.razlicice("BTC, Šmartinska 152, Ljubljana");
