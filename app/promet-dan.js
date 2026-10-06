@@ -224,7 +224,9 @@
   async function glave(dodatno) {
     var h = Object.assign({}, dodatno || {});
     try {
-      var seja = await window.supabaseKlient.auth.getSession();
+      // supabase-client.js deklarira »const supabaseKlient«: ni lastnost objekta window.
+      var klient = typeof supabaseKlient !== "undefined" ? supabaseKlient : window.supabaseKlient;
+      var seja = await klient.auth.getSession();
       var zeton = seja && seja.data && seja.data.session && seja.data.session.access_token;
       if (zeton) h.Authorization = "Bearer " + zeton;
     } catch (_) {}

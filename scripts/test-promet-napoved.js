@@ -390,6 +390,12 @@ section("OpenHolidays odjemalec");
   await require("../api/pos.js")({ method: "GET", url: "/api/pos?handler=promet&akcija=neznano", query: { handler: "promet", akcija: "neznano" } }, posRes);
   assert(posRes.koda === 404 && posRes.telo.napaka === "Neznana akcija.", "api/pos.js preda promet handlerju");
 
+  section("Stran: prijavni žeton");
+  var stranJs = fs.readFileSync(path.join(koren, "app", "promet-dan.js"), "utf8");
+  var klientJs = fs.readFileSync(path.join(koren, "app", "supabase-client.js"), "utf8");
+  assert(/const supabaseKlient\b/.test(klientJs) ? /typeof supabaseKlient !== "undefined"/.test(stranJs) : true,
+    "stran bere »const supabaseKlient« neposredno (ni na window), sicer API vrne 401");
+
   section("Geokodiranje: različice naslova");
   var rz = promet.geokodiranje.razlicice("BTC, Šmartinska 152, Ljubljana");
   assert(rz[0] === "BTC, Šmartinska 152, Ljubljana" && rz[1] === "Šmartinska 152, Ljubljana" && rz[rz.length - 1] === "Ljubljana", "od natančnega do kraja");
