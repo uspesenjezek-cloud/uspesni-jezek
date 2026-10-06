@@ -16,6 +16,6 @@ assert.ok(
 assert.ok(widgetSrc.includes('addEventListener("uj:nacrt-pripravljen"'));
 assert.ok(widgetSrc.includes("var korak3Zagnan = false"));
 assert.ok(widgetSrc.includes("if (korak3Zagnan) return true"));
-assert.ok(htmlSrc.includes("app.js?v=20260815-racun-stevec-v19"));
+assert.ok(htmlSrc.includes("app.js?v=20260818-ocr-prazno-v15"));
 
 console.log("Zagon widgeta Priporocilo za ta dolg: vsi testi uspesni");
