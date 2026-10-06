@@ -33,6 +33,44 @@ Posledice za zasnovo:
 - Neobvezno tudi brez GPS: gumba **»Odhajam« / »Na lokaciji«**, ki shranita le
   *čas*. Dajeta dejansko trajanje poti za umerjanje in preverjanje napovedi.
 
+## 0a. Dnevni načrt iz koledarja (veriga nalogov)
+
+Obrtnik ima naloge za dan v koledarju, npr.:
+
+```
+domov (Šiška, približno izhodišče)
+  → A: Ljubljana center   08:00–10:00
+  → B: BTC                10:30–12:00
+  → C: Vič                13:00–15:00
+```
+
+Napoved se računa **za vsak odsek posebej, ob uri, ko se bo ta odsek dejansko
+vozil**:
+
+| Odsek | Najprej lahko odide | Mora prispeti | Promet ob |
+|---|---|---|---|
+| Šiška → A | — | 08:00 | jutranja konica |
+| A → B | 10:00 (konec A) | 10:30 | dopoldne |
+| B → C | 12:00 (konec B) | 13:00 | opoldne |
+
+Pravila (deterministična):
+
+1. Za odsek X → Y: `priporočen odhod = začetek Y − (čas vožnje ob tej uri + p85
+   zamuda + zapore) − rezerva`, zaokroženo navzdol na 5 min (obstoječa funkcija
+   `izracunajOdhod` za en odsek).
+2. Prvi odsek dneva: odhod od doma je priporočilo (»odidi do 07:15«).
+3. Naslednji odseki: če je priporočen odhod **pred koncem** prejšnjega naloga,
+   je načrt tesen → opozorilo z oceno zamude: »Med BTC in Vičem boste ob
+   12:00 potrebovali ~35 min; ob 13:00 boste predvidoma ~5 min pozni.«
+   Če je odhod po koncu, se izpiše razpoložljiva rezerva.
+4. Nalog brez končne ure: privzeto trajanje (nastavitev obrtnika), jasno
+   označeno kot privzeto.
+5. Če ima obrtnik GPS s privolitvijo, se po dejanskem odhodu z naloga lahko
+   preračuna naslednji odsek (»ste 20 min pozni, k stranki C pridete ~13:10«).
+
+Obvestila: dan prej (npr. 18:00) celoten dnevni načrt, zjutraj (05:30)
+ponovna preverba zapor; obvesti se samo, če se priporočilo spremeni.
+
 ## 1. Ključno spoznanje
 
 Google ve, kakšen je promet na vsaki ulici, ker ima položaje milijonov
