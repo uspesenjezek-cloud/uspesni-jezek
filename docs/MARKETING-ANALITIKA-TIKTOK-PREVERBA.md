@@ -117,6 +117,25 @@ Pomembno: dosedanji stavek »Odziva oglasov ne prištevamo« je **napačen**. Ti
 - Pravilo kot pri IG: stolpec samo za gumb, ki ga profil ima ali je imel > 0 klikov.
 - Če registriranega računa ni, se modul ne prikaže (velja vrstica iz §3).
 
+### 3.2 Klik na povezavo — štejemo sami (za vse obrtnike)
+
+Povezava v TikTok profilu vodi prek naše povezave s števcem (enako kot »Povezava« pri Instagramu). Tako dobimo klike na povezavo tudi brez registriranega podjetja.
+
+- Pod ilustracijo vrstica: ikona povezave · »Klik na povezavo v profilu« / »štejemo sami« · **9**.
+- Rumena opomba ostane, a govori samo še o telefonu in e-pošti: »Klike na telefon in e-pošto TikTok pokaže samo registriranemu podjetju. Uredimo ga skupaj z vami.«
+- KAJ VIDIMO: **»73 ljudi je odprlo vaš profil, 9 jih je kliknilo povezavo.«**
+
+## 3.3 Kaj vas sprašujejo v komentarjih — nov sklop (isti modul kot Facebook »Kaj vas ljudje sprašujejo«)
+
+Vir: komentarji pod videi (Accounts API, `comment.list`). Vprašanja združimo po pomenu.
+
+- Oznaka: `KAJ VAS SPRAŠUJEJO V KOMENTARJIH`; naslov npr. »Največ sprašujejo **po ceni.**«
+- Ista mreža 2 × 2 s številko (»4×«) in ilustracijo osebe kot pri Facebooku.
+- Opomba: »Iz 14 komentarjev pod vašimi videi. Na 2 še niste odgovorili.«
+- KAJ VIDIMO: »4 ljudje so v komentarjih vprašali za ceno menjave bojlerja.« UKREPALI: »Na oba neodgovorjena komentarja odgovorimo danes. Posnamemo video ›Koliko stane menjava bojlerja‹.«
+- Pri manj kot 3 komentarjih z vprašanjem se sklop ne prikaže.
+- Za `comment.list` je potrebno dodatno dovoljenje v pregledu aplikacije.
+
 ## 4. Objavljeni videi (`ttVideos`)
 
 | Element | Zdaj | Novo |
@@ -130,6 +149,12 @@ Pomembno: dosedanji stavek »Odziva oglasov ne prištevamo« je **napačen**. Ti
 | opomba | Ogledi od objave do 30. 9. 2026. Ogledi niso število različnih ljudi. Predogledi so ilustrativni. | **Ogledi od objave do 30. 9.** |
 | KAJ VIDIMO | Merimo tudi oglede do konca. To je delež ogledov … | **»Menjavo sifona« je do konca gledalo 46 % ljudi – največ od vseh.** |
 | UKREPALI | Primerjamo odziv posameznih videov … | **Posnamemo še en kratek video popravila, kot je »Menjava sifona«.** |
+
+Samo pri registriranem podjetju: pod najboljšim videom značke **»2 klika ›Pokliči‹«** in **»3 kliki povezava«** (klike na video da TikTok). Brez registracije teh značk ni.
+
+**[preveri]** TikTok sporočila (DM): Business Messaging API ni na voljo povsod, za EGP ima posebna pravila. Dokler ni potrjen, sporočil s TikToka ne štejemo in ne prikazujemo.
+
+Slika: `docs/marketing-predlog/tiktok-v3.png` (levo glavna stran, desno različica z registriranim podjetjem).
 
 »Do konca« je `full_video_watched_rate`. To je edina metrika gledanosti, ki jo obrtnik razume, zato ostane.
 
