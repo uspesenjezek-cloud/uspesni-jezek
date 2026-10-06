@@ -69,41 +69,49 @@ zjutraj 05:30   ponovni izračun   ─► opozorilo samo, če se je kaj spremeni
 Zakaj p85: »v 85 % podobnih dni boste prispeli pravočasno«. Mediana se vrne kot
 `trajanjeObicajnoMin` za informacijo.
 
-## 4. Zagon
+## 4. Zagon na lastnem računalniku (Windows) — začetna faza
 
-Lokalno brez baze:
+Vse teče lokalno: brez Supabase, brez strežnika, 0 €. Podatki so v
+`.promet-podatki\` v repozitoriju (git jih ignorira).
 
-```bash
-npm run promet:zbiraj -- --lokalno .promet-podatki      # večkrat (cron */15)
-npm run promet:profil -- --lokalno .promet-podatki
-PROMET_OSRM_URL=http://localhost:5000 npm run promet:napoved -- \
-  --od 46.0569,14.5058 --do 46.5547,15.6459 --prihod 2026-10-07T07:30 --drzava SI \
-  --lokalno .promet-podatki
-```
+Potrebuješ: Node.js LTS, za izračun poti pa še Docker Desktop.
 
-S Supabase (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`): najprej migracija
-`supabase/migrations/20261006120000_promet_napoved.sql`, nato isti ukazi brez
-`--lokalno`.
+1. **Samodejni zajem** (enkrat):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\promet-windows\namesti.ps1
+   ```
+   Namesti dve opravili v Razporejevalnik opravil: zbiralnik vsakih 15 min in
+   izračun profila ob 02:41 (če je računalnik takrat izklopljen, se izvede ob
+   naslednjem zagonu). Dnevnik: `.promet-podatki\promet.log`.
+2. **OSRM za pot in čas vožnje**:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\promet-windows\osrm.ps1 -Drzava SI
+   powershell -ExecutionPolicy Bypass -File scripts\promet-windows\osrm.ps1 -Drzava DE -Obmocje europe/germany/bayern
+   ```
+   SI teče na `localhost:5000`, DE na `localhost:5001`. Slovenija je majhna
+   (nekaj minut, ~2 GB RAM). Cela Nemčija potrebuje ~16 GB RAM v Docker Desktop,
+   zato je privzeto ena dežela (Geofabrik ime, npr. `bayern`,
+   `baden-wuerttemberg`). Docker ju ob zagonu računalnika sam znova zažene.
+3. **Napoved**:
+   ```powershell
+   node scripts\promet-napoved.js --od 46.0569,14.5058 --do 46.5547,15.6459 --prihod 2026-10-07T07:30 --drzava SI
+   ```
+4. **Stanje zbranih podatkov**: `node scripts\promet-stanje.js`
+5. **Odstranitev opravil**: `scripts\promet-windows\odstrani.ps1` (podatki ostanejo).
 
-Priporočen strežnik (ena majhna VM, npr. Oracle Cloud Free Tier ARM ali
-Hetzner): OSRM v Dockerju + crontab:
+Kaj pomeni, če je računalnik izklopljen ali spi: zajemi v tem času manjkajo,
+ne štejejo pa kot »ni gneče«. Profil se le počasneje polni (npr. če računalnik
+ponoči ne teče, nočnih intervalov ne merimo — ponoči gneče tako ni). Dela in
+zapore, starejši od 2 ur, napoved ignorira in to izpiše kot opozorilo.
+
+Prehod na strežnik pozneje: isti ukazi z zastavico `--supabase`
+(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, migracija
+`supabase/migrations/20261006120000_promet_napoved.sql`) ali isti lokalni način
+na majhni VM s crontabom:
 
 ```cron
-*/15 * * * *  cd /srv/uspesni-jezek && node scripts/promet-zbiralnik.js >> /var/log/promet.log 2>&1
-41 2 * * *    cd /srv/uspesni-jezek && node scripts/promet-profil.js   >> /var/log/promet.log 2>&1
-```
-
-GitHub Actions za zajem vsakih 15 min ni priporočljiv: ~2.900 min/mesec
-preseže brezplačno kvoto zasebnih repozitorijev, razpored pa ni zanesljiv.
-
-OSRM (enkratno, izvleček SI + DE z Geofabrika):
-
-```bash
-osmium merge slovenia-latest.osm.pbf germany-latest.osm.pbf -o si-de.osm.pbf
-docker run -t -v $PWD:/data ghcr.io/project-osrm/osrm-backend osrm-extract -p /opt/car.lua /data/si-de.osm.pbf
-docker run -t -v $PWD:/data ghcr.io/project-osrm/osrm-backend osrm-partition /data/si-de.osrm
-docker run -t -v $PWD:/data ghcr.io/project-osrm/osrm-backend osrm-customize /data/si-de.osrm
-docker run -d -p 5000:5000 -v $PWD:/data ghcr.io/project-osrm/osrm-backend osrm-routed --algorithm mld /data/si-de.osrm
+*/15 * * * *  cd /srv/uspesni-jezek && node scripts/promet-zbiralnik.js >> .promet-podatki/promet.log 2>&1
+41 2 * * *    cd /srv/uspesni-jezek && node scripts/promet-profil.js   >> .promet-podatki/promet.log 2>&1
 ```
 
 ## 5. Naslednji koraki

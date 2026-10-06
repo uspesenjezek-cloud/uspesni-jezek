@@ -129,9 +129,9 @@ async function zajemi(opcije) {
   try {
     var data = await skupno.preberiJson(VIR, o.url || URL_DOGODKI, o.fetch);
     var r = razcleniDogodke(data);
-    return { vir: VIR, opazovanja: r.opazovanja, dogodki: r.dogodki, napake: [], pokritost: 1, skupaj: 1 };
+    return { vir: VIR, opazovanja: r.opazovanja, dogodki: r.dogodki, napakeDogodkov: 0, napake: [], pokritost: 1, skupaj: 1 };
   } catch (e) {
-    return { vir: VIR, opazovanja: [], dogodki: [], napake: [{ napaka: e.message }], pokritost: 0, skupaj: 1 };
+    return { vir: VIR, opazovanja: [], dogodki: [], napakeDogodkov: 1, napake: [{ napaka: e.message }], pokritost: 0, skupaj: 1 };
   }
 }
 

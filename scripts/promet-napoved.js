@@ -1,18 +1,16 @@
 #!/usr/bin/env node
-/* Napoved odhoda za en delovni nalog (preizkus iz ukazne vrstice).
+/* Napoved odhoda za en delovni nalog.
    node scripts/promet-napoved.js --od 46.0569,14.5058 --do 46.5547,15.6459 \
-     --prihod 2026-10-07T07:30 --drzava SI [--regija DE-BY] [--jezik de] [--lokalno DIR]
-   Potrebuje PROMET_OSRM_URL (lasten OSRM strežnik). */
+     --prihod 2026-10-07T07:30 --drzava SI [--regija DE-BY] [--jezik de] [--lokalno MAPA | --supabase]
+   OSRM: PROMET_OSRM_URL_SI / PROMET_OSRM_URL_DE (privzeto http://localhost:5000 oz. :5001). */
 "use strict";
 
-var fs = require("fs");
-var path = require("path");
 var promet = require("../api/_lib/promet");
+var nacinMod = require("./promet-nacin");
+var argument = nacinMod.argument;
+var nacin = nacinMod.nacin();
 
-function argument(ime) {
-  var i = process.argv.indexOf(ime);
-  return i === -1 ? null : process.argv[i + 1];
-}
+var PRIVZETI_OSRM = { SI: "http://localhost:5000", DE: "http://localhost:5001" };
 
 function tocka(v) {
   var d = String(v || "").split(",").map(Number);
@@ -23,31 +21,32 @@ function tocka(v) {
 async function main() {
   var drzava = (argument("--drzava") || "SI").toUpperCase();
   var prihod = argument("--prihod");
+  if (!prihod) throw new Error("Manjka --prihod (npr. 2026-10-07T07:30).");
   var datum = String(prihod).slice(0, 10);
-  var lokalno = argument("--lokalno");
-  var pot = await promet.osrm.pot(tocka(argument("--od")), tocka(argument("--do")));
+  var osrmUrl = promet.osrm.urlZaDrzavo(drzava) || PRIVZETI_OSRM[drzava];
+  var pot = await promet.osrm.pot(tocka(argument("--od")), tocka(argument("--do")), { url: osrmUrl });
   var koledar = await promet.tipDneva.pridobiKoledar(drzava, datum, datum);
   // Profil za DE ne loči šolskih počitnic (te so po deželah), zato jih tu ne uporabimo.
   if (drzava === "DE") koledar.solskePocitnice = [];
-  var profil = { vrstice: [], pokritost: [] };
-  var dogodki = [];
-  if (lokalno) {
-    var p = path.join(lokalno, "profil.json");
-    if (fs.existsSync(p)) profil = JSON.parse(fs.readFileSync(p, "utf8"));
-    ["autobahn", "dars"].forEach(function (v) {
-      var f = path.join(lokalno, "dogodki-" + v + ".json");
-      if (fs.existsSync(f)) dogodki = dogodki.concat(JSON.parse(fs.readFileSync(f, "utf8")));
-    });
-  } else if (process.env.SUPABASE_URL) {
-    var supa = require("../api/_lib/supabase-server");
+
+  var profil;
+  var dogodki;
+  var opozorila = [];
+  if (nacin.supabase) {
+    var cfg = require("../api/_lib/supabase-server").konfiguracija();
     var shramba = require("../api/_lib/promet/shramba");
-    var cfg = supa.konfiguracija();
     var celiceNaPoti = Array.from(new Set(promet.celice.odsekiPoCelicah(pot.tocke, pot.trajanjeProstoS).map(function (o) { return o.celica; })));
     profil = await shramba.preberiProfil(cfg, celiceNaPoti);
     dogodki = await shramba.preberiDogodke(cfg);
+  } else {
+    profil = promet.lokalno.preberiProfil(nacin.mapa);
+    var d = promet.lokalno.preberiDogodke(nacin.mapa, Date.now(), 2);
+    dogodki = d.dogodki;
+    opozorila = d.opozorila;
   }
   var r = promet.napoved.izracunajOdhod({ prihod: prihod, drzava: drzava, regija: argument("--regija"), koledar: koledar, pot: pot, profil: profil, dogodki: dogodki });
   console.log(JSON.stringify(Object.assign({}, r, { razlogi: r.razlogi.slice(0, 10) }), null, 2));
+  opozorila.forEach(function (o) { console.warn("Opozorilo: " + o + " (zbiralnik ne teče?) — dela/zapore niso upoštevani."); });
   console.log("\n" + promet.napoved.sporocilo(r, argument("--jezik") || (drzava === "DE" ? "de" : "sl")));
 }
 

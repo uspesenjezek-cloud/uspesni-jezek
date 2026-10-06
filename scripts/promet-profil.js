@@ -1,57 +1,35 @@
 #!/usr/bin/env node
-/* Nočni izračun profila zastojev iz zadnjih 56 dni.
-   node scripts/promet-profil.js                -> Supabase
-   node scripts/promet-profil.js --lokalno DIR  -> DIR/profil.json */
+/* Izračun profila zastojev iz zadnjih 56 dni (enkrat na dan).
+   node scripts/promet-profil.js [--lokalno MAPA | --supabase] */
 "use strict";
 
-var fs = require("fs");
 var path = require("path");
 var promet = require("../api/_lib/promet");
-
-var DNI = 56;
-
-function argument(ime) {
-  var i = process.argv.indexOf(ime);
-  return i === -1 ? null : process.argv[i + 1];
-}
-
-function jsonl(datoteka) {
-  if (!fs.existsSync(datoteka)) return [];
-  return fs.readFileSync(datoteka, "utf8").split("\n").filter(Boolean).map(function (v) { return JSON.parse(v); });
-}
-
-async function koledarji(od, doDatum) {
-  return {
-    SI: await promet.tipDneva.pridobiKoledar("SI", od, doDatum),
-    DE: await promet.tipDneva.pridobiKoledar("DE", od, doDatum)
-  };
-}
+var nacin = require("./promet-nacin").nacin();
 
 async function main() {
-  var lokalno = argument("--lokalno");
-  var od = new Date(Date.now() - DNI * 86400000);
+  var od = new Date(Date.now() - promet.lokalno.HRAMBA_DNI * 86400000);
   var odDatum = od.toISOString().slice(0, 10);
   var doDatum = new Date().toISOString().slice(0, 10);
-  // DE šolske počitnice so po deželah; v profilu (ki je skupen) upoštevamo
-  // samo državne praznike, počitnice pa pri napovedi za regijo naloga.
-  var kol = await koledarji(odDatum, doDatum);
-  var kolProfil = { SI: { prazniki: kol.SI.prazniki, solskePocitnice: kol.SI.solskePocitnice }, DE: { prazniki: kol.DE.prazniki, solskePocitnice: [] } };
+  // DE šolske počitnice so po deželah; v skupnem profilu upoštevamo samo
+  // državne praznike.
+  var si = await promet.tipDneva.pridobiKoledar("SI", odDatum, doDatum);
+  var de = await promet.tipDneva.pridobiKoledar("DE", odDatum, doDatum);
+  var koledarji = { SI: si, DE: { prazniki: de.prazniki, solskePocitnice: [] } };
 
   var zgodovina;
-  if (lokalno) {
-    zgodovina = { zajemi: jsonl(path.join(lokalno, "zajemi.jsonl")), opazovanja: jsonl(path.join(lokalno, "opazovanja.jsonl")) };
+  var cfg = null;
+  if (nacin.supabase) {
+    cfg = require("../api/_lib/supabase-server").konfiguracija();
+    zgodovina = await require("../api/_lib/promet/shramba").preberiZgodovino(cfg, od.toISOString());
   } else {
-    var supa = require("../api/_lib/supabase-server");
-    zgodovina = await require("../api/_lib/promet/shramba").preberiZgodovino(supa.konfiguracija(), od.toISOString());
+    zgodovina = promet.lokalno.pocisti(nacin.mapa, od.toISOString()); // hkrati izbriše podatke, starejše od 56 dni
   }
-  var profil = promet.profil.zgradiProfil(zgodovina.zajemi, zgodovina.opazovanja, kolProfil);
-  if (lokalno) {
-    fs.writeFileSync(path.join(lokalno, "profil.json"), JSON.stringify(profil));
-  } else {
-    var s = require("../api/_lib/supabase-server");
-    await require("../api/_lib/promet/shramba").zamenjajProfil(s.konfiguracija(), profil);
-  }
-  console.log("Zajemov: " + zgodovina.zajemi.length + ", vrstic profila: " + profil.vrstice.length + ", intervalov pokritosti: " + profil.pokritost.length);
+  var profil = promet.profil.zgradiProfil(zgodovina.zajemi, zgodovina.opazovanja, koledarji);
+  if (nacin.supabase) await require("../api/_lib/promet/shramba").zamenjajProfil(cfg, profil);
+  else promet.lokalno.pisiJson(path.join(nacin.mapa, "profil.json"), profil);
+  var uspesni = zgodovina.zajemi.filter(function (z) { return z.uspeh; }).length;
+  console.log("Zajemov: " + zgodovina.zajemi.length + " (uspešnih " + uspesni + "), vrstic profila: " + profil.vrstice.length);
 }
 
 main().catch(function (e) { console.error(e.message); process.exit(1); });

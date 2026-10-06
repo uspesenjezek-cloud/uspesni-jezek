@@ -12,6 +12,7 @@
     "promet:zbiraj": "node scripts/promet-zbiralnik.js",
     "promet:profil": "node scripts/promet-profil.js",
     "promet:napoved": "node scripts/promet-napoved.js",
+    "promet:stanje": "node scripts/promet-stanje.js",
     "test:boniteta": "node scripts/test-mehka-boniteta.js && node scripts/test-mehka-boniteta-queue.js && node scripts/test-boniteta-pro.js",
     "test:sentry": "node scripts/test-sentry-privacy.js",
     "test:supabase-browser": "node scripts/build-supabase-browser.mjs && node scripts/test-supabase-browser-bundle.mjs",

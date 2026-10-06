@@ -80,19 +80,32 @@ async function zajemi(opcije) {
   try {
     ceste = o.ceste || await seznamCest(o.fetch);
   } catch (e) {
-    return { vir: VIR, opazovanja: [], dogodki: [], napake: [{ napaka: e.message }], pokritost: 0, skupaj: 0 };
+    return { vir: VIR, opazovanja: [], dogodki: [], napakeDogodkov: 1, napake: [{ napaka: e.message }], pokritost: 0, skupaj: 0 };
   }
   var opazovanja = [];
   var napake = [];
+  var dogodki = [];
+  var napakeDogodkov = 0;
   for (var cesta of ceste) {
+    var osnova = OSNOVA + "/" + encodeURIComponent(cesta) + "/services/";
     try {
-      var data = await skupno.preberiJson(VIR, OSNOVA + "/" + encodeURIComponent(cesta) + "/services/warning", o.fetch);
-      opazovanja = opazovanja.concat(razcleniOpozorila(cesta, data));
+      opazovanja = opazovanja.concat(razcleniOpozorila(cesta, await skupno.preberiJson(VIR, osnova + "warning", o.fetch)));
     } catch (e) {
       napake.push({ cesta: cesta, napaka: e.message });
     }
+    if (o.brezDogodkov) continue;
+    for (var kljuc of ["closure", "roadworks"]) {
+      try {
+        dogodki = dogodki.concat(razcleniDogodke(cesta, await skupno.preberiJson(VIR, osnova + kljuc, o.fetch), kljuc));
+      } catch (_) {
+        napakeDogodkov++;
+      }
+    }
   }
-  return { vir: VIR, opazovanja: opazovanja, napake: napake, pokritost: ceste.length - napake.length, skupaj: ceste.length };
+  // Dela/zapore ne vplivajo na uspeh zajema zastojev; nepopoln seznam pa ne
+  // sme prepisati zadnjega popolnega (napakeDogodkov > 0).
+  return { vir: VIR, opazovanja: opazovanja, napake: napake, dogodki: o.brezDogodkov ? undefined : dogodki,
+    napakeDogodkov: napakeDogodkov, pokritost: ceste.length - napake.length, skupaj: ceste.length };
 }
 
 module.exports = { VIR: VIR, OSNOVA: OSNOVA, razcleniOpozorila: razcleniOpozorila, razcleniDogodke: razcleniDogodke, seznamCest: seznamCest, zajemi: zajemi };

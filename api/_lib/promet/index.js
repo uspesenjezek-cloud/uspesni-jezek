@@ -6,5 +6,6 @@ module.exports = {
   profil: require("./profil"),
   napoved: require("./napoved"),
   osrm: require("./osrm"),
+  lokalno: require("./lokalno"),
   viri: { autobahn: require("./viri/autobahn"), dars: require("./viri/dars") }
 };

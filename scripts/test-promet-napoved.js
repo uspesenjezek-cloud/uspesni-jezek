@@ -196,8 +196,46 @@ section("OpenHolidays odjemalec");
 
   var brezSeznama = await promet.viri.autobahn.zajemi({ fetch: async function () { return { ok: false, status: 403 }; } });
   assert(brezSeznama.pokritost === 0 && brezSeznama.napake.length === 1, "nedosegljiv seznam cest ne zruši zbiralnika");
+  assert(brezSeznama.napakeDogodkov > 0, "nedosegljiv seznam cest ne prepiše zadnjih znanih del/zapor");
   var darsNapaka = await promet.viri.dars.zajemi({ url: "https://x.invalid/", fetch: async function () { throw new Error("ECONNRESET"); } });
   assert(darsNapaka.pokritost === 0 && /povezava/.test(darsNapaka.napake[0].napaka), "napaka DARS je zabeležena kot napaka vira");
+
+  var abPolni = async function (url) {
+    if (/\/$/.test(url)) return { ok: true, json: async function () { return { roads: ["A8"] }; } };
+    if (/closure$/.test(url)) return { ok: true, json: async function () { return { closure: [{ identifier: "C1", title: "A8 Sperrung", isBlocked: "true", coordinate: { lat: "48.1", long: "11.5" } }] }; } };
+    if (/roadworks$/.test(url)) return { ok: true, json: async function () { return { roadworks: [{ identifier: "R1", title: "A8 Baustelle", isBlocked: "false", coordinate: { lat: "48.2", long: "11.6" } }] }; } };
+    return { ok: true, json: async function () { return { warning: [] }; } };
+  };
+  var polni = await promet.viri.autobahn.zajemi({ fetch: abPolni });
+  assert(polni.napakeDogodkov === 0 && polni.dogodki.length === 2, "DE zapore in dela so zajeta");
+  assert(polni.dogodki.find(function (x) { return x.zunanjiId === "C1"; }).zaprto === true, "zapora je označena kot zaprto");
+
+  section("Lokalna shramba (računalnik brez baze)");
+  var fs = require("fs");
+  var os = require("os");
+  var lok = promet.lokalno;
+  var mapa = fs.mkdtempSync(path.join(os.tmpdir(), "promet-test-"));
+  lok.dodajZajem(mapa, { vir: "dars", opazovanja: [{ vir: "dars", celica: celX, zamudaS: 60 }], dogodki: [{ zunanjiId: "D9" }], napakeDogodkov: 0, napake: [] }, "2026-01-01T06:00:00.000Z", true);
+  lok.dodajZajem(mapa, { vir: "dars", opazovanja: [{ vir: "dars", celica: celX, zamudaS: 120 }], dogodki: [], napakeDogodkov: 1, napake: [] }, "2026-10-01T06:00:00.000Z", true);
+  fs.appendFileSync(path.join(mapa, "zajemi.jsonl"), "{\"id\":\"prekinjen"); // izklop med pisanjem
+  var zg = lok.preberiZgodovino(mapa, "2025-01-01T00:00:00Z");
+  assert(zg.zajemi.length === 2 && zg.opazovanja.length === 2, "prekinjena vrstica je preskočena");
+  var dg = lok.preberiDogodke(mapa, Date.parse("2026-01-01T07:00:00Z"), 2);
+  assert(dg.dogodki.length === 1 && dg.dogodki[0].zunanjiId === "D9", "nepopoln seznam dogodkov ne prepiše zadnjega popolnega");
+  var star = lok.preberiDogodke(mapa, Date.parse("2026-01-02T07:00:00Z"), 2);
+  assert(star.dogodki.length === 0 && star.opozorila.length === 1, "zastareli dogodki se ne uporabijo in sprožijo opozorilo");
+  var po = lok.pocisti(mapa, "2026-06-01T00:00:00Z");
+  assert(po.zajemi.length === 1 && lok.preberiZgodovino(mapa, "2025-01-01T00:00:00Z").opazovanja.length === 1, "čiščenje odstrani stare zajeme in njihova opazovanja");
+  var sirota = lok.obreziZgodovino([], [{ zajemId: "x", celica: celX, zamudaS: 1 }], "2025-01-01T00:00:00Z");
+  assert(sirota.opazovanja.length === 0, "opazovanja brez zajema se ne štejejo");
+  assert(JSON.stringify(lok.preberiProfil(mapa)) === JSON.stringify({ vrstice: [], pokritost: [] }), "brez profila -> prazen profil (začetna ocena)");
+  fs.rmSync(mapa, { recursive: true, force: true });
+
+  section("OSRM po državah");
+  var u = promet.osrm.urlZaDrzavo;
+  assert(u("SI", { PROMET_OSRM_URL_SI: "http://localhost:5000/" }) === "http://localhost:5000", "SI strežnik");
+  assert(u("DE", { PROMET_OSRM_URL_SI: "a", PROMET_OSRM_URL: "http://skupni" }) === "http://skupni", "rezerva na skupni URL");
+  assert(u("DE", {}) === "", "brez nastavitve prazno");
 
   console.log("\n" + OK + " uspešnih, " + FAIL + " neuspešnih");
   if (FAIL) process.exit(1);
