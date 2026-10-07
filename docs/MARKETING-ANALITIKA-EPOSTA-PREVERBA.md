@@ -163,7 +163,7 @@ Nov modul je samo **»Ponudbe«** (števila: poslane, odprte, sprejete, z vpraš
 | rezultati še prihajajo (< 48 h) | »Rezultati se še zbirajo.« |
 | 0 odzivov | »Odzivov še ni.« (brez rdeče) |
 | 0 naročil | tretja oseba »V TEKU« |
-| zavrnitve ≥ 4 % ali pritožbe ≥ 0,08 % | zdravje seznama »Preverimo seznam« (oranžno); pošiljanje se samodejno ustavi |
+| zavrnitve ≥ 4 % ali pritožbe ≥ 0,08 % | ena rumena vrstica »Pošiljanje smo začasno ustavili – preverjamo seznam.«; pošiljanje se samodejno ustavi |
 | ponudba poslana samo kot priponka | »Odprtij ne vidimo – ponudba je bila poslana samo kot priponka.« |
 | starejše od naše hrambe | »Za ta mesec nimamo več podatkov.« |
 
@@ -238,23 +238,20 @@ Popravi se pred prvim pošiljanjem trženja; ni del te strani.
 
 ---
 
-## J. Zgradba strani
+## J. Zgradba strani (potrjeno s sliko `docs/marketing-predlog/eposta-v5-hd.png`)
 
-1. **Glava:** povpraševanja po e-pošti · naročila · vrednost.
-2. **Kampanje** (vzorec WhatsApp):
-   - izbira kampanje, predogled;
-   - **Dostavljeno 142 od 150**;
-   - tri osebe: Dostavljeno → Odzvali **6** (4 odgovori, 2 termina) → Povpraševanja **2** / »V TEKU«;
-   - pod njimi stolpci **kliki na gumbe**: Želim termin 7 · Pokliči 3 · Odpri ponudbo 5.
-3. **Ponudbe:** 5 poslanih · 4 odprte · 2 sprejeti · 1 z vprašanjem · 1 zavrnjena. Opomba: »Odprtja štejemo prek povezave do ponudbe.«
-4. **Kaj vas sprašujejo** (od 3 vprašanj naprej).
-5. **Ocene** (samo pri kampanji s prošnjo za oceno): »+3 nove Google ocene v 14 dneh po prošnji.«
-6. **Zdravje seznama:** semafor »V redu / Preverimo«; +12 novih kontaktov · 2 neveljavna naslova · 1 odjava · najmanj 0 prijav neželene pošte.
-7. **Povzetek meseca.**
+1. **Glava:** »Po e-pošti ste ta mesec dobili 1 naročilo.« · povpraševanja · naročila · vrednost. Opomba: »Povpraševanja in naročila v 30 dneh po pošiljanju, iz vaše evidence.«
+2. **Kampanje e-pošte** (brez predogleda e-pošte in brez gumbov):
+   - naslov iz podatkov (»Po opomniku za servis sta prišli 2 povpraševanji.«), izbira kampanje;
+   - »Dostavljeno 142 od 150« + vrstica »Seznam strank: +12 novih ta mesec«;
+   - tri osebe: Dostavljeno → Odzvali (odgovori + termini) → Povpraševanja;
+   - **»Kaj so stranke kliknile v e-pošti«**: levo vijolični blok (majhne okrogle ikone gumbov, skupno število klikov, oznaka primerjave »+8 od lani« samo, če je bila ista kampanja poslana že prej), desno lestvica gumbov (barvna vrstica, napolnjena do deleža). Prikazani so samo gumbi iz izbrane kampanje, največ 4, ostali v »drugo«.
+3. **Ponudbe po e-pošti:** tri pisma – zaprto s puščico (poslane), odprto (pogledane), podpisano z zeleno kljukico (sprejete) – in zelena vrstica »Vrednost sprejetih ponudb«. Stanja »z vprašanjem / zavrnjena / še ni odprta« niso v analitiki (ukrepanje je v delu aplikacije za ponudbe).
+4. **Kaj vas sprašujejo v odgovorih** (mreža 2 × 2 kot pri Facebooku), od 3 vprašanj naprej.
+5. **Prošnja za oceno:** »Po prošnji ste dobili 3 nove ocene.«, povprečje prej → potem.
+6. **Povzetek meseca.**
 
-Slika in preverba pri 390 px in 320 px sledita po posnetku obstoječe strani.
-
----
+**Odstranjeno:** modul »Zdravje seznama« (neveljavne naslove in odjave urejamo samodejno; obrtniku ne prinese odločitve). Ob težavi z dostavo se namesto njega pokaže ena rumena vrstica: »Pošiljanje smo začasno ustavili – preverjamo seznam.«
 
 ## K. Popravki glede na različico 1
 
