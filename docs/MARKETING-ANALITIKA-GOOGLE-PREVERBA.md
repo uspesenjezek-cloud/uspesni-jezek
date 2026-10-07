@@ -53,7 +53,9 @@ Sprememba (isti modul, isti stolpci):
 
 Razvrstitev v skupine (Storitev + kraj, Samo storitev, Vaše ime, Nujno) je **naša** in je zelo dobra. Ostane. »Vaše ime« pove, koliko ljudi vas že pozna.
 
-## 4. Google ocene
+## 4. Google ocene — ODSTRANI iz analitike
+
+> **Odstranjeno (7. 10. 2026):** modul »Vse Google ocene« se iz Marketing → Analitika → Google **odstrani**. Ocene, razdelitev, zadnje ocene in »čaka na odgovor« so v **Ugledu podjetja**. Spodnja tabela velja samo še kot vir za Ugled podjetja.
 
 | Kaj | Stanje | Sprememba |
 |---|---|---|

@@ -49,7 +49,7 @@ To je analiza in predlog. Kode ne spreminja in ne pomeni dovoljenja za implement
 6. **Manjkajo ključne platformne številke, ki jih API zanesljivo da:**
    - FB: obiski strani in novi sledilci;
    - IG in TikTok: novi sledilci;
-   - FB: ocene/priporočila;
+   - FB: ~~ocene/priporočila~~ (ocene so v Ugledu podjetja, ne v analitiki);
    - TikTok: klik na telefon.
 7. **Napake** (§4).
 
@@ -83,7 +83,7 @@ Vse ostalo gre pod **»Podrobnosti«** (zaprto) ali se odstrani. Mesečni izbirn
 | `fbKr` kraji sledilcev | **Odstrani** (ali le v Podrobnosti). | metrika ukinjena ali negotova; sledilec ≠ stranka |
 | `ak` časovna mreža | **Odstrani** z obrtnikovega pogleda; lahko ostane v našem admin pogledu. | ni dejanja za obrtnika |
 | Povzetek meseca | **Odstrani**; podatki so že v glavi. | podvajanje |
-| — | **Dodaj**: obiski strani (`page_views_total`), novi sledilci (`page_daily_follows_unique`), priporočila/ocena (`/ratings`). | zanesljivo v API |
+| — | **Dodaj**: obiski strani (`page_views_total`), novi sledilci (`page_daily_follows_unique`). Priporočila in ocene (`/ratings`) **ne** – so v Ugledu podjetja. | zanesljivo v API |
 
 ### Instagram
 

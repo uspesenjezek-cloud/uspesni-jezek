@@ -52,7 +52,9 @@ Razlog: Google ne da odstotkov. Da število ljudi na izraz, majhne izraze pa sam
 
 Barve značk ostanejo, kot so: 1. teal, 2. vijolična, 3. zelena, 4. oranžna.
 
-## 4. Google ocene
+## 4. Google ocene — ODSTRANI iz analitike
+
+> **Odstranjeno (7. 10. 2026):** modul »Vse Google ocene« se iz Marketing → Analitika → Google **odstrani**. Ocene, razdelitev, zadnje ocene in »čaka na odgovor« so v **Ugledu podjetja**. Codex: celotno kartico »VSE GOOGLE OCENE« (vključno z gumbom »Pokaži vseh 38 ocen«) odstrani s strani `analitika.html?kanal=google`. Ostale module pusti. Spodnja tabela velja samo še za Ugled podjetja.
 
 | Element | Zdaj | Novo |
 |---|---|---|

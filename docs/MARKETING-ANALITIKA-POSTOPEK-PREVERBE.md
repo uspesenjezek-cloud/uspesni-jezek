@@ -95,6 +95,8 @@ Za vsako stanje je napisano besedilo.
 
 ## G. Pravila denarja in štetja
 
+- **Ocen in vpisov ne prikazujemo v analitiki.** Ocene (Google, Facebook, portali), razdelitev zvezdic, »čaka na odgovor«, vpisi in znaki zaupanja so v **Ugledu podjetja**. Analitika kaže samo rezultate marketinga.
+
 - Strošek je vedno ob vrednosti dela. Cene na povpraševanje ni pod 3 povpraševanji.
 - Nikjer rdeče barve, nikjer »drago«.
 - Stike seštevamo med kanali, oglede ne.
