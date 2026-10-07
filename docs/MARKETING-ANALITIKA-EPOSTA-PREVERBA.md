@@ -96,9 +96,9 @@ Ker odprtij ne kažemo, nas te prednosti za prikaz ne zadevajo. Ostanemo pri Res
 
 | Kaj | Kako | Privolitev |
 |---|---|---|
-| **Kliki na gumbe** (»Želim termin«, »Pokliči«, »Odpri ponudbo«, »Pot do nas«) | Vsak gumb ima svojo povezavo prek naše domene **na ravni kampanje** (brez oznake prejemnika). Izločimo: zahteve HEAD, predoglede (WhatsApp, iMessage, facebookexternalhit, Google), znane skenerje (safelinks, urldefense, mimecast, oblačna omrežja), izbruhe v prvi minuti po pošiljanju. | ni potrebna |
-| **Odgovori** | naslov za odgovor `odgovor+<žeton>@…` → `email.received` → posredujemo obrtniku in štejemo. Izločimo samodejne odgovore (`Auto-Submitted`, `X-Autoreply`, odsotnost). Odgovor »odjavite me« / »stop« = odjava. | ni potrebna |
-| **Ponudba odprta** | osebna povezava z žetonom (v poti, ne v parametru) → naš pregledovalnik. »Odprta« pomeni, da je brskalnik prenesel PDF. Izločimo predoglede, znane skenerje in prenose iz oblačnih omrežij v prvih minutah po dostavi. Beleži strežnik; v brskalniku ne merimo ničesar (ni časa na strani, ni strani). | storitev, ki jo je stranka zahtevala |
+| **Kliki na gumbe** (»Želim termin«, »Pokliči«, »Odpri ponudbo«, »Pot do nas«) | Vsak gumb ima svojo povezavo prek naše domene **na ravni kampanje** (brez oznake prejemnika). Izločimo: zahteve HEAD, predoglede (WhatsApp, iMessage, facebookexternalhit, Google), znane skenerje (safelinks, urldefense, mimecast, oblačna omrežja), izbruhe v prvi minuti po pošiljanju. **Pred filtrom oblačnih omrežij spustimo naslove iCloud Private Relay** (Applov objavljeni seznam `egress-ip-ranges.csv`), ker so to pravi uporabniki iPhona. Predoglede lovimo po oznaki brskalnika, ne po naslovu: `facebookexternalhit`/`Facebot` (tudi iMessage, ki teče na napravi uporabnika), `WhatsApp/`, `Slackbot-LinkExpanding`, `TelegramBot`, `Twitterbot`. Oznak ne dajemo v parametre z imeni, ki jih Apple briše (`gclid`, `fbclid`, `mc_eid` …); žeton je v poti. | ni potrebna |
+| **Odgovori** | naslov za odgovor `odgovor+<žeton>@…` → `email.received` → posredujemo obrtniku in štejemo. Izločimo samodejne odgovore (`Auto-Submitted`, `X-Autoreply`, odsotnost). Odgovor »odjavite me« / »stop« = odjava. Kdor odgovori in izbere termin, je v »Odzvali« štet enkrat. | ni potrebna |
+| **Ponudba odprta** | osebna povezava z žetonom (v poti, ne v parametru) → naš pregledovalnik. »Odprta« pomeni, da je brskalnik prenesel PDF. Izločimo predoglede (po oznaki brskalnika), znane skenerje in prenose iz oblačnih omrežij v prvih minutah po dostavi; naslovi iCloud Private Relay niso izločeni. Beleži strežnik; v brskalniku ne merimo ničesar (ni časa na strani, ni strani). | storitev, ki jo je stranka zahtevala |
 | **Sprejem, zavrnitev, vprašanje** | gumbi »Sprejmi ponudbo« / »Ne, hvala« / »Imam vprašanje«. Sprejem se potrdi z drugim klikom na strani za potrditev, ki ga skener ne naredi. Beležimo čas, različico in kontrolno vsoto dokumenta. | storitev |
 | **Ponudba potekla** | datum veljavnosti brez odziva | — |
 | **Termini** | gumb »Želim termin« vodi na rezervacijo s številko kampanje; stranka se vpiše sama | ni potrebna |
@@ -106,7 +106,7 @@ Ker odprtij ne kažemo, nas te prednosti za prikaz ne zadevajo. Ostanemo pri Res
 | **Vrnjene stranke** (pri kampanji »Pogrešamo vas«) | evidenca: stranka brez naročila > 12 mesecev, ki je naročila v 30 dneh po pošiljanju | ni potrebna |
 | **Nove Google ocene po prošnji** | sprememba števila ocen v Google profilu (Business Profile API) v 14 dneh po prošnji | ni potrebna |
 | **Novi kontakti** | evidenca strank in prijavni obrazci | — |
-| **Odjave in razlogi** | lasten seznam za vsakega obrtnika. Odjava z enim klikom (POST, RFC 8058), **nikoli ob GET**, ker bi skenerji odjavljali ljudi. Neobvezno vprašanje o razlogu po odjavi. | — |
+| **Odjave in razlogi** | lasten seznam za vsakega obrtnika. Odjava z enim klikom (POST, RFC 8058), **nikoli ob GET**, ker bi skenerji odjavljali ljudi. Neobvezno vprašanje o razlogu po odjavi. Povezava za odjavo (glava `List-Unsubscribe`) ima žeton obrtnika in prejemnika – samo za odjavo, ne za merjenje. Gmail »Upravljanje naročnin« (od 7/2025) jo uporablja za odjavo z enim dotikom, zato bo odjav nekaj več. Naslovi `@privaterelay.appleid.com` brez registracije domene pri Applu se vrnejo – štejejo kot neveljaven naslov. | — |
 
 Klik na »Pokliči« šteje klik na gumb, ne opravljenega klica. Aplikacija ne vidi klicev na telefonu.
 
@@ -122,7 +122,7 @@ Klik na »Pokliči« šteje klik na gumb, ne opravljenega klica. Aplikacija ne v
 | 4 | Kaj me sprašujejo? | »Kaj vas sprašujejo« iz odgovorov in vprašanj pri ponudbah, od 3 naprej |
 | 5 | Kaj deluje najbolje? | najboljša kampanja (po povpraševanjih, nato odgovorih); najbolj kliknjen gumb |
 | 6 | Koliko stane, koliko prinese? | vrednost naročil; strošek pošiljanja se ne prikaže (zanemarljiv) |
-| 7 | Od kod, za katero delo? | kraji in delo iz evidence, od 2 povpraševanj naprej |
+| 7 | Od kod, za katero delo? | **ni na tej strani** – kraji in vrste dela za vse kanale skupaj so na »Vsi kanali« (pri e-pošti je povpraševanj premalo za svoj modul) |
 | 8 | Kaj naj naredim? | **ni na tej strani**; samo »UKREPALI BOMO TAKO« pod moduli |
 
 ---
@@ -144,14 +144,13 @@ Klik na »Pokliči« šteje klik na gumb, ne opravljenega klica. Aplikacija ne v
 
 | Modul | Ponovno uporabljen vzorec |
 |---|---|
-| Kampanje | WhatsApp »Kampanje« (izbira kampanje, predogled sporočila, rezultati); namesto telefona predogled e-pošte |
+| Kampanje | WhatsApp »Kampanje« (izbira kampanje, rezultati) – **brez predogleda sporočila** |
 | Rezultat kampanje | tri osebe: **Dostavljeno → Odzvali (odgovori + termini) → Povpraševanja**, tretja »V TEKU«, kadar naročila še ni |
-| Kliki na gumbe | stolpci z ikonami iz »Vaš profil« (Instagram) |
+| Kliki na gumbe | vijolični blok + lestvica (vzorec odzivov pri Facebooku/Instagramu) |
 | Kaj vas sprašujejo | Facebook, mreža 2 × 2 |
-| Od kod so povpraševanja | kraji s hišami |
 | Povzetek | enak kot drugje |
 
-Nov modul je samo **»Ponudbe«** (števila: poslane, odprte, sprejete, z vprašanjem, zavrnjene, potekle), ker ga drugi kanali nimajo.
+Nov modul je samo **»Ponudbe«** (tri pisma: poslane, pogledane, sprejete + vrednost), ker ga drugi kanali nimajo.
 
 ---
 
@@ -177,6 +176,11 @@ Nov modul je samo **»Ponudbe«** (števila: poslane, odprte, sprejete, z vpraš
 - Kliki so kliki, ne ljudje. Z odgovori se ne seštevajo.
 - Pritožbe so »najmanj N«.
 - Brez primerjave s panogo. Notranje meje za samodejno ustavitev obrtnik ne vidi.
+- **Ne pišemo »zaradi e-pošte«**, ampak »v 30 dneh po e-pošti« – tudi v naslovu glave. Vrnjene stranke so prav tako »po«, ne »zaradi«.
+- Klike ne primerjamo z lani kot golo število (odvisno od velikosti seznama); ob številu klikov piše, pri koliko strankah (»pri 142 strankah«).
+- Vrednost sprejetih ponudb in vrednost zaključenih naročil sta ločeni številki in se ne seštevata.
+- Pri ocenah ne kažemo »povprečje prej → potem« (pri 3 ocenah je to naključje); samo število novih ocen v 14 dneh in trenutno oceno.
+- Manj klikov ne pomeni nujno manj zanimanja: Gmail (Gemini povzetki, 2025–26) in Apple Intelligence povzemata sporočila in ljudje lahko ukrepajo brez klika. Glavno merilo ostanejo odgovori in povpraševanja; ključne podatke (telefon, cena, rok) zato pišemo v besedilo.
 
 ---
 
@@ -195,7 +199,8 @@ Nov modul je samo **»Ponudbe«** (števila: poslane, odprte, sprejete, z vpraš
 ### H.2 Merjenje
 
 - Odprtja (slikovni sledilnik) zahtevajo privolitev: DE (TDDDG §25), FR (CNIL 2026-042, od 14. 4. 2026; izjem za skupne podatke ni), IT (Garante 284/2026, rok 28. 10. 2026; dovoljena je anonimna skupna statistika). Za SI je osnova ZEKom-2, 225. člen; smernic IP RS ni. **Pri nas se odprtja ne merijo.**
-- Kliki z oznako prejemnika: v DE so mnenja deljena. **Pri nas jih ni**, kliki so na ravni kampanje.
+- Kliki z oznako prejemnika: v DE so mnenja deljena; CNIL 2026-042 povezave izrecno izvzema iz svoje priporočila (velja samo za slikovne sledilnike). **Pri nas jih ni**, kliki so na ravni kampanje.
+- **Digital Omnibus** (prenos pravil o piškotkih v GDPR, čl. 88a) je oktobra 2026 še v prvi obravnavi; ni zakon in nanj se ne zanašamo.
 - Odprtje ponudbe: beleži strežnik ob prenosu dokumenta, ki ga je stranka zahtevala. V brskalniku ne merimo ničesar.
 
 ### H.3 Dostava
@@ -206,12 +211,14 @@ Nov modul je samo **»Ponudbe«** (števila: poslane, odprte, sprejete, z vpraš
 | SPF + DKIM + poravnan DMARC | da | da | da (od 5. 5. 2025) |
 | odjava z enim klikom (RFC 8058) | da, v 48 h | da, v 2 dneh | ne; zahtevana je delujoča povezava za odjavo |
 | meja pritožb | < 0,1 %, nikoli 0,3 % | < 0,3 % | ni objavljena |
-| zavračanje | od novembra 2025 trajno (550) | sproti od 2024 | neskladna pošta v Junk, zavračanje napovedano |
+| zavračanje | od novembra 2025 trajno (550) | sproti od 2024 | zavrnitev `550 5.7.515` |
 
 Pri nas:
 - vsa pravila izpolnimo za vse;
 - ločeni poddomeni za račune in ponudbe ter za trženje;
-- Google Postmaster Tools API v2 za naše domene (podatki šele pri večji količini).
+- Google Postmaster Tools API v2 za naše domene (podatki šele pri večji količini). Vsi obrtniki si delijo našo poddomeno, zato pritožbe enega vplivajo na vse – samodejna ustavitev in spremljanje po obrtniku sta obvezna; meja 5.000 na dan se šteje za vse obrtnike skupaj.
+- Microsoftova poročila o pritožbah (JMRP) so od 6/2026 v formatu ARF brez naslova prejemnika; preveri, ali Resendov `email.complained` še prepozna prejemnika pri Outlooku **[preveri]**.
+- BIMI (logotip in modra kljukica) ne uporabljamo: pokazal bi naš logotip ob obrtnikovem imenu.
 
 ### H.4 Pošiljatelj
 
@@ -238,20 +245,24 @@ Popravi se pred prvim pošiljanjem trženja; ni del te strani.
 
 ---
 
-## J. Zgradba strani (potrjeno s sliko `docs/marketing-predlog/eposta-v5-hd.png`)
+## J. Zgradba strani (potrjeno s sliko `docs/marketing-predlog/eposta-v6-hd.png`)
 
-1. **Glava:** »Po e-pošti ste ta mesec dobili 1 naročilo.« · povpraševanja · naročila · vrednost. Opomba: »Povpraševanja in naročila v 30 dneh po pošiljanju, iz vaše evidence.«
+1. **Glava:** »V 30 dneh po e-pošti ste dobili 1 naročilo.« · povpraševanja · naročila · vrednost. Opomba: »Povpraševanja in naročila v 30 dneh po pošiljanju, iz vaše evidence.«
 2. **Kampanje e-pošte** (brez predogleda e-pošte in brez gumbov):
    - naslov iz podatkov (»Po opomniku za servis sta prišli 2 povpraševanji.«), izbira kampanje;
-   - »Dostavljeno 142 od 150« + vrstica »Seznam strank: +12 novih ta mesec«;
-   - tri osebe: Dostavljeno → Odzvali (odgovori + termini) → Povpraševanja;
-   - **»Kaj so stranke kliknile v e-pošti«**: levo vijolični blok (majhne okrogle ikone gumbov, skupno število klikov, oznaka primerjave »+8 od lani« samo, če je bila ista kampanja poslana že prej), desno lestvica gumbov (barvna vrstica, napolnjena do deleža). Prikazani so samo gumbi iz izbrane kampanje, največ 4, ostali v »drugo«.
-3. **Ponudbe po e-pošti:** tri pisma – zaprto s puščico (poslane), odprto (pogledane), podpisano z zeleno kljukico (sprejete) – in zelena vrstica »Vrednost sprejetih ponudb«. Stanja »z vprašanjem / zavrnjena / še ni odprta« niso v analitiki (ukrepanje je v delu aplikacije za ponudbe).
-4. **Kaj vas sprašujejo v odgovorih** (mreža 2 × 2 kot pri Facebooku), od 3 vprašanj naprej.
-5. **Prošnja za oceno:** »Po prošnji ste dobili 3 nove ocene.«, povprečje prej → potem.
-6. **Povzetek meseca.**
+   - »Dostavljeno 142 od 150«;
+   - tri osebe: Dostavljeno → Odzvali (različni ljudje: odgovori + termini) → Povpraševanja; pod njimi »Odzvalo se je 6 strank: 4 so odgovorile, 2 sta izbrali termin.«;
+   - zelena vrstica **»Ta kampanja: 1 naročilo · 1.200 €«** (vrednost po kampanji);
+   - **»Kaj so stranke kliknile v e-pošti«**: levo vijolični blok (majhne okrogle ikone gumbov, skupno število klikov, »pri 142 strankah«), desno lestvica gumbov. Samo gumbi iz izbrane kampanje, največ 4, ostali v »drugo«;
+   - pri kampanji »Pogrešamo vas« še vrstica »Vrnile so se N stranke« (v 30 dneh po pošiljanju).
+3. **Ponudbe po e-pošti:** tri pisma – zaprto s puščico (poslane), odprto (pogledane), podpisano (sprejete) – in vrstica »Vrednost sprejetih ponudb«.
+4. **Kaj vas sprašujejo v odgovorih** (mreža 2 × 2), od 3 vprašanj naprej.
+5. **Prošnja za oceno:** »Po prošnji ste dobili 3 nove ocene.« · v 14 dneh · trenutna ocena.
+6. **Povzetek meseca:** vrstice po kampanjah; **Seznam strank: 150 · +12 novih · 3 odjave** (neto, ne pri posamezni kampanji); **Letos iz e-pošte: povpraševanja · naročila · vrednost** (ker je en mesec pogosto 0 ali 1).
 
-**Odstranjeno:** modul »Zdravje seznama« (neveljavne naslove in odjave urejamo samodejno; obrtniku ne prinese odločitve). Ob težavi z dostavo se namesto njega pokaže ena rumena vrstica: »Pošiljanje smo začasno ustavili – preverjamo seznam.«
+**Odstranjeno:** modul »Zdravje seznama«. Ob težavi z dostavo se pokaže ena rumena vrstica: »Pošiljanje smo začasno ustavili – preverjamo seznam.«
+
+**Namenoma ne:** pravi telefonski klici (zahtevajo sledilno številko – kasneje), povprečna vrednost naročila, deleži, posredovanja, »dodatni« prihodek (premajhni seznami).
 
 ## K. Popravki glede na različico 1
 
@@ -285,5 +296,6 @@ Popravi se pred prvim pošiljanjem trženja; ni del te strani.
 - [x] G denar in štetje
 - [x] H pravo in dostava
 - [~] I napake: koda pregledana, stran čaka na posnetek
-- [~] J zgradba je določena, slika čaka na posnetek
+- [x] J zgradba in slika (`eposta-v6-hd.png`)
+- [x] Zadnji pregled: primerjava z 10 orodji (Mailchimp, Brevo, MailerLite, Klaviyo, Constant Contact, Square, Jobber, Housecall Pro, ServiceTitan, ActiveCampaign) in spremembe Gmail/Apple/Outlook/Yahoo 2024–2026
 - [x] Na strani ni seznamov za ukrepanje, nobena trditev ni nepreverjena brez oznake, za uporabnika ni nobene odločitve.
