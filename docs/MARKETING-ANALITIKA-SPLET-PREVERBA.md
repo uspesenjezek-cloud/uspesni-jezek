@@ -265,3 +265,56 @@ Polja so potrjena iz izvorne kode PRAW in Devvit. Pri vsakem viru sta navedena d
 **Pogoji:** pred zagonom je potrebna odobritev po Responsible Builder Policy (11. 11. 2025). Preverimo tudi, ali potrebujemo komercialno pogodbo.
 
 Zasnove: `marketing-predlog/splet-reddit-3.png`. Celotna stran: `marketing-predlog/splet-v3-hd.png`.
+
+---
+
+## L. Oglasi na portalih in novičarskih straneh (dodano 7. 10. 2026)
+
+To je glavni modul strani Splet, takoj pod glavo. Vpisi so skrčeni v eno vrstico, podroben pregled vpisov in »znaki zaupanja« sta v **Ugledu podjetja**, ker sta higiena in ne rezultat marketinga.
+
+### L.1 Kako se kupi in kaj dobimo nazaj
+
+| Način | Kje | Kaj dobimo po strani | Dostop | Prikaz |
+|---|---|---|---|---|
+| **Google Display** | strani v Google mreži (24ur, Žurnal24, Siol … [preveri, ali so v mreži]) | prikazi, kliki, strošek, konverzije po strani (`detail_placement_view`, `group_placement_view`) | Google Ads API | **da**, polno |
+| **Performance Max** | isto + Google | po strani **samo prikazi** (`performance_max_placement_view`); strošek, kliki in konverzije samo po kanalu (`ad_network_type`, v23+) | Google Ads API | da, z opombo »Google ne pove cene po strani« |
+| **Taboola / Outbrain** (nativni) | 21 / 49 slovenskih strani (BuiltWith), katere [preveri] | `site_breakdown`: prikazi, vidni prikazi, kliki, strošek, konverzije, vrednost | Backstage API / Amplify API | da; minimum 10–20 €/dan |
+| **iPROM** (slovenska mreža) | 24ur, Žurnal24, Siol, Delo … [preveri] | prikazi (ad server); kliki, vidnost, geo [preveri] | platforma / e-poročila; API [preveri] | ročni ali e-poštni uvoz |
+| **PR članek** (»oglasno sporočilo«) | Gorenjski glas (220–620 € + DDV), Delo, regionalni portali | ogledi **po podatkih portala** (PDF/e-pošta); naši UTM kliki | ročni vnos | da, z oznako »po podatkih portala« |
+| **Ključne besede TSmedia** (Bizi + najdi.si + TIS) | Bizi, najdi.si | prikazi, kliki [preveri] | Moj Bizi | da |
+| **Mojmojster / Daibau PRO** | profil | povpraševanja (posredovana e-pošta) | naš števec | da, v istem seznamu kot »naročnina« |
+| Bolha izpostavitev | oglas | števec ogledov (nejasna definicija) | ročno | ne v prvi različici |
+
+### L.2 Merjenje
+
+- **Izmerimo sami:** UTM na vsaki povezavi (kliki na vašo stran), povpraševanja (obrazec, klik na telefon, »Kako ste izvedeli?«), naročila in vrednost iz evidence. Vrednost pošljemo Googlu kot offline konverzijo, Taboola pa jo dobi prek S2S.
+- **Po podatkih portala:** ogledi PR članka, prikazi iPROM. Vedno z oznako.
+- **Kraji:** Google `segments.geo_target_city`. Mesta z manj kot 5 kliki združimo v »drugo«.
+- **Ne:** dvig prepoznavnosti, »videl oglas, poklical kasneje« (view-through), MOSS kot doseg kampanje, AVE.
+- **Sledilnih številk ne** uporabljamo (NAP). Klici so iz Googlove razširitve s klicem (`call_view`) in iz klika na telefon na strani.
+
+### L.3 Pravo
+
+- **ZMed-1** (Ur. l. RS 69/2025, uporaba od 1. 5. 2026, 55.–62. člen): plačane objave morajo biti nedvoumno označene in ločene od uredniške vsebine. Oznaka je »oglasno sporočilo« [preveri točno besedilo].
+- **SOK:** odgovoren je oglaševalec.
+- **AT:** § 26 MedienG (»Anzeige«/»entgeltliche Einschaltung«).
+- **DE:** Pressekodex 7.
+
+### L.4 Modul (slika `splet-v4-hd.png`)
+
+1. Naslov: »Oglasi na portalih so pripeljali 5 povpraševanj.«
+2. Vijoličen blok »PORTALI IN NOVICE · septembra 349 €«:
+   - 27.200 videlo › 214 kliknilo › 5 povpraševanj;
+   - pas vrednosti: oglasi 349 € · naročilo 2.600 €.
+3. Seznam po straneh, z obrobo pri najboljšem: logotip, ime, vrsta (Google oglas / PR članek / ključne besede), kliki, strošek in povpraševanja.
+4. Opomba o podatkih portala.
+5. KAJ VIDIMO / UKREPALI BOMO TAKO.
+
+**Stran Splet v4:**
+1. glava (oglasi skupaj);
+2. oglasi na portalih;
+3. Reddit;
+4. kaj pišejo o vas;
+5. kdo kaže na vašo stran;
+6. vpisi (ena vrstica);
+7. povzetek.
