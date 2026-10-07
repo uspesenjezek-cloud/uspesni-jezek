@@ -231,3 +231,36 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 - [x] H pravo, dostop, strošek
 - [ ] I: čaka na posnetek
 - [~] J zgradba, slika v2
+
+---
+
+## K. Widget Reddit (preverjeno 7. 10. 2026)
+
+Ocene s portalov so v **Ugledu podjetja**, zato modul »Ocene drugje« s strani Splet odstranimo.
+
+Polja so potrjena iz izvorne kode PRAW in Devvit. Pri vsakem viru sta navedena dva neodvisna vira, reddit.com pa je iz omrežja blokiran.
+
+| Pokažemo | Polje | Zapis |
+|---|---|---|
+| glasovi | `score` (rahlo zamegljen) | »~24 glasov«, vedno z ~ |
+| delež za | `upvote_ratio` (2 decimalki) | »92 % za« |
+| komentarji | `num_comments` | »11 komentarjev« |
+| zadnja aktivnost | največji `created_utc` komentarjev | »zadnji pred 2 dnevoma« |
+| komentar o vas | komentar z imenom + njegov `score` | citat + »▲ ~12« |
+| skupnost in datum | `subreddit`, `created_utc` | »r/Slovenia · 2. 9.« |
+| Google | DataForSEO `discussions_and_forums` / organsko, `rank_group` | »#3 v Googlu za ›vodoinštalater Domžale‹, preverjeno 5. 10.« |
+
+**Ne pokažemo:**
+- ogledov (`view_count` vidi samo avtor);
+- »tedenskih obiskovalcev« (ni v API);
+- `subscribers` (Reddit ga javno ne kaže več);
+- trenutno aktivnih;
+- navedb v Reddit Answers (ni API, ni slovenščine);
+- mesta v »hot«;
+- odstranjenih in izbrisanih niti (brišemo v 48 urah).
+
+**Iskanje:** API išče po objavah, komentarje beremo iz najdenih niti. Za komentarje v drugih nitih uporabimo `site:reddit.com "ime"` prek Brave/DataForSEO.
+
+**Pogoji:** pred zagonom je potrebna odobritev po Responsible Builder Policy (11. 11. 2025). Preverimo tudi, ali potrebujemo komercialno pogodbo.
+
+Zasnove: `marketing-predlog/splet-reddit-3.png`.
