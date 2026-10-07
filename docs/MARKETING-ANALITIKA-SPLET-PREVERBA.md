@@ -8,10 +8,10 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 5. številke Reddita;
 6. številke forumov in portalov;
 7. novice in mediji;
-8. povezave, blogi in YouTube;
+8. povezave, blogi in YouTube (YouTube je odslej ločen kanal);
 9. popoln popis vrst mest.
 
-**Kaj je Splet:** vsa mesta na internetu zunaj obrtnikove spletne strani, Google profila in lastnih družbenih omrežij, kjer je obrtnik **vpisan, omenjen, priporočen ali povezan**. To so portali, zemljevidi, registri, partnerji proizvajalcev, forumi, Reddit, novice, občinska glasila, blogi in videi.
+**Kaj je Splet:** vsa mesta na internetu zunaj obrtnikove spletne strani, Google profila, lastnih družbenih omrežij in **YouTuba (ločen kanal)**, kjer je obrtnik **vpisan, omenjen, priporočen ali povezan**. To so portali, zemljevidi, registri, partnerji proizvajalcev, forumi, Reddit, novice, občinska glasila in blogi.
 
 **Omejitev raziskave:** omrežni proxy je blokiral neposredno branje večine strani. Podatki so iz iskalnikov in sekundarnih virov. Kar ni potrjeno na viru, je označeno z **[preveri]**. Pogojev uporabe portalov nismo prebrali v celoti. Do pravne preverbe velja: **brez množičnega strganja**. Dovoljeni so samo API-ji, profili posameznega obrtnika v nizki frekvenci in podatki, ki jih vnese ali poveže obrtnik.
 
@@ -30,7 +30,6 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
    - forumska tema: ogledi, odgovori, zadnja aktivnost;
    - Reddit: glasovi, delež glasov za, komentarji, velikost skupnosti;
    - članek: doseg portala na mesec (MOSS), povezava na vašo stran;
-   - video: ogledi, všečki, komentarji;
    - za vse: **položaj v Googlu** za lokalno iskanje.
 3. **Omemb je malo** (0–3 na leto na vrsto). Zato ne kažemo odstotkov tona ali trendov. Kažemo vsako omembo posebej, z njenimi številkami.
 4. **Napačen podatek na vpisu je najpomembnejša številka strani.** Imeniki in zemljevidi (Bing, Apple, Foursquare, OSM) so ~42 % virov, ki jih navajajo AI asistenti. Napačen telefon na Biziju gre naravnost v ChatGPT.
@@ -53,7 +52,7 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 | 7 | Reddit | r/Slovenia, r/ljubljana | r/de, r/Handwerker, r/Austria | nizek v SI, srednji v DE |
 | 8 | Novice in mediji | 24ur, Žurnal24, regionalni (Gorenjski glas, Sobotainfo, Dolenjski list …), **občinska glasila** (npr. Slamnik) | Lokalzeitung, Gemeindeblatt, meinbezirk.at | srednji (redko, a močno) |
 | 9 | Blogi in seznami »najboljši« | blogi o prenovi, »10 najboljših vodoinštalaterjev« | isto | srednji (AI jih pogosto navaja) |
-| 10 | Video | YouTube | YouTube | srednji |
+| — | Video (YouTube) | — | — | **ločen kanal**, ni na tej strani |
 | 11 | Javna naročila | e-JN / enarocanje.si, Erar | TED, auftrag.at | nizek (samo del obrtnikov) |
 | 12 | Zaposlitveni portali | MojeDelo, Optius | **Kununu**, StepStone, karriere.at | nizek |
 | 13 | Lokalne skupnosti | občinski imeniki, TIC | nebenan.de, Nextdoor | nizek |
@@ -80,7 +79,6 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 | **Haustechnikdialog / Bauexpertenforum** | odgovori in ogledi (oznake stolpcev [preveri]), reakcije | seznam foruma | da (DE) |
 | **Reddit** | `score` (približek, »vote fuzzing«), `upvote_ratio`, `num_comments`, `created_utc`, `subreddit_subscribers`; **ogledi in delitve samo za avtorja** | iskalni API (`site:reddit.com`); neposreden API samo z odobritvijo in pogodbo | **da**: glasovi, % za, komentarji, velikost skupnosti |
 | **Članek (novice, glasilo, blog)** | medij, datum, naslov, URL, **povezava na vašo stran** (dofollow/nofollow), **doseg portala na mesec (MOSS)**, položaj na seznamu »najboljših« | DataForSEO News, Event Registry, lasten pregled HTML, MOSS lestvica | **da**; obisk posameznega članka **ni javen**, AVE **ne** |
-| **YouTube** | `viewCount`, `likeCount`, `commentCount`, datum | YouTube Data API (search 100 enot, 10.000 na dan) | **da**; hramba statistik 30 dni [preveri] |
 | **Povezave na vašo stran** | število strani, ki kažejo na vas, nove in izgubljene na mesec, vir, dofollow | DataForSEO Backlinks (< 0,10 $ na mesec) | **da**, brez DR/»authority« številk |
 | **Google (vse zgoraj)** | **položaj** URL-ja teme, članka ali profila za lokalno iskanje | DataForSEO / SerpApi (`gl=si`, lokacija) | **da**: »#4 za ›bojler Domžale‹«, z datumom meritve |
 | **e-JN / TED** | pridobljeni posli, vrednost, naročnik | iskalnik / TED API | **ne** v prvi različici |
@@ -103,12 +101,12 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 |---|---|
 | **Vpisi in ujemanje podatkov** | Mesečno preverimo ime, naslov, telefon, splet in delovni čas proti glavnemu zapisu na potrjenih profilih, zemljevidih (OSM, Bing, Apple) in v registrih. |
 | **Značke zaupanja** | Mesečno preverimo partnerje proizvajalcev (po dejavnosti), F-plin, Eko sklad, OZS/HWK in Mojmojster značke. |
-| **Omembe** | Tedensko: iskalni API (Brave / DataForSEO) za ime + kraj, ime + dejavnost, telefon, omejeno na forume, Reddit in novice. Novice še prek DataForSEO News / Event Registry, YouTube prek Data API. LLM preveri, ali gre za tega obrtnika (potrjeno / verjetno / izključeno) in ali omemba priporoča, omenja ali je pritožba. |
+| **Omembe** | Tedensko: iskalni API (Brave / DataForSEO) za ime + kraj, ime + dejavnost, telefon, omejeno na forume, Reddit in novice. Novice še prek DataForSEO News / Event Registry. Omembe v YouTube videih so v kanalu YouTube. LLM preveri, ali gre za tega obrtnika (potrjeno / verjetno / izključeno) in ali omemba priporoča, omenja ali je pritožba. |
 | **Številke omembe** | Ob najdbi in nato enkrat na teden 4 tedne preberemo ogledi/odgovori/glasovi/komentarji (glej A.1). |
 | **Položaj v Googlu** | Za vsako potrjeno omembo enkrat na mesec 2–3 lokalne poizvedbe (storitev + kraj, ime + »izkušnje«), top 20. |
 | **Doseg medija** | MOSS mesečni doseg, če je portal vključen. Sicer brez številke. |
 | **Povezave** | DataForSEO Backlinks enkrat na mesec: nove, izgubljene, skupaj. |
-| **Povpraševanja** | posredovana obvestila portalov na `portal+<token>@…`, »Kako ste izvedeli za nas?« (+ možnosti »portal«, »forum / Reddit«, »članek / novice«, »YouTube«), UTM na profilih. |
+| **Povpraševanja** | posredovana obvestila portalov na `portal+<token>@…`, »Kako ste izvedeli za nas?« (+ možnosti »portal«, »forum / Reddit«, »članek / novice«), UTM na profilih. |
 | **Obiski** | referrer in UTM na strani, ki jo gostimo, ujemanje z domeno omembe. Vedno »najmanj N«. |
 
 ---
@@ -117,7 +115,7 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 
 | # | Vprašanje | Odgovor |
 |---|---|---|
-| 1 | Ali me vidijo? | vpisi + doseg omemb (ogledi teme, doseg portala, ogledi videa) + položaj v Googlu |
+| 1 | Ali me vidijo? | vpisi + doseg omemb (ogledi teme, doseg portala) + položaj v Googlu |
 | 2 | Ali me kontaktirajo? | povpraševanja s Spleta |
 | 3 | Kdo čaka? | ni na tej strani |
 | 4 | Kaj pišejo? | omembe s citatom in številkami |
@@ -166,7 +164,7 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 
 ## G. Štetje
 
-- **Brez seštevanja ogledov** med viri (forum, Reddit, video, portal merijo različno).
+- **Brez seštevanja ogledov** med viri (forum, Reddit, portal merijo različno).
 - **Doseg portala ni bralec članka.** Napis je vedno »portal doseže ~N ljudi na mesec«.
 - **Glasovi na Redditu so približek.**
 - **Položaj v Googlu** ima datum in kraj meritve.
@@ -181,13 +179,11 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 - **Strganje:** baze imenikov so zaščitene (96/9/ES, § 87b UrhG), ToS prepovedi veljajo (C-30/14). Beremo samo profil posameznega obrtnika ali uporabimo API. Pred zagonom pravno preverimo ToS [preveri].
 - **Novice:** pravica izdajateljev (SI **ZASP-I, 139.a čl.**; DE § 87f–87k UrhG). Prikažemo naslov, medij, datum in povezavo, citata iz članka ne.
 - **Reddit:** Responsible Builder Policy (11. 11. 2025), komercialna raba po pogodbi. Uporabljamo iskalni API. Hranimo ID in številke, ne besedila. Izbrisano odstranimo.
-- **YouTube:** hramba statistik brez avtorizacije 30 dni [preveri spremembe 5–6/2026].
 - **GDPR:** zakoniti interes (6(1)(f), C-621/22) + LIA. Ne hranimo vzdevkov in imen drugih oseb. Izseki 12 mesecev, metapodatki 24 mesecev [predlog]. Negativne članke vidi samo obrtnik.
 - **Strošek na obrtnika na mesec:**
   - iskalni API in SERP: < 0,30 $;
   - Backlinks: < 0,10 $;
   - Event Registry: delež paketa ~90 $/mes;
-  - YouTube: brezplačno (kvota ~700 obrtnikov na teden);
   - LLM: ~0,05 $.
 
 ---
@@ -212,13 +208,12 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
 5. **Kaj pišejo o vas:** vsaka omemba z vrstico številk.
    - forum: ogledi · odgovori · #N v Googlu;
    - Reddit: ▲ glasovi · % za · komentarji · velikost skupnosti;
-   - članek: medij · doseg portala · ✓ povezava na vašo stran;
-   - video: ogledi · všečki · komentarji.
+   - članek: medij · doseg portala · ✓ povezava na vašo stran.
 6. **Kdo kaže na vašo stran:** »14 strani, septembra +2« + stolpci zadnjih 6 mesecev.
 7. **Ali je splet prinesel stranke:** ilustracija z obiski, povpraševanji in naročilom.
 8. **Povzetek.**
 
-**Namenoma ne:** % tona, AVE, doseg članka, DR, skupno povprečje ocen, bonitete, Kununu, javna naročila, seznam »kje manjkate« z gumbi.
+**Namenoma ne:** YouTube (ločen kanal), % tona, AVE, doseg članka, DR, skupno povprečje ocen, bonitete, Kununu, javna naročila, seznam »kje manjkate« z gumbi.
 
 ---
 
