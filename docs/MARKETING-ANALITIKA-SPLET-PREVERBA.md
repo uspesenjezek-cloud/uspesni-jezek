@@ -209,6 +209,7 @@ Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
    - forum: ogledi · odgovori · #N v Googlu;
    - Reddit: ▲ glasovi · % za · komentarji · velikost skupnosti;
    - članek: medij · doseg portala · ✓ povezava na vašo stran.
+5b. **Reddit** (naše oglase in odgovore glej `MARKETING-ANALITIKA-REDDIT-PREVERBA.md`, J).
 6. **Kdo kaže na vašo stran:** »14 strani, septembra +2« + stolpci zadnjih 6 mesecev.
 7. **Ali je splet prinesel stranke:** ilustracija z obiski, povpraševanji in naročilom.
 8. **Povzetek.**
@@ -263,4 +264,4 @@ Polja so potrjena iz izvorne kode PRAW in Devvit. Pri vsakem viru sta navedena d
 
 **Pogoji:** pred zagonom je potrebna odobritev po Responsible Builder Policy (11. 11. 2025). Preverimo tudi, ali potrebujemo komercialno pogodbo.
 
-Zasnove: `marketing-predlog/splet-reddit-3.png`.
+Zasnove: `marketing-predlog/splet-reddit-3.png`. Celotna stran: `marketing-predlog/splet-v3-hd.png`.

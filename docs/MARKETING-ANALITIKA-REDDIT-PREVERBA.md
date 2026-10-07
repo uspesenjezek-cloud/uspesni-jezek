@@ -1,4 +1,6 @@
-# Reddit — preverba kanala (postopek A–J)
+# Reddit — preverba (postopek A–J)
+
+> **Umestitev:** Reddit **ni ločena stran**, ampak en kompakten modul na strani **Splet** (`splet-v3-hd.png`, modul »Reddit«). Modul je sestavljen iz dveh delov: oglas (videlo → kliknilo → povpraševanja + pas vrednosti) in vaši odgovori (4 številke). Slika `reddit-v1-hd.png` je zastarela.
 
 Datum: 7. 10. 2026.
 
@@ -163,12 +165,22 @@ Kanala Reddit v appu še ni, zato je to **nova stran**. Moduli so isti kot pri F
 
 Ni obstoječe strani.
 
-## J. Zgradba strani
+## J. Zgradba (modul na strani Splet)
 
-1. **Glava:** »Reddit je septembra pripeljal 3 povpraševanja.« · **4.800** ljudi je videlo oglas · **62** klikov · **3** povpraševanja.
-2. **Rezultati oglasov:** ilustracija z oblački (videlo · kliki · povpraševanja) + pas vrednosti (oglasi 45 € · vrednost naročil 1.840 €).
-3. **Kje je oglas deloval:** skupnosti s trakovi (r/ljubljana · r/Slovenia · drugo).
-4. **Vaši odgovori na Redditu:** vprašanje + naš odgovor z oznako poslovnega profila; ogledi (če so) · ▲ ~glasov · odgovori; spodaj sledilci.
-5. **Povzetek.**
+Modul »Reddit« – naslov »Reddit je pripeljal 3 povpraševanja.«
 
-Slika: `marketing-predlog/reddit-v1-hd.png`.
+1. **Oglas na Redditu** (vijoličen blok):
+   - oznaka »septembra 45 €«;
+   - tri ploščice: **4.800** videlo › **62** kliknilo › **3** povpraševanja;
+   - pas vrednosti: oglas 45 € · naročilo 1.840 €;
+   - vrstica: »Eno povpraševanje je stalo 15 € · največ klikov v r/ljubljana«.
+2. **Vaši odgovori na vprašanja** (svetel blok):
+   - zadnje vprašanje in »odgovorili kot Vodovod Novak ▲ ~9«;
+   - 4 številke: odgovori · ogledi · ~glasovi · +sledilci.
+3. Opomba: »Ogledi se na Redditu hranijo 45 dni, glasovi so približni. Zadnja 2 dni se še posodabljata.«
+4. KAJ VIDIMO / UKREPALI BOMO TAKO.
+
+Stanja:
+- brez oglasov ta mesec: blok 1 se skrije;
+- brez odgovorov: blok 2 se skrije;
+- brez obojega: modula ni.
