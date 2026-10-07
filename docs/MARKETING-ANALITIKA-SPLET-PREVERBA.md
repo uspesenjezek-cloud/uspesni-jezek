@@ -1,139 +1,150 @@
-# Splet — preverba (postopek A–J)
+# Splet — preverba v2 (postopek A–J)
 
-Datum: 7. 10. 2026. Raziskava je bila razdeljena na štiri dele: slovenski portali, portali DE/AT, forumi/Reddit/omembe ter doslednost podatkov/obiski/AI.
+Datum: 7. 10. 2026. Raziskava je bila razdeljena na devet delov:
+1. slovenski portali;
+2. portali DE/AT;
+3. forumi, Reddit in omembe;
+4. doslednost podatkov in obiski;
+5. številke Reddita;
+6. številke forumov in portalov;
+7. novice in mediji;
+8. povezave, blogi in YouTube;
+9. popoln popis vrst mest.
 
-**Kaj je Splet:** vsa mesta na internetu, kjer je obrtnik vpisan ali omenjen. To so portali in imeniki, ocene na portalih, forumi, Reddit in članki. Splet **ni** obrtnikova lastna spletna stran in **ni** Google profil (ta je v kanalu Google).
+**Kaj je Splet:** vsa mesta na internetu zunaj obrtnikove spletne strani, Google profila in lastnih družbenih omrežij, kjer je obrtnik **vpisan, omenjen, priporočen ali povezan**. To so portali, zemljevidi, registri, partnerji proizvajalcev, forumi, Reddit, novice, občinska glasila, blogi in videi.
 
-**Omejitev raziskave:** omrežni proxy je blokiral neposredno branje večine portalov (bizi.si, mojmojster.net, daibau.si, my-hammer.de, med.over.net …). Podatki so iz iskalnikov in sekundarnih virov. Vse, česar nismo potrdili na uradnem viru, je označeno z **[preveri]**. Pogojev uporabe (ToS) portalov nismo prebrali v celoti, zato do pravne preverbe velja: **brez strganja, samo API, javni profil posameznega obrtnika v nizki frekvenci in podatki, ki jih vnese ali poveže obrtnik.**
+**Omejitev raziskave:** omrežni proxy je blokiral neposredno branje večine strani. Podatki so iz iskalnikov in sekundarnih virov. Kar ni potrjeno na viru, je označeno z **[preveri]**. Pogojev uporabe portalov nismo prebrali v celoti. Do pravne preverbe velja: **brez množičnega strganja**. Dovoljeni so samo API-ji, profili posameznega obrtnika v nizki frekvenci in podatki, ki jih vnese ali poveže obrtnik.
+
+> v1 tega dokumenta je pokrival samo portale, forume in Reddit, številk posamezne objave pa ni preveril. To je bila napaka postopka. Dodana sta točka A.0 (vrste mest) in stolpec »javne številke« pri vsakem viru.
 
 ---
 
 ## 0. Bistvo
 
-1. **Obrtnik ima od Spleta tri vprašanja:**
-   - Kje sem vpisan in ali so podatki pravilni?
-   - Kaj ljudje pišejo o meni?
-   - Ali je od tam prišla kakšna stranka?
-2. **Portali lastniku ne dajo statistike prek API-ja.** Mojmojster, Bizi, TIS, Daibau, MyHammer, Check24, Gelbe Seiten in Herold nimajo javnega API-ja za oglede, klike ali povpraševanja. Zato povpraševanja s portalov štejemo **sami**: posredovana e-pošta portala, polje »Kako ste izvedeli za nas?« in UTM.
-3. **Omemb je malo: 0–3 na leto pri tipičnem obrtniku.** Zato ne kažemo odstotkov, tona ali trendov. Pokažemo posamezne najdene omembe, vsako z virom in datumom.
-4. **Podatki morajo biti povsod pravilni (NAP).** Pri Googlu je to le osnovna higiena (Whitespark 2026: ~7 % teže). Pri AI pa šteje, *kje* je obrtnik omenjen: lastna stran ~44 %, imeniki ~42 % citatov (Yext 2025). Napačen telefon na Biziju gre naravnost v ChatGPT (glej AI preverbo). Zato je »napačen podatek« najpomembnejša številka strani.
-5. **Brez ukrepov na strani.** Samo stanje. »UKREPALI BOMO TAKO« ostane kot pri drugih kanalih.
+1. Obrtnik ima od Spleta štiri vprašanja:
+   - Kje sem in ali so podatki pravilni?
+   - Kaj o meni pišejo in koliko ljudi je to videlo?
+   - Kaj mi daje zaupanje (značke, certifikati, ocene)?
+   - Ali je od tam prišla stranka?
+2. **Vsaka omemba ima svoje javne številke** in te pokažemo pri omembi sami:
+   - forumska tema: ogledi, odgovori, zadnja aktivnost;
+   - Reddit: glasovi, delež glasov za, komentarji, velikost skupnosti;
+   - članek: doseg portala na mesec (MOSS), povezava na vašo stran;
+   - video: ogledi, všečki, komentarji;
+   - za vse: **položaj v Googlu** za lokalno iskanje.
+3. **Omemb je malo** (0–3 na leto na vrsto). Zato ne kažemo odstotkov tona ali trendov. Kažemo vsako omembo posebej, z njenimi številkami.
+4. **Napačen podatek na vpisu je najpomembnejša številka strani.** Imeniki in zemljevidi (Bing, Apple, Foursquare, OSM) so ~42 % virov, ki jih navajajo AI asistenti. Napačen telefon na Biziju gre naravnost v ChatGPT.
+5. **Samo statistika.** Brez seznama »kje manjkate z gumbom za vpis«. »UKREPALI BOMO TAKO« ostane kot pri drugih kanalih.
 
 ---
 
-## A. Popoln popis virov
+## A. Popoln popis
 
-### A.1 Slovenija
+### A.0 Vrste mest (da nič ne manjka)
 
-| Vir | Kaj vsebuje | Statistika za lastnika | Dostop za nas | Ocene | Odločitev |
-|---|---|---|---|---|---|
-| **AJPES – PRS** | uradni naziv, naslov, dejavnost, matična in davčna številka | ne | **FTP / `wsPrsInfo`**, komercialna ponovna raba po tarifi | ne | **samo v ozadju**: identiteta in vir resnice za ime in naslov |
-| **Bizi.si** (TSmedia) | kartica podjetja, kontakti, finance | ni najdeno [preveri] | **Bizi API** (plačljiv, od ~69 €/mesec za 4.000 MŠ [preveri]) | ne | **pokažemo**: vpis ✓ in ujemanje podatkov |
-| **TIS / itis.si / 1188** (TSmedia) | ime, naslov, telefon | ni najdeno | javno iskanje; API ni najden | ne | **pokažemo**: vpis in telefon [preveri ToS] |
-| **Najdi.si** | iskalnik in oglasi TSmedia | ni najdeno | [preveri] | ne | **ne**: ni samostojnega profila [preveri] |
-| **Mojmojster.net** | profil, reference, slike, ocene samo dejanskih naročnikov | povpraševanja v računu in po e-pošti/SMS; ogledov javno ni [preveri] | javni profil (URL vnese obrtnik) [preveri ToS] | **da** | **pokažemo**: vpis, ocena, število ocen; povpraševanja iz posredovane e-pošte |
-| **Daibau.si** (tudi AT, HR …) | profil, slike, ocene preverjenih naročnikov | povpraševanja v profilu | javni profil (URL vnese obrtnik) [preveri ToS] | **da** | **pokažemo** kot Mojmojster |
-| **Bolha.com** (storitve) | oglasi, ne profili | ogledi oglasa [preveri] | ne | ne | **ne** v prvi različici (oglasi so začasni) |
-| **Bing Places** | NAP, čas, slike | Insights: ogledi, klici, pot, spletna stran (4/8/12 tednov) | Bulk API samo za partnerje; Insights brez API [preveri] | ne | **pokažemo**: vpis in ujemanje; Insights samo, če ga obrtnik poveže ali uvozi |
-| **Apple Business** (prej Business Connect) | Place Card | Insights: iskanja, ogledi, dejanja; **izvoz CSV** | API samo za partnerje | ne | **pokažemo**: vpis; ogledi samo ob uvozu CSV |
-| **OZS obrtni register** | obrtno dovoljenje | ne | na zahtevo | ne | **samo v ozadju** |
-| Najmojster.si, MojObrtnik.com, GZS eKatalog | manjši imeniki | ni najdeno | [preveri] | [preveri] | **ne** dokler ne preverimo aktivnosti |
-| Agregatorji (CompanyWall, Topograph, e-creditreform, Infobel) | prepis registra, pogosto **star telefon** | ne | javne strani | ne | **samo v ozadju**: iščemo star telefon, ki ga širijo |
-| Yelp | v SI ne deluje | — | — | — | **ne** |
-
-### A.2 Nemčija in Avstrija
-
-| Vir | Statistika za lastnika | Dostop za nas | Ocene | Odločitev |
+| # | Vrsta | SI primeri | DE/AT primeri | Pomen |
 |---|---|---|---|---|
-| **MyHammer** (DE, AT) | naročila in ponudbe v aplikaciji; ogledov ni [preveri] | URL profila | da | **pokažemo**: vpis, ocena |
-| **Check24 Profis** (DE) | povpraševanja v aplikaciji | ni API | da | **pokažemo**: vpis, ocena |
-| **Gelbe Seiten, Das Örtliche, Das Telefonbuch** (DE) | poročila samo za plačljive pakete | ni API; baza je zaščitena (§ 87b UrhG) | da | **pokažemo**: vpis in NAP (posamezen profil, nizka frekvenca) |
-| **11880 + werkenntdenBESTEN** (DE) | plačljivo | ni API | **zbirne ocene** z več portalov | **pokažemo**: zbirna ocena kot dodatni vir |
-| **Herold.at** (AT) | prek prodaje | ni API | da | **pokažemo** (AT) |
-| **ProvenExpert** (DE, AT) | nadzorna plošča | **API od paketa Premium** (ključ obrtnika) | da | **pokažemo**, če obrtnik vnese ključ |
-| **Trustpilot** | nadzorna plošča | **javni API** s ključem | da | **pokažemo**, če ima obrtnik profil (redko pri obrti) |
-| **Yelp DE** | Yelp for Business | Places API: 3–7 izsekov, predpomnjenje 24 h, plačljiv | da | **ne** (nizek pomen, strošek) |
-| Aroundhome, Blauarbeit, KennstDuEinen, Houzz | — | ni API | delno | **ne** v prvi različici |
-| Handwerkskammer (Handwerksrolle) | ne | ni enotnega sistema | ne | **samo v ozadju** |
-| Betreut, Helpling, Jameda | — | — | — | **ne** (ni obrt) |
+| 1 | Portali in imeniki | Bizi, TIS/1188, Mojmojster, Daibau, Bolha | MyHammer, Check24 Profis, Gelbe Seiten, Das Örtliche, 11880, Herold, werkenntdenBESTEN | visok |
+| 2 | Zemljevidi in podatkovni sloji | Bing Places, Apple Business, OpenStreetMap, Foursquare | isto + Yelp, HERE, TomTom | **zelo visok** (vir za AI) |
+| 3 | Uradni registri in zbirniki | AJPES, OZS/OOZ, CompanyWall, e-creditreform | Handwerksrolle (HWK), WKO Firmen A-Z, GISA, North Data, firmenabc | visok (ujemanje podatkov) |
+| 4 | Partnerji proizvajalcev | Daikin Home Comfort Expert, Immergas servisna mreža, Vaillant, Fronius [preveri SI] | Viessmann Partner-vor-Ort, Fronius Installateur-Finder, Buderus, Geberit | visok za ogrevanje, TČ, klime, sončne |
+| 5 | Certifikati in spodbude | F-plini (C/D serviserji, MOPE), Eko sklad ZER seznam izvajalcev | dena Energieeffizienz-Experten, klimaaktiv | visok za energetsko obnovo |
+| 6 | Forumi | med.over.net (Gradimo, opremljamo …), slo-tech (Loža) | Haustechnikdialog, Bauexpertenforum | srednji |
+| 7 | Reddit | r/Slovenia, r/ljubljana | r/de, r/Handwerker, r/Austria | nizek v SI, srednji v DE |
+| 8 | Novice in mediji | 24ur, Žurnal24, regionalni (Gorenjski glas, Sobotainfo, Dolenjski list …), **občinska glasila** (npr. Slamnik) | Lokalzeitung, Gemeindeblatt, meinbezirk.at | srednji (redko, a močno) |
+| 9 | Blogi in seznami »najboljši« | blogi o prenovi, »10 najboljših vodoinštalaterjev« | isto | srednji (AI jih pogosto navaja) |
+| 10 | Video | YouTube | YouTube | srednji |
+| 11 | Javna naročila | e-JN / enarocanje.si, Erar | TED, auftrag.at | nizek (samo del obrtnikov) |
+| 12 | Zaposlitveni portali | MojeDelo, Optius | **Kununu**, StepStone, karriere.at | nizek |
+| 13 | Lokalne skupnosti | občinski imeniki, TIC | nebenan.de, Nextdoor | nizek |
+| — | Facebook skupine | — | — | **ni dostopno** (Groups API ukinjen 2024) |
 
-### A.3 Forumi, Reddit in omembe
+### A.1 Javne številke po viru
 
-| Vir | Dostop | Odločitev |
-|---|---|---|
-| med.over.net (Gradimo, opremljamo in urejamo dom), slo-tech | ni API; RSS [preveri] | **pokažemo** najdene omembe prek iskalnega API-ja, ne lastnega strganja |
-| Facebook skupine | **ni API** (Groups API ukinjen 22. 4. 2024) | **ne**: največja slepa pega, napisano v opombi |
-| Reddit (r/Slovenia, r/de, r/Handwerker) | od 11. 11. 2025 vsak nov dostop ročno odobri Reddit; komercialna raba po pogodbi | **posredno**: iskalni API `site:reddit.com`, samo naslov, povezava in datum |
-| Haustechnikdialog, Bauexpertenforum (DE) | [preveri] | posredno prek iskalnega API-ja |
-| Iskalni API | **Bing Web Search ukinjen 11. 8. 2025**; **Google CSE zaprt za nove**, ugasne 1. 1. 2027; **Brave** 5 $/1.000; **DataForSEO** 0,6–2 $/1.000; Tavily, Exa | **Brave ali DataForSEO**, ~12 poizvedb na obrtnika na mesec (< 0,10 $) |
-| Google Alerts | brez API, RSS | dodatek, ne osnova |
-| Brand24, Mention, Talkwalker, Awario | 49–1.500 $/mesec, slovenščine Brand24 nima | **ne**: predrago na obrtnika, slaba pokritost SI |
+| Vir | Javne številke | Kako jih dobimo | Pokažemo? |
+|---|---|---|---|
+| **Mojmojster** | ocena **/10** (npr. 9,8), število ocen, **značke**: odzivnost (≥ 70 % odgovorjenih povpraševanj), izkušnje (> 10 let), priporočen izvajalec (> 2 leti in ocena > 8,5), »izbor strank« | profil (URL vnese obrtnik) [preveri ToS] | **da**: ocena, ocene, značke |
+| **Daibau** | ocene preverjenih naročnikov [preveri polja] | profil | da, če so javne |
+| **Bizi.si** | bonitetna ocena SB1–SB10, semafor; ogledov in ocen ni | Bizi API / AJPES | **ne** na tej strani (finančni podatek); samo ujemanje NAP |
+| **MyHammer** | `reviewCount`, `ratingValue` (JSON-LD), posamezne ocene z datumom, položaj na seznamu »Top 10 … in Kraj« | profil | da (DE/AT) |
+| **Check24 Profis** | `aggregateRating` | profil | da (DE) |
+| **Herold.at** | število ocen, ocena vsake ocene, »Datenstand« | profil | da (AT) |
+| **werkenntdenBESTEN** | povprečje, število, število portalov, porazdelitev po zvezdicah, »+N v 12 mesecih« | profil | da (DE) |
+| **Bing Places / Apple Business** | lastnik vidi oglede in dejanja; Apple ima izvoz CSV | obrtnik poveže ali uvozi | da, samo če povezano |
+| **OpenStreetMap / Foursquare** | prisotnost in NAP | Overpass (prosto) / odprti nabor [preveri] | **da**: vpis in ujemanje |
+| **Partnerji proizvajalcev** | prisotnost, stopnja partnerstva (npr. FSP Plus), razdalja; zvezdic ni | iskalnik po poštni številki | **da** kot značka |
+| **F-plini, Eko sklad ZER, dena, klimaaktiv** | prisotnost na seznamu | PDF / iskalnik | **da** kot značka z datumom preverbe |
+| **OZS / HWK / WKO** | vpis, obrt, mojstrski status | iskalnik | **da** kot značka |
+| **slo-tech** | **ogledi teme** (npr. 25.582), **sporočila**, zadnje sporočilo | seznam podforuma | **da** |
+| **med.over.net** | **odgovori**, zadnja aktivnost; ogledi so bili prej javni, v novi postavitvi [preveri] | seznam kategorije (selitev na medover.zurnal24.si) | **da** |
+| **Haustechnikdialog / Bauexpertenforum** | odgovori in ogledi (oznake stolpcev [preveri]), reakcije | seznam foruma | da (DE) |
+| **Reddit** | `score` (približek, »vote fuzzing«), `upvote_ratio`, `num_comments`, `created_utc`, `subreddit_subscribers`; **ogledi in delitve samo za avtorja** | iskalni API (`site:reddit.com`); neposreden API samo z odobritvijo in pogodbo | **da**: glasovi, % za, komentarji, velikost skupnosti |
+| **Članek (novice, glasilo, blog)** | medij, datum, naslov, URL, **povezava na vašo stran** (dofollow/nofollow), **doseg portala na mesec (MOSS)**, položaj na seznamu »najboljših« | DataForSEO News, Event Registry, lasten pregled HTML, MOSS lestvica | **da**; obisk posameznega članka **ni javen**, AVE **ne** |
+| **YouTube** | `viewCount`, `likeCount`, `commentCount`, datum | YouTube Data API (search 100 enot, 10.000 na dan) | **da**; hramba statistik 30 dni [preveri] |
+| **Povezave na vašo stran** | število strani, ki kažejo na vas, nove in izgubljene na mesec, vir, dofollow | DataForSEO Backlinks (< 0,10 $ na mesec) | **da**, brez DR/»authority« številk |
+| **Google (vse zgoraj)** | **položaj** URL-ja teme, članka ali profila za lokalno iskanje | DataForSEO / SerpApi (`gl=si`, lokacija) | **da**: »#4 za ›bojler Domžale‹«, z datumom meritve |
+| **e-JN / TED** | pridobljeni posli, vrednost, naročnik | iskalnik / TED API | **ne** v prvi različici |
+| **Kununu** | ocena delodajalca | profil | **ne** (ni marketing) |
 
-### A.4 Česa ni mogoče izmeriti
+### A.2 Česa ni mogoče izmeriti
 
-- **Portali:** ogledov profila, klikov na telefon in števila povpraševanj na nobenem portalu iz A.1/A.2, razen če obrtnik sam uvozi izvoz ali posreduje e-pošto.
-- **Omembe:** zaprtih Facebook skupin, dosega forumskih objav in **vseh** omemb (pokažemo samo »najdene javne omembe«).
-- **Ton:** odstotkov in trenda tona (premalo omemb).
-- **Konkurenca:** primerjave s konkurenco (kolizije imen, pravno tveganje sistematičnega zajema baz).
-- **Ocene:** pristnosti ocen; pokažemo samo vir in datum.
+- ogledov in povpraševanj na profilih portalov (razen ob uvozu ali posredovani e-pošti);
+- ogledov posameznega članka, Reddit objave ali forumske teme na med.over.net [preveri];
+- zaprtih Facebook skupin;
+- **vseh** omemb (vedno »najdene javne omembe«);
+- tona v odstotkih (premalo omemb, slovenščina v orodjih nepotrjena);
+- AVE, doseg posameznega članka, Similarweb za male portale.
 
 ---
 
 ## B. Kar izmerimo sami
 
-| Kaj | Kako | Pogoj |
-|---|---|---|
-| **Seznam vpisov** | Ob vključitvi: AJPES (MŠ) → Bizi API → iskanje imena in telefona prek iskalnega API-ja (`site:mojmojster.net`, `site:daibau.si` …). Obrtnik potrdi najdene profile, manjkajoče URL-je doda sam. | vsak obrtnik |
-| **Ujemanje podatkov** | Mesečno beremo potrjene profile in primerjamo ime, naslov, telefon, spletno stran in delovni čas z glavnim zapisom v appu. Rezultat na podatek: pravilen / napačen / ni podatka. | potrjen URL profila |
-| **Ocene po portalih** | Povprečje, število in nove ta mesec, samo zbirne številke s povezavo na vir. Besedil ocen ne kopiramo. | portal z ocenami |
-| **Omembe** | Tedensko 3 poizvedbe (ime + kraj, ime + dejavnost, telefon) prek Brave/DataForSEO, omejene na znane forume in Reddit. Ujemanje z več signali: ime + kraj + dejavnost ali telefon. LLM razvrsti: ali gre za tega obrtnika (potrjeno / verjetno / izključeno), priporoča / omenja / pritožba. | vsak obrtnik |
-| **Povpraševanja s portalov** | Obrtnik nastavi posredovanje obvestil Mojmojstra, Daibau, MyHammer … na `portal+<token>@…`. Štejemo samo prejeta povpraševanja, brez vsebine strank v prikazu. | obrtnik nastavi posredovanje |
-| **Obiski s portalov** | UTM v povezavi na profilu (`?utm_source=mojmojster`), kjer portal to dovoli, in referrer na strani, ki jo gostimo. Vedno »najmanj N«. | obrtnik ima spletno stran |
-| **»Kako ste izvedeli za nas?«** | Nove možnosti: **Mojmojster / Daibau / drug portal** in **forum ali Reddit**. Prikazano ločeno od izmerjenih števil. | obrazec ali vnos klica |
-| **Naročila in vrednost** | iz evidence, povezano s povpraševanjem iz zgornjih virov | evidenca |
-
-**Sledilnih telefonskih številk ne uporabljamo.** Ker na vsakem portalu drugačna številka podre ujemanje podatkov, so v sporu z NAP. V DE so poleg tega pravno zapletene (BNetzA, § 201 StGB pri snemanju).
+| Kaj | Kako |
+|---|---|
+| **Vpisi in ujemanje podatkov** | Mesečno preverimo ime, naslov, telefon, splet in delovni čas proti glavnemu zapisu na potrjenih profilih, zemljevidih (OSM, Bing, Apple) in v registrih. |
+| **Značke zaupanja** | Mesečno preverimo partnerje proizvajalcev (po dejavnosti), F-plin, Eko sklad, OZS/HWK in Mojmojster značke. |
+| **Omembe** | Tedensko: iskalni API (Brave / DataForSEO) za ime + kraj, ime + dejavnost, telefon, omejeno na forume, Reddit in novice. Novice še prek DataForSEO News / Event Registry, YouTube prek Data API. LLM preveri, ali gre za tega obrtnika (potrjeno / verjetno / izključeno) in ali omemba priporoča, omenja ali je pritožba. |
+| **Številke omembe** | Ob najdbi in nato enkrat na teden 4 tedne preberemo ogledi/odgovori/glasovi/komentarji (glej A.1). |
+| **Položaj v Googlu** | Za vsako potrjeno omembo enkrat na mesec 2–3 lokalne poizvedbe (storitev + kraj, ime + »izkušnje«), top 20. |
+| **Doseg medija** | MOSS mesečni doseg, če je portal vključen. Sicer brez številke. |
+| **Povezave** | DataForSEO Backlinks enkrat na mesec: nove, izgubljene, skupaj. |
+| **Povpraševanja** | posredovana obvestila portalov na `portal+<token>@…`, »Kako ste izvedeli za nas?« (+ možnosti »portal«, »forum / Reddit«, »članek / novice«, »YouTube«), UTM na profilih. |
+| **Obiski** | referrer in UTM na strani, ki jo gostimo, ujemanje z domeno omembe. Vedno »najmanj N«. |
 
 ---
 
 ## C. Osem vprašanj obrtnika
 
-| # | Vprašanje | Odgovor na strani |
+| # | Vprašanje | Odgovor |
 |---|---|---|
-| 1 | Ali me vidijo? | »Vpisani ste na N portalih« + ocene po portalih |
-| 2 | Ali me kontaktirajo? | povpraševanja s portalov (posredovana e-pošta + »Kako ste izvedeli«) |
-| 3 | Kdo čaka na odgovor? | ni na tej strani |
-| 4 | Kaj me sprašujejo / kaj pišejo? | najdene omembe na forumih in Redditu |
-| 5 | Kaj deluje najbolje? | portal z največ povpraševanji |
-| 6 | Koliko stane / prinese? | strošek portala (če ga obrtnik vnese) **ob** vrednosti naročil |
-| 7 | Od kod so stranke? | kraji iz povpraševanj s portalov (hiše) |
-| 8 | Kaj naj naredim? | ni na tej strani; samo »UKREPALI BOMO TAKO« |
+| 1 | Ali me vidijo? | vpisi + doseg omemb (ogledi teme, doseg portala, ogledi videa) + položaj v Googlu |
+| 2 | Ali me kontaktirajo? | povpraševanja s Spleta |
+| 3 | Kdo čaka? | ni na tej strani |
+| 4 | Kaj pišejo? | omembe s citatom in številkami |
+| 5 | Kaj deluje? | omemba ali portal z največ obiski oziroma povpraševanji |
+| 6 | Koliko stane / prinese? | strošek portala (če ga vnese) ob vrednosti naročil |
+| 7 | Od kod? | kraji iz povpraševanj |
+| 8 | Kaj naj naredim? | ni na tej strani; »UKREPALI BOMO TAKO« |
 
 ---
 
-## D. Pregled obstoječe strani
+## D. Obstoječa stran
 
-**Čaka na posnetek strani Analitika → Splet.** Pri pregledu preverim:
-- vrstice, ki pomešajo lastno spletno stran ali Google profil v Splet;
-- številke brez vira (»omembe +23 %«, »doseg«, »ton 82 % pozitiven«) → odstrani;
-- »vse omembe« → »najdene javne omembe«;
-- ostanke splošne predloge.
+**Čaka na posnetek.**
 
 ---
 
-## E. Enotnost z drugimi kanali
+## E. Enotnost
 
 | Modul | Vzorec |
 |---|---|
-| Glava | vijolična glava s 3 številkami, kot pri AI |
-| Kje ste vpisani | ploščice portalov z logotipom; isti označevalci kot izkaznica pri AI (✓ pravilen · **rdeče** napačen podatek · obris = ni vpisa) |
-| Ocene drugje | stolpci kot »Vaš profil« |
-| Kaj pišejo o vas | oblački kot »Kaj vas sprašujejo« (Facebook), z virom in datumom |
-| Ali je splet prinesel stranke | ilustracija z ljudmi in belimi oblački (AI, IG oglasi) |
-| Kraji | hiše (`HouseSceneEngine`) |
-| Povzetek | enak kot drugod |
-
-Rdeča barva je dovoljena **samo** za napačen podatek (enako kot telefon v AI izkaznici). Nikjer drugje ni rdeče in nikjer »slabo«.
+| Glava | vijolična glava s 3 številkami |
+| Kje ste vpisani | ilustracija z belimi karticami (»stranka kliče«), rdeče samo napačen podatek |
+| Znaki zaupanja | značke v stilu ploščic »Vaš profil« |
+| Kaj pišejo o vas | oblački kot »Kaj vas sprašujejo« + vrstica številk pod vsakim |
+| Povezave | stolpci kot e-pošta »Kliki« |
+| Ali je splet prinesel stranke | ilustracija z ljudmi in oblački |
+| Povzetek | enak |
 
 ---
 
@@ -141,50 +152,43 @@ Rdeča barva je dovoljena **samo** za napačen podatek (enako kot telefon v AI i
 
 | Stanje | Besedilo |
 |---|---|
-| prvi pregled še teče | »Iščemo, kje vse ste vpisani. Prve rezultate pokažemo v nekaj dneh.« |
-| obrtnik še ni potrdil profilov | »Našli smo N mest, kjer ste morda vpisani. Ko jih potrdite, preverimo podatke.« |
-| 0 omemb | »Ta mesec vas na forumih in Redditu ni nihče omenil. To je običajno.« (brez sivega »0«) |
-| omemba »verjetno vi« | prikazana z oznako »verjetno vi«, ne šteje v število, dokler je obrtnik ne potrdi |
-| portal ni dosegljiv | »Mojmojster ta mesec ni odgovoril – podatki so z dne 3. 9.« |
-| ni posredovanja e-pošte | ploščica povpraševanj z »Povpraševanj z Mojmojstra še ne štejemo.« |
-| obrtnik nima spletne strani | brez vrstice »obiski«, ostalo enako |
-| DE/AT obrtnik | isti moduli, nabor portalov iz A.2 |
+| prvi pregled | »Iščemo, kje vse ste na spletu. Prve rezultate pokažemo v nekaj dneh.« |
+| nepotrjeni zadetki | »Našli smo N mest, kjer ste morda vi.« |
+| 0 omemb | »Ta mesec vas na forumih, v novicah in na Redditu ni nihče omenil. To je običajno.« |
+| omemba brez številk (forum ne kaže ogledov) | pokažemo samo odgovore in datum, brez »0 ogledov« |
+| portal ni v MOSS | brez dosega, samo »lokalni portal« |
+| ni v top 20 Googla | brez oznake položaja (ne »ni v Googlu«) |
+| Reddit `score` | »približno 24 glasov« |
+| vir ni dosegljiv | »podatki z dne 3. 9.« |
+| DE/AT | isti moduli, viri iz A.0 |
 
 ---
 
 ## G. Štetje
 
-- **Vpisi:** šteje samo potrjen profil. »Morda vi« ne šteje.
-- **Napačen podatek:** en napačen podatek na portalu = en zaznamek. Napačen telefon ima prednost pred ostalimi, ker gre v AI.
-- **Ocene:** **ne** računamo skupnega povprečja čez portale (različne lestvice in pogoji). Vsak portal posebej, s številom ocen.
-- **Omembe:** samo potrjene, posamično, z virom in datumom. Brez odstotkov, tona v %, grafov in »+N od lani« pri n < 5.
-- **Povpraševanja:** vsako šteje enkrat. Če je stranka prišla z Mojmojstra in poklicala, šteje pri Mojmojstru, ne pri telefonu.
-- **Obiski** so »najmanj N«. Ne seštevamo jih s stiki.
-- **Strošek** portala samo ob vrednosti naročil. Cene na povpraševanje ni pod 3 povpraševanji.
+- **Brez seštevanja ogledov** med viri (forum, Reddit, video, portal merijo različno).
+- **Doseg portala ni bralec članka.** Napis je vedno »portal doseže ~N ljudi na mesec«.
+- **Glasovi na Redditu so približek.**
+- **Položaj v Googlu** ima datum in kraj meritve.
+- **Ocene:** vsak portal posebej, na njegovi lestvici (Mojmojster /10, ostali /5), brez skupnega povprečja.
+- **Povezave:** število in sprememba, brez DR, Trust Flow ali Authority Score (le notranje razvrščanje »močna / lokalna / mala stran«).
+- **Omembe** štejemo samo potrjene.
 
 ---
 
 ## H. Pravo, dostop, strošek
 
-- **Strganje:**
-  - Imeniki so zaščitene baze (Direktiva 96/9/ES, v DE § 87b UrhG).
-  - Prepovedi v ToS veljajo tudi za nezaščitene baze (SEU C-30/14 Ryanair).
-  - Zato beremo **samo profil posameznega obrtnika**, na njegovo željo, enkrat na mesec, ter uporabljamo API-je (AJPES, Bizi, ProvenExpert, Trustpilot). **ToS vsakega portala pravno preverimo pred zagonom [preveri].**
-- **Google ocene:** strganje je prepovedano. Lastnik jih bere prek GBP API (kanal Google).
-- **§ 5b UWG / Omnibus:** ne velja neposredno, ker prikazujemo samo obrtniku, ne potrošnikom. Kljub temu vsaka ocena dobi vir in datum, nikjer ne napišemo »preverjena«. Ne ponudimo javnega pripomočka z združeno oceno.
-- **GDPR:**
-  - Obrtnik s.p., avtorji objav in osebe v objavah so posamezniki.
-  - Pravna podlaga je zakoniti interes (6(1)(f), SEU C-621/22) s testom LIA.
-  - Hranimo samo URL, datum, vir in razvrstitev ter kratek izsek, ki zadeva samo obrtnika. **Ne hranimo vzdevkov avtorjev.**
-  - Hramba: izseki 12 mesecev, metapodatki 24 mesecev [predlog].
-  - Obvestilo po čl. 14 z javnim obvestilom o zasebnosti [preveri].
-  - DPA z iskalnim ponudnikom in ponudnikom LLM.
-- **Reddit:** neposreden API samo z odobritvijo. Uporabljamo iskalni API in prikažemo samo naslov in povezavo.
+- **Strganje:** baze imenikov so zaščitene (96/9/ES, § 87b UrhG), ToS prepovedi veljajo (C-30/14). Beremo samo profil posameznega obrtnika ali uporabimo API. Pred zagonom pravno preverimo ToS [preveri].
+- **Novice:** pravica izdajateljev (SI **ZASP-I, 139.a čl.**; DE § 87f–87k UrhG). Prikažemo naslov, medij, datum in povezavo, citata iz članka ne.
+- **Reddit:** Responsible Builder Policy (11. 11. 2025), komercialna raba po pogodbi. Uporabljamo iskalni API. Hranimo ID in številke, ne besedila. Izbrisano odstranimo.
+- **YouTube:** hramba statistik brez avtorizacije 30 dni [preveri spremembe 5–6/2026].
+- **GDPR:** zakoniti interes (6(1)(f), C-621/22) + LIA. Ne hranimo vzdevkov in imen drugih oseb. Izseki 12 mesecev, metapodatki 24 mesecev [predlog]. Negativne članke vidi samo obrtnik.
 - **Strošek na obrtnika na mesec:**
-  - iskalni API < 0,10 $;
-  - LLM razvrščanje ~0,01–0,05 $;
-  - Bizi API razdeljen na obrtnike [preveri ceno za naš obseg];
-  - AJPES po tarifi.
+  - iskalni API in SERP: < 0,30 $;
+  - Backlinks: < 0,10 $;
+  - Event Registry: delež paketa ~90 $/mes;
+  - YouTube: brezplačno (kvota ~700 obrtnikov na teden);
+  - LLM: ~0,05 $.
 
 ---
 
@@ -194,36 +198,41 @@ Rdeča barva je dovoljena **samo** za napačen podatek (enako kot telefon v AI i
 
 ---
 
-## J. Predlagana zgradba strani
+## J. Zgradba strani
 
-1. **Glava »Kje vas najdejo na spletu«:** **6 portalov** · **1 napačen podatek** · **2 omembi** · izbirnik meseca. Opomba: »Pregledamo portale in forume, kjer ste vpisani ali omenjeni.«
-2. **Kje ste vpisani:** ploščice portalov (Bizi, TIS, Mojmojster, Daibau, Bing, Apple; DE: Gelbe Seiten, MyHammer …).
-   - Na vsaki: ✓ podatki pravilni, ali **rdeče** »star telefon«, ali obris »ni vpisa«.
-   - Ob portalih, ki jih AI pogosto bere, majhna iskrica (povezava s kanalom AI).
-3. **Ocene drugje:** po portalu povprečje ★, število ocen in »+N novih ta mesec«.
-4. **Kaj pišejo o vas:** do 3 najdene omembe.
-   - Vir (med.over.net, Reddit …), datum in kratek izsek.
-   - Oznaka »priporoča« / »omenja« / »pritožba«.
-   - Opomba »najdene javne omembe; zaprtih Facebook skupin ne vidimo«.
-5. **Ali je splet prinesel stranke:** ilustracija z oblački.
-   - povpraševanja s portalov;
-   - »najmanj N obiskov s portalov«;
-   - naročila in vrednost dela.
-6. **Povzetek meseca:** enak kot drugod.
+1. **Glava:** »Na spletu ste na 14 mestih – en podatek je napačen.« · **14** mest · **1** napačen podatek · **3** nove omembe.
+2. **Kje ste vpisani** (ilustracija »stranka kliče«): kartice s telefonom, ki ga vidi stranka (Bizi rdeče). Spodaj oznake zemljevidov in registrov (Bing, Apple, OSM, AJPES).
+3. **Znaki zaupanja:** značke s kljukico in datumom.
+   - Vaillant pooblaščeni serviser;
+   - F-plini certifikat;
+   - OZS;
+   - Mojmojster »odzivnost« in »10+ let«;
+   - »priporočen izvajalec – še ne« v obrisu.
+4. **Ocene drugje:** Mojmojster 9,8 /10 (23 ocen, +2), Daibau 4,8 ★.
+5. **Kaj pišejo o vas:** vsaka omemba z vrstico številk.
+   - forum: ogledi · odgovori · #N v Googlu;
+   - Reddit: ▲ glasovi · % za · komentarji · velikost skupnosti;
+   - članek: medij · doseg portala · ✓ povezava na vašo stran;
+   - video: ogledi · všečki · komentarji.
+6. **Kdo kaže na vašo stran:** »14 strani, septembra +2« + stolpci zadnjih 6 mesecev.
+7. **Ali je splet prinesel stranke:** ilustracija z obiski, povpraševanji in naročilom.
+8. **Povzetek.**
 
-**Namenoma ne:** odstotki tona, doseg, »share of voice«, primerjava s konkurenco, skupno povprečje ocen, število vseh imenikov kot cilj, sledilne številke.
+**Namenoma ne:** % tona, AVE, doseg članka, DR, skupno povprečje ocen, bonitete, Kununu, javna naročila, seznam »kje manjkate« z gumbi.
 
 ---
 
 ## Kontrolni seznam
 
-- [x] A popis virov (SI, DE/AT, forumi, česa ni)
+- [x] A.0 vrste mest
+- [x] A.1 javne številke po viru
+- [x] A.2 česa ni
 - [x] B lastno merjenje
 - [x] C osem vprašanj
-- [ ] D obstoječa stran: **čaka na posnetek**
+- [ ] D: čaka na posnetek
 - [x] E enotnost
 - [x] F stanja
 - [x] G štetje
 - [x] H pravo, dostop, strošek
-- [ ] I napake: čaka na posnetek
-- [~] J zgradba predlagana, slika sledi
+- [ ] I: čaka na posnetek
+- [~] J zgradba, slika v2
