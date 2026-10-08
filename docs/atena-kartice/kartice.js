@@ -31,13 +31,14 @@
     function html() {
       var kl = stanje.skupina === "klici";
       return '<h2 class="atena-opravila__naslov">Kaj želite urediti?</h2>' +
-        '<div class="atena-opravila__glavna" role="button" tabindex="0" data-skupina="klici" aria-pressed="' + kl + '">' +
-        '<span class="atena-opravila__glavna-ikona">' + I(IKONE.klici, 22) + "</span><span>" +
-        '<span class="atena-opravila__glavna-naslov" data-fit-text data-fit-text-min="12">Klici prodajalcev</span>' +
+        '<div class="atena-opravila__glava"><div class="atena-opravila__glavna" role="button" tabindex="0" data-skupina="klici" aria-pressed="' + kl + '">' +
+        '<span class="atena-opravila__glavna-ikona">' + I(IKONE.klici, 18) + "</span><span>" +
+        '<span class="atena-opravila__glavna-naslov" data-fit-text data-fit-text-min="11">Klici prodajalcev</span>' +
+        '<span class="atena-opravila__glavna-opis" data-fit-text data-fit-text-min="8">Ustavite ali preusmerite</span></span>' +
         '<span class="atena-opravila__stikalo" role="tablist" aria-label="Vir korakov">' +
-        '<button type="button" role="tab" data-vir="hitri" aria-selected="' + (stanje.vir === "hitri") + '">' + I(IKONE.hitri, 11) + " Hitri koraki <i>" + (o.hitri || 0) + "</i></button>" +
-        '<button type="button" role="tab" data-vir="moji" aria-selected="' + (stanje.vir === "moji") + '">' + I(IKONE.moji, 11) + " Moji <i>" + (o.moji || 0) + "</i></button>" +
-        "</span></span></div>" +
+        '<button type="button" role="tab" data-vir="hitri" aria-label="Hitri koraki: ' + (o.hitri || 0) + '" aria-selected="' + (stanje.vir === "hitri") + '"><b>' + I(IKONE.hitri, 12) + (o.hitri || 0) + "</b><small>hitri</small></button>" +
+        '<button type="button" role="tab" data-vir="moji" aria-label="Moji koraki: ' + (o.moji || 0) + '" aria-selected="' + (stanje.vir === "moji") + '"><b>' + I(IKONE.moji, 12) + (o.moji || 0) + "</b><small>moji</small></button>" +
+        "</span></div></div>" +
         '<div class="atena-opravila__vrsta">' + SKUPINE.map(function (s) {
           var iz = stanje.skupina === s.id;
           return '<button type="button" class="atena-opravila__kartica' + (iz ? " is-izbrana" : "") + '" data-skupina="' + s.id + '" aria-pressed="' + iz + '">' +

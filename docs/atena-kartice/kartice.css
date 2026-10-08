@@ -2,16 +2,26 @@
 .atena-opravila{--atena-c:#c4566f;font-family:"Figtree",system-ui,sans-serif;color:#1f1a4d}
 .atena-opravila__naslov{font:800 21px/1.1 "Bricolage Grotesque",sans-serif;margin:4px 4px 10px;letter-spacing:-.01em}
 
-/* prva kartica */
-.atena-opravila__glavna{position:relative;overflow:hidden;display:grid;grid-template-columns:44px minmax(0,1fr);gap:11px;align-items:center;width:100%;border:0;text-align:left;border-radius:22px;padding:11px 12px;color:#fff;background:linear-gradient(140deg,#c4566f,#e07c93);box-shadow:0 12px 24px rgba(196,86,111,.28);cursor:pointer;font:inherit}
-.atena-opravila__glavna::after{content:"";position:absolute;right:-40px;top:-50px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
+/* prva kartica: naslov levo, dve kvadratni ploščici desno (Hitri / Moji) */
+.atena-opravila__glava{container-type:inline-size}
+.atena-opravila__glavna{position:relative;overflow:hidden;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;width:100%;border-radius:20px;padding:8px 8px 8px 10px;color:#fff;background:linear-gradient(140deg,#c4566f,#e07c93);box-shadow:0 10px 20px rgba(196,86,111,.26);cursor:pointer}
+.atena-opravila__glavna::after{content:"";position:absolute;right:-36px;top:-44px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
+.atena-opravila__glavna>*{position:relative;z-index:1}
 .atena-opravila__glavna[aria-pressed="false"]{opacity:.92;box-shadow:0 6px 14px rgba(196,86,111,.18)}
-.atena-opravila__glavna-ikona{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.22);display:grid;place-items:center}
-.atena-opravila__glavna-naslov{position:relative;z-index:1;display:block;font:800 15px/1.1 "Bricolage Grotesque",sans-serif}
-.atena-opravila__stikalo{position:relative;z-index:1;display:inline-flex;margin-top:7px;background:rgba(255,255,255,.18);border-radius:99px;padding:3px;gap:2px}
-.atena-opravila__stikalo button{display:flex;align-items:center;gap:5px;min-height:28px;border:0;border-radius:99px;padding:4px 10px;background:transparent;color:#fff;font:800 10.5px "Figtree",sans-serif;white-space:nowrap;cursor:pointer}
-.atena-opravila__stikalo button[aria-selected="true"]{background:#fff;color:#c4566f}
-.atena-opravila__stikalo i{font-style:normal;font-size:10px;opacity:.85}
+.atena-opravila__glavna-ikona{width:34px;height:34px;border-radius:12px;background:rgba(255,255,255,.22);display:grid;place-items:center}
+.atena-opravila__glavna-naslov{display:block;font:800 14.5px/1.1 "Bricolage Grotesque",sans-serif;white-space:nowrap}
+.atena-opravila__glavna-opis{display:block;margin-top:2px;font:600 10px/1.2 "Figtree",sans-serif;opacity:.9;white-space:nowrap}
+.atena-opravila__stikalo{display:flex;gap:5px}
+.atena-opravila__stikalo button{width:54px;height:50px;border:0;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;font:inherit}
+.atena-opravila__stikalo b{display:flex;align-items:center;gap:3px;font:800 17px/1 "Bricolage Grotesque",sans-serif}
+.atena-opravila__stikalo small{font:800 9px "Figtree",sans-serif;opacity:.95}
+.atena-opravila__stikalo button[aria-selected="true"]{background:#fff;color:#c4566f;box-shadow:0 6px 12px rgba(120,20,50,.22)}
+@container (max-width:300px){
+  .atena-opravila__glavna{grid-template-columns:30px minmax(0,1fr) auto}
+  .atena-opravila__glavna-ikona{width:30px;height:30px}
+  .atena-opravila__glavna-naslov{font-size:12.5px}.atena-opravila__glavna-opis{font-size:9px}
+  .atena-opravila__stikalo button{width:46px;height:46px}
+}
 
 /* pet kartic */
 .atena-opravila__vrsta{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:26px}

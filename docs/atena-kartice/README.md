@@ -7,7 +7,7 @@ Kode vijolične strani Atena v repozitoriju ni, ker obstaja samo lokalno. Zato j
 ## Kaj se spremeni
 
 1. **Zavihki »Hitri koraki 4 / Moji koraki 5 / +« nad naslovom se odstranijo.** Stikalo je zdaj v prvi kartici.
-2. **Prva kartica čez vso širino (rožnata), »Klici prodajalcev«.** V njej je stikalo `Hitri koraki N` / `Moji N`. Gumb `+` za nov lasten korak ostane v obstoječem »Uredi«.
+2. **Prva kartica čez vso širino (rožnata, kompaktna, ~66 px), »Klici prodajalcev · Ustavite ali preusmerite«.** Desno sta **dve kvadratni ploščici** ⚡ `N` hitri in ☰ `N` moji (54 × 50 px, izbrana bela). Gumb `+` za nov lasten korak ostane v obstoječem »Uredi«. Slika: `../marketing-predlog/atena-klici-kompaktno-3.png`, zasnova 3.
 3. **Pod njo pet kartic v eni vrsti.** Ikona v polnem krogu sega čez zgornji rob kartice, kartica je obarvana v svoji barvi, kontekst je spodaj v barvi kartice.
 
 | Kartica | Naslov | Kontekst | Barva |
@@ -28,7 +28,7 @@ Kode vijolične strani Atena v repozitoriju ni, ker obstaja samo lokalno. Zato j
 
 ## Mere (390 px)
 
-- prva kartica: radij 22 px, odmik 12 px, ikona 44 × 44 px;
+- prva kartica: radij 20 px, odmik 8/8/8/10 px, ikona 34 × 34 px, naslov 14,5 px, ploščici 54 × 50 px (pri ožini kot 300 px: 46 × 46 px, naslov 12,5 px);
 - vrsta kartic: 5 stolpcev, razmik 6 px, zgornji odmik 26 px za krogce;
 - kartica: najmanj 120 px, radij 18 px, notranji odmik zgoraj 24 px;
 - krog ikone: **32 × 32 px** (zmanjšan), sega 15 px čez rob, bel obroč 4 px;
