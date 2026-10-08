@@ -1,6 +1,7 @@
 /* Atena · »Kaj želite urediti?« — izris in vedenje kartic opravil.
-   Uporaba: UJAtenaOpravila.izrisi(elKoren, { hitri: 4, moji: 5, skupina: "klici", vir: "hitri" });
-   Ob izbiri sproži na korenu dogodek "atena:skupina" z detail { skupina, vir }. */
+   Uporaba: UJAtenaOpravila.izrisi(elKoren, { hitri: 4, moji: 5 });  // na začetku ni nič izbrano
+   Ob izbiri sproži na korenu dogodek "atena:skupina" z detail { skupina, vir };
+   plus na »moji« sproži "atena:dodaj-korak". */
 (function (root) {
   "use strict";
   var I = function (d, s) {
@@ -27,33 +28,36 @@
 
   function izrisi(el, o) {
     o = o || {};
-    var stanje = { skupina: o.skupina || "klici", vir: o.vir || "hitri" };
+    var stanje = { skupina: o.skupina || null, vir: o.vir || null };
     function html() {
       var kl = stanje.skupina === "klici";
-      return '<h2 class="atena-opravila__naslov">Kaj želite urediti?</h2>' +
-        '<div class="atena-opravila__glava"><div class="atena-opravila__glavna" role="button" tabindex="0" data-skupina="klici" aria-pressed="' + kl + '">' +
+      var KLJ = '<span class="atena-opravila__kljukica" aria-hidden="true">' + I('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 10) + "</span>";
+      return '<h2 class="atena-opravila__naslov">Kaj želite urediti?</h2><div class="atena-opravila__ovoj">' +
+        '<div class="atena-opravila__glava"><div class="atena-opravila__glavna" data-skupina="klici" data-izbrana="' + kl + '">' +
         '<span class="atena-opravila__glavna-ikona">' + I(IKONE.klici, 18) + "</span><span>" +
         '<span class="atena-opravila__glavna-naslov" data-fit-text data-fit-text-min="11">Klici prodajalcev</span>' +
-        '<span class="atena-opravila__glavna-opis" data-fit-text data-fit-text-min="8">Ustavite ali preusmerite</span></span>' +
-        '<span class="atena-opravila__stikalo" role="tablist" aria-label="Vir korakov">' +
-        '<button type="button" role="tab" data-vir="hitri" aria-label="Hitri koraki: ' + (o.hitri || 0) + '" aria-selected="' + (stanje.vir === "hitri") + '"><b>' + I(IKONE.hitri, 12) + (o.hitri || 0) + "</b><small>hitri</small></button>" +
-        '<button type="button" role="tab" data-vir="moji" aria-label="Moji koraki: ' + (o.moji || 0) + '" aria-selected="' + (stanje.vir === "moji") + '"><b>' + I(IKONE.moji, 12) + (o.moji || 0) + "</b><small>moji</small></button>" +
+        (stanje.vir ? '<span class="atena-opravila__glavna-opis" data-fit-text data-fit-text-min="8">Ustavite ali preusmerite</span>' : '<span class="atena-opravila__namig"><i>›</i>Izberite korake</span>') + "</span>" +
+        '<span class="atena-opravila__stikalo' + (stanje.vir ? " is-izbrano" : "") + '" role="group" aria-label="Vir korakov">' +
+        '<button type="button" data-vir="hitri" aria-label="Hitri koraki: ' + (o.hitri || 0) + '" aria-pressed="' + (stanje.vir === "hitri") + '">' + KLJ + "<b>" + I(IKONE.hitri, 12) + (o.hitri || 0) + "</b><small>hitri</small></button>" +
+        '<span class="atena-opravila__moji-ovoj"><button type="button" data-vir="moji" aria-label="Moji koraki: ' + (o.moji || 0) + '" aria-pressed="' + (stanje.vir === "moji") + '">' + KLJ + "<b>" + I(IKONE.moji, 12) + (o.moji || 0) + "</b><small>moji</small>" +
+        '</button><button type="button" class="atena-opravila__plus" data-dodaj-korak aria-label="Dodaj svoj korak"><span>' + I('<path d="M12 5v14M5 12h14"/>', 11) + "</span></button></span>" +
         "</span></div></div>" +
-        '<div class="atena-opravila__vrsta">' + SKUPINE.map(function (s) {
+        '<div class="atena-opravila__locilo">ALI IZBERITE DRUGO</div><div class="atena-opravila__vrsta">' + SKUPINE.map(function (s) {
           var iz = stanje.skupina === s.id;
           return '<button type="button" class="atena-opravila__kartica' + (iz ? " is-izbrana" : "") + '" data-skupina="' + s.id + '" aria-pressed="' + iz + '">' +
             '<span class="atena-opravila__kartica-ikona">' + I(IKONE[s.id], 15) + "</span>" +
             '<span class="atena-opravila__kartica-naslov" data-fit-text data-fit-text-min="9" data-fit-text-lines="2">' + s.naslov + "</span>" +
             '<span class="atena-opravila__kartica-kontekst" data-fit-text data-fit-text-min="8" data-fit-text-lines="2">' + s.kontekst + "</span></button>";
-        }).join("") + "</div>";
+        }).join("") + "</div></div>";
     }
     function sporoci() {
-      el.style.setProperty("--atena-c", BARVE[stanje.skupina]);
+      if (stanje.skupina) el.style.setProperty("--atena-c", BARVE[stanje.skupina]);
       el.dispatchEvent(new CustomEvent("atena:skupina", { bubbles: true, detail: { skupina: stanje.skupina, vir: stanje.vir } }));
     }
-    function osvezi() { el.innerHTML = html(); sporoci(); }
+    function osvezi() { el.innerHTML = html(); if (stanje.skupina) sporoci(); }
     el.classList.add("atena-opravila");
     el.addEventListener("click", function (e) {
+      if (e.target.closest("[data-dodaj-korak]")) { e.stopPropagation(); el.dispatchEvent(new CustomEvent("atena:dodaj-korak", { bubbles: true })); return; }
       var vir = e.target.closest("[data-vir]");
       if (vir) { stanje.vir = vir.getAttribute("data-vir"); stanje.skupina = "klici"; osvezi(); return; }
       var k = e.target.closest("[data-skupina]");

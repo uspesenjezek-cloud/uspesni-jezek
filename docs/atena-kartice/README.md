@@ -1,6 +1,6 @@
 # Atena → »Kaj želite urediti?« — nove kartice (za vgradnjo)
 
-Potrjena slika: `../marketing-predlog/atena-kartice-izbrana.png` (levo 390 px, desno 320 px).
+Potrjena slika: `../marketing-predlog/atena-celota-3.png`, zasnova 1 (ena bela kartica, »ALI IZBERITE DRUGO«). Kartice spodaj: `atena-kartice-izbrana.png`. Gumba Hitri / Moji: `atena-klikljivo-2.png`, zasnova B.
 
 Kode vijolične strani Atena v repozitoriju ni, ker obstaja samo lokalno. Zato je tukaj samostojna komponenta: `kartice.css`, `kartice.js` in predogled `predogled.html`. **V lokalni strani zamenjaj obstoječi blok »Kaj želite urediti?« in zavihke »Hitri koraki / Moji koraki«**. Ne dodajaj druge vzporedne strani.
 
@@ -19,7 +19,17 @@ Kode vijolične strani Atena v repozitoriju ni, ker obstaja samo lokalno. Zato j
 | Iskanje ponudb | Poiščite ponudbe | primerjamo za vas | `#14928f` |
 | Iskanje delavca | Poiščite mojstra | z izkušnjami | `#3d8a4f` |
 
-## Vedenje (ostane enako kot zdaj)
+## Celota
+
+Rožnata kartica in pet kartic sta v **eni beli kartici** (radij 26 px, odmik 6 px, rahla senca). Vmes je ločilo »ALI IZBERITE DRUGO«.
+
+## Gumba Hitri / Moji
+
+- **Na začetku ni nič izbrano.** Pod naslovom piše »› Izberite korake«, oba gumba sta dvignjena (bela, spodnji rob `#a8435a`).
+- Tap izbere gumb: ta se »pritisne« (obroba, zelena kljukica), drugi zbledi (opacity .75), podnaslov postane »Ustavite ali preusmerite«.
+- Plus na kotu »moji« sproži `atena:dodaj-korak` (odpre obstoječe okno za nov korak). Tarča je 44 px, tap ne izbere ploščice.
+
+## Vedenje
 
 - Tap na kartico jo izbere (`aria-pressed="true"`, razred `is-izbrana`). **Pas z ježkom spodaj se takoj napolni s koraki te skupine**, brez pomikanja.
 - Stikalo Hitri / Moji v prvi kartici preklopi vir korakov v pasu (obstoječa logika zavihkov). Ob tem se izbere prva kartica.
