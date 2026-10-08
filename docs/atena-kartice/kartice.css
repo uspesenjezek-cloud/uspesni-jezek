@@ -1,0 +1,31 @@
+/* Atena · »Kaj želite urediti?« — kartice opravil */
+.atena-opravila{--atena-c:#c4566f;font-family:"Figtree",system-ui,sans-serif;color:#1f1a4d}
+.atena-opravila__naslov{font:800 21px/1.1 "Bricolage Grotesque",sans-serif;margin:4px 4px 10px;letter-spacing:-.01em}
+
+/* prva kartica */
+.atena-opravila__glavna{position:relative;overflow:hidden;display:grid;grid-template-columns:44px minmax(0,1fr);gap:11px;align-items:center;width:100%;border:0;text-align:left;border-radius:22px;padding:11px 12px;color:#fff;background:linear-gradient(140deg,#c4566f,#e07c93);box-shadow:0 12px 24px rgba(196,86,111,.28);cursor:pointer;font:inherit}
+.atena-opravila__glavna::after{content:"";position:absolute;right:-40px;top:-50px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
+.atena-opravila__glavna[aria-pressed="false"]{opacity:.92;box-shadow:0 6px 14px rgba(196,86,111,.18)}
+.atena-opravila__glavna-ikona{width:44px;height:44px;border-radius:15px;background:rgba(255,255,255,.22);display:grid;place-items:center}
+.atena-opravila__glavna-naslov{position:relative;z-index:1;display:block;font:800 15px/1.1 "Bricolage Grotesque",sans-serif}
+.atena-opravila__stikalo{position:relative;z-index:1;display:inline-flex;margin-top:7px;background:rgba(255,255,255,.18);border-radius:99px;padding:3px;gap:2px}
+.atena-opravila__stikalo button{display:flex;align-items:center;gap:5px;min-height:28px;border:0;border-radius:99px;padding:4px 10px;background:transparent;color:#fff;font:800 10.5px "Figtree",sans-serif;white-space:nowrap;cursor:pointer}
+.atena-opravila__stikalo button[aria-selected="true"]{background:#fff;color:#c4566f}
+.atena-opravila__stikalo i{font-style:normal;font-size:10px;opacity:.85}
+
+/* pet kartic */
+.atena-opravila__vrsta{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:26px}
+.atena-opravila__kartica{--c:#7a4fe0;--bg:#f3effe;--bd:#e0d6fb;position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:120px;padding:24px 5px 10px;border:0;border-radius:18px;text-align:center;font:inherit;cursor:pointer;background:linear-gradient(170deg,var(--bg) 0%,var(--bg) 35%,#fff 100%);box-shadow:0 0 0 1px var(--bd),0 10px 18px -8px color-mix(in srgb,var(--c) 35%,transparent);transition:box-shadow .18s ease,transform .18s ease}
+.atena-opravila__kartica-ikona{position:absolute;top:-15px;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff;box-shadow:0 0 0 4px #f4f1ff,0 8px 14px -4px var(--c)}
+.atena-opravila__kartica-naslov{font:800 11px/1.12 "Bricolage Grotesque",sans-serif;color:#1f1a4d}
+.atena-opravila__kartica-kontekst{margin-top:auto;font:800 9.5px/1.2 "Figtree",sans-serif;color:var(--c)}
+.atena-opravila__kartica.is-izbrana{box-shadow:0 0 0 2px var(--c),0 12px 20px -8px color-mix(in srgb,var(--c) 55%,transparent)}
+.atena-opravila__kartica:focus-visible,.atena-opravila__glavna:focus-visible{outline:3px solid color-mix(in srgb,var(--c,#c4566f) 45%,transparent);outline-offset:2px}
+
+.atena-opravila__kartica[data-skupina="ponudba"]{--c:#d48a12;--bg:#fff6e6;--bd:#f5e2bd}
+.atena-opravila__kartica[data-skupina="pogodbe"]{--c:#2d7fd0;--bg:#eef5ff;--bd:#d5e5f8}
+.atena-opravila__kartica[data-skupina="pogajanje"]{--c:#7a4fe0;--bg:#f3effe;--bd:#e0d6fb}
+.atena-opravila__kartica[data-skupina="iskanje"]{--c:#14928f;--bg:#eaf7f5;--bd:#cbeae6}
+.atena-opravila__kartica[data-skupina="mojster"]{--c:#3d8a4f;--bg:#eef8f0;--bd:#d2ecd8}
+
+@media (prefers-reduced-motion:no-preference){.atena-opravila__kartica:active{transform:scale(.97)}}
