@@ -3,33 +3,108 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".",
   "rewrites": [
-    { "source": "/api/boniteta-pro", "destination": "/api/boniteta?handler=pro" },
-    { "source": "/api/mehka-boniteta", "destination": "/api/boniteta?handler=soft" },
-    { "source": "/api/mehka-boniteta-opravilo", "destination": "/api/boniteta?handler=job" },
-    { "source": "/api/pos-racun-pdf", "destination": "/api/pos?handler=invoice-pdf" },
-    { "source": "/api/pos-racun-korekcija", "destination": "/api/pos?handler=invoice-adjustment" },
-    { "source": "/api/pos-racun-xrechnung", "destination": "/api/pos?handler=invoice-xrechnung" },
-    { "source": "/api/pos-dostava-sandbox", "destination": "/api/pos?handler=delivery-sandbox" },
-    { "source": "/api/pos-dostava-delavec", "destination": "/api/pos?handler=delivery-worker" },
-    { "source": "/api/pos-dostava-email", "destination": "/api/pos?handler=delivery-email" },
-    { "source": "/api/pos-dostava-webhook", "destination": "/api/pos?handler=delivery-webhook" },
-    { "source": "/api/pos-fiskaly", "destination": "/api/pos?handler=fiskaly-sign" },
-    { "source": "/api/pos-finapi", "destination": "/api/pos?handler=finapi-bank" },
-    { "source": "/api/pos-stripe-checkout", "destination": "/api/pos?handler=stripe-checkout" },
-    { "source": "/api/pos-stripe-webhook", "destination": "/api/pos?handler=stripe-webhook" },
-    { "source": "/api/pos-arhiv", "destination": "/api/pos?handler=archive" },
-    { "source": "/api/pos-datev", "destination": "/api/pos?handler=datev" },
-    { "source": "/api/promet-dan", "destination": "/api/pos?handler=promet&akcija=dan" },
-    { "source": "/api/promet-napoved", "destination": "/api/pos?handler=promet&akcija=napoved" },
-    { "source": "/api/promet-stanje", "destination": "/api/pos?handler=promet&akcija=stanje" },
-    { "source": "/api/promet-zemljevid", "destination": "/api/pos?handler=promet&akcija=zemljevid" },
-    { "source": "/api/promet-zbiraj", "destination": "/api/pos?handler=promet&akcija=zbiraj" },
-    { "source": "/api/promet-voznja", "destination": "/api/pos?handler=promet&akcija=voznja" }
+    {
+      "source": "/api/boniteta-pro",
+      "destination": "/api/boniteta?handler=pro"
+    },
+    {
+      "source": "/api/mehka-boniteta",
+      "destination": "/api/boniteta?handler=soft"
+    },
+    {
+      "source": "/api/mehka-boniteta-opravilo",
+      "destination": "/api/boniteta?handler=job"
+    },
+    {
+      "source": "/api/pos-racun-pdf",
+      "destination": "/api/pos?handler=invoice-pdf"
+    },
+    {
+      "source": "/api/pos-racun-korekcija",
+      "destination": "/api/pos?handler=invoice-adjustment"
+    },
+    {
+      "source": "/api/pos-racun-xrechnung",
+      "destination": "/api/pos?handler=invoice-xrechnung"
+    },
+    {
+      "source": "/api/pos-dostava-sandbox",
+      "destination": "/api/pos?handler=delivery-sandbox"
+    },
+    {
+      "source": "/api/pos-dostava-delavec",
+      "destination": "/api/pos?handler=delivery-worker"
+    },
+    {
+      "source": "/api/pos-dostava-email",
+      "destination": "/api/pos?handler=delivery-email"
+    },
+    {
+      "source": "/api/pos-dostava-webhook",
+      "destination": "/api/pos?handler=delivery-webhook"
+    },
+    {
+      "source": "/api/pos-fiskaly",
+      "destination": "/api/pos?handler=fiskaly-sign"
+    },
+    {
+      "source": "/api/pos-finapi",
+      "destination": "/api/pos?handler=finapi-bank"
+    },
+    {
+      "source": "/api/pos-stripe-checkout",
+      "destination": "/api/pos?handler=stripe-checkout"
+    },
+    {
+      "source": "/api/pos-stripe-webhook",
+      "destination": "/api/pos?handler=stripe-webhook"
+    },
+    {
+      "source": "/api/pos-arhiv",
+      "destination": "/api/pos?handler=archive"
+    },
+    {
+      "source": "/api/pos-datev",
+      "destination": "/api/pos?handler=datev"
+    },
+    {
+      "source": "/api/promet-dan",
+      "destination": "/api/pos?handler=promet&akcija=dan"
+    },
+    {
+      "source": "/api/promet-napoved",
+      "destination": "/api/pos?handler=promet&akcija=napoved"
+    },
+    {
+      "source": "/api/promet-stanje",
+      "destination": "/api/pos?handler=promet&akcija=stanje"
+    },
+    {
+      "source": "/api/promet-zemljevid",
+      "destination": "/api/pos?handler=promet&akcija=zemljevid"
+    },
+    {
+      "source": "/api/promet-zbiraj",
+      "destination": "/api/pos?handler=promet&akcija=zbiraj"
+    },
+    {
+      "source": "/api/promet-voznja",
+      "destination": "/api/pos?handler=promet&akcija=voznja"
+    }
   ],
   "crons": [
-    { "path": "/api/mehka-boniteta-delavec", "schedule": "17 2 * * *" },
-    { "path": "/api/pos-dostava-delavec", "schedule": "31 3 * * *" },
-    { "path": "/api/pos-arhiv-delavec", "schedule": "23 4 1 * *" }
+    {
+      "path": "/api/mehka-boniteta-delavec",
+      "schedule": "17 2 * * *"
+    },
+    {
+      "path": "/api/pos-dostava-delavec",
+      "schedule": "31 3 * * *"
+    },
+    {
+      "path": "/api/pos-arhiv-delavec",
+      "schedule": "23 4 1 * *"
+    }
   ],
   "functions": {
     "api/obdelaj-opomine.js": {
@@ -38,22 +113,33 @@
     "api/boniteta.js": {
       "maxDuration": 60,
       "memory": 1769,
-      "regions": ["fra1"]
+      "regions": [
+        "fra1"
+      ]
     },
     "api/mehka-boniteta-delavec.js": {
       "maxDuration": 60,
       "memory": 1769,
-      "regions": ["fra1"]
+      "regions": [
+        "fra1"
+      ]
     },
     "api/pos.js": {
       "maxDuration": 60,
       "memory": 1024,
-      "regions": ["fra1"]
+      "regions": [
+        "fra1"
+      ]
     },
     "api/pos-arhiv-delavec.js": {
       "maxDuration": 60,
       "memory": 1024,
-      "regions": ["fra1"]
+      "regions": [
+        "fra1"
+      ]
     }
+  },
+  "git": {
+    "deploymentEnabled": false
   }
 }
