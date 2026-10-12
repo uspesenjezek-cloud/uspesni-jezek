@@ -17,6 +17,8 @@ function summarize(status, body) {
   }
   if (![200, 503].includes(status) || typeof body.degraded !== "boolean"
       || typeof body.ok !== "boolean" || typeof body.recoveryDiagnosticsUnavailable !== "boolean"
+      || (Object.prototype.hasOwnProperty.call(body, "recoveryDiagnosticsDeferred")
+        && typeof body.recoveryDiagnosticsDeferred !== "boolean")
       || !Array.isArray(body.recoveryRequired)) {
     return { ok: false, code: "MONITOR_INVALID_RESPONSE", exitCode: 2 };
   }
