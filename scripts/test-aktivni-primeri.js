@@ -25,7 +25,7 @@ assert.match(html, /data-aktivni-primeri-root/);
 assert.match(html, /data-aktivni-primeri-vsebina/);
 assert.match(html, /data-aktivni-primeri-seznam/);
 assert.match(html, /data-aktivni-primeri-prazno hidden/);
-assert.match(html, /aktivni-primeri\.js\?v=20260814-aktivni-primeri-v4/);
+assert.match(html, /aktivni-primeri\.js\?v=20260818-egress-v5/);
 assert.match(izvedbaHtml, /href="aktivni-primeri\.html"/);
 assert.match(neplacilaHtml, /location\.replace\("aktivni-primeri\.html"\)/);
 assert.match(appJs, /window\.location\.href = "aktivni-primeri\.html"/);
@@ -37,7 +37,7 @@ assert.match(localServerJs, /pathname === "\/__app-version"/);
 assert.match(localServerJs, /version-sync\.js\?v=20260814-device-sync-v1/);
 assert.match(localServerJs, /izracunajRazlicicoAplikacije/);
 
-assert.match(izvedbaHtml, /izvedba-api\.js\?v=20260814-horizontalni-zaklep-v16/);
+assert.match(izvedbaHtml, /izvedba-api\.js\?v=20260818-egress-v1/);
 assert.match(izvedbaHtml, /class="izvedba-koraki-pregled"/);
 assert.doesNotMatch(izvedbaHtml, /zacasno-obvestila-data\.js/);
 assert.doesNotMatch(izvedbaHtml, /zo-detail-view|zo-detail-sheet|zo-detail-rocaj/);
@@ -87,7 +87,7 @@ assert.match(izvedbaCss, /\.izvedba-action-card--delno/);
 assert.match(izvedbaCss, /body\.izvedba-sheet-open\s*\{[^}]*overflow:\s*hidden/);
 assert.doesNotMatch(izvedbaJs, /Dolžniku bo poslano prek/);
 assert.match(izvedbaCss, /\.izvedba-integrirana\s*\{[\s\S]*?overflow-anchor:\s*none/);
-assert.match(izvedbaHtml, /<body class="stran--sporocilo">/);
+assert.match(izvedbaHtml, /<body class="stran--sporocilo app-testna-vrstica-prisotna">/);
 assert.match(izvedbaCss, /Povrnjena prvotna mobilna velikost/);
 assert.match(izvedbaCss, /\.izvedba-mini-korak\s*\{[^}]*height:\s*84px/);
 assert.match(izvedbaCss, /\.izvedba-integrirana \.zo-sporocilo__telo\s*\{[^}]*font-size:\s*13\.5px/);
@@ -169,10 +169,27 @@ assert.match(izvedbaKomponenteJs, /tag:[\s\S]*?<circle cx="8" cy="8"/);
 assert.match(izvedbaKomponenteJs, /documentX:[\s\S]*?m9 13 6 6/);
 
 assert.match(js, /\.from\("zadeve"\)/);
-assert.match(js, /\.select\("\*"\)/);
+var aktivniSelect = js.match(/\.from\("zadeve"\)\s*\.select\(\s*"([^"]+)"\s*\)/);
+assert.ok(aktivniSelect, "Aktivni primeri morajo izbrati izrecen seznam stolpcev");
+[
+  "id",
+  "ime_dolznika",
+  "znesek",
+  "preostali_dolg",
+  "datum_zapadlosti",
+  "status",
+  "ustvarjeno_at",
+  "opomin_aktiviran:opomin_nacrt->>serverActivatedAt",
+  "opomin_koraki:opomin_nacrt->steps",
+].forEach(function (stolpec) {
+  assert.ok(aktivniSelect[1].split(/\s*,\s*/).indexOf(stolpec) !== -1, "Manjka stolpec " + stolpec);
+});
 assert.doesNotMatch(js, /\.select\("id,ime_dolznika/);
 assert.match(js, /\.neq\("status", "Rešeno"\)/);
-assert.match(js, /zadeva\.opomin_nacrt\.serverActivatedAt/);
+assert.match(js, /\.not\("opomin_nacrt->>serverActivatedAt", "is", null\)/);
+assert.match(js, /zadeva\.status !== "Rešeno" &&\s*zadeva\.opomin_aktiviran;/);
+assert.match(js, /serverActivatedAt: zadeva\.opomin_aktiviran \|\| null/);
+assert.match(js, /steps: Array\.isArray\(zadeva\.opomin_koraki\) \? zadeva\.opomin_koraki : \[\]/);
 assert.match(js, /vsebina\.hidden = false/);
 assert.match(js, /izvedba\.html\?zadevaId=/);
 assert.doesNotMatch(js, /neplacila\.html#seznam/);

@@ -1009,8 +1009,18 @@ function normalizirajInlineNaslovneVrstice(vrednost) {
 
 function odstraniSekundarneVzorčneVrstice(vrednost) {
   var praviNaslovNajden = false;
+  var pravnaVloga = new RegExp(LEGAL_ROLE_LABEL_SOURCE, "i");
+  var prejsnjaVrstica = "";
   return String(vrednost || "").split("\n").filter(function (vrstica) {
-    var vzorcnaVrstica = /\b(?:Muster(?:stra(?:ß|ss)e|weg|platz|stadt|hausen)|(?:Max|Erika)\s+(?:Mustermann|Musterfrau|Beispiel)|DE123456789)\b/i.test(vrstica);
+    // »Mustermann/Musterfrau«, Muster-naslovi in vzorčni USt-ID so nedvoumne
+    // predloge. Priimek »Beispiel« je dvoumen: kot ostanek predloge ga
+    // izločimo samo brez izrecne pravne vloge iz skupnega slovarja (v isti ali
+    // neposredno prejšnji vrstici), sicer bi vrstica »Vertreten durch die
+    // Geschäftsführerin …« ali »Vertreten durch:« + ime izgubila zastopnika.
+    var imaPravnoVlogo = pravnaVloga.test(vrstica) || pravnaVloga.test(prejsnjaVrstica);
+    prejsnjaVrstica = vrstica;
+    var vzorcnaVrstica = /\b(?:Muster(?:stra(?:ß|ss)e|weg|platz|stadt|hausen)|(?:Max|Erika)\s+(?:Mustermann|Musterfrau)|DE123456789)\b/i.test(vrstica) ||
+      (/\b(?:Max|Erika)\s+Beispiel\b/i.test(vrstica) && !imaPravnoVlogo);
     var vsebujeLokacijo = /\b\d{5}\s+[\p{L}]/u.test(vrstica);
     if (praviNaslovNajden && vzorcnaVrstica) return false;
     if (vsebujeLokacijo && !vzorcnaVrstica) praviNaslovNajden = true;
