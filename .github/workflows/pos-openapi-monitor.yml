@@ -24,8 +24,21 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .openapi-monitor-state
+          key: openapi-alert-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: openapi-alert-v1-
       - name: Check read-only Openapi diagnostics
+        id: monitor
         env:
           POS_OPENAPI_DIAGNOSTICS_SECRET: ${{ secrets.POS_OPENAPI_DIAGNOSTICS_SECRET }}
           POS_OPENAPI_DIAGNOSTICS_RELEASE_VERIFIED: "true"
-        run: node scripts/pos-openapi-monitor.js
+        run: node scripts/pos-openapi-monitor-notifications.js
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .openapi-monitor-state
+          key: openapi-alert-v1-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Report new diagnostic failure
+        if: steps.monitor.outputs.exit_code != '0'
+        run: exit 1

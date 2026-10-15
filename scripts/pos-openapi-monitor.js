@@ -5,6 +5,7 @@
 const ENDPOINT = "https://uspesni-jezek.vercel.app/api/pos-dostava-delavec?diagnostics=1";
 const MAX_RESPONSE_BYTES = 65536;
 const KNOWN_RECOVERY_CODES = new Set([
+  "OPENAPI_LOCAL_FAILURE_REVIEW_REQUIRED",
   "OPENAPI_SUBMISSION_OUTCOME_UNKNOWN_REVIEW_REQUIRED",
   "OPENAPI_RECONCILIATION_ATTEMPTS_EXHAUSTED",
   "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED",
@@ -38,6 +39,15 @@ function summarize(status, body) {
     recoveryCount: body.recoveryRequired.length,
     recovery,
     diagnosticsUnavailable: body.recoveryDiagnosticsUnavailable,
+    // Only stable, fully identified recovery incidents may share an alert.
+    incidentFingerprint: unhealthy && body.recoveryRequired.length > 0
+      && !body.recoveryDiagnosticsUnavailable && body.recoveryDiagnosticsDeferred !== true
+      && body.recoveryRequired.every(item => item && typeof item.id === "string" && item.id.length > 0
+        && KNOWN_RECOVERY_CODES.has(item.code))
+      ? require("node:crypto").createHash("sha256").update(JSON.stringify({
+        status, ok: body.ok, degraded: body.degraded,
+        incidents: body.recoveryRequired.map(item => [item.id, item.code]).sort(),
+      })).digest("hex") : null,
   };
 }
 
