@@ -4,7 +4,7 @@ const { summarize } = require("./pos-openapi-monitor");
 const { decide } = require("./pos-openapi-monitor-notifications");
 const base = { diagnosticsOnly: true, processed: 0, reconciled: 0, ok: false, degraded: true,
   recoveryDiagnosticsUnavailable: false,
-  recoveryRequired: [{ id: "synthetic-a", code: "OPENAPI_SUBMISSION_OUTCOME_UNKNOWN_REVIEW_REQUIRED" }] };
+  recoveryRequired: [{ id: "synthetic-a", provider: "openapi", isTest: true, code: "OPENAPI_SUBMISSION_OUTCOME_UNKNOWN_REVIEW_REQUIRED" }] };
 const incident = summarize(503, base);
 const first = decide(incident, null);
 assert.equal(first.exitCode, 1);
@@ -26,4 +26,18 @@ const healthy = decide({ ok: true, exitCode: 0 }, first.state);
 assert.equal(healthy.state.fingerprint, null);
 assert.equal(decide(incident, healthy.state).exitCode, 1);
 assert(!JSON.stringify(incident).includes("synthetic-a"));
+for (const patch of [{ isTest: false }, { provider: "other" }, { isTest: "true" }, { provider: undefined }]) {
+  const changed = summarize(503, { ...base, recoveryRequired: [{ ...base.recoveryRequired[0], ...patch }] });
+  assert.equal(decide(changed, first.state).exitCode, 1);
+}
+for (const [count, provider, code] of [
+  [100, "openapi", "OPENAPI_SUBMISSION_OUTCOME_UNKNOWN_REVIEW_REQUIRED"],
+  [3, "email", "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED"],
+]) {
+  const capped = summarize(503, { ...base, recoveryRequired: Array.from({ length: count }, (_, i) => ({
+    id: `synthetic-${i}`, provider, isTest: true, code,
+  })) });
+  const saved = decide(capped, null).state;
+  assert.equal(decide(capped, saved).exitCode, 1, "Potentially truncated results must not silence unseen incidents");
+}
 console.log("Openapi notification regression: PASS (repeat, identity, count, reason, recovery, fail-closed, redaction)");

@@ -42,11 +42,18 @@ function summarize(status, body) {
     // Only stable, fully identified recovery incidents may share an alert.
     incidentFingerprint: unhealthy && body.recoveryRequired.length > 0
       && !body.recoveryDiagnosticsUnavailable && body.recoveryDiagnosticsDeferred !== true
+      // These are the current worker query limits. At the limit, unseen rows
+      // may exist and an unchanged sample must never suppress their alert.
+      && body.recoveryRequired.filter(item => item?.code === "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED").length < 3
+      && body.recoveryRequired.filter(item => item?.code !== "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED").length < 100
       && body.recoveryRequired.every(item => item && typeof item.id === "string" && item.id.length > 0
+        && typeof item.provider === "string" && item.provider.length > 0
+        && (item.code === "DELIVERY_ATTEMPTS_EXHAUSTED_RECONCILIATION_REQUIRED"
+          || (item.provider === "openapi" && typeof item.isTest === "boolean"))
         && KNOWN_RECOVERY_CODES.has(item.code))
       ? require("node:crypto").createHash("sha256").update(JSON.stringify({
         status, ok: body.ok, degraded: body.degraded,
-        incidents: body.recoveryRequired.map(item => [item.id, item.code]).sort(),
+        incidents: body.recoveryRequired.map(item => [item.id, item.code, item.provider, item.isTest ?? null]).sort(),
       })).digest("hex") : null,
   };
 }
