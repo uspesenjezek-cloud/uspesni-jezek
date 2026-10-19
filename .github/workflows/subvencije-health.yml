@@ -1,0 +1,34 @@
+name: Subvencije health
+
+# Independent uptime check for the funding module: no secrets, no checkout, read-only.
+# A failed run makes GitHub notify the workflow owner by e-mail. The public route
+# returns only ok/status/alert codes (200 healthy, 503 alarm).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+
+permissions: {}
+
+concurrency:
+  group: subvencije-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public funding health
+        run: |
+          url="https://uspesni-jezek.vercel.app/api/subvencije?action=health"
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o body.json -w '%{http_code}' --max-time 30 "$url" || echo 000)
+            if [ "$code" = "200" ] && grep -q '"ok":true' body.json; then
+              echo "Healthy: $(head -c 300 body.json)"; exit 0
+            fi
+            echo "Attempt $attempt: HTTP $code $(head -c 300 body.json 2>/dev/null)"
+            [ "$attempt" = 3 ] || sleep 60
+          done
+          echo "::error::Subvencije health check failed three times"
+          exit 1
