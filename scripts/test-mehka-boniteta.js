@@ -49,8 +49,8 @@ assert.strictEqual(identityEvidenceContract.jePosnetekPrikazljiv({
   status: "captured", imageDataUrl: testniJpeg, sourceUrl: "https://example.test/uradni-rezultat",
   evidenceMode: "user_uploaded_official_screenshot",
 }), true, "uporabniško naloženo uradno dokazilo mora ostati prikazljivo");
-assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v16-visible-content-overlay-isolation");
-assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v37-openregister-register-reference");
+assert.strictEqual(identityEvidenceContract.CAPTURE_VERSION, "identity-evidence-v17-preserve-legal-modal");
+assert.strictEqual(identityEvidenceContract.CACHE_VERSION, "impressum-parser-v49-role-labelled-sample-names");
 
 var searchFixture = [
   '<article><a href="/betriebe/andreas-deumlich-45,0,bdbdetail.html?id=3294">Andreas Deumlich</a><p>60385 Frankfurt am Main</p></article>',
@@ -198,12 +198,18 @@ var uradniKwasnitzaRezultat = [
   "70g IN 269/25 Köln HRB 116572",
 ].join("\n");
 assert.strictEqual(test.presodiUradniInsolvencniRezultat(
-  uradniKwasnitzaRezultat, kwasnitzaSubjekt, test.razcleniOpravilnoStevilko("70g IN 269/25")
+  uradniKwasnitzaRezultat, kwasnitzaSubjekt, test.razcleniOpravilnoStevilko("70g IN 269/25"), [{
+    caseNumber: "70g IN 269/25", court: "Köln", debtorName: "Kwasnitza Heizung & Sanitär GmbH",
+    city: "Leverkusen", register: "HRB 116572",
+  }]
 ).status, "confirmed_match");
 assert.strictEqual(test.presodiUradniInsolvencniRezultat(
   "Suchergebnis - Veröffentlichungsliste\nMattei, Patrick\nFrankfurt am Main\n810 IN 999/26",
   { ime: "Patrick Mattei", kraj: "Frankfurt am Main", entityType: "person" },
-  test.razcleniOpravilnoStevilko("810 IN 999/26")
+  test.razcleniOpravilnoStevilko("810 IN 999/26"), [{
+    caseNumber: "810 IN 999/26", court: "Frankfurt am Main", debtorName: "Mattei, Patrick",
+    city: "Frankfurt am Main", register: "",
+  }]
 ).status, "confirmed_match");
 assert.strictEqual(test.presodiUradniInsolvencniRezultat(
   "Suchergebnis\nIhre Suche ergab zu viele Treffer. Die maximale Trefferzahl beträgt 1000.", kwasnitzaSubjekt, null
@@ -957,6 +963,37 @@ var kontekstDirektorice = test.razcleniImpressum(
 );
 assert.strictEqual(kontekstDirektorice.nosilec, "Erika Beispiel");
 assert.strictEqual(kontekstDirektorice.vloge[0].vloga, "Gesch\u00e4ftsf\u00fchrung");
+// Filter vzor\u010dnih vrstic (d42a101) ne sme izbrisati izrecno ozna\u010denega
+// zastopnika, tudi kadar je vloga v isti ali v prej\u0161nji vrstici; prave
+// predloge (Mustermann, gola vzor\u010dna vrstica) pa ostanejo izlo\u010dene.
+[
+  ["<p>Vertreten durch den Gesch\u00e4ftsf\u00fchrer Max Beispiel</p>", "Max Beispiel", "Gesch\u00e4ftsf\u00fchrung"],
+  ["<p>Vertreten durch:<br>Erika Beispiel</p>", "Erika Beispiel", "Vertretung"],
+  ["<p>Vertreten durch den Inhaber<br>Max Beispiel</p>", "Max Beispiel", "Inhaber"],
+  ["<p>Inhaber/in: Erika Beispiel</p>", "Erika Beispiel", "Inhaber"],
+].forEach(function (primer) {
+  var rezultat = test.razcleniImpressum(
+    "<main><h1>Impressum</h1><p>Beispiel Technik GmbH<br>Teststra\u00dfe 4<br>10115 Berlin</p>" + primer[0] + "</main>",
+    "https://example.test/impressum",
+    { ime: "", postnaStevilka: "10115", kraj: "Berlin" }
+  );
+  assert.strictEqual(rezultat.nosilec, primer[1], primer[0]);
+  assert.strictEqual(rezultat.vloge[0] && rezultat.vloge[0].vloga, primer[2], primer[0]);
+});
+var vidniZastopnikNaslednjaVrstica = test.razcleniVidniImpressumTekst(
+  "Impressum\nBeispiel Technik GmbH\nTeststra\u00dfe 4\n10115 Berlin\nVertreten durch:\nErika Beispiel",
+  "https://example.test/impressum",
+  { ime: "", postnaStevilka: "10115", kraj: "Berlin" }
+);
+assert.strictEqual(vidniZastopnikNaslednjaVrstica && vidniZastopnikNaslednjaVrstica.nosilec, "Erika Beispiel", "vidni parser mora uporabiti isto pravilo vzor\u010dnih vrstic");
+["<p>Gesch\u00e4ftsf\u00fchrer: Max Mustermann</p>", "<p>Erika Beispiel</p>"].forEach(function (predloga) {
+  var rezultat = test.razcleniImpressum(
+    "<main><h1>Impressum</h1><p>Beispiel Technik GmbH<br>Teststra\u00dfe 4<br>10115 Berlin</p>" + predloga + "</main>",
+    "https://example.test/impressum",
+    { ime: "", postnaStevilka: "10115", kraj: "Berlin" }
+  );
+  assert.strictEqual(rezultat.nosilec, "", "sekundarna vzor\u010dna vrstica ne sme postati nosilec: " + predloga);
+});
 var vlogaBrezOsebe = test.razcleniImpressum(
   "<main><h1>Impressum</h1><p>Beispiel Technik GmbH<br>Teststra\u00dfe 4<br>10115 Berlin</p><p>Vertreten durch den Inhaber</p><p>Telefon: 030 123456</p></main>",
   "https://example.test/impressum",
@@ -1424,9 +1461,9 @@ assert.strictEqual(test.pripraviPotrditevIdentitete({ confirmedIdentity: {
 var koren = path.join(__dirname, "..");
 var html = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.html"), "utf8");
 var js = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.js"), "utf8");
-assert.match(js, /reason === "insufficient_credits"[^\n]+Krediti porabljeni/,
+assert.match(js, /reason === "insufficient_credits"[^\n]+Kvota ni na voljo/,
   "UI mora pomanjkanje OpenRegister kreditov razlikovati od nedosegljivega vira");
-assert.match(html, /bonitetna-preverba\.js\?v=20260818-openregister-credit-reason-v27/,
+assert.match(html, /bonitetna-preverba\.js\?v=20260819-company-art-v41/,
   "nova razlaga OpenRegister stanja mora dobiti novo različico odjemalskega asseta");
 var centerJs = fs.readFileSync(path.join(koren, "app", "boniteta-sredisce.js"), "utf8");
 var bonitetaCss = fs.readFileSync(path.join(koren, "app", "bonitetna-preverba.css"), "utf8");
@@ -1456,21 +1493,21 @@ assert.match(html, /id="boniteta-insolvenca-podatki"/);
 assert.match(html, /id="boniteta-insolvenca-posnetek"/);
 assert.match(html, /id="boniteta-objave-gumb"/);
 assert.match(html, /id="boniteta-objave-seznam"/);
-assert.match(html, /bonitetna-preverba\.css\?v=20260817-temp-back-v5/);
+assert.match(html, /bonitetna-preverba\.css\?v=20260819-clean-result-header-v6/);
 assert.match(html, /class="crif-flow-picker__visual"/);
-assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options button \+ button \{ border-left:/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__option \{ min-height: 233px; padding: 0; border-radius: 21px; \}/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-hero \{ min-height: 160px;/);
 assert.match(bonitetaCss, /\.boniteta-hero__status \{ min-height: 18px; margin: 6px 72px 0 2px;/);
-assert.match(bonitetaCss, /\.boniteta-zajem__nacin \{ min-height: 98px;/);
+assert.match(bonitetaCss, /\.boniteta-zajem__nacin \{ min-height: 78px;/);
 assert.match(bonitetaCss, /\.boniteta-hero > label \{ margin-top: 0; font-size: \.76rem; \}/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.boniteta-zajem \{ gap: 8px; margin: -22px 10px 0;/);
 assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__options \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-assert.match(html, /bonitetna-preverba\.js\?v=20260818-openregister-credit-reason-v27/);
+assert.match(html, /bonitetna-preverba\.js\?v=20260819-company-art-v41/);
 assert.match(js, /Iščemo podjetje in posodabljamo podatke obrtnika …/);
-assert.match(html, /boniteta-sredisce\.js\?v=20260817-reference-flow-v10/);
+assert.match(html, /boniteta-sredisce\.js\?v=20260819-company-card-v23/);
 assert.match(html, /id="boniteta-flow-start"/);
-assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start \{[\s\S]*?min-height: 46px;[\s\S]*?border-radius: 11px;[\s\S]*?background: linear-gradient\(135deg, #57b6b0, #2f8480\);/);
-assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start b \{ position: static;/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start \{[\s\S]*?min-height: 48px;[\s\S]*?border-radius: 14px;[\s\S]*?background: linear-gradient\(135deg, #46b2ac, #168d8a 62%, #087079\);/);
+assert.match(bonitetaCss, /\.stran--bonitetna \.crif-flow-picker__start b \{ display: grid; width: 31px; height: 31px;/);
 assert.match(html, /boniteta-pro\.css\?v=20260816-profiles-delete-v6/);
 assert.match(html, /data-boniteta-center-view="new"/);
 assert.match(html, /data-boniteta-center-view="profiles"/);
@@ -1542,7 +1579,7 @@ assert.match(bonitetaCss, /\.boniteta-insolvenca-viri \[hidden\][\s\S]*display:\
 assert.match(bonitetaCss, /overflow-wrap:\s*anywhere/);
 assert.match(js, /prikazanoDokaziloIdentitete\.imageDataUrl/);
 assert.match(js, /prikazanoDokaziloIdentitete\.screenshotReady === true/, "UI mora zaupati enotni semantični strežniški pogodbi dokazila");
-assert.match(js, /Neposredno prek OpenRegister API/);
+assert.match(js, /identiteta\.status === "verified_register"\) \{\s*window\.UJBonitetaPrikaziRegistrskoPodjetje\(podatki\);/);
 assert.match(js, /confirmedIdentity/);
 assert.match(html, /id="boniteta-identiteta-url"/, "ob dokazilu mora biti viden končni URL vira");
 assert.match(js, /prikazanoDokaziloIdentitete\.sourceUrl/, "UI mora prikazati končni URL zajetega vira");
@@ -1574,8 +1611,8 @@ assert.match(apiSrc, /presodiUradniInsolvencniRezultat/);
 assert.match(apiSrc, /presodiOpenRegisterInsolvencniZadetek/);
 assert.match(apiSrc, /var zadetki = presojeZadetkov\.filter/);
 assert.match(apiSrc, /matchAssessment: presojeZadetkov/);
-assert.match(apiSrc, /litx_firmaNachName:text", imenskiPogoji\.firmaPriimek/);
-assert.match(apiSrc, /litx_vorname:text", imenskiPogoji\.ime/);
+assert.match(apiSrc, /firmaPriimek: "frm_suche:litx_firmaNachName:text"[\s\S]*firmaPriimek: imenskiPogoji\.firmaPriimek[\s\S]*izpolni\(ciljnaStran, URADNA_INSOLVENCNA_POLJA\.firmaPriimek, oddanaPolja\.firmaPriimek\)/);
+assert.match(apiSrc, /ime: "frm_suche:litx_vorname:text"[\s\S]*ime: imenskiPogoji\.ime[\s\S]*izpolni\(ciljnaStran, URADNA_INSOLVENCNA_POLJA\.ime, oddanaPolja\.ime\)/);
 assert.match(apiSrc, /Veröffentlichungstext anzeigen/);
 assert.match(apiSrc, /publications:\s*uradneObjave/);
 assert.match(apiSrc, /zajemiDokaziloIdentitete/);
@@ -1651,5 +1688,15 @@ assert.match(packageJson, /"dev":\s*"node scripts\/local-server\.js --port 8001"
 assert.match(lokalniStreznik, /const citajRacunModul = require\.resolve\("\.\.\/api\/citaj-racun"\)/);
 assert.match(lokalniStreznik, /process\.env\.ANTHROPIC_API_KEY[\s\S]*izvediLokalniApi\(req, res, citajRacunModul\)/);
 assert.doesNotMatch(js, /mock|lažni rezultat|demo rezultat/i);
+
+// Produkcija (api/boniteta.js) uporablja kopije v api/_handlers/, testi pa
+// lokalne izvorne datoteke. Kopija se sme razlikovati samo v relativnih poteh
+// do ../_lib, sicer bi popravek ostal samo lokalno.
+["mehka-boniteta", "mehka-boniteta-opravilo", "boniteta-pro"].forEach(function (ime) {
+  var izvor = fs.readFileSync(path.join(__dirname, "..", "api", ime + ".js"), "utf8").replace(/\r\n/g, "\n");
+  var produkcija = fs.readFileSync(path.join(__dirname, "..", "api", "_handlers", ime + ".js"), "utf8")
+    .replace(/\r\n/g, "\n").replace(/(["'])\.\.\/_lib\//g, "$1./_lib/");
+  assert.strictEqual(produkcija, izvor, "api/_handlers/" + ime + ".js mora biti enak api/" + ime + ".js");
+});
 
 console.log("✓ Mehka bonitetna preverba: parserji, odločanje in povezava v meni delujejo.");

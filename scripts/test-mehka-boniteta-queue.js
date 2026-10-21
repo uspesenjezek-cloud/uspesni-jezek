@@ -72,7 +72,11 @@ async function main() {
       "stari HS256 žeton mora sprožiti osvežitev seje, ne nedosegljivega Auth API-ja");
     assert.equal(zahtevanaOsvezitev.retryable, true);
 
-    assert.equal(require("../vercel.json").functions["api/mehka-boniteta-opravilo.js"].maxDuration, 30,
+    var vercelNastavitve = require("../vercel.json");
+    var opraviloPrepis = (vercelNastavitve.rewrites || []).find(function (r) { return r.source === "/api/mehka-boniteta-opravilo"; });
+    assert.equal(opraviloPrepis && opraviloPrepis.destination, "/api/boniteta?handler=job",
+      "pot opravila mora v produkciji teči prek združenega usmerjevalnika api/boniteta.js");
+    assert.ok(vercelNastavitve.functions["api/boniteta.js"].maxDuration >= 30,
       "hladni zajem javnega ključa in rezervna auth pot morata imeti dovolj skupnega časa");
 
     assert.equal(supabaseServer._test.omejenCas(5000, 12000), 5000,
@@ -130,11 +134,11 @@ async function main() {
     global.fetch = prvotniAuthFetch;
   }
 
-  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v37-openregister-register-reference");
+  assert.equal(queue._test.CACHE_VERSION, "impressum-parser-v49-role-labelled-sample-names");
   assert.equal(
     queue.cacheKey({ ime: "Cache GmbH" }),
     require("node:crypto").createHash("sha256").update(JSON.stringify({
-      cacheVersion: "impressum-parser-v37-openregister-register-reference",
+      cacheVersion: "impressum-parser-v49-role-labelled-sample-names",
       faza: "identiteta",
       ime: "cache gmbh",
       naslov: "",
@@ -228,7 +232,7 @@ async function main() {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), result_payload: {
       identityEvidence: {
         status: "captured", imageDataUrl: "data:image/jpeg;base64,QUJDRA==",
-        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v16-visible-content-overlay-isolation",
+        sourceUrl: "https://example.test/impressum", captureVersion: "identity-evidence-v17-preserve-legal-modal",
         viewportOverlaysRemoved: true,
       },
     },
@@ -258,7 +262,14 @@ async function main() {
   var telo = { ime: "Cache GmbH", naslov: "Musterstraße 1", postnaStevilka: "10115", kraj: "Berlin" };
   var prvi = await queue.ustvari({}, "user-a", telo);
   var claim = (await queue.prevzemi({}, 1))[0];
-  await queue.zakljuci({}, claim, { success: true, result: { ok: true, cachedResult: true } });
+  // Ponovno se sme uporabiti samo rezultat z uradno ali prikazljivo dokazano identiteto (jeRezultatPrimerenZaPredpomnilnik).
+  assert.equal(queue._test.jeRezultatPrimerenZaPredpomnilnik({ ok: true, cachedResult: true }, "identiteta"), false,
+    "rezultat brez dokazane identitete se ne sme ponovno uporabiti iz predpomnilnika");
+  await queue.zakljuci({}, claim, { success: true, result: {
+    ok: true, cachedResult: true,
+    identity: { status: "verified_register", companyId: "DE-HRB-12345" },
+    identityEvidence: { status: "verified_api", companyId: "DE-HRB-12345" },
+  } });
   var drugi = await queue.ustvari({}, "user-b", telo);
   assert.equal(prvi.status, "queued");
   assert.equal(drugi.status, "queued", "uporabnik ne sme dobiti rezultata ali dokazil drugega uporabnika");
