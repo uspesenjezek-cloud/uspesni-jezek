@@ -9,6 +9,7 @@ var MAX_INSOLVENCY_CONCURRENCY = 10;
 // odločanje ali zajem dokaznega posnetka. Tako star siv oziroma prekrit
 // posnetek po popravku ne more znova prekriti novega pravilnega zajema.
 var CACHE_VERSION = identityEvidenceContract.CACHE_VERSION;
+var INSOLVENCY_CACHE_VERSION = "official-insolvency-v8-result-person-full-name-highlight";
 
 var globalniPomnilnik = global.__UJ_MEHKA_BONITETA_QUEUE__;
 if (!globalniPomnilnik) {
@@ -36,9 +37,10 @@ function fazaZahteve(telo) {
 
 function cacheKey(telo) {
   var potrjeno = telo && telo.confirmedIdentity || {};
+  var faza = fazaZahteve(telo);
   var podatki = {
-    cacheVersion: CACHE_VERSION,
-    faza: fazaZahteve(telo),
+    cacheVersion: CACHE_VERSION + (faza === "insolvenca" ? ":" + INSOLVENCY_CACHE_VERSION : ""),
+    faza: faza,
     ime: normaliziraj(telo && telo.ime),
     naslov: normaliziraj(telo && telo.naslov),
     postnaStevilka: normaliziraj(telo && telo.postnaStevilka),
@@ -74,7 +76,9 @@ function jeRezultatPrimerenZaPredpomnilnik(rezultat, faza) {
   var insolvenca = rezultat.insolvency || {};
   var uradna = insolvenca.officialVerification || {};
   return ["clear", "possible_match"].includes(insolvenca.status) &&
-    uradna.evidenceStatus === "captured" && Boolean(uradna.evidenceImage);
+    uradna.evidenceStatus === "captured" &&
+    uradna.evidenceVersion === INSOLVENCY_CACHE_VERSION &&
+    Boolean(uradna.evidenceImage);
 }
 
 function javniPosnetek(job, position) {
@@ -573,6 +577,7 @@ module.exports = {
   pridobiLokalnaOpravilaPoDomeni: pridobiLokalnaOpravilaPoDomeni,
   _test: {
     CACHE_VERSION: CACHE_VERSION,
+    INSOLVENCY_CACHE_VERSION: INSOLVENCY_CACHE_VERSION,
     MAX_CONCURRENCY: MAX_CONCURRENCY,
     MAX_INSOLVENCY_CONCURRENCY: MAX_INSOLVENCY_CONCURRENCY,
     ponastaviPomnilnik: ponastaviPomnilnik,
